@@ -51,6 +51,9 @@ import W2 from "../../supabase/functions/remix/fixtures/phase3-w2-live.json";
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const DEMO = { key: "hd-demo1", name: "screen-recording.mp4", seconds: 24 };
 const DEMO_FILE = new Blob(["demo"]);
+// a demo saved on /brand: the 0:20 to 0:50 window of a 2-minute recording
+const SAVED = { key: "cvid-mh2k9x01ab", name: "Budget sheet walkthrough", seconds: 30, start: 20 };
+const SAVED_FILE = new Blob(["saved demo"]);
 const ASK: HookDemoAsk = { source: null, topic: "How I log every client call in one place", mention: true, play: "stock", hook: "", demo: DEMO };
 const HOOKS = [
   { text: "I logged every call for 30 days and this changed", formula: hookFormulaSet(0)[0].id },
@@ -356,5 +359,56 @@ describe("the demo on this device", () => {
     await keepOnlyDemo("hd-new");
     expect(media.del).toHaveBeenCalledTimes(2);
     expect(pendingDemo()).toBeNull();
+  });
+
+  it("a saved demo survives picking another demo: keepOnlyDemo never lists or deletes a cvid- key", async () => {
+    store.set("cs-make-hook-demo-files", JSON.stringify(["hd-old"]));
+    // the saved demo picked, then a one-off picked, then another saved demo, with a spoken hook waiting on the first
+    await keepOnlyDemo(SAVED.key);
+    expect(media.del.mock.calls.map((c) => c[0])).toEqual(["hd-old"]);
+    expect(JSON.parse(store.get("cs-make-hook-demo-files")!)).toEqual([]);
+    await keepOnlyDemo("hd-new");
+    store.set("cs-ai-video-pending", JSON.stringify({ name: HOOK_NAME, tokens: ["t1"], seconds: [4], kind: "template", after: [{ key: SAVED.key, start: 20, end: 50 }] }));
+    // even a list someone wrote with a saved key in it
+    store.set("cs-make-hook-demo-files", JSON.stringify(["hd-new", "cvid-other0001", SAVED.key]));
+    await keepOnlyDemo("cvid-other0001");
+    expect(media.del.mock.calls.map((c) => c[0])).toEqual(["hd-old", "hd-new"]);
+    expect(media.del.mock.calls.some(([k]) => String(k).startsWith("cvid-"))).toBe(false);
+    expect(JSON.parse(store.get("cs-make-hook-demo-files")!)).toEqual([]);
+    // the waiting clip plays the saved demo's window
+    expect(pendingDemo()).toEqual({ key: SAVED.key, name: "Your demo", seconds: 30, start: 20 });
+  });
+});
+
+describe("a demo saved on /brand", () => {
+  beforeEach(() => media.get.mockImplementation(async (k: string) => (k === SAVED.key ? SAVED_FILE : k === DEMO.key ? DEMO_FILE : undefined)));
+
+  it("joins its window, from where it starts in the file, after a stock hook", async () => {
+    serve({ montage: () => 0 });
+    const j = await run({ ...ASK, demo: SAVED, hook: "Stop guessing why your pipeline is empty" });
+    expect(j.state).toBe("done");
+    const [, takes] = media.start.mock.calls[0];
+    expect(takes.map((t: { start: number; end: number }) => [t.start, t.end])).toEqual([[0, 3], [20, 50]]);
+    expect(takes[1].file).toBe(SAVED_FILE);
+    expect(media.del).not.toHaveBeenCalled();
+  });
+
+  it("keeps its window in a spoken hook's after, so a reload joins the same part", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false })));
+    await run({ ...ASK, demo: SAVED, play: "spoken", hook: "Stop guessing why your pipeline is empty" });
+    expect(pendingAvatar()?.after).toEqual([{ key: SAVED.key, start: 20, end: 50 }]);
+    clearHookDemo();
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["hook"]) })));
+    resumeHookDemo({ ...ASK, demo: SAVED, play: "spoken" });
+    await vi.runAllTimersAsync();
+    const [, takes] = media.start.mock.calls[0];
+    expect(takes.map((t: { start: number; end: number }) => [t.start, t.end])).toEqual([[0, 4], [20, 50]]);
+    expect(takes[1].file).toBe(SAVED_FILE);
+  });
+
+  it("a demo picked here keeps playing from 0, as before saved demos", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false })));
+    await run({ ...ASK, play: "spoken", hook: "Stop guessing why your pipeline is empty" });
+    expect(pendingAvatar()?.after).toEqual([{ key: DEMO.key, end: 24 }]);
   });
 });

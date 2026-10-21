@@ -74,10 +74,12 @@ export interface JoinPlan {
   overlay: { from: number; to: number };
 }
 
-export function joinPlan(play: HookPlay, hookSeconds: number, demoSeconds: number): JoinPlan {
+/** `demoStart`: where a saved demo's window starts in its file (0 for a demo picked for this video), `demoSeconds` its length. */
+export function joinPlan(play: HookPlay, hookSeconds: number, demoSeconds: number, demoStart = 0): JoinPlan {
   const hook = hookEnd(play, hookSeconds);
-  const demo = Math.round(Math.min(DEMO_MAX_SECONDS, demoSeconds) * 100) / 100;
-  return { takes: [{ take: "hook", start: 0, end: hook }, { take: "demo", start: 0, end: demo }], overlay: { from: 0, to: hook } };
+  const start = Math.round(Math.max(0, demoStart) * 100) / 100;
+  const demo = Math.round((start + Math.min(DEMO_MAX_SECONDS, demoSeconds)) * 100) / 100;
+  return { takes: [{ take: "hook", start: 0, end: hook }, { take: "demo", start, end: demo }], overlay: { from: 0, to: hook } };
 }
 
 /** "0:24" for the demo card. */

@@ -67,6 +67,14 @@ describe("the join", () => {
     expect(joinPlan("spoken", 4, 45).takes[1]).toEqual({ take: "demo", start: 0, end: 30 });
   });
 
+  it("plays a saved demo's window: from its start in the file, for its length, never past 30 s", () => {
+    // the 0:20 to 0:50 window of a 2-minute recording
+    expect(joinPlan("stock", 12, 30, 20)).toEqual({ takes: [{ take: "hook", start: 0, end: 3 }, { take: "demo", start: 20, end: 50 }], overlay: { from: 0, to: 3 } });
+    expect(joinPlan("spoken", 4, 12.5, 61.25).takes[1]).toEqual({ take: "demo", start: 61.25, end: 73.75 });
+    expect(joinPlan("stock", 12, 45, 10).takes[1]).toEqual({ take: "demo", start: 10, end: 40 });
+    expect(joinPlan("stock", 12, 24, -3).takes[1]).toEqual({ take: "demo", start: 0, end: 24 });
+  });
+
   it("shows the demo's length as a clock", () => {
     expect(clock(24)).toBe("0:24");
     expect(clock(59.6)).toBe("1:00");

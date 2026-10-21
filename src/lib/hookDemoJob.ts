@@ -8,7 +8,9 @@
 //           Pending.after, so a reload joins it at no cost
 // The hook goes on screen as one block sticker from 0 to the hook's end, on the editor's no-captions path (never a
 // wall, which would mute the demo and stretch the words over it). The demo is a device file (putFile), never a link
-// and never synced; its key and name ride in sessionStorage for this tab. The written hooks live in memory here.
+// and never synced; its key and name ride in sessionStorage for this tab. It is either picked for this video (an hd-
+// key this page owns and clears) or a demo saved on /brand (a cvid- key in Media, played from its window's start,
+// never deleted here). The written hooks live in memory here.
 // The run's steps show in /library through formatJob.
 
 import { aiBusy, pendingAvatar, makeTemplateClip, resumeAvatar, DEMO_GONE } from "@/lib/aiVideo";
@@ -29,10 +31,13 @@ import { JOIN_STEP, findClip, followClip, noteOf, paidClipBlock, simpleQuery } f
 import { pickHook } from "@/lib/writingJudge";
 
 export interface DemoRef {
-  /** The device file key (putFile) the demo is kept under. */
+  /** The device file key (putFile) the demo is kept under: hd- for one picked here, cvid- for one saved on /brand. */
   key: string;
   name: string;
+  /** How long it plays: the file's length, or a saved demo's window. */
   seconds: number;
+  /** Where a saved demo's window starts in its file (missing: 0). */
+  start?: number;
   /** A small still for the demo card. */
   thumb?: string;
 }
@@ -114,7 +119,9 @@ export const hookParams = (a: Pick<HookDemoAsk, "source" | "mention" | "play">):
 export function loadDemo(): DemoRef | null {
   try {
     const d = JSON.parse(sessionStorage.getItem(DEMO_KEY) ?? "null");
-    return d && typeof d.key === "string" && typeof d.name === "string" && Number(d.seconds) > 0 ? { key: d.key, name: d.name, seconds: Number(d.seconds), thumb: typeof d.thumb === "string" ? d.thumb : undefined } : null;
+    if (!d || typeof d.key !== "string" || typeof d.name !== "string" || !(Number(d.seconds) > 0)) return null;
+    const start = Number(d.start) > 0 ? Number(d.start) : 0;
+    return { key: d.key, name: d.name, seconds: Number(d.seconds), ...(start ? { start } : {}), thumb: typeof d.thumb === "string" ? d.thumb : undefined };
   } catch {
     return null;
   }
@@ -130,16 +137,19 @@ export function saveDemo(d: DemoRef): void {
 
 export const newDemoKey = () => `hd-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
-/** Clears every demo file on this device but the one picked now and the one a waiting spoken hook still joins. */
+/** Only demos picked on this page (hd- keys) are ever listed or cleared: a demo saved on /brand (cvid-) is never touched. */
+const pickedHere = (k: unknown): k is string => typeof k === "string" && k.startsWith("hd-");
+
+/** Clears every demo file this page picked on this device but the one picked now and the one a waiting spoken hook still joins. */
 export async function keepOnlyDemo(current: string): Promise<void> {
-  const keep = new Set([current, pendingDemoKey()].filter((k): k is string => !!k));
+  const keep = new Set([current, pendingDemoKey()].filter(pickedHere));
   let held: unknown = [];
   try {
     held = JSON.parse(localStorage.getItem(DEMO_FILES) ?? "[]");
   } catch {
     // nothing listed: only the current one is kept
   }
-  const stale = (Array.isArray(held) ? held : []).filter((k): k is string => typeof k === "string" && !keep.has(k));
+  const stale = (Array.isArray(held) ? held : []).filter((k): k is string => pickedHere(k) && !keep.has(k));
   await Promise.all(stale.map((k) => deleteFile(k).catch(() => undefined)));
   try {
     localStorage.setItem(DEMO_FILES, JSON.stringify([...keep]));
@@ -308,7 +318,7 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
       first = await downloadStock(clip.src);
       length = (await mediaLength(first)) || clip.duration || STOCK_HOOK_SECONDS;
     }
-    const plan = joinPlan(ask.play === "mine" ? "mine" : "stock", length, ask.demo.seconds);
+    const plan = joinPlan(ask.play === "mine" ? "mine" : "stock", length, ask.demo.seconds, ask.demo.start);
     const extra = hookExtra(hook, plan, ask.source, flags);
     mine({ state: "joining" });
     // a video the editor hasn't picked up yet (a paid avatar) is never overwritten
@@ -325,7 +335,8 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
 
 /** The spoken hook: a paid 4 s clip, the demo joined after it from this device (Pending.after), so a reload still joins it. */
 async function spoken(id: number, ask: HookDemoAsk, hook: string, flags?: Flags): Promise<void> {
-  const plan = joinPlan("spoken", SPOKEN_HOOK_SECONDS, ask.demo.seconds);
+  const plan = joinPlan("spoken", SPOKEN_HOOK_SECONDS, ask.demo.seconds, ask.demo.start);
+  const demo = plan.takes[1];
   const extra = hookExtra(hook, plan, ask.source, flags);
   const mine = patcher(id);
   // checked again right before paying: a video started elsewhere while the hooks were written
@@ -335,7 +346,7 @@ async function spoken(id: number, ask: HookDemoAsk, hook: string, flags?: Flags)
   await follow(id, () =>
     makeTemplateClip(HOOK_NAME, { template: "spoken-hook", seconds: SPOKEN_HOOK_SECONDS, quality: "480p", fields: { line: hook }, photo: null }, {
       extra,
-      after: [{ key: ask.demo.key, end: plan.takes[1].end }],
+      after: [{ key: ask.demo.key, ...(demo.start > 0 ? { start: demo.start } : {}), end: demo.end }],
     }),
   );
 }
@@ -357,7 +368,9 @@ export const pendingHook = (): boolean => {
 /** The waiting spoken hook's demo, as far as the device knows it: a reload in a new tab still picks the clip up. */
 export function pendingDemo(): DemoRef | null {
   const a = pendingHook() ? pendingAvatar()?.after?.[0] : undefined;
-  return a && typeof a.key === "string" ? { key: a.key, name: "Your demo", seconds: a.end } : null;
+  if (!a || typeof a.key !== "string") return null;
+  const start = typeof a.start === "number" && a.start > 0 && a.start < a.end ? a.start : 0;
+  return { key: a.key, name: "Your demo", seconds: Math.round((a.end - start) * 100) / 100, ...(start ? { start } : {}) };
 }
 
 /** The waiting spoken hook's demo key: a demo picked again goes under it, so the paid clip joins it. */
