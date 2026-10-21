@@ -10,12 +10,13 @@
 // A narrated video (Leo's explainer with opts: stock clips, a look, moving scenes) is kept the same way, under its own key
 // with its voiceover as a device file; today's explainer (no opts) runs exactly as before and is not kept.
 // An avatar video of your face or a saved presenter (people-dub-lipsync, Leo's) also keeps each Speak part on this device,
-// so a changed line can be made again on its own parts.
+// so a changed line is made again on its own parts (remakeParts).
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
-import { currentJoin, deleteFile, getFile, monoPcm, putFile, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
+import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
 import { audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
+import type { AiPart } from "@/lib/videoEdit";
 import { MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
 
@@ -321,6 +322,140 @@ export async function makeTemplateClip(name: string, ask: TemplateAsk, more?: { 
 export function resumeAvatar(): void {
   const p = pendingAvatar();
   if (p && !aiBusy()) void finishAvatar(p);
+}
+
+// ---------- fixing a line: only the changed parts made again (people-dub-lipsync part A) ----------
+
+export interface RemakeJob {
+  projectId: string;
+  state: "working" | "ready" | "failed";
+  step: string;
+  error?: string;
+}
+
+/** A fix paid for, kept on this device until the editor lays it in (a reload or leaving the page picks it up at no cost). */
+export interface Remake {
+  projectId: string;
+  /** The video file the fix was made on: a fix is never laid on a video swapped since. */
+  base: string;
+  /** The video's parts when the fix began, with their words. */
+  parts: AiPart[];
+  /** The changed parts in order: which, the new words and the new voice's length. */
+  changes: { i: number; text: string; seconds: number }[];
+  tokens: string[];
+  refund?: string;
+  /** Once put together: the new video's device key and size, and each new part's clip key. */
+  done?: { fileId: string; size: number; clips: string[] };
+}
+const REMAKE = "cs-ai-video-remake";
+export const REMAKE_FAILED = "Couldn't remake that part. Try again.";
+const GONE = "The parts are on the device you made it on.";
+
+let remake: RemakeJob | null = null;
+const remakeListeners = new Set<(j: RemakeJob | null) => void>();
+const setRemake = (j: RemakeJob | null) => {
+  remake = j;
+  remakeListeners.forEach((l) => l(j && { ...j }));
+};
+export const remakeJob = () => remake;
+export function onRemake(fn: (j: RemakeJob | null) => void): () => void {
+  remakeListeners.add(fn);
+  return () => remakeListeners.delete(fn);
+}
+export const remakeBusy = () => remake?.state === "working";
+
+export function pendingRemake(): Remake | null {
+  try {
+    const r = JSON.parse(localStorage.getItem(REMAKE) ?? "null");
+    return r && typeof r.projectId === "string" && typeof r.base === "string" && Array.isArray(r.parts) && Array.isArray(r.changes) && Array.isArray(r.tokens) ? r : null;
+  } catch {
+    return null;
+  }
+}
+const keepRemake = (r: Remake | null) => {
+  try {
+    if (r) localStorage.setItem(REMAKE, JSON.stringify(r));
+    else localStorage.removeItem(REMAKE);
+  } catch {
+    /* storage blocked: the fix still runs, it just can't be picked up after a reload */
+  }
+};
+
+/** A part's next version key: ai-slice-<job>-<i>-<v + 1>. */
+const nextClip = (clip: string) => clip.replace(/-(\d+)$/, (_, v) => `-${Number(v) + 1}`);
+
+/**
+ * Sends only the changed parts to Speak on the same face (one ai-video use), then puts the video together again on this
+ * device from the new parts and the kept ones. The result waits as "ready" until the open editor lays it in (takeRemake).
+ * `parts` are the video's parts with their words; each change's voice is one part (the card refuses a longer line).
+ */
+export async function remakeParts(project: { id: string; fileId?: string }, parts: AiPart[], photo: Blob | string, changes: { i: number; text: string; voice: Voiceover }[]): Promise<void> {
+  if (remakeBusy() || !changes.length) return;
+  const k = changes.length;
+  setRemake({ projectId: project.id, state: "working", step: `Remaking part 1 of ${k}...` });
+  let r: Remake;
+  try {
+    const slices = await Promise.all(changes.map(async (c) => (await wavSlices({ ...c.voice, slices: [{ start: 0, end: c.voice.seconds }] }))[0]));
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: await faceBody(photo), slices }, RETRY);
+    r = { projectId: project.id, base: project.fileId ?? project.id, parts, changes: changes.map((c, j) => ({ i: c.i, text: c.text, seconds: slices[j].seconds })), tokens, ...(refund ? { refund } : {}) };
+    keepRemake(r);
+  } catch (e) {
+    return setRemake({ projectId: project.id, state: "failed", step: "", error: (e as Error).message || REMAKE_FAILED });
+  }
+  await finishRemake(r);
+}
+
+async function finishRemake(r: Remake): Promise<void> {
+  const k = r.changes.length;
+  const step = (s: string) => setRemake({ projectId: r.projectId, state: "working", step: s });
+  try {
+    if (!r.done) {
+      step(`Remaking part 1 of ${k}...`);
+      const urls = await waitFor(r.tokens, (d) => step(`Remaking part ${Math.min(d + 1, k)} of ${k}...`), r.refund);
+      step("Downloading the new parts...");
+      const fresh = await Promise.all(urls.map(download));
+      const clips = r.changes.map((c) => nextClip(r.parts[c.i].clip));
+      await Promise.all(clips.map((key, j) => putFile(key, fresh[j])));
+      const takes = await Promise.all(r.parts.map(async (s, i) => {
+        const j = r.changes.findIndex((c) => c.i === i);
+        const file = j >= 0 ? fresh[j] : await getFile(s.clip).catch(() => undefined);
+        if (!file) throw new Error(GONE);
+        return { file, start: 0, end: j >= 0 ? r.changes[j].seconds : s.end - s.start };
+      }));
+      await joinSlot();
+      step("Putting your video together...");
+      await startJoin(r.projectId, takes, "Putting your fixed video together");
+      // claimed here at once, before /edit's pickup can open it as a new video (that runs on React's next render, after this)
+      const joined = endJoin();
+      if (!joined?.file) throw new Error(joined?.error || "Couldn't put the video together. Try again.");
+      // the project's next swap key (videoProjects.ts swapNo), so deleting the project deletes it too
+      const n = r.base.startsWith(`${r.projectId}-s`) ? Number(r.base.slice(r.projectId.length + 2)) || 0 : 0;
+      const fileId = `${r.projectId}-s${n + 1}`;
+      await putFile(fileId, joined.file);
+      r = { ...r, done: { fileId, size: joined.file.size, clips } };
+      keepRemake(r);
+    }
+    setRemake({ projectId: r.projectId, state: "ready", step: "" });
+  } catch (e) {
+    // a part Higgsfield failed is gone, and its use came back; anything else can be picked up again at no cost
+    if (e instanceof JobFailed) keepRemake(null);
+    setRemake({ projectId: r.projectId, state: "failed", step: "", error: e instanceof JobFailed ? REMAKE_FAILED : (e as Error).message || REMAKE_FAILED });
+  }
+}
+
+/** Picks up a fix paid for but not laid in (a reload, leaving the page, a dropped download). */
+export function resumeRemake(): void {
+  const r = pendingRemake();
+  if (r && !remakeBusy()) void finishRemake(r);
+}
+
+/** The finished fix for this project, once: the device copy is dropped, so a second editor can't lay it in again. */
+export function takeRemake(projectId: string): Remake | null {
+  const r = pendingRemake();
+  if (!r?.done || r.projectId !== projectId) return null;
+  keepRemake(null);
+  setRemake(null);
+  return r;
 }
 
 // ---------- explainer ----------

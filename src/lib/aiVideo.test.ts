@@ -3,17 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
 vi.mock("@/lib/videoMedia", () => ({
   currentJoin: vi.fn(() => null), getFile: vi.fn(async () => undefined), putFile: vi.fn(async () => {}), deleteFile: vi.fn(async () => {}), monoPcm: vi.fn(),
-  startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn(),
+  startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn(), endJoin: vi.fn(() => null),
 }));
 vi.mock("@/lib/textVoice", () => ({
   audioSeconds: vi.fn(async () => 30), speak: vi.fn(async () => new Blob(["mp3"])),
 }));
 
 import { callFn } from "@/lib/edgeFn";
-import { currentJoin, deleteFile, getFile, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
+import { currentJoin, deleteFile, endJoin, getFile, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
 import {
-  DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
-  resumeAvatar, resumeExplainer,
+  DEMO_GONE, REMAKE_FAILED, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
+  pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake,
 } from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
@@ -460,6 +460,84 @@ describe("an AI video of your face or a saved presenter (people-dub-lipsync)", (
     await run;
     expect(joinedExtra()!.ai).toEqual({ ...mark, slices: undefined });
     expect(aiJob()).toMatchObject({ kind: "avatar", state: "done" });
+  });
+
+  describe("fixing a line", () => {
+    const parts = [
+      { text: "Most people overpay.", start: 0, end: 4, clip: "ai-slice-j1-0-0" },
+      { text: "They need a plan.", start: 4, end: 9, clip: "ai-slice-j1-1-0" },
+      { text: "Check yours.", start: 9, end: 13, clip: "ai-slice-j1-2-0" },
+    ];
+    const voice = (seconds: number) => ({ pcm: new Float32Array(Math.round(24000 * seconds)), seconds, slices: [{ start: 0, end: seconds }] });
+    const kept = (k: string) => (k.startsWith("ai-slice-j1-") ? new Blob([`kept ${k}`]) : undefined);
+    const fixed = new File(["fixed video"], "v1.mp4");
+    const joins = () => vi.mocked(startJoin).mockImplementation(async () => { vi.mocked(endJoin).mockReturnValueOnce({ progress: 1, state: "done", file: fixed }); });
+    const remakes = () => vi.mocked(callFn).mock.calls.map(([, b]) => b as { mode: string; slices?: { seconds: number }[]; photo?: unknown }).filter((b) => b.mode === "avatar");
+
+    it("sends only the changed part to Speak, then joins it between the kept ones and waits for the editor", async () => {
+      made(1);
+      vi.mocked(getFile).mockImplementation(async (k) => kept(k));
+      joins();
+      const run = remakeParts({ id: "v1" }, parts, "https://cdn.example/face.jpg", [{ i: 1, text: "They need one plan.", voice: voice(5.5) }]);
+      expect(remakeJob()).toMatchObject({ projectId: "v1", state: "working", step: "Remaking part 1 of 1..." });
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      // one ai-video use, carrying k slices
+      expect(remakes()).toEqual([{ mode: "avatar", photo: { url: "https://cdn.example/face.jpg" }, slices: [{ wav: "AAAA", seconds: 5.5 }] }]);
+      const [, takes, label] = vi.mocked(startJoin).mock.calls[0];
+      expect(label).toBe("Putting your fixed video together");
+      expect(await Promise.all(takes.map(async (t) => [await (t.file as Blob).text(), t.start, t.end]))).toEqual([
+        ["kept ai-slice-j1-0-0", 0, 4], ["https://cdn.example/t0.mp4", 0, 5.5], ["kept ai-slice-j1-2-0", 0, 4],
+      ]);
+      expect(vi.mocked(putFile).mock.calls.map(([k]) => k)).toEqual(["ai-slice-j1-1-1", "v1-s1"]);
+      expect(vi.mocked(putFile).mock.calls[1][1]).toBe(fixed);
+      expect(remakeJob()).toMatchObject({ projectId: "v1", state: "ready" });
+      expect(pendingRemake()).toMatchObject({ base: "v1", changes: [{ i: 1, text: "They need one plan.", seconds: 5.5 }], done: { fileId: "v1-s1", size: fixed.size, clips: ["ai-slice-j1-1-1"] } });
+      // laid in once, by the project it was made for
+      expect(takeRemake("v2")).toBeNull();
+      expect(takeRemake("v1")).toMatchObject({ projectId: "v1", done: { fileId: "v1-s1" } });
+      expect(takeRemake("v1")).toBeNull();
+      expect(pendingRemake()).toBeNull();
+    });
+
+    it("names the next swap of a video already swapped, and sends two changed parts in one use", async () => {
+      made(2);
+      vi.mocked(getFile).mockImplementation(async (k) => kept(k));
+      joins();
+      const run = remakeParts({ id: "v1", fileId: "v1-s2" }, parts, "https://cdn.example/face.jpg", [{ i: 0, text: "Most people pay too much.", voice: voice(4.2) }, { i: 2, text: "Check yours today.", voice: voice(4) }]);
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      expect(remakes()).toHaveLength(1);
+      expect(remakes()[0].slices!.map((x) => x.seconds)).toEqual([4.2, 4]);
+      expect(vi.mocked(putFile).mock.calls.map(([k]) => k)).toEqual(["ai-slice-j1-0-1", "ai-slice-j1-2-1", "v1-s3"]);
+    });
+
+    it("leaves the old video in place when Higgsfield fails a part, with the refund ticket on every check", async () => {
+      vi.mocked(callFn).mockImplementation(async (_fn, b) => ((b as Body).mode === "avatar" ? { tokens: ["t0"], refund: "ticket" } : { jobs: [{ state: "failed", error: "Blocked." }] }));
+      reader();
+      const run = remakeParts({ id: "v1" }, parts, "https://cdn.example/face.jpg", [{ i: 1, text: "They need one plan.", voice: voice(5) }]);
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      expect(remakeJob()).toMatchObject({ state: "failed", error: REMAKE_FAILED });
+      expect(pendingRemake()).toBeNull();
+      expect(startJoin).not.toHaveBeenCalled();
+      for (const [, b] of statusChecks()) expect(b).toMatchObject({ refund: "ticket" });
+    });
+
+    it("keeps the paid part when a kept part is gone from this device, and a reload joins it at no new cost", async () => {
+      made(1);
+      const run = remakeParts({ id: "v1" }, parts, "https://cdn.example/face.jpg", [{ i: 1, text: "They need one plan.", voice: voice(5) }]);
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      expect(remakeJob()).toMatchObject({ state: "failed", error: "The parts are on the device you made it on." });
+      expect(pendingRemake()).toMatchObject({ tokens: ["t0"] });
+      vi.mocked(getFile).mockImplementation(async (k) => kept(k));
+      joins();
+      resumeRemake();
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(remakeJob()).toMatchObject({ state: "ready" });
+      expect(remakes()).toHaveLength(1);
+    });
   });
 
 });
