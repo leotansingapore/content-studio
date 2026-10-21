@@ -33,6 +33,12 @@
 // A video or clip that Higgsfield refused, failed or blocked gives both uses back: at once when the submit
 // fails, or on the status check that first sees the failure, by the signed refund ticket handed back at the
 // start (logic.ts refundFailed: once per video, only on the day the uses were taken).
+// A saved face (people-my-face), NORTH_STAR_USERS only:
+//   POST {mode:"consent-code", kind:"face"} -> {code, ticket}  4 digits to read aloud, signed for this uid and UTC day; free
+//   POST {mode:"consent", kind:"face", wav, code, ticket, photo} -> {heard, photoHash, token, at}  Whisper hears the 16 kHz
+//        recording (never prompted with the code) and the photo's sha256 is signed for this uid ("likeness-check" cap; the
+//        use comes back only when Whisper never answered; a code not heard is 422 not_heard and keeps it). Neither the
+//        sound nor the photo is stored here; the recording's video never leaves the device.
 // Phase 3's hidden and Leo-only templates, any presenter setting but office, talk-script and set answer 403
 // not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
 // new modes before their body is checked too); every other request is as before.
@@ -48,8 +54,10 @@ import { MOTION_MODEL, motionBody } from "../ai-image/broll.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
 import { isAllowed } from "../market/logic.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
+import { consentSecret, heardCode, newCode, openSigned, signFor } from "../_shared/consent.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
+  CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex,
   NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
   TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
   northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
@@ -92,6 +100,29 @@ async function writeJson(key: string, system: string, user: string, format: unkn
   if (res && !res.ok) console.error("ai-video openai", res.status, (await res.text().catch(() => "")).slice(0, 300));
   const data = res?.ok ? await res.json().catch(() => null) : null;
   return data?.choices?.[0]?.message?.content ?? null;
+}
+
+/** What Whisper heard in the consent recording, or null when it never answered (non-2xx, timeout, no connection). */
+async function hear(key: string, wavB64: string): Promise<string | null> {
+  const form = new FormData();
+  form.append("file", new Blob([Uint8Array.from(atob(wavB64), (c) => c.charCodeAt(0))], { type: "audio/wav" }), "consent.wav");
+  form.append("model", "whisper-1");
+  form.append("language", "en");
+  form.append("response_format", "json");
+  // no prompt: a prompt holding the code could come back as heard when nobody said it
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}` },
+    body: form,
+    signal: AbortSignal.timeout(30_000),
+  }).catch((e) => (console.error("ai-video whisper request failed", e), null));
+  if (!res) return null;
+  if (!res.ok) {
+    console.error("ai-video whisper", res.status, (await res.text().catch(() => "")).slice(0, 300));
+    return null;
+  }
+  const data = await res.json().catch(() => null);
+  return typeof data?.text === "string" ? data.text.slice(0, 500) : "";
 }
 
 Deno.serve(async (req) => {
@@ -211,6 +242,34 @@ Deno.serve(async (req) => {
         return json({ error: "The explainer didn't come back right. Try again." }, 502);
       }
       return json({ scenes, usage: { used: usage.used, limit: usage.limit } });
+    }
+
+    if (r.mode === "consent-code" || r.mode === "consent") {
+      // its own secret, so no job token or refund ticket can pass as consent
+      const signer = await consentSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const day = new Date().toISOString().slice(0, 10);
+      if (r.mode === "consent-code") {
+        const code = newCode();
+        return json({ code, ticket: await signFor(signer, uid, consentTicket(code, day)) });
+      }
+      // openSigned knows the uid, not the day: only today's ticket for this code opens as today's text
+      if ((await openSigned(signer, uid, r.ticket)) !== consentTicket(r.code, day)) return json({ code: "bad_request", error: CODE_GONE }, 400);
+      const openai = Deno.env.get("OPENAI_API_KEY");
+      if (!openai) return json({ error: "Face checks aren't switched on yet." }, 503);
+      const usage = await consumeUsage(admin, uid, "likeness-check");
+      if (!usage.allowed) {
+        const refusal = usageRefusal(usage);
+        return json(refusal.body, refusal.status);
+      }
+      const heard = await hear(openai, r.wav);
+      if (heard === null) {
+        await refundUsage(admin, uid, "likeness-check", day);
+        return json({ code: "failed", error: CHECK_FAILED }, 502);
+      }
+      if (!heardCode(heard, r.code)) return json({ code: "not_heard", error: notHeard(r.code), heard }, 422);
+      const photoHash = await sha256Hex(r.photo);
+      const at = new Date().toISOString();
+      return json({ heard, photoHash, at, token: await signFor(signer, uid, faceToken(photoHash, at)), usage: { used: usage.used, limit: usage.limit } });
     }
 
     const key = Deno.env.get("HF_API_KEY");

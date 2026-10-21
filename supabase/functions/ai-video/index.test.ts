@@ -1,12 +1,16 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
+import { createHash } from "node:crypto";
 import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
+import { consentSecret, openSigned, signFor } from "../_shared/consent";
 import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM } from "./logic";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 // on NORTH_STAR_USERS; UID is everyone else
 const LEO = "leo-uid";
+// Leo's other sign-in, also listed
+const LEO_TWO = "leo-uid-two";
 
 const db = vi.hoisted(() => {
   // cs_ai_usage in memory, keyed user|feature|day: the consume RPC, one row read and the conditional update
@@ -42,12 +46,14 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 // Higgsfield: each picture submit answers from `submits` in turn; every call is kept, with each body sent to it.
 // OpenAI (the template's prompt writer) answers a usable shot prompt and keeps what it was sent.
 // `replies` (when set) answers OpenAI in turn instead: a body, or a status for a failure. Jev answers `jev` (null: no answer).
+// `whisper` answers Whisper in turn: the words heard, a status for a failure, or "drop" for no connection; each form is kept.
 // `answers` (when set) is Jev's whole reply instead. `status` answers a Higgsfield status read by job id (done by default),
 // and `pages` a page read by its link (a status number for a failure); `dns` resolves a host (public by default).
 const hf: {
   calls: string[]; submits: number[]; bodies: Record<string, unknown>[]; openai: { messages: { content: string }[] }[]; replies: (object | number)[]; jev: number | null; asked: unknown[];
   answers: Record<string, unknown> | null; status: Record<string, unknown>; pages: Record<string, { html: string; type?: string } | number>; dns: Record<string, string[]>;
-} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {} };
+  whisper: (string | number)[]; heard: FormData[];
+} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {}, whisper: [], heard: [] };
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
@@ -55,7 +61,7 @@ answer({});
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", HF_API_KEY: "k", HF_API_SECRET: "s", OPENAI_API_KEY: "k", NORTH_STAR_USERS: LEO, TYPESAFE_API_KEY: "k" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", HF_API_KEY: "k", HF_API_SECRET: "s", OPENAI_API_KEY: "k", NORTH_STAR_USERS: `${LEO},${LEO_TWO}`, TYPESAFE_API_KEY: "k" };
   vi.stubGlobal("Deno", {
     serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn),
     env: { get: (k: string) => env[k] },
@@ -71,6 +77,12 @@ beforeAll(async () => {
     if (page !== undefined) {
       hf.calls.push(String(u));
       return typeof page === "number" ? new Response("no", { status: page }) : new Response(page.html, { headers: { "content-type": page.type ?? "text/html; charset=utf-8" } });
+    }
+    if (String(u).endsWith("/audio/transcriptions")) {
+      hf.heard.push(init?.body as FormData);
+      const w = hf.whisper.shift() ?? "";
+      if (w === "drop") throw new TypeError("connection reset");
+      return typeof w === "number" ? answer({ error: "down" }, w) : answer({ text: w });
     }
     if (String(u).endsWith("/status")) {
       hf.calls.push(String(u));
@@ -112,6 +124,8 @@ beforeEach(() => {
   hf.status = {};
   hf.pages = {};
   hf.dns = {};
+  hf.whisper.length = 0;
+  hf.heard.length = 0;
 });
 
 const PICTURES = ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"];
@@ -437,5 +451,128 @@ describe("the narrated video (NORTH_STAR_USERS only)", () => {
     hf.pages[LINK] = { html: article };
     hf.answers = null;
     expect((await send(LEO, { mode: "read", url: LINK })).status).toBe(200);
+  });
+});
+
+describe("a saved face's consent check (people-my-face, NORTH_STAR_USERS only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const used = (uid: string) => db.rows.get(`${uid}|likeness-check|${db.today()}`) ?? 0;
+  // 3 s of 16 kHz mono silence, as the device's extractWav writes it
+  const WAV = (() => {
+    const b = Buffer.alloc(44 + 96_000);
+    b.write("RIFF", 0);
+    b.writeUInt32LE(36 + 96_000, 4);
+    b.write("WAVEfmt ", 8);
+    b.writeUInt32LE(16, 16);
+    b.writeUInt16LE(1, 20);
+    b.writeUInt16LE(1, 22);
+    b.writeUInt32LE(16_000, 24);
+    b.writeUInt32LE(32_000, 28);
+    b.writeUInt16LE(2, 32);
+    b.writeUInt16LE(16, 34);
+    b.write("data", 36);
+    b.writeUInt32LE(96_000, 40);
+    return b.toString("base64");
+  })();
+  const PHOTO = `/9j/${Buffer.from("an AI-made face, not a real person").toString("base64")}`;
+  const LINE = "I'm the person on camera. I agree that Content Studio can make videos of my face. My code is four, eight, two, one.";
+  const ticketFor = async (uid: string, code: string, day = db.today()) => signFor(await consentSecret("service-role-key"), uid, `consent:face:${code}:${day}`);
+  const consent = async (uid: string, o: Record<string, unknown> = {}) =>
+    send(uid, { mode: "consent", kind: "face", wav: WAV, code: "4821", ticket: await ticketFor(uid, "4821"), photo: PHOTO, ...o });
+
+  it("refuses anyone not listed before any count or call, even with a body that would be refused", async () => {
+    for (const body of [{ mode: "consent-code", kind: "face" }, { mode: "consent-code" }, { mode: "consent", kind: "face", wav: WAV, code: "4821", ticket: await ticketFor(UID, "4821"), photo: PHOTO }, { mode: "consent" }]) {
+      const res = await send(UID, body);
+      expect(res.status, JSON.stringify(body).slice(0, 60)).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect((await db.handler!(new Request("http://x/ai-video", { method: "POST", body: JSON.stringify({ mode: "consent-code", kind: "face" }) }))).status).toBe(401);
+    expect(db.rows.size).toBe(0);
+    expect([hf.heard, hf.calls, hf.openai]).toEqual([[], [], []]);
+  });
+
+  it("hands out a 4-digit code with a ticket signed for this uid and today, free", async () => {
+    const res = await send(LEO, { mode: "consent-code", kind: "face" });
+    expect(res.status).toBe(200);
+    const { code, ticket } = await res.json();
+    expect(code).toMatch(/^\d{4}$/);
+    const secret = await consentSecret("service-role-key");
+    expect(await openSigned(secret, LEO, ticket)).toBe(`consent:face:${code}:${db.today()}`);
+    expect(await openSigned(secret, LEO_TWO, ticket)).toBeNull();
+    expect(db.rows.size).toBe(0);
+    expect(hf.heard).toEqual([]);
+  });
+
+  it("saves a face when Whisper hears the code: signs the photo's own sha256 for this uid, for one check", async () => {
+    hf.whisper.push(LINE);
+    const res = await consent(LEO);
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    const hash = createHash("sha256").update(Buffer.from(PHOTO, "base64")).digest("hex");
+    expect(out).toMatchObject({ heard: LINE, photoHash: hash, at: new Date().toISOString(), token: expect.any(String) });
+    expect(await openSigned(await consentSecret("service-role-key"), LEO, out.token)).toBe(`likeness:face:${hash}:${out.at}`);
+    // a token for one of Leo's sign-ins never opens for the other
+    expect(await openSigned(await consentSecret("service-role-key"), LEO_TWO, out.token)).toBeNull();
+    expect(used(LEO)).toBe(1);
+    // Whisper hears the sound alone, in English, with no prompt that could hold the code
+    const form = hf.heard[0];
+    expect([form.get("model"), form.get("language"), form.get("prompt")]).toEqual(["whisper-1", "en", null]);
+    const file = form.get("file") as Blob;
+    expect(Buffer.from(await file.arrayBuffer()).toString("base64")).toBe(WAV);
+    expect([...form.keys()].sort()).toEqual(["file", "language", "model", "response_format"]);
+    expect(hf.calls).toEqual([]);
+  });
+
+  it("refuses another uid's ticket, another day's, another code's or a job token before any count or call", async () => {
+    const jobSigned = await jobToken(await tokenSecret("service-role-key"), LEO, "11111111-2222-4333-8444-555555555555");
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    for (const ticket of [await ticketFor(LEO_TWO, "4821"), await ticketFor(LEO, "4821", yesterday), await ticketFor(LEO, "4822"), jobSigned, await signFor(await tokenSecret("service-role-key"), LEO, `consent:face:4821:${db.today()}`)]) {
+      hf.whisper.push(LINE);
+      const res = await consent(LEO, { ticket });
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ code: "bad_request", error: "That code has run out. Record again for a new one." });
+    }
+    expect(db.rows.size).toBe(0);
+    expect(hf.heard).toEqual([]);
+  });
+
+  it("checks a listed account's body after the gate, before any count", async () => {
+    const res = await consent(LEO, { photo: "iVBORw0KGgo" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ code: "bad_request", error: "The photo didn't come through. Pick it again." });
+    expect(db.rows.size).toBe(0);
+    expect(hf.heard).toEqual([]);
+  });
+
+  it("keeps the use when the code wasn't heard, and says what was", async () => {
+    hf.whisper.push("My code is 4 8 1 2.");
+    const res = await consent(LEO);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ code: "not_heard", error: "We didn't hear the code 4 8 2 1. Read the line again, a little louder.", heard: "My code is 4 8 1 2." });
+    expect(used(LEO)).toBe(1);
+  });
+
+  it("gives the use back only when Whisper never answered", async () => {
+    hf.whisper.push(500);
+    const down = await consent(LEO);
+    expect(down.status).toBe(502);
+    expect(await down.json()).toEqual({ code: "failed", error: "Couldn't check the recording. Try again in a minute." });
+    hf.whisper.push("drop");
+    expect((await consent(LEO)).status).toBe(502);
+    expect(used(LEO)).toBe(0);
+    expect(hf.heard).toHaveLength(2);
+  });
+
+  it("refuses the 6th check in a day with the reset time, before Whisper", async () => {
+    for (let i = 0; i < 5; i++) {
+      hf.whisper.push(LINE);
+      expect((await consent(LEO)).status).toBe(200);
+    }
+    const res = await consent(LEO);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ code: "daily_limit", error: expect.stringContaining("8am Singapore time") });
+    expect(hf.heard).toHaveLength(5);
+    expect(used(LEO)).toBe(5);
   });
 });

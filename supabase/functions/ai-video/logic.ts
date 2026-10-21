@@ -80,7 +80,9 @@ export type VideoRequest =
   | { mode: "talk-script"; talk: Talk; topic: string; offer?: { name: string }; source?: { text: string } }
   | { mode: "set"; talk: SetTalk }
   | { mode: "move"; tokens: string[]; look?: LookId }
-  | { mode: "read"; url: string };
+  | { mode: "read"; url: string }
+  | { mode: "consent-code"; kind: "face" }
+  | { mode: "consent"; kind: "face"; wav: string; code: string; ticket: string; photo: string };
 
 /** formats-presenter's script shapes (You speaking's Format row); Plain is the script as typed, so it has none. */
 export const TALKS = ["news", "stage", "spokesperson"] as const;
@@ -90,8 +92,8 @@ export const SET_TALKS = ["news", "stage"] as const;
 export type SetTalk = (typeof SET_TALKS)[number];
 export const MAX_OFFER = 120;
 export const MAX_SOURCE = 2000;
-/** Phase 3's own modes: always NORTH_STAR_USERS only, refused before their body is read (index.ts). */
-export const NORTH_STAR_MODES = ["talk-script", "set", "move", "read"];
+/** Phase 3's and 4's own modes: always NORTH_STAR_USERS only, refused before their body is read (index.ts). */
+export const NORTH_STAR_MODES = ["talk-script", "set", "move", "read", "consent-code", "consent"];
 
 /** A narrated video's length, and what its script may hold: today's 110 words and 6 scenes for 30 s. */
 export const NARRATED_SECONDS = [30, 60] as const;
@@ -228,6 +230,15 @@ export function parseVideoRequest(raw: unknown): Parsed {
       const url = safeFeedUrl(b.url);
       return url ? { ok: true, request: { mode: "read", url: url.href } } : no(READ_FAILED);
     }
+    case "consent-code":
+      return b.kind === "face" ? { ok: true, request: { mode: "consent-code", kind: "face" } } : no(NOT_FACE);
+    case "consent": {
+      if (b.kind !== "face") return no(NOT_FACE);
+      if (!isB64(b.wav, MAX_CONSENT_WAV, ["UklGR"]) || b.wav.length < MIN_CONSENT_WAV || !consentWav(b.wav)) return no("The recording didn't come through. Record again.");
+      if (typeof b.code !== "string" || !/^\d{4}$/.test(b.code) || typeof b.ticket !== "string" || !b.ticket || b.ticket.length > 200) return no(CODE_GONE);
+      if (!isB64(b.photo, MAX_FACE_PHOTO, ["/9j/"])) return no("The photo didn't come through. Pick it again.");
+      return { ok: true, request: { mode: "consent", kind: "face", wav: b.wav, code: b.code, ticket: b.ticket, photo: b.photo } };
+    }
     default:
       return no("That isn't something this can make.");
   }
@@ -249,6 +260,42 @@ export function northStarOnly(r: VideoRequest): boolean {
   if (r.mode === "status") return r.tokens.length > MAX_SCENES;
   if (r.mode === "script") return !!r.source || !!r.seconds;
   return r.mode === "presenter" && !!r.setting && r.setting !== "office";
+}
+
+// ---------- a saved face's consent check (people-my-face) ----------
+
+/** The consent recording's sound: base64 of 16 kHz mono 16-bit WAV, 1 to 15 s (the recorder stops at 12 s). */
+export const MAX_CONSENT_WAV = 640_000;
+const MIN_CONSENT_WAV = Math.ceil((44 + 16_000 * 2) / 3) * 4;
+/** The picked photo: a 9:16 JPEG under the brand kit's MAX_IMAGE_CHARS, as the device saves it. */
+export const MAX_FACE_PHOTO = 350_000;
+const NOT_FACE = "Pick what to record first.";
+export const CODE_GONE = "That code has run out. Record again for a new one.";
+export const CHECK_FAILED = "Couldn't check the recording. Try again in a minute.";
+export const notHeard = (code: string) => `We didn't hear the code ${code.split("").join(" ")}. Read the line again, a little louder.`;
+
+/** True when the WAV header says PCM, one channel, 16 kHz, 16 bits (the device's extractWav). */
+function consentWav(b64: string): boolean {
+  let h: Uint8Array;
+  try {
+    h = Uint8Array.from(atob(b64.slice(0, 60)), (c) => c.charCodeAt(0));
+  } catch {
+    return false;
+  }
+  const v = new DataView(h.buffer);
+  const tag = (o: number) => String.fromCharCode(...h.slice(o, o + 4));
+  return tag(8) === "WAVE" && tag(12) === "fmt " && v.getUint16(20, true) === 1 && v.getUint16(22, true) === 1 && v.getUint32(24, true) === 16_000 && v.getUint16(34, true) === 16;
+}
+
+/** What a code's ticket is signed as: this face, this code, this UTC day (the ticket holds for the day). */
+export const consentTicket = (code: string, day: string) => `consent:face:${code}:${day}`;
+/** What a saved face's token is signed as: the photo's sha256 and when it was checked. */
+export const faceToken = (photoHash: string, at: string) => `likeness:face:${photoHash}:${at}`;
+
+/** sha256 hex of base64 data's bytes: worked out here, never taken from the device. */
+export async function sha256Hex(b64: string): Promise<string> {
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ---------- a failed video gives its use back ----------

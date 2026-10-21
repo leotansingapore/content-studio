@@ -4,6 +4,7 @@ import { GLOBAL_COUNTER_USER, refundUsage, type UsageClient } from "../_shared/u
 import { priceOf } from "../_shared/prices";
 import { EXPLAINER_LOOK_IDS } from "../../../src/lib/links.ts";
 import {
+  CODE_GONE, MAX_CONSENT_WAV, MAX_FACE_PHOTO, NORTH_STAR_MODES, consentTicket, faceToken, notHeard, sha256Hex,
   EXPLAINER_LOOKS, LOOK_IDS, MAX_SLICE, NO_POINT, READ_FAILED, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits,
   keepsWords, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser, northStarOnly, parseVideoRequest, pictureBody,
   pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, sceneReady, setBody, speakBody, speakSeconds, talkSystem, talkUser,
@@ -548,5 +549,89 @@ describe("reading a page for A link", () => {
     expect(pointPasses(0.49)).toBe(false);
     expect(pointPasses(null)).toBe(true);
     expect(NO_POINT).toBe("That page doesn't have a clear point to explain. Try an article.");
+  });
+});
+
+describe("a saved face's consent request (people-my-face)", () => {
+  // a WAV the way the device's extractWav writes it: 44-byte header, 16-bit PCM
+  const wav = (seconds: number, o: { rate?: number; channels?: number } = {}) => {
+    const rate = o.rate ?? 16_000;
+    const channels = o.channels ?? 1;
+    const data = Math.round(seconds * rate) * 2 * channels;
+    const b = Buffer.alloc(44 + data);
+    b.write("RIFF", 0);
+    b.writeUInt32LE(36 + data, 4);
+    b.write("WAVEfmt ", 8);
+    b.writeUInt32LE(16, 16);
+    b.writeUInt16LE(1, 20);
+    b.writeUInt16LE(channels, 22);
+    b.writeUInt32LE(rate, 24);
+    b.writeUInt32LE(rate * 2 * channels, 28);
+    b.writeUInt16LE(2 * channels, 32);
+    b.writeUInt16LE(16, 34);
+    b.write("data", 36);
+    b.writeUInt32LE(data, 40);
+    return b.toString("base64");
+  };
+  const good = { mode: "consent", kind: "face", wav: wav(8), code: "4821", ticket: "Y29uc2VudA.ab12", photo: JPEG };
+  const refused = (body: Record<string, unknown>) => {
+    const p = parseVideoRequest(body);
+    return p.ok ? null : p.error;
+  };
+
+  it("takes a code request for a face, and nothing else", () => {
+    expect(req({ mode: "consent-code", kind: "face" })).toEqual({ mode: "consent-code", kind: "face" });
+    expect(refused({ mode: "consent-code" })).toBe("Pick what to record first.");
+    expect(refused({ mode: "consent-code", kind: "voice" })).toBe("Pick what to record first.");
+  });
+
+  it("takes 16 kHz mono WAV from 1 to 15 seconds, a 4-digit code, its ticket and a JPEG", () => {
+    expect(req(good)).toEqual(good);
+    expect(req({ ...good, wav: wav(1) })).toMatchObject({ mode: "consent" });
+    expect(wav(14.9).length).toBeLessThanOrEqual(MAX_CONSENT_WAV);
+    expect(req({ ...good, wav: wav(14.9) })).toMatchObject({ mode: "consent" });
+  });
+
+  it("refuses a recording that is too long, too short, not RIFF, stereo, 44.1 kHz or not WAVE", () => {
+    const line = "The recording didn't come through. Record again.";
+    expect(wav(15.1).length).toBeGreaterThan(MAX_CONSENT_WAV);
+    expect(refused({ ...good, wav: wav(15.1) })).toBe(line);
+    expect(refused({ ...good, wav: wav(0.9) })).toBe(line);
+    expect(refused({ ...good, wav: `QUJD${wav(8).slice(4)}` })).toBe(line);
+    expect(refused({ ...good, wav: wav(4, { channels: 2 }) })).toBe(line);
+    expect(refused({ ...good, wav: wav(4, { rate: 44_100 }) })).toBe(line);
+    const notWave = Buffer.from(wav(4), "base64");
+    notWave.write("AVI ", 8);
+    expect(refused({ ...good, wav: notWave.toString("base64") })).toBe(line);
+    expect(refused({ ...good, wav: undefined })).toBe(line);
+    expect(refused({ ...good, wav: `${wav(4)}!` })).toBe(line);
+  });
+
+  it("refuses a code that isn't 4 digits and a missing or oversized ticket", () => {
+    for (const code of ["482", "48211", "48a1", 4821, ""]) expect(refused({ ...good, code }), String(code)).toBe(CODE_GONE);
+    for (const ticket of [undefined, "", 12, "x".repeat(201)]) expect(refused({ ...good, ticket }), String(ticket)).toBe(CODE_GONE);
+  });
+
+  it("refuses a photo that isn't a JPEG or runs over 350,000 characters, and another kind", () => {
+    const line = "The photo didn't come through. Pick it again.";
+    expect(refused({ ...good, photo: `/9j/${"A".repeat(MAX_FACE_PHOTO - 4)}` })).toBeNull();
+    expect(refused({ ...good, photo: `/9j/${"A".repeat(MAX_FACE_PHOTO - 3)}` })).toBe(line);
+    expect(refused({ ...good, photo: "iVBORw0KGgo" })).toBe(line);
+    expect(refused({ ...good, photo: undefined })).toBe(line);
+    expect(refused({ ...good, kind: "voice" })).toBe("Pick what to record first.");
+  });
+
+  it("is NORTH_STAR_USERS only, refused before its body is read", () => {
+    expect(NORTH_STAR_MODES).toEqual(expect.arrayContaining(["consent-code", "consent"]));
+    expect(northStarOnly(req(good))).toBe(true);
+    expect(northStarOnly(req({ mode: "consent-code", kind: "face" }))).toBe(true);
+  });
+
+  it("signs the ticket and the face as the contract's texts, and hashes the photo itself", async () => {
+    expect(consentTicket("0482", "2026-10-21")).toBe("consent:face:0482:2026-10-21");
+    expect(faceToken("ab".repeat(32), "2026-10-21T09:15:00.000Z")).toBe(`likeness:face:${"ab".repeat(32)}:2026-10-21T09:15:00.000Z`);
+    // sha256 of the bytes "abc"
+    expect(await sha256Hex(Buffer.from("abc").toString("base64"))).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    expect(notHeard("4821")).toBe("We didn't hear the code 4 8 2 1. Read the line again, a little louder.");
   });
 });
