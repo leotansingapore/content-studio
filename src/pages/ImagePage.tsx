@@ -3,11 +3,15 @@
 // drawing code, so the words are always sharp and drawing costs nothing. "Write it for me" is one remix make (as
 // "image") run outside React (src/lib/images.ts); designs are kept per brand in "Your images". Leo's sign-ins only
 // (useLeoUser, so ?asLeo=1 works on localhost); anyone else, by nav or typed URL, gets NotFound.
+// Memes (docs/north-star/items/formats-memes.md) are five more layouts in a Meme group: "Write 3 memes" is one remix
+// make (as "meme") with Jev's safety cut and "Best", and the picture is made, from Media or free stock
+// (src/components/image/MemeOptions.tsx). A meme is 4:5, 1:1 or 9:16 and starts on Square.
 //
 // URL (docs/deep-links.md): layout and size replace, defaults left out; source=<RemixSource key> is read once into a
 // new design and then removed; image=<saved id> opens a design, and the address takes it once an edit is kept
-// (replace); pick=media|make opens a picture picker (replace). A write on arrival comes only from navigation state
-// { go: true } (the Remix sheet's "Also make: Static ad", under US$1), never from a URL param.
+// (replace); pick=media|make|stock opens a picture picker (replace; stock is a meme's). A write on arrival comes only
+// from navigation state { go: true } (the Remix sheet's "Also make: Static ad" or "Meme", under US$1), never from a
+// URL param.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
@@ -17,6 +21,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import FormatShell from "@/components/make/FormatShell";
 import PriceChip from "@/components/PriceChip";
 import { PostItForMePanel } from "@/components/PostItForMe";
+import { MemeOptions, MemePicture, MediaThumb, memePictures, memeSetFor, memeWriteBusy, MEME_STEP, startMemeWrite, useMemePictures, useMemeWrite } from "@/components/image/MemeOptions";
 import FlagChips from "@/components/remix/FlagChips";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -38,13 +43,20 @@ import { draftsChanged, getDraftById, newDraftId, setDraftAttached, upsertDraft,
 import {
   AD_LAYOUT_IDS,
   IMAGE_FIELDS,
-  IMAGE_SIZES,
   LAYOUT_LABELS,
+  MEME_LAYOUT_IDS,
+  MEME_SIZE,
+  SECOND_PICTURE,
   SIZE_INFO,
   countOf,
   imageBlock,
+  isMeme,
   layoutImage,
   mainWords,
+  optionIndex,
+  pictureBlock,
+  secondPicture,
+  sizesFor,
   type AdLayoutId,
   type ImageInput,
   type ImageSize,
@@ -69,7 +81,7 @@ import {
   type ImageWrite,
   type SavedImage,
 } from "@/lib/images";
-import { links } from "@/lib/links";
+import { links, type ImageLayout } from "@/lib/links";
 import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
 import { priceOf, sumPrices } from "@/lib/prices";
 import { brandName, loadRemixPrefs, speakerFor } from "@/lib/remixBrand";
@@ -179,9 +191,10 @@ function ImageEditor({ userId }: { userId: string }) {
   const speaker = useMemo(() => loadRemixPrefs(userId).speaker ?? speakerFor(userId), [userId]);
   // decision 12: a client testimonial only for a business's brand, never an adviser's
   const layouts = useMemo(() => AD_LAYOUT_IDS.filter((l) => l !== "testimonial" || speaker === "business"), [speaker]);
-  const [layout] = useUrlState<AdLayoutId>("layout", "headline", { allowed: layouts });
-  const [size] = useUrlState<ImageSize>("size", "4x5", { allowed: IMAGE_SIZES });
-  const [pick] = useUrlState<"none" | "media" | "make">("pick", "none", { allowed: ["none", "media", "make"] });
+  const [layout] = useUrlState<ImageLayout>("layout", "headline", { allowed: [...layouts, ...MEME_LAYOUT_IDS] });
+  const meme = isMeme(layout);
+  const [size] = useUrlState<ImageSize>("size", "4x5", { allowed: sizesFor(layout) });
+  const [pick] = useUrlState<"none" | "media" | "make" | "stock">("pick", "none", { allowed: ["none", "media", "make", "stock"] });
   const imageId = params.get("image");
   const sourceKey = params.get("source");
   const kit = useMemo(() => loadBrand(userId), [userId]);
@@ -189,8 +202,10 @@ function ImageEditor({ userId }: { userId: string }) {
   const brandLabel = useMemo(() => brandName(userId), [userId]);
   const measure = useMemo(() => createCanvasMeasure(), []);
   const write = useWrite();
-  const writing = !!write && imageWriteBusy();
-  const leftOf = useUsesLeft(writing);
+  const mw = useMemeWrite();
+  const writing = (!!write && imageWriteBusy()) || (!!mw && memeWriteBusy());
+  const pictures = useMemePictures();
+  const leftOf = useUsesLeft(writing || pictures?.state === "working");
   const pictureJob = usePictureJob();
 
   // ---- the open design ----
@@ -259,7 +274,7 @@ function ImageEditor({ userId }: { userId: string }) {
     () => (sourceRef ? (resolveSource(sourceRef, userId) ?? seenSources(userId).find((s) => s.key === sourceRef) ?? null) : null),
     [sourceRef, userId],
   );
-  const willRead = !!source && !!swipePicture(source) && !cachedShows(source.key) && leftOf("remix-image") !== 0;
+  const willRead = !meme && !!source && !!swipePicture(source) && !cachedShows(source.key) && leftOf("remix-image") !== 0;
   const topic = img.words.topic ?? "";
   const reason = source ? null : topic.trim().length < 3 ? (img.source ? "That post isn't on this device any more. Type what it's about." : "Type what it's about first.") : null;
 
@@ -270,15 +285,19 @@ function ImageEditor({ userId }: { userId: string }) {
 
   /** Starts a write into `design`, saved first so the run has it and leaving the page keeps it. */
   const startWrite = (design: SavedImage, src: RemixSource | null, layoutPicked: boolean, addressed = false) => {
-    if (imageWriteBusy()) return;
+    if (imageWriteBusy() || memeWriteBusy()) return;
     flush();
     saveImage(userId, design);
     if (!addressed && imageId !== design.id) update({ image: design.id });
+    if (isMeme(design.layout)) {
+      void startMemeWrite(userId, { designId: design.id, layout: design.layout, source: src, topic: design.words.topic ?? "", note: src ? sheetNote(src.key) : "", size: design.size });
+      return toResult();
+    }
     void startImageWrite(userId, {
       designId: design.id,
       source: src,
       topic: design.words.topic ?? "",
-      layout: src && !layoutPicked ? null : layout,
+      layout: src && !layoutPicked ? null : (layout as AdLayoutId),
       mention: true,
       note: src ? sheetNote(src.key) : "",
       size,
@@ -302,11 +321,13 @@ function ImageEditor({ userId }: { userId: string }) {
     setSourceGone(false);
     rememberSource(s, userId);
     flush();
-    const next = blankImage({ layout, size, font: img.font, paper: img.paper, align: img.align, source: { key: s.key, label: sourceLabel(s) } });
+    // a meme from the Remix sheet starts on Square unless the link named a size
+    const at = meme && !params.has("size") ? MEME_SIZE : size;
+    const next = blankImage({ layout, size: at, font: img.font, paper: img.paper, align: img.align, source: { key: s.key, label: sourceLabel(s) } });
     saveImage(userId, next);
     setImg(next);
     setPicked(false);
-    update({ source: null, image: next.id });
+    update({ source: null, image: next.id, ...(at !== size ? { size: at } : {}) });
     // only the Remix sheet's Also make link sets { go: true } (navigation state, which a pasted link can't carry);
     // it is cleared from history so a reload never writes again, and the effect runs once per arriving source
     if ((location.state as { go?: boolean } | null)?.go) {
@@ -344,6 +365,27 @@ function ImageEditor({ userId }: { userId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [write]);
 
+  // a meme write for this design: its start and end are scrolled into view on a phone, and its words come in (the run
+  // saved them itself); one that ended before the page opened was already in the design it opened with
+  const seenMeme = useRef(mw && mw.state !== "writing" ? mw.id : 0);
+  useEffect(() => {
+    if (!mw || mw.designId !== img.id || mw.state === "writing" || seenMeme.current === mw.id) return;
+    seenMeme.current = mw.id;
+    const fresh = mw.state === "done" ? imageById(userId, img.id) : null;
+    if (fresh) setImg(fresh);
+    toResult();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mw]);
+
+  // a meme picture made for this design drops in, over whatever was typed since (the run saved it too)
+  const landed = useRef(memePictures()?.seq ?? 0);
+  useEffect(() => {
+    if (!pictures?.landed || pictures.designId !== img.id || pictures.seq <= landed.current) return;
+    landed.current = pictures.seq;
+    setPicture(pictures.landed.slot, pictures.landed.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pictures]);
+
   // "Make one": the AI picture this design asked for drops in when it is ready, even after a reload of the job
   const askedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -354,20 +396,28 @@ function ImageEditor({ userId }: { userId: string }) {
   }, [pictureJob]);
 
   // ---- drawing ----
-  const picture = usePicture(layout === "headline" ? img.pictureKey : undefined, brand.photo);
-  const media = useMemo(() => loadMedia(userId), [userId, pick, img.pictureKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  const aiPicture = !!img.pictureKey && media.some((m) => m.key === img.pictureKey && m.folder === AI_FOLDER);
-  const input: ImageInput = { layout, words: img.words, brand, font: img.font, paper: img.paper, align: img.align, picture: picture.url };
-  const preview = useMemo(() => svgDataUrl(renderSvg(layoutImage({ ...input, samples: true }, size, measure))), [img, layout, size, brand, picture.url, measure]); // eslint-disable-line react-hooks/exhaustive-deps
-  const block = imageBlock(layout, img.words);
-  const missing = layout === "headline" ? pictureLine(img, picture.found) : null;
+  const pictured = layout === "headline" || meme;
+  const second = layout === "expectation" ? secondPicture(img.words) : undefined;
+  const picture = usePicture(pictured ? img.pictureKey : undefined, brand.photo);
+  const picture2 = usePicture(second, brand.photo);
+  const media = useMemo(() => loadMedia(userId), [userId, pick, img.pictureKey, second]); // eslint-disable-line react-hooks/exhaustive-deps
+  const aiPicture = pictured && [img.pictureKey, second].some((k) => !!k && media.some((m) => m.key === k && m.folder === AI_FOLDER));
+  const input: ImageInput = { layout, words: img.words, brand, font: img.font, paper: img.paper, align: img.align, picture: picture.url, picture2: picture2.url };
+  const preview = useMemo(() => svgDataUrl(renderSvg(layoutImage({ ...input, samples: true }, size, measure))), [img, layout, size, brand, picture.url, picture2.url, measure]); // eslint-disable-line react-hooks/exhaustive-deps
+  const block = imageBlock(layout, img.words) ?? pictureBlock(layout, (picture.url ? 1 : 0) + (picture2.url ? 1 : 0));
+  const missing = pictured ? (pictureLine(img, picture.found) ?? pictureLine({ pictureKey: second }, picture2.found)) : null;
+  const memeSet = useMemo(() => (meme ? memeSetFor(img.id) : null), [meme, img.id, mw]); // eslint-disable-line react-hooks/exhaustive-deps
+  const memeOptions = memeSet?.layout === layout ? memeSet : null;
   const fileBase = slugify(mainWords(layout, img.words)) || "image";
 
   const textToCheck = [...IMAGE_FIELDS[layout].map((f) => img.words[f.key] ?? ""), img.words.caption ?? ""].filter((t) => t.trim()).join("\n\n");
   const flags = useMemo(() => scanCompliance(textToCheck), [textToCheck]);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const mineDone = write?.designId === img.id && write.state === "done" ? write : null;
-  const failed = write?.designId === img.id && write.state === "failed" && !writing ? write : null;
+  const mineDone = !meme && write?.designId === img.id && write.state === "done" ? write : null;
+  const memeDone = meme && mw?.designId === img.id && mw.state === "done" ? mw : null;
+  const failed = writing ? null : !meme ? (write?.designId === img.id && write.state === "failed" ? write : null) : mw?.designId === img.id && mw.state === "failed" ? mw : null;
+  // Jev's MAS question read the best meme only
+  const masWarn = mineDone?.flags?.mas || (!!memeDone?.flags?.mas && !!memeOptions && optionIndex(img.words, memeOptions.options) === memeOptions.best);
 
   const pngOf = async (s: ImageSize) => {
     const d = layoutImage({ ...input, samples: false }, s, measure);
@@ -378,13 +428,13 @@ function ImageEditor({ userId }: { userId: string }) {
     if (block || busyFile) return;
     setBusyFile(all ? "all" : "one");
     try {
-      const sizes = all ? IMAGE_SIZES : [size];
+      const sizes = all ? sizesFor(layout) : [size];
       for (const [i, s] of sizes.entries()) {
         downloadBlob(await pngOf(s), `${fileBase}-${s}.png`);
         // browsers drop downloads that all start at the same moment
         if (i < sizes.length - 1) await pause(400);
       }
-      toast({ title: all ? "4 sizes downloaded" : "Image downloaded" });
+      toast({ title: all ? `${sizes.length} sizes downloaded` : "Image downloaded" });
     } catch {
       toast({ title: "Couldn't create the image", description: "Try again, or try another browser.", variant: "destructive" });
     } finally {
@@ -418,9 +468,17 @@ function ImageEditor({ userId }: { userId: string }) {
     }
   };
 
-  const pickLayout = (l: AdLayoutId) => {
+  const pickLayout = (l: ImageLayout) => {
     setPicked(true);
-    commit({ ...img, layout: l, size }, { layout: l === "headline" ? null : l });
+    // memes start on Square; a 9:16 story stays one
+    const s = isMeme(l) && !meme && (size === "4x5" || size === "wide") ? MEME_SIZE : size;
+    commit({ ...img, layout: l, size: s }, { layout: l === "headline" ? null : l, ...(s !== size ? { size: s } : {}) });
+  };
+  /** A meme's picture into its slot (expectation's reality picture is the second), or out of it. */
+  const setPicture = (slot: 0 | 1, key: string | undefined) => {
+    const { [SECOND_PICTURE]: _was, ...words } = img.words;
+    const next = slot === 0 ? { ...img, pictureKey: key } : { ...img, words: key ? { ...words, [SECOND_PICTURE]: key } : words };
+    commit({ ...next, layout, size }, key ? { pick: null } : {});
   };
   const pickSize = (s: ImageSize) => commit({ ...img, layout, size: s }, { size: s === "4x5" ? null : s });
   const newImage = () => {
@@ -435,6 +493,7 @@ function ImageEditor({ userId }: { userId: string }) {
 
   const hasWords = !imageBlock(layout, { ...img.words, number: "x", statSource: "x" });
   const price = sumPrices(priceOf("remix-make"), willRead ? priceOf("remix-image") : null);
+  const writeLabel = meme ? (memeOptions ? "Write 3 more" : "Write 3 memes") : hasWords ? "Write it again" : "Write it for me";
 
   const options = (
     <>
@@ -466,17 +525,23 @@ function ImageEditor({ userId }: { userId: string }) {
           {!source && (
             <div className="space-y-1.5">
               <Label htmlFor="image-topic" className={FIELD_LABEL}>What it's about</Label>
-              <Input id="image-topic" value={topic} maxLength={200} disabled={writing} placeholder="Like why a hospital plan has a co-pay" onChange={(e) => setWord("topic", e.target.value)} />
+              <Input id="image-topic" value={topic} maxLength={200} disabled={writing} placeholder={meme ? "Saving for a BTO" : "Like why a hospital plan has a co-pay"} onChange={(e) => setWord("topic", e.target.value)} />
             </div>
           )}
-          <Row label="Layout">
-            {layouts.map((l) => (
-              <FilterChip key={l} active={layout === l} disabled={writing} onClick={() => pickLayout(l)}>
-                {LAYOUT_LABELS[l]}
-              </FilterChip>
+          <div className="space-y-1.5">
+            <p className={FIELD_LABEL}>Layout</p>
+            {([["Ads", layouts], ["Memes", MEME_LAYOUT_IDS]] as const).map(([group, list]) => (
+              <div key={group} role="group" aria-label={group} className="flex flex-wrap items-center gap-1.5">
+                <span className="w-14 shrink-0 text-[11px] text-muted-foreground">{group}</span>
+                {list.map((l) => (
+                  <FilterChip key={l} active={layout === l} disabled={writing} onClick={() => pickLayout(l)}>
+                    {LAYOUT_LABELS[l]}
+                  </FilterChip>
+                ))}
+              </div>
             ))}
-          </Row>
-          {!kit && (
+          </div>
+          {!kit && (!meme || layout === "post-reaction") && (
             <p className="text-xs text-muted-foreground">
               <Link to={links.brand({ section: "colour" })} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">
                 Add your colour and photo in Brand kit
@@ -485,7 +550,7 @@ function ImageEditor({ userId }: { userId: string }) {
             </p>
           )}
           <Row label="Size">
-            {IMAGE_SIZES.map((s) => (
+            {sizesFor(layout).map((s) => (
               <FilterChip key={s} active={size === s} disabled={writing} onClick={() => pickSize(s)}>
                 {SIZE_INFO[s].label}
               </FilterChip>
@@ -540,6 +605,21 @@ function ImageEditor({ userId }: { userId: string }) {
               }}
             />
           )}
+          {isMeme(layout) && (
+            <MemePicture
+              key={`${img.id}-${layout}`}
+              userId={userId}
+              layout={layout}
+              img={img}
+              pick={pick}
+              media={media}
+              disabled={writing}
+              left={leftOf("ai-image")}
+              about={topic || source?.title || ""}
+              onPick={setPicture}
+              onOpen={(p) => update({ pick: p === pick ? null : p })}
+            />
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="image-caption" className={FIELD_LABEL}>Caption</Label>
             <Textarea id="image-caption" rows={3} value={img.words.caption ?? ""} disabled={writing} placeholder="The words that go with the post" onChange={(e) => setWord("caption", e.target.value)} />
@@ -547,28 +627,31 @@ function ImageEditor({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 shadow-card">
-        <CardContent className="space-y-4 pt-4 sm:pt-5">
-          <Row label="Font">
-            {(Object.keys(SLIDE_FONTS) as SlideFont[]).map((f) => (
-              <FilterChip key={f} active={img.font === f} disabled={writing} onClick={() => edit({ font: f })}>
-                {SLIDE_FONTS[f].label}
-              </FilterChip>
-            ))}
-          </Row>
-          <Row label="Background">
-            {PAPERS.map((p) => (
-              <FilterChip key={p.id} active={img.paper === p.id} disabled={writing} onClick={() => edit({ paper: p.id })}>
-                {p.label}
-              </FilterChip>
-            ))}
-          </Row>
-          <Row label="Words">
-            <FilterChip active={img.align !== "center"} disabled={writing} onClick={() => edit({ align: "left" })}>Left</FilterChip>
-            <FilterChip active={img.align === "center"} disabled={writing} onClick={() => edit({ align: "center" })}>Centred</FilterChip>
-          </Row>
-        </CardContent>
-      </Card>
+      {/* a meme keeps the meme look: the font, background and alignment are an ad's */}
+      {!meme && (
+        <Card className="border-border/60 shadow-card">
+          <CardContent className="space-y-4 pt-4 sm:pt-5">
+            <Row label="Font">
+              {(Object.keys(SLIDE_FONTS) as SlideFont[]).map((f) => (
+                <FilterChip key={f} active={img.font === f} disabled={writing} onClick={() => edit({ font: f })}>
+                  {SLIDE_FONTS[f].label}
+                </FilterChip>
+              ))}
+            </Row>
+            <Row label="Background">
+              {PAPERS.map((p) => (
+                <FilterChip key={p.id} active={img.paper === p.id} disabled={writing} onClick={() => edit({ paper: p.id })}>
+                  {p.label}
+                </FilterChip>
+              ))}
+            </Row>
+            <Row label="Words">
+              <FilterChip active={img.align !== "center"} disabled={writing} onClick={() => edit({ align: "left" })}>Left</FilterChip>
+              <FilterChip active={img.align === "center"} disabled={writing} onClick={() => edit({ align: "center" })}>Centred</FilterChip>
+            </Row>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 
@@ -588,15 +671,15 @@ function ImageEditor({ userId }: { userId: string }) {
       </div>
       <div className="relative mx-auto w-full" style={{ maxWidth: W > H ? 560 : Math.round(420 * (W / H) * (H > 1400 ? 1.15 : 1.25)) }}>
         <img src={preview} alt={mainWords(layout, img.words) || "Your image"} width={W} height={H} className="block h-auto w-full rounded-lg border border-border/60 shadow-card" />
-        {writing && write && (
+        {writing && (meme ? mw : write) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 text-sm text-muted-foreground backdrop-blur-sm">
             <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
-            <span role="status">{writeStep(write)}</span>
+            <span role="status">{meme ? MEME_STEP : writeStep(write)}</span>
           </div>
         )}
       </div>
       {missing && <p className="text-xs text-muted-foreground">{missing}</p>}
-      {aiPicture && layout === "headline" && <p className="text-xs text-muted-foreground">The person is made by AI.</p>}
+      {aiPicture && <p className="text-xs text-muted-foreground">The person is made by AI.</p>}
 
       {failed && (
         <div role="alert" className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
@@ -607,9 +690,11 @@ function ImageEditor({ userId }: { userId: string }) {
         </div>
       )}
 
+      {memeOptions && <MemeOptions set={memeOptions} words={img.words} disabled={writing} onPick={(o) => edit({ words: { ...img.words, ...o } })} />}
+
       <ComplianceChips flags={flags.filter((f) => !dismissed.includes(f.id))} onDismiss={(id) => setDismissed((d) => [...d, id])} />
-      {mineDone?.flags && <FlagChips flags={mineDone.flags} />}
-      {mineDone?.flags?.mas && (
+      {(mineDone ?? memeDone)?.flags && <FlagChips flags={(mineDone ?? memeDone)!.flags!} />}
+      {masWarn && (
         <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> These words may promise a result or point to a product. Check them before you post.
         </p>
@@ -647,12 +732,12 @@ function ImageEditor({ userId }: { userId: string }) {
           cap: "remix-make",
           price,
           caps: willRead ? ["remix-image"] : undefined,
-          label: hasWords ? "Write it again" : "Write it for me",
-          busyLabel: write?.state === "reading" ? "Reading..." : "Writing...",
+          label: writeLabel,
+          busyLabel: meme ? MEME_STEP : write?.state === "reading" ? "Reading..." : "Writing...",
           busy: writing,
           disabled: !!reason,
           reason,
-          secondary: hasWords && !writing,
+          secondary: (meme ? !imageBlock(layout, img.words) : hasWords) && !writing,
           onMake: () => startWrite({ ...img, layout, size }, source, picked),
         }}
       />
@@ -675,38 +760,10 @@ function PostPanel({ userId, draft, onDrafts, onClose }: { userId: string; draft
   return <PostItForMePanel userId={userId} draft={draft} blockReason={reviews.blockReason(draft)} onDrafts={onDrafts} onClose={onClose} />;
 }
 
-/** A library photo, loaded from this device. */
-function MediaThumb({ item, active, onPick }: { item: MediaItem; active: boolean; onPick: () => void }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let made = "";
-    void getFile(item.key).then((b) => {
-      if (b) setUrl((made = URL.createObjectURL(b)));
-      else setUrl("");
-    });
-    return () => {
-      if (made) URL.revokeObjectURL(made);
-    };
-  }, [item.key]);
-  return (
-    <button
-      type="button"
-      onClick={onPick}
-      disabled={url === ""}
-      title={item.name}
-      aria-label={`Use ${item.name}`}
-      aria-pressed={active}
-      className={cn("block aspect-square w-full overflow-hidden rounded-md border bg-muted hover:border-primary disabled:opacity-40", active ? "border-primary ring-2 ring-primary/40" : "border-border/70")}
-    >
-      {url ? <img src={url} alt={item.alt || item.name} className="h-full w-full object-cover" /> : null}
-    </button>
-  );
-}
-
 function PicturePicker(p: {
   userId: string;
   img: SavedImage;
-  pick: "none" | "media" | "make";
+  pick: "none" | "media" | "make" | "stock";
   media: MediaItem[];
   hasHeadshot: boolean;
   disabled: boolean;
@@ -785,8 +842,7 @@ function YourImages({ list, openId }: { list: SavedImage[]; openId: string | nul
       <h2 className="text-sm font-semibold">Your images</h2>
       <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
         {shown.map((d) => {
-          const layout = (AD_LAYOUT_IDS as readonly string[]).includes(d.layout) ? (d.layout as AdLayoutId) : "headline";
-          const words = mainWords(layout, d.words) || d.words.topic || d.source?.label || "No words yet";
+          const words = mainWords(d.layout, d.words) || d.words.topic || d.source?.label || "No words yet";
           return (
             <li key={d.id}>
               <Link
@@ -798,7 +854,7 @@ function YourImages({ list, openId }: { list: SavedImage[]; openId: string | nul
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{words}</span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {LAYOUT_LABELS[layout]}, {SIZE_INFO[d.size].label}
+                    {LAYOUT_LABELS[d.layout]}, {SIZE_INFO[d.size].label}
                     {d.updatedAt ? `, ${ago(d.updatedAt)}` : ""}
                   </span>
                 </span>
