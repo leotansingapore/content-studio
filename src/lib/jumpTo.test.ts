@@ -129,6 +129,29 @@ describe("searchJump", () => {
   });
 });
 
+describe("the format gallery", () => {
+  const WORDS = ["formats", "make", "slideshow", "wall of text", "talking head", "green screen", "hook"];
+
+  it("finds Formats for Leo by every word people use for it", () => {
+    const leo = [...CREATE_ITEMS, ...pageItems("leotanjs95@gmail.com")];
+    for (const q of WORDS) expect(searchJump(leo, q).map((i) => i.to), q).toContain("/make");
+    expect(searchJump(leo, "formats")[0].to).toBe("/make");
+    // Slideshow's own page still comes first for its own name
+    expect(searchJump(leo, "slideshow")[0].to).toBe("/slideshow");
+  });
+
+  it("finds nothing new for anyone else, and never offers Formats as a recent page", () => {
+    const other = [...CREATE_ITEMS, ...pageItems("user@demo.com")];
+    expect(other.map((i) => i.to)).not.toContain("/make");
+    expect(searchJump(other, "slideshow")).toEqual([]);
+    for (const q of WORDS) expect(searchJump(other, q).map((i) => i.to), q).not.toContain("/make");
+    pushRecent("/make/slideshow");
+    expect(loadRecent()).toEqual(["/make"]);
+    expect(jumpList("user@demo.com", loadRecent(), "/home").map((i) => i.to)).not.toContain("/make");
+    expect(jumpList("tanjunsing@gmail.com", loadRecent(), "/home")[0]).toMatchObject({ to: "/make", group: "Recent" });
+  });
+});
+
 describe("recent pages", () => {
   it("keeps nav pages newest first, without repeats, up to the limit", () => {
     pushRecent("/calendar");

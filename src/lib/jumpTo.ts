@@ -60,6 +60,7 @@ const KEYWORDS: Record<string, string> = {
   "/media": "library pictures images photos",
   "/edit": "reel clip captions subtitles",
   "/slideshow": "slideshow photo carousel tiktok photos",
+  "/make": "make slideshow wall of text talking head green screen hook",
 };
 
 /** Every page this sign-in sees, labelled with its section. */
