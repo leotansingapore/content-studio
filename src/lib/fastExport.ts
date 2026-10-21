@@ -210,6 +210,8 @@ interface FastArgs {
   brollFiles?: Record<string, Blob>;
   music?: Blob | null;
   fx?: Frame["fx"];
+  /** A video behind the speaker (Backdrop kind "video"), read frame by frame like B-roll and looped. */
+  backdropFile?: Blob | null;
 }
 
 type Part = ReturnType<typeof voiceParts>[number];
@@ -507,6 +509,7 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     let videoCfg: VideoEncoderConfig | null = null;
     let main: FrameReader | null = null;
     const broll = new Map<string, FrameReader>();
+    let backdrop: { r: FrameReader; length: number } | null = null;
     if (kind !== "audio") {
       videoCfg = await pickEncoder(W, H, size.videoBps);
       if (!videoCfg) return no("no H.264 encoder");
@@ -524,6 +527,14 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
         if (!r) return no("a B-roll clip can't be decoded here");
         readers.push(r);
         broll.set(b.id, r);
+      }
+      if (a.backdropFile) {
+        const el = await loadVideo(a.backdropFile);
+        URL.revokeObjectURL(el.src);
+        const r = el.duration > 0 ? await FrameReader.open(a.backdropFile, el.videoWidth, el.videoHeight) : null;
+        if (!r) return no("the video behind you can't be decoded here");
+        readers.push(r);
+        backdrop = { r, length: el.duration };
       }
     }
     if (signal.aborted) return "stopped";
@@ -586,7 +597,8 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
           const pic = main ? asVideo(await main.at(src)) : video;
           const on = brollAt(a.settings.broll, out);
           const cut = on && broll.get(on.b.id);
-          drawFrame(g, { video: pic, settings: a.settings, ...plan, src, out, subs: a.subs, brand: a.brand, broll: cut ? asVideo(await cut.at(on.t)) : null, fx: a.fx, peaks });
+          const behind = backdrop ? await backdrop.r.at(out % backdrop.length) : null;
+          drawFrame(g, { video: pic, settings: a.settings, ...plan, src, out, subs: a.subs, brand: a.brand, broll: cut ? asVideo(await cut.at(on.t)) : null, fx: a.fx, peaks, backdrop: behind });
         } else drawEndCard(g, a.brand!, out - plan.total);
         const frame = new VideoFrame(canvas, { timestamp: Math.round(out * 1e6), duration: Math.round(1e6 / FPS) });
         venc.encode(frame, { keyFrame: i % (FPS * 2) === 0 });

@@ -4,11 +4,11 @@
 // jsDelivr at the same version and its models from Google's model bucket.
 
 import type { FaceDetector, FaceLandmarker, FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
-import { gradeOf, type Backdrop, type EditSettings, type FaceTrack, type Word } from "@/lib/videoEdit";
+import { gradeOf, standBox, standOf, type Backdrop, type EditSettings, type FaceTrack, type Word } from "@/lib/videoEdit";
 import { CUT_CHANGE, findCuts, frameChange, pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
 import { MIN_FACE, speakerPlan, type SeenFace } from "@/lib/speakers";
 import { meOf, pairsOf } from "@/lib/stacked";
-import { seek } from "@/lib/videoMedia";
+import { loadVideo, seek } from "@/lib/videoMedia";
 import { medianBox, type FaceBox } from "@/lib/videoMotion";
 
 /** Must match package.json (a test checks), so the wasm fits the library's code. */
@@ -217,8 +217,57 @@ export function sanitizeBackdrop(raw: unknown): Backdrop | undefined {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   if (r.kind === "blur") return { kind: "blur", amount: typeof r.amount === "number" && Number.isFinite(r.amount) ? Math.min(1, Math.max(0, r.amount)) : 0.6 };
   if (r.kind === "colour" && typeof r.color === "string" && /^#[0-9a-f]{6}$/i.test(r.color)) return { kind: "colour", color: r.color.toUpperCase() };
-  if (r.kind === "picture" && typeof r.key === "string" && /^bd-[a-z0-9-]{4,60}$/i.test(r.key)) return { kind: "picture", key: r.key };
+  if ((r.kind === "picture" || r.kind === "video") && typeof r.key === "string" && /^bd-[a-z0-9-]{4,60}$/i.test(r.key)) return { kind: r.kind, key: r.key };
   return undefined;
+}
+
+/** A backdrop picture's own size (a picture, a video's frame or a canvas); 0 while it has nothing to draw. */
+function sizeOf(p: CanvasImageSource | null | undefined): [number, number] {
+  const o = (p ?? {}) as { naturalWidth?: number; naturalHeight?: number; videoWidth?: number; videoHeight?: number; width?: unknown; height?: unknown };
+  const num = (v: unknown) => (typeof v === "number" ? v : 0);
+  return [o.naturalWidth || o.videoWidth || num(o.width), o.naturalHeight || o.videoHeight || num(o.height)];
+}
+
+/** The share of a confidence mask that is surely a person (0.5 or more). */
+export function personShare(conf: ArrayLike<number>): number {
+  let n = 0;
+  for (let i = 0; i < conf.length; i++) if (conf[i] >= 0.5) n++;
+  return conf.length ? n / conf.length : 0;
+}
+/** A person takes at least this share of the picture: a selfie is 25% or more, a screen with no one on it under 1%. */
+export const PERSON_SHARE = 0.04;
+
+/** The cut-out's model is loaded on this device, so a person check starts at once. */
+export const cutoutReady = () => !!segmenter;
+
+/**
+ * Whether a person shows in the first seconds of a video (formats-green-screen): the segmenter looks at a 256 px wide
+ * copy at 0.5, 1.5 and 2.5 s (fewer in a shorter clip). The first call loads the model (about 250 KB).
+ */
+export async function findsPerson(file: Blob): Promise<boolean> {
+  const seg = await personFinder();
+  const v = await loadVideo(file);
+  try {
+    v.muted = true;
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = Math.max(1, Math.round((256 * v.videoHeight) / (v.videoWidth || 1)));
+    const g = c.getContext("2d", { willReadFrequently: true })!;
+    for (const at of [0.5, 1.5, 2.5].filter((t, i) => i === 0 || t < v.duration)) {
+      await seek(v, Math.min(at, Math.max(0, v.duration - 0.05)));
+      g.drawImage(v, 0, 0, c.width, c.height);
+      const res = seg.segment(c);
+      try {
+        const conf = res.confidenceMasks?.[0]?.getAsFloat32Array();
+        if (conf && personShare(conf) >= PERSON_SHARE) return true;
+      } finally {
+        res.close();
+      }
+    }
+    return false;
+  } finally {
+    URL.revokeObjectURL(v.src);
+  }
 }
 
 /** The person's opacity from the model's confidence: none under 0.4, all over 0.8, so the edge is soft but not see-through. */
@@ -307,7 +356,7 @@ let maskData: ImageData | null = null;
  * (drawFrame's fx). The models read the picture as it is on the canvas, so every fit, crop and
  * look lines up; an effect whose model hasn't loaded yet is left out.
  */
-export function paintEffects(g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }, s: EditSettings, picture?: HTMLImageElement | null) {
+export function paintEffects(g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }, s: EditSettings, picture?: CanvasImageSource | null) {
   const x = Math.round(r.x), y = Math.round(r.y), w = Math.round(r.w), h = Math.round(r.h);
   if (w < 16 || h < 16) return;
   // the touch-up first, so the person the backdrop cuts out is the touched-up one
@@ -412,8 +461,10 @@ function paintTouchUp(g: CanvasRenderingContext2D, x: number, y: number, w: numb
   }
 }
 
-function paintBackdrop(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: EditSettings, b: Backdrop, picture?: HTMLImageElement | null) {
-  if (b.kind === "picture" && !picture?.naturalWidth) return; // the picture is on another device
+function paintBackdrop(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: EditSettings, b: Backdrop, picture?: CanvasImageSource | null) {
+  // a picture or video on another device, or a video with no frame yet: the shot stays as filmed
+  const [pw, ph] = sizeOf(picture);
+  if ((b.kind === "picture" || b.kind === "video") && !(pw && ph)) return;
   // who is in front: the model reads a 256 px wide copy of the picture
   const sw = 256, sh = Math.max(1, Math.round((256 * h) / w));
   const small = pad("small", sw, sh);
@@ -462,17 +513,20 @@ function paintBackdrop(g: CanvasRenderingContext2D, x: number, y: number, w: num
     g.fillStyle = b.color;
     g.fillRect(x, y, w, h);
   } else if (picture) {
-    // the picture covers the space, in the edit's colour look like the video
-    const k = Math.max(w / picture.naturalWidth, h / picture.naturalHeight);
+    // the picture or video frame covers the space, in the edit's colour look like the video
+    const k = Math.max(w / pw, h / ph);
     g.filter = gradeOf(s);
-    g.drawImage(picture, x + (w - picture.naturalWidth * k) / 2, y + (h - picture.naturalHeight * k) / 2, picture.naturalWidth * k, picture.naturalHeight * k);
+    g.drawImage(picture, x + (w - pw * k) / 2, y + (h - ph * k) / 2, pw * k, ph * k);
   }
   g.restore();
   // in front: the person, cut out by the mask, which smooths as it is scaled up
   fg.globalCompositeOperation = "destination-in";
   fg.drawImage(pad("mask", sw, sh), 0, 0, w, h);
   fg.globalCompositeOperation = "source-over";
-  g.drawImage(front, x, y);
+  // standing at the bottom or in the corner: the whole cut-out picture, made smaller into its box
+  const stand = standOf(s);
+  const box = stand ? standBox(stand, w, h, w, h) : { x: 0, y: 0, w, h };
+  g.drawImage(front, x + box.x, y + box.y, box.w, box.h);
 }
 
 

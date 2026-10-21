@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { sanitizeBackdrop } from "./faceVision";
 import {
+  sanitizeStand,
+  standBox,
+  standOf,
   aspectSize,
   dubPlacement,
   peaksFrom,
@@ -1048,5 +1052,65 @@ describe("a wide export for an upright feed", () => {
     expect(wide({ aspect: "16:9", exportFor: "linkedin" })).toBe(false);
     expect(wide({ aspect: "16:9", exportAs: "small" })).toBe(false);
     expect(wide({ aspect: "16:9", exportAs: "audio" })).toBe(false);
+  });
+});
+
+describe("green screen: a video behind you and where you stand", () => {
+  it("keeps a video backdrop with a bd- key and drops one without", () => {
+    expect(sanitizeBackdrop({ kind: "video", key: "bd-gs-x2abc" })).toEqual({ kind: "video", key: "bd-gs-x2abc" });
+    expect(sanitizeBackdrop({ kind: "video", key: "v1abc-x2" })).toBeUndefined();
+    expect(sanitizeBackdrop({ kind: "video" })).toBeUndefined();
+    expect(sanitizeBackdrop({ kind: "film", key: "bd-gs-x2abc" })).toBeUndefined();
+  });
+
+  it("keeps bottom and corner and drops anything else, so settings saved before load unchanged", () => {
+    expect(sanitizeStand("bottom")).toBe("bottom");
+    expect(sanitizeStand("corner")).toBe("corner");
+    expect(sanitizeStand("left")).toBeUndefined();
+    expect(sanitizeStand(undefined)).toBeUndefined();
+    const before = { ...defaultSettings("bold"), backdrop: { kind: "picture", key: "bd-v1abc-x2" } };
+    expect(sanitizeBackdrop(before.backdrop)).toEqual(before.backdrop);
+    expect(sanitizeStand((before as { stand?: unknown }).stand)).toBeUndefined();
+    expect(standOf(before as Parameters<typeof standOf>[0])).toBeUndefined();
+  });
+
+  it("moves the speaker only over a backdrop that covers the frame", () => {
+    expect(standOf({ backdrop: { kind: "video", key: "bd-gs-x2abc" }, stand: "corner" })).toBe("corner");
+    expect(standOf({ backdrop: { kind: "colour", color: "#111827" }, stand: "bottom" })).toBe("bottom");
+    expect(standOf({ backdrop: { kind: "blur", amount: 0.6 }, stand: "bottom" })).toBeUndefined();
+    expect(standOf({ stand: "bottom" })).toBeUndefined();
+  });
+
+  const inside = (b: { x: number; y: number; w: number; h: number }, W: number, H: number) =>
+    b.x >= -1e-9 && b.y >= -1e-9 && b.x + b.w <= W + 1e-9 && b.y + b.h <= H + 1e-9;
+
+  it("puts the speaker at 70% height on the bottom edge, centred, at 9:16 and 4:5", () => {
+    for (const [W, H] of [[1080, 1920], [1080, 1350]]) {
+      const b = standBox("bottom", W, H, W, H);
+      expect(b.h).toBeCloseTo(H * 0.7);
+      expect(b.w).toBeCloseTo(W * 0.7);
+      expect(b.y + b.h).toBeCloseTo(H);
+      expect(b.x + b.w / 2).toBeCloseTo(W / 2);
+      expect(inside(b, W, H)).toBe(true);
+    }
+  });
+
+  it("puts the speaker at 45% width in the bottom left corner with a 4% margin, at 9:16 and 4:5", () => {
+    for (const [W, H] of [[1080, 1920], [1080, 1350]]) {
+      const b = standBox("corner", W, H, W, H);
+      expect(b.w).toBeCloseTo(W * 0.45);
+      expect(b.x).toBeCloseTo(W * 0.04);
+      expect(b.y + b.h).toBeCloseTo(H - W * 0.04);
+      expect(inside(b, W, H)).toBe(true);
+    }
+  });
+
+  it("keeps a picture too wide or too tall for the box inside the frame", () => {
+    for (const stand of ["bottom", "corner"] as const) {
+      for (const [pw, ph] of [[1920, 1080], [400, 4000], [1, 1]]) {
+        expect(inside(standBox(stand, 1080, 1920, pw, ph), 1080, 1920)).toBe(true);
+        expect(inside(standBox(stand, 1080, 1350, pw, ph), 1080, 1350)).toBe(true);
+      }
+    }
   });
 });

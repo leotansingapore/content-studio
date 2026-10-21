@@ -1,6 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
-import { currentJoin, endJoin, exportAll, exportQueue, handToEditor, pickupPlan, slidePlan, startExport, stopExportQueue, type ExportJob, type JoinExtra, type PickupPath } from "./videoMedia";
+import {
+  addToJoin, currentJoin, drawFrame, endJoin, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, pickupPlan, planFor, slidePlan, startExport, stopExportQueue, syncBackdrop,
+  withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
+} from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
 
@@ -144,5 +147,126 @@ describe("slidePlan", () => {
 
   it("never loops a clip whose length the browser can't read", () => {
     expect(slidePlan([{ seconds: 4, length: Infinity }, { seconds: 4, length: NaN }]).map((s) => s.loop)).toEqual([false, false]);
+  });
+});
+
+/** A 2D context that takes every call and draws nothing, on a 1080x1920 canvas. */
+function nullContext(): CanvasRenderingContext2D {
+  const ctx: CanvasRenderingContext2D = new Proxy({} as CanvasRenderingContext2D, {
+    get: (_, k) =>
+      k === "canvas" ? { width: 1080, height: 1920 }
+      : k === "measureText" ? () => ({ width: 10 })
+      : k === "createLinearGradient" || k === "createRadialGradient" ? () => ({ addColorStop: () => {} })
+      : () => ctx,
+    set: () => true,
+  });
+  return ctx;
+}
+
+describe("drawFrame's effects", () => {
+  const settings = { ...defaultSettings("bold"), captions: false, hook: "", progressBar: false, punchIn: false };
+  const frame = (fx: Frame["fx"], backdrop?: CanvasImageSource | null): Frame => ({
+    video: { videoWidth: 1080, videoHeight: 1920 } as HTMLVideoElement,
+    settings,
+    ...planFor([], 10, settings),
+    src: 3,
+    out: 2.5,
+    total: 10,
+    fx,
+    backdrop,
+  });
+
+  it("hands the effects the time on the edited timeline and the backdrop's frame", () => {
+    const fx = vi.fn();
+    const behind = { videoWidth: 720, videoHeight: 1280 } as unknown as CanvasImageSource;
+    drawFrame(nullContext(), frame(fx, behind));
+    expect(fx).toHaveBeenCalledTimes(1);
+    expect(fx.mock.calls[0][1]).toEqual({ x: 0, y: 0, w: 1080, h: 1920 });
+    expect(fx.mock.calls[0][2]).toBe(2.5);
+    expect(fx.mock.calls[0][3]).toBe(behind);
+  });
+
+  it("still runs an effect written for two arguments", () => {
+    const seen: number[] = [];
+    const two = (_g: CanvasRenderingContext2D, r: { w: number }) => void seen.push(r.w);
+    drawFrame(nullContext(), frame(two));
+    expect(seen).toEqual([1080]);
+  });
+});
+
+describe("syncBackdrop", () => {
+  const el = (o: Partial<{ duration: number; currentTime: number; paused: boolean; videoWidth: number }>) => {
+    const v = { duration: 4, currentTime: 0, paused: true, videoWidth: 720, play: vi.fn(async () => { v.paused = false; }), pause: vi.fn(() => { v.paused = true; }), ...o };
+    return v;
+  };
+
+  it("loops the video on the edit's clock, exact while paused", () => {
+    const v = el({ currentTime: 0 });
+    expect(syncBackdrop(v as unknown as HTMLVideoElement, 9.5, false)).toBe(v);
+    expect(v.currentTime).toBe(1.5);
+    v.currentTime = 1.53;
+    syncBackdrop(v as unknown as HTMLVideoElement, 9.5, false);
+    expect(v.currentTime).toBe(1.53);
+    v.currentTime = 1.6;
+    syncBackdrop(v as unknown as HTMLVideoElement, 9.5, false);
+    expect(v.currentTime).toBe(1.5);
+    expect(v.play).not.toHaveBeenCalled();
+  });
+
+  it("lets a playing video run within a quarter second, plays it, and pauses it when the edit stops", () => {
+    const v = el({ currentTime: 1.3 });
+    syncBackdrop(v as unknown as HTMLVideoElement, 5.5, true);
+    expect(v.currentTime).toBe(1.3);
+    expect(v.play).toHaveBeenCalled();
+    syncBackdrop(v as unknown as HTMLVideoElement, 6.5, true);
+    expect(v.currentTime).toBe(2.5);
+    syncBackdrop(v as unknown as HTMLVideoElement, 6.5, false);
+    expect(v.pause).toHaveBeenCalled();
+  });
+
+  it("gives nothing until the video has a length and a frame", () => {
+    expect(syncBackdrop(null, 1, false)).toBeNull();
+    expect(syncBackdrop(el({ duration: NaN }) as unknown as HTMLVideoElement, 1, false)).toBeNull();
+    expect(syncBackdrop(el({ videoWidth: 0 }) as unknown as HTMLVideoElement, 1, false)).toBeNull();
+  });
+});
+
+describe("an extra added to another format's join", () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    });
+  });
+  const TALK = "Your talking head video is ready. Export it when it looks right.";
+  const base: JoinExtra = { toast: TALK, caption: "Cap.", note: "The person is made by AI.", settings: { volume: 1 } };
+  const add: JoinExtra = { toast: "Your green screen is ready. Export it when it looks right.", tab: "face", settings: { backdrop: { kind: "video", key: "bd-gs-1abc" }, stand: "corner" } };
+
+  it("lays the settings over the join's own and replaces the rest", () => {
+    expect(mergeExtra(base, add)).toEqual({
+      toast: add.toast, caption: "Cap.", note: "The person is made by AI.", tab: "face",
+      settings: { volume: 1, backdrop: { kind: "video", key: "bd-gs-1abc" }, stand: "corner" },
+    });
+    expect(mergeExtra(undefined, { tab: "face" })).toEqual({ tab: "face" });
+  });
+
+  it("goes to the join with the same name and toast, once", () => {
+    addToJoin("Three habits that keep you", TALK, add, 1000);
+    expect(withJoinAdd("Another script", base, 2000)).toBe(base);
+    expect(withJoinAdd("Three habits that keep you", { ...base, toast: "Your hook and demo are ready." }, 2000)?.tab).toBeUndefined();
+    expect(withJoinAdd("Three habits that keep you", base, 2000)).toEqual(mergeExtra(base, add));
+    expect(joinAdd(2000)).toBeNull();
+    expect(withJoinAdd("Three habits that keep you", base, 2000)).toBe(base);
+  });
+
+  it("is forgotten after 7 days, and junk in storage is nothing", () => {
+    addToJoin("Talking head", TALK, add, 0);
+    expect(joinAdd(6 * 864e5)?.name).toBe("Talking head");
+    expect(withJoinAdd("Talking head", base, 7 * 864e5)).toBe(base);
+    store.set("cs-join-add", "{nope");
+    expect(joinAdd()).toBeNull();
   });
 });

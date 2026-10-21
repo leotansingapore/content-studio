@@ -313,8 +313,13 @@ export interface Frame {
   still?: boolean;
   /** The B-roll clip showing now (kept in step by syncBroll), drawn full-frame over the speaker. */
   broll?: HTMLVideoElement | null;
-  /** Face and background effects (faceVision.ts), painted over the speaker's picture once it is drawn; r is where it shows. */
-  fx?: ((g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }) => void) | null;
+  /**
+   * Face and background effects (faceVision.ts), painted over the speaker's picture once it is drawn: r is where it
+   * shows, out the time on the edited timeline and backdrop this frame's `backdrop`. An fx taking two arguments still works.
+   */
+  fx?: ((g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }, out: number, backdrop?: CanvasImageSource | null) => void) | null;
+  /** A video behind the speaker (Backdrop kind "video"): its frame for this moment, kept in step by whoever draws (syncBackdrop, or a FrameReader in the fast export). */
+  backdrop?: CanvasImageSource | null;
   /** A sound-only source's loudness (audioPeaks): drawn as a moving waveform on the brand colour. */
   peaks?: number[] | null;
 }
@@ -546,7 +551,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
 
   // the picture: cover the frame, crop centred on focusX (or on the face, when following it), punch in on alternate cuts
   // (effects are skipped under a full-frame B-roll cutaway, which covers the picture anyway)
-  const fx = f.broll?.videoWidth && !s.brollLayout ? null : f.fx;
+  const fxOf = f.broll?.videoWidth && !s.brollLayout ? null : f.fx;
+  const fx = fxOf ? (c: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }) => fxOf(c, r, f.out, f.backdrop) : null;
   const shown = (x: number, y: number, w: number, h: number) => ({ x: Math.max(0, x), y: Math.max(0, y), w: Math.min(W, x + w) - Math.max(0, x), h: Math.min(H, y + h) - Math.max(0, y) });
   if (!v.videoWidth && f.peaks?.length) drawAudioScene(g, W, H, f.peaks, f.src, f.brand);
   // zooms on key lines (eased, held a little above the middle, where a face sits) replace the punch-in on cuts
@@ -1070,6 +1076,19 @@ export function syncBroll(els: Map<string, HTMLVideoElement>, list: Broll[] | un
   return el;
 }
 
+/**
+ * Keeps a video behind the speaker in step with the edit (the preview and the real-time export), looping it: its time
+ * is `out` past its length, exact when paused and within 0.25 s while playing. Null until it has a frame to draw.
+ */
+export function syncBackdrop(el: HTMLVideoElement | null | undefined, out: number, playing: boolean): HTMLVideoElement | null {
+  if (!el || !(el.duration > 0)) return null;
+  const t = out % el.duration;
+  if (Math.abs(el.currentTime - t) > (playing ? 0.25 : 0.04)) el.currentTime = t;
+  if (playing && el.paused) void el.play().catch(() => {});
+  else if (!playing && !el.paused) el.pause();
+  return el.videoWidth ? el : null;
+}
+
 export function planFor(words: Word[], duration: number, s: EditSettings) {
   const segs = withColdOpen(keepSegments(words, duration, s), s.coldOpen);
   return { segs, caps: buildCaptions(words, s), total: totalLength(segs) / speedOf(s) };
@@ -1244,7 +1263,7 @@ function deliver(name: string, kind: ExportJob["kind"], out: Blob, ext: string, 
 }
 
 /** Exports the edit faster than real time where the browser can (fastExport.ts), else renders it in real time (a 45 s reel takes about 45 s), and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>, music?: Blob | null, fx?: Frame["fx"]) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>, music?: Blob | null, fx?: Frame["fx"], backdropFile?: Blob | null) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
@@ -1254,11 +1273,13 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   let actx: AudioContext | null = null;
   // B-roll clips, muted, played in step with the picture
   const brEls = new Map<string, HTMLVideoElement>();
+  // a video behind the speaker, muted and looping, in step with the picture
+  let bdEl: HTMLVideoElement | null = null;
   try {
     // the fast route, loaded only now; null means this browser or file can't take it, so it records in real time below
     stopper = new AbortController();
     const fast = await import("@/lib/fastExport")
-      .then((m) => m.exportFast({ file, words, settings, subs, brand, voice, brollFiles, music, fx }, (p) => {
+      .then((m) => m.exportFast({ file, words, settings, subs, brand, voice, brollFiles, music, fx, backdropFile }, (p) => {
         if (job) Object.assign(job, { fast: true, progress: p });
         emit();
       }, stopper!.signal))
@@ -1340,6 +1361,11 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
         el.muted = true;
         brEls.set(b.id, el);
       }
+      if (backdropFile) {
+        bdEl = await loadVideo(backdropFile);
+        bdEl.muted = true;
+        bdEl.loop = true;
+      }
     }
 
     const v = video;
@@ -1354,7 +1380,8 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outIn(plan.segs, segI, v.currentTime, speed) ?? done / speed);
-      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx, peaks });
+      const playing = rec.state === "recording";
+      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, playing), fx, peaks, backdrop: syncBackdrop(bdEl, out, playing) });
       if (rec.state === "recording") {
         voSync(out);
         for (const c of sfxTick(cues, out)) playCue(actx!, mix, c.kind);
@@ -1457,7 +1484,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   } finally {
     video?.pause();
     if (video) URL.revokeObjectURL(video.src);
-    for (const el of brEls.values()) {
+    for (const el of [...brEls.values(), ...(bdEl ? [bdEl] : [])]) {
       el.pause();
       URL.revokeObjectURL(el.src);
     }
@@ -1554,6 +1581,64 @@ export async function handToEditor(file: File, extra: JoinExtra, label?: string)
   while (joinJob) await sleep(1000);
   joinJob = { progress: 1, state: "done", label, extra, file };
   emitJoin();
+}
+
+// ---------- an extra added to another format's join ----------
+
+const JOIN_ADD = "cs-join-add";
+// shortcut: an add whose paid clip never joins (Higgsfield failed it after the page closed) is dropped after 7 days; a
+// pending clip that knew its add would do better, once aiVideo.ts's Pending can say which format started it
+const ADD_DAYS = 7;
+export interface JoinAdd {
+  /** The join's name (the paid clip's Pending.name) and its extra's toast: both must match. */
+  name: string;
+  toast: string;
+  extra: JoinExtra;
+  at: number;
+}
+
+/** A hand-off's extra with another laid over it: the settings merged, everything else replaced. */
+export function mergeExtra(base: JoinExtra | undefined, add: JoinExtra): JoinExtra {
+  const settings = base?.settings || add.settings ? { settings: { ...base?.settings, ...add.settings } } : {};
+  return { ...base, ...add, ...settings };
+}
+
+/**
+ * A format page that runs another format's paid job (the green screen's AI presenter is a talking head) adds its own
+ * extra to that job's join, on this device, so a reload that resumes the paid clip still gets it. One at a time.
+ */
+export function addToJoin(name: string, toast: string, extra: JoinExtra, now = Date.now()): void {
+  try {
+    localStorage.setItem(JOIN_ADD, JSON.stringify({ name, toast, extra, at: now } satisfies JoinAdd));
+  } catch {
+    // storage blocked: the video joins as the other format made it
+  }
+}
+
+export function joinAdd(now = Date.now()): JoinAdd | null {
+  try {
+    const a = JSON.parse(localStorage.getItem(JOIN_ADD) ?? "null");
+    const ok = a && typeof a.name === "string" && typeof a.toast === "string" && a.extra && typeof a.extra === "object" && now - Number(a.at) < ADD_DAYS * 864e5;
+    return ok ? a : null;
+  } catch {
+    return null;
+  }
+}
+
+export function dropJoinAdd(): void {
+  try {
+    localStorage.removeItem(JOIN_ADD);
+  } catch {
+    // nothing kept
+  }
+}
+
+/** A join's extra with the add made for it (same name and toast) laid over it; the add is used up. */
+export function withJoinAdd(name: string, extra: JoinExtra | undefined, now = Date.now()): JoinExtra | undefined {
+  const a = joinAdd(now);
+  if (!a || a.name !== name || a.toast !== extra?.toast) return extra;
+  dropJoinAdd();
+  return mergeExtra(extra, a.extra);
 }
 
 /**
@@ -1666,7 +1751,7 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
     }
     rec.stop();
     await stopped;
-    joinJob = { progress: 1, state: "done", label, extra, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
+    joinJob = { progress: 1, state: "done", label, extra: withJoinAdd(name, extra), file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
   } catch (e) {
     joinJob = { progress: 0, state: "failed", label, error: e instanceof Error ? e.message : String(e) };
   } finally {

@@ -62,8 +62,10 @@ export interface EditSettings {
   textBand?: number | null;
   /** The share of the source's height kept from the top: under 1 crops burned-in text off the bottom; 1 = keep it, chosen. Unset = not chosen. */
   cropBottom?: number;
-  /** What shows behind the speaker: their own background blurred, a plain colour, or a picture on this device. Unset = as filmed. */
+  /** What shows behind the speaker: their own background blurred, a plain colour, or a picture or video on this device. Unset = as filmed. */
   backdrop?: Backdrop;
+  /** Where the speaker stands over a colour, picture or video behind them (standBox). Unset = full frame, as filmed. */
+  stand?: Stand;
   /** Skin smoothed a little and eyes brightened, 0 to 1 (faceVision.ts). Unset or 0 = off. */
   touchUp?: number;
   punchIn: boolean;
@@ -1577,8 +1579,30 @@ export function focusAt(s: Pick<EditSettings, "focusX" | "followFace" | "faceTra
   return t.x[a] + (t.x[b] - t.x[a]) * (i - a);
 }
 
-/** Behind the speaker, found on this device (faceVision.ts): blur 0-1, a #RRGGBB colour, or a picture's file key. */
-export type Backdrop = { kind: "blur"; amount: number } | { kind: "colour"; color: string } | { kind: "picture"; key: string };
+/** Behind the speaker, found on this device (faceVision.ts): blur 0-1, a #RRGGBB colour, or a picture's or video's file key (a video plays muted and loops). */
+export type Backdrop = { kind: "blur"; amount: number } | { kind: "colour"; color: string } | { kind: "picture"; key: string } | { kind: "video"; key: string };
+
+/** formats-green-screen: the speaker made smaller over what is behind them, at the bottom or in the corner. */
+export type Stand = "bottom" | "corner";
+export const sanitizeStand = (v: unknown): Stand | undefined => (v === "bottom" || v === "corner" ? v : undefined);
+/** Only a backdrop that covers the frame moves the speaker: over their own blurred background they stay where filmed. */
+export const standOf = (s: Pick<EditSettings, "backdrop" | "stand">): Stand | undefined => (s.backdrop && s.backdrop.kind !== "blur" ? s.stand : undefined);
+
+/**
+ * Where the cut-out speaker goes in a frame frameW x frameH, from a picture of them personW x personH: bottom is 70% of
+ * the frame's height, centred on its bottom edge; corner is 45% of its width, bottom left with a 4% margin. A picture
+ * too wide or too tall for that is made smaller, so the box always sits inside the frame.
+ */
+export function standBox(stand: Stand, frameW: number, frameH: number, personW: number, personH: number): { x: number; y: number; w: number; h: number } {
+  const aspect = personW > 0 && personH > 0 ? personW / personH : frameW / frameH;
+  const m = stand === "corner" ? frameW * 0.04 : 0;
+  let w = stand === "bottom" ? frameH * 0.7 * aspect : frameW * 0.45;
+  let h = w / aspect;
+  const k = Math.min(1, (frameW - 2 * m) / w, (frameH - 2 * m) / h);
+  w *= k;
+  h *= k;
+  return { x: stand === "bottom" ? (frameW - w) / 2 : m, y: frameH - h - m, w, h };
+}
 
 // ---------- audio-only sources (a podcast or voice clip turned into a video) ----------
 
