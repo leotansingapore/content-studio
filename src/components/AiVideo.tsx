@@ -352,7 +352,8 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
   };
   // Unboxing is the Creator review template, its product filled from the offer once (push, so Back comes back here)
   const unboxing = () => update({ kind: "template", template: UNBOXING, talk: null, offer: offer === null ? null : String(offer) }, { push: true });
-  const again = scriptJob?.state === "done" && !!scriptJob.say && script === scriptJob.say;
+  // the box holds the script just written (or a script too long to be a topic): write again from the same topic
+  const again = !!scriptJob?.topic && ((scriptJob.state === "done" && script === scriptJob.say) || script.trim().length > MAX_TOPIC);
   const topic = again ? scriptJob!.topic : script.trim();
   const canWrite = topic.length >= 5 && topic.length <= MAX_TOPIC;
   const writing = scriptJob?.state === "writing";
@@ -446,7 +447,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
                   <Pill on={behind === "set"} onClick={() => setBehind("set")} disabled={busy}>{SET_LABELS[setTalk]}</Pill>
                 </div>
                 {behind === "set" && (
-                  setJob?.state === "working" ? (
+                  setJob?.state === "working" && setJob.talk === setTalk ? (
                     <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
                       <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Making the set...
                     </p>
@@ -457,7 +458,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
-                      <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || left("ai-image") === 0} onClick={() => void makeSet(setTalk)}>Make the set</Button>
+                      <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || setJob?.state === "working" || left("ai-image") === 0} onClick={() => void makeSet(setTalk)}>Make the set</Button>
                       <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
                     </div>
                   )
