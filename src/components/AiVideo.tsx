@@ -19,13 +19,18 @@ import {
 } from "@/lib/presenter";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { BANNER_MAX, moveTake } from "@/lib/videoEdit";
-import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
+import { BANNER_MAX, MUSIC_LEVEL, moveTake } from "@/lib/videoEdit";
+import type { JoinExtra } from "@/lib/videoMedia";
+import {
+  EXPLAINER_LOOKS, FROMS, FROM_LABELS, LOOK_IDS, MAX_SCRIPT, SCRIPT_LIMITS, STOCK_TIP, dismissWrite, findStockNow, loadDraft, loadLook, makeNarrated, narratedWrite,
+  onDraft, onNarratedWrite, saveDraft, saveLook, scriptDrafts, stockOn, summaryLine, usesStock, writeNarrated, type From, type LookId, type NarratedScene, type Visuals,
+} from "@/lib/explainer";
+import { LEN_MAX, LEN_MIN, MAX_THEME, describe, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
   CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
   aiJob, avatarCredits, clipCredits, creditsUsd, examplesUrl, explainerCredits, makeAvatar, makeExplainer, makePresenter,
-  makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, sceneReady, sliceVoiceover, writeExplainer,
+  makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer, resumeAvatar, resumeExplainer, sceneReady, sliceVoiceover, writeExplainer,
   type AiJob, type ClipQuality, type ClipSeconds, type FieldKey, type PhotoRole, type Scene, type VideoTemplate, type Voiceover,
 } from "@/lib/aiVideo";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
@@ -42,8 +47,13 @@ type Kind = (typeof KINDS)[number];
 export default function AiVideo({ onClose }: { onClose: () => void }) {
   const [job, setJob] = useState<AiJob | null>(aiJob());
   useEffect(() => onAiJob(setJob), []);
-  // an avatar video paid for but never put together (a reload) carries on by itself
-  useEffect(() => resumeAvatar(), []);
+  // an avatar video, or Leo's narrated video, paid for but never put together (a reload) carries on by itself
+  useEffect(() => {
+    resumeAvatar();
+    resumeExplainer();
+  }, []);
+  // Leo: the explainer is the narrated video (formats-faceless-video, formats-animated); everyone else keeps today's
+  const user = useLeoUser();
   // ?kind= (docs/deep-links.md); without one, the kind of video being made or that just failed
   const [running] = useState<Kind>(() =>
     montageBusy() || montageJob()?.state === "failed" ? "montage" : job?.kind === "explainer" ? "explainer" : job?.kind === "avatar" || job?.kind === "presenter" ? "avatar" : "template");
@@ -55,15 +65,22 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
     <section className="space-y-3 rounded-2xl border border-border/70 p-4" aria-label="Make a video without filming">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Make a video without filming</h2>
-        <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={onClose}>Close</Button>
+        <div className="flex items-center">
+          {user && <Link to={links.make()} className="inline-flex h-11 items-center whitespace-nowrap px-2 text-xs font-medium text-primary underline-offset-2 hover:underline sm:h-9 [@media(pointer:coarse)]:h-11">See every format</Link>}
+          <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={onClose}>Close</Button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Kind of video">
         <Pill on={tab === "template"} onClick={() => setTab("template")} disabled={busy}>From a template</Pill>
         <Pill on={tab === "montage"} onClick={() => setTab("montage")} disabled={busy}>Montage</Pill>
         <Pill on={tab === "avatar"} onClick={() => setTab("avatar")} disabled={busy}>You speaking</Pill>
-        <Pill on={tab === "explainer"} onClick={() => setTab("explainer")} disabled={busy}>Explainer</Pill>
+        <Pill on={tab === "explainer"} onClick={() => setTab("explainer")} disabled={busy}>{user ? "Narrated video" : "Explainer"}</Pill>
       </div>
-      {tab === "template" ? <Templates busy={busy} left={left} /> : tab === "montage" ? <Montage busy={busy} left={left} /> : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} /> : <Explainer busy={busy} left={left} />}
+      {tab === "template" ? <Templates busy={busy} left={left} />
+        : tab === "montage" ? <Montage busy={busy} left={left} />
+        : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} />
+        : user ? <Narrated userId={user.id} busy={busy} />
+        : <Explainer busy={busy} left={left} />}
       {busy && (
         <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
           <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> {job?.step}
@@ -74,6 +91,9 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
           <p className="text-sm text-destructive">{job.error}</p>
           {(job.kind === "avatar" || job.kind === "template") && pendingAvatar() && (
             <Button size="sm" variant="outline" className="h-11 sm:h-9" onClick={resumeAvatar}>Try again at no cost</Button>
+          )}
+          {job.kind === "explainer" && pendingExplainer() && (
+            <Button size="sm" variant="outline" className="h-11 sm:h-9" onClick={resumeExplainer}>Try again at no cost</Button>
           )}
         </div>
       )}
@@ -681,6 +701,279 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
             <Left n={videos} what="AI videos" price={sumPrices(priceOf("ai-video", { scenes: scenes.length }), priceOf("ai-voice"))}
               least={videos === null || voices === null ? null : Math.min(videos, voices)} busy={busy} />
           </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const LENGTHS = ["30", "60"] as const;
+const VISUALS: Visuals[] = ["stock", "ai"];
+
+/**
+ * Leo's narrated video: start from a topic, your script, a link or a draft; 30 or 60 s; stock clips first or AI only;
+ * a look and moving scenes. What is typed and the scenes live in explainer.ts (this tab), so leaving the page keeps
+ * them; the write runs there too. Every choice is in the URL (from, secs, visuals, look; topic and link fill once).
+ */
+function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
+  const [w, setW] = useState(narratedWrite);
+  useEffect(() => onNarratedWrite(setW), []);
+  const [d, setD] = useState(() => loadDraft(userId));
+  useEffect(() => {
+    setD(loadDraft(userId));
+    return onDraft(() => setD(loadDraft(userId)));
+  }, [userId]);
+  const patch = (c: Parameters<typeof saveDraft>[1]) => saveDraft(userId, c);
+  const writing = !!w && (w.state === "reading" || w.state === "writing" || w.state === "finding");
+  const left = useUsesLeft(busy || writing);
+
+  const [from, setFrom] = useUrlState<From>("from", "topic", { allowed: FROMS });
+  const [len, setLen] = useUrlState<(typeof LENGTHS)[number]>("secs", "30", { allowed: LENGTHS, remember: "cs-narrated-length" });
+  const [visuals, setVisuals] = useUrlState<Visuals>("visuals", "stock", { allowed: VISUALS, remember: "cs-narrated-visuals" });
+  const kept = useMemo(() => loadLook(userId), [userId]);
+  const [look, setLookParam] = useUrlState<LookId>("look", kept.look, { allowed: LOOK_IDS });
+  const [move, setMove] = useState(kept.move);
+  const seconds = len === "60" ? 60 : 30;
+  const on = stockOn(visuals, look);
+  const keep = from === "script" || from === "draft";
+
+  // topic= and link= fill their box once, then leave the address
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const topicParam = params.get("topic");
+  const linkParam = params.get("link");
+  useEffect(() => {
+    if (topicParam === null && linkParam === null) return;
+    saveDraft(userId, { ...(topicParam ? { topic: topicParam.slice(0, MAX_TOPIC) } : {}), ...(linkParam ? { link: linkParam.slice(0, 500) } : {}) });
+    update({ topic: null, link: null });
+  }, [userId, topicParam, linkParam, update]);
+  // A draft: ?draft=<id> fills the script from that post once (later edits are the adviser's)
+  const list = useMemo(() => (from === "draft" ? scriptDrafts(userId) : []), [from, userId]);
+  const draftParam = params.get("draft");
+  const picked = list.find((x) => x.id === draftParam) ?? null;
+  useEffect(() => {
+    if (picked && loadDraft(userId).fromDraft !== picked.id) saveDraft(userId, { script: picked.script.slice(0, MAX_SCRIPT), fromDraft: picked.id });
+  }, [userId, picked]);
+  // Stock first picked after the scenes were written AI only: look for clips now (free, capped)
+  const scenes = d.scenes;
+  useEffect(() => {
+    if (on && scenes?.length && !d.found && !busy) void findStockNow(userId);
+  }, [on, scenes, d.found, busy, userId]);
+
+  const [voice, setVoice] = useState<VoiceId>("eric");
+  const [music, setMusic] = useState<File | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const flags = useMemo(() => {
+    const text = scenes ? scenes.map((s) => s.say).join(" ") : keep ? d.script : "";
+    return [...scanCompliance(text), ...(scenes && d.mas ? [MAS_FLAG] : [])].filter((f) => !dismissed.has(f.id));
+  }, [scenes, keep, d.script, d.mas, dismissed]);
+
+  const chooseLook = (id: LookId) => {
+    setLookParam(id);
+    saveLook(userId, { look: id, move });
+  };
+  const toggleMove = () => {
+    setMove(!move);
+    saveLook(userId, { look, move: !move });
+  };
+  const scriptWords = words(d.script);
+  const tooLong = keep && scriptWords > SCRIPT_LIMITS[seconds].maxWords;
+  const canWrite =
+    from === "topic" ? d.topic.trim().length >= 5 && d.topic.trim().length <= MAX_TOPIC
+    : from === "link" ? /^https?:\/\/[^\s/]+\.[^\s]+$/i.test(d.link.trim())
+    : d.script.trim().length >= 20 && !tooLong;
+  const scripts = left("ai-video-script");
+  const reads = left("page-read");
+  const write = () => {
+    dismissWrite();
+    void writeNarrated(userId, { from, seconds, stock: on });
+  };
+
+  const aiCount = scenes ? scenes.filter((s) => !usesStock(s, on)).length : 0;
+  const videos = left("ai-video");
+  const voices = left("ai-voice");
+  const price = aiCount ? sumPrices(priceOf("ai-video", { scenes: aiCount, move }), priceOf("ai-voice")) : priceOf("ai-voice");
+  const least = aiCount ? (videos === null || voices === null ? null : Math.min(videos, voices)) : voices;
+  const ready = !!scenes?.length && scenes.every(sceneReady);
+  const askFirst = !!price && price !== "pick" && price.usd >= 1;
+  const total = scenes ? scenes.reduce((n, s) => n + words(s.say), 0) : 0;
+  const edit = (i: number, change: Partial<NarratedScene>) => patch({ scenes: scenes!.map((x, j) => (j === i ? { ...x, ...change } : x)) });
+  const iconBtn = "h-11 w-11 p-0 sm:h-8 [@media(pointer:coarse)]:h-11 sm:w-8 [@media(pointer:coarse)]:w-11";
+  const make = async () => {
+    setAsking(false);
+    let settings: JoinExtra["settings"];
+    if (music) {
+      const key = `mu-narrated-${Date.now().toString(36)}`;
+      // music that can't be kept on this device leaves the video without it, as the editor would
+      if (await putFile(key, music).then(() => true, () => false)) settings = { music: { key, name: music.name.replace(/\.[^.]+$/, "") || "Music", level: MUSIC_LEVEL } };
+    }
+    const extra: JoinExtra = {
+      ...(settings ? { settings } : {}),
+      ...(d.source ? { note: `Made from ${d.source.url}`, toast: "Your narrated video is ready" } : {}),
+      ...(from === "draft" && d.fromDraft ? { draftId: d.fromDraft } : {}),
+    };
+    const name = (d.topic.trim() || d.source?.title || scenes![0].say).slice(0, 40) || "Narrated video";
+    void makeNarrated(userId, { name, scenes: scenes!, voice, look, move, visuals, extra: Object.keys(extra).length ? extra : undefined });
+  };
+  const off = busy || writing;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Start from">
+        <span className="mr-1 text-xs font-medium">Start from</span>
+        {FROMS.map((f) => <Pill key={f} on={from === f} onClick={() => setFrom(f)} disabled={off}>{FROM_LABELS[f]}</Pill>)}
+      </div>
+      <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (canWrite) write(); }}>
+        {from === "topic" && (
+          <Input value={d.topic} maxLength={MAX_TOPIC} onChange={(e) => patch({ topic: e.target.value })} disabled={off}
+            placeholder="What it explains, like why a hospital plan has a co-pay" aria-label="What the video explains" className="h-11 sm:h-10" />
+        )}
+        {from === "link" && (
+          <Input type="url" inputMode="url" value={d.link} maxLength={500} onChange={(e) => patch({ link: e.target.value })} disabled={off}
+            placeholder="Paste a link to an article" aria-label="A link to an article" className="h-11 sm:h-10" />
+        )}
+        {from === "draft" && (
+          list.length ? (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Your short-video drafts">
+              {list.slice(0, 8).map((x) => (
+                <Pill key={x.id} on={picked?.id === x.id} disabled={off} onClick={() => update({ draft: x.id })}>{x.label.length > 48 ? `${x.label.slice(0, 47)}...` : x.label}</Pill>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No short-video drafts yet. <Link to={links.generate({ format: "short-video" })} className="underline [@media(pointer:coarse)]:inline-block [@media(pointer:coarse)]:py-3">Write one</Link></p>
+          )
+        )}
+        {keep && (from === "script" || picked) && (
+          <>
+            <Textarea rows={4} value={d.script} maxLength={MAX_SCRIPT} onChange={(e) => patch({ script: e.target.value })} disabled={off}
+              placeholder="Paste your script. It's read word for word." aria-label="Your script" className="text-sm" />
+            {scriptWords > 0 && (
+              <p className={`text-[11px] ${tooLong ? "font-medium text-destructive" : "text-muted-foreground"}`}>
+                {scriptWords} words, about {secs(scriptWords / 2.5)}.{tooLong ? (seconds === 30 ? " Pick 60 seconds or cut it to 110 words." : " Cut it to 200 words.") : ""}
+              </p>
+            )}
+          </>
+        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Length">
+            {LENGTHS.map((n) => <Pill key={n} on={len === n} disabled={off} onClick={() => setLen(n)}>{n} seconds</Pill>)}
+          </div>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pictures">
+            <Pill on={on} disabled={off || look !== "photo"} onClick={() => setVisuals("stock")}>Stock first</Pill>
+            <Pill on={!on} disabled={off} onClick={() => setVisuals("ai")}>AI only</Pill>
+          </div>
+          {look !== "photo" && <span className="text-[11px] text-muted-foreground">{STOCK_TIP}</span>}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Look">
+          <span className="mr-1 text-xs font-medium">Look</span>
+          {LOOK_IDS.map((id) => (
+            <Pill key={id} on={look === id} disabled={off} onClick={() => chooseLook(id)}>
+              {EXPLAINER_LOOKS[id].label}{d.recommended?.id === id ? <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Recommended</span> : null}
+            </Pill>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill on={move} disabled={off} onClick={toggleMove}>Make the scenes move</Pill>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="submit" variant={scenes ? "outline" : "default"} className="h-11 sm:h-10"
+            disabled={off || !canWrite || scripts === 0 || (from === "link" && reads === 0)}>
+            {writing ? (keep ? "Splitting..." : "Writing...") : keep ? "Split into scenes" : scenes ? "Write it again" : "Write it"}
+          </Button>
+          {/* a link spends a page read too: the smaller of the two is what's left */}
+          <Left n={scripts} what="Explainer scripts" feature="ai-video-script" busy={writing} least={from === "link" && scripts !== null && reads !== null ? Math.min(scripts, reads) : scripts} />
+        </div>
+      </form>
+      {keep && !scenes && <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />}
+      {writing && (
+        <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
+          <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> {w!.step}
+        </p>
+      )}
+      {w?.state === "failed" && <p className="text-xs text-destructive" role="alert">{w.error}</p>}
+      {scenes && (
+        <>
+          <ol className="space-y-2">
+            {scenes.map((s, i) => {
+              const stock = usesStock(s, on);
+              return (
+                <li key={i} className="space-y-1 rounded-xl border border-border/60 p-2">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-semibold text-muted-foreground">Scene {i + 1}</span>
+                    <div className="flex">
+                      <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} up`} disabled={off || i === 0}
+                        onClick={() => patch({ scenes: moveTake(scenes, i, -1) })}><ChevronUp className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} down`} disabled={off || i === scenes.length - 1}
+                        onClick={() => patch({ scenes: moveTake(scenes, i, 1) })}><ChevronDown className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" className={`${iconBtn} text-muted-foreground hover:text-destructive`} aria-label={`Remove scene ${i + 1}`}
+                        disabled={off || scenes.length <= MIN_SCENES} onClick={() => patch({ scenes: scenes.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                  <Textarea rows={2} value={s.say} maxLength={300} disabled={off} aria-label={`Scene ${i + 1}, what the voice says`} className="text-sm"
+                    onChange={(e) => edit(i, { say: e.target.value })} />
+                  {stock ? (
+                    <div className="flex items-center gap-2">
+                      <img src={s.stock!.thumb} alt="" className="h-14 w-10 shrink-0 rounded-md object-cover" />
+                      <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">Stock clip{describe(s.stock!) ? `: ${describe(s.stock!)}` : ""}</span>
+                      <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-8" disabled={off} onClick={() => edit(i, { use: "ai" })}>Use a picture instead</Button>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="block space-y-0.5">
+                        <span className="text-[11px] font-medium text-muted-foreground">AI picture</span>
+                        <Textarea rows={2} value={s.picture} maxLength={400} disabled={off} aria-label={`Scene ${i + 1}, the picture`} className="text-xs"
+                          onChange={(e) => edit(i, { picture: e.target.value })} />
+                      </label>
+                      {on && s.stock && (
+                        <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-8" disabled={off} onClick={() => edit(i, { use: "stock" })}>Use stock instead</Button>
+                      )}
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          {d.source && (
+            <p className="text-xs text-muted-foreground">
+              From <a href={d.source.url} target="_blank" rel="noreferrer" className="underline [@media(pointer:coarse)]:inline-block [@media(pointer:coarse)]:py-3">{d.source.site}</a>
+            </p>
+          )}
+          <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
+            {VOICE_IDS.map((v) => <Pill key={v} on={voice === v} disabled={off} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
+              {music ? "Change music" : "Add your music (optional)"}
+              <input type="file" accept="audio/*" className="sr-only" disabled={off}
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setMusic(f); }} />
+            </label>
+            {music && (
+              <>
+                <span className="max-w-[12rem] truncate text-xs text-muted-foreground">{music.name}</span>
+                <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={off} onClick={() => setMusic(null)}>Remove</Button>
+              </>
+            )}
+          </div>
+          {aiCount > 0 && <p className="text-xs text-muted-foreground">The people in the AI pictures are made by AI.</p>}
+          <p className="text-sm" aria-live="polite">{summaryLine(scenes, total / 2.5, on)}</p>
+          {asking && !busy && price && price !== "pick" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">This makes a video and uses {priceText(price).replace(/^\w/, (c) => c.toLowerCase())} of video credit. Make it?</p>
+              <div className="flex items-center gap-2">
+                <Button className="h-11 sm:h-10" onClick={() => void make()}>Make it</Button>
+                <Button variant="ghost" className="h-11 text-muted-foreground sm:h-10" onClick={() => setAsking(false)}>Not now</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button className="h-11 sm:h-10" disabled={off || !ready || least === 0}
+                onClick={() => (askFirst ? setAsking(true) : void make())}>Make the video</Button>
+              {!ready && <span className="text-xs text-muted-foreground">Fill in every scene first.</span>}
+              <Left n={aiCount ? videos : voices} what={aiCount ? "AI videos" : "Voiceovers"} price={price} least={least} busy={busy} />
+            </div>
+          )}
         </>
       )}
     </div>

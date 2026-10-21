@@ -73,6 +73,8 @@ export interface NarratedDraft {
   topic: string;
   script: string;
   link: string;
+  /** The short-video draft whose script filled `script` ("A draft"), so it fills once, not over the adviser's edits. */
+  fromDraft?: string;
   scenes: NarratedScene[] | null;
   /** The length the scenes were written for. */
   seconds: NarratedSeconds;
@@ -104,6 +106,7 @@ export function loadDraft(userId: string): NarratedDraft {
         topic: text(r.topic),
         script: text(r.script),
         link: text(r.link),
+        ...(typeof r.fromDraft === "string" ? { fromDraft: r.fromDraft } : {}),
         scenes: Array.isArray(r.scenes) ? r.scenes : null,
         seconds: r.seconds === 60 ? 60 : 30,
         ...(r.source ? { source: r.source } : {}),
