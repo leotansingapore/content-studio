@@ -141,6 +141,8 @@ import {
   type StyleId,
   outputCues,
   dubPlacement,
+  sanitizeStand,
+  standOf,
 } from "@/lib/videoEdit";
 import {
   bufferTrack,
@@ -174,6 +176,7 @@ import {
   startExport,
   stills,
   syncBroll,
+  syncBackdrop,
   type BrandArt,
   type ExportJob,
   type FileCheck,
@@ -589,6 +592,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     music: sanitizeMusic(project.settings.music),
     faceTrack: sanitizeTrack(project.settings.faceTrack),
     backdrop: sanitizeBackdrop(project.settings.backdrop),
+    stand: sanitizeStand(project.settings.stand),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useUrlState("mode", "fix", { allowed: ["fix", "cut"] });
@@ -653,10 +657,15 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const [dims, setDims] = useState<[number, number]>([0, 0]);
   // looking for the face across the video (share done), for the crop to follow it
   const [finding, setFinding] = useState<number | null>(null);
-  // behind you: the picture (from this device) and the model that finds who is in front, loaded on first use
+  // behind you: the picture or video (from this device) and the model that finds who is in front, loaded on first use
   const pictureKey = settings.backdrop?.kind === "picture" ? settings.backdrop.key : "";
   const [backdropImg, setBackdropImg] = useState<HTMLImageElement | null | undefined>(undefined);
   const pictureInput = useRef<HTMLInputElement>(null);
+  // a video behind you plays muted and loops in a hidden <video>, kept in step with the preview (syncBackdrop)
+  const backdropVideoKey = settings.backdrop?.kind === "video" ? settings.backdrop.key : "";
+  const [backdropVideo, setBackdropVideo] = useState<{ url: string; file: Blob } | null | undefined>(undefined);
+  const backdropEl = useRef<HTMLVideoElement>(null);
+  const backdropVideoInput = useRef<HTMLInputElement>(null);
   const [fxState, setFxState] = useState<"" | "loading" | "failed">("");
   // which models the edit needs: the person finder for the backdrop, the face finder for the touch-up
   const wantFx = `${settings.backdrop ? "b" : ""}${settings.touchUp ? "t" : ""}`;
@@ -808,6 +817,19 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       .catch(() => live && setBackdropImg(null));
     return () => { live = false; if (src) URL.revokeObjectURL(src); };
   }, [pictureKey]);
+  useEffect(() => {
+    if (!backdropVideoKey) return setBackdropVideo(undefined);
+    let live = true;
+    let url = "";
+    getFile(backdropVideoKey)
+      .then((b) => {
+        if (!live) return;
+        if (!b) return setBackdropVideo(null);
+        setBackdropVideo({ url: (url = URL.createObjectURL(b)), file: b });
+      })
+      .catch(() => live && setBackdropVideo(null));
+    return () => { live = false; if (url) URL.revokeObjectURL(url); };
+  }, [backdropVideoKey]);
   const loadFx = useCallback(() => {
     setFxState("loading");
     return loadEffects(settingsRef.current)
@@ -818,7 +840,13 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     if (wantFx) void loadFx();
     else setFxState("");
   }, [wantFx, loadFx]);
-  const fx = useMemo<Frame["fx"]>(() => (settings.backdrop || settings.touchUp ? (g, r) => paintEffects(g, r, settings, backdropImg) : null), [settings, backdropImg]);
+  // a video behind you: the frame whoever draws hands in (preview, exports), else the one the hidden video shows (the cover)
+  const fx = useMemo<Frame["fx"]>(
+    () => (settings.backdrop || settings.touchUp
+      ? (g, r, _out, behind) => paintEffects(g, r, settings, settings.backdrop?.kind === "video" ? (behind === undefined ? backdropEl.current : behind) : backdropImg)
+      : null),
+    [settings, backdropImg],
+  );
 
   // save the edit a moment after the last change; the newest project, so a save due as a video is swapped can't put the old file back
   const live = useRef(project);
@@ -863,7 +891,8 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     }
     const out = outIn(plan.segs, segIdx.current, v.currentTime, speed) ?? outT;
     const broll = syncBroll(brollEls.current, settings.broll, out, playing);
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx, peaks });
+    const backdrop = settings.backdrop?.kind === "video" ? syncBackdrop(backdropEl.current, out, playing) : undefined;
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx, peaks, backdrop });
     setOutT(out);
   }, [plan, settings, outT, subs, art, playing, speed, fx, peaks]);
   const total = fullLength(plan.total, settings, !!art);
@@ -934,12 +963,13 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       }
       voiceEl.current?.pause();
       brollEls.current.forEach((el) => el.pause());
+      backdropEl.current?.pause();
       musicOut.current?.track?.stop();
       sfx.current.sync([], null);
     }
   }, [playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { if (!playing) paint(); }, [settings, plan, backdropImg]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!playing) paint(); }, [settings, plan, backdropImg, backdropVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const syncVoice = (out: number | null) => {
     const el = voiceEl.current;
@@ -1512,7 +1542,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     return brollFiles;
   };
   const runExport = (s: EditSettings, name: string, brollFiles: Record<string, Blob>) =>
-    startExport(name, file!, words, s, s.subLang ? subs[s.subLang] : undefined, art, s.voiceover ? voiceBlob : null, brollFiles, s.music ? musicBlob : null, fx);
+    startExport(name, file!, words, s, s.subLang ? subs[s.subLang] : undefined, art, s.voiceover ? voiceBlob : null, brollFiles, s.music ? musicBlob : null, fx, s.backdrop?.kind === "video" ? backdropVideo?.file : null);
   const doExport = async () => {
     if (!file) return;
     const brollFiles = await exportFiles();
@@ -1724,18 +1754,20 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     toast({ title: `B-roll added at ${fmtTime(b.from)}` });
   };
   const editBroll = (id: string, p: Partial<Broll>) => patch({ broll: brolls.map((b) => (b.id === id ? { ...b, ...p } : b)) });
-  const addPicture = async (f: File) => {
-    if (!f.type.startsWith("image/")) return toast({ title: "That isn't a picture", variant: "destructive" });
-    if (f.size > 15 * 1024 * 1024) return toast({ title: "That picture is over 15 MB", variant: "destructive" });
+  const addPicture = async (f: File, kind: "picture" | "video" = "picture") => {
+    const noun = kind === "video" ? "video" : "picture";
+    if (!f.type.startsWith(kind === "video" ? "video/" : "image/")) return toast({ title: `That isn't a ${noun}`, variant: "destructive" });
+    const max = kind === "video" ? 200 : 15;
+    if (f.size > max * 1024 * 1024) return toast({ title: `That ${noun} is over ${max} MB`, variant: "destructive" });
     try {
       const key = `bd-${project.id}-${Date.now().toString(36)}`;
       await putFile(key, f);
       // the previous picture's file stays, so Undo can bring it back (ponytail: pictures accumulate per video, like voiceover takes)
       const cur = settingsRef.current;
       setHistory((h) => [...h.slice(-19), cur]);
-      setSettings({ ...cur, backdrop: { kind: "picture", key } });
+      setSettings({ ...cur, backdrop: { kind, key } });
     } catch (e) {
-      toast({ title: "Couldn't keep the picture", description: (e as Error).message, variant: "destructive" });
+      toast({ title: `Couldn't keep the ${noun}`, description: (e as Error).message, variant: "destructive" });
     }
   };
 
@@ -1973,6 +2005,10 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
           </div>
           {file === undefined && <p className="text-xs text-muted-foreground">Loading the video...</p>}
           {voiceUrl && <audio ref={voiceEl} src={voiceUrl} preload="auto" className="hidden" />}
+          {backdropVideo && (
+            <video ref={backdropEl} src={backdropVideo.url} muted loop playsInline preload="auto" aria-hidden className="pointer-events-none absolute h-px w-px opacity-0"
+              onLoadedData={() => paintRef.current?.()} onSeeked={() => { if (!playing) paintRef.current?.(); }} />
+          )}
           {brolls.map((b) => (
             <video key={b.id} src={brollUrls[b.key] || undefined} muted playsInline preload="auto" aria-hidden className="pointer-events-none absolute h-px w-px opacity-0"
               ref={(el) => { if (el) brollEls.current.set(b.id, el); else brollEls.current.delete(b.id); }}
@@ -2689,9 +2725,12 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                   <Chip on={settings.backdrop?.kind === "blur"} onClick={() => patch({ backdrop: { kind: "blur", amount: 0.6 } })}>Blur</Chip>
                   <Chip on={settings.backdrop?.kind === "colour"} onClick={() => patch({ backdrop: { kind: "colour", color: (art?.color ?? "#111827").toUpperCase() } })}>Colour</Chip>
                   <Chip on={settings.backdrop?.kind === "picture"} onClick={() => pictureInput.current?.click()}>Picture</Chip>
+                  <Chip on={settings.backdrop?.kind === "video"} onClick={() => backdropVideoInput.current?.click()}>Video</Chip>
                 </div>
                 <input ref={pictureInput} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addPicture(f); }} />
+                <input ref={backdropVideoInput} type="file" accept="video/*" className="sr-only" tabIndex={-1} aria-hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addPicture(f, "video"); }} />
               </div>
               {settings.backdrop?.kind === "blur" && (
                 <Row label={`Blur ${Math.round(settings.backdrop.amount * 100)}%`}>
@@ -2712,6 +2751,21 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                     <ImageIcon className="h-3.5 w-3.5" /> Change picture
                   </Button>
                 </div>
+              )}
+              {settings.backdrop?.kind === "video" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {backdropVideo === null && <span className="text-xs text-muted-foreground">The video is on the device you added it on.</span>}
+                  <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => backdropVideoInput.current?.click()}>
+                    <Film className="h-3.5 w-3.5" /> Change video
+                  </Button>
+                </div>
+              )}
+              {settings.backdrop && settings.backdrop.kind !== "blur" && (
+                <Row label="Where you stand">
+                  <Chip on={!standOf(settings)} onClick={() => patch({ stand: undefined })}>Full</Chip>
+                  <Chip on={settings.stand === "bottom"} onClick={() => patch({ stand: "bottom" })}>Bottom</Chip>
+                  <Chip on={settings.stand === "corner"} onClick={() => patch({ stand: "corner" })}>Corner</Chip>
+                </Row>
               )}
               <Row label={settings.touchUp ? `Touch-up ${Math.round(settings.touchUp * 100)}%` : "Touch-up off"}>
                 <InfoTip label="About touch-up">Smooths skin a little and brightens eyes. Face shape never changes.</InfoTip>
