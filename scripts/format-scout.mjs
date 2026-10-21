@@ -1,7 +1,8 @@
 // Format scout: the weekly drop of trending TikTok slideshows and walls of text behind /trends?view=formats
 // (docs/north-star/items/find-trending-formats.md). Writes src/data/formatTrends.json and public/format-trends/<id>.jpg.
 //
-// 1. Apify clockworks~tiktok-scraper on 8 hashtags x 30 results, with trend-scout.mjs's input shape. It prints the
+// 1. Apify clockworks~tiktok-scraper on 8 searches x 30 results (TikTok search's Top section, which carries photo-mode
+//    posts; its hashtag feeds returned 240 videos and no slideshow on 21 Oct), with slideshow images on. It prints the
 //    result count and the price before anything is paid, and refuses above FORMAT_SCOUT_MAX_USD (default 1.5).
 // 2. Keeps posts from the last 30 days with 50,000 views or more. A photo-mode post is a slideshow.
 // 3. The free Claude CLI (claude -p --model sonnet) reads the pictures, since Jev reads text only: up to 10 slides
@@ -37,9 +38,9 @@ const OUT = path.join(ROOT, "src/data/formatTrends.json");
 const COVER_DIR = path.join(ROOT, "public/format-trends");
 
 export const ACTOR = "clockworks~tiktok-scraper";
-export const HASHTAGS = ["moneytips", "personalfinance", "financetips", "careeradvice", "corporatelife", "productivitytips", "selfimprovement", "adulting"];
-export const PER_HASHTAG = 30;
-export const RESULTS = HASHTAGS.length * PER_HASHTAG;
+export const SEARCHES = ["money tips", "personal finance", "finance tips", "career advice", "corporate life", "productivity tips", "self improvement", "adulting"];
+export const PER_SEARCH = 30;
+export const RESULTS = SEARCHES.length * PER_SEARCH;
 // The vendor table's Free-plan rate (api.apify.com, read 20 Oct): US$3.70 per 1,000 results plus US$0.001 a run.
 const FALLBACK_USD_PER_RESULT = 0.0037;
 const START_USD = 0.001;
@@ -148,10 +149,9 @@ function dayOf(item) {
 }
 
 /**
- * One raw actor item as a post, or null. shape unverified: no photo post has been saved from this actor yet
- * (viral-search's fixture holds videos only), so the slide links are read from the documented slideshowImageLinks
- * ({ tiktokLink, downloadLink }) and from TikTok's own imagePost.images[].imageURL.urlList. Check both against the
- * integrator's scripts/fixtures/format-scout-tiktok.json once it is saved.
+ * One raw actor item as a post, or null. A photo post carries slideshowImageLinks ({ tiktokLink, downloadLink }), as
+ * scripts/fixtures/format-scout-tiktok.json shows (a real search result, 21 Oct); TikTok's own
+ * imagePost.images[].imageURL.urlList is read when the actor leaves the links out.
  */
 export function tiktokPost(item) {
   if (!item || typeof item !== "object" || item.error || item.isAd || item.isSponsored) return null;
@@ -283,10 +283,14 @@ async function pricePerResult(token) {
   }
 }
 
+/** The actor's input: Top search, since hashtag feeds carry no photo posts; slideshowImageLinks only come with
+ * shouldDownloadSlideshowImages (both checked on a 20-result search, 21 Oct). */
+export const scoutInput = () => ({ searchQueries: SEARCHES, resultsPerPage: PER_SEARCH, shouldDownloadSlideshowImages: true });
+
 /** One async run (sync runs are cut off at 300 s while they keep billing), capped by Apify itself at `capUsd`. */
 async function apifyScrape(token, capUsd) {
   const q = new URLSearchParams({ maxTotalChargeUsd: String(capUsd), maxItems: String(RESULTS) });
-  const input = { hashtags: HASHTAGS, resultsPerPage: PER_HASHTAG };
+  const input = scoutInput();
   let run = (await apify(`${API}/acts/${ACTOR}/runs?${q}`, token, { method: "POST", body: JSON.stringify(input) })).data;
   console.log(`format-scout: Apify run ${run.id} started`);
   const started = Date.now();
@@ -393,7 +397,7 @@ export async function run({
   const each = await price(token);
   const estimate = RESULTS * each + START_USD;
   console.log(
-    `format-scout: ${HASHTAGS.length} hashtags x ${PER_HASHTAG} = ${RESULTS} results at US$${each} = about US$${estimate.toFixed(2)} (cap US$${cap})`,
+    `format-scout: ${SEARCHES.length} searches x ${PER_SEARCH} = ${RESULTS} results at US$${each} = about US$${estimate.toFixed(2)} (cap US$${cap})`,
   );
   if (args.includes("--estimate")) return 0;
   if (!env.TYPESAFE_API_KEY) {

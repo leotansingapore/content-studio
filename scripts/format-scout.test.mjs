@@ -19,6 +19,7 @@ import {
   pickCandidates,
   run,
   shapeItem,
+  scoutInput,
   tiktokPost,
 } from "./format-scout.mjs";
 
@@ -96,6 +97,20 @@ describe("picking candidates", () => {
     expect(tiktokPost(viaImagePost)).toMatchObject({ photo: true, postedAt: "2026-10-20", images: ["https://p16.tiktokcdn.com/a.jpeg", "https://p16.tiktokcdn.com/b.jpeg"] });
     const apifyLink = photo("1000009", 2, { slideshowImageLinks: [{ downloadLink: "https://api.apify.com/v2/key-value-stores/s/records/a", tiktokLink: "https://p16/x.jpeg" }, { tiktokLink: "https://p16/y.jpeg" }] });
     expect(tiktokPost(apifyLink).images).toEqual(["https://api.apify.com/v2/key-value-stores/s/records/a", "https://p16/y.jpeg"]);
+  });
+
+  it("searches TikTok's Top section with slideshow images on, since hashtag feeds bring no photo posts", () => {
+    expect(scoutInput()).toEqual({ searchQueries: expect.arrayContaining(["money tips"]), resultsPerPage: 30, shouldDownloadSlideshowImages: true });
+    expect(scoutInput()).not.toHaveProperty("hashtags");
+  });
+
+  it("reads a real search result: the slideshow with its slide links, the video as no slides", () => {
+    const [slide, clip] = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures/format-scout-tiktok.json"), "utf8"));
+    const p = tiktokPost(slide);
+    expect(p).toMatchObject({ photo: true });
+    expect(p.images).toHaveLength(3);
+    expect(p.images.every((u) => u.startsWith("https://api.apify.com/"))).toBe(true);
+    expect(tiktokPost(clip)).toMatchObject({ photo: false, images: [] });
   });
 });
 
@@ -219,7 +234,7 @@ describe("run", () => {
     const o = fakes();
     o.scrape.mockImplementation(async () => (lines.push("SCRAPED"), DATASET));
     expect(await run(o)).toBe(0);
-    expect(lines[0]).toBe("format-scout: 8 hashtags x 30 = 240 results at US$0.0037 = about US$0.89 (cap US$1.5)");
+    expect(lines[0]).toBe("format-scout: 8 searches x 30 = 240 results at US$0.0037 = about US$0.89 (cap US$1.5)");
     expect(lines.indexOf("SCRAPED")).toBeGreaterThan(0);
   });
 
