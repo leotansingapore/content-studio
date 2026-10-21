@@ -107,6 +107,15 @@ export function lineOverlays(lines: string[], seconds: number[]): Overlay[] {
   });
 }
 
+/**
+ * The editor's "People need about n s to read this" check for words over a video: the video's length to the nearest
+ * second (a made 8 s clip runs 7.999 s, which floored to 7 and warned), or null when the words fit.
+ */
+export function readsLonger(readSeconds: number, total: number): number | null {
+  const shown = Math.round(total);
+  return readSeconds > shown ? shown : null;
+}
+
 /** Lines a stretch of footage gets: one per 5 s, 1 to 12. */
 export const footageCount = (seconds: number) => Math.max(1, Math.min(MAX_LINES, Math.round(seconds / LINE_SECONDS)));
 

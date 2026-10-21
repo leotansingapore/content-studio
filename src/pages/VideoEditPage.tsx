@@ -195,6 +195,7 @@ import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
 import { onCaptionJob } from "@/lib/captionJob";
 import { onClipFind } from "@/lib/clipAsk";
+import { readsLonger } from "@/lib/ownMedia";
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
@@ -2153,9 +2154,9 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                 <p className="text-[11px] text-muted-foreground" aria-live="polite">
                   {blockWords} {blockWords === 1 ? "word" : "words"}, about {readS} s to read
                 </p>
-                {readS > plan.total && (
+                {readsLonger(readS, plan.total) !== null && (
                   <p className="rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs" role="status">
-                    People need about {readS} s to read this. The video is {Math.floor(plan.total)} s. Cut words or use a longer clip.
+                    People need about {readS} s to read this. The video is {readsLonger(readS, plan.total)} s. Cut words or use a longer clip.
                   </p>
                 )}
                 {!!blockBox && blockBox.h > 0.7 && (

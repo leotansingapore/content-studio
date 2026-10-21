@@ -39,7 +39,7 @@ const mem = new Map<string, string>();
 vi.stubGlobal("localStorage", { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) });
 
 import {
-  LEO_PANELS, MAX_PICTURES, START_PANELS, footageCount, footageWords, lineOverlays, makeOwn, movePicture, mutedWithMusic, ownState, pickFiles, pictureExtra, pictureSeconds,
+  LEO_PANELS, MAX_PICTURES, START_PANELS, footageCount, readsLonger, footageWords, lineOverlays, makeOwn, movePicture, mutedWithMusic, ownState, pickFiles, pictureExtra, pictureSeconds,
   setOwn, sortDrop, withPanel, writeOwn,
 } from "./ownMedia";
 import { formatJobs } from "./formatJob";
@@ -178,5 +178,16 @@ describe("words for footage", () => {
     expect(io.steps).toEqual(["write video 4"]);
     expect(w.hook).toBe("H");
     expect(w.overlays.map((o) => [o.from, o.to])).toEqual([[0.1, 4.9], [5.1, 9.9], [10.1, 14.9], [15.1, 19.9]]);
+  });
+});
+
+describe("words over a video: time to read", () => {
+  it("reads a made 8 s clip (7.999 s) as 8 s, so 25 to 28 words that need 8 s don't warn", () => {
+    expect(readsLonger(8, 7.999)).toBeNull();
+    expect(readsLonger(8, 8)).toBeNull();
+    // too long still warns, naming the same seconds it compares
+    expect(readsLonger(9, 7.999)).toBe(8);
+    expect(readsLonger(8, 7.4)).toBe(7);
+    expect(readsLonger(0, 0)).toBeNull();
   });
 });
