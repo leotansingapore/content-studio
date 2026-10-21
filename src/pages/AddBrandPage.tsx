@@ -12,10 +12,10 @@ import { saveBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
 import { addProfile, loadProfiles, setActiveProfile } from "@/lib/profiles";
-import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
+import { saveSocialAccounts, type SocialAccounts } from "@/lib/socialAccounts";
 import { saveVoiceProfile } from "@/lib/voiceProfile";
 import { supabase } from "@/lib/supabase";
-import { keptBrand, keptBrandKey, newBrandKit, readBody, type BrandDna as Dna } from "@/lib/addBrand";
+import { AUDIENCE_NAMES, keptBrand, keptBrandKey, NETWORKS, newBrandKit, readBody, type BrandDna as Dna } from "@/lib/addBrand";
 
 // /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow).
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
@@ -24,19 +24,6 @@ import { keptBrand, keptBrandKey, newBrandKit, readBody, type BrandDna as Dna } 
 const STEPS = ["Opening the site", "Name and logo", "Brand colour", "Social accounts", "What you do and for whom", "How you sound"];
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
 type Card = (typeof CARDS)[number];
-const AUDIENCE_NAMES: Record<PlanAudience, string> = {
-  "young-adult": "Young adults",
-  "working-adult": "Working adults",
-  parent: "Parents",
-  "pre-retiree": "Pre-retirees",
-  general: "Everyone",
-};
-const NETWORKS: { key: SocialPlatform; label: string; base: string }[] = [
-  { key: "instagram", label: "Instagram", base: "https://www.instagram.com/" },
-  { key: "facebook", label: "Facebook", base: "https://www.facebook.com/" },
-  { key: "linkedin", label: "LinkedIn", base: "https://www.linkedin.com/" },
-  { key: "tiktok", label: "TikTok", base: "https://www.tiktok.com/@" },
-];
 
 export default function AddBrandPage() {
   const [uid, setUid] = useState("");

@@ -18,6 +18,21 @@ export interface BrandDna {
   voice: string;
 }
 
+export const AUDIENCE_NAMES: Record<PlanAudience, string> = {
+  "young-adult": "Young adults",
+  "working-adult": "Working adults",
+  parent: "Parents",
+  "pre-retiree": "Pre-retirees",
+  general: "Everyone",
+};
+/** The handles a read finds, and the address each is saved as. */
+export const NETWORKS: { key: SocialPlatform; label: string; base: string }[] = [
+  { key: "instagram", label: "Instagram", base: "https://www.instagram.com/" },
+  { key: "facebook", label: "Facebook", base: "https://www.facebook.com/" },
+  { key: "linkedin", label: "LinkedIn", base: "https://www.linkedin.com/" },
+  { key: "tiktok", label: "TikTok", base: "https://www.tiktok.com/@" },
+];
+
 export interface KeptBrand {
   address: string;
   name: string;
@@ -29,7 +44,7 @@ export interface KeptBrand {
 // sessionStorage, outside the synced prefix: nothing is saved until Create
 export const keptBrandKey = (userId: string) => `cs-addbrand-form-${userId}`;
 
-const isDna = (d: unknown): d is BrandDna => {
+export const isDna = (d: unknown): d is BrandDna => {
   if (!d || typeof d !== "object") return false;
   const x = d as Record<string, unknown>;
   const str = (k: string) => typeof x[k] === "string";
