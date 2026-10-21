@@ -82,7 +82,8 @@ export function templateFormats(list: VideoTemplate[]): FormatDef[] {
       kind: "video",
       group: 2,
       cap: "ai-clip",
-      price: () => from(priceOf("ai-clip", { seconds: 4, quality: "480p" })),
+      // the editor opens at 8 s and 720p, so the card prices what pressing it makes (the gallery check, 21 Oct)
+      price: () => priceOf("ai-clip", { seconds: 8, quality: "720p" }),
       needs: t.needsPhoto ? "photo" : undefined,
       to: () => links.edit({ panel: ["ai"], kind: "template", template: t.id }),
       ready: true,

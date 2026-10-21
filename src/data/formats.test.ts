@@ -28,7 +28,7 @@ const EXPECTED: Record<string, Price | "pick" | null> = {
   "text-over-clip": sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 8, quality: "480p" })),
   explainer,
   ...Object.fromEntries(["clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"].map((l) => [`look-${l}`, explainer])),
-  ...Object.fromEntries(TEMPLATES.filter((t) => !t.hidden).map((t) => [`template-${t.id}`, from(priceOf("ai-clip", { seconds: 4, quality: "480p" }))])),
+  ...Object.fromEntries(TEMPLATES.filter((t) => !t.hidden).map((t) => [`template-${t.id}`, priceOf("ai-clip", { seconds: 8, quality: "720p" })])),
   "talking-head": sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice"), priceOf("ai-image")),
   "green-screen": from(priceOf("remix-make")),
   "hook-demo": from(priceOf("remix-make")),
@@ -79,7 +79,7 @@ describe("the format registry", () => {
     expect(chip("own-media")).toBe("About US$0.03");
     expect(chip("clips")).toBe("About US$0.40");
     expect(chip("green-screen")).toBe("From US$0.02");
-    expect(chip(`template-${TEMPLATES[0].id}`)).toBe("From US$0.82");
+    expect(chip(`template-${TEMPLATES[0].id}`)).toBe("About US$3.70");
     expect(chip("carousel")).toBeNull();
   });
 
