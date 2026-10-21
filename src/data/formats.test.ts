@@ -107,7 +107,7 @@ describe("the format registry", () => {
   it("finds pages only by slug, ready or not, so the existing pages keep their cap", () => {
     expect(formatBySlug("slideshow")).toMatchObject({ slug: "slideshow", cap: "remix-make" });
     expect(formatBySlug("wall-of-text")).toMatchObject({ slug: "wall-of-text", cap: "remix-make" });
-    for (const s of ["talking-head", "text-over-clip", "hook-demo", "green-screen"]) expect(formatBySlug(s)?.ready, s).toBe(false);
+    for (const s of ["talking-head", "text-over-clip", "hook-demo", "green-screen"]) expect(formatBySlug(s)?.ready, s).toBe(true);
     expect(formatBySlug("carousel")).toBeNull();
     expect(formatBySlug("nope")).toBeNull();
     expect(formatBySlug(undefined)).toBeNull();
@@ -144,9 +144,10 @@ describe("filterFormats", () => {
 });
 
 describe("alsoMakeList", () => {
-  it("lists slideshow and wall of text today, both made on arrival", () => {
-    // W1: only these two are ready; the integrator's ready flips add their formats here
-    expect(alsoMakeList(FORMATS).map(({ f, go }) => [f.slug, go])).toEqual([["slideshow", true], ["wall-of-text", true]]);
+  it("lists the ready formats a remix can also make, making on arrival only those under about US$1", () => {
+    expect(alsoMakeList(FORMATS).map(({ f, go }) => [f.slug, go])).toEqual([
+      ["slideshow", true], ["wall-of-text", true], ["static-ad", true], ["meme", true], ["text-over-clip", false], ["talking-head", false],
+    ]);
   });
   it("lists ready Also make formats only, and makes on arrival only under US$1", () => {
     const at = (usd: number) => () => ({ usd, kind: "about" as const });

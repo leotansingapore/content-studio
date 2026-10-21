@@ -126,7 +126,7 @@ export const FORMATS: FormatDef[] = [
     price: () => priceOf("remix-make"),
     to: (o) => links.image({ source: o.source }),
     alsoMake: true,
-    ready: false,
+    ready: true,
   },
   {
     slug: "meme",
@@ -138,7 +138,7 @@ export const FORMATS: FormatDef[] = [
     price: () => priceOf("remix-make"),
     to: (o) => links.image({ layout: "top-bottom", source: o.source }),
     alsoMake: true,
-    ready: false,
+    ready: true,
   },
   {
     slug: "carousel",
@@ -192,7 +192,7 @@ export const FORMATS: FormatDef[] = [
     price: () => sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 8, quality: "480p" })),
     Component: lazy(() => import("@/components/make/TextOverClip")),
     alsoMake: true,
-    ready: false,
+    ready: true,
   },
   {
     slug: "explainer",
@@ -230,7 +230,7 @@ export const FORMATS: FormatDef[] = [
     price: () => sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice"), priceOf("ai-image")),
     Component: lazy(() => import("@/components/make/TalkingHead")),
     alsoMake: true,
-    ready: false,
+    ready: true,
   },
   {
     slug: "green-screen",
@@ -241,7 +241,7 @@ export const FORMATS: FormatDef[] = [
     cap: "remix-make",
     price: () => from(priceOf("remix-make")),
     Component: lazy(() => import("@/components/make/GreenScreen")),
-    ready: false,
+    ready: true,
   },
   {
     slug: "hook-demo",
@@ -253,7 +253,7 @@ export const FORMATS: FormatDef[] = [
     price: () => from(priceOf("remix-make")),
     needs: "demo-video",
     Component: lazy(() => import("@/components/make/HookDemo")),
-    ready: false,
+    ready: true,
   },
   ...TALKS.map(
     (t): FormatDef => ({
@@ -279,7 +279,7 @@ export const FORMATS: FormatDef[] = [
     price: () => sumPrices(priceOf("own-words"), priceOf("ai-voice")),
     needs: "own-media",
     to: () => links.edit({ panel: ["own"] }),
-    ready: false,
+    ready: true,
   },
   {
     slug: "clips",
@@ -291,7 +291,7 @@ export const FORMATS: FormatDef[] = [
     price: () => sumPrices(priceOf("video-transcribe", { minutes: 60 }), priceOf("video-clips", { passes: 2 })),
     needs: "own-video",
     to: () => links.edit({ panel: ["clips"] }),
-    ready: false,
+    ready: true,
   },
   {
     slug: "edit-own",
