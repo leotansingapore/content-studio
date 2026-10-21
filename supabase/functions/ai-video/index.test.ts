@@ -576,3 +576,31 @@ describe("a saved face's consent check (people-my-face, NORTH_STAR_USERS only)",
     expect(used(LEO)).toBe(5);
   });
 });
+
+describe("today's one-off presenter, for everyone (pinned before people-presenters)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const LOOK = "A Malay Singaporean woman in her 30s, light grey hijab, cream blouse, warm smile";
+
+  it("makes one Soul v2 picture from the typed look for one ai-image use, with no Jev question and nothing back on a failed submit", async () => {
+    const res = await send(UID, { mode: "presenter", look: LOOK });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ token: expect.any(String) });
+    expect(hf.calls).toEqual(["https://api.higgsfield.ai/higgsfield-ai/soul/v2/standard"]);
+    expect(hf.bodies).toEqual([{
+      prompt:
+        `${LOOK}\n\nA head-and-shoulders portrait of this one person facing the camera and looking into the lens, mouth closed, relaxed, about to speak to camera. Softly blurred office or home background, soft even light, sharp focus on the face, a vertical phone video frame. Set in Singapore; the person is Singaporean unless described otherwise. No text, no words, no logos, no watermarks, no other people.`,
+      aspect_ratio: "9:16",
+      resolution: "1080p",
+      batch_size: 1,
+    }]);
+    expect([...db.rows.entries()]).toEqual([[`${UID}|ai-image|${db.today()}`, 1]]);
+    expect(hf.asked).toEqual([]);
+
+    hf.submits.push(500);
+    const down = await send(UID, { mode: "presenter", look: LOOK });
+    expect(down.status).toBe(502);
+    expect(await down.json()).toEqual({ error: "Couldn't start the video right now. Try again in a minute." });
+    expect([...db.rows.entries()]).toEqual([[`${UID}|ai-image|${db.today()}`, 2]]);
+  });
+});
