@@ -860,6 +860,24 @@ export interface SavedCarousel {
   updatedAt: string;
 }
 
+const FONT_IDS: readonly unknown[] = ["classic", "modern", "serif"] satisfies SlideFont[];
+const PAPER_IDS: readonly unknown[] = ["light", "dark", "tint"] satisfies SlidePaper[];
+
+/**
+ * The look a carousel opens in (brand-kit): a saved one keeps its own (absent reads classic and light, as saved);
+ * a new one takes the brand kit's, then this device's last pick (`device`, cs-carousel-look), then classic and light.
+ */
+export function carouselStartLook(
+  saved: Pick<SavedCarousel, "font" | "paper"> | null,
+  kit: Pick<CarouselBrand, "slideFont" | "slidePaper"> | null,
+  device: Record<string, unknown>,
+): { font: SlideFont; paper: SlidePaper } {
+  if (saved) return { font: saved.font ?? "classic", paper: saved.paper ?? "light" };
+  const font = [kit?.slideFont, device.font].find((v) => FONT_IDS.includes(v)) as SlideFont | undefined;
+  const paper = [kit?.slidePaper, device.paper].find((v) => PAPER_IDS.includes(v)) as SlidePaper | undefined;
+  return { font: font ?? "classic", paper: paper ?? "light" };
+}
+
 export const MAX_SAVED_CAROUSELS = 20;
 const SAVED_KEY_PREFIX = "content-studio-carousels-";
 

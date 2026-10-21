@@ -14,6 +14,7 @@ import {
   draftsWithText,
   draftToOpen,
   loadBrand,
+  carouselStartLook,
   moveSlide,
   normalizeHandle,
   normalizeHex,
@@ -652,5 +653,23 @@ describe("duplicateSlide and restoreSlide", () => {
     expect(restoreSlide(back, 1, b)).toBe(back);
     const ten = Array.from({ length: MAX_SLIDES }, (_, i) => ({ id: `s${i}`, title: `S${i}`, body: "" }));
     expect(restoreSlide(ten, 1, b)).toBe(ten);
+  });
+});
+
+describe("carouselStartLook (brand-kit)", () => {
+  const kit = { slideFont: "serif" as const, slidePaper: "dark" as const };
+  const device = { font: "modern", paper: "tint" };
+
+  it("opens a saved carousel in its own look, absent reading classic and light, whatever the kit or device", () => {
+    expect(carouselStartLook({ font: "modern", paper: "tint" }, kit, device)).toEqual({ font: "modern", paper: "tint" });
+    expect(carouselStartLook({}, kit, device)).toEqual({ font: "classic", paper: "light" });
+  });
+
+  it("starts a new one from the kit, then the device's last pick, then classic and light", () => {
+    expect(carouselStartLook(null, kit, device)).toEqual({ font: "serif", paper: "dark" });
+    expect(carouselStartLook(null, { slideFont: "serif" }, device)).toEqual({ font: "serif", paper: "tint" });
+    expect(carouselStartLook(null, null, device)).toEqual({ font: "modern", paper: "tint" });
+    expect(carouselStartLook(null, {}, {})).toEqual({ font: "classic", paper: "light" });
+    expect(carouselStartLook(null, null, { font: "comic", paper: 7 })).toEqual({ font: "classic", paper: "light" });
   });
 });
