@@ -5,7 +5,8 @@
 // rewrite when it repeats it, then one Jev call for claims and invented facts) and sends it back. The app saves it
 // as a draft; nothing is stored here.
 //
-// Order: JWT, NORTH_STAR_USERS, validate, consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
+// Order: JWT, NORTH_STAR_USERS, validate, the cached transcript of a reel or TikTok (cs_reel_sources, never a new read),
+// consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
 // the model never answered (OpenAI down, a timeout) gives the use back; an answer that was refused, unusable or failed
 // the checks was billed and keeps it, so refusals can't be repeated past the daily cap (security review, 20 Oct).
 //
@@ -26,9 +27,9 @@ import { openaiChat } from "../_shared/openaiChat.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { isAllowed } from "../market/logic.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
-import { FETCH_BUDGET_MS } from "../clone-reel/logic.ts";
-import { readPost } from "../clone-reel/source.ts";
-import { handleTeardown } from "./teardown.ts";
+import { FETCH_BUDGET_MS, parseReelUrl } from "../clone-reel/logic.ts";
+import { findSource, readPost } from "../clone-reel/source.ts";
+import { handleTeardown, readsVideo } from "./teardown.ts";
 import { handleCreatorFit } from "./creatorFit.ts";
 import {
   UNKNOWN_FIT,
@@ -46,6 +47,7 @@ import {
   rewriteMessage,
   makeProblem,
   validateMake,
+  withSpoken,
   type MakeResult,
 } from "./logic.ts";
 
@@ -143,6 +145,9 @@ Deno.serve(async (req) => {
     const parsed = parseMakeRequest(body);
     if (parsed.ok === false) return fail("bad_request", parsed.error, 400);
     const make = parsed.value;
+    // a reel's or TikTok's spoken words, when the breakdown or a pasted-link read cached them: a free row read, never a new read
+    const reel = make.source && readsVideo(make.source) ? parseReelUrl(make.source.url) : null;
+    if (make.source && reel?.ok) make.source = withSpoken(make.source, (await findSource(admin, reel).catch(() => null))?.transcript);
     if (!Deno.env.get("OPENAI_API_KEY")) {
       console.error("OPENAI_API_KEY is not set");
       return fail("unavailable", "Remix isn't available right now. Try again later.", 503);

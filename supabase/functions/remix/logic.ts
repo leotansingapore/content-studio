@@ -181,6 +181,18 @@ function parseSource(raw: unknown): SourceIn | null {
   };
 }
 
+/**
+ * A video's words for the remix and the copy check: what it says out loud, then its caption, at most 2000. The app
+ * sends the caption; the transcript is the one the breakdown or a pasted-link read already cached (dogfood 21 Oct:
+ * the make for Apollo's TikTok saw only "Moving this one to commit" while its draft retold the spoken sketch).
+ */
+export function withSpoken(s: SourceIn, transcript: string | null | undefined): SourceIn {
+  const said = blockText(transcript, 2000);
+  // a pasted link's text is its transcript already
+  if (!said || s.text.includes(said.slice(0, 200))) return s;
+  return { ...s, text: blockText(`${said}\n\n${s.text}`, 2000) };
+}
+
 /** The request as sent, cleaned, or the 400 message. Nothing here counts a use. */
 export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest } | { ok: false; error: string } {
   const r = obj(raw);

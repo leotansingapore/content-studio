@@ -7,6 +7,7 @@ const UID = "leo-uid";
 const db = vi.hoisted(() => {
   // cs_ai_usage in memory, keyed user|feature|day: the consume RPC, one row read and the conditional update
   const rows = new Map<string, number>();
+  const reels = new Map<string, { transcript: string | null }>();
   const today = () => new Date().toISOString().slice(0, 10);
   const key = (q: Record<string, unknown>) => `${q.user_id}|${q.feature}|${q.day}`;
   const admin = {
@@ -18,8 +19,14 @@ const db = vi.hoisted(() => {
       rows.set(k, n + 1);
       return { data: n + 1, error: null };
     },
-    from: () => ({
-      select: () => ({ match: async (q: Record<string, unknown>) => ({ data: rows.has(key(q)) ? [{ count: rows.get(key(q)) }] : [], error: null }) }),
+    from: (table: string) => ({
+      select: () => ({
+        match: async (q: Record<string, unknown>) => ({ data: rows.has(key(q)) ? [{ count: rows.get(key(q)) }] : [], error: null }),
+        // cs_reel_sources: the reader's cached row for a reel or TikTok, by platform and post id
+        eq: (_c: string, platform: string) => ({
+          eq: (_d: string, postId: string) => ({ maybeSingle: async () => ({ data: table === "cs_reel_sources" ? reels.get(`${platform}:${postId}`) ?? null : null, error: null }) }),
+        }),
+      }),
       update: (v: { count: number }) => ({
         match: (q: Record<string, unknown>) => ({
           select: async () => {
@@ -31,7 +38,7 @@ const db = vi.hoisted(() => {
       }),
     }),
   };
-  return { admin, rows, today, handler: null as null | ((r: Request) => Promise<Response>) };
+  return { admin, rows, reels, today, handler: null as null | ((r: Request) => Promise<Response>) };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
@@ -73,6 +80,7 @@ afterAll(() => {
 });
 beforeEach(() => {
   db.rows.clear();
+  db.reels.clear();
   openai.calls = 0;
   openai.sent = [];
   jev.states = [];
@@ -141,5 +149,42 @@ describe("a post's checks in code (dogfood 21 Oct)", () => {
     expect(await send(d.request)).toMatchObject({ status: 422, body: { code: "refused", error: "That remix stopped mid-sentence. Try again." } });
     expect(openai.calls).toBe(2);
     expect(used()).toBe(1);
+  });
+});
+
+describe("a video's spoken words (dogfood 21 Oct, Apollo's TikTok 7685781265122938126)", () => {
+  // made up for the test around the breakdown's hook line; the real transcript lives in cs_reel_sources
+  const TRANSCRIPT = "Okay, wait, you booked a meeting with Meridian? They are one of our top accounts. I sent a calendar invite. So, can you log it as a meeting toward my target?";
+
+  it("go to the writer and the copy check when the breakdown cached them, so a line copied from the speech is caught", async () => {
+    const d = dogfood("020-remix.json");
+    db.reels.set("tiktok:7685781265122938126", { transcript: TRANSCRIPT });
+    openai.mode = "queue";
+    // the dogfood's draft 4 says "So, can you log it as a meeting toward my target?" and the rewrite keeps it; its cta
+    // loses the second ActivityTracker so the post's own checks pass
+    const once = { ...d.answer.result, cta: "Keep your follow-ups and activity organised." };
+    openai.answers = [once, once];
+    const r = await send(d.request);
+    expect(r.status).toBe(200);
+    expect(openai.sent[0].messages[1].content).toContain("Okay, wait, you booked a meeting with Meridian?");
+    expect(openai.sent[0].messages[1].content).toContain("Moving this one to commit");
+    expect(r.body.flags.copied.join(" | ")).toMatch(/can you log it as a meeting toward my target/i);
+    expect(jev.states[0].source).toContain("They are one of our top accounts.");
+  });
+
+  it("leave the caption alone when nothing was read, and never add a pasted link's transcript twice", async () => {
+    const d = dogfood("020-remix.json");
+    openai.mode = "queue";
+    openai.answers = [{ ...d.answer.result, cta: "Keep your follow-ups and activity organised." }];
+    await send(d.request);
+    expect(openai.sent[0].messages[1].content).not.toContain("Meridian?");
+
+    const link = dogfood("036-remix.json");
+    db.reels.set("tiktok:7693224702424206606", { transcript: link.request.source.text });
+    openai.sent = [];
+    openai.answers = [link.answer.result];
+    await send(link.request);
+    const user = openai.sent[0].messages[1].content;
+    expect(user.split("These five habits took me").length).toBe(2);
   });
 });
