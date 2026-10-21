@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { EDIT_TABS, links, type EditTab } from "@/lib/links";
 import { useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
@@ -40,8 +40,8 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { streamOnePost } from "@/lib/batchGenerate";
-import { splitScriptCaption } from "@/lib/scriptCaption";
-import { upsertDraft } from "@/lib/draftHistory";
+import { splitScriptCaption, withVideoCaption } from "@/lib/scriptCaption";
+import { getDraftById, upsertDraft } from "@/lib/draftHistory";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
@@ -527,6 +527,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
   onBack: () => void;
 }) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [file, setFile] = useState<Blob | null | undefined>(undefined);
   const [settings, setSettings] = useState<EditSettings>(() => ({
     ...project.settings,
@@ -1411,9 +1412,18 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
     navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
   const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks, avoidList(brandKit)).warnings : []), [caption, postText, brandLinks, brandKit]);
+  // a video made from a post saves back to it (Leo only); read again after a save, in case it was the fallback
+  const ownPost = useMemo(() => (leo && project.draftId ? getDraftById(userId, project.draftId) : null), [leo, userId, project.draftId, savedDraft]);
+  const saveLabel = ownPost ? (savedDraft ? "Saved to your post" : "Save to your post") : savedDraft ? "Saved to My posts" : "Save to My posts";
   const saveToPosts = () => {
     // a words-over-video project with no caption written posts its words
     const text = caption.trim() || !wallMode ? caption : (settings.overlays ?? []).find((o) => o.kind === "block")?.text ?? "";
+    const post = leo && project.draftId ? getDraftById(userId, project.draftId) : null;
+    if (post) {
+      upsertDraft(userId, withVideoCaption(post, text));
+      setSavedDraft(true);
+      return void toast({ title: "Saved to your post", action: <ToastAction altText="Open it" onClick={() => navigate(links.generate({ draft: post.id }))}>Open it</ToastAction> });
+    }
     upsertDraft(userId, {
       id: `video-${project.id}`,
       createdAt: new Date().toISOString(),
@@ -1429,7 +1439,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
       ...(project.source ? { source: project.source } : {}),
     });
     setSavedDraft(true);
-    toast({ title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });
+    toast(leo && project.draftId ? { title: "That post is gone, so this saved as a new one." } : { title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });
   };
 
   // the B-roll files from this device, with the face and background effects loaded; null when the effects couldn't load (said already)
@@ -2079,7 +2089,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 )}
                 {brandLinks.length > 0 && strayLinks(caption, brandLinks).map((l) => <p key={l} className="break-all text-[11px] font-medium text-warning">Not one of your offer links: {l}</p>)}
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={saveToPosts} disabled={savedDraft}>{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
+                  <Button size="sm" onClick={saveToPosts} disabled={savedDraft}>{saveLabel}</Button>
                   <Button size="sm" variant="ghost" onClick={copyCaption}>Copy</Button>
                   {savedDraft && <Link to="/calendar" className="self-center text-xs font-semibold text-primary hover:underline">Schedule it</Link>}
                 </div>
@@ -2236,7 +2246,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 {sel && sel.kind !== "block" && stickerEditor(sel)}
               </section>
               <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                <Button size="sm" onClick={saveToPosts} disabled={savedDraft || !block?.text.trim()} className="[@media(pointer:coarse)]:min-h-11">{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
+                <Button size="sm" onClick={saveToPosts} disabled={savedDraft || !block?.text.trim()} className="[@media(pointer:coarse)]:min-h-11">{saveLabel}</Button>
                 {savedDraft && <Link to="/calendar" className="text-xs font-semibold text-primary hover:underline">Schedule it</Link>}
                 <Button size="sm" variant="ghost" className="ml-auto [@media(pointer:coarse)]:min-h-11" onClick={() => setView("all")}>All editing tools</Button>
               </div>

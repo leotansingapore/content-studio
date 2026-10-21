@@ -37,6 +37,8 @@ export interface VideoProject {
   pendingSkill?: string;
   /** The post a format remixed (a wall of text); Save to My posts copies it to the draft. */
   source?: RemixSource;
+  /** The post this video was made from (a format's hand-off); Leo's Save to your post updates it. */
+  draftId?: string;
 }
 
 export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
@@ -69,7 +71,8 @@ export function loadProjects(userId: string | null | undefined): VideoProject[] 
   if (!s || !userId) return [];
   try {
     const v = JSON.parse(s.getItem(KEY + scoped(userId)) ?? "[]");
-    return Array.isArray(v) ? v : [];
+    // synced JSON with no sanitizer: a draftId that isn't a string is read as none
+    return Array.isArray(v) ? v.map((p) => (p?.draftId !== undefined && typeof p.draftId !== "string" ? { ...p, draftId: undefined } : p)) : [];
   } catch {
     return [];
   }

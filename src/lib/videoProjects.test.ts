@@ -63,6 +63,27 @@ describe("saveProject", () => {
   });
 });
 
+describe("a project made from a post", () => {
+  beforeEach(() => vi.stubGlobal("window", { localStorage: memoryStorage() }));
+  const project = (draftId: unknown) => ({ id: "v1", name: "v1", createdAt: "", updatedAt: "", duration: 8, size: 1, words: [], settings: {} as never, thumb: "", draftId: draftId as string });
+
+  it("keeps its draftId through a save and a load", () => {
+    saveProject("u", project("d1"));
+    expect(loadProjects("u")[0].draftId).toBe("d1");
+  });
+
+  it("reads a draftId that isn't a string as none, and leaves the rest of the list as it was", () => {
+    for (const bad of [5, null, { id: "d1" }, ["d1"]]) {
+      window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify([project(bad), project("d2"), "junk"]));
+      const [first, second, third] = loadProjects("u");
+      expect(first.draftId).toBeUndefined();
+      expect(first.name).toBe("v1");
+      expect(second.draftId).toBe("d2");
+      expect(third).toBe("junk");
+    }
+  });
+});
+
 describe("removeProject", () => {
   beforeEach(() => {
     vi.stubGlobal("window", { localStorage: memoryStorage() });
