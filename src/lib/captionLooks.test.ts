@@ -161,11 +161,23 @@ describe("key words drawn", () => {
     const at = (log as unknown[][]).findIndex((x) => x[0] === "fillText" && x[1] === "$500");
     expect((log as unknown[][]).slice(0, at).reverse().find((x) => x[0] === "fillStyle")).toEqual(["fillStyle", "#FFD92B"]);
   });
+  it("in the highlight colour even when it is not a number or the word being said", () => {
+    // at 1.0 s "pay" is being said and "$500" is next, in the same caption of 4
+    const log = draw({ ...lit("bold"), highlightNumbers: false, wordsPerCaption: 4 }, 1.0, true) as unknown[][];
+    const fill = (t: string) => {
+      const at = log.findIndex((x) => x[0] === "fillText" && x[1] === t);
+      expect(at).toBeGreaterThan(-1);
+      return log.slice(0, at).reverse().find((x) => x[0] === "fillStyle")?.[1];
+    };
+    expect(fill("$500")).toBe("#FFD92B");
+    expect(fill("MOST")).toBe("#FFFFFF");
+  });
   it("underlined in line styles, the same size, and no emoji with emoji off", () => {
     const log = draw(lit("native"), 1.3, true);
     expect(filled(log)["$500"]).toContain(" 54px ");
     expect(texts(log).some((t) => String(t).includes("\u{1F4B0}"))).toBe(false);
     const at = (log as unknown[][]).findIndex((x) => x[0] === "fillText" && x[1] === "$500");
+    expect(at).toBeGreaterThan(-1);
     expect((log as unknown[][])[at + 2]?.[0]).toBe("fillRect");
   });
   it("not at all with key words off, though picks are kept", () => {

@@ -58,8 +58,10 @@ describe("caption key words: reading the answers", () => {
     expect(readKeywords({ w0: choice("c9", 0.9) }, lines, "off")[0].word).toBeNull();
   });
   it("put an emoji on a lit line only at 0.5 or more, and only from the set", () => {
+    // lines far apart, so the 6 s spacing keeps them all
+    const apart = lines.map((l, i) => ({ ...l, s: i * 10 }));
     const words = { w0: choice("c0", 0.8), w1: choice("c0", 0.8), w2: choice("c1", 0.8) };
-    const picks = readKeywords({ ...words, e0: choice("money", EMOJI_AT), e1: choice("warning", 0.49), e2: choice("rocket", 0.9), e3: choice("idea", 0.9) }, lines, "on");
+    const picks = readKeywords({ ...words, e0: choice("money", EMOJI_AT), e1: choice("warning", 0.49), e2: choice("rocket", 0.9), e3: choice("idea", 0.9) }, apart, "on");
     expect(picks.map((p) => p.emoji)).toEqual([EMOJI.money.emoji, undefined, undefined, undefined]);
   });
   it("keep one emoji every 6 seconds, the strongest first, and one in all with the brand kit's one", () => {

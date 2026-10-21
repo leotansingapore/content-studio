@@ -587,8 +587,12 @@ describe("the Whisper prompt (edit-captions)", () => {
   });
   it("keeps the filler sample, adds the finance words and the adviser's own, and stays under 800 characters", async () => {
     const { whisperPrompt, parseTerms, FILLER_PROMPT } = await import("./logic");
-    const own = Array.from({ length: 30 }, (_, i) => `Term number ${String(i).padStart(2, "0")} abcdefghijklm`);
+    // 20 terms of 30 characters would take it to about 820: the last ones that don't fit are left off
+    const own = Array.from({ length: 30 }, (_, i) => `Term number ${String(i).padStart(2, "0")} abcdefghijklmno`);
+    expect(own[0]).toHaveLength(30);
     const p = whisperPrompt(parseTerms(own.join(",")));
+    expect(p).toContain("Term number 15");
+    expect(p).not.toContain("Term number 19");
     expect(p.startsWith(`${FILLER_PROMPT} CPF, MediSave, MediShield Life, CareShield Life, Integrated Shield Plan, SRS, HDB, BTO, MAS, ILP, CPF LIFE, Term number 00`)).toBe(true);
     expect(p.length).toBeLessThan(800);
     expect(p.endsWith(".")).toBe(true);
