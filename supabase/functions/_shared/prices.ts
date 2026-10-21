@@ -93,7 +93,9 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "engage-comments": upTo(0.02),
   "engage-connect": upTo(0.02),
   "profile-score": about(0.003), // Jev plus one OpenAI call, about 0.3 US cents (writing-judge/index.ts)
-  "brand-dna": about(0.01), // one page read, one short OpenAI call and one Jev pick, unverified
+  // gpt-6-luna (OPENAI_MODEL's default) at US$0.10 in / US$0.50 out per million (OpenAI pricing page, read 2026-10-21):
+  // about 5,500 in and 700 out for up to 5 pages, plus two Jev calls under US$0.001 at US$0.042 per million
+  "brand-dna": about(0.001),
   "remix-make": about(0.02), // unverified
   "remix-teardown": about(0.01), // unverified
   "remix-link": about(0.01), // unverified
@@ -112,6 +114,13 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "own-words": about(0.01), // one short LLM call plus one Jev pick, unverified
   "thread-copy": about(0.01), // one LLM call, unverified
   "edit-ask": about(0.002), // about 700 tokens in and 100 out at gpt-4.1's US$2 / US$8 per million
+  // North star phase 4 (phase4-build-brief.md, vendors, read 2026-10-21).
+  "likeness-check": about(0.002), // Whisper US$0.006 a minute on a 15 s clip
+  // one Soul v2 picture, 0.09 credits; a make is 3 uses, so its chip is sumPrices of three
+  "ai-presenter": about(0.006),
+  "brand-products": about(0.002), // gpt-6-luna, about 8,000 in and 2,000 out, plus Jev
+  "media-sort": about(0.001), // gpt-4.1 low-detail vision (85 tokens plus 250 of prompt in, 80 out) plus one Jev pick
+  "post-translate": about(0.01), // gpt-4.1, about 600 in and 1,000 out
 };
 
 /** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
@@ -124,11 +133,12 @@ export const NO_PRICE: UsageFeature[] = [
   "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "caption-keywords",
   // one capped page fetch and one Jev question
   "page-read",
-  // free or a relay
-  "stock-search", "reel-video",
+  // free or a relay; a capped public picture fetch
+  "stock-search", "reel-video", "brand-image",
   // across everyone
   "market-check-global", "ai-image-fix-global", "ai-broll-global", "ai-music-global", "ai-video-global", "ai-clip-global",
   "competitor-ads-global", "competitor-posts-global", "space-ads-global", "viral-search-global", "search-topics-global",
+  "ai-presenter-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
 ];

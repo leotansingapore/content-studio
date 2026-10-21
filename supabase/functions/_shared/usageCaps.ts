@@ -112,7 +112,7 @@ export const DAILY_LIMITS = {
   "social-presign": 30,
   // A team member's note on Leo's posts board (team-board); Leo's own notes are not counted.
   "team-comment": 60,
-  // Adding a brand from its website (brand-dna): one home page read plus one short LLM call and one Jev pick.
+  // Adding a brand from its website, or reading it again on /brand (brand-dna): up to 5 pages, one LLM call and two Jev calls.
   "brand-dna": 10,
   // North star phase 1, declared up front (Leo only, NORTH_STAR_USERS). One remix written in one format (remix make).
   "remix-make": 30,
@@ -170,6 +170,20 @@ export const DAILY_LIMITS = {
   "edit-ask": 60,
   // The key word and emoji for each caption line (video-assist keywords): Jev only.
   "caption-keywords": 30,
+  // North star phase 4, declared up front (Leo only, NORTH_STAR_USERS). The consent check before a face is saved (ai-video consent): Whisper hears up to 15 s.
+  "likeness-check": 5,
+  // Three presenter options (ai-video presenters): one Soul v2 picture each, so a make spends 3.
+  "ai-presenter": 12,
+  // Those presenter makes across everyone on GLOBAL_COUNTER_USER, 1 a make, so the prepaid Higgsfield pool can't be drained.
+  "ai-presenter-global": 10,
+  // Products and services read from the brand's site (brand-dna products): one LLM call plus Jev's offer and named-product checks.
+  "brand-products": 10,
+  // A picture fetched from the brand's site (brand-dna image): a capped public fetch, no provider.
+  "brand-image": 100,
+  // A photo or video sorted, or a demo read, in Media (media-sort sort and demo): gpt-4.1 low-detail vision plus one Jev pick.
+  "media-sort": 200,
+  // A post translated with its English meaning (video-assist translate kind post): one gpt-4.1 call.
+  "post-translate": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

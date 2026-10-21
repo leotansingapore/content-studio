@@ -124,6 +124,25 @@ describe("north-star phase-3 caps", () => {
   });
 });
 
+describe("north-star phase-4 caps", () => {
+  // Declared up front so no later phase-4 task edits this file (phase4-build-brief.md, usage caps and prices).
+  it("holds the 7 limits the build brief set", () => {
+    const phase4 = {
+      "likeness-check": 5,
+      "ai-presenter": 12,
+      "ai-presenter-global": 10,
+      "brand-products": 10,
+      "brand-image": 100,
+      "media-sort": 200,
+      "post-translate": 30,
+    };
+    expect(Object.keys(phase4)).toHaveLength(7);
+    expect(DAILY_LIMITS).toMatchObject(phase4);
+    // a deep read on /brand counts once against today's brand-dna cap, which stays at 10
+    expect(DAILY_LIMITS["brand-dna"]).toBe(10);
+  });
+});
+
 describe("the edge functions that spend", () => {
   // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
   // every call: the feature would say "You've used all undefined for today" from its first use.

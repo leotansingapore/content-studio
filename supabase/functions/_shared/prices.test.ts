@@ -49,6 +49,25 @@ describe("the price table", () => {
     expect(priceOf("ai-voice")).toEqual({ usd: 0.02, kind: "about" });
   });
 
+  it("prices the phase-4 caps and the corrected brand-dna line from the brief's vendor table", () => {
+    const chip = (f: UsageFeature) => priceText(priceOf(f) as { usd: number; kind: "about" });
+    expect(priceOf("likeness-check")).toEqual({ usd: 0.002, kind: "about" });
+    expect(priceOf("ai-presenter")).toEqual({ usd: 0.006, kind: "about" });
+    expect(priceOf("brand-products")).toEqual({ usd: 0.002, kind: "about" });
+    expect(priceOf("media-sort")).toEqual({ usd: 0.001, kind: "about" });
+    expect(priceOf("post-translate")).toEqual({ usd: 0.01, kind: "about" });
+    expect(priceOf("brand-dna")).toEqual({ usd: 0.001, kind: "about" });
+    for (const f of ["likeness-check", "ai-presenter", "brand-products", "media-sort", "brand-dna"] as UsageFeature[]) {
+      expect(chip(f), f).toBe("Under US$0.01");
+    }
+    expect(chip("post-translate")).toBe("About US$0.01");
+    // a presenter make spends 3 uses of ai-presenter, so its chip adds three pictures
+    const p = priceOf("ai-presenter");
+    expect(priceText(sumPrices(p, p, p) as { usd: number; kind: "about" })).toBe("About US$0.02");
+    expect(priceOf("ai-presenter-global")).toBeNull();
+    expect(priceOf("brand-image")).toBeNull();
+  });
+
   it("adds DoP lite per scene when an explainer's scenes move", () => {
     expect(DOP_LITE_CREDITS).toBe(2);
     expect(priceOf("ai-video", { scenes: 5, move: false })).toEqual(priceOf("ai-video", { scenes: 5 }));
