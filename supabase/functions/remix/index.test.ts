@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
+import LIVE from "./fixtures/phase3-w1-live.json";
 
 // The live handler's make path, with the database and OpenAI faked: when a remix's use comes back and when it stays.
 const UID = "leo-uid";
@@ -350,5 +351,30 @@ describe("phase 3's shapes", () => {
     expect(openai.sent[0].response_format).toMatchObject({ json_schema: { name: "remix_speaking" } });
     expect(await send({ mode: "make", as: "hooks", formulas: [], topic: "x", brand: BRAND })).toMatchObject({ status: 400, body: { code: "bad_request", error: "Send three hook formulas." } });
     expect(used()).toBe(1);
+  });
+});
+
+// ---- the wave 1 live check (21 Oct): its real requests, answered here with what the model wrote that day ----
+
+const live = (call: string) => LIVE.find((x) => x.call === call)!;
+/** The model's JSON behind a live answer: the result's own fields, with a joined caption split back into caption, cta and hashtags. */
+const wrote = (result: Record<string, unknown>) => {
+  const { as, layout: _l, layoutBy: _b, best: _best, dropped: _d, caption, ...rest } = result;
+  if (as === "speaking" || as === "hooks") return { refuse: false, reason: "", ...rest, ...(caption ? { caption } : {}) };
+  const [c, cta, tags = ""] = String(caption).split("\n\n");
+  return { refuse: false, reason: "", ...rest, caption: c, cta, hashtags: tags.split(" ").filter(Boolean).map((t) => t.slice(1)) };
+};
+
+describe("the wave 1 live check (21 Oct)", () => {
+  it("gives Jev the brand's own one-liner and audience as facts, so a make restating them for a brand with no facts isn't invented", async () => {
+    const d = live("1-speaking-15s");
+    openai.mode = "queue";
+    openai.answers = [wrote(d.response.result)];
+    jev.answers = { copied_claim: { noul: 0.05 }, invented_self: { noul: 0.1 } };
+    const r = await send(d.request);
+    expect(r).toMatchObject({ status: 200, body: { result: d.response.result, flags: { invented: false } } });
+    const asked = jev.states.find((s) => "post" in s)!;
+    expect(asked.facts).toContain("- What they do: an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals");
+    expect(asked.facts).toContain("- Who they serve: sales-oriented self-employed professionals and coaches");
   });
 });

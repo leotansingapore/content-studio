@@ -1,0 +1,633 @@
+[
+ {
+  "call": "1-speaking-15s",
+  "request": {
+   "mode": "make",
+   "as": "speaking",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals",
+    "audience": "sales-oriented self-employed professionals and coaches",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   },
+   "seconds": 15
+  },
+  "response": {
+   "as": "speaking",
+   "result": {
+    "as": "speaking",
+    "script": "Still searching for a prospect\u2019s last message? Don\u2019t let follow-ups slip. ActivityTracker brings your CRM, WhatsApp inbox, tasks, and goals together in one place. Spend less time switching tools, more time with prospects. Old follow-up habits don\u2019t fit today\u2019s sales conversations. See if it suits your workflow.",
+    "caption": "Keep your CRM, WhatsApp inbox, tasks, and goals together with ActivityTracker. See if it suits your workflow."
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 21,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "2-wall-kitchen",
+  "request": {
+   "mode": "make",
+   "as": "wall",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals",
+    "audience": "sales-oriented self-employed professionals and coaches",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   },
+   "scene": "kitchen",
+   "maxWords": 30
+  },
+  "response": {
+   "as": "wall",
+   "result": {
+    "as": "wall",
+    "text": "Waiting on a reply? Keep your follow-up moving.\n\nActivityTracker brings CRM, WhatsApp inbox, tasks and goals together, helping you spend less time switching.\n\nFresh sales need current habits.",
+    "scene": "A person calmly slices fruit on a home kitchen counter.",
+    "search": "slicing fruit kitchen",
+    "caption": "A clear routine can make it easier to keep track of conversations and the next task on your list. ActivityTracker combines CRM, a WhatsApp inbox, tasks and goals in one app.\n\nSave this for your next planning session.\n\n#sales #productivity"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 22,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "3-notes",
+  "request": {
+   "mode": "make",
+   "as": "notes",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals",
+    "audience": "sales-oriented self-employed professionals and coaches",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   }
+  },
+  "response": {
+   "as": "notes",
+   "result": {
+    "as": "notes",
+    "title": "Make More Room For Sales",
+    "items": [
+     "Spot the follow-up delayed by switching between admin tasks.",
+     "Bring contacts, WhatsApp chats, tasks and goals into one workflow.",
+     "Review how much time your setup leaves for conversations.",
+     "Update your routine to match how buyers communicate today."
+    ],
+    "caption": "For self-employed sales professionals and coaches, a clear workflow can make the day easier to manage. ActivityTracker brings CRM, a WhatsApp inbox, tasks and goals together in one app.\n\nSave this note for your next workflow review.\n\n#salesproductivity #smallbusiness"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 23,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "4-hooks",
+  "request": {
+   "mode": "make",
+   "as": "hooks",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals",
+    "audience": "sales-oriented self-employed professionals and coaches",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   },
+   "formulas": [
+    {
+     "id": "callout",
+     "name": "The callout",
+     "template": "If you still {outdated habit}, stop.",
+     "example": "If you still keep your policy documents in a drawer only you know about, stop.",
+     "trap": "Talking down to your own readers."
+    },
+    {
+     "id": "dilemma",
+     "name": "Real dilemma",
+     "template": "{A specific situation with a real cost}. What would you do?",
+     "example": "Your parents ask you to pay their hospital bill and your wedding is in 6 months. What would you do?",
+     "trap": "A question with one obvious answer."
+    },
+    {
+     "id": "list",
+     "name": "The list",
+     "template": "{N} things I wish I knew before {milestone}.",
+     "example": "5 things I wish I knew before my first CPF top-up.",
+     "trap": "Promising more than 10. Nobody believes 15 good ones."
+    }
+   ],
+   "demo": {
+    "name": "activitytracker-whatsapp-inbox-demo.mp4",
+    "seconds": 12
+   }
+  },
+  "response": {
+   "as": "hooks",
+   "result": {
+    "as": "hooks",
+    "hooks": [
+     {
+      "text": "If you still split sales chats and tasks, stop. Meet ActivityTracker.",
+      "formula": "callout"
+     },
+     {
+      "text": "Lead waits in WhatsApp; your task is elsewhere. What would you do?",
+      "formula": "dilemma"
+     },
+     {
+      "text": "Things to know before managing sales follow-ups in one place.",
+      "formula": "list"
+     }
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 24,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "5-image",
+  "request": {
+   "mode": "make",
+   "as": "image",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals",
+    "audience": "sales-oriented self-employed professionals and coaches",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   }
+  },
+  "response": {
+   "as": "image",
+   "result": {
+    "as": "image",
+    "layout": "headline",
+    "layoutBy": "jev",
+    "words": {
+     "headline": "Still sorting follow-ups? Keep prospects moving.",
+     "line": "ActivityTracker brings CRM, WhatsApp, tasks and goals together for your sales day.",
+     "button": "Explore the app"
+    },
+    "caption": "A clear view of conversations and next steps can make a busy sales routine easier to manage. Keep your focus on meaningful conversations with prospects.\n\nSave this for your next sales planning session.\n\n#salesproductivity #smallbusinesssg"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true,
+    "mas": null
+   },
+   "usage": {
+    "used": 25,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "6-meme",
+  "request": {
+   "mode": "make",
+   "as": "meme",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals",
+    "audience": "sales-oriented self-employed professionals and coaches",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   },
+   "layout": "nobody-me"
+  },
+  "response": {
+   "as": "meme",
+   "result": {
+    "as": "meme",
+    "options": [
+     {
+      "setup": "Nobody: Me waiting for a lead to reply before updating my follow-ups",
+      "punch": "My task list has entered its own waiting room."
+     },
+     {
+      "setup": "Nobody: Me after juggling client chats, notes and next steps",
+      "punch": "One inbox sounds shiok. My tabs disagree."
+     },
+     {
+      "setup": "Nobody: Me using last year's follow-up routine on this year's leads",
+      "punch": "The calendar moved on. My spreadsheet did not."
+     }
+    ],
+    "best": 0,
+    "dropped": [],
+    "caption": "For self-employed sales pros and coaches, keeping chats, tasks and goals in view can help make the workday feel less scattered. ActivityTracker brings CRM, a WhatsApp inbox, tasks and goals together in one app. Old habits may need a refresh when your workflow changes.\n\nComment with the sales task you keep putting off.\n\n#SingaporeBusiness #Sales #Productivity"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true,
+    "mas": null
+   },
+   "usage": {
+    "used": 26,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "7-leo-meme",
+  "request": {
+   "mode": "make",
+   "as": "meme",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "Leo Tan",
+    "oneLiner": "life insurance and retirement planning",
+    "audience": "young working adults in Singapore",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "person"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   },
+   "layout": "pov"
+  },
+  "response": {
+   "as": "meme",
+   "result": {
+    "as": "meme",
+    "options": [
+     {
+      "line": "The bill is still loading, but my retirement thoughts have already opened another tab."
+     },
+     {
+      "line": "Waiting for my flat savings to grow while every home item says add to cart."
+     },
+     {
+      "line": "Mum asks about insurance just as I\u2019m trying to remember my CPF login."
+     }
+    ],
+    "best": 0,
+    "dropped": [],
+    "caption": "I bring life insurance and retirement planning into one conversation, so the moving parts are easier to review together. A clear look at today\u2019s needs can help me plan what questions to ask next. Old assumptions may not fit the choices young adults face today.\n\nFollow Leo Tan for more plain-spoken notes on protection and retirement planning.\n\n#SingaporeFinance #RetirementPlanning #LifeInsurance"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true,
+    "mas": false
+   },
+   "usage": {
+    "used": 27,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "8-leo-image",
+  "request": {
+   "mode": "make",
+   "as": "image",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "voice": null,
+   "brand": {
+    "name": "Leo Tan",
+    "oneLiner": "life insurance and retirement planning",
+    "audience": "young working adults in Singapore",
+    "topics": [],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "person"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   }
+  },
+  "response": {
+   "as": "image",
+   "result": {
+    "as": "image",
+    "layout": "headline",
+    "layoutBy": "jev",
+    "words": {
+     "headline": "Still putting off your money review?",
+     "line": "I bring protection and retirement planning together, so it\u2019s easier to review your priorities.",
+     "button": "Message me"
+    },
+    "caption": "I\u2019m Leo Tan, and I help young working adults in Singapore think through life cover and retirement planning. Old assumptions may not fit the life you\u2019re building, so I focus on a clear review.\n\nSave this for your next money check-in.\n\n#Singapore #retirementplanning #lifeinsurance"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true,
+    "mas": false
+   },
+   "usage": {
+    "used": 28,
+    "limit": 30
+   }
+  }
+ }
+]

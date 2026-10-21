@@ -1384,6 +1384,20 @@ export function makeQuestions(speaker: Speaker) {
   } as const;
 }
 
+/**
+ * The `facts` Jev's invented and claim questions read: what the writer is told it may say (the one-liner, the offer and
+ * the audience, brandLines), then the facts sent, each left out when the facts already hold it. Facts alone flagged all
+ * 8 makes of the wave 1 live check (21 Oct) for a brand with none saved, for restating its own one-liner.
+ */
+export function jevFacts(b: Pick<BrandPack, "oneLiner" | "audience" | "offer" | "facts">): string {
+  const own: [string, string][] = [
+    ["What they do", b.oneLiner],
+    ["What they offer", b.offer ? [b.offer.name, b.offer.brief].filter(Boolean).join(": ") : ""],
+    ["Who they serve", b.audience],
+  ];
+  return [...own.filter(([, v]) => v && !b.facts.includes(v)).map(([k, v]) => `- ${k}: ${v}`), b.facts].filter(Boolean).join("\n");
+}
+
 /** proposal: from the spec; set from the first 50 remixes by reading every answer between 0.3 and 0.7. */
 export const FLAG_AT = 0.5;
 

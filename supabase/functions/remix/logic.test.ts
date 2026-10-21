@@ -25,6 +25,7 @@ import {
   holdTheLine,
   hookCount,
   intentsFor,
+  jevFacts,
   makeProblem,
   makeQuestions,
   parseFitRequest,
@@ -59,6 +60,7 @@ import {
   speakingWords,
 } from "./logic";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
+import LIVE from "./fixtures/phase3-w1-live.json";
 
 const SOURCE_TEXT = "6 signs your CPF plan is off track. Most people never check their CPF statement until it is too late. Save $12,000 by starting early.";
 
@@ -1244,5 +1246,23 @@ describe("memes (formats-memes)", () => {
     expect(masText({ ...(m as Extract<MakeResult, { as: "meme" }>), best: 2 })).toBe(`Me saving for a BTO\nAlso me buying bubble tea\n${CAP.caption}\n\n${CAP.cta}\n\n#sales`);
     expect(masText(validateMake("image", { words: { headline: "A", line: "B.", button: "Go", quote: "", statLabel: "" }, ...CAP }, { layout: "headline" })!)).toContain("A\nB.\nGo");
     expect(masText(validateMake("speaking", { script: "Hi.", caption: "C." })!)).toBeNull();
+  });
+});
+
+// ---- the wave 1 live check (21 Oct): the real requests and answers in fixtures/phase3-w1-live.json ----------
+
+const live = (call: string) => LIVE.find((x) => x.call === call)!;
+
+describe("the wave 1 live check (21 Oct)", () => {
+  it("gives Jev's invented check the brand's own one-liner, offer and audience, and never one the facts already hold", () => {
+    expect(jevFacts(make(live("1-speaking-15s").request).brand)).toBe(
+      "- What they do: an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals\n- Who they serve: sales-oriented self-employed professionals and coaches",
+    );
+    // the app's facts since cca3330 start with the one-liner, so it isn't said twice
+    const app = "- What it offers: Free trial. We help sales reps manage clients in one app.\n- Who it serves: working adults";
+    expect(jevFacts({ oneLiner: "We help sales reps manage clients in one app.", audience: "Sales reps", offer: { name: "Free trial", brief: "14 days" }, facts: app })).toBe(
+      `- What they offer: Free trial: 14 days\n- Who they serve: Sales reps\n${app}`,
+    );
+    expect(jevFacts({ oneLiner: "", audience: "", offer: null, facts: "" })).toBe("");
   });
 });

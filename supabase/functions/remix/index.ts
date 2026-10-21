@@ -48,6 +48,7 @@ import {
   dontReuseFor,
   floorOf,
   holdTheLine,
+  jevFacts,
   masText,
   memeQuestions,
   memeState,
@@ -254,7 +255,7 @@ Deno.serve(async (req) => {
         return second && makeProblem(second, make) ? null : second;
       },
       ask: async (state) => {
-        const answers = await askJev({ ...(state as object), facts: make.brand.facts }, makeQuestions(make.brand.speaker), { who: "remix make" });
+        const answers = await askJev({ ...(state as object), facts: jevFacts(make.brand) }, makeQuestions(make.brand.speaker), { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
     }, floorOf(make));
