@@ -13,9 +13,11 @@ import {
   MAX_IMAGES,
   blankImage,
   cachedShows,
+  imageDraft,
   imageWrite,
   loadImages,
   pictureLine,
+  postFileKey,
   sanitizeSavedImage,
   saveImage,
   startImageWrite,
@@ -202,6 +204,23 @@ describe("Write it for me", () => {
     expect(make.mock.calls[1][0]).toMatchObject({ as: "image", topic: "Saving for a BTO", layout: "quote" });
     expect(parseMakeRequest(make.mock.calls[1][0]).ok).toBe(true);
     expect(imageWrite()).toMatchObject({ state: "failed", error: "Couldn't write it right now. Try again in a minute." });
+  });
+});
+
+describe("Post it for me", () => {
+  it("keeps one PNG per design under a media-style key, so posting again replaces it", () => {
+    expect(postFileKey({ id: "img-mvhj09rz2wt" })).toBe("cimg-pmvhj09rz2wt");
+    expect(postFileKey({ id: `img-${"a".repeat(30)}` })).toMatch(/^cimg-[a-z0-9]{6,30}$/);
+  });
+
+  it("saves the caption as the post, the main words as its hook, and keeps a post it saved before", () => {
+    const img = design("img-post1xx", { words: { headline: "Your hospital bill, split in two", caption: "A co-pay is not a catch." } });
+    const src: RemixSource = { key: "ad:1", kind: "ad", remixedAt: "" };
+    const fresh = imageDraft(img, "Your hospital bill, split in two", { id: "d1", now: "2026-10-21T00:00:00.000Z", prev: null, source: src });
+    expect(fresh).toMatchObject({ id: "d1", hook: "Your hospital bill, split in two", draft: "A co-pay is not a catch.", format: "text-post", platform: "instagram", status: "draft", source: { key: "ad:1", remixedAt: "2026-10-21T00:00:00.000Z" } });
+    const again = imageDraft({ ...img, words: { headline: "New", caption: "" } }, "New", { id: "x", now: "later", prev: { ...fresh, status: "scheduled" }, source: null });
+    expect(again).toMatchObject({ id: "d1", hook: "New", draft: "New", status: "scheduled", createdAt: "2026-10-21T00:00:00.000Z" });
+    expect(sanitizeSavedImage({ id: "img-abc123", draftId: "d1" })?.draftId).toBe("d1");
   });
 });
 

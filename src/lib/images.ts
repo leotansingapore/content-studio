@@ -19,6 +19,7 @@ import { scoped } from "@/lib/profiles";
 import { requestMake, type Flags, type MakeResult } from "@/lib/remix";
 import { scalePicture } from "@/lib/remixLink";
 import type { RemixSource } from "@/lib/remixSource";
+import type { DraftEntry } from "@/lib/draftHistory";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import type { LinkedSource } from "@/lib/resolveSource";
 import type { AdLayout } from "../../supabase/functions/remix/logic.ts";
@@ -36,6 +37,8 @@ export interface SavedImage {
   pictureKey?: string;
   /** What it was remixed from: the source's key, and a line naming it ("Singlife, 40 days running"). */
   source?: { key: string; label: string };
+  /** Its post in My posts, once Post it for me saved one (as carousels and slideshows keep theirs). */
+  draftId?: string;
   updatedAt: string;
 }
 
@@ -82,6 +85,7 @@ export function sanitizeSavedImage(raw: unknown): SavedImage | null {
     align: r.align === "center" ? "center" : "left",
     ...(pictureKey ? { pictureKey } : {}),
     ...(key ? { source: { key, label: line(s?.label, 120) } } : {}),
+    ...(typeof r.draftId === "string" && r.draftId.length <= 80 ? { draftId: r.draftId } : {}),
     updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
   };
 }
@@ -131,6 +135,30 @@ export function saveImage(userId: string, img: SavedImage, now = new Date()): Sa
 /** The line under a design whose picture this device doesn't hold. */
 export function pictureLine(img: Pick<SavedImage, "pictureKey">, found: boolean | undefined): string | null {
   return img.pictureKey && img.pictureKey !== HEADSHOT && found === false ? "The picture is on another device." : null;
+}
+
+/** The device file a design's PNG is kept under for Post it for me: one per design, so posting again replaces it. */
+export const postFileKey = (img: Pick<SavedImage, "id">) => `cimg-p${img.id.slice(4)}`.slice(0, 35);
+
+/** Its post in My posts: the caption as the text (else the main words), the PNG attached by the caller. */
+export function imageDraft(img: SavedImage, main: string, o: { id: string; now: string; prev: DraftEntry | null; source: RemixSource | null }): DraftEntry {
+  const hook = main.replace(/\s+/g, " ").trim().slice(0, 200) || "Image";
+  const text = img.words.caption?.trim() || main.trim() || hook;
+  if (o.prev) return { ...o.prev, hook, draft: text, pillarDetail: hook };
+  return {
+    id: o.id,
+    createdAt: o.now,
+    hook,
+    draft: text,
+    pillar: "topic",
+    pillarDetail: hook,
+    audience: "general",
+    format: "text-post",
+    platform: "instagram",
+    ctaType: "save-share",
+    status: "draft",
+    ...(o.source ? { source: { ...o.source, remixedAt: o.now } } : {}),
+  };
 }
 
 // ---- Write it for me --------------------------------------------------------------------------
