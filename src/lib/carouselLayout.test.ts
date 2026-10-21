@@ -13,6 +13,7 @@ import {
   contrastRatio,
   ellipsize,
   escapeXml,
+  fontCss,
   layoutSlide,
   readableOn,
   renderSvg,
@@ -47,6 +48,38 @@ describe("wrapText", () => {
 
   it("shortens a line with an ellipsis that fits", () => {
     expect(ellipsize("hello world", 30, font, measure)).toBe("hello…");
+  });
+});
+
+describe("wrapText on Latin text (pinned at b65fc14f, before Chinese wraps)", () => {
+  const texts = [
+    "Most people think their hospital plan covers everything. It doesn't, and the gap shows up at the worst time.",
+    "Review your cover every two years\nor after a big life event.\n\n  Check the riders too!  ",
+    "Ramai orang fikir pelan hospital mereka menanggung semuanya. Semak semula setiap dua tahun.",
+    "A supercalifragilisticexpialidocious word, https://example.com/a/very/long/link/that/never/ends and $1,200.50 (about 3%) - done.",
+    "",
+    "one\n\ntwo",
+  ];
+
+  it("wraps and shortens every text, width and font the same way as before", () => {
+    const out: string[] = [];
+    const seen: FontSpec[] = [];
+    const spy: Measure = (t, f) => (seen.push(f), measure(t, f));
+    for (const text of texts) {
+      for (const width of [48, 120, 300, 888]) {
+        for (const font of [{ family: "sans", weight: 400, size: 10 }, { family: "serif", weight: 600, size: 32 }] as FontSpec[]) {
+          const lines = wrapText(text, width, font, spy);
+          out.push(JSON.stringify(lines), ...lines.map((l) => ellipsize(l, width / 2, font, spy)));
+        }
+      }
+    }
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("65643da2c979acde8651b4655efdd23e130e1fa7314499c68c2d90b1e26641b6");
+    // measured with the very font it was given, nothing added
+    expect(seen.every((f) => Object.keys(f).join() === "family,weight,size")).toBe(true);
+  });
+  it("measures Latin text with today's font stacks", () => {
+    expect(fontCss({ family: "sans", weight: 400, size: 10 })).toBe("400 10px system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif");
+    expect(fontCss({ family: "serif", weight: 600, size: 64 })).toBe("600 64px Georgia, 'Times New Roman', Times, serif");
   });
 });
 
