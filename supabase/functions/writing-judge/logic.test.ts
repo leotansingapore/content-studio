@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { CAROUSEL_DESIGNS } from "@/lib/links";
 import {
+  DESIGN_IDS,
+  DESIGN_MIN,
+  DESIGN_QUESTIONS,
+  designState,
+  readDesignPick,
   AI_MAX,
   MAX_SENTENCES,
   CAROUSEL_QUESTIONS,
@@ -291,5 +297,43 @@ describe("the reads-well-as-a-thread check", () => {
     expect(readThreadYes({ thread: { type: "noul" } })).toBeNull();
     expect(readThreadYes({})).toBeNull();
     expect(readThreadYes(null)).toBeNull();
+  });
+});
+
+describe("the carousel design pick", () => {
+  const slide = (title: string, body = "") => ({ title, body });
+  const four = [slide("3 things to check"), slide("Ward class", "Pick the ward you would stay in."), slide("Co-pay", "Know what you pay."), slide("Found this useful?")];
+
+  it("names the same eight designs as the carousel maker, every one a choice for Jev", () => {
+    expect([...DESIGN_IDS]).toEqual([...CAROUSEL_DESIGNS]);
+    expect(Object.keys(DESIGN_QUESTIONS.design.criteria as Record<string, string>).sort()).toEqual([...DESIGN_IDS].sort());
+    expect(DESIGN_QUESTIONS.design.type).toBe("choice");
+  });
+
+  it("takes 2 to 10 slides with some text, cut to size", () => {
+    expect(parseJudgeRequest({ mode: "design", slides: four })).toEqual({ ok: true, request: { mode: "design", slides: four } });
+    expect(parseJudgeRequest({ mode: "design", slides: [four[0]] })).toEqual({ ok: false, error: "Send 2 to 10 slides." });
+    expect(parseJudgeRequest({ mode: "design", slides: Array(11).fill(four[1]) })).toEqual({ ok: false, error: "Send 2 to 10 slides." });
+    expect(parseJudgeRequest({ mode: "design", slides: "slides" })).toEqual({ ok: false, error: "Send 2 to 10 slides." });
+    expect(parseJudgeRequest({ mode: "design", slides: [four[0], null] })).toEqual({ ok: false, error: "Send 2 to 10 slides." });
+    expect(parseJudgeRequest({ mode: "design", slides: [slide("Hi"), slide("", "")] })).toEqual({ ok: false, error: "Add some text to the slides first." });
+    const long = parseJudgeRequest({ mode: "design", slides: [slide("x".repeat(300), "y".repeat(900)), { title: 5, body: " b " }] });
+    expect(long).toEqual({ ok: true, request: { mode: "design", slides: [slide("x".repeat(200), "y".repeat(600)), slide("", "b")] } });
+  });
+
+  it("reads the slides to Jev in order", () => {
+    expect(designState([slide("Hook"), slide("Point", "Body"), slide("", "Only body")])).toEqual({ slides: "Slide 1: Hook\n\nSlide 2: Point\nBody\n\nSlide 3: Only body" });
+  });
+
+  it("recommends Jev's likeliest design at 0.4 or more, and nothing below it or without an answer", () => {
+    const answer = (probabilities: Record<string, number>) => ({ design: { type: "choice" as const, choice: "x", probabilities } });
+    expect(readDesignPick(answer({ numbered: 0.62, checklist: 0.2, clean: 0.1 }))).toEqual({ pick: "numbered", p: 0.62 });
+    expect(readDesignPick(answer({ numbered: DESIGN_MIN, checklist: 0.3 }))).toEqual({ pick: "numbered", p: 0.4 });
+    expect(readDesignPick(answer({ numbered: 0.39, checklist: 0.31 }))).toEqual({ pick: null, p: 0.39 });
+    // an id that is not a design is never picked
+    expect(readDesignPick(answer({ skeleton: 0.9, quote: 0.45 }))).toEqual({ pick: "quote", p: 0.45 });
+    expect(readDesignPick(answer({}))).toEqual({ pick: null, p: null });
+    expect(readDesignPick({})).toEqual({ pick: null, p: null });
+    expect(readDesignPick(null)).toEqual({ pick: null, p: null });
   });
 });

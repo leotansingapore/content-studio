@@ -23,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -46,6 +46,7 @@ export type JudgeRequest =
   | { mode: "carousel"; idea: string }
   | { mode: "facts"; text: string }
   | { mode: "thread"; post: string }
+  | { mode: "design"; slides: { title: string; body: string }[] }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -76,6 +77,15 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
     if (post.length < MIN_TEXT) return { ok: false, error: "Write a bit more before checking it." };
     if (post.length > MAX_TEXT) return { ok: false, error: `Checks read posts up to ${MAX_TEXT.toLocaleString("en-US")} characters.` };
     return { ok: true, request: { mode, post } };
+  }
+  if (mode === "design") {
+    const raw = Array.isArray(b.slides) ? b.slides : [];
+    if (raw.length < DESIGN_SLIDES.min || raw.length > DESIGN_SLIDES.max || raw.some((x) => !x || typeof x !== "object")) {
+      return { ok: false, error: `Send ${DESIGN_SLIDES.min} to ${DESIGN_SLIDES.max} slides.` };
+    }
+    const slides = raw.map((x: Record<string, unknown>) => ({ title: str(x.title, 200), body: str(x.body, 600) }));
+    if (slides.reduce((n, x) => n + x.title.length + x.body.length, 0) < MIN_TEXT) return { ok: false, error: "Add some text to the slides first." };
+    return { ok: true, request: { mode, slides } };
   }
   if (mode === "facts") {
     const text = str(b.text, MAX_TEXT);
@@ -525,6 +535,60 @@ export const THREAD_QUESTIONS: Record<string, JevQuestion> = {
 export function readThreadYes(answers: Record<string, JevAnswer> | null): number | null {
   const p = answers?.thread?.noul;
   return typeof p === "number" && Number.isFinite(p) ? Math.min(1, Math.max(0, p)) : null;
+}
+
+// ---- Mode "design" (formats-carousel-designs, Leo only) ----------------------
+// Which of the carousel maker's eight designs suits a carousel's slides. A "Recommended" tag on the Design
+// row only: every design stays one press away.
+
+/** The carousel designs, the same ids and order as src/lib/links.ts CAROUSEL_DESIGNS (asserted by logic.test.ts). */
+export const DESIGN_IDS = ["clean", "bold", "numbered", "checklist", "post-card", "photo-cover", "quote", "notebook"] as const;
+export type DesignId = (typeof DESIGN_IDS)[number];
+export const DESIGN_SLIDES = { min: 2, max: 10 } as const;
+
+/**
+ * Jev's pick is tagged "Recommended" at or above this. Proposed (phase 3 decision 11), not yet set from a
+ * shadow run: the integrator reads Leo's last 30 carousels and every pick within 0.15 of it.
+ */
+export const DESIGN_MIN = 0.4;
+
+export function designState(slides: { title: string; body: string }[]) {
+  return { slides: slides.map((s, i) => `Slide ${i + 1}: ${[s.title, s.body].filter(Boolean).join("\n")}`).join("\n\n") };
+}
+
+export const DESIGN_QUESTIONS: Record<string, JevQuestion> = {
+  design: {
+    type: "choice",
+    instructions: "These are the `slides` of an Instagram or LinkedIn carousel by a Singapore financial adviser. Which slide design suits this content best?",
+    criteria: {
+      clean: "general advice in short paragraphs",
+      numbered: "a list of separate tips or reasons",
+      checklist: "steps or things to check off",
+      "post-card": "a personal opinion or story told in first person",
+      quote: "one strong statement or a quotation",
+      bold: "a short punchy list with a provocative hook",
+      "photo-cover": "a story about a place, a person or a moment",
+      notebook: "a lesson or explanation with some detail",
+    },
+  },
+};
+
+/** Jev's likeliest design and its probability; pick is null below DESIGN_MIN, and both are null with no answer. */
+export function readDesignPick(answers: Record<string, JevAnswer> | null): { pick: DesignId | null; p: number | null } {
+  const probs = answers?.design?.probabilities;
+  if (!probs || typeof probs !== "object") return { pick: null, p: null };
+  let best: DesignId | null = null;
+  let top = -1;
+  for (const id of DESIGN_IDS) {
+    const p = probs[id];
+    if (typeof p === "number" && Number.isFinite(p) && p > top) {
+      best = id;
+      top = p;
+    }
+  }
+  if (!best) return { pick: null, p: null };
+  const p = Math.round(Math.min(1, Math.max(0, top)) * 100) / 100;
+  return { pick: p >= DESIGN_MIN ? best : null, p };
 }
 
 // ---- Mode "facts" -----------------------------------------------------------

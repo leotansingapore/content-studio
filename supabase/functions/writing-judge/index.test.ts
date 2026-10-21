@@ -94,6 +94,42 @@ describe("Reads well as a thread", () => {
   });
 });
 
+describe("the Recommended carousel design", () => {
+  const slides = [{ title: "3 things to check on your hospital plan", body: "" }, { title: "Ward class", body: "Pick the ward you would actually stay in." }, { title: "Found this useful?", body: "Save it." }];
+
+  it("refuses anyone not on the list before counting anything or asking Jev", async () => {
+    const res = await ask(OTHER, { mode: "design", slides });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("answers Jev's pick for one writing-judge use", async () => {
+    jev = () => Response.json({ answers: { design: { type: "choice", choice: "checklist", probabilities: { checklist: 0.71, numbered: 0.2 } } } });
+    const res = await ask(LEO, { mode: "design", slides });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ pick: "checklist", p: 0.71 });
+    expect(used(LEO)).toBe(1);
+    expect(calls).toHaveLength(1);
+  });
+  it("answers no pick when Jev is unsure, and keeps the use", async () => {
+    jev = () => Response.json({ answers: { design: { type: "choice", choice: "clean", probabilities: { clean: 0.3, quote: 0.28 } } } });
+    expect(await (await ask(LEO, { mode: "design", slides })).json()).toEqual({ pick: null, p: 0.3 });
+    expect(used(LEO)).toBe(1);
+  });
+  it("gives the use back when Jev never answered", async () => {
+    const res = await ask(LEO, { mode: "design", slides });
+    expect(res.status).toBe(503);
+    expect(used(LEO)).toBe(0);
+  });
+  it("refuses a bad request before counting anything", async () => {
+    const res = await ask(LEO, { mode: "design", slides: [slides[0]] });
+    expect(res.status).toBe(400);
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+});
+
 describe("the checks everyone has", () => {
   it("stay open to an account not on the list", async () => {
     jev = () => Response.json({ answers: { sequence: { type: "noul", noul: 0.2 } } });
