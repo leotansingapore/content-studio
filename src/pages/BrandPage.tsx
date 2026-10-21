@@ -169,7 +169,7 @@ export default function BrandPage() {
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef(0);
   const measure = useMemo(() => createCanvasMeasure(), []);
-  // north star phase 4: Leo's sections, each saving through update() (phase4-build-brief.md, decision 14)
+  // north star phase 4: Leo's sections, each saving through setKit (phase4-build-brief.md, decision 14)
   const leo = useLeoUser();
   // /brand#logo (and the other section ids, docs/deep-links.md) lands on that section once the kit has loaded
   useScrollToHash(ready);
@@ -201,6 +201,12 @@ export default function BrandPage() {
     setSaved(true);
     window.clearTimeout(savedTimer.current);
     savedTimer.current = window.setTimeout(() => setSaved(false), 1600);
+  };
+
+  // what the phase-4 sections save through: the page's own save, with the hex box following a new colour
+  const setKit = (patch: Partial<CarouselBrand>) => {
+    update(patch);
+    if (patch.color) setHexInput(patch.color);
   };
 
   const pickColor = (color: string) => {
@@ -257,7 +263,7 @@ export default function BrandPage() {
       {ready && (
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         <div className="min-w-0 space-y-6">
-          {leo && userId && <WebsiteSection userId={userId} brand={brand} setBrand={update} />}
+          {leo && userId && <WebsiteSection userId={userId} brand={brand} setBrand={setKit} />}
           <section id="you" className="scroll-mt-20 space-y-4 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">You</h2>
             <div className="flex items-center gap-4">
@@ -361,8 +367,8 @@ export default function BrandPage() {
               </Button>
             )}
           </section>
-          {leo && userId && <ProductsSection userId={userId} brand={brand} setBrand={update} />}
-          {leo && userId && <DemoVideosSection userId={userId} brand={brand} setBrand={update} />}
+          {leo && userId && <ProductsSection userId={userId} brand={brand} setBrand={setKit} />}
+          {leo && userId && <DemoVideosSection userId={userId} brand={brand} setBrand={setKit} />}
 
           <section id="emoji-and-hashtags" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
             <div className="flex items-center gap-1">
@@ -553,7 +559,7 @@ export default function BrandPage() {
               </div>
             )}
           </section>
-          {leo && userId && <LanguageSection userId={userId} brand={brand} setBrand={update} />}
+          {leo && userId && <LanguageSection userId={userId} brand={brand} setBrand={setKit} />}
 
           <section id="logo" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">Logo</h2>
