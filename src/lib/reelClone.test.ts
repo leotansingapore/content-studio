@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } } }));
+const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
+vi.mock("@/lib/useLeoOnly", () => ({ leoUser: vi.fn(async () => as.user) }));
 
 import { supabase } from "@/lib/supabase";
 import { loadStages } from "./board";
@@ -90,6 +92,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   invoke.mockReset();
+  as.user = null;
 });
 
 describe("cloneDraftText", () => {
@@ -273,6 +276,61 @@ describe("the voice sent to clone-reel for everyone else", () => {
     );
   });
 });
+
+describe("the voice sent to clone-reel for Leo", () => {
+  const post = "I started my CPF top-ups at 25 because my dad never had the chance to, and here is what I learned along the way.";
+  const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];
+  const WEBSITE = "Warm and plain, from the website.";
+  const NOTES = [
+    "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):",
+    "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser",
+    "- Keep doing or avoid: Lean into: client stories; Steer clear of: jargon",
+  ].join("\n");
+  beforeEach(() => {
+    const storage = memoryStorage();
+    vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true });
+    vi.stubGlobal("localStorage", storage);
+    storage.setItem("content-studio-voice-u1", JSON.stringify({ posts: [], voiceSummary: WEBSITE, updatedAt: "" }));
+    storage.setItem("content-studio-coachprofile-u1", JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] }));
+    storage.setItem("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
+    invoke.mockResolvedValue({ data: result(), error: null });
+    as.user = { id: "u1", email: "leo@example.com" };
+  });
+
+  it("keeps a website summary with no samples when the fix is on, with the notes, and a voice of notes only", () => {
+    const website = { posts: [], voiceSummary: ` ${WEBSITE} `, updatedAt: "" };
+    expect(voiceForClone(website)).toBeNull();
+    expect(voiceForClone(website, [], { notes: "" })).toEqual({ summary: WEBSITE, samples: [] });
+    expect(voiceForClone(website, winners, { notes: "Never use emoji" })).toEqual({ summary: WEBSITE, samples: [], winners, notes: "Never use emoji" });
+    expect(voiceForClone(null, [], { notes: "Never use emoji" })).toEqual({ summary: "", samples: [], notes: "Never use emoji" });
+    expect(voiceForClone(null, [], { notes: "" })).toBeNull();
+    expect(voiceForClone(null, [], { notes: "x".repeat(1300) })?.notes).toHaveLength(1200);
+    const usable = { posts: [post, post, post], voiceSummary: "Warm", updatedAt: "" };
+    expect(voiceForClone(usable, [], { notes: "" })).toEqual(voiceForClone(usable));
+  });
+
+  it("sends his website summary, winners and notes on a clone, whatever the caller built", async () => {
+    await cloneReel("u", voiceForClone(loadVoice(), winners));
+    expect(invoke.mock.calls[0][1].body).toEqual({ url: "u", voice: { summary: WEBSITE, samples: [], winners, notes: NOTES } });
+  });
+
+  it("sends his notes on a concept", async () => {
+    const clone: SavedClone = { id: "c-leo", savedAt: "2026-10-20T03:00:00.000Z", result: { ...result(), concepts: [{ title: "a", keeps: "b", changes: "c" }] } };
+    invoke.mockResolvedValue({ data: { myVersion: { ...result().myVersion, beats: ["x"] } }, error: null });
+    await startConceptBuild("u1", clone, 0, null).catch(() => null);
+    expect(invoke.mock.calls[0][1].body.voice).toEqual({ summary: WEBSITE, samples: [], notes: NOTES });
+  });
+
+  it("sends the caller's voice when nothing is saved but a voice with posts", async () => {
+    window.localStorage.clear();
+    const voice = { summary: "Warm", samples: [post, post, post] };
+    window.localStorage.setItem("content-studio-voice-u1", JSON.stringify({ posts: [post, post, post], voiceSummary: "Warm", updatedAt: "" }));
+    await cloneReel("u", voice);
+    expect(invoke.mock.calls[0][1].body).toEqual({ url: "u", voice });
+  });
+});
+
+const loadVoice = () => JSON.parse(window.localStorage.getItem("content-studio-voice-u1")!);
 
 describe("positioningForClone", () => {
   it("sends who they serve, their edge, the one-liner and topics, only when something is filled", () => {
@@ -495,7 +553,7 @@ describe("concepts", () => {
     const run = startConceptBuild("u1", base(), 2, voice, formulas);
     expect(startConceptBuild("u1", base(), 1, voice, formulas)).toBe(run);
     expect(conceptRun(base().id)?.index).toBe(2);
-    expect(invoke).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
     expect(invoke.mock.calls[0][1].body).toEqual({
       url: base().result.source.url,
       voice,

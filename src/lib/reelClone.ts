@@ -6,8 +6,11 @@
 import { supabase } from "@/lib/supabase";
 import { setStage, type ProductionStage } from "@/lib/board";
 import { getDraftById, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
-import { VOICE_MIN_CHARS, isVoiceProfileUsable, type VoiceProfile } from "@/lib/voiceProfile";
+import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile, voiceSummaryOf, type VoiceProfile } from "@/lib/voiceProfile";
+import { memoryLine } from "@/lib/voiceMemory";
+import { leoUser } from "@/lib/useLeoOnly";
 import {
+  MAX_VOICE_NOTES,
   parseReelUrl,
   type CloneErrorCode,
   type CloneResponse,
@@ -176,7 +179,7 @@ export async function cloneReel(
     "clone-reel",
     {
       url,
-      voice,
+      voice: await withMemory(voice),
       ...(formulas.length ? { formulas: formulaInput(formulas) } : {}),
       ...(angle ? { angle } : {}),
       ...(brief.positioning ? { positioning: brief.positioning } : {}),
@@ -217,8 +220,11 @@ export function winnersFor(userId: string | null | undefined): Winner[] {
     }));
 }
 
-/** The voice the function writes in: GeneratePage's rule, a usable profile, plus their best posts. */
-export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = []): VoiceInput | null {
+/**
+ * The voice the function writes in: GeneratePage's rule, a usable profile, plus their best posts. With `memory` (Leo's
+ * sessions, brand-voice-memory) a summary with no posts behind it is sent too, and his standing notes ride with it.
+ */
+export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = [], memory?: { notes: string }): VoiceInput | null {
   const usable = Boolean(profile && isVoiceProfileUsable(profile));
   const samples = usable
     ? profile!.posts
@@ -227,9 +233,22 @@ export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = 
         .slice(0, 3)
         .map((p) => p.slice(0, 900))
     : [];
-  const summary = usable ? (profile!.voiceSummary ?? "").trim().slice(0, 1200) : "";
-  if (!summary && !samples.length && !winners.length) return null;
-  return winners.length ? { summary, samples, winners } : { summary, samples };
+  const summary = usable ? (profile!.voiceSummary ?? "").trim().slice(0, 1200) : memory ? voiceSummaryOf(profile).slice(0, 1200) : "";
+  const notes = memory?.notes.slice(0, MAX_VOICE_NOTES) ?? "";
+  if (!summary && !samples.length && !winners.length && !notes) return null;
+  const voice = winners.length ? { summary, samples, winners } : { summary, samples };
+  return notes ? { ...voice, notes } : voice;
+}
+
+/** Leo's sessions only: the voice built again with his website summary and his facts and learnings for posts. */
+async function withMemory(voice: VoiceInput | null): Promise<VoiceInput | null> {
+  let me: Awaited<ReturnType<typeof leoUser>> = null;
+  try {
+    me = await leoUser();
+  } catch {
+    // a session that can't be read is not Leo's
+  }
+  return me ? voiceForClone(loadVoiceProfile(me.id), voice?.winners ?? [], { notes: memoryLine(me.id, "posts", MAX_VOICE_NOTES) }) : voice;
 }
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -563,7 +582,8 @@ export function startConceptBuild(
   if (running) return running.promise;
   const concept = clone.result.concepts?.[index];
   if (!concept) return Promise.resolve(clone);
-  const promise = invokeFunction("clone-reel", { url: clone.result.source.url, voice, formulas: formulaInput(formulas), concept })
+  const promise = withMemory(voice)
+    .then((v) => invokeFunction("clone-reel", { url: clone.result.source.url, voice: v, formulas: formulaInput(formulas), concept }))
     .then((data) => {
       const v = (data as { myVersion?: MyVersion } | null)?.myVersion;
       if (typeof v?.script !== "string" || typeof v?.caption !== "string" || !v.beats?.length) {
