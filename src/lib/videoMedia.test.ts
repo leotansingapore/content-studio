@@ -128,6 +128,14 @@ describe("pickupPlan", () => {
     for (const path of ["wall", "long", "captions"] as const) expect(pickupPlan({ note: "A note." }, path).toast).toBeNull();
   });
 
+  it("keeps exactly today's fields on every path, with no key added", () => {
+    for (const path of PATHS) {
+      expect(pickupPlan(full, path).keep).toStrictEqual({ caption: "Cap.", source, draftId: "d1" });
+      expect(pickupPlan(undefined, path)).toStrictEqual({ keep: {}, toast: null });
+      expect(pickupPlan({ settings: { wall: true } }, path)).toStrictEqual({ keep: {}, toast: null });
+    }
+  });
+
   it("drops junk read back from a pending clip's JSON, and leaves the default tab out of the URL", () => {
     const junk = { toast: 5, note: "", caption: "", source: "ad:1", draftId: 7, tab: "nope" } as unknown as JoinExtra;
     expect(pickupPlan(junk, "captions")).toEqual({ keep: {}, toast: null });

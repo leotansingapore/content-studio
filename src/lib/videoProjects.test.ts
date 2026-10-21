@@ -82,6 +82,15 @@ describe("a project made from a post", () => {
       expect(third).toBe("junk");
     }
   });
+
+  it("loads a list saved today exactly as it was stored, with no field added", () => {
+    const today = [
+      { ...project("d1"), caption: "Cap.", fileId: "v1-s1", source: { kind: "ad", id: "a1" } },
+      { id: "v2", name: "v2", createdAt: "2026-10-20T00:00:00.000Z", updatedAt: "2026-10-21T00:00:00.000Z", duration: 12, size: 9, words: [{ w: "Hi", s: 0, e: 0.4 }], settings: { style: "bold" }, thumb: "data:x" },
+    ];
+    window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify(today));
+    expect(loadProjects("u")).toStrictEqual(today);
+  });
 });
 
 describe("removeProject", () => {
