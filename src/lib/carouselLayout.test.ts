@@ -252,3 +252,29 @@ describe("today's carousels, after the image page's additions", () => {
     );
   });
 });
+
+describe("today's carousels, before designs and sizes (pinned at 7e8f1493)", () => {
+  const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+  const PIC = "data:image/png;base64,iVBORw0KGgo=";
+  const long = "Review your cover every two years or after a big life event, and check the riders too. ".repeat(3);
+
+  it("lays out every role, look, alignment, size, picture and brand the same way as before", () => {
+    const out: string[] = [];
+    for (const b of [brand, { ...brand, photo: PHOTO }, { ...brand, color: "#FDE68A", name: "", handle: "" }]) {
+      for (const paper of [undefined, "light", "dark", "tint"] as const) {
+        for (const font of [undefined, "classic", "modern", "serif"] as const) {
+          for (const [title, body] of [["Know your number", "Six months of expenses."], ["", long], ["A title", ""], ["Title", "word ".repeat(400)]]) {
+            for (const index of [0, 1, 4]) {
+              for (const extra of [{}, { align: "center" as const, scale: 1.15 }, { image: PIC, scale: 0.85 }]) {
+                const layout = layoutSlide({ title, body, index, total: 5, brand: b, paper, font, ...extra }, measure);
+                out.push(JSON.stringify(layout), renderSvg(layout));
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(out.length).toBe(2 * 3 * 4 * 4 * 4 * 3 * 3);
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("38872daf1170af64b4255f0a5843db8bb7e7a7678f1b623ed6bbd7981f942589");
+  });
+});
