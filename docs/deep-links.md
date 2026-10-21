@@ -377,7 +377,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
-| /make/talking-head | who | Leo only. photo (your photo), presenter (a new AI presenter), mine (your saved face, phase 4), or a saved presenter's id (phase 4) | photo | replace | /make/talking-head?who=presenter |
+| /make/talking-head | who | Leo only. presenter (a new AI presenter), mine (your saved face), or a saved presenter's id; a typed photo falls back to the default | the brand's "Who appears" | replace | /make/talking-head?who=mine |
 | /make/talking-head | setting | Leo only. office, car, kitchen, couch, cafe | office | replace | /make/talking-head?who=presenter&setting=car |
 | /make/talking-head | length | Leo only. 8, 15, 20, 30 (seconds) | 15 | replace | /make/talking-head?length=30 |
 | /make/talking-head | voice | Leo only. alice, lily, george, eric, matilda, sarah, liam (the voices in supabase/functions/text-voice/logic.ts) | alice (as You speaking) | replace | /make/talking-head?voice=george |
@@ -438,7 +438,7 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 | /people | record | Leo only. 1: the face recorder open | closed | push | /people?record=1 |
 | /people | presenter | Leo only. with tab=presenters: a saved presenter's id, its card open | none | push | /people?tab=presenters&presenter=pr-lq3k9z |
 | /people | make | Leo only. 1 with tab=presenters: the New presenter sheet open | closed | push | /people?tab=presenters&make=1 |
-| /edit | face | Leo only. with panel=ai: mine (your saved face) or a saved presenter's id; preselects who speaks | the brand's "Who appears", else none | replace | /edit?panel=ai&kind=avatar&face=mine |
+| /edit | face | Leo only. with panel=ai: mine (your saved face), presenter (a new AI presenter) or a saved presenter's id; preselects who speaks | the brand's "Who appears", else none | replace | /edit?panel=ai&kind=avatar&face=mine |
 | /edit | voice | Leo only. with kind=avatar: mine (your own recording) or a premade voice (alice, lily, george, eric, matilda, sarah, liam) | alice | replace | /edit?panel=ai&kind=avatar&voice=mine |
 | /edit | product | Leo only. with kind=template: a saved product's id; its first picture fills the template's product slot once, then the param is removed | none | replace | /edit?panel=ai&kind=template&template=ugc-creator-review&product=pd-lq3k9z |
 | /edit | set | Leo only. with kind=explainer or montage: a media set's name, preselected for the pictures or clips | stock | replace | /edit?panel=ai&kind=explainer&set=Work+and+career |
@@ -458,7 +458,6 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 | /generate | panel | Leo only. insert: the Insert panel over that post (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert |
 | /generate | kind | Leo only. with panel=insert: hashtags, ending, hook, post (the panel's tab) | line | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert&kind=hashtags |
 | /generate | lang | Leo only. zh, ms, ta: this make's language, read once like the other pre-fills, then removed | the brand's post language, else English | replace | /generate?lang=zh |
-| /make/talking-head | who | Leo only. mine (your saved face) or a saved presenter's id, beside photo and presenter above | photo | replace | /make/talking-head?who=mine |
 
 Closing /edit's AI panel drops face, voice, product and set with the other AI panel params. A version made in
 another language is a draft or a carousel like any other: /generate?draft=<version id>, /carousel?carousel=<version id>.
