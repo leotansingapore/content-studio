@@ -384,6 +384,9 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make/green-screen | who | Leo only. mine (your video), presenter (an AI presenter) | mine | replace | /make/green-screen?who=presenter |
 | /make/green-screen | behind | Leo only. notes, demo, picture | notes | replace | /make/green-screen?behind=demo |
 | /make/green-screen | stand | Leo only. bottom, corner | bottom | replace | /make/green-screen?stand=corner |
+| /make/green-screen | setting | Leo only. with who=presenter: office, car, kitchen, couch, cafe (as /make/talking-head) | office | replace | /make/green-screen?who=presenter&setting=car |
+| /make/green-screen | length | Leo only. with who=presenter: 8, 15, 20, 30 (seconds) | 15 | replace | /make/green-screen?who=presenter&length=30 |
+| /make/green-screen | voice | Leo only. with who=presenter: the text-voice keys, as /make/talking-head | alice | replace | /make/green-screen?who=presenter&voice=george |
 | /make/hook-demo | play | Leo only. stock (words on a stock clip), spoken (someone says it), mine (you say it) | stock | replace | /make/hook-demo?play=spoken |
 | /make/hook-demo | topic | Leo only. what the demo shows: fills the topic once, then removed (replace). The demo itself is a file on the device and never in a link | none | replace | /make/hook-demo?topic=log+every+client+call |
 | /image | layout | Leo only. headline, quote, stat, testimonial; memes top-bottom, nobody-me, expectation, pov, post-reaction | headline | replace | /image?layout=stat |
