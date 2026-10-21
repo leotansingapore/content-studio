@@ -10,7 +10,7 @@
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
-import { currentJoin, monoPcm, startJoin, startSlides, encodeWav } from "@/lib/videoMedia";
+import { currentJoin, getFile, monoPcm, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
 import { audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
 import { MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
@@ -45,6 +45,7 @@ const POLL_MS = 5000;
 const GIVE_UP_MS = 20 * 60_000;
 const PENDING = "cs-ai-video-pending"; // this device only, on purpose: the tokens are no use elsewhere
 const RETRY = "Couldn't start the video right now. Try again in a minute.";
+export const DEMO_GONE = "Your demo isn't on this device any more. Pick it again.";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let job: AiJob | null = null;
@@ -120,11 +121,12 @@ const fail = (kind: AiJob["kind"], e: unknown) =>
 
 // ---------- AI presenter ----------
 
-export async function makePresenter(look: string): Promise<void> {
+/** `setting` is one of ai-video's presenter settings (logic.ts SETTINGS); none is today's office. */
+export async function makePresenter(look: string, setting?: string): Promise<void> {
   if (aiBusy()) return;
   set({ kind: "presenter", state: "working", step: "Making your presenter..." });
   try {
-    const { token } = await callFn<{ token: string }>("ai-video", { mode: "presenter", look }, "Couldn't make the presenter. Try again in a minute.");
+    const { token } = await callFn<{ token: string }>("ai-video", { mode: "presenter", look, ...(setting ? { setting } : {}) }, "Couldn't make the presenter. Try again in a minute.");
     const [url] = await waitFor([token], () => {});
     set({ kind: "presenter", state: "done", step: "", url });
   } catch (e) {
@@ -153,7 +155,7 @@ export async function sliceVoiceover(mp3: Blob): Promise<Voiceover> {
   return { pcm, seconds: duration, slices: planSlices(energy, 0.02, duration, MAX_SLICE) };
 }
 
-interface Pending {
+export interface Pending {
   name: string;
   tokens: string[];
   seconds: number[];
@@ -161,6 +163,10 @@ interface Pending {
   kind?: "template";
   /** Gives the day's use back if Higgsfield fails a job (missing on jobs started before it existed). */
   refund?: string;
+  /** Handed to the editor with the joined video (a format's toast, caption, source, draft, tab). */
+  extra?: JoinExtra;
+  /** Device file takes (putFile keys) joined after the clip, each from 0 to `end`: a demo after a spoken hook. */
+  after?: { key: string; end: number }[];
 }
 export function pendingAvatar(): Pending | null {
   try {
@@ -188,10 +194,14 @@ async function finishAvatar(p: Pending): Promise<void> {
       set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }), p.refund);
     set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
+    // a take that left this device keeps the paid clip pending: putting the file back under its key and trying again joins it
+    const after = await Promise.all((Array.isArray(p.after) ? p.after : []).map(async (a) => ({ file: await getFile(a.key).catch(() => undefined), start: 0, end: a.end })));
+    if (after.some((a) => !a.file)) throw new Error(DEMO_GONE);
     await joinSlot();
     // the job stays working (so a remount can't start a second join) and paid for until the join is done
     set({ kind, state: "working", step: "Putting your video together..." });
-    await startJoin(p.name, clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), "Putting your video together");
+    const takes = [...clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), ...after.map((a) => ({ ...a, file: a.file! }))];
+    await startJoin(p.name, takes, "Putting your video together", { extra: p.extra });
     const joined = currentJoin();
     if (joined?.state === "failed") throw new Error(joined.error || "Couldn't put the video together. Try again.");
     keepPending(null);
@@ -203,7 +213,7 @@ async function finishAvatar(p: Pending): Promise<void> {
   }
 }
 
-export async function makeAvatar(name: string, photo: Blob | string, voice: Voiceover): Promise<void> {
+export async function makeAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra): Promise<void> {
   if (aiBusy()) return;
   set({ kind: "avatar", state: "working", step: "Sending your voiceover and photo..." });
   let p: Pending;
@@ -214,7 +224,7 @@ export async function makeAvatar(name: string, photo: Blob | string, voice: Voic
     })));
     const face = typeof photo === "string" ? { url: photo } : { jpeg: await b64(await toJpeg(photo)) };
     const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: face, slices }, RETRY);
-    p = { name, tokens, seconds: slices.map((s) => s.seconds), refund };
+    p = { name, tokens, seconds: slices.map((s) => s.seconds), refund, extra };
     keepPending(p);
   } catch (e) {
     return fail("avatar", e);
@@ -232,7 +242,7 @@ export interface TemplateAsk {
 }
 
 /** One template clip: the server writes the shots and Seedance makes it; it opens in the editor like an avatar video. */
-export async function makeTemplateClip(name: string, ask: TemplateAsk): Promise<void> {
+export async function makeTemplateClip(name: string, ask: TemplateAsk, more?: { extra?: JoinExtra; after?: Pending["after"] }): Promise<void> {
   if (aiBusy()) return;
   set({ kind: "template", state: "working", step: "Writing the shots..." });
   let p: Pending;
@@ -240,7 +250,7 @@ export async function makeTemplateClip(name: string, ask: TemplateAsk): Promise<
     const ph = ask.photo;
     const photos = ph ? [{ role: ph.role, jpeg: await b64(await toJpeg(ph.file, ph.role === "person")) }] : [];
     const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos }, RETRY);
-    p = { name, tokens, seconds: [ask.seconds], kind: "template", refund };
+    p = { name, tokens, seconds: [ask.seconds], kind: "template", refund, extra: more?.extra, after: more?.after };
     keepPending(p);
   } catch (e) {
     return fail("template", e);
@@ -261,7 +271,7 @@ export async function writeExplainer(topic: string): Promise<Scene[]> {
   return scenes;
 }
 
-export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId): Promise<void> {
+export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId, extra?: JoinExtra): Promise<void> {
   if (aiBusy()) return;
   set({ kind: "explainer", state: "working", step: "Making the voiceover..." });
   try {
@@ -276,7 +286,7 @@ export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceI
     const secs = sceneSeconds(scenes.map((s) => s.say), seconds);
     await joinSlot();
     set({ kind: "explainer", state: "done", step: "" });
-    void startSlides(name, images.map((image, i) => ({ image, seconds: secs[i] })), mp3, "Putting your explainer together");
+    void startSlides(name, images.map((image, i) => ({ image, seconds: secs[i] })), mp3, "Putting your explainer together", { extra });
   } catch (e) {
     fail("explainer", e);
   }
