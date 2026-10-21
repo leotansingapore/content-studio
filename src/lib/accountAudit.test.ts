@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { auditedHandles, connectedFor, followerSeries, growthSeries, loadLatestIdeas, openAudit, remixUrl, shortDate, type AuditSnapshot, type RatedPost } from "@/lib/accountAudit";
+import { auditedHandles, captionsForVoice, connectedFor, followerSeries, growthSeries, loadAuditFor, loadLatestIdeas, openAudit, remixUrl, shortDate, type AuditSnapshot, type RatedPost } from "@/lib/accountAudit";
 
-const hub = vi.hoisted(() => ({ invoke: vi.fn(), rows: [] as unknown[] }));
+const hub = vi.hoisted(() => ({ invoke: vi.fn(), rows: [] as unknown[], row: null as unknown, read: [] as unknown[][] }));
 vi.mock("@/lib/supabase", () => {
-  const query = { select: () => query, eq: () => query, order: () => query, limit: async () => ({ data: hub.rows, error: null }) };
-  return { supabase: { functions: { invoke: hub.invoke }, from: () => query } };
+  const query = {
+    select: () => query,
+    eq: (...a: unknown[]) => (hub.read.push(a), query),
+    order: () => query,
+    limit: async () => ({ data: hub.rows, error: null }),
+    maybeSingle: async () => ({ data: hub.row, error: null }),
+  };
+  return { supabase: { functions: { invoke: hub.invoke }, from: (t: string) => (hub.read.push(["from", t]), query) } };
 });
 
 const rated = (o: Partial<RatedPost> = {}): RatedPost => ({
@@ -139,5 +145,27 @@ describe("shortDate", () => {
     expect(shortDate(lastYear, now)).toContain(String(now.getFullYear() - 1));
     expect(shortDate(thisYear, now)).not.toContain(String(now.getFullYear()));
     expect(shortDate(null, now)).toBe("undated");
+  });
+});
+
+describe("Use my own posts on /voice", () => {
+  const p = (caption: string, collab = false) => ({ caption, collab });
+  const long = (n: number, tag = "") => `${tag}${"x".repeat(n - tag.length)}`;
+  it("picks the longest captions of 100+ characters, skipping collabs and repeats, at most the empty slots", () => {
+    const posts = [p(long(120, "a")), p(long(99, "short")), p(long(300, "collab"), true), p(long(250, "b")), p(long(120, "a")), p(long(180, "c")), p(`  ${long(100, "d")}  `)];
+    expect(captionsForVoice(posts, 5)).toEqual([long(250, "b"), long(180, "c"), long(120, "a"), long(100, "d")]);
+    expect(captionsForVoice(posts, 2)).toEqual([long(250, "b"), long(180, "c")]);
+    expect(captionsForVoice(posts, 0)).toEqual([]);
+    expect(captionsForVoice([p(long(99)), p(long(400), true)], 5)).toEqual([]);
+  });
+  it("reads the saved audit row directly, never through the audit service", async () => {
+    hub.read.length = 0;
+    hub.invoke.mockClear();
+    hub.row = { id: "a1", posts: [] };
+    expect(await loadAuditFor("instagram", "ada.tan")).toEqual({ id: "a1", posts: [] });
+    expect(hub.read).toEqual([["from", "cs_social_audits"], ["platform", "instagram"], ["handle", "ada.tan"]]);
+    hub.row = null;
+    expect(await loadAuditFor("tiktok", "ada.tan")).toBeNull();
+    expect(hub.invoke).not.toHaveBeenCalled();
   });
 });

@@ -100,6 +100,35 @@ export async function loadAudit(id: string): Promise<AuditRow | null> {
   return (data as AuditRow | null) ?? null;
 }
 
+/**
+ * The caller's saved audit of one handle (owner-read RLS, unique on user, platform and handle), or null. A
+ * direct read: it never starts a refresh, which openAudit can, and a refresh is paid.
+ */
+export async function loadAuditFor(platform: AuditPlatform, handle: string): Promise<AuditRow | null> {
+  const { data, error } = await supabase
+    .from("cs_social_audits")
+    .select("*")
+    .eq("platform", platform)
+    .eq("handle", handle)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as AuditRow | null) ?? null;
+}
+
+/**
+ * Captions to fill /voice's empty slots ("Use my own posts"): the longest of at least `min` characters, at most
+ * `slots` of them, leaving out collabs (another account's words) and repeats.
+ */
+export function captionsForVoice(posts: Pick<RatedPost, "caption" | "collab">[], slots: number, min = 100): string[] {
+  const seen = new Set<string>();
+  return posts
+    .filter((p) => !p.collab)
+    .map((p) => String(p.caption ?? "").trim())
+    .filter((c) => c.length >= min && !seen.has(c) && seen.add(c))
+    .sort((a, b) => b.length - a.length)
+    .slice(0, Math.max(0, slots));
+}
+
 /** The latest snapshots, newest first. */
 export async function loadSnapshots(auditId: string): Promise<AuditSnapshot[]> {
   const { data, error } = await supabase
