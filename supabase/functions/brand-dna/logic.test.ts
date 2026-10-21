@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ALL_CHARS, fencePages, handleOf, hex, MAX_PRODUCTS, NAMED_QUESTION, OFFER_QUESTION, offerAsk, PAGE_CHARS, pageQuestions, parseProducts, parseWritten, pickColour,
+  ALL_CHARS, fencePages, handleOf, hex, NAMED_QUESTION, OFFER_QUESTION, offerAsk, PAGE_CHARS, pageQuestions, parseProducts, parseWritten, pickColour,
   pickPages, privateIp, productClues, readSite, type ScannedProduct, siteUrl, stripBlocks, withOffers, writeMessages,
 } from "./logic";
 import { decode } from "../feed-ideas/logic";
@@ -207,7 +207,7 @@ ${Array.from({ length: 10 }, (_, i) => `<img src="/p${i}.png" alt="Plan ${i}">`)
  {"@type":["Service"],"name":"Retirement plan","image":["/ret.png"]},
  {"@type":"FinancialService","name":"Acme Advisory"}]}</script>
 <script type="application/ld+json">{broken</script>
-<script type="application/ld+json">{"@type":"SoftwareApplication","name":"Acme App","offers":[{"price":34,"priceCurrency":"SGD"}]}</script>`;
+<script type="application/ld+json">{"@type":"SoftwareApplication","name":"Acme App","image":"https://acme.sg/app.svg","offers":[{"price":34,"priceCurrency":"SGD"}]}</script>`;
 
   it("collects the share picture and up to 8 pictures with alt text, absolute and never SVG, plus each listed item's own", () => {
     const c = productClues(SHOP, BASE);
@@ -253,7 +253,7 @@ ${Array.from({ length: 10 }, (_, i) => `<img src="/p${i}.png" alt="Plan ${i}">`)
   it("caps the list at 24 and the fields at their stored lengths, and refuses a reply that isn't the schema", () => {
     const many = Array.from({ length: 30 }, (_, i) => ({ name: `Item ${i} ${"n".repeat(80)}`, what: "w".repeat(300), forWho: "f".repeat(200), price: "p".repeat(60), url: "", picture: "", generic: "g".repeat(200) }));
     const items = parseProducts({ items: many }, PAGES)!;
-    expect(items).toHaveLength(MAX_PRODUCTS);
+    expect(items).toHaveLength(24);
     expect(items[0].name).toHaveLength(60);
     expect([items[0].what.length, items[0].forWho.length, items[0].price!.length, items[0].generic.length]).toEqual([200, 120, 40, 120]);
     expect(parseProducts("not json", PAGES)).toBeNull();

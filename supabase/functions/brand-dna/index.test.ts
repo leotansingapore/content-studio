@@ -5,12 +5,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const db = vi.hoisted(() => ({
   spent: [] as string[],
   refunded: [] as string[],
+  /** every counter refuses, as when the day's uses are spent */
+  limit: false,
   admin: {} as Record<string, unknown>,
   handler: null as null | ((r: Request) => Promise<Response>),
 }));
 db.admin = {
   auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
-  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: 1, error: null }),
+  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: db.limit ? null : 1, error: null }),
   from: () => ({
     select: () => ({ match: async () => ({ data: [{ count: 1 }], error: null }) }),
     update: () => ({ match: (q: { feature: string }) => ({ select: async () => (db.refunded.push(q.feature), { data: [{ count: 0 }], error: null }) }) }),
@@ -64,6 +66,7 @@ beforeEach(() => {
   seen.length = 0;
   db.spent.length = 0;
   db.refunded.length = 0;
+  db.limit = false;
   jevAsked.length = 0;
   for (const k of Object.keys(sent)) delete sent[k];
   for (const k of Object.keys(routes)) delete routes[k];
@@ -261,6 +264,17 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(await call({ mode: "products", url: "acme.sg" }, "leo")).toMatchObject({ status: 422, body: { code: "bad_reply" } });
     expect(db.refunded).toEqual([]);
     expect(db.spent.every((f) => f === "brand-products")).toBe(true);
+  });
+
+  it("answers a spent day's cap with the 8am line before fetching anything, for products and pictures", async () => {
+    site();
+    db.limit = true;
+    for (const body of [{ mode: "products", url: "acme.sg" }, { mode: "image", url: "https://acme.sg/og.jpg" }]) {
+      expect(await call(body, "leo")).toMatchObject({ status: 429, body: { code: "daily_limit", error: expect.stringMatching(/It resets at 8am Singapore time\.$/) } });
+    }
+    expect(db.spent).toEqual(["brand-products", "brand-image"]);
+    expect(seen).toEqual([]);
+    expect(db.refunded).toEqual([]);
   });
 
   it("fetches one picture from the site as a data URL, refusing private addresses and anything not a PNG, JPEG or WebP", async () => {
