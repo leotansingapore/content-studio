@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } },
 import { saveFace, turnOffFace } from "./myFace";
 import { keepPresenter, removePresenter, setWho } from "./presenters";
 import { priceOf, sumPrices, type Price } from "./prices";
+import { addProfile, setActiveProfile } from "./profiles";
 import type { SavedClone } from "./reelClone";
 import {
   TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
@@ -179,6 +180,21 @@ describe("who speaks (Leo only)", () => {
     setWho(UID, "ask");
     expect(defaultWho(speakers(UID))).toBe("");
     expect(whoChoices(speakers(UID))).toEqual(["mine", "presenter", mei.id]);
+  });
+
+  it("follows the brand: each brand's presenters and Who appears, the one face for all of them", () => {
+    face();
+    const mei = keep("Mei", 1);
+    const brand = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, brand.id);
+    expect(speakers(UID)).toMatchObject({ presenters: [], who: "ask" });
+    expect(speakers(UID).face).not.toBeNull();
+    const raj = keep("Raj", 2);
+    expect(defaultWho(speakers(UID))).toBe(raj.id);
+    expect(speakerOf(speakers(UID), mei.id)).toBeNull();
+    setActiveProfile(UID, "me");
+    expect(defaultWho(speakers(UID))).toBe(mei.id);
+    expect(speakers(UID).presenters.map((p) => p.name)).toEqual(["Mei"]);
   });
 
   it("reads your face only while it is on, and a presenter only while it is kept", () => {
