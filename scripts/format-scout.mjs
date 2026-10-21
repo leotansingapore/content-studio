@@ -172,7 +172,7 @@ export function tiktokPost(item) {
   return {
     id,
     photo,
-    url: web && new URL(web).hostname.endsWith("tiktok.com") ? web : `https://www.tiktok.com/@${author || "tiktok"}/${photo ? "photo" : "video"}/${id}`,
+    url: web && new URL(web).hostname === "www.tiktok.com" ? web : `https://www.tiktok.com/@${author || "tiktok"}/${photo ? "photo" : "video"}/${id}`,
     author,
     caption: cleanLine(item.text, 240),
     views: Math.max(0, Number(item.playCount) || 0),
@@ -486,10 +486,16 @@ export async function run({
     // a carried item keeps its cover file from the drop that found it; one whose file is gone goes too
     const carried = (Array.isArray(prev) ? prev : []).filter((i) => typeof i?.cover === "string" && fs.existsSync(path.join(coverDir, path.basename(i.cover))));
     const list = carryForward(carried, fresh, now);
-    const fetched = new Date(now).toISOString().slice(0, 10);
+    // Singapore's date: the drop runs Monday 06:30 SGT, still Sunday in UTC
+    const fetched = new Date(now + 8 * 3_600_000).toISOString().slice(0, 10);
     if (dry) {
       console.log(`format-scout: dry run, nothing written. ${fresh.length} new and ${list.length - list.filter((i) => fresh.includes(i)).length} carried would make ${list.length} items${list.length < MIN_ITEMS ? `, under ${MIN_ITEMS}, so a real run would write nothing` : ""}`);
       return 0;
+    }
+    // nothing new means Claude or Jev read nothing this week: a rewrite of last week's items would hide that
+    if (!fresh.length) {
+      console.error("format-scout: nothing new kept this week; formatTrends.json keeps its last drop");
+      return 1;
     }
     if (list.length < MIN_ITEMS) {
       console.error(`format-scout: only ${list.length} items (< ${MIN_ITEMS}); formatTrends.json keeps its last drop`);

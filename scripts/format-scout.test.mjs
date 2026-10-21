@@ -127,6 +127,7 @@ describe("shaping an item", () => {
   it("gives a wall of text no slide count, and builds a photo link when the actor's link is not TikTok's", () => {
     const p = tiktokPost(photo("1000010", 3, { webVideoUrl: "https://evil.example/x", authorMeta: { name: "a b" } }));
     expect(p.url).toBe("https://www.tiktok.com/@tiktok/photo/1000010");
+    expect(tiktokPost(photo("1000011", 3, { webVideoUrl: "https://eviltiktok.com/@maker/video/1000011" })).url).toBe("https://www.tiktok.com/@maker/photo/1000011");
     expect(shapeItem(p, { ...reading, kind: "wall-of-text" }, 0.6).slides).toBeNull();
   });
 });
@@ -231,6 +232,10 @@ describe("run", () => {
     expect(await run(o)).toBe(0);
     const file = JSON.parse(fs.readFileSync(o.out, "utf8"));
     expect(file.fetched).toBe("2026-10-27");
+    // Monday 06:30 in Singapore is still Sunday in UTC; the drop is dated Monday
+    const monday = fakes({ now: Date.parse("2026-10-25T22:30:00Z") });
+    expect(await run(monday)).toBe(0);
+    expect(JSON.parse(fs.readFileSync(monday.out, "utf8")).fetched).toBe("2026-10-26");
     expect(file.items).toHaveLength(10);
     expect(file.items.map((i) => i.id)).not.toContain(`tiktok-${OTHER}`);
     expect(file.items.map((i) => i.id)).not.toContain(`tiktok-${UNSAFE}`);
@@ -268,6 +273,20 @@ describe("run", () => {
     expect(await run(o)).toBe(1);
     expect(fs.readFileSync(o.out, "utf8")).toBe("last drop");
     expect(fs.existsSync(o.coverDir)).toBe(false);
+  });
+
+  it("writes nothing when Claude reads nothing new, even with 8 items to carry", async () => {
+    quiet();
+    const o = fakes({ see: async () => "Not logged in. Please run /login" });
+    fs.mkdirSync(o.coverDir, { recursive: true });
+    const prev = Array.from({ length: 9 }, (_, k) => {
+      fs.writeFileSync(path.join(o.coverDir, `${k + 1}.jpg`), "x");
+      return { id: `tiktok-${k + 1}`, kind: "slideshow", postedAt: ago(5).slice(0, 10), fit: 0.8, views: 5, cover: `/format-trends/${k + 1}.jpg` };
+    });
+    const last = JSON.stringify({ fetched: "2026-10-20", items: prev });
+    fs.writeFileSync(o.out, last);
+    expect(await run(o)).toBe(1);
+    expect(fs.readFileSync(o.out, "utf8")).toBe(last);
   });
 
   it("writes nothing when Jev answers nothing", async () => {
