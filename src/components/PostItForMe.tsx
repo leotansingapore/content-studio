@@ -15,9 +15,12 @@ import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
 import { checkLimits, type PlatformId } from "@/lib/platformCounters";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName, socialStatus, type AccountView } from "@/lib/socialConnect";
-import { DEFAULT_BRAND, loadBrand, loadCarousels, type SavedCarousel } from "@/lib/carousel";
+import { DEFAULT_BRAND, loadBrand, loadCarousels, slugify, type SavedCarousel } from "@/lib/carousel";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
-import { createCanvasMeasure, svgToPng } from "@/lib/carouselRender";
+import { createCanvasMeasure, svgToJpeg, svgToPng } from "@/lib/carouselRender";
+import { SLIDE_SIZES, slideImage } from "@/lib/carouselDesigns";
+import { buildPdf } from "@/lib/pdf";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { getFile } from "@/lib/deviceFiles";
 import { draftStatus, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
 import { loadSlideshows } from "@/lib/slideshow";
@@ -28,6 +31,7 @@ import {
   MAX_PICTURES,
   MEDIA_TYPES,
   NEEDS_MEDIA,
+  PDF_TYPE,
   YOUTUBE_TITLE_MAX,
   canCancel,
   canRetry,
@@ -59,8 +63,8 @@ const pill = (on: boolean) =>
     on ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
   }`;
 
-/** The draft's own carousel slides as PNGs, drawn the way Carousel draws them. */
-async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile[]> {
+/** The draft's own carousel slides as SVGs, drawn the way Carousel draws them, in its design and size. */
+async function carouselSvgs(userId: string, c: SavedCarousel): Promise<string[]> {
   const brand = loadBrand(userId) ?? DEFAULT_BRAND;
   const measure = createCanvasMeasure();
   const pictures: Record<string, string> = {};
@@ -76,15 +80,34 @@ async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile
       });
     }
   }
+  return c.slides.map((s, i) =>
+    renderSvg(
+      layoutSlide(
+        { title: s.title, body: s.body, index: i, total: c.slides.length, brand, image: s.image ? pictures[s.image] || undefined : undefined, align: c.align, scale: c.scale, font: c.font, paper: c.paper, design: c.design, size: c.size },
+        measure,
+      ),
+    ),
+  );
+}
+
+/** The draft's own carousel slides as PNGs (a 4:5 one exactly as before). */
+async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile[]> {
   const out: MediaFile[] = [];
-  for (const [i, s] of c.slides.entries()) {
-    const layout = layoutSlide(
-      { title: s.title, body: s.body, index: i, total: c.slides.length, brand, image: s.image ? pictures[s.image] || undefined : undefined, align: c.align, scale: c.scale, font: c.font, paper: c.paper },
-      measure,
-    );
-    out.push({ file: await svgToPng(renderSvg(layout)), name: "slide.png", type: "image/png" });
+  for (const svg of await carouselSvgs(userId, c)) {
+    out.push({ file: c.size ? await slideImage(svg, c.size, "image/png") : await svgToPng(svg), name: "slide.png", type: "image/png" });
   }
   return out;
+}
+
+/** The draft's own carousel as one PDF, a LinkedIn document (Leo only). */
+async function carouselPdf(userId: string, c: SavedCarousel): Promise<MediaFile> {
+  const { width, height } = SLIDE_SIZES[c.size ?? "4x5"];
+  const pages = [];
+  for (const svg of await carouselSvgs(userId, c)) {
+    const jpeg = c.size ? new Uint8Array(await (await slideImage(svg, c.size, "image/jpeg", 0.92)).arrayBuffer()) : await svgToJpeg(svg);
+    pages.push({ jpeg, width, height });
+  }
+  return { file: new Blob([buildPdf(pages)], { type: PDF_TYPE }), name: `${slugify(c.title)}.pdf`, type: PDF_TYPE };
 }
 
 /** What Zernio said about the post, onto the draft; a published post marks the draft posted. */
@@ -254,7 +277,7 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
   );
 }
 
-type MediaMode = "carousel" | "slideshow" | "import" | "files" | "none";
+type MediaMode = "carousel" | "pdf" | "slideshow" | "import" | "files" | "none";
 type TikTokForm = { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
 
 /**
@@ -289,6 +312,17 @@ export function PostItForMePanel({
   const [picked, setPicked] = useState<string[]>([]);
   // Files attached in Write come first: they were picked for this post.
   const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : thread ? "none" : carousel ? "carousel" : slideshow ? "slideshow" : importLink ? "import" : "files");
+  // Leo's LinkedIn carousel goes as one PDF, a swipeable document (4:5 and 1:1 only), unless he picks the slides
+  const leo = useLeoUser();
+  const pdfOk = !!leo && !!carousel && platform === "linkedin" && SLIDE_SIZES[carousel.size ?? "4x5"].pdf;
+  const choseMode = useRef(false);
+  useEffect(() => {
+    if (pdfOk && !choseMode.current && mode === "carousel") setMode("pdf");
+  }, [pdfOk, mode]);
+  const pickMode = (m: MediaMode) => {
+    choseMode.current = true;
+    setMode(m);
+  };
   const [files, setFiles] = useState<MediaFile[]>([]);
   const attachedSig = (draft.attached ?? []).join(",");
   useEffect(() => {
@@ -312,6 +346,7 @@ export function PostItForMePanel({
   const [error, setError] = useState("");
   const uploaded = useRef(new Map<Blob, string>());
   const slides = useRef<MediaFile[] | null>(null);
+  const pdfFile = useRef<MediaFile | null>(null);
   const showSlides = useRef<MediaFile[] | null>(null);
   const root = useRef<HTMLElement>(null);
   // one key per send: an unanswered earlier try is resent with its own key, so it never posts twice
@@ -338,6 +373,7 @@ export function PostItForMePanel({
   // stand-in links with each file's own ending, so the same platform rules as the server's apply here
   const mediaUrls =
     mode === "carousel" && carousel ? carousel.slides.map((_, i) => `https://upload.local/${i}.png`)
+    : mode === "pdf" && pdfOk ? ["https://upload.local/0.pdf"]
     : mode === "slideshow" && slideshow ? slideshow.slides.map((_, i) => `https://upload.local/${i}.png`)
     : mode === "import" && importLink ? [importLink]
     : mode === "files" ? files.map((f, i) => `https://upload.local/${i}.${MEDIA_TYPES[f.type]?.[0] ?? "bin"}`)
@@ -411,6 +447,15 @@ export function PostItForMePanel({
         }
         media = slides.current;
       }
+      if (mode === "pdf" && carousel && pdfOk) {
+        if (!pdfFile.current) {
+          setBusy("render");
+          pdfFile.current = await carouselPdf(userId, carousel);
+        }
+        const tooBig = fileProblem({ name: "The PDF", type: PDF_TYPE, size: pdfFile.current.file.size }, { pdf: true });
+        if (tooBig) throw new Error(`${tooBig} Post the slides as pictures instead.`);
+        media = [pdfFile.current];
+      }
       if (mode === "slideshow" && slideshow) {
         if (!showSlides.current) {
           setBusy("render");
@@ -430,6 +475,7 @@ export function PostItForMePanel({
         content,
         mediaUrls,
         ...(thread ? { thread } : {}),
+        ...(mode === "pdf" && pdfOk ? { documentTitle: carousel?.title.trim() || "Carousel" } : {}),
         ...(goesNow ? { now: true } : { scheduledFor: at! }),
         ...(draft.firstComment?.trim() ? { firstComment: draft.firstComment.trim() } : {}),
         ...(tiktokInput ? { tiktok: tiktokInput } : {}),
@@ -491,11 +537,12 @@ export function PostItForMePanel({
           <fieldset className="space-y-2">
             <legend className="mb-1 font-semibold text-foreground">With</legend>
             <div className="flex flex-wrap gap-1.5">
-              {carousel && <button type="button" aria-pressed={mode === "carousel"} onClick={() => setMode("carousel")} className={pill(mode === "carousel")}>Carousel slides ({carousel.slides.length})</button>}
-              {slideshow && <button type="button" aria-pressed={mode === "slideshow"} onClick={() => setMode("slideshow")} className={pill(mode === "slideshow")}>Slideshow slides ({slideshow.slides.length})</button>}
-              {importLink && <button type="button" aria-pressed={mode === "import"} onClick={() => setMode("import")} className={pill(mode === "import")}>Your imported {mediaKind(importLink) === "video" ? "video" : "picture"}</button>}
-              <button type="button" aria-pressed={mode === "files"} onClick={() => setMode("files")} className={pill(mode === "files")}>A file</button>
-              {!NEEDS_MEDIA.includes(platform) && <button type="button" aria-pressed={mode === "none"} onClick={() => setMode("none")} className={pill(mode === "none")}>Text only</button>}
+              {pdfOk && <button type="button" aria-pressed={mode === "pdf"} onClick={() => pickMode("pdf")} className={pill(mode === "pdf")}>PDF document</button>}
+              {carousel && <button type="button" aria-pressed={mode === "carousel"} onClick={() => pickMode("carousel")} className={pill(mode === "carousel")}>Carousel slides ({carousel.slides.length})</button>}
+              {slideshow && <button type="button" aria-pressed={mode === "slideshow"} onClick={() => pickMode("slideshow")} className={pill(mode === "slideshow")}>Slideshow slides ({slideshow.slides.length})</button>}
+              {importLink && <button type="button" aria-pressed={mode === "import"} onClick={() => pickMode("import")} className={pill(mode === "import")}>Your imported {mediaKind(importLink) === "video" ? "video" : "picture"}</button>}
+              <button type="button" aria-pressed={mode === "files"} onClick={() => pickMode("files")} className={pill(mode === "files")}>A file</button>
+              {!NEEDS_MEDIA.includes(platform) && <button type="button" aria-pressed={mode === "none"} onClick={() => pickMode("none")} className={pill(mode === "none")}>Text only</button>}
             </div>
             {mode === "files" && (
               <div className="space-y-1">
