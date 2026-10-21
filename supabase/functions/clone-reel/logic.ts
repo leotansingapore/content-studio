@@ -590,13 +590,18 @@ export interface VoiceInput {
   samples: string[];
   /** Their best posts so far, so each clone leans on what already works for them. */
   winners?: Winner[];
+  /** Their facts and standing notes from /voice (brand-voice-memory); clone-reel keeps them for NORTH_STAR_USERS only. */
+  notes?: string;
 }
 
-/** The consultant's voice as sent by the app, trimmed to sane sizes. */
-export function sanitizeVoice(raw: unknown): VoiceInput | null {
+export const MAX_VOICE_NOTES = 1200;
+
+/** The consultant's voice as sent by the app, trimmed to sane sizes. `notes` false (the default) drops their standing notes. */
+export function sanitizeVoice(raw: unknown, notes = false): VoiceInput | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Item;
   const summary = clip(r.summary, 1200);
+  const kept = notes ? clip(r.notes, MAX_VOICE_NOTES) : "";
   const samples = Array.isArray(r.samples)
     ? r.samples
         .filter((s): s is string => typeof s === "string" && s.trim().length >= 40)
@@ -609,8 +614,8 @@ export function sanitizeVoice(raw: unknown): VoiceInput | null {
         .filter((w) => w.hook.length >= 8 && w.result)
         .slice(0, 3)
     : [];
-  if (!summary && !samples.length && !winners.length) return null;
-  return winners.length ? { summary, samples, winners } : { summary, samples };
+  if (!summary && !samples.length && !winners.length && !kept) return null;
+  return { summary, samples, ...(winners.length ? { winners } : {}), ...(kept ? { notes: kept } : {}) };
 }
 
 // ---- Angle and positioning ---------------------------------------------------------
@@ -811,6 +816,8 @@ function sourceLines(source: CloneSource, voice: VoiceInput | null): string[] {
   }
   lines.push("", "The consultant's voice:");
   if (voice) {
+    // their standing notes before the summary: learnings and facts outrank the voice
+    if (voice.notes) lines.push(`Their standing notes (follow them): ${voice.notes}`);
     if (voice.summary) lines.push(`Summary: ${voice.summary}`);
     if (voice.samples.length) {
       lines.push("Posts they wrote themselves:");

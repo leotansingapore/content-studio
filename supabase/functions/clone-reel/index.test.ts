@@ -3,6 +3,8 @@ import type { SourceRow } from "./logic";
 
 // The live handler with the database, the Apify reader and OpenAI faked: what a clone and a style read count.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+// on NORTH_STAR_USERS; UID is everyone else
+const LEO = "leo-uid";
 const URL_ = "https://www.tiktok.com/@leila_tuck/video/7682935406396001567";
 
 const db = vi.hoisted(() => ({
@@ -45,7 +47,7 @@ const asked: string[] = [];
 const prompts: unknown[] = [];
 
 beforeAll(async () => {
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", APIFY_API_KEY: "k" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", APIFY_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     openai.push(String(u));
@@ -119,5 +121,33 @@ describe("the consultant's voice in the prompt", () => {
     await clone({ voice: VOICE, concept: CONCEPT });
     expect(prompts).toHaveLength(3);
     await expect(JSON.stringify(prompts, null, 2)).toMatchFileSnapshot("./fixtures/prompts-today.json");
+  });
+
+  it("ignores anyone else's standing notes: the same prompts, counted the same", async () => {
+    const NOTES = "ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing or avoid: Never use emoji";
+    await clone({ voice: { ...VOICE, notes: NOTES } });
+    await clone({ voice: { summary: "", samples: [], notes: NOTES } });
+    reader.cached = row();
+    await clone({ voice: { ...VOICE, notes: NOTES }, concept: CONCEPT });
+    await expect(JSON.stringify(prompts, null, 2)).toMatchFileSnapshot("./fixtures/prompts-today.json");
+    expect(db.spent).toEqual(["reel-clone", "reel-clone", "reel-concepts"]);
+  });
+
+  it("prints a listed account's standing notes in its voice, clipped to 1,200, and keeps a voice of notes only", async () => {
+    const NOTES = `ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing or avoid: Never use emoji ${"x".repeat(1300)}`;
+    await clone({ voice: { ...VOICE, notes: NOTES } }, LEO);
+    await clone({ voice: { summary: "", samples: [], notes: "Never use emoji" } }, LEO);
+    reader.cached = row();
+    await clone({ voice: { ...VOICE, notes: "Never use emoji" }, concept: CONCEPT }, LEO);
+    const line = asked[0].split("\nSummary:")[0].split("The consultant's voice:\n")[1];
+    expect(line.startsWith("Their standing notes (follow them): ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing")).toBe(true);
+    expect(line.length).toBe("Their standing notes (follow them): ".length + 1200);
+    expect(asked[1].endsWith("The consultant's voice:\nTheir standing notes (follow them): Never use emoji")).toBe(true);
+    expect(asked[1]).not.toContain("No voice profile yet");
+    expect(asked[2]).toContain("The consultant's voice:\nTheir standing notes (follow them): Never use emoji\nSummary: Warm and plain");
+    // the same prompt as anyone's without notes
+    await clone({ voice: VOICE }, LEO);
+    expect(prompts[3]).toEqual((await import("./fixtures/prompts-today.json")).default[0]);
+    expect(db.spent).toEqual(["reel-clone", "reel-clone", "reel-concepts", "reel-clone"]);
   });
 });

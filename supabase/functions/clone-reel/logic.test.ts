@@ -26,6 +26,7 @@ import {
   sanitizeFormulas,
   sanitizePositioning,
   sanitizeVoice,
+  MAX_VOICE_NOTES,
   toCloneSource,
   validateCloneOutput,
   validateConceptOutput,
@@ -496,6 +497,18 @@ describe("sanitizeVoice", () => {
     });
     expect(sanitizeVoice({ summary: "Warm", winners: "nope" })).toEqual({ summary: "Warm", samples: [] });
   });
+
+  it("keeps standing notes only when asked to, clipped to 1,200, and a voice that has nothing else", () => {
+    const notes = `ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing or avoid: Never use emoji ${"x".repeat(1300)}`;
+    expect(sanitizeVoice({ summary: "Warm", notes })).toEqual({ summary: "Warm", samples: [] });
+    expect(sanitizeVoice({ notes })).toBeNull();
+    const kept = sanitizeVoice({ summary: "Warm", notes }, true);
+    expect(kept?.notes).toHaveLength(MAX_VOICE_NOTES);
+    expect(kept?.notes?.startsWith("ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep")).toBe(true);
+    expect(sanitizeVoice({ notes: " Never use emoji " }, true)).toEqual({ summary: "", samples: [], notes: "Never use emoji" });
+    expect(sanitizeVoice({ summary: "Warm", notes: "   " }, true)).toEqual({ summary: "Warm", samples: [] });
+    expect(sanitizeVoice({ summary: "Warm", notes: 42 }, true)).toEqual({ summary: "Warm", samples: [] });
+  });
 });
 
 describe("sanitizeAngle and sanitizePositioning", () => {
@@ -558,6 +571,15 @@ describe("buildClonePrompt", () => {
     expect(user).toContain('"""\nRule one. Pay yourself first.\n"""');
     expect(user).toContain("Summary: Warm, direct, a bit cheeky");
     expect(user).toContain("1. \"\"\"\nMy first post about CPF");
+  });
+
+  it("puts the consultant's standing notes first in their voice, and alone when that is all they have", () => {
+    const { user } = buildClonePrompt(source, { summary: "Warm", samples: [], notes: "Never use emoji" });
+    expect(user).toContain("The consultant's voice:\nTheir standing notes (follow them): Never use emoji\nSummary: Warm");
+    const only = buildClonePrompt(source, { summary: "", samples: [], notes: "Never use emoji" }).user;
+    expect(only).toContain("The consultant's voice:\nTheir standing notes (follow them): Never use emoji");
+    expect(only).not.toMatch(/Summary:|No voice profile yet/);
+    expect(buildClonePrompt(source, { summary: "Warm", samples: [] }).user).not.toContain("standing notes");
   });
 
   it("says plainly when there's no transcript or voice profile", () => {

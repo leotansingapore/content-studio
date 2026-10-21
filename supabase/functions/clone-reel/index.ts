@@ -52,6 +52,7 @@ import {
   MAX_RELAY_BYTES,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
+import { isAllowed } from "../market/logic.ts";
 import { CloneFailure, fetchSource, findSource, keepRunning, withinBudget } from "./source.ts";
 
 const OPENAI_MODEL = "gpt-4.1";
@@ -171,7 +172,8 @@ Deno.serve(async (req) => {
       console.error("OPENAI_API_KEY is not set");
       return failure("not_configured");
     }
-    const voice = sanitizeVoice(body?.voice);
+    // standing notes (brand-voice-memory) only for NORTH_STAR_USERS: anyone else's prompt is today's
+    const voice = sanitizeVoice(body?.voice, isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid));
     const formulas = sanitizeFormulas(body?.formulas);
     const brief = { angle: sanitizeAngle(body?.angle), positioning: sanitizePositioning(body?.positioning) };
     const concept = body?.concept === undefined ? null : cleanConcept(body.concept);
