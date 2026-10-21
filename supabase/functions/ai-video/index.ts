@@ -25,7 +25,7 @@
 // not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
 // new modes before their body is checked too); every other request is as before.
 //
-// Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY, NORTH_STAR_USERS. Deploy WITH JWT verification:
+// Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY, NORTH_STAR_USERS, TYPESAFE_API_KEY (Jev; none means no MAS answer). Deploy WITH JWT verification:
 //   supabase functions deploy ai-video --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
