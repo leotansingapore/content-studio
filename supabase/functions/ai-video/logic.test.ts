@@ -484,6 +484,8 @@ describe("a narrated video's script (formats-faceless-video)", () => {
     ];
     expect(validateScript({ scenes: split.map(scene) }, { seconds: 30, keep: SCRIPT })).toHaveLength(3);
     expect(keepsWords(split.map((say) => ({ say })), `  ${SCRIPT.replace(/ /g, "\n")} `)).toBe(true);
+    expect(keepsWords([{ say: "It\u2019s \u201cfree\u201d." }], `It's "free".`)).toBe(true);
+    expect(keepsWords([{ say: "It is free." }], "It's free.")).toBe(false);
     expect(validateScript({ scenes: [...split.slice(0, 2), "Message me what yours covers."].map(scene) }, { seconds: 30, keep: SCRIPT })).toBeNull();
     expect(validateScript({ scenes: split.slice(0, 2).map(scene).concat(scene("Ask me.")) }, { seconds: 30, keep: SCRIPT })).toBeNull();
     expect(validateScript({ scenes: [...split, "Thanks for watching."].map(scene) }, { seconds: 30, keep: SCRIPT })).toBeNull();

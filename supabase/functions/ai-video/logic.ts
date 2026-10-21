@@ -512,9 +512,11 @@ export function validateScript(raw: unknown, narrated?: { seconds: NarratedSecon
   return n >= limits.minWords ? out : null;
 }
 
-/** The scenes say the script's own words, in order, and nothing else: only the spacing may differ. */
-export const keepsWords = (scenes: Pick<Scene, "say">[], script: string) =>
-  oneLineText(scenes.map((s) => s.say).join(" "), 10_000) === oneLineText(script, 10_000);
+/** The scenes say the script's own words, in order, and nothing else: only the spacing and the quote marks' style may differ. */
+export function keepsWords(scenes: Pick<Scene, "say">[], script: string): boolean {
+  const flat = (s: string) => oneLineText(s, 10_000).replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+  return flat(scenes.map((s) => s.say).join(" ")) === flat(script);
+}
 
 /** A script's source as sent, checked; a refusal line when it can't be used. */
 function scriptSource(raw: unknown): ScriptSource | string {
