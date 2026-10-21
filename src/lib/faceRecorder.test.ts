@@ -108,6 +108,19 @@ describe("the take", () => {
     expect(ticks.at(-1)).toBeGreaterThan(11);
   });
 
+  it("leaves nothing ticking when the recorder fails or won't start", async () => {
+    const take = r.startTake("stream" as unknown as MediaStream, { videoWidth: 720, videoHeight: 1280 } as HTMLVideoElement, () => {});
+    await vi.advanceTimersByTimeAsync(1000);
+    FakeRecorder.last.onerror?.();
+    await expect(take.done).rejects.toThrow("The recording stopped. Record again.");
+    expect(vi.getTimerCount()).toBe(0);
+    vi.spyOn(FakeRecorder.prototype, "start").mockImplementationOnce(() => {
+      throw new DOMException("no", "InvalidStateError");
+    });
+    expect(() => r.startTake("stream" as unknown as MediaStream, {} as HTMLVideoElement, () => {})).toThrow();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("stops early on Stop, with the frames taken so far", async () => {
     const take = r.startTake("stream" as unknown as MediaStream, { videoWidth: 1280, videoHeight: 720 } as HTMLVideoElement, () => {});
     await vi.advanceTimersByTimeAsync(7000);

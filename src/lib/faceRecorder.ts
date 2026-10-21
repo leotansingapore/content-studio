@@ -76,15 +76,14 @@ export function startTake(stream: MediaStream, video: HTMLVideoElement, onTick: 
     canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.92)));
   };
-  const timers = [
-    setInterval(grab, FRAME_EVERY_MS),
-    setInterval(() => onTick((performance.now() - from) / 1000), 250),
-    setTimeout(() => stop(), TAKE_MAX_SECONDS * 1000),
-  ];
+  let timers: ReturnType<typeof setInterval>[] = [];
   const stop = () => rec.state !== "inactive" && rec.stop();
   const done = new Promise<Take>((resolve, reject) => {
     rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
-    rec.onerror = () => reject(new Error("The recording stopped. Record again."));
+    rec.onerror = () => {
+      timers.forEach((t) => clearInterval(t));
+      reject(new Error("The recording stopped. Record again."));
+    };
     rec.onstop = async () => {
       timers.forEach((t) => clearInterval(t));
       const seconds = (performance.now() - from) / 1000;
@@ -92,6 +91,8 @@ export function startTake(stream: MediaStream, video: HTMLVideoElement, onTick: 
     };
   });
   rec.start(1000);
+  // only once it is recording, so a recorder that won't start leaves nothing ticking
+  timers = [setInterval(grab, FRAME_EVERY_MS), setInterval(() => onTick((performance.now() - from) / 1000), 250), setTimeout(stop, TAKE_MAX_SECONDS * 1000)];
   return { stop, done };
 }
 
