@@ -4,7 +4,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } } 
 
 import { supabase } from "@/lib/supabase";
 import { getDraftById, upsertDraft, type DraftEntry } from "./draftHistory";
-import { scriptSentences, titlesRun, writeTitles } from "./prompter";
+import { prompterLines, scriptSentences, scrollSeconds, titlesRun, writeTitles } from "./prompter";
 
 void new Response("");
 const invoke = supabase.functions.invoke as unknown as ReturnType<typeof vi.fn>;
@@ -31,6 +31,41 @@ const script = [
   "**CTA:** Comment CPF and I'll send the steps.",
 ].join("\n");
 const draft = `${script}\n\n---\n\n**CAPTION:**\nCPF, plainly. #cpf`;
+const beat = (say: string) => ({ say, onScreen: "", visual: "To camera", seconds: 3 });
+
+describe("prompterLines", () => {
+  it("reads HOOK, BODY and CTA without their labels, directions or the caption", () => {
+    expect(prompterLines({ draft })).toEqual([
+      "Your CPF is not a savings account.",
+      "It pays you a rate. Most people never check it.",
+      "Comment CPF and I'll send the steps.",
+    ]);
+  });
+
+  it("reads the storyboard's say lines when the storyboard was made from this script", () => {
+    const storyboard = { beats: [beat("Your CPF is not savings."), beat(" "), beat("Check your rate.")], script, madeAt: "" };
+    expect(prompterLines({ draft, storyboard })).toEqual(["Your CPF is not savings.", "Check your rate."]);
+  });
+
+  it("falls back to the script when the script changed since the storyboard", () => {
+    const storyboard = { beats: [beat("Old line.")], script: "An older script.", madeAt: "" };
+    expect(prompterLines({ draft, storyboard })[0]).toBe("Your CPF is not a savings account.");
+  });
+
+  it("reads a draft with no caption heading as all script", () => {
+    expect(prompterLines({ draft: "HOOK: One.\nCTA: Two." })).toEqual(["One.", "Two."]);
+  });
+});
+
+describe("scrollSeconds", () => {
+  it("scrolls at 2.0, 2.6 and 3.2 words a second", () => {
+    expect(scrollSeconds(26, "slow")).toBe(13);
+    expect(scrollSeconds(26, "normal")).toBe(10);
+    expect(scrollSeconds(32, "fast")).toBe(10);
+    expect(scrollSeconds(0, "normal")).toBe(0);
+  });
+});
+
 describe("scriptSentences", () => {
   it("times each spoken sentence at 2.5 words a second, back to back", () => {
     const { sentences, duration } = scriptSentences(script);

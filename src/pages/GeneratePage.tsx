@@ -146,7 +146,7 @@ import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
 import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom, provenFormulas, provenOpen, type HookFormula } from "@/lib/hookFormulas";
 import { HOOK_BANK } from "@/lib/hookBank";
-import { titlesRun, writeTitles, TITLES_FAILED } from "@/lib/prompter";
+import { prompterLines, titlesRun, writeTitles, TITLES_FAILED } from "@/lib/prompter";
 import {
   cleanAiTells,
   DISCLOSURES,
@@ -664,6 +664,8 @@ interface BasePayload {
 const RemixCompare = lazy(() => import("@/components/RemixCompare"));
 // Make it a thread (Leo only, formats-text-threads). Lazy, so nobody else loads it.
 const ThreadPanel = lazy(() => import("@/components/ThreadPanel"));
+// The teleprompter that films a short video script (Leo only, formats-hooks-scripts). Lazy: it loads the editor hand-off.
+const Prompter = lazy(() => import("@/components/Prompter"));
 // "Proven in your niche" (Leo only): the three formulas with the strongest real lines in the weekly hook bank.
 const PROVEN = provenFormulas(HOOK_BANK);
 const PROVEN_OPEN = provenOpen(HOOK_BANK);
@@ -844,6 +846,8 @@ export default function GeneratePage() {
   // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me) or thread (Leo's Make it a thread,
   // ThreadPanel.tsx); opening pushes, so Back closes it.
   const [panel, openPanel, closePanel] = useUrlItem("panel");
+  // ?view=prompter: the teleprompter over a short video draft (Leo only); opening pushes, so Back closes it.
+  const [view, openView, closeView] = useUrlItem("view");
   // ?hooks=proven: the hook card on "Proven in your niche" (Leo only); formulas is the default and left out.
   const [hookTab, setHookTab] = useUrlState("hooks", "formulas", { allowed: HOOK_TABS });
   const proven = Boolean(leo) && hookTab === "proven" && PROVEN_OPEN;
@@ -2460,6 +2464,8 @@ export default function GeneratePage() {
   const titlesBusy = Boolean(currentDraftId && titlesFor === currentDraftId);
   const titles = savedEntry ? titlesOf(savedEntry) : [];
   const cover = savedEntry ? coverOf(savedEntry) : "";
+  // the teleprompter's lines (Leo only): the storyboard's when it was made from this script, else the script's
+  const prompterText = leo && view === "prompter" && format === "short-video" && shortScript ? prompterLines({ draft, storyboard: storyboard ?? undefined }) : [];
   // Leo's price chips (business-cost-preview): only his sessions read today's uses, so everyone else's stay null
   const imgRunning = imgJob?.state === "working" || imgJob?.state === "saving";
   const usesLeft = useUsesLeft(!leo || storyboardBusy || imgRunning || titlesBusy);
@@ -4190,6 +4196,9 @@ export default function GeneratePage() {
             {leo && format === "short-video" && savedEntry && shortScript && (
               <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openView("prompter")} disabled={isStreaming} className="h-11 gap-1.5 sm:h-9">
+                    <Video className="h-3.5 w-3.5" /> Film it
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -4687,6 +4696,20 @@ export default function GeneratePage() {
             <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Stop
           </Button>
         </div>
+      )}
+
+      {prompterText.length > 0 && savedEntry && userId && (
+        <Suspense fallback={<div className="fixed inset-0 z-[100] bg-black" />}>
+          <Prompter
+            key={savedEntry.id}
+            userId={userId}
+            draftId={savedEntry.id}
+            name={savedEntry.hook || pillarDetail.trim()}
+            lines={prompterText}
+            caption={svSplit?.script ? svSplit.caption : ""}
+            onClose={closeView}
+          />
+        </Suspense>
       )}
     </div>
   );

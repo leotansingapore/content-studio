@@ -1,9 +1,33 @@
-// Filming a short video script in Write (formats-hooks-scripts, Leo only): the titles and cover line for the post,
-// kept on the draft.
+// Filming a short video script in Write (formats-hooks-scripts, Leo only): the lines the teleprompter shows, how
+// long they take at each speed, and the titles and cover line for the post, kept on the draft. The prompter itself
+// is src/components/Prompter.tsx.
 
-import { getDraftById, upsertDraft } from "@/lib/draftHistory";
+import { getDraftById, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { callFn } from "@/lib/edgeFn";
 import { countWords, spokenLines } from "@/lib/platformCounters";
+import { splitScriptCaption } from "@/lib/scriptCaption";
+
+/** Words a second at Slow, Normal and Fast. */
+export const PROMPTER_SPEEDS = { slow: 2.0, normal: 2.6, fast: 3.2 } as const;
+export type PrompterSpeed = keyof typeof PROMPTER_SPEEDS;
+export const SPEED_LABELS: Record<PrompterSpeed, string> = { slow: "Slow", normal: "Normal", fast: "Fast" };
+
+/** The spoken script of a short video draft: the part above its caption heading, else all of it. */
+const scriptOf = (text: string) => (splitScriptCaption(text).script ?? text).trim();
+
+/**
+ * The lines to read: the storyboard's say lines when the storyboard was made from this script (an older one would
+ * read words the script no longer has), else the script's spoken lines (HOOK, BODY and CTA without their labels).
+ */
+export function prompterLines(d: Pick<DraftEntry, "draft" | "storyboard">): string[] {
+  const script = scriptOf(d.draft);
+  const beats = d.storyboard?.script === script ? d.storyboard.beats : null;
+  const said = beats?.map((b) => String(b.say ?? "").trim()).filter(Boolean) ?? [];
+  return said.length ? said : spokenLines(script);
+}
+
+/** Seconds the whole script scrolls for at this speed. */
+export const scrollSeconds = (words: number, speed: PrompterSpeed) => words / PROMPTER_SPEEDS[speed];
 
 /** Words a second at a natural speaking pace (platformCounters' spokenSeconds). */
 const SAY_RATE = 2.5;
