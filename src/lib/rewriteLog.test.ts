@@ -55,6 +55,7 @@ describe("the rewrite nudge", () => {
     logRewrite(UID, "ask", "d1");
     logRewrite(UID, "toString", "d1");
     logRewrite(UID, "shorter", "");
+    expect(store.has(`cs-rewrites-${UID}`)).toBe(false);
     expect(loadRewriteLog(UID)).toEqual([]);
     for (let i = 0; i < 25; i++) logRewrite(UID, "longer", `d${i}`, day(1));
     expect(loadRewriteLog(UID)).toHaveLength(20);
