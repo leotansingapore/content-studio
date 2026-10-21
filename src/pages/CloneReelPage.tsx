@@ -81,6 +81,7 @@ import { fromClone } from "@/lib/remixSource";
 import PriceChip from "@/components/PriceChip";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { links } from "@/lib/links";
+import { cloneTalkHref } from "@/lib/talkingHead";
 import type { LinkedSource } from "@/lib/resolveSource";
 import { checkUpload, clearLinkRead, linkRead, onLinkRead, retryable, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
 import { LINK_COPY, notYet, parseRemixLink, siteName, type LinkKind } from "../../supabase/functions/remix-link/logic.ts";
@@ -823,6 +824,9 @@ function VersionCard({
   const v = clone.result.myVersion;
   const options = v.hookOptions ?? [];
   const concepts = clone.result.concepts ?? [];
+  const leo = useLeoOnly();
+  // Leo only (formats-talking-head): this result's script, made into a talking head video; null for everyone else
+  const talkHref = cloneTalkHref(leo, clone.result.source);
   const flags = useMemo(
     () =>
       scanCompliance(
@@ -942,6 +946,13 @@ function VersionCard({
           ) : (
             <Button variant="outline" onClick={onAddToBoard} className="gap-1.5">
               <Columns3 className="h-4 w-4" /> Add to board
+            </Button>
+          )}
+          {talkHref && (
+            <Button asChild variant="outline" className="gap-1.5">
+              <Link to={talkHref}>
+                <Video className="h-4 w-4" /> Make it as a talking head
+              </Link>
             </Button>
           )}
         </div>
