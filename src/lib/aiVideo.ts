@@ -9,6 +9,8 @@
 // device until it is put together, so a reload, a dropped download or a failed join picks up the paid clips again at no cost.
 // A narrated video (Leo's explainer with opts: stock clips, a look, moving scenes) is kept the same way, under its own key
 // with its voiceover as a device file; today's explainer (no opts) runs exactly as before and is not kept.
+// An avatar video of your face or a saved presenter (people-dub-lipsync, Leo's) also keeps each Speak part on this device,
+// so a changed line can be made again on its own parts.
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
@@ -164,7 +166,8 @@ export async function makePresenter(look: string, setting?: string): Promise<voi
 export interface Voiceover {
   pcm: Float32Array;
   seconds: number;
-  slices: { start: number; end: number }[];
+  /** `text`: what the slice says, when the maker knows it (a translated video). */
+  slices: { start: number; end: number; text?: string }[];
 }
 
 /** The voiceover cut into Speak slices at its quiet moments. */
@@ -210,6 +213,25 @@ const keepPending = (p: Pending | null) => {
   }
 };
 
+/** Your face or a saved presenter: the video keeps each Speak part, so a line can be made again on that face (people-dub-lipsync). */
+const keepsParts = (e?: JoinExtra) => e?.ai?.person === "mine" || e?.ai?.person === "presenter";
+
+/** The mark with each part's words, place in the joined video and device key, "ai-slice-<job>-<i>-0". */
+function withParts(extra: JoinExtra, seconds: number[], texts: string[]): JoinExtra {
+  const job = Date.now().toString(36);
+  let at = 0;
+  const slices = seconds.map((s, i) => ({ text: texts[i] ?? "", start: Math.round(at * 1000) / 1000, end: Math.round((at += s) * 1000) / 1000, clip: `ai-slice-${job}-${i}-0` }));
+  return { ...extra, ai: { ...extra.ai!, slices } };
+}
+
+/** Each part saved under its key before the join; a part that can't be kept leaves a video with no parts to fix. */
+async function keepParts(p: Pending, clips: Blob[]): Promise<JoinExtra | undefined> {
+  const parts = p.kind ? undefined : p.extra?.ai?.slices;
+  if (!parts?.length) return p.extra;
+  const kept = parts.length === clips.length && (await Promise.all(parts.map((s, i) => putFile(s.clip, clips[i]))).then(() => true, () => false));
+  return kept ? p.extra : { ...p.extra, ai: { ...p.extra!.ai!, slices: undefined } };
+}
+
 async function finishAvatar(p: Pending): Promise<void> {
   const n = p.tokens.length;
   const kind = p.kind ?? "avatar";
@@ -219,6 +241,7 @@ async function finishAvatar(p: Pending): Promise<void> {
       set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }), p.refund);
     set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
+    const extra = await keepParts(p, clips);
     // a take that left this device keeps the paid clip pending: putting the file back under its key and trying again joins it
     // a start that isn't a place before the end (junk read back from JSON) plays the take from 0, as before starts existed
     const from = (a: { start?: number; end: number }) => (typeof a.start === "number" && a.start > 0 && a.start < a.end ? a.start : 0);
@@ -228,7 +251,7 @@ async function finishAvatar(p: Pending): Promise<void> {
     // the job stays working (so a remount can't start a second join) and paid for until the join is done
     set({ kind, state: "working", step: "Putting your video together..." });
     const takes = [...clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), ...after.map((a) => ({ ...a, file: a.file! }))];
-    await startJoin(p.name, takes, "Putting your video together", { extra: p.extra });
+    await startJoin(p.name, takes, "Putting your video together", { extra });
     const joined = currentJoin();
     if (joined?.state === "failed") throw new Error(joined.error || "Couldn't put the video together. Try again.");
     keepPending(null);
@@ -240,18 +263,27 @@ async function finishAvatar(p: Pending): Promise<void> {
   }
 }
 
+/** Speak's slices of a voiceover, as WAVs at the rate it lip-syncs to. */
+const wavSlices = (voice: Voiceover) =>
+  Promise.all(voice.slices.map(async (s) => ({
+    wav: await b64(encodeWav(voice.pcm.subarray(Math.round(s.start * RATE), Math.round(s.end * RATE)), RATE)),
+    seconds: Math.round((s.end - s.start) * 1000) / 1000,
+  })));
+const faceBody = async (photo: Blob | string) => (typeof photo === "string" ? { url: photo } : { jpeg: await b64(await toJpeg(photo)) });
+
 export async function makeAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra): Promise<void> {
   if (aiBusy()) return;
+  await startAvatar(name, photo, voice, extra);
+}
+
+async function startAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra): Promise<void> {
   set({ kind: "avatar", state: "working", step: "Sending your voiceover and photo..." });
   let p: Pending;
   try {
-    const slices = await Promise.all(voice.slices.map(async (s) => ({
-      wav: await b64(encodeWav(voice.pcm.subarray(Math.round(s.start * RATE), Math.round(s.end * RATE)), RATE)),
-      seconds: Math.round((s.end - s.start) * 1000) / 1000,
-    })));
-    const face = typeof photo === "string" ? { url: photo } : { jpeg: await b64(await toJpeg(photo)) };
-    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: face, slices }, RETRY);
-    p = { name, tokens, seconds: slices.map((s) => s.seconds), refund, extra };
+    const slices = await wavSlices(voice);
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: await faceBody(photo), slices }, RETRY);
+    const seconds = slices.map((s) => s.seconds);
+    p = { name, tokens, seconds, refund, extra: keepsParts(extra) ? withParts(extra!, seconds, voice.slices.map((s) => s.text ?? "")) : extra };
     keepPending(p);
   } catch (e) {
     return fail("avatar", e);

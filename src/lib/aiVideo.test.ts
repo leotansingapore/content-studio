@@ -5,12 +5,15 @@ vi.mock("@/lib/videoMedia", () => ({
   currentJoin: vi.fn(() => null), getFile: vi.fn(async () => undefined), putFile: vi.fn(async () => {}), deleteFile: vi.fn(async () => {}), monoPcm: vi.fn(),
   startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn(),
 }));
-vi.mock("@/lib/textVoice", () => ({ audioSeconds: vi.fn(async () => 30), speak: vi.fn(async () => new Blob(["mp3"])) }));
+vi.mock("@/lib/textVoice", () => ({
+  audioSeconds: vi.fn(async () => 30), speak: vi.fn(async () => new Blob(["mp3"])),
+}));
 
 import { callFn } from "@/lib/edgeFn";
 import { currentJoin, deleteFile, getFile, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
 import {
-  DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer, resumeAvatar, resumeExplainer,
+  DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
+  resumeAvatar, resumeExplainer,
 } from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
@@ -395,4 +398,68 @@ describe("a narrated video (Leo's explainer with stock clips, a look and moving 
     expect(putFile).not.toHaveBeenCalled();
     expect(calls("explainer").at(-1)).toEqual({ mode: "explainer", pictures: SCENES.slice(0, 3).map((s) => s.picture) });
   });
+});
+
+describe("an AI video of your face or a saved presenter (people-dub-lipsync)", () => {
+  const reader = () => vi.stubGlobal("FileReader", class {
+    result = "data:audio/wav;base64,AAAA";
+    onload: () => void = () => {};
+    readAsDataURL() { this.onload(); }
+  });
+  // every clip Higgsfield made says which it is
+  const made = (n: number) => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      const b = body as { mode: string; tokens?: string[]; slices?: unknown[] };
+      if (b.mode === "avatar") return { tokens: b.slices!.map((_, i) => `t${i}`), refund: "ticket" };
+      return { jobs: b.tokens!.map((t) => ({ state: "done", url: `https://cdn.example/${t}.mp4` })) };
+    });
+    vi.stubGlobal("fetch", vi.fn(async (u: string) => ({ ok: true, blob: async () => new Blob([u]) })));
+    reader();
+    return { pcm: new Float32Array(24000 * n), seconds: n * 2, slices: Array.from({ length: n }, (_, i) => ({ start: i * 2, end: i * 2 + 2 })) };
+  };
+  const mark = { kind: "avatar", person: "presenter", who: "pr-1", voice: "premade", voiceId: "alice", madeAt: "2026-10-22T01:00:00.000Z" } as const;
+  const joinedExtra = () => vi.mocked(startJoin).mock.calls[0][3]?.extra;
+
+  it("keeps each part on this device under its key, with its place in the video, only when the face is kept", async () => {
+    const vo = made(2);
+    const run = makeAvatar("Talking head", "https://cdn.example/face.jpg", vo, { toast: "Ready", ai: mark });
+    await vi.advanceTimersByTimeAsync(6_000);
+    await run;
+    const slices = joinedExtra()!.ai!.slices!;
+    expect(slices.map((x) => [x.text, x.start, x.end])).toEqual([["", 0, 2], ["", 2, 4]]);
+    expect(slices.every((x, i) => new RegExp(`^ai-slice-[0-9a-z]+-${i}-0$`).test(x.clip))).toBe(true);
+    const kept = vi.mocked(putFile).mock.calls;
+    expect(kept.map(([k]) => k)).toEqual(slices.map((x) => x.clip));
+    expect(await Promise.all(kept.map(async ([, f]) => (f as Blob).text()))).toEqual(["https://cdn.example/t0.mp4", "https://cdn.example/t1.mp4"]);
+    expect(joinedExtra()).toMatchObject({ toast: "Ready", ai: mark });
+
+    // a one-off photo, no mark, or a template clip: nothing kept, the extra as it was
+    for (const extra of [{ toast: "Ready", ai: { ...mark, person: "generated" as const } }, { toast: "Ready" }, undefined]) {
+      vi.mocked(startJoin).mockClear();
+      vi.mocked(putFile).mockClear();
+      const again = makeAvatar("Talking head", "https://cdn.example/face.jpg", made(2), extra);
+      await vi.advanceTimersByTimeAsync(6_000);
+      await again;
+      expect(putFile).not.toHaveBeenCalled();
+      expect(joinedExtra()).toEqual(extra);
+    }
+    vi.mocked(startJoin).mockClear();
+    vi.mocked(callFn).mockImplementation(async (_fn, b) => ((b as Body).mode === "template" ? { tokens: ["t1"] } : { jobs: [{ state: "done", url: "https://cdn.example/v.mp4" }] }));
+    const clip = makeTemplateClip("Laksa", ASK, { extra: { ai: mark } });
+    await vi.advanceTimersByTimeAsync(6_000);
+    await clip;
+    expect(putFile).not.toHaveBeenCalled();
+    expect(joinedExtra()).toEqual({ ai: mark });
+  });
+
+  it("makes the video with no parts to fix when a part can't be kept on the device", async () => {
+    const vo = made(2);
+    vi.mocked(putFile).mockRejectedValue(new Error("QuotaExceededError"));
+    const run = makeAvatar("Talking head", "https://cdn.example/face.jpg", vo, { ai: mark });
+    await vi.advanceTimersByTimeAsync(6_000);
+    await run;
+    expect(joinedExtra()!.ai).toEqual({ ...mark, slices: undefined });
+    expect(aiJob()).toMatchObject({ kind: "avatar", state: "done" });
+  });
+
 });
