@@ -6,7 +6,11 @@
 // 2. Keeps posts from the last 30 days with 50,000 views or more. A photo-mode post is a slideshow.
 // 3. The free Claude CLI (claude -p --model sonnet) reads the pictures, since Jev reads text only: up to 10 slides
 //    of each slideshow give its hook and what each slide does; each video's cover says whether it is a wall of text,
-//    and if so its hook and what each part does. Never the words themselves, only the jobs.
+//    and if so its hook and what each part does. Never the words themselves, only the jobs. The pictures are scraped
+//    strangers' work and may carry planted instructions, and the run is on Leo's Mac beside his keys, so the CLI gets
+//    the Read tool only, confined to a fresh folder holding that one post's pictures (claudeArgs), runs with no API
+//    keys in its environment, and its reply is untrusted: only a hook and 2 to 10 short lines are kept, and any line
+//    that looks like a secret is dropped (cleanReading).
 // 4. Jev (jev-1.13.0) asks reusable and unsafe about each one. Kept at reusable >= 0.5 and unsafe < 0.3, a proposal
 //    until a --dry run on a real week is read. A post Jev did not answer is left out this week.
 // 5. Saves each cover 720 px wide as a JPEG (macOS sips), keeps the 40 best by fit then views, carries forward last
@@ -87,7 +91,7 @@ export function cleanLine(v, max) {
 /** What each slide does: 2 to 10 lines of at most 80 characters, or null. */
 export function cleanStructure(lines) {
   if (!Array.isArray(lines)) return null;
-  const out = lines.map((l) => cleanLine(l, 80)).filter(Boolean);
+  const out = lines.map((l) => (typeof l === "string" && !looksSecret(l) ? cleanLine(l, 80) : "")).filter(Boolean);
   return out.length >= 2 && out.length <= MAX_SLIDES ? out : null;
 }
 
@@ -105,13 +109,24 @@ export function parseReply(text) {
 }
 
 /**
+ * True for text shaped like a credential: a long base64 or hex run, a key prefix (sk_, pk_, zrk_, bu_, hf_, sk-ant-,
+ * apify_api_, ghp_, AKIA, a JWT), or an env-style KEY=, TOKEN=, SECRET or PASSWORD. Upper case only for those words,
+ * so "The secret to saving" stays; "The SECRET to saving" is dropped, which costs one card at most.
+ */
+const SECRET_SHAPES =
+  /[A-Za-z0-9+/=_-]{32,}|\b[0-9a-fA-F]{24,}\b|\b(?:sk|pk|rk|zrk|bu|hf|ghp|gho|xox[abp])[_-][A-Za-z0-9]|sk-ant-|apify_api_|\bAKIA[0-9A-Z]{8,}|\beyJ[A-Za-z0-9_-]{10,}/i;
+const SECRET_WORDS = /(?:KEY|TOKEN|SECRET)\s*[=:]|SECRET|PASSWORD/;
+export const looksSecret = (v) => SECRET_SHAPES.test(String(v ?? "")) || SECRET_WORDS.test(String(v ?? ""));
+
+/**
  * Claude's reading as { kind, hook, structure }, or null. A video's cover that is not a wall of text is null too.
- * `photo` says which question was asked: a slideshow's slides, or a video's cover.
+ * `photo` says which question was asked: a slideshow's slides, or a video's cover. Untrusted: only these three
+ * fields are read, the kind comes from the question asked, and every string is capped and checked by looksSecret.
  */
 export function cleanReading(raw, photo) {
   if (!raw || typeof raw !== "object") return null;
   if (!photo && raw.kind !== "wall-of-text") return null;
-  const hook = cleanLine(raw.hook, 100);
+  const hook = typeof raw.hook === "string" && !looksSecret(raw.hook) ? cleanLine(raw.hook, 100) : "";
   const structure = cleanStructure(raw.structure);
   return hook && structure ? { kind: photo ? "slideshow" : "wall-of-text", hook, structure } : null;
 }
@@ -305,11 +320,36 @@ async function grabJpeg(url, file, token) {
   }
 }
 
-/** Claude CLI on Leo's Max plan (free), reading the pictures with its Read tool from `dir`. Returns its reply. */
-async function claudeSees(photo, files, dir) {
-  const prompt = photo ? SLIDES_PROMPT(files) : COVER_PROMPT(files[0]);
-  const { stdout } = await execFileP("claude", ["-p", "--model", "sonnet", "--allowedTools=Read", prompt], {
+/**
+ * The CLI's arguments: the Read tool only, allowed only inside `dir` (an absolute, resolved path), every other tool
+ * and MCP server off, user settings ignored (--restricted also confines file tools to the working directory), and
+ * anything that would ask permission refused. Checked by hand on Claude Code 2.1.305: a picture in `dir` was read
+ * and a file outside it was denied.
+ */
+export const claudeArgs = (dir, prompt) => [
+  "-p",
+  "--model",
+  "sonnet",
+  "--restricted",
+  "--strict-mcp-config",
+  "--tools=Read",
+  `--allowedTools=Read(/${dir}/**)`,
+  "--disallowedTools=Bash,Edit,Write,WebFetch,WebSearch",
+  "--permission-mode",
+  "dontAsk",
+  "--permission-prompts",
+  "none",
+  prompt,
+];
+
+/** This process's environment without its keys, so nothing the CLI runs could read them. Claude's own login stays. */
+export const keyless = (env) => Object.fromEntries(Object.entries(env).filter(([k]) => k.startsWith("CLAUDE_") || !/KEY|TOKEN|SECRET|PASSWORD/i.test(k)));
+
+/** Claude CLI on Leo's Max plan (free), reading one post's pictures, which sit alone in `dir`. Returns its reply. */
+async function claudeSees(prompt, dir) {
+  const { stdout } = await execFileP("claude", claudeArgs(dir, prompt), {
     cwd: dir,
+    env: keyless(process.env),
     encoding: "utf8",
     timeout: 180_000,
     maxBuffer: 10 * 1024 * 1024,
@@ -331,7 +371,7 @@ const score = (v) => (v == null ? "-" : v.toFixed(2));
 
 /**
  * One run; returns the exit code. Apify, Claude, Jev and the picture download come in as functions so the tests
- * spend nothing: scrape(token, capUsd), price(token), see(photo, files, dir), ask(state), grab(url, file).
+ * spend nothing: scrape(token, capUsd), price(token), see(prompt, dir), ask(state), grab(url, file).
  */
 export async function run({
   env = process.env,
@@ -382,7 +422,8 @@ export async function run({
   const candidates = pickCandidates(items, now).slice(0, MAX_READS);
   const photos = candidates.filter((p) => p.photo).length;
   console.log(`format-scout: ${candidates.length} posts at ${MIN_VIEWS / 1000}K+ views in ${MAX_AGE_DAYS} days (${photos} slideshows); Claude reads each`);
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "format-scout-"));
+  // resolved, since the CLI's Read rule matches real paths (macOS's tmpdir is a symlink into /private)
+  const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "format-scout-")));
   const getJpeg = grab ?? ((url, file) => grabJpeg(url, file, token));
   const askJev = ask ?? ((state) => jevAsk(env, state));
   try {
@@ -402,11 +443,22 @@ export async function run({
         files = [cover];
       }
       if (!files.length || !fs.existsSync(cover)) return null;
+      // a fresh folder per post holding only its pictures: the one place the CLI may read
+      const box = fs.mkdtempSync(path.join(tmp, "read-"));
       try {
-        return cleanReading(parseReply(await see(p.photo, files, tmp)), p.photo);
+        const boxed = files.map((f) => {
+          const to = path.join(box, path.basename(f));
+          fs.copyFileSync(f, to);
+          return to;
+        });
+        // the prompt names the pictures only: no caption or other scraped text goes to the CLI
+        const prompt = p.photo ? SLIDES_PROMPT(boxed) : COVER_PROMPT(boxed[0]);
+        return cleanReading(parseReply(await see(prompt, box)), p.photo);
       } catch (e) {
         console.warn(`  ${p.id}: Claude failed (${String(e?.message ?? e).slice(0, 120)})`);
         return null;
+      } finally {
+        fs.rmSync(box, { recursive: true, force: true });
       }
     });
     const formats = candidates.map((p, k) => ({ p, reading: read[k] })).filter((x) => x.reading);
