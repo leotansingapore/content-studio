@@ -184,14 +184,17 @@ function writeFailure(e: unknown): Pick<HookDemoJob, "error" | "refused" | "capp
 }
 
 /** Three hooks in the next formula set, and Jev's pick of them for this brand's audience. Throws as the make does. */
-async function write(userId: string, a: Pick<HookDemoAsk, "source" | "topic" | "mention" | "demo">): Promise<HookSet> {
+type WriteAsk = Pick<HookDemoAsk, "source" | "topic" | "mention"> & { demo: DemoRef | null };
+
+async function write(userId: string, a: WriteAsk): Promise<HookSet> {
   const key = hooksFor(a);
   const set = hooks && hooks.for === key ? hooks.set + 1 : 0;
   const formulas = hookFormulaSet(set).map(({ id, name, template, example, trap }) => ({ id, name, template, example, trap }));
   const about = a.topic.trim();
   const body = makeBody(userId, { source: a.source, topic: a.source ? "" : about, note: a.source ? about : "", mention: a.mention, size: "9x16" }, "hooks", {
     formulas,
-    demo: { name: a.demo.name, seconds: Math.round(a.demo.seconds * 10) / 10 },
+    // the demo's name and length are all that is known about it; hooks written before one is picked go without
+    ...(a.demo ? { demo: { name: a.demo.name, seconds: Math.round(a.demo.seconds * 10) / 10 } } : {}),
   });
   const res = await requestMake(body);
   if (res?.result?.as !== "hooks" || !res.result.hooks.length) throw new Error(HOOKS_FAILED);
@@ -201,7 +204,7 @@ async function write(userId: string, a: Pick<HookDemoAsk, "source" | "topic" | "
 }
 
 /** Writes three hooks (Write 3 more: the next three formulas) for the page to pick from. */
-export async function writeHooks(userId: string, a: Pick<HookDemoAsk, "source" | "topic" | "mention" | "demo">): Promise<void> {
+export async function writeHooks(userId: string, a: WriteAsk): Promise<void> {
   if (writing || hookDemoBusy()) return;
   writing = true;
   hooksError = null;
