@@ -1,6 +1,7 @@
 // /make/:format (docs/north-star/items/formats-slideshow.md): one format's create page, found by slug in
-// src/data/formats.ts. Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an
-// unknown slug, gets NotFound, also by typed URL. ?source=<RemixSource key> is resolved here from this device's
+// src/data/formats.ts (formatBySlug: entries with a page). Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on
+// localhost); anyone else, and a slug with no page, gets NotFound, also by typed URL. A page whose entry is not
+// ready yet still opens for Leo, so its builder can check it here before the gallery lists it. ?source=<RemixSource key> is resolved here from this device's
 // data (resolveSource, then the sources this tab pressed Remix on); null when it no longer resolves.
 
 import { Suspense, useMemo } from "react";
