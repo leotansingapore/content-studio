@@ -3,7 +3,7 @@
 // through Post it for me. Opened with ?panel=thread, its network in ?network= (threads left out); the rules live in
 // src/lib/threadSplit.ts and the thread is kept on the draft, so it reopens on any device.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ArrowDown, ArrowUp, Copy, ListOrdered, Plus, Scissors, Send, Sparkles, Trash2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -151,6 +151,15 @@ export default function ThreadPanel({
     return () => clearTimeout(t);
   }, [posts, network, userId, draft.id]);
 
+  // each box as tall as its post, so nothing hides behind a scroll
+  useLayoutEffect(() => {
+    for (const el of boxes.current.slice(0, posts.length)) {
+      if (!el) continue;
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight + 2}px`;
+    }
+  }, [posts]);
+
   const change = (next: string[]) => {
     dirty.current = true;
     fresh.current = false;
@@ -221,8 +230,8 @@ export default function ThreadPanel({
 
   return (
     <section ref={root} aria-label="Thread" className="mt-3 scroll-mt-24 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <span className="text-xs font-semibold text-muted-foreground">Thread for</span>
           {NETWORKS.map((n) => (
             <button key={n} type="button" aria-pressed={network === n} disabled={writing} onClick={() => pickNetwork(n)} className={pill(network === n)}>
@@ -231,8 +240,8 @@ export default function ThreadPanel({
           ))}
           <InfoTip label="About X">X is copy only. Paste it into X yourself.</InfoTip>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs tabular-nums text-muted-foreground">{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
           <button type="button" onClick={() => update({ panel: null, network: null })} aria-label="Close the thread" className={ICON}>
             <X className="h-3.5 w-3.5" />
           </button>
@@ -258,8 +267,8 @@ export default function ThreadPanel({
                 value={p}
                 disabled={writing}
                 onChange={(e) => change(posts.map((x, k) => (k === i ? e.target.value : x)))}
-                rows={Math.min(10, Math.max(3, Math.ceil(p.length / 55) + 1))}
-                className="min-w-0 flex-1 bg-background text-sm leading-relaxed"
+                rows={2}
+                className="min-h-0 min-w-0 flex-1 resize-none overflow-hidden bg-background text-sm leading-relaxed"
               />
             </div>
             <div className="flex flex-wrap items-center justify-end gap-0.5 pl-7">
