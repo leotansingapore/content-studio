@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { PLATFORM_RULES, buildCaptionsMessages, capHashtags, ctaLine, fitThreads, fitX, keywordCandidates, xParts, keywordQuestion, parseCaptionsReply, parseCaptionsRequest, readKeyword } from "./captions";
+import {
+  PLATFORM_RULES,
+  THREAD_NETWORKS,
+  buildCaptionsMessages,
+  buildThreadMessages,
+  capHashtags,
+  ctaLine,
+  fitThread,
+  fitThreads,
+  fitX,
+  keywordCandidates,
+  numbered,
+  parseThreadReply,
+  parseThreadRequest,
+  sentencesOf,
+  threadRoom,
+  xParts,
+  keywordQuestion,
+  parseCaptionsReply,
+  parseCaptionsRequest,
+  readKeyword,
+} from "./captions";
 import { countHashtags } from "../../../src/lib/platformCounters";
 
 const talk = "Most people think their company insurance is enough. I reviewed 40 young families this year.";
@@ -139,5 +160,67 @@ describe("the spoken keyword", () => {
     expect(withKw.content).toContain("comment the word PLAN");
     expect(withKw.content).toContain('"cta_offer"');
     expect(buildCaptionsMessages(talk, "", "")[0].content).not.toContain("cta_offer");
+  });
+});
+
+describe("a thread for Threads or X", () => {
+  const sentence = (n: number) => `Point ${n}: your CPF payout at 65 depends on what you set aside in your 30s, and S$1.2 million is not the number most people need.`;
+  const words = "Most people never check what their hospital plan pays for a private ward stay until the bill arrives and the insurer pays less than they thought";
+  const long700 = `${Array(5).fill(words).join(" and ")}.`;
+
+  it("keeps every post within the room, never breaks a sentence that fits, and stops at the most posts", () => {
+    const part = Array.from({ length: 12 }, (_, i) => sentence(i + 1)).join(" ");
+    const posts = fitThread([part], 495, 10);
+    expect(posts.length).toBeGreaterThan(1);
+    for (const p of posts) expect(p.length).toBeLessThanOrEqual(495);
+    // each sentence sits whole inside one post
+    for (let i = 1; i <= 12; i++) expect(posts.filter((p) => p.includes(sentence(i))).length).toBe(1);
+    expect(fitThread(Array.from({ length: 12 }, (_, i) => `Post ${i + 1}.`), 495, 10)).toHaveLength(10);
+  });
+  it("cuts a 700-character sentence at a word", () => {
+    expect(long700.length).toBeGreaterThan(700);
+    const [first] = fitThread([long700], 495, 10);
+    expect(first.length).toBeLessThanOrEqual(495);
+    expect(long700.startsWith(first)).toBe(true);
+    expect(long700[first.length]).toBe(" ");
+    expect(sentencesOf(long700)).toEqual([long700]);
+  });
+  it("numbering keeps every post inside the network's limit", () => {
+    const part = Array.from({ length: 30 }, (_, i) => sentence(i + 1)).join(" ");
+    for (const n of ["threads", "x"] as const) {
+      const posts = numbered(fitThread([part], threadRoom(n), 10));
+      expect(posts[0]).toMatch(/^1\/10 /);
+      for (const p of posts) expect(p.length).toBeLessThanOrEqual(THREAD_NETWORKS[n].max);
+    }
+  });
+  it("takes a post, Threads or X, and 3 to 8 posts when asked", () => {
+    const post = "Most people pay for their hospital stay twice. First the premium, then the co-pay.";
+    expect(parseThreadRequest({ post: ` ${post} `, network: "threads" })).toEqual({ ok: true, post, network: "threads", posts: null });
+    expect(parseThreadRequest({ post, network: "x", posts: 5 })).toEqual({ ok: true, post, network: "x", posts: 5 });
+    for (const bad of [{ post, network: "linkedin" }, { post, network: "x", posts: 2 }, { post, network: "x", posts: 9 }, { post, network: "x", posts: 4.5 }, { post: "Too short.", network: "x" }, { post: "a".repeat(5001), network: "x" }]) {
+      expect(parseThreadRequest(bad).ok, JSON.stringify(bad).slice(0, 60)).toBe(false);
+    }
+  });
+  it("tells the writer the network, the room, the house rules and to add no facts", () => {
+    const [system, user] = buildThreadMessages("The post text.", "x", 5);
+    expect(system.content).toContain("thread for X");
+    expect(system.content).toContain("exactly 5 posts, each 275 characters or fewer");
+    expect(system.content).toContain("add none");
+    expect(system.content).toContain("guaranteed or risk-free");
+    expect(system.content).toContain("never an em dash");
+    expect(buildThreadMessages("The post text.", "threads")[0].content).toContain("3 to 8 posts, each 495 characters or fewer");
+    expect(user.content).toBe("The post:\nThe post text.");
+  });
+  it("reads the reply: 3 to 8 posts within the room, hashtags only at the end, no dashes or numbers of its own", () => {
+    const reply = (posts: string[]) => JSON.stringify({ posts });
+    expect(parseThreadReply(reply(["One.", "Two."]), "threads")).toBeNull();
+    expect(parseThreadReply(reply(Array.from({ length: 9 }, (_, i) => `Post ${i + 1}.`)), "threads")).toBeNull();
+    expect(parseThreadReply("not json", "x")).toBeNull();
+    const out = parseThreadReply(reply(["1/3 Most people pay twice #insurance", "2/3 First the premium \u2014 then the co-pay.", "3/3 Check your rider. #cpf #sg #money #more"]), "threads")!;
+    expect(out).toEqual(["Most people pay twice", "First the premium, then the co-pay.", "Check your rider. #cpf #sg #money"]);
+    // a post past the room is split between its sentences, which can take it past 8
+    const fitted = parseThreadReply(reply(["Hook.", Array.from({ length: 8 }, (_, i) => sentence(i + 1)).join(" "), "Last."]), "x")!;
+    expect(fitted.length).toBeGreaterThan(3);
+    for (const p of fitted) expect(p.length).toBeLessThanOrEqual(275);
   });
 });

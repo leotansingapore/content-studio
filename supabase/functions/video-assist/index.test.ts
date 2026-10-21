@@ -36,15 +36,18 @@ const db = vi.hoisted(() => {
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
 const calls: string[] = [];
+// what the stubbed providers answer; every call fails unless a test says otherwise
+let answer: (url: string) => Response = () => new Response("{}", { status: 500 });
+const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: string) => {
     calls.push(String(u));
-    return new Response("{}", { status: 500 });
+    return answer(String(u));
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
   await import("./index.ts");
@@ -56,6 +59,7 @@ afterAll(() => {
 beforeEach(() => {
   db.rows.clear();
   calls.length = 0;
+  answer = () => new Response("{}", { status: 500 });
 });
 
 // an hour-long recording, captioned every 5 minutes
@@ -91,6 +95,57 @@ describe("Watch it like a viewer", () => {
     expect(refused.map((r) => r.status)).toEqual([400, 413, 400, 400]);
     expect(await refused[0].json()).toEqual({ error: "Watch it takes videos up to 90 seconds." });
     expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("Make it a thread", () => {
+  const post = "Most people pay for their hospital stay twice. First through the premium, then through the co-pay. Here is how to check yours.";
+  const write = (uid: string, body: Record<string, unknown> = {}) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "thread", post, network: "threads", ...body }) }));
+  const used = (uid = LEO) => db.rows.get(`${uid}|thread-copy|${db.today()}`) ?? 0;
+  const reply = (posts: string[]) => () => Response.json({ model: "m", choices: [{ message: { content: JSON.stringify({ posts }) } }] });
+
+  it("refuses anyone not on the list before counting anything or asking OpenAI", async () => {
+    const res = await write(UID);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("refuses a request it can't write before counting", async () => {
+    const res = await write(LEO, { network: "linkedin" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "bad_request" });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("writes the thread for one use", async () => {
+    answer = reply(["Most people pay twice for a hospital stay.", "First through the premium.", "Then through the co-pay. Check yours."]);
+    const res = await write(LEO);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ posts: ["Most people pay twice for a hospital stay.", "First through the premium.", "Then through the co-pay. Check yours."] });
+    expect(used()).toBe(1);
+    expect(calls).toEqual(["https://api.openai.com/v1/chat/completions"]);
+  });
+  it("gives the use back when OpenAI never answered", async () => {
+    const res = await write(LEO);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "failed", error: "Couldn't write the thread right now. Try again in a minute." });
+    expect(used()).toBe(0);
+  });
+  it("keeps the use when the reply can't be used", async () => {
+    answer = reply(["Only one post."]);
+    const res = await write(LEO);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toMatchObject({ code: "unusable" });
+    expect(used()).toBe(1);
+  });
+  it("stops at the day's 30", async () => {
+    db.rows.set(`${LEO}|thread-copy|${db.today()}`, 30);
+    const res = await write(LEO);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ code: "daily_limit" });
     expect(calls).toEqual([]);
   });
 });

@@ -50,6 +50,10 @@
 //        length, hashtag limits kept, following the brand kit's rules line when sent; firstLine is the spoken
 //        "comment X" / "DM me X" ask when Jev finds the keyword (null when none, no answer or not English)
 //        (captions.ts, "video-captions" cap).
+//   POST {mode:"thread", post, network:"threads"|"x", posts?: 3-8} -> {posts: string[]}: a finished post written again
+//        as a thread, 3 to 8 posts within the network's limit (captions.ts, "thread-copy" cap). Leo only
+//        (NORTH_STAR_USERS, 403 not_enabled before any count); the use goes back only when OpenAI never answered,
+//        and a reply that can't be fitted keeps it (422).
 //   POST ?mode=watch&seconds=<edit length>, body = the exported video -> {findings:[{kind,start,end,what,fix}]}:
 //        Gemini watches the file twice and lists what a viewer would trip on (watch.ts, "video-watch" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
@@ -60,10 +64,11 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { isAllowed } from "../market/logic.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
-import { buildCaptionsMessages, ctaLine, keywordCandidates, keywordQuestion, parseCaptionsReply, parseCaptionsRequest, readKeyword } from "./captions.ts";
+import { buildCaptionsMessages, buildThreadMessages, ctaLine, keywordCandidates, keywordQuestion, parseCaptionsReply, parseCaptionsRequest, parseThreadReply, parseThreadRequest, readKeyword } from "./captions.ts";
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks } from "./montage.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
@@ -459,6 +464,34 @@ Deno.serve(async (req) => {
       const captions = parseCaptionsReply(content);
       if (!captions) return json({ error: "The captions came back incomplete. Try again." }, 502);
       return json({ captions, firstLine: keyword ? ctaLine(keyword, content) : null });
+    }
+
+    if (body?.mode === "thread") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      const t = parseThreadRequest(body);
+      if (!t.ok) return json({ code: "bad_request", error: t.error }, 400);
+      const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
+      const usage = await consumeUsage(admin, uid, "thread-copy");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.6, max_tokens: 1800, response_format: { type: "json_object" }, messages: buildThreadMessages(t.post, t.network, t.posts) }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist thread", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        // OpenAI never answered: the use goes back
+        await refundUsage(admin, uid, "thread-copy", day);
+        return json({ code: "failed", error: "Couldn't write the thread right now. Try again in a minute." }, 502);
+      }
+      const posts = parseThreadReply((await res.json().catch(() => null))?.choices?.[0]?.message?.content ?? null, t.network);
+      // an answer we can't use keeps the use (phase 3 decision 3)
+      if (!posts) return json({ code: "unusable", error: "That thread didn't come out right. Try again." }, 422);
+      return json({ posts });
     }
 
     if (body?.mode === "coldopen") {

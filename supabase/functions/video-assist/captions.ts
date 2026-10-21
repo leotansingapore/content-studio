@@ -7,7 +7,9 @@
 // title's length are then kept mechanically. When the speaker asks viewers to
 // comment or DM a word, the code lists the words said after "comment", "DM",
 // "message" and "type" and Jev picks the one that is the keyword (a decision);
-// it becomes a first line the consultant confirms. Pure, so vitest covers it
+// it becomes a first line the consultant confirms. Mode "thread" (Leo only)
+// writes a finished post again as a Threads or X thread, fitted by the same
+// splitter as X's caption (fitThread). Pure, so vitest covers it
 // (captions.test.ts); the app imports it too, so no lookbehind in a regex.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
@@ -143,36 +145,45 @@ export function fitThreads(text: string, max = PLATFORM_RULES.threads.maxChars):
 }
 
 // whole sentences, each with its closing punctuation (a full stop inside S$1.2 does not end one)
-const sentencesOf = (t: string) => (t.match(/\S[\s\S]*?(?:[.!?]+["')\]]*(?=\s|$)|$)/g) ?? []).map((x) => x.trim()).filter(Boolean);
+export const sentencesOf = (t: string) => (t.match(/\S[\s\S]*?(?:[.!?]+["')\]]*(?=\s|$)|$)/g) ?? []).map((x) => x.trim()).filter(Boolean);
 
 /**
- * X: one post of 280 or fewer, or a thread of up to 6 parts numbered "1/3", each ending on a full sentence.
- * A part the writer made too long is split between its sentences.
- * shortcut: a single sentence over 275 characters is cut at a word; a thread past 6 parts loses its end.
+ * A thread's posts, each `max` characters or fewer and at most `maxParts` of them: a part the writer gave stays one
+ * post when it fits, and a longer one is split between its sentences. Only a thread gets numbered ("6/6 " and a
+ * spare), so a lone part may run 5 characters past `max`. The writer's own "2/3" numbering goes.
+ * shortcut: a single sentence over `max` is cut at a word and the rest dropped, and a thread past `maxParts` loses its
+ * end; the page's own split (src/lib/threadSplit.ts) breaks those up first, so only a writer's reply can hit them.
  */
-export function fitX(parts: string[]): string {
-  const room = PLATFORM_RULES.x.maxChars - 5; // "6/6 " and a spare
+export function fitThread(parts: string[], max: number, maxParts: number): string[] {
   const chunks: string[] = [];
   // only the writer's own "2/3" numbering goes, so a post opening with 50/30/20 or 24/7 keeps it
   const given = parts.filter((p) => p.trim());
   for (const part of given.map((p, i) => p.replace(new RegExp(`^\\s*${i + 1}\\s*/\\s*${given.length}(?!\\d)\\s*`), "").trim()).filter(Boolean)) {
-    if (part.length <= room || (parts.length === 1 && part.length <= PLATFORM_RULES.x.maxChars)) {
+    if (part.length <= max || (parts.length === 1 && part.length <= max + 5)) {
       chunks.push(part);
       continue;
     }
     let cur = "";
     for (const s of sentencesOf(part.replace(/\s+/g, " "))) {
       const next = cur ? `${cur} ${s}` : s;
-      if (next.length <= room) cur = next;
+      if (next.length <= max) cur = next;
       else {
         if (cur) chunks.push(cur);
-        cur = cutAtWord(s, room);
+        cur = cutAtWord(s, max);
       }
     }
     if (cur) chunks.push(cur);
   }
-  const kept = chunks.slice(0, X_MAX_PARTS);
-  return kept.length > 1 ? kept.map((c, i) => `${i + 1}/${kept.length} ${c}`).join("\n\n") : (kept[0] ?? "");
+  return chunks.slice(0, maxParts);
+}
+
+/** "1/3 " in front of each post, the way an X thread is numbered. */
+export const numbered = (posts: string[]) => posts.map((p, i) => `${i + 1}/${posts.length} ${p}`);
+
+/** X: one post of 280 or fewer, or a thread of up to 6 parts numbered "1/3", each ending on a full sentence. */
+export function fitX(parts: string[]): string {
+  const kept = fitThread(parts, PLATFORM_RULES.x.maxChars - 5, X_MAX_PARTS);
+  return kept.length > 1 ? numbered(kept).join("\n\n") : (kept[0] ?? "");
 }
 
 /** An X caption's posts: the numbered parts of a thread, or the one post. */
@@ -216,4 +227,56 @@ export function parseCaptionsReply(raw: unknown): CaptionSet | null {
   const title = typeof o.youtube_title === "string" ? cutAtWord(noDash(o.youtube_title).replace(/\s+/g, " ").trim(), YOUTUBE_TITLE_MAX) : "";
   if (title) out.youtubeTitle = title;
   return Object.keys(out).length ? out : null;
+}
+
+// ---- mode "thread" (formats-text-threads, Leo only): a finished post written again as a thread ----
+
+export const THREAD_NETWORKS = { threads: { name: "Threads", max: 500 }, x: { name: "X", max: 280 } } as const;
+export type ThreadNetwork = keyof typeof THREAD_NETWORKS;
+/** A thread holds 2 to 10 posts (DraftEntry.thread, social's schedule); the writer is asked for 3 to 8. */
+export const THREAD_MAX_POSTS = 10;
+export const THREAD_WRITE = { min: 3, max: 8 } as const;
+/** Each post leaves 5 characters for "1/5 " numbering. */
+export const threadRoom = (n: ThreadNetwork) => THREAD_NETWORKS[n].max - 5;
+const MAX_THREAD_POST = 5000;
+
+export function parseThreadRequest(body: unknown): { ok: true; post: string; network: ThreadNetwork; posts: number | null } | { ok: false; error: string } {
+  const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const post = typeof b.post === "string" ? b.post.replace(/\r/g, "").trim() : "";
+  if (post.length < 40) return { ok: false, error: "Write a bit more before making it a thread." };
+  if (post.length > MAX_THREAD_POST) return { ok: false, error: "Threads are made from posts up to 5,000 characters." };
+  if (b.network !== "threads" && b.network !== "x") return { ok: false, error: "Pick Threads or X." };
+  const n = b.posts;
+  if (n !== undefined && n !== null && !(Number.isInteger(n) && (n as number) >= THREAD_WRITE.min && (n as number) <= THREAD_WRITE.max)) return { ok: false, error: "Ask for 3 to 8 posts." };
+  return { ok: true, post, network: b.network, posts: typeof n === "number" ? n : null };
+}
+
+export function buildThreadMessages(post: string, network: ThreadNetwork, posts: number | null = null): { role: string; content: string }[] {
+  return [
+    {
+      role: "system",
+      content: [
+        `You rewrite a social media post by a licensed financial adviser in Singapore as a thread for ${THREAD_NETWORKS[network].name}: a chain of short posts read one after another.`,
+        "Post 1 is the hook and stands alone: it makes someone want to read on. Each later post makes one point and reads on its own.",
+        `Write ${posts ? `exactly ${posts}` : `${THREAD_WRITE.min} to ${THREAD_WRITE.max}`} posts, each ${threadRoom(network)} characters or fewer. Do not number them.`,
+        "Keep every fact, number and call to action from the post, and add none: no new facts, figures, examples or claims.",
+        "Plain spoken English, as the person who wrote the post. Plain punctuation, never an em dash.",
+        "No hashtags, except up to 3 at the end of the last post.",
+        "Never promise or imply a return or result, never call anything guaranteed or risk-free, never name an insurer, a policy or a fund, and never tell the reader what they personally should buy.",
+        'Return JSON: {"posts": ["...", "..."]}.',
+      ].join("\n"),
+    },
+    { role: "user", content: `The post:\n${post}` },
+  ];
+}
+
+/** The writer's thread within the network's limits, or null when it isn't 3 to 8 posts once fitted. */
+export function parseThreadReply(raw: unknown, network: ThreadNetwork): string[] | null {
+  const given = asObject(raw)?.posts;
+  if (!Array.isArray(given)) return null;
+  const parts = given.filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  // hashtags only at the end of the last post, 3 at most
+  const cleaned = parts.map((p, i) => capHashtags(noDash(p), i === parts.length - 1 ? 3 : 0));
+  const posts = fitThread(cleaned, threadRoom(network), THREAD_MAX_POSTS);
+  return posts.length >= THREAD_WRITE.min && posts.length <= THREAD_WRITE.max ? posts : null;
 }
