@@ -134,6 +134,8 @@ The fit line has no view of its own. `?remix=<key>` reopens the sheet and the ch
 - After a "Remix anyway" on a poor fit, should the adviser be able to say "stop asking for this kind"? That would be a learned preference for agent-memory.
 - 20 Oct 2026 (phase-1 build): the thresholds in `FIT_AT` (supabase/functions/remix/logic.ts) are this spec's proposal until the shadow run. `node scripts/fit-shadow.mjs brands.json --go` (or with SUPABASE_SERVICE_ROLE_KEY) runs it, read-only; it needs Leo's brand rows, which RLS keeps from the anon key, so it waits for an export or the service key. "What Remix does" keeps the short format words the phase-1 contract fixed ("writes a carousel"), not this spec's longer per-format steps, so the Done-when line's "names every step for the picked format" half stays unmet in phase 1 by design. A press with a video format picked also asks first for the video's price (the build brief's money rule), in the same row as a weak-fit question, so it is one confirm per press.
 
+- 21 Oct 2026 (dogfood fix): masSafe is asked only when the brand speaks as the person (BrandPack.speaker "person": the account's own brand, a kit with a role or headshot, or "as you" picked in the For row), the same field the writing prompts use to write as a licensed adviser in Singapore. A business (ActivityTracker) gets serves, retell and textHeavy. Its kept answers sit under their own cache key, so an old answer with a MAS reason is not reused. The writing prompts' MAS lines are unchanged.
+
 ## Related
 
 remix-everywhere, remix-any-format, remix-your-brand, remix-teardown, find-ad-detail, find-niche-feed, agent-approvals, agent-memory, trust-compliance-check

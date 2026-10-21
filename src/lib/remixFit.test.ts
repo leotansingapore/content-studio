@@ -87,9 +87,22 @@ describe("requestFit", () => {
     expect(invoke).toHaveBeenCalledTimes(1);
     const sent = invoke.mock.calls[0][1].body;
     expect(sent).toMatchObject({ mode: "fit", video: true, source: { key: "top:a-b", kind: "top-post", format: "video" }, brand: { oneLiner: "I help fresh grads", topics: ["CPF"] } });
-    expect(Object.keys(sent.brand).sort()).toEqual(["audience", "name", "oneLiner", "topics"]);
+    expect(Object.keys(sent.brand).sort()).toEqual(["audience", "name", "oneLiner", "speaker", "topics"]);
+    expect(sent.brand.speaker).toBe("person");
     expect(await requestFit(UID, reel, true)).toEqual({ verdict: "poor", reasons: ["serves"] });
     expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the For row's speaker, and keeps a business's answer apart from the adviser's (it has no MAS-safe reason)", async () => {
+    brand();
+    invoke.mockResolvedValue({ data: { verdict: "weak", reasons: ["masSafe"] }, error: null });
+    expect(await requestFit(UID, reel, false)).toEqual({ verdict: "weak", reasons: ["masSafe"] });
+    invoke.mockResolvedValue({ data: { verdict: "good", reasons: [] }, error: null });
+    expect(await requestFit(UID, reel, false, "business")).toEqual({ verdict: "good", reasons: [] });
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke.mock.calls[1][1].body.brand.speaker).toBe("business");
+    expect(loadFit(UID, reel.key, false)).toEqual({ verdict: "weak", reasons: ["masSafe"] });
+    expect(loadFit(UID, reel.key, false, new Date(), "business")).toEqual({ verdict: "good", reasons: [] });
   });
 
   it("gives unknown with no call when the brand says nothing about who it serves, and on any failure", async () => {

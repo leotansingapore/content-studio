@@ -45,8 +45,8 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 // OpenAI: "down" answers 500, "junk" answers text no format can use, "drops" never answers at all, "queue" answers
 // each call with the next of `answers` (JSON) and keeps what it was sent
 const openai = { mode: "down" as "down" | "junk" | "drops" | "queue", calls: 0, answers: [] as unknown[], sent: [] as { messages: { role: string; content: string }[] }[] };
-// Jev: the state each call was sent, answered with no flags
-const jev = { states: [] as Record<string, unknown>[] };
+// Jev: the state and questions each call was sent; answered with `answers` when set, else a 500 (no flags)
+const jev = { states: [] as Record<string, unknown>[], questions: [] as string[][], answers: null as null | Record<string, { noul: number }> };
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
@@ -55,8 +55,10 @@ beforeAll(async () => {
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     if (String(u).includes("typesafe")) {
-      jev.states.push(JSON.parse(String(init?.body ?? "{}")).state ?? {});
-      return new Response("{}", { status: 500 });
+      const sent = JSON.parse(String(init?.body ?? "{}"));
+      jev.states.push(sent.state ?? {});
+      jev.questions.push(Object.keys(sent.questions ?? {}));
+      return jev.answers ? Response.json({ answers: jev.answers }) : new Response("{}", { status: 500 });
     }
     if (!String(u).includes("openai")) throw new Error(`unexpected fetch ${u}`);
     openai.calls++;
@@ -84,6 +86,8 @@ beforeEach(() => {
   openai.calls = 0;
   openai.sent = [];
   jev.states = [];
+  jev.questions = [];
+  jev.answers = null;
 });
 
 const make = async () => {
@@ -203,5 +207,22 @@ describe("the copy floor by level", () => {
     openai.answers = [copied];
     expect((await send({ ...d.request, close: "balanced" })).status).toBe(200);
     expect(openai.calls).toBe(1);
+  });
+});
+
+describe("the fit check (dogfood 21 Oct: Thomson Medical's TCM ad for ActivityTracker)", () => {
+  const fit = (speaker?: string) =>
+    send({ mode: "fit", source: { key: "ad:1938254387570062", kind: "ad", format: "image", text: "Your tongue tells your TCM physician a lot about your health." }, brand: { name: "ActivityTracker", oneLiner: "We help sales reps manage clients in one app.", speaker }, video: false });
+
+  it("asks a business no MAS-safe question, so a low MAS answer can't mark it down", async () => {
+    jev.answers = { serves: { noul: 0.7 }, retell: { noul: 0.8 }, masSafe: { noul: 0.1 } };
+    expect(await fit("business")).toMatchObject({ status: 200, body: { verdict: "good", reasons: [] } });
+    expect(jev.questions[0]).toEqual(["serves", "retell"]);
+  });
+
+  it("still asks the adviser (and an older app that sends no speaker)", async () => {
+    jev.answers = { serves: { noul: 0.7 }, retell: { noul: 0.8 }, masSafe: { noul: 0.1 } };
+    expect(await fit()).toMatchObject({ status: 200, body: { verdict: "weak", reasons: ["masSafe"] } });
+    expect(jev.questions[0]).toEqual(["serves", "retell", "masSafe"]);
   });
 });

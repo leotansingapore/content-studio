@@ -1018,6 +1018,8 @@ export interface FitRequest {
   brand: Pick<BrandPack, "name" | "oneLiner" | "audience" | "topics">;
   /** A video format is picked and the source is a video or carousel: asks textHeavy too. */
   video: boolean;
+  /** Sent as brand.speaker; only a person (the licensed adviser) is asked masSafe. Missing reads as person. */
+  speaker: Speaker;
 }
 
 export const UNKNOWN_FIT: FitResult = { verdict: "unknown", reasons: [] };
@@ -1032,11 +1034,16 @@ export function parseFitRequest(raw: unknown): FitRequest | null {
     source,
     brand: { name: line(b.name, 80), oneLiner: line(b.oneLiner, 300), audience: line(b.audience, 300), topics: list(b.topics, 12, 60) },
     video: r.video === true,
+    speaker: b.speaker === "business" ? "business" : "person",
   };
 }
 
-/** Jev only, one call: three nouls always, textHeavy only for a video. */
-export function fitQuestions(video: boolean): Record<string, JevQuestion> {
+/**
+ * Jev only, one call: serves and retell always, textHeavy only for a video, masSafe only for a person. The speaker is
+ * the field the writing prompts already use to write as a licensed adviser in Singapore (introLines, MAS_LINE); a
+ * business (ActivityTracker, a sales app) was asked about licensed advisers and marked down for it (dogfood 21 Oct).
+ */
+export function fitQuestions(video: boolean, speaker: Speaker = "person"): Record<string, JevQuestion> {
   return {
     serves: { type: "noul", instructions: "Would the people `brand` serves care about the problem or idea in `source`, once it is retold for them?" },
     retell: {
@@ -1044,11 +1051,15 @@ export function fitQuestions(video: boolean): Record<string, JevQuestion> {
       instructions:
         "Can `source` be retold without its original footage, people or brand? No when it depends on one person's face or story, a celebrity, a live event, a product demo, or footage that cannot be made again.",
     },
-    masSafe: {
-      type: "noul",
-      instructions:
-        "Can the idea in `source` be told by a licensed financial adviser in Singapore without promising returns, naming an insurer's product or a fund, or giving personal advice to a stranger?",
-    },
+    ...(speaker === "person"
+      ? {
+          masSafe: {
+            type: "noul",
+            instructions:
+              "Can the idea in `source` be told by a licensed financial adviser in Singapore without promising returns, naming an insurer's product or a fund, or giving personal advice to a stranger?",
+          } as const,
+        }
+      : {}),
     ...(video ? { textHeavy: { type: "noul", instructions: "Is most of what `source` says carried by words written on screen or on slides, rather than spoken or shown?" } as const } : {}),
   };
 }

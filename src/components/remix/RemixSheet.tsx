@@ -161,8 +161,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
 
   // The fit check runs on open, per source, brand and video-or-not; a kept answer shows at once.
   const fv = source ? fitVideo(source, !!picked) : false;
-  const fitId = `${remixKey}|${fv}`;
-  const keptFit = useMemo(() => (source ? loadFit(userId, source.key, fv) : null), [source, userId, fv]);
+  const fitId = `${remixKey}|${fv}|${speaker}`;
+  const keptFit = useMemo(() => (source ? loadFit(userId, source.key, fv, new Date(), speaker) : null), [source, userId, fv, speaker]);
   const [liveFit, setLiveFit] = useState<{ id: string; result: FitResult } | null>(null);
   const fitRun = useRef<Promise<FitResult> | null>(null);
   useEffect(() => {
@@ -171,7 +171,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       return;
     }
     let live = true;
-    const run = requestFit(userId, source, fv);
+    const run = requestFit(userId, source, fv, speaker);
     fitRun.current = run;
     void run.then((result) => {
       if (live) setLiveFit({ id: fitId, result });
@@ -179,7 +179,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     return () => {
       live = false;
     };
-  }, [source, userId, fv, keptFit, fitId]);
+  }, [source, userId, fv, keptFit, fitId, speaker]);
   const fit: FitResult | "checking" = keptFit ?? (liveFit?.id === fitId ? liveFit.result : "checking");
   const savePrefs = (next: RemixPrefs, url: Record<string, string | null>) => {
     setPrefs(next);

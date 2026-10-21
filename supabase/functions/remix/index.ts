@@ -76,15 +76,15 @@ async function fit(admin: Admin, uid: string, body: unknown): Promise<Response> 
   const usage = await consumeUsage(admin, uid, "remix-fit");
   if (!usage.allowed) return json(UNKNOWN_FIT);
   const day = today();
-  const answers = await askJev(fitState(req), fitQuestions(req.video), { who: "remix fit" });
+  const answers = await askJev(fitState(req), fitQuestions(req.video, req.speaker), { who: "remix fit" });
   const result = fitVerdict({
     serves: noulOf(answers, "serves"),
     retell: noulOf(answers, "retell"),
-    masSafe: noulOf(answers, "masSafe"),
+    masSafe: req.speaker === "person" ? noulOf(answers, "masSafe") : null,
     textHeavy: req.video ? noulOf(answers, "textHeavy") : null,
   });
   if (result.verdict === "unknown") await refundUsage(admin, uid, "remix-fit", day);
-  console.log("remix fit", result.verdict, result.reasons.join(",") || "-", req.video ? "video" : "text");
+  console.log("remix fit", result.verdict, result.reasons.join(",") || "-", req.video ? "video" : "text", req.speaker);
   return json(result);
 }
 

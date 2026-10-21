@@ -7,7 +7,7 @@ import { scoped } from "@/lib/profiles";
 import { fullText } from "@/lib/remix";
 import { brandPack } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
-import { UNKNOWN_FIT, type FitResult, type FitVerdict } from "../../supabase/functions/remix/logic.ts";
+import { UNKNOWN_FIT, type FitResult, type FitVerdict, type Speaker } from "../../supabase/functions/remix/logic.ts";
 
 export { FIT_COPY, UNKNOWN_FIT, fitReasonLine, type FitResult, type FitVerdict } from "../../supabase/functions/remix/logic.ts";
 
@@ -30,7 +30,8 @@ function storage(): Storage | null {
 /** Text-heavy is asked only for a video made from a video or carousel, so any other source reads the same either way. */
 export const fitVideo = (s: Pick<RemixSource, "format">, videoPicked: boolean) => videoPicked && (s.format === "video" || s.format === "carousel");
 
-const entryKey = (key: string, video: boolean) => `${key}|${video ? "video" : "text"}`;
+/** A business is asked no masSafe question, so its answers are kept apart; a person's keep their old key. */
+const entryKey = (key: string, video: boolean, speaker: Speaker) => `${key}|${video ? "video" : "text"}${speaker === "business" ? "|business" : ""}`;
 
 function loadAll(userId: string): Record<string, Kept> {
   try {
@@ -42,16 +43,16 @@ function loadAll(userId: string): Record<string, Kept> {
 }
 
 /** The kept answer, or null when there is none or it is over 7 days old. */
-export function loadFit(userId: string, key: string, video: boolean, now = new Date()): FitResult | null {
-  const f = loadAll(userId)[entryKey(key, video)];
+export function loadFit(userId: string, key: string, video: boolean, now = new Date(), speaker: Speaker = "person"): FitResult | null {
+  const f = loadAll(userId)[entryKey(key, video, speaker)];
   const fresh = f && typeof f.at === "string" && now.getTime() - Date.parse(f.at) < FIT_DAYS * 86_400_000;
   return fresh && ["good", "weak", "poor"].includes(f.verdict) && Array.isArray(f.reasons) ? { verdict: f.verdict, reasons: f.reasons } : null;
 }
 
 /** Unknown is never kept: it means Jev or the cap was out, so the next open asks again. */
-export function saveFit(userId: string, key: string, video: boolean, f: FitResult, now = new Date()): void {
+export function saveFit(userId: string, key: string, video: boolean, f: FitResult, now = new Date(), speaker: Speaker = "person"): void {
   if (f.verdict === "unknown") return;
-  const kept = Object.entries({ ...loadAll(userId), [entryKey(key, video)]: { ...f, at: now.toISOString() } })
+  const kept = Object.entries({ ...loadAll(userId), [entryKey(key, video, speaker)]: { ...f, at: now.toISOString() } })
     .sort(([, a], [, b]) => Date.parse(b.at) - Date.parse(a.at))
     .slice(0, MAX_FITS);
   try {
@@ -63,27 +64,30 @@ export function saveFit(userId: string, key: string, video: boolean, f: FitResul
 
 const running = new Map<string, Promise<FitResult>>();
 
-/** The check for this source: the device first, then one remix call (mode fit). Never throws; unknown on any failure. */
-export function requestFit(userId: string, s: RemixSource, video: boolean): Promise<FitResult> {
-  const kept = loadFit(userId, s.key, video);
+/**
+ * The check for this source: the device first, then one remix call (mode fit). Never throws; unknown on any failure.
+ * `speaker` is the sheet's For row pick (as you or as the business); only a person is asked the MAS-safe question.
+ */
+export function requestFit(userId: string, s: RemixSource, video: boolean, speaker?: Speaker): Promise<FitResult> {
+  const { name, oneLiner, audience, topics, speaker: as } = brandPack(userId, { platform: "instagram", mention: false, offer: null, speaker });
+  const kept = loadFit(userId, s.key, video, new Date(), as);
   if (kept) return Promise.resolve(kept);
-  const { name, oneLiner, audience, topics } = brandPack(userId, { platform: "instagram", mention: false, offer: null });
   // with nothing about who the brand serves there is nothing to judge against
   if (!oneLiner && !audience && !topics.length) return Promise.resolve(UNKNOWN_FIT);
-  const id = `${scoped(userId)}|${entryKey(s.key, video)}`;
+  const id = `${scoped(userId)}|${entryKey(s.key, video, as)}`;
   let run = running.get(id);
   if (!run) {
     const { key, kind, format, platform, title, author, url } = s;
     run = callFn<FitResult>("remix", {
       mode: "fit",
       source: { key, kind, format, platform, title, author, url, text: fullText(s, userId) },
-      brand: { name, oneLiner, audience, topics },
+      brand: { name, oneLiner, audience, topics, speaker: as },
       video,
     })
       .then((f) => {
         const verdict = (["good", "weak", "poor", "unknown"] as FitVerdict[]).find((v) => v === f?.verdict) ?? "unknown";
         const result: FitResult = { verdict, reasons: Array.isArray(f?.reasons) ? f.reasons : [] };
-        saveFit(userId, s.key, video, result);
+        saveFit(userId, s.key, video, result, new Date(), as);
         return result;
       })
       .catch(() => UNKNOWN_FIT)

@@ -429,6 +429,10 @@ describe("the fit check", () => {
   it("asks text-heavy only with a video format", () => {
     expect(Object.keys(fitQuestions(false))).toEqual(["serves", "retell", "masSafe"]);
     expect(Object.keys(fitQuestions(true))).toEqual(["serves", "retell", "masSafe", "textHeavy"]);
+    // a business (ActivityTracker) is never asked about licensed financial advisers
+    expect(Object.keys(fitQuestions(false, "business"))).toEqual(["serves", "retell"]);
+    expect(Object.keys(fitQuestions(true, "business"))).toEqual(["serves", "retell", "textHeavy"]);
+    expect(Object.keys(fitQuestions(true, "person"))).toEqual(["serves", "retell", "masSafe", "textHeavy"]);
     for (const q of Object.values(fitQuestions(true))) expect(q.type).toBe("noul");
   });
 
@@ -451,6 +455,13 @@ describe("the fit check", () => {
     expect(parseFitRequest({ mode: "fit", source: { key: "ad:1", kind: "ad", text: " " }, brand: {} })).toBeNull();
     expect(parseFitRequest({ mode: "make", source: body().source, brand: {} })).toBeNull();
     expect(parseFitRequest({ mode: "fit", source: body().source, brand: {}, video: "yes" })?.video).toBe(false);
+  });
+
+  it("reads the brand's speaker, a person when it is missing, and keeps it out of what Jev reads", () => {
+    expect(parseFitRequest({ mode: "fit", source: body().source, brand: {} })?.speaker).toBe("person");
+    const biz = parseFitRequest({ mode: "fit", source: body().source, brand: { ...body().brand, speaker: "business" } })!;
+    expect(biz.speaker).toBe("business");
+    expect(JSON.stringify(fitState(biz))).not.toContain("speaker");
   });
 });
 
