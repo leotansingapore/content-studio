@@ -99,3 +99,44 @@ describe("which clip fits a beat", () => {
     expect((pickQuestions(p.beats).pick_0 as { criteria: Record<string, string> }).criteria.c0).toBe("an unlabelled clip");
   });
 });
+
+// Pinned on today's code before media sets: what the montage, the slideshow and the explainer send today must parse
+// and ask Jev exactly this, whatever the request carries beside it.
+describe("today's montage pick, pinned", () => {
+  const body = {
+    theme: "  Saving   for a home ",
+    beats: [
+      { say: "A couple — counting coins at the table", candidates: Array.from({ length: 8 }, (_, j) => ({ desc: j === 2 ? "" : `couple-counting-coins-${j} "jar"` })) },
+      { say: "x".repeat(120), candidates: [{ desc: "y".repeat(140) }] },
+    ],
+  };
+  const pinned = {
+    ok: true,
+    theme: "Saving for a home",
+    noun: "clip",
+    beats: [
+      { say: "A couple, counting coins at the table", candidates: [0, 1, 2, 3, 4, 5].map((j) => ({ desc: j === 2 ? "" : `couple-counting-coins-${j} jar` })) },
+      { say: "x".repeat(90), candidates: [{ desc: "y".repeat(100) }] },
+    ],
+  };
+  it("parses to 6 candidates a beat, cut and cleaned as before", () => {
+    expect(parsePickRequest(body)).toEqual(pinned);
+    expect(parsePickRequest({ ...body, set: true })).toEqual(pinned);
+  });
+  it("asks the same questions", () => {
+    const p = parsePickRequest(body);
+    if (!p.ok) throw new Error("refused");
+    expect(pickQuestions(p.beats, p.noun)).toEqual({
+      pick_0: {
+        type: "choice",
+        instructions: { beat: "A couple, counting coins at the table", question: "Which stock clip, described by its page name, best shows `beat`?" },
+        criteria: { c0: "couple-counting-coins-0 jar", c1: "couple-counting-coins-1 jar", c2: "an unlabelled clip", c3: "couple-counting-coins-3 jar", c4: "couple-counting-coins-4 jar", c5: "couple-counting-coins-5 jar", none: "None of these shows the beat; they are about something else." },
+      },
+      pick_1: {
+        type: "choice",
+        instructions: { beat: "x".repeat(90), question: "Which stock clip, described by its page name, best shows `beat`?" },
+        criteria: { c0: "y".repeat(100), none: "None of these shows the beat; they are about something else." },
+      },
+    });
+  });
+});
