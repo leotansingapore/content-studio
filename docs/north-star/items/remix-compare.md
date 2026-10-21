@@ -1,6 +1,6 @@
 # Original beside your version
 
-`remix-compare` | remix | phase 1 | status: partial | /north-star#remix-compare
+`remix-compare` | remix | phase 1 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#remix-compare
 
 ## Leo asked
 
@@ -132,7 +132,7 @@ None. Copied lines are counted by `sharedRuns`, a measurement, so there is no Je
 - [ ] Editing a draft so it repeats 6 words of the caption makes the copied-lines chip appear on the next view; removing them clears it.
 - [ ] More like this shows at most 4 cards, never the source itself, and the empty state when there is nothing.
 - [ ] The network tab shows no request when the strip opens or tabs switch.
-- [ ] `src/data/northStar.ts` item flipped (status and `ours`) in the same commit, and this spec's status line ticked.
+- [x] `src/data/northStar.ts` item flipped (status and `ours`) in the same commit, and this spec's status line ticked.
 
 ## Tests
 

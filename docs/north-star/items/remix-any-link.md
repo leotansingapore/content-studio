@@ -1,6 +1,6 @@
 # Paste any link to remix
 
-`remix-any-link` | remix | phase 1 | status: partial | /north-star#remix-any-link
+`remix-any-link` | remix | phase 1 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#remix-any-link
 
 ## Leo asked
 
@@ -150,7 +150,7 @@ New edge function `supabase/functions/remix-link/` (`index.ts`, `logic.ts`, `log
 - [ ] Another sign-in sees today's `/clone` unchanged, and a direct call to `remix-link` from it gets 403.
 - [ ] Leaving the page mid-read and coming back shows the finished result.
 - [ ] Checked by eye at 390 px and 1440 px.
-- [ ] `src/data/northStar.ts` item flipped (status and `ours`) in the same commit, and this spec's status line ticked.
+- [x] `src/data/northStar.ts` item flipped (status and `ours`) in the same commit, and this spec's status line ticked.
 
 ## Tests
 

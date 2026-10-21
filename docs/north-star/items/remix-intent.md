@@ -1,6 +1,6 @@
 # Choose what to keep
 
-`remix-intent` | remix | phase 1 | status: partial | /north-star#remix-intent
+`remix-intent` | remix | phase 1 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#remix-intent
 
 ## Leo asked
 
