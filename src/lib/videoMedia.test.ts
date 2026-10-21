@@ -136,6 +136,18 @@ describe("pickupPlan", () => {
     }
   });
 
+  it("keeps the AI mark on every path, and nothing for a junk one", () => {
+    const ai = { kind: "avatar", person: "presenter", who: "p-1", voice: "premade", voiceId: "alice", madeAt: "2026-10-21T09:15:00.000Z" } as const;
+    for (const path of PATHS) {
+      expect(pickupPlan({ ...full, ai }, path).keep).toStrictEqual({ caption: "Cap.", source, draftId: "d1", ai });
+      expect(pickupPlan({ ai }, path)).toStrictEqual({ keep: { ai }, toast: null });
+      for (const junk of [{ kind: "avatar" }, { kind: "swap", madeAt: ai.madeAt }, "avatar", 5, null])
+        expect(pickupPlan({ ...full, ai: junk } as unknown as JoinExtra, path).keep).toStrictEqual({ caption: "Cap.", source, draftId: "d1" });
+    }
+    // a bad field inside a good mark is dropped on the way to the project
+    expect(pickupPlan({ ai: { ...ai, voiceId: "rachel" } } as unknown as JoinExtra, "captions").keep.ai).not.toHaveProperty("voiceId");
+  });
+
   it("drops junk read back from a pending clip's JSON, and leaves the default tab out of the URL", () => {
     const junk = { toast: 5, note: "", caption: "", source: "ad:1", draftId: 7, tab: "nope" } as unknown as JoinExtra;
     expect(pickupPlan(junk, "captions")).toEqual({ keep: {}, toast: null });

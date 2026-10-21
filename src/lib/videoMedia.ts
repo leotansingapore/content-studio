@@ -73,6 +73,7 @@ import { withColdOpen } from "@/lib/coldOpen";
 import { gridWindow, placeCoverText, type Band } from "@/lib/igGrid";
 import type { RemixSource } from "@/lib/remixSource";
 import { EDIT_TABS, type EditTab } from "@/lib/links";
+import { aiOf, type AiMark } from "@/lib/videoProjects";
 
 // ---------- sound for captions ----------
 
@@ -1575,13 +1576,15 @@ export interface JoinExtra {
   tab?: EditTab;
   /** A device file key (putFile) for a picture the join draws (the presenter's offer band). */
   topKey?: string;
+  /** Written to project.ai: what the studio's AI made in the video. */
+  ai?: AiMark;
 }
 
 /** The editor's paths for an upload: words over a video, a long recording, a video with no speech to caption, or one captioned now. */
 export type PickupPath = "wall" | "long" | "no-captions" | "captions";
 export interface PickupPlan {
   /** Written onto the new project. */
-  keep: Pick<JoinExtra, "caption" | "source" | "draftId">;
+  keep: Pick<JoinExtra, "caption" | "source" | "draftId" | "ai">;
   /** Shown as the project opens (on the captions path, once they land); null for none. */
   toast: { title: string; description?: string } | null;
   /** Set beside ?p=; the default tab is left out. */
@@ -1599,11 +1602,13 @@ export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): Pick
   // a montage says it is ready when it has a note, under its own title or this one
   const title = text(e.toast) ?? (path === "no-captions" && note ? "Your montage is ready" : undefined);
   const tab = EDIT_TABS.find((t) => t === e.tab && t !== "style");
+  const ai = aiOf(e.ai);
   return {
     keep: {
       ...(text(e.caption) ? { caption: e.caption } : {}),
       ...(e.source && typeof e.source === "object" ? { source: e.source } : {}),
       ...(text(e.draftId) ? { draftId: e.draftId } : {}),
+      ...(ai ? { ai } : {}),
     },
     toast: title ? { title, ...(note ? { description: note } : {}) } : null,
     ...(tab ? { tab } : {}),
