@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sanitizeBackdrop } from "./faceVision";
 import {
+  brandFixes,
   sanitizeStand,
   standBox,
   standOf,
@@ -1112,5 +1113,38 @@ describe("green screen: a video behind you and where you stand", () => {
         expect(inside(standBox(stand, 1080, 1350, pw, ph), 1080, 1350)).toBe(true);
       }
     }
+  });
+});
+
+describe("the brand's name in the captions", () => {
+  const w = (word: string, s: number, e: number) => ({ w: word, s, e });
+
+  it("writes the name back as the brand kit has it, spaced or in any case", () => {
+    const words = [w("Try", 0, 0.2), w("Activity", 0.3, 0.6), w("Tracker", 0.6, 0.9), w("or", 1, 1.1), w("activitytracker.", 1.2, 1.8)];
+    const out = applyFixes(words, brandFixes("ActivityTracker"));
+    expect(out.count).toBe(2);
+    expect(out.words.map((x) => x.w)).toEqual(["Try", "ActivityTracker", "or", "ActivityTracker."]);
+    expect(out.words[1]).toEqual({ w: "ActivityTracker", s: 0.3, e: 0.9 });
+    // already right: nothing counted
+    expect(applyFixes([w("ActivityTracker", 0, 1)], brandFixes("ActivityTracker")).count).toBe(0);
+  });
+
+  it("fixes a spaced name run together or in lower case", () => {
+    const out = applyFixes([w("moneybees", 0, 1), w("money", 1, 1.2), w("bees!", 1.2, 1.5)], brandFixes("Money Bees"));
+    expect(out.words.map((x) => x.w)).toEqual(["Money Bees", "Money Bees!"]);
+  });
+
+  it("leaves a one-word name, an empty one and a name too long to save alone", () => {
+    expect(brandFixes("AT")).toEqual([]);
+    expect(brandFixes("Fastlane")).toEqual([]);
+    expect(brandFixes("")).toEqual([]);
+    expect(brandFixes(undefined)).toEqual([]);
+    expect(brandFixes("The Very Long Brand Name Of Some Company Pte Ltd")).toEqual([]);
+  });
+
+  it("lets the adviser's own fix win over the brand's", () => {
+    const words = [w("Activity", 0, 0.3), w("Tracker", 0.3, 0.6)];
+    const out = applyFixes(words, [{ from: "activity tracker", to: "Activity Tracker app" }, ...brandFixes("ActivityTracker")]);
+    expect(out.words[0].w).toBe("Activity Tracker app");
   });
 });

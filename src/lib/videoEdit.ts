@@ -997,6 +997,16 @@ export function sanitizeFixes(raw: unknown): CaptionFix[] {
   return out.slice(-MAX_FIXES);
 }
 
+/** The brand kit's name as captions mishear it, split at its capitals ("Activity Tracker") or in any case ("activitytracker"), written back as the kit has it. */
+export function brandFixes(name: string | null | undefined): CaptionFix[] {
+  const to = (name ?? "").trim().replace(/\s+/g, " ");
+  const spaced = to.replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2");
+  // a one-word name ("Bloom", "AT") is left alone: fixing its case would change the same word said in passing;
+  // over 40 characters a saved fix can't hold it
+  if (!spaced.includes(" ") || to.length > 40) return [];
+  return sanitizeFixes([{ from: spaced, to }, { from: to.replace(/ /g, ""), to }]);
+}
+
 // ---------- stickers ----------
 
 /**

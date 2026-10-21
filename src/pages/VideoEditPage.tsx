@@ -143,6 +143,7 @@ import {
   dubPlacement,
   sanitizeStand,
   standOf,
+  brandFixes,
 } from "@/lib/videoEdit";
 import {
   bufferTrack,
@@ -354,7 +355,8 @@ export default function VideoEditPage() {
       let silent = false;
       try {
         const t = await transcribe(heard.wav);
-        const fixed = applyFixes(t.words, loadFixes(uid));
+        // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker")
+        const fixed = applyFixes(t.words, [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])]);
         p = { ...p, words: fixed.words };
         setProjects(saveProject(uid, p));
         landed = true;
@@ -1357,7 +1359,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     try {
       const { wav } = await extractWav(src);
       const t = await transcribe(wav);
-      const fixed = applyFixes(t.words, fixes);
+      const fixed = applyFixes(t.words, [...fixes, ...(leo ? brandFixes(brandKit?.name) : [])]);
       setWords(fixed.words);
       if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
     } catch (e) {
