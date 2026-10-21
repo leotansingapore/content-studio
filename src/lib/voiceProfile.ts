@@ -11,6 +11,8 @@ export interface VoiceProfile {
   posts: string[];
   voiceSummary?: string;
   updatedAt: string;
+  /** When the summary was last edited by hand on /voice (Leo only), so Re-distill asks first. */
+  summaryEditedAt?: string;
 }
 
 const KEY_PREFIX = "content-studio-voice-";
@@ -66,6 +68,14 @@ export function isVoiceProfileUsable(profile: VoiceProfile | null): boolean {
   const filled = profile.posts.filter((p) => p && p.trim().length >= VOICE_MIN_CHARS);
   return filled.length >= VOICE_MIN_FILLED;
 }
+
+/**
+ * The voice summary whether or not posts back it, "" when there is none. A brand made from its website has a
+ * summary and no posts; isVoiceProfileUsable (3 posts) still gates the samples. For Leo's writers (Write, Batch,
+ * Clone a reel) in memory-wiring; everyone else keeps the isVoiceProfileUsable check until he turns it on.
+ */
+export const voiceSummaryOf = (profile: VoiceProfile | null | undefined): string =>
+  typeof profile?.voiceSummary === "string" ? profile.voiceSummary.trim() : "";
 
 export function dismissNudgeForSession(): void {
   if (typeof window === "undefined") return;
