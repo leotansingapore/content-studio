@@ -267,6 +267,15 @@ describe("phase 3's shapes", () => {
     expect(used()).toBe(1);
   });
 
+  it("never asks a business's image the MAS question, which is about licensed advisers", async () => {
+    openai.mode = "queue";
+    openai.answers = [{ refuse: false, reason: "", words: { ...words, quote: "We built it for the reps who forget nothing but still lose deals." }, ...CAP }];
+    jev.answers = { layout: { type: "choice", choice: "quote", probabilities: { quote: 0.9 } } as never, mas: { noul: 0.9 } };
+    const r = await send({ mode: "make", as: "image", source: AD, brand: { name: "ActivityTracker", speaker: "business" } });
+    expect(r).toMatchObject({ status: 200, body: { result: { layout: "quote", layoutBy: "jev" }, flags: { mas: null } } });
+    expect(jev.questions.some((q) => q.includes("mas"))).toBe(false);
+  });
+
   it("falls back to Headline ad when Jev has no answer, and gives no MAS flag", async () => {
     openai.mode = "queue";
     openai.answers = [{ refuse: false, reason: "", words: { ...words, headline: "Your hospital bill, split in two", line: "Why a plan has a co-pay.", button: "Message me" }, ...CAP }];

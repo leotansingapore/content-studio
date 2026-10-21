@@ -1089,6 +1089,7 @@ describe("hooks (formats-hook-demo)", () => {
     expect(parseMakeRequest(body({ as: "hooks", formulas: FORMULAS.slice(0, 2) })).ok).toBe(false);
     expect(parseMakeRequest(body({ as: "hooks", formulas: [...FORMULAS, { ...FORMULAS[0], id: "story" }] })).ok).toBe(false);
     expect(parseMakeRequest(body({ as: "hooks", formulas: [FORMULAS[0], FORMULAS[0], FORMULAS[1]] })).ok).toBe(false);
+    expect(parseMakeRequest(body({ as: "hooks", formulas: [FORMULAS[0], ...FORMULAS] })).ok).toBe(false);
     expect(parseMakeRequest(body({ as: "hooks", formulas: [{ ...FORMULAS[0], id: "Bad Id" }, ...FORMULAS.slice(1)] })).ok).toBe(false);
     expect(req().formulas).toEqual(FORMULAS);
     expect(make({ as: "hooks", formulas: FORMULAS, demo: { name: "x.mp4", seconds: 400 } }).demo).toBeUndefined();
