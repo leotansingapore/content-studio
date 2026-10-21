@@ -9,7 +9,7 @@ const stock = vi.hoisted(() => ({ search: vi.fn(), download: vi.fn() }));
 vi.mock("@/lib/stockMedia", () => ({ searchStock: stock.search, downloadStock: stock.download }));
 const length = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/longAudio", async (orig) => ({ ...(await orig<typeof import("./longAudio")>()), mediaLength: length }));
-const media = vi.hoisted(() => ({ start: vi.fn(), current: vi.fn(), get: vi.fn(), put: vi.fn() }));
+const media = vi.hoisted(() => ({ start: vi.fn(), current: vi.fn(), get: vi.fn(), put: vi.fn(), del: vi.fn() }));
 vi.mock("@/lib/videoMedia", async (orig) => ({
   ...(await orig<typeof import("./videoMedia")>()),
   ensureCaptionFonts: async () => {},
@@ -17,6 +17,7 @@ vi.mock("@/lib/videoMedia", async (orig) => ({
   currentJoin: media.current,
   getFile: media.get,
   putFile: media.put,
+  deleteFile: media.del,
 }));
 
 import { DEMO_GONE, pendingAvatar } from "./aiVideo";
@@ -32,7 +33,9 @@ import {
   clearHookDemo,
   hookDemoJob,
   hookSet,
+  keepOnlyDemo,
   makeHookDemo,
+  pendingDemo,
   pendingDemoKey,
   repickDemo,
   resumeHookDemo,
@@ -103,6 +106,7 @@ beforeEach(() => {
   media.current.mockReset().mockReturnValue(null);
   media.get.mockReset().mockImplementation(async (k: string) => (k === DEMO.key ? DEMO_FILE : undefined));
   media.put.mockReset().mockResolvedValue(undefined);
+  media.del.mockReset().mockResolvedValue(undefined);
   clearHookDemo();
 });
 afterEach(() => {
@@ -276,5 +280,23 @@ describe("someone says it", () => {
     expect(await run({ ...SPOKEN, hook: "" })).toMatchObject({ state: "failed", error: VIDEO_LIMITS.waiting });
     expect(make).not.toHaveBeenCalled();
     expect(called("ai-video", "template")).toHaveLength(0);
+  });
+});
+
+describe("the demo on this device", () => {
+  it("keeps only the demo picked now and the one a waiting spoken hook still joins, even ones a closed tab left", async () => {
+    store.set("cs-make-hook-demo-files", JSON.stringify(["hd-old", "hd-waiting", "hd-older"]));
+    store.set("cs-ai-video-pending", JSON.stringify({ name: HOOK_NAME, tokens: ["t1"], seconds: [4], kind: "template", after: [{ key: "hd-waiting", end: 18 }] }));
+    await keepOnlyDemo("hd-new");
+    expect(media.del.mock.calls.map((c) => c[0]).sort()).toEqual(["hd-old", "hd-older"]);
+    expect(JSON.parse(store.get("cs-make-hook-demo-files")!).sort()).toEqual(["hd-new", "hd-waiting"]);
+    // a new tab knows the waiting clip's demo from the clip alone
+    expect(pendingDemo()).toEqual({ key: "hd-waiting", name: "Your demo", seconds: 18 });
+
+    store.delete("cs-ai-video-pending");
+    store.set("cs-make-hook-demo-files", "not json");
+    await keepOnlyDemo("hd-new");
+    expect(media.del).toHaveBeenCalledTimes(2);
+    expect(pendingDemo()).toBeNull();
   });
 });

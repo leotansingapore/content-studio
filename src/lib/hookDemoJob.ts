@@ -23,7 +23,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import { downloadStock } from "@/lib/stockMedia";
 import { newOverlay, type Overlay } from "@/lib/videoEdit";
-import { currentJoin, getFile, putFile, startJoin, type JoinExtra } from "@/lib/videoMedia";
+import { currentJoin, deleteFile, getFile, putFile, startJoin, type JoinExtra } from "@/lib/videoMedia";
 import { JOIN_STEP, findClip, followClip, noteOf, paidClipBlock, simpleQuery } from "@/lib/wallJob";
 import { pickHook } from "@/lib/writingJudge";
 
@@ -89,6 +89,8 @@ export const JOIN_FAILED = "Couldn't put the video together. Try again.";
 export const NO_SPOKEN_FIT = "None of these hooks fits in 4 seconds. Pick a shorter one or type your own.";
 const JOIN_LABEL = "Putting your hook and demo together";
 const DEMO_KEY = "cs-make-hook-demo-file";
+/** Every demo file key this device holds, so one left by a closed tab is still cleared. */
+const DEMO_FILES = "cs-make-hook-demo-files";
 
 /** The words a hook set belongs to: a post's key, else the typed topic. */
 export const hooksFor = (a: Pick<HookDemoAsk, "source" | "topic">) => (a.source ? a.source.key : a.topic.trim().toLowerCase());
@@ -125,6 +127,24 @@ export function saveDemo(d: DemoRef): void {
 }
 
 export const newDemoKey = () => `hd-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/** Clears every demo file on this device but the one picked now and the one a waiting spoken hook still joins. */
+export async function keepOnlyDemo(current: string): Promise<void> {
+  const keep = new Set([current, pendingDemoKey()].filter((k): k is string => !!k));
+  let held: unknown = [];
+  try {
+    held = JSON.parse(localStorage.getItem(DEMO_FILES) ?? "[]");
+  } catch {
+    // nothing listed: only the current one is kept
+  }
+  const stale = (Array.isArray(held) ? held : []).filter((k): k is string => typeof k === "string" && !keep.has(k));
+  await Promise.all(stale.map((k) => deleteFile(k).catch(() => undefined)));
+  try {
+    localStorage.setItem(DEMO_FILES, JSON.stringify([...keep]));
+  } catch {
+    // listed again on the next pick
+  }
+}
 
 // ---- the store ----
 
@@ -327,8 +347,14 @@ export const pendingHook = (): boolean => {
   return p?.kind === "template" && p.name === HOOK_NAME;
 };
 
+/** The waiting spoken hook's demo, as far as the device knows it: a reload in a new tab still picks the clip up. */
+export function pendingDemo(): DemoRef | null {
+  const a = pendingHook() ? pendingAvatar()?.after?.[0] : undefined;
+  return a && typeof a.key === "string" ? { key: a.key, name: "Your demo", seconds: a.end } : null;
+}
+
 /** The waiting spoken hook's demo key: a demo picked again goes under it, so the paid clip joins it. */
-export const pendingDemoKey = (): string | null => (pendingHook() ? (pendingAvatar()?.after?.[0]?.key ?? null) : null);
+export const pendingDemoKey = (): string | null => pendingDemo()?.key ?? null;
 
 /** Picks up a spoken hook paid for but never put together (a reload, a dropped download, a demo picked again) at no cost. */
 export function resumeHookDemo(ask: HookDemoAsk): void {

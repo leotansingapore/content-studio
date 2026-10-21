@@ -28,8 +28,8 @@ import {
   HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_HOOK_SECONDS, SPOKEN_TOO_LONG, clock, demoIssue, hookClipIssue, hookIssue, type HookPlay,
 } from "@/lib/hookDemo";
 import {
-  hookDemoBusy, hookDemoJob, hookSet, hooksFailure, hooksFor, hooksWriting, loadDemo, makeHookDemo, newDemoKey, onHookDemo, pendingDemoKey,
-  pendingHook, repickDemo, resumeHookDemo, saveDemo, stepText, writeHooks, type DemoRef, type HookDemoAsk,
+  hookDemoBusy, hookDemoJob, hookSet, hooksFailure, hooksFor, hooksWriting, keepOnlyDemo, loadDemo, makeHookDemo, newDemoKey, onHookDemo,
+  pendingDemo, pendingDemoKey, pendingHook, repickDemo, resumeHookDemo, saveDemo, stepText, writeHooks, type DemoRef, type HookDemoAsk,
 } from "@/lib/hookDemoJob";
 import { links } from "@/lib/links";
 import { mediaLength } from "@/lib/longAudio";
@@ -37,7 +37,7 @@ import { priceOf, sumPrices } from "@/lib/prices";
 import type { RemixSource } from "@/lib/remixSource";
 import { cn } from "@/lib/utils";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { deleteFile, loadVideo, putFile, stills } from "@/lib/videoMedia";
+import { loadVideo, putFile, stills } from "@/lib/videoMedia";
 import { paidClipBlock } from "@/lib/wallJob";
 
 const TYPED_KEY = "cs-make-hook-demo";
@@ -135,9 +135,13 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // A spoken hook paid for and waiting on this device is picked up on arrival, at no cost, demo and all.
+  // A spoken hook paid for and waiting on this device is picked up on arrival, at no cost, demo and all (in a new
+  // tab too, where only the waiting clip knows its demo).
   useEffect(() => {
-    if (!hookDemoJob() && pendingHook() && ask) resumeHookDemo(ask);
+    const d = demo ?? pendingDemo();
+    if (hookDemoJob() || !pendingHook() || !d) return;
+    if (!demo) setDemo(d);
+    resumeHookDemo(askWith(d));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -178,8 +182,8 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
       const waiting = job?.demoGone ? pendingDemoKey() : null;
       const ref: DemoRef = { key: waiting ?? newDemoKey(), name: f.name, seconds, thumb: await stills(f, [0.3], 120).then((t) => t[0], () => undefined) };
       if (!waiting) await putFile(ref.key, f);
-      // the last demo leaves this device, unless a waiting clip still joins it
-      if (demo && demo.key !== ref.key && demo.key !== pendingDemoKey()) void deleteFile(demo.key).catch(() => undefined);
+      // earlier demos leave this device, unless a waiting clip still joins one
+      void keepOnlyDemo(ref.key);
       saveDemo(ref);
       setDemo(ref);
       if (waiting) {
