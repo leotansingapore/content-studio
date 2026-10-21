@@ -94,6 +94,13 @@ describe("the social function", () => {
     expect(zernio).toEqual([]);
   });
 
+  it("refuses a PDF upload link from an adviser off NORTH_STAR_USERS before counting a use or calling Zernio", async () => {
+    const res = await call(UID, { action: "presign", profileId: "me", filename: "carousel.pdf", contentType: "application/pdf", size: 100 });
+    expect(res.status).toBe(403);
+    expect(db.spent).toEqual([]);
+    expect(zernio).toEqual([]);
+  });
+
   it("counts real numbers against the read cap", async () => {
     await call(UID, { action: "metrics", profileId: "me" });
     await call(UID, { action: "followers", profileId: "me" });

@@ -17,7 +17,7 @@ import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
 import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, removalOf, status, teamCapOf, userCapOf, type Caller } from "./logic.ts";
 import { metricsErrorReply, parseMetricsRequest, runMetrics } from "./metrics.ts";
-import { parsePostRequest, postErrorReply, runPost } from "./posts.ts";
+import { northStarOnly, parsePostRequest, postErrorReply, runPost } from "./posts.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
   if (q.action === "status" && !q.profileId) return json({ enabled: true });
   const profileId = q.profileId!;
 
-  // a thread is Leo's: refused before a use is counted (runPost checks again before Zernio hears of it)
-  if (posting?.ok && posting.req.action === "schedule" && posting.req.input.thread && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+  // a thread or a PDF document is Leo's: refused before a use is counted (runPost checks again before Zernio hears of it)
+  if (posting?.ok && northStarOnly(posting.req) && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
     return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
   }
 
