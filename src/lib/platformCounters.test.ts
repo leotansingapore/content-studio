@@ -11,6 +11,23 @@ describe("readout (pinned at b65fc14f, before Chinese versions count characters)
   });
 });
 
+describe("readout for a Chinese version (edit-translate)", () => {
+  const zh = "\u5927\u591a\u6570\u4eba\u4ee5\u4e3a\u4f4f\u9662\u4fdd\u9669\u4ec0\u4e48\u90fd\u4fdd\uff0c\u5176\u5b9e\u4e0d\u7136\u3002";
+  it("counts characters only, on every platform", () => {
+    for (const p of ["linkedin", "instagram", "facebook", "tiktok"] as PlatformId[]) {
+      expect(readout(zh, p, "zh")).toEqual({ words: 1, chars: 20, status: "good", message: "20 characters", unit: "chars" });
+    }
+  });
+  it("is over past the platform's character limit", () => {
+    expect(readout("\u5927".repeat(2201), "instagram", "zh")).toMatchObject({ status: "over", message: "2,201 characters", unit: "chars" });
+    expect(readout("\u5927".repeat(2201), "linkedin", "zh")).toMatchObject({ status: "good", message: "2,201 characters" });
+  });
+  it("keeps today's word readout for English, Malay and Tamil", () => {
+    for (const lang of [undefined, null, "ms", "ta"] as const) expect(readout(zh, "linkedin", lang)).toEqual(readout(zh, "linkedin"));
+    expect(readout(zh, "linkedin").unit).toBe("words");
+  });
+});
+
 describe("foldAt", () => {
   it("shows a short post whole", () => {
     expect(foldAt("Short hook.\nOne more line.", "linkedin")).toBeNull();

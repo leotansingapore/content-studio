@@ -6,6 +6,8 @@
 // Facebook: 40-80 words ideal; over 150 = warn
 // TikTok caption: 80-150 chars; cap 2200
 
+import type { PostLang } from "@/lib/links";
+
 export type PlatformId = "linkedin" | "instagram" | "facebook" | "tiktok";
 
 export interface CounterReadout {
@@ -30,9 +32,12 @@ export function countChars(text: string): number {
   return text.length;
 }
 
-export function readout(text: string, platform: PlatformId): CounterReadout {
+/** `lang` "zh" (a Chinese version, edit-translate) counts characters only: word counts mean nothing without spaces. */
+export function readout(text: string, platform: PlatformId, lang?: PostLang | null): CounterReadout {
   const words = countWords(text);
   const chars = countChars(text);
+
+  if (lang === "zh") return { words, chars, status: chars > MAX_CHARS[platform] ? "over" : "good", message: `${chars.toLocaleString("en-US")} characters`, unit: "chars" };
 
   if (platform === "linkedin") {
     let status: CounterReadout["status"] = "good";
