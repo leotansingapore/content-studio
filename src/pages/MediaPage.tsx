@@ -2,12 +2,14 @@
 // folders, search and alt text. Carousel uploads land here too.
 // For Leo (brand-media-library step 1): videos too, through MediaDropzone, each file sorted into a type by media-sort,
 // with kind and type filters in the URL and the space this site uses on the device. Everyone else sees today's page.
+// Leo's sets (brand-media-sets): a Library and Sets switch (?view=sets, SetsView.tsx); an open set is ?folder=<name>.
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ImagePlus, Loader2, Search, Trash2 } from "lucide-react";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import MediaDropzone from "@/components/media/MediaDropzone";
+import SetsView, { SetBar } from "@/components/media/SetsView";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -18,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { getFile } from "@/lib/deviceFiles";
 import { clock } from "@/lib/hookDemo";
 import { addMedia, filterMedia, foldersOf, loadMedia, MEDIA_TYPES, mediaRoom, removeMedia, storePicture, updateMedia, type MediaItem, type MediaType } from "@/lib/mediaLibrary";
+import { loadSets, onStarterChange, SETS_CHANGED, setsWith, type MediaSet } from "@/lib/mediaSets";
 import { onSortChange, sortMedia, sortState, waitingSort } from "@/lib/mediaSort";
 import { FULL_LINE } from "@/lib/mediaUpload";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
@@ -31,6 +34,7 @@ const TYPE_LABEL: Record<MediaType, string> = {
 };
 const KINDS = ["", "photos", "videos"] as const;
 const TYPES = ["", ...MEDIA_TYPES] as const;
+const VIEWS = ["", "sets"] as const;
 // a video's still sits under the cimg- key of the same id
 const thumbKey = (m: MediaItem) => (m.kind === "video" ? `cimg-${m.key.slice(5)}` : m.key);
 /** This site's storage on the device as people read it: 340 MB, 1.2 GB. */
@@ -52,6 +56,9 @@ export default function MediaPage() {
   const [type, setType] = useUrlState<(typeof TYPES)[number]>("type", "", { allowed: TYPES });
   const sort = useSyncExternalStore(onSortChange, sortState);
   const [used, setUsed] = useState<number | null>(null);
+  // Leo's Library or Sets (docs/deep-links.md): ?view=sets
+  const [viewParam, setView] = useUrlState<(typeof VIEWS)[number]>("view", "", { allowed: VIEWS });
+  const [sets, setSets] = useState<MediaSet[]>([]);
 
   useEffect(() => {
     document.title = "Media - Content Studio";
@@ -64,6 +71,15 @@ export default function MediaPage() {
 
   // a sort landing writes the index outside React: read it again
   useEffect(() => onSortChange(() => userId && setItems(loadMedia(userId, { videos: true }))), [userId]);
+  // so does a starter set being added, and the set records change outside React too
+  useEffect(() => onStarterChange(() => userId && setItems(loadMedia(userId, { videos: true }))), [userId]);
+  useEffect(() => {
+    if (!leo || !userId) return;
+    const read = () => setSets(loadSets(userId));
+    read();
+    window.addEventListener(SETS_CHANGED, read);
+    return () => window.removeEventListener(SETS_CHANGED, read);
+  }, [leo, userId]);
   // uploads a reload stopped before their sort
   useEffect(() => {
     if (leo && userId) sortMedia(userId, waitingSort(loadMedia(userId, { videos: true })));
@@ -145,7 +161,8 @@ export default function MediaPage() {
     });
   };
 
-  const folders = useMemo(() => foldersOf(items), [items]);
+  // Leo's sets are folders too, so an empty one opens
+  const folders = useMemo(() => [...new Set([...foldersOf(items), ...sets.map((s) => s.name)])].sort((a, b) => a.localeCompare(b)), [items, sets]);
   // "" all, "-" no folder; a folder this device does not have reads as all
   const folder = folderParam === "none" ? "-" : folders.includes(folderParam) ? folderParam : "";
   const setFolder = (id: string) => setFolderParam(id === "-" ? "none" : id);
@@ -155,6 +172,10 @@ export default function MediaPage() {
   const linkedTile = useScrollToItem<HTMLLIElement>(shown.some((m) => m.key === itemKey));
   // the list is this device's own (mediaLibrary.ts), so a picture from elsewhere is "not on this device"
   useGoneItem("item", userId ? items.some((m) => m.key === itemKey) : undefined, "picture", "That picture is not on this device");
+  const view = leo ? viewParam : "";
+  const counted = useMemo(() => setsWith(sets, items), [sets, items]);
+  const openSet = leo && folder ? counted.find((s) => s.name === folder) : undefined;
+  const reload = () => userId && setItems(loadMedia(userId, { videos: true }));
 
   return (
     <div className="space-y-5">
@@ -167,17 +188,31 @@ export default function MediaPage() {
             <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
           </label>
         )}
-        {!stock && (
+        {!stock && view === "" && (
           <Button variant="outline" className="h-10 gap-2" onClick={() => setStock(true)}>
             <Search className="h-4 w-4" /> Search free photos
           </Button>
         )}
       </header>
+      {leo && (
+        <div role="tablist" aria-label="Media" className="inline-flex gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+          {([["", "Library"], ["sets", "Sets"]] as const).map(([id, label]) => (
+            <button key={id || "library"} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${view === id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {leo ? (
         used !== null && <p className="text-xs text-muted-foreground">Using {space(used)} on this device</p>
       ) : (
         <p className="text-xs text-muted-foreground">Photos stay on this device. Use them on carousel slides with From media.</p>
       )}
+      {view === "sets" && userId ? (
+        <SetsView userId={userId} sets={counted} urls={urls} onChange={reload} />
+      ) : (
+      <>
       {stock && <StockSearch kind="photo" placeholder="Family dinner, office, Singapore skyline" onPick={addStock} onClose={() => setStock(false)} />}
       {leo && <MediaDropzone userId={userId} folder={folder !== "-" ? folder : ""} onChange={() => userId && setItems(loadMedia(userId, { videos: true }))} />}
 
@@ -226,10 +261,11 @@ export default function MediaPage() {
         </div>
       )}
 
+      {openSet && userId && <SetBar userId={userId} set={openSet} items={items} urls={urls} onChange={reload} />}
       {items.length === 0 ? (
         leo ? null : <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No photos yet.</div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing matches that search.</p>
+        openSet && !query.trim() ? null : <p className="text-sm text-muted-foreground">Nothing matches that search.</p>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {shown.map((m) => (
@@ -285,6 +321,8 @@ export default function MediaPage() {
             </li>
           ))}
         </ul>
+      )}
+      </>
       )}
       <datalist id="media-folders">{folders.map((f) => <option key={f} value={f} />)}</datalist>
     </div>
