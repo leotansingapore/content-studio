@@ -52,6 +52,34 @@ describe("saved replies", () => {
   });
 });
 
+// Pinned on main 2fc410b0, before snippets gained kinds: the replies stored today (no kind, extra fields from
+// another device, a 31st row) must load and insert in Engage exactly like this afterwards.
+describe("today's stored replies (pinned)", () => {
+  const rows = [
+    { id: "s1", name: "Calendar", text: "Here's my calendar, pick any slot that works.", extra: "dropped" },
+    { id: "s2", name: "Guide", text: "Happy to send you my 2-page guide on hospital plans. Which email should it go to?" },
+    ...Array.from({ length: 29 }, (_, i) => ({ id: `r${i}`, name: `Reply ${i}`, text: `Reply text ${i}` })),
+  ];
+
+  it("load as the first 30, each as id, name and text", () => {
+    store.set("content-studio-snippets-u1", JSON.stringify(rows));
+    const list = loadSnippets("u1");
+    expect(list).toHaveLength(30);
+    expect(list[0]).toEqual({ id: "s1", name: "Calendar", text: "Here's my calendar, pick any slot that works." });
+    expect(list[29]).toEqual({ id: "r27", name: "Reply 27", text: "Reply text 27" });
+    expect(list.map((s) => s.id)).not.toContain("r28");
+  });
+
+  it("insert into a draft as before, and the full list refuses a new one", () => {
+    store.set("content-studio-snippets-u1", JSON.stringify(rows));
+    const [calendar] = loadSnippets("u1");
+    expect(insertSnippet("Thanks Karen!", calendar.text)).toEqual({ text: "Thanks Karen! Here's my calendar, pick any slot that works.", caret: 59 });
+    expect(insertSnippet("Hi [link] bye", calendar.text, 3, 9).text).toBe("Hi Here's my calendar, pick any slot that works. bye");
+    expect(saveSnippet("u1", { name: "", text: "One more" }).problem).toBe("full");
+    expect(saveSnippet("u1", { name: "x", text: "Reply text 3" })).toMatchObject({ problem: "duplicate", saved: { id: "r3" } });
+  });
+});
+
 describe("insertSnippet", () => {
   it("goes at the end with a space when nothing is selected", () => {
     expect(insertSnippet("Thanks Karen!", "Here's my calendar.")).toEqual({ text: "Thanks Karen! Here's my calendar.", caret: 33 });
