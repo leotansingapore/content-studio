@@ -23,6 +23,7 @@ import ColdOpenControl from "@/components/ColdOpenControl";
 import StylePresets from "@/components/StylePresets";
 import ReelStyleCopy from "@/components/ReelStyleCopy";
 import PlatformCaptions from "@/components/PlatformCaptions";
+import ScriptCard from "@/components/edit/ScriptCard";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { gridWindow, type Band } from "@/lib/igGrid";
@@ -1913,6 +1914,11 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       )}
       <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onOpen={onOpen} />
       {!words.length && isLong(duration, project.size) && <LongCaptions userId={userId} project={project} file={file} onWords={setWords} />}
+      {/* Leo: an AI video of your face or a presenter, one line fixed or made in another language (?script, ?lang); a fix or its Undo puts the project under the edit as a swap does */}
+      {leo && project.ai && (
+        <ScriptCard userId={userId} project={project}
+          onPut={(p) => { live.current = p; onSave(p); segIdx.current = 0; endAt.current = null; setWords(p.words); setSettings(p.settings); setHistory([]); setThumb(p.thumb); }} />
+      )}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
