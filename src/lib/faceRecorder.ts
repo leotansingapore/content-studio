@@ -33,7 +33,7 @@ export const cameraProblem = (e: unknown): CameraProblem =>
 export async function openCamera(): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") throw new CameraError("missing");
   try {
-    return await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true });
+    return await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: true });
   } catch (e) {
     throw new CameraError(cameraProblem(e));
   }
@@ -47,7 +47,8 @@ export const TAKE_SECONDS = 10;
 /** The recorder stops by itself here, past the 10 s countdown. */
 export const TAKE_MAX_SECONDS = 12;
 const FRAME_EVERY_MS = 500;
-const FRAME_LONG_SIDE = 1280;
+// a laptop camera's 9:16 cut is then 607x1080, a phone's up to the photo's 720x1280
+const FRAME_LONG_SIDE = 1920;
 
 export interface Take {
   /** The recording, sound and video: on this device only. */
@@ -126,12 +127,14 @@ export function jpegUnder(c: HTMLCanvasElement, max = MAX_IMAGE_CHARS): string |
   return null;
 }
 
-const decode = async (frame: Blob) => {
+/** A frame on a canvas, at most `width` px wide (full size without). */
+const decode = async (frame: Blob, width = Infinity) => {
   const bmp = await createImageBitmap(frame);
+  const k = Math.min(1, width / bmp.width);
   const c = document.createElement("canvas");
-  c.width = bmp.width;
-  c.height = bmp.height;
-  c.getContext("2d", { willReadFrequently: true })!.drawImage(bmp, 0, 0);
+  c.width = Math.round(bmp.width * k);
+  c.height = Math.round(bmp.height * k);
+  c.getContext("2d", { willReadFrequently: true })!.drawImage(bmp, 0, 0, c.width, c.height);
   bmp.close();
   return c;
 };
@@ -165,16 +168,21 @@ function cutPhoto(c: HTMLCanvasElement, box: FaceBox): string | null {
  * then the three sharpest of those cut to 9:16, sharpest first. Nothing is sent anywhere.
  */
 export async function pickPhotos(frames: Blob[]): Promise<{ ok: true; photos: string[] } | { ok: false }> {
-  const pics = await Promise.all(spread(frames.length, FACE_FRAMES).map((i) => decode(frames[i])));
+  // looked at 640 px wide, as findCoverFrame does; only the three kept are opened at full size
+  const looked = spread(frames.length, FACE_FRAMES);
+  const pics = await Promise.all(looked.map((i) => decode(frames[i], 640)));
   const faces = await facesIn(pics);
   if (!oneFaceShown(faces)) return { ok: false };
   const best = pics
-    .map((c, i) => ({ c, box: faces[i][0], one: oneFaceIn(faces[i]) }))
+    .map((c, i) => ({ frame: frames[looked[i]], box: faces[i][0], one: oneFaceIn(faces[i]), sharp: oneFaceIn(faces[i]) ? faceSharpness(c, faces[i][0]) : 0 }))
     .filter((p) => p.one)
-    .map((p) => ({ ...p, sharp: faceSharpness(p.c, p.box) }))
     .sort((a, b) => b.sharp - a.sharp)
     .slice(0, 3);
-  const photos = best.map((p) => cutPhoto(p.c, p.box)).filter((p): p is string => !!p);
+  const photos: string[] = [];
+  for (const p of best) {
+    const photo = cutPhoto(await decode(p.frame), p.box);
+    if (photo) photos.push(photo);
+  }
   return photos.length ? { ok: true, photos } : { ok: false };
 }
 
