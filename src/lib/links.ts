@@ -453,10 +453,12 @@ export const links = {
       folder?: string;
       item?: string;
       view?: "sets";
+      /** The starter sets sheet over the sets view. */
+      starters?: boolean;
       kind?: "photos" | "videos";
       type?: "person" | "logo" | "product" | "past-post" | "screen" | "footage" | "other";
     } = {},
-  ) => `/media${qs({ q: o.q?.trim(), folder: o.folder, view: o.view, kind: o.kind, type: o.type, item: o.item })}`,
+  ) => `/media${qs({ q: o.q?.trim(), folder: o.folder, view: o.view, starters: o.starters ? "1" : undefined, kind: o.kind, type: o.type, item: o.item })}`,
   /**
    * A section of the brand kit. Leo only: review opens this device's waiting website read or products scan, product a
    * product's editor (new for a blank one) and demo one demo (push); each lands on its own section unless one is named.

@@ -275,6 +275,7 @@ describe("links", () => {
 
   it("builds the phase-4 /media views and filters with defaults left out, the open item last", () => {
     expect(links.media({ view: "sets" })).toBe("/media?view=sets");
+    expect(links.media({ view: "sets", starters: true })).toBe("/media?view=sets&starters=1");
     expect(links.media({ kind: "videos" })).toBe("/media?kind=videos");
     expect(links.media({ kind: "photos", type: "logo" })).toBe("/media?kind=photos&type=logo");
     expect(links.media({ type: "past-post", q: " cpf ", folder: "Products" })).toBe("/media?q=cpf&folder=Products&type=past-post");
