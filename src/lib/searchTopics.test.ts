@@ -194,6 +194,9 @@ describe("which view /trends shows", () => {
   it("gives Leo his views, keeps everyone else on the kits, and waits for the sign-in on a Leo link", () => {
     expect(s.trendView("search", leo)).toBe("search");
     expect(s.trendView("hashtags", leo)).toBe("hashtags");
+    expect(s.trendView("formats", leo)).toBe("formats");
+    expect(s.trendView("formats", null)).toBe("kits");
+    expect(s.trendView("formats", undefined)).toBe("loading");
     expect(s.trendView("search", null)).toBe("kits");
     expect(s.trendView("hashtags", null)).toBe("kits");
     expect(s.trendView("search", undefined)).toBe("loading");

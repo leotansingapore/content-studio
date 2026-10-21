@@ -257,8 +257,8 @@ export function hashtagWriteUrl(r: Pick<HashtagRow, "tag" | "related">): string 
 
 // ---- Which view /trends shows ---------------------------------------------------------------------------------------
 
-export type TrendView = "kits" | "search" | "hashtags";
-const LEO_VIEWS: readonly string[] = ["search", "hashtags"];
+export type TrendView = "kits" | "search" | "hashtags" | "formats";
+const LEO_VIEWS: readonly string[] = ["search", "hashtags", "formats"];
 
 /**
  * ?view= as the page shows it: Leo's views for Leo only, everyone else keeps the kits, and "loading" while the sign-in
