@@ -33,11 +33,12 @@ export interface KeywordPick {
   emoji?: string;
 }
 
-// short words that never carry a line's meaning (2 letters and under are left out anyway)
+// short words that never carry a line's meaning, and the fillers the editor can keep (2 letters and under are left out anyway)
 const STOP = new Set(
   ("the and you your yours that this these those with for are was were have has had but not they them their what when where which who whom why how will would can could " +
     "should just like really very about from into our ours out all any been being its it's there here then than some more most also because know mean going gonna want get got " +
-    "let let's i'm you're we're they're don't can't won't did does doing one say said thing things way much many well even still only too yeah okay right so").split(" "),
+    "let let's i'm you're we're they're don't can't won't did does doing one say said thing things way much many well even still only too yeah okay right so " +
+    "umm uhh uhm erm ahh hmm mhm").split(" "),
 );
 const isNumber = (w: string) => /\d|[$%]/.test(w);
 

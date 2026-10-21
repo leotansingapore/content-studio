@@ -9,6 +9,7 @@ const choice = (choice: string, p: number): JevAnswer => ({ type: "choice", choi
 describe("caption key words: candidates", () => {
   it("leave out stop words and short words, keep numbers with their signs, once each", () => {
     expect(keyCandidates("So you pay $500 for the cover, and that cover lapses at 65. Pay 3% more?".split(" "))).toEqual(["pay", "$500", "cover", "lapses", "65", "3%"]);
+    expect(keyCandidates(["Umm,", "hmm...", "premium"])).toEqual(["premium"]);
   });
   it("keep at most 12 and drop anything over 30 characters", () => {
     const many = Array.from({ length: 20 }, (_, i) => `word${String.fromCharCode(97 + i)}x`);
