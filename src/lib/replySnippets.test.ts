@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { insertSnippet, loadForm, loadSnippets, MAX_SNIPPET_NAME, MAX_SNIPPETS, removeSnippet, saveForm, saveSnippet, snippetName } from "@/lib/replySnippets";
+import { fillVariables, insertSnippet, loadForm, loadSnippets, MAX_SNIPPET_NAME, MAX_SNIPPETS, MAX_TEXT, ofKind, removeSnippet, saveForm, saveSnippet, snippetName } from "@/lib/replySnippets";
+import { dmLinks, waDigits } from "@/lib/bioPage";
+import { blankRanges } from "@/lib/platformCounters";
 import { loadEdit, saveEdit } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
-vi.mock("@/lib/supabase", () => ({ supabase: {} }));
+vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "https://x.supabase.co" }));
 
 beforeEach(() => {
   store.clear();
@@ -77,6 +79,111 @@ describe("today's stored replies (pinned)", () => {
     expect(insertSnippet("Hi [link] bye", calendar.text, 3, 9).text).toBe("Hi Here's my calendar, pick any slot that works. bye");
     expect(saveSnippet("u1", { name: "", text: "One more" }).problem).toBe("full");
     expect(saveSnippet("u1", { name: "x", text: "Reply text 3" })).toMatchObject({ problem: "duplicate", saved: { id: "r3" } });
+  });
+});
+
+describe("kinds", () => {
+  it("a row without a kind loads as a reply; a stored kind survives and an unknown one loads as a reply", () => {
+    store.set(
+      "content-studio-snippets-u1",
+      JSON.stringify([
+        { id: "a", name: "Old", text: "An old reply" },
+        { id: "b", name: "Tags", text: "#cpf #retirement", kind: "hashtags" },
+        { id: "c", name: "Odd", text: "Unknown kind", kind: "tweet" },
+        { id: "d", name: "Said reply", text: "Kind reply", kind: "reply" },
+      ]),
+    );
+    expect(loadSnippets("u1")).toEqual([
+      { id: "a", name: "Old", text: "An old reply" },
+      { id: "b", name: "Tags", text: "#cpf #retirement", kind: "hashtags" },
+      { id: "c", name: "Odd", text: "Unknown kind" },
+      { id: "d", name: "Said reply", text: "Kind reply" },
+    ]);
+    expect(ofKind(loadSnippets("u1"), "reply").map((s) => s.id)).toEqual(["a", "c", "d"]);
+  });
+
+  it("keeps 30 of each kind: 31 hashtag sets and 30 replies load as 30 and 30", () => {
+    const rows = [
+      ...Array.from({ length: 31 }, (_, i) => ({ id: `h${i}`, name: `Tags ${i}`, text: `#tag${i}`, kind: "hashtags" })),
+      ...Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, name: `Reply ${i}`, text: `Reply ${i}` })),
+    ];
+    store.set("content-studio-snippets-u1", JSON.stringify(rows));
+    const list = loadSnippets("u1");
+    expect(ofKind(list, "hashtags")).toHaveLength(30);
+    expect(ofKind(list, "reply")).toHaveLength(30);
+    expect(list.map((s) => s.id)).not.toContain("h30");
+  });
+
+  it("refuses the 31st of one kind while another kind still saves, and checks duplicates within a kind", () => {
+    for (let i = 0; i < 30; i++) expect(saveSnippet("u1", { name: "", text: `#tag${i}`, kind: "hashtags" }).problem).toBeUndefined();
+    expect(saveSnippet("u1", { name: "", text: "#one #more", kind: "hashtags" }).problem).toBe("full");
+    expect(saveSnippet("u1", { name: "", text: "Book 15 minutes with me.", kind: "ending" }).saved).toMatchObject({ kind: "ending" });
+    // the same text as a hashtag set saves as a reply, but not twice as a set
+    expect(saveSnippet("u1", { name: "", text: "#tag3" }).problem).toBeUndefined();
+    expect(saveSnippet("u1", { name: "", text: "#tag3", kind: "hashtags" }).problem).toBe("duplicate");
+    // a reply is stored without a kind, as before kinds existed
+    expect(JSON.parse(store.get("content-studio-snippets-u1")!).find((r: { text: string; kind?: string }) => r.text === "#tag3" && !r.kind)).toBeTruthy();
+  });
+
+  it("an edit keeps the kind, and text is cut to its kind's limit", () => {
+    const { saved } = saveSnippet("u1", { name: "Hook", text: "x".repeat(500), kind: "hook" });
+    expect(saved!.text).toHaveLength(MAX_TEXT.hook);
+    const edited = saveSnippet("u1", { id: saved!.id, name: "Hook", text: "y".repeat(500) });
+    expect(edited.saved).toMatchObject({ kind: "hook", text: "y".repeat(200) });
+    expect(loadSnippets("u1")[0].kind).toBe("hook");
+    expect(saveSnippet("u1", { name: "", text: "p".repeat(3000), kind: "post" }).saved!.text).toHaveLength(2200);
+    expect(saveSnippet("u1", { name: "", text: "t".repeat(400), kind: "hashtags" }).saved!.text).toHaveLength(300);
+    expect(saveSnippet("u1", { name: "", text: "e".repeat(400), kind: "ending" }).saved!.text).toHaveLength(300);
+  });
+
+  it("keeps each kind's add form apart, the reply form under today's key", () => {
+    saveForm("u1", { name: "Tags", text: "#cpf" }, "hashtags");
+    saveForm("u1", { name: "Calendar", text: "Here's my" });
+    expect(loadForm("u1", "hashtags")).toMatchObject({ name: "Tags", text: "#cpf" });
+    expect(loadForm("u1")).toMatchObject({ name: "Calendar" });
+    expect([...store.keys()].sort()).toEqual(["cs-snippet-form-hashtags-u1", "cs-snippet-form-u1"]);
+  });
+});
+
+describe("fillVariables", () => {
+  const brand = {
+    color: "#1E3A8A",
+    name: "Ada Tan",
+    handle: "@adatan",
+    role: "Financial adviser",
+    offers: [{ name: "Free review", url: "adatan.sg/review" }],
+    whatsapp: "9123 4567",
+    whatsappText: "Hi Ada",
+    instagram: "ada.tan",
+  };
+
+  it("fills the known tokens, with the same wa.me link Brand kit builds", () => {
+    const r = fillVariables("{name} ({role}, {handle}): {offer} at {offer_link}. WhatsApp {whatsapp} or DM {instagram}.", brand);
+    const wa = dmLinks({ instagram: "", facebook: "", whatsapp: brand.whatsapp, whatsappText: brand.whatsappText }).find((l) => l.id === "whatsapp")!.url;
+    expect(wa).toBe(`https://wa.me/${waDigits(brand.whatsapp)}?text=Hi%20Ada`);
+    expect(r).toEqual({
+      text: `Ada Tan (Financial adviser, @adatan): Free review at https://adatan.sg/review. WhatsApp ${wa} or DM https://ig.me/m/ada.tan.`,
+      missing: [],
+    });
+  });
+
+  it("an empty value becomes a blank that Write marks, and is listed as missing", () => {
+    const r = fillVariables("Chat with me on WhatsApp: {whatsapp} today.", { ...brand, whatsapp: "" });
+    expect(r.text).toBe("Chat with me on WhatsApp: [your WhatsApp number] today.");
+    expect(blankRanges(r.text)).toHaveLength(1);
+    expect(r.missing).toEqual(["whatsapp"]);
+  });
+
+  it("a blank alone on its line is still listed as missing, though Write does not mark it", () => {
+    const r = fillVariables("Thanks for reading.\n{offer_link}", null);
+    expect(r.text).toBe("Thanks for reading.\n[your offer link]");
+    expect(blankRanges(r.text)).toEqual([]);
+    expect(r.missing).toEqual(["offer_link"]);
+  });
+
+  it("leaves an unknown token as typed, and starts the Instagram link from the Analytics account", () => {
+    expect(fillVariables("{price} and {constructor} and {Name}", brand)).toEqual({ text: "{price} and {constructor} and {Name}", missing: [] });
+    expect(fillVariables("{instagram}", { color: "#000", name: "", handle: "" }, { instagram: { handle: "@ada.ig" } }).text).toBe("https://ig.me/m/ada.ig");
   });
 });
 

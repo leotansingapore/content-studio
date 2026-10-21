@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useCopy } from "@/components/recruit/shared";
 import { useToast } from "@/hooks/use-toast";
 import { scanCompliance } from "@/lib/compliance";
-import { MAX_SNIPPETS, insertSnippet, loadSnippets, saveSnippet, type Snippet } from "@/lib/replySnippets";
+import { MAX_SNIPPETS, insertSnippet, loadSnippets, ofKind, saveSnippet, type Snippet } from "@/lib/replySnippets";
 import {
   MAX_TOPICS,
   MAX_TOPIC_CHARS,
@@ -174,7 +174,7 @@ export function Draft({ userId, label, text, onCopy }: { userId: string; label: 
         <button
           type="button"
           aria-expanded={menu !== null}
-          onClick={() => setMenu(menu ? null : loadSnippets(userId))}
+          onClick={() => setMenu(menu ? null : ofKind(loadSnippets(userId), "reply"))}
           aria-label="Insert a saved reply"
           className={`${chip} ${menu ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
         >

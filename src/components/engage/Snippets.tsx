@@ -1,8 +1,9 @@
 // Saved replies: short texts the consultant sends often, kept per profile and
 // synced. Each is copied straight from here or put into any Engage draft with
 // its Insert button. The compliance flags show on each one and never block.
-// Logic: src/lib/replySnippets.ts.
-import { useRef, useState, type FormEvent } from "react";
+// Given another `kind` (Leo's Write Insert panel, Manage), the same list of
+// lines, hashtag sets, endings, hooks or post templates. Logic: src/lib/replySnippets.ts.
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Copy, Pencil, Trash2, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,33 +14,51 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCopy } from "@/components/recruit/shared";
 import { useToast } from "@/hooks/use-toast";
 import { scanCompliance } from "@/lib/compliance";
-import { MAX_SNIPPETS, MAX_SNIPPET_NAME, MAX_SNIPPET_TEXT, loadForm, loadSnippets, removeSnippet, saveForm, saveSnippet, type SnippetForm } from "@/lib/replySnippets";
+import { KIND_NAME, MAX_PER_KIND, MAX_SNIPPET_NAME, MAX_TEXT, loadForm, loadSnippets, ofKind, removeSnippet, saveForm, saveSnippet, type SnippetForm, type SnippetKind } from "@/lib/replySnippets";
+
+// The form's words per kind; a reply's are today's Engage words.
+const FORM: Record<SnippetKind, { label: string; save: string; name: string; text: string }> = {
+  reply: { label: "Reply", save: "Save reply", name: "Hospital plan guide", text: "Happy to send you my 2-page guide on hospital plans. Which email should it go to?" },
+  line: { label: "Line", save: "Save line", name: "Checklist link", text: "Here is my free checklist: {offer_link}" },
+  hashtags: { label: "Hashtags", save: "Save hashtag set", name: "CPF posts", text: "#cpf #retirementplanning #singapore" },
+  ending: { label: "Ending", save: "Save ending", name: "WhatsApp me", text: "Questions on yours? WhatsApp me here: {whatsapp}" },
+  hook: { label: "Hook", save: "Save hook", name: "Client question", text: "A client asked me this week: [question]" },
+  post: { label: "Post", save: "Save post template", name: "Myth and fact", text: "Myth: [myth]\n\nFact: [fact]\n\nWhat I tell clients: [your advice]" },
+};
 
 const small = "inline-flex h-11 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11";
 
-export default function Snippets({ userId }: { userId: string }) {
+export default function Snippets({ userId, kind = "reply", focusName = false }: { userId: string; kind?: SnippetKind; focusName?: boolean }) {
   const copy = useCopy();
   const { toast } = useToast();
-  const [list, setList] = useState(() => loadSnippets(userId));
-  const [form, setFormState] = useState(() => loadForm(userId));
+  const [all, setList] = useState(() => loadSnippets(userId));
+  const list = ofKind(all, kind);
+  const [form, setFormState] = useState(() => loadForm(userId, kind));
   const [problem, setProblem] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
   const nameBox = useRef<HTMLInputElement>(null);
   const editing = Boolean(form.id && list.some((s) => s.id === form.id));
-  const full = !editing && list.length >= MAX_SNIPPETS;
+  const full = !editing && list.length >= MAX_PER_KIND;
+  const reply = kind === "reply";
+  const words = FORM[kind];
+  useEffect(() => {
+    if (focusName) nameBox.current?.focus();
+  }, [focusName]);
 
   const setForm = (f: SnippetForm) => {
-    setFormState(saveForm(userId, f));
+    setFormState(saveForm(userId, f, kind));
     setProblem("");
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const r = saveSnippet(userId, editing ? form : { name: form.name, text: form.text });
+    const r = saveSnippet(userId, editing ? form : { name: form.name, text: form.text, kind });
     if (r.problem === "duplicate") return setProblem(`Already saved as "${r.saved?.name}".`);
     if (r.problem) return;
     setList(r.list);
     setForm({ name: "", text: "" });
-    toast({ title: editing ? "Changes saved" : `Saved as "${r.saved?.name}"` });
+    // a reply's toast is today's Engage toast; the other kinds name a compliance flag, as Engage's Save does
+    const flag = reply ? undefined : scanCompliance(r.saved?.text ?? "")[0];
+    toast({ title: editing ? "Changes saved" : `Saved as "${r.saved?.name}"`, description: flag ? `"${flag.match}" ${flag.message}` : undefined });
   };
   const startEdit = (id: string) => {
     const s = list.find((x) => x.id === id);
@@ -61,11 +80,11 @@ export default function Snippets({ userId }: { userId: string }) {
         <CardContent className="space-y-3 p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <h2 id="snippets-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-              <Zap className="h-4 w-4 text-primary" /> Saved replies
+              <Zap className="h-4 w-4 text-primary" /> Saved {KIND_NAME[kind].many}
             </h2>
-            <InfoTip label="About saved replies">Tap Insert on any draft to put one in.</InfoTip>
+            {reply && <InfoTip label="About saved replies">Tap Insert on any draft to put one in.</InfoTip>}
             <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-              {list.length} of {MAX_SNIPPETS}
+              {list.length} of {MAX_PER_KIND}
             </span>
           </div>
           <form onSubmit={submit} className="space-y-3">
@@ -77,31 +96,36 @@ export default function Snippets({ userId }: { userId: string }) {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 maxLength={MAX_SNIPPET_NAME}
-                placeholder="Hospital plan guide"
+                placeholder={words.name}
                 className="h-11 sm:h-9 [@media(pointer:coarse)]:h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="snippet-text">Reply</Label>
+              <Label htmlFor="snippet-text">{words.label}</Label>
               <Textarea
                 id="snippet-text"
                 value={form.text}
                 onChange={(e) => setForm({ ...form, text: e.target.value })}
-                maxLength={MAX_SNIPPET_TEXT}
+                maxLength={MAX_TEXT[kind]}
                 rows={4}
-                placeholder="Happy to send you my 2-page guide on hospital plans. Which email should it go to?"
+                placeholder={words.text}
               />
+              {!reply && <p className="text-[11px] text-muted-foreground">Type {"{name}"}, {"{handle}"}, {"{offer}"}, {"{offer_link}"} or {"{whatsapp}"} and your Brand kit fills it in.</p>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button type="submit" disabled={full || !form.text.trim()} className="h-11 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
-                {editing ? "Save changes" : "Save reply"}
+                {editing ? "Save changes" : words.save}
               </Button>
               {(editing || form.name || form.text) && (
                 <Button type="button" variant="ghost" onClick={() => setForm({ name: "", text: "" })} className="h-11 text-muted-foreground sm:h-10">
                   Cancel
                 </Button>
               )}
-              {full && <p className="text-[11px] font-medium text-warning">{MAX_SNIPPETS} is the most. Delete one to add another.</p>}
+              {full && (
+                <p className="text-[11px] font-medium text-warning">
+                  {reply ? `${MAX_PER_KIND} is the most. Delete one to add another.` : `You have ${MAX_PER_KIND} saved ${KIND_NAME[kind].many}. Delete one to save this.`}
+                </p>
+              )}
               {problem && (
                 <p role="alert" className="text-[11px] font-medium text-warning">
                   {problem}
