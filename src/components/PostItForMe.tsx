@@ -257,13 +257,17 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
 type MediaMode = "carousel" | "slideshow" | "import" | "files" | "none";
 type TikTokForm = { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
 
-/** The panel under a dated draft: accounts, media, time, caption, platform settings, then one Schedule button. */
+/**
+ * The panel under a dated draft: accounts, media, time, caption, platform settings, then one Schedule button.
+ * With `thread` (Leo's thread panel in Write) it posts that thread to Threads accounts instead, the media on its first post.
+ */
 export function PostItForMePanel({
   userId,
   draft,
   blockReason,
   onDrafts,
   onClose,
+  thread,
 }: {
   userId: string;
   draft: DraftEntry;
@@ -271,10 +275,11 @@ export function PostItForMePanel({
   blockReason: string | null;
   onDrafts: (d: DraftEntry[]) => void;
   onClose: () => void;
+  thread?: string[];
 }) {
   const { toast } = useToast();
   const profileId = activeProfileId(userId);
-  const platform = draft.platform;
+  const platform = thread ? "threads" : draft.platform;
   const carousel = useMemo(() => loadCarousels(userId).find((c) => c.draftId === draft.id) ?? null, [userId, draft.id]);
   // a /slideshow saved to My posts: its slides are drawn the way the slideshow editor draws them
   const slideshow = useMemo(() => loadSlideshows(userId).find((s) => s.draftId === draft.id) ?? null, [userId, draft.id]);
@@ -283,7 +288,7 @@ export function PostItForMePanel({
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   // Files attached in Write come first: they were picked for this post.
-  const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : carousel ? "carousel" : slideshow ? "slideshow" : importLink ? "import" : "files");
+  const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : thread ? "none" : carousel ? "carousel" : slideshow ? "slideshow" : importLink ? "import" : "files");
   const [files, setFiles] = useState<MediaFile[]>([]);
   const attachedSig = (draft.attached ?? []).join(",");
   useEffect(() => {
@@ -366,13 +371,15 @@ export function PostItForMePanel({
   const at = zernioTime(draft.scheduledFor, time);
   const passed = !at || Date.parse(at) < Date.now() + 60_000;
   const goesNow = now || passed;
-  const flags = scanCompliance(caption);
+  // a thread is edited in its own panel; Zernio shows its first post as the content
+  const content = thread ? (thread[0] ?? "") : caption;
+  const flags = scanCompliance(thread ? thread.join("\n\n") : caption);
   const limits = (["linkedin", "instagram", "facebook", "tiktok"] as string[]).includes(platform) ? checkLimits(caption, platform as PlatformId) : null;
   const max = CAPTION_MAX[platform as keyof typeof CAPTION_MAX] ?? 63206;
   const fileIssue = mode === "files" ? files.map((f) => fileProblem({ name: f.name, type: f.type, size: f.file.size })).find(Boolean) : null;
   const tiktokInput = platform === "tiktok" && tiktok.privacyLevel ? tiktok : null;
   const problem = platformProblem(
-    { clientKey: key.current, content: caption, captions: {}, mediaUrls, scheduledFor: null, firstComment: "", tiktok: tiktokInput, youtube: null },
+    { clientKey: key.current, content, captions: {}, mediaUrls, scheduledFor: null, firstComment: "", tiktok: tiktokInput, youtube: null, ...(thread ? { thread } : {}) },
     picked.length ? accounts.filter((a) => picked.includes(a.id)).map((a) => a.platform) : [],
   );
   const reason =
@@ -382,7 +389,7 @@ export function PostItForMePanel({
     (mode === "files" && files.length > MAX_PICTURES ? `Pick up to ${MAX_PICTURES} pictures.` : null) ??
     problem ??
     (platform === "tiktok" && info && !info.canPostMore ? "TikTok says this account can't post more right now. Try later." : null) ??
-    (hasComplianceErrors(flags) ? "Fix the compliance error in the caption first." : null);
+    (hasComplianceErrors(flags) ? `Fix the compliance error in the ${thread ? "thread" : "caption"} first.` : null);
 
   const pickFiles = (list: FileList | null) => {
     if (!list?.length) return;
@@ -420,8 +427,9 @@ export function PostItForMePanel({
       const { post } = await schedulePost(profileId, {
         accountIds: picked,
         clientKey: key.current,
-        content: caption,
+        content,
         mediaUrls,
+        ...(thread ? { thread } : {}),
         ...(goesNow ? { now: true } : { scheduledFor: at! }),
         ...(draft.firstComment?.trim() ? { firstComment: draft.firstComment.trim() } : {}),
         ...(tiktokInput ? { tiktok: tiktokInput } : {}),
@@ -526,12 +534,18 @@ export function PostItForMePanel({
           </fieldset>
 
           <div className="space-y-1">
-            <label htmlFor={`caption-${draft.id}`} className="font-semibold text-foreground">Caption</label>
-            <Textarea id={`caption-${draft.id}`} value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} className="text-xs" />
-            <p className={caption.length > max ? "text-destructive" : "text-muted-foreground"}>
-              {caption.length} / {max}
-              {limits?.warnings.length ? `. ${limits.warnings.map((w) => w.message).join(" ")}` : ""}
-            </p>
+            {thread ? (
+              <p className="font-semibold text-foreground">Thread of {thread.length} posts</p>
+            ) : (
+              <>
+                <label htmlFor={`caption-${draft.id}`} className="font-semibold text-foreground">Caption</label>
+                <Textarea id={`caption-${draft.id}`} value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} className="text-xs" />
+                <p className={caption.length > max ? "text-destructive" : "text-muted-foreground"}>
+                  {caption.length} / {max}
+                  {limits?.warnings.length ? `. ${limits.warnings.map((w) => w.message).join(" ")}` : ""}
+                </p>
+              </>
+            )}
             {flags.map((f) => (
               <p key={f.id} className={f.severity === "error" ? "text-destructive" : "text-amber-700 dark:text-amber-300"}>
                 <span className="font-semibold">{f.match}</span>: {f.message}

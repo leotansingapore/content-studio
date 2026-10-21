@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, postText, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
+const { THREAD_MIXED, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, schedulePost, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -214,5 +214,19 @@ describe("tracked links in the post", () => {
     expect(postText({ ...d, hook: "" }, brand)).toContain("https://acme.sg/guide?utm_source=linkedin&utm_medium=social&utm_campaign=retirement.");
     expect(postText({ ...d, hook: "", pillarDetail: "" }, brand)).toContain("utm_campaign=post.");
     expect(postText(d, { ...brand, tagLinks: false })).toBe("Read https://acme.sg/guide.\n\nBook a call: https://acme.sg/call");
+  });
+});
+
+describe("a thread", () => {
+  const thread = ["Most people pay for their hospital stay twice.", "First the premium.", "Then the co-pay."];
+  it("is sent with the schedule as it is, its first post as the content", async () => {
+    callFn.mockResolvedValueOnce({ post: { id: "p1" } });
+    await schedulePost("me", { accountIds: ["65000000000000000000a005"], clientKey: "k", content: thread[0], mediaUrls: [], thread });
+    expect(callFn.mock.calls[0][1]).toEqual({ action: "schedule", profileId: "me", accountIds: ["65000000000000000000a005"], clientKey: "k", content: thread[0], mediaUrls: [], thread });
+  });
+  it("is refused beside another network in the panel with the server's own words", () => {
+    const input = { clientKey: "k", content: thread[0], captions: {}, mediaUrls: [], scheduledFor: null, firstComment: "", tiktok: null, youtube: null, thread };
+    expect(platformProblem(input, ["threads", "facebook"])).toBe(THREAD_MIXED);
+    expect(platformProblem(input, ["threads"])).toBeNull();
   });
 });

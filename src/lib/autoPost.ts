@@ -18,7 +18,7 @@ import {
   type PostView,
 } from "../../supabase/functions/social/posts.ts";
 
-export { CAPTION_MAX, NEEDS_MEDIA, YOUTUBE_TITLE_MAX, checkSchedule, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
+export { CAPTION_MAX, NEEDS_MEDIA, THREAD_MIXED, YOUTUBE_TITLE_MAX, checkSchedule, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
 export { MAX_PICTURES, MEDIA_TYPES, type CreatorInfo, type PostView };
 
 // ---- the draft ----
@@ -88,6 +88,8 @@ export interface ScheduleRequest {
   firstComment?: string;
   tiktok?: { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
   youtube?: { title: string; visibility: "public" | "unlisted" | "private" };
+  /** A Threads thread (Leo only): 2 to 10 posts, Threads accounts only; content is its first post. */
+  thread?: string[];
 }
 
 export const schedulePost = (profileId: string, req: ScheduleRequest) =>
