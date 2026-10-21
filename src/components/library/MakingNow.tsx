@@ -1,6 +1,7 @@
 // "Making now" on /library: what is being made right now, each job linking to the page where it runs, and the five
 // newest things made. Jobs live outside React (one module each), so leaving the page never stops one; this only
-// listens. A later job kind adds one mapper in library.ts and one subscription in useLibraryJobs.
+// listens. A later job kind adds one mapper in library.ts and one subscription in useLibraryJobs; a format page
+// sets its job in formatJob.ts and needs neither.
 
 import { useEffect, useId, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";

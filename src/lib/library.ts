@@ -1,6 +1,7 @@
 // Your library (/library, docs/north-star/items/publish-library.md): everything made, from every store, in one
 // list, plus what is still being made. Pure: the page reads the stores and the jobs and hands them in, so every
-// rule here is tested in node. A new job kind adds one mapper below and one subscription in MakingNow.
+// rule here is tested in node. A new job kind adds one mapper below and one subscription in MakingNow; a phase 3
+// format adds neither, since it mirrors its step into formatJob.ts.
 
 import { AI_FOLDER, type ImageJob } from "@/lib/aiImage";
 import type { AiJob } from "@/lib/aiVideo";
