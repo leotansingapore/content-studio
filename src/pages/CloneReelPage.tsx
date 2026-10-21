@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Bookmark,
+  ChevronDown,
   Camera,
   Check,
   Clapperboard,
@@ -30,6 +31,7 @@ import {
   Sparkles,
   Upload,
   Video,
+  Wand2,
   Youtube,
 } from "lucide-react";
 
@@ -78,6 +80,7 @@ import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { fromClone } from "@/lib/remixSource";
+import { MAKE_VIDEO, makeVideoHref, type MakeVideoKind } from "@/lib/scriptCaption";
 import PriceChip from "@/components/PriceChip";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { links } from "@/lib/links";
@@ -809,6 +812,7 @@ function VersionCard({
   building,
   conceptError,
   onOpenInWrite,
+  onMakeVideo,
   onAddToBoard,
   onChooseHook,
   onChooseConcept,
@@ -817,6 +821,8 @@ function VersionCard({
   building: number | null;
   conceptError: string | null;
   onOpenInWrite: () => void;
+  /** Leo only (edit-video): this version saved as a post, then opened where that kind of video is made from it. */
+  onMakeVideo: (kind: MakeVideoKind) => void;
   onAddToBoard: () => void;
   onChooseHook: (index: number) => void;
   onChooseConcept: (index: number) => void;
@@ -937,6 +943,21 @@ function VersionCard({
           >
             <Pencil className="h-4 w-4" /> Open in Write
           </Button>
+          {leo && (
+            <details className="relative">
+              <Button asChild variant="outline" className="w-full cursor-pointer list-none gap-1.5 sm:w-auto [&::-webkit-details-marker]:hidden">
+                <summary>
+                  <Wand2 className="h-4 w-4" /> Make the video <ChevronDown className="h-4 w-4" />
+                </summary>
+              </Button>
+              <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-xl border border-border/70 bg-popover p-1 shadow-elegant">
+                {MAKE_VIDEO.map((m) => (
+                  <button key={m.kind} type="button" onClick={() => onMakeVideo(m.kind)}
+                    className="flex h-11 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-accent focus:bg-accent focus:outline-none sm:h-9">{m.label}</button>
+                ))}
+              </div>
+            </details>
+          )}
           {clone.onBoard ? (
             <Button asChild variant="outline" className="gap-1.5 border-success/40 text-success">
               <Link to="/board">
@@ -1586,6 +1607,14 @@ export default function CloneReelPage() {
     navigate(`/generate?draft=${encodeURIComponent(updated.draftId!)}`);
   };
 
+  // edit-video (Leo only): the version becomes its post first, as Open in Write does, so the video saves back to it
+  const makeVideo = (clone: SavedClone, kind: MakeVideoKind) => {
+    if (!userId) return;
+    const updated = saveCloneDraft(userId, clone, undefined, leo ? fromClone(clone) : undefined);
+    updateClone(updated);
+    navigate(makeVideoHref(kind, updated.draftId!));
+  };
+
   const addToBoard = (clone: SavedClone) => {
     if (!userId) return;
     updateClone(saveCloneDraft(userId, clone, "scripted", leo ? fromClone(clone) : undefined));
@@ -1698,6 +1727,7 @@ export default function CloneReelPage() {
                 building={building?.cloneId === view.clone.id ? building.index : null}
                 conceptError={conceptError?.cloneId === view.clone.id ? conceptError.message : null}
                 onOpenInWrite={() => openInWrite(view.clone)}
+                onMakeVideo={(kind) => makeVideo(view.clone, kind)}
                 onAddToBoard={() => addToBoard(view.clone)}
                 onChooseHook={(i) => chooseHook(view.clone, i)}
                 onChooseConcept={(i) => chooseConcept(view.clone, i)}
