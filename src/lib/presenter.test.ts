@@ -55,7 +55,7 @@ describe("the brand kit's offer", () => {
     expect(offerAt(names, "0")).toBe("Free 14-day trial");
     expect(offerAt(names, "2")).toBe("Sales habits guide");
     // no name there, past the end, not a place, or none at all
-    for (const raw of ["1", "4", "-1", "1.0", "x", "", null]) expect(offerAt(names, raw), String(raw)).toBeNull();
+    for (const raw of ["1", "4", "-1", "2.0", " 2", "0x2", "x", "", null]) expect(offerAt(names, raw), String(raw)).toBeNull();
   });
 
   it("for Spokesperson: the link's, else the brand's last pick, else the first with a name", () => {
