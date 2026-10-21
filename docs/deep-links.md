@@ -389,12 +389,13 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /image | size | Leo only. 4x5, 1x1, 9x16, wide | 4x5 | replace | /image?layout=stat&size=1x1 |
 | /image | source | Leo only. a remix source key (ad:<id>, own:<draft id>, and the other /generate?source= shapes): fills the words once, then removed | none | replace | /image?source=ad%3A2095783381019179 |
 | /image | image | Leo only. a saved design's id: opens it; the address takes it once an edit is kept | none | replace | /image?image=img-mh2k9x01ab |
+| /image | pick | Leo only. media, make: opens the picture picker (your media, or Make one); what a swipe ad's picture shows is kept on the device in cs-image-shows (newest 30), so a second write never reads it again | none | replace | /image?pick=media |
 | /edit | panel | Leo only. own (Your own video or pictures), clips (Long video into clips), one at a time | none | push | /edit?panel=own |
 | /edit | about | Leo only. with panel=own or clips: what it is about, filled once | none | replace | /edit?panel=clips&about=cpf |
 | /edit | len | Leo only. with panel=clips: short, long | auto | replace | /edit?panel=clips&about=cpf&len=short |
 | /edit | yt | Leo only. with panel=clips: a YouTube link, filled into the link field | none | replace | /edit?panel=clips&yt=https%3A%2F%2Fyoutu.be%2FdQw4w9WgXcQ |
 | /edit | #clips | Leo only. with p on a long video: scrolls to its clip list | top | (anchor) | /edit?p=vm1abc2#clips |
-| /edit | talk | Leo only. with kind=avatar: plain, news (News anchor), stage (Stage talk), spokesperson | plain | replace | /edit?panel=ai&kind=avatar&talk=news |
+| /edit | talk | Leo only. with kind=avatar: plain, news (News anchor), stage (Stage talk), spokesperson | the brand's last pick on this device, else plain | replace | /edit?panel=ai&kind=avatar&talk=news |
 | /edit | offer | Leo only. a brand kit offer's place, 0 to 4: Spokesperson's offer, or with template=ugc-creator-review fills "Your product" once, then removed | none | replace | /edit?panel=ai&template=ugc-creator-review&offer=0 |
 | /edit | look | Leo only. with kind=explainer: photo, clay, paper, felt, chalk, comic, cartoon3d, storybook | photo | replace | /edit?panel=ai&kind=explainer&look=clay |
 | /edit | from | Leo only. with kind=explainer: topic, script, link, draft (where the narrated video starts) | topic | replace | /edit?panel=ai&kind=explainer&from=link |
