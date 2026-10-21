@@ -582,7 +582,7 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
   );
 }
 
-function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
+export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   userId: string;
   leo: boolean;
   project: VideoProject;
