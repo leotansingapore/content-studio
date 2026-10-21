@@ -239,10 +239,12 @@ export function layoutImage(input: ImageInput, size: ImageSize, measure: Measure
     const v = field(key);
     return v ? [{ ...o, text: v.text, ...(v.sample ? { fill: o.button ? o.fill : pc.muted, opacity: o.button ? 0.5 : 0.75 } : {}) }] : [];
   };
-  const stack = (blocks: Block[], box: Box, valign: number, centered = center) => {
+  /** Fits and draws blocks in a box; returns the height they took. */
+  const stack = (blocks: Block[], box: Box, valign: number, centered = center): number => {
     const { fitted, overflow: over } = fitStack(blocks, box.w, box.h, measure);
     overflow ||= over;
     placeStack(nodes, fitted, box, centered, valign);
+    return stackHeight(fitted);
   };
 
   const footH = wide ? 64 : 88;
@@ -301,15 +303,13 @@ export function layoutImage(input: ImageInput, size: ImageSize, measure: Measure
     }
     const col = column(part);
     const top = footer(col, { headshot: true, name: brand.name });
+    // the source small at the foot, just above the brand row; what the number means fills the room above it
     const source = field("statSource");
-    stack(
-      [
-        ...block("statLabel", { family: fonts.title, weight: 600, sizes: [64, 58, 52, 46, 42, 38, 34, 30, 27, 24], line: 1.15, fill: pc.ink, gap: 20 }),
-        ...(source ? [{ text: source.sample ? source.text : `Source: ${source.text}`, family: "sans" as const, weight: 400 as const, sizes: [28, 26, 24, 22, 20], line: 1.3, fill: pc.muted, gap: 0, ...(source.sample ? { opacity: 0.75 } : {}) }] : []),
-      ],
-      above(col, top),
-      0,
-    );
+    const room = above(col, top);
+    const cited = source
+      ? stack([{ text: source.sample ? source.text : `Source: ${source.text}`, family: "sans", weight: 400, sizes: [28, 26, 24, 22, 20], line: 1.3, fill: pc.muted, gap: 0, ...(source.sample ? { opacity: 0.75 } : {}) }], { ...room, y: room.y + Math.round(room.h / 2), h: room.h - Math.round(room.h / 2) }, 1)
+      : 0;
+    stack(block("statLabel", { family: fonts.title, weight: 600, sizes: [80, 72, 64, 58, 52, 46, 42, 38, 34, 30, 27, 24], line: 1.15, fill: pc.ink, gap: 0 }), { ...room, h: room.h - cited - (cited ? 24 : 0) }, 0);
   } else {
     // a quote card or a testimonial: big quote marks, the words, then who said them; the brand row at the foot
     const testimonial = input.layout === "testimonial";
