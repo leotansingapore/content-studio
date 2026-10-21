@@ -1517,7 +1517,7 @@ export default function CarouselPage() {
                 <div className={`flex flex-wrap gap-2 ${platform === "linkedin" ? "flex-row-reverse justify-end" : ""}`}>
                   <Button
                     size="sm"
-                    variant={platform === "linkedin" ? "outline" : "default"}
+                    variant={platform === "linkedin" && frame.pdf ? "outline" : "default"}
                     onClick={() => exportSlides(slides.map((_, i) => i))}
                     disabled={exportBusy || busy}
                     className="gap-1.5"
@@ -1525,7 +1525,7 @@ export default function CarouselPage() {
                     <Download className="h-3.5 w-3.5" />
                     {exporting && exporting.total > 1
                       ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
-                      : platform === "linkedin" ? "PNGs" : "Download all"}
+                      : platform === "linkedin" && frame.pdf ? "PNGs" : "Download all"}
                   </Button>
                   {frame.pdf && (
                     <Button
