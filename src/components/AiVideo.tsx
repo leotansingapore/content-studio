@@ -21,7 +21,8 @@ import { getDraftById } from "@/lib/draftHistory";
 import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { BANNER_MAX, MUSIC_LEVEL, moveTake } from "@/lib/videoEdit";
+import { BANNER_MAX, MUSIC_LEVEL, STYLES, defaultSettings, moveTake, withLook } from "@/lib/videoEdit";
+import { defaultSkill, loadSkills } from "@/lib/videoSkills";
 import type { JoinExtra } from "@/lib/videoMedia";
 import {
   EXPLAINER_LOOKS, FROMS, FROM_LABELS, LOOK_IDS, MAX_SCRIPT, SCRIPT_LIMITS, STOCK_TIP, dismissWrite, findStockNow, loadDraft, loadLook, makeNarrated, narratedWrite,
@@ -311,6 +312,7 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
         </div>
       </div>
       {!leo && <p className="text-sm">Costs {cost(clipCredits(seconds, quality))}.</p>}
+      {user && <CaptionsLine userId={user.id} />}
       <div className="flex flex-wrap items-center gap-2">
         <Button className="h-11 sm:h-10" disabled={busy || !ready || clips === 0} onClick={make}>Make the clip</Button>
         <Left n={clips} what="AI clips" feature="ai-clip" opts={{ seconds, quality }} busy={busy} />
@@ -640,6 +642,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
           ) : (
             <p className="text-sm">{secs(vo.seconds)} in {vo.slices.length} {vo.slices.length === 1 ? "part" : "parts"}.{leo ? "" : ` Costs ${cost(credits)}.`}</p>
           )}
+          {user && <CaptionsLine userId={user.id} />}
           {asking && !busy && price && price !== "pick" ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">This makes a video and uses {priceText(price).replace(/^\w/, (c) => c.toLowerCase())} of video credit. Make it?</p>
@@ -1002,6 +1005,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
           </div>
           {aiCount > 0 && <p className="text-xs text-muted-foreground">The people in the AI pictures are made by AI.</p>}
           <p className="text-sm" aria-live="polite">{summaryLine(scenes, total / 2.5, on)}</p>
+          <CaptionsLine userId={userId} />
           {asking && !busy && price && price !== "pick" ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">This makes a video and uses {priceText(price).replace(/^\w/, (c) => c.toLowerCase())} of video credit. Make it?</p>
@@ -1070,6 +1074,12 @@ function FromPost({ draftId, fill, gone, cut, onClear }: { draftId: string | nul
     );
   }
   return gone ? <p className="text-sm text-muted-foreground" role="status">We couldn't find that post. Type the script instead.</p> : null;
+}
+
+/** Leo: the caption look a new video starts with (the default skill's, as the editor's upload uses), as Fastlane shows it. */
+function CaptionsLine({ userId }: { userId: string }) {
+  const s = withLook(defaultSettings("bold"), defaultSkill(loadSkills(userId))?.look);
+  return <p className="text-xs text-muted-foreground">Captions: {s.captions === false ? "off" : STYLES[s.style].label}, saved for every new video.</p>;
 }
 
 function Pill({ on, onClick, disabled, children }: { on: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
