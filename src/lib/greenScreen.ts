@@ -295,7 +295,13 @@ export async function startGreen(userId: string, a: GreenAsk): Promise<void> {
   const params = greenParams(a);
   const fail = (patch: Partial<GreenJob>) => mine(id, { state: "failed", step: "", ...patch });
   const plan = a.behind === "notes" ? listPlan(a, a.source) : null;
-  set({ id, state: plan ? "writing" : a.behind === "notes" ? "drawing" : "joining", step: plan ? WRITING : a.behind === "notes" ? DRAWING : JOINING, params, who: a.who });
+  // the first step shown: a presenter's run is "talking" until its clip is being put together, which opens the editor
+  const first: Pick<GreenJob, "state" | "step"> =
+    plan ? { state: "writing", step: WRITING }
+    : a.behind === "notes" ? { state: "drawing", step: DRAWING }
+    : a.who === "presenter" ? { state: "talking", step: "" }
+    : { state: "joining", step: JOINING };
+  set({ id, ...first, params, who: a.who });
   if (a.who === "presenter" && (talkBusy() || aiBusy() || pendingAvatar())) return fail({ error: OTHER_VIDEO });
 
   let key = a.pick?.key ?? "";

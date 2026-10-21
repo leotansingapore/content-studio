@@ -44,7 +44,7 @@ import { EdgeError } from "./edgeFn";
 import { formatJobs } from "./formatJob";
 import {
   BEHIND_GONE, GREEN_TOAST, LIST_FAILED, LIST_REFUSED, NO_PERSON, OTHER_VIDEO, backdropOf, bdKey, canWriteList, greenCaps, greenExtra, greenJob, greenParams, greenPrice,
-  greenReason, listPlan, loadTyped, noteItems, resumeGreen, saveTyped, startGreen, writeList, type GreenAsk,
+  greenReason, listPlan, loadTyped, noteItems, onGreenJob, resumeGreen, saveTyped, startGreen, writeList, type GreenAsk,
 } from "./greenScreen";
 import { priceOf, sumPrices } from "./prices";
 import type { RemixSource } from "./remixSource";
@@ -227,6 +227,18 @@ describe("an AI presenter", () => {
     expect(joined?.settings?.backdrop?.kind).toBe("picture");
     talk.set({ id: 1, state: "joining", step: "Putting your video together..." });
     expect(greenJob()?.state).toBe("joining");
+    talk.set({ id: 1, state: "done", step: "" });
+    expect(greenJob()?.state).toBe("done");
+  });
+
+  it("stays on this page while the presenter is made, even with nothing to draw first", async () => {
+    const states: string[] = [];
+    const stop = onGreenJob((j) => j && states.push(j.state));
+    await startGreen("u1", { ...P, behind: "picture", pick: { kind: "picture", key: "bd-gs-pic1", name: "p.png" } });
+    stop();
+    // "joining" opens the editor: only the talking head's own join may say it
+    expect(states).toEqual(["talking", "talking"]);
+    expect(order).toEqual(["talk"]);
     talk.set({ id: 1, state: "done", step: "" });
     expect(greenJob()?.state).toBe("done");
   });
