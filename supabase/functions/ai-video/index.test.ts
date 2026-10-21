@@ -740,4 +740,42 @@ describe("the script writers' prompts", () => {
     expect(hf.openai).toHaveLength(TODAY.length);
     await expect(JSON.stringify(prompts(), null, 2)).toMatchFileSnapshot("./fixtures/script-prompts-today.json");
   });
+
+  const NOTES = "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n- Keep doing or avoid: Use Asian presenters";
+  const LINE = "The adviser's standing notes (follow them): ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise): - Keep doing or avoid: Use Asian presenters";
+
+  it("are today's with empty notes, and anyone else's notes are ignored, never refused", async () => {
+    const [first, ...rest] = TODAY;
+    const sent = [[first[0], { ...first[1], notes: NOTES }], ...rest.map(([uid, body]) => [uid, { ...body, notes: "  " }])] as const;
+    for (const [uid, body] of sent) {
+      hf.replies.push(500);
+      expect((await send(uid, body)).status, JSON.stringify(body)).toBe(502);
+    }
+    await expect(JSON.stringify(prompts(), null, 2)).toMatchFileSnapshot("./fixtures/script-prompts-today.json");
+    expect(db.rows.get(`${UID}|ai-video-script|${db.today()}`)).toBe(1);
+  });
+
+  it("print a listed account's notes after the topic, as one line clipped to 600", async () => {
+    for (const [, body] of TODAY.slice(1)) {
+      hf.replies.push(500);
+      await send(LEO, { ...body, notes: NOTES });
+    }
+    const users = prompts().map((m) => m[1].content);
+    expect(users[0]).toBe(`Topic: Why hospital plans have a co-pay\n\n${LINE}`);
+    expect(users[1]).toBe(`${LINE}\n\nScript to split (keep every word): ${SCRIPT}`);
+    expect(users[2]).toBe(`Topic: Why people pay for hospital twice\n\n${LINE}`);
+    expect(users[3]).toBe(`${LINE}\n\nPost to write from (keep its structure, never its words): ${SCRIPT}`);
+    // the system messages are today's
+    const today = (await import("./fixtures/script-prompts-today.json")).default.slice(1);
+    expect(prompts().map((m) => m[0].content)).toEqual(today.map((m: { content: string }[]) => m[0].content));
+
+    hf.openai.length = 0;
+    hf.replies.push(500);
+    await send(LEO, { ...TODAY[3][1], notes: `${"note ".repeat(200)}end` });
+    const line = prompts()[0][1].content.split("\n\n")[1];
+    const notes = line.replace("The adviser's standing notes (follow them): ", "");
+    expect(notes.length).toBeLessThanOrEqual(600);
+    expect(notes.length).toBeGreaterThan(590);
+    expect(notes.endsWith("note…")).toBe(true);
+  });
 });

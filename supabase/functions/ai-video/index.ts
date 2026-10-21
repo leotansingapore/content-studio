@@ -19,6 +19,8 @@
 //        for a listed account, always this shape: 30 or 60 s, from a topic, a pasted script (its words kept) or a read
 //        page, a stock search per scene, Jev's look pick and its MAS answer in one call ("ai-video-script" cap; the use
 //        comes back only when OpenAI never answered). Anyone else's script is today's, and source or seconds is 403.
+//   notes? on script and talk-script (brand-voice-memory): the adviser's facts and standing notes for videos, at most
+//        600 characters, printed after the topic for a listed account; anyone else's are ignored, never refused.
 //   POST {mode:"explainer", pictures, look?} up to 10 pictures, or 1 or 2 beside stock clips; look ignored for anyone else
 //   POST {mode:"move", tokens, look?} -> {tokens: (token | null)[], credits}  DoP lite moves each finished picture
 //        5 s in the look's motion (ai-image/broll.ts); no new use, once per video (claimOnce on its first picture),

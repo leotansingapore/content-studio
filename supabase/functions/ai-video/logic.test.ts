@@ -7,7 +7,7 @@ import {
   CODE_GONE, MAX_CONSENT_WAV, MAX_FACE_PHOTO, NORTH_STAR_MODES, consentTicket, faceToken, notHeard, sha256Hex,
   LOOK_REFUSED, MAX_EXTRA, MAX_LOOK, PRESENTER_PREFS, lookQuestions, presenterLooks, readLookCheck,
   EXPLAINER_LOOKS, LOOK_IDS, MAX_SLICE, NO_POINT, READ_FAILED, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits,
-  keepsWords, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser, northStarOnly, parseVideoRequest, pictureBody,
+  keepsWords, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser, northStarOnly, parseVideoRequest, pictureBody, MAX_NOTES,
   pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, sceneReady, setBody, speakBody, speakSeconds, talkSystem, talkUser,
   validateScript, validateTalk,
 } from "./logic";
@@ -58,6 +58,26 @@ describe("parseVideoRequest", () => {
     expect(parseVideoRequest({ mode: "avatar", photo: { jpeg: JPEG }, slices: [{ wav: "SUQzBAAAAAAA", seconds: 3 }] })).toMatchObject({ ok: false });
     expect(parseVideoRequest({ mode: "avatar", photo: { jpeg: JPEG }, slices: [{ wav: `${WAV}<script>`, seconds: 3 }] })).toMatchObject({ ok: false });
     expect(parseVideoRequest({ mode: "avatar", photo: { url: "http://x.example/a.png" }, slices: [{ wav: WAV, seconds: 3 }] })).toMatchObject({ ok: false });
+  });
+
+  it("keeps a script's or talk script's standing notes as one line clipped to 600, and ignores bad ones", () => {
+    const notes = "ABOUT ME:\n- Keep doing or avoid: Use Asian presenters";
+    expect(parseVideoRequest({ mode: "script", topic: "Why co-pays", notes })).toEqual({ ok: true, request: { mode: "script", topic: "Why co-pays", notes: "ABOUT ME: - Keep doing or avoid: Use Asian presenters" } });
+    expect(parseVideoRequest({ mode: "talk-script", talk: "stage", topic: "Why co-pays", notes })).toMatchObject({ ok: true, request: { notes: "ABOUT ME: - Keep doing or avoid: Use Asian presenters" } });
+    for (const bad of [42, "   ", null, { text: "x" }]) {
+      expect(parseVideoRequest({ mode: "script", topic: "Why co-pays", notes: bad })).toEqual({ ok: true, request: { mode: "script", topic: "Why co-pays" } });
+    }
+    const long = parseVideoRequest({ mode: "script", topic: "Why co-pays", notes: "word ".repeat(300) });
+    const cut = long.ok && long.request.mode === "script" ? long.request.notes ?? "" : "";
+    expect(cut.length).toBeLessThanOrEqual(MAX_NOTES);
+    expect(cut.length).toBeGreaterThan(MAX_NOTES - 10);
+    expect(cut.endsWith("word…")).toBe(true);
+    // notes never make today's explainer a listed-only request
+    expect(northStarOnly(req({ mode: "script", topic: "Why co-pays", notes }))).toBe(false);
+    expect(narratedUser({ topic: "Co-pays", notes: "Use Asian presenters" })).toBe("Topic: Co-pays\n\nThe adviser's standing notes (follow them): Use Asian presenters");
+    expect(talkUser({ topic: "", source: { text: "A post" }, notes: "Use Asian presenters" })).toBe(
+      "The adviser's standing notes (follow them): Use Asian presenters\n\nPost to write from (keep its structure, never its words): A post",
+    );
   });
 
   it("checks topics, looks, scenes and status tokens", () => {
