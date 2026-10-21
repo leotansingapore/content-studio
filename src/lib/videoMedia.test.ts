@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
-import { currentJoin, endJoin, exportAll, exportQueue, handToEditor, pickupPlan, startExport, stopExportQueue, type ExportJob, type JoinExtra, type PickupPath } from "./videoMedia";
+import { currentJoin, endJoin, exportAll, exportQueue, handToEditor, pickupPlan, slidePlan, startExport, stopExportQueue, type ExportJob, type JoinExtra, type PickupPath } from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
 
@@ -129,5 +129,20 @@ describe("pickupPlan", () => {
     const junk = { toast: 5, note: "", caption: "", source: "ad:1", draftId: 7, tab: "nope" } as unknown as JoinExtra;
     expect(pickupPlan(junk, "captions")).toEqual({ keep: {}, toast: null });
     expect(pickupPlan({ tab: "style", toast: "Ready" }, "captions")).toEqual({ keep: {}, toast: { title: "Ready" } });
+  });
+});
+
+describe("slidePlan", () => {
+  it("places each scene on the voiceover's clock, loops a clip shorter than its scene and plays a longer one through", () => {
+    expect(slidePlan([{ seconds: 3 }, { seconds: 4, length: 2.5 }, { seconds: 2, length: 6 }, { seconds: 1.5, length: 1.5 }])).toEqual([
+      { start: 0, end: 3, loop: false },
+      { start: 3, end: 7, loop: true },
+      { start: 7, end: 9, loop: false },
+      { start: 9, end: 10.5, loop: false },
+    ]);
+  });
+
+  it("never loops a clip whose length the browser can't read", () => {
+    expect(slidePlan([{ seconds: 4, length: Infinity }, { seconds: 4, length: NaN }]).map((s) => s.loop)).toEqual([false, false]);
   });
 });

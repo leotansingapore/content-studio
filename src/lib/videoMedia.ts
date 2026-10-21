@@ -1180,7 +1180,7 @@ export async function exportAll(runs: { id: string; run: () => Promise<void>; ch
   }
 }
 
-function pickMime(audioOnly = false): { mime: string; ext: string } {
+export function pickMime(audioOnly = false): { mime: string; ext: string } {
   const options = audioOnly
     ? ([["audio/mp4", "m4a"], ["audio/webm;codecs=opus", "webm"], ["audio/webm", "webm"]] as const)
     : ([["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "mp4"], ["video/mp4", "mp4"], ["video/webm;codecs=vp9,opus", "webm"], ["video/webm", "webm"]] as const);
@@ -1637,21 +1637,35 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
   }
 }
 
+/** Each scene's place on the voiceover's clock; a video scene (its clip `length` long) loops when it is shorter than its seconds, else plays its first seconds. */
+export function slidePlan(scenes: { seconds: number; length?: number }[]): { start: number; end: number; loop: boolean }[] {
+  let at = 0;
+  return scenes.map((s) => ({ start: at, end: (at += s.seconds), loop: s.length !== undefined && s.length < s.seconds }));
+}
+
 /**
  * An explainer: each picture fills a 1080x1920 frame with a slow push in, for its share of one
  * voiceover, recorded in real time as one video (like startJoin) and kept in the same job, so the
- * editor picks it up as an upload. The voiceover's own clock times the pictures.
+ * editor picks it up as an upload. The voiceover's own clock times the pictures. A video scene fills
+ * the frame too, muted, from its start (slidePlan says whether it loops).
  */
-export async function startSlides(name: string, scenes: { image: Blob; seconds: number }[], voice: Blob, label: string) {
+export async function startSlides(name: string, scenes: (({ image: Blob } | { video: Blob }) & { seconds: number })[], voice: Blob, label: string, opts?: { extra?: JoinExtra }) {
   if (joinJob?.state === "running") throw new Error("Another video is being put together.");
   joinJob = { progress: 0, state: "running", label };
   emitJoin();
   let actx: AudioContext | null = null;
-  const pics: ImageBitmap[] = [];
+  const pics: (ImageBitmap | HTMLVideoElement)[] = [];
+  const isVideo = (p: ImageBitmap | HTMLVideoElement): p is HTMLVideoElement => "videoWidth" in p;
   try {
     const avc3 = "video/mp4;codecs=avc3.42E01E,mp4a.40.2";
     const { mime, ext } = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(avc3) ? { mime: avc3, ext: "mp4" } : pickMime();
-    for (const s of scenes) pics.push(await createImageBitmap(s.image));
+    for (const s of scenes) {
+      if ("video" in s) {
+        const v = await loadVideo(s.video);
+        v.muted = true;
+        pics.push(v);
+      } else pics.push(await createImageBitmap(s.image));
+    }
     const W = 1080;
     const H = 1920;
     const canvas = document.createElement("canvas");
@@ -1666,14 +1680,31 @@ export async function startSlides(name: string, scenes: { image: Blob; seconds: 
     src.buffer = sound;
     src.connect(dest);
     const total = sound.duration;
-    let at = 0;
-    const ends = scenes.map((s) => (at += s.seconds));
-    const draw = (t: number) => {
-      let i = ends.findIndex((e) => t < e);
-      if (i < 0) i = pics.length - 1;
-      const start = i ? ends[i - 1] : 0;
-      const zoom = 1 + 0.08 * Math.min(1, Math.max(0, (t - start) / Math.max(0.1, ends[i] - start)));
+    const plan = slidePlan(scenes.map((s, i) => { const p = pics[i]; return { seconds: s.seconds, ...(isVideo(p) ? { length: p.duration } : {}) }; }));
+    // the scene on screen: a video one starts from 0 as it comes on, and the one before it stops
+    let showing = -1;
+    const show = (i: number): Promise<void> => {
+      if (i === showing) return Promise.resolve();
+      const was = pics[showing];
+      if (was && isVideo(was)) was.pause();
+      showing = i;
       const p = pics[i];
+      if (!isVideo(p)) return Promise.resolve();
+      p.loop = plan[i].loop;
+      p.currentTime = 0;
+      return p.play().catch(() => {});
+    };
+    const draw = (t: number) => {
+      let i = plan.findIndex((s) => t < s.end);
+      if (i < 0) i = pics.length - 1;
+      void show(i);
+      const p = pics[i];
+      if (isVideo(p)) {
+        const k = Math.max(W / p.videoWidth, H / p.videoHeight);
+        return g.drawImage(p, (W - p.videoWidth * k) / 2, (H - p.videoHeight * k) / 2, p.videoWidth * k, p.videoHeight * k);
+      }
+      const { start, end } = plan[i];
+      const zoom = 1 + 0.08 * Math.min(1, Math.max(0, (t - start) / Math.max(0.1, end - start)));
       const k = Math.max(W / p.width, H / p.height) * zoom;
       g.drawImage(p, (W - p.width * k) / 2, (H - p.height * k) / 2, p.width * k, p.height * k);
     };
@@ -1681,6 +1712,8 @@ export async function startSlides(name: string, scenes: { image: Blob; seconds: 
     const chunks: Blob[] = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
+    // a first scene that is a video is playing (so it has a frame) before the recording starts
+    await show(0);
     draw(0);
     rec.start(1000);
     const t0 = actx.currentTime;
@@ -1698,11 +1731,17 @@ export async function startSlides(name: string, scenes: { image: Blob; seconds: 
     });
     rec.stop();
     await stopped;
-    joinJob = { progress: 1, state: "done", label, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
+    joinJob = { progress: 1, state: "done", label, extra: opts?.extra, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
   } catch (e) {
     joinJob = { progress: 0, state: "failed", label, error: e instanceof Error ? e.message : String(e) };
   } finally {
-    pics.forEach((p) => p.close());
+    for (const p of pics) {
+      if (!isVideo(p)) p.close();
+      else {
+        p.pause();
+        URL.revokeObjectURL(p.src);
+      }
+    }
     void actx?.close();
     emitJoin();
   }
