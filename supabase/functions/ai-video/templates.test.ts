@@ -138,6 +138,12 @@ describe("the Seedance request", () => {
       body: { prompt: "p", duration: 4, resolution: "480p", generate_audio: true, image_url: "https://a/me.jpg" },
     });
   });
+
+  it("asks for no audio track for a silent template, on every route (wave 1 live check: the scene asked for audio)", () => {
+    expect(seedanceRequest("p", 8, "480p", null, true).body).toEqual({ prompt: "p", duration: 8, resolution: "480p", aspect_ratio: "9:16", generate_audio: false });
+    expect(seedanceRequest("p", 4, "480p", { role: "person", url: "https://a/me.jpg" }, true).body).toMatchObject({ generate_audio: false });
+    expect(seedanceRequest("p", 4, "480p", null, undefined).body).toMatchObject({ generate_audio: true });
+  });
 });
 
 describe("the prompt writer", () => {

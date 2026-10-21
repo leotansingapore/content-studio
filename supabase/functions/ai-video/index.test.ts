@@ -135,6 +135,7 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     expect((await send(UID, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "office" })).status).toBe(200);
     expect([used(UID, "ai-clip"), used(UID, "ai-image")]).toEqual([1, 1]);
     expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
+    expect(hf.bodies[0]).toMatchObject({ generate_audio: true });
   });
 
   it("make a silent scene and a presenter in a parked car for a listed account", async () => {
@@ -143,7 +144,7 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     expect(await res.json()).toMatchObject({ credits: 26.3, tokens: [expect.any(String)] });
     expect(used(LEO, "ai-clip")).toBe(1);
     expect(hf.openai[0].messages[0].content).toContain("Nobody speaks. Ambient room or street sound only.");
-    expect(hf.bodies.at(-1)).toMatchObject({ duration: 8, resolution: "480p", aspect_ratio: "9:16" });
+    expect(hf.bodies.at(-1)).toMatchObject({ duration: 8, resolution: "480p", aspect_ratio: "9:16", generate_audio: false });
 
     expect((await send(LEO, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "car" })).status).toBe(200);
     expect(String(hf.bodies.at(-1)!.prompt)).toContain("Sitting in the driver's seat of a parked car in daylight");

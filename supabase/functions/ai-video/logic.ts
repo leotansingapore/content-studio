@@ -256,11 +256,16 @@ export function pictureBody(picture: string): Record<string, unknown> {
   return { prompt: `${picture}\n\n${PEOPLE_RULE}`, aspect_ratio: "9:16", resolution: "1080p", batch_size: 1 };
 }
 
-/** The Seedance request for a template clip, by its photo (uploaded, so a link): none, a product or a person. */
+/**
+ * The Seedance request for a template clip, by its photo (uploaded, so a link): none, a product or a person. A silent
+ * template asks for no audio track: generate_audio is a documented boolean (default true) on all three routes
+ * (docs.higgsfield.ai/docs/models/seedance-2-5, read 21 Oct); before, "Nobody speaks" in the prompt was all that
+ * kept a voice off the track (wave 1 live check). Its price is unchanged here: /estimate wasn't read with audio off.
+ */
 export function seedanceRequest(
-  prompt: string, seconds: ClipSeconds, quality: ClipQuality, photo: { role: PhotoRole; url: string } | null,
+  prompt: string, seconds: ClipSeconds, quality: ClipQuality, photo: { role: PhotoRole; url: string } | null, silent = false,
 ): { model: string; body: Record<string, unknown> } {
-  const body = { prompt, duration: seconds, resolution: quality, generate_audio: true };
+  const body = { prompt, duration: seconds, resolution: quality, generate_audio: !silent };
   // image to video has no aspect_ratio (its schema refuses extra fields): the frame follows the photo, cut to 9:16 by the browser
   if (photo?.role === "person") return { model: SEEDANCE_FRAME, body: { ...body, image_url: photo.url } };
   const vertical = { ...body, aspect_ratio: "9:16" };
