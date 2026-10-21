@@ -53,9 +53,9 @@ export default function FaceTab({ userId }: { userId: string }) {
 
   useEffect(() => onFaceChanged(() => setFace(faceRecord(userId))), [userId]);
 
-  // the recorder: the camera and a fresh code together, while ?record=1 is open (and no check is waiting on a take)
+  // the recorder: the camera and a fresh code together, while ?record=1 is open (and no check holds a take or just saved)
   useEffect(() => {
-    const waiting = ["checking", "failed", "refused"].includes(checkState().state);
+    const waiting = ["checking", "failed", "refused", "done"].includes(checkState().state);
     if (!record || waiting) return;
     let live = true;
     setStep({ s: "starting" });
@@ -91,7 +91,8 @@ export default function FaceTab({ userId }: { userId: string }) {
 
   // a check that finished, here or while the page was closed: say so once and close the recorder
   useEffect(() => {
-    if (check.state !== "done") return;
+    // read live, not from this render: the store moves on once this has run
+    if (checkState().state !== "done") return;
     toast({ title: "Your face is saved." });
     setFace(faceRecord(userId));
     if (record) setRecord(false);
