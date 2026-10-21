@@ -103,6 +103,7 @@ import { getFile } from "@/lib/deviceFiles";
 import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
 import SlideFields, { SlideRewrite, WARN_BOX, useRewriting } from "@/components/carousel/SlideFields";
+import CarouselVersions from "@/components/carousel/CarouselVersions";
 import { emptyHistory, newTypingStep, record, redo, undo } from "@/lib/carouselHistory";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -1574,6 +1575,13 @@ export default function CarouselPage() {
                         : ""}
                   </span>
                 </div>
+                {/* north star phase 4: this carousel in other languages, the same carousel keep() saves */}
+                {leo && userId && carouselId && (
+                  <CarouselVersions
+                    userId={userId}
+                    carousel={{ id: carouselId, title: fileBase || "Carousel", platform, slides, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper, ...(design !== "clean" ? { design } : {}), ...(size !== "4x5" ? { size } : {}) }}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

@@ -45,6 +45,11 @@ import { setPlatformGoal } from "@/lib/goals";
 import { timeLabel } from "@/lib/dueDates";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import WebsiteSection from "@/components/brand/WebsiteSection";
+import ProductsSection from "@/components/brand/ProductsSection";
+import DemoVideosSection from "@/components/brand/DemoVideosSection";
+import LanguageSection from "@/components/brand/LanguageSection";
 
 /** Reads an image file into a small data URL: a centred square for the photo, a fitted box for the logo. */
 async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> {
@@ -164,6 +169,8 @@ export default function BrandPage() {
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef(0);
   const measure = useMemo(() => createCanvasMeasure(), []);
+  // north star phase 4: Leo's sections, each saving through update() (phase4-build-brief.md, decision 14)
+  const leo = useLeoUser();
   // /brand#logo (and the other section ids, docs/deep-links.md) lands on that section once the kit has loaded
   useScrollToHash(ready);
 
@@ -250,6 +257,7 @@ export default function BrandPage() {
       {ready && (
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         <div className="min-w-0 space-y-6">
+          {leo && userId && <WebsiteSection userId={userId} brand={brand} setBrand={update} />}
           <section id="you" className="scroll-mt-20 space-y-4 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">You</h2>
             <div className="flex items-center gap-4">
@@ -353,6 +361,8 @@ export default function BrandPage() {
               </Button>
             )}
           </section>
+          {leo && userId && <ProductsSection userId={userId} brand={brand} setBrand={update} />}
+          {leo && userId && <DemoVideosSection userId={userId} brand={brand} setBrand={update} />}
 
           <section id="emoji-and-hashtags" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
             <div className="flex items-center gap-1">
@@ -543,6 +553,7 @@ export default function BrandPage() {
               </div>
             )}
           </section>
+          {leo && userId && <LanguageSection userId={userId} brand={brand} setBrand={update} />}
 
           <section id="logo" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">Logo</h2>
