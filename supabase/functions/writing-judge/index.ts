@@ -20,6 +20,11 @@
 //     the sentences (split in code) that state a checkable CPF, SRS, HDB,
 //     MediShield Life, insurance, scheme, rate or cap fact, flagged to check
 //     before posting. About 230 tokens a sentence. Counts against "fact-check".
+//   mode "thread" {post} -> {yes: number | null}
+//     Jev's yes that a finished post reads better on Threads as a chain of
+//     short posts (Write shows "Reads well as a thread" at THREAD_YES). Leo
+//     only: NORTH_STAR_USERS, 403 not_enabled before any count. The use goes
+//     back when Jev never answered. About 150 tokens.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -29,7 +34,8 @@
 // Logic: ./logic.ts (tested). Jev: ../_shared/jev.ts. Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { isAllowed } from "../market/logic.ts";
 import { askJev } from "../_shared/jev.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
 import {
@@ -55,6 +61,8 @@ import {
   readHookPick,
   readHuman,
   readIdeaThin,
+  readThreadYes,
+  THREAD_QUESTIONS,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -80,6 +88,7 @@ Deno.serve(async (req) => {
       : r.mode === "idea" ? `${r.topic}\n${r.notes}`
       : r.mode === "profile" ? [r.name, r.bio, ...r.pinned].join("\n")
       : r.mode === "carousel" ? r.idea
+      : r.mode === "thread" ? r.post
       : r.text;
     // an empty profile has nothing to read and scores 0 on its own
     const empty = r.mode === "profile" && !/\p{L}/u.test(english);
@@ -90,17 +99,30 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to check a post." }, 401);
+    if (r.mode === "thread" && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+      return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+    }
 
     if (!Deno.env.get("TYPESAFE_API_KEY")) {
       console.error("TYPESAFE_API_KEY is not set");
       return json({ error: UNAVAILABLE }, 503);
     }
+    const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
     const usage = await consumeUsage(admin, uid, r.mode === "profile" ? "profile-score" : r.mode === "facts" ? "fact-check" : "writing-judge");
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
     }
 
+    if (r.mode === "thread") {
+      const answers = await askJev({ post: r.post }, THREAD_QUESTIONS, { who: "writing-judge thread" });
+      if (!answers) {
+        // Jev never answered: the use goes back (phase 3 decision 3)
+        await refundUsage(admin, uid, "writing-judge", day);
+        return json({ error: UNAVAILABLE }, 503);
+      }
+      return json({ yes: readThreadYes(answers) });
+    }
     if (r.mode === "profile") {
       const answers = await askJev(profileState(r), profileQuestions(r), { who: "writing-judge profile" });
       const scored = composeProfile(answers, r);

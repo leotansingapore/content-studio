@@ -30,6 +30,9 @@ import {
   parseJudgeRequest,
   readHuman,
   splitSentences,
+  THREAD_QUESTIONS,
+  THREAD_YES,
+  readThreadYes,
 } from "./logic";
 
 const post = "My client paid $0 for his ward stay.\nHis colleague paid $11,400.\n\nThe result? One rider at 3.5% of his premium. Thoughts?";
@@ -264,5 +267,29 @@ describe("the stated-facts check", () => {
     expect(readFacts({ fact_0: n(FACT_MIN - 0.01), fact_1: n(FACT_MIN), fact_2: n(0.03) }, sentences)).toEqual(["It pays 4% a year."]);
     expect(readFacts({}, sentences)).toEqual([]);
     expect(readFacts(null, sentences)).toBeNull();
+  });
+});
+
+describe("the reads-well-as-a-thread check", () => {
+  const post = "Three things to check on your hospital plan before you renew it this year.";
+  it("takes a post of 40 to 5,000 characters", () => {
+    expect(parseJudgeRequest({ mode: "thread", post: ` ${post} ` })).toEqual({ ok: true, request: { mode: "thread", post } });
+    expect(parseJudgeRequest({ mode: "thread", post: "Too short to judge." })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "thread", post: "a".repeat(5001) })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "thread", text: post })).toMatchObject({ ok: false });
+  });
+  it("asks Jev the spec's question as a noul", () => {
+    expect(THREAD_QUESTIONS.thread.type).toBe("noul");
+    expect(THREAD_QUESTIONS.thread.instructions).toBe(
+      "This is a social media post by a Singapore financial adviser. Would it read better on Threads as a chain of 3 to 8 short posts than as one post? Yes when it has several separate points, steps or examples that each stand on their own; no when it is one short thought or one story that needs to be read in one piece.",
+    );
+    expect(THREAD_YES).toBe(0.6);
+  });
+  it("reads Jev's yes, and null when there is no answer, so no tag shows", () => {
+    expect(readThreadYes({ thread: { type: "noul", noul: 0.72 } })).toBe(0.72);
+    expect(readThreadYes({ thread: { type: "noul", noul: 1.2 } })).toBe(1);
+    expect(readThreadYes({ thread: { type: "noul" } })).toBeNull();
+    expect(readThreadYes({})).toBeNull();
+    expect(readThreadYes(null)).toBeNull();
   });
 });

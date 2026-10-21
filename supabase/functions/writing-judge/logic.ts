@@ -23,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -45,6 +45,7 @@ export type JudgeRequest =
   | { mode: "idea"; topic: string; notes: string; kind: string }
   | { mode: "carousel"; idea: string }
   | { mode: "facts"; text: string }
+  | { mode: "thread"; post: string }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -69,6 +70,12 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
         link: b.link === null || b.link === undefined ? null : str(b.link, 300),
       },
     };
+  }
+  if (mode === "thread") {
+    const post = typeof b.post === "string" ? b.post.trim() : "";
+    if (post.length < MIN_TEXT) return { ok: false, error: "Write a bit more before checking it." };
+    if (post.length > MAX_TEXT) return { ok: false, error: `Checks read posts up to ${MAX_TEXT.toLocaleString("en-US")} characters.` };
+    return { ok: true, request: { mode, post } };
   }
   if (mode === "facts") {
     const text = str(b.text, MAX_TEXT);
@@ -490,6 +497,34 @@ export const CAROUSEL_QUESTIONS: Record<string, JevQuestion> = {
 export function readTextPostBetter(answers: Record<string, JevAnswer> | null): boolean | null {
   const p = answers?.sequence?.noul;
   return typeof p === "number" && Number.isFinite(p) ? p < SEQUENCE_MIN : null;
+}
+
+// ---- Mode "thread" (formats-text-threads, Leo only) ---------------------------
+// Whether a finished post would read better on Threads as a chain of short
+// posts. A hint beside "Make it a thread" only: the button is always there.
+
+/**
+ * p(it reads better as a thread) at or above this shows "Reads well as a thread". Proposed (phase 3 decision 11),
+ * not yet set from a shadow run: the integrator reads Leo's last 50 text posts and every answer within 0.15 of it.
+ */
+export const THREAD_YES = 0.6;
+
+export const THREAD_QUESTIONS: Record<string, JevQuestion> = {
+  thread: {
+    type: "noul",
+    instructions:
+      "This is a social media post by a Singapore financial adviser. Would it read better on Threads as a chain of 3 to 8 short posts than as one post? Yes when it has several separate points, steps or examples that each stand on their own; no when it is one short thought or one story that needs to be read in one piece.",
+    criteria: {
+      true: "Several separate points, steps or examples that each stand on their own.",
+      false: "One short thought, or one story that needs to be read in one piece.",
+    },
+  },
+};
+
+/** Jev's yes for "reads better as a thread", or null without an answer (no tag). */
+export function readThreadYes(answers: Record<string, JevAnswer> | null): number | null {
+  const p = answers?.thread?.noul;
+  return typeof p === "number" && Number.isFinite(p) ? Math.min(1, Math.max(0, p)) : null;
 }
 
 // ---- Mode "facts" -----------------------------------------------------------
