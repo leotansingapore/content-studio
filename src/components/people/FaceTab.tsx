@@ -93,9 +93,13 @@ export default function FaceTab({ userId }: { userId: string }) {
   useEffect(() => {
     // read live, not from this render: the store moves on once this has run
     if (checkState().state !== "done") return;
+    // the recorder closes first, so no run of the recorder above sees ?record=1 with the check already cleared
+    if (record) {
+      setRecord(false);
+      return;
+    }
     toast({ title: "Your face is saved." });
     setFace(faceRecord(userId));
-    if (record) setRecord(false);
     resetCheck();
   }, [check, record, setRecord, toast, userId]);
 
