@@ -65,6 +65,8 @@ class JobFailed extends Error {}
 
 /** Polls until every job is done; the links in order. With the start's refund ticket, a failed job gives the use back. */
 async function waitFor(tokens: string[], progress: (done: number) => void, refund?: string): Promise<string[]> {
+  // the most parts seen done: one status check can answer behind the last, and the count never steps back
+  let most = 0;
   for (const until = Date.now() + GIVE_UP_MS; Date.now() < until; ) {
     await sleep(POLL_MS);
     // a dropped status check is retried on the next round, not a failure
@@ -74,7 +76,7 @@ async function waitFor(tokens: string[], progress: (done: number) => void, refun
     if (bad?.state === "failed") throw new JobFailed(bad.error);
     const urls = r.jobs.flatMap((j) => (j.state === "done" ? [j.url] : []));
     if (urls.length === tokens.length) return urls;
-    progress(urls.length);
+    progress((most = Math.max(most, urls.length)));
   }
   // not a JobFailed: Higgsfield hasn't failed it, so the paid job is kept for Try again at no cost
   throw new Error("It's taking too long. Try again later.");

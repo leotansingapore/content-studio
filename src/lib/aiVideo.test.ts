@@ -6,7 +6,7 @@ vi.mock("@/lib/textVoice", () => ({ audioSeconds: vi.fn(async () => 30), speak: 
 
 import { callFn } from "@/lib/edgeFn";
 import { currentJoin, getFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
-import { DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, pendingAvatar, resumeAvatar } from "./aiVideo";
+import { DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar } from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
 type Body = { mode: string; refund?: string };
@@ -72,6 +72,35 @@ describe("a template clip that has been paid for", () => {
     expect(aiJob()).toMatchObject({ state: "failed", error: "It was made but didn't download. Try again." });
     expect(pendingAvatar()).toMatchObject({ tokens: ["t1"] });
     expect(startJoin).not.toHaveBeenCalled();
+  });
+});
+
+describe("the parts counter while a video is made", () => {
+  it("shows the most parts seen done, never stepping back when a status check answers behind the last", async () => {
+    // wave 2's live check: 1 of 2, then 0 of 2, then 1 of 2
+    const done = { state: "done", url: "https://cdn.example/v.mp4" };
+    const working = { state: "working" };
+    const answers = [[done, working], [working, working], [done, working], [working, done], [done, done]];
+    let n = 0;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      if ((body as Body).mode === "avatar") return { tokens: ["t1", "t2"], refund: "ticket" };
+      return { jobs: answers[Math.min(n++, answers.length - 1)] };
+    });
+    vi.stubGlobal("FileReader", class {
+      result = "data:audio/wav;base64,AAAA";
+      onload: () => void = () => {};
+      readAsDataURL() { this.onload(); }
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["clip"]) })));
+    const steps: string[] = [];
+    const off = onAiJob((j) => j?.step && steps.push(j.step));
+    const run = makeAvatar("Talking head", "https://cdn.example/face.jpg", { pcm: new Float32Array(24000), seconds: 2, slices: [{ start: 0, end: 1 }, { start: 1, end: 2 }] });
+    await vi.advanceTimersByTimeAsync(26_000);
+    await run;
+    off();
+    const counts = steps.flatMap((s) => /Making your video, (\d) of 2/.exec(s)?.[1] ?? []).map(Number);
+    expect(counts).toEqual([0, 1, 1, 1, 1]);
+    expect(aiJob()).toMatchObject({ kind: "avatar", state: "done" });
   });
 });
 
