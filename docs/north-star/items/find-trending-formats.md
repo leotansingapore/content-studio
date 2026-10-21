@@ -1,6 +1,6 @@
 # Trending formats and templates
 
-`find-trending-formats` | find | phase 3 | status: partial | /north-star#find-trending-formats
+`find-trending-formats` | find | phase 3 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#find-trending-formats
 
 ## Leo asked
 

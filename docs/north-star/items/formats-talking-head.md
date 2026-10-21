@@ -1,6 +1,6 @@
 # Talking head UGC
 
-`formats-talking-head` | formats | phase 3 | status: partial | /north-star#formats-talking-head
+`formats-talking-head` | formats | phase 3 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#formats-talking-head
 
 ## Leo asked
 

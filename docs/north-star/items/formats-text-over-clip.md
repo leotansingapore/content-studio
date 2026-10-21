@@ -1,6 +1,6 @@
 # Your text over a generated clip
 
-`formats-text-over-clip` | formats | phase 3 | status: partial | /north-star#formats-text-over-clip
+`formats-text-over-clip` | formats | phase 3 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#formats-text-over-clip
 
 ## Leo asked
 
