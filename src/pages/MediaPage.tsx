@@ -209,8 +209,8 @@ export default function MediaPage() {
       ) : (
         <p className="text-xs text-muted-foreground">Photos stay on this device. Use them on carousel slides with From media.</p>
       )}
-      {view === "sets" && userId ? (
-        <SetsView userId={userId} sets={counted} urls={urls} onChange={reload} />
+      {view === "sets" ? (
+        userId && <SetsView userId={userId} sets={counted} urls={urls} onChange={reload} />
       ) : (
       <>
       {stock && <StockSearch kind="photo" placeholder="Family dinner, office, Singapore skyline" onPick={addStock} onClose={() => setStock(false)} />}

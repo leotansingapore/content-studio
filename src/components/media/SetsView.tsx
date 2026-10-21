@@ -115,7 +115,7 @@ export default function SetsView(p: { userId: string; sets: SetWith[]; urls: Rec
       {starters && <StarterSheet userId={p.userId} sets={p.sets} onClose={() => setStarters(false)} />}
 
       {p.sets.length === 0 ? (
-        <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
+        !starters && <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
           <p className="text-sm text-muted-foreground">No sets yet. Add starter sets, or make one from your photos.</p>
         </div>
       ) : (
