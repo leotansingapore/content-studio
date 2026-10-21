@@ -150,6 +150,16 @@ export default function ThreadPanel({
     const t = setTimeout(() => saveThread(userId, draft.id, { network, posts }), 500);
     return () => clearTimeout(t);
   }, [posts, network, userId, draft.id]);
+  // ...and at once when the panel closes, so a last edit still reaches the draft
+  const latest = useRef({ network, posts });
+  latest.current = { network, posts };
+  useEffect(
+    () => () => {
+      if (dirty.current) saveThread(userId, draft.id, latest.current);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   // each box as tall as its post, so nothing hides behind a scroll
   useLayoutEffect(() => {
