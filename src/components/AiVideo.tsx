@@ -225,6 +225,10 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
     if (name) setFields((f) => ({ ...f, product: name }));
     update({ offer: null });
   }, [user, offerParam, templateId, update]);
+  // Leo is asked before a clip over about US$1 (8 s at 720p is US$3.70), as You speaking and Narrated video ask
+  const [asking, setAsking] = useState(false);
+  const clipPrice = priceOf("ai-clip", { seconds, quality });
+  const askFirst = leo && !!clipPrice && clipPrice !== "pick" && clipPrice.usd >= 1;
 
   if (!pick) {
     return (
@@ -313,10 +317,20 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
       </div>
       {!leo && <p className="text-sm">Costs {cost(clipCredits(seconds, quality))}.</p>}
       {user && <CaptionsLine userId={user.id} />}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button className="h-11 sm:h-10" disabled={busy || !ready || clips === 0} onClick={make}>Make the clip</Button>
-        <Left n={clips} what="AI clips" feature="ai-clip" opts={{ seconds, quality }} busy={busy} />
-      </div>
+      {asking && !busy && clipPrice && clipPrice !== "pick" ? (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">This makes a clip and uses {priceText(clipPrice).replace(/^\w/, (c) => c.toLowerCase())} of video credit. Make it?</p>
+          <div className="flex items-center gap-2">
+            <Button className="h-11 sm:h-10" onClick={() => { setAsking(false); make(); }}>Make it</Button>
+            <Button variant="ghost" className="h-11 text-muted-foreground sm:h-10" onClick={() => setAsking(false)}>Not now</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button className="h-11 sm:h-10" disabled={busy || !ready || clips === 0} onClick={() => (askFirst ? setAsking(true) : make())}>Make the clip</Button>
+          <Left n={clips} what="AI clips" feature="ai-clip" opts={{ seconds, quality }} busy={busy} />
+        </div>
+      )}
     </div>
   );
 }
