@@ -4,6 +4,8 @@ import {
   MAX_SLIDES,
   WORDS_PER_SLIDE,
   addSlide,
+  duplicateSlide,
+  restoreSlide,
   applyCopy,
   recapFits,
   withRecap,
@@ -510,5 +512,40 @@ describe("generated carousels keep their own slides", () => {
   it("drops quote marks that wrap a whole title, not ones inside it", async () => {
     expect(toSlideText("“Move #1: Top up early”\nBody text here.").title).toBe("Move #1: Top up early");
     expect(toSlideText("Myth #1: “I can’t touch my CPF”\nBody.").title).toBe("Myth #1: “I can’t touch my CPF”");
+  });
+});
+
+describe("duplicateSlide and restoreSlide", () => {
+  const a = { id: "a", title: "Cover", body: "" };
+  const b = { id: "b", title: "Point", body: "Text", image: "cimg-abcdef" };
+  const r = { id: "r", title: "Recap", body: "• one", recap: true as const };
+  const c = { id: "c", title: "DM me", body: "" };
+
+  it("copies a slide right after it with a new id, picture kept, never a second recap", () => {
+    const out = duplicateSlide([a, b, c], 1);
+    expect(out.map((s) => s.id).slice(0, 2)).toEqual(["a", "b"]);
+    expect(out[2]).toEqual({ ...b, id: out[2].id });
+    expect(out[2].id).not.toBe("b");
+    expect(out[3]).toBe(c);
+    const recap = duplicateSlide([a, r, c], 1);
+    expect(recap[2].recap).toBeUndefined();
+    expect(recap.filter((s) => s.recap)).toHaveLength(1);
+  });
+
+  it("refuses at 10 slides and for a slide that isn't there", () => {
+    const ten = Array.from({ length: MAX_SLIDES }, (_, i) => ({ id: `s${i}`, title: `S${i}`, body: "" }));
+    expect(duplicateSlide(ten, 3)).toBe(ten);
+    const three = [a, b, c];
+    expect(duplicateSlide(three, 3)).toBe(three);
+    expect(duplicateSlide(three, -1)).toBe(three);
+  });
+
+  it("puts a deleted slide back in its place with its picture, once", () => {
+    expect(restoreSlide([a, c], 1, b)).toEqual([a, b, c]);
+    expect(restoreSlide([a, c], 9, b)).toEqual([a, c, b]);
+    const back = [a, b, c];
+    expect(restoreSlide(back, 1, b)).toBe(back);
+    const ten = Array.from({ length: MAX_SLIDES }, (_, i) => ({ id: `s${i}`, title: `S${i}`, body: "" }));
+    expect(restoreSlide(ten, 1, b)).toBe(ten);
   });
 });

@@ -532,6 +532,23 @@ export function addSlide(slides: Slide[], slide: Slide): Slide[] {
   return next;
 }
 
+/** A copy of slide `index` with a new id, right after it (never a second recap). Full or a bad index: unchanged. */
+export function duplicateSlide(slides: Slide[], index: number): Slide[] {
+  if (slides.length >= MAX_SLIDES || index < 0 || index >= slides.length) return slides;
+  const { recap: _, ...copy } = slides[index];
+  const next = slides.slice();
+  next.splice(index + 1, 0, { ...copy, id: newSlideId() });
+  return next;
+}
+
+/** A deleted slide back where it was (or at the end), picture and all; unchanged when it is there or the carousel is full. */
+export function restoreSlide(slides: Slide[], index: number, slide: Slide): Slide[] {
+  if (slides.length >= MAX_SLIDES || slides.some((s) => s.id === slide.id)) return slides;
+  const next = slides.slice();
+  next.splice(Math.min(Math.max(0, index), slides.length), 0, slide);
+  return next;
+}
+
 /** A recap is worth a slide from two points up (cover, 2 points, CTA), with room for one more. Slides without the recap. */
 export const recapFits = (slides: Slide[]) => slides.length >= 4 && slides.length < MAX_SLIDES;
 
