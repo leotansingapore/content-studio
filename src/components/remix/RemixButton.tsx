@@ -58,7 +58,8 @@ export default function RemixButton({
   };
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1", className)}>
-      <Button type="button" variant="outline" size={size} onClick={open} disabled={opening} aria-label={label && `Remix: ${label}`} className={cn("gap-1.5", className)}>
+      {/* never narrower than its own label, so the Remixed tag wraps under it instead of sitting on it (a min-w-0 slot) */}
+      <Button type="button" variant="outline" size={size} onClick={open} disabled={opening} aria-label={label && `Remix: ${label}`} className={cn("gap-1.5", className, "min-w-fit")}>
         <Shuffle className="h-3.5 w-3.5" />
         {opening && !up ? "Opening..." : "Remix"}
       </Button>
