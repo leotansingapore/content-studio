@@ -1,21 +1,29 @@
 // Carousel maker (/carousel): turns a finished post into branded Instagram /
 // LinkedIn slides and downloads them as 1080x1350 PNGs. Text splitting is in
 // src/lib/carousel.ts, drawing in carouselLayout.ts / carouselRender.ts, and
-// "Tighten with AI" calls the carousel-copy edge function (carouselCopy.ts).
+// "Tighten with AI" calls the carousel-copy edge function (carouselCopy.ts). Leo also gets one slide at a time
+// (?view=one&slide=), Rewrite this slide (SlideFields.tsx), Duplicate, and Undo and Redo for every slide change
+// (carouselHistory.ts).
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import {
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
   ArrowUp,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardPaste,
+  Copy,
   Download,
   FileText,
   GalleryHorizontalEnd,
   Pencil,
   Plus,
+  Redo2,
   RotateCcw,
   Sparkles,
   Trash2,
@@ -58,6 +66,7 @@ import {
   MIN_SLIDES,
   addSlide,
   applyCopy,
+  duplicateSlide,
   draftLabel,
   draftsWithText,
   draftToOpen,
@@ -68,6 +77,7 @@ import {
   normalizeHex,
   recapFits,
   removeSlide,
+  restoreSlide,
   saveBrand,
   slideFileName,
   loadCarousels,
@@ -92,7 +102,8 @@ import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
-import SlideFields, { WARN_BOX } from "@/components/carousel/SlideFields";
+import SlideFields, { SlideRewrite, WARN_BOX, useRewriting } from "@/components/carousel/SlideFields";
+import { emptyHistory, newTypingStep, record, redo, undo } from "@/lib/carouselHistory";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -245,6 +256,16 @@ export default function CarouselPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<Source | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
+  // the slides as last set, so a change made right after another (or after an await) builds on it
+  const slidesRef = useRef(slides);
+  slidesRef.current = slides;
+  // Undo and Redo (Leo's buttons and keys): every slide change is a step, in memory for this carousel
+  const hist = useRef(emptyHistory<Slide[]>());
+  const lastKey = useRef<{ at: number; field: string } | null>(null);
+  const resetHistory = () => {
+    hist.current = emptyHistory();
+    lastKey.current = null;
+  };
   const [split, setSplit] = useState<SplitInfo | null>(null);
   const [byHand, setByHand] = useState(false);
   const [edited, setEdited] = useState(false);
@@ -322,7 +343,8 @@ export default function CarouselPage() {
           ...(linkSize ? {} : { size: sizeParam(isSize(hint.size) ? hint.size : "4x5") }),
         }
       : {};
-    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null, ...(fromLink ? {} : { compare: null }), ...startOn });
+    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null, ...(fromLink ? {} : { compare: null, slide: null }), ...startOn });
+    resetHistory();
     setCarouselId(source.kind === "paste" ? `p:${Date.now().toString(36)}` : `d:${source.id}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
     setSlides(made);
@@ -553,9 +575,12 @@ export default function CarouselPage() {
     // once kept, the address reopens it with its edits
     if (searchParams.get("carousel") !== id) updateUrl({ carousel: id, draft: null });
   };
+  // the newest keep, so a save 800 ms after an edit writes the address as it is then (a slide or view picked since)
+  const keepRef = useRef(keep);
+  keepRef.current = keep;
   useEffect(() => {
     if (!edited || slides.length < MIN_SLIDES) return;
-    const t = window.setTimeout(() => keep(), 800);
+    const t = window.setTimeout(() => keepRef.current(), 800);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slides, edited, platform, align, scale, look, design, size]);
@@ -567,6 +592,7 @@ export default function CarouselPage() {
 
   const openSaved = (c: SavedCarousel, fromLink = false) => {
     setSlides(c.slides);
+    resetHistory();
     setSplit(null);
     setByHand(true);
     setEdited(false);
@@ -585,7 +611,7 @@ export default function CarouselPage() {
     const keepDesign = fromLink && isDesign(searchParams.get("design"));
     const keepSize = fromLink && isSize(searchParams.get("size"));
     updateUrl({
-      carousel: c.id, draft: null, ...(fromLink ? {} : { compare: null }),
+      carousel: c.id, draft: null, ...(fromLink ? {} : { compare: null, slide: null }),
       ...(keepDesign ? {} : { design: c.design ? designParam(c.design) : null }),
       ...(keepSize ? {} : { size: c.size ? sizeParam(c.size) : null }),
     });
@@ -603,23 +629,85 @@ export default function CarouselPage() {
     });
   };
 
-  const change = (update: (prev: Slide[]) => Slide[]) => {
-    setSlides(update);
+  // every slide change goes through here and is one Undo step; typing in a field is one step per pause (`field`)
+  const change = (update: (prev: Slide[]) => Slide[], field?: string) => {
+    const prev = slidesRef.current;
+    const next = update(prev);
+    const now = Date.now();
+    if (next !== prev && (!field || newTypingStep(lastKey.current, now, field))) hist.current = record(hist.current, prev);
+    lastKey.current = field ? { at: now, field } : null;
+    slidesRef.current = next;
+    setSlides(next);
     setEdited(true);
+  };
+  const step = (dir: "undo" | "redo") => {
+    const r = (dir === "undo" ? undo : redo)(hist.current, slidesRef.current);
+    if (!r) return;
+    hist.current = r.h;
+    lastKey.current = null;
+    slidesRef.current = r.to;
+    setSlides(r.to);
+    setEdited(true);
+    setBeforeAi(null);
   };
 
   const editSlide = (id: string, patch: Partial<Pick<Slide, "title" | "body">>) =>
-    change((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    change((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)), `${id}:${Object.keys(patch)[0]}`);
+
+  // ?view=one|all and ?slide= (Leo only): one slide at a time is the default under lg, the list above it
+  const [wide] = useState(() => window.matchMedia?.("(min-width: 1024px)").matches ?? true);
+  const viewParam = searchParams.get("view");
+  const view: "one" | "all" = !leo ? "all" : viewParam === "one" || viewParam === "all" ? viewParam : wide ? "all" : "one";
+  const slideParam = Number(searchParams.get("slide") ?? 1);
+  // 1-based in the address; out of range reads as the first
+  const at = view === "one" && Number.isInteger(slideParam) && slideParam >= 1 && slideParam <= slides.length ? slideParam - 1 : 0;
+  const go = (i: number) => {
+    if (i >= 0 && i < slidesRef.current.length) updateUrl({ slide: i ? String(i + 1) : null });
+  };
+  // the newest go, for the delete toast's Undo pressed after the address has moved on
+  const goRef = useRef(go);
+  goRef.current = go;
+  const pickView = (v: "one" | "all") => updateUrl({ view: v === (wide ? "all" : "one") ? null : v, slide: null });
 
   const focusEditor = (id: string) => {
-    document.getElementById(`slide-editor-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    document.getElementById(`slide-title-${id}`)?.focus({ preventScroll: true });
+    const show = () => {
+      document.getElementById(`slide-editor-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById(`slide-title-${id}`)?.focus({ preventScroll: true });
+    };
+    if (view !== "one") return show();
+    go(slidesRef.current.findIndex((s) => s.id === id));
+    setTimeout(show, 50);
   };
 
   const addBlankSlide = () => {
     const id = newSlideId();
     change((prev) => addSlide(prev, { id, title: "", body: "" }));
     setTimeout(() => focusEditor(id), 50);
+  };
+
+  // Leo: a deleted slide can come back from its toast, in its place with its picture
+  const deleteSlide = (i: number) => {
+    const gone = slidesRef.current[i];
+    change((prev) => removeSlide(prev, i));
+    if (!leo || !gone || slidesRef.current.some((s) => s.id === gone.id)) return;
+    if (view === "one") go(Math.min(i, slidesRef.current.length - 1));
+    const oneView = view === "one";
+    toast({
+      title: `Slide ${i + 1} deleted`,
+      action: (
+        <ToastAction altText="Undo" onClick={() => (change((prev) => restoreSlide(prev, i, gone)), oneView && goRef.current(i))}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+  const duplicate = (i: number) => {
+    change((prev) => duplicateSlide(prev, i));
+    if (view === "one") go(i + 1);
+  };
+  const moveTo = (i: number, delta: -1 | 1) => {
+    change((prev) => moveSlide(prev, i, delta));
+    if (view === "one") go(i + delta);
   };
 
   const startByHand = () => {
@@ -731,8 +819,7 @@ export default function CarouselPage() {
       const { slides: copy, recap } = await tightenSlides(base, platform, recapFits(base), brand.emojiPolicy);
       const next = withRecap(applyCopy(base, copy), recap ? { ...recap, id: old?.id } : old ?? null);
       setBeforeAi(snapshot);
-      setSlides(next);
-      setEdited(true);
+      change(() => next);
       setAi({ status: "idle" });
       const at = next.findIndex((s) => s.recap);
       toast({
@@ -757,13 +844,19 @@ export default function CarouselPage() {
 
   const undoAi = () => {
     if (!beforeAi) return;
+    hist.current = record(hist.current, slidesRef.current);
+    lastKey.current = null;
     setSlides(beforeAi);
     setBeforeAi(null);
   };
 
   const busy = ai.status === "loading";
-  // Leo's price chip on Tighten with AI: only his sessions read today's uses, so everyone else's stays null
-  const tightenLeft = useUsesLeft(busy || !leo)("carousel");
+  const rewriting = useRewriting();
+  // Leo's price chips on Tighten with AI and Rewrite this slide: only his sessions read today's uses, so everyone
+  // else's stay null; read again once a run is done
+  const usesLeft = useUsesLeft(busy || rewriting || !leo);
+  const tightenLeft = usesLeft("carousel");
+  const askLeft = usesLeft("edit-ask");
   const tightenWhy = reasonText({ left: tightenLeft, leo: Boolean(leo) });
   const exportBusy = exporting !== null;
   const tooShort = split !== null && split.tooShort && !byHand;
@@ -806,7 +899,49 @@ export default function CarouselPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leo, showEditor, carouselId]);
   const recommendedPick = recommended && recommended.id === carouselId ? recommended.pick : null;
+  // Leo's keys, when no field has focus: Cmd or Ctrl+Z undoes, with Shift redoes; the arrows move one slide at a time
+  useEffect(() => {
+    if (!leo || !showEditor) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select, [contenteditable='true'], [role='listbox'], [role='menu']")) return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && !e.altKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (!busy) step(e.shiftKey ? "redo" : "undo");
+      } else if (!mod && !e.altKey && !e.shiftKey && view === "one" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        go(at + (e.key === "ArrowLeft" ? -1 : 1));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
   const thumbAspect = size === "1x1" ? "aspect-square" : size === "9x16" ? "aspect-[9/16]" : "aspect-[4/5]";
+  // one slide's fields, the same in the list and one at a time
+  const fieldsFor = (s: Slide, i: number) => {
+    const position = slideRole(i, slides.length);
+    return {
+      slide: s,
+      role: s.recap && position === "point" ? ("recap" as const) : position,
+      flags: flags[i] ?? [],
+      busy,
+      overflow: Boolean(layouts[i]?.overflow),
+      picture: s.image ? pictures[s.image] : undefined,
+      pictureMissing: Boolean(s.image && missing.has(s.image)),
+      media: mediaFor === s.id ? media : null,
+      onEdit: (patch: Partial<Pick<Slide, "title" | "body">>) => editSlide(s.id, patch),
+      onPicture: (f: File | undefined) => void addPicture(s.id, f),
+      onMedia: () => openMedia(s.id),
+      onPickMedia: (key: string) => pickMedia(s.id, key),
+      onRemovePicture: () => removePicture(s.id),
+      children: leo ? (
+        <SlideRewrite slides={slides} index={i} platform={platform} left={askLeft} busy={busy}
+          onUse={(texts) => change((prev) => prev.map((x) => (x.id === s.id ? { ...x, title: texts[0] ?? "", body: texts[1] ?? "" } : x)))} />
+      ) : undefined,
+    };
+  };
+  const one = view === "one" ? slides[at] : undefined;
+  const SMALL = "h-8 gap-1.5 text-xs [@media(pointer:coarse)]:h-11";
 
   return (
     <div className="space-y-6">
@@ -1299,30 +1434,75 @@ export default function CarouselPage() {
                     ))}
                   </span>
                 </div>
+                {leo && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div role="group" aria-label="How the slides show" className="flex w-fit rounded-lg border border-border/60 bg-muted/30 p-1">
+                      {([["all", "All slides"], ["one", "One at a time"]] as const).map(([v, label]) => (
+                        <button key={v} type="button" aria-pressed={view === v} onClick={() => pickView(v)}
+                          className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11 ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="ml-auto flex items-center gap-1">
+                      <Button type="button" size="sm" variant="ghost" onClick={() => step("undo")} disabled={!hist.current.past.length || busy} className={SMALL}>
+                        <Undo2 className="h-3.5 w-3.5" /> Undo
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => step("redo")} disabled={!hist.current.future.length || busy} className={SMALL}>
+                        <Redo2 className="h-3.5 w-3.5" /> Redo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {one ? (
+                  <div className="space-y-3">
+                    <img src={images[at]?.url} alt={`Slide ${at + 1}: ${one.title || one.body}`.slice(0, 140)} width={frame.width} height={frame.height}
+                      className={`mx-auto block h-auto w-full max-w-sm rounded-md border border-border/70 shadow-sm ${thumbAspect}`} />
+                    <div className="flex items-center justify-center gap-1">
+                      <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={() => go(at - 1)} disabled={at === 0} aria-label="Previous slide">
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div role="group" aria-label="Slides" className="flex flex-wrap justify-center">
+                        {slides.map((x, i) => (
+                          <button key={x.id} type="button" onClick={() => go(i)} aria-label={`Slide ${i + 1}`} aria-current={i === at ? "step" : undefined}
+                            className="flex h-11 w-5 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            <span className={`h-2 w-2 rounded-full ${i === at ? "bg-primary" : "bg-border"}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={() => go(at + 1)} disabled={at === slides.length - 1} aria-label="Next slide">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div id={`slide-editor-${one.id}`} className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4">
+                      <SlideFields label={`Slide ${at + 1} of ${slides.length}`} {...fieldsFor(one, at)} />
+                      <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
+                        <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => duplicate(at)} disabled={slides.length >= MAX_SLIDES || busy}>
+                          <Copy className="h-3.5 w-3.5" /> Duplicate
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => moveTo(at, -1)} disabled={at === 0 || busy}>
+                          <ArrowLeft className="h-3.5 w-3.5" /> Move left
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => moveTo(at, 1)} disabled={at === slides.length - 1 || busy}>
+                          <ArrowRight className="h-3.5 w-3.5" /> Move right
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" className={`${SMALL} text-muted-foreground hover:text-destructive`} onClick={() => deleteSlide(at)} disabled={slides.length <= MIN_SLIDES || busy}>
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <ol className="space-y-3">
-                  {slides.map((s, i) => {
-                    const position = slideRole(i, slides.length);
-                    return (
+                  {slides.map((s, i) => (
                       <li
                         key={s.id}
                         id={`slide-editor-${s.id}`}
                         className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4"
                       >
                         <SlideFields
-                          slide={s}
                           label={`Slide ${i + 1}`}
-                          role={s.recap && position === "point" ? "recap" : position}
-                          flags={flags[i] ?? []}
-                          busy={busy}
-                          overflow={Boolean(layouts[i]?.overflow)}
-                          picture={s.image ? pictures[s.image] : undefined}
-                          pictureMissing={Boolean(s.image && missing.has(s.image))}
-                          media={mediaFor === s.id ? media : null}
-                          onEdit={(patch) => editSlide(s.id, patch)}
-                          onPicture={(f) => void addPicture(s.id, f)}
-                          onMedia={() => openMedia(s.id)}
-                          onPickMedia={(key) => pickMedia(s.id, key)}
-                          onRemovePicture={() => removePicture(s.id)}
+                          {...fieldsFor(s, i)}
                           actions={
                             <div className="ml-auto flex items-center">
                               <Button
@@ -1347,12 +1527,18 @@ export default function CarouselPage() {
                               >
                                 <ArrowDown className="h-4 w-4" />
                               </Button>
+                              {leo && (
+                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicate(i)}
+                                  disabled={slides.length >= MAX_SLIDES || busy} aria-label={`Duplicate slide ${i + 1}`}>
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                onClick={() => change((prev) => removeSlide(prev, i))}
+                                onClick={() => deleteSlide(i)}
                                 disabled={slides.length <= MIN_SLIDES || busy}
                                 aria-label={`Delete slide ${i + 1}`}
                               >
@@ -1362,9 +1548,9 @@ export default function CarouselPage() {
                           }
                         />
                       </li>
-                    );
-                  })}
+                  ))}
                 </ol>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
@@ -1439,7 +1625,8 @@ export default function CarouselPage() {
                         type="button"
                         onClick={() => focusEditor(slides[i].id)}
                         aria-label={`Edit slide ${i + 1}`}
-                        className="block w-full overflow-hidden rounded-md border border-border/70 shadow-sm transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-current={one && i === at ? "step" : undefined}
+                        className={`block w-full overflow-hidden rounded-md border ${one && i === at ? "border-primary ring-2 ring-primary/40" : "border-border/70"} shadow-sm transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                       >
                         <img
                           src={img.url}
