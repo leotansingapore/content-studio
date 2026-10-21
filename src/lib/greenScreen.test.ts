@@ -43,7 +43,7 @@ vi.mock("@/lib/talkingHeadJob", () => ({
 import { EdgeError } from "./edgeFn";
 import { formatJobs } from "./formatJob";
 import {
-  BEHIND_GONE, GREEN_TOAST, LIST_FAILED, LIST_REFUSED, NO_PERSON, OTHER_VIDEO, backdropOf, bdKey, canWriteList, greenCaps, greenExtra, greenJob, greenParams, greenPrice,
+  BEHIND_GONE, GREEN_TOAST, LIST_FAILED, LIST_REFUSED, NO_PERSON, OTHER_VIDEO, backdropDemos, backdropOf, bdKey, behindFromDemo, canWriteList, greenCaps, greenExtra, greenJob, greenParams, greenPrice,
   greenReason, listPlan, loadTyped, noteItems, onGreenJob, resumeGreen, saveTyped, startGreen, writeList, type GreenAsk,
 } from "./greenScreen";
 import { priceOf, sumPrices } from "./prices";
@@ -198,6 +198,34 @@ describe("your own video", () => {
     media.getFile.mockResolvedValueOnce(undefined);
     await startGreen("u1", { ...ASK, behind: "demo", pick });
     expect(greenJob()).toMatchObject({ state: "failed", error: BEHIND_GONE, gone: true });
+  });
+
+  it("puts a saved demo behind you as a copy under a new bd- key, never the saved file itself", async () => {
+    const saved = new Blob(["saved demo"], { type: "video/mp4" });
+    media.getFile.mockImplementation(async (k: string) => (k === "cvid-mh2k9x01ab" ? saved : k.startsWith("bd-gs-") ? saved : undefined));
+    const pick = await behindFromDemo({ key: "cvid-mh2k9x01ab", name: "Budget sheet walkthrough" });
+    expect(pick).toMatchObject({ kind: "demo", name: "Budget sheet walkthrough", from: "cvid-mh2k9x01ab" });
+    expect(pick.key).toMatch(/^bd-gs-/);
+    expect(media.putFile.mock.calls).toEqual([[pick.key, saved]]);
+    expect(sanitizeBackdrop(backdropOf("demo", pick.key))).toEqual({ kind: "video", key: pick.key });
+    await startGreen("u1", { ...ASK, behind: "demo", pick });
+    expect(media.handToEditor.mock.calls[0][1].settings.backdrop).toEqual({ kind: "video", key: pick.key });
+    // the pick keeps where it came from across a reload, so the page shows it as that saved demo
+    saveTyped("u1", { title: "", items: [], behind: pick });
+    expect(loadTyped("u1").behind).toEqual(pick);
+    localStorage.setItem("cs-make-green-screen-u1", JSON.stringify({ behind: { ...pick, from: "../x" } }));
+    expect(loadTyped("u1").behind).toEqual({ kind: "demo", key: pick.key, name: pick.name });
+  });
+
+  it("refuses a saved demo whose file left this device, storing nothing", async () => {
+    media.getFile.mockResolvedValue(undefined);
+    await expect(behindFromDemo({ key: "cvid-gone00001", name: "Gone" })).rejects.toThrow(BEHIND_GONE);
+    expect(media.putFile).not.toHaveBeenCalled();
+  });
+
+  it("offers only saved demos a backdrop plays as trimmed: the window is the whole file", () => {
+    const d = (start: number, end: number, seconds: number) => ({ key: `cvid-${start}-${end}-${seconds}`, start, end, seconds });
+    expect(backdropDemos([d(0, 24, 24), d(0, 30, 30.2), d(0, 30, 50), d(20, 50, 120), d(0, 20, 25), d(0, 0, 0)]).map((x) => x.key)).toEqual(["cvid-0-24-24", "cvid-0-30-30.2"]);
   });
 
   it("Write it for me fills the list and makes nothing else", async () => {

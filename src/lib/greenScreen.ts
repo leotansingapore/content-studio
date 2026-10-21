@@ -11,6 +11,8 @@
 // Each step is mirrored into formatJob.ts for /library's Making now.
 //   device: cs-make-green-screen-<scoped uid>: { title, items, behind? } (the typed note, and the demo or picture
 //   picked, by its bd- key). The presenter's script and look are the talking head page's (talkingHead.ts).
+// A demo saved on /brand (demoVideos.ts) is copied to its own bd-gs- key when picked: a backdrop plays its file from
+// the start, so only demos whose window is the whole file are offered, and the saved demo itself is never handed on.
 
 import { aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
@@ -57,6 +59,8 @@ export interface BehindPick {
   kind: "demo" | "picture";
   key: string;
   name: string;
+  /** The saved demo (a cvid- key) it was copied from. */
+  from?: string;
 }
 
 // ---- the rules (pure) ----
@@ -82,6 +86,19 @@ export const canWriteList = (title: string, source: RemixSource | null) => !!sou
 export const bdKey = (now = Date.now(), rand = Math.random()) => `bd-gs-${now.toString(36)}${Math.floor(rand * 1296).toString(36).padStart(2, "0")}`;
 
 export const backdropOf = (behind: GreenBehind, key: string): Backdrop => ({ kind: behind === "demo" ? "video" : "picture", key });
+
+/** Saved demos a backdrop can play as they were trimmed: the window is the whole file (a demo of 30 s or less, untrimmed). */
+export const backdropDemos = <D extends { start: number; end: number; seconds: number }>(list: D[]): D[] =>
+  list.filter((d) => d.start === 0 && d.seconds > 0 && d.end >= d.seconds - 0.5);
+
+/** A saved demo behind you: its file copied to a new bd-gs- key, so the editor's backdrop never holds the saved one. */
+export async function behindFromDemo(d: { key: string; name: string }): Promise<BehindPick> {
+  const file = await getFile(d.key).catch(() => undefined);
+  if (!file) throw new Error(BEHIND_GONE);
+  const key = bdKey();
+  await putFile(key, file);
+  return { kind: "demo", key, name: d.name, from: d.key };
+}
 
 /** What the editor opens with: the backdrop and the stand in the 9:16 frame, on its face tab, with this format's toast. */
 export function greenExtra(o: { backdrop: Backdrop; stand: Stand; caption?: string; note?: string; source?: RemixSource | null }): JoinExtra {
@@ -164,7 +181,9 @@ export function loadTyped(userId: string): Typed {
     return {
       title: typeof t?.title === "string" ? t.title : "",
       items: Array.isArray(t?.items) ? t.items.filter((i: unknown): i is string => typeof i === "string").slice(0, NOTE_ITEMS) : [],
-      ...(b && (b.kind === "demo" || b.kind === "picture") && typeof b.key === "string" && b.key.startsWith("bd-") && typeof b.name === "string" ? { behind: { kind: b.kind, key: b.key, name: b.name } } : {}),
+      ...(b && (b.kind === "demo" || b.kind === "picture") && typeof b.key === "string" && b.key.startsWith("bd-") && typeof b.name === "string"
+        ? { behind: { kind: b.kind, key: b.key, name: b.name, ...(typeof b.from === "string" && b.from.startsWith("cvid-") ? { from: b.from } : {}) } }
+        : {}),
     };
   } catch {
     return { title: "", items: [] };
