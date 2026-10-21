@@ -358,6 +358,24 @@ describe("brand", () => {
     expect(loadBrand("u1")).toBeNull();
     expect(loadBrand(null)).toBeNull();
   });
+
+  // Pinned on main e0e6cf48, before phase 4 added kit fields: a kit with every field of today writes the same JSON.
+  it("writes today's full kit byte for byte", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
+    const photo = "data:image/jpeg;base64,/9j/4AAQ";
+    const logo = "data:image/webp;base64,UklGRg==";
+    saveBrand("u1", {
+      color: "#0f766e", name: "Ada Tan", handle: "@adatan", role: "Financial adviser", photo, logo, signOff: "DM me PLAN", tagLinks: true,
+      slots: ["4T19:00", "1T08:30", "1T08:30"], instagram: "adatan", facebook: "adatan.sg", whatsapp: "6591234567", whatsappText: "Hi",
+      offers: [{ name: "Free review", url: "https://ada.sg/review" }], emojiPolicy: "one", hashtagPolicy: "few", avoidWords: "cheapest",
+    });
+    expect(store.get("content-studio-carousel-brand-u1")).toBe(
+      `{"color":"#0F766E","name":"Ada Tan","handle":"@adatan","role":"Financial adviser","photo":"${photo}","logo":"${logo}","signOff":"DM me PLAN","tagLinks":true,"slots":["1T08:30","4T19:00"],"instagram":"adatan","facebook":"adatan.sg","whatsapp":"6591234567","whatsappText":"Hi","offers":[{"name":"Free review","url":"https://ada.sg/review"}],"emojiPolicy":"one","hashtagPolicy":"few","avoidWords":"cheapest"}`,
+    );
+    saveBrand("u2", { color: "#abc", name: "Jane", handle: "@jane" });
+    expect(store.get("content-studio-carousel-brand-u2")).toBe(`{"color":"#AABBCC","name":"Jane","handle":"@jane"}`);
+  });
 });
 
 describe("saved carousels", () => {
@@ -412,6 +430,17 @@ describe("saved carousels", () => {
       expect(c).not.toHaveProperty("design");
       expect(c).not.toHaveProperty("size");
     }
+  });
+
+  // Pinned on main e0e6cf48, before phase 4 added carousel fields: today's carousels load and save the same JSON.
+  it("loads and saves today's carousels byte for byte", () => {
+    const today = `[{"id":"d:9","title":"Old","platform":"linkedin","slides":[{"id":"a","title":"Hook","body":""},{"id":"b","title":"Point","body":"Body","image":"cimg-mh2k9x01ab"}],"draftId":"9","align":"center","scale":1.1,"font":"modern","paper":"tint","design":"numbered","size":"1x1","updatedAt":"2026-10-01T00:00:00.000Z"},{"id":"p:2","title":"Plain","platform":"instagram","slides":[{"id":"a","title":"Hook","body":""},{"id":"r","title":"Recap","body":"x","recap":true}],"updatedAt":""}]`;
+    store.set("content-studio-carousels-u1", today);
+    expect(JSON.stringify(loadCarousels("u1"))).toBe(today);
+    saveCarousel("u1", { id: "p:3", title: "New", platform: "instagram", slides }, new Date("2026-10-02T00:00:00.000Z"));
+    expect(store.get("content-studio-carousels-u1")).toBe(
+      `[{"id":"p:3","title":"New","platform":"instagram","slides":[{"id":"a","title":"Hook","body":""},{"id":"b","title":"Point","body":"Body"}],"updatedAt":"2026-10-02T00:00:00.000Z"},${today.slice(1)}`,
+    );
   });
 
   it("reads a carousel saved before designs exactly as before", () => {
