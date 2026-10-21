@@ -16,7 +16,8 @@ export interface CaptionLook {
 // each sets its size, so moving from one look to another never carries the last one's
 export const CAPTION_LOOKS: CaptionLook[] = [
   { id: "boxed-word", label: "Boxed word", look: { style: "bold", captionBox: "word", font: "clean", uppercase: false, wordsPerCaption: 4, size: 1 } },
-  { id: "key-word", label: "Key word", look: { style: "native", keyWordsOn: true, size: 1 } },
+  // the Outline style's highlight is white like its words, so the underline takes Bold's yellow
+  { id: "key-word", label: "Key word", look: { style: "native", keyWordsOn: true, activeColor: "#FFD92B", size: 1 } },
   { id: "two-words", label: "Two words", look: { style: "bold", wordsPerCaption: 2, size: 1.3 } },
   { id: "typewriter", label: "Typewriter", look: { style: "minimal", captionAnim: "type", size: 1 } },
 ];

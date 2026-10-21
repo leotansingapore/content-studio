@@ -691,8 +691,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       g.font = base;
       return n;
     };
-    const widths = keys.some(Boolean) ? text.map((t, i) => (keys[i] ? measureAs(big, t) + (keys[i]!.emoji ? measureAs(emojiFont, ` ${keys[i]!.emoji}`) : 0) : g.measureText(t).width)) : null;
-    const space = widths ? g.measureText(" ").width : 0;
+    const space = keys.some(Boolean) ? g.measureText(" ").width : 0;
+    const widths = space ? text.map((t, i) => (keys[i] ? measureAs(big, t) + (keys[i]!.emoji ? space + measureAs(emojiFont, keys[i]!.emoji) : 0) : g.measureText(t).width)) : null;
     const maxW = W * (spec.mode === "words" ? 0.86 : 0.84);
     const lines = widths ? wrapWidths(text, widths, space, maxW) : wrap(g, text, maxW);
     // the way in, over the first 150 ms of each caption: pop scales up from 85%, slide rises a
@@ -739,7 +739,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
           }
           if (key.emoji) {
             g.font = emojiFont;
-            g.fillText(` ${key.emoji}`, x + ww, y);
+            g.fillText(key.emoji, x + ww + space, y);
           }
           g.font = base;
         };

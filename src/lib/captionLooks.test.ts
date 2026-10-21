@@ -75,7 +75,7 @@ describe("caption looks", () => {
   });
   it("are the spec's four", () => {
     expect(withCaptionLook(mine, CAPTION_LOOKS[0])).toMatchObject({ style: "bold", captionBox: "word", font: "clean", uppercase: false, wordsPerCaption: 4, size: 1 });
-    expect(withCaptionLook(mine, CAPTION_LOOKS[1])).toMatchObject({ style: "native", keyWordsOn: true, captionBox: undefined, font: undefined });
+    expect(withCaptionLook(mine, CAPTION_LOOKS[1])).toMatchObject({ style: "native", keyWordsOn: true, activeColor: "#FFD92B", captionBox: undefined, font: undefined });
     expect(withCaptionLook(mine, CAPTION_LOOKS[2])).toMatchObject({ style: "bold", wordsPerCaption: 2, size: 1.3, captionBox: undefined });
     expect(withCaptionLook(mine, CAPTION_LOOKS[3])).toMatchObject({ style: "minimal", captionAnim: "type", size: 1 });
     expect(CAPTION_LOOKS.map((l) => l.label)).toEqual(["Boxed word", "Key word", "Two words", "Typewriter"]);
@@ -154,7 +154,10 @@ describe("key words drawn", () => {
     const fonts = filled(log);
     expect(fonts.$500).toContain(" 110px ");
     expect(fonts.MOST).toContain(" 92px ");
-    expect(fonts[" \u{1F4B0}"]).toMatch(/^101px .*Emoji/);
+    expect(fonts["\u{1F4B0}"]).toMatch(/^101px .*Emoji/);
+    // a space in the caption font between the word and its emoji (the recorder's text is 0.5 em a character)
+    const x = (t: string) => Number((log as unknown[][]).find((c) => c[0] === "fillText" && c[1] === t)?.[2]);
+    expect(x("\u{1F4B0}")).toBe(x("$500") + 4 * 55 + 46);
     const at = (log as unknown[][]).findIndex((x) => x[0] === "fillText" && x[1] === "$500");
     expect((log as unknown[][]).slice(0, at).reverse().find((x) => x[0] === "fillStyle")).toEqual(["fillStyle", "#FFD92B"]);
   });
