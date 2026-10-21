@@ -1,0 +1,84 @@
+[
+ {
+  "call": "hook-demo-hooks",
+  "request": {
+   "mode": "make",
+   "as": "hooks",
+   "topic": "How I see every client's chats, notes and next follow-up on one board in ActivityTracker",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "- What it offers: We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving. It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.\n- Who it serves: Sales-oriented self-employed professionals and coaches",
+    "mention": true,
+    "offer": null,
+    "rules": "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.",
+    "speaker": "business"
+   },
+   "formulas": [
+    {
+     "id": "contrarian",
+     "name": "Contrarian take",
+     "template": "Most people say {common advice}. After {what you have seen}, I disagree.",
+     "example": "Everyone says clear your home loan early. After 9 years of reading CPF statements, I'm not so sure.",
+     "trap": "Arguing against advice nobody actually follows."
+    },
+    {
+     "id": "number-reveal",
+     "name": "Number reveal",
+     "template": "I {did something} {N} times. Here is what came out of it.",
+     "example": "I reviewed 40 young families' coverage this year. 31 had the same gap.",
+     "trap": "Hiding the number below the first line."
+    },
+    {
+     "id": "mistake",
+     "name": "Mistake confession",
+     "template": "{What it cost} is what {one mistake} cost me.",
+     "example": "A client's trust is what one rushed fact-find cost me in my first year.",
+     "trap": "A humblebrag dressed up as a mistake."
+    }
+   ],
+   "demo": {
+    "name": "activitytracker-crm-demo.mp4",
+    "seconds": 10
+   }
+  },
+  "response": {
+   "as": "hooks",
+   "result": {
+    "as": "hooks",
+    "hooks": [
+     {
+      "text": "Most people say keep chats separate. We say bring follow-ups together.",
+      "formula": "contrarian"
+     },
+     {
+      "text": "See chats, notes and next steps together. Here’s what one board brings.",
+      "formula": "number-reveal"
+     },
+     {
+      "text": "Lost context is what one scattered-chat mistake can cost.",
+      "formula": "mistake"
+     }
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false
+   },
+   "usage": {
+    "used": 29,
+    "limit": 30
+   }
+  }
+ }
+]

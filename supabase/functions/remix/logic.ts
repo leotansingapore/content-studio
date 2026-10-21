@@ -168,7 +168,8 @@ export type MakeResult =
   | { as: "slideshow"; slides: { title: string; sub: string; search: string }[]; caption: string }
   | { as: "wall"; text: string; scene: string; search: string; caption: string }
   | { as: "notes"; title: string; items: string[]; caption: string }
-  | { as: "hooks"; hooks: { text: string; formula: string }[] }
+  /** search: the stock clip behind a hook on screen, left out when it isn't one (hookSearch). */
+  | { as: "hooks"; hooks: { text: string; formula: string; search?: string }[] }
   | { as: "image"; layout: AdLayout; layoutBy: "jev" | "default"; words: Partial<Record<AdWord, string>>; caption: string }
   /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
   | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string };
@@ -569,6 +570,7 @@ function hooksRules(req: MakeRequest): string[] {
     `Write 3 hooks: the line a short video opens on${req.demo ? ", before a demo of the product (described in the message)" : ""}, read or heard before the viewer decides to stay.`,
     "- hooks: exactly 3, one for each formula listed in the message, in that formula's shape, each with that formula's id.",
     `- text: at most ${MAKE_HOOK_WORDS} words, sentence case, plain words, no hashtags, emoji or quote marks.`,
+    '- search: 2 to 4 plain lowercase English words a stock video library would match for a 3-second clip behind that hook, naming something a camera can film, like "person checking phone": never a brand or product name, text, a logo or a close-up face.',
     "- Never invent a number, a client or a result. When a formula needs a number you were not given, keep its shape without one.",
     ...(req.formulas?.some((f) => f.id === LIST_FORMULA) ? [`- The ${LIST_FORMULA} formula is the exception: it always says how many things it holds, as a digit or a word, at most 10. That count is its shape, not a fact.`] : []),
     refuseRule(req, "a set of hooks"),
@@ -910,8 +912,12 @@ export function responseFormat(req: MakeRequest): unknown {
           items: {
             type: "object",
             additionalProperties: false,
-            required: ["formula", "text"],
-            properties: { formula: { type: "string", enum: (req.formulas ?? []).map((f) => f.id) }, text: str(`At most ${MAKE_HOOK_WORDS} words`) },
+            required: ["formula", "text", "search"],
+            properties: {
+              formula: { type: "string", enum: (req.formulas ?? []).map((f) => f.id) },
+              text: str(`At most ${MAKE_HOOK_WORDS} words`),
+              search: str("2 to 4 word stock video search"),
+            },
           },
         },
       });
@@ -968,7 +974,7 @@ export function slideshowCaption(r: Record<string, unknown>, slides: { title: st
 }
 
 /** What validateMake reads from the request: the phase 3 options, and whether Jev picked an image's layout. */
-export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout">> & { layoutBy?: "jev" | "default" };
+export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout" | "brand">> & { layoutBy?: "jev" | "default" };
 
 /** Each field as one clean line, kept only when it has words and fits its limit; null when any field fails. */
 function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: string[] = []): Record<string, string> | null {
@@ -1072,11 +1078,27 @@ function sentenceCase(title: string, rest: string): string {
     .join(" ");
 }
 
+/**
+ * A hook's stock clip search (wave 2 live check, 21 Oct: the topic's first 4 words, "how i see every", found nothing):
+ * 2 to 4 plain words in lower case, or undefined, and the page then searches as before. A capital past the first letter
+ * is a name ("WhatsApp", "using Slack"), and the brand's own name is never searched for.
+ */
+export function hookSearch(raw: unknown, brand = ""): string | undefined {
+  const t = line(raw, 80).replace(/[.!]+$/, "");
+  const ws = t.split(" ").filter(Boolean);
+  const plain = ws.length >= 2 && ws.length <= 4 && ws.every((w, i) => /^[A-Za-z]+$/.test(w) && !/[A-Z]/.test(i ? w : w.slice(1)));
+  const name = squash(brand);
+  return plain && !(name.length >= 3 && squash(t).includes(name)) ? t.toLowerCase() : undefined;
+}
+
 /** Phase 3's shapes, each held to its limits; a caption is its own complete sentences, as the slideshow's. */
 function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: MakeOpts): MakeResult | null {
   if (as === "hooks") {
     const ids = (req.formulas ?? []).map((f) => f.id);
-    const hooks = (Array.isArray(r.hooks) ? r.hooks : []).map((x) => ({ text: line(obj(x).text, 200), formula: String(obj(x).formula ?? "") }));
+    const hooks = (Array.isArray(r.hooks) ? r.hooks : []).map((x) => {
+      const search = hookSearch(obj(x).search, req.brand?.name);
+      return { text: line(obj(x).text, 200), formula: String(obj(x).formula ?? ""), ...(search ? { search } : {}) };
+    });
     const ok =
       hooks.length === 3 &&
       new Set(hooks.map((h) => h.formula)).size === 3 &&

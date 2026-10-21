@@ -24,6 +24,7 @@ import {
   fitVerdict,
   holdTheLine,
   hookCount,
+  hookSearch,
   hooksProblem,
   intentsFor,
   jevFacts,
@@ -62,6 +63,7 @@ import {
 } from "./logic";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
+import W2 from "./fixtures/phase3-w2-live.json";
 
 const SOURCE_TEXT = "6 signs your CPF plan is off track. Most people never check their CPF statement until it is too late. Save $12,000 by starting early.";
 
@@ -1119,6 +1121,27 @@ describe("hooks (formats-hook-demo)", () => {
     expect(hooks([...three.slice(0, 2), { ...three[2], text: n(12) }])).not.toBeNull();
     expect(refusalOf("hooks", { refuse: true, reason: "No." })).toBe("No.");
     expect(textFields(hooks(three)!)).toEqual(three.map((h) => h.text));
+  });
+
+  it("asks for a stock search per hook and keeps only plain words, never a name or the brand (wave 2 live check, 21 Oct)", () => {
+    // the live request's topic and hooks; the hook page searched "how i see every", then "most people say keep"
+    const d = W2.find((x) => x.call === "hook-demo-hooks")!;
+    const req = make(d.request);
+    expect(buildMakePrompt(req).system).toContain('- search: 2 to 4 plain lowercase English words a stock video library would match for a 3-second clip behind that hook, naming something a camera can film, like "person checking phone": never a brand or product name, text, a logo or a close-up face.');
+    expect(JSON.stringify(responseFormat(req))).toContain('"required":["formula","text","search"]');
+    const live = d.response.result.hooks;
+    const wrote = (terms: string[]) => validateMake("hooks", { refuse: false, reason: "", hooks: live.map((h, i) => ({ ...h, search: terms[i] })) }, req) as Extract<MakeResult, { as: "hooks" }>;
+    expect(wrote(["person checking phone", "Two coworkers talking", "messy desk with notes."]).hooks).toEqual([
+      { ...live[0], search: "person checking phone" },
+      { ...live[1], search: "two coworkers talking" },
+      { ...live[2], search: "messy desk with notes" },
+    ]);
+    // a search that isn't one is left out and the hook kept: the page then searches as it did before
+    expect(wrote(["ActivityTracker board", "activity tracker app", "person using WhatsApp"]).hooks).toEqual(live);
+    expect(["phone", "a person checking their phone screen", "3 people talking", "person using Slack", "CRM dashboard", "close-up face"].map((t) => hookSearch(t))).toEqual(Array(6).fill(undefined));
+    expect(hookSearch("Person checking phone", "ActivityTracker")).toBe("person checking phone");
+    // no brand name: none is matched
+    expect(hookSearch("tired sales rep", "")).toBe("tired sales rep");
   });
 });
 

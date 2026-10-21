@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
+import W2 from "./fixtures/phase3-w2-live.json";
 
 // The live handler's make path, with the database and OpenAI faked: when a remix's use comes back and when it stays.
 const UID = "leo-uid";
@@ -406,5 +407,19 @@ describe("the wave 1 live check (21 Oct)", () => {
     openai.answers = [flat, flat];
     expect(await send(d.request)).toMatchObject({ status: 422, body: { code: "refused", error: "The list hook didn't say how many. Try again." } });
     expect(used()).toBe(2);
+  });
+});
+
+describe("the wave 2 live check (21 Oct)", () => {
+  it("sends each live hook back with its stock search, and drops one that names the brand", async () => {
+    const d = W2.find((x) => x.call === "hook-demo-hooks")!;
+    const hooks = d.response.result.hooks;
+    const terms = ["two people talking", "person checking phone", "ActivityTracker board"];
+    openai.mode = "queue";
+    openai.answers = [{ refuse: false, reason: "", hooks: hooks.map((h, i) => ({ ...h, search: terms[i] })) }];
+    const r = await send(d.request);
+    expect(r.status).toBe(200);
+    expect(r.body.result.hooks).toEqual([{ ...hooks[0], search: "two people talking" }, { ...hooks[1], search: "person checking phone" }, hooks[2]]);
+    expect(JSON.stringify(openai.sent[0])).toContain('"required":["formula","text","search"]');
   });
 });
