@@ -56,6 +56,11 @@
 //        as a thread, 3 to 8 posts within the network's limit (captions.ts, "thread-copy" cap). Leo only
 //        (NORTH_STAR_USERS, 403 not_enabled before any count); the use goes back only when OpenAI never answered,
 //        and a reply that can't be fitted keeps it (422).
+//   POST {mode:"own-words", about, count: 1-12, kind:"pictures"|"video", voice, voiceSummary?} -> {hook, lines:[count], say?:[count]}:
+//        the words on screen for the adviser's own pictures or silent footage, from what they say it is about: the LLM
+//        writes three hooks, a line per picture (or per 5 s) and with a voice a spoken line each; Jev picks the hook,
+//        the first without an answer (own.ts, "own-words" cap). Leo only (NORTH_STAR_USERS, 403 not_enabled before
+//        any count); the use goes back only when OpenAI never answered, and a reply that can't be used keeps it (422).
 //   POST ?mode=watch&seconds=<edit length>, body = the exported video -> {findings:[{kind,start,end,what,fix}]}:
 //        Gemini watches the file twice and lists what a viewer would trip on (watch.ts, "video-watch" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
@@ -74,6 +79,7 @@ import { buildCaptionsMessages, buildThreadMessages, ctaLine, keywordCandidates,
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks } from "./montage.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
+import { buildOwnMessages, ownQuestions, ownState, parseOwnReply, parseOwnRequest, pickOwnHook } from "./own.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { MAX_WATCH_BYTES, MAX_WATCH_SECONDS, watchSeconds, watchType, watchVideo } from "./watch.ts";
@@ -496,6 +502,36 @@ Deno.serve(async (req) => {
       // an answer we can't use keeps the use (phase 3 decision 3)
       if (!posts) return json({ code: "unusable", error: "That thread didn't come out right. Try again." }, 422);
       return json({ posts });
+    }
+
+    if (body?.mode === "own-words") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      const o = parseOwnRequest(body);
+      if (!o.ok) return json({ code: "bad_request", error: o.error }, 400);
+      const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
+      const usage = await consumeUsage(admin, uid, "own-words");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 900, response_format: { type: "json_object" }, messages: buildOwnMessages(o.request) }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist own-words", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        // OpenAI never answered: the use goes back
+        await refundUsage(admin, uid, "own-words", day);
+        return json({ code: "failed", error: "Couldn't write the words right now. Try again in a minute." }, 502);
+      }
+      const words = parseOwnReply((await res.json().catch(() => null))?.choices?.[0]?.message?.content ?? null, o.request);
+      // an answer we can't use keeps the use (phase 3 decision 3)
+      if (!words) return json({ code: "unusable", error: "Those words didn't come out right. Try again." }, 422);
+      // Jev picks the hook (Leo's rule: a pick is a decision); the first without an answer or in another language
+      const answers = words.hooks.length > 1 && mostlyEnglish(o.request.about) ? await askJev(ownState(words.hooks, o.request.about), ownQuestions(words.hooks), { who: "video-assist own-words" }) : null;
+      return json({ hook: pickOwnHook(answers, words.hooks), lines: words.lines, ...(words.say ? { say: words.say } : {}) });
     }
 
     if (body?.mode === "coldopen") {

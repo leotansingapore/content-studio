@@ -154,6 +154,63 @@ describe("Make it a thread", () => {
   });
 });
 
+describe("Your own video or pictures: own-words", () => {
+  const write = (uid: string, body: Record<string, unknown> = {}) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "own-words", about: "why I check my clients' cover every year", count: 3, kind: "pictures", voice: false, ...body }) }));
+  const used = (uid = LEO) => db.rows.get(`${uid}|own-words|${db.today()}`) ?? 0;
+  const reply = (o: Record<string, unknown>) => () => Response.json({ model: "m", choices: [{ message: { content: JSON.stringify(o) } }] });
+  const hooks = ["Your cover changed. Did you notice?", "One check a year saves the panic", "Most people never read this page"];
+
+  it("refuses anyone not on the list before counting anything or asking OpenAI", async () => {
+    const res = await write(UID);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("refuses a request with no about before counting", async () => {
+    const res = await write(LEO, { about: " " });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "bad_request" });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("writes the hook and a line per picture for one use, the first hook when Jev has no answer", async () => {
+    answer = reply({ hooks, lines: ["Coffee with a client", "Her plan from 2019", "What changed since"] });
+    const res = await write(LEO);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ hook: hooks[0], lines: ["Coffee with a client", "Her plan from 2019", "What changed since"] });
+    expect(used()).toBe(1);
+    expect(calls).toEqual(["https://api.openai.com/v1/chat/completions"]);
+  });
+  it("adds the spoken lines with a voiceover", async () => {
+    const say = ["We met for coffee.", "Her plan was six years old.", "So we went through it."];
+    answer = reply({ hooks, lines: ["a", "b", "c"], say });
+    const res = await write(LEO, { voice: true });
+    expect(await res.json()).toMatchObject({ say });
+  });
+  it("gives the use back when OpenAI never answered", async () => {
+    const res = await write(LEO);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "failed", error: "Couldn't write the words right now. Try again in a minute." });
+    expect(used()).toBe(0);
+  });
+  it("keeps the use when the reply can't be used", async () => {
+    answer = reply({ hooks: [], lines: ["a", "b", "c"] });
+    const res = await write(LEO);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toMatchObject({ code: "unusable" });
+    expect(used()).toBe(1);
+  });
+  it("stops at the day's 20", async () => {
+    db.rows.set(`${LEO}|own-words|${db.today()}`, 20);
+    const res = await write(LEO);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ code: "daily_limit" });
+    expect(calls).toEqual([]);
+  });
+});
+
 describe("Long video into clips: the panel's length", () => {
   const sentences = Array.from({ length: 12 }, (_, i) => ({ s: i * 20, e: i * 20 + 18, text: `Point number ${i + 1} about hospital bills.` }));
   const find = (uid: string) =>
