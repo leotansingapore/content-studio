@@ -500,15 +500,22 @@ function HowYouSound(p: {
     });
   };
 
-  // the summary saves itself 600ms after the last key, dated as a hand edit
+  // the summary saves itself 600ms after the last key (or on leaving or reloading the page), dated as a hand edit
   const [status, setStatus] = useState<"" | "saving" | "saved" | "failed">("");
   const timer = useRef<number>();
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const pending = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const flush = () => (window.clearTimeout(timer.current), pending.current?.());
+    window.addEventListener("pagehide", flush);
+    return () => (window.removeEventListener("pagehide", flush), flush());
+  }, []);
   const editSummary = (text: string) => {
     p.setSummary(text);
     setStatus("saving");
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
+    timer.current = window.setTimeout(() => pending.current?.(), 600);
+    pending.current = () => {
+      pending.current = null;
       const at = new Date().toISOString();
       try {
         const saved = loadVoiceProfile(p.userId);
@@ -519,7 +526,7 @@ function HowYouSound(p: {
       } catch {
         setStatus("failed");
       }
-    }, 600);
+    };
   };
 
   // Re-distill, or Save with 3 posts ready, would replace a summary edited by hand: ask first
@@ -597,7 +604,7 @@ function HowYouSound(p: {
           {asking && (
             <div role="alert" className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
               <span className="mr-auto">Replace the summary you edited?</span>
-              <Button size="sm" variant="outline" onClick={() => (window.clearTimeout(timer.current), setStatus(""), setAsking(null), void p.distill())}>Replace</Button>
+              <Button size="sm" variant="outline" onClick={() => (window.clearTimeout(timer.current), (pending.current = null), setStatus(""), setAsking(null), void p.distill())}>Replace</Button>
               <Button size="sm" onClick={() => (asking === "save" && p.keepMine(), setAsking(null))}>Keep mine</Button>
             </div>
           )}
