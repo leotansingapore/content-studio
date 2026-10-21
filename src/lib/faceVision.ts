@@ -540,3 +540,14 @@ export async function biggestFaces(pictures: HTMLCanvasElement[]): Promise<(Face
     return b ? { x0: b.originX / c.width, y0: b.originY / c.height, x1: (b.originX + b.width) / c.width, y1: (b.originY + b.height) / c.height } : null;
   });
 }
+
+/** Every face in each picture at least MIN_FACE of its width, as shares of it: the saved face's one-face check (myFace.ts). */
+export async function facesIn(pictures: HTMLCanvasElement[]): Promise<FaceBox[][]> {
+  const det = await faceDetector();
+  return pictures.map((c) =>
+    det.detect(c).detections.flatMap((d) => {
+      const b = d.boundingBox;
+      return b && b.width / c.width >= MIN_FACE ? [{ x0: b.originX / c.width, y0: b.originY / c.height, x1: (b.originX + b.width) / c.width, y1: (b.originY + b.height) / c.height }] : [];
+    }),
+  );
+}
