@@ -233,7 +233,8 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
   // clip, so a person photo goes. ?product=<id> does it once, then leaves; "From your products" does it on a press.
   const saved = useMemo(() => (user ? loadProducts(user.id).items : []), [user]);
   const [taking, setTaking] = useState<string | null>(null);
-  const [productId, setProductId] = useState<string | null>(null);
+  // the saved product whose picture is in the slot now (a hand-picked photo replaces it)
+  const [taken, setTaken] = useState<{ id: string; file: File } | null>(null);
   const [productLine, setProductLine] = useState("");
   const takeProduct = async (p: Product) => {
     if (!user) return;
@@ -242,12 +243,17 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
     setFields((f) => ({ ...f, product: productLabel(p).slice(0, MAX_FIELD) }));
     const file = await pictureFile(user.id, p).catch(() => null);
     setTaking(null);
-    if (!file) return setProductLine(p.pictures[0] ? PICTURE_FAILED : "");
+    if (!file) {
+      // another saved product's picture would no longer match the name; a photo picked by hand stays
+      if (taken && photos.product?.file === taken.file) setPhotos((x) => ({ ...x, product: undefined }));
+      return setProductLine(p.pictures[0] ? PICTURE_FAILED : "");
+    }
     const url = URL.createObjectURL(file);
     urls.current.push(url);
     setPhotos({ product: { file, url } });
-    setProductId(p.id);
+    setTaken({ id: p.id, file });
   };
+  const on = (p: Product) => taken?.id === p.id && photos.product?.file === taken.file;
   const productParam = params.get("product");
   useEffect(() => {
     if (!user || productParam === null) return;
@@ -316,8 +322,8 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
           <ul className="flex flex-wrap gap-2">
             {saved.slice(0, 6).map((p) => (
               <li key={p.id}>
-                <button type="button" onClick={() => void takeProduct(p)} disabled={busy || !!taking} aria-label={`Use ${p.name}`} aria-pressed={productId === p.id && !!photos.product}
-                  className={`relative block w-14 space-y-0.5 rounded-lg text-left disabled:opacity-60 ${productId === p.id && photos.product ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"}`}>
+                <button type="button" onClick={() => void takeProduct(p)} disabled={busy || !!taking} aria-label={`Use ${p.name}`} aria-pressed={on(p)}
+                  className={`relative block w-14 space-y-0.5 rounded-lg text-left disabled:opacity-60 ${on(p) ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"}`}>
                   {p.pictures[0] ? <PictureTile userId={user.id} pictureKey={p.pictures[0]} source={p.sources[0]} name={p.name} className="h-14 w-14" fetchMissing={false} />
                     : <span className="block h-14 w-14 rounded-lg border border-border/60 bg-muted" aria-hidden />}
                   {taking === p.id && <span className="absolute inset-x-0 top-0 flex h-14 items-center justify-center rounded-lg bg-background/60"><ThinkingOrb state="working" size={20} theme="light" aria-hidden /></span>}
