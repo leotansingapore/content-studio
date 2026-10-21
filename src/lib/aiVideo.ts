@@ -190,8 +190,8 @@ export interface Pending {
   refund?: string;
   /** Handed to the editor with the joined video (a format's toast, caption, source, draft, tab). */
   extra?: JoinExtra;
-  /** Device file takes (putFile keys) joined after the clip, each from 0 to `end`: a demo after a spoken hook. */
-  after?: { key: string; end: number }[];
+  /** Device file takes (putFile keys) joined after the clip, each from `start` (0 when missing) to `end`: a demo after a spoken hook. */
+  after?: { key: string; start?: number; end: number }[];
 }
 export function pendingAvatar(): Pending | null {
   try {
@@ -220,7 +220,9 @@ async function finishAvatar(p: Pending): Promise<void> {
     set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
     // a take that left this device keeps the paid clip pending: putting the file back under its key and trying again joins it
-    const after = await Promise.all((Array.isArray(p.after) ? p.after : []).map(async (a) => ({ file: await getFile(a.key).catch(() => undefined), start: 0, end: a.end })));
+    // a start that isn't a place before the end (junk read back from JSON) plays the take from 0, as before starts existed
+    const from = (a: { start?: number; end: number }) => (typeof a.start === "number" && a.start > 0 && a.start < a.end ? a.start : 0);
+    const after = await Promise.all((Array.isArray(p.after) ? p.after : []).map(async (a) => ({ file: await getFile(a.key).catch(() => undefined), start: from(a), end: a.end })));
     if (after.some((a) => !a.file)) throw new Error(DEMO_GONE);
     await joinSlot();
     // the job stays working (so a remount can't start a second join) and paid for until the join is done

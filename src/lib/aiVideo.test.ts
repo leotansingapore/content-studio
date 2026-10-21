@@ -182,6 +182,48 @@ describe("a format's hand-off riding a paid clip", () => {
     expect(pendingAvatar()).toBeNull();
   });
 
+  it("keeps an AI mark and a take's start through the device's JSON, and joins that take from its start", async () => {
+    made();
+    const ai = { kind: "avatar", person: "presenter", who: "p-1", voice: "premade", voiceId: "alice", madeAt: "2026-10-21T09:15:00.000Z" } as const;
+    const marked: JoinExtra = { ...extra, ai };
+    const windowed = [{ key: "demo-1", start: 7.5, end: 19 }, { key: "demo-2", end: 3 }];
+    const demo1 = new Blob(["demo one"]);
+    vi.mocked(getFile).mockImplementation(async (k) => (k === "demo-1" ? demo1 : k === "demo-2" ? new Blob(["demo two"]) : undefined));
+    let kept: unknown = null;
+    vi.mocked(startJoin).mockImplementation(async () => void (kept = pendingAvatar()));
+    const run = makeTemplateClip("Hook", { ...ASK, template: "spoken-hook" }, { extra: marked, after: windowed });
+    await vi.advanceTimersByTimeAsync(6_000);
+    await run;
+    expect(kept).toEqual({ name: "Hook", tokens: ["t1"], seconds: [4], kind: "template", refund: "ticket", extra: marked, after: windowed });
+    const [, takes, , opts] = vi.mocked(startJoin).mock.calls[0];
+    expect(takes.map((t) => [t.start, t.end])).toEqual([[0, 4], [7.5, 19], [0, 3]]);
+    expect(takes[1].file).toBe(demo1);
+    expect(opts).toEqual({ extra: marked });
+  });
+
+  it("plays a take from 0 when its start read back from JSON isn't a place before its end", async () => {
+    made();
+    vi.mocked(getFile).mockResolvedValue(new Blob(["demo"]));
+    const after = [{ key: "a", start: 12, end: 12 }, { key: "b", start: 20, end: 9 }, { key: "c", start: -3, end: 9 }, { key: "d", start: "4", end: 9 }, { key: "e", start: null, end: 9 }];
+    localStorage.setItem("cs-ai-video-pending", JSON.stringify({ name: "Hook", tokens: ["t1"], seconds: [4], kind: "template", after }));
+    resumeAvatar();
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(vi.mocked(startJoin).mock.calls[0][1].map((t) => t.start)).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("resumes an avatar video saved before the AI mark with the extra it had", async () => {
+    made();
+    localStorage.setItem("cs-ai-video-pending", JSON.stringify({ name: "Talking head", tokens: ["t1", "t2"], seconds: [9.5, 4], refund: "ticket", extra }));
+    vi.mocked(callFn).mockImplementation(async () => ({ jobs: [{ state: "done", url: "https://cdn.example/1.mp4" }, { state: "done", url: "https://cdn.example/2.mp4" }] }));
+    resumeAvatar();
+    await vi.advanceTimersByTimeAsync(6_000);
+    const [name, takes, , opts] = vi.mocked(startJoin).mock.calls[0];
+    expect(name).toBe("Talking head");
+    expect(takes.map((t) => [t.start, t.end])).toEqual([[0, 9.5], [0, 4]]);
+    expect(opts).toStrictEqual({ extra });
+    expect(pendingAvatar()).toBeNull();
+  });
+
   it("keeps the paid clip pending when a take is gone from this device, and joins once it is back", async () => {
     made();
     vi.mocked(getFile).mockImplementation(async (k) => (k === "demo-1" ? new Blob(["demo"]) : undefined));
