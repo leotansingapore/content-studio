@@ -13,8 +13,8 @@ import { reasonText, type Price, type PriceOpts } from "@/lib/prices";
 import type { UsageFeature } from "../../../supabase/functions/_shared/usageCaps.ts";
 
 export interface ShellFooter {
-  /** The main cap: its uses left show on the chip. */
-  cap: UsageFeature;
+  /** The main cap: its uses left show on the chip. null: the press spends no paid AI, and the chip says so. */
+  cap: UsageFeature | null;
   /** The press's whole price (sumPrices), in place of priceOf(cap, opts). */
   price?: Price | "pick" | null;
   opts?: PriceOpts;
@@ -35,8 +35,8 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
   const navigate = useNavigate();
   const f = p.footer;
   const leftOf = useUsesLeft(f.busy);
-  const left = leftOf(f.cap);
-  const usedUp = f.caps?.length ? usedUpLine([f.cap, ...f.caps], leftOf) : null;
+  const left = f.cap ? leftOf(f.cap) : null;
+  const usedUp = f.caps?.length ? usedUpLine([f.cap, ...f.caps].filter((c): c is UsageFeature => !!c), leftOf) : null;
   const reason = f.reason ?? usedUp ?? reasonText({ left, leo: true });
   // a page opened straight from a link has nothing to go back to in the app
   const back = () => ((window.history.state as { idx?: number } | null)?.idx ? navigate(-1) : navigate("/home"));
@@ -57,7 +57,7 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
           <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-5 border-t border-border/70 bg-background py-3 pl-4 pr-[4.5rem] lg:bg-background/95 lg:backdrop-blur-md sm:-mx-6 sm:pl-6 lg:bottom-0 lg:mx-0 lg:rounded-lg lg:border lg:px-4">
             <div className="flex items-center gap-3">
               <span className="min-w-0 flex-1" aria-live="polite">
-                <PriceChip feature={f.cap} opts={f.opts} price={f.price} left={left} />
+                {f.cap ? <PriceChip feature={f.cap} opts={f.opts} price={f.price} left={left} /> : <span className="text-[11px] text-muted-foreground">No AI cost</span>}
               </span>
               <Button onClick={f.onMake} disabled={f.busy || f.disabled || left === 0 || !!usedUp} variant={f.secondary ? "outline" : "default"} className="shrink-0 gap-1.5">
                 {f.busy && <Loader2 className="h-4 w-4 animate-spin" />}

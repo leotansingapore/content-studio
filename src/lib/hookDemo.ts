@@ -2,6 +2,9 @@
 // without a browser: which demo and hook clips are taken, and the order the hook and the demo are joined in. The run
 // is src/lib/hookDemoJob.ts; the page is src/components/make/HookDemo.tsx.
 
+import { priceOf, sumPrices, type Price } from "@/lib/prices";
+import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
+
 export type HookPlay = "stock" | "mine" | "spoken";
 /** Words on a stock clip (no face, the default), the adviser's own clip, then an AI person: the faces rule's order. */
 export const HOOK_PLAYS: HookPlay[] = ["stock", "mine", "spoken"];
@@ -47,6 +50,17 @@ export function hookClipIssue(w: number, h: number, seconds: number): string | n
 export function hookIssue(text: string, play: HookPlay): string | null {
   if (!text.trim()) return "Pick a hook or type your own.";
   return play === "spoken" && words(text) > SPOKEN_HOOK_WORDS ? SPOKEN_TOO_LONG : null;
+}
+
+/**
+ * What one press of Make the video spends, for its footer: one remix use only when it writes the hooks (none picked
+ * or typed), the AI clip only for a spoken hook. A stock clip (Pexels and Jev) or your own clip spends no paid AI: cap
+ * null, "No AI cost" (wave 2 live check, 21 Oct: written hooks still read "About US$0.02 | Last one today").
+ */
+export function pressSpend(play: HookPlay, writes: boolean): { cap: UsageFeature | null; price: Price | "pick" | null; caps?: UsageFeature[] } {
+  const remix = writes ? priceOf("remix-make") : null;
+  if (play === "spoken") return { cap: "ai-clip", price: sumPrices(remix, priceOf("ai-clip", { seconds: SPOKEN_HOOK_SECONDS, quality: "480p" })), ...(writes ? { caps: ["remix-make"] } : {}) };
+  return writes ? { cap: "remix-make", price: remix } : { cap: null, price: null };
 }
 
 /** A stock or spoken hook is cut to its fixed length; the adviser's own runs whole. */

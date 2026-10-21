@@ -25,7 +25,7 @@ import { formatBySlug } from "@/data/formats";
 import { onAiJob } from "@/lib/aiVideo";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
-  HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_HOOK_SECONDS, SPOKEN_TOO_LONG, clock, demoIssue, hookClipIssue, hookIssue, type HookPlay,
+  HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_TOO_LONG, clock, demoIssue, hookClipIssue, hookIssue, pressSpend, type HookPlay,
 } from "@/lib/hookDemo";
 import {
   hookDemoBusy, hookDemoJob, hookSet, hooksFailure, hooksFor, hooksWriting, keepOnlyDemo, loadDemo, makeHookDemo, newDemoKey, onHookDemo,
@@ -33,7 +33,6 @@ import {
 } from "@/lib/hookDemoJob";
 import { links } from "@/lib/links";
 import { mediaLength } from "@/lib/longAudio";
-import { priceOf, sumPrices } from "@/lib/prices";
 import type { RemixSource } from "@/lib/remixSource";
 import { cn } from "@/lib/utils";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
@@ -114,7 +113,8 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
   const selected = choice ?? (set ? (set.pick ?? 0) : typed.own.trim() ? "own" : null);
   const askWith = (d: DemoRef): HookDemoAsk => ({ source, topic, mention: mention !== "no", play, hook: picked, demo: d, mine: play === "mine" && mine ? { file: mine.file, seconds: mine.seconds } : null });
   const ask = demo ? askWith(demo) : null;
-  const price = play === "spoken" ? sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: SPOKEN_HOOK_SECONDS, quality: "480p" })) : priceOf("remix-make");
+  // a picked or typed hook writes nothing, so the press spends only what its play does
+  const spend = pressSpend(play, !picked);
   const reason =
     !demo ? "Pick your demo first."
     : !picked && !source && topic.trim().length < 3 ? "Type what your demo shows first."
@@ -417,9 +417,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
       options={options}
       result={result}
       footer={{
-        cap: play === "spoken" ? "ai-clip" : "remix-make",
-        price,
-        ...(play === "spoken" ? { caps: ["remix-make" as const] } : {}),
+        ...spend,
         label: "Make the video",
         // the press waits while hooks are written too, and its uses left are read again after
         busyLabel: busy ? "Making..." : "Writing the hooks...",
