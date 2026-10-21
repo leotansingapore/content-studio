@@ -5,6 +5,8 @@ const fn = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("./edgeFn")>()), callFn: fn }));
 const files = vi.hoisted(() => new Map<string, Blob>());
 vi.mock("@/lib/deviceFiles", () => ({ putFile: async (k: string, b: Blob) => void files.set(k, b), getFile: async (k: string) => files.get(k) }));
+const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
+vi.mock("@/lib/useLeoOnly", () => ({ leoUser: async () => as.user }));
 
 import { EdgeError } from "./edgeFn";
 import {
@@ -20,6 +22,7 @@ beforeEach(() => {
   changed.length = 0;
   files.clear();
   fn.mockReset();
+  as.user = null;
   const local = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
   vi.stubGlobal("localStorage", local);
   vi.stubGlobal("window", { localStorage: local, dispatchEvent: (e: Event) => changed.push(e.type) });
@@ -120,6 +123,32 @@ describe("Write it for me", () => {
     await writeTalkScript({ talk: "spokesperson", topic: "Daily sales habits", offer: "Free 14-day trial" });
     expect(fn).toHaveBeenLastCalledWith("ai-video", { mode: "talk-script", talk: "spokesperson", topic: "Daily sales habits", offer: { name: "Free 14-day trial" } }, expect.any(String));
     expect(talkScript()).toMatchObject({ state: "done", headline: "", mas: null });
+  });
+
+  it("sends Leo's facts and video learnings as notes, and nobody else's", async () => {
+    store.set("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
+    store.set(
+      "content-studio-learnings-u1",
+      JSON.stringify([
+        { id: "l1", text: "Use Asian presenters", scope: "videos", source: "assistant", createdAt: "2026-10-19T03:00:00.000Z" },
+        { id: "l2", text: "Never use emoji", scope: "posts", source: "assistant", createdAt: "2026-10-19T04:00:00.000Z" },
+      ]),
+    );
+    fn.mockResolvedValue({ say: "Here is the offer.", mas: null });
+    await writeTalkScript({ talk: "stage", topic: "One habit that wins deals" });
+    expect(fn).toHaveBeenLastCalledWith("ai-video", { mode: "talk-script", talk: "stage", topic: "One habit that wins deals" }, expect.any(String));
+    as.user = { id: "u1", email: "leo@example.com" };
+    await writeTalkScript({ talk: "stage", topic: "One habit that wins deals" });
+    expect(fn.mock.calls.at(-1)?.[1]).toEqual({
+      mode: "talk-script",
+      talk: "stage",
+      topic: "One habit that wins deals",
+      notes:
+        "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser\n- Keep doing or avoid: Use Asian presenters",
+    });
+    store.clear();
+    await writeTalkScript({ talk: "stage", topic: "One habit that wins deals" });
+    expect(fn).toHaveBeenLastCalledWith("ai-video", { mode: "talk-script", talk: "stage", topic: "One habit that wins deals" }, expect.any(String));
   });
 
   it("shows the server's words when it refuses", async () => {

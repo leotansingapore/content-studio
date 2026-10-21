@@ -12,9 +12,11 @@ import type { ComplianceFlag } from "@/lib/compliance";
 import { putFile } from "@/lib/deviceFiles";
 import { EdgeError, callFn } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
+import { leoUser } from "@/lib/useLeoOnly";
+import { memoryLine } from "@/lib/voiceMemory";
 import { BANNER_MAX, newOverlay, type EditSettings } from "@/lib/videoEdit";
 import type { JoinExtra } from "@/lib/videoMedia";
-import type { MediaState, SetTalk, SettingId, Talk as ScriptTalk } from "../../supabase/functions/ai-video/logic.ts";
+import { MAX_NOTES, type MediaState, type SetTalk, type SettingId, type Talk as ScriptTalk } from "../../supabase/functions/ai-video/logic.ts";
 
 export type Talk = "plain" | ScriptTalk;
 export type { SetTalk };
@@ -164,10 +166,18 @@ export async function writeTalkScript(a: { talk: ScriptTalk; topic: string; offe
   const id = ++seq;
   const base = { id, talk: a.talk, topic: a.topic };
   scripts.set({ ...base, state: "writing" });
+  // Leo's facts and learnings for videos (brand-voice-memory); ai-video prints them after the topic
+  let notes = "";
+  try {
+    const me = await leoUser();
+    notes = me ? memoryLine(me.id, "videos", MAX_NOTES) : "";
+  } catch {
+    // a session that can't be read is not Leo's
+  }
   try {
     const r = await callFn<{ say: string; headline?: string; mas?: boolean | null }>(
       "ai-video",
-      { mode: "talk-script", talk: a.talk, topic: a.topic, ...(a.talk === "spokesperson" && a.offer ? { offer: { name: a.offer } } : {}) },
+      { mode: "talk-script", talk: a.talk, topic: a.topic, ...(a.talk === "spokesperson" && a.offer ? { offer: { name: a.offer } } : {}), ...(notes ? { notes } : {}) },
       WRITE_FAILED,
     );
     scripts.set({ ...base, state: "done", say: r.say, headline: r.headline ?? "", mas: r.mas ?? null });
