@@ -100,7 +100,8 @@ import {
   VOICE_MIN_CHARS,
   voiceSummaryOf,
 } from "@/lib/voiceProfile";
-import { memoryLine } from "@/lib/voiceMemory";
+import { memoryLine, undoLearning } from "@/lib/voiceMemory";
+import { REWRITE_LEARNINGS, dismissRewriteNudge, logRewrite, rememberRewrite, rewriteNudge, type LoggedRewrite } from "@/lib/rewriteLog";
 import HumanCheck from "@/components/HumanCheck";
 import ComplianceChips from "@/components/ComplianceChips";
 import FactFlags from "@/components/FactFlags";
@@ -792,6 +793,11 @@ export default function GeneratePage() {
   const [undoText, setUndoText] = useState<string | null>(null);
   // What the Undo line says happened: a rewrite, a clean or an insert.
   const [undoNote, setUndoNote] = useState("Rewritten.");
+  // Leo only (brand-voice-memory): a rewrite kept on 3 drafts in 14 days, offered as a standing note under the draft.
+  const [rewriteHabit, setRewriteHabit] = useState<LoggedRewrite | null>(null);
+  useEffect(() => {
+    setRewriteHabit(leo && userId ? rewriteNudge(userId) : null);
+  }, [leo, userId]);
   // The editor, and the text its cursor was placed in (by a tap, typing or an insert): Insert puts text at the
   // cursor while the post is still that text, else where its kind goes, so a rewrite, Undo or a new post resets it.
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -2148,7 +2154,33 @@ export default function GeneratePage() {
     setUndoNote("Rewritten.");
     setDraft(rewrite.text);
     persistDraftEntry(rewrite.text, chosenHook ?? "");
+    // Leo only: only the five one-tap rewrites are counted (rewriteLog.ts), never flagged lines or an asked change
+    if (leo && userId) {
+      logRewrite(userId, rewrite.id, currentDraftId);
+      setRewriteHabit(rewriteNudge(userId));
+    }
     setRewrite(null);
+  };
+
+  // The nudge's answers: Remember saves the habit as a learning for posts (Undo in the toast), No thanks hides it 30 days.
+  const rememberHabit = () => {
+    if (!userId || !rewriteHabit) return;
+    const saved = rememberRewrite(userId, rewriteHabit);
+    if ("error" in saved) return void toast({ title: saved.error, variant: "destructive" });
+    setRewriteHabit(null);
+    toast({
+      title: `Learned: ${saved.item.text}`,
+      action: (
+        <ToastAction altText="Undo" onClick={() => undoLearning(userId, saved.item.id)}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+  const dismissHabit = () => {
+    if (!userId || !rewriteHabit) return;
+    dismissRewriteNudge(userId, rewriteHabit);
+    setRewriteHabit(null);
   };
 
   // Hashtags past the platform's cap, the first ones kept. The sign-off's own count first, so the posted text fits.
@@ -3904,6 +3936,20 @@ export default function GeneratePage() {
                     >
                       Undo
                     </button>
+                  </p>
+                )}
+                {leo && userId && rewriteHabit && (
+                  <p data-testid="rewrite-nudge" className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                    <Lightbulb className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    <span>{REWRITE_LEARNINGS[rewriteHabit].nudge}</span>
+                    <span className="flex gap-3">
+                      <button type="button" onClick={rememberHabit} className="-my-3.5 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2">
+                        Remember
+                      </button>
+                      <button type="button" onClick={dismissHabit} className="-my-3.5 py-3.5 font-medium hover:text-foreground hover:underline sm:-my-2 sm:py-2">
+                        No thanks
+                      </button>
+                    </span>
                   </p>
                 )}
                 {leo && userId && panel === "insert" && !isStreaming && (
