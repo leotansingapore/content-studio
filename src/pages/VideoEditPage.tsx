@@ -208,6 +208,8 @@ type StartPanel = (typeof LEO_PANELS)[number];
 const WALL_ERROR = "That video couldn't be opened. Try an MP4 or MOV.";
 // stickers with no words; every other kind gets a text field in the sticker editor
 const SHAPES: OverlayKind[] = ["arrow", "circle", "underline"];
+// the AI panel's params (docs/deep-links.md), dropped when it closes
+const AI_PARAMS_GONE = Object.fromEntries(["kind", "template", "talk", "offer", "look", "from", "topic", "link", "draft", "secs", "visuals"].map((k) => [k, null]));
 // An upload is captioned in one use only while it is one part (captionPlan: up to 1.2 x PART_SECONDS), so its price is a ceiling.
 const UPLOAD_CAPTIONS: Price = { ...(priceOf("video-transcribe", { minutes: (PART_SECONDS * 1.2) / 60 }) as Price), kind: "upTo" };
 
@@ -380,11 +382,11 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
   const joinOpen = panels.includes("join");
   const aiOpen = aiAuto || panels.includes("ai");
   const wallOpen = panels.includes("wall");
-  // opening pushes, so Back closes it; closing the AI panel drops its kind and template too
+  // opening pushes, so Back closes it; closing the AI panel drops every param it reads too
   const openPanel = (k: StartPanel) => updateUrl({ panel: [...panels, k].join(",") }, { push: true });
   const closePanel = (k: StartPanel) => {
     if (k === "ai") setAiAuto(false);
-    updateUrl({ panel: panels.filter((x) => x !== k).join(","), ...(k === "ai" ? { kind: null, template: null } : {}) });
+    updateUrl({ panel: panels.filter((x) => x !== k).join(","), ...(k === "ai" ? AI_PARAMS_GONE : {}) });
   };
   const left = useUsesLeft(!!busy);
   const captions = left("video-transcribe");
