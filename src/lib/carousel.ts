@@ -7,6 +7,7 @@ import { toPlainText } from "@/lib/plainText";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { scoped } from "@/lib/profiles";
+import { CAROUSEL_DESIGNS, type CarouselDesign } from "@/lib/links";
 
 export const MAX_SLIDES = 10;
 export const MIN_SLIDES = 2;
@@ -744,6 +745,10 @@ export function saveBrand(userId: string, brand: CarouselBrand): void {
 // Carousels kept to come back to, per profile (synced like everything else):
 //   key: content-studio-carousels-${scoped(userId)}
 
+/** Slide sizes (/carousel?size=, Leo only): 4x5 is today's 1080x1350, then 1080x1080 and 1080x1920. */
+export const CAROUSEL_SIZES = ["4x5", "1x1", "9x16"] as const;
+export type CarouselSize = (typeof CAROUSEL_SIZES)[number];
+
 export interface SavedCarousel {
   /** "d:<draft id>" for one made from a post, "p:<time>" for pasted text. */
   id: string;
@@ -755,6 +760,10 @@ export interface SavedCarousel {
   scale?: number;
   font?: "classic" | "modern" | "serif";
   paper?: "light" | "dark" | "tint";
+  /** Absent reads as clean, today's design (carouselDesigns.ts). */
+  design?: CarouselDesign;
+  /** Absent reads as 4x5. */
+  size?: CarouselSize;
   updatedAt: string;
 }
 
@@ -788,6 +797,9 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
       ...(typeof r.scale === "number" && r.scale >= 0.8 && r.scale <= 1.25 ? { scale: r.scale } : {}),
       ...(r.font === "modern" || r.font === "serif" ? { font: r.font } : {}),
       ...(r.paper === "dark" || r.paper === "tint" ? { paper: r.paper } : {}),
+      // only known values, and the defaults left out, so a carousel saved before designs reads back as it was
+      ...(r.design !== "clean" && (CAROUSEL_DESIGNS as readonly unknown[]).includes(r.design) ? { design: r.design as CarouselDesign } : {}),
+      ...(r.size !== "4x5" && (CAROUSEL_SIZES as readonly unknown[]).includes(r.size) ? { size: r.size as CarouselSize } : {}),
       updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
     }];
   });

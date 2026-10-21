@@ -395,6 +395,29 @@ describe("saved carousels", () => {
     expect(odd).toEqual({ id: "p:2", title: "Odd", platform: "instagram", slides, draftId: undefined, updatedAt: "" });
   });
 
+  it("keeps a known design and size through a reload, and drops unknown ones and the defaults", () => {
+    saveCarousel("u1", { id: "d:1", title: "Designed", platform: "linkedin", slides, design: "numbered", size: "1x1" });
+    store.set("content-studio-carousels-u1", JSON.stringify([
+      ...JSON.parse(store.get("content-studio-carousels-u1")!),
+      { id: "p:2", title: "Odd", slides, design: "comic-sans", size: "16x9", updatedAt: "" },
+      { id: "p:3", title: "Defaults", slides, design: "clean", size: "4x5", updatedAt: "" },
+      { id: "p:4", title: "Tall", slides, design: "post-card", size: "9x16", updatedAt: "" },
+    ]));
+    const [designed, odd, defaults, tall] = loadCarousels("u1");
+    expect(designed).toMatchObject({ design: "numbered", size: "1x1" });
+    expect(tall).toMatchObject({ design: "post-card", size: "9x16" });
+    for (const c of [odd, defaults]) {
+      expect(c).not.toHaveProperty("design");
+      expect(c).not.toHaveProperty("size");
+    }
+  });
+
+  it("reads a carousel saved before designs exactly as before", () => {
+    const before = [{ id: "d:9", title: "Old", platform: "linkedin", slides, draftId: "9", align: "center", scale: 1.1, font: "modern", paper: "tint", updatedAt: "2026-10-01T00:00:00.000Z" }];
+    store.set("content-studio-carousels-u1", JSON.stringify(before));
+    expect(loadCarousels("u1")).toEqual(before);
+  });
+
   it("still lists a saved carousel for this visit when storage is full, instead of throwing", () => {
     saveCarousel("u1", { id: "d:1", title: "Kept", platform: "instagram", slides });
     vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: () => { throw new DOMException("full", "QuotaExceededError"); } } });
