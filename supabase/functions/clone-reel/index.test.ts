@@ -39,12 +39,15 @@ const row = (): SourceRow => ({
 });
 
 const openai: string[] = [];
+// what each OpenAI request asked, as the user message
+const asked: string[] = [];
 
 beforeAll(async () => {
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", APIFY_API_KEY: "k" };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: URL | string) => {
+  vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     openai.push(String(u));
+    asked.push(JSON.parse(String(init?.body ?? "{}")).messages?.[1]?.content ?? "");
     return new Response("{}", { status: 500 });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -58,6 +61,7 @@ afterAll(() => {
 beforeEach(() => {
   db.spent.length = 0;
   openai.length = 0;
+  asked.length = 0;
   reader.cached = null;
   reader.reads = 0;
 });
@@ -81,5 +85,15 @@ describe("Clone a reel", () => {
     expect(db.spent).toEqual([]);
     expect(openai).toEqual([]);
     expect(reader.reads).toBe(0);
+  });
+
+  it("writes with the angle and saved positioning sent, and asks as before without them", async () => {
+    await clone({ angle: "My own hospital plan story", positioning: { oneLiner: "I help young parents plan", edge: 42 } });
+    expect(asked[0]).toContain('Their positioning, as they saved it:\n"""\nPositioning: I help young parents plan\n"""');
+    expect(asked[0]).toContain('Their angle for this video, as they typed it:\n"""\nMy own hospital plan story\n"""');
+    asked.length = 0;
+    await clone();
+    expect(asked[0]).toContain("The TikTok video by @leila_tuck:");
+    expect(asked[0]).not.toMatch(/Their angle|Their positioning/);
   });
 });

@@ -1,4 +1,5 @@
-// "Clone a reel" (/clone). A signed-in consultant sends {url, voice, formulas};
+// "Clone a reel" (/clone). A signed-in consultant sends {url, voice, formulas},
+// plus their optional {angle} and saved {positioning}, both used as material only;
 // this reads the public Instagram reel or TikTok video through Apify (caption,
 // transcript, numbers), then asks OpenAI to break down why it worked, offer 3
 // concepts built on it and write the consultant's own version of the first.
@@ -37,7 +38,9 @@ import {
   cleanConcept,
   parseReelUrl,
   readDecision,
+  sanitizeAngle,
   sanitizeFormulas,
+  sanitizePositioning,
   sanitizeVoice,
   toCloneSource,
   validateCloneOutput,
@@ -170,6 +173,7 @@ Deno.serve(async (req) => {
     }
     const voice = sanitizeVoice(body?.voice);
     const formulas = sanitizeFormulas(body?.formulas);
+    const brief = { angle: sanitizeAngle(body?.angle), positioning: sanitizePositioning(body?.positioning) };
     const concept = body?.concept === undefined ? null : cleanConcept(body.concept);
     if (body?.concept !== undefined && !concept) {
       return json({ code: "bad_request", error: "Pick one of the concepts first." }, 400);
@@ -242,7 +246,7 @@ Deno.serve(async (req) => {
       return json(response);
     }
     const output = await write(
-      buildClonePrompt(source, voice, formulas),
+      buildClonePrompt(source, voice, formulas, brief),
       { format: CLONE_RESPONSE_FORMAT, maxTokens: 2600, validate: validateCloneOutput },
       openaiKey,
       aiMs,

@@ -8,6 +8,7 @@ import { getDraftById, loadDrafts, saveDrafts } from "./draftHistory";
 import { splitScriptCaption } from "./scriptCaption";
 import { hookFormulaSet } from "./hookFormulas";
 import { fromClone } from "./remixSource";
+import { EMPTY_POSITIONING } from "./positioning";
 import {
   CLONE_STEPS,
   MAX_SAVED_CLONES,
@@ -22,6 +23,7 @@ import {
   ctaTypeFor,
   errorCodeFor,
   loadSavedClones,
+  positioningForClone,
   rememberClone,
   saveCloneDraft,
   shotListText,
@@ -236,6 +238,27 @@ describe("voiceForClone", () => {
   });
 });
 
+describe("positioningForClone", () => {
+  it("sends who they serve, their edge, the one-liner and topics, only when something is filled", () => {
+    expect(positioningForClone(null)).toBeNull();
+    expect(positioningForClone(EMPTY_POSITIONING)).toBeNull();
+    expect(
+      positioningForClone({
+        ...EMPTY_POSITIONING,
+        oneLiner: " I help fresh grads plan ",
+        audience: "working-adult",
+        audienceDetail: " earning $3.5-4.5K ",
+        topics: ["CPF", " ", "hospital plans"],
+        edge: " Ex-banker ",
+        platform: "instagram",
+      }),
+    ).toEqual({ oneLiner: "I help fresh grads plan", audience: "working adult: earning $3.5-4.5K", topics: ["CPF", "hospital plans"], edge: "Ex-banker" });
+    expect(positioningForClone({ ...EMPTY_POSITIONING, audience: "parent" })).toEqual({ oneLiner: "", audience: "parent", topics: [], edge: "" });
+    // a corrupt saved value sends nothing rather than throwing
+    expect(positioningForClone({ ...EMPTY_POSITIONING, topics: "CPF" as unknown as string[], edge: 7 as unknown as string })).toBeNull();
+  });
+});
+
 describe("winnersFor", () => {
   const posted = (id: string, hook: string, impressions: number, reactions: number) => ({
     id,
@@ -330,6 +353,17 @@ describe("cloneReel", () => {
       "clone-reel",
       expect.objectContaining({ body: { url: "https://vt.tiktok.com/ZSxyz789/", voice: null } }),
     );
+  });
+
+  it("sends the angle and saved positioning next to the voice, and the same body as before without them", async () => {
+    invoke.mockResolvedValue({ data: result(), error: null });
+    await cloneReel("u", null, undefined, [], { angle: " \n ", positioning: null });
+    expect(JSON.stringify(invoke.mock.calls[0][1].body)).toBe('{"url":"u","voice":null}');
+    await cloneReel("u", null, undefined, hookFormulaSet(0));
+    expect(Object.keys(invoke.mock.calls[1][1].body)).toEqual(["url", "voice", "formulas"]);
+    const positioning = { oneLiner: "I help parents", audience: "parent", topics: ["CPF"], edge: "" };
+    await cloneReel("u", null, undefined, [], { angle: " My own hospital plan story ", positioning });
+    expect(invoke.mock.calls[2][1].body).toEqual({ url: "u", voice: null, angle: "My own hospital plan story", positioning });
   });
 
   it("shows the server's message and code for a refusal", async () => {

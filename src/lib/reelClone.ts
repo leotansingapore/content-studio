@@ -13,10 +13,12 @@ import {
   type CloneResponse,
   type HookFormulaInput,
   type MyVersion,
+  type PositioningInput,
   type ShotBeat,
   type VoiceInput,
   type Winner,
 } from "../../supabase/functions/clone-reel/logic.ts";
+import type { Positioning } from "@/lib/positioning";
 import { formulaOfHook, type HookFormula } from "@/lib/hookFormulas";
 import type { Pacing, Visuals } from "../../supabase/functions/reel-visuals/logic.ts";
 import { scoped } from "@/lib/profiles";
@@ -24,7 +26,7 @@ import { getTrackedPosts } from "@/lib/analytics";
 import { sampleReelFrames } from "@/lib/reelFrames";
 import type { RemixSource } from "@/lib/remixSource";
 
-export { LINK_MESSAGES, parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
+export { LINK_MESSAGES, MAX_ANGLE_CHARS, parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
 export type {
   Breakdown,
   CloneResponse,
@@ -158,16 +160,27 @@ function tagHooks(version: MyVersion, formulas: HookFormula[]): MyVersion {
     : version;
 }
 
-/** Clones one reel, writing its hooks with `formulas` when given. Throws ReelCloneError with a message fit to show. */
+/**
+ * Clones one reel, writing its hooks with `formulas` when given, and building on their typed angle and saved
+ * positioning when given. Without them the request is the same as before. Throws ReelCloneError with a message fit to show.
+ */
 export async function cloneReel(
   url: string,
   voice: VoiceInput | null,
   signal?: AbortSignal,
   formulas: HookFormula[] = [],
+  brief: { angle?: string; positioning?: PositioningInput | null } = {},
 ): Promise<CloneResponse> {
+  const angle = brief.angle?.trim() ?? "";
   const data = await invokeFunction(
     "clone-reel",
-    formulas.length ? { url, voice, formulas: formulaInput(formulas) } : { url, voice },
+    {
+      url,
+      voice,
+      ...(formulas.length ? { formulas: formulaInput(formulas) } : {}),
+      ...(angle ? { angle } : {}),
+      ...(brief.positioning ? { positioning: brief.positioning } : {}),
+    },
     signal,
   );
   if (!isCloneResponse(data)) {
@@ -217,6 +230,21 @@ export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = 
   const summary = usable ? (profile!.voiceSummary ?? "").trim().slice(0, 1200) : "";
   if (!summary && !samples.length && !winners.length) return null;
   return winners.length ? { summary, samples, winners } : { summary, samples };
+}
+
+const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+/** What a clone uses of their saved positioning: who they serve, their edge, the one-liner and topics. Null when none is set. */
+export function positioningForClone(p: Positioning | null): PositioningInput | null {
+  if (!p) return null;
+  const stage = p.audience && p.audience !== "general" ? text(p.audience).replace(/-/g, " ") : "";
+  const out: PositioningInput = {
+    oneLiner: text(p.oneLiner),
+    audience: [stage, text(p.audienceDetail)].filter(Boolean).join(": "),
+    topics: (Array.isArray(p.topics) ? p.topics : []).map(text).filter(Boolean),
+    edge: text(p.edge),
+  };
+  return out.oneLiner || out.audience || out.topics.length || out.edge ? out : null;
 }
 
 // ---- Hooks and the shot list ---------------------------------------------------------

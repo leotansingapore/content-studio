@@ -41,12 +41,14 @@ import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatCount, shortDate, timeAgo } from "@/lib/accountAudit";
 import { scanCompliance, type ComplianceFlag } from "@/lib/compliance";
 import {
   CLONE_STEPS,
   DAILY_LIMITS,
+  MAX_ANGLE_CHARS,
   ReelCloneError,
   canReadVideo,
   cloneIdOf,
@@ -57,6 +59,7 @@ import {
   loadSavedClones,
   onVisualsJob,
   parseReelUrl,
+  positioningForClone,
   rememberClone,
   saveCloneDraft,
   startConceptBuild,
@@ -78,6 +81,7 @@ import { HOOK_FORMULAS, hookFormula, hookFormulaSet } from "@/lib/hookFormulas";
 import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
+import { loadPositioning } from "@/lib/positioning";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { fromClone } from "@/lib/remixSource";
 import { MAKE_VIDEO, makeVideoHref, type MakeVideoKind } from "@/lib/scriptCaption";
@@ -1368,9 +1372,10 @@ function RemixLinkBox({
 
 // ---- Page ---------------------------------------------------------------------------------------------
 
-// A link pasted but not cloned yet, kept for this tab. sessionStorage, outside
-// the synced prefix: it is scratch.
+// A link pasted but not cloned yet, and the angle typed for it, kept for this
+// tab. sessionStorage, outside the synced prefix: it is scratch.
 const linkKey = (userId: string) => `cs-clone-link-${scoped(userId)}`;
+const angleKey = (userId: string) => `cs-clone-angle-${scoped(userId)}`;
 
 export default function CloneReelPage() {
   const { toast } = useToast();
@@ -1379,6 +1384,7 @@ export default function CloneReelPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [hasVoice, setHasVoice] = useState(true);
   const [input, setInput] = useState(() => searchParams.get("url") ?? "");
+  const [angle, setAngle] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
   const [view, setView] = useState<View>({ kind: "idle" });
   const [saved, setSaved] = useState<SavedClone[]>([]);
@@ -1412,6 +1418,8 @@ export default function CloneReelPage() {
       try {
         const link = id && !searchParams.get("url") ? sessionStorage.getItem(linkKey(id)) : null;
         if (link) setInput((cur) => cur || link);
+        const typed = id ? sessionStorage.getItem(angleKey(id)) : null;
+        if (typed) setAngle((cur) => cur || typed);
       } catch {
         // blocked storage: start with an empty box
       }
@@ -1446,16 +1454,18 @@ export default function CloneReelPage() {
     [userId],
   );
 
-  // A pasted link not cloned yet survives leaving the page; a finished clone clears it.
+  // A pasted link and angle not cloned yet survive leaving the page; a finished clone clears them.
   useEffect(() => {
     if (!userId) return;
     try {
       if (!input.trim() || view.kind === "result") sessionStorage.removeItem(linkKey(userId));
       else sessionStorage.setItem(linkKey(userId), input);
+      if (!angle.trim() || view.kind === "result") sessionStorage.removeItem(angleKey(userId));
+      else sessionStorage.setItem(angleKey(userId), angle);
     } catch {
       // storage blocked: the link just won't survive a page change
     }
-  }, [userId, input, view.kind]);
+  }, [userId, input, angle, view.kind]);
 
   // A Clone button elsewhere links here with ?url=; fill it in, but let the
   // consultant start it, since each clone uses one of today's.
@@ -1502,7 +1512,10 @@ export default function CloneReelPage() {
       // A click right after the page opens can beat the getUser() above; the session is local, so read it here.
       const uid = userId ?? (await supabase.auth.getSession()).data.session?.user.id ?? null;
       const voice = voiceForClone(loadVoiceProfile(uid), winnersFor(uid));
-      const result = await cloneReel(parsed.url, voice, controller.signal, hookFormulaSet(hookSetRef.current++));
+      const result = await cloneReel(parsed.url, voice, controller.signal, hookFormulaSet(hookSetRef.current++), {
+        angle,
+        positioning: positioningForClone(loadPositioning(uid)),
+      });
       if (controller.signal.aborted) return;
       const clone: SavedClone = { id: cloneIdOf(result), savedAt: new Date().toISOString(), result };
       if (uid) setSaved(rememberClone(uid, clone));
@@ -1648,29 +1661,68 @@ export default function CloneReelPage() {
         </h1>
       </header>
 
-      <form onSubmit={onSubmit} noValidate className="space-y-1.5">
+      <form onSubmit={onSubmit} noValidate>
         <label htmlFor="reel-url" className="sr-only">
           Instagram reel or TikTok video link
         </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            id="reel-url"
-            ref={inputRef}
-            type="url"
-            inputMode="url"
-            autoComplete="off"
-            spellCheck={false}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              if (linkError) setLinkError(null);
-            }}
-            placeholder="https://www.instagram.com/reel/…"
-            disabled={loading}
-            aria-invalid={Boolean(linkError)}
-            aria-describedby={linkError ? "reel-url-error" : "reel-url-hint"}
-            className="h-11 min-w-0 flex-1"
-          />
+        {/* The angle sits under the link, so on phones the button comes after both. */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Input
+              id="reel-url"
+              ref={inputRef}
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (linkError) setLinkError(null);
+              }}
+              placeholder="https://www.instagram.com/reel/…"
+              disabled={loading}
+              aria-invalid={Boolean(linkError)}
+              aria-describedby={linkError ? "reel-url-error" : "reel-url-hint"}
+              className="h-11"
+            />
+            {linkError ? (
+              <p id="reel-url-error" role="alert" className="text-xs font-medium text-destructive">
+                {linkError}
+              </p>
+            ) : (
+              <p id="reel-url-hint" className="text-[11px] text-muted-foreground">
+                Instagram reels and TikTok videos only. Each clone uses 1 of your {limit} a day
+                {clonesLeft !== null
+                  ? `, ${clonesLeft} left today.`
+                  : view.kind === "result" && view.clone.result.usage
+                    ? ` (${view.clone.result.usage.used} used today).`
+                    : "."}
+              </p>
+            )}
+            <div className="space-y-1.5 pt-2">
+              <label htmlFor="reel-angle" className="block text-xs font-medium text-foreground">
+                Your angle <span className="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <Textarea
+                id="reel-angle"
+                rows={2}
+                autoResize
+                maxLength={MAX_ANGLE_CHARS}
+                value={angle}
+                onChange={(e) => setAngle(e.target.value)}
+                placeholder="e.g. Why I almost skipped my own hospital plan at 25"
+                disabled={loading}
+                aria-describedby={angle.length > MAX_ANGLE_CHARS - 50 ? "reel-angle-left" : undefined}
+                className="min-h-0"
+              />
+              {angle.length > MAX_ANGLE_CHARS - 50 && (
+                <p id="reel-angle-left" className="text-right text-[11px] tabular-nums text-muted-foreground">
+                  {MAX_ANGLE_CHARS - angle.length} characters left
+                </p>
+              )}
+            </div>
+          </div>
           <Button
             type="submit"
             disabled={loading || !input.trim()}
@@ -1680,20 +1732,6 @@ export default function CloneReelPage() {
             {loading ? "Cloning…" : "Clone it"}
           </Button>
         </div>
-        {linkError ? (
-          <p id="reel-url-error" role="alert" className="text-xs font-medium text-destructive">
-            {linkError}
-          </p>
-        ) : (
-          <p id="reel-url-hint" className="text-[11px] text-muted-foreground">
-            Instagram reels and TikTok videos only. Each clone uses 1 of your {limit} a day
-            {clonesLeft !== null
-              ? `, ${clonesLeft} left today.`
-              : view.kind === "result" && view.clone.result.usage
-                ? ` (${view.clone.result.usage.used} used today).`
-                : "."}
-          </p>
-        )}
       </form>
       </>
       )}
