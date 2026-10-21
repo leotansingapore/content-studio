@@ -5,6 +5,7 @@
 // so every device uses the same one). Rows Jev rates OFFER_AT or more start ticked; nothing is added unticked.
 
 import { toast } from "@/hooks/use-toast";
+import { hostOf } from "@/lib/brandRead";
 import { deleteFile, getFile, putFile } from "@/lib/deviceFiles";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
@@ -12,16 +13,11 @@ import { alreadyAdded, loadProducts, MAX_PRODUCTS, mergeScan, type Product, save
 import { scoped } from "@/lib/profiles";
 import { NAMED_AT, OFFER_AT, type ScannedProduct } from "../../supabase/functions/brand-dna/logic.ts";
 
+export { hostOf };
+
 export const REFUSED = "This isn't switched on for your account yet.";
 export const PICTURE_FAILED = "Couldn't fetch that picture. Upload one instead.";
 export const PRODUCTS_FOLDER = "Products";
-export const hostOf = (address: string) => {
-  try {
-    return new URL(/^https?:\/\//i.test(address.trim()) ? address.trim() : `https://${address.trim()}`).host.replace(/^www\./, "");
-  } catch {
-    return address.trim();
-  }
-};
 const scanFailed = (address: string) => `We couldn't list what ${hostOf(address)} sells. Check the address and try again.`;
 export const scanKey = (userId: string) => `cs-products-scan-${scoped(userId)}`;
 
@@ -135,7 +131,8 @@ export function addFromScan(userId: string, now = new Date()): { added: number }
   if (!w) return null;
   const list = loadProducts(userId);
   const rows = reviewRows(list.items, w);
-  if (addPlan(list.items, rows).line) return { error: addPlan(list.items, rows).line! };
+  const { line } = addPlan(list.items, rows);
+  if (line) return { error: line };
   const fetched = Object.fromEntries(Object.entries(w.pics).flatMap(([u, p]) => (p === "failed" ? [] : [[u, p.key]])));
   const { next, added } = mergeScan(list, w.scan, rows.filter((r) => r.ticked).map((r) => r.i), fetched, now);
   const error = saveProducts(userId, next);
