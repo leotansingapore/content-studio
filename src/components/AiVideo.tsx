@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -19,9 +19,11 @@ import {
 } from "@/lib/presenter";
 import { getDraftById } from "@/lib/draftHistory";
 import { PictureTile } from "@/components/brand/ProductEditor";
+import { MIC_BLOCKED, SILENT, clock, isSilent, startMic, type MicTake } from "@/lib/micRecorder";
 import { loadProducts, productLabel, type Product } from "@/lib/products";
 import { PICTURE_FAILED, pictureFile } from "@/lib/productScan";
 import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
+import { aiMark, defaultWho, speakerFace, speakerFile, speakerOf, useSpeakers, whoChoices, type Speaker } from "@/lib/talkingHead";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { BANNER_MAX, MUSIC_LEVEL, defaultSettings, moveTake, styleLabel, withLook } from "@/lib/videoEdit";
@@ -254,6 +256,22 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
     setTaken({ id: p.id, file });
   };
   const on = (p: Product) => taken?.id === p.id && photos.product?.file === taken.file;
+  // people-in-videos, Leo only: "Use my face" or "Use {name}" puts your saved face or a saved presenter in the person
+  // slot (one photo a clip, so a product photo goes); a photo picked by hand replaces it
+  const people = useSpeakers(user?.id);
+  const [person, setPerson] = useState<{ sp: Speaker; file: File } | null>(null);
+  const [personTaking, setPersonTaking] = useState("");
+  const takePerson = async (sp: Speaker) => {
+    const id = sp.person === "mine" ? sp.face.id : sp.p.id;
+    setPersonTaking(id);
+    const blob = await speakerFile(sp);
+    setPersonTaking("");
+    const file = new File([blob], "person.jpg", { type: blob.type || "image/jpeg" });
+    const url = URL.createObjectURL(file);
+    urls.current.push(url);
+    setPhotos({ person: { file, url } });
+    setPerson({ sp, file });
+  };
   const productParam = params.get("product");
   useEffect(() => {
     if (!user || productParam === null) return;
@@ -291,6 +309,9 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
   const clips = left("ai-clip");
   // one photo at a time: a person opens the clip as its first frame, which leaves no room for a product photo
   const chosen = pick.photos.find((role) => photos[role]);
+  // the saved person in the slot now, if the slot still holds their picture
+  const inSlot = chosen === "person" && person && photos.person?.file === person.file ? person.sp : null;
+  const personId = inSlot ? (inSlot.person === "mine" ? inSlot.face.id : inSlot.p.id) : "";
   const make = () =>
     void makeTemplateClip(value(pick.fields.find((f) => f.required)!.key).slice(0, 40) || pick.title, {
       template: pick.id,
@@ -298,7 +319,10 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
       quality,
       fields: Object.fromEntries(pick.fields.flatMap((f) => (value(f.key) ? [[f.key, value(f.key)]] : []))),
       photo: chosen ? { role: chosen, file: photos[chosen]!.file } : null,
-    }, fill ? { extra: { draftId: fill.id } } : undefined);
+    }, user
+      // Leo's clips carry the AI mark: your face or a presenter by id, else the template's made-up person
+      ? { extra: { ...(fill ? { draftId: fill.id } : {}), ai: aiMark("template", inSlot ?? (pick.photos.includes("person") ? "generated" : null), null) } }
+      : fill ? { extra: { draftId: fill.id } } : undefined);
 
   return (
     <div className="space-y-3">
@@ -338,26 +362,42 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
       <div className="flex flex-wrap gap-3">
         {(chosen ? [chosen] : pick.photos).map((role) => {
           const ph = photos[role];
-          return (
-            <div key={role} className="flex items-center gap-2">
-              {ph && <img src={ph.url} alt={`The ${role}`} className="h-16 w-12 rounded-lg object-cover" />}
-              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
-                {ph ? `Change ${role} photo` : `Photo of the ${role}${pick.needsPhoto === role ? "" : " (optional)"}`}
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!file) return;
-                    const url = URL.createObjectURL(file);
-                    urls.current.push(url);
-                    setPhotos({ ...photos, [role]: { file, url } });
-                  }} />
-              </label>
-              {ph && <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={busy} onClick={() => setPhotos({ ...photos, [role]: undefined })}>Remove</Button>}
+          const uses = role === "person" && people && (people.face || people.presenters.length > 0) && (
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Who appears">
+              {people.face && (
+                <Button size="sm" variant="outline" className="h-11 text-xs sm:h-9" disabled={busy || !!personTaking} aria-pressed={personId === people.face.id}
+                  onClick={() => void takePerson({ person: "mine", face: people.face! })}>Use my face</Button>
+              )}
+              {people.presenters.map((p) => (
+                <Button key={p.id} size="sm" variant="outline" className="h-11 text-xs sm:h-9" disabled={busy || !!personTaking} aria-pressed={personId === p.id}
+                  onClick={() => void takePerson({ person: "presenter", p })}>Use {p.name}</Button>
+              ))}
             </div>
+          );
+          return (
+            <Fragment key={role}>
+              <div className="flex items-center gap-2">
+                {ph && <img src={ph.url} alt={`The ${role}`} className="h-16 w-12 rounded-lg object-cover" />}
+                <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
+                  {ph ? `Change ${role} photo` : `Photo of the ${role}${pick.needsPhoto === role ? "" : " (optional)"}`}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file) return;
+                      const url = URL.createObjectURL(file);
+                      urls.current.push(url);
+                      setPhotos({ ...photos, [role]: { file, url } });
+                    }} />
+                </label>
+                {ph && <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={busy} onClick={() => setPhotos({ ...photos, [role]: undefined })}>Remove</Button>}
+              </div>
+              {uses}
+            </Fragment>
           );
         })}
       </div>
+      {inSlot && <p className="text-xs text-muted-foreground">{inSlot.person === "mine" ? "Made by AI from your saved face." : "The person is made by AI."}</p>}
       <ul className="space-y-1" aria-label="Before you make it">
         {pick.warnings.map((w) => (
           <li key={w} className="flex items-start gap-1.5 text-xs"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-warning" aria-hidden /> {w}</li>
@@ -398,7 +438,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const [look, setLook] = useState(() => LOOKS[Math.floor(Math.random() * LOOKS.length)]);
   const [presenter, setPresenter] = useState(job?.kind === "presenter" && job.state === "done" ? job.url ?? "" : "");
   const [script, setScript] = useState("");
-  const [voice, setVoice] = useState<VoiceId>("alice");
+  const [localVoice, setVoice] = useState<VoiceId>("alice");
   const [vo, setVo] = useState<(Voiceover & { url: string }) | null>(null);
   const [voBusy, setVoBusy] = useState(false);
   const [voError, setVoError] = useState("");
@@ -417,6 +457,37 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const user = useLeoUser();
   const [params] = useSearchParams();
   const update = useUrlUpdate();
+  // people-in-videos, Leo only: who speaks is your saved face, a saved presenter or a new one (?face=, the brand's Who
+  // appears preselected, Ask each time none), and the voice may be your own recording (?voice=mine), both replace.
+  // Everyone else keeps My photo, AI presenter and the premade voices as local choices, a typed face= or voice= ignored.
+  const people = useSpeakers(user?.id);
+  const [faceParam, pickWho] = useUrlState<string>("face", people ? defaultWho(people) : "", { allowed: people ? whoChoices(people) : [] });
+  const [voiceParam, setVoiceParam] = useUrlState<VoiceId | "mine">("voice", "alice", { allowed: [...VOICE_IDS, "mine"] });
+  const who = people ? faceParam : "";
+  const speaker = people ? speakerOf(people, who) : null;
+  const voice: VoiceId | "mine" = user ? voiceParam : localVoice;
+  const own = voice === "mine";
+  const chooseVoice = (v: VoiceId | "mine") => {
+    if (user) {
+      setVoiceParam(v);
+      setVoError("");
+    } else setVoice(v as VoiceId);
+    setVo(null);
+  };
+  // My own voice: a take on the mic (micRecorder.ts), released if the panel closes mid-take
+  const [rec, setRec] = useState<{ take: MicTake; t0: number } | null>(null);
+  const [recSecs, setRecSecs] = useState(0);
+  const recRef = useRef<MicTake | null>(null);
+  useEffect(() => {
+    recRef.current = rec?.take ?? null;
+    if (!rec) return;
+    setRecSecs(0);
+    const t = setInterval(() => setRecSecs((Date.now() - rec.t0) / 1000), 250);
+    return () => clearInterval(t);
+  }, [rec]);
+  useEffect(() => () => void recRef.current?.stop(), []);
+  // a saved presenter's link is checked before Speak gets it, so the press says so at once
+  const [starting, setStarting] = useState(false);
   const kept = useMemo(() => (user ? loadTalk(user.id) : null), [user]);
   const [talkParam, setTalkParam] = useUrlState<Talk>("talk", kept?.talk ?? "plain", { allowed: TALKS });
   const talk: Talk = user ? talkParam : "plain";
@@ -499,6 +570,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
 
   const n = words(script);
   const makeVoice = async () => {
+    if (own) return;
     setVoBusy(true);
     setVoError("");
     try {
@@ -513,9 +585,42 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
       setVoBusy(false);
     }
   };
+  // your own take or upload goes through sliceVoiceover like a made voiceover, and takes no ai-voice use
+  const takeVoice = async (audio: Blob) => {
+    setVoBusy(true);
+    setVoError("");
+    try {
+      const v = await sliceVoiceover(audio);
+      // sliceVoiceover's pcm is 24 kHz
+      if (isSilent(v.pcm, 24000)) return setVoError(SILENT);
+      const url = URL.createObjectURL(audio);
+      urls.current.push(url);
+      setVo({ ...v, url });
+    } catch {
+      setVoError("Couldn't read that recording. Try another file.");
+    } finally {
+      setVoBusy(false);
+    }
+  };
+  const record = async () => {
+    setVoError("");
+    try {
+      setRec({ take: await startMic(), t0: Date.now() });
+    } catch (e) {
+      // a blocked or missing mic: the line, and the script and any take stay as they were
+      setVoError((e as Error).message || MIC_BLOCKED);
+    }
+  };
+  const stopRec = async () => {
+    if (!rec) return;
+    setRec(null);
+    void takeVoice(await rec.take.stop());
+  };
   // a presenter made for another format's setting is not this one's
   const shown = !user || presenterFits(talk) ? presenter : "";
-  const image = face === "photo" ? photo : shown;
+  const image = people ? (who === "presenter" ? shown : speaker) : face === "photo" ? photo : shown;
+  // the photo the set goes behind: your own (My photo), your saved face or a saved presenter
+  const ownPhoto = people ? (speaker ? (speaker.person === "mine" ? speaker.face.photo : speaker.p.photo) : "") : face === "photo" ? photoUrl : "";
   const tooLong = !!vo && vo.seconds > MAX_AVATAR_SECONDS + 0.5;
   const credits = vo ? avatarCredits(vo.slices.map((s) => s.end - s.start)) : 0;
   const videos = left("ai-video");
@@ -531,12 +636,68 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
       await putFile(topKey, offerPic.file).catch(() => (topKey = undefined));
     }
     const talked = user
-      ? talkExtra({ talk, headline, setKey: face === "photo" && behind === "set" && setUrl ? setKey : null, offer: offerName, brand: loadBrand(user.id)?.name, topKey })
+      ? talkExtra({ talk, headline, setKey: (people ? !!speaker : face === "photo") && behind === "set" && setUrl ? setKey : null, offer: offerName, brand: loadBrand(user.id)?.name, topKey })
       : undefined;
     // made from a post: the editor saves its caption back there, even after a reload mid-make (Pending keeps extra)
     const extra = fill ? { ...talked, draftId: fill.id } : talked;
-    void makeAvatar(script.trim().slice(0, 40) || "AI video", image!, vo!, extra);
+    const name = script.trim().slice(0, 40) || "AI video";
+    if (!people) return void makeAvatar(name, image as File | string, vo!, extra);
+    // Leo: your face, or a saved presenter's link while it answers and its copy after; the mark says who and which voice
+    setStarting(true);
+    const sent = speaker ? await speakerFace(speaker) : shown;
+    setStarting(false);
+    void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice) });
   };
+  // New presenter (AI presenter for everyone else): today's look box
+  const presenterBox = (
+    <div className="flex flex-col gap-3 sm:flex-row">
+      {shown && <img src={shown} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
+      <div className="min-w-0 flex-1 space-y-2">
+        <Textarea rows={2} value={look} maxLength={MAX_LOOK} onChange={(e) => setLook(e.target.value)} aria-label="How your presenter looks" className="text-sm" disabled={busy} />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy}
+            onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
+          <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
+            onClick={() => {
+              // anyone else sends no setting: today's office
+              const setting = user ? TALK_SETTING[talk] : undefined;
+              notePresenter(setting);
+              void makePresenter(look.trim(), setting);
+            }}>{shown ? "Make another presenter" : "Make the presenter"}</Button>
+          <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
+        </div>
+        {user && <p className="text-xs text-muted-foreground">The person is made by AI.</p>}
+      </div>
+    </div>
+  );
+  // a news or stage set behind your own photo, your saved face or a saved presenter
+  const behindRow = setTalk && (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Behind you">
+        <span className="mr-1 text-xs font-medium">Behind you</span>
+        <Pill on={behind === "keep"} onClick={() => setBehind("keep")} disabled={busy}>Keep my background</Pill>
+        <Pill on={behind === "set"} onClick={() => setBehind("set")} disabled={busy}>{SET_LABELS[setTalk]}</Pill>
+      </div>
+      {behind === "set" && (
+        setJob?.state === "working" && setJob.talk === setTalk ? (
+          <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
+            <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Making the set...
+          </p>
+        ) : setUrl ? (
+          <div className="flex items-center gap-2">
+            <img src={setUrl} alt={`The ${SET_LABELS[setTalk].toLowerCase()} behind you`} className="h-24 w-14 rounded-lg object-cover" />
+            {ownPhoto && <img src={ownPhoto} alt="" className="h-24 w-20 rounded-lg object-cover" />}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || setJob?.state === "working" || left("ai-image") === 0} onClick={() => void makeSet(setTalk)}>Make the set</Button>
+            <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
+          </div>
+        )
+      )}
+      {setJob?.state === "failed" && setJob.talk === setTalk && behind === "keep" && <p className="text-xs text-destructive" role="alert">{setJob.error}</p>}
+    </div>
+  );
   const pickBtn = "inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11";
 
   return (
@@ -549,11 +710,34 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
         </div>
       )}
       <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Who speaks">
-          <Pill on={face === "photo"} onClick={() => setFace("photo")} disabled={busy}>My photo</Pill>
-          <Pill on={face === "presenter"} onClick={() => setFace("presenter")} disabled={busy}>AI presenter</Pill>
-        </div>
-        {face === "photo" ? (
+        {people ? (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Who speaks">
+            {(people.face || who === "mine") && <Pill on={who === "mine"} onClick={() => pickWho("mine")} disabled={busy}>My face</Pill>}
+            {people.presenters.map((p) => <Pill key={p.id} on={who === p.id} onClick={() => pickWho(p.id)} disabled={busy}>{p.name}, AI</Pill>)}
+            <Pill on={who === "presenter"} onClick={() => pickWho("presenter")} disabled={busy}>New presenter</Pill>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Who speaks">
+            <Pill on={face === "photo"} onClick={() => setFace("photo")} disabled={busy}>My photo</Pill>
+            <Pill on={face === "presenter"} onClick={() => setFace("presenter")} disabled={busy}>AI presenter</Pill>
+          </div>
+        )}
+        {people ? (
+          who === "presenter" ? presenterBox
+          : speaker ? (
+            <>
+              <div className="flex items-center gap-3">
+                <img src={ownPhoto} alt={speaker.person === "mine" ? "Your saved face" : `${speaker.p.name}, your AI presenter`} className="h-24 w-14 shrink-0 rounded-lg object-cover" />
+                <p className="text-xs text-muted-foreground">{speaker.person === "mine" ? "Made by AI from your saved face." : "The person is made by AI."}</p>
+              </div>
+              {behindRow}
+            </>
+          ) : who === "mine" ? (
+            <p className="text-sm">
+              <Link to={links.people({ record: true })} className="font-medium text-primary underline-offset-2 hover:underline [@media(pointer:coarse)]:inline-block [@media(pointer:coarse)]:py-3">Save your face first</Link>
+            </p>
+          ) : null
+        ) : face === "photo" ? (
           <>
             <div className="flex items-center gap-3">
               {photoUrl && <img src={photoUrl} alt="Your photo" className="h-24 w-20 rounded-lg object-cover" />}
@@ -574,55 +758,9 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
                 <p className="text-xs text-muted-foreground">Use a photo of yourself, or of someone who agreed to it.</p>
               </div>
             </div>
-            {user && setTalk && (
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Behind you">
-                  <span className="mr-1 text-xs font-medium">Behind you</span>
-                  <Pill on={behind === "keep"} onClick={() => setBehind("keep")} disabled={busy}>Keep my background</Pill>
-                  <Pill on={behind === "set"} onClick={() => setBehind("set")} disabled={busy}>{SET_LABELS[setTalk]}</Pill>
-                </div>
-                {behind === "set" && (
-                  setJob?.state === "working" && setJob.talk === setTalk ? (
-                    <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
-                      <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Making the set...
-                    </p>
-                  ) : setUrl ? (
-                    <div className="flex items-center gap-2">
-                      <img src={setUrl} alt={`The ${SET_LABELS[setTalk].toLowerCase()} behind you`} className="h-24 w-14 rounded-lg object-cover" />
-                      {photoUrl && <img src={photoUrl} alt="" className="h-24 w-20 rounded-lg object-cover" />}
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || setJob?.state === "working" || left("ai-image") === 0} onClick={() => void makeSet(setTalk)}>Make the set</Button>
-                      <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
-                    </div>
-                  )
-                )}
-                {setJob?.state === "failed" && setJob.talk === setTalk && behind === "keep" && <p className="text-xs text-destructive" role="alert">{setJob.error}</p>}
-              </div>
-            )}
+            {user && behindRow}
           </>
-        ) : (
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {shown && <img src={shown} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
-            <div className="min-w-0 flex-1 space-y-2">
-              <Textarea rows={2} value={look} maxLength={MAX_LOOK} onChange={(e) => setLook(e.target.value)} aria-label="How your presenter looks" className="text-sm" disabled={busy} />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy}
-                  onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
-                <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
-                  onClick={() => {
-                    // anyone else sends no setting: today's office
-                    const setting = user ? TALK_SETTING[talk] : undefined;
-                    notePresenter(setting);
-                    void makePresenter(look.trim(), setting);
-                  }}>{shown ? "Make another presenter" : "Make the presenter"}</Button>
-                <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
-              </div>
-              {user && <p className="text-xs text-muted-foreground">The person is made by AI.</p>}
-            </div>
-          </div>
-        )}
+        ) : presenterBox}
       </div>
 
       {user && talk === "spokesperson" && (
@@ -687,18 +825,37 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
         )}
         {user && <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />}
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
+          {user && <Pill on={own} disabled={busy || !!rec} onClick={() => chooseVoice("mine")}>My own voice</Pill>}
           {VOICE_IDS.map((v) => (
-            <Pill key={v} on={voice === v} disabled={busy} onClick={() => { setVoice(v); setVo(null); }}>{VOICES[v].label}, {VOICES[v].note}</Pill>
+            <Pill key={v} on={voice === v} disabled={busy || !!rec} onClick={() => chooseVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button ref={voiceRef} size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void makeVoice()}
-            disabled={busy || voBusy || n < 3 || left("ai-voice") === 0}>
-            {voBusy ? "Making the voiceover..." : vo ? "Make the voiceover again" : "Make the voiceover"}
-          </Button>
-          {n > 0 && <span className="text-[11px] text-muted-foreground">{n} words, about {secs(n / 2.5)}</span>}
-          <Left n={left("ai-voice")} what="Voiceovers" feature="ai-voice" busy={busy || voBusy} />
-        </div>
+        {own ? (
+          // Leo's own recording, read from the script on screen: no voiceover is made, so no ai-voice use
+          <div className="flex flex-wrap items-center gap-2">
+            {rec ? (
+              <Button size="sm" className="h-11 sm:h-9" onClick={() => void stopRec()}>Stop, {clock(recSecs)}</Button>
+            ) : (
+              <Button ref={voiceRef} size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void record()} disabled={busy || voBusy}>Record it</Button>
+            )}
+            <label className={`${pickBtn} ${busy || voBusy || rec ? "pointer-events-none opacity-60" : ""}`}>
+              Upload audio
+              <input type="file" accept="audio/*" className="sr-only" disabled={busy || voBusy || !!rec}
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void takeVoice(f); }} />
+            </label>
+            {rec ? <span className="text-[11px] text-muted-foreground" aria-live="polite">Recording. Read the script above.</span>
+              : n > 0 && <span className="text-[11px] text-muted-foreground">{n} words, about {secs(n / 2.5)}</span>}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button ref={voiceRef} size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void makeVoice()}
+              disabled={busy || voBusy || n < 3 || left("ai-voice") === 0}>
+              {voBusy ? "Making the voiceover..." : vo ? "Make the voiceover again" : "Make the voiceover"}
+            </Button>
+            {n > 0 && <span className="text-[11px] text-muted-foreground">{n} words, about {secs(n / 2.5)}</span>}
+            <Left n={left("ai-voice")} what="Voiceovers" feature="ai-voice" busy={busy || voBusy} />
+          </div>
+        )}
         {/* the video's price before its voiceover exists, from the script at 2.5 words a second */}
         {leo && !vo && n > 0 && <p className="text-[11px] text-muted-foreground">The video: <PriceChip feature="ai-video" opts={{ seconds: n / 2.5 }} left={videos} /></p>}
         {voError && <p className="text-xs text-destructive" role="alert">{voError}</p>}
@@ -723,9 +880,14 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0}
-                onClick={() => (askFirst ? setAsking(true) : void make())}>Make the video</Button>
-              {!image && <span className="text-xs text-muted-foreground">{face === "photo" ? "Pick a photo first." : "Make the presenter first."}</span>}
+              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0 || starting || !!rec}
+                onClick={() => (askFirst ? setAsking(true) : void make())}>{starting ? "Sending..." : "Make the video"}</Button>
+              {!image && (
+                <span className="text-xs text-muted-foreground">
+                  {people ? (who === "presenter" ? "Make the presenter first." : who === "mine" ? "Save your face first." : "Pick who speaks first.")
+                    : face === "photo" ? "Pick a photo first." : "Make the presenter first."}
+                </span>
+              )}
               <Left n={videos} what="AI videos" feature="ai-video" opts={{ slices: vo.slices.map((s) => s.end - s.start) }} busy={busy} />
             </div>
           )}
@@ -929,9 +1091,11 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
       ...(settings ? { settings } : {}),
       ...(d.source ? { note: `Made from ${d.source.url}`, toast: "Your narrated video is ready" } : {}),
       ...(from === "draft" && d.fromDraft ? { draftId: d.fromDraft } : {}),
+      // the AI mark: a premade voice, and made-up people in the AI pictures when there are any
+      ai: aiMark("explainer", aiCount ? "generated" : null, voice),
     };
     const name = (d.topic.trim() || d.source?.title || scenes![0].say).slice(0, 40) || "Narrated video";
-    void makeNarrated(userId, { name, scenes: scenes!, voice, look, move, visuals, extra: Object.keys(extra).length ? extra : undefined });
+    void makeNarrated(userId, { name, scenes: scenes!, voice, look, move, visuals, extra });
   };
   const off = busy || writing;
 

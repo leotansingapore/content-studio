@@ -7,6 +7,7 @@
 // Who speaks (people-in-videos, Leo only, shared with the editor's You speaking): your saved face (myFace.ts) or one of
 // the brand's saved presenters (presenters.ts), the brand's "Who appears" preselected, and the AI mark each make carries.
 
+import { useEffect, useState } from "react";
 import { links } from "@/lib/links";
 import { loadFace, onFaceChanged, type MyFace } from "@/lib/myFace";
 import { loadPresenters, onPresenters, onPresentersChanged, type Presenter } from "@/lib/presenters";
@@ -171,6 +172,18 @@ export function onSpeakersChanged(fn: () => void): () => void {
     a();
     b();
   };
+}
+
+/** This brand's speakers in Leo's session (none for anyone else), read again whenever a face or presenter changes. */
+export function useSpeakers(userId: string | undefined): Speakers | null {
+  const [s, setS] = useState(() => (userId ? speakers(userId) : null));
+  useEffect(() => {
+    if (!userId) return setS(null);
+    const read = () => setS(speakers(userId));
+    read();
+    return onSpeakersChanged(read);
+  }, [userId]);
+  return s;
 }
 
 /** The brand's "Who appears" as the pick: me is your face, a presenter its id, and Ask each time picks none (""). */
