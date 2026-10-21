@@ -62,6 +62,9 @@ describe("captions for a long recording", () => {
     vi.mocked(leoUser).mockResolvedValueOnce({ id: "u", email: "leo" } as never);
     await startCaptions("u", project(), new Blob(["x"]));
     expect(saved.mock.calls[0][1].words.map((w) => w.w)).toContain("ActivityTracker");
+    // Whisper is told the brand's spelling for every part on Leo's sign-ins, and nothing for anyone else
+    expect(transcribed.mock.calls.at(-1)?.[2]).toContain("ActivityTracker");
+    expect(transcribed.mock.calls[0][2]).toBeUndefined();
   });
 
   it("captions the first part alone, then holds every later part to the language it heard", async () => {

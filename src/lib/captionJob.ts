@@ -7,7 +7,7 @@
 
 import { loadBrand } from "@/lib/carousel";
 import { leoUser } from "@/lib/useLeoOnly";
-import { applyFixes, brandFixes, type Word } from "@/lib/videoEdit";
+import { applyFixes, brandFixes, captionTerms, type Word } from "@/lib/videoEdit";
 import { captionPlan, stitchParts, type Part } from "@/lib/longCaptions";
 import { RATE, openSound, type SoundReader } from "@/lib/longAudio";
 import { deleteFile, encodeWav, getFile, putFile } from "@/lib/videoMedia";
@@ -89,12 +89,16 @@ export async function startCaptions(userId: string, project: VideoProject, file:
       reading = run.catch(() => {});
       return run;
     };
+    // Leo's captions spell the brand kit's name and his own fixed words as he has them, as the editor's short recordings do
+    const leo = await leoUser().catch(() => null);
+    const mine = [...loadFixes(userId), ...(leo ? brandFixes(loadBrand(userId)?.name) : [])];
+    const terms = leo ? captionTerms(mine) : undefined;
     // the first part runs alone and the rest are held to the language heard in it: left to guess, Whisper captioned a Singlish stretch in Malay
     let lang: string | undefined;
     const worker = async (once = false) => {
       for (let k = todo.shift(); k !== undefined && !failed; k = todo.shift()) {
         try {
-          const t = await transcribe(await read(k), lang);
+          const t = await transcribe(await read(k), lang, terms);
           lang ??= t.lang || undefined;
           results[k] = t.words ?? [];
         } catch (e) {
@@ -110,9 +114,7 @@ export async function startCaptions(userId: string, project: VideoProject, file:
     if (todo.length) await worker(true);
     if (!failed && todo.length) await Promise.all([worker(), worker()]);
     if (failed) throw failed;
-    // Leo's captions spell the brand kit's name as the kit has it, as the editor's short recordings do
-    const brand = (await leoUser().catch(() => null)) ? brandFixes(loadBrand(userId)?.name) : [];
-    const words = applyFixes(stitchParts(plan, results as Word[][]), [...loadFixes(userId), ...brand]).words;
+    const words = applyFixes(stitchParts(plan, results as Word[][]), mine).words;
     const latest = loadProjects(userId).find((x) => x.id === project.id);
     if (latest) saveProject(userId, { ...latest, words });
     await deleteFile(progressKey(project.id)).catch(() => {});
