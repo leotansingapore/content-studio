@@ -5,15 +5,18 @@
 // and then only through the functions the pages use, with the pages' Undo. Nothing
 // here posts, sends or publishes: Post it for me stays a dialog on My posts.
 // No Jev answer, or nothing the app does: null, and the chat answers in words.
+// Leo only (the server offers it to NORTH_STAR_USERS): "remember" saves a lasting
+// preference as a learning, checked first against the ones kept (writing-judge conflict).
 
 import type { DockAct } from "@/components/feedback/AssistantDock";
-import { callFn } from "@/lib/edgeFn";
+import { EdgeError, callFn } from "@/lib/edgeFn";
 import { draftStatus, draftsChanged, loadDrafts, restoreDraft, setDraftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, postedDay, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { loadRun, newThreadPaste, runningJob, saveRun, type EngageTool } from "@/lib/engageDrafts";
 import { loadFollowing } from "@/lib/following";
 import { loadGoals, sgDay } from "@/lib/goals";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { LEARNING_CHARS, addLearning, notesFor, undoLearning, type LearningScope } from "@/lib/voiceMemory";
 import { MAX_POSTS, type ActPick, type ActPost } from "../../supabase/functions/assistant-act/logic.ts";
 import { reportFacts, weekReport } from "../../supabase/functions/notify/logic.ts";
 import { mostlyEnglish } from "../../supabase/functions/post-score/logic.ts";
@@ -46,14 +49,37 @@ export async function proposeAct(userId: string, message: string, go: Go): Promi
   const today = localDateKey();
   try {
     const { pick } = await callFn<{ pick: ActPick | null }>("assistant-act", { message, today, posts: postsForJev(drafts) });
+    if (pick?.act === "remember") return actFor(userId, pick, message, drafts, today, go, await conflictFor(userId, message, pick.scope ?? "all"));
     return pick ? actFor(userId, pick, message, drafts, today, go) : null;
   } catch {
     return null; // over the cap, offline or off: words, as before
   }
 }
 
-/** A pick as a card or an answer, for the drafts it was asked about. */
-export function actFor(userId: string, pick: ActPick, message: string, drafts: DraftEntry[], today: string, go: Go): DockAct | null {
+/** A kept note a new one replaces, "capped" when the check is over its daily limit, or null (none, or no answer). */
+export type Conflict = { id: string; text: string } | "capped" | null;
+
+/** The note a remember message replaces: writing-judge's conflict check over the notes on now in its scope. Never throws. */
+export async function conflictFor(userId: string, message: string, scope: LearningScope): Promise<Conflict> {
+  const notes = notesFor(userId, scope);
+  if (!notes.length) return null;
+  try {
+    const { replaces } = await callFn<{ replaces: number | null }>("writing-judge", {
+      mode: "conflict",
+      note: message.trim().slice(0, LEARNING_CHARS),
+      notes: notes.map((n) => n.text),
+    });
+    const hit = typeof replaces === "number" ? notes[replaces] : undefined;
+    return hit ? { id: hit.id, text: hit.text } : null;
+  } catch (e) {
+    // a failed or refused check never stops the card; only the daily limit says so
+    return e instanceof EdgeError && e.code === "daily_limit" ? "capped" : null;
+  }
+}
+
+/** A pick as a card or an answer, for the drafts it was asked about. `conflict` is a remember pick's check. */
+export function actFor(userId: string, pick: ActPick, message: string, drafts: DraftEntry[], today: string, go: Go, conflict: Conflict = null): DockAct | null {
+  if (pick.act === "remember") return rememberAct(userId, pick.scope ?? "all", message, conflict);
   const d = pick.post === null ? undefined : drafts[pick.post];
   if (pick.act === "move") return d ? moveAct(userId, d, pick, today) : null;
   if (pick.act === "write") return d ? writeAct(d, message) : null;
@@ -123,6 +149,33 @@ function weekAct(userId: string): DockAct {
   const go = [{ path: "/analytics", label: "Open Analytics" }];
   if (!report.posts && !report.prevPosts) return { say: "No posts marked posted in the last 14 days.", go };
   return { say: `Last 7 days against the 7 before:\n${reportFacts(report)}`, go };
+}
+
+const SCOPE_WORDS: Record<LearningScope, string> = { posts: "posts", videos: "videos", pictures: "pictures", all: "posts, videos and pictures" };
+
+function rememberAct(userId: string, scope: LearningScope, message: string, conflict: Conflict): DockAct {
+  // their own words, cut, never reworded
+  const text = message.trim().slice(0, LEARNING_CHARS);
+  const lines = [`Remember this for your ${SCOPE_WORDS[scope]}?`, `"${text}"`];
+  if (conflict === "capped") lines.push("Not checked against your earlier notes today.");
+  else if (conflict) lines.push(`This replaces: "${conflict.text}"`);
+  return {
+    ask: lines.join("\n"),
+    yes: "Remember",
+    run: () => {
+      const saved = addLearning(userId, { text, scope, source: "assistant" }, conflict && conflict !== "capped" ? conflict.id : null);
+      if ("error" in saved) return { done: saved.error };
+      const go = [{ path: "/voice#learned", label: "See what the AI has learned" }];
+      if (saved.existed) return { done: `Learned: ${saved.item.text}`, go };
+      return {
+        done: `Learned: ${saved.item.text}`,
+        go,
+        undo: () => {
+          if (!undoLearning(userId, saved.item.id)) throw new Error("not saved");
+        },
+      };
+    },
+  };
 }
 
 const ENGAGE = {

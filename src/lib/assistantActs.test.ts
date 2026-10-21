@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DockAct, DockDone } from "@/components/feedback/AssistantDock";
-import { actFor, pastedPart, postsForJev, proposeAct } from "@/lib/assistantActs";
+import { actFor, conflictFor, pastedPart, postsForJev, proposeAct } from "@/lib/assistantActs";
+import { activeLearnings, addLearning, loadLearnings } from "@/lib/voiceMemory";
 import { loadDrafts, saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { loadRun, saveRun } from "@/lib/engageDrafts";
 import type { ActPick } from "../../supabase/functions/assistant-act/logic.ts";
@@ -49,7 +50,7 @@ beforeEach(() => {
     setItem: (k: string, v: string) => void store.set(k, v),
     removeItem: (k: string) => void store.delete(k),
   };
-  vi.stubGlobal("window", { localStorage, location: { pathname: "/home" } });
+  vi.stubGlobal("window", { localStorage, location: { pathname: "/home" }, dispatchEvent: () => true });
   vi.stubGlobal("localStorage", localStorage);
   vi.stubGlobal("dispatchEvent", changed);
   vi.useFakeTimers();
@@ -221,5 +222,85 @@ describe("proposeAct", () => {
     invoke.mockReset();
     expect(await proposeAct(UID, "帮我把帖子移到星期五", go)).toBeNull();
     expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("remembering a preference (Leo only on the server)", () => {
+  const remember = (scope: ActPick["scope"]) => pick({ act: "remember", post: null, scope });
+  const refused = (status: number, code: string) => ({ data: null, error: { context: new Response(JSON.stringify({ code, error: "no" }), { status }) } });
+
+  it("asks in the person's own words, clipped to 140, and saves one learning on Remember", () => {
+    const words = `from now on never use emoji in my posts ${"please ".repeat(30)}`;
+    const c = card(actFor(UID, remember("posts"), words, [], TODAY, go));
+    const text = words.trim().slice(0, 140);
+    expect(c.ask).toBe(`Remember this for your posts?\n"${text}"`);
+    expect(c.yes).toBe("Remember");
+    expect(loadLearnings(UID)).toEqual([]); // nothing before the tap
+    const done = c.run() as DockDone;
+    expect(done.done).toBe(`Learned: ${text}`);
+    expect(done.go).toEqual([{ path: "/voice#learned", label: "See what the AI has learned" }]);
+    expect(activeLearnings(loadLearnings(UID))).toEqual([expect.objectContaining({ text, scope: "posts", source: "assistant" })]);
+    done.undo!();
+    expect(activeLearnings(loadLearnings(UID))).toEqual([]);
+  });
+
+  it("names every kind for Everything", () => {
+    expect(card(actFor(UID, remember("all"), "use Asian presenters", [], TODAY, go)).ask).toBe('Remember this for your posts, videos and pictures?\n"use Asian presenters"');
+    expect(card(actFor(UID, remember(undefined), "use Asian presenters", [], TODAY, go)).ask.startsWith("Remember this for your posts, videos and pictures?")).toBe(true);
+  });
+
+  it("names the note it replaces, turns it off on Remember and back on with Undo", () => {
+    const old = addLearning(UID, { text: "never use emoji in my posts", scope: "posts", source: "assistant" });
+    const id = old.ok ? old.item.id : "";
+    const c = card(actFor(UID, remember("posts"), "use lots of emoji", [], TODAY, go, { id, text: "never use emoji in my posts" }));
+    expect(c.ask).toBe('Remember this for your posts?\n"use lots of emoji"\nThis replaces: "never use emoji in my posts"');
+    const done = c.run() as DockDone;
+    expect(activeLearnings(loadLearnings(UID)).map((l) => l.text)).toEqual(["use lots of emoji"]);
+    done.undo!();
+    expect(activeLearnings(loadLearnings(UID)).map((l) => l.text)).toEqual(["never use emoji in my posts"]);
+  });
+
+  it("says when the check is over its daily limit, and Remember still works", () => {
+    const c = card(actFor(UID, remember("posts"), "end with a question", [], TODAY, go, "capped"));
+    expect(c.ask).toBe('Remember this for your posts?\n"end with a question"\nNot checked against your earlier notes today.');
+    expect((c.run() as DockDone).done).toBe("Learned: end with a question");
+  });
+
+  it("says it couldn't save when the device is full", () => {
+    const c = card(actFor(UID, remember("posts"), "end with a question", [], TODAY, go));
+    vi.stubGlobal("localStorage", { ...localStorage, getItem: () => null, setItem: () => { throw new Error("full"); } });
+    expect(c.run()).toEqual({ done: "Couldn't save that. Try again." });
+  });
+
+  it("checks against the notes on now in that scope and Everything, and needs no call with none", async () => {
+    expect(await conflictFor(UID, "use lots of emoji", "posts")).toBeNull();
+    expect(invoke).not.toHaveBeenCalled();
+    addLearning(UID, { text: "never use emoji in my posts", scope: "posts", source: "typed" });
+    addLearning(UID, { text: "use Asian presenters", scope: "videos", source: "typed" });
+    addLearning(UID, { text: "keep it short", scope: "all", source: "typed" });
+    invoke.mockResolvedValue({ data: { replaces: 1 }, error: null });
+    const hit = await conflictFor(UID, "use lots of emoji", "posts");
+    expect(invoke).toHaveBeenCalledWith("writing-judge", { body: { mode: "conflict", note: "use lots of emoji", notes: ["keep it short", "never use emoji in my posts"] } });
+    expect(hit).toMatchObject({ text: "never use emoji in my posts" });
+    invoke.mockResolvedValue({ data: { replaces: null }, error: null });
+    expect(await conflictFor(UID, "use lots of emoji", "posts")).toBeNull();
+    invoke.mockResolvedValue(refused(429, "daily_limit"));
+    expect(await conflictFor(UID, "use lots of emoji", "posts")).toBe("capped");
+    invoke.mockResolvedValue(refused(503, ""));
+    expect(await conflictFor(UID, "use lots of emoji", "posts")).toBeNull();
+    invoke.mockResolvedValue(refused(403, "not_enabled"));
+    expect(await conflictFor(UID, "use lots of emoji", "posts")).toBeNull();
+  });
+
+  it("turns a remember pick into a card after the check, and a failed check never loses the card", async () => {
+    addLearning(UID, { text: "never use emoji in my posts", scope: "posts", source: "typed" });
+    invoke.mockImplementation(async (name: string) =>
+      name === "assistant-act" ? { data: { pick: remember("posts") }, error: null } : { data: { replaces: 0 }, error: null },
+    );
+    const a = card(await proposeAct(UID, "from now on use lots of emoji in my posts", go));
+    expect(a.ask).toContain('This replaces: "never use emoji in my posts"');
+    invoke.mockImplementation(async (name: string) => (name === "assistant-act" ? { data: { pick: remember("posts") }, error: null } : { data: null, error: new Error("offline") }));
+    const b = card(await proposeAct(UID, "from now on use lots of emoji in my posts", go));
+    expect(b.ask).toBe('Remember this for your posts?\n"from now on use lots of emoji in my posts"');
   });
 });
