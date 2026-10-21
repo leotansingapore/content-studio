@@ -4,7 +4,6 @@
 
 import inspirationData from "@/data/inspiration.json";
 import type { InspirationEntry } from "@/components/Inspiration";
-import { ADS } from "@/lib/adsSwipe";
 import { getDraftById } from "@/lib/draftHistory";
 import { callFn } from "@/lib/edgeFn";
 import { loadFollowing } from "@/lib/following";
@@ -12,10 +11,11 @@ import type { Positioning } from "@/lib/positioning";
 import { AVATAR_MAX, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 import { loadSavedClones } from "@/lib/reelClone";
 import { sourceKey, sourceNoun, type RemixSource } from "@/lib/remixSource";
-import { loadLinkedSources } from "@/lib/resolveSource";
+import { adFor, loadLinkedSources } from "@/lib/resolveSource";
 import { getAllTopPosts } from "@/lib/topPosts";
 import { TRENDS } from "@/lib/trends";
 import { MAX_SCENES, MAX_AVATAR_SECONDS } from "../../supabase/functions/ai-video/logic.ts";
+import { MAX_AD_BODY } from "../../supabase/functions/competitors/logic.ts";
 import type { Close, Keep, MakeRequest, MakeResponse, RemixAs } from "../../supabase/functions/remix/logic.ts";
 
 export { intentsFor } from "../../supabase/functions/remix/logic.ts";
@@ -110,6 +110,11 @@ const joined = (parts: (string | null | undefined)[]) =>
     .filter(Boolean)
     .join("\n\n");
 
+/** A text cut mid-word by a store's cap, up to its last whole sentence (all of it when it has none). */
+function wholeSentences(t: string): string {
+  return /^[\s\S]*[.!?]["')\]]?(?=\s|$)/.exec(t)?.[0] ?? t;
+}
+
 /** The original's words read from this device for the remix call, at most 2000; the snapshot caption otherwise. */
 export function fullText(s: RemixSource, userId: string): string {
   const at = s.key.indexOf(":");
@@ -118,8 +123,9 @@ export function fullText(s: RemixSource, userId: string): string {
   let text = "";
   if (prefix === "top") text = getAllTopPosts().find((p) => sourceKey.top(p.advisorId, p.shortCode) === s.key)?.caption ?? "";
   if (prefix === "ad") {
-    const ad = ADS.find((a) => a.adId === rest);
-    text = ad ? joined([ad.headline, ad.body, ad.cta]) : "";
+    // the snapshot's caption is cut at 400 ("Which means replyi"), so the whole ad comes from the store that holds it
+    const ad = adFor(rest, userId);
+    text = ad ? joined([ad.headline, ad.body.length >= MAX_AD_BODY - 10 ? wholeSentences(ad.body) : ad.body, ad.cta]) : "";
   }
   if (prefix === "follow") {
     const [platform, ...id] = rest.split(":");

@@ -7,7 +7,7 @@ import inspirationData from "@/data/inspiration.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
 import type { InspirationEntry } from "@/components/Inspiration";
 import { loadSpaceAds } from "@/lib/adLibrary";
-import { ADS } from "@/lib/adsSwipe";
+import { ADS, type AdLike } from "@/lib/adsSwipe";
 import { loadCompetitorAds, toAdLike } from "@/lib/competitorAds";
 import { loadCompetitorPosts } from "@/lib/competitorPosts";
 import { loadCompetitors } from "@/lib/competitors";
@@ -40,6 +40,20 @@ export function loadLinkedSources(userId: string): LinkedSource[] {
 const ADVISORS = (advisorsData as AdvisorEntry[]).filter((a) => a.platform === "instagram");
 const INSPIRATION = inspirationData as InspirationEntry[];
 
+/** The ad behind an ad: key, from whichever store holds it: the swipe drop, a competitor's ads, then your space. */
+export function adFor(adId: string, userId: string): AdLike | null {
+  const ad = ADS.find((a) => a.adId === adId);
+  if (ad) return ad;
+  // a competitor's ad (Their ads), named after the competitor as the list knows it
+  for (const [id, e] of Object.entries(loadCompetitorAds(userId))) {
+    const found = e.ads.find((a) => a.id === adId);
+    if (found) return toAdLike(found, loadCompetitors(userId).list.find((c) => c.id === id)?.name ?? e.pageName ?? "a competitor");
+  }
+  // an ad in your space (the ad library), named after the page that runs it
+  const spaced = loadSpaceAds(userId).ads.find((a) => a.id === adId);
+  return spaced ? toAdLike(spaced, spaced.advertiser) : null;
+}
+
 /** The record for a key, or null when it is unknown, rotated out of its drop, or a pattern: key. */
 export function resolveSource(key: string, userId: string): RemixSource | null {
   const [prefix] = key.split(":", 1);
@@ -55,16 +69,8 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
       return null;
     }
     case "ad": {
-      const ad = ADS.find((a) => a.adId === rest);
-      if (ad) return fromAd(ad);
-      // a competitor's ad (Their ads), named after the competitor as the list knows it
-      for (const [id, e] of Object.entries(loadCompetitorAds(userId))) {
-        const found = e.ads.find((a) => a.id === rest);
-        if (found) return fromAd(toAdLike(found, loadCompetitors(userId).list.find((c) => c.id === id)?.name ?? e.pageName ?? "a competitor"));
-      }
-      // an ad in your space (the ad library), named after the page that runs it
-      const spaced = loadSpaceAds(userId).ads.find((a) => a.id === rest);
-      return spaced ? fromAd(toAdLike(spaced, spaced.advertiser)) : null;
+      const ad = adFor(rest, userId);
+      return ad ? fromAd(ad) : null;
     }
     case "follow": {
       const [platform, ...id] = rest.split(":");

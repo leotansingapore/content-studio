@@ -187,6 +187,8 @@ export interface Brand { name: string; site: string; sells: string; serves: stri
 export interface Candidate { key: string; name: string; about: string; site?: string }
 export interface Suggestion { name: string; site: string | null; why: string; score: number }
 
+/** An ad body is kept to this many characters (synced per brand), so a longer one arrives cut mid-word. */
+export const MAX_AD_BODY = 600;
 export const MAX_CANDIDATES = 80;
 export const MAX_PROPOSED = 8;
 export const MAX_SUGGESTIONS = 6;
@@ -475,7 +477,7 @@ export function shapeAds(items: unknown[], now = Date.now()): CompetitorAd[] {
         id,
         format: video ? "video" : /CAROUSEL|MULTI|DPA/.test(display) ? "carousel" : image ? "image" : "text",
         headline,
-        body: body.slice(0, 600).trim(),
+        body: body.slice(0, MAX_AD_BODY).trim(),
         cta: text(s.ctaText ?? card.ctaText, 40) || ctaWords(s.ctaType),
         link: https(s.linkUrl) ?? https(card.linkUrl),
         image,

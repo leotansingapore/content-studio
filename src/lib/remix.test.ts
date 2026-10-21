@@ -25,7 +25,7 @@ import {
 } from "./remix";
 import { AVATAR_MAX, priceOf, priceText } from "./prices";
 import { fromAd, fromDraft, fromFollowPost, fromTopPost, fromTrend, sourceKey, type RemixSource } from "./remixSource";
-import { REMIX_LINKS_PREFIX } from "./resolveSource";
+import { REMIX_LINKS_PREFIX, resolveSource } from "./resolveSource";
 import { getAllTopPosts } from "./topPosts";
 import { TRENDS } from "./trends";
 
@@ -61,6 +61,29 @@ describe("fullText", () => {
   it("reads an ad's headline, body and call to action", () => {
     const ad = ADS.find((a) => a.headline && a.cta && a.body.length > 300)!;
     expect(fullText(fromAd(ad), UID)).toBe([ad.headline, ad.body, ad.cta].map((x) => x!.trim()).join("\n\n"));
+  });
+
+  // the 21 Oct dogfood's Aaron ad (2972139646506607) as Your space keeps it: the store cuts a body at 600, mid-word
+  const AARON = "\"Just following up!\" \u{1F4F2}\n\nYou've sent that message more times than you'd like to count.\nBe honest about the reply rate.\n\nHere's why it does nothing.\n\n\"Just following up\" carries no new information.\nIt doesn't help the customer. It doesn't move anything.\nIt is a request \u2014 for them to do the work of remembering, re-deciding, and replying.\n\nTo them it reads as: have you decided yet?\nWhich means replying costs something, and ignoring it costs nothing. \u{1F507}\n\nSo they ignore it. Not rudely. It just never reaches the top of a list that already has forty things on it.\n\nThen you wait, feel awkward, and sen";
+  const aaron = { id: "2972139646506607", format: "image", headline: "Stop saying \"just following up\" \u{1F4F2}", body: AARON, cta: "Learn more", link: null, image: null, video: null, start: "2026-10-18", end: null, active: true, platforms: ["facebook"], versions: 1, advertiser: "Sales Mentoring by Aaron", pageId: "1283526538188234" };
+
+  it("reads a Your space ad whole from its store, not the snapshot's 400, and stops at its last whole sentence when the store cut it", () => {
+    localStorage.setItem(`content-studio-space-ads-${UID}`, JSON.stringify({ checkedAt: "2026-10-20T00:00:00Z", keywords: ["sales"], ads: [aaron] }));
+    const s = resolveSource(sourceKey.ad(aaron.id), UID)!;
+    expect(s.caption!.endsWith("Which means replyi")).toBe(true);
+    const text = fullText(s, UID);
+    expect(text).toContain("Which means replying costs something, and ignoring it costs nothing.");
+    expect(text.endsWith("already has forty things on it.\n\nLearn more")).toBe(true);
+    expect(text.startsWith(aaron.headline)).toBe(true);
+    expect(text).not.toContain("and sen");
+  });
+
+  it("reads a competitor's ad whole from Their ads, and keeps a body the store did not cut as it is", () => {
+    const body = "Short ad with no full stop at the end";
+    localStorage.setItem(`content-studio-competitor-ads-${UID}`, JSON.stringify({ c1: { checkedAt: "2026-10-20T00:00:00Z", pageName: "Apollo.io", ads: [{ ...aaron, id: "1075280991926367", body: `${"Still waiting. ".repeat(20)}${body}`, cta: "Sign up" }] } }));
+    const s = resolveSource(sourceKey.ad("1075280991926367"), UID)!;
+    expect(s.author).toBe("Apollo.io");
+    expect(fullText(s, UID).endsWith(`${body}\n\nSign up`)).toBe(true);
   });
 
   it("reads a trend's kit: why it works, its hooks and talking points", () => {
