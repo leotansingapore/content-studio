@@ -559,6 +559,9 @@ function notesRules(req: MakeRequest): string[] {
   ];
 }
 
+/** The hook bank's list formula (src/lib/hookFormulas.ts), whose number is a count the writer picks, not a fact. */
+const LIST_FORMULA = "list";
+
 /** formats-hook-demo: three hooks, one per formula sent, to open a demo. The formulas and the demo are in the message. */
 function hooksRules(req: MakeRequest): string[] {
   return [
@@ -567,6 +570,7 @@ function hooksRules(req: MakeRequest): string[] {
     "- hooks: exactly 3, one for each formula listed in the message, in that formula's shape, each with that formula's id.",
     `- text: at most ${MAKE_HOOK_WORDS} words, sentence case, plain words, no hashtags, emoji or quote marks.`,
     "- Never invent a number, a client or a result. When a formula needs a number you were not given, keep its shape without one.",
+    ...(req.formulas?.some((f) => f.id === LIST_FORMULA) ? [`- The ${LIST_FORMULA} formula is the exception: it always says how many things it holds, as a digit or a word, at most 10. That count is its shape, not a fact.`] : []),
     refuseRule(req, "a set of hooks"),
   ];
 }
@@ -1356,9 +1360,23 @@ export function imageProblem(r: MakeResult, req: Pick<MakeRequest, "source">): M
     : null;
 }
 
+const NUMBER = new RegExp(String.raw`\b${NUM}\b`, "i");
+
+/** A list hook with no number ("Things to know before...", wave 1 live check, 21 Oct): one fixing pass, then a refusal. */
+export function hooksProblem(r: MakeResult): MakeProblem | null {
+  const flat = r.as === "hooks" ? r.hooks.find((h) => h.formula === LIST_FORMULA && !NUMBER.test(h.text)) : undefined;
+  return flat
+    ? {
+        kind: "count",
+        fix: `The list hook "${flat.text}" says no number. Return the whole JSON object again with that hook saying how many things it holds, as a digit or a word, at most 10.`,
+        error: "The list hook didn't say how many. Try again.",
+      }
+    : null;
+}
+
 /** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's. */
 export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds">) =>
-  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req);
+  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */
 export function textFields(r: MakeResult): string[] {

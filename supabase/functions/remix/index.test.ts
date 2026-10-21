@@ -391,4 +391,20 @@ describe("the wave 1 live check (21 Oct)", () => {
     expect(funny).toContain("Nobody:\\nMe waiting for a lead");
     expect(funny).not.toContain("Nobody: Me");
   });
+
+  it("sends the live list hook with no number back once, answers with the counted one, and refuses one that stays flat", async () => {
+    const d = live("4-hooks");
+    const flat = wrote(d.response.result);
+    const counted = { ...flat, hooks: (flat.hooks as { text: string; formula: string }[]).map((h) => (h.formula === "list" ? { ...h, text: "3 things to know before managing sales follow-ups in one place." } : h)) };
+    openai.mode = "queue";
+    openai.answers = [flat, counted];
+    const r = await send(d.request);
+    expect(r.status).toBe(200);
+    expect(r.body.result.hooks[2]).toEqual({ formula: "list", text: "3 things to know before managing sales follow-ups in one place." });
+    expect(openai.sent[1].messages.at(-1)!.content).toContain("says no number");
+
+    openai.answers = [flat, flat];
+    expect(await send(d.request)).toMatchObject({ status: 422, body: { code: "refused", error: "The list hook didn't say how many. Try again." } });
+    expect(used()).toBe(2);
+  });
 });

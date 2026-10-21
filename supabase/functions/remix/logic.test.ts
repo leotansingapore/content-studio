@@ -24,6 +24,7 @@ import {
   fitVerdict,
   holdTheLine,
   hookCount,
+  hooksProblem,
   intentsFor,
   jevFacts,
   makeProblem,
@@ -1295,5 +1296,20 @@ describe("the wave 1 live check (21 Oct)", () => {
     expect(notes("Make more room for Sales")).toBe("Make more room for Sales");
     expect(notes("Save More")).toBe("Save More");
     expect(buildMakePrompt(shape("notes")).system).toContain("- title: the note's title, at most 8 words, in sentence case");
+  });
+
+  it("sends a list hook that says no number back once, and asks for the count only when the list formula is sent", () => {
+    const d = live("4-hooks");
+    const req = make(d.request);
+    const hooks = (d.response.result as { hooks: { text: string; formula: string }[] }).hooks;
+    const got = validateMake("hooks", { refuse: false, reason: "", hooks }, req)!;
+    expect(makeProblem(got, req)).toMatchObject({ kind: "count", fix: expect.stringContaining('"Things to know before managing sales follow-ups in one place." says no number') });
+    const list = (text: string) => hooksProblem({ as: "hooks", hooks: hooks.map((h) => (h.formula === "list" ? { ...h, text } : h)) });
+    expect(list("3 things to know before managing sales follow-ups in one place.")).toBeNull();
+    expect(list("Five things to know before you move your follow-ups.")).toBeNull();
+    expect(list("Things nobody tells you about follow-ups.")?.kind).toBe("count");
+    expect(hooksProblem({ as: "hooks", hooks: [{ formula: "callout", text: "Things to stop doing." }] })).toBeNull();
+    expect(buildMakePrompt(req).system).toContain("- The list formula is the exception: it always says how many things it holds, as a digit or a word, at most 10.");
+    expect(buildMakePrompt(shape("hooks", { formulas: FORMULAS })).system).not.toContain("list formula");
   });
 });
