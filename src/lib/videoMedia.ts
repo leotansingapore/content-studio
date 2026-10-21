@@ -69,6 +69,7 @@ import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { withColdOpen } from "@/lib/coldOpen";
 import { gridWindow, placeCoverText, type Band } from "@/lib/igGrid";
 import type { RemixSource } from "@/lib/remixSource";
+import { EDIT_TABS, type EditTab } from "@/lib/links";
 
 // ---------- sound for captions ----------
 
@@ -1454,6 +1455,45 @@ export interface JoinExtra {
   caption?: string;
   /** Written to project.source; Save to My posts copies it to the draft. */
   source?: RemixSource;
+  /** Written to project.draftId: the post the video was made from, which Leo's Save to your post updates. */
+  draftId?: string;
+  /** The editor tab the project opens on. */
+  tab?: EditTab;
+  /** A device file key (putFile) for a picture the join draws (the presenter's offer band). */
+  topKey?: string;
+}
+
+/** The editor's paths for an upload: words over a video, a long recording, a video with no speech to caption, or one captioned now. */
+export type PickupPath = "wall" | "long" | "no-captions" | "captions";
+export interface PickupPlan {
+  /** Written onto the new project. */
+  keep: Pick<JoinExtra, "caption" | "source" | "draftId">;
+  /** Shown as the project opens (on the captions path, once they land); null for none. */
+  toast: { title: string; description?: string } | null;
+  /** Set beside ?p=; the default tab is left out. */
+  tab?: EditTab;
+}
+
+/**
+ * What a hand-off's extra asks of the editor, the same on every path. The extra can come back from JSON (a paid
+ * clip pending on this device), so each field is checked. No extra is today's upload: nothing kept, no toast, no tab.
+ */
+export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): PickupPlan {
+  const text = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+  const e = extra ?? {};
+  const note = text(e.note);
+  // a montage says it is ready when it has a note, under its own title or this one
+  const title = text(e.toast) ?? (path === "no-captions" && note ? "Your montage is ready" : undefined);
+  const tab = EDIT_TABS.find((t) => t === e.tab && t !== "style");
+  return {
+    keep: {
+      ...(text(e.caption) ? { caption: e.caption } : {}),
+      ...(e.source && typeof e.source === "object" ? { source: e.source } : {}),
+      ...(text(e.draftId) ? { draftId: e.draftId } : {}),
+    },
+    toast: title ? { title, ...(note ? { description: note } : {}) } : null,
+    ...(tab ? { tab } : {}),
+  };
 }
 let joinJob: JoinJob | null = null;
 const joinListeners = new Set<(j: JoinJob | null) => void>();

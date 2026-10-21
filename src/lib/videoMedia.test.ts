@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
-import { currentJoin, endJoin, exportAll, exportQueue, handToEditor, startExport, stopExportQueue, type ExportJob, type JoinExtra } from "./videoMedia";
+import { currentJoin, endJoin, exportAll, exportQueue, handToEditor, pickupPlan, startExport, stopExportQueue, type ExportJob, type JoinExtra, type PickupPath } from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
 
@@ -95,5 +95,39 @@ describe("handToEditor", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("pickupPlan", () => {
+  const PATHS: PickupPath[] = ["wall", "long", "no-captions", "captions"];
+  const source = { kind: "ad", id: "a1", title: "An ad", remixedAt: "2026-10-20T00:00:00.000Z" } as unknown as NonNullable<JoinExtra["source"]>;
+  const full: JoinExtra = { toast: "Your talking head is ready", note: "The person is made by AI.", caption: "Cap.", source, draftId: "d1", tab: "face", settings: { captions: false } };
+
+  it("keeps the toast, caption, source, draftId and tab of a hand-off on every path", () => {
+    for (const path of PATHS) {
+      expect(pickupPlan(full, path)).toEqual({
+        keep: { caption: "Cap.", source, draftId: "d1" },
+        toast: { title: "Your talking head is ready", description: "The person is made by AI." },
+        tab: "face",
+      });
+    }
+  });
+
+  it("asks nothing of an upload with no extra, or a start panel's wall with only its look", () => {
+    for (const path of PATHS) {
+      expect(pickupPlan(undefined, path)).toEqual({ keep: {}, toast: null });
+      expect(pickupPlan({ settings: { wall: true } }, path)).toEqual({ keep: {}, toast: null });
+    }
+  });
+
+  it("titles a montage's note as it always has, and only on the path with no captions", () => {
+    expect(pickupPlan({ note: "No clip fit beat 2, so beat 1 plays longer." }, "no-captions").toast).toEqual({ title: "Your montage is ready", description: "No clip fit beat 2, so beat 1 plays longer." });
+    for (const path of ["wall", "long", "captions"] as const) expect(pickupPlan({ note: "A note." }, path).toast).toBeNull();
+  });
+
+  it("drops junk read back from a pending clip's JSON, and leaves the default tab out of the URL", () => {
+    const junk = { toast: 5, note: "", caption: "", source: "ad:1", draftId: 7, tab: "nope" } as unknown as JoinExtra;
+    expect(pickupPlan(junk, "captions")).toEqual({ keep: {}, toast: null });
+    expect(pickupPlan({ tab: "style", toast: "Ready" }, "captions")).toEqual({ keep: {}, toast: { title: "Ready" } });
   });
 });

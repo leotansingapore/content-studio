@@ -177,6 +177,8 @@ import {
   type FileCheck,
   type Frame,
   type JoinExtra,
+  pickupPlan,
+  type PickupPath,
 } from "@/lib/videoMedia";
 import type { VersionPlan } from "@/lib/exportVersions";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
@@ -246,6 +248,13 @@ export default function VideoEditPage() {
       const read = await mediaLength(file);
       // a WebM recording (Firefox, Chrome before 126) reads as Infinity; a wall's block already spans the joined length
       const length = Number.isFinite(read) && read > 0 ? read : (extra?.settings?.wall ? extra.settings.overlays?.find((o) => o.kind === "block")?.to : undefined) ?? read;
+      // what a format's hand-off asks for (toast, caption, source, draft, tab), the same on every path below
+      const open = (path: PickupPath, quiet = false) => {
+        const plan = pickupPlan(extra, path);
+        setParams({ p: id, ...(plan.tab ? { tab: plan.tab } : {}) });
+        if (plan.toast && !quiet) toast(plan.toast);
+        return plan;
+      };
       if (extra?.settings?.wall) {
         // words over a video: a stock clip often has no sound track, so nothing is decoded and nothing captioned
         const opened = !sound && Number.isFinite(length) && length > 0;
@@ -260,13 +269,10 @@ export default function VideoEditPage() {
           id, name: named || file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
           words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra.settings, overlays }, thumb,
           // a wall of text made on /make/wall-of-text brings its caption and the post it remixed
-          ...(extra.caption ? { caption: extra.caption } : {}),
-          ...(extra.source ? { source: extra.source } : {}),
+          ...pickupPlan(extra, "wall").keep,
         }));
-        setParams({ p: id });
         // a format's video says it is ready; only the start panel's own upload is done with the words typed there
-        if (extra.toast) toast({ title: extra.toast, description: extra.note });
-        else {
+        if (!open("wall").toast) {
           try { sessionStorage.removeItem(WALL_DRAFT); } catch { /* nothing kept */ }
         }
         return;
@@ -280,10 +286,11 @@ export default function VideoEditPage() {
         await putFile(id, file);
         setProjects(saveProject(uid, {
           id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
-          words: [], settings: withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), thumb,
+          words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra?.settings }, thumb,
           ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
+          ...pickupPlan(extra, "long").keep,
         }));
-        setParams({ p: id });
+        open("long");
         return;
       }
       await putFile(id, file);
@@ -293,25 +300,28 @@ export default function VideoEditPage() {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
         words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra?.settings }, thumb,
         ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
+        ...pickupPlan(extra, extra?.settings?.captions === false ? "no-captions" : "captions").keep,
       };
       setProjects(saveProject(uid, p));
       // a montage has no speech to caption; it opens with its look, words and music, and says what stood in for a clip
       if (extra?.settings?.captions === false) {
-        setParams({ p: id });
-        if (extra.note || extra.toast) toast({ title: extra.toast ?? "Your montage is ready", description: extra.note });
+        open("no-captions");
         return;
       }
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
+      let landed = false;
       try {
         const t = await transcribe(wav);
         const fixed = applyFixes(t.words, loadFixes(uid));
         p = { ...p, words: fixed.words };
         setProjects(saveProject(uid, p));
+        landed = true;
         if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
       } catch (e) {
         toast({ title: "Captions didn't come through", description: `${(e as Error).message} Your video is saved; press Caption it to retry.`, variant: "destructive" });
       }
-      setParams({ p: id });
+      // a format's toast once the captions land; a failure keeps the failure's words on screen
+      open("captions", !landed);
     } catch (e) {
       toast({ title: "Couldn't open that video", description: (e as Error).message, variant: "destructive" });
     } finally {
