@@ -1,13 +1,14 @@
 // Faces and voices (/people, Leo's sign-ins only; docs/north-star/items/people-my-face.md): the people your AI videos
-// are made from. Tabs in the URL (?tab=, face left out): Your face now; presenters (people-presenters) joins it, and a
-// tab a later item hasn't built is left out of the row. Everyone else gets the not-found page.
+// are made from. Tabs in the URL (?tab=, face left out): Your face, and Presenters (people-presenters). Everyone else
+// gets the not-found page.
 import FaceTab from "@/components/people/FaceTab";
+import PresentersTab from "@/components/people/PresentersTab";
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useUrlState } from "@/lib/urlState";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import NotFoundPage from "@/pages/NotFoundPage";
 
-const TABS = [{ id: "face", label: "Your face" }] as const;
+const TABS = [{ id: "face", label: "Your face" }, { id: "presenters", label: "Presenters" }] as const;
 type Tab = (typeof TABS)[number]["id"];
 
 export default function PeoplePage() {
@@ -18,7 +19,10 @@ export default function PeoplePage() {
 }
 
 function People({ userId }: { userId: string }) {
-  const [tab, setTab] = useUrlState<Tab>("tab", "face", { allowed: TABS.map((t) => t.id) });
+  const [tab] = useUrlState<Tab>("tab", "face", { allowed: TABS.map((t) => t.id) });
+  const update = useUrlUpdate();
+  // a tab's open things close with it, so switching back never reopens the camera or a sheet
+  const setTab = (id: Tab) => update({ tab: id === "face" ? null : id, record: null, make: null, presenter: null });
   return (
     <div className="space-y-6">
       <SectionTabs tabs={PLAYBOOK_TABS} />
@@ -36,6 +40,7 @@ function People({ userId }: { userId: string }) {
         </div>
       )}
       {tab === "face" && <FaceTab userId={userId} />}
+      {tab === "presenters" && <PresentersTab userId={userId} />}
     </div>
   );
 }
