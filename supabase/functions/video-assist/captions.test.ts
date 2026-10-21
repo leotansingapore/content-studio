@@ -188,9 +188,12 @@ describe("a thread for Threads or X", () => {
   it("numbering keeps every post inside the network's limit", () => {
     const part = Array.from({ length: 30 }, (_, i) => sentence(i + 1)).join(" ");
     for (const n of ["threads", "x"] as const) {
-      const posts = numbered(fitThread([part], threadRoom(n), 10));
-      expect(posts[0]).toMatch(/^1\/10 /);
+      // "9/9 " fits the 5 spare; a tenth post's "10/10 " is one over, which the panel's counters show
+      const posts = numbered(fitThread([part], threadRoom(n), 9));
+      expect(posts[0]).toMatch(/^1\/9 /);
       for (const p of posts) expect(p.length).toBeLessThanOrEqual(THREAD_NETWORKS[n].max);
+      const full = numbered(fitThread(Array(9).fill("a".repeat(threadRoom(n))), threadRoom(n), 9));
+      for (const p of full) expect(p.length).toBeLessThanOrEqual(THREAD_NETWORKS[n].max);
     }
   });
   it("takes a post, Threads or X, and 3 to 8 posts when asked", () => {
