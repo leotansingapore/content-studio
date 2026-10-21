@@ -2,7 +2,8 @@
 // and wrapped line of one designed picture at one of four sizes, and renderSvg (carouselLayout.ts) turns it into an
 // SVG. Pure: text is measured by the caller (a canvas in the browser, a fake in tests). Every size keeps 96 px side
 // margins, and a 9:16 story keeps 250 px clear at the top and bottom for the app's own buttons. formats-memes adds
-// its five layouts here in wave 5.
+// five meme layouts (docs/north-star/items/formats-memes.md): white words outlined in black over a full-bleed
+// picture, a "Nobody:" band, two labelled pictures, a POV line on a fade and the brand's own post over a reaction.
 
 import { normalizeHandle, sanitizeImage, type CarouselBrand } from "@/lib/carousel";
 import {
@@ -19,6 +20,7 @@ import {
   type SlidePaper,
   type SvgNode,
 } from "@/lib/carouselLayout";
+import type { ImageLayout } from "@/lib/links";
 
 export const IMAGE_SIZES = ["4x5", "1x1", "9x16", "wide"] as const;
 export type ImageSize = (typeof IMAGE_SIZES)[number];
@@ -33,7 +35,25 @@ export const STORY_CLEAR = 250;
 
 export const AD_LAYOUT_IDS = ["headline", "quote", "stat", "testimonial"] as const;
 export type AdLayoutId = (typeof AD_LAYOUT_IDS)[number];
-export const LAYOUT_LABELS: Record<AdLayoutId, string> = { headline: "Headline ad", quote: "Quote card", stat: "Stat card", testimonial: "Testimonial" };
+/** The Meme group: the remix writer's MEME_LAYOUTS, in the same order. */
+export const MEME_LAYOUT_IDS = ["top-bottom", "nobody-me", "expectation", "pov", "post-reaction"] as const;
+export type MemeLayoutId = (typeof MEME_LAYOUT_IDS)[number];
+export const isMeme = (l: string): l is MemeLayoutId => (MEME_LAYOUT_IDS as readonly string[]).includes(l);
+export const LAYOUT_LABELS: Record<ImageLayout, string> = {
+  headline: "Headline ad",
+  quote: "Quote card",
+  stat: "Stat card",
+  testimonial: "Testimonial",
+  "top-bottom": "Top and bottom",
+  "nobody-me": "Nobody / me",
+  expectation: "Expectation vs reality",
+  pov: "POV",
+  "post-reaction": "Post and reaction",
+};
+/** A meme is a feed post or a story, never a link ad; a new one starts on Square. */
+export const MEME_SIZES = ["4x5", "1x1", "9x16"] as const satisfies readonly ImageSize[];
+export const MEME_SIZE: ImageSize = "1x1";
+export const sizesFor = (layout: ImageLayout): readonly ImageSize[] => (isMeme(layout) ? MEME_SIZES : IMAGE_SIZES);
 
 export interface ImageField {
   key: string;
@@ -48,7 +68,7 @@ export interface ImageField {
  * Each layout's fields and limits. The testimonial's words are their own field (clientWords): a quote card's words are
  * the brand's own, and switching layouts must never turn them into a client's.
  */
-export const IMAGE_FIELDS: Record<AdLayoutId, ImageField[]> = {
+export const IMAGE_FIELDS: Record<ImageLayout, ImageField[]> = {
   headline: [
     { key: "headline", label: "Headline", max: 8, unit: "words", sample: "Your headline" },
     { key: "line", label: "Line", max: 16, unit: "words", sample: "One line on what they get" },
@@ -67,34 +87,88 @@ export const IMAGE_FIELDS: Record<AdLayoutId, ImageField[]> = {
     { key: "clientWords", label: "Client's words", max: 30, unit: "words", sample: "Your client's own words" },
     { key: "client", label: "Client's first name", max: 30, unit: "chars", sample: "First name and initial" },
   ],
+  // the meme writer's MEME_FIELDS limits (supabase/functions/remix/logic.ts), asserted equal in the test
+  "top-bottom": [
+    { key: "top", label: "Top line", max: 10, unit: "words", sample: "The setup" },
+    { key: "bottom", label: "Bottom line", max: 10, unit: "words", sample: "The punchline" },
+  ],
+  "nobody-me": [
+    { key: "setup", label: "After Nobody:", max: 12, unit: "words", sample: "Me at 2am" },
+    { key: "punch", label: "What you're doing", max: 12, unit: "words", sample: "What you are doing" },
+  ],
+  expectation: [
+    { key: "expectation", label: "Expectation", max: 6, unit: "words", sample: "What you expected" },
+    { key: "reality", label: "Reality", max: 6, unit: "words", sample: "What you got" },
+  ],
+  pov: [{ key: "line", label: "After POV:", max: 15, unit: "words", sample: "The moment, in one line" }],
+  "post-reaction": [{ key: "post", label: "Your post", max: 30, unit: "words", sample: "A short post your picture answers" }],
+};
+
+/** Expectation vs reality's second picture: a media key kept in the design's words (SavedImage holds one pictureKey). */
+export const SECOND_PICTURE = "realityPicture";
+// shortcut: the reality picture rides in words because images.ts keeps one pictureKey; move it when SavedImage gains a list
+export const secondPicture = (words: Record<string, string>): string | undefined => {
+  const k = words[SECOND_PICTURE];
+  return k && /^cimg-[a-z0-9]{6,30}$/.test(k) ? k : undefined;
 };
 
 export const countOf = (text: string, unit: ImageField["unit"]) =>
   unit === "words" ? text.trim().split(/\s+/).filter(Boolean).length : Array.from(text.trim()).length;
 
 /** Why this design can't be downloaded or posted yet, or null. A stat card needs your own number and its source. */
-export function imageBlock(layout: AdLayoutId, words: Record<string, string>): string | null {
+export function imageBlock(layout: ImageLayout, words: Record<string, string>): string | null {
   const has = (k: string) => !!words[k]?.trim();
+  if (layout === "top-bottom") return has("top") || has("bottom") ? null : "Add the words first.";
+  if (layout === "nobody-me") return has("setup") && has("punch") ? null : "Add both lines first.";
+  if (layout === "expectation") return has("expectation") && has("reality") ? null : "Add both labels first.";
+  if (layout === "pov") return has("line") ? null : "Add the line first.";
+  if (layout === "post-reaction") return has("post") ? null : "Add your post first.";
   if (layout === "stat") return !has("number") || !has("statSource") ? "Type your own number and where it's from." : has("statLabel") ? null : "Add what the number means first.";
   if (layout === "quote") return has("quote") ? null : "Add the quote first.";
   if (layout === "testimonial") return has("clientWords") ? null : "Add your client's own words first.";
   return has("headline") ? null : "Add a headline first.";
 }
 
-/** The words a file is named after: the layout's main field. */
-export function mainWords(layout: AdLayoutId, words: Record<string, string>): string {
-  return words[{ headline: "headline", quote: "quote", stat: "statLabel", testimonial: "clientWords" }[layout]] ?? "";
+/** A meme's pictures: expectation vs reality needs two, every other meme one; an ad's picture is optional. */
+export function pictureBlock(layout: ImageLayout, pictures: number): string | null {
+  const need = layout === "expectation" ? 2 : isMeme(layout) ? 1 : 0;
+  return pictures >= need ? null : need === 2 ? "Add both pictures first." : "Add a picture first.";
 }
 
+/** The words a file is named after: the layout's main field, or a meme as it reads. */
+export function mainWords(layout: ImageLayout, words: Record<string, string>): string {
+  if (!isMeme(layout)) return words[{ headline: "headline", quote: "quote", stat: "statLabel", testimonial: "clientWords" }[layout]] ?? "";
+  const w = (k: string) => words[k]?.replace(/\s+/g, " ").trim() ?? "";
+  if (layout === "top-bottom") return [w("top"), w("bottom")].filter(Boolean).join(" / ");
+  if (layout === "nobody-me") return [w("setup"), w("punch")].filter(Boolean).join(": ");
+  if (layout === "expectation") return [w("expectation"), w("reality")].filter(Boolean).join(" vs ");
+  if (layout === "pov") return w("line") && `POV: ${w("line")}`;
+  return w("post");
+}
+
+/** A written meme set's option to show first: Jev's best, else the first one it kept, else none. */
+export function memeChoice(set: { options: unknown[]; best: number | null; dropped: number[] }): number | null {
+  const kept = set.options.map((_, i) => i).filter((i) => !set.dropped.includes(i));
+  return set.best !== null && kept.includes(set.best) ? set.best : (kept[0] ?? null);
+}
+
+/** Which option the design's words still are (a typed edit makes it none). */
+export const optionIndex = (words: Record<string, string>, options: Record<string, string>[]): number | null => {
+  const i = options.findIndex((o) => Object.entries(o).every(([k, v]) => (words[k] ?? "") === v));
+  return i < 0 ? null : i;
+};
+
 export interface ImageInput {
-  layout: AdLayoutId;
+  layout: ImageLayout;
   words: Record<string, string>;
   brand: CarouselBrand;
   font?: SlideFont;
   paper?: SlidePaper;
   align?: "left" | "center";
-  /** The headline ad's picture, as a data URL (a blob: link draws on screen only, never in a PNG). */
+  /** The headline ad's or a meme's picture, as a data URL (a blob: link draws on screen only, never in a PNG). */
   picture?: string;
+  /** Expectation vs reality's second picture, the same way. */
+  picture2?: string;
   /** The preview draws an empty field's sample words in grey; a download leaves it out. */
   samples?: boolean;
 }
@@ -124,6 +198,8 @@ interface Block {
   single?: true;
   /** Drawn on a filled box of this colour. */
   button?: string;
+  /** An outline under the fill (a meme's white words on any picture). */
+  outline?: string;
 }
 
 interface Fitted {
@@ -198,7 +274,8 @@ function placeStack(nodes: SvgNode[], f: Fitted[], box: Box, center: boolean, va
       nodes.push({ type: "text", x: center ? x : left + padX, y: y + Math.round((it.height - size) / 2 + size * 0.8), text: it.lines[0], font: it.font, fill: it.b.fill, ...faded, ...anchor });
     } else {
       const baseline = Math.round((it.lineHeight - size) / 2 + size * 0.8);
-      it.lines.forEach((line, i) => nodes.push({ type: "text", x, y: y + i * it.lineHeight + baseline, text: line, font: it.font, fill: it.b.fill, ...faded, ...anchor }));
+      const outline = it.b.outline ? { stroke: it.b.outline, strokeWidth: Math.max(4, Math.round(size * 0.12)) } : {};
+      it.lines.forEach((line, i) => nodes.push({ type: "text", x, y: y + i * it.lineHeight + baseline, text: line, font: it.font, fill: it.b.fill, ...faded, ...anchor, ...outline }));
     }
     y += it.height + it.b.gap;
   }
@@ -217,6 +294,7 @@ const MARK = "\u201C";
  * brand-colour block, never drawn without its source) or a client testimonial, at 4:5, 1:1, 9:16 or 1.91:1.
  */
 export function layoutImage(input: ImageInput, size: ImageSize, measure: Measure): DrawnImage {
+  if (isMeme(input.layout)) return layoutMeme(input, input.layout, size, measure);
   const { width: W, height: H } = SIZE_INFO[size];
   const wide = size === "wide";
   const padY = size === "9x16" ? STORY_CLEAR : wide ? 56 : PAD_X;
@@ -327,4 +405,133 @@ export function layoutImage(input: ImageInput, size: ImageSize, measure: Measure
   }
 
   return { width: W, height: H, background: pc.bg, nodes, overflow };
+}
+
+// ---- memes -----------------------------------------------------------------------------------
+
+const MEME_INK = "#FFFFFF";
+const MEME_OUTLINE = "#000000";
+const MEME_DARK = "#111111";
+const MEME_MUTED = "#71717A";
+/** No picture yet: two greys, so expectation's halves read as two. */
+const NO_PICTURE = ["#3F3F46", "#52525B"];
+const CAPS_SIZES = [112, 104, 96, 88, 80, 72, 64, 58, 52, 46, 42, 38];
+const BAND_SIZES = [64, 58, 54, 50, 46, 42, 38, 34, 31, 28];
+const STRIP_SIZES = [60, 54, 50, 46, 42, 38, 34, 31, 28];
+const POV_SIZES = [80, 72, 66, 60, 54, 50, 46, 42, 38, 34];
+const POST_SIZES = [52, 48, 44, 41, 38, 35, 32, 30, 28];
+const HEAD = 88;
+
+/**
+ * The five meme layouts. Pictures go full bleed (a 9:16 story's pictures run under the app's buttons); the words keep
+ * 96 px side margins and, on a story, the 250 px clear at the top and bottom. Never a famous meme picture: the
+ * picture is the brand's own, made, or free stock, and the preview shows a grey stand-in until there is one.
+ */
+function layoutMeme(input: ImageInput, layout: MemeLayoutId, size: ImageSize, measure: Measure): DrawnImage {
+  const { width: W, height: H } = SIZE_INFO[size];
+  const clear = size === "9x16" ? STORY_CLEAR : 0;
+  const w = W - 2 * PAD_X;
+  const nodes: SvgNode[] = [{ type: "rect", x: 0, y: 0, width: W, height: H, fill: NO_PICTURE[0] }];
+  let overflow = false;
+
+  const word = (key: string): { text: string; sample: boolean } | null => {
+    const typed = (input.words[key] ?? "").replace(/\s+/g, " ").trim();
+    if (typed) return { text: typed, sample: false };
+    const def = IMAGE_FIELDS[layout].find((f) => f.key === key);
+    return input.samples && def ? { text: def.sample, sample: true } : null;
+  };
+  const faded = (sample: boolean | undefined, by = 0.6) => (sample ? { opacity: by } : {});
+  const fit = (blocks: Block[], room: number) => {
+    const r = fitStack(blocks, w, room, measure);
+    overflow ||= r.overflow;
+    return r.fitted;
+  };
+  const picture = (href: string | undefined, box: Box, shade = 0) => {
+    const h = href?.trim();
+    if (h) return void nodes.push({ type: "image", x: box.x, y: box.y, width: box.w, height: box.h, href: h, shape: "square" });
+    nodes.push({ type: "rect", x: box.x, y: box.y, width: box.w, height: box.h, fill: NO_PICTURE[shade] });
+    if (input.samples) nodes.push({ type: "text", x: box.x + box.w / 2, y: Math.round(box.y + box.h * 0.42), text: "Your picture", font: { family: "sans", weight: 400, size: 34 }, fill: "#D4D4D8", anchor: "middle" });
+  };
+
+  if (layout === "top-bottom") {
+    // upper-case white words outlined in black, at the top and the bottom of a full-bleed picture
+    picture(input.picture, { x: 0, y: 0, w: W, h: H });
+    const h = Math.round((H - 2 * clear) * 0.32);
+    for (const [key, y, valign] of [["top", clear + 40, 0], ["bottom", H - clear - 40 - h, 1]] as const) {
+      const v = word(key);
+      if (!v) continue;
+      const f = fit([{ text: v.text.toUpperCase(), family: "sans", weight: 600, sizes: CAPS_SIZES, line: 1.08, fill: MEME_INK, outline: MEME_OUTLINE, gap: 0, ...faded(v.sample) }], h);
+      placeStack(nodes, f, { x: PAD_X, y, w, h }, true, valign);
+    }
+  } else if (layout === "nobody-me") {
+    // a white band on top: "Nobody:", then "Me at 2am: what you're doing"; the picture fills the rest
+    const setup = word("setup");
+    const punch = word("punch");
+    const line = [setup?.text.replace(/^nobody\s*:\s*/i, "").replace(/[\s:]+$/, ""), punch?.text].filter(Boolean).join(": ");
+    const f = fit(
+      [
+        { text: "Nobody:", family: "sans", weight: 600, sizes: BAND_SIZES, line: 1.25, fill: MEME_DARK, gap: 20 },
+        ...(line ? [{ text: line, family: "sans" as const, weight: 400 as const, sizes: BAND_SIZES, line: 1.25, fill: MEME_DARK, gap: 0, ...faded(setup?.sample || punch?.sample, 0.5) }] : []),
+      ],
+      Math.round((H - 2 * clear) * 0.4),
+    );
+    const top = clear + 56;
+    const band = top + stackHeight(f) + 56;
+    picture(input.picture, { x: 0, y: band, w: W, h: H - band });
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: band, fill: "#FFFFFF" });
+    placeStack(nodes, f, { x: PAD_X, y: top, w, h: stackHeight(f) }, false, 0);
+  } else if (layout === "expectation") {
+    // two pictures stacked, each with its label on a dark strip at its foot
+    const half = Math.round(H / 2);
+    const parts = [
+      { key: "expectation", label: "Expectation", href: input.picture, box: { x: 0, y: 0, w: W, h: half } },
+      { key: "reality", label: "Reality", href: input.picture2, box: { x: 0, y: half, w: W, h: H - half } },
+    ];
+    parts.forEach((p, i) => picture(p.href, p.box, i));
+    for (const p of parts) {
+      const v = word(p.key);
+      const f = fit([{ text: `${p.label}: ${v?.text ?? ""}`.trim(), family: "sans", weight: 600, sizes: STRIP_SIZES, line: 1.2, fill: MEME_INK, gap: 0, ...faded(v?.sample) }], Math.round(p.box.h * 0.4));
+      const strip = stackHeight(f) + 56;
+      const foot = Math.min(p.box.y + p.box.h, H - clear);
+      nodes.push({ type: "rect", x: 0, y: foot - strip, width: W, height: strip, fill: "#000000", opacity: 0.72 });
+      placeStack(nodes, f, { x: PAD_X, y: foot - strip + 28, w, h: stackHeight(f) }, false, 0);
+    }
+  } else if (layout === "pov") {
+    // a full-bleed picture, a dark fade at the bottom, and "POV: ..." in white on it
+    picture(input.picture, { x: 0, y: 0, w: W, h: H });
+    const fade = Math.round(H * 0.38);
+    nodes.push({ type: "fade", x: 0, y: fade, width: W, height: H - fade, color: "#000000", opacity: 0.85 });
+    const v = word("line");
+    const top = Math.round(H * 0.5);
+    const box = { x: PAD_X, y: top, w, h: H - clear - 72 - top };
+    placeStack(nodes, fit([{ text: `POV: ${v?.text ?? ""}`.trim(), family: "sans", weight: 600, sizes: POV_SIZES, line: 1.2, fill: MEME_INK, gap: 0, ...faded(v?.sample) }], box.h), box, false, 1);
+  } else {
+    // the brand's own post as a card on top (headshot, name and handle from the brand kit, no network's logo), the
+    // reaction picture under it
+    const photo = sanitizeImage(input.brand.photo);
+    const name = (input.brand.name ?? "").replace(/\s+/g, " ").trim();
+    const handle = normalizeHandle(input.brand.handle);
+    const head = photo || name || handle ? HEAD : 0;
+    const top = clear + 56;
+    const v = word("post");
+    const f = fit(v ? [{ text: v.text, family: "sans", weight: 400, sizes: POST_SIZES, line: 1.3, fill: MEME_DARK, gap: 0, ...faded(v.sample, 0.5) }] : [], Math.round((H - 2 * clear) * 0.5) - head);
+    const textTop = top + (head ? head + 28 : 0);
+    const card = textTop + stackHeight(f) + 56;
+    picture(input.picture, { x: 0, y: card, w: W, h: H - card });
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: card, fill: "#FFFFFF" });
+    if (head) {
+      if (photo) nodes.push({ type: "image", x: PAD_X, y: top, width: HEAD, height: HEAD, href: photo, shape: "circle" });
+      const textX = photo ? PAD_X + HEAD + 24 : PAD_X;
+      const room = W - PAD_X - textX;
+      const nameFont: FontSpec = { family: "sans", weight: 600, size: 34 };
+      const handleFont: FontSpec = { family: "sans", weight: 400, size: 30 };
+      const cut = (t: string, font: FontSpec) => (measure(t, font) <= room ? t : ellipsize(t, room, font, measure));
+      const mid = top + HEAD / 2;
+      if (name) nodes.push({ type: "text", x: textX, y: Math.round(handle ? mid - HEAD * 0.06 : mid + 12), text: cut(name, nameFont), font: nameFont, fill: MEME_DARK });
+      if (handle) nodes.push({ type: "text", x: textX, y: Math.round(name ? mid + HEAD * 0.38 : mid + 11), text: cut(handle, handleFont), font: handleFont, fill: MEME_MUTED });
+    }
+    placeStack(nodes, f, { x: PAD_X, y: textTop, w, h: stackHeight(f) }, false, 0);
+  }
+
+  return { width: W, height: H, background: NO_PICTURE[0], nodes, overflow };
 }
