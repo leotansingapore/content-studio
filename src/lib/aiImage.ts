@@ -5,7 +5,9 @@
 
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
-import type { JobState } from "../../supabase/functions/ai-image/logic.ts";
+import { leoUser } from "@/lib/useLeoOnly";
+import { memoryLine } from "@/lib/voiceMemory";
+import { MAX_PROMPT, type JobState } from "../../supabase/functions/ai-image/logic.ts";
 
 export interface ImageJob {
   prompt: string;
@@ -39,8 +41,22 @@ export function onImageJob(fn: (j: ImageJob | null) => void): () => void {
 }
 export const imageBusy = () => job?.state === "working" || job?.state === "saving";
 
-export const makeImage = (userId: string, prompt: string, name: string): Promise<void> =>
-  run(userId, prompt, name.slice(0, 80) || "AI image", { mode: "start", prompt });
+/**
+ * Leo's facts and learnings for pictures after the prompt (brand-voice-memory), only in the room ai-image's MAX_PROMPT
+ * leaves: memoryLine drops the oldest learnings first. Anyone else's prompt goes as typed.
+ */
+async function withMemory(userId: string, prompt: string): Promise<string> {
+  let memory = "";
+  try {
+    if (await leoUser()) memory = memoryLine(userId, "pictures", MAX_PROMPT - prompt.length - 2);
+  } catch {
+    // a session that can't be read is not Leo's
+  }
+  return memory ? `${prompt}\n\n${memory}` : prompt;
+}
+
+export const makeImage = async (userId: string, prompt: string, name: string): Promise<void> =>
+  run(userId, prompt, name.slice(0, 80) || "AI image", { mode: "start", prompt: await withMemory(userId, prompt) });
 
 /** "Fix it": Qwen Image 3 edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {
