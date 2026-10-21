@@ -41,6 +41,7 @@ import {
   type SlideshowJob,
 } from "./slideshowJob";
 import type { StockItem } from "./stockMedia";
+import { parseMakeRequest } from "../../supabase/functions/remix/logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -277,6 +278,27 @@ describe("the job", () => {
     const s = { ...SOURCE, teardown: { hook: "I brought two new advisers along to Awards Night", structure: "Carousel milestone story", why: "The underdog arc." } };
     expect(makeBody(UID, { ...ASK, source: s }).teardown).toEqual({ hookPattern: "I brought two new advisers along to Awards Night", beats: ["Format: Carousel milestone story", "Why it worked: The underdog arc."] });
     expect(makeBody(UID, ASK).teardown).toBeUndefined();
+  });
+
+  it("sends a phase 3 shape with its own options, which the server takes, and today's body with none", () => {
+    const topic = { ...ASK, source: null, topic: "Why I log every client call" };
+    const formulas = ["contrarian", "mistake", "blunt"].map((id) => ({ id, name: id, template: `The ${id} shape`, example: "An example", trap: "A trap" }));
+    const hooks = makeBody(UID, topic, "hooks", { formulas, demo: { name: "screen.mp4", seconds: 20 } });
+    expect(hooks).toMatchObject({ mode: "make", as: "hooks", topic: "Why I log every client call", formulas, demo: { name: "screen.mp4", seconds: 20 } });
+    expect(parseMakeRequest(JSON.parse(JSON.stringify(hooks)))).toMatchObject({ ok: true, value: { as: "hooks", formulas, demo: { name: "screen.mp4", seconds: 20 } } });
+    for (const [as, more] of [
+      ["speaking", { seconds: 15 }],
+      ["wall", { scene: "kitchen", maxWords: 30 }],
+      ["notes", {}],
+      ["image", { layout: "quote", shows: "A big quote on a blue card" }],
+      ["meme", { layout: "pov" }],
+    ] as const) {
+      const body = makeBody(UID, topic, as, more);
+      expect(body, as).toMatchObject({ as, ...more });
+      expect(parseMakeRequest(JSON.parse(JSON.stringify(body))), as).toMatchObject({ ok: true, value: { as, ...more } });
+    }
+    expect(makeBody(UID, ASK, "slideshow", {})).toEqual(makeBody(UID, ASK));
+    expect(Object.keys(makeBody(UID, ASK))).not.toContain("seconds");
   });
 
   it("writes from a topic with no source", async () => {

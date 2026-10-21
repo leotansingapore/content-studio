@@ -14,7 +14,7 @@ import { loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { stripDashes } from "@/lib/plainText";
 import { scoped } from "@/lib/profiles";
 import { voiceForClone, winnersFor } from "@/lib/reelClone";
-import { fullText, requestMake, type MakeRequest } from "@/lib/remix";
+import { fullText, requestMake, type MakeRequest, type RemixAs } from "@/lib/remix";
 import { brandPack, loadRemixPrefs } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
 import { localTeardown } from "@/lib/remixTeardown";
@@ -104,8 +104,16 @@ export function failure(e: unknown, fallback = WRITE_FAILED): Pick<SlideshowJob,
   return { error: fallback };
 }
 
-/** The make call: the source's words read on this device, or the topic, with this brand and voice. The wall of text (wallJob.ts) sends the same body as "wall". */
-export function makeBody(userId: string, a: Pick<SlideshowAsk, "source" | "topic" | "mention" | "note" | "size">, as: "slideshow" | "wall" = "slideshow"): MakeRequest {
+/**
+ * The make call: the source's words read on this device, or the topic, with this brand and voice. The wall of text
+ * (wallJob.ts) sends the same body as "wall", and phase 3's format pages as their own shape with its options in `more`.
+ */
+export function makeBody(
+  userId: string,
+  a: Pick<SlideshowAsk, "source" | "topic" | "mention" | "note" | "size">,
+  as: RemixAs = "slideshow",
+  more: Partial<Pick<MakeRequest, "seconds" | "scene" | "maxWords" | "formulas" | "demo" | "layout" | "shows">> = {},
+): MakeRequest {
   const s = a.source;
   const t = s ? localTeardown(userId, s) : null;
   // no breakdown on this device: the snapshot's own idea stands in (a swipe carousel's idea.hook, format and why)
@@ -125,6 +133,7 @@ export function makeBody(userId: string, a: Pick<SlideshowAsk, "source" | "topic
     voice: voiceForClone(loadVoiceProfile(userId), winnersFor(userId)),
     brand: brandPack(userId, { platform: a.size === "9x16" ? "tiktok" : "instagram", mention: a.mention, offer: null, speaker: loadRemixPrefs(userId).speaker }),
     teardown,
+    ...more,
   };
 }
 
