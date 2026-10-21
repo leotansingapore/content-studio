@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keptBrand, keptBrandKey, type BrandDna } from "./addBrand";
+import { keptBrand, keptBrandKey, newBrandKit, readBody, type BrandDna } from "./addBrand";
 
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
 const dna: BrandDna = {
@@ -43,5 +43,24 @@ describe("keptBrand", () => {
   it("is kept per sign-in, outside the synced prefix", () => {
     expect(keptBrandKey("u1")).toBe("cs-addbrand-form-u1");
     expect(keptBrandKey("u1").startsWith("content-studio-")).toBe(false);
+  });
+});
+
+// Pinned on today's /brands/new (before brand-from-website): everyone else's request and new kit stay exactly these.
+describe("what /brands/new sends and saves", () => {
+  it("sends the address only", () => {
+    expect(readBody("acme.sg")).toStrictEqual({ url: "acme.sg" });
+  });
+
+  it("saves the name, handle, colour, logo and handles in the new kit, nothing more", () => {
+    expect(newBrandKit({ ...dna, logo: "data:image/png;base64,AAAA", handles: { instagram: "@acme.sg", facebook: "acmesg" } }, "Acme")).toStrictEqual({
+      color: "#0f766e",
+      name: "Acme",
+      handle: "@acme.sg",
+      logo: "data:image/png;base64,AAAA",
+      instagram: "acme.sg",
+      facebook: "acmesg",
+    });
+    expect(newBrandKit({ ...dna, colour: null, handles: {} }, "Acme")).toStrictEqual({ color: "#1E3A8A", name: "Acme", handle: "" });
   });
 });

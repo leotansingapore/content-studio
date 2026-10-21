@@ -8,14 +8,14 @@ import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
-import { DEFAULT_BRAND, saveBrand } from "@/lib/carousel";
+import { saveBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
 import { addProfile, loadProfiles, setActiveProfile } from "@/lib/profiles";
 import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
 import { saveVoiceProfile } from "@/lib/voiceProfile";
 import { supabase } from "@/lib/supabase";
-import { keptBrand, keptBrandKey, type BrandDna as Dna } from "@/lib/addBrand";
+import { keptBrand, keptBrandKey, newBrandKit, readBody, type BrandDna as Dna } from "@/lib/addBrand";
 
 // /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow).
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
@@ -108,7 +108,7 @@ export default function AddBrandPage() {
     // the steps tick over while the one request runs; the last waits for the answer
     timer.current = window.setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 2500);
     try {
-      const d = await callFn<Dna>("brand-dna", { url: address }, "We couldn't read that site. Try again, or start with just a name.");
+      const d = await callFn<Dna>("brand-dna", readBody(address), "We couldn't read that site. Try again, or start with just a name.");
       setDna(d);
       setPhase("confirm");
     } catch (err) {
@@ -145,15 +145,7 @@ export default function AddBrandPage() {
     setActiveProfile(uid, p.id);
     if (brand) {
       const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
-      saveBrand(uid, {
-        ...DEFAULT_BRAND,
-        name: title,
-        handle: ig ? `@${ig}` : "",
-        ...(brand.colour ? { color: brand.colour } : {}),
-        ...(brand.logo ? { logo: brand.logo } : {}),
-        ...(ig ? { instagram: ig } : {}),
-        ...(brand.handles.facebook ? { facebook: brand.handles.facebook } : {}),
-      });
+      saveBrand(uid, newBrandKit(brand, title));
       savePositioning(uid, {
         ...EMPTY_POSITIONING,
         oneLiner: brand.oneLiner,

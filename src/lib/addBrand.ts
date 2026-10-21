@@ -1,5 +1,6 @@
 // Add a brand (/brands/new): what a site read gives back, and the half-done form kept for the tab so
 // leaving the page or reloading does not throw away the read and the cards already checked.
+import { DEFAULT_BRAND, type CarouselBrand } from "@/lib/carousel";
 import type { PlanAudience } from "@/lib/positioning";
 import type { SocialPlatform } from "@/lib/socialAccounts";
 
@@ -60,4 +61,21 @@ export function keptBrand(raw: string | null, cards: readonly string[]): KeptBra
   } catch {
     return null;
   }
+}
+
+/** What /brands/new sends brand-dna. */
+export const readBody = (address: string) => ({ url: address });
+
+/** The new brand's kit from the confirmed read, as /brands/new saves it. */
+export function newBrandKit(brand: BrandDna, title: string): CarouselBrand {
+  const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
+  return {
+    ...DEFAULT_BRAND,
+    name: title,
+    handle: ig ? `@${ig}` : "",
+    ...(brand.colour ? { color: brand.colour } : {}),
+    ...(brand.logo ? { logo: brand.logo } : {}),
+    ...(ig ? { instagram: ig } : {}),
+    ...(brand.handles.facebook ? { facebook: brand.handles.facebook } : {}),
+  };
 }
