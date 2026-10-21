@@ -223,7 +223,7 @@ const WALL_ERROR = "That video couldn't be opened. Try an MP4 or MOV.";
 // stickers with no words; every other kind gets a text field in the sticker editor
 const SHAPES: OverlayKind[] = ["arrow", "circle", "underline"];
 // the AI panel's params (docs/deep-links.md), dropped when it closes
-const AI_PARAMS_GONE = Object.fromEntries(["kind", "template", "talk", "offer", "look", "from", "topic", "link", "draft", "secs", "visuals"].map((k) => [k, null]));
+const AI_PARAMS_GONE = Object.fromEntries(["kind", "template", "talk", "offer", "look", "from", "topic", "link", "draft", "secs", "visuals", "face", "voice", "product", "set"].map((k) => [k, null]));
 // the clips panel's (about is read once and gone already), dropped when it or the own panel's closes or own opens
 const CLIPS_PARAMS_GONE = { about: null, len: null, yt: null };
 // An upload is captioned in one use only while it is one part (captionPlan: up to 1.2 x PART_SECONDS), so its price is a ceiling.
