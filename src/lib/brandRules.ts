@@ -56,8 +56,8 @@ export function avoidList(brand: Rules): string[] {
     .slice(0, 30);
 }
 
-/** The hashtags a post may keep: the kit's policy, held to the platform's cap. */
-function hashtagMax(brand: Rules, platform?: string): number | undefined {
+/** The hashtags a post may keep: the kit's policy, held to the platform's cap; undefined when neither sets one. */
+export function hashtagMax(brand: Rules, platform?: string): number | undefined {
   const policy = brand?.hashtagPolicy ? HASHTAG_MAX[brand.hashtagPolicy] : undefined;
   const cap = platform ? HASHTAG_CAP[platform] : undefined;
   return policy === undefined ? cap : cap === undefined ? policy : Math.min(policy, cap);

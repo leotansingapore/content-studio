@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allowedLinks, applyBrandRules, avoidList, brandOffers, brandRulesLine, capEmoji, countEmoji, offerUrl } from "@/lib/brandRules";
+import { allowedLinks, applyBrandRules, avoidList, brandOffers, brandRulesLine, capEmoji, countEmoji, hashtagMax, offerUrl } from "@/lib/brandRules";
 import { MAX_AVOID_CHARS, sanitizeBrand } from "@/lib/carousel";
 import { checkLimits, countHashtags, strayLinks } from "@/lib/platformCounters";
 
@@ -116,5 +116,15 @@ describe("links that are not an offer", () => {
     const allowed = allowedLinks({ offers }, accounts);
     expect(allowed).toEqual(expect.arrayContaining(["https://ig.me/m/ada.tan", "https://m.me/adatanfa"]));
     expect(strayLinks("DM me: https://ig.me/m/ada.tan or https://m.me/adatanfa", allowed)).toEqual([]);
+  });
+});
+
+describe("hashtagMax", () => {
+  it("is the kit's policy held to the platform's cap, and undefined when neither sets one", () => {
+    expect(hashtagMax({ hashtagPolicy: "few" }, "linkedin")).toBe(4);
+    expect(hashtagMax({ hashtagPolicy: "ten" }, "instagram")).toBe(5);
+    expect(hashtagMax({}, "linkedin")).toBeUndefined();
+    expect(hashtagMax(null, "tiktok")).toBe(5);
+    expect(hashtagMax({ hashtagPolicy: "none" }, "instagram")).toBe(0);
   });
 });
