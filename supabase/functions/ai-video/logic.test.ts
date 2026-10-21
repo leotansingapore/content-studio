@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PEOPLE_RULE, tokenSecret } from "../ai-image/logic";
 import { GLOBAL_COUNTER_USER, refundUsage, type UsageClient } from "../_shared/usageCaps";
 import {
-  MAX_SLICE, avatarCredits, creditsUsd, explainerCredits, parseVideoRequest, pictureBody, presenterBody, readMedia,
+  MAX_SLICE, avatarCredits, creditsUsd, explainerCredits, northStarOnly, parseVideoRequest, pictureBody, presenterBody, readMedia,
   refundFailed, refundTicket, sceneReady, speakBody, speakSeconds, validateScript,
 } from "./logic";
 
@@ -233,5 +233,26 @@ describe("today's presenter", () => {
       batch_size: 1,
     });
     expect(parseVideoRequest({ mode: "presenter", look: "A Malay Singaporean woman in her 30s" })).toEqual({ ok: true, request: { mode: "presenter", look: "A Malay Singaporean woman in her 30s" } });
+  });
+});
+
+describe("what only NORTH_STAR_USERS may ask for", () => {
+  const req = (body: Record<string, unknown>) => {
+    const p = parseVideoRequest(body);
+    if (!p.ok) throw new Error(p.error);
+    return p.request;
+  };
+
+  it("is a hidden or Leo-only template", () => {
+    expect(northStarOnly(req({ mode: "template", template: "scene-kitchen", seconds: 8, quality: "480p" }))).toBe(true);
+    expect(northStarOnly(req({ mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing" } }))).toBe(true);
+    expect(northStarOnly(req({ mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "Do you save?" } }))).toBe(true);
+  });
+
+  it("is nothing anyone could send before phase 3", () => {
+    expect(northStarOnly(req({ mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" } }))).toBe(false);
+    expect(northStarOnly(req({ mode: "presenter", look: "A Malay Singaporean woman" }))).toBe(false);
+    expect(northStarOnly(req({ mode: "explainer", pictures: Array(4).fill("A couple at an HDB table") }))).toBe(false);
+    expect(northStarOnly(req({ mode: "script", topic: "Why hospital plans have a co-pay" }))).toBe(false);
   });
 });

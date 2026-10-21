@@ -1,24 +1,79 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { clipCredits, creditsUsd, parseVideoRequest, seedanceRequest } from "./logic";
-import { TEMPLATES, clipPrompt, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
+import { TEMPLATES, clipPrompt, editorTemplates, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
 
 const JPEG = "/9j/4AAQSkZJRgABAQAAAQABAAD";
 const ok = (body: Record<string, unknown>) => parseVideoRequest({ mode: "template", seconds: 4, quality: "480p", ...body });
 
+const TODAY = [
+  "ugc-creator-review", "product-commercial-shotlist", "handheld-ugc-vlog", "timeline-shot-script",
+  "character-reference-lock", "travel-city-walk", "food-asmr", "pov-continuous-take",
+];
+
 describe("the template gallery", () => {
-  it("has the eight looks the brief picked, each with a required blank and a warning", () => {
-    expect(TEMPLATES.map((t) => t.id)).toEqual([
-      "ugc-creator-review", "product-commercial-shotlist", "handheld-ugc-vlog", "timeline-shot-script",
-      "character-reference-lock", "travel-city-walk", "food-asmr", "pov-continuous-take",
-    ]);
+  it("shows everyone the eight looks the brief picked, and Leo the three skits too, never a hidden one", () => {
+    expect(editorTemplates(false).map((t) => t.id)).toEqual(TODAY);
+    expect(editorTemplates(true).map((t) => t.id)).toEqual([...TODAY, "street-interview", "three-levels", "two-host-podcast"]);
+    expect(TEMPLATES.filter((t) => t.hidden).map((t) => t.id)).toEqual(["scene-kitchen", "scene-walk", "scene-interview", "spoken-hook"]);
+    for (const t of editorTemplates(true)) expect(t.fields.some((f) => f.required), t.id).toBe(true);
+  });
+
+  it("gives every template a warning and a structure, with no em dash, exclamation mark or brand name", () => {
     for (const t of TEMPLATES) {
-      expect(t.fields.some((f) => f.required), t.id).toBe(true);
       expect(t.warnings.length, t.id).toBeGreaterThan(0);
       expect(t.structure.length, t.id).toBeGreaterThan(2);
       // no em dashes or exclamation marks in anything the adviser reads
       for (const s of [t.title, t.blurb, ...t.warnings, ...t.fields.flatMap((f) => [f.label, f.placeholder])]) expect(s, t.id).not.toMatch(/[—!]/);
+      const all = [t.title, t.blurb, ...t.warnings, ...t.structure, ...t.guidance, ...t.avoid, t.rule ?? "", ...t.fields.flatMap((f) => [f.label, f.placeholder])].join(" ");
+      expect(all, t.id).not.toMatch(/netflix|pixar|lego|barbie|ghibli|tiktok|instagram/i);
     }
+  });
+});
+
+describe("phase 3's templates", () => {
+  const details = { person: "An Indian man in his 40s", question: "Do you save?", answer: "Not really", scene: "Orchard Road", line: "Check it yearly" };
+
+  it("makes three hidden, silent scenes with one optional person, and asks the writer for room sound, never speech", () => {
+    for (const id of ["scene-kitchen", "scene-walk", "scene-interview"]) {
+      const t = templateById(id)!;
+      expect([t.hidden, t.silent, t.leoOnly], id).toEqual([true, true, undefined]);
+      expect(t.fields, id).toEqual([{ key: "person", label: "Who is in it", placeholder: "A Malay woman in her 30s in a grey cardigan" }]);
+      expect(t.photos, id).toEqual([]);
+      const s = templateSystem(t, 8, null);
+      expect(s, id).toContain("Nobody speaks. Ambient room or street sound only.");
+      expect(s, id).not.toContain("Spoken lines");
+      expect(s, id).toMatch(/Singaporean or other Asian/);
+      expect(ok({ template: id, seconds: 8, fields: {} })).toMatchObject({ ok: true, request: { template: id, fields: {} } });
+    }
+    expect(templateSystem(templateById("ugc-creator-review")!, 8, null)).toContain("Spoken lines: few, each under 8 words");
+  });
+
+  it("makes a hidden spoken hook that refuses a line over 8 words before anything is paid", () => {
+    const t = templateById("spoken-hook")!;
+    expect([t.hidden, t.silent]).toEqual([true, undefined]);
+    expect(t.fields.find((f) => f.key === "line")).toMatchObject({ required: true, maxWords: 8, label: "What they say" });
+    expect(ok({ template: "spoken-hook", fields: {} })).toMatchObject({ ok: false, error: 'Fill in "What they say" first.' });
+    expect(ok({ template: "spoken-hook", fields: { line: "one two three four five six seven eight nine" } })).toEqual({ ok: false, error: 'Keep "What they say" to 8 words.' });
+    expect(ok({ template: "spoken-hook", fields: { line: "Stop guessing why your pipeline is empty" } })).toMatchObject({ ok: true });
+    expect(templateSystem(t, 4, null)).toContain("Spoken lines: few, each under 8 words");
+  });
+
+  it("makes the three one-take skits for Leo, with the question and answer blanks and the speakers' rule", () => {
+    for (const id of ["street-interview", "three-levels", "two-host-podcast"]) {
+      const t = templateById(id)!;
+      expect([t.hidden, t.leoOnly, t.photos], id).toEqual([undefined, true, ["person"]]);
+      expect(t.warnings, id).toEqual(["Keep each line under 8 words, or the lips slip out of sync.", "Two or three lines fit in 8 seconds."]);
+      const s = templateSystem(t, 8, "person");
+      expect(s, id).toContain("Spoken lines: few, each under 8 words");
+      expect(s, id).toMatch(/speakers look clearly different\.$/m);
+    }
+    expect(templateSystem(templateById("street-interview")!, 8, null)).toContain("Each person speaks only the lines given, in order, and the speakers look clearly different.");
+    expect(templateById("street-interview")!.fields.map((f) => f.key)).toEqual(["question", "answer", "scene"]);
+    expect(templateDetails(templateById("street-interview")!, details)).toBe("Question: Do you save?\nAnswer: Not really\nScene: Orchard Road");
+    expect(templateDetails(templateById("two-host-podcast")!, details)).toBe("Question: Do you save?\nAnswer: Not really");
+    expect(templateDetails(templateById("three-levels")!, details)).toBe("Scene: Orchard Road\nWhat they say: Check it yearly");
+    expect(ok({ template: "street-interview", seconds: 8, fields: {} })).toMatchObject({ ok: false, error: 'Fill in "The question" first.' });
   });
 });
 

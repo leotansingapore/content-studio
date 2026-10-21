@@ -3,6 +3,8 @@ import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+// on NORTH_STAR_USERS; UID is everyone else
+const LEO = "leo-uid";
 
 const db = vi.hoisted(() => {
   // cs_ai_usage in memory, keyed user|feature|day: the consume RPC, one row read and the conditional update
@@ -35,8 +37,9 @@ const db = vi.hoisted(() => {
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
-// Higgsfield: each picture submit answers from `submits` in turn; every call is kept
-const hf: { calls: string[]; submits: number[] } = { calls: [], submits: [] };
+// Higgsfield: each picture submit answers from `submits` in turn; every call is kept, with each body sent to it.
+// OpenAI (the template's prompt writer) answers a usable shot prompt and keeps what it was sent.
+const hf: { calls: string[]; submits: number[]; bodies: Record<string, unknown>[]; openai: { messages: { content: string }[] }[] } = { calls: [], submits: [], bodies: [], openai: [] };
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
@@ -44,10 +47,15 @@ answer({});
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", HF_API_KEY: "k", HF_API_SECRET: "s" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", HF_API_KEY: "k", HF_API_SECRET: "s", OPENAI_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string) => {
+  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
+    if (String(u).includes("openai")) {
+      hf.openai.push(JSON.parse(String(init?.body)));
+      return answer({ choices: [{ message: { content: JSON.stringify({ prompt: "Vertical 9:16, 8 seconds, a phone propped on a kitchen counter in a bright HDB flat. ".repeat(2) }) } }] });
+    }
     hf.calls.push(String(u));
+    if (init?.body) hf.bodies.push(JSON.parse(String(init.body)));
     if (String(u).endsWith("/cancel")) return answer({});
     const status = hf.submits.shift() ?? 200;
     return status === 200 ? answer({ request_id: `r${hf.calls.length}` }) : answer({ detail: "no" }, status);
@@ -65,6 +73,8 @@ beforeEach(() => {
   db.rows.clear();
   hf.calls.length = 0;
   hf.submits.length = 0;
+  hf.bodies.length = 0;
+  hf.openai.length = 0;
 });
 
 const PICTURES = ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"];
@@ -96,5 +106,41 @@ describe("an explainer's uses", () => {
     expect(res.status).toBe(502);
     expect(hf.calls.filter((u) => u.endsWith("/cancel"))).toEqual(["https://api.higgsfield.ai/requests/r1/cancel"]);
     expect([mine(), studio()]).toEqual([0, 0]);
+  });
+});
+
+describe("phase 3's templates (NORTH_STAR_USERS only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const scene = { mode: "template", template: "scene-kitchen", seconds: 8, quality: "480p", fields: {} };
+  const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
+
+  it("refuse a hidden or Leo-only template before any count or call", async () => {
+    for (const body of [
+      scene,
+      { mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing why your pipeline is empty" } },
+      { mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "How much of your pay do you save?" } },
+    ]) {
+      const res = await send(UID, body);
+      expect(res.status, String(body.template)).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect(db.rows.size).toBe(0);
+    expect([hf.calls, hf.openai]).toEqual([[], []]);
+  });
+
+  it("let today's templates through for everyone, as before", async () => {
+    expect((await send(UID, { mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" } })).status).toBe(200);
+    expect(used(UID, "ai-clip")).toBe(1);
+    expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
+  });
+
+  it("make a silent scene for a listed account", async () => {
+    const res = await send(LEO, scene);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ credits: 26.3, tokens: [expect.any(String)] });
+    expect(used(LEO, "ai-clip")).toBe(1);
+    expect(hf.openai[0].messages[0].content).toContain("Nobody speaks. Ambient room or street sound only.");
+    expect(hf.bodies.at(-1)).toMatchObject({ duration: 8, resolution: "480p", aspect_ratio: "9:16" });
   });
 });

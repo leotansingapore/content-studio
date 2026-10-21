@@ -12,7 +12,7 @@ export const TEMPLATE_CREDIT = "Templates adapted from awesome-seedance / goodca
 export const TEMPLATE_SOURCE = "https://github.com/LearnPrompt/awesome-seedance";
 export const examplesUrl = (id: string) => `${TEMPLATE_SOURCE}/blob/main/docs/templates/en/${id}.md`;
 
-export type FieldKey = "product" | "person" | "scene" | "line";
+export type FieldKey = "product" | "person" | "scene" | "line" | "question" | "answer";
 export type PhotoRole = "person" | "product";
 
 export interface TemplateField {
@@ -20,6 +20,8 @@ export interface TemplateField {
   label: string;
   placeholder: string;
   required?: boolean;
+  /** A word limit checked before the clip is paid for (parseVideoRequest). */
+  maxWords?: number;
 }
 
 export interface VideoTemplate {
@@ -38,10 +40,195 @@ export interface VideoTemplate {
   structure: string[];
   guidance: string[];
   avoid: string[];
+  /** Left out of the editor's list: a format page (/make) makes it, for NORTH_STAR_USERS only. */
+  hidden?: true;
+  /** Nobody speaks: the prompt writer asks for room or street sound in place of spoken lines. */
+  silent?: true;
+  /** Shown only to Leo in the editor, and refused by the server for anyone not on NORTH_STAR_USERS. */
+  leoOnly?: true;
+  /** One more rule for the prompt writer, after the spoken-lines rule. */
+  rule?: string;
 }
 
 const PERSON: TemplateField = { key: "person", label: "Who is on camera", placeholder: "A woman in her 30s in a navy blazer" };
 const LINE: TemplateField = { key: "line", label: "What they say", placeholder: "I wish I'd started this sooner" };
+
+// ---- phase 3 (docs/north-star/items/formats-text-over-clip.md, formats-hook-demo.md, formats-skits.md) ----
+// Hidden scenes for Words over a made scene and the spoken hook, which format pages make, and three one-take skits
+// (formats-skits step 1) that only Leo sees. The server refuses all of them for anyone not on NORTH_STAR_USERS.
+
+const WHO: TemplateField = { key: "person", label: "Who is in it", placeholder: "A Malay woman in her 30s in a grey cardigan" };
+const SCENE_WARNINGS = ["Nobody speaks. Your words go on top in the editor."];
+const SCENE_AVOID = ["Anyone speaking or mouthing words", "On-screen text, captions or signs with words", "Logos or brand names", "Close-up hands on small objects"];
+const SKIT_WARNINGS = ["Keep each line under 8 words, or the lips slip out of sync.", "Two or three lines fit in 8 seconds."];
+const SKIT_RULE = "Each person speaks only the lines given, in order, and the speakers look clearly different.";
+
+const PHASE3_TEMPLATES: VideoTemplate[] = [
+  {
+    id: "scene-kitchen",
+    title: "Kitchen counter",
+    blurb: "Someone at a home kitchen counter slicing fruit, filmed on a propped-up phone.",
+    fields: [WHO],
+    photos: [],
+    warnings: SCENE_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a phone propped on the counter, one continuous take",
+      "Who: one person at a home kitchen counter in Singapore, their face partly in frame",
+      "Action: slicing fruit on a board, calm and unhurried, glancing up now and then",
+      "Light: soft daylight from a window, a lived-in kitchen",
+      "Sound: the knife on the board and quiet room sound",
+    ],
+    guidance: [
+      "Keep the camera still, as if the phone leans on something.",
+      "Keep the background calm and uncluttered; words go over the clip later.",
+      "One action for the whole clip.",
+    ],
+    avoid: SCENE_AVOID,
+    hidden: true,
+    silent: true,
+  },
+  {
+    id: "scene-walk",
+    title: "Walking selfie",
+    blurb: "Someone walking along a park connector, holding the phone at arm's length.",
+    fields: [WHO],
+    photos: [],
+    warnings: SCENE_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a walking selfie on a phone held at arm's length",
+      "Who: one person walking outdoors along a park connector in Singapore, trees and the path behind",
+      "Action: walking at an easy pace, looking at the lens now and then, then away",
+      "Light: late afternoon daylight, natural colour",
+      "Sound: footsteps, birds and light wind",
+    ],
+    guidance: [
+      "A gentle walking bob, never shaky.",
+      "Keep the framing chest-up or wider.",
+      "Keep the background calm; words go over the clip later.",
+    ],
+    avoid: SCENE_AVOID,
+    hidden: true,
+    silent: true,
+  },
+  {
+    id: "scene-interview",
+    title: "Interview",
+    blurb: "Someone seated for a documentary interview, soft window light, looking just off camera.",
+    fields: [WHO],
+    photos: [],
+    warnings: SCENE_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a documentary interview shot on a tripod",
+      "Who: one person seated, looking just off camera as if listening to a question",
+      "Light: soft window light from one side, a darker background",
+      "Camera: a slow push in over the whole clip",
+      "Sound: quiet room tone",
+    ],
+    guidance: [
+      "They listen and react a little: a nod, a breath, a small smile.",
+      "A documentary look: shallow depth of field, natural skin, no beauty filter.",
+    ],
+    avoid: SCENE_AVOID,
+    hidden: true,
+    silent: true,
+  },
+  {
+    id: "spoken-hook",
+    title: "Spoken hook",
+    blurb: "One person says one short line to the phone camera, before your demo.",
+    fields: [
+      { ...LINE, placeholder: "Stop guessing why your pipeline is empty", required: true, maxWords: 8 },
+      { ...PERSON, label: "Who says it", placeholder: "A Chinese man in his 30s in a white shirt" },
+    ],
+    photos: [],
+    warnings: ["Keep it to 8 words, so it fits in 4 seconds."],
+    structure: [
+      "Opening line: the length, vertical 9:16, a phone camera at arm's length, at home or in an office",
+      "Who: one person facing the lens, chest-up",
+      "Beat: they react with surprise or certainty, then say the line once, clearly",
+      "Ending: they hold the look for a moment after the line",
+    ],
+    guidance: ["They say the line exactly as given, once.", "Natural light and a real room, no studio polish."],
+    avoid: ["A second line", "Other people in frame", "Text, captions or logos"],
+    hidden: true,
+  },
+  {
+    id: "street-interview",
+    title: "Street interview",
+    blurb: "Someone stops a stranger on the street and asks one question.",
+    fields: [
+      { key: "question", label: "The question", placeholder: "How much of your pay do you save?", required: true },
+      { key: "answer", label: "The answer", placeholder: "Whatever's left. So, nothing" },
+      { key: "scene", label: "Where", placeholder: "Outside Raffles Place MRT at lunch" },
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, unedited handheld phone footage",
+      "Setting: a busy Singapore street by day",
+      "The interviewer holds a microphone out to a passer-by",
+      "Beats in order: the question, a short pause, the answer, a laugh or a nod",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: [
+      "Handheld and a little rough, like a real vox pop.",
+      "The passer-by is the main face; the interviewer can be half in frame.",
+      "Keep the faces clear of people walking past.",
+    ],
+    avoid: ["Crowds walking through the faces", "Logos on the microphone", "Long spoken lines"],
+    leoOnly: true,
+    rule: SKIT_RULE,
+  },
+  {
+    id: "three-levels",
+    title: "Three levels",
+    blurb: "Three people on a couch pass a mic, each with a sharper take.",
+    fields: [
+      { key: "scene", label: "The topic", placeholder: "How to save on insurance", required: true },
+      { key: "line", label: "The expert's line", placeholder: "Review your cover every year" },
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a living room couch, one camera",
+      "Three people side by side on the couch, a handheld mic passed from one to the next",
+      "Beats in order: a beginner's take, an intermediate take, then the expert's line last",
+      "Each spoken line inside the beat where it is said, each sharper than the one before",
+    ],
+    guidance: [
+      "The same couch, room and light for all three.",
+      "Pass the mic between the beats, never while someone speaks.",
+      "Each take is one short line on the topic.",
+    ],
+    avoid: ["Talking over each other", "Logos on the mic", "Long spoken lines"],
+    leoOnly: true,
+    rule: "Each person speaks only their own line, in order from beginner to expert, and the speakers look clearly different.",
+  },
+  {
+    id: "two-host-podcast",
+    title: "Podcast",
+    blurb: "Two hosts at mics, one asks and one answers.",
+    fields: [
+      { key: "question", label: "The host's question", placeholder: "Do you really need a hospital plan in your 20s?", required: true },
+      { key: "answer", label: "The guest's answer", placeholder: "Yes, before you ever need it" },
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a small podcast studio",
+      "Two hosts, each at a microphone on a boom arm, warm light",
+      "Beats in order: the host asks the question, the guest answers",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: [
+      "Both hosts stay in frame; a slow push towards whoever speaks.",
+      "Headphones on, a mug on the desk, a real room.",
+    ],
+    avoid: ["Logos on the mics or the wall", "Long spoken lines", "A third person"],
+    leoOnly: true,
+    rule: SKIT_RULE,
+  },
+];
 
 export const TEMPLATES: VideoTemplate[] = [
   {
@@ -263,11 +450,15 @@ export const TEMPLATES: VideoTemplate[] = [
     ],
     avoid: ["The camera operator's own face in frame", "A third hand", "A big jump in place within the take"],
   },
+  ...PHASE3_TEMPLATES,
 ];
 
 export const templateById = (id: unknown) => TEMPLATES.find((t) => t.id === id);
 
-const NAMES: Record<FieldKey, string> = { product: "Product", person: "Person", scene: "Scene", line: "What they say" };
+/** The editor's gallery: never a hidden template, and the Leo-only ones for Leo alone. */
+export const editorTemplates = (leo: boolean) => TEMPLATES.filter((t) => !t.hidden && (!t.leoOnly || leo));
+
+const NAMES: Record<FieldKey, string> = { product: "Product", person: "Person", scene: "Scene", line: "What they say", question: "Question", answer: "Answer" };
 
 /** The system prompt for the prompt writer: this template's structure, the clip's length and the studio's rules. */
 export function templateSystem(t: VideoTemplate, seconds: number, photo: PhotoRole | null): string {
@@ -292,7 +483,10 @@ export function templateSystem(t: VideoTemplate, seconds: number, photo: PhotoRo
         ? "@image1 is the product. Call it only by this name. A lock for it is added after your prompt, so describe how it looks only as far as the details say."
         : "There is no photo: describe each person and the product fully, once.",
     "People: set in Singapore and, unless the details say otherwise, Singaporean or other Asian (Chinese, Malay, Indian or Eurasian), each clearly different from the others.",
-    "Spoken lines: few, each under 8 words, first person, plain English. Keep claims modest: never promise returns or results, never say guaranteed or risk-free, never name an insurer.",
+    t.silent
+      ? "Nobody speaks. Ambient room or street sound only."
+      : "Spoken lines: few, each under 8 words, first person, plain English. Keep claims modest: never promise returns or results, never say guaranteed or risk-free, never name an insurer.",
+    ...(t.rule ? [t.rule] : []),
     "No on-screen text, captions, logos or watermarks; text is added later in the editor.",
     "Write it in English as plain prompt text in short headed blocks, under 2,500 characters. Return only the JSON object.",
   ].join("\n");

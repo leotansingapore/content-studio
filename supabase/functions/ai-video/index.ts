@@ -15,16 +15,19 @@
 // A video or clip that Higgsfield refused, failed or blocked gives both uses back: at once when the submit
 // fails, or on the status check that first sees the failure, by the signed refund ticket handed back at the
 // start (logic.ts refundFailed: once per video, only on the day the uses were taken).
+// Phase 3's hidden and Leo-only templates answer 403 not_enabled for anyone
+// not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly); every other request is as before.
 //
-// Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY. Deploy WITH JWT verification:
+// Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY, NORTH_STAR_USERS. Deploy WITH JWT verification:
 //   supabase functions deploy ai-video --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { HF_BASE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic.ts";
+import { isAllowed } from "../market/logic.ts";
 import {
-  PICTURE_MODEL, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, avatarCredits, clipCredits, explainerCredits, parseVideoRequest,
+  PICTURE_MODEL, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, avatarCredits, clipCredits, explainerCredits, northStarOnly, parseVideoRequest,
   pictureBody, presenterBody, readMedia, refundFailed, refundTicket, seedanceRequest, speakBody, validateScript, type Refundable,
 } from "./logic.ts";
 import { PROMPT_FORMAT, clipPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
@@ -79,6 +82,9 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to make videos." }, 401);
+    if (northStarOnly(r) && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+      return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+    }
 
     if (r.mode === "script") {
       const openai = Deno.env.get("OPENAI_API_KEY");

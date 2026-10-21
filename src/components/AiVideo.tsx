@@ -13,12 +13,13 @@ import { moveTake } from "@/lib/videoEdit";
 import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
-  CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
+  CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
   aiJob, avatarCredits, clipCredits, creditsUsd, examplesUrl, explainerCredits, makeAvatar, makeExplainer, makePresenter,
   makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, sceneReady, sliceVoiceover, writeExplainer,
   type AiJob, type ClipQuality, type ClipSeconds, type FieldKey, type PhotoRole, type Scene, type VideoTemplate, type Voiceover,
 } from "@/lib/aiVideo";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
+import { editorTemplates } from "../../supabase/functions/ai-video/templates.ts";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 const secs = (t: number) => `${Math.round(t)} seconds`;
@@ -138,7 +139,6 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
 function Templates({ busy, left }: { busy: boolean; left: Left }) {
   // ?template=<id> opens its form (push, so Back goes back to the gallery)
   const [templateId, openTemplate, closeTemplate] = useUrlItem("template");
-  const pick: VideoTemplate | null = TEMPLATES.find((t) => t.id === templateId) ?? null;
   // kept across templates, so a product typed once carries over
   const [fields, setFields] = useState<Partial<Record<FieldKey, string>>>({});
   const [photos, setPhotos] = useState<Partial<Record<PhotoRole, { file: File; url: string }>>>({});
@@ -147,12 +147,15 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
   const leo = useLeoOnly();
+  // format pages make the hidden ones; the skits show for Leo only (the server refuses both for anyone else)
+  const shown = editorTemplates(leo);
+  const pick: VideoTemplate | null = shown.find((t) => t.id === templateId) ?? null;
 
   if (!pick) {
     return (
       <div className="space-y-2">
         <ul className="grid gap-2 sm:grid-cols-2">
-          {TEMPLATES.map((t) => (
+          {shown.map((t) => (
             <li key={t.id}>
               <button type="button" onClick={() => openTemplate(t.id)} disabled={busy}
                 className="flex h-full min-h-11 w-full flex-col items-start gap-0.5 rounded-xl border border-border/70 p-3 text-left hover:border-primary/40 disabled:opacity-60">

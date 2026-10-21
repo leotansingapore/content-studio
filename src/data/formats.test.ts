@@ -28,7 +28,7 @@ const EXPECTED: Record<string, Price | "pick" | null> = {
   "text-over-clip": sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 8, quality: "480p" })),
   explainer,
   ...Object.fromEntries(["clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"].map((l) => [`look-${l}`, explainer])),
-  ...Object.fromEntries(TEMPLATES.map((t) => [`template-${t.id}`, from(priceOf("ai-clip", { seconds: 4, quality: "480p" }))])),
+  ...Object.fromEntries(TEMPLATES.filter((t) => !t.hidden).map((t) => [`template-${t.id}`, from(priceOf("ai-clip", { seconds: 4, quality: "480p" }))])),
   "talking-head": sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice"), priceOf("ai-image")),
   "green-screen": from(priceOf("remix-make")),
   "hook-demo": from(priceOf("remix-make")),
@@ -94,7 +94,7 @@ describe("the format registry", () => {
     expect(templateFormats([TEMPLATES[0], hidden]).map((f) => f.slug)).toEqual([`template-${TEMPLATES[0].id}`]);
     for (const t of TEMPLATES) {
       const card = FORMATS.find((f) => f.slug === `template-${t.id}`);
-      if ((t as { hidden?: boolean }).hidden) expect(card, t.id).toBeUndefined();
+      if (t.hidden) expect(card, t.id).toBeUndefined();
       else expect(card, t.id).toMatchObject({ name: t.title, blurb: t.blurb, cap: "ai-clip", group: 2 });
     }
     expect(formatHref(FORMATS.find((f) => f.slug === `template-${TEMPLATES[0].id}`)!)).toBe(`/edit?panel=ai&kind=template&template=${TEMPLATES[0].id}`);

@@ -73,9 +73,8 @@ const TALKS: { slug: string; talk: "news" | "stage" | "spokesperson"; name: stri
 
 /** One card per editor template, leaving out the ones the editor hides. */
 export function templateFormats(list: VideoTemplate[]): FormatDef[] {
-  // shortcut: the flag arrives with writers in W1; read it typed once templates.ts declares hidden.
   return list
-    .filter((t) => !(t as { hidden?: boolean }).hidden)
+    .filter((t) => !t.hidden)
     .map((t) => ({
       slug: `template-${t.id}`,
       name: t.title,

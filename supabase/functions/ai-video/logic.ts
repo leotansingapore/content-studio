@@ -125,6 +125,7 @@ export function parseVideoRequest(raw: unknown): Parsed {
       for (const f of t.fields) {
         const v = oneLineText(given[f.key], MAX_FIELD + 1);
         if (v.length > MAX_FIELD) return no(`Keep "${f.label}" under ${MAX_FIELD} characters.`);
+        if (f.maxWords && words(v) > f.maxWords) return no(`Keep "${f.label}" to ${f.maxWords} words.`);
         if (v) fields[f.key] = v;
         else if (f.required) return no(`Fill in "${f.label}" first.`);
       }
@@ -148,6 +149,16 @@ export function parseVideoRequest(raw: unknown): Parsed {
     default:
       return no("That isn't something this can make.");
   }
+}
+
+/**
+ * Phase 3's parts only NORTH_STAR_USERS may ask for (index.ts answers 403 not_enabled before any count): a hidden or
+ * Leo-only template. Everything else is open as before.
+ */
+export function northStarOnly(r: VideoRequest): boolean {
+  if (r.mode !== "template") return false;
+  const t = templateById(r.template);
+  return Boolean(t?.hidden || t?.leoOnly);
 }
 
 // ---------- a failed video gives its use back ----------
