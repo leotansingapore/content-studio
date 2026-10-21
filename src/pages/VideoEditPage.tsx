@@ -106,6 +106,7 @@ import {
   wallSettings,
   type Overlay,
   type OverlayKind,
+  OVERLAY_LABELS,
   listCuts,
   platformFit,
   trimToLength,
@@ -203,6 +204,8 @@ const START_PANELS = ["join", "ai"] as const;
 const LEO_PANELS = [...START_PANELS, "wall"] as const;
 type StartPanel = (typeof LEO_PANELS)[number];
 const WALL_ERROR = "That video couldn't be opened. Try an MP4 or MOV.";
+// stickers with no words; every other kind gets a text field in the sticker editor
+const SHAPES: OverlayKind[] = ["arrow", "circle", "underline"];
 // An upload is captioned in one use only while it is one part (captionPlan: up to 1.2 x PART_SECONDS), so its price is a ceiling.
 const UPLOAD_CAPTIONS: Price = { ...(priceOf("video-transcribe", { minutes: (PART_SECONDS * 1.2) / 60 }) as Price), kind: "upTo" };
 
@@ -1666,7 +1669,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
   // the picked sticker's settings: in the Stickers tab, and under On top in a words-over-video project's short panel
   const stickerEditor = (sel: Overlay) => (
     <div className="space-y-3 rounded-lg border border-primary/25 p-3">
-      {sel.kind === "text" && (
+      {sel.kind !== "block" && !SHAPES.includes(sel.kind) && (
         <input value={sel.text} maxLength={60} onChange={(e) => editOverlay(sel.id, { text: e.target.value })} aria-label="Sticker text"
           className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
       )}
@@ -2699,7 +2702,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                       <button type="button" onClick={() => { setSelected(o.id); seekOut(o.from + 0.2); }} aria-pressed={o.id === selected}
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${o.id === selected ? "bg-primary/5" : ""}`}>
                         <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ backgroundColor: o.color }} />
-                        <span className="min-w-0 flex-1 truncate font-medium">{o.kind === "text" ? o.text || "Text" : o.kind === "block" ? o.text.trim().split("\n")[0].slice(0, 40) || "Words" : o.kind[0].toUpperCase() + o.kind.slice(1)}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{o.text.trim().split("\n")[0].slice(0, 40) || OVERLAY_LABELS[o.kind]}</span>
                         <span className="font-mono text-[11px] text-muted-foreground">{fmtTime(o.from)}-{fmtTime(o.to)}</span>
                       </button>
                     </li>

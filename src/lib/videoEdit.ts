@@ -999,6 +999,8 @@ export function sanitizeFixes(raw: unknown): CaptionFix[] {
 
 /** block = several lines of words, wrapped and centred, for the whole video (words over a video). */
 export type OverlayKind = "text" | "arrow" | "circle" | "underline" | "block";
+/** The Stickers list's name for a sticker with no words of its own, so a new kind needs no change to the editor page. */
+export const OVERLAY_LABELS: Record<OverlayKind, string> = { text: "Text", arrow: "Arrow", circle: "Circle", underline: "Underline", block: "Words" };
 export type BlockBox = "none" | "white" | "bar";
 
 /** A sticker: centre x/y as shares of the frame, size 0.5-2.5, shown from/to on the edited timeline. */

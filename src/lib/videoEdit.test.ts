@@ -40,6 +40,7 @@ import {
   distanceToCut,
   newOverlay,
   sanitizeOverlays,
+  OVERLAY_LABELS,
   MAX_OVERLAYS,
   overlaysAt,
   overlayHit,
@@ -410,6 +411,13 @@ describe("stickers", () => {
     expect(list).toEqual([{ id: "a", kind: "text", text: "Hi", x: 1, y: 0, size: 2.5, turn: 3, color: "#FFD92B", from: 1, to: 1.3 }]);
     expect(sanitizeOverlays(Array.from({ length: 30 }, (_, i) => ({ id: `o${i}`, kind: "circle" })))).toHaveLength(MAX_OVERLAYS);
     expect(sanitizeOverlays("nope")).toEqual([]);
+  });
+
+  it("names every sticker kind storage keeps, so the Stickers list has a name for each", () => {
+    for (const [kind, label] of Object.entries(OVERLAY_LABELS)) {
+      expect(label).toMatch(/^[A-Z][a-z]+$/);
+      expect(sanitizeOverlays([{ id: "a", kind }]).map((o) => o.kind)).toEqual([kind]);
+    }
   });
 
   it("finds what is showing and what is under a tap", async () => {
