@@ -20,7 +20,7 @@ import {
   addFromScan, addPlan, discardScan, fetchReviewPictures, hostOf, loadWaiting, onProducts, PICTURE_FAILED, pictureState, reviewPictureId,
   reviewRows, scanFailedLine, scanningNow, setTick, startScan, type ReviewRow, type Waiting,
 } from "@/lib/productScan";
-import { kindOf, loadProducts, MAX_PRODUCTS, type Product, productBrief, PRODUCTS_CHANGED, type ProductKind, saveProducts } from "@/lib/products";
+import { kindOf, loadProducts, MAX_PRODUCTS, type Product, productBrief, productLabel, PRODUCTS_CHANGED, type ProductKind, saveProducts } from "@/lib/products";
 import { useGoneItem, useUrlItem, withParam } from "@/lib/urlState";
 
 const STEPS = ["Opening the site", "Finding product and service pages", "Reading up to 5 pages", "Listing what you sell", "Checking each one"];
@@ -192,7 +192,7 @@ function Item({ userId, p, onEdit }: { userId: string; p: Product; onEdit: () =>
         <div className="flex flex-wrap gap-1.5 pt-1">
           <Button size="sm" variant="ghost" className={`h-9 px-2.5 ${TOUCH}`} onClick={onEdit}>Edit</Button>
           <Button size="sm" variant="outline" className={`h-9 ${TOUCH}`} asChild>
-            <Link to={links.generate({ ctx: productBrief(p) })}>Write a post about it</Link>
+            <Link to={links.generate({ pillar: "topic", detail: productLabel(p), ctx: productBrief(p) })}>Write a post about it</Link>
           </Button>
           <Button size="sm" variant="outline" className={`h-9 ${TOUCH}`} asChild>
             <Link to={links.edit({ panel: ["ai"], kind: "template", template: VIDEO_TEMPLATE, product: p.id })}>Use in a video</Link>
