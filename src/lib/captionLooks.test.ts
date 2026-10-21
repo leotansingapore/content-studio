@@ -180,6 +180,18 @@ describe("key words drawn", () => {
     expect(at).toBeGreaterThan(-1);
     expect((log as unknown[][])[at + 2]?.[0]).toBe("fillRect");
   });
+  it("in all six styles and the four looks: bigger in word styles, underlined in line styles", () => {
+    const all: EditSettings[] = [...STYLE_IDS.map((id) => lit(id)), ...CAPTION_LOOKS.map((l) => ({ ...withCaptionLook(lit("bold"), l), keyWordsOn: true }))];
+    for (const s of all) {
+      const log = draw({ ...s, wordsPerCaption: 4 }, 1.0, true) as unknown[][];
+      const at = log.findIndex((x) => x[0] === "fillText" && String(x[1]).toLowerCase() === "$500");
+      expect(at, s.style).toBeGreaterThan(-1);
+      const font = String(log.slice(0, at).reverse().find((x) => x[0] === "font")?.[1]);
+      const px = Math.round(({ bold: 92, cutout: 84, minimal: 46, editorial: 54, native: 54, documentary: 42 } as Record<string, number>)[s.style] * s.size);
+      if (s.style === "bold" || s.style === "cutout") expect(font, s.style).toContain(` ${Math.round(px * 1.2)}px `);
+      else expect(log.slice(at, at + 3).some((x) => x[0] === "fillRect"), s.style).toBe(true);
+    }
+  });
   it("not at all with key words off, though picks are kept", () => {
     const off = { ...lit("bold", true), keyWordsOn: false };
     expect(JSON.stringify(draw(off, 1.3, true))).toBe(JSON.stringify(draw({ ...defaultSettings("bold"), progressBar: false, punchIn: false }, 1.3, true)));
