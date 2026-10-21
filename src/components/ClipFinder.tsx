@@ -1,11 +1,14 @@
 // Find clips in the video editor: one long video -> standalone reels, each its
 // own project on the same file. The LLM proposes candidates and Jev scores each
-// out of 100 (video-assist "clips"); the best come first. The list is kept per
-// video for this session, so it is still there after opening a clip and coming back.
-// Export all runs every clip's export in turn (videoMedia's export queue), each
-// with that clip's own saved settings, and keeps going on other pages.
+// out of 100 (video-assist "clips"); the best come first. The list and the running
+// find live in clipAsk.ts for this session, so they are still there after opening a
+// clip or another page and coming back, and a find the clips panel asked for lands
+// here at #clips. Export all runs every clip's export in turn (videoMedia's export
+// queue), each with that clip's own saved settings, and keeps going on other pages.
+// Leo also sees each score's parts and a flag on any clip whose words trip a MAS rule.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Download, Scissors } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
@@ -17,22 +20,16 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { loadBrand } from "@/lib/carousel";
+import { findClipsFor, findFailed, findRunning, foundFor, onClipFind, runClipAsk, seenClips, startFind, takeAskedLanding, type ClipLength } from "@/lib/clipAsk";
+import { scanCompliance } from "@/lib/compliance";
 import { loadEffects, paintEffects } from "@/lib/faceVision";
-import { clipSettings, fmtTime, sentencesOf, type Clip, type EditSettings, type Word } from "@/lib/videoEdit";
+import { clipText } from "@/lib/youtubeClips";
+import { fmtTime, sentencesOf, type EditSettings, type Word } from "@/lib/videoEdit";
 import { exportAll, exportJob, exportQueue, getFile, loadBrandArt, onExportJob, startExport, stopExportQueue, type BrandArt, type Frame } from "@/lib/videoMedia";
-import { fileKey, findClips, loadProjects, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, loadProjects, type VideoProject } from "@/lib/videoProjects";
 import { clipPasses } from "../../supabase/functions/video-assist/passes.ts";
 
-/** A clip's project keeps the words this close to it, not the whole recording's (a 2-hour podcast's run to 800 KB). */
-const WORDS_MARGIN = 60;
-
-export interface FoundClip {
-  clip: Clip;
-  project: VideoProject;
-}
-
-// ponytail: kept in memory for the session only; the clip projects themselves are saved like any project
-const found = new Map<string, FoundClip[]>();
+export type { FoundClip } from "@/lib/clipAsk";
 
 const picture = (key: string) =>
   getFile(key).then((b) => new Promise<HTMLImageElement | null>((done) => {
@@ -66,25 +63,50 @@ async function exportClip(userId: string, saved: VideoProject, art: BrandArt | n
   await startExport(p.name, file, p.words, s, s.subLang ? p.subs?.[s.subLang] : undefined, art, voice, broll, music, fx);
 }
 
-export default function ClipFinder({ userId, project, words, settings, duration, onClips, onOpen }: {
+/** The clips' projects are saved by the find itself (clipAsk.ts); the page re-reads them on onClipFind. */
+export default function ClipFinder({ userId, project, words, settings, duration, onOpen }: {
   userId: string;
   project: VideoProject;
   words: Word[];
   settings: EditSettings;
   duration: number;
-  onClips: (ps: VideoProject[]) => void;
   onOpen: (id: string) => void;
 }) {
   const { toast } = useToast();
-  const [list, setList] = useState<FoundClip[]>(() => found.get(project.id) ?? []);
-  const [busy, setBusy] = useState(false);
+  const leo = useLeoOnly();
+  const navigate = useNavigate();
+  const [list, setList] = useState(() => foundFor(project.id));
+  const [busy, setBusy] = useState(() => !!findRunning(project.id));
+  const [fail, setFail] = useState(() => findFailed(project.id));
   const [about, setAbout] = useState("");
   const left = useUsesLeft(busy);
   const usesLeft = left("video-clips");
   // a long recording is read in passes, each one use
   const passes = clipPasses(duration);
   const short = usesLeft !== null && usesLeft < passes;
-  const why = reasonText({ left: usesLeft, uses: passes, leo: useLeoOnly() });
+  const why = reasonText({ left: usesLeft, uses: passes, leo });
+  // the find runs outside React (clipAsk.ts): re-read it as it changes; one the clips panel asked for lands at #clips
+  useEffect(() => {
+    const read = () => {
+      setList(foundFor(project.id));
+      setBusy(!!findRunning(project.id));
+      setFail(findFailed(project.id));
+      if (takeAskedLanding(project.id)) {
+        seenClips();
+        navigate({ search: window.location.search, hash: "clips" }, { replace: true });
+      }
+    };
+    read();
+    return onClipFind(read);
+  }, [project.id, navigate]);
+  // the clips panel's ask for a recording whose words came another way (Caption it again) starts its find now
+  const heard = words.length > 0;
+  useEffect(() => {
+    if (heard) runClipAsk(project.id, words);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, heard]);
+  // Leo's MAS flags: each clip's own words through the compliance rules, which warn and never block here
+  const sentences = useMemo(() => (leo ? sentencesOf(words) : []), [leo, words]);
   // the export store lives outside React: re-read it whenever it changes
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -102,31 +124,12 @@ export default function ClipFinder({ userId, project, words, settings, duration,
       .catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
-  const find = async () => {
-    setBusy(true);
-    try {
-      const clips = await findClips(sentencesOf(words), duration, words, about);
-      const now = Date.now().toString(36);
-      const made = clips.map((clip, i): FoundClip => ({
-        clip,
-        project: {
-          ...project,
-          id: `v${now}${i}`,
-          name: `${project.name} - ${clip.title}`,
-          fileId: fileKey(project),
-          createdAt: new Date().toISOString(),
-          words: words.filter((w) => w.e > clip.start - WORDS_MARGIN && w.s < clip.end + WORDS_MARGIN),
-          settings: clipSettings(settings, clip, duration),
-        },
-      }));
-      onClips(made.map((m) => m.project));
-      found.set(project.id, made);
-      setList(made);
-    } catch (e) {
-      toast({ title: "Couldn't find clips", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      setBusy(false);
-    }
+  // Leo sees a failure on the list with its retry; everyone else gets today's toast
+  const find = (topic = about, length: ClipLength = "auto") => {
+    seenClips();
+    void startFind(project.id, () => findClipsFor(userId, project, words, settings, topic, length), { about: topic, length }).catch((e) => {
+      if (!leo) toast({ title: "Couldn't find clips", description: (e as Error).message, variant: "destructive" });
+    });
   };
 
   if (duration < 45 || !words.length) return null;
@@ -134,8 +137,8 @@ export default function ClipFinder({ userId, project, words, settings, duration,
   // a clip was asked for and Jev found none about it
   const offTopic = list.some((f) => f.clip.onTopic === false) && !list.some((f) => f.clip.onTopic);
   return (
-    <section aria-label="Clips" className="space-y-2">
-      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={(e) => { e.preventDefault(); if (!busy && !short) void find(); }}>
+    <section id="clips" aria-label="Clips" className="scroll-mt-4 space-y-2">
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={(e) => { e.preventDefault(); if (!busy && !short) find(); }}>
         <Input value={about} onChange={(e) => setAbout(e.target.value)} maxLength={200} disabled={busy}
           placeholder="What should the clip be about? (optional)" aria-label="What should the clip be about?" className="h-11 sm:h-9 sm:max-w-sm" />
         <Button type="submit" variant="outline" size="sm" disabled={busy || short} className={`h-11 shrink-0 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
@@ -145,6 +148,16 @@ export default function ClipFinder({ userId, project, words, settings, duration,
         </Button>
       </form>
       {why && <p className="text-xs text-destructive">{why}</p>}
+      {leo && fail && !busy && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+          <span className="mr-auto">{fail.error}</span>
+          {fail.code === "422" && fail.length !== "auto" ? (
+            <Button size="sm" variant="outline" className="h-11 sm:h-8" onClick={() => find(fail.about, "auto")}>Try again with Auto length</Button>
+          ) : (
+            <Button size="sm" variant="outline" className="h-11 sm:h-8" onClick={() => find(fail.about, fail.length)}>Try again</Button>
+          )}
+        </div>
+      )}
       {list.length > 0 && (
         <div className="rounded-xl border border-success/40 bg-success/5 p-3">
           <p className="mb-2 flex items-center gap-1 text-sm font-semibold">
@@ -163,7 +176,13 @@ export default function ClipFinder({ userId, project, words, settings, duration,
                     {clip.title}
                     {clip.onTopic && <span className="ml-1.5 whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 align-middle text-[11px] font-medium text-primary">On topic</span>}
                   </p>
+                  {leo && clip.parts && (
+                    <p className="text-[11px] tabular-nums text-muted-foreground">
+                      {[`Stands alone ${clip.parts.alone}`, `Opening ${clip.parts.opening}`, ...(typeof clip.parts.topic === "number" ? [`On topic ${clip.parts.topic}`] : [])].join(" | ")}
+                    </p>
+                  )}
                   {clip.reason && <p className="text-xs text-muted-foreground">{clip.reason}</p>}
+                  {leo && <ClipFlags text={clipText(sentences, clip)} />}
                   <p className="font-mono text-[11px] text-muted-foreground">
                     {fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}
                     {clip.skip && <span className="font-sans">, skips {Math.round(clip.skip.end - clip.skip.start)} s in the middle</span>}
@@ -204,5 +223,21 @@ export default function ClipFinder({ userId, project, words, settings, duration,
         </div>
       )}
     </section>
+  );
+}
+
+/** A warn chip per compliance rule a clip's words trip, with the rule's own message; they never block an export. */
+function ClipFlags({ text }: { text: string }) {
+  const flags = scanCompliance(text);
+  if (!flags.length) return null;
+  return (
+    <p className="flex flex-wrap gap-1.5 pt-0.5">
+      {flags.map((f) => (
+        <span key={f.id} className="inline-flex items-center gap-1 rounded-md border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-900 dark:text-amber-200">
+          Check "{f.match}"
+          <InfoTip label={`About "${f.match}"`}>{f.message}</InfoTip>
+        </span>
+      ))}
+    </p>
   );
 }

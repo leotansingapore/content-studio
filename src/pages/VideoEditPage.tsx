@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { EDIT_TABS, links, type EditTab } from "@/lib/links";
-import { useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useScrollToHash, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
@@ -194,6 +194,7 @@ import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestNa
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
 import { onCaptionJob } from "@/lib/captionJob";
+import { onClipFind } from "@/lib/clipAsk";
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
@@ -236,6 +237,8 @@ export default function VideoEditPage() {
     const off = onCaptionJob((j) => { if (j?.state === "done") void supabase.auth.getUser().then(({ data }) => setProjects(loadProjects(data.user?.id ?? null))); });
     return () => { off(); };
   }, []);
+  // a find saves its clips as projects (clipAsk.ts, outside React), whichever screen is open
+  useEffect(() => (userId ? onClipFind(() => setProjects(loadProjects(userId))) : undefined), [userId]);
 
   const upload = async (file: File, extra?: JoinExtra) => {
     // A file picked before the sign-in check finished must not be dropped.
@@ -353,7 +356,6 @@ export default function VideoEditPage() {
           leo={leo}
           project={project}
           onSave={(p) => setProjects(saveProject(userId, p))}
-          onClips={(ps) => { let list = projects; for (const p of [...ps].reverse()) list = saveProject(userId, p); setProjects(list); }}
           onOpen={(id) => setParams({ p: id })}
           onBack={() => setParams({}, { replace: true })}
         />
@@ -517,12 +519,11 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
   );
 }
 
-function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
+function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   userId: string;
   leo: boolean;
   project: VideoProject;
   onSave: (p: VideoProject) => void;
-  onClips: (ps: VideoProject[]) => void;
   onOpen: (id: string) => void;
   onBack: () => void;
 }) {
@@ -780,6 +781,8 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
   }, [settings, words, subs, caption, cutaways, publish, thumb]);
 
   const duration = project.duration;
+  // /edit?p=<id>#clips lands on the clip list once it can show (ClipFinder: 45 s or more, with words)
+  useScrollToHash(!!file && words.length > 0 && duration >= 45);
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
   keptRef.current = plan.segs.map((g) => ({ from: g.start, dur: g.end - g.start }));
   const speed = speedOf(settings);
@@ -1764,7 +1767,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
       {showSizes && settings.exportAs !== "audio" && settings.exportAs !== "small" && (
         <ExportSizes projectId={project.id} name={project.name} settings={settings} seconds={total} srcW={video.current?.videoWidth || 1080} srcH={video.current?.videoHeight || 1920} onExport={(list) => void exportSizes(list)} />
       )}
-      <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
+      <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onOpen={onOpen} />
       {!words.length && isLong(duration, project.size) && <LongCaptions userId={userId} project={project} file={file} onWords={setWords} />}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
