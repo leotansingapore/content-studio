@@ -9,7 +9,7 @@ import { PEOPLE_RULE, jobToken, openJobToken } from "../ai-image/logic.ts";
 import { MOTION_CREDITS } from "../ai-image/broll.ts";
 import { meta, stripBlocks } from "../brand-dna/logic.ts";
 import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
-import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { GLOBAL_COUNTER_USER, claimOnce, refundUsage, type UsageClient } from "../_shared/usageCaps.ts";
 import { oneLineText, parseObject } from "../clone-reel/logic.ts";
 import { templateById, type FieldKey, type PhotoRole } from "./templates.ts";
@@ -82,7 +82,8 @@ export type VideoRequest =
   | { mode: "move"; tokens: string[]; look?: LookId }
   | { mode: "read"; url: string }
   | { mode: "consent-code"; kind: "face" }
-  | { mode: "consent"; kind: "face"; wav: string; code: string; ticket: string; photo: string };
+  | { mode: "consent"; kind: "face"; wav: string; code: string; ticket: string; photo: string }
+  | { mode: "presenters"; prefs: PresenterPrefs; extra?: string };
 
 /** formats-presenter's script shapes (You speaking's Format row); Plain is the script as typed, so it has none. */
 export const TALKS = ["news", "stage", "spokesperson"] as const;
@@ -93,7 +94,7 @@ export type SetTalk = (typeof SET_TALKS)[number];
 export const MAX_OFFER = 120;
 export const MAX_SOURCE = 2000;
 /** Phase 3's and 4's own modes: always NORTH_STAR_USERS only, refused before their body is read (index.ts). */
-export const NORTH_STAR_MODES = ["talk-script", "set", "move", "read", "consent-code", "consent"];
+export const NORTH_STAR_MODES = ["talk-script", "set", "move", "read", "consent-code", "consent", "presenters"];
 
 /** A narrated video's length, and what its script may hold: today's 110 words and 6 scenes for 30 s. */
 export const NARRATED_SECONDS = [30, 60] as const;
@@ -239,6 +240,21 @@ export function parseVideoRequest(raw: unknown): Parsed {
       if (!isB64(b.photo, MAX_FACE_PHOTO, ["/9j/"])) return no("The photo didn't come through. Pick it again.");
       return { ok: true, request: { mode: "consent", kind: "face", wav: b.wav, code: b.code, ticket: b.ticket, photo: b.photo } };
     }
+    case "presenters": {
+      // chips are enums, never free text; only `extra` is typed, and Jev reads it in index.ts before any count
+      const given = b.prefs ?? {};
+      if (typeof given !== "object" || Array.isArray(given)) return no(PICK_CHIPS);
+      const prefs: PresenterPrefs = {};
+      for (const k of Object.keys(PRESENTER_PREFS) as (keyof PresenterPrefs)[]) {
+        const v = (given as Record<string, unknown>)[k];
+        if (v == null) continue;
+        if (!(PRESENTER_PREFS[k] as readonly unknown[]).includes(v)) return no(PICK_CHIPS);
+        (prefs as Record<string, unknown>)[k] = v;
+      }
+      const extra = oneLineText(b.extra, MAX_EXTRA + 1);
+      if (extra.length > MAX_EXTRA) return no(`Keep "Anything else" under ${MAX_EXTRA} characters.`);
+      return { ok: true, request: { mode: "presenters", prefs, ...(extra ? { extra } : {}) } };
+    }
     default:
       return no("That isn't something this can make.");
   }
@@ -296,6 +312,101 @@ export const faceToken = (photoHash: string, at: string) => `likeness:face:${pho
 export async function sha256Hex(b64: string): Promise<string> {
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ---------- saved presenters (people-presenters) ----------
+
+/** The Make a presenter sheet's chips, as the only values the server takes; a chip left out lets the three people differ. */
+export const PRESENTER_PREFS = {
+  gender: ["woman", "man"],
+  age: ["20s", "30s", "40s", "50s"],
+  background: ["chinese", "malay", "indian", "eurasian"],
+  dress: ["office", "smart-casual", "casual"],
+} as const;
+export type PresenterPrefs = { [K in keyof typeof PRESENTER_PREFS]?: (typeof PRESENTER_PREFS)[K][number] };
+/** "Anything else", the one typed part of a saved presenter's look. */
+export const MAX_EXTRA = 120;
+const PICK_CHIPS = "Pick the presenter's look from the chips.";
+
+const BACKGROUND_WORD = { chinese: "A Chinese", malay: "A Malay", indian: "An Indian", eurasian: "A Eurasian" } as const;
+type Gender = (typeof PRESENTER_PREFS.gender)[number];
+type Dress = (typeof PRESENTER_PREFS.dress)[number];
+const HAIR: Record<Gender, string[]> = {
+  woman: ["shoulder-length black hair", "long dark hair tied back", "a short neat bob", "wavy hair past her shoulders"],
+  man: ["short neat hair", "short hair and a trimmed beard", "a side-parted crop", "wavy hair, clean-shaven"],
+};
+const HIJAB = ["a light grey hijab", "a dusty pink hijab"];
+const OUTFITS: Record<Dress, Record<Gender, string[]>> = {
+  office: {
+    woman: ["navy blazer over a white blouse", "charcoal blazer over a pale blue blouse", "black blazer over a fitted grey dress"],
+    man: ["navy suit, white shirt, no tie", "grey blazer over a light blue shirt", "dark suit and a plain tie"],
+  },
+  "smart-casual": {
+    woman: ["cream blouse", "maroon blouse and small gold earrings", "light knit top under an open blazer"],
+    man: ["light blue shirt with the top button open", "dark green polo shirt", "grey blazer over a white T-shirt"],
+  },
+  casual: {
+    woman: ["plain white T-shirt", "striped linen shirt", "soft pastel sweater"],
+    man: ["plain navy T-shirt", "olive overshirt over a white T-shirt", "relaxed linen shirt"],
+  },
+};
+
+const shuffled = <T>(xs: readonly T[], rng: () => number): T[] => xs.map((x) => [rng(), x] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+
+/**
+ * Three different invented Singaporeans for one make, in LOOKS' shape. A picked chip holds for all three; a chip left
+ * open gives three different backgrounds or ages, and each person gets their own hair and clothes. `extra` (already
+ * read by Jev) is added last and takes the place of the hair line, so it can't contradict it.
+ */
+export function presenterLooks(prefs: PresenterPrefs, extra?: string, rng: () => number = Math.random): string[] {
+  const n = 3;
+  const backgrounds = prefs.background ? Array<keyof typeof BACKGROUND_WORD>(n).fill(prefs.background) : shuffled(PRESENTER_PREFS.background, rng).slice(0, n);
+  const ages = prefs.age ? Array<string>(n).fill(prefs.age) : shuffled(PRESENTER_PREFS.age, rng).slice(0, n);
+  const genders: Gender[] = prefs.gender ? Array<Gender>(n).fill(prefs.gender) : shuffled(["woman", "man", rng() < 0.5 ? "woman" : "man"] as Gender[], rng);
+  const hair = { woman: shuffled(HAIR.woman, rng), man: shuffled(HAIR.man, rng) };
+  const hijabs = shuffled(HIJAB, rng);
+  const outfits = Object.fromEntries(PRESENTER_PREFS.dress.map((d) => [d, { woman: shuffled(OUTFITS[d].woman, rng), man: shuffled(OUTFITS[d].man, rng) }])) as typeof OUTFITS;
+  return backgrounds.map((bg, i) => {
+    const g = genders[i];
+    const age = ages[i] === "50s" ? "50s" : `${["early", "mid", "late"][Math.floor(rng() * 3)]} ${ages[i]}`;
+    const dress: Dress = prefs.dress ?? PRESENTER_PREFS.dress[Math.floor(rng() * PRESENTER_PREFS.dress.length)];
+    const ownHair = (bg === "malay" && g === "woman" && rng() < 0.4 && hijabs.shift()) || hair[g].shift()!;
+    const outfit = outfits[dress][g].shift()!;
+    const who = `${BACKGROUND_WORD[bg]} Singaporean ${g} in ${g === "woman" ? "her" : "his"} ${age}`;
+    return extra ? `${who}, ${outfit}. ${extra}` : `${who}, ${ownHair}, ${outfit}`;
+  });
+}
+
+/** Proposed cuts (decision 15): Jev's yes at this or more refuses the look before anything is counted or paid. */
+export const REAL_PERSON_AT = 0.5;
+export const MINOR_AT = 0.5;
+export const LOOK_REFUSED = {
+  real_person: "Presenters can't look like a real person. Describe a look instead.",
+  minor: "Presenters are adults.",
+} as const;
+
+/** Jev's two questions on the typed part of a saved presenter's look, asked with the state `{ look: extra }`. */
+export const lookQuestions = (): Record<"realPerson" | "minor", JevQuestion> => ({
+  realPerson: {
+    type: "noul",
+    instructions: { question: "Does `look` name a real person (a celebrity, a politician, an influencer or someone the writer knows), or ask the presenter to look like one?" },
+    criteria: {
+      true: "A named or clearly identifiable real person, or 'looks like' / 'in the style of' a real person.",
+      false: "Only general traits: age, gender, background, hair, clothes, glasses, expression.",
+    },
+  },
+  minor: {
+    type: "noul",
+    instructions: { question: "Is the person `look` describes under 18?" },
+    criteria: { true: "A child, teen, student in school uniform, or an age under 18.", false: "An adult, or no age given." },
+  },
+});
+
+/** The refusal Jev's answers call for, or null to go ahead (no answer goes ahead: presenterBody asks for an invented adult). */
+export function readLookCheck(answers: Record<string, JevAnswer> | null): keyof typeof LOOK_REFUSED | null {
+  if ((noulOf(answers, "realPerson") ?? 0) >= REAL_PERSON_AT) return "real_person";
+  if ((noulOf(answers, "minor") ?? 0) >= MINOR_AT) return "minor";
+  return null;
 }
 
 // ---------- a failed video gives its use back ----------

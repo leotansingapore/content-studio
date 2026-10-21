@@ -5,6 +5,7 @@ import { priceOf } from "../_shared/prices";
 import { EXPLAINER_LOOK_IDS } from "../../../src/lib/links.ts";
 import {
   CODE_GONE, MAX_CONSENT_WAV, MAX_FACE_PHOTO, NORTH_STAR_MODES, consentTicket, faceToken, notHeard, sha256Hex,
+  LOOK_REFUSED, MAX_EXTRA, MAX_LOOK, PRESENTER_PREFS, lookQuestions, presenterLooks, readLookCheck,
   EXPLAINER_LOOKS, LOOK_IDS, MAX_SLICE, NO_POINT, READ_FAILED, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits,
   keepsWords, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser, northStarOnly, parseVideoRequest, pictureBody,
   pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, sceneReady, setBody, speakBody, speakSeconds, talkSystem, talkUser,
@@ -634,5 +635,82 @@ describe("a saved face's consent request (people-my-face)", () => {
     // sha256 of the bytes "abc"
     expect(await sha256Hex(Buffer.from("abc").toString("base64"))).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     expect(notHeard("4821")).toBe("We didn't hear the code 4 8 2 1. Read the line again, a little louder.");
+  });
+});
+
+describe("saved presenters (people-presenters)", () => {
+  // a fixed sequence, so a make's looks are the same every run
+  const seq = (...xs: number[]) => {
+    let i = 0;
+    return () => xs[i++ % xs.length];
+  };
+
+  it("takes the chips as enums and Anything else up to 120 characters, NORTH_STAR_USERS only", () => {
+    expect(req({ mode: "presenters", prefs: { gender: "woman", age: "30s", background: "malay", dress: "office" }, extra: "  Glasses,  warm smile " })).toEqual({
+      mode: "presenters",
+      prefs: { gender: "woman", age: "30s", background: "malay", dress: "office" },
+      extra: "Glasses, warm smile",
+    });
+    expect(req({ mode: "presenters" })).toEqual({ mode: "presenters", prefs: {} });
+    expect(req({ mode: "presenters", prefs: { gender: null, extra: "ignored" }, extra: "" })).toEqual({ mode: "presenters", prefs: {} });
+    expect(req({ mode: "presenters", extra: "x".repeat(MAX_EXTRA) })).toMatchObject({ extra: "x".repeat(MAX_EXTRA) });
+    for (const prefs of [{ gender: "girl" }, { age: "teen" }, { age: "50s+" }, { background: "Chinese" }, { dress: "uniform" }, "woman", ["woman"]]) {
+      expect(parseVideoRequest({ mode: "presenters", prefs }), JSON.stringify(prefs)).toEqual({ ok: false, error: "Pick the presenter's look from the chips." });
+    }
+    expect(parseVideoRequest({ mode: "presenters", extra: "x".repeat(MAX_EXTRA + 1) })).toEqual({ ok: false, error: 'Keep "Anything else" under 120 characters.' });
+    expect(NORTH_STAR_MODES).toContain("presenters");
+    expect(northStarOnly(req({ mode: "presenters" }))).toBe(true);
+  });
+
+  it("makes three looks naming three different backgrounds when Any Singaporean is picked, keeping the picked gender and age in all three", () => {
+    for (let run = 0; run < 20; run++) {
+      const looks = presenterLooks({ gender: "man", age: "40s" });
+      expect(looks).toHaveLength(3);
+      const backgrounds = looks.map((l) => l.match(/^An? (Chinese|Malay|Indian|Eurasian) Singaporean /)?.[1]);
+      expect(new Set(backgrounds).size, looks.join(" | ")).toBe(3);
+      for (const l of looks) {
+        expect(l).toMatch(/^An? (Chinese|Malay|Indian|Eurasian) Singaporean man in his (early |mid |late )40s, /);
+        expect(l.length).toBeLessThanOrEqual(MAX_LOOK);
+      }
+    }
+  });
+
+  it("gives three different ages when the age is left open, and three different people when every chip is picked", () => {
+    for (let run = 0; run < 20; run++) {
+      const looks = presenterLooks({ background: "indian", gender: "woman" });
+      expect(new Set(looks.map((l) => l.match(/(20s|30s|40s|50s)/)?.[1])).size).toBe(3);
+      expect(looks.every((l) => l.startsWith("An Indian Singaporean woman in her "))).toBe(true);
+      const all = presenterLooks({ background: "chinese", gender: "woman", age: "30s", dress: "office" });
+      expect(new Set(all).size).toBe(3);
+      expect(all.every((l) => l.startsWith("A Chinese Singaporean woman in her ") && l.includes("30s"))).toBe(true);
+    }
+  });
+
+  it("puts Anything else last in place of the hair, and reads the same with the same draws", () => {
+    const looks = presenterLooks({ background: "eurasian", gender: "man", age: "50s", dress: "casual" }, "Glasses, warm smile", seq(0.1, 0.7, 0.4, 0.9, 0.2));
+    expect(looks).toEqual(presenterLooks({ background: "eurasian", gender: "man", age: "50s", dress: "casual" }, "Glasses, warm smile", seq(0.1, 0.7, 0.4, 0.9, 0.2)));
+    for (const l of looks) expect(l).toMatch(/^A Eurasian Singaporean man in his 50s, [^,.]+\. Glasses, warm smile$/);
+  });
+
+  it("asks Jev whether the typed look is a real person or a minor, in the house shape", () => {
+    const q = lookQuestions();
+    expect(Object.keys(q)).toEqual(["realPerson", "minor"]);
+    expect(q.realPerson).toMatchObject({ type: "noul", instructions: { question: expect.stringContaining("name a real person") } });
+    expect(q.minor).toMatchObject({ type: "noul", instructions: { question: "Is the person `look` describes under 18?" } });
+  });
+
+  it("refuses at 0.5 and passes at 0.49 and with no answer", () => {
+    const a = (realPerson: number | null, minor: number | null) => ({
+      ...(realPerson === null ? {} : { realPerson: { type: "noul" as const, noul: realPerson } }),
+      ...(minor === null ? {} : { minor: { type: "noul" as const, noul: minor } }),
+    });
+    expect(readLookCheck(a(0.5, 0))).toBe("real_person");
+    expect(readLookCheck(a(0.9, 0.9))).toBe("real_person");
+    expect(readLookCheck(a(0.49, 0.5))).toBe("minor");
+    expect(readLookCheck(a(0.49, 0.49))).toBeNull();
+    expect(readLookCheck(a(null, null))).toBeNull();
+    expect(readLookCheck(null)).toBeNull();
+    expect(LOOK_REFUSED).toEqual({ real_person: "Presenters can't look like a real person. Describe a look instead.", minor: "Presenters are adults." });
+    expect(Object.keys(PRESENTER_PREFS)).toEqual(["gender", "age", "background", "dress"]);
   });
 });

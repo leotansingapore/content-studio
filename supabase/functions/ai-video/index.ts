@@ -39,6 +39,11 @@
 //        recording (never prompted with the code) and the photo's sha256 is signed for this uid ("likeness-check" cap; the
 //        use comes back only when Whisper never answered; a code not heard is 422 not_heard and keeps it). Neither the
 //        sound nor the photo is stored here; the recording's video never leaves the device.
+// Saved presenters (people-presenters), NORTH_STAR_USERS only:
+//   POST {mode:"presenters", prefs:{gender?, age?, background?, dress?}, extra?} -> {tokens, looks}  three different invented
+//        Singaporeans (logic.ts presenterLooks) as three Soul v2 pictures, polled by status. Jev reads `extra` before
+//        anything is counted (a real person or a minor is 422 and takes nothing; no answer goes ahead). Three
+//        "ai-presenter" uses and one "ai-presenter-global"; all of them come back only when Higgsfield's submit fails.
 // Phase 3's hidden and Leo-only templates, any presenter setting but office, talk-script and set answer 403
 // not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
 // new modes before their body is checked too); every other request is as before.
@@ -57,7 +62,7 @@ import { askJev, noulOf } from "../_shared/jev.ts";
 import { consentSecret, heardCode, newCode, openSigned, signFor } from "../_shared/consent.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
-  CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex,
+  CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex, LOOK_REFUSED, lookQuestions, presenterLooks, readLookCheck,
   NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
   TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
   northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
@@ -338,6 +343,49 @@ Deno.serve(async (req) => {
     /** Nothing was made after the uses were taken: both come back (the adviser's alone when everyone's wasn't taken). */
     const giveBack = (feature: Refundable, both = true) =>
       Promise.all([refundUsage(admin, uid, feature, day), both && refundUsage(admin, GLOBAL_COUNTER_USER, REFUNDS[feature], day)]);
+
+    if (r.mode === "presenters") {
+      // the typed part of the look, before anything is counted or paid
+      if (r.extra) {
+        const answers = await askJev({ look: r.extra }, lookQuestions(), { who: "ai-video presenter look" });
+        if (noulOf(answers, "realPerson") === null || noulOf(answers, "minor") === null) console.warn("jev: presenter look unread");
+        const refused = readLookCheck(answers);
+        if (refused) return json({ code: refused, error: LOOK_REFUSED[refused] }, 422);
+      }
+      // three of the adviser's uses, one at a time: when one is refused, those already taken come back
+      let usage = { used: 0, limit: 0 };
+      for (let i = 0; i < 3; i++) {
+        const u = await consumeUsage(admin, uid, "ai-presenter");
+        if (!u.allowed) {
+          for (let k = 0; k < i; k++) await refundUsage(admin, uid, "ai-presenter", day);
+          const refusal = usageRefusal(u);
+          return json(refusal.body, refusal.status);
+        }
+        usage = { used: u.used, limit: u.limit };
+      }
+      const backMine = async () => {
+        for (let k = 0; k < 3; k++) await refundUsage(admin, uid, "ai-presenter", day);
+      };
+      const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-presenter-global");
+      if (!everyone.allowed) {
+        await backMine();
+        if (everyone.reason === "limit") return json({ code: "global_limit", error: "Today's presenters for the whole studio are made. Try again after 8am Singapore time." }, 429);
+        const refusal = usageRefusal(everyone);
+        return json(refusal.body, refusal.status);
+      }
+      const looks = presenterLooks(r.prefs, r.extra);
+      const ids: string[] = [];
+      try {
+        for (const look of looks) ids.push(await submit(PICTURE_MODEL, presenterBody(look)));
+      } catch (e) {
+        // no refund ticket on these pictures: a submit that fails cancels what is queued and gives every use back
+        await Promise.all(ids.map((id) => fetch(`${HF_BASE}/requests/${id}/cancel`, { method: "POST", headers: auth }).catch(() => null)));
+        await backMine();
+        await refundUsage(admin, GLOBAL_COUNTER_USER, "ai-presenter-global", day);
+        return json({ code: "failed", error: e instanceof HfError && e.status === 403 ? NO_CREDITS : "Couldn't make the presenters. Try again in a minute." }, 502);
+      }
+      return json({ tokens: await Promise.all(ids.map((id) => jobToken(signing, uid, id))), looks, usage });
+    }
 
     if (r.mode === "move") {
       // no new use: the explainer took its ai-video use; the pictures must be this caller's and finished

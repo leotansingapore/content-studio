@@ -3,7 +3,7 @@ import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
 import { createHash } from "node:crypto";
 import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
 import { consentSecret, openSigned, signFor } from "../_shared/consent";
-import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM } from "./logic";
+import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, presenterBody } from "./logic";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -602,5 +602,116 @@ describe("today's one-off presenter, for everyone (pinned before people-presente
     expect(down.status).toBe(502);
     expect(await down.json()).toEqual({ error: "Couldn't start the video right now. Try again in a minute." });
     expect([...db.rows.entries()]).toEqual([[`${UID}|ai-image|${db.today()}`, 2]]);
+  });
+});
+
+describe("saved presenters (people-presenters, NORTH_STAR_USERS only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
+  const make = { mode: "presenters", prefs: { gender: "woman", dress: "office" } };
+  const SOUL = "https://api.higgsfield.ai/higgsfield-ai/soul/v2/standard";
+  const jevSays = (realPerson: number, minor: number) => (hf.answers = { realPerson: { type: "noul", noul: realPerson }, minor: { type: "noul", noul: minor } });
+
+  it("refuses anyone not listed before any count or call, even with a body that would be refused", async () => {
+    for (const body of [make, { ...make, extra: "Looks like a famous singer" }, { mode: "presenters", prefs: { gender: "child" } }]) {
+      const res = await send(UID, body);
+      expect(res.status, JSON.stringify(body)).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect((await db.handler!(new Request("http://x/ai-video", { method: "POST", body: JSON.stringify(make) }))).status).toBe(401);
+    expect(db.rows.size).toBe(0);
+    expect([hf.calls, hf.asked]).toEqual([[], []]);
+  });
+
+  it("checks a listed account's chips after the gate, before Jev or any count", async () => {
+    const res = await send(LEO, { mode: "presenters", prefs: { age: "teen" }, extra: "Glasses" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ code: "bad_request", error: "Pick the presenter's look from the chips." });
+    expect(db.rows.size).toBe(0);
+    expect([hf.calls, hf.asked]).toEqual([[], []]);
+  });
+
+  it("makes three different presenters as three Soul v2 pictures for 3 presenter uses and 1 of the studio's, no ai-image use and no Jev with nothing typed", async () => {
+    const res = await send(LEO, make);
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out).toMatchObject({ tokens: [expect.any(String), expect.any(String), expect.any(String)], usage: { used: 3, limit: 12 } });
+    expect(out.looks).toHaveLength(3);
+    expect(new Set(out.looks).size).toBe(3);
+    for (const l of out.looks) expect(l).toMatch(/Singaporean woman in her /);
+    expect(hf.calls).toEqual([SOUL, SOUL, SOUL]);
+    expect(hf.bodies).toEqual(out.looks.map((l: string) => presenterBody(l)));
+    expect([used(LEO, "ai-presenter"), used(GLOBAL_COUNTER_USER, "ai-presenter-global"), used(LEO, "ai-image")]).toEqual([3, 1, 0]);
+    expect(hf.asked).toEqual([]);
+    // each token is the job signed for this caller, as status reads it; no refund ticket
+    const signing = await tokenSecret("service-role-key");
+    expect(out.tokens).toEqual(await Promise.all(["r1", "r2", "r3"].map((id) => jobToken(signing, LEO, id))));
+    expect(out.refund).toBeUndefined();
+  });
+
+  it("refuses a look Jev reads as a real person or a minor before any count or Higgsfield call", async () => {
+    jevSays(0.82, 0.01);
+    const real = await send(LEO, { ...make, extra: "Looks like a famous Singapore singer" });
+    expect(real.status).toBe(422);
+    expect(await real.json()).toEqual({ code: "real_person", error: "Presenters can't look like a real person. Describe a look instead." });
+    expect(hf.asked[0]).toMatchObject({ model: "jev-1.13.0", state: { look: "Looks like a famous Singapore singer" }, questions: { realPerson: { type: "noul" }, minor: { type: "noul" } } });
+
+    jevSays(0.1, 0.5);
+    const minor = await send(LEO, { ...make, extra: "Secondary school uniform" });
+    expect(minor.status).toBe(422);
+    expect(await minor.json()).toEqual({ code: "minor", error: "Presenters are adults." });
+    expect(db.rows.size).toBe(0);
+    expect(hf.calls).toEqual([]);
+
+    jevSays(0.49, 0.49);
+    expect((await send(LEO, { ...make, extra: "Glasses, short hair, warm smile" })).status).toBe(200);
+    expect(used(LEO, "ai-presenter")).toBe(3);
+  });
+
+  it("goes ahead when Jev has no answer, and says so in the log", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const res = await send(LEO, { ...make, extra: "Glasses, short hair, warm smile" });
+    expect(res.status).toBe(200);
+    expect(hf.asked).toHaveLength(1);
+    expect(warn.mock.calls.map((c) => String(c[0]))).toContain("jev: presenter look unread");
+    expect((await res.json()).looks.every((l: string) => l.endsWith(". Glasses, short hair, warm smile"))).toBe(true);
+    warn.mockRestore();
+  });
+
+  it("gives back the 3 uses and the studio's one, and cancels what was queued, when Higgsfield's submit fails", async () => {
+    hf.submits.push(200, 500);
+    const res = await send(LEO, make);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "failed", error: "Couldn't make the presenters. Try again in a minute." });
+    expect(hf.calls).toEqual([SOUL, SOUL, "https://api.higgsfield.ai/requests/r1/cancel"]);
+    expect([used(LEO, "ai-presenter"), used(GLOBAL_COUNTER_USER, "ai-presenter-global")]).toEqual([0, 0]);
+
+    hf.submits.push(403);
+    const out = await send(LEO, make);
+    expect(await out.json()).toEqual({ code: "failed", error: "AI video credits have run out. Tell your studio admin." });
+    expect([used(LEO, "ai-presenter"), used(GLOBAL_COUNTER_USER, "ai-presenter-global")]).toEqual([0, 0]);
+  });
+
+  it("takes 3 uses or none: at 10 of 12 the make is refused with the reset time and the 2 taken come back", async () => {
+    db.rows.set(`${LEO}|ai-presenter|${db.today()}`, 10);
+    const res = await send(LEO, make);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ code: "daily_limit", error: "You've used all 12 for today. It resets at 8am Singapore time." });
+    expect([used(LEO, "ai-presenter"), used(GLOBAL_COUNTER_USER, "ai-presenter-global")]).toEqual([10, 0]);
+    expect(hf.calls).toEqual([]);
+
+    db.rows.set(`${LEO}|ai-presenter|${db.today()}`, 9);
+    expect((await send(LEO, make)).status).toBe(200);
+    expect(used(LEO, "ai-presenter")).toBe(12);
+  });
+
+  it("refuses when the studio's presenters are used up for the day, giving the adviser's 3 back", async () => {
+    db.rows.set(`${GLOBAL_COUNTER_USER}|ai-presenter-global|${db.today()}`, 10);
+    const res = await send(LEO_TWO, make);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ code: "global_limit", error: "Today's presenters for the whole studio are made. Try again after 8am Singapore time." });
+    expect(used(LEO_TWO, "ai-presenter")).toBe(0);
+    expect(hf.calls).toEqual([]);
   });
 });
