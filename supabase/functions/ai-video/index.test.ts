@@ -109,38 +109,44 @@ describe("an explainer's uses", () => {
   });
 });
 
-describe("phase 3's templates (NORTH_STAR_USERS only)", () => {
+describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
   const send = (uid: string, body: Record<string, unknown>) =>
     db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
   const scene = { mode: "template", template: "scene-kitchen", seconds: 8, quality: "480p", fields: {} };
   const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
 
-  it("refuse a hidden or Leo-only template before any count or call", async () => {
+  it("refuse a hidden or Leo-only template, or a presenter in a new setting, before any count or call", async () => {
     for (const body of [
       scene,
       { mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing why your pipeline is empty" } },
       { mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "How much of your pay do you save?" } },
+      { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "car" },
     ]) {
       const res = await send(UID, body);
-      expect(res.status, String(body.template)).toBe(403);
+      expect(res.status, String(body.template ?? body.setting)).toBe(403);
       expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
     }
     expect(db.rows.size).toBe(0);
     expect([hf.calls, hf.openai]).toEqual([[], []]);
   });
 
-  it("let today's templates through for everyone, as before", async () => {
+  it("let today's templates and the office presenter through for everyone, as before", async () => {
     expect((await send(UID, { mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" } })).status).toBe(200);
-    expect(used(UID, "ai-clip")).toBe(1);
+    expect((await send(UID, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "office" })).status).toBe(200);
+    expect([used(UID, "ai-clip"), used(UID, "ai-image")]).toEqual([1, 1]);
     expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
   });
 
-  it("make a silent scene for a listed account", async () => {
+  it("make a silent scene and a presenter in a parked car for a listed account", async () => {
     const res = await send(LEO, scene);
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ credits: 26.3, tokens: [expect.any(String)] });
     expect(used(LEO, "ai-clip")).toBe(1);
     expect(hf.openai[0].messages[0].content).toContain("Nobody speaks. Ambient room or street sound only.");
     expect(hf.bodies.at(-1)).toMatchObject({ duration: 8, resolution: "480p", aspect_ratio: "9:16" });
+
+    expect((await send(LEO, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "car" })).status).toBe(200);
+    expect(String(hf.bodies.at(-1)!.prompt)).toContain("Sitting in the driver's seat of a parked car in daylight");
+    expect(used(LEO, "ai-image")).toBe(1);
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PEOPLE_RULE, tokenSecret } from "../ai-image/logic";
 import { GLOBAL_COUNTER_USER, refundUsage, type UsageClient } from "../_shared/usageCaps";
 import {
-  MAX_SLICE, avatarCredits, creditsUsd, explainerCredits, northStarOnly, parseVideoRequest, pictureBody, presenterBody, readMedia,
+  MAX_SLICE, SETTINGS, SETTING_IDS, avatarCredits, creditsUsd, explainerCredits, northStarOnly, parseVideoRequest, pictureBody, presenterBody, readMedia,
   refundFailed, refundTicket, sceneReady, speakBody, speakSeconds, validateScript,
 } from "./logic";
 
@@ -236,6 +236,31 @@ describe("today's presenter", () => {
   });
 });
 
+describe("a presenter's setting (formats-talking-head, formats-presenter)", () => {
+  const LOOK = "A Malay Singaporean woman in her 30s";
+
+  it("puts each setting's fixed line in the picture and keeps the Singaporean and no-text rules", () => {
+    expect(SETTING_IDS).toEqual(["office", "car", "kitchen", "couch", "cafe", "news", "stage", "bright"]);
+    for (const id of SETTING_IDS) {
+      const prompt = String(presenterBody(LOOK, id).prompt);
+      expect(prompt, id).toContain(`${SETTINGS[id]}, soft even light`);
+      expect(prompt, id).toContain("the person is Singaporean unless described otherwise");
+      expect(prompt, id).toContain("No text, no words, no logos, no watermarks, no other people.");
+      // Speak keeps hands out of frame and the camera fixed
+      expect(SETTINGS[id], id).not.toMatch(/phone|hand/i);
+    }
+    expect(presenterBody(LOOK, "office")).toEqual(presenterBody(LOOK));
+    expect(String(presenterBody(LOOK, "car").prompt)).not.toContain("office");
+  });
+
+  it("takes a setting id only, never free text", () => {
+    expect(parseVideoRequest({ mode: "presenter", look: LOOK, setting: "car" })).toEqual({ ok: true, request: { mode: "presenter", look: LOOK, setting: "car" } });
+    expect(parseVideoRequest({ mode: "presenter", look: LOOK, setting: "In bed" })).toEqual({ ok: false, error: "Pick a setting from the list." });
+    expect(parseVideoRequest({ mode: "presenter", look: LOOK, setting: "toString" })).toMatchObject({ ok: false });
+    expect(parseVideoRequest({ mode: "presenter", look: LOOK, setting: null })).toEqual({ ok: true, request: { mode: "presenter", look: LOOK } });
+  });
+});
+
 describe("what only NORTH_STAR_USERS may ask for", () => {
   const req = (body: Record<string, unknown>) => {
     const p = parseVideoRequest(body);
@@ -243,15 +268,17 @@ describe("what only NORTH_STAR_USERS may ask for", () => {
     return p.request;
   };
 
-  it("is a hidden or Leo-only template", () => {
+  it("is a hidden or Leo-only template, or a presenter anywhere but the office", () => {
     expect(northStarOnly(req({ mode: "template", template: "scene-kitchen", seconds: 8, quality: "480p" }))).toBe(true);
     expect(northStarOnly(req({ mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing" } }))).toBe(true);
     expect(northStarOnly(req({ mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "Do you save?" } }))).toBe(true);
+    expect(northStarOnly(req({ mode: "presenter", look: "A Malay Singaporean woman", setting: "news" }))).toBe(true);
   });
 
   it("is nothing anyone could send before phase 3", () => {
     expect(northStarOnly(req({ mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" } }))).toBe(false);
     expect(northStarOnly(req({ mode: "presenter", look: "A Malay Singaporean woman" }))).toBe(false);
+    expect(northStarOnly(req({ mode: "presenter", look: "A Malay Singaporean woman", setting: "office" }))).toBe(false);
     expect(northStarOnly(req({ mode: "explainer", pictures: Array(4).fill("A couple at an HDB table") }))).toBe(false);
     expect(northStarOnly(req({ mode: "script", topic: "Why hospital plans have a co-pay" }))).toBe(false);
   });

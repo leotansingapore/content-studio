@@ -1,6 +1,7 @@
 // Videos made without filming, on Edit a video, through Higgsfield (Leo's choice, 2026-10-08).
 //   POST {mode:"script", topic}      -> {scenes:[{say, picture}]}  OpenAI writes an explainer ("ai-video-script" cap)
-//   POST {mode:"presenter", look}    -> {token}  one AI presenter picture, Soul v2 9:16 ("ai-image" cap)
+//   POST {mode:"presenter", look, setting?} -> {token}  one AI presenter picture, Soul v2 9:16 ("ai-image" cap),
+//        in a fixed setting (logic.ts SETTINGS; today's office when none)
 //   POST {mode:"avatar", photo, slices:[{wav, seconds}]} -> {tokens, credits}  Higgsfield Speak per slice
 //   POST {mode:"explainer", pictures} -> {tokens, credits}  one Soul v2 picture per scene
 //   POST {mode:"template", template, seconds, quality, fields, photos} -> {tokens, credits}  a template clip:
@@ -15,7 +16,7 @@
 // A video or clip that Higgsfield refused, failed or blocked gives both uses back: at once when the submit
 // fails, or on the status check that first sees the failure, by the signed refund ticket handed back at the
 // start (logic.ts refundFailed: once per video, only on the day the uses were taken).
-// Phase 3's hidden and Leo-only templates answer 403 not_enabled for anyone
+// Phase 3's hidden and Leo-only templates and any presenter setting but office answer 403 not_enabled for anyone
 // not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly); every other request is as before.
 //
 // Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY, NORTH_STAR_USERS. Deploy WITH JWT verification:
@@ -177,7 +178,7 @@ Deno.serve(async (req) => {
         return json(refusal.body, refusal.status);
       }
       try {
-        return json({ token: await jobToken(signing, uid, await submit(PICTURE_MODEL, presenterBody(r.look))) });
+        return json({ token: await jobToken(signing, uid, await submit(PICTURE_MODEL, presenterBody(r.look, r.setting))) });
       } catch (e) {
         return failed(e);
       }

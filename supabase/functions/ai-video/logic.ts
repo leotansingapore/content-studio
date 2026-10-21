@@ -55,7 +55,7 @@ export const clipCredits = (seconds: ClipSeconds, quality: ClipQuality) => Math.
 export type Photo = { url: string } | { jpeg: string };
 export type VideoRequest =
   | { mode: "script"; topic: string }
-  | { mode: "presenter"; look: string }
+  | { mode: "presenter"; look: string; setting?: SettingId }
   | { mode: "avatar"; photo: Photo; slices: { wav: string; seconds: number }[] }
   | { mode: "explainer"; pictures: string[] }
   | {
@@ -87,7 +87,10 @@ export function parseVideoRequest(raw: unknown): Parsed {
       const look = oneLineText(b.look, MAX_LOOK + 1);
       if (look.length < 10) return no("Describe your presenter first.");
       if (look.length > MAX_LOOK) return no(`Keep the description under ${MAX_LOOK} characters.`);
-      return { ok: true, request: { mode: "presenter", look } };
+      // ids only, never free text; anything but office is gated in index.ts
+      const setting = SETTING_IDS.find((x) => x === b.setting);
+      if (b.setting != null && !setting) return no("Pick a setting from the list.");
+      return { ok: true, request: { mode: "presenter", look, ...(setting ? { setting } : {}) } };
     }
     case "avatar": {
       const p = (b.photo ?? {}) as Record<string, unknown>;
@@ -153,12 +156,14 @@ export function parseVideoRequest(raw: unknown): Parsed {
 
 /**
  * Phase 3's parts only NORTH_STAR_USERS may ask for (index.ts answers 403 not_enabled before any count): a hidden or
- * Leo-only template. Everything else is open as before.
+ * Leo-only template, and a presenter setting other than today's office. Everything else is open as before.
  */
 export function northStarOnly(r: VideoRequest): boolean {
-  if (r.mode !== "template") return false;
-  const t = templateById(r.template);
-  return Boolean(t?.hidden || t?.leoOnly);
+  if (r.mode === "template") {
+    const t = templateById(r.template);
+    return Boolean(t?.hidden || t?.leoOnly);
+  }
+  return r.mode === "presenter" && !!r.setting && r.setting !== "office";
 }
 
 // ---------- a failed video gives its use back ----------
@@ -215,12 +220,30 @@ export function speakBody(imageUrl: string, audioUrl: string, seconds: number, s
   };
 }
 
-/** A presenter to animate: one person, facing the lens, mouth closed, 9:16. */
-export function presenterBody(look: string): Record<string, unknown> {
+/**
+ * Where a presenter sits, one fixed line each: office is today's phrase, car to cafe are formats-talking-head's
+ * settings and news, stage and bright formats-presenter's sets. No line puts a phone or hands in frame, since Speak
+ * keeps hands out of frame and the camera fixed.
+ */
+export const SETTINGS = {
+  office: "Softly blurred office or home background",
+  car: "Sitting in the driver's seat of a parked car in daylight, seen from the dashboard",
+  kitchen: "Standing at a home kitchen counter in soft daylight, a lived-in kitchen softly blurred behind",
+  couch: "Sitting on a couch in a bright living room, cushions and a softly blurred room behind",
+  cafe: "Sitting at a cafe table by a window, the cafe softly blurred behind",
+  news: "Behind a TV news desk, papers on the desk, blue studio screens behind, studio light",
+  stage: "On a dark conference stage, a spotlight, a small headset mic, a glowing screen far behind",
+  bright: "A bright tidy room behind them",
+} as const;
+export type SettingId = keyof typeof SETTINGS;
+export const SETTING_IDS = Object.keys(SETTINGS) as SettingId[];
+
+/** A presenter to animate: one person, facing the lens, mouth closed, 9:16, in the setting (today's office when none). */
+export function presenterBody(look: string, setting: SettingId = "office"): Record<string, unknown> {
   return {
     prompt:
       `${look}\n\nA head-and-shoulders portrait of this one person facing the camera and looking into the lens, mouth closed, relaxed, about to speak to camera. ` +
-      "Softly blurred office or home background, soft even light, sharp focus on the face, a vertical phone video frame. " +
+      `${SETTINGS[setting]}, soft even light, sharp focus on the face, a vertical phone video frame. ` +
       "Set in Singapore; the person is Singaporean unless described otherwise. No text, no words, no logos, no watermarks, no other people.",
     aspect_ratio: "9:16",
     resolution: "1080p",
