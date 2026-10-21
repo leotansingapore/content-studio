@@ -6,11 +6,19 @@
 // card naming the change and applies it with the pages' own functions on a tap.
 // No Jev answer (or a message mostly not in English) means no action, and the
 // assistant answers in words as before.
+//
+// Leo only (NORTH_STAR_USERS, phase 4 brand-voice-memory): a "remember" act for a
+// lasting preference, with a second question for what it applies to. Adding an
+// option changes Jev's routing for every message, so everyone else gets exactly
+// today's questions (pinned in fixtures/).
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 
-export const ACTS = ["move", "write", "week", "engage_replies", "engage_dms", "engage_thread", "engage_comment", "none"] as const;
+export const ACTS = ["move", "write", "week", "engage_replies", "engage_dms", "engage_thread", "engage_comment", "remember", "none"] as const;
 export type Act = (typeof ACTS)[number];
+/** What a remembered preference applies to; "all" when the message does not say. */
+export const SCOPES = ["posts", "videos", "pictures", "all"] as const;
+export type Scope = (typeof SCOPES)[number];
 
 export const MAX_MESSAGE = 3000;
 export const MAX_POSTS = 50;
@@ -45,6 +53,8 @@ export interface ActPick {
   day: string | null;
   /** "HH:MM", for move. */
   time: string | null;
+  /** What a remember act applies to (Leo only). */
+  scope?: Scope;
 }
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -97,8 +107,12 @@ function postLine(p: ActPost): string {
   return `"${p.title}" (${[state, p.platform].filter(Boolean).join(", ")})`;
 }
 
-/** Jev's questions over the message: the action, and, when there are posts, which post, day and time. */
-export function actAsk(body: ActBody): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
+/**
+ * Jev's questions over the message: the action, and, when there are posts, which post, day and time. `leo`
+ * (the north-star gate, set by index.ts after sign-in) adds the remember act and the scope question; without
+ * it the questions are today's exactly.
+ */
+export function actAsk(body: ActBody, leo = false): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
   const today = utc(body.today)!;
   const questions: Record<string, JevQuestion> = {
     act: {
@@ -113,6 +127,7 @@ export function actAsk(body: ActBody): { state: Record<string, string>; question
         engage_dms: "Help them reply to several separate direct messages from different people. The message contains those messages.",
         engage_thread: "Help them reply in one back-and-forth direct message conversation with one person. The message contains that conversation.",
         engage_comment: "Help them write a comment to leave on someone else's post. The message contains that post.",
+        ...(leo ? { remember: REMEMBER } : {}),
         none: "Anything else: a question about how the app works, an idea, a problem or bug, a feature request, a message for the team, small talk, or something the app cannot do.",
       },
     },
@@ -139,8 +154,22 @@ export function actAsk(body: ActBody): { state: Record<string, string>; question
       criteria: { ...Object.fromEntries(TIMES.map((t) => [t, timeWords(t)])), none: "The message names no time." },
     };
   }
+  if (leo) questions.scope = SCOPE_QUESTION;
   return { state: { today: longDay(today), message: body.message }, questions };
 }
+
+const REMEMBER =
+  "Tell the app a lasting preference for what it makes from now on: always or never do something in their posts, videos or pictures, for example 'never use emoji', 'always end with a question', 'use Asian presenters'.";
+const SCOPE_QUESTION: JevQuestion = {
+  type: "choice",
+  instructions: "Which kind of content does the preference in `message` apply to?",
+  criteria: {
+    posts: "Written posts, captions, carousels and scripts.",
+    videos: "Videos: presenters, on-screen captions, editing, music.",
+    pictures: "Pictures and images.",
+    all: "Everything, or the message does not say.",
+  },
+};
 
 /** A Choice's pick when its own probability is at least `min`. */
 function sure<T extends string>(answers: Record<string, JevAnswer> | null, id: string, options: readonly T[], min: number): T | null {
@@ -149,10 +178,11 @@ function sure<T extends string>(answers: Record<string, JevAnswer> | null, id: s
   return c && typeof p === "number" && p >= min ? c : null;
 }
 
-/** What the message asks for, or null: no answer, not sure enough, or nothing the app does. */
-export function actPick(answers: Record<string, JevAnswer> | null, body: ActBody): ActPick | null {
+/** What the message asks for, or null: no answer, not sure enough, or nothing the app does. Remember only for `leo`. */
+export function actPick(answers: Record<string, JevAnswer> | null, body: ActBody, leo = false): ActPick | null {
   const act = sure(answers, "act", ACTS, ACT_MIN);
-  if (!act || act === "none") return null;
+  if (!act || act === "none" || (act === "remember" && !leo)) return null;
+  if (act === "remember") return { act, post: null, day: null, time: null, scope: sure(answers, "scope", SCOPES, PICK_MIN) ?? "all" };
   const keys = body.posts.map((_, i) => `p${i + 1}`);
   const onPost = act === "move" || act === "write";
   const post = onPost ? sure(answers, "post", [...keys, "none"], PICK_MIN) : null;

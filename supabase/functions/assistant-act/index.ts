@@ -4,8 +4,10 @@
 // app shows a confirm card and applies the change itself on a tap. Counted
 // against the "assistant-act" daily cap. Null when Jev has no answer or the
 // message is mostly not in English: the assistant then answers in words.
+// For an account on NORTH_STAR_USERS it also offers "remember" (a lasting
+// preference) and asks what it applies to; everyone else's questions are today's.
 //
-// Secrets: TYPESAFE_API_KEY (optional: without it there is no action).
+// Secrets: TYPESAFE_API_KEY (optional: without it there is no action), NORTH_STAR_USERS.
 // Deploy WITH JWT verification:
 //   supabase functions deploy assistant-act --project-ref hgdbflprrficdoyxmdxe --use-api
 
@@ -13,6 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
+import { isAllowed } from "../market/logic.ts";
 import { actAsk, actBody, actPick } from "./logic.ts";
 
 const headers = {
@@ -30,6 +33,7 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to use the assistant." }, 401);
+    const leo = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
 
     const body = actBody(await req.json().catch(() => null));
     if (!body) return json({ error: "Nothing to read." }, 400);
@@ -39,9 +43,9 @@ Deno.serve(async (req) => {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
     }
-    const ask = actAsk(body);
+    const ask = actAsk(body, leo);
     const answers = await askJev(ask.state, ask.questions, { who: "assistant-act" });
-    return json({ pick: actPick(answers, body) });
+    return json({ pick: actPick(answers, body, leo) });
   } catch (e) {
     console.error("assistant-act failed", e instanceof Error ? e.message : String(e));
     return json({ error: "The assistant can't do that right now." }, 500);

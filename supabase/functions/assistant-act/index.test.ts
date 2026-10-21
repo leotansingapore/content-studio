@@ -17,12 +17,15 @@ const asked: unknown[] = [];
 const today = new Date().toISOString().slice(0, 10);
 const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
 const choice = (c: string) => ({ type: "choice", choice: c, probabilities: { [c]: 0.9 } });
+const moveAnswers = () => ({ act: choice("move"), post: choice("p1"), day: choice(tomorrow), time: choice("09:00") });
+let jev: () => Record<string, unknown> = moveAnswers;
 
 beforeAll(async () => {
-  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => (k === "TYPESAFE_API_KEY" ? "test-key" : "x") } });
+  const env: Record<string, string> = { TYPESAFE_API_KEY: "test-key", NORTH_STAR_USERS: "leo-uid" };
+  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] ?? "x" } });
   vi.stubGlobal("fetch", async (_u: string, init: RequestInit) => {
     asked.push(JSON.parse(String(init.body)));
-    return new Response(JSON.stringify({ answers: { act: choice("move"), post: choice("p1"), day: choice(tomorrow), time: choice("09:00") } }));
+    return new Response(JSON.stringify({ answers: jev() }));
   });
   await import("./index.ts");
 }, 30_000);
@@ -31,6 +34,7 @@ beforeEach(() => {
   db.spent.length = 0;
   db.capReached(false);
   asked.length = 0;
+  jev = moveAnswers;
 });
 
 const call = async (body: unknown, uid = "u1") => {
@@ -66,5 +70,28 @@ describe("the assistant's actions", () => {
     const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today, posts });
     expect(r.status).toBe(429);
     expect(asked).toEqual([]);
+  });
+});
+
+describe("the remember act", () => {
+  const msg = { message: "from now on never use emoji in my posts", today: "2026-10-11", posts };
+  type Sent = { questions: Record<string, { criteria: Record<string, string> }> };
+  it("is asked and answered for an account on NORTH_STAR_USERS, for one daily use", async () => {
+    jev = () => ({ act: choice("remember"), scope: choice("posts") });
+    const r = await call(msg, "leo-uid");
+    expect(r).toEqual({ status: 200, body: { pick: { act: "remember", post: null, day: null, time: null, scope: "posts" } } });
+    const q = (asked[0] as Sent).questions;
+    expect(q.act.criteria.remember).toBeTruthy();
+    expect(Object.keys(q.scope.criteria)).toEqual(["posts", "videos", "pictures", "all"]);
+    expect(db.spent).toEqual(["assistant-act"]);
+  });
+  it("is never asked for anyone else, and a stray remember answer gives them no pick", async () => {
+    jev = () => ({ act: choice("remember"), scope: choice("posts") });
+    const r = await call(msg, "u1");
+    expect(r).toEqual({ status: 200, body: { pick: null } });
+    const q = (asked[0] as Sent).questions;
+    expect(q.act.criteria.remember).toBeUndefined();
+    expect(q.scope).toBeUndefined();
+    expect(db.spent).toEqual(["assistant-act"]);
   });
 });
