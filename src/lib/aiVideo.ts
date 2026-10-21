@@ -496,6 +496,9 @@ export interface ExplainerOpts {
   move?: boolean;
   /** Per scene, a stock clip's file link that stands in for its AI picture, or null. */
   stock?: (string | null)[];
+  /** Per scene, the device key of a photo from a media set (brand-media-sets): every scene is its photo, with no AI
+   * picture and no stock clip, so the video takes the voiceover and no ai-video use. */
+  images?: string[];
 }
 
 /** A narrated video with paid pictures, kept on this device until it is put together (see the header). */
@@ -518,6 +521,7 @@ export interface ExplainerPending {
 const EXPLAINER_PENDING = "cs-ai-video-explainer-pending";
 export const VOICE_GONE = "Your voiceover isn't on this device any more. Make the video again.";
 const JOIN_LABEL = "Putting your explainer together";
+export const PHOTO_GONE = "A photo from your set isn't on this device any more. Swap it and try again.";
 
 export function pendingExplainer(): ExplainerPending | null {
   try {
@@ -543,12 +547,16 @@ export const stillNote = (scenes: number[]) =>
 /**
  * Today's explainer (no opts): the voiceover, one AI picture per scene, then the slides. A narrated video (opts) also
  * takes a stock clip for a scene that has one (a clip that won't download gets an AI picture instead, before anything
- * is paid for), its look, and its scenes moved; with no AI picture it takes no ai-video use at all.
+ * is paid for), its look, and its scenes moved; with no AI picture it takes no ai-video use at all. With `images` (a
+ * media set's photos) every scene is its photo: no stock, no AI picture, nothing paid but the voiceover.
  */
 export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId, extra?: JoinExtra, opts?: ExplainerOpts): Promise<void> {
   if (aiBusy()) return;
   set({ kind: "explainer", state: "working", step: "Making the voiceover..." });
   try {
+    // a set's photos before the voiceover: one gone from this device stops the video before anything is paid for
+    const photos = opts?.images?.length ? await Promise.all(scenes.map((_, i) => getFile(opts.images![i] ?? "").catch(() => undefined))) : null;
+    if (photos && !photos.every(Boolean)) throw new Error(PHOTO_GONE);
     // the voiceover first: if it fails, no pictures have been paid for
     const mp3 = await speak(scenes.map((s) => s.say).join(" "), voice);
     if (!opts) {
@@ -565,11 +573,11 @@ export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceI
       return;
     }
     const clips = await Promise.all(scenes.map(async (_, i) => {
-      const url = opts.stock?.[i];
+      const url = !photos && opts.stock?.[i];
       return url ? { url, file: await download(url).catch(() => null) } : null;
     }));
     const stock = clips.map((c) => (c?.file ? c.url : null));
-    const pictures = scenes.flatMap((s, i) => (stock[i] ? [] : [s.picture]));
+    const pictures = scenes.flatMap((s, i) => (stock[i] || photos ? [] : [s.picture]));
     const look = opts.look && opts.look !== "photo" ? opts.look : undefined;
     let p: ExplainerPending = { name, voice: "", says: scenes.map((s) => s.say), stock, tokens: [], ...(look ? { look } : {}), ...(opts.move ? { move: true } : {}), ...(extra ? { extra } : {}) };
     if (pictures.length) {
@@ -580,14 +588,14 @@ export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceI
       p = { ...p, voice: kept ? key : "", tokens, ...(refund ? { refund } : {}) };
       if (kept) keepExplainer(p);
     }
-    await finishExplainer(p, { mp3, clips: clips.map((c) => c?.file ?? null) });
+    await finishExplainer(p, { mp3, clips: clips.map((c) => c?.file ?? null), ...(photos ? { photos: photos as Blob[] } : {}) });
   } catch (e) {
     fail("explainer", e);
   }
 }
 
 /** Waits for a narrated video's paid parts, moves them when asked, and puts it together; kept until the join is done. */
-async function finishExplainer(p: ExplainerPending, have: { mp3?: Blob; clips?: (Blob | null)[] } = {}): Promise<void> {
+async function finishExplainer(p: ExplainerPending, have: { mp3?: Blob; clips?: (Blob | null)[]; photos?: Blob[] } = {}): Promise<void> {
   const step = (s: string) => set({ kind: "explainer", state: "working", step: s });
   try {
     const mp3 = have.mp3 ?? (await getFile(p.voice).catch(() => undefined));
@@ -625,6 +633,7 @@ async function finishExplainer(p: ExplainerPending, have: { mp3?: Blob; clips?: 
     let a = 0;
     const still: number[] = [];
     const slides = p.says.map((_, i) => {
+      if (have.photos?.[i]) return { image: have.photos[i], seconds: secs[i] };
       if (clips[i]) return { video: clips[i]!, seconds: secs[i] };
       const j = a++;
       if (moving[j]) return { video: moving[j]!, seconds: secs[i] };

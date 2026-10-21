@@ -11,9 +11,9 @@ vi.mock("@/lib/textVoice", () => ({
 
 import { callFn } from "@/lib/edgeFn";
 import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
-import { speakDub } from "@/lib/textVoice";
+import { speak, speakDub } from "@/lib/textVoice";
 import {
-  DEMO_GONE, REMAKE_FAILED, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
+  DEMO_GONE, PHOTO_GONE, REMAKE_FAILED, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
   pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake,
 } from "./aiVideo";
 
@@ -398,6 +398,41 @@ describe("a narrated video (Leo's explainer with stock clips, a look and moving 
     await today;
     expect(putFile).not.toHaveBeenCalled();
     expect(calls("explainer").at(-1)).toEqual({ mode: "explainer", pictures: SCENES.slice(0, 3).map((s) => s.picture) });
+  });
+});
+
+describe("a narrated video from a media set (brand-media-sets)", () => {
+  const SCENES = [1, 2, 3].map((n) => ({ say: `Line ${n} of the script.`, picture: `A desk, scene ${n}` }));
+  const photo = (k: string) => new Blob([`photo ${k}`]);
+
+  it("makes each scene its set photo with no ai-video call, and still makes the voiceover", async () => {
+    vi.mocked(speak).mockClear();
+    vi.mocked(getFile).mockImplementation(async (k) => (k.startsWith("cimg-") ? photo(k) : undefined));
+    vi.stubGlobal("fetch", vi.fn());
+    const run = makeExplainer("Work", SCENES, "eric" as never, { draftId: "d1" }, { look: "clay", move: true, stock: ["https://pexels.example/a.mp4", null, null], images: ["cimg-a", "cimg-b", "cimg-a"] });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await run;
+    expect(callFn).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(putFile).not.toHaveBeenCalled();
+    expect(speak).toHaveBeenCalledWith("Line 1 of the script. Line 2 of the script. Line 3 of the script.", "eric");
+    const [name, slides, mp3, label, opts] = vi.mocked(startSlides).mock.calls[0];
+    expect([name, label, opts]).toEqual(["Work", "Putting your explainer together", { extra: { draftId: "d1" } }]);
+    expect(await (mp3 as Blob).text()).toBe("mp3");
+    expect(await Promise.all(slides.map(async (s) => ("image" in s ? `image ${await s.image.text()}` : "video")))).toEqual(["image photo cimg-a", "image photo cimg-b", "image photo cimg-a"]);
+    expect(slides.reduce((n, s) => n + s.seconds, 0)).toBeCloseTo(30);
+    expect(aiJob()).toMatchObject({ kind: "explainer", state: "done" });
+    expect(pendingExplainer()).toBeNull();
+  });
+
+  it("stops before the voiceover when a set photo is gone from this device", async () => {
+    vi.mocked(speak).mockClear();
+    vi.mocked(getFile).mockImplementation(async (k) => (k === "cimg-a" ? photo(k) : undefined));
+    await makeExplainer("Work", SCENES, "eric" as never, undefined, { images: ["cimg-a", "cimg-gone", "cimg-a"] });
+    expect(aiJob()).toMatchObject({ kind: "explainer", state: "failed", error: PHOTO_GONE });
+    expect(speak).not.toHaveBeenCalled();
+    expect(callFn).not.toHaveBeenCalled();
+    expect(startSlides).not.toHaveBeenCalled();
   });
 });
 
