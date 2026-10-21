@@ -47,7 +47,7 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 // each call with the next of `answers` (JSON) and keeps what it was sent
 const openai = { mode: "down" as "down" | "junk" | "drops" | "queue", calls: 0, answers: [] as unknown[], sent: [] as { messages: { role: string; content: string }[] }[] };
 // Jev: the state and questions each call was sent; answered with `answers` when set, else a 500 (no flags)
-const jev = { states: [] as Record<string, unknown>[], questions: [] as string[][], answers: null as null | Record<string, { noul: number }> };
+const jev = { states: [] as Record<string, unknown>[], questions: [] as string[][], sent: [] as string[], answers: null as null | Record<string, { noul: number }> };
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
@@ -59,6 +59,7 @@ beforeAll(async () => {
       const sent = JSON.parse(String(init?.body ?? "{}"));
       jev.states.push(sent.state ?? {});
       jev.questions.push(Object.keys(sent.questions ?? {}));
+      jev.sent.push(String(init?.body ?? ""));
       return jev.answers ? Response.json({ answers: jev.answers }) : new Response("{}", { status: 500 });
     }
     if (!String(u).includes("openai")) throw new Error(`unexpected fetch ${u}`);
@@ -88,6 +89,7 @@ beforeEach(() => {
   openai.sent = [];
   jev.states = [];
   jev.questions = [];
+  jev.sent = [];
   jev.answers = null;
 });
 
@@ -376,5 +378,17 @@ describe("the wave 1 live check (21 Oct)", () => {
     const asked = jev.states.find((s) => "post" in s)!;
     expect(asked.facts).toContain("- What they do: an all-in-one productivity app for sales reps: CRM, WhatsApp inbox, tasks and goals");
     expect(asked.facts).toContain("- Who they serve: sales-oriented self-employed professionals and coaches");
+  });
+
+  it("sends the nobody-me memes to Jev and back with one 'Nobody:', the layout's own", async () => {
+    const d = live("6-meme");
+    openai.mode = "queue";
+    openai.answers = [wrote(d.response.result)];
+    const r = await send(d.request);
+    expect(r.status).toBe(200);
+    expect(r.body.result.options.map((o: { setup: string }) => o.setup.slice(0, 3))).toEqual(["Me ", "Me ", "Me "]);
+    const funny = jev.sent.find((b) => b.includes("funny_0"))!;
+    expect(funny).toContain("Nobody:\\nMe waiting for a lead");
+    expect(funny).not.toContain("Nobody: Me");
   });
 });

@@ -1265,4 +1265,21 @@ describe("the wave 1 live check (21 Oct)", () => {
     );
     expect(jevFacts({ oneLiner: "", audience: "", offer: null, facts: "" })).toBe("");
   });
+
+  it("takes the 'Nobody:' a nobody-me setup wrote itself off before the layout and Jev read it, and tells the writer not to", () => {
+    const options = live("6-meme").response.result.options as Record<string, string>[];
+    const m = validateMake("meme", { refuse: false, reason: "", options, ...CAP }, { layout: "nobody-me" }) as Extract<MakeResult, { as: "meme" }>;
+    expect(m.options.map((o) => o.setup)).toEqual([
+      "Me waiting for a lead to reply before updating my follow-ups",
+      "Me after juggling client chats, notes and next steps",
+      "Me using last year's follow-up routine on this year's leads",
+    ]);
+    expect(memeText("nobody-me", m.options[0])).toBe("Nobody:\nMe waiting for a lead to reply before updating my follow-ups: My task list has entered its own waiting room.");
+    expect(JSON.stringify(memeQuestions("nobody-me", m.options))).not.toMatch(/Nobody:\\nNobody/);
+    const setup = (s: string) => (validateMake("meme", { options: [{ setup: s, punch: "Reading loan rules." }, options[1], options[2]], ...CAP }, { layout: "nobody-me" }) as Extract<MakeResult, { as: "meme" }>).options[0].setup;
+    expect(["NOBODY: me at 2am", "nobody me at 2am", "Nobody :Me at 2am", "Me at 2am"].map(setup)).toEqual(Array(4).fill("Me at 2am"));
+    expect(setup("Nobody cares at 2am")).toBe("Nobody cares at 2am");
+    expect((validateMake("meme", { options: [{ top: "Nobody: payday", bottom: "Me" }, { top: "a", bottom: "b" }, { top: "c", bottom: "d" }], ...CAP }, { layout: "top-bottom" }) as Extract<MakeResult, { as: "meme" }>).options[0].top).toBe("Nobody: payday");
+    expect(buildMakePrompt(make({ as: "meme", layout: "nobody-me" })).system).toContain("The layout prints 'Nobody:' itself, so never write it.");
+  });
 });

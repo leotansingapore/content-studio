@@ -607,7 +607,7 @@ function imageRules(req: MakeRequest): string[] {
 
 const MEME_RULES: Record<MemeLayout, string> = {
   "top-bottom": "- top: the setup, at most 10 words. bottom: the punchline, at most 10 words. Both are shown in capitals over a picture.",
-  "nobody-me": "- setup: who and when, shown after 'Nobody:', starting with Me, like 'Me at 2am', at most 12 words. punch: what they are doing, at most 12 words.",
+  "nobody-me": "- setup: who and when, shown after 'Nobody:', starting with Me, like 'Me at 2am', at most 12 words. The layout prints 'Nobody:' itself, so never write it. punch: what they are doing, at most 12 words.",
   expectation: "- expectation: the label over the first picture, at most 6 words. reality: the label over the second picture, at most 6 words.",
   pov: "- line: what follows 'POV:', at most 15 words.",
   "post-reaction": "- post: a short post in the brand's voice that a reaction picture answers, at most 30 words.",
@@ -1043,6 +1043,12 @@ export function validateMake(as: RemixAs, raw: unknown, req: MakeOpts = {}): Mak
   return null;
 }
 
+/**
+ * A nobody-me setup without the "Nobody:" the layout prints itself, with or without its colon ("nobody me at 2am" is
+ * "Me at 2am"): all three live setups wrote it (wave 1 live check, 21 Oct), so memeText and Jev read it twice.
+ */
+const withoutNobody = (v: unknown) => line(v, 400).replace(/^nobody\b\s*(?::\s*|(?=me\b))/i, "").replace(/^me\b/, "Me");
+
 /** Phase 3's shapes, each held to its limits; a caption is its own complete sentences, as the slideshow's. */
 function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: MakeOpts): MakeResult | null {
   if (as === "hooks") {
@@ -1070,7 +1076,7 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: M
     return words && caption ? { as, layout, layoutBy: req.layoutBy ?? "default", words, caption } : null;
   }
   const fields = MEME_FIELDS[req.layout as MemeLayout];
-  const rows = Array.isArray(r.options) ? r.options : [];
+  const rows = (Array.isArray(r.options) ? r.options : []).map((x) => (req.layout === "nobody-me" ? { ...obj(x), setup: withoutNobody(obj(x).setup) } : x));
   const options = fields ? rows.map((x) => fieldsWithin(x, fields)) : [];
   if (options.length !== 3 || options.some((o) => !o)) return null;
   const kept = options as Record<string, string>[];
