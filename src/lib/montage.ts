@@ -134,6 +134,8 @@ export interface MontageAsk {
   words: boolean;
   /** The adviser's own track, when they add one. */
   music: File | null;
+  /** The post it is made from (Leo's /edit?draft=), so the editor saves its caption back there. */
+  draftId?: string;
 }
 export interface MontageJob {
   state: "writing" | "finding" | "joining" | "done" | "failed";
@@ -237,7 +239,7 @@ export async function startMontage(a: MontageAsk): Promise<void> {
     while (currentJoin()) await sleep(1000);
     await startJoin(a.theme.slice(0, 40), takes, "Putting your montage together", {
       mute: true,
-      extra: { note: noteOf(report), settings: { filter: plan.grade, captions: false, overlays, ...(music ? { music } : {}) } },
+      extra: { note: noteOf(report), settings: { filter: plan.grade, captions: false, overlays, ...(music ? { music } : {}) }, ...(a.draftId ? { draftId: a.draftId } : {}) },
     });
     set({ state: "done", done: takes.length, of: takes.length });
   } catch (e) {
