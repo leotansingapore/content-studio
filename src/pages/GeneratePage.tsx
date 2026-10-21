@@ -70,6 +70,7 @@ import {
   ArrowRight,
   Star,
   Shuffle,
+  ExternalLink,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -141,7 +142,8 @@ import PostReceipt from "@/components/PostReceipt";
 import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } from "@/lib/board";
 import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
-import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom } from "@/lib/hookFormulas";
+import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom, provenFormulas, provenOpen, type HookFormula } from "@/lib/hookFormulas";
+import { HOOK_BANK } from "@/lib/hookBank";
 import {
   cleanAiTells,
   DISCLOSURES,
@@ -659,6 +661,10 @@ interface BasePayload {
 const RemixCompare = lazy(() => import("@/components/RemixCompare"));
 // Make it a thread (Leo only, formats-text-threads). Lazy, so nobody else loads it.
 const ThreadPanel = lazy(() => import("@/components/ThreadPanel"));
+// "Proven in your niche" (Leo only): the three formulas with the strongest real lines in the weekly hook bank.
+const PROVEN = provenFormulas(HOOK_BANK);
+const PROVEN_OPEN = provenOpen(HOOK_BANK);
+const HOOK_TABS = ["formulas", "proven"] as const;
 const ThreadButton = lazy(() => import("@/components/ThreadPanel").then((m) => ({ default: m.ThreadButton })));
 
 export default function GeneratePage() {
@@ -831,6 +837,9 @@ export default function GeneratePage() {
   // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me) or thread (Leo's Make it a thread,
   // ThreadPanel.tsx); opening pushes, so Back closes it.
   const [panel, openPanel, closePanel] = useUrlItem("panel");
+  // ?hooks=proven: the hook card on "Proven in your niche" (Leo only); formulas is the default and left out.
+  const [hookTab, setHookTab] = useUrlState("hooks", "formulas", { allowed: HOOK_TABS });
+  const proven = Boolean(leo) && hookTab === "proven" && PROVEN_OPEN;
   // ?compare=original|more: a remixed post's compare tab on phones (RemixCompare reads the same param)
   const [compareTab, setCompareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
   const showShortcuts = panel === "shortcuts";
@@ -1656,16 +1665,9 @@ export default function GeneratePage() {
 
     try {
       if (hooksFirst) {
-        // one call per hook, each with its own formula
-        const set = planFormulaRef.current ? hookFormulasFrom(planFormulaRef.current) : hookFormulaSet(hookSetRef.current++);
+        const set = planFormulaRef.current ? hookFormulasFrom(planFormulaRef.current) : proven ? PROVEN.map((p) => p.formula) : hookFormulaSet(hookSetRef.current++);
         planFormulaRef.current = null;
-        setHookPick(null);
-        pickPendingRef.current = true;
-        await runStream(
-          set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, base) })),
-          "hooks",
-          set.map((f) => f.id),
-        );
+        await writeHooks(set, base);
       } else {
         await runStream([{ ...base, mode: "post", n: 3 }], "variants");
       }
@@ -1681,6 +1683,28 @@ export default function GeneratePage() {
         variant: "destructive",
       });
     }
+  };
+
+  // One call per hook, each with its own formula; Jev's Recommended pick follows the set.
+  const writeHooks = async (set: HookFormula[], base: BasePayload) => {
+    setHookPick(null);
+    pickPendingRef.current = true;
+    await runStream(
+      set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, base) })),
+      "hooks",
+      set.map((f) => f.id),
+    );
+  };
+
+  // The hook card's switch (Leo only) writes the hooks again from the other set; the drafts below stay.
+  const switchHooks = (tab: (typeof HOOK_TABS)[number]) => {
+    if (tab === (proven ? "proven" : "formulas") || isStreaming || !validateForm()) return;
+    setHookTab(tab);
+    const set = tab === "proven" ? PROVEN.map((p) => p.formula) : hookFormulaSet(hookSetRef.current++);
+    writeHooks(set, buildBasePayload()).catch((err) => {
+      if ((err as Error).name === "AbortError") return;
+      toast({ title: "Couldn't write hooks", description: err instanceof Error ? err.message : "Try again in a moment.", variant: "destructive" });
+    });
   };
 
   // The answer joins the brief's notes, so a re-roll keeps it and is not asked again.
@@ -3305,12 +3329,37 @@ export default function GeneratePage() {
             <CardDescription>
               Click one and we&apos;ll draft three full posts that lead with it.
             </CardDescription>
+            {leo && (
+              <div className="flex flex-wrap items-center gap-1 pt-1">
+                <div role="group" aria-label="Hooks from" className="flex gap-1">
+                  {HOOK_TABS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      aria-pressed={t === (proven ? "proven" : "formulas")}
+                      disabled={isStreaming || (t === "proven" && !PROVEN_OPEN)}
+                      onClick={() => switchHooks(t)}
+                      className={`flex h-11 items-center rounded-full border px-3 text-xs font-semibold transition-colors disabled:opacity-50 sm:h-9 [@media(pointer:coarse)]:h-11 ${
+                        t === (proven ? "proven" : "formulas")
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {t === "proven" ? "Proven in your niche" : "Formulas"}
+                    </button>
+                  ))}
+                </div>
+                {!PROVEN_OPEN && <InfoTip label="About proven hooks">Proven hooks arrive with the weekly refresh.</InfoTip>}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-2">
             {hookOptions.map((h) => {
               const isPicked = chosenHook && chosenHook === h.text.trim();
               const formula = hookFormula(h.formula);
-              return (
+              // the real line behind a proven hook: shown as evidence, never sent to the writer
+              const seen = proven ? PROVEN.find((p) => p.formula.id === h.formula)?.line : undefined;
+              const row = (
                 <button
                   key={h.index}
                   type="button"
@@ -3363,6 +3412,21 @@ export default function GeneratePage() {
                     )}
                   </div>
                 </button>
+              );
+              return seen ? (
+                <div key={h.index} className="space-y-0.5">
+                  {row}
+                  <p className="flex flex-wrap items-center gap-x-2 pl-12 text-[11px] text-muted-foreground">
+                    Seen in {seen.from}, {Math.round(seen.ratio * 10) / 10}x their usual
+                    {seen.url && (
+                      <a href={seen.url} target="_blank" rel="noreferrer" className="-my-3.5 inline-flex items-center gap-1 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2">
+                        <ExternalLink className="h-3 w-3" aria-hidden /> Open post
+                      </a>
+                    )}
+                  </p>
+                </div>
+              ) : (
+                row
               );
             })}
           </CardContent>

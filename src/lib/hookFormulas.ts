@@ -225,6 +225,30 @@ export function hookFormulaFields(
   };
 }
 
+/** The least a real line needs to count as proof: its post did at least its account's usual. */
+export interface ProvenLine {
+  formula: string;
+  ratio: number;
+}
+
+/**
+ * Write's "Proven in your niche" set: the n formulas with the strongest real lines in the hook bank (most lines at
+ * ratio 1.0 or more, then the best ratio), each with its best line. Fewer than n when the bank is thin. Structural
+ * types only, so this file keeps no imports (scripts/hook-bank.mjs loads it in node).
+ */
+export function provenFormulas<L extends ProvenLine>(bank: { hooks: L[] }, n = HOOKS_PER_SET): { formula: HookFormula; line: L }[] {
+  const by = new Map<string, L[]>();
+  for (const l of bank.hooks) if (l.ratio >= 1 && hookFormula(l.formula)) by.set(l.formula, [...(by.get(l.formula) ?? []), l]);
+  return [...by.entries()]
+    .map(([id, lines]) => ({ formula: hookFormula(id)!, count: lines.length, line: lines.reduce((a, b) => (b.ratio > a.ratio ? b : a)) }))
+    .sort((a, b) => b.count - a.count || b.line.ratio - a.line.ratio)
+    .slice(0, n)
+    .map(({ formula, line }) => ({ formula, line }));
+}
+
+/** The pill rule: "Proven in your niche" opens once the bank has lines under a full set of formulas. */
+export const provenOpen = (bank: { hooks: ProvenLine[] }) => provenFormulas(bank).length === HOOKS_PER_SET;
+
 /** The formula a chosen hook was written with, from the hook rows it was picked from. */
 export function formulaOfHook(hook: string, rows: { text: string; formula?: string }[]): HookFormula | undefined {
   const h = hook.trim();
