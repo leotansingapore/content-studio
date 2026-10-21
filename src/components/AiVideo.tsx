@@ -83,8 +83,8 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
   }, [user, draftId, entry, update]);
   const clearPost = () => {
     update({ draft: null });
-    // the narrated video keeps its typed words but no longer saves to the post
-    if (user) saveDraft(user.id, { fromDraft: undefined });
+    // a narrated video filled from this post keeps its typed words but no longer saves to it
+    if (user && loadDraft(user.id).fromDraft === draftId) saveDraft(user.id, { fromDraft: undefined });
   };
 
   return (
