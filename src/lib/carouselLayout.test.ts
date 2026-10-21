@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   CONTENT_WIDTH,
@@ -214,5 +215,40 @@ describe("renderSvg", () => {
     expect(svg).toContain("Fees &lt;5% &amp; &quot;fair&quot;");
     expect(svg.match(/<text /g)?.length).toBe(textNodes(layout.nodes).length);
     expect(escapeXml("a\u0000b'")).toBe("ab&apos;");
+  });
+});
+
+describe("today's carousels, after the image page's additions", () => {
+  const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+  const kit = { ...brand, photo: PHOTO };
+
+  it("draw byte for byte as they did before (sha256 of the SVGs, taken at 0bf81d9)", () => {
+    const slides = [
+      layoutSlide({ title: "Most people think they are covered", body: "", index: 0, total: 4, brand: kit }, measure),
+      layoutSlide({ title: "Know your number", body: 'Six months of expenses <5% & "fair"', index: 1, total: 4, brand: kit, image: PHOTO, align: "center", scale: 1.1, font: "modern", paper: "dark" }, measure),
+      layoutSlide({ title: "", body: "word ".repeat(300), index: 2, total: 4, brand: brand, font: "serif", paper: "tint" }, measure),
+      layoutSlide({ title: "Message me", body: "Book a call", index: 3, total: 4, brand: kit }, measure),
+    ];
+    const svg = slides.map(renderSvg).join("\n");
+    expect(createHash("sha256").update(svg).digest("hex")).toBe("aa4d55a184288ce2c6ff9bf243052f002166ca1f86fe89efc633c83874427506");
+    expect(svg).not.toContain("stroke");
+    expect(svg).not.toContain("meet");
+  });
+
+  it("outlines a text node only when it carries a stroke", () => {
+    const text = (extra: Partial<TextNode>) =>
+      renderSvg({ width: 100, height: 100, nodes: [{ type: "text", x: 1, y: 2, text: "Hi", font: { family: "sans", weight: 600, size: 20 }, fill: "#FFFFFF", ...extra }] });
+    expect(text({})).not.toContain("stroke");
+    expect(text({ stroke: "#000000", strokeWidth: 8 })).toContain('fill="#FFFFFF" stroke="#000000" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Hi</text>');
+  });
+
+  it("clips a square picture with a plain rect, and keeps a logo whole with no clip", () => {
+    const pic = (shape: "square" | "rounded", fit?: "contain") =>
+      renderSvg({ width: 100, height: 100, nodes: [{ type: "image", x: 0, y: 0, width: 100, height: 60, href: PHOTO, shape, ...(fit ? { fit } : {}) }] });
+    expect(pic("square")).toContain('<clipPath id="c0"><rect x="0" y="0" width="100" height="60"/></clipPath>');
+    expect(pic("rounded")).toContain('height="60" rx="28"/>');
+    expect(pic("square", "contain")).toBe(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><image href="${PHOTO}" x="0" y="0" width="100" height="60" preserveAspectRatio="xMaxYMid meet"/></svg>`,
+    );
   });
 });

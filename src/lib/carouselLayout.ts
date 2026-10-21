@@ -166,9 +166,15 @@ export type SvgNode =
       fill: string;
       opacity?: number;
       anchor?: "end" | "middle";
+      /** An outline drawn under the fill (paint-order stroke): a meme's white words on any picture. */
+      stroke?: string;
+      strokeWidth?: number;
     }
-  /** A picture: the brand kit headshot (circle) or a slide image (rounded box, cropped to fill). */
-  | { type: "image"; x: number; y: number; width: number; height: number; href: string; shape: "circle" | "rounded" };
+  /**
+   * A picture: the brand kit headshot (circle), a slide image (rounded box) or a full-bleed picture (square), each
+   * cropped to fill; `fit: "contain"` keeps it whole against the right edge of its box instead, unclipped (a logo).
+   */
+  | { type: "image"; x: number; y: number; width: number; height: number; href: string; shape: "circle" | "rounded" | "square"; fit?: "contain" };
 
 export interface SlideLayout {
   width: number;
@@ -404,16 +410,20 @@ export function escapeXml(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export function renderSvg(layout: SlideLayout): string {
+export function renderSvg(layout: Pick<SlideLayout, "width" | "height" | "nodes">): string {
   const out = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}">`,
   ];
   layout.nodes.forEach((node, i) => {
     if (node.type === "image") {
+      if (node.fit === "contain") {
+        out.push(`<image href="${escapeXml(node.href)}" x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" preserveAspectRatio="xMaxYMid meet"/>`);
+        return;
+      }
       const clip =
         node.shape === "circle"
           ? `<circle cx="${node.x + node.width / 2}" cy="${node.y + node.height / 2}" r="${node.width / 2}"/>`
-          : `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="28"/>`;
+          : `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}"${node.shape === "square" ? "" : ' rx="28"'}/>`;
       out.push(
         `<clipPath id="c${i}">${clip}</clipPath>`,
         `<image href="${escapeXml(node.href)}" x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#c${i})"/>`,
@@ -428,8 +438,9 @@ export function renderSvg(layout: SlideLayout): string {
     } else {
       const family = node.font.family === "serif" ? SERIF_STACK : SANS_STACK;
       const anchor = node.anchor ? ` text-anchor="${node.anchor}"` : "";
+      const stroke = node.stroke ? ` stroke="${escapeXml(node.stroke)}" stroke-width="${node.strokeWidth ?? 1}" stroke-linejoin="round" paint-order="stroke"` : "";
       out.push(
-        `<text x="${node.x}" y="${node.y}" font-family="${escapeXml(family)}" font-size="${node.font.size}" font-weight="${node.font.weight}" fill="${escapeXml(node.fill)}"${opacity}${anchor}>${escapeXml(node.text)}</text>`,
+        `<text x="${node.x}" y="${node.y}" font-family="${escapeXml(family)}" font-size="${node.font.size}" font-weight="${node.font.weight}" fill="${escapeXml(node.fill)}"${opacity}${anchor}${stroke}>${escapeXml(node.text)}</text>`,
       );
     }
   });
