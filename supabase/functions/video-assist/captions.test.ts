@@ -69,6 +69,27 @@ describe("YouTube, X and Threads", () => {
     expect(fitX(["24/7 claims help is what you pay an adviser for."])).toBe("24/7 claims help is what you pay an adviser for.");
     expect(fitX(["1/2 50/30/20 is a start.", "2/2 Then cut what you don't use."])).toBe("1/2 50/30/20 is a start.\n\n2/2 Then cut what you don't use.");
   });
+  it("X captions come out exactly as they did before threads shared the splitter", () => {
+    // pinned from fitX on 2026-10-21, before fitThread was pulled out of it
+    const s = (n: number) => `Point ${n} is that your CPF payout at 65 depends on what you set aside in your 30s.`;
+    const words = "Most people never check what their hospital plan pays for a private ward stay and they find out only when the bill arrives and the insurer pays less than the full amount because of the pro-ration factor that applies to a ward class above the plan";
+    const pins: [string[], string][] = [
+      [["Short and sweet. #cpf"], "Short and sweet. #cpf"],
+      [["x".repeat(278)], "x".repeat(278)],
+      [[`${"word ".repeat(56).trim()}.`], `${"word ".repeat(56).trim()}.`],
+      [[[1, 2, 3, 4, 5].map(s).join(" ")], `1/2 ${[1, 2, 3].map(s).join(" ")}\n\n2/2 ${[4, 5].map(s).join(" ")}`],
+      [["1/3 First.", "2/3 Second.", "3/3 Third."], "1/3 First.\n\n2/3 Second.\n\n3/3 Third."],
+      [["", "  Part one.  ", "", "Part two."], "1/2 Part one.\n\n2/2 Part two."],
+      [[`${Array(4).fill(words).join(" and ")}.`], `${words} and Most people never check`],
+      [["A".repeat(276), "B short."], `1/2 ${"A".repeat(275)}\n\n2/2 B short.`],
+      [["One.", "Two.", "Three.", "Four.", "Five.", "Six.", "Seven."], "1/6 One.\n\n2/6 Two.\n\n3/6 Three.\n\n4/6 Four.\n\n5/6 Five.\n\n6/6 Six."],
+      [[`Line one.\nLine two.\n\nPara two. ${[1, 2, 3, 4].map(s).join(" ")}`], `1/2 Line one. Line two. Para two. ${[1, 2, 3].map(s).join(" ")}\n\n2/2 ${s(4)}`],
+      [[], ""],
+      [["   "], ""],
+      [["2/2 Wrong order first.", "1/2 Then this."], "1/2 2/2 Wrong order first.\n\n2/2 1/2 Then this."],
+    ];
+    for (const [parts, out] of pins) expect(fitX(parts), JSON.stringify(parts).slice(0, 80)).toBe(out);
+  });
   it("Threads keeps whole paragraphs under 500, and the YouTube title is cut at a word", () => {
     const para = "word ".repeat(40).trim();
     expect(fitThreads(`${para}\n\n${para}\n\n${para}`)).toBe(`${para}\n\n${para}`);
