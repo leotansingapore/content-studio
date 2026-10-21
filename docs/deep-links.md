@@ -319,8 +319,9 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   already <platform>:<post id>; on Leo's sign-ins also Competitors' posts), ad:<ad id> (Ads swipe; on Leo's
   sign-ins also Competitors' ads and Your space), audit:<platform>:<post id> (Account audit; resolves
   only on the device that pressed Remix), trend:<trend id> (Trends), insp:<id>, hubtrend:<id>, clone:<platform>:<post id>,
-  own:<draft id>, link:<platform>:<id>, upload:<sha1> and pattern:<platform>:<handle>:<n> (an idea from What worked,
-  Leo only; resolves only on the device that pressed Remix). A key that doesn't resolve opens Write without a source.
+  own:<draft id>, link:<platform>:<id>, upload:<sha1>, pattern:<platform>:<handle>:<n> (an idea from What worked,
+  Leo only; resolves only on the device that pressed Remix) and format:<id> (a trending format from the weekly drop,
+  Leo only; it opens /make/slideshow or /make/wall-of-text and starts nothing). A key that doesn't resolve opens Write without a source.
 - /clone?url=<reel link>: fills the link box (a Clone button elsewhere); cloning stays a tap, since each
   clone uses one of the day's. On Leo's sign-ins it fills the Remix a post box, which takes any link
   parseRemixLink accepts (supabase/functions/remix-link/logic.ts); reading stays a tap, since it is paid.
