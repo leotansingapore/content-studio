@@ -38,13 +38,15 @@ describe("the price table", () => {
     }
   });
 
-  it("prices the phase-3 caps", () => {
+  it("prices the phase-3 caps and the two corrected lines from the brief's vendor table", () => {
     expect(priceOf("own-words")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("thread-copy")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("edit-ask")).toEqual({ usd: 0.002, kind: "about" });
     expect(priceText(priceOf("edit-ask") as { usd: number; kind: "about" })).toBe("Under US$0.01");
     expect(priceOf("page-read")).toBeNull();
     expect(priceOf("caption-keywords")).toBeNull();
+    expect(priceOf("ai-image-fix")).toEqual({ usd: 0.075, kind: "about" });
+    expect(priceOf("ai-voice")).toEqual({ usd: 0.02, kind: "about" });
   });
 
   it("adds DoP lite per scene when an explainer's scenes move", () => {

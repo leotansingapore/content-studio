@@ -52,11 +52,14 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
     return seconds && quality ? about(creditsUsd(clipCredits(seconds, quality))) : null;
   },
   "ai-image": about(0.006), // Higgsfield Soul v2 at 1080p (ai-image/index.ts)
-  "ai-image-fix": about(0.05), // Qwen Image 3 edit at 2k on Higgsfield, unverified
+  // Qwen Image 3 edit at 2k on Higgsfield: US$0.04 at 1k, US$0.075 at 2k (open.higgsfield.ai/models/alibaba/qwen-image-3/edit, read 2026-10-21)
+  "ai-image-fix": about(0.075),
   "ai-broll": about(0.13), // Soul v2 picture + DoP lite 5 s (ai-image/broll.ts)
   // Eleven Music at about US$0.15 a minute, and tracks stop at 2 minutes (usageCaps.ts, text-voice MAX_MUSIC_SECONDS).
   "ai-music": (o) => (o.minutes && o.minutes > 0 ? about(0.15 * Math.min(2, o.minutes)) : null),
-  "ai-voice": about(0.05), // ElevenLabs turbo v2.5, a 30 s voiceover of about 450 characters, unverified
+  // ElevenLabs turbo v2.5: Turbo and Flash US$0.04 per 1,000 characters (elevenlabs.io/pricing/api, read 2026-10-21), and a
+  // 30 s voiceover is about 450 characters, US$0.018. The studio's account is on the free plan, so today it spends free characters.
+  "ai-voice": about(0.02),
   "ai-video-script": about(0.01), // one OpenAI call (ai-video mode "script"), unverified
   "video-watch": about(0.07), // Gemini watches the file twice, a 40 s reel (usageCaps.ts, video-assist/watch.ts)
   // Whisper list price, US$0.006 a minute of audio, unverified
