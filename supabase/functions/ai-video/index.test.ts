@@ -715,3 +715,29 @@ describe("saved presenters (people-presenters, NORTH_STAR_USERS only)", () => {
     expect(hf.calls).toEqual([]);
   });
 });
+
+// The script writers' prompts as they were before standing notes (brand-voice-memory), pinned on that code: never
+// update the fixture with vitest -u.
+describe("the script writers' prompts", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const SCRIPT = "Most people pay for their hospital stay twice. First the plan pays the ward. Then the bill still has a co-pay. Ask me what yours covers.";
+  const TODAY = [
+    [UID, { mode: "script", topic: "Why hospital plans have a co-pay" }],
+    [LEO, { mode: "script", topic: "Why hospital plans have a co-pay", seconds: 30 }],
+    [LEO, { mode: "script", topic: "", seconds: 60, source: { kind: "script", text: SCRIPT } }],
+    [LEO, { mode: "talk-script", talk: "spokesperson", topic: "Why people pay for hospital twice", offer: { name: "Free policy review" } }],
+    [LEO, { mode: "talk-script", talk: "news", topic: "", source: { text: SCRIPT } }],
+  ] as const;
+  const prompts = () => hf.openai.map((o) => o.messages);
+
+  it("are today's, one request each", async () => {
+    for (const [uid, body] of TODAY) {
+      // a reply that never comes: one OpenAI request, and the use goes back
+      hf.replies.push(500);
+      await send(uid, body);
+    }
+    expect(hf.openai).toHaveLength(TODAY.length);
+    await expect(JSON.stringify(prompts(), null, 2)).toMatchFileSnapshot("./fixtures/script-prompts-today.json");
+  });
+});

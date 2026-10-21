@@ -1,0 +1,23 @@
+{
+  "url": "https://abc.supabase.co/functions/v1/generate-social-content",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer jwt",
+    "apikey": "anon-key",
+    "Accept": "text/event-stream"
+  },
+  "body": {
+    "pillar": "topic",
+    "pillarDetail": "Why people pay for hospital twice",
+    "ideaSource": "A concrete angle for this week",
+    "ideaContext": "MY BRAND RULES: Never use the words: guaranteed.",
+    "format": "text-post",
+    "platform": "linkedin",
+    "ctaType": "comment-keyword",
+    "audience": "general",
+    "voiceSummary": "Warm and plain. Short sentences.",
+    "mode": "post",
+    "n": 1,
+    "stream": true
+  }
+}

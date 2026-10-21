@@ -238,6 +238,42 @@ describe("voiceForClone", () => {
   });
 });
 
+// What Clone a reel sends for everyone else, pinned before standing notes joined the voice (brand-voice-memory):
+// the caller's voice as built, whatever /voice and /coach hold for the account.
+describe("the voice sent to clone-reel for everyone else", () => {
+  const post = "I started my CPF top-ups at 25 because my dad never had the chance to, and here is what I learned along the way.";
+  const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];
+  beforeEach(() => {
+    const storage = memoryStorage();
+    vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true });
+    vi.stubGlobal("localStorage", storage);
+    storage.setItem("content-studio-voice-u1", JSON.stringify({ posts: [], voiceSummary: "Warm and plain, from the website.", updatedAt: "" }));
+    storage.setItem("content-studio-coachprofile-u1", JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] }));
+    storage.setItem("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
+    invoke.mockResolvedValue({ data: result(), error: null });
+  });
+
+  it("sends the caller's voice on a clone, and none when it has none", async () => {
+    const voice = voiceForClone({ posts: [post, post, post], voiceSummary: "Warm", updatedAt: "" }, winners);
+    await cloneReel("u", voice);
+    await cloneReel("u", voiceForClone({ posts: [], voiceSummary: "Warm and plain, from the website.", updatedAt: "" }));
+    expect(invoke.mock.calls.map((c) => JSON.stringify(c[1].body))).toEqual([
+      JSON.stringify({ url: "u", voice: { summary: "Warm", samples: [post, post, post], winners } }),
+      '{"url":"u","voice":null}',
+    ]);
+  });
+
+  it("sends the caller's voice on a concept", async () => {
+    const voice = { summary: "Warm", samples: [post] };
+    const clone: SavedClone = { id: "c-pin", savedAt: "2026-10-20T03:00:00.000Z", result: { ...result(), concepts: [{ title: "a", keeps: "b", changes: "c" }] } };
+    invoke.mockResolvedValue({ data: { myVersion: { ...result().myVersion, beats: ["x"] } }, error: null });
+    await startConceptBuild("u1", clone, 0, voice).catch(() => null);
+    expect(JSON.stringify(invoke.mock.calls[0][1].body)).toBe(
+      JSON.stringify({ url: clone.result.source.url, voice, formulas: [], concept: { title: "a", keeps: "b", changes: "c" } }),
+    );
+  });
+});
+
 describe("positioningForClone", () => {
   it("sends who they serve, their edge, the one-liner and topics, only when something is filled", () => {
     expect(positioningForClone(null)).toBeNull();

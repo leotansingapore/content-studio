@@ -41,6 +41,8 @@ const row = (): SourceRow => ({
 const openai: string[] = [];
 // what each OpenAI request asked, as the user message
 const asked: string[] = [];
+// each OpenAI request's messages, system and user
+const prompts: unknown[] = [];
 
 beforeAll(async () => {
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", APIFY_API_KEY: "k" };
@@ -48,6 +50,7 @@ beforeAll(async () => {
   vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     openai.push(String(u));
     asked.push(JSON.parse(String(init?.body ?? "{}")).messages?.[1]?.content ?? "");
+    prompts.push(JSON.parse(String(init?.body ?? "{}")).messages);
     return new Response("{}", { status: 500 });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -62,12 +65,13 @@ beforeEach(() => {
   db.spent.length = 0;
   openai.length = 0;
   asked.length = 0;
+  prompts.length = 0;
   reader.cached = null;
   reader.reads = 0;
 });
 
-const clone = (extra: Record<string, unknown> = {}) =>
-  db.handler!(new Request("http://x/clone-reel", { method: "POST", headers: { Authorization: `Bearer ${UID}` }, body: JSON.stringify({ url: URL_, ...extra }) }));
+const clone = (extra: Record<string, unknown> = {}, uid = UID) =>
+  db.handler!(new Request("http://x/clone-reel", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ url: URL_, ...extra }) }));
 
 describe("Clone a reel", () => {
   it("counts a reel read through Apify and then written up once, not once per paid call", async () => {
@@ -95,5 +99,25 @@ describe("Clone a reel", () => {
     await clone();
     expect(asked[0]).toContain("The TikTok video by @leila_tuck:");
     expect(asked[0]).not.toMatch(/Their angle|Their positioning/);
+  });
+});
+
+// The prompts as they were before standing notes joined the voice (brand-voice-memory), pinned on that code: never
+// update the fixture with vitest -u.
+describe("the consultant's voice in the prompt", () => {
+  const VOICE = {
+    summary: "Warm and plain. Short sentences, real clients, no jargon.",
+    samples: ["I sat with a young couple last week who had three hospital plans between them and no idea which one paid first."],
+    winners: [{ hook: "Most people pay for their hospital stay twice", result: "12,000 views, 340 engagements" }],
+  };
+  const CONCEPT = { title: "Pay once, not twice", keeps: "The list of signs", changes: "Hospital bills instead of CPF" };
+
+  it("writes today's clone and concept prompts, with a voice and with none", async () => {
+    await clone({ voice: VOICE });
+    await clone();
+    reader.cached = row();
+    await clone({ voice: VOICE, concept: CONCEPT });
+    expect(prompts).toHaveLength(3);
+    await expect(JSON.stringify(prompts, null, 2)).toMatchFileSnapshot("./fixtures/prompts-today.json");
   });
 });

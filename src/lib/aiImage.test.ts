@@ -70,3 +70,21 @@ describe("Make the image", () => {
     expect(imageJob()).toMatchObject({ state: "done", prompt: "A family picnic at East Coast Park" });
   });
 });
+
+// The picture request for everyone else, pinned before learnings joined it (brand-voice-memory): the prompt as typed,
+// whatever /voice holds for the account.
+describe("the prompt sent for everyone else", () => {
+  it("is the prompt as typed", async () => {
+    const store = new Map<string, string>([
+      ["content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }])],
+      ["content-studio-learnings-u1", JSON.stringify([{ id: "l1", text: "Use Asian presenters", scope: "pictures", source: "typed", createdAt: "2026-10-20T03:00:00.000Z" }])],
+    ]);
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
+    expect(JSON.stringify(starts().map(([fn, body]) => [fn, body]))).toBe('[["ai-image",{"mode":"start","prompt":"A family picnic at East Coast Park"}]]');
+  });
+});
