@@ -1312,4 +1312,11 @@ describe("the wave 1 live check (21 Oct)", () => {
     expect(buildMakePrompt(req).system).toContain("- The list formula is the exception: it always says how many things it holds, as a digit or a word, at most 10.");
     expect(buildMakePrompt(shape("hooks", { formulas: FORMULAS })).system).not.toContain("list formula");
   });
+
+  it("tells the meme writer the caption's needs and questions are the reader's, not the adviser's", () => {
+    // live 7-leo-meme's caption: "A clear look at today's needs can help me plan what questions to ask next."
+    expect(live("7-leo-meme").response.result.caption).toContain("help me plan what questions to ask next");
+    const { system } = buildMakePrompt(make(live("7-leo-meme").request));
+    expect(system).toContain("In the caption, the reader is you: the needs, plans and questions are the reader's, never the brand's.");
+  });
 });

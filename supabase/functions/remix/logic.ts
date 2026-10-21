@@ -626,6 +626,7 @@ function memeRules(req: MakeRequest): string[] {
     MEME_RULES[req.layout as MemeLayout],
     "- Never mock a group of people, a race, a religion, a company or a competitor, and never name or picture a real person.",
     "- No promised returns or results, and never name an insurer or anyone else's product.",
+    "- In the options, I, me and my are the audience living the moment. In the caption, the reader is you: the needs, plans and questions are the reader's, never the brand's.",
     ...CAPTION_RULES,
     refuseRule(req, "a meme"),
   ];
