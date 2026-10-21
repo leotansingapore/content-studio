@@ -1750,6 +1750,63 @@ export function planSlices(energy: ArrayLike<number>, frame: number, total: numb
   return out;
 }
 
+/** One Speak part of an AI video (VideoProject.ai.slices): its words, its place in the video and its clip's device key. */
+export interface AiPart {
+  text: string;
+  start: number;
+  end: number;
+  clip: string;
+}
+
+const ms = (t: number) => Math.round(t * 1000) / 1000;
+
+/** The part a moment of the video falls in (the last one for anything past its end). */
+export function partAt(parts: { start: number }[], t: number): number {
+  let i = 0;
+  while (i < parts.length - 1 && t >= parts[i + 1].start) i++;
+  return i;
+}
+
+/**
+ * Typed words laid over start..end, each by its share of the letters: a remade part's captions, since Speak gives no word times.
+ * shortcut: the share is by letters, not by when each word is said; good for captions a line at a time, upgrade with a
+ * transcribe of the new part if karaoke timing ever drifts.
+ */
+export function spreadWords(text: string, start: number, end: number): Word[] {
+  const ws = text.split(/\s+/).filter(Boolean);
+  const total = ws.reduce((n, w) => n + w.length + 1, 0);
+  let at = 0;
+  return ws.map((w) => {
+    const s = ms(start + ((end - start) * at) / total);
+    at += w.length + 1;
+    return { w, s, e: ms(start + ((end - start) * at) / total) };
+  });
+}
+
+/**
+ * An AI video after some of its parts were made again (people-dub-lipsync part A): each changed part gets its new words,
+ * length and clip, every part after it moves by what it grew or shrank, and the other parts keep their captions, moved
+ * with them. A word belongs to the part its middle falls in.
+ */
+export function replaceParts(words: Word[], parts: AiPart[], changes: { i: number; text: string; seconds: number; clip: string }[]): { words: Word[]; parts: AiPart[] } {
+  const owner = words.map((w) => partAt(parts, (w.s + w.e) / 2));
+  const out: Word[] = [];
+  let shift = 0;
+  const next = parts.map((p, i) => {
+    const c = changes.find((x) => x.i === i);
+    const start = ms(p.start + shift);
+    if (!c) {
+      out.push(...words.filter((_, k) => owner[k] === i).map((w) => (shift ? { ...w, s: ms(w.s + shift), e: ms(w.e + shift) } : w)));
+      return { ...p, start, end: ms(p.end + shift) };
+    }
+    const end = ms(start + c.seconds);
+    out.push(...spreadWords(c.text, start, end));
+    shift += c.seconds - (p.end - p.start);
+    return { text: c.text, start, end, clip: c.clip };
+  });
+  return { words: out, parts: next };
+}
+
 /** How long each explainer scene stays on screen: the voiceover shared out by the words each scene says. */
 export function sceneSeconds(says: string[], total: number): number[] {
   const w = says.map((s) => Math.max(1, s.split(/\s+/).filter(Boolean).length));

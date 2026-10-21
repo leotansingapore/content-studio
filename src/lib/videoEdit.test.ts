@@ -1205,3 +1205,46 @@ describe("caption key words and the caption look (edit-captions)", () => {
     expect(captionTerms(Array.from({ length: 30 }, (_, i) => ({ from: `w${i}`, to: `W${i}` })))).toHaveLength(20);
   });
 });
+
+describe("fixing a line in an AI video (people-dub-lipsync)", () => {
+  // three Speak parts with their captions: 0-4, 4-9 and 9-13 seconds
+  const parts = [
+    { text: "Most people overpay.", start: 0, end: 4, clip: "ai-slice-j1-0-0" },
+    { text: "They need a plan.", start: 4, end: 9, clip: "ai-slice-j1-1-0" },
+    { text: "Check yours today.", start: 9, end: 13, clip: "ai-slice-j1-2-0" },
+  ];
+  const words = [
+    W("Most", 0.2, 0.6), W("people", 0.6, 1.1), W("overpay.", 1.1, 2), W("They", 4.3, 4.7), W("need", 4.7, 5), W("a", 5, 5.1), W("plan.", 5.1, 6),
+    W("Check", 9.2, 9.6), W("yours", 9.6, 10), W("today.", 10, 10.8),
+  ];
+
+  it("replaces part 2 of 3 and keeps parts 1 and 3 at their times when the new line runs as long", async () => {
+    const { replaceParts } = await import("./videoEdit");
+    const r = replaceParts(words, parts, [{ i: 1, text: "They need one plan they understand.", seconds: 5, clip: "ai-slice-j1-1-1" }]);
+    expect(r.parts).toEqual([parts[0], { text: "They need one plan they understand.", start: 4, end: 9, clip: "ai-slice-j1-1-1" }, parts[2]]);
+    expect(r.words.slice(0, 3)).toEqual(words.slice(0, 3));
+    expect(r.words.slice(-3)).toEqual(words.slice(-3));
+    const mid = r.words.slice(3, -3);
+    expect(mid.map((x) => x.w)).toEqual(["They", "need", "one", "plan", "they", "understand."]);
+    // laid over the part in order, end to end
+    expect(mid[0].s).toBe(4);
+    expect(mid.at(-1)!.e).toBe(9);
+    for (let k = 1; k < mid.length; k++) expect(mid[k].s).toBe(mid[k - 1].e);
+  });
+
+  it("moves part 3 and its captions by what part 2 grew, and leaves part 1 alone", async () => {
+    const { replaceParts } = await import("./videoEdit");
+    const r = replaceParts(words, parts, [{ i: 1, text: "They need a plan they understand.", seconds: 6.5, clip: "ai-slice-j1-1-1" }]);
+    expect(r.parts.map((p) => [p.start, p.end])).toEqual([[0, 4], [4, 10.5], [10.5, 14.5]]);
+    expect(r.parts[2]).toMatchObject({ text: "Check yours today.", clip: "ai-slice-j1-2-0" });
+    expect(r.words.slice(0, 3)).toEqual(words.slice(0, 3));
+    expect(r.words.slice(-3)).toEqual([W("Check", 10.7, 11.1), W("yours", 11.1, 11.5), W("today.", 11.5, 12.3)]);
+  });
+
+  it("finds the part a moment falls in, and lays typed words by their letters", async () => {
+    const { partAt, spreadWords } = await import("./videoEdit");
+    expect([0, 3.99, 4, 12, 99].map((t) => partAt(parts, t))).toEqual([0, 0, 1, 2, 2]);
+    expect(spreadWords("ab cd", 2, 4)).toEqual([W("ab", 2, 3), W("cd", 3, 4)]);
+    expect(spreadWords("   ", 0, 1)).toEqual([]);
+  });
+});
