@@ -997,10 +997,16 @@ export function sanitizeFixes(raw: unknown): CaptionFix[] {
 
 // ---------- stickers ----------
 
-/** block = several lines of words, wrapped and centred, for the whole video (words over a video). */
-export type OverlayKind = "text" | "arrow" | "circle" | "underline" | "block";
+/**
+ * block = several lines of words, wrapped and centred, for the whole video (words over a video). banner = a news
+ * lower third across the frame (formats-presenter): a block saying BANNER_WORD, then the headline on white.
+ */
+export type OverlayKind = "text" | "arrow" | "circle" | "underline" | "block" | "banner";
 /** The Stickers list's name for a sticker with no words of its own, so a new kind needs no change to the editor page. */
-export const OVERLAY_LABELS: Record<OverlayKind, string> = { text: "Text", arrow: "Arrow", circle: "Circle", underline: "Underline", block: "Words" };
+export const OVERLAY_LABELS: Record<OverlayKind, string> = { text: "Text", arrow: "Arrow", circle: "Circle", underline: "Underline", block: "Words", banner: "News banner" };
+/** Fixed, never BREAKING or NEWS, so a money video never passes for a real news report (MAS fair dealing). */
+export const BANNER_WORD = "EXPLAINER";
+export const BANNER_MAX = 50;
 export type BlockBox = "none" | "white" | "bar";
 
 /** A sticker: centre x/y as shares of the frame, size 0.5-2.5, shown from/to on the edited timeline. */
@@ -1037,12 +1043,12 @@ export function newOverlay(kind: OverlayKind, at: number, color: string, length?
     kind,
     text: kind === "text" ? "Your text" : "",
     x: 0.5,
-    y: kind === "text" ? 0.32 : kind === "block" ? 0.5 : 0.45,
+    y: kind === "text" ? 0.32 : kind === "block" ? 0.5 : kind === "banner" ? 0.8 : 0.45,
     size: 1,
     turn: 0,
     color: HEX.test(color) ? color.toUpperCase() : "#FFD92B",
     from,
-    to: kind === "block" && length && length > 0.3 ? length : from + 3,
+    to: kind === "block" && length && length > 0.3 ? length : from + (kind === "banner" ? 4 : 3),
     ...(kind === "block" ? { w: BLOCK_W, font: "heavy" as const, box: "none" as const } : {}),
   };
 }
@@ -1050,7 +1056,7 @@ export function newOverlay(kind: OverlayKind, at: number, color: string, length?
 /** Stickers from storage, kept only when well formed; positions and sizes are clamped. */
 export function sanitizeOverlays(raw: unknown): Overlay[] {
   if (!Array.isArray(raw)) return [];
-  const kinds: OverlayKind[] = ["text", "arrow", "circle", "underline", "block"];
+  const kinds = Object.keys(OVERLAY_LABELS) as OverlayKind[];
   return raw.slice(0, MAX_OVERLAYS).flatMap((o): Overlay[] => {
     if (!o || typeof o !== "object") return [];
     const r = o as Record<string, unknown>;
@@ -1060,7 +1066,7 @@ export function sanitizeOverlays(raw: unknown): Overlay[] {
     return [{
       id: r.id.slice(0, 24),
       kind: r.kind as OverlayKind,
-      text: typeof r.text === "string" ? r.text.slice(0, block ? BLOCK_MAX_CHARS : 60) : "",
+      text: typeof r.text === "string" ? r.text.slice(0, block ? BLOCK_MAX_CHARS : r.kind === "banner" ? BANNER_MAX : 60) : "",
       x: clamp(r.x, 0, 1, 0.5),
       y: clamp(r.y, 0, 1, 0.5),
       size: clamp(r.size, 0.5, 2.5, 1),

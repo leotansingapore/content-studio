@@ -41,6 +41,7 @@ import {
   newOverlay,
   sanitizeOverlays,
   OVERLAY_LABELS,
+  BANNER_WORD,
   MAX_OVERLAYS,
   overlaysAt,
   overlayHit,
@@ -415,7 +416,8 @@ describe("stickers", () => {
 
   it("names every sticker kind storage keeps, so the Stickers list has a name for each", () => {
     for (const [kind, label] of Object.entries(OVERLAY_LABELS)) {
-      expect(label).toMatch(/^[A-Z][a-z]+$/);
+      // sentence case, a word or two
+      expect(label).toMatch(/^[A-Z][a-z]+( [a-z]+)?$/);
       expect(sanitizeOverlays([{ id: "a", kind }]).map((o) => o.kind)).toEqual([kind]);
     }
   });
@@ -427,6 +429,23 @@ describe("stickers", () => {
     expect(overlayHit([a, b], 2.5, 0.31, 0.3, 9 / 16)?.id).toBe("b"); // topmost wins
     expect(overlayHit([a, b], 2.5, 0.9, 0.9, 9 / 16)).toBeNull();
     expect(overlayHit([a, b], 9, 0.3, 0.3, 9 / 16)).toBeNull(); // not showing
+  });
+});
+
+describe("the news banner (formats-presenter)", () => {
+  it("survives sanitising with its headline cut to 50 characters, and is named News banner", () => {
+    const headline = "Most people in Singapore pay for their hospital stay twice";
+    const [b] = sanitizeOverlays([{ id: "n", kind: "banner", text: headline, x: 0.5, y: 0.8, size: 1, color: "#D62828", from: 0, to: 4, w: 0.6, box: "white" }]);
+    expect(b).toEqual({ id: "n", kind: "banner", text: headline.slice(0, 50), x: 0.5, y: 0.8, size: 1, turn: 0, color: "#D62828", from: 0, to: 4 });
+    expect(b.text).toHaveLength(50);
+    expect(sanitizeOverlays([b])).toEqual([b]);
+    expect(OVERLAY_LABELS.banner).toBe("News banner");
+    expect(BANNER_WORD).toBe("EXPLAINER");
+  });
+
+  it("starts in the lower third for 4 seconds", () => {
+    expect(newOverlay("banner", 0, "#D62828")).toMatchObject({ kind: "banner", text: "", x: 0.5, y: 0.8, from: 0, to: 4, color: "#D62828" });
+    expect(newOverlay("banner", 0, "#D62828")).not.toHaveProperty("w");
   });
 });
 

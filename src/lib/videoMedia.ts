@@ -47,6 +47,7 @@ import {
   overlaysAt,
   type Overlay,
   BLOCK_W,
+  BANNER_WORD,
   FONTS,
   wrapBlock,
   type BlockRect,
@@ -920,6 +921,35 @@ export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) 
     g.textAlign = "center";
     g.textBaseline = "middle";
     g.fillText(text, 0, h * 0.04);
+  } else if (o.kind === "banner") {
+    // a news lower third across the whole frame at any x: the fixed word on the sticker's colour, the headline on white
+    const x0 = -o.x * W;
+    const h = 96 * u;
+    const pad = 26 * u;
+    g.font = `400 ${Math.round(38 * u)}px "Archivo Black", "Arial Black", system-ui, sans-serif`;
+    const bw = g.measureText(BANNER_WORD).width + pad * 2;
+    g.fillStyle = "#FFFFFF";
+    g.fillRect(x0, -h / 2, W, h);
+    g.shadowColor = "transparent";
+    g.fillStyle = o.color;
+    g.fillRect(x0, -h / 2, bw, h);
+    g.textBaseline = "middle";
+    g.textAlign = "left";
+    g.fillStyle = readableOn(o.color);
+    g.fillText(BANNER_WORD, x0 + pad, h * 0.04);
+    const text = o.text.trim();
+    if (text) {
+      let px = 42 * u;
+      g.font = `800 ${Math.round(px)}px "DM Sans", Inter, system-ui, sans-serif`;
+      const max = W - bw - pad * 2;
+      const tw = g.measureText(text).width;
+      if (tw > max) {
+        px *= max / tw;
+        g.font = `800 ${Math.round(px)}px "DM Sans", Inter, system-ui, sans-serif`;
+      }
+      g.fillStyle = "#0B0B0B";
+      g.fillText(text, x0 + bw + pad, h * 0.04);
+    }
   } else if (o.kind === "arrow") {
     g.rotate((o.turn * Math.PI) / 2);
     g.lineWidth = 22 * u;
