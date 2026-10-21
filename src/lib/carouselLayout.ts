@@ -299,8 +299,8 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const handle = normalizeHandle(input.brand.handle);
   const contentTop = card ? cardTop + (photo || name || handle ? CARD.header : CARD.bare) : frame.top;
   const bottom = role === "cover" ? contentBottom - SWIPE_SPACE : card ? cardBottom - 64 : contentBottom;
-  // a slide picture sits above the text, which fits into what is left
-  const pic = coverPhoto ? undefined : sanitizeImage(input.image);
+  // a slide picture sits above the text, which fits into what is left; a Bold cover is the brand colour alone
+  const pic = coverPhoto || (role === "cover" && design.cover === "bold") ? undefined : sanitizeImage(input.image);
   const top = pic ? contentTop + frame.image + SLIDE_IMAGE.gap : contentTop;
   if (pic) nodes.push({ type: "image", x: PAD_X, y: contentTop, width: CONTENT_WIDTH, height: frame.image, href: pic, shape: "rounded" });
   const lead = point === "numbered" ? NUMBER : point === "quote" ? QUOTE_MARK : ACCENT;

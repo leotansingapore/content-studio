@@ -359,6 +359,10 @@ describe("designs and sizes", () => {
     expect(textNodes(bold.nodes)[0].fill).toBe("#FFFFFF");
     expect(bold.background).toBe(brand.color);
     expect(boldPoint).toEqual(cleanPoint);
+    // the cover is the brand colour alone, even with a slide picture
+    const [boldPic] = slidesOf("bold", "4x5", { image: PIC });
+    expect(boldPic.nodes.some((n) => n.type === "image" && n.shape === "rounded")).toBe(false);
+    expect(textNodes(boldPic.nodes)[0].font.size).toBeGreaterThanOrEqual(120);
   });
 
   it("Numbered puts 01, 02 in the brand colour above each point's title, in place of the accent bar", () => {
