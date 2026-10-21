@@ -16,6 +16,7 @@ import { saveSocialAccounts, type SocialAccounts } from "@/lib/socialAccounts";
 import { saveVoiceProfile } from "@/lib/voiceProfile";
 import { supabase } from "@/lib/supabase";
 import { AUDIENCE_NAMES, keptBrand, keptBrandKey, NETWORKS, newBrandKit, readBody, type BrandDna as Dna } from "@/lib/addBrand";
+import { asPostLang, LANG_NAMES } from "@/lib/translate";
 
 // /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow).
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
@@ -24,6 +25,9 @@ import { AUDIENCE_NAMES, keptBrand, keptBrandKey, NETWORKS, newBrandKit, readBod
 const STEPS = ["Opening the site", "Name and logo", "Brand colour", "Social accounts", "What you do and for whom", "How you sound"];
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
 type Card = (typeof CARDS)[number];
+
+// Leo's read names the site's language from <html lang> (brand-dna); everyone else's read has none (edit-translate)
+const siteLang = (d: Dna | null, leo: boolean) => (leo ? asPostLang((d as { lang?: unknown } | null)?.lang) : null);
 
 export default function AddBrandPage() {
   const [uid, setUid] = useState("");
@@ -132,7 +136,8 @@ export default function AddBrandPage() {
     setActiveProfile(uid, p.id);
     if (brand) {
       const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
-      saveBrand(uid, newBrandKit(brand, title));
+      const postLang = siteLang(brand, leo);
+      saveBrand(uid, postLang ? { ...newBrandKit(brand, title), postLang } : newBrandKit(brand, title));
       savePositioning(uid, {
         ...EMPTY_POSITIONING,
         oneLiner: brand.oneLiner,
@@ -156,6 +161,7 @@ export default function AddBrandPage() {
   };
 
   const pct = Math.round((done.size / CARDS.length) * 100);
+  const lang = siteLang(dna, leo);
   const row = (c: Card, title: string, summary: string, body: React.ReactNode) => (
     <section key={c} className={`rounded-xl border p-3 ${done.has(c) ? "border-border/60 bg-muted/30" : "border-primary/40 bg-card shadow-card"}`}>
       {done.has(c) ? (
@@ -277,6 +283,7 @@ export default function AddBrandPage() {
           {row("voice", "How it sounds", dna.voice || "not set", (
             <Textarea rows={2} value={dna.voice} onChange={(e) => patch({ voice: e.target.value })} placeholder="Warm and plain. Short sentences." className="text-sm" aria-label="Voice" />
           ))}
+          {lang && <p className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm" data-testid="site-language">Your website is in {LANG_NAMES[lang]}, so posts will be too. Change it in Brand kit.</p>}
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Button size="lg" disabled={!dna.name.trim()} onClick={() => create(dna)}>Create {dna.name.trim() || "brand"}</Button>
