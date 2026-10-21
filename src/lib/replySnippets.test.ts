@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fillVariables, insertSnippet, loadForm, loadSnippets, MAX_SNIPPET_NAME, MAX_SNIPPETS, MAX_TEXT, ofKind, removeSnippet, saveForm, saveSnippet, snippetName } from "@/lib/replySnippets";
 import { dmLinks, waDigits } from "@/lib/bioPage";
 import { blankRanges } from "@/lib/platformCounters";
+import { isSyncedKeyFor } from "@/lib/cloudSync";
 import { loadEdit, saveEdit } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
@@ -134,6 +135,20 @@ describe("kinds", () => {
     expect(saveSnippet("u1", { name: "", text: "p".repeat(3000), kind: "post" }).saved!.text).toHaveLength(2200);
     expect(saveSnippet("u1", { name: "", text: "t".repeat(400), kind: "hashtags" }).saved!.text).toHaveLength(300);
     expect(saveSnippet("u1", { name: "", text: "e".repeat(400), kind: "ending" }).saved!.text).toHaveLength(300);
+  });
+
+  it("tells an open Insert panel the list changed", () => {
+    const changed = vi.fn();
+    vi.stubGlobal("dispatchEvent", (e: Event) => changed(e.type));
+    saveSnippet("u1", { name: "", text: "#cpf", kind: "hashtags" });
+    expect(changed).toHaveBeenCalledWith("content-studio-snippets-changed");
+  });
+
+  it("a hashtag set rides today's synced key, so another device's Insert panel gets it", () => {
+    const uid = "0b9f2c4e-1a2b-4c3d-8e9f-0a1b2c3d4e5f";
+    saveSnippet(uid, { name: "", text: "#cpf #sg", kind: "hashtags" });
+    expect([...store.keys()]).toEqual([`content-studio-snippets-${uid}`]);
+    expect(isSyncedKeyFor(`content-studio-snippets-${uid}`, uid)).toBe(true);
   });
 
   it("keeps each kind's add form apart, the reply form under today's key", () => {
