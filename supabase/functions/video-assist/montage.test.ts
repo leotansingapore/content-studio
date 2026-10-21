@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FILTERS } from "../../../src/lib/videoEdit";
-import { BEAT_MAX, BEAT_MIN, DEFAULT_GRADE, GRADES, MAX_BEATS, MIN_BEATS, buildMontageMessages, fitBeats, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks, type Beat } from "./montage";
+import { BEAT_MAX, BEAT_MIN, DEFAULT_GRADE, GRADES, MAX_BEATS, MAX_SET_CANDIDATES, MIN_BEATS, buildMontageMessages, fitBeats, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks, type Beat } from "./montage";
 
 const beat = (n: number, seconds = 4, over: Partial<Beat> = {}): Beat => ({ say: `Shot ${n}`, search: `shot ${n}`, fallback: "city", text: "", seconds, ...over });
 const reply = (beats: unknown[]) => JSON.stringify({ beats });
@@ -138,5 +138,32 @@ describe("today's montage pick, pinned", () => {
         criteria: { c0: "y".repeat(100), none: "None of these shows the beat; they are about something else." },
       },
     });
+  });
+});
+
+describe("a media set's pick (listed callers only)", () => {
+  const body = { theme: "Money", set: true, beats: [{ say: "Coins in a jar", candidates: Array.from({ length: 15 }, (_, j) => ({ desc: `photo ${j}` })) }] };
+  const question = (q: ReturnType<typeof pickQuestions>) => (q.pick_0 as { instructions: { question: string } }).instructions.question;
+  it("keeps 12 candidates with set for a listed uid, 6 otherwise", () => {
+    expect(MAX_SET_CANDIDATES).toBe(12);
+    const listed = parsePickRequest(body, true);
+    expect(listed).toMatchObject({ ok: true, set: true });
+    if (!listed.ok) throw new Error("refused");
+    expect(listed.beats[0].candidates).toHaveLength(12);
+    for (const p of [parsePickRequest(body), parsePickRequest(body, false), parsePickRequest({ ...body, set: undefined }, true), parsePickRequest({ ...body, set: "yes" }, true)]) {
+      if (!p.ok) throw new Error("refused");
+      expect(p.beats[0].candidates).toHaveLength(6);
+      expect("set" in p).toBe(false);
+    }
+  });
+  it("asks about a photo or clip described in words only with set", () => {
+    const listed = parsePickRequest(body, true);
+    if (!listed.ok) throw new Error("refused");
+    expect(question(pickQuestions(listed.beats, listed.noun, listed.set))).toBe("Which photo or clip, described in words, best shows `beat`?");
+    expect(Object.keys((pickQuestions(listed.beats, listed.noun, listed.set).pick_0 as { criteria: object }).criteria)).toHaveLength(13);
+    const other = parsePickRequest(body, false);
+    if (!other.ok) throw new Error("refused");
+    expect(question(pickQuestions(other.beats, other.noun, other.set))).toBe("Which stock clip, described by its page name, best shows `beat`?");
+    expect(question(pickQuestions(other.beats, "photo", other.set))).toBe("Which stock photo, described in words, best shows `beat`?");
   });
 });

@@ -4,6 +4,8 @@
 //   montage-pick: for each beat the editor found stock candidates for, Jev picks the one that fits it,
 //     or says none does (the editor then tries the broader search, and tells the adviser what it used).
 //     A slideshow (/make/slideshow) sends noun "photo": its beats are slides and its candidates stock photos.
+//     `set: true` (a media set's photos or clips, NORTH_STAR_USERS only, ignored for anyone else) takes up to 12
+//     candidates a beat, described by their alt text rather than a page name.
 // Pure, so vitest covers it (montage.test.ts). Candidates are described by their Pexels page name
 // (a slug like "woman-walking-on-street"), the only words a stock video carries; Jev reads text only.
 
@@ -29,6 +31,7 @@ export const LEN_MAX = 45;
 export const MAX_THEME = 80;
 export const TEXT_CHARS = 32;
 export const MAX_CANDIDATES = 6;
+export const MAX_SET_CANDIDATES = 12;
 
 export interface Beat {
   /** The shot, in a sentence: what Jev reads to match a clip. */
@@ -127,30 +130,33 @@ export interface PickAsk {
 /** What the candidates are: the montage's stock clips (the default) or a slideshow's stock photos. */
 export type PickNoun = "clip" | "photo";
 
-export function parsePickRequest(body: unknown): { ok: true; theme: string; beats: PickAsk[]; noun: PickNoun } | { ok: false; error: string } {
+/** `listed`: the caller is on NORTH_STAR_USERS, the only callers whose `set: true` is read. */
+export function parsePickRequest(body: unknown, listed = false): { ok: true; theme: string; beats: PickAsk[]; noun: PickNoun; set?: true } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const set = listed && b.set === true;
   const list = Array.isArray(b.beats) ? b.beats.slice(0, MAX_BEATS) : [];
   const beats = list.map((x): PickAsk => {
     const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
-    const cands = (Array.isArray(o.candidates) ? o.candidates : []).slice(0, MAX_CANDIDATES).map((c) => ({ desc: clean((c as { desc?: unknown })?.desc, 100) }));
+    const cands = (Array.isArray(o.candidates) ? o.candidates : []).slice(0, set ? MAX_SET_CANDIDATES : MAX_CANDIDATES).map((c) => ({ desc: clean((c as { desc?: unknown })?.desc, 100) }));
     return { say: clean(o.say, 90), candidates: cands };
   });
   if (!beats.length || beats.some((x) => !x.say)) return { ok: false, error: "Nothing to pick from." };
-  return { ok: true, theme: clean(b.theme, MAX_THEME), beats, noun: b.noun === "photo" ? "photo" : "clip" };
+  return { ok: true, theme: clean(b.theme, MAX_THEME), beats, noun: b.noun === "photo" ? "photo" : "clip", ...(set ? { set } : {}) };
 }
 
 const PICK_QUESTION: Record<PickNoun, string> = {
   clip: "Which stock clip, described by its page name, best shows `beat`?",
   photo: "Which stock photo, described in words, best shows `beat`?",
 };
+const SET_QUESTION = "Which photo or clip, described in words, best shows `beat`?";
 
-/** One Choice per beat that has candidates: which one shows it, or none. A photo (a slideshow's) is asked about as a photo. */
-export function pickQuestions(beats: PickAsk[], noun: PickNoun = "clip"): Record<string, JevQuestion> {
+/** One Choice per beat that has candidates: which one shows it, or none. A photo (a slideshow's) is asked about as a photo, a set's file by its words. */
+export function pickQuestions(beats: PickAsk[], noun: PickNoun = "clip", set = false): Record<string, JevQuestion> {
   return Object.fromEntries(beats.flatMap((b, i): [string, JevQuestion][] => b.candidates.length ? [[
     `pick_${i}`,
     {
       type: "choice",
-      instructions: { beat: b.say, question: PICK_QUESTION[noun] },
+      instructions: { beat: b.say, question: set ? SET_QUESTION : PICK_QUESTION[noun] },
       criteria: { ...Object.fromEntries(b.candidates.map((c, j) => [`c${j}`, c.desc || `an unlabelled ${noun}`])), none: "None of these shows the beat; they are about something else." },
     },
   ]] : []));

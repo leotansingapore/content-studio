@@ -339,3 +339,39 @@ describe("Captions: key words (edit-captions)", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("Montage pick from a media set", () => {
+  const JEV = "https://api.typesafe.ai/v1/systemone";
+  const beats = [{ say: "Coins in a jar on a table", candidates: Array.from({ length: 14 }, (_, j) => ({ desc: `A jar of coins, photo ${j}` })) }];
+  const pick = (uid: string, body: Record<string, unknown> = {}) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "montage-pick", theme: "Saving", beats, ...body }) }));
+  const asked = () => JSON.parse(sent[calls.indexOf(JEV)]) as { questions: Record<string, { instructions: { question: string }; criteria: Record<string, string> }> };
+  const run = async (uid: string, body: Record<string, unknown>) => {
+    answer = (u) => (u === JEV ? Response.json({ answers: { pick_0: { type: "choice", choice: "c9", probabilities: { c9: 0.8 } } } }) : new Response("{}", { status: 500 }));
+    env.TYPESAFE_API_KEY = "k";
+    try {
+      return await pick(uid, body);
+    } finally {
+      delete env.TYPESAFE_API_KEY;
+    }
+  };
+
+  it("offers a listed caller's set 12 candidates, asked about in words, for one use", async () => {
+    const res = await run(LEO, { set: true });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ picks: [9] });
+    const q = asked().questions.pick_0;
+    expect(q.instructions.question).toBe("Which photo or clip, described in words, best shows `beat`?");
+    expect(Object.keys(q.criteria)).toHaveLength(13);
+    expect(db.rows.get(`${LEO}|montage-pick|${db.today()}`)).toBe(1);
+  });
+  it("reads anyone else's set as today's request: 6 candidates and today's question", async () => {
+    const res = await run(UID, { set: true });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ picks: [null] });
+    const q = asked().questions.pick_0;
+    expect(q.instructions.question).toBe("Which stock clip, described by its page name, best shows `beat`?");
+    expect(Object.keys(q.criteria)).toHaveLength(7);
+    expect(db.rows.get(`${UID}|montage-pick|${db.today()}`)).toBe(1);
+  });
+});
