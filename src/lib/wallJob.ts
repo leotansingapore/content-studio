@@ -228,7 +228,7 @@ async function candidates(query: string): Promise<StockItem[]> {
 }
 
 /** Jev's pick for the scene: its index, -1 when none shows it, null when it gave no answer. */
-async function pick(w: Written, items: StockItem[]): Promise<number | null> {
+async function pick(w: Pick<Written, "scene">, items: StockItem[]): Promise<number | null> {
   const r = await callFn<{ picks: (number | null)[] }>("video-assist", {
     mode: "montage-pick",
     theme: w.scene,
@@ -242,7 +242,7 @@ async function pick(w: Written, items: StockItem[]): Promise<number | null> {
  * The writer's search, then Jev's pick for the scene. Jev's "none" searches once more with the source's title or
  * the topic and asks again; no answer from Jev takes the first clip that loops. null when nothing fits either time.
  */
-async function findClip(w: Written, again: string): Promise<StockItem | null> {
+export async function findClip(w: Pick<Written, "scene" | "search">, again: string): Promise<StockItem | null> {
   for (const query of [w.search, simpleQuery(again)]) {
     const items = await candidates(query);
     if (!items.length) continue;
