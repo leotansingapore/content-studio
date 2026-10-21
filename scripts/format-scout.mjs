@@ -502,9 +502,10 @@ export async function run({
       console.error("format-scout: nothing new kept this week; formatTrends.json keeps its last drop");
       return 1;
     }
+    // a thin week is not a failure: the scrape ran and was read, there were just few formats worth keeping
     if (list.length < MIN_ITEMS) {
-      console.error(`format-scout: only ${list.length} items (< ${MIN_ITEMS}); formatTrends.json keeps its last drop`);
-      return 1;
+      console.warn(`format-scout: only ${list.length} items (< ${MIN_ITEMS}), a thin week; formatTrends.json keeps its last drop`);
+      return 0;
     }
 
     fs.mkdirSync(coverDir, { recursive: true });

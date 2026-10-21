@@ -283,11 +283,11 @@ describe("run", () => {
     expect(ids).not.toContain("tiktok-2");
   });
 
-  it("writes nothing under 8 items and keeps the last drop", async () => {
+  it("writes nothing under 8 items, keeps the last drop and exits 0 for a thin week", async () => {
     quiet();
     const o = fakes({ scrape: vi.fn(async () => DATASET.slice(0, 7)) });
     fs.writeFileSync(o.out, "last drop");
-    expect(await run(o)).toBe(1);
+    expect(await run(o)).toBe(0);
     expect(fs.readFileSync(o.out, "utf8")).toBe("last drop");
     expect(fs.existsSync(o.coverDir)).toBe(false);
   });
