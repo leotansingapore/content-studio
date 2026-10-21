@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe } from "./videoProjects";
+import { aiOf, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 
 const deleted: string[] = [];
@@ -90,6 +90,61 @@ describe("a project made from a post", () => {
     ];
     window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify(today));
     expect(loadProjects("u")).toStrictEqual(today);
+  });
+});
+
+describe("the AI mark", () => {
+  beforeEach(() => vi.stubGlobal("window", { localStorage: memoryStorage() }));
+  const MADE = "2026-10-21T09:15:00.000Z";
+  const slices = [{ text: "Hi, I'm Leo.", start: 0, end: 4.2, clip: "ai-slice-j1-0-0" }, { text: "Here's why.", start: 4.2, end: 9, clip: "ai-slice-j1-1-0" }];
+  const full: AiMark = { kind: "avatar", person: "mine", who: "face-abc", voice: "premade", madeAt: MADE, voiceId: "alice", lang: "en", slices };
+  const project = (ai: unknown) => ({ id: "v1", name: "v1", createdAt: "", updatedAt: "", duration: 9, size: 1, words: [], settings: {} as never, thumb: "", ai: ai as AiMark });
+
+  it("keeps a good mark, every field of it", () => {
+    expect(aiOf(full)).toStrictEqual(full);
+    expect(aiOf({ kind: "explainer", person: "generated", madeAt: MADE })).toStrictEqual({ kind: "explainer", person: "generated", madeAt: MADE });
+    for (const kind of ["template", "dub"]) expect(aiOf({ kind, madeAt: MADE })).toStrictEqual({ kind, madeAt: MADE });
+  });
+
+  it("is no mark without a known kind and a date", () => {
+    for (const junk of [undefined, null, "avatar", 5, [], {}, { kind: "swap", madeAt: MADE }, { kind: "avatar" }, { kind: "avatar", madeAt: "yesterday" }, { kind: "avatar", madeAt: 5 }])
+      expect(aiOf(junk)).toBeUndefined();
+  });
+
+  it("drops each bad field and anything it doesn't know, keeping the rest", () => {
+    expect(aiOf({ kind: "avatar", madeAt: MADE, person: "someone", who: 7, voice: "clone", voiceId: "rachel", lang: "fr", source: "https://x", agreedAt: MADE }))
+      .toStrictEqual({ kind: "avatar", madeAt: MADE });
+    expect(aiOf({ ...full, who: "" })).not.toHaveProperty("who");
+  });
+
+  it("drops every part when one is bad, so a remake can't land on the wrong one", () => {
+    const bad = [
+      { ...slices[1], clip: "hd-demo" }, { ...slices[1], start: -1 }, { ...slices[1], end: 4.2 }, { ...slices[1], end: Infinity },
+      { ...slices[1], text: 5 }, { ...slices[1], start: "4.2" }, null,
+    ];
+    for (const b of bad) expect(aiOf({ ...full, slices: [slices[0], b] }), JSON.stringify(b)).not.toHaveProperty("slices");
+    expect(aiOf({ ...full, slices: [] })).not.toHaveProperty("slices");
+    expect(aiOf({ ...full, slices: "ai-slice-j1-0-0" })).not.toHaveProperty("slices");
+    expect(aiOf({ ...full, slices: [{ ...slices[0], extra: "x" }] })?.slices).toStrictEqual([slices[0]]);
+  });
+
+  it("keeps a mark through a save and a load, and reads a junk one as none with the rest of the project", () => {
+    saveProject("u", project(full));
+    expect(loadProjects("u")[0].ai).toStrictEqual(full);
+    window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify([project({ kind: "avatar" }), project({ ...full, voiceId: "nope" })]));
+    const [junk, good] = loadProjects("u");
+    expect(junk.ai).toBeUndefined();
+    expect(junk.name).toBe("v1");
+    const { voiceId: _gone, ...rest } = full;
+    expect(good.ai).toStrictEqual(rest);
+  });
+
+  it("reads an old project, saved before the mark, as none", () => {
+    const old = { id: "v0", name: "Old", createdAt: "", updatedAt: "", duration: 8, size: 1, words: [], settings: {}, thumb: "" };
+    window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify([old]));
+    const [p] = loadProjects("u");
+    expect(p.ai).toBeUndefined();
+    expect(p).toStrictEqual(old);
   });
 });
 

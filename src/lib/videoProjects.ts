@@ -13,6 +13,51 @@ import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSetti
 import type { WatchFinding } from "../../supabase/functions/video-assist/watch.ts";
 import type { KeywordPick } from "../../supabase/functions/video-assist/keywords.ts";
 import type { RemixSource } from "@/lib/remixSource";
+import { VOICE_IDS, type VoiceId } from "../../supabase/functions/text-voice/logic.ts";
+
+/** What the studio's AI made in a video, set by the code that made it (people-ai-labels' shape; the swap fields wait for 4b). */
+export interface AiMark {
+  kind: "avatar" | "explainer" | "template" | "dub";
+  /** "generated": a person with no saved likeness (an explainer or template person, a one-off photo). */
+  person?: "mine" | "presenter" | "generated";
+  /** The saved face's or presenter's id. */
+  who?: string;
+  /** Unset for a voice recorded on the mic. */
+  voice?: "mine" | "premade";
+  madeAt: string;
+  /** The premade voice used, so a remade part sounds the same. */
+  voiceId?: VoiceId;
+  lang?: "en" | "zh" | "ms" | "ta";
+  /** Each Speak part's words and place in the video; clip is its device file key, "ai-slice-<job>-<i>-<v>". */
+  slices?: { text: string; start: number; end: number; clip: string }[];
+}
+
+const pick = <T extends string>(list: readonly T[], v: unknown): T | undefined => (list.includes(v as T) ? (v as T) : undefined);
+const goodSlice = (s: unknown) => {
+  const x = (s ?? {}) as Record<string, unknown>;
+  return typeof x.text === "string" && typeof x.start === "number" && typeof x.end === "number" && x.start >= 0 && x.end > x.start && Number.isFinite(x.end)
+    && typeof x.clip === "string" && x.clip.startsWith("ai-slice-");
+};
+
+/** A mark read back from synced JSON or a pending job: a bad field is dropped, and one with no kind or date is no mark. */
+export function aiOf(raw: unknown): AiMark | undefined {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const kind = pick(["avatar", "explainer", "template", "dub"], r.kind);
+  if (!kind || typeof r.madeAt !== "string" || Number.isNaN(Date.parse(r.madeAt))) return undefined;
+  const person = pick(["mine", "presenter", "generated"], r.person);
+  const voice = pick(["mine", "premade"], r.voice);
+  const voiceId = pick(VOICE_IDS, r.voiceId);
+  const lang = pick(["en", "zh", "ms", "ta"], r.lang);
+  // one bad part drops them all, so a remake by part number can never land on the wrong one
+  const slices = Array.isArray(r.slices) && r.slices.length && r.slices.every(goodSlice)
+    ? (r.slices as NonNullable<AiMark["slices"]>).map(({ text, start, end, clip }) => ({ text, start, end, clip }))
+    : undefined;
+  return {
+    kind, madeAt: r.madeAt,
+    ...(person ? { person } : {}), ...(typeof r.who === "string" && r.who ? { who: r.who } : {}), ...(voice ? { voice } : {}),
+    ...(voiceId ? { voiceId } : {}), ...(lang ? { lang } : {}), ...(slices ? { slices } : {}),
+  };
+}
 
 export interface VideoProject {
   id: string;
@@ -40,6 +85,8 @@ export interface VideoProject {
   source?: RemixSource;
   /** The post this video was made from (a format's hand-off); Leo's Save to your post updates it. */
   draftId?: string;
+  /** What the studio's AI made in it (a person, a voice); none for a filmed or uploaded video. */
+  ai?: AiMark;
 }
 
 export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
@@ -72,8 +119,11 @@ export function loadProjects(userId: string | null | undefined): VideoProject[] 
   if (!s || !userId) return [];
   try {
     const v = JSON.parse(s.getItem(KEY + scoped(userId)) ?? "[]");
-    // synced JSON with no sanitizer: a draftId that isn't a string is read as none
-    return Array.isArray(v) ? v.map((p) => (p?.draftId !== undefined && typeof p.draftId !== "string" ? { ...p, draftId: undefined } : p)) : [];
+    // synced JSON with no sanitizer: a draftId that isn't a string is read as none, and a junk AI mark as no mark
+    return Array.isArray(v) ? v.map((p) => {
+      const q = p?.draftId !== undefined && typeof p.draftId !== "string" ? { ...p, draftId: undefined } : p;
+      return q?.ai !== undefined ? { ...q, ai: aiOf(q.ai) } : q;
+    }) : [];
   } catch {
     return [];
   }
