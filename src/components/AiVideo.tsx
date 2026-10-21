@@ -1,15 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import ComplianceChips from "@/components/ComplianceChips";
 import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { priceOf, reasonText, sumPrices, type Price, type PriceOpts } from "@/lib/prices";
-import { useLeoOnly } from "@/lib/useLeoOnly";
-import { useUrlItem, useUrlState } from "@/lib/urlState";
-import { moveTake } from "@/lib/videoEdit";
+import { scanCompliance } from "@/lib/compliance";
+import { getFile, putFile } from "@/lib/deviceFiles";
+import { loadBrand } from "@/lib/carousel";
+import { links } from "@/lib/links";
+import { priceOf, priceText, reasonText, sumPrices, type Price, type PriceOpts } from "@/lib/prices";
+import {
+  MAS_FLAG, SET_LABELS, TALKS, TALK_LABELS, TALK_SETTING, UNBOXING, isSetTalk, loadTalk, makeSet, notePresenter, offerAt, offerNames, onPresenterSet,
+  onTalkScript, pickOffer, presenterFits, presenterSet, savedSet, saveTalk, takeScript, talkExtra, talkScript, writeTalkScript, type Talk,
+} from "@/lib/presenter";
+import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
+import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { BANNER_MAX, moveTake } from "@/lib/videoEdit";
 import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
@@ -150,6 +160,17 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
   // format pages make the hidden ones; the skits show for Leo only (the server refuses both for anyone else)
   const shown = editorTemplates(leo);
   const pick: VideoTemplate | null = shown.find((t) => t.id === templateId) ?? null;
+  // Unboxing (formats-presenter, Leo only): ?offer=<n> fills "Your product" with that brand kit offer once, then leaves
+  const user = useLeoUser();
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const offerParam = params.get("offer");
+  useEffect(() => {
+    if (!user || offerParam === null || templateId !== UNBOXING) return;
+    const name = offerAt(offerNames(user.id), offerParam);
+    if (name) setFields((f) => ({ ...f, product: name }));
+    update({ offer: null });
+  }, [user, offerParam, templateId, update]);
 
   if (!pick) {
     return (
@@ -266,6 +287,82 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
     if (job?.kind === "presenter" && job.state === "done" && job.url) setPresenter(job.url);
   }, [job]);
 
+  // formats-presenter, Leo only: the Format row (?talk=, replace; the brand's last pick when absent) and everyone
+  // else's You speaking exactly as before, a typed talk= or offer= ignored
+  const user = useLeoUser();
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const kept = useMemo(() => (user ? loadTalk(user.id) : null), [user]);
+  const [talkParam, setTalkParam] = useUrlState<Talk>("talk", kept?.talk ?? "plain", { allowed: TALKS });
+  const talk: Talk = user ? talkParam : "plain";
+  const offers = useMemo(() => (user ? offerNames(user.id) : []), [user]);
+  const offer = pickOffer(offers, params.get("offer"), kept?.offer);
+  const offerName = offer === null ? null : offers[offer];
+  const [offerPic, setOfferPic] = useState<{ file: File; url: string } | null>(null);
+  const [headline, setHeadline] = useState("");
+  const [undo, setUndo] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  // Write it for me runs outside React (presenter.ts): its script lands in this box, or the next one opened
+  const [scriptJob, setScriptJob] = useState(talkScript);
+  const scriptRef = useRef(script);
+  scriptRef.current = script;
+  useEffect(() => {
+    const take = (j: ReturnType<typeof talkScript>) => {
+      setScriptJob(j);
+      const s = takeScript();
+      if (!s?.say) return;
+      if (scriptRef.current.trim() && scriptRef.current !== s.say) setUndo(scriptRef.current);
+      setScript(s.say);
+      setHeadline(s.headline ?? "");
+      setVo(null);
+    };
+    take(talkScript());
+    return onTalkScript(take);
+  }, []);
+  // the empty set behind your own photo: made once (presenter.ts), then reused from this device
+  const setTalk = isSetTalk(talk) ? talk : null;
+  const [behind, setBehind] = useState<"keep" | "set">("keep");
+  const [setJob, setSetJob] = useState(presenterSet);
+  useEffect(() => onPresenterSet((j) => {
+    setSetJob(j);
+    if (j?.state === "failed") setBehind("keep");
+  }), []);
+  const setKey = setTalk ? (setJob?.talk === setTalk && setJob.key) || savedSet(setTalk) : null;
+  const [setUrl, setSetUrl] = useState("");
+  useEffect(() => {
+    let url = "";
+    let live = true;
+    if (setKey) void getFile(setKey).then((b) => live && setSetUrl(b ? (url = URL.createObjectURL(b)) : ""), () => live && setSetUrl(""));
+    else setSetUrl("");
+    return () => {
+      live = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [setKey]);
+  useEffect(() => setAsking(false), [vo]);
+
+  const chooseTalk = (t: Talk) => {
+    setTalkParam(t);
+    if (user) saveTalk(user.id, { talk: t, ...(offer !== null ? { offer } : {}) });
+  };
+  const chooseOffer = (i: number) => {
+    update({ offer: String(i) });
+    if (user) saveTalk(user.id, { talk, offer: i });
+  };
+  // Unboxing is the Creator review template, its product filled from the offer once (push, so Back comes back here)
+  const unboxing = () => update({ kind: "template", template: UNBOXING, talk: null, offer: offer === null ? null : String(offer) }, { push: true });
+  const again = scriptJob?.state === "done" && !!scriptJob.say && script === scriptJob.say;
+  const topic = again ? scriptJob!.topic : script.trim();
+  const canWrite = topic.length >= 5 && topic.length <= MAX_TOPIC;
+  const writing = scriptJob?.state === "writing";
+  const write = () => talk !== "plain" && void writeTalkScript({ talk, topic, offer: offerName });
+  const flags = useMemo(() => {
+    if (!user) return [];
+    const mas = scriptJob?.state === "done" && scriptJob.mas && scriptJob.say === script ? [MAS_FLAG] : [];
+    return [...scanCompliance(script), ...mas].filter((f) => !dismissed.has(f.id));
+  }, [user, script, scriptJob, dismissed]);
+
   const n = words(script);
   const makeVoice = async () => {
     setVoBusy(true);
@@ -282,24 +379,131 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
       setVoBusy(false);
     }
   };
-  const image = face === "photo" ? photo : presenter;
+  // a presenter made for another format's setting is not this one's
+  const shown = !user || presenterFits(talk) ? presenter : "";
+  const image = face === "photo" ? photo : shown;
   const tooLong = !!vo && vo.seconds > MAX_AVATAR_SECONDS + 0.5;
   const credits = vo ? avatarCredits(vo.slices.map((s) => s.end - s.start)) : 0;
   const videos = left("ai-video");
+  const price = vo ? priceOf("ai-video", { slices: vo.slices.map((s) => s.end - s.start) }) : null;
+  // Leo's dearer presses ask first (phase 1: anything over about US$1)
+  const askFirst = !!user && !!price && price !== "pick" && price.usd >= 1;
+  const make = async () => {
+    setAsking(false);
+    let topKey: string | undefined;
+    if (user && talk === "spokesperson" && offerPic) {
+      // the picture rides to the join as a device file key (JoinExtra stays JSON); one that can't be kept leaves the plain video
+      topKey = `offer-${Date.now().toString(36)}`;
+      await putFile(topKey, offerPic.file).catch(() => (topKey = undefined));
+    }
+    const extra = user
+      ? talkExtra({ talk, headline, setKey: face === "photo" && behind === "set" && setUrl ? setKey : null, offer: offerName, brand: loadBrand(user.id)?.name, topKey })
+      : undefined;
+    void makeAvatar(script.trim().slice(0, 40) || "AI video", image!, vo!, extra);
+  };
+  const pickBtn = "inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11";
 
   return (
     <div className="space-y-3">
+      {user && (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Format">
+          <span className="mr-1 text-xs font-medium">Format</span>
+          {TALKS.map((t) => <Pill key={t} on={talk === t} onClick={() => chooseTalk(t)} disabled={busy}>{TALK_LABELS[t]}</Pill>)}
+          <Pill on={false} onClick={unboxing} disabled={busy}>Unboxing</Pill>
+        </div>
+      )}
       <div className="space-y-2">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Who speaks">
           <Pill on={face === "photo"} onClick={() => setFace("photo")} disabled={busy}>My photo</Pill>
           <Pill on={face === "presenter"} onClick={() => setFace("presenter")} disabled={busy}>AI presenter</Pill>
         </div>
         {face === "photo" ? (
-          <div className="flex items-center gap-3">
-            {photoUrl && <img src={photoUrl} alt="Your photo" className="h-24 w-20 rounded-lg object-cover" />}
-            <div className="space-y-1">
-              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
-                {photo ? "Change photo" : "Pick a photo of your face"}
+          <>
+            <div className="flex items-center gap-3">
+              {photoUrl && <img src={photoUrl} alt="Your photo" className="h-24 w-20 rounded-lg object-cover" />}
+              <div className="space-y-1">
+                <label className={pickBtn}>
+                  {photo ? "Change photo" : "Pick a photo of your face"}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!f) return;
+                      const u = URL.createObjectURL(f);
+                      urls.current.push(u);
+                      setPhoto(f);
+                      setPhotoUrl(u);
+                    }} />
+                </label>
+                <p className="text-xs text-muted-foreground">Use a photo of yourself, or of someone who agreed to it.</p>
+              </div>
+            </div>
+            {user && setTalk && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Behind you">
+                  <span className="mr-1 text-xs font-medium">Behind you</span>
+                  <Pill on={behind === "keep"} onClick={() => setBehind("keep")} disabled={busy}>Keep my background</Pill>
+                  <Pill on={behind === "set"} onClick={() => setBehind("set")} disabled={busy}>{SET_LABELS[setTalk]}</Pill>
+                </div>
+                {behind === "set" && (
+                  setJob?.state === "working" ? (
+                    <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
+                      <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Making the set...
+                    </p>
+                  ) : setUrl ? (
+                    <div className="flex items-center gap-2">
+                      <img src={setUrl} alt={`The ${SET_LABELS[setTalk].toLowerCase()} behind you`} className="h-24 w-14 rounded-lg object-cover" />
+                      {photoUrl && <img src={photoUrl} alt="" className="h-24 w-20 rounded-lg object-cover" />}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || left("ai-image") === 0} onClick={() => void makeSet(setTalk)}>Make the set</Button>
+                      <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
+                    </div>
+                  )
+                )}
+                {setJob?.state === "failed" && setJob.talk === setTalk && behind === "keep" && <p className="text-xs text-destructive" role="alert">{setJob.error}</p>}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {shown && <img src={shown} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
+            <div className="min-w-0 flex-1 space-y-2">
+              <Textarea rows={2} value={look} maxLength={MAX_LOOK} onChange={(e) => setLook(e.target.value)} aria-label="How your presenter looks" className="text-sm" disabled={busy} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy}
+                  onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
+                <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
+                  onClick={() => {
+                    // anyone else sends no setting: today's office
+                    const setting = user ? TALK_SETTING[talk] : undefined;
+                    notePresenter(setting);
+                    void makePresenter(look.trim(), setting);
+                  }}>{shown ? "Make another presenter" : "Make the presenter"}</Button>
+                <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
+              </div>
+              {user && <p className="text-xs text-muted-foreground">The person is made by AI.</p>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {user && talk === "spokesperson" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Your offer">
+            <span className="mr-1 text-xs font-medium">Your offer</span>
+            {offers.map((name, i) => name && <Pill key={i} on={offer === i} onClick={() => chooseOffer(i)} disabled={busy}>{name}</Pill>)}
+          </div>
+          {offer === null ? (
+            <p className="text-xs text-muted-foreground">
+              No offers in your brand kit yet. <Link to={links.brand({ section: "offers" })} className="underline [@media(pointer:coarse)]:inline-block [@media(pointer:coarse)]:py-3">Add one</Link>
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {offerPic && <img src={offerPic.url} alt="Your offer's picture" className="h-16 w-12 rounded-lg object-cover" />}
+              <label className={pickBtn}>
+                {offerPic ? "Change picture" : "Add its picture"}
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -307,34 +511,43 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
                     if (!f) return;
                     const u = URL.createObjectURL(f);
                     urls.current.push(u);
-                    setPhoto(f);
-                    setPhotoUrl(u);
+                    setOfferPic({ file: f, url: u });
                   }} />
               </label>
-              <p className="text-xs text-muted-foreground">Use a photo of yourself, or of someone who agreed to it.</p>
+              {offerPic && <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={busy} onClick={() => setOfferPic(null)}>Remove</Button>}
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {presenter && <img src={presenter} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
-            <div className="min-w-0 flex-1 space-y-2">
-              <Textarea rows={2} value={look} maxLength={MAX_LOOK} onChange={(e) => setLook(e.target.value)} aria-label="How your presenter looks" className="text-sm" disabled={busy} />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy}
-                  onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
-                <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
-                  onClick={() => void makePresenter(look.trim())}>{presenter ? "Make another presenter" : "Make the presenter"}</Button>
-                <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
-              </div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {user && talk !== "plain" && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-medium">Script</span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {undo !== null && (
+                <Button size="sm" variant="ghost" className="h-11 sm:h-9" disabled={busy} onClick={() => { setScript(undo); setUndo(null); setVo(null); }}>Undo</Button>
+              )}
+              <Button size="sm" variant="outline" className="h-11 sm:h-9" onClick={write}
+                disabled={busy || writing || !canWrite || left("ai-video-script") === 0}>{again ? "Write it again" : "Write it for me"}</Button>
+              <Left n={left("ai-video-script")} what="Scripts" feature="ai-video-script" busy={writing} />
             </div>
           </div>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <Textarea rows={4} value={script} maxLength={600} disabled={busy}
-          onChange={(e) => { setScript(e.target.value); setVo(null); }} aria-label="What you say"
-          placeholder={`What you say, up to about ${MAX_AVATAR_SECONDS} seconds`} className="text-sm" />
+        {user && writing && (
+          <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
+            <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Writing your script...
+          </p>
+        )}
+        {user && scriptJob?.state === "failed" && <p className="text-xs text-destructive" role="alert">{scriptJob.error}</p>}
+        <Textarea rows={4} value={script} maxLength={600} disabled={busy || (!!user && writing)}
+          onChange={(e) => { setScript(e.target.value); setVo(null); setUndo(null); }} aria-label="What you say"
+          placeholder={user && talk !== "plain" ? "What you say, or a topic to write it from" : `What you say, up to about ${MAX_AVATAR_SECONDS} seconds`} className="text-sm" />
+        {user && talk === "news" && (
+          <Input value={headline} maxLength={BANNER_MAX} onChange={(e) => setHeadline(e.target.value)} disabled={busy}
+            placeholder="The banner's headline" aria-label="The banner's headline" className="h-11 sm:h-10" />
+        )}
+        {user && <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />}
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
           {VOICE_IDS.map((v) => (
             <Pill key={v} on={voice === v} disabled={busy} onClick={() => { setVoice(v); setVo(null); }}>{VOICES[v].label}, {VOICES[v].note}</Pill>
@@ -361,12 +574,22 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
           ) : (
             <p className="text-sm">{secs(vo.seconds)} in {vo.slices.length} {vo.slices.length === 1 ? "part" : "parts"}.{leo ? "" : ` Costs ${cost(credits)}.`}</p>
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0}
-              onClick={() => void makeAvatar(script.trim().slice(0, 40) || "AI video", image!, vo)}>Make the video</Button>
-            {!image && <span className="text-xs text-muted-foreground">{face === "photo" ? "Pick a photo first." : "Make the presenter first."}</span>}
-            <Left n={videos} what="AI videos" feature="ai-video" opts={{ slices: vo.slices.map((s) => s.end - s.start) }} busy={busy} />
-          </div>
+          {asking && !busy && price && price !== "pick" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">This makes a video and uses {priceText(price).replace(/^\w/, (c) => c.toLowerCase())} of video credit. Make it?</p>
+              <div className="flex items-center gap-2">
+                <Button className="h-11 sm:h-10" onClick={() => void make()}>Make it</Button>
+                <Button variant="ghost" className="h-11 text-muted-foreground sm:h-10" onClick={() => setAsking(false)}>Not now</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0}
+                onClick={() => (askFirst ? setAsking(true) : void make())}>Make the video</Button>
+              {!image && <span className="text-xs text-muted-foreground">{face === "photo" ? "Pick a photo first." : "Make the presenter first."}</span>}
+              <Left n={videos} what="AI videos" feature="ai-video" opts={{ slices: vo.slices.map((s) => s.end - s.start) }} busy={busy} />
+            </div>
+          )}
         </div>
       )}
     </div>
