@@ -225,7 +225,7 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
     if (name) setFields((f) => ({ ...f, product: name }));
     update({ offer: null });
   }, [user, offerParam, templateId, update]);
-  // Leo is asked before a clip over about US$1 (8 s at 720p is US$3.70), as You speaking and Narrated video ask
+  // Leo is asked before a clip that costs a dollar or more (the default 8 s at 720p does), as You speaking and Narrated video ask
   const [asking, setAsking] = useState(false);
   const clipPrice = priceOf("ai-clip", { seconds, quality });
   const askFirst = leo && !!clipPrice && clipPrice !== "pick" && clipPrice.usd >= 1;
