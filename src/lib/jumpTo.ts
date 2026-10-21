@@ -34,6 +34,7 @@ const KEYWORDS: Record<string, string> = {
   "/playbook": "notifications alerts reminders",
   "/brand": "posting times best time when slots logo photo colours sign-off",
   "/voice": "tone writing style",
+  "/people": "face voice presenter faces and voices",
   "/bio": "link in bio page",
   "/links": "short links utm clicks",
   "/accounts": "connect connections connected reconnect account settings instagram linkedin facebook zernio",

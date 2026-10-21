@@ -57,6 +57,12 @@ describe("routes and the nav", () => {
     expect("/image" in EXCEPTIONS).toBe(false);
   });
 
+  it("serves Faces and voices from the nav, not as an exception", () => {
+    expect(routes).toContain("/people");
+    expect(navPaths.has("/people")).toBe(true);
+    expect("/people" in EXCEPTIONS).toBe(false);
+  });
+
   it("lists no stale exceptions", () => {
     expect(Object.keys(EXCEPTIONS).filter((r) => !routes.includes(r))).toEqual([]);
   });

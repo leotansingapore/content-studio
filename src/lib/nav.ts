@@ -171,6 +171,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/playbook", label: "My Playbook" },
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
+      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS },
       { to: "/bio", label: "Link in bio" },
       { to: "/links", label: "Tracked links" },
       { to: "/accounts", label: "Social accounts", show: socialConnectShown },

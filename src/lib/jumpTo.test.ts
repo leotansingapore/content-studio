@@ -152,6 +152,19 @@ describe("the format gallery", () => {
   });
 });
 
+describe("Faces and voices", () => {
+  it("finds it for Leo by face, voice and presenter, and for nobody else", () => {
+    const leo = [...CREATE_ITEMS, ...pageItems("tanjunsing@gmail.com")];
+    expect(searchJump(leo, "face")[0].to).toBe("/people");
+    expect(searchJump(leo, "faces and voices")[0].to).toBe("/people");
+    expect(searchJump(leo, "presenter")[0].to).toBe("/people");
+    expect(searchJump(leo, "voice").map((i) => i.to)).toEqual(expect.arrayContaining(["/voice", "/people"]));
+    const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
+    expect(other.map((i) => i.to)).not.toContain("/people");
+    expect(searchJump(other, "face")).toEqual([]);
+  });
+});
+
 describe("recent pages", () => {
   it("keeps nav pages newest first, without repeats, up to the limit", () => {
     pushRecent("/calendar");
