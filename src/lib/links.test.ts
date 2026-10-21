@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ORIGIN, absolute, links, slug } from "./links";
+import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, absolute, links, slug } from "./links";
 
 describe("links", () => {
   it("builds the calendar links the team-posts job sends (docs/deep-links.md)", () => {
@@ -185,5 +185,72 @@ describe("links", () => {
     expect(links.brand({ section: "logo" })).toBe("/brand#logo");
     expect(links.createGuide({ step: "reel" })).toBe("/create-guide#reel");
     expect(links.tutorial()).toBe("/tutorial");
+  });
+
+  it("builds the phase-3 format links with defaults left out (docs/deep-links.md, Formats)", () => {
+    // the gallery
+    expect(links.make()).toBe("/make");
+    expect(links.make({ kind: "all", needsNone: false })).toBe("/make");
+    expect(links.make({ kind: "video", needsNone: true })).toBe("/make?kind=video&needs=none");
+    expect(links.make({ kind: "image" })).toBe("/make?kind=image");
+    expect(links.make({ needsNone: true })).toBe("/make?needs=none");
+    // the Image page
+    expect(links.image()).toBe("/image");
+    expect(links.image({ layout: "headline", size: "4x5" })).toBe("/image");
+    expect(links.image({ layout: "stat", size: "1x1" })).toBe("/image?layout=stat&size=1x1");
+    expect(links.image({ layout: "top-bottom", source: "ad:2095783381019179" })).toBe("/image?layout=top-bottom&source=ad%3A2095783381019179");
+    expect(links.image({ size: "wide", image: "img-mh2k9x01ab" })).toBe("/image?size=wide&image=img-mh2k9x01ab");
+    expect(IMAGE_LAYOUTS).toEqual(["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction"]);
+    // a format page stays generic, with each page's own params
+    expect(links.makeFormat("talking-head", { who: "presenter", setting: "car", length: 30 })).toBe("/make/talking-head?who=presenter&setting=car&length=30");
+    expect(links.makeFormat("text-over-clip", { scene: "walk", quality: "720p", source: "trend:t1" })).toBe(
+      "/make/text-over-clip?scene=walk&quality=720p&source=trend%3At1",
+    );
+  });
+
+  it("builds the editor's phase-3 params in the contract's order, with defaults left out", () => {
+    expect(links.edit({ panel: ["clips"], len: "short", about: "cpf" })).toBe("/edit?panel=clips&about=cpf&len=short");
+    expect(links.edit({ panel: ["own"], about: "  why I check cover yearly " })).toBe("/edit?panel=own&about=why+I+check+cover+yearly");
+    expect(links.edit({ panel: ["clips"], len: "auto", yt: "https://youtu.be/abc" })).toBe("/edit?panel=clips&yt=https%3A%2F%2Fyoutu.be%2Fabc");
+    expect(links.edit({ p: "vm1abc2", section: "clips" })).toBe("/edit?p=vm1abc2#clips");
+    expect(links.edit({ panel: ["ai"], kind: "avatar", talk: "news" })).toBe("/edit?panel=ai&kind=avatar&talk=news");
+    expect(links.edit({ panel: ["ai"], kind: "avatar", talk: "plain" })).toBe("/edit?panel=ai&kind=avatar");
+    // offer 0 is the brand kit's first offer, so it stays in the link
+    expect(links.edit({ panel: ["ai"], template: "ugc-creator-review", offer: 0 })).toBe("/edit?panel=ai&template=ugc-creator-review&offer=0");
+    expect(links.edit({ panel: ["ai"], kind: "explainer", look: "clay" })).toBe("/edit?panel=ai&kind=explainer&look=clay");
+    expect(links.edit({ panel: ["ai"], kind: "explainer", look: "photo", from: "topic", secs: 30, visuals: "stock" })).toBe("/edit?panel=ai&kind=explainer");
+    expect(
+      links.edit({ panel: ["ai"], kind: "explainer", visuals: "ai", secs: 60, link: "https://example.com/a", from: "link", look: "felt", talk: "stage" }),
+    ).toBe("/edit?panel=ai&kind=explainer&talk=stage&look=felt&from=link&link=https%3A%2F%2Fexample.com%2Fa&secs=60&visuals=ai");
+    expect(links.edit({ panel: ["ai"], kind: "explainer", from: "topic", topic: " cpf top-ups " })).toBe("/edit?panel=ai&kind=explainer&topic=cpf+top-ups");
+    expect(links.edit({ panel: ["ai"], kind: "avatar", from: "draft", draft: "d1" })).toBe("/edit?panel=ai&kind=avatar&from=draft&draft=d1");
+    expect(links.edit({ panel: ["ai"], kind: "explainer", from: "script" })).toBe("/edit?panel=ai&kind=explainer&from=script");
+    expect(EXPLAINER_LOOK_IDS).toEqual(["photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"]);
+  });
+
+  it("builds Write's thread, prompter and hooks params with defaults left out", () => {
+    expect(links.generate({ draft: "d1", panel: "thread" })).toBe("/generate?draft=d1&panel=thread");
+    expect(links.generate({ draft: "d1", panel: "thread", network: "threads" })).toBe("/generate?draft=d1&panel=thread");
+    expect(links.generate({ draft: "d1", panel: "thread", network: "x" })).toBe("/generate?draft=d1&panel=thread&network=x");
+    expect(links.generate({ draft: "d1", view: "prompter" })).toBe("/generate?draft=d1&view=prompter");
+    expect(links.generate({ hooks: "formulas" })).toBe("/generate");
+    expect(links.generate({ hooks: "proven" })).toBe("/generate?hooks=proven");
+  });
+
+  it("builds the carousel's design, size, view and slide with defaults left out", () => {
+    expect(links.carousel({ design: "clean", size: "4x5", slide: 1 })).toBe("/carousel");
+    expect(links.carousel({ carousel: "d:abc", design: "numbered", size: "1x1" })).toBe("/carousel?carousel=d%3Aabc&design=numbered&size=1x1");
+    expect(links.carousel({ carousel: "d:abc", view: "one", slide: 3 })).toBe("/carousel?carousel=d%3Aabc&view=one&slide=3");
+    expect(links.carousel({ carousel: "d:abc", view: "all" })).toBe("/carousel?carousel=d%3Aabc&view=all");
+    expect(links.carousel({ size: "9x16" })).toBe("/carousel?size=9x16");
+    expect(CAROUSEL_DESIGNS).toEqual(["clean", "bold", "numbered", "checklist", "post-card", "photo-cover", "quote", "notebook"]);
+  });
+
+  it("builds the Trends formats view with defaults left out", () => {
+    expect(links.trends({ view: "formats", kind: "all" })).toBe("/trends?view=formats");
+    expect(links.trends({ view: "formats", kind: "slideshow" })).toBe("/trends?view=formats&kind=slideshow");
+    expect(links.trends({ view: "formats", kind: "wall-of-text", template: "tiktok-7412345678901234567" })).toBe(
+      "/trends?view=formats&kind=wall-of-text&template=tiktok-7412345678901234567",
+    );
   });
 });

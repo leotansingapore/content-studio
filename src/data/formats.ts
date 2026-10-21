@@ -6,6 +6,8 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import type { RemixSource } from "@/lib/remixSource";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
+export type FormatKind = "video" | "slides" | "text" | "image";
+
 export interface FormatDef {
   slug: "slideshow" | "wall-of-text";
   name: string;

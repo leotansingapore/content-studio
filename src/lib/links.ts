@@ -2,6 +2,7 @@
 // in-app navigation that carries state and the tests build URLs here. The contract for jobs outside the app
 // (Telegram, Lark, email) is docs/deep-links.md: change both together, and never rename a shipped param.
 
+import type { FormatKind } from "@/data/formats";
 import type { LibraryFormat, LibraryStatus } from "@/lib/library";
 
 /** Production host, for links sent outside the app. */
@@ -171,9 +172,22 @@ export const links = {
       formula: o.formula !== "all" && o.formula,
       ad: o.ad,
     })}`,
-  /** view: Leo's search and hashtags views (kits is the default, left out); show filters the search view; topic and tag open a drawer (push). */
+  /**
+   * view: Leo's search, hashtags and formats views (kits is the default, left out); show filters the search view; topic
+   * and tag open a drawer (push). The formats view filters by kind (all left out) and opens a card by template (push).
+   */
   trends: (
-    o: { platform?: string; type?: string; trend?: string; view?: "kits" | "search" | "hashtags"; show?: "rising" | "gap"; topic?: string; tag?: string } = {},
+    o: {
+      platform?: string;
+      type?: string;
+      trend?: string;
+      view?: "kits" | "search" | "hashtags" | "formats";
+      show?: "rising" | "gap";
+      topic?: string;
+      tag?: string;
+      kind?: "all" | "slideshow" | "wall-of-text";
+      template?: string;
+    } = {},
   ) =>
     `/trends${qs({
       view: o.view !== "kits" && o.view,
@@ -183,6 +197,8 @@ export const links = {
       show: o.show,
       topic: o.topic,
       tag: o.tag,
+      kind: o.kind !== "all" && o.kind,
+      template: o.template,
     })}`,
   /** ?post=<platform>:<post id>: a followed account's post, scrolled to and marked. account=<platform>:<handle> with view=patterns opens What worked (push). */
   following: (o: { post?: string; account?: string; view?: "patterns" } = {}) =>
@@ -264,12 +280,21 @@ export const links = {
   hubAdmin: (o: { tab?: "clients" | "posts" | "members" } = {}) => `/hub/admin${qs({ tab: o.tab !== "clients" && o.tab })}`,
 
   // ---- Create pages (wave 2A) ----
-  /** Write. draft/step/panel are live state; the rest pre-fill the brief once and leave the URL (docs "Still read"). */
+  /**
+   * Write. draft/step/panel/network/view/hooks are live state; the rest pre-fill the brief once and leave the URL (docs
+   * "Still read"). panel=thread and view=prompter push; network (threads left out) and hooks (formulas left out) replace.
+   */
   generate: (
     o: {
       draft?: string;
       step?: WriteStep;
-      panel?: "shortcuts" | "post";
+      panel?: "shortcuts" | "post" | "thread";
+      /** With panel=thread: the thread's network. */
+      network?: "threads" | "x";
+      /** The teleprompter over a short-video draft. */
+      view?: "prompter";
+      /** The hook card's tab: hook formulas, or the lines proven in your niche. */
+      hooks?: "formulas" | "proven";
       day?: string;
       /** HH:MM, with day: an open posting slot's exact time. */
       time?: string;
@@ -293,11 +318,34 @@ export const links = {
       /** A remixed post's compare strip (Leo only): the Original or More like this tab; your version is the default. */
       compare?: CompareView;
     } = {},
-  ) => `/generate${qs({ ...o, step: o.step !== "topic" && o.step })}`,
+  ) => `/generate${qs({ ...o, step: o.step !== "topic" && o.step, network: o.network !== "threads" && o.network, hooks: o.hooks !== "formulas" && o.hooks })}`,
   batch: (o: { pillar?: string; audience?: string } = {}) =>
     `/generate/batch${qs({ pillar: o.pillar !== "topic" && o.pillar, audience: o.audience !== "general" && o.audience })}`,
-  carousel: (o: { tab?: "drafts" | "paste" | "topic" | "saved"; draft?: string; carousel?: string; compare?: CompareView } = {}) =>
-    `/carousel${qs({ tab: o.tab !== "drafts" && o.tab, draft: o.draft, carousel: o.carousel, compare: o.compare })}`,
+  /** design (clean left out), size (4x5 left out), view and slide (1 left out) replace. */
+  carousel: (
+    o: {
+      tab?: "drafts" | "paste" | "topic" | "saved";
+      draft?: string;
+      carousel?: string;
+      compare?: CompareView;
+      design?: CarouselDesign;
+      size?: "4x5" | "1x1" | "9x16";
+      /** One slide at a time, or the list. Neither is left out: phones default to one, large screens to all. */
+      view?: "one" | "all";
+      /** The open slide, 1-based, with view=one. */
+      slide?: number;
+    } = {},
+  ) =>
+    `/carousel${qs({
+      tab: o.tab !== "drafts" && o.tab,
+      draft: o.draft,
+      carousel: o.carousel,
+      compare: o.compare,
+      design: o.design !== "clean" && o.design,
+      size: o.size !== "4x5" && o.size,
+      view: o.view,
+      slide: o.slide !== 1 && o.slide,
+    })}`,
   edit: (
     o: {
       /** A video project id; projects live on one device. */
@@ -307,10 +355,36 @@ export const links = {
       sticker?: string;
       broll?: string;
       guide?: "instagram" | "tiktok";
-      /** Start screen panels: join, ai, wall (Words over a video, Leo only), or several. */
-      panel?: ("join" | "ai" | "wall")[];
+      /** Start screen panels: join, ai, wall (Words over a video), own (Your own video or pictures), clips (Long video into clips), or several. wall, own and clips are Leo only. */
+      panel?: ("join" | "ai" | "wall" | "own" | "clips")[];
       kind?: "template" | "montage" | "avatar" | "explainer";
       template?: string;
+      // The rest are Leo only, read by the AI panel's kinds and the own and clips panels.
+      /** You speaking's format (plain left out). */
+      talk?: "plain" | "news" | "stage" | "spokesperson";
+      /** A brand kit offer's place: fills the template's "Your product" once, then leaves the address. */
+      offer?: number;
+      /** The explainer's look (photo left out). */
+      look?: ExplainerLook;
+      /** Where the narrated video starts (topic left out). */
+      from?: "topic" | "script" | "link" | "draft";
+      /** Pre-fills read once: the topic, an article link. */
+      topic?: string;
+      link?: string;
+      /** A post id: its script or words fill the panel. */
+      draft?: string;
+      /** The narrated video's length (30 left out). */
+      secs?: 30 | 60;
+      /** Stock first, or AI pictures (stock left out). */
+      visuals?: "stock" | "ai";
+      /** What it is about, for the own and clips panels (read once). */
+      about?: string;
+      /** The clips' length (auto left out). */
+      len?: "auto" | "short" | "long";
+      /** A YouTube link for the clips panel. */
+      yt?: string;
+      /** clips: scrolls to the long video's clip list (#clips). */
+      section?: "clips";
       /** A words-over-video project with all the editing tools instead of its short panel. */
       view?: "all";
     } = {},
@@ -325,8 +399,20 @@ export const links = {
       panel: o.panel?.join(","),
       kind: o.kind,
       template: o.template,
+      talk: o.talk !== "plain" && o.talk,
+      offer: o.offer,
+      look: o.look !== "photo" && o.look,
+      from: o.from !== "topic" && o.from,
+      topic: o.topic?.trim(),
+      link: o.link,
+      draft: o.draft,
+      secs: o.secs !== 30 && o.secs,
+      visuals: o.visuals !== "stock" && o.visuals,
+      about: o.about?.trim(),
+      len: o.len !== "auto" && o.len,
+      yt: o.yt,
       view: o.view,
-    })}`,
+    })}${o.section ? `#${o.section}` : ""}`,
   /** source=<link:|upload: key> reopens a source read on Leo's Remix a post (push). */
   clone: (o: { url?: string; clone?: string; source?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone, source: o.source })}`,
   coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>
@@ -348,6 +434,11 @@ export const links = {
     `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
   /** A format's create page (Leo only, src/data/formats.ts): source, from, mention=no and the format's own params. Making on arrival is navigation state { go: true }, never a param. */
   makeFormat: (slug: string, p: Record<string, string | number | undefined> = {}) => `/make/${encodeURIComponent(slug)}${qs(p)}`,
+  /** The format gallery (Leo only): kind (all left out) and needs=none replace. */
+  make: (o: { kind?: FormatKind | "all"; needsNone?: boolean } = {}) => `/make${qs({ kind: o.kind !== "all" && o.kind, needs: o.needsNone && "none" })}`,
+  /** The Image page (Leo only): layout (headline left out) and size (4x5 left out) replace; source is read once, then removed; image opens a saved design (replace). */
+  image: (o: { layout?: ImageLayout; size?: "4x5" | "1x1" | "9x16" | "wide"; source?: string; image?: string } = {}) =>
+    `/image${qs({ layout: o.layout !== "headline" && o.layout, size: o.size !== "4x5" && o.size, source: o.source, image: o.image })}`,
 };
 
 /** Any page with the Remix sheet open over it on that source (remix=<key>, push). */
@@ -369,3 +460,14 @@ export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs"
 export const COMPARE_TABS = ["version", "original", "more"] as const;
 export type CompareView = Exclude<(typeof COMPARE_TABS)[number], "version">;
 // ---- end Create pages ----
+
+// ---- North star phase 3 (Leo only): the values the format params take.
+/** /image?layout=: four ad layouts, then the five meme layouts. */
+export const IMAGE_LAYOUTS = ["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction"] as const;
+export type ImageLayout = (typeof IMAGE_LAYOUTS)[number];
+/** /edit?look=: the explainer's looks (ai-video EXPLAINER_LOOKS holds the same ids). */
+export const EXPLAINER_LOOK_IDS = ["photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"] as const;
+export type ExplainerLook = (typeof EXPLAINER_LOOK_IDS)[number];
+/** /carousel?design=. */
+export const CAROUSEL_DESIGNS = ["clean", "bold", "numbered", "checklist", "post-card", "photo-cover", "quote", "notebook"] as const;
+export type CarouselDesign = (typeof CAROUSEL_DESIGNS)[number];

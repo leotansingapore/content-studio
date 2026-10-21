@@ -357,3 +357,63 @@ find-ad-detail.md, find-save-anywhere.md, find-ai-tagging.md). Both pages are Le
 
 Still read: /saved?url=<link> (with text= and title=, from a share sheet or a pasted link) saves that link once,
 then the params are removed (replace).
+
+## Formats (Leo only)
+
+North star phase 3 (docs/north-star/items/formats-gallery.md and the format specs it links). Every row below is
+Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides the pages, anyone else gets the not-found page on /make
+and /image, and the new params on /edit, /generate, /carousel and /trends are ignored for anyone else, who keeps
+today's page. Same rules as above: built in src/lib/links.ts, defaults left out of links.
+
+Every /make/<slug> page takes the shared params source, from and mention=no (as /make/slideshow above). A format
+in src/data/formats.ts that is not ready yet still opens for Leo at /make/<slug>; the gallery lists ready ones
+only. The Remix sheet's "Also make" link starts a make on arrival through navigation state { go: true } only for a
+format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its page and waits for the press.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /make | kind | Leo only. video, slides, text, image | all | replace | /make?kind=video |
+| /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
+| /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
+| /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
+| /make/talking-head | who | Leo only. photo (your photo), presenter (an AI presenter) | photo | replace | /make/talking-head?who=presenter |
+| /make/talking-head | setting | Leo only. office, car, kitchen, couch, cafe | office | replace | /make/talking-head?who=presenter&setting=car |
+| /make/talking-head | length | Leo only. 8, 15, 20, 30 (seconds) | 15 | replace | /make/talking-head?length=30 |
+| /make/talking-head | voice | Leo only. alice, lily, george, eric, matilda, sarah, liam (the voices in supabase/functions/text-voice/logic.ts) | alice (as You speaking) | replace | /make/talking-head?voice=george |
+| /make/green-screen | who | Leo only. mine (your video), presenter (an AI presenter) | mine | replace | /make/green-screen?who=presenter |
+| /make/green-screen | behind | Leo only. notes, demo, picture | notes | replace | /make/green-screen?behind=demo |
+| /make/green-screen | stand | Leo only. bottom, corner | bottom | replace | /make/green-screen?stand=corner |
+| /make/hook-demo | play | Leo only. stock (words on a stock clip), spoken (someone says it), mine (you say it) | stock | replace | /make/hook-demo?play=spoken |
+| /make/hook-demo | topic | Leo only. what the demo shows: fills the topic once, then removed (replace). The demo itself is a file on the device and never in a link | none | replace | /make/hook-demo?topic=log+every+client+call |
+| /image | layout | Leo only. headline, quote, stat, testimonial; memes top-bottom, nobody-me, expectation, pov, post-reaction | headline | replace | /image?layout=stat |
+| /image | size | Leo only. 4x5, 1x1, 9x16, wide | 4x5 | replace | /image?layout=stat&size=1x1 |
+| /image | source | Leo only. a remix source key (ad:<id>, own:<draft id>, and the other /generate?source= shapes): fills the words once, then removed | none | replace | /image?source=ad%3A2095783381019179 |
+| /image | image | Leo only. a saved design's id: opens it; the address takes it once an edit is kept | none | replace | /image?image=img-mh2k9x01ab |
+| /edit | panel | Leo only. own (Your own video or pictures), clips (Long video into clips), one at a time | none | push | /edit?panel=own |
+| /edit | about | Leo only. with panel=own or clips: what it is about, filled once | none | replace | /edit?panel=clips&about=cpf |
+| /edit | len | Leo only. with panel=clips: short, long | auto | replace | /edit?panel=clips&about=cpf&len=short |
+| /edit | yt | Leo only. with panel=clips: a YouTube link, filled into the link field | none | replace | /edit?panel=clips&yt=https%3A%2F%2Fyoutu.be%2FdQw4w9WgXcQ |
+| /edit | #clips | Leo only. with p on a long video: scrolls to its clip list | top | (anchor) | /edit?p=vm1abc2#clips |
+| /edit | talk | Leo only. with kind=avatar: plain, news (News anchor), stage (Stage talk), spokesperson | plain | replace | /edit?panel=ai&kind=avatar&talk=news |
+| /edit | offer | Leo only. a brand kit offer's place, 0 to 4: Spokesperson's offer, or with template=ugc-creator-review fills "Your product" once, then removed | none | replace | /edit?panel=ai&template=ugc-creator-review&offer=0 |
+| /edit | look | Leo only. with kind=explainer: photo, clay, paper, felt, chalk, comic, cartoon3d, storybook | photo | replace | /edit?panel=ai&kind=explainer&look=clay |
+| /edit | from | Leo only. with kind=explainer: topic, script, link, draft (where the narrated video starts) | topic | replace | /edit?panel=ai&kind=explainer&from=link |
+| /edit | topic | Leo only. with kind=explainer: the topic, filled once | none | replace | /edit?panel=ai&kind=explainer&topic=cpf+top-ups |
+| /edit | link | Leo only. with kind=explainer: an article link, filled once | none | replace | /edit?panel=ai&kind=explainer&from=link&link=https%3A%2F%2Fexample.com%2Fa |
+| /edit | draft | Leo only. with panel=ai: a post id whose script or words fill the kind's form; kept while the panel is open | none | replace | /edit?panel=ai&kind=avatar&draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /edit | secs | Leo only. with kind=explainer: 30, 60 (the narrated video's length) | 30 | replace | /edit?panel=ai&kind=explainer&secs=60 |
+| /edit | visuals | Leo only. with kind=explainer: stock, ai | stock | replace | /edit?panel=ai&kind=explainer&visuals=ai |
+| /generate | panel | Leo only. thread: the thread panel over that post (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=thread |
+| /generate | network | Leo only. with panel=thread: threads, x | threads | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=thread&network=x |
+| /generate | view | Leo only. prompter: the teleprompter over a short-video draft (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&view=prompter |
+| /generate | hooks | Leo only. proven: the hook card on "Proven in your niche" | formulas | replace | /generate?hooks=proven |
+| /carousel | design | Leo only. clean, bold, numbered, checklist, post-card, photo-cover, quote, notebook | clean | replace | /carousel?design=numbered |
+| /carousel | size | Leo only. 4x5, 1x1, 9x16 | 4x5 | replace | /carousel?design=numbered&size=1x1 |
+| /carousel | view | Leo only. one (one slide at a time), all (the list) | one on phones, all on large screens | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&view=one |
+| /carousel | slide | Leo only. with view=one: the open slide, 1-based; out of range reads as 1 | 1 | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&view=one&slide=3 |
+| /trends | view | Leo only. formats: trending slideshow and wall-of-text formats (with kits, search and hashtags above) | kits | replace | /trends?view=formats |
+| /trends | kind | Leo only. with view=formats: slideshow, wall-of-text | all | replace | /trends?view=formats&kind=slideshow |
+| /trends | template | Leo only. with view=formats: a format trend's id; opens its card and scrolls to it. An unknown id is dropped quietly | none | push | /trends?view=formats&template=tiktok-7412345678901234567 |
+
+Closing /edit's AI panel drops talk, offer, look, from, topic, link, draft, secs and visuals with kind and template.
+The made video opens at /edit?p=<project id> as today.
