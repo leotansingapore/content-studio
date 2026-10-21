@@ -45,6 +45,7 @@ import {
   parseMakeRequest,
   refusalOf,
   rewriteMessage,
+  RUN_FLOOR,
   makeProblem,
   validateMake,
   withSpoken,
@@ -234,7 +235,7 @@ Deno.serve(async (req) => {
         const answers = await askJev({ ...(state as object), facts: make.brand.facts }, makeQuestions(make.brand.speaker), { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
-    });
+    }, RUN_FLOOR[make.close ?? "balanced"]);
     console.log("remix ok", make.as, make.keep, make.close, `copied ${held.flags.copied.length}`, `rewrote ${rewrote}`, `tokens ${tokens.join(" | ")}`, `${Date.now() - startedAt}ms`);
     return json({ as: make.as, result: held.result, flags: held.flags, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {

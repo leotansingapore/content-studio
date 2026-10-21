@@ -125,6 +125,8 @@ More options                                  Balanced  v
 - 20 Oct 2026 (phase 1 build): the "Rewriting <n> lines that matched the original" step is dropped. The check and its one rewrite run inside the single remix call, so the sheet cannot see the second pass start; "Checking it" covers both. Showing it needs the function to stream its steps.
 - 20 Oct 2026 (phase 1 build): CLOSE_RULES were reworded to tightness only (how closely to follow what the Keep pick keeps), so a level never contradicts an intent. The explainers under "How close" follow the rules, not the strings above: "Uses what you keep as a light guide. The rest is yours.", "Follows what you keep, with a new angle. Every line is new.", "Follows what you keep closely, down to its length. Every line is new."
 
+- 21 Oct 2026 (dogfood fix): under Keep the structure one fixed block (beat order, number of points, length within 10 percent) outweighed Loose's light guide, so all three levels kept Aaron's 7 beats in order. The structure block now depends on the level (STRUCTURE_RULES): Loose keeps only the arc and gets the teardown's beats as ideas in any order, Balanced keeps the beat order and count with its own length, Close adds the length and keeps the topic when it suits. Loose's copy floor is 4 words (RUN_FLOOR), in the prompt and in the check; Balanced and Close stay at 6 until the first 50 flags are read.
+
 ## Related
 
 remix-intent, remix-teardown, remix-your-brand, remix-compare, remix-everywhere, trust-compliance-check

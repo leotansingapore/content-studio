@@ -29,6 +29,7 @@ import {
   parseMakeRequest,
   refusalOf,
   rewriteMessage,
+  RUN_FLOOR,
   saysI,
   slideNumbers,
   slideshowProblem,
@@ -840,5 +841,43 @@ describe("textProblem: a post that stops mid-sentence or names the brand twice",
   it("tells the post's model to name the brand once across hook, body and cta", () => {
     const { system } = buildMakePrompt(dogfood("017-remix.json").req);
     expect(system).toContain("appears once in the hook, body and cta together: if the cta names it, the body does not.");
+  });
+});
+
+describe("Keep the structure at each level (dogfood 21 Oct: Loose, Balanced and Close kept the same 7 beats)", () => {
+  const aaron = () => dogfood("014-remix.json").req;
+  const at = (close: "loose" | "balanced" | "close") => buildMakePrompt({ ...aaron(), close });
+
+  it("pins the beat order only from Balanced up, the length only at Close, and sends Loose the beats as ideas in any order", () => {
+    const loose = at("loose"), balanced = at("balanced"), close = at("close");
+    expect(loose.system).toContain("its arc (how it opens, turns and lands), as a light guide only. Merge, drop or reorder its beats");
+    expect(loose.system).not.toContain("beat order");
+    expect(loose.user).toContain("Its beats, as ideas to use in any order or leave out:\n- It says the sender");
+    expect(loose.user).not.toContain("Its beats, in order:");
+    expect(balanced.system).toContain("its beat order, its number of points and where its call to action sits; the length is yours.");
+    expect(balanced.system).not.toContain("10 percent");
+    expect(balanced.user).toContain("Its beats, in order:\n1. It says the sender");
+    expect(close.system).toContain("its length within 10 percent");
+    expect(close.system).toContain("Keep its topic when it suits the business's audience");
+    // the three What to keep lines are all different
+    const keepLine = (t: string) => t.split("\n").find((l) => l.startsWith("What to keep:"));
+    expect(new Set([loose, balanced, close].map((p) => keepLine(p.system))).size).toBe(3);
+  });
+
+  it("holds Loose to a 4-word copy floor and Balanced and Close to the spec's 6, in the prompt and in the check", async () => {
+    expect(RUN_FLOOR).toEqual({ loose: 4, balanced: 6, close: 6 });
+    expect(at("loose").system).toContain("no run of 4 or more words from the original.");
+    expect(at("balanced").system).toContain("no run of 6 or more words from the original.");
+    expect(at("loose").system).toContain("never restate its sentences one by one");
+    // five words of Aaron's ad ("You've sent that message more") back in a draft: Loose sends it back, Balanced keeps it
+    const draft: MakeResult = { as: "post", hook: "Stop the nudge.", body: "You've sent that message more than once this week.", cta: "Try one app.", hashtags: [] };
+    const src = aaron().source!.text;
+    const runs = async (floor: number) => {
+      const rewrite = vi.fn(async () => null);
+      const out = await holdTheLine(draft, src, [], { rewrite, ask: async () => null }, floor);
+      return { rewrites: rewrite.mock.calls.length, copied: out.flags.copied };
+    };
+    expect(await runs(RUN_FLOOR.loose)).toEqual({ rewrites: 1, copied: ["You've sent that message more"] });
+    expect(await runs(RUN_FLOOR.balanced)).toEqual({ rewrites: 0, copied: [] });
   });
 });

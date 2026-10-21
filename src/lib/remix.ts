@@ -34,7 +34,7 @@ export const KEEP_LABELS: Record<Keep, string> = {
 
 /** The one line under the Keep chips. */
 export const KEEP_HINTS: Record<Keep, string> = {
-  structure: "Keeps: beat order, number of points, length. New: hook and every word.",
+  structure: "Keeps: beat order and number of points. New: hook and every word.",
   hook: "Keeps: the shape of the first line. New: everything after it.",
   energy: "Keeps: tone, pace and length. New: the script.",
   topic: "Keeps: the format and hook style. New: the topic.",

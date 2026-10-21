@@ -188,3 +188,20 @@ describe("a video's spoken words (dogfood 21 Oct, Apollo's TikTok 76857812651229
     expect(user.split("These five habits took me").length).toBe(2);
   });
 });
+
+describe("the copy floor by level", () => {
+  it("sends Loose back for a 4-word run of the original, which Balanced lets through", async () => {
+    openai.mode = "queue";
+    const d = dogfood("029-remix.json");
+    const copied = { ...d.answer.result, body: `You've sent that message more than once.\n\n${d.answer.result.body}` };
+    openai.answers = [copied, d.answer.result];
+    expect((await send(d.request)).status).toBe(200);
+    expect(openai.calls).toBe(2);
+    expect(openai.sent[1].messages.at(-1)!.content).toContain("- You've sent that message more");
+
+    openai.calls = 0;
+    openai.answers = [copied];
+    expect((await send({ ...d.request, close: "balanced" })).status).toBe(200);
+    expect(openai.calls).toBe(1);
+  });
+});
