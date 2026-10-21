@@ -110,15 +110,16 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
       // storage blocked: the draft lasts this visit
     }
   }, [userId, id, draft]);
-  useEffect(() => first.current?.focus(), []);
-  const close = () => {
+  // closed by Close, Escape, Save or Back: what was typed goes (a reload never runs this, so it keeps it)
+  useEffect(() => () => {
     try {
       sessionStorage.removeItem(draftKey(userId));
     } catch {
       // nothing kept
     }
-    onClose();
-  };
+  }, [userId]);
+  useEffect(() => first.current?.focus(), []);
+  const close = onClose;
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("keydown", esc);
