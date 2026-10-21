@@ -103,12 +103,19 @@ describe("startScan", () => {
     const w = s.loadWaiting("u1")!;
     expect(Object.keys(w.pics)).toEqual(["https://acme.sg/a.jpg", "https://acme.sg/b.jpg"]);
     expect(JSON.parse(storage.getItem("cs-products-scan-u1")!).scan.site).toBe("https://acme.sg");
+    // a reload (a fresh module) carries on the review without fetching what it already has
+    vi.resetModules();
+    const again = await import("./productScan");
+    again.fetchReviewPictures("u1");
+    await idle();
+    expect(callFn).toHaveBeenCalledTimes(3);
     s.discardScan("u1");
     expect(files.size).toBe(0);
   });
 
   it("says the refused line on a 403 and the cap's own line on a 429, keeping nothing", async () => {
-    callFn.mockRejectedValueOnce(new EdgeError("This isn't switched on for your account yet.", 403, "not_enabled"));
+    // decision 2's line whatever the server's words
+    callFn.mockRejectedValueOnce(new EdgeError("Forbidden", 403, "not_enabled"));
     await s.startScan("u1", "acme.sg");
     expect(s.scanFailedLine("u1")).toBe(s.REFUSED);
     callFn.mockRejectedValueOnce(new EdgeError("You've used all 10 for today. It resets at 8am Singapore time.", 429, "daily_limit"));
@@ -166,6 +173,14 @@ describe("a saved product's picture on another device", () => {
     // on this device now: no second fetch
     await s.pictureFile("u1", prod);
     expect(callFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("is not fetched when the device already has it", async () => {
+    files.set("cimg-alreadyhere", new Blob(["x"]));
+    s.ensurePicture("u1", "cimg-alreadyhere", "https://acme.sg/here.jpg", "Here");
+    await idle();
+    expect(callFn).not.toHaveBeenCalled();
+    expect(s.pictureState("cimg-alreadyhere")).toBe("done");
   });
 
   it("is null for an upload this device doesn't have", async () => {

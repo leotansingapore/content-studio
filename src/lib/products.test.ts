@@ -58,7 +58,7 @@ describe("sanitizeProducts", () => {
   });
 
   it("drops items with no name or no id, and duplicate ids; leaves price and generic out when empty", () => {
-    const out = sanitizeProducts({ kind: "products", items: [item({ name: "  " }), item({ id: "x" }), item(), item({ name: "Again" }), { ...item({ id: "pd-other1" }), price: "", generic: "" }] });
+    const out = sanitizeProducts({ kind: "products", items: [item({ id: "pd-noname1", name: "  " }), item({ id: "x" }), item(), item({ name: "Again" }), { ...item({ id: "pd-other1" }), price: "", generic: "" }] });
     expect(out.kind).toBe("products");
     expect(out.items.map((p) => p.id)).toEqual(["pd-abc123", "pd-other1"]);
     expect("price" in out.items[1] || "generic" in out.items[1]).toBe(false);
