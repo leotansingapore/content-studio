@@ -95,8 +95,8 @@ export default function AddBrandPage() {
     // the steps tick over while the one request runs; the last waits for the answer
     timer.current = window.setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 2500);
     try {
-      const d = await callFn<Dna>("brand-dna", readBody(address), "We couldn't read that site. Try again, or start with just a name.");
-      setDna(d);
+      const d = await callFn<Dna>("brand-dna", readBody(address, leo), "We couldn't read that site. Try again, or start with just a name.");
+      setDna(leo ? { ...d, readAt: new Date().toISOString() } : d);
       setPhase("confirm");
     } catch (err) {
       setError(err instanceof EdgeError ? err.message : "We couldn't read that site. Try again, or start with just a name.");
@@ -195,7 +195,7 @@ export default function AddBrandPage() {
           </label>
           {leo && <p><PriceChip feature="brand-dna" left={left} /></p>}
           {why && <p className="text-xs text-destructive">{why}</p>}
-          <p className="text-xs text-muted-foreground">Takes under a minute. We read the home page only, and nothing is posted.</p>
+          <p className="text-xs text-muted-foreground">{leo ? "Takes under a minute. We read the home page and up to 4 more pages, and nothing is posted." : "Takes under a minute. We read the home page only, and nothing is posted."}</p>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
           <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
         </form>

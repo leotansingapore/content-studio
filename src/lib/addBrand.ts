@@ -16,6 +16,8 @@ export interface BrandDna {
   topics: string[];
   edge: string;
   voice: string;
+  /** When Leo's deep read came back (brand-from-website); everyone else's read has none. */
+  readAt?: string;
 }
 
 export const AUDIENCE_NAMES: Record<PlanAudience, string> = {
@@ -78,8 +80,8 @@ export function keptBrand(raw: string | null, cards: readonly string[]): KeptBra
   }
 }
 
-/** What /brands/new sends brand-dna. */
-export const readBody = (address: string) => ({ url: address });
+/** What /brands/new sends brand-dna: Leo's sign-in also reads up to 4 more pages (brand-from-website). */
+export const readBody = (address: string, leo = false) => (leo ? { url: address, deep: true } : { url: address });
 
 /** The new brand's kit from the confirmed read, as /brands/new saves it. */
 export function newBrandKit(brand: BrandDna, title: string): CarouselBrand {
@@ -92,5 +94,7 @@ export function newBrandKit(brand: BrandDna, title: string): CarouselBrand {
     ...(brand.logo ? { logo: brand.logo } : {}),
     ...(ig ? { instagram: ig } : {}),
     ...(brand.handles.facebook ? { facebook: brand.handles.facebook } : {}),
+    // only Leo's reads carry readAt: the site and when it was read, so /brand#website opens on "read <date>"
+    ...(brand.readAt ? { website: brand.url, websiteReadAt: brand.readAt } : {}),
   };
 }

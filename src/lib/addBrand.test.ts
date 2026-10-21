@@ -64,3 +64,21 @@ describe("what /brands/new sends and saves", () => {
     expect(newBrandKit({ ...dna, colour: null, handles: {} }, "Acme")).toStrictEqual({ color: "#1E3A8A", name: "Acme", handle: "" });
   });
 });
+
+describe("Leo's /brands/new (brand-from-website)", () => {
+  it("asks for the deep read", () => {
+    expect(readBody("acme.sg", true)).toStrictEqual({ url: "acme.sg", deep: true });
+    expect(readBody("acme.sg", false)).toStrictEqual({ url: "acme.sg" });
+  });
+
+  it("keeps the site and when it was read in the new kit", () => {
+    expect(newBrandKit({ ...dna, readAt: "2026-10-21T08:00:00.000Z" }, "Acme")).toStrictEqual({
+      color: "#0f766e",
+      name: "Acme",
+      handle: "@acme.sg",
+      instagram: "acme.sg",
+      website: "https://acme.sg",
+      websiteReadAt: "2026-10-21T08:00:00.000Z",
+    });
+  });
+});
