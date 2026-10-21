@@ -134,6 +134,50 @@ describe("the Recommended carousel design", () => {
   });
 });
 
+describe("the learning conflict check", () => {
+  const body = { mode: "conflict", note: "use lots of emoji", notes: ["end with a question", "never use emoji in my posts"] };
+
+  it("refuses anyone not on the list before counting anything or asking Jev", async () => {
+    const res = await ask(OTHER, body);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("names the note it replaces for one writing-judge use, one question per kept note", async () => {
+    jev = () => Response.json({ answers: { conflict_0: { type: "noul", noul: 0.05 }, conflict_1: { type: "noul", noul: 0.93 } } });
+    const res = await ask(LEO, body);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ replaces: 1 });
+    expect(used(LEO)).toBe(1);
+    expect(calls).toHaveLength(1);
+    expect(Object.keys((sent[0] as { questions: object }).questions)).toEqual(["conflict_0", "conflict_1"]);
+  });
+  it("answers replaces null below the cut, and keeps the use", async () => {
+    jev = () => Response.json({ answers: { conflict_0: { type: "noul", noul: 0.1 }, conflict_1: { type: "noul", noul: 0.69 } } });
+    expect(await (await ask(LEO, body)).json()).toEqual({ replaces: null });
+    expect(used(LEO)).toBe(1);
+  });
+  it("gives the use back when Jev never answered", async () => {
+    const res = await ask(LEO, body);
+    expect(res.status).toBe(503);
+    expect(used(LEO)).toBe(0);
+  });
+  it("refuses a bad request or a note not in English before counting anything", async () => {
+    expect((await ask(LEO, { ...body, notes: [] })).status).toBe(400);
+    const res = await ask(LEO, { ...body, note: "\u4ee5\u540e\u6211\u7684\u5e16\u5b50\u591a\u7528\u8868\u60c5\u7b26\u53f7" });
+    expect(res.status).toBe(422);
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("stops at the daily limit without asking Jev", async () => {
+    db.rows.set(`${LEO}|writing-judge|${db.today()}`, 60);
+    const res = await ask(LEO, body);
+    expect(res.status).toBe(429);
+    expect(calls).toEqual([]);
+  });
+});
+
 describe("the checks everyone has", () => {
   it("stay open to an account not on the list", async () => {
     jev = () => Response.json({ answers: { sequence: { type: "noul", noul: 0.2 } } });

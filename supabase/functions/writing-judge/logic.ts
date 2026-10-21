@@ -23,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design", "conflict"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -47,6 +47,7 @@ export type JudgeRequest =
   | { mode: "facts"; text: string }
   | { mode: "thread"; post: string }
   | { mode: "design"; slides: { title: string; body: string }[] }
+  | { mode: "conflict"; note: string; notes: string[] }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -86,6 +87,14 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
     const slides = raw.map((x: Record<string, unknown>) => ({ title: str(x.title, 200), body: str(x.body, 600) }));
     if (slides.reduce((n, x) => n + x.title.length + x.body.length, 0) < MIN_TEXT) return { ok: false, error: "Add some text to the slides first." };
     return { ok: true, request: { mode, slides } };
+  }
+  if (mode === "conflict") {
+    const note = str(b.note, CONFLICT_NOTE);
+    if (!note) return { ok: false, error: "Add a note first." };
+    const raw = Array.isArray(b.notes) ? b.notes : [];
+    const notes = raw.map((x) => str(x, CONFLICT_NOTE));
+    if (!notes.length || notes.length > MAX_CONFLICT_NOTES || notes.some((x) => !x)) return { ok: false, error: `Send 1 to ${MAX_CONFLICT_NOTES} notes.` };
+    return { ok: true, request: { mode, note, notes } };
   }
   if (mode === "facts") {
     const text = str(b.text, MAX_TEXT);
@@ -635,4 +644,51 @@ export function readFacts(answers: Record<string, JevAnswer> | null, sentences: 
     const p = answers[`fact_${i}`]?.noul;
     return typeof p === "number" && p >= FACT_MIN;
   });
+}
+
+// ---- Mode "conflict" (brand-voice-memory, Leo only) -------------------------
+// Whether a new standing note to the AI ("use lots of emoji") asks for the
+// opposite of one already kept ("never use emoji"), so the assistant's card can
+// say which one it replaces. One yes/no per kept note, in one request.
+
+/** A note, and each kept note, at most this long (the learnings' own limit). */
+export const CONFLICT_NOTE = 140;
+/** The most kept notes compared in one check (the learnings' active limit). */
+export const MAX_CONFLICT_NOTES = 30;
+// shortcut: threshold not read off real notes; set it from a side-by-side run of 30 real pairs
+/** p(they ask for opposite things) at or above this names the note it replaces. */
+export const CONFLICT_MIN = 0.7;
+
+export function conflictQuestions(note: string, notes: string[]): Record<string, JevQuestion> {
+  return Object.fromEntries(
+    notes.map((old, i) => [
+      `conflict_${i}`,
+      {
+        type: "noul",
+        instructions: {
+          new_note: note,
+          old_note: old,
+          question: "Does `new_note` ask for the opposite of `old_note`, so that both cannot be followed?",
+        },
+        criteria: {
+          true: "They ask for opposite things, for example 'use emoji' and 'never use emoji'.",
+          false: "They can both be followed, or they are about different things.",
+        },
+      } satisfies JevQuestion,
+    ]),
+  );
+}
+
+/** The kept note the new one replaces: the highest yes at or above CONFLICT_MIN, else null (and null without an answer). */
+export function readConflict(answers: Record<string, JevAnswer> | null, count: number): number | null {
+  let best: number | null = null;
+  let top = CONFLICT_MIN;
+  for (let i = 0; i < count; i++) {
+    const p = answers?.[`conflict_${i}`]?.noul;
+    if (typeof p === "number" && Number.isFinite(p) && p >= top) {
+      best = i;
+      top = p;
+    }
+  }
+  return best;
 }

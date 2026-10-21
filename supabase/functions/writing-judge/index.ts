@@ -30,6 +30,11 @@
 //     maker's "Recommended" tag at DESIGN_MIN), p its probability. Leo only
 //     like "thread", the use given back when Jev never answered. About 300
 //     tokens for a 6-slide carousel.
+//   mode "conflict" {note, notes} -> {replaces: index | null}
+//     which kept note to the AI a new one asks the opposite of (the
+//     assistant's "This replaces" line, at CONFLICT_MIN). Leo only like
+//     "thread", the use given back when Jev never answered. About 100 tokens
+//     a kept note, up to 30.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -71,6 +76,8 @@ import {
   DESIGN_QUESTIONS,
   designState,
   readDesignPick,
+  conflictQuestions,
+  readConflict,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -98,6 +105,7 @@ Deno.serve(async (req) => {
       : r.mode === "carousel" ? r.idea
       : r.mode === "thread" ? r.post
       : r.mode === "design" ? r.slides.map((x) => `${x.title}\n${x.body}`).join("\n")
+      : r.mode === "conflict" ? r.note
       : r.text;
     // an empty profile has nothing to read and scores 0 on its own
     const empty = r.mode === "profile" && !/\p{L}/u.test(english);
@@ -108,7 +116,7 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to check a post." }, 401);
-    if ((r.mode === "thread" || r.mode === "design") && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+    if ((r.mode === "thread" || r.mode === "design" || r.mode === "conflict") && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
       return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
     }
 
@@ -140,6 +148,15 @@ Deno.serve(async (req) => {
         return json({ error: UNAVAILABLE }, 503);
       }
       return json(readDesignPick(answers));
+    }
+    if (r.mode === "conflict") {
+      const answers = await askJev({ new_note: r.note }, conflictQuestions(r.note, r.notes), { who: "writing-judge conflict" });
+      if (!answers) {
+        // Jev never answered: the use goes back (phase 4 decision 3)
+        await refundUsage(admin, uid, "writing-judge", day);
+        return json({ error: UNAVAILABLE }, 503);
+      }
+      return json({ replaces: readConflict(answers, r.notes.length) });
     }
     if (r.mode === "profile") {
       const answers = await askJev(profileState(r), profileQuestions(r), { who: "writing-judge profile" });

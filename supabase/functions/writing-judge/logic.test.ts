@@ -39,6 +39,10 @@ import {
   THREAD_QUESTIONS,
   THREAD_YES,
   readThreadYes,
+  CONFLICT_MIN,
+  MAX_CONFLICT_NOTES,
+  conflictQuestions,
+  readConflict,
 } from "./logic";
 
 const post = "My client paid $0 for his ward stay.\nHis colleague paid $11,400.\n\nThe result? One rider at 3.5% of his premium. Thoughts?";
@@ -335,5 +339,52 @@ describe("the carousel design pick", () => {
     expect(readDesignPick(answer({}))).toEqual({ pick: null, p: null });
     expect(readDesignPick({})).toEqual({ pick: null, p: null });
     expect(readDesignPick(null)).toEqual({ pick: null, p: null });
+  });
+});
+
+describe("the learning conflict check", () => {
+  const noul = (p: number) => ({ type: "noul" as const, noul: p });
+  it("takes a note and 1 to 30 kept notes, each cut to 140 characters", () => {
+    const r = parseJudgeRequest({ mode: "conflict", note: ` use lots of emoji ${"x".repeat(200)}`, notes: ["never use emoji in my posts", "end with a question"] });
+    expect(r.ok && r.request).toMatchObject({ mode: "conflict", notes: ["never use emoji in my posts", "end with a question"] });
+    expect(r.ok && r.request.mode === "conflict" && r.request.note.length).toBe(140);
+    expect(parseJudgeRequest({ mode: "conflict", note: "a", notes: Array.from({ length: MAX_CONFLICT_NOTES }, () => "b") }).ok).toBe(true);
+  });
+  it("refuses an empty note, no kept notes, a blank one and more than 30", () => {
+    for (const b of [
+      { mode: "conflict", note: "  ", notes: ["never use emoji"] },
+      { mode: "conflict", notes: ["never use emoji"] },
+      { mode: "conflict", note: "use emoji", notes: [] },
+      { mode: "conflict", note: "use emoji" },
+      { mode: "conflict", note: "use emoji", notes: ["never use emoji", " "] },
+      { mode: "conflict", note: "use emoji", notes: ["never use emoji", 3] },
+      { mode: "conflict", note: "use emoji", notes: Array.from({ length: MAX_CONFLICT_NOTES + 1 }, () => "b") },
+    ]) expect(parseJudgeRequest(b).ok, JSON.stringify(b)).toBe(false);
+  });
+  it("asks one yes/no per kept note, the spec's question", () => {
+    const q = conflictQuestions("use lots of emoji", ["never use emoji in my posts", "end with a question"]);
+    expect(Object.keys(q)).toEqual(["conflict_0", "conflict_1"]);
+    expect(q.conflict_1).toEqual({
+      type: "noul",
+      instructions: {
+        new_note: "use lots of emoji",
+        old_note: "end with a question",
+        question: "Does `new_note` ask for the opposite of `old_note`, so that both cannot be followed?",
+      },
+      criteria: {
+        true: "They ask for opposite things, for example 'use emoji' and 'never use emoji'.",
+        false: "They can both be followed, or they are about different things.",
+      },
+    });
+  });
+  it("names the highest at or above 0.7, and nothing below it or without an answer", () => {
+    expect(CONFLICT_MIN).toBe(0.7);
+    expect(readConflict({ conflict_0: noul(0.72), conflict_1: noul(0.91), conflict_2: noul(0.3) }, 3)).toBe(1);
+    expect(readConflict({ conflict_0: noul(0.7) }, 1)).toBe(0);
+    expect(readConflict({ conflict_0: noul(0.69), conflict_1: noul(0.2) }, 2)).toBeNull();
+    expect(readConflict(null, 2)).toBeNull();
+    expect(readConflict({}, 2)).toBeNull();
+    // an answer for a note that was not sent is ignored
+    expect(readConflict({ conflict_0: noul(0.1), conflict_5: noul(0.99) }, 1)).toBeNull();
   });
 });
