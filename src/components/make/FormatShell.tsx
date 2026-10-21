@@ -7,12 +7,19 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
+import { usedUpLine } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { reasonText } from "@/lib/prices";
+import { reasonText, type Price, type PriceOpts } from "@/lib/prices";
 import type { UsageFeature } from "../../../supabase/functions/_shared/usageCaps.ts";
 
 export interface ShellFooter {
+  /** The main cap: its uses left show on the chip. */
   cap: UsageFeature;
+  /** The press's whole price (sumPrices), in place of priceOf(cap, opts). */
+  price?: Price | "pick" | null;
+  opts?: PriceOpts;
+  /** Other caps the press spends: the button is off while any is at 0, and the line under it names the first one. */
+  caps?: UsageFeature[];
   label: string;
   busyLabel: string;
   busy: boolean;
@@ -27,8 +34,10 @@ export interface ShellFooter {
 export default function FormatShell(p: { title: string; blurb: string; options: ReactNode; result: ReactNode; footer: ShellFooter }) {
   const navigate = useNavigate();
   const f = p.footer;
-  const left = useUsesLeft(f.busy)(f.cap);
-  const reason = f.reason ?? reasonText({ left, leo: true });
+  const leftOf = useUsesLeft(f.busy);
+  const left = leftOf(f.cap);
+  const usedUp = f.caps?.length ? usedUpLine([f.cap, ...f.caps], leftOf) : null;
+  const reason = f.reason ?? usedUp ?? reasonText({ left, leo: true });
   // a page opened straight from a link has nothing to go back to in the app
   const back = () => ((window.history.state as { idx?: number } | null)?.idx ? navigate(-1) : navigate("/home"));
   return (
@@ -48,9 +57,9 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
           <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-5 border-t border-border/70 bg-background py-3 pl-4 pr-[4.5rem] lg:bg-background/95 lg:backdrop-blur-md sm:-mx-6 sm:pl-6 lg:bottom-0 lg:mx-0 lg:rounded-lg lg:border lg:px-4">
             <div className="flex items-center gap-3">
               <span className="min-w-0 flex-1" aria-live="polite">
-                <PriceChip feature={f.cap} left={left} />
+                <PriceChip feature={f.cap} opts={f.opts} price={f.price} left={left} />
               </span>
-              <Button onClick={f.onMake} disabled={f.busy || f.disabled || left === 0} variant={f.secondary ? "outline" : "default"} className="shrink-0 gap-1.5">
+              <Button onClick={f.onMake} disabled={f.busy || f.disabled || left === 0 || !!usedUp} variant={f.secondary ? "outline" : "default"} className="shrink-0 gap-1.5">
                 {f.busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 {f.busy ? f.busyLabel : f.label}
               </Button>
