@@ -1,0 +1,22 @@
+{
+  "state": {
+    "today": "Sunday 11 October 2026",
+    "message": "how did my week go"
+  },
+  "questions": {
+    "act": {
+      "type": "choice",
+      "instructions": "A financial adviser typed `message` to the assistant inside Content Studio, the app where they write, plan and track their social media posts. Which one thing is the message asking the app to do right now?",
+      "criteria": {
+        "move": "Schedule one of their saved posts, or move it to another day or time: put it on the calendar, reschedule it, change when it goes out.",
+        "write": "Change the words of one of their saved posts: rewrite it, shorten or lengthen it, change its tone, fix it or add something to it.",
+        "week": "Show how their posts did over the last week: their numbers, results, impressions, engagement, best or weakest post.",
+        "engage_replies": "Help them reply to comments people left on their own post. The message contains those comments.",
+        "engage_dms": "Help them reply to several separate direct messages from different people. The message contains those messages.",
+        "engage_thread": "Help them reply in one back-and-forth direct message conversation with one person. The message contains that conversation.",
+        "engage_comment": "Help them write a comment to leave on someone else's post. The message contains that post.",
+        "none": "Anything else: a question about how the app works, an idea, a problem or bug, a feature request, a message for the team, small talk, or something the app cannot do."
+      }
+    }
+  }
+}

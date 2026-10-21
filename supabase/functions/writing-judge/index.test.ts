@@ -36,15 +36,18 @@ const db = vi.hoisted(() => {
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
 const calls: string[] = [];
-let jev: () => Response = () => new Response("down", { status: 503 });
+const sent: unknown[] = [];
+let jev: (body: { questions: Record<string, { type: string; criteria?: unknown }> }) => Response = () => new Response("down", { status: 503 });
 
 beforeAll(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", TYPESAFE_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string) => {
+  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
     calls.push(String(u));
-    return jev();
+    const body = init?.body ? JSON.parse(String(init.body)) : null;
+    sent.push(body);
+    return jev(body);
   });
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -57,6 +60,7 @@ afterAll(() => {
 beforeEach(() => {
   db.rows.clear();
   calls.length = 0;
+  sent.length = 0;
   jev = () => new Response("down", { status: 503 });
 });
 
@@ -137,5 +141,49 @@ describe("the checks everyone has", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ textPostBetter: true });
     expect(used(OTHER)).toBe(1);
+  });
+});
+
+// Every check as it is today, pinned before the conflict mode joined (phase 4 memory-core): the Jev request each
+// one sends and the answer it gives back. Never update this file with vitest -u.
+describe("today's checks, pinned", () => {
+  // a fixed answer for any question: yes 0.7, the first option at 0.8, the middle level
+  const answerAll = (body: { questions: Record<string, { type: string; criteria?: unknown }> }) =>
+    Response.json({
+      answers: Object.fromEntries(
+        Object.entries(body.questions).map(([id, q]) => {
+          if (q.type === "noul") return [id, { type: "noul", noul: 0.7 }];
+          if (q.type === "choice") {
+            const first = Object.keys(q.criteria as Record<string, unknown>)[0];
+            return [id, { type: "choice", choice: first, probabilities: { [first]: 0.8 } }];
+          }
+          return [id, { type: "score", score: 2 }];
+        }),
+      ),
+    });
+  const draft = "I sat with a client last Tuesday who had three hospital plans and no idea which one paid first. We spent an hour on it. Here is what we found.";
+  const cases: [string, string, Record<string, unknown>][] = [
+    ["human", OTHER, { mode: "human", text: draft, samples: ["My own post about CPF top-ups and why I do mine in January every year, with the numbers."] }],
+    ["hooks", OTHER, { mode: "hooks", hooks: ["Your hospital plan has a gap", "Three plans, one claim"], audience: "young parents", topic: "hospital plans", platform: "instagram" }],
+    ["idea", OTHER, { mode: "idea", topic: "hospital plans", notes: "a client with three plans", kind: "story" }],
+    ["carousel", OTHER, { mode: "carousel", idea: "Insurance is not an investment" }],
+    ["facts", OTHER, { mode: "facts", text: "CPF LIFE starts at 65. I think everyone should plan early." }],
+    ["profile", OTHER, { mode: "profile", platform: "instagram", name: "Leo Tan", bio: "Adviser in Singapore. DM me.", pinned: ["My story"], top: ["Three CPF myths"], link: null }],
+    ["thread", LEO, { mode: "thread", post }],
+    ["design", LEO, { mode: "design", slides: [{ title: "3 things to check on your hospital plan", body: "" }, { title: "Ward class", body: "Pick the ward you would actually stay in." }] }],
+    ["not english", OTHER, { mode: "human", text: "\u6211\u7684\u5ba2\u6237\u4e0a\u5468\u4e8c\u6765\u627e\u6211\uff0c\u4ed6\u6709\u4e09\u4efd\u4f4f\u9662\u4fdd\u9669\uff0c\u4e0d\u77e5\u9053\u54ea\u4e00\u4efd\u5148\u8d54\u3002\u6211\u4eec\u82b1\u4e86\u4e00\u4e2a\u5c0f\u65f6\u3002\u6211\u7684\u5ba2\u6237\u4e0a\u5468\u4e8c\u6765\u627e\u6211\uff0c\u4ed6\u6709\u4e09\u4efd\u4f4f\u9662\u4fdd\u9669\uff0c\u4e0d\u77e5\u9053\u54ea\u4e00\u4efd\u5148\u8d54\u3002\u6211\u4eec\u82b1\u4e86\u4e00\u4e2a\u5c0f\u65f6\u3002" }],
+    ["unknown mode", OTHER, { mode: "translate", text: draft }],
+    ["too short", OTHER, { mode: "human", text: "Too short." }],
+  ];
+  it("sends Jev the same questions and answers the same way", async () => {
+    const seen: Record<string, unknown> = {};
+    for (const [name, uid, body] of cases) {
+      db.rows.clear();
+      sent.length = 0;
+      jev = answerAll;
+      const res = await ask(uid, body);
+      seen[name] = { status: res.status, answer: await res.json(), jev: sent.slice() };
+    }
+    await expect(JSON.stringify(seen, null, 2)).toMatchFileSnapshot("./fixtures/today.json");
   });
 });

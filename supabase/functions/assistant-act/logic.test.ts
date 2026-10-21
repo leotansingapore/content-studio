@@ -68,6 +68,16 @@ describe("actAsk", () => {
   });
 });
 
+// Today's questions, pinned before the remember act joined (phase 4 memory-core): every account not on
+// NORTH_STAR_USERS must keep getting exactly these. Never update these files with vitest -u.
+describe("actAsk, pinned for everyone", () => {
+  it("asks today's questions with no posts and with posts", async () => {
+    const none = actAsk(actBody({ message: "how did my week go", today: "2026-10-11" })!);
+    await expect(JSON.stringify(none, null, 2)).toMatchFileSnapshot("./fixtures/act-ask-no-posts.json");
+    await expect(JSON.stringify(actAsk(body), null, 2)).toMatchFileSnapshot("./fixtures/act-ask-posts.json");
+  });
+});
+
 describe("actPick", () => {
   const move = { act: choice("move"), post: choice("p1"), day: choice("2026-10-15"), time: choice("20:00") };
   it("reads the post, day and time for a move", () => {

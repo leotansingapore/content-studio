@@ -55,6 +55,12 @@ describe("the assistant's actions", () => {
     expect(asked).toEqual([]);
   });
 
+  it("sends Jev today's questions for an account not on the list (pinned)", async () => {
+    const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today: "2026-10-11", posts });
+    expect(r.status).toBe(200);
+    await expect(JSON.stringify(asked[0], null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
+  });
+
   it("stops at the daily limit without asking Jev", async () => {
     db.capReached(true);
     const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today, posts });

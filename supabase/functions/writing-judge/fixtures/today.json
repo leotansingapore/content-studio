@@ -1,0 +1,376 @@
+{
+  "human": {
+    "status": 200,
+    "answer": {
+      "aiSounding": true,
+      "specific": true,
+      "voiceMatch": true,
+      "shapes": []
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "draft": "I sat with a client last Tuesday who had three hospital plans and no idea which one paid first. We spent an hour on it. Here is what we found.",
+          "voice_samples": [
+            "My own post about CPF top-ups and why I do mine in January every year, with the numbers."
+          ]
+        },
+        "questions": {
+          "ai": {
+            "type": "noul",
+            "instructions": "Does `draft` read as if an AI writing tool wrote it, rather than a person writing in their own words?",
+            "criteria": {
+              "true": "Smooth and generic: stock phrases, every sentence a similar length, tidy lists of three, staged reveals, upbeat filler, nothing only this writer would say.",
+              "false": "Sounds like a real person: uneven rhythm, plain everyday words, personal details, a clear opinion, small quirks of how this person talks."
+            }
+          },
+          "specific": {
+            "type": "noul",
+            "instructions": "Does `draft` contain at least one real specific detail?",
+            "criteria": {
+              "true": "At least one of: a number tied to a real situation (an amount, an age, a count, a date), a short account of what happened to a particular person, or a named place or event.",
+              "false": "Only general statements, advice or opinions that could appear in anyone's post."
+            }
+          },
+          "voice": {
+            "type": "noul",
+            "instructions": "Does `draft` sound like it was written by the same person who wrote `voice_samples`?",
+            "criteria": {
+              "true": "Same kind of word choice, sentence length, tone and way of talking to the reader as the samples.",
+              "false": "A noticeably different voice from the samples: more formal or more generic, different rhythm or vocabulary."
+            }
+          },
+          "shape_0": {
+            "type": "choice",
+            "instructions": {
+              "sentence": "I sat with a client last Tuesday who had three hospital plans and no idea which one paid first.",
+              "sentence_before": "",
+              "question": "Which of these AI writing shapes is `sentence`? Read it together with `sentence_before`."
+            },
+            "criteria": {
+              "none": "None of these. An ordinary sentence: a statement, a story detail, a comparison of two people or numbers, a real list of named things such as 'CPF, SRS and cash', a real question about the topic, or an instruction such as 'Comment X and I'll send you Y'.",
+              "contrast": "A reversal that denies one thing to assert another: 'It's not just X, it's Y', 'Not only X but also Y', 'X is a journey, not a destination', or 'It isn't about X.' followed by 'It's about Y.' A sentence that merely contains 'not' is not this.",
+              "triad": "Three short words or phrases stacked for rhythm, such as 'clear, simple, and powerful' or 'plan, protect, prosper'.",
+              "reveal": "A short rhetorical question that sets up its own answer, such as 'The result?', 'The best part?' or 'The catch?'",
+              "bait": "A bare reflex question tacked on for comments, usually one to three words: 'Thoughts?', 'Agree?', 'Who else?', 'Am I wrong?'. Not a real question about the post's topic."
+            }
+          },
+          "shape_1": {
+            "type": "choice",
+            "instructions": {
+              "sentence": "We spent an hour on it.",
+              "sentence_before": "I sat with a client last Tuesday who had three hospital plans and no idea which one paid first.",
+              "question": "Which of these AI writing shapes is `sentence`? Read it together with `sentence_before`."
+            },
+            "criteria": {
+              "none": "None of these. An ordinary sentence: a statement, a story detail, a comparison of two people or numbers, a real list of named things such as 'CPF, SRS and cash', a real question about the topic, or an instruction such as 'Comment X and I'll send you Y'.",
+              "contrast": "A reversal that denies one thing to assert another: 'It's not just X, it's Y', 'Not only X but also Y', 'X is a journey, not a destination', or 'It isn't about X.' followed by 'It's about Y.' A sentence that merely contains 'not' is not this.",
+              "triad": "Three short words or phrases stacked for rhythm, such as 'clear, simple, and powerful' or 'plan, protect, prosper'.",
+              "reveal": "A short rhetorical question that sets up its own answer, such as 'The result?', 'The best part?' or 'The catch?'",
+              "bait": "A bare reflex question tacked on for comments, usually one to three words: 'Thoughts?', 'Agree?', 'Who else?', 'Am I wrong?'. Not a real question about the post's topic."
+            }
+          },
+          "shape_2": {
+            "type": "choice",
+            "instructions": {
+              "sentence": "Here is what we found.",
+              "sentence_before": "We spent an hour on it.",
+              "question": "Which of these AI writing shapes is `sentence`? Read it together with `sentence_before`."
+            },
+            "criteria": {
+              "none": "None of these. An ordinary sentence: a statement, a story detail, a comparison of two people or numbers, a real list of named things such as 'CPF, SRS and cash', a real question about the topic, or an instruction such as 'Comment X and I'll send you Y'.",
+              "contrast": "A reversal that denies one thing to assert another: 'It's not just X, it's Y', 'Not only X but also Y', 'X is a journey, not a destination', or 'It isn't about X.' followed by 'It's about Y.' A sentence that merely contains 'not' is not this.",
+              "triad": "Three short words or phrases stacked for rhythm, such as 'clear, simple, and powerful' or 'plan, protect, prosper'.",
+              "reveal": "A short rhetorical question that sets up its own answer, such as 'The result?', 'The best part?' or 'The catch?'",
+              "bait": "A bare reflex question tacked on for comments, usually one to three words: 'Thoughts?', 'Agree?', 'Who else?', 'Am I wrong?'. Not a real question about the post's topic."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "hooks": {
+    "status": 200,
+    "answer": {
+      "pick": null
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "platform": "instagram",
+          "audience": "young parents",
+          "topic": "hospital plans"
+        },
+        "questions": {
+          "pick_fwd": {
+            "type": "choice",
+            "instructions": "Which hook would make someone in `audience`, scrolling `platform`, most likely to stop and read a post about `topic`?",
+            "criteria": {
+              "A": "Your hospital plan has a gap",
+              "B": "Three plans, one claim"
+            }
+          },
+          "pick_rev": {
+            "type": "choice",
+            "instructions": "Which hook would make someone in `audience`, scrolling `platform`, most likely to stop and read a post about `topic`?",
+            "criteria": {
+              "B": "Three plans, one claim",
+              "A": "Your hospital plan has a gap"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "idea": {
+    "status": 200,
+    "answer": {
+      "thin": false
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "post_kind": "story",
+          "topic": "hospital plans",
+          "notes": "a client with three plans"
+        },
+        "questions": {
+          "specific": {
+            "type": "noul",
+            "instructions": "Do `topic` and `notes` already give one specific true thing to build the post on: something that happened, to whom, and what it cost or returned?",
+            "criteria": {
+              "true": "A concrete event or case: a client's situation with a detail such as an age, an amount, a date or what went wrong; a real question someone asked; the writer's own experience with a number or a moment.",
+              "false": "Only a subject or a general angle, such as 'CPF top-ups', 'why insurance matters' or '3 tips for fresh grads', with no event, person or number."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "carousel": {
+    "status": 200,
+    "answer": {
+      "textPostBetter": false
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "idea": "Insurance is not an investment"
+        },
+        "questions": {
+          "sequence": {
+            "type": "noul",
+            "instructions": "Does `idea` have a sequence that suits a swipeable carousel of several slides: steps, a numbered list or countdown, a before-and-after progression, or a framework with parts?",
+            "criteria": {
+              "true": "Several distinct parts in an order, one per slide, such as '5 steps to claim from your hospital plan', '3 mistakes fresh grads make', or how something changes from age 55 to 65 to 70.",
+              "false": "One claim, opinion or story that would have to be cut into pieces across slides, such as 'insurance is not an investment' or 'my first client'."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "facts": {
+    "status": 200,
+    "answer": {
+      "lines": [
+        "CPF LIFE starts at 65.",
+        "I think everyone should plan early."
+      ]
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "draft": "CPF LIFE starts at 65. I think everyone should plan early."
+        },
+        "questions": {
+          "fact_0": {
+            "type": "noul",
+            "instructions": {
+              "sentence": "CPF LIFE starts at 65.",
+              "sentence_before": "",
+              "question": "Does `sentence` (read with `sentence_before` for context) state a checkable fact about CPF, SRS, HDB, MediShield Life, insurance rules, a government scheme, an interest rate, a payout, or a limit or cap in Singapore?"
+            },
+            "criteria": {
+              "true": "A specific claim that could be right or wrong: a rate (SA earns 4%), an amount or cap ($8,000 tax relief), an age rule (CPF LIFE starts at 65), what a scheme or policy covers, how a rule works.",
+              "false": "An opinion, a story about a client or the writer, a question, advice, an ask, or a general statement that cannot be checked."
+            }
+          },
+          "fact_1": {
+            "type": "noul",
+            "instructions": {
+              "sentence": "I think everyone should plan early.",
+              "sentence_before": "CPF LIFE starts at 65.",
+              "question": "Does `sentence` (read with `sentence_before` for context) state a checkable fact about CPF, SRS, HDB, MediShield Life, insurance rules, a government scheme, an interest rate, a payout, or a limit or cap in Singapore?"
+            },
+            "criteria": {
+              "true": "A specific claim that could be right or wrong: a rate (SA earns 4%), an amount or cap ($8,000 tax relief), an age rule (CPF LIFE starts at 65), what a scheme or policy covers, how a rule works.",
+              "false": "An opinion, a story about a client or the writer, a question, advice, an ask, or a general statement that cannot be checked."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "profile": {
+    "status": 200,
+    "answer": {
+      "score": 66,
+      "items": [
+        {
+          "id": "name",
+          "earned": 17,
+          "points": 25,
+          "state": "partial"
+        },
+        {
+          "id": "bio",
+          "earned": 23,
+          "points": 35,
+          "state": "partial"
+        },
+        {
+          "id": "pinned",
+          "earned": 13,
+          "points": 20,
+          "state": "partial"
+        },
+        {
+          "id": "contact",
+          "earned": 0,
+          "points": 20,
+          "state": "unknown"
+        }
+      ],
+      "rewrites": {}
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "platform": "Instagram",
+          "role": "a financial consultant in Singapore",
+          "name": "Leo Tan",
+          "bio": "Adviser in Singapore. DM me.",
+          "pinned_posts": [
+            "My story"
+          ]
+        },
+        "questions": {
+          "name": {
+            "type": "score",
+            "instructions": "On `platform` the name field shows beside the photo and is searchable. How well does `name` tell a visitor what this consultant (`role`) does and for whom?",
+            "criteria": [
+              "Only a personal name, a nickname or a handle.",
+              "A name plus a job title or industry only, such as 'Jane Tan | Financial Consultant'.",
+              "Says who they help or with what, such as 'Jane | Retirement plans for SG parents'.",
+              "Says who they help and what changes for them, with a proof point such as years, clients helped or a credential."
+            ]
+          },
+          "bio": {
+            "type": "score",
+            "instructions": "How well does `bio` tell a first-time visitor who this consultant (`role`) helps, why to follow, and what to do next?",
+            "criteria": [
+              "Empty, or only a quote, emojis or personal hobbies.",
+              "Describes the writer (job title, company, credentials) but not who they help.",
+              "Says who they help and with what.",
+              "Says who they help and what changes for them, gives one proof point, and tells the reader what to do next (DM, tap the link, book)."
+            ]
+          },
+          "pinned": {
+            "type": "score",
+            "instructions": "`pinned_posts` are the posts pinned to the top of this consultant's profile. How well do they show a first-time visitor who this consultant helps, proof that it works, and how to work with them?",
+            "criteria": [
+              "Off-topic or personal posts that say nothing about the work.",
+              "About the work, but generic tips with no proof and no way to get in touch.",
+              "Shows the work with proof (a client story, a result, a number) or a clear way to work with them.",
+              "Together they cover who they help, proof that it works, and how to work with them."
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "thread": {
+    "status": 200,
+    "answer": {
+      "yes": 0.7
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "post": "Three things to check on your hospital plan before you renew. First the ward class. Then the co-pay. Then the rider."
+        },
+        "questions": {
+          "thread": {
+            "type": "noul",
+            "instructions": "This is a social media post by a Singapore financial adviser. Would it read better on Threads as a chain of 3 to 8 short posts than as one post? Yes when it has several separate points, steps or examples that each stand on their own; no when it is one short thought or one story that needs to be read in one piece.",
+            "criteria": {
+              "true": "Several separate points, steps or examples that each stand on their own.",
+              "false": "One short thought, or one story that needs to be read in one piece."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "design": {
+    "status": 200,
+    "answer": {
+      "pick": "clean",
+      "p": 0.8
+    },
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "slides": "Slide 1: 3 things to check on your hospital plan\n\nSlide 2: Ward class\nPick the ward you would actually stay in."
+        },
+        "questions": {
+          "design": {
+            "type": "choice",
+            "instructions": "These are the `slides` of an Instagram or LinkedIn carousel by a Singapore financial adviser. Which slide design suits this content best?",
+            "criteria": {
+              "clean": "general advice in short paragraphs",
+              "numbered": "a list of separate tips or reasons",
+              "checklist": "steps or things to check off",
+              "post-card": "a personal opinion or story told in first person",
+              "quote": "one strong statement or a quotation",
+              "bold": "a short punchy list with a provocative hook",
+              "photo-cover": "a story about a place, a person or a moment",
+              "notebook": "a lesson or explanation with some detail"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "not english": {
+    "status": 422,
+    "answer": {
+      "code": "not_english",
+      "error": "This check reads English posts only."
+    },
+    "jev": []
+  },
+  "unknown mode": {
+    "status": 400,
+    "answer": {
+      "error": "Unknown check."
+    },
+    "jev": []
+  },
+  "too short": {
+    "status": 400,
+    "answer": {
+      "error": "Write a bit more before checking it."
+    },
+    "jev": []
+  }
+}
