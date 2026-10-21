@@ -16,7 +16,7 @@ import { CLIP_LENGTH_IDS, LENGTH_LABELS, clipPlan, loadClipLook, planIssue, pres
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, hoursMinutes } from "@/lib/longCaptions";
 import { mediaLength } from "@/lib/longAudio";
 import { priceOf, sumPrices } from "@/lib/prices";
-import { PRESETS } from "@/lib/stylePresets";
+import { PRESETS, presetLabel } from "@/lib/stylePresets";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { fmtTime } from "@/lib/videoEdit";
 import { defaultSkill, loadSkills } from "@/lib/videoSkills";
@@ -54,7 +54,8 @@ export default function ClipsPanel({ userId, busy, onStart, onClose }: {
   const looks = [
     { id: "", label: `${mine?.name ?? "Bold"} (default)` },
     ...skills.filter((s) => s !== mine).map((s) => ({ id: skillLook(s.id), label: s.name })),
-    ...PRESETS.map((p) => ({ id: presetLook(p.id), label: p.label })),
+    // the panel is Leo's (LEO_PANELS), so the presets carry his plain names
+    ...PRESETS.map((p) => ({ id: presetLook(p.id), label: presetLabel(p, true) })),
   ];
   const pickLook = (id: string) => {
     setLook(id);

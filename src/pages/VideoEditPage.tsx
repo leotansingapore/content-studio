@@ -144,7 +144,15 @@ import {
   sanitizeStand,
   standOf,
   brandFixes,
+  captionTerms,
+  keyLines,
+  keyWordOf,
+  sanitizeKeyWords,
+  styleLabel,
+  type Word,
 } from "@/lib/videoEdit";
+import { CAPTION_LOOKS, captionLookIn, captionsAsDefault, keyCount, keyWordsFrom, keysStale, tapKeyWord, withCaptionLook, type CaptionLook } from "@/lib/captionLooks";
+import { MAX_KEYWORD_LINES, keyCandidates } from "../../supabase/functions/video-assist/keywords.ts";
 import {
   bufferTrack,
   decodeSound,
@@ -191,7 +199,7 @@ import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "
 import { FAST, isFast } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { MAX_WATCH_SECONDS, WATCH_LABELS, onWatchJob, startWatch, watchJob, type WatchJob } from "@/lib/watchCut";
-import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, suggestCutaways, loadFixes, loadProjects, pickKeyWords, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
@@ -354,9 +362,10 @@ export default function VideoEditPage() {
       let landed = false;
       let silent = false;
       try {
-        const t = await transcribe(heard.wav);
-        // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker")
-        const fixed = applyFixes(t.words, [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])]);
+        // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker"), and ask Whisper to spell their fixed words
+        const mine = [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])];
+        const t = await transcribe(heard.wav, undefined, leo ? captionTerms(mine) : undefined);
+        const fixed = applyFixes(t.words, mine);
         p = { ...p, words: fixed.words };
         setProjects(saveProject(uid, p));
         landed = true;
@@ -595,9 +604,10 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     faceTrack: sanitizeTrack(project.settings.faceTrack),
     backdrop: sanitizeBackdrop(project.settings.backdrop),
     stand: sanitizeStand(project.settings.stand),
+    keyWords: sanitizeKeyWords(project.settings.keyWords),
   }));
-  // Words tab: fix spelling, or cut a stretch by tapping its first and last word
-  const [wordMode, setWordMode] = useUrlState("mode", "fix", { allowed: ["fix", "cut"] });
+  // Words tab: fix spelling, or cut a stretch by tapping its first and last word; Leo's key words: light a word by tapping it
+  const [wordMode, setWordMode] = useUrlState("mode", "fix", { allowed: leo && settings.keyWordsOn ? ["fix", "cut", "key"] : ["fix", "cut"] });
   // words the captions always get wrong, fixed in every video; offer = a hand fix not saved yet
   const [fixes, setFixes] = useState<CaptionFix[]>(() => loadFixes(userId));
   const [offer, setOffer] = useState<CaptionFix | null>(null);
@@ -642,6 +652,8 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const [log, setLog] = useState<{ me: string; it: string }[]>([]);
   const [thinking, setThinking] = useState(false);
   const [captioning, setCaptioning] = useState(false);
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [keyError, setKeyError] = useState("");
   const [job, setJob] = useState<ExportJob | null>(exportJob());
   // a guide over the 9:16 preview: where Instagram or TikTok's own buttons and caption sit
   const [guide, setGuide] = useUrlState<CoverApp | "">("guide", "", { allowed: ["instagram", "tiktok"] });
@@ -1358,8 +1370,9 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     setCaptioning(true);
     try {
       const { wav } = await extractWav(src);
-      const t = await transcribe(wav);
-      const fixed = applyFixes(t.words, [...fixes, ...(leo ? brandFixes(brandKit?.name) : [])]);
+      const mine = [...fixes, ...(leo ? brandFixes(brandKit?.name) : [])];
+      const t = await transcribe(wav, undefined, leo ? captionTerms(mine) : undefined);
+      const fixed = applyFixes(t.words, mine);
       setWords(fixed.words);
       if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
     } catch (e) {
@@ -1375,8 +1388,54 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const watching = watch?.state === "running";
 
   // uses left today beside each AI button, read again after every run
-  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning || musicMaking || watching);
+  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning || musicMaking || watching || keyBusy);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
+
+  // key words (edit-captions, Leo only): Jev's word per caption line, picked once per video (one "caption-keywords" use,
+  // an emoji asked in the same run unless the brand kit says none) and kept on the edit by each word's source time
+  const emojiRule = brandKit?.emojiPolicy;
+  const capLines = useMemo(() => (leo && settings.keyWordsOn ? keyLines(words, plan.segs, speed) : []), [leo, settings.keyWordsOn, words, plan.segs, speed]);
+  const keyRun = useRef(false);
+  const pickKeys = async () => {
+    if (keyRun.current) return;
+    keyRun.current = true;
+    const lines = keyLines(words, plan.segs, speed).slice(0, MAX_KEYWORD_LINES);
+    setKeyBusy(true);
+    setKeyError("");
+    try {
+      const picks = await pickKeyWords(lines.map((l) => ({ text: l.text, words: keyCandidates(l.words.map((w) => w.w)), s: l.s })), emojiRule === "none" ? false : emojiRule === "one" ? "one" : true);
+      const cur = settingsRef.current;
+      setHistory((h) => [...h.slice(-19), cur]);
+      setSettings({ ...cur, keyWordsOn: true, keyWords: keyWordsFrom(lines, picks) });
+    } catch (e) {
+      // nothing lit: the switch goes back off and says why (the server gave the use back if Jev never answered)
+      setSettings((x) => ({ ...x, keyWordsOn: false }));
+      setKeyError((e as Error).message);
+    } finally {
+      keyRun.current = false;
+      setKeyBusy(false);
+    }
+  };
+  // switched on (or a look or new video with them on) and never picked for this video: pick once the words are there
+  useEffect(() => {
+    if (leo && settings.keyWordsOn && settings.keyWords === undefined && words.length && !keyError && left("caption-keywords") !== 0) void pickKeys();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leo, settings.keyWordsOn, settings.keyWords, words.length]);
+  // a brand kit that says no emoji keeps them off
+  useEffect(() => {
+    if (leo && emojiRule === "none" && settings.captionEmoji) setSettings((x) => ({ ...x, captionEmoji: false }));
+  }, [leo, emojiRule, settings.captionEmoji]);
+  const lookOn = leo ? captionLookIn(settings) : null;
+  // the captions alone become the default skill's (or a new default's), with Undo
+  const captionsForNew = () => {
+    const before = defaultSkill(skills);
+    const next = captionsAsDefault(before, settings, newSkillId());
+    setSkills(saveSkill(userId, next));
+    toast({
+      title: "New videos will start with these captions.",
+      action: <ToastAction altText="Undo" onClick={() => setSkills(before ? saveSkill(userId, before) : removeSkill(userId, next.id))}>Undo</ToastAction>,
+    });
+  };
   // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
   const saveCover = async (at?: number | null, note?: string, face?: Band) => {
     const v = video.current;
@@ -1600,6 +1659,8 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     document.getElementById(`word-${hits[i]}`)?.scrollIntoView({ block: "nearest" });
   };
 
+  // key words mode: light the tapped word in its line, or turn a lit one off
+  const tapKey = (w: Word) => patch({ keyWords: tapKeyWord(capLines, settings.keyWords, w) });
   const tapWord = (i: number) => {
     const inCut = removedAt(settings.removed, words[i]);
     if (inCut) {
@@ -2354,13 +2415,20 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 {STYLE_IDS.map((id) => (
-                  <button key={id} type="button" onClick={() => change(withStyle(settings, id as StyleId))} aria-pressed={settings.style === id}
-                    className={`rounded-xl border p-2 text-left text-xs font-semibold ${settings.style === id ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border/70 hover:border-primary/40"}`}>
+                  <button key={id} type="button" onClick={() => change(withStyle(settings, id as StyleId))} aria-pressed={settings.style === id && !lookOn}
+                    className={`rounded-xl border p-2 text-left text-xs font-semibold ${settings.style === id && !lookOn ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border/70 hover:border-primary/40"}`}>
                     <span className="mb-1 block h-8 rounded-md bg-neutral-900 px-1.5 text-center leading-8"
                       style={{ color: STYLES[id].base, fontFamily: STYLES[id].font.includes("Fraunces") ? "Georgia, serif" : undefined, fontWeight: STYLES[id].weight }}>
                       {STYLES[id].uppercase ? "MOST PEOPLE" : "Most people"}
                     </span>
-                    {STYLES[id].label}
+                    {styleLabel(id, leo)}
+                  </button>
+                ))}
+                {leo && CAPTION_LOOKS.map((l) => (
+                  <button key={l.id} type="button" onClick={() => { setKeyError(""); change(withCaptionLook(settings, l)); }} aria-pressed={lookOn?.id === l.id}
+                    className={`rounded-xl border p-2 text-left text-xs font-semibold ${lookOn?.id === l.id ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border/70 hover:border-primary/40"}`}>
+                    <LookSample look={l} />
+                    {l.label}
                   </button>
                 ))}
               </div>
@@ -2391,8 +2459,31 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
               </Row>
               <Row label="Colours">
                 <input type="color" aria-label="Caption colour" value={settings.baseColor} onChange={(e) => patch({ baseColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />
-                {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />}
+                {(STYLES[settings.style].mode === "words" || (leo && settings.keyWordsOn)) && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />}
               </Row>
+              {leo && (
+                <>
+                  <Row label="Light up key words">
+                    {keyBusy ? (
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground" aria-live="polite"><ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Picking key words...</span>
+                    ) : <Left n={left("caption-keywords")} what="Key words" feature="caption-keywords" />}
+                    <Toggle label="Light up key words" on={!!settings.keyWordsOn} disabled={keyBusy || !words.length || (!settings.keyWordsOn && settings.keyWords === undefined && none("caption-keywords"))}
+                      set={(v) => { setKeyError(""); patch({ keyWordsOn: v }); }} />
+                  </Row>
+                  {keyError && <p className="text-right text-xs text-destructive" role="alert">{keyError}</p>}
+                  {settings.keyWordsOn && settings.keyWords && !keyBusy && (
+                    <p className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground" role="status">
+                      {(({ n, m }) => `${n} of ${m} lines have a key word.`)(keyCount(capLines, settings.keyWords))}
+                      {keysStale(capLines, settings.keyWords) && (
+                        <Button size="sm" variant="outline" className="h-8 text-xs [@media(pointer:coarse)]:min-h-11" disabled={none("caption-keywords")} onClick={() => void pickKeys()}>Pick again</Button>
+                      )}
+                    </p>
+                  )}
+                  {settings.keyWordsOn && (emojiRule === "none"
+                    ? <p className="text-right text-xs text-muted-foreground">Your brand kit says no emoji.</p>
+                    : <Row label="Emoji on key words"><Toggle label="Emoji on key words" on={!!settings.captionEmoji} set={(v) => patch({ captionEmoji: v })} /></Row>)}
+                </>
+              )}
               <Row label="Second language">
                 {([["", "Off"], ["zh", "\u4e2d\u6587"], ["ms", "Melayu"], ["ta", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"]] as const).map(([id, label]) => {
                   const off = noTranslate && !!id && !subsReady(id);
@@ -2407,6 +2498,12 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
               {noTranslate && <p className="text-right text-xs text-destructive">{reasonText({ left: 0, leo })}</p>}
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
               <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>
+              {leo && (
+                // pb-12: the button scrolls clear of the floating Ask button
+                <div className="flex justify-end border-t border-border/60 pb-12 pt-3">
+                  <Button size="sm" variant="outline" className="[@media(pointer:coarse)]:min-h-11" onClick={captionsForNew}>Use for every new video</Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -2928,7 +3025,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" role="group" aria-label="What a tap on a word does">
-                    {([["fix", "Fix spelling"], ["cut", "Cut words"]] as const).map(([m, label]) => (
+                    {([["fix", "Fix spelling"], ["cut", "Cut words"], ...(leo && settings.keyWordsOn ? [["key", "Key words"] as const] : [])] as const).map(([m, label]) => (
                       <button key={m} type="button" aria-pressed={wordMode === m} onClick={() => { setWordMode(m); setCutStart(null); }}
                         className={`rounded-md px-3 py-1.5 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${wordMode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
                     ))}
@@ -2938,6 +3035,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                       {cutStart === null ? "Tap the first word to cut, then the last. Tap a cut word to bring it back." : "Now tap the last word."}
                     </span>
                   )}
+                  {wordMode === "key" && <span className="text-[11px] text-muted-foreground">Tap a word to light it in its line. Tap a lit word to turn it off.</span>}
                   {cutWordCount > 0 && <span className="ml-auto text-[11px] font-medium">{cutWordCount} {cutWordCount === 1 ? "word" : "words"} cut</span>}
                 </div>
                 <p className="max-h-80 overflow-y-auto rounded-lg border border-border/60 p-3 text-sm leading-7">
@@ -2946,10 +3044,11 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                       key={i}
                       id={`word-${i}`}
                       contentEditable={wordMode === "fix"}
-                      role={wordMode === "cut" ? "button" : undefined}
-                      tabIndex={wordMode === "cut" ? 0 : undefined}
-                      onClick={wordMode === "cut" ? () => tapWord(i) : undefined}
-                      onKeyDown={wordMode === "cut" ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tapWord(i); } } : undefined}
+                      role={wordMode === "cut" || wordMode === "key" ? "button" : undefined}
+                      tabIndex={wordMode === "cut" || wordMode === "key" ? 0 : undefined}
+                      aria-pressed={wordMode === "key" ? !!keyWordOf(settings, w) : undefined}
+                      onClick={wordMode === "cut" ? () => tapWord(i) : wordMode === "key" ? () => tapKey(w) : undefined}
+                      onKeyDown={wordMode === "cut" || wordMode === "key" ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (wordMode === "key") tapKey(w); else tapWord(i); } } : undefined}
                       suppressContentEditableWarning
                       onFocus={() => { const v = video.current; if (v) { v.currentTime = w.s; segIdx.current = 0; } }}
                       onBlur={(e) => {
@@ -2959,7 +3058,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                         const fix = fixFromEdit(w.w, t);
                         if (fix && !fixes.some((f) => f.from.toLowerCase() === fix.from.toLowerCase() && f.to === fix.to)) setOffer(fix);
                       }}
-                      className={`rounded px-0.5 outline-none focus:bg-primary/10 ${wordMode === "cut" ? "cursor-pointer" : ""} ${removedAt(settings.removed, w) ? "bg-destructive/10 text-muted-foreground line-through" : ""} ${cutStart === i ? "ring-2 ring-primary" : ""} ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""} ${hitSet.has(i) ? (hits[hit] !== undefined && i >= hits[hit] && i < hits[hit] + (find.trim().split(/\s+/).length) ? "bg-warning/50" : "bg-warning/20") : ""}`}
+                      className={`rounded px-0.5 outline-none focus:bg-primary/10 ${wordMode === "cut" || wordMode === "key" ? "cursor-pointer" : ""} ${leo && keyWordOf(settings, w) ? "font-semibold text-primary underline decoration-2 underline-offset-4" : ""} ${removedAt(settings.removed, w) ? "bg-destructive/10 text-muted-foreground line-through" : ""} ${cutStart === i ? "ring-2 ring-primary" : ""} ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""} ${hitSet.has(i) ? (hits[hit] !== undefined && i >= hits[hit] && i < hits[hit] + (find.trim().split(/\s+/).length) ? "bg-warning/50" : "bg-warning/20") : ""}`}
                     >{w.w}</span>
                   )).reduce<React.ReactNode[]>((a, el, i) => (i ? [...a, " ", el] : [el]), [])}
                 </p>
@@ -3079,6 +3178,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+/** A caption look's tile picture: "Most people" in its style, showing what the look adds. */
+function LookSample({ look }: { look: CaptionLook }) {
+  const st = STYLES[look.look.style];
+  const hi = STYLES.bold.active;
+  const people = look.id === "boxed-word" ? <span className="rounded px-0.5 text-neutral-900" style={{ background: hi }}>people</span>
+    : look.id === "key-word" ? <span className="text-[1.2em] underline decoration-2 underline-offset-2" style={{ textDecorationColor: hi }}>people</span>
+    : look.id === "typewriter" ? "peo" : "PEOPLE";
+  return (
+    <span className="mb-1 block h-8 rounded-md bg-neutral-900 px-1.5 text-center leading-8" style={{ color: st.base, fontWeight: look.id === "boxed-word" ? 600 : st.weight }}>
+      {look.id === "two-words" ? "MOST" : "Most"} {people}
+    </span>
+  );
+}
+
 function Chip({ on, onClick, children, className = "", disabled }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string; disabled?: boolean }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on} disabled={disabled}
@@ -3108,9 +3221,9 @@ function VoicePicker({ voice, how, onVoice, onHow }: { voice: VoiceId; how: Deli
   );
 }
 
-function Toggle({ on, set, disabled }: { on: boolean; set: (v: boolean) => void; disabled?: boolean }) {
+function Toggle({ on, set, disabled, label }: { on: boolean; set: (v: boolean) => void; disabled?: boolean; label?: string }) {
   return (
-    <button type="button" role="switch" aria-checked={on} onClick={() => set(!on)} disabled={disabled}
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => set(!on)} disabled={disabled}
       className={`relative h-6 w-11 rounded-full transition-colors after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[''] disabled:opacity-50 ${on ? "bg-primary" : "bg-muted"}`}>
       <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
     </button>

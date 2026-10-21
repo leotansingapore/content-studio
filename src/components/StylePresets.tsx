@@ -6,7 +6,8 @@ import { useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { PRESETS, applyRecipe, isRecipe, needsKeyLines, pickLinesFor, type Preset } from "@/lib/stylePresets";
+import { PRESETS, applyRecipe, isRecipe, needsKeyLines, pickLinesFor, presetLabel, type Preset } from "@/lib/stylePresets";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import type { EditSettings, Segment, Word } from "@/lib/videoEdit";
 
 export default function StylePresets({ settings, words, segs, total, speed, apply, disabled }: {
@@ -22,6 +23,7 @@ export default function StylePresets({ settings, words, segs, total, speed, appl
   const { toast } = useToast();
   const [picking, setPicking] = useState(false);
   const left = useUsesLeft(picking)("motion-picks");
+  const leo = useLeoOnly();
 
   const use = async (p: Preset) => {
     const next = applyRecipe(settings, p.recipe);
@@ -52,7 +54,7 @@ export default function StylePresets({ settings, words, segs, total, speed, appl
           return (
             <button key={p.id} type="button" onClick={() => void use(p)} disabled={disabled || picking} aria-pressed={on} title={p.about}
               className={`min-h-11 rounded-full border px-3 text-xs font-semibold sm:min-h-8 [@media(pointer:coarse)]:min-h-11 ${on ? "border-primary bg-primary text-primary-foreground" : "border-border/70 bg-background text-foreground hover:border-primary/60"}`}>
-              {p.label}
+              {presetLabel(p, leo)}
             </button>
           );
         })}
