@@ -113,6 +113,8 @@ describe("what the video carries to the editor", () => {
     expect(e.settings?.overlays).toHaveLength(2);
     expect(e.toast).toBe("Your video is ready. Export it when it looks right.");
     expect(mutedWithMusic(music)).toEqual({ volume: 0, captions: false, music });
+    // Music only with no track picked: still muted, still nothing to caption
+    expect(mutedWithMusic()).toEqual({ volume: 0, captions: false });
   });
 
   it("captions a voiceover, and leaves the words out when they are off", () => {

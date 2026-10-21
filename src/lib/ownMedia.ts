@@ -135,8 +135,8 @@ export async function keepMusic(file: File): Promise<NonNullable<EditSettings["m
   return { key, name: file.name.replace(/\.[^.]+$/, "") || "Music", level: MUSIC_LEVEL };
 }
 
-/** The settings a video picked with Music only opens with: its own sound off, the track under it, nothing to caption. */
-export const mutedWithMusic = (music: NonNullable<EditSettings["music"]>): Partial<EditSettings> => ({ volume: 0, captions: false, music });
+/** The settings a video picked with Music only opens with: its own sound off, the track under it when one was added, nothing to caption. */
+export const mutedWithMusic = (music?: EditSettings["music"]): Partial<EditSettings> => ({ volume: 0, captions: false, ...(music ? { music } : {}) });
 
 // ---- the store ----
 

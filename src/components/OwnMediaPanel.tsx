@@ -112,8 +112,7 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
 
   const press = async () => {
     if (video) {
-      const music = s.sound === "music" && s.music ? await keepMusic(s.music) : undefined;
-      const extra: JoinExtra | undefined = music ? { settings: mutedWithMusic(music) } : undefined;
+      const extra: JoinExtra | undefined = s.sound === "music" ? { settings: mutedWithMusic(s.music ? await keepMusic(s.music) : undefined) } : undefined;
       await onUpload(video.file, extra, s.words ? { own: { about } } : undefined);
       // the pick stays until the editor has the video, so a failed upload can be tried again
       if (new URLSearchParams(window.location.search).has("p")) clearOwn();
