@@ -545,8 +545,10 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
           onChange={(e) => { setScript(e.target.value); setVo(null); setUndo(null); }} aria-label="What you say"
           placeholder={user && talk !== "plain" ? "What you say, or a topic to write it from" : `What you say, up to about ${MAX_AVATAR_SECONDS} seconds`} className="text-sm" />
         {user && talk === "news" && (
-          <Input value={headline} maxLength={BANNER_MAX} onChange={(e) => setHeadline(e.target.value)} disabled={busy}
-            placeholder="The banner's headline" aria-label="The banner's headline" className="h-11 sm:h-10" />
+          <label className="block space-y-1">
+            <span className="text-xs font-medium">Banner headline</span>
+            <Input value={headline} maxLength={BANNER_MAX} onChange={(e) => setHeadline(e.target.value)} disabled={busy} className="h-11 sm:h-10" />
+          </label>
         )}
         {user && <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />}
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
