@@ -44,6 +44,13 @@ describe("routes and the nav", () => {
     expect(dead).toEqual([]);
   });
 
+  it("serves the format gallery from the nav and keeps each format page an exception", () => {
+    expect(routes).toContain("/make");
+    expect(navPaths.has("/make")).toBe(true);
+    expect("/make" in EXCEPTIONS).toBe(false);
+    expect(EXCEPTIONS["/make/:format"]).toBeDefined();
+  });
+
   it("lists no stale exceptions", () => {
     expect(Object.keys(EXCEPTIONS).filter((r) => !routes.includes(r))).toEqual([]);
   });

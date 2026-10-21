@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, visiblePages } from "./nav";
 
 const routes = [
-  "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
+  "/home", "/welcome", "/generate", "/make", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
@@ -82,6 +82,23 @@ describe("nav", () => {
     const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
     expect(write("someone@example.com")).not.toContain("/slideshow");
     expect(write("tanjunsing@gmail.com")).toContain("/slideshow");
+  });
+
+  it("shows Formats only to Leo's sign-ins, second in Write, and leaves everyone else's nav as it was", () => {
+    const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
+    expect(write("someone@example.com")).toEqual(["/generate", "/generate/batch", "/carousel", "/edit", "/media"]);
+    expect(write("tanjunsing@gmail.com").slice(0, 2)).toEqual(["/generate", "/make"]);
+    expect(write("leotanjs95@gmail.com")[1]).toBe("/make");
+    const tiles = (email: string) => {
+      const sheet = moreSheet(email, false);
+      return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
+    };
+    expect(tiles("someone@example.com")).not.toContain("/make");
+    expect(pageFor("/make")?.page.label).toBe("Formats");
+    expect(pageTitle("/make")).toBe("Formats - Content Studio");
+    // a format's own page sits under the gallery, in Write
+    expect(pageFor("/make/slideshow")?.page.to).toBe("/make");
+    expect(mobileTabs(false).filter((t) => t.active("/make")).map((t) => t.label)).toEqual(["Write"]);
   });
 
   it("shows Library only to Leo's sign-ins, after My posts", () => {

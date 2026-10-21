@@ -95,6 +95,7 @@ export const SECTIONS: NavSection[] = [
     tabbed: true,
     pages: [
       { to: "/generate", label: "Post", end: true, title: "Write a post" },
+      { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },
       { to: "/carousel", label: "Carousel" },
       { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },

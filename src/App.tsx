@@ -35,6 +35,7 @@ const GeneratePage = lazy(() => import("@/pages/GeneratePage"));
 const BatchPage = lazy(() => import("@/pages/BatchPage"));
 const CarouselPage = lazy(() => import("@/pages/CarouselPage"));
 const SlideshowPage = lazy(() => import("@/pages/SlideshowPage"));
+const MakePage = lazy(() => import("@/pages/MakePage"));
 const MakeFormatPage = lazy(() => import("@/pages/MakeFormatPage"));
 const SwipeFilePage = lazy(() => import("@/pages/SwipeFilePage"));
 const TrendsPage = lazy(() => import("@/pages/TrendsPage"));
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="/generate/batch" element={<BatchPage />} />
           <Route path="/carousel" element={<CarouselPage />} />
           <Route path="/slideshow" element={<SlideshowPage />} />
+          <Route path="/make" element={<MakePage />} />
           <Route path="/make/:format" element={<MakeFormatPage />} />
           <Route path="/edit" element={<VideoEditPage />} />
           <Route path="/plan" element={<PlanPage />} />
