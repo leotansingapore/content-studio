@@ -9,6 +9,11 @@
 //        (a person's photo as the first frame, a product's as a reference; logic.ts seedanceRequest).
 //        Counts against "ai-clip" (2 a day) and "ai-clip-global" (8 a day across everyone).
 //   POST {mode:"status", tokens, refund?} -> {jobs:[{state, url?, error?}]}
+//   POST {mode:"talk-script", talk, topic, offer?, source?} -> {say, headline?, mas}  a presenter format's script
+//        (formats-presenter: news, stage or spokesperson), OpenAI writes it and Jev asks the MAS question
+//        ("ai-video-script" cap; the use comes back only when OpenAI never answered)
+//   POST {mode:"set", talk} -> {token}  one Soul v2 picture of an empty news studio or stage, 9:16, nobody in it,
+//        for the editor to paint behind an adviser's own photo ("ai-image" cap)
 // A video (avatar or explainer) counts once against the adviser's "ai-video" cap (2 a day) and once
 // against "ai-video-global" (20 a day across everyone, kept on the owner's account), so nobody can
 // drain the prepaid Higgsfield pool. Tokens are the Higgsfield request ids signed for the adviser who
@@ -16,8 +21,9 @@
 // A video or clip that Higgsfield refused, failed or blocked gives both uses back: at once when the submit
 // fails, or on the status check that first sees the failure, by the signed refund ticket handed back at the
 // start (logic.ts refundFailed: once per video, only on the day the uses were taken).
-// Phase 3's hidden and Leo-only templates and any presenter setting but office answer 403 not_enabled for anyone
-// not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly); every other request is as before.
+// Phase 3's hidden and Leo-only templates, any presenter setting but office, talk-script and set answer 403
+// not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
+// new modes before their body is checked too); every other request is as before.
 //
 // Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY, NORTH_STAR_USERS. Deploy WITH JWT verification:
 //   supabase functions deploy ai-video --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -27,9 +33,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { HF_BASE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic.ts";
 import { isAllowed } from "../market/logic.ts";
+import { askJev, noulOf } from "../_shared/jev.ts";
+import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
-  PICTURE_MODEL, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, avatarCredits, clipCredits, explainerCredits, northStarOnly, parseVideoRequest,
-  pictureBody, presenterBody, readMedia, refundFailed, refundTicket, seedanceRequest, speakBody, validateScript, type Refundable,
+  NORTH_STAR_MODES, PICTURE_MODEL, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, TALK_FORMAT, avatarCredits, clipCredits, explainerCredits,
+  northStarOnly, parseVideoRequest, pictureBody, presenterBody, readMedia, refundFailed, refundTicket, seedanceRequest, setBody, speakBody, talkSystem,
+  talkUser, validateScript, validateTalk, type Refundable,
 } from "./logic.ts";
 import { PROMPT_FORMAT, clipPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
 
@@ -74,17 +83,46 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
-    const parsed = parseVideoRequest(await req.json().catch(() => ({})));
-    if (!parsed.ok) return json({ error: parsed.error }, 400);
-    const r = parsed.request;
+    const body = await req.json().catch(() => ({}));
+    const parsed = parseVideoRequest(body);
+    // phase 3's own modes keep the new order: sign-in, the gate, then their body
+    const newMode = NORTH_STAR_MODES.includes(body?.mode);
+    if (!parsed.ok && !newMode) return json({ error: parsed.error }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to make videos." }, 401);
-    if (northStarOnly(r) && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+    if ((newMode || (parsed.ok && northStarOnly(parsed.request))) && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
       return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+    }
+    if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
+    const r = parsed.request;
+
+    if (r.mode === "talk-script") {
+      const openai = Deno.env.get("OPENAI_API_KEY");
+      if (!openai) return json({ error: "Scripts aren't switched on yet." }, 503);
+      const day = new Date().toISOString().slice(0, 10);
+      const usage = await consumeUsage(admin, uid, "ai-video-script");
+      if (!usage.allowed) {
+        const refusal = usageRefusal(usage);
+        return json(refusal.body, refusal.status);
+      }
+      // one retry on a script that runs short or long; a reply that never comes gives the use back
+      let out: ReturnType<typeof validateTalk> = null;
+      for (let i = 0; i < 2 && !out; i++) {
+        const content = await writeJson(openai, talkSystem(r.talk, r.offer?.name), talkUser(r), TALK_FORMAT, 600);
+        if (content === null) {
+          await refundUsage(admin, uid, "ai-video-script", day);
+          return json({ code: "failed", error: "Couldn't write the script. Try again in a minute." }, 502);
+        }
+        out = validateTalk(content, r.talk);
+        if (!out) console.error("ai-video talk-script rejected", content.slice(0, 300));
+      }
+      if (!out) return json({ code: "unusable", error: "The script didn't come back right. Try again." }, 422);
+      const answers = await askJev({ post: out.say }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: "ai-video talk-script mas" });
+      return json({ ...out, mas: masWarn(noulOf(answers, "mas")), usage: { used: usage.used, limit: usage.limit } });
     }
 
     if (r.mode === "script") {
@@ -180,6 +218,21 @@ Deno.serve(async (req) => {
       try {
         return json({ token: await jobToken(signing, uid, await submit(PICTURE_MODEL, presenterBody(r.look, r.setting))) });
       } catch (e) {
+        return failed(e);
+      }
+    }
+
+    if (r.mode === "set") {
+      const usage = await consumeUsage(admin, uid, "ai-image");
+      if (!usage.allowed) {
+        const refusal = usageRefusal(usage);
+        return json(refusal.body, refusal.status);
+      }
+      try {
+        return json({ token: await jobToken(signing, uid, await submit(PICTURE_MODEL, setBody(r.talk))) });
+      } catch (e) {
+        // Higgsfield took no job, so nothing was made
+        await refundUsage(admin, uid, "ai-image", day);
         return failed(e);
       }
     }

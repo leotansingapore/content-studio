@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { PEOPLE_RULE, tokenSecret } from "../ai-image/logic";
 import { GLOBAL_COUNTER_USER, refundUsage, type UsageClient } from "../_shared/usageCaps";
 import {
-  MAX_SLICE, SETTINGS, SETTING_IDS, avatarCredits, creditsUsd, explainerCredits, northStarOnly, parseVideoRequest, pictureBody, presenterBody, readMedia,
-  refundFailed, refundTicket, sceneReady, speakBody, speakSeconds, validateScript,
+  MAX_SLICE, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits, northStarOnly, parseVideoRequest, pictureBody,
+  presenterBody, readMedia, refundFailed, refundTicket, sceneReady, setBody, speakBody, speakSeconds, talkSystem, talkUser, validateScript, validateTalk,
 } from "./logic";
 
 const WAV = "UklGRiQAAABXQVZFZm10IBAAAAABAAEA";
@@ -281,5 +281,76 @@ describe("what only NORTH_STAR_USERS may ask for", () => {
     expect(northStarOnly(req({ mode: "presenter", look: "A Malay Singaporean woman", setting: "office" }))).toBe(false);
     expect(northStarOnly(req({ mode: "explainer", pictures: Array(4).fill("A couple at an HDB table") }))).toBe(false);
     expect(northStarOnly(req({ mode: "script", topic: "Why hospital plans have a co-pay" }))).toBe(false);
+  });
+});
+
+describe("the presenter formats' script and set (formats-presenter)", () => {
+  const say = (n: number) => Array.from({ length: n }, (_, i) => (i ? "word" : "Tonight's")).join(" ") + ".";
+
+  it("takes news, stage and spokesperson only, with a topic or a post to write from", () => {
+    for (const talk of ["news", "stage", "spokesperson"]) {
+      expect(parseVideoRequest({ mode: "talk-script", talk, topic: "Why follow-ups win deals" })).toEqual({ ok: true, request: { mode: "talk-script", talk, topic: "Why follow-ups win deals" } });
+    }
+    expect(parseVideoRequest({ mode: "talk-script", talk: "plain", topic: "Why follow-ups win deals" })).toEqual({ ok: false, error: "Pick a format first." });
+    expect(parseVideoRequest({ mode: "talk-script", talk: "unboxing", topic: "Why follow-ups win deals" })).toMatchObject({ ok: false });
+    expect(parseVideoRequest({ mode: "talk-script", talk: "news", topic: "Hi" })).toEqual({ ok: false, error: "Write the topic first." });
+    expect(parseVideoRequest({ mode: "talk-script", talk: "news", topic: "x".repeat(201) })).toMatchObject({ ok: false });
+    const post = "Most salespeople lose the deal in the follow-up, not the pitch.";
+    expect(parseVideoRequest({ mode: "talk-script", talk: "stage", topic: "", source: { text: post } })).toEqual({ ok: true, request: { mode: "talk-script", talk: "stage", topic: "", source: { text: post } } });
+  });
+
+  it("carries the offer's name, and refuses one longer than a brand kit would hold", () => {
+    expect(parseVideoRequest({ mode: "talk-script", talk: "spokesperson", topic: "Daily sales habits", offer: { name: " Free 14-day trial " } })).toMatchObject({ ok: true, request: { offer: { name: "Free 14-day trial" } } });
+    expect(parseVideoRequest({ mode: "talk-script", talk: "spokesperson", topic: "Daily sales habits", offer: { name: "x".repeat(121) } })).toMatchObject({ ok: false });
+  });
+
+  it("puts each format's shape, the offer and the MAS lines in the writer's rules", () => {
+    expect(talkSystem("news")).toContain("Tonight's top story");
+    expect(talkSystem("news")).toContain("7 words at most");
+    expect(talkSystem("stage")).toContain("conference stage");
+    expect(talkSystem("stage")).toContain('headline: ""');
+    expect(talkSystem("spokesperson", "Free 14-day trial")).toContain('The offer is "Free 14-day trial". Name it exactly like that and claim nothing about it beyond what its name says.');
+    expect(talkSystem("spokesperson")).not.toContain("The offer is");
+    for (const t of TALKS) {
+      expect(talkSystem(t)).toContain("never promise returns or results, never say guaranteed or risk-free, never name an insurer or a policy");
+      expect(talkSystem(t)).toContain("no stage directions");
+    }
+    expect(talkUser({ topic: "Daily sales habits", source: { text: "A post" } })).toBe("Topic: Daily sales habits\n\nPost to write from (keep its structure, never its words): A post");
+  });
+
+  it("keeps a 50 to 75 word script, and a news headline under 8 words", () => {
+    expect(validateTalk({ say: say(62), headline: "" }, "stage")).toEqual({ say: say(62) });
+    expect(validateTalk({ say: say(49), headline: "" }, "stage")).toBeNull();
+    expect(validateTalk({ say: say(76), headline: "" }, "stage")).toBeNull();
+    expect(validateTalk({ say: `*smiles* ${say(60)}`, headline: "" }, "stage")).toBeNull();
+    expect(validateTalk(JSON.stringify({ say: say(60), headline: "Most people pay for hospital twice." }), "news")).toEqual({ say: say(60), headline: "Most people pay for hospital twice" });
+    expect(validateTalk({ say: say(60), headline: "Most people in Singapore pay for their hospital stay twice" }, "news")).toBeNull();
+    expect(validateTalk({ say: say(60), headline: "" }, "news")).toBeNull();
+    expect(validateTalk("not json", "news")).toBeNull();
+  });
+
+  it("asks for the empty set at 9:16 with nobody in it, for news and stage only", () => {
+    expect(parseVideoRequest({ mode: "set", talk: "news" })).toEqual({ ok: true, request: { mode: "set", talk: "news" } });
+    expect(parseVideoRequest({ mode: "set", talk: "stage" })).toEqual({ ok: true, request: { mode: "set", talk: "stage" } });
+    expect(parseVideoRequest({ mode: "set", talk: "spokesperson" })).toEqual({ ok: false, error: "Pick a set first." });
+    expect(parseVideoRequest({ mode: "set" })).toMatchObject({ ok: false });
+    for (const t of SET_TALKS) {
+      const b = setBody(t);
+      expect(b).toMatchObject({ aspect_ratio: "9:16", resolution: "1080p", batch_size: 1 });
+      expect(String(b.prompt)).toContain(SETS[t]);
+      expect(String(b.prompt)).toContain("No people, no text");
+    }
+    expect(String(setBody("news").prompt)).toContain("TV news studio");
+    expect(String(setBody("stage").prompt)).toContain("conference stage");
+  });
+
+  it("are NORTH_STAR_USERS only", () => {
+    const req = (body: Record<string, unknown>) => {
+      const p = parseVideoRequest(body);
+      if (!p.ok) throw new Error(p.error);
+      return p.request;
+    };
+    expect(northStarOnly(req({ mode: "talk-script", talk: "news", topic: "Why follow-ups win deals" }))).toBe(true);
+    expect(northStarOnly(req({ mode: "set", talk: "stage" }))).toBe(true);
   });
 });
