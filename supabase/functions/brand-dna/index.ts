@@ -11,8 +11,10 @@
 //   mode products   the home page and the picked pages' words, pictures and JSON-LD items, one strict LLM call and one
 //                   Jev call (offer, named product, kind). Cap "brand-products", given back when the home page or
 //                   OpenAI never answered.
+//   mode image      one picture from the brand's site (public address, PNG, JPEG or WebP by its bytes, at most 2 MB)
+//                   as a data URL. Cap "brand-image", given back when the site never answered.
 //
-// Daily caps "brand-dna", "brand-products". Deploy WITH JWT verification:
+// Daily caps "brand-dna", "brand-products", "brand-image". Deploy WITH JWT verification:
 //   supabase functions deploy brand-dna --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
@@ -30,7 +32,9 @@ import {
 const PAGE_BYTES = 300_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
 const LOGO_BYTES = 250_000;
+const IMAGE_BYTES = 2_000_000;
 const HTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5";
+const IMAGES = "image/png,image/webp,image/jpeg;q=0.8";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -52,6 +56,12 @@ const imageType = (b: Uint8Array) =>
   : String.fromCharCode(...b.subarray(0, 4)) === "RIFF" && String.fromCharCode(...b.subarray(8, 12)) === "WEBP" ? "image/webp"
   : null;
 
+function dataUrl(bytes: Uint8Array, type: string): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:${type};base64,${btoa(bin)}`;
+}
+
 /** The first of up to 3 logos that is a small PNG, JPEG or WebP, as a data URL; 15 seconds for all of them. */
 async function logoOf(candidates: string[]): Promise<string | null> {
   const deadline = AbortSignal.timeout(15_000);
@@ -59,12 +69,10 @@ async function logoOf(candidates: string[]): Promise<string | null> {
     const u = safeFeedUrl(href);
     if (!u || deadline.aborted) continue;
     try {
-      const { bytes } = await fetchCapped(u, LOGO_BYTES + 1, "image/png,image/webp,image/jpeg;q=0.8", deadline);
+      const { bytes } = await fetchCapped(u, LOGO_BYTES + 1, IMAGES, deadline);
       const type = imageType(bytes);
       if (bytes.byteLength > LOGO_BYTES || !type || bytes.byteLength < 200) continue;
-      let bin = "";
-      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-      return `data:${type};base64,${btoa(bin)}`;
+      return dataUrl(bytes, type);
     } catch {
       // the next candidate
     }
@@ -146,6 +154,27 @@ async function products(admin: Admin, uid: string, body: { url?: unknown }): Pro
   return json({ site: page.url.origin, readAt: new Date().toISOString(), pagesRead: fenced.read, kind: choiceOf(answers, "kind", KINDS), items: withOffers(items, answers) });
 }
 
+async function image(admin: Admin, uid: string, body: { url?: unknown }): Promise<Response> {
+  const url = safeFeedUrl(body?.url);
+  if (!url) return fail(400, "bad_request", "Send the picture's web address.");
+  const day = new Date().toISOString().slice(0, 10);
+  const usage = await consumeUsage(admin, uid, "brand-image");
+  if (!usage.allowed) return refusal(usage);
+  let got: { bytes: Uint8Array };
+  try {
+    // the same guard as every page: public addresses only, redirects re-checked, at most one byte over the limit
+    got = await fetchCapped(url, IMAGE_BYTES + 1, IMAGES, AbortSignal.timeout(15_000));
+  } catch (e) {
+    console.warn("brand-dna: image", url.host, msg(e));
+    await refundUsage(admin, uid, "brand-image", day);
+    return fail(502, "failed", "Couldn't fetch that picture. Upload one instead.");
+  }
+  if (got.bytes.byteLength > IMAGE_BYTES) return fail(422, "too_big", "That picture is over 2 MB. Upload one instead.");
+  const type = imageType(got.bytes);
+  if (!type) return fail(422, "not_image", "That address isn't a PNG, JPEG or WebP picture. Upload one instead.");
+  return json({ dataUrl: dataUrl(got.bytes, type) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -158,10 +187,11 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
-  const mode = body?.mode === "products" ? body.mode : null;
+  const mode = body?.mode === "products" || body?.mode === "image" ? body.mode : null;
   const deep = body?.deep === true;
   if ((mode || deep) && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
   if (mode === "products") return await products(admin, uid, body);
+  if (mode === "image") return await image(admin, uid, body);
 
   const url = siteUrl(body?.url);
   if (!url) return json({ error: "Type the brand's web address, like acme.sg." }, 400);

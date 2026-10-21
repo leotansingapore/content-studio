@@ -161,9 +161,9 @@ describe("brand-dna phase 4 (Leo only)", () => {
   };
   const userText = () => (sent[OPENAI] as { messages: { content: string }[] }).messages[1].content;
 
-  it("refuses deep and products before any count for a uid not on NORTH_STAR_USERS, whose plain read is today's", async () => {
+  it("refuses deep, products and image before any count for a uid not on NORTH_STAR_USERS, whose plain read is today's", async () => {
     site();
-    for (const body of [{ url: "acme.sg", deep: true }, { mode: "products", url: "acme.sg" }]) {
+    for (const body of [{ url: "acme.sg", deep: true }, { mode: "products", url: "acme.sg" }, { mode: "image", url: "https://acme.sg/og.jpg" }]) {
       expect(await call(body, "u1")).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
     }
     expect(seen).toEqual([]);
@@ -263,4 +263,32 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(db.spent.every((f) => f === "brand-products")).toBe(true);
   });
 
+  it("fetches one picture from the site as a data URL, refusing private addresses and anything not a PNG, JPEG or WebP", async () => {
+    const JPEG = new Uint8Array(300).fill(1);
+    JPEG.set([0xff, 0xd8, 0xff]);
+    routes["https://acme.sg/a.jpg"] = () => new Response(JPEG, { headers: { "content-type": "image/jpeg" } });
+    routes["https://acme.sg/page.png"] = html("<p>not a picture</p>");
+    routes["https://acme.sg/huge.png"] = () => {
+      const big = new Uint8Array(2_100_000);
+      big.set(PNG.subarray(0, 4));
+      return new Response(big, { headers: { "content-type": "image/png" } });
+    };
+    const ok = await call({ mode: "image", url: "https://acme.sg/a.jpg" }, "leo");
+    expect(ok.status).toBe(200);
+    expect(ok.body.dataUrl).toBe(`data:image/jpeg;base64,${Buffer.from(JPEG).toString("base64")}`);
+    expect(db.spent).toEqual(["brand-image"]);
+
+    // literal private addresses and local names never count
+    for (const url of ["http://10.0.0.2/a.png", "http://localhost/a.png", "https://acme.sg:8443/a.png", "acme.sg/a.png", 5]) expect((await call({ mode: "image", url }, "leo")).status).toBe(400);
+    expect(db.spent).toEqual(["brand-image"]);
+    // a name that resolves inside a network is never fetched
+    expect(await call({ mode: "image", url: "https://inside.sg/a.png" }, "leo")).toEqual({ status: 502, body: { code: "failed", error: "Couldn't fetch that picture. Upload one instead." } });
+    expect(seen.some((u) => u.includes("inside.sg"))).toBe(false);
+    expect(db.refunded).toEqual(["brand-image"]);
+
+    expect(await call({ mode: "image", url: "https://acme.sg/page.png" }, "leo")).toMatchObject({ status: 422, body: { code: "not_image" } });
+    expect(await call({ mode: "image", url: "https://acme.sg/huge.png" }, "leo")).toMatchObject({ status: 422, body: { code: "too_big" } });
+    expect(db.refunded).toEqual(["brand-image"]);
+    expect(db.spent.every((f) => f === "brand-image")).toBe(true);
+  });
 });
