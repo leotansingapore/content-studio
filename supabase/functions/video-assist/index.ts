@@ -61,6 +61,10 @@
 //        writes three hooks, a line per picture (or per 5 s) and with a voice a spoken line each; Jev picks the hook,
 //        the first without an answer (own.ts, "own-words" cap). Leo only (NORTH_STAR_USERS, 403 not_enabled before
 //        any count); the use goes back only when OpenAI never answered, and a reply that can't be used keeps it (422).
+//   POST {mode:"keywords", lines:[{text, words, s}] (at most 80), emoji: boolean | "one"} -> {picks:[{line, word: string | null, emoji?}]}:
+//        the one word in each caption line Jev says carries the meaning (drawn bigger), and with emoji an emoji from motion.ts's
+//        set on lit lines, one in 6 s (keywords.ts, "caption-keywords" cap). Leo only (NORTH_STAR_USERS, 403 not_enabled before
+//        any count); the use goes back only when Jev never answered, and no use is counted when no line can be asked.
 //   POST ?mode=watch&seconds=<edit length>, body = the exported video -> {findings:[{kind,start,end,what,fix}]}:
 //        Gemini watches the file twice and lists what a viewer would trip on (watch.ts, "video-watch" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
@@ -79,6 +83,7 @@ import { buildCaptionsMessages, buildThreadMessages, ctaLine, keywordCandidates,
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks } from "./montage.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
+import { keywordQuestions, keywordsState, parseKeywordsRequest, readKeywords } from "./keywords.ts";
 import { buildOwnMessages, ownQuestions, ownState, parseOwnReply, parseOwnRequest, pickOwnHook } from "./own.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
@@ -532,6 +537,33 @@ Deno.serve(async (req) => {
       // Jev picks the hook (Leo's rule: a pick is a decision); the first without an answer or in another language
       const answers = words.hooks.length > 1 && mostlyEnglish(o.request.about) ? await askJev(ownState(words.hooks, o.request.about), ownQuestions(words.hooks), { who: "video-assist own-words" }) : null;
       return json({ hook: pickOwnHook(answers, words.hooks), lines: words.lines, ...(words.say ? { say: words.say } : {}) });
+    }
+
+    if (body?.mode === "keywords") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      const k = parseKeywordsRequest(body);
+      if (!k.ok) return json({ code: "bad_request", error: k.error }, 400);
+      // Jev picks the word (Leo's rule: a pick is a decision); a line not mostly English is asked nothing and stays plain
+      const q = keywordQuestions(k.lines, k.emoji, (l) => mostlyEnglish(l.text));
+      // nothing worth asking: every line plain, and no use counted
+      if (!Object.keys(q).length) return json({ picks: readKeywords(null, k.lines, k.emoji) });
+      const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
+      const usage = await consumeUsage(admin, uid, "caption-keywords");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const state = keywordsState(k.lines);
+      // groups of 30 side by side: one group alone can pass Jev's 5 s default
+      const parts = await Promise.all(batches(q).map((b) => askJev(state, b, { who: "video-assist keywords", timeoutMs: 10_000 })));
+      if (!parts.some(Boolean)) {
+        // Jev never answered: the use goes back
+        await refundUsage(admin, uid, "caption-keywords", day);
+        return json({ code: "failed", error: "Couldn't pick key words right now. Try again in a minute." }, 502);
+      }
+      const picks = readKeywords(Object.assign({}, ...parts.filter(Boolean)), k.lines, k.emoji);
+      console.log(`video-assist keywords: ${k.lines.length} lines, ${Object.keys(q).length} questions, ${picks.filter((p) => p.word).length} lit, ${picks.filter((p) => p.emoji).length} emoji`);
+      return json({ picks });
     }
 
     if (body?.mode === "coldopen") {

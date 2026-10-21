@@ -42,11 +42,12 @@ const bodies: unknown[] = [];
 // what the stubbed providers answer; every call fails unless a test says otherwise
 let answer: (url: string) => Response = () => new Response("{}", { status: 500 });
 const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
+// the function's secrets; a test that wants Jev to answer sets TYPESAFE_API_KEY and takes it off again
+const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k", NORTH_STAR_USERS: LEO };
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
     calls.push(String(u));
@@ -246,5 +247,71 @@ describe("Captions: what Whisper is asked (pinned at c49a22ca)", () => {
     expect(asked().get("language")).toBe("en");
     expect(asked().get("model")).toBe("whisper-1");
     expect(db.rows.get(`${UID}|video-transcribe|${db.today()}`)).toBe(1);
+  });
+});
+
+describe("Captions: key words (edit-captions)", () => {
+  const lines = [
+    { text: "Your premium jumps at 65.", words: ["premium", "jumps", "65"], s: 0 },
+    { text: "Check the rider today.", words: ["Check", "rider", "today"], s: 3 },
+  ];
+  const pick = (uid: string, body: Record<string, unknown> = {}) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "keywords", lines, emoji: true, ...body }) }));
+  const used = (uid = LEO) => db.rows.get(`${uid}|caption-keywords|${db.today()}`) ?? 0;
+  const JEV = "https://api.typesafe.ai/v1/systemone";
+  const withJev = async (run: () => Promise<void>) => {
+    env.TYPESAFE_API_KEY = "k";
+    try {
+      await run();
+    } finally {
+      delete env.TYPESAFE_API_KEY;
+    }
+  };
+
+  it("refuses anyone not on the list before counting anything or asking Jev", async () => {
+    await withJev(async () => {
+      const res = await pick(UID);
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("refuses more than 80 lines before counting", async () => {
+    const res = await pick(LEO, { lines: Array.from({ length: 81 }, () => lines[0]) });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "bad_request" });
+    expect(db.rows.size).toBe(0);
+  });
+  it("lights the picked words for one use", async () => {
+    answer = (u) => (u === JEV ? Response.json({ answers: { w0: { type: "choice", choice: "c2", probabilities: { c2: 0.7 } }, e0: { type: "choice", choice: "time", probabilities: { time: 0.8 } }, w1: { type: "choice", choice: "none", probabilities: { none: 0.6 } } } }) : new Response("{}", { status: 500 }));
+    await withJev(async () => {
+      const res = await pick(LEO);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ picks: [{ line: 0, word: "65", emoji: "\u23F0" }, { line: 1, word: null }] });
+    });
+    expect(used()).toBe(1);
+    expect(calls).toEqual([JEV]);
+  });
+  it("gives the use back when Jev never answered", async () => {
+    await withJev(async () => {
+      const res = await pick(LEO);
+      expect(res.status).toBe(502);
+      expect(await res.json()).toEqual({ code: "failed", error: "Couldn't pick key words right now. Try again in a minute." });
+    });
+    expect(used()).toBe(0);
+  });
+  it("counts nothing and asks nothing when no line is in English", async () => {
+    const res = await pick(LEO, { lines: [{ text: "保费在65岁时上涨", words: ["保费在65岁时上涨"], s: 0 }] });
+    expect(await res.json()).toEqual({ picks: [{ line: 0, word: null }] });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("stops at the day's 30", async () => {
+    db.rows.set(`${LEO}|caption-keywords|${db.today()}`, 30);
+    const res = await pick(LEO);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ code: "daily_limit", error: "You've used all 30 for today. It resets at 8am Singapore time." });
+    expect(calls).toEqual([]);
   });
 });
