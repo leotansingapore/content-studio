@@ -1,6 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } } }));
+// the bundled drop is empty until the first Monday run, so a week of it stands in
+vi.mock("@/data/formatTrends.json", () => ({
+  default: {
+    fetched: "2026-09-01",
+    items: [
+      {
+        id: "tiktok-7412345678901234567", kind: "slideshow", url: "https://www.tiktok.com/@habits/photo/7412345678901234567", author: "habits",
+        caption: "7 habits", views: 2300000, likes: 460300, slides: 8, cover: "/format-trends/7412345678901234567.jpg",
+        hook: "7 habits to break the freeze", structure: ["Hook: a numbered list promise", "One habit with a reason"], postedAt: "2026-08-30", fit: 0.81,
+      },
+    ],
+  },
+}));
 
 import inspiration from "@/data/inspiration.json";
 import { ADS } from "./adsSwipe";
@@ -43,6 +56,13 @@ describe("resolveSource", () => {
     expect(resolveSource(sourceKey.trend(TRENDS[0].id), UID)).toMatchObject({ kind: "trend", title: TRENDS[0].title.slice(0, 120) });
     const item = (inspiration as { id: string }[])[0];
     expect(resolveSource(sourceKey.insp(item.id), UID)).toMatchObject({ key: `insp:${item.id}`, kind: "inspiration" });
+  });
+
+  it("reads a trending format from the weekly drop, a stale one too, and nothing for an id it lacks", () => {
+    expect(resolveSource(sourceKey.format("tiktok-7412345678901234567"), UID)).toMatchObject({
+      key: "format:tiktok-7412345678901234567", kind: "format", format: "carousel", title: "7 habits to break the freeze", remixedAt: "",
+    });
+    expect(resolveSource(sourceKey.format("tiktok-1"), UID)).toBeNull();
   });
 
   it("reads this brand's Following, recent clones and drafts", () => {

@@ -10,6 +10,7 @@ import {
   fromAuditPost,
   fromDraft,
   fromFollowPost,
+  fromFormatTrend,
   fromHubTrend,
   fromInspiration,
   fromTopPost,
@@ -30,6 +31,7 @@ import type { TrendEntry } from "./trends";
 import type { RatedPost } from "./accountAudit";
 import type { InspirationEntry } from "@/components/Inspiration";
 import type { HubTrend } from "./hub";
+import type { FormatTrend } from "./formatTrends";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const NOW = Date.parse("2026-10-20T04:00:00Z");
@@ -69,6 +71,7 @@ describe("key shapes", () => {
     expect(sourceKey.link("meta-ad", "123")).toBe("link:meta-ad:123");
     expect(sourceKey.upload("abc123")).toBe("upload:abc123");
     expect(sourceKey.pattern("instagram", "mrbrown", 2)).toBe("pattern:instagram:mrbrown:2");
+    expect(sourceKey.format("tiktok-7412345678901234567")).toBe("format:tiktok-7412345678901234567");
   });
 
   it("names the original the way the screens say it", () => {
@@ -83,6 +86,56 @@ describe("key shapes", () => {
     expect(sourceNoun({ kind: "ad", format: "video" })).toBe("ad");
     expect(sourceNoun({ kind: "trend" })).toBe("trend");
     expect(sourceNoun({ kind: "upload", format: "video" })).toBe("upload");
+  });
+});
+
+describe("a trending format", () => {
+  const slideshow: FormatTrend = {
+    id: "tiktok-7412345678901234567",
+    kind: "slideshow",
+    url: "https://www.tiktok.com/@habits/photo/7412345678901234567",
+    author: "habits",
+    caption: "7 habits to BREAK the freeze #selfimprovement #moneytips",
+    views: 2_300_000,
+    likes: 460_300,
+    slides: 8,
+    cover: "/format-trends/7412345678901234567.jpg",
+    hook: "7 habits to BREAK the freeze",
+    structure: ["Hook: a numbered list promise", "One habit with a one-line reason", "Another habit, same shape", "Call to follow for part two"],
+    postedAt: "2026-10-20",
+    fit: 0.81,
+  };
+  const wall: FormatTrend = { ...slideshow, kind: "wall-of-text", slides: null, structure: ["A POV line that sets the scene", "The twist", "The lesson"] };
+
+  it("hands the editor the slide count and every slide's job, and none of the caption's words", () => {
+    const s = fromFormatTrend(slideshow);
+    expect(s).toMatchObject({
+      key: "format:tiktok-7412345678901234567",
+      kind: "format",
+      format: "carousel",
+      platform: "tiktok",
+      url: "https://www.tiktok.com/@habits/photo/7412345678901234567",
+      author: "@habits",
+      title: "7 habits to BREAK the freeze",
+      cover: "/format-trends/7412345678901234567.jpg",
+      numbers: { views: 2_300_000, likes: 460_300 },
+      remixedAt: "",
+    });
+    expect(s.caption).toBe(
+      "TikTok slideshow, 8 slides. What each slide does:\n1. Hook: a numbered list promise\n2. One habit with a one-line reason\n3. Another habit, same shape\n4. Call to follow for part two",
+    );
+    expect(s.caption).not.toMatch(/#selfimprovement|freeze/i);
+    expect(s.teardown?.structure).toBe(slideshow.structure.join(" / "));
+    expect(sourceChip(s)).toBe("Remixing @habits's carousel");
+  });
+
+  it("names a wall of text as words over a clip, and stops at a whole line under 400 characters", () => {
+    expect(fromFormatTrend(wall)).toMatchObject({ format: "video", caption: expect.stringMatching(/^TikTok wall of text over a clip\. What each part does:\n1\. A POV line/) });
+    const line = "does one clear job for the reader in about ten words";
+    const long = fromFormatTrend({ ...slideshow, slides: 10, structure: Array.from({ length: 10 }, (_, k) => `Slide ${k + 1} ${line}`) });
+    expect(long.caption!.length).toBeLessThanOrEqual(400);
+    expect(long.caption).toMatch(/^TikTok slideshow, 10 slides\./);
+    expect(long.caption!.split("\n").at(-1)).toMatch(new RegExp(`^(\\d+)\\. Slide \\1 ${line}$`));
   });
 });
 

@@ -1,5 +1,5 @@
 // A remix source key back to its record, from data already on this device (remixSource.ts has the key shapes).
-// It imports the data drops (top posts, advisors, ads, trends, inspiration), so Write loads it only through a
+// It imports the data drops (top posts, advisors, ads, trends, format trends, inspiration), so Write loads it only through a
 // dynamic import() and only for Leo. Synchronous: nothing here calls the network.
 
 import advisorsData from "@/data/advisors.json";
@@ -15,7 +15,8 @@ import { getDraftById } from "@/lib/draftHistory";
 import { loadFollowing } from "@/lib/following";
 import { scoped } from "@/lib/profiles";
 import { loadSavedClones } from "@/lib/reelClone";
-import { fromAd, fromClone, fromDraft, fromFollowPost, fromInspiration, fromTopPost, fromTrend, seenSources, type RemixSource } from "@/lib/remixSource";
+import { FORMAT_TRENDS } from "@/lib/formatTrends";
+import { fromAd, fromClone, fromDraft, fromFollowPost, fromFormatTrend, fromInspiration, fromTopPost, fromTrend, seenSources, type RemixSource } from "@/lib/remixSource";
 import { getTopPostsForAdvisor } from "@/lib/topPosts";
 import { TRENDS } from "@/lib/trends";
 
@@ -94,6 +95,11 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
     case "trend": {
       const t = TRENDS.find((x) => x.id === rest);
       return t ? fromTrend(t) : null;
+    }
+    case "format": {
+      // every item in the file, a stale drop too: a link to one keeps working until the scout drops it
+      const t = FORMAT_TRENDS.items.find((x) => x.id === rest);
+      return t ? fromFormatTrend(t) : null;
     }
     case "insp": {
       const item = INSPIRATION.find((x) => x.id === rest);

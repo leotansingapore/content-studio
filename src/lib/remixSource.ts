@@ -13,8 +13,9 @@ import type { HubTrend } from "@/lib/hub";
 import type { InspirationEntry } from "@/components/Inspiration";
 import type { AuditPlatform, RatedPost } from "@/lib/accountAudit";
 import type { SavedClone } from "@/lib/reelClone";
+import type { FormatTrend } from "@/lib/formatTrends";
 
-export type RemixSourceKind = "top-post" | "follow" | "ad" | "clone" | "own" | "trend" | "inspiration" | "link" | "upload" | "pattern";
+export type RemixSourceKind = "top-post" | "follow" | "ad" | "clone" | "own" | "trend" | "inspiration" | "link" | "upload" | "pattern" | "format";
 export type SourceFormat = "video" | "carousel" | "image" | "text";
 
 export interface RemixSource {
@@ -61,6 +62,8 @@ export const sourceKey = {
   link: (platform: string, id: string) => `link:${platform}:${id}`,
   upload: (sha1: string) => `upload:${sha1}`,
   pattern: (platform: string, handle: string, n: number) => `pattern:${platform}:${handle}:${n}`,
+  /** A trending format from the weekly format scout (/trends?view=formats): format:tiktok-<post id>. */
+  format: (id: string) => `format:${id}`,
 };
 
 export type SourceNoun = "reel" | "video" | "carousel" | "post" | "ad" | "Short" | "trend" | "upload";
@@ -253,6 +256,33 @@ export function fromClone(c: SavedClone): RemixSource {
     caption: clip(source.caption, 400),
     numbers: { views: source.metrics?.views ?? undefined, likes: source.metrics?.likes ?? undefined, comments: source.metrics?.comments ?? undefined },
     teardown: { hook: breakdown.hook, structure: breakdown.beats.join(" / "), why: breakdown.whyItWorked },
+    remixedAt: "",
+  });
+}
+
+/**
+ * A trending format is remixed for its shape, so the words a remix reads (the caption, at most 400) are the slide
+ * count and what each slide does, whole lines only, never the post's own caption. The first slide's words are the title.
+ */
+export function fromFormatTrend(t: FormatTrend): RemixSource {
+  let jobs = t.kind === "slideshow" ? `TikTok slideshow, ${t.slides ?? t.structure.length} slides. What each slide does:` : "TikTok wall of text over a clip. What each part does:";
+  for (const [i, line] of t.structure.entries()) {
+    const next = `${jobs}\n${i + 1}. ${line}`;
+    if (next.length > 400) break;
+    jobs = next;
+  }
+  return snap({
+    key: sourceKey.format(t.id),
+    kind: "format",
+    format: t.kind === "slideshow" ? "carousel" : "video",
+    platform: "tiktok",
+    url: safeUrl(t.url),
+    author: handle(t.author),
+    title: clip(t.hook, 120),
+    caption: jobs,
+    cover: safeCover(t.cover),
+    numbers: { views: t.views, likes: t.likes },
+    teardown: { hook: t.hook, structure: t.structure.join(" / ") },
     remixedAt: "",
   });
 }
