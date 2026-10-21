@@ -4,7 +4,8 @@
 // 1. Apify clockworks~tiktok-scraper on 8 searches x 30 results (TikTok search's Top section, which carries photo-mode
 //    posts; its hashtag feeds returned 240 videos and no slideshow on 21 Oct), with slideshow images on. It prints the
 //    result count and the price before anything is paid, and refuses above FORMAT_SCOUT_MAX_USD (default 1.5).
-// 2. Keeps posts from the last 30 days with 50,000 views or more. A photo-mode post is a slideshow.
+// 2. Keeps posts from the last 90 days with 50,000 views or more (30 days kept 2 of 174 search results on 21 Oct;
+//    90 kept 36 with 11 slideshows, and a format ages slower than a sound). A photo-mode post is a slideshow.
 // 3. The free Claude CLI (claude -p --model sonnet) reads the pictures, since Jev reads text only: up to 10 slides
 //    of each slideshow give its hook and what each slide does; each video's cover says whether it is a wall of text,
 //    and if so its hook and what each part does. Never the words themselves, only the jobs. The pictures are scraped
@@ -45,7 +46,7 @@ export const RESULTS = SEARCHES.length * PER_SEARCH;
 const FALLBACK_USD_PER_RESULT = 0.0037;
 const START_USD = 0.001;
 export const MIN_VIEWS = 50_000;
-export const MAX_AGE_DAYS = 30;
+export const MAX_AGE_DAYS = 90;
 export const CARRY_DAYS = 28;
 export const KEEP = 40;
 export const MIN_ITEMS = 8;
@@ -185,7 +186,7 @@ export function tiktokPost(item) {
 
 const ageDays = (day, now) => (now - Date.parse(`${day}T00:00:00Z`)) / DAY;
 
-/** Posts from the last 30 days with 50K+ views, one per id, most viewed first. A slideshow needs its slide links. */
+/** Posts from the last 90 days with 50K+ views, one per id, most viewed first. A slideshow needs its slide links. */
 export function pickCandidates(items, now = Date.now()) {
   const seen = new Set();
   const out = [];

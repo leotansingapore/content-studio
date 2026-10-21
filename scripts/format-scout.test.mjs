@@ -68,12 +68,13 @@ const quiet = () => {
 };
 
 describe("picking candidates", () => {
-  it("keeps photo posts and videos at 50K+ views within 30 days, most viewed first, and drops the rest", () => {
+  it("keeps photo posts and videos at 50K+ views within 90 days, most viewed first, and drops the rest", () => {
     const items = [
       photo("1000001", 6, { playCount: 60_000 }),
       video("1000002", { playCount: 900_000 }),
       photo("1000003", 6, { playCount: 49_999 }), // under 50K
-      photo("1000004", 6, { createTimeISO: ago(31) }), // older than 30 days
+      photo("1000004", 6, { createTimeISO: ago(91) }), // older than 90 days
+      photo("1000010", 6, { createTimeISO: ago(60), playCount: 55_000 }), // 60 days old: a format still trends
       photo("1000005", 6, { isAd: true }), // an ad
       photo("../etc", 6), // not a TikTok id
       photo("1000006", 1), // one slide is no slideshow to copy
@@ -84,6 +85,7 @@ describe("picking candidates", () => {
     expect(pickCandidates(items, NOW).map((p) => [p.id, p.photo])).toEqual([
       ["1000002", false],
       ["1000001", true],
+      ["1000010", true],
     ]);
   });
 
