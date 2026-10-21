@@ -2727,7 +2727,8 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                   <Chip on={settings.backdrop?.kind === "blur"} onClick={() => patch({ backdrop: { kind: "blur", amount: 0.6 } })}>Blur</Chip>
                   <Chip on={settings.backdrop?.kind === "colour"} onClick={() => patch({ backdrop: { kind: "colour", color: (art?.color ?? "#111827").toUpperCase() } })}>Colour</Chip>
                   <Chip on={settings.backdrop?.kind === "picture"} onClick={() => pictureInput.current?.click()}>Picture</Chip>
-                  <Chip on={settings.backdrop?.kind === "video"} onClick={() => backdropVideoInput.current?.click()}>Video</Chip>
+                  {/* a video behind you and where you stand are north-star work for Leo's sign-ins (formats-green-screen) */}
+                  {leo && <Chip on={settings.backdrop?.kind === "video"} onClick={() => backdropVideoInput.current?.click()}>Video</Chip>}
                 </div>
                 <input ref={pictureInput} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addPicture(f); }} />
@@ -2762,7 +2763,7 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                   </Button>
                 </div>
               )}
-              {settings.backdrop && settings.backdrop.kind !== "blur" && (
+              {leo && settings.backdrop && settings.backdrop.kind !== "blur" && (
                 <Row label="Where you stand">
                   <Chip on={!standOf(settings)} onClick={() => patch({ stand: undefined })}>Full</Chip>
                   <Chip on={settings.stand === "bottom"} onClick={() => patch({ stand: "bottom" })}>Bottom</Chip>
