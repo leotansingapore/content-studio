@@ -1,5 +1,64 @@
 [
   {
+    "id": "244fdaf00720",
+    "title": "Most Singapore households expect inflation to rise over next year: survey",
+    "gist": "In a quarterly survey by DBS and Singapore Management University (SMU) released on Tuesday (Oct 20), 87.1 per cent of polled households expect economic developments to raise inflation over the next 12 months. One-year-ahead core inflation expectations rose to 3.6 per cent from 3.4 per cent, with transport inflation expectations climbing to 5 per cent from 3.8 per cent. Even as respondents anticipate a slight increase in expenses, most expect their household financial conditions to remain unchanged over the next year.",
+    "talkingPoint": "Clients may be mindful of how rising expenses in areas like transport can pressure their household budgets and future savings. You can ask how recent price changes are affecting their everyday spending and offer to review their financial plan together.",
+    "clientMessage": "Hi [Client name], a recent quarterly survey showed that most households in Singapore expect prices to rise over the next year, with expenses like transport expected to go up. Even so, many people expect their own finances to stay steady. Since higher expenses can affect household savings and budgets differently, we can look at your current financial plan together if you would like. Let me know if you want to catch up. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/singapore/most-singapore-households-expect-inflation-rise-over-next-year-survey",
+    "publishedAt": "2026-10-20T02:20:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/244fdaf00720.jpg"
+  },
+  {
+    "id": "1d1895b5aa0b",
+    "title": "What’s so wrong with high interest rates?",
+    "gist": "Central banks have started raising interest rates again after a pause, and the US Federal Reserve unanimously raised the Fed fund rate in September. This means the cost of borrowing may stay elevated for longer. However, higher rates can also offer better yields for savers and new opportunities for investors.",
+    "talkingPoint": "Clients may face higher borrowing costs, but they also have opportunities for better yields on savings and investments. You can ask them how their current cash and savings strategy is positioned for an extended period of higher rates.",
+    "clientMessage": "Hi [Client name], rate-setting authorities have started raising interest rates again after a pause, following a rate hike in September. This could keep the cost of borrowing higher for longer. At the same time, elevated rates can offer better yields for savers and fresh opportunities for investors. If you like, we can look at your current plan together to see how these ongoing rates affect your savings and investment positions. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/wealth/wealth-investing/whats-so-wrong-high-interest-rates",
+    "publishedAt": "2026-10-20T08:54:12+00:00",
+    "topic": "Rates and markets",
+    "clipping": "/news/1d1895b5aa0b.jpg"
+  },
+  {
+    "id": "baa91e077229",
+    "title": "Two men to be charged after woman loses over $23k to scammers posing as Harvey Norman, MAS staff",
+    "gist": "Two men are set to be charged on Oct 21 after a 40-year-old woman lost about $23,500 in cash and valuables to scammers posing as Harvey Norman and Monetary Authority of Singapore staff. The scammers directed the victim to share her screen, disclose bank credentials, and hand over cash and jewellery. Police advised the public never to transfer valuables, share device screens, or disclose login credentials to unknown people.",
+    "talkingPoint": "Clients may worry about impersonation scams targeting their hard-earned savings and physical assets. You can ask how they currently protect their accounts and suggest reviewing their broader financial plan together to ensure their cash reserves are kept secure.",
+    "clientMessage": "Hi [Client name], a recent case highlighted scammers posing as retail workers and government officials, tricking a person into handing over cash and jewellery worth over $23,000. It is a reminder of how quickly savings can be put at risk by unexpected calls. If you like, we can look at your financial plan together to check how your assets are arranged. Let me know if you would like to catch up. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/two-men-to-be-charged-after-woman-loses-over-23k-to-scammers-posing-as-harvey-norman-mas-staff",
+    "publishedAt": "2026-10-20T15:30:00+00:00",
+    "topic": "Scams"
+  },
+  {
+    "id": "c28446bd1790",
+    "title": "S'pore man, 71, loses life savings of S$21,000 after falling for lottery scam on Facebook",
+    "gist": "A 71-year-old man named Yang lost S$21,688, his entire life savings, to a lottery scam on Facebook between late August and October. The scammers repeatedly demanded fees while promising a S$300,000 prize. He is now penniless and can only afford to eat instant noodles and bread.",
+    "talkingPoint": "Clients may worry about their elderly family members losing their retirement savings to scams. You can ask how their families manage their savings and offer to review their existing arrangements together.",
+    "clientMessage": "Hi [Client name], a 71-year-old man recently lost his life savings of over S$21,000 to an online lottery scam after being promised prize money. Scams like this can quickly wipe out retirement funds that people rely on for daily living. It is a reminder of how important it is to protect savings. If you want, we can review your own financial plan together. [Your name]",
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/10/elderly-man-loses-life-savings-lottery-scam",
+    "publishedAt": "2026-10-19T15:38:39+00:00",
+    "topic": "Scams",
+    "clipping": "/news/c28446bd1790.jpg"
+  },
+  {
+    "id": "c6fbe0c1ef2a",
+    "title": "Nearly $1 million lost through impersonation scams linked to fake social media ads",
+    "gist": "Since April, at least 62 victims lost at least $989,000 to fake social media advertisements after downloading unofficial application files. Callers impersonated government officials or bank staff to push victims into handing over money or personal details. The police noted that victims aged 65 and above recorded the highest average losses, losing $42,347 per person.",
+    "talkingPoint": "Clients may be concerned about fraud risks impacting their family savings, especially with seniors suffering the highest average losses from impersonation scams. A good way to bring this up is to ask how they and their older relatives protect their emergency funds and financial accounts.",
+    "clientMessage": "Hi [Client name], the police recently reported that people lost nearly $1 million since April to fake online advertisements, where scammers impersonated officials to access savings. Victims aged 65 and older faced the highest average losses. This news is a reminder of how quickly savings can be exposed to unexpected risks. If you would like, we can look at your financial plan together to review your family cash reserves and safeguards. Let me know if you wish to discuss this. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/nearly-1-million-lost-through-impersonation-scams-linked-to-fake-social-media-ads",
+    "publishedAt": "2026-10-20T09:59:16+00:00",
+    "topic": "Scams",
+    "clipping": "/news/c6fbe0c1ef2a.jpg"
+  },
+  {
     "id": "ddb48f3587f1",
     "title": "S'pore PHV driver, 37, suffers stroke after working 14 hour-days, hospitalised for a week",
     "gist": "In September 2026, 37-year-old private-hire vehicle driver Wu Jin Xiong suffered a stroke after working over 14 hours a day and was hospitalised for a week. Tan Tock Seng Hospital doctors found the stroke was linked to high blood pressure, alongside risk factors like high cholesterol, being overweight, and smoking. He later received inpatient acupuncture treatment at the Integrated Care Hub to aid his rehabilitation.",
@@ -8,7 +67,8 @@
     "source": "Mothership",
     "url": "https://mothership.sg/2026/10/phv-driver-14-hours-daily-stroke",
     "publishedAt": "2026-10-18T03:41:19+00:00",
-    "topic": "Healthcare costs"
+    "topic": "Healthcare costs",
+    "clipping": "/news/ddb48f3587f1.jpg"
   },
   {
     "id": "933896bd3119",
@@ -344,6 +404,18 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
+    "id": "38d77cf6f8ef",
+    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
+    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
+    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/02/2026-budget-summary",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/38d77cf6f8ef.jpg"
+  },
+  {
     "id": "6d46dc1c57d8",
     "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
     "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
@@ -366,18 +438,6 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "CPF and retirement",
     "clipping": "/news/146ce01a9327.jpg"
-  },
-  {
-    "id": "38d77cf6f8ef",
-    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
-    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
-    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "Mothership",
-    "url": "https://mothership.sg/2026/02/2026-budget-summary",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Cost of living",
-    "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
     "id": "e98550debf11",
