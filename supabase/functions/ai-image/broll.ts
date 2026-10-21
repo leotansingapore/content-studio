@@ -9,8 +9,12 @@
 import { PEOPLE_RULE } from "./logic.ts";
 
 export const PICTURE_MODEL = "higgsfield-ai/soul/v2/standard";
+// Not on Higgsfield's public catalog, but the API serves it: its free POST /estimate/higgsfield-ai/dop/lite at 5 s
+// answered 2 credits, US$0.125 on 2026-10-21 (an unknown route answers 404 model_not_found).
 export const MOTION_MODEL = "higgsfield-ai/dop/lite";
 export const CLIP_SECONDS = 5;
+/** DoP lite's credits for one CLIP_SECONDS clip (that estimate); prices.ts DOP_LITE_CREDITS must match. */
+export const MOTION_CREDITS = 2;
 const MOTION_PROMPT = "Slow, steady camera push in with gentle natural movement in the scene. Realistic, no text, no cuts.";
 
 export type Aspect = "9:16" | "16:9" | "1:1";
@@ -42,5 +46,5 @@ export function scenePictureBody(r: AiBrollRequest): Record<string, unknown> {
   return { prompt: `A realistic photo of ${r.search}, as B-roll in a short video.${said}\n\n${PEOPLE_RULE}`, aspect_ratio: r.aspect, resolution: "720p", batch_size: 1 };
 }
 
-/** The picture moved for CLIP_SECONDS. */
-export const motionBody = (imageUrl: string): Record<string, unknown> => ({ prompt: MOTION_PROMPT, image_url: imageUrl, duration: CLIP_SECONDS });
+/** The picture moved for CLIP_SECONDS, by today's realistic push in or the given prompt (an explainer look's motion). */
+export const motionBody = (imageUrl: string, prompt = MOTION_PROMPT): Record<string, unknown> => ({ prompt, image_url: imageUrl, duration: CLIP_SECONDS });

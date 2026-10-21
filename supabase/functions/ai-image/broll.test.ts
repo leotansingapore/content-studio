@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CLIP_SECONDS, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll";
+import { CLIP_SECONDS, MOTION_CREDITS, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll";
+import { DOP_LITE_CREDITS } from "../_shared/prices";
 import { PEOPLE_RULE, readStatus } from "./logic";
 import { DAILY_LIMITS } from "../_shared/usageCaps";
 
@@ -14,8 +15,20 @@ describe("an AI B-roll clip", () => {
     expect(body).toMatchObject({ aspect_ratio: "9:16", resolution: "720p", batch_size: 1 });
     expect(body.prompt).toBe(`A realistic photo of family dinner, as B-roll in a short video. It shows while someone says: "She said 'eat'"\n\n${PEOPLE_RULE}`);
   });
-  it("moves the picture for 5 s", () => {
-    expect(motionBody("https://cdn.example/p.png")).toMatchObject({ image_url: "https://cdn.example/p.png", duration: CLIP_SECONDS });
+  it("moves the picture for 5 s, by today's prompt or the one given", () => {
+    expect(motionBody("https://cdn.example/p.png")).toEqual({
+      prompt: "Slow, steady camera push in with gentle natural movement in the scene. Realistic, no text, no cuts.",
+      image_url: "https://cdn.example/p.png",
+      duration: CLIP_SECONDS,
+    });
+    expect(motionBody("https://cdn.example/p.png", "Paper layers slide and bob slightly. No text, no cuts.")).toEqual({
+      prompt: "Paper layers slide and bob slightly. No text, no cuts.",
+      image_url: "https://cdn.example/p.png",
+      duration: CLIP_SECONDS,
+    });
+  });
+  it("prices a moving clip the way the price table does", () => {
+    expect(MOTION_CREDITS).toBe(DOP_LITE_CREDITS);
   });
   it("reads a finished clip's video link as done", () => {
     expect(readStatus({ status: "completed", video: { url: "https://cdn.example/c.mp4" } })).toEqual({ state: "done", url: "https://cdn.example/c.mp4" });
