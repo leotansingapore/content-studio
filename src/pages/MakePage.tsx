@@ -1,7 +1,8 @@
 // The format gallery (/make, Leo's sign-ins only; docs/north-star/items/formats-gallery.md): one card per ready
 // entry in src/data/formats.ts, in group order, each with its price and today's uses left before anything is
 // spent. A card opens its format's own page (formatHref). Filters live in the URL (?kind=, ?needs=none, replace).
-// The page calls no AI and stores nothing; the only read is today's usage counts.
+// The page calls no AI and stores nothing; the only read is today's usage counts. While the brand has no saved demo,
+// a card's "Needs a demo video" line links to /brand#demo-videos (beside the card's own link, never inside it).
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -12,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FORMATS, NEED_LINES, filterFormats, formatHref, type FormatDef, type FormatKind } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { demoVideos } from "@/lib/demoVideos";
+import { links } from "@/lib/links";
 import { chipText } from "@/lib/prices";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlFlag, useUrlState, useUrlUpdate } from "@/lib/urlState";
@@ -32,14 +35,15 @@ export default function MakePage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
   if (!leo) return <NotFoundPage />;
-  return <Gallery />;
+  return <Gallery userId={leo.id} />;
 }
 
-function Gallery() {
+function Gallery({ userId }: { userId: string }) {
   const [kind, setKind] = useUrlState<(typeof KINDS)[number]>("kind", "all", { allowed: KINDS });
   const [needsNone, setNeedsNone] = useUrlFlag("needs", "none");
   const update = useUrlUpdate();
   const leftOf = useUsesLeft(false);
+  const [noDemo] = useState(() => demoVideos(userId).length === 0);
   const shown = filterFormats(READY, { kind, needsNone });
 
   return (
@@ -81,7 +85,7 @@ function Gallery() {
         <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {shown.map((f) => (
             <li key={f.slug} className="flex min-w-0">
-              <FormatCard f={f} left={f.cap ? leftOf(f.cap) : null} />
+              <FormatCard f={f} left={f.cap ? leftOf(f.cap) : null} needsHref={f.needs === "demo-video" && noDemo ? links.brand({ section: "demo-videos" }) : undefined} />
             </li>
           ))}
         </ul>
@@ -90,8 +94,9 @@ function Gallery() {
   );
 }
 
-/** One format: poster or kind icon, name, line, price, uses left, what it needs. The whole card is one link. */
-function FormatCard({ f, left }: { f: FormatDef; left: number | null }) {
+/** One format: poster or kind icon, name, line, price, uses left, what it needs. The whole card is one link; a need
+ * with its own way forward (`needsHref`) sits just under it as a second link. */
+function FormatCard({ f, left, needsHref }: { f: FormatDef; left: number | null; needsHref?: string }) {
   const [playing, setPlaying] = useState(false);
   const [broken, setBroken] = useState(false);
   const poster = !!f.preview && !broken;
@@ -99,7 +104,12 @@ function FormatCard({ f, left }: { f: FormatDef; left: number | null }) {
   const stop = () => setPlaying(false);
   const price = f.price();
   const Icon = KIND_ICONS[f.kind];
-  return (
+  const need = f.needs && (
+    <>
+      <Diamond className="h-3 w-3 shrink-0 fill-warning text-warning" aria-hidden /> {NEED_LINES[f.needs]}
+    </>
+  );
+  const card = (
     <Link
       to={formatHref(f)}
       onMouseEnter={play}
@@ -133,12 +143,17 @@ function FormatCard({ f, left }: { f: FormatDef; left: number | null }) {
         </span>
         {/* blank until today's count is read; "None left today" stays muted, since the card still opens */}
         {f.cap && <p className="min-h-4 text-[11px] tabular-nums text-muted-foreground">{chipText({ price: null, left, leo: false }).text}</p>}
-        {f.needs && (
-          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Diamond className="h-3 w-3 shrink-0 fill-warning text-warning" aria-hidden /> {NEED_LINES[f.needs]}
-          </p>
-        )}
+        {need && !needsHref && <p className="flex items-center gap-1 text-[11px] text-muted-foreground">{need}</p>}
       </div>
     </Link>
+  );
+  if (!need || !needsHref) return card;
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-1">
+      {card}
+      <Link to={needsHref} className={`flex items-center gap-1 self-start rounded px-0.5 text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${TOUCH}`}>
+        {need}
+      </Link>
+    </div>
   );
 }
