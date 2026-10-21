@@ -672,6 +672,9 @@ const PROVEN = provenFormulas(HOOK_BANK);
 const PROVEN_OPEN = provenOpen(HOOK_BANK);
 const HOOK_TABS = ["formulas", "proven"] as const;
 const ThreadButton = lazy(() => import("@/components/ThreadPanel").then((m) => ({ default: m.ThreadButton })));
+// Insert (Leo only, edit-snippets): saved lines, hashtag sets, endings, hooks and post templates. Lazy, so nobody else loads it.
+const InsertPanel = lazy(() => import("@/components/InsertPanel"));
+const InsertButton = lazy(() => import("@/components/InsertPanel").then((m) => ({ default: m.InsertButton })));
 
 export default function GeneratePage() {
   const { toast } = useToast();
@@ -785,8 +788,12 @@ export default function GeneratePage() {
     status: "streaming" | "done";
   } | null>(null);
   const [undoText, setUndoText] = useState<string | null>(null);
-  // What the Undo line says happened: a rewrite or a clean.
+  // What the Undo line says happened: a rewrite, a clean or an insert.
   const [undoNote, setUndoNote] = useState("Rewritten.");
+  // The editor, and the text its cursor was placed in (by a tap, typing or an insert): Insert puts text at the
+  // cursor while the post is still that text, else where its kind goes. A rewrite, Undo or a new post clears it.
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const caretIn = useRef<string | null>(null);
   const rewriteAbortRef = useRef<AbortController | null>(null);
   // Links taken out of a LinkedIn draft, to paste as its first comment.
   const [firstComment, setFirstComment] = useState<string | null>(null);
@@ -844,8 +851,8 @@ export default function GeneratePage() {
     };
   }, []);
 
-  // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me) or thread (Leo's Make it a thread,
-  // ThreadPanel.tsx); opening pushes, so Back closes it.
+  // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me), thread (Leo's Make it a thread,
+  // ThreadPanel.tsx) or insert (Leo's Insert panel, InsertPanel.tsx); opening pushes, so Back closes it.
   const [panel, openPanel, closePanel] = useUrlItem("panel");
   // ?view=prompter: the teleprompter over a short video draft (Leo only); opening pushes, so Back closes it.
   const [view, openView, closeView] = useUrlItem("view");
@@ -2158,6 +2165,19 @@ export default function GeneratePage() {
     setUndoNote(`${changes} ${changes === 1 ? "change" : "changes"} made.`);
     setDraft(text);
     persistDraftEntry(text, chosenHook ?? "");
+  };
+
+  // A snippet from the Insert panel goes in with Undo, and the cursor lands after it.
+  const insertText = (text: string, caret: number) => {
+    setUndoText(draft);
+    setUndoNote("Inserted.");
+    setDraft(text);
+    caretIn.current = text;
+    persistDraftEntry(text, chosenHook ?? "");
+    requestAnimationFrame(() => {
+      editorRef.current?.focus();
+      editorRef.current?.setSelectionRange(caret, caret);
+    });
   };
 
   const undoRewrite = () => {
@@ -3813,9 +3833,12 @@ export default function GeneratePage() {
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </div>
                 <Textarea
+                  ref={editorRef}
                   value={draft}
+                  onFocus={(e) => (caretIn.current = e.currentTarget.value)}
                   onChange={(e) => {
                     setDraft(e.target.value);
+                    caretIn.current = e.target.value;
                     pendingSave.current.draft = true;
                     // Undo would throw away what was just typed.
                     if (undoText !== null) setUndoText(null);
@@ -3856,6 +3879,11 @@ export default function GeneratePage() {
                   >
                     <Eraser className="h-3.5 w-3.5" /> Clean AI tells
                   </button>
+                  {leo && userId && (
+                    <Suspense fallback={null}>
+                      <InsertButton disabled={isStreaming} />
+                    </Suspense>
+                  )}
                 </div>
                 {undoText !== null && (
                   <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
@@ -3868,6 +3896,22 @@ export default function GeneratePage() {
                       Undo
                     </button>
                   </p>
+                )}
+                {leo && userId && panel === "insert" && (
+                  <Suspense fallback={null}>
+                    <InsertPanel
+                      userId={userId}
+                      draft={draft}
+                      platform={platform}
+                      ctaType={ctaType}
+                      brand={brandKit}
+                      caret={() => {
+                        const el = editorRef.current;
+                        return el && caretIn.current === el.value ? { start: el.selectionStart, end: el.selectionEnd } : undefined;
+                      }}
+                      onInsert={insertText}
+                    />
+                  </Suspense>
                 )}
                 {rewrite && (
                   <div id="rewrite-panel" className="mt-1.5 scroll-mt-24 rounded-xl border border-primary/30 bg-primary/5 p-3">
