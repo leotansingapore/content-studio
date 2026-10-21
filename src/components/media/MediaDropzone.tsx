@@ -18,10 +18,15 @@ export default function MediaDropzone({ userId, folder, onChange }: { userId: st
   const sort = useSyncExternalStore(onSortChange, sortState);
   const left = useUsesLeft(!!progress || sort.sorting.size > 0);
   const input = useRef<HTMLInputElement>(null);
+  // a drop while a batch is still adding waits its turn instead of being lost
+  const queue = useRef(Promise.resolve());
 
-  const take = async (picked: FileList | null) => {
+  const take = (picked: FileList | null) => {
     const files = [...(picked ?? [])];
-    if (!files.length || progress) return;
+    if (files.length) queue.current = queue.current.then(() => add(files)).catch(() => setLines(["That didn't go through. Try again."]));
+  };
+
+  const add = async (files: File[]) => {
     clearSortNotice();
     setLines([]);
     setProgress(`Adding 1 of ${Math.min(files.length, MAX_AT_ONCE)}`);
@@ -50,11 +55,11 @@ export default function MediaDropzone({ userId, folder, onChange }: { userId: st
         e.preventDefault();
         setOver(true);
       }}
-      onDragLeave={() => setOver(false)}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setOver(false)}
       onDrop={(e) => {
         e.preventDefault();
         setOver(false);
-        void take(e.dataTransfer.files);
+        take(e.dataTransfer.files);
       }}
       className={`space-y-3 rounded-xl border-2 border-dashed p-4 transition-colors sm:p-5 ${over ? "border-primary bg-primary/5" : "border-border"}`}
     >
@@ -75,7 +80,7 @@ export default function MediaDropzone({ userId, folder, onChange }: { userId: st
           tabIndex={-1}
           aria-hidden
           onChange={(e) => {
-            void take(e.target.files);
+            take(e.target.files);
             e.target.value = "";
           }}
         />
