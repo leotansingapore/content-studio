@@ -45,13 +45,17 @@ export function OriginalPane({
   source,
   label = "Remixed from",
   linkText = "Open original",
+  text,
 }: {
   source: RemixSource;
   /** The header line: a formats page shows the source before anything is remixed from it. */
   label?: string;
   linkText?: string;
+  /** The whole original when a store on this device still holds it; the snapshot keeps only 400 characters. */
+  text?: string;
 }) {
   const Icon = ICONS[source.platform ?? ""] ?? Globe;
+  const caption = text && text.length > (source.caption?.length ?? 0) ? text : source.caption;
   const numbers = numberParts(source.numbers);
   return (
     <div className="space-y-3">
@@ -74,10 +78,10 @@ export function OriginalPane({
         </div>
       </div>
       {source.cover && <img src={source.cover} alt="" loading="lazy" className="mx-auto block max-h-64 w-auto max-w-full rounded-lg bg-muted" />}
-      {source.caption ? (
+      {caption ? (
         <div className="space-y-1">
           <p className="text-xs font-semibold text-muted-foreground">What they wrote, for reference only</p>
-          <p className="whitespace-pre-line break-words border-l-2 border-border pl-3 text-sm leading-relaxed text-foreground/85">{source.caption}</p>
+          <p className="whitespace-pre-line break-words border-l-2 border-border pl-3 text-sm leading-relaxed text-foreground/85">{caption}</p>
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">No text was saved with this source.</p>

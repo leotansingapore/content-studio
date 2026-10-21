@@ -10,6 +10,7 @@ import RemixButton from "@/components/remix/RemixButton";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { COMPARE_TABS, links } from "@/lib/links";
 import { kindLabel, numberParts, OriginalPane } from "@/components/OriginalPane";
+import { fullText } from "@/lib/remix";
 import { moreLikeThis, whatChanged } from "@/lib/remixCompare";
 import type { RemixSource } from "@/lib/remixSource";
 import { loadTeardown } from "@/lib/remixTeardown";
@@ -66,6 +67,8 @@ export default function RemixCompare({
   const teardown = useMemo(() => (key ? loadTeardown(userId, key) : null), [userId, key]);
   // the source is the snapshot saved on the draft: never resolved again, so a rotated-out post still shows
   const more = useMemo(() => (source ? moreLikeThis(source, userId) : []), [userId, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the whole ad or post when this device still holds it (the dogfood's ad showed cut at "Which means replyi")
+  const original = useMemo(() => (source ? fullText(source, userId) : ""), [userId, key]); // eslint-disable-line react-hooks/exhaustive-deps
   // counted on every render, so an edit shows on the next view; a 400-character caption makes it cheap
   const changed = whatChanged(draft, draftText, teardown);
 
@@ -112,7 +115,7 @@ export default function RemixCompare({
             side ? "lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto" : ""
           }`}
         >
-          <OriginalPane source={source} />
+          <OriginalPane source={source} text={original} />
           <div className="space-y-2 border-t border-border/60 pt-3">
             <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What changed</h3>
             {changed.madeWith && <p className="text-sm text-foreground">Made with: {changed.madeWith}</p>}
