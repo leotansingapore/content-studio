@@ -4,6 +4,11 @@
 // audience, topics, edge and voice from the page's own words, and asks Jev which life stage it serves. Nothing is
 // stored here: the app pre-fills the brand's own stores and the adviser confirms each field.
 //
+// Phase 4, only for a uid on NORTH_STAR_USERS (403 not_enabled before any count for everyone else, whose read is
+// pinned unchanged in index.test.ts):
+//   deep: true      Jev picks up to 4 more pages from the home page's links; the writer reads them fenced. The answer
+//                   gains pagesRead and lang (a listed uid gets both on any read). Counts "brand-dna" once.
+//
 // Daily cap "brand-dna". Deploy WITH JWT verification:
 //   supabase functions deploy brand-dna --project-ref hgdbflprrficdoyxmdxe --use-api
 
@@ -13,16 +18,20 @@ import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
-import { AUDIENCES, audienceAsk, parseWritten, readSite, siteUrl, WRITE_FORMAT, writeMessages } from "./logic.ts";
+import { isAllowed } from "../market/logic.ts";
+import { AUDIENCES, audienceAsk, fencePages, pageQuestions, parseWritten, pickPages, readSite, type SiteFacts, siteUrl, WRITE_FORMAT, writeMessages } from "./logic.ts";
 
 const PAGE_BYTES = 300_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
 const LOGO_BYTES = 250_000;
+const HTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
+const fail = (status: number, code: string, error: string) => json({ code, error }, status);
+const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
 
 // the file's own first bytes, not the server's word for it
 const imageType = (b: Uint8Array) =>
@@ -51,6 +60,29 @@ async function logoOf(candidates: string[]): Promise<string | null> {
   return null;
 }
 
+/**
+ * The deep read's other pages: Jev picks up to 4 of the home page's links, fetched side by side through the same guard
+ * (300 KB and 8 s each, 20 s for all of them). A page that fails or isn't a web page is left out; Jev answering
+ * nothing leaves the home page alone.
+ */
+async function morePages(site: SiteFacts, home: URL): Promise<{ url: URL; html: string; text: string }[]> {
+  const answers = await askJev({ site: site.name, home: home.origin }, pageQuestions(site.anchors), { who: "brand-dna pages", timeoutMs: 15_000 });
+  const deadline = AbortSignal.timeout(20_000);
+  const pages = await Promise.all(pickPages(answers, site.anchors).map(async (a) => {
+    try {
+      const page = await fetchCapped(new URL(a.path, home), PAGE_BYTES, HTML, deadline);
+      // not a web page, or a link that lands back on the home page
+      if (!/html|xml|text/.test(page.type) || page.url.href === home.href) return null;
+      const html = new TextDecoder().decode(page.bytes);
+      return { url: page.url, html, text: readSite(html, page.url).text };
+    } catch (e) {
+      console.warn("brand-dna: page", a.path, msg(e));
+      return null;
+    }
+  }));
+  return pages.filter((p) => p !== null);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -62,6 +94,10 @@ Deno.serve(async (req) => {
   if (!uid) return json({ error: "Sign in again." }, 401);
 
   const body = await req.json().catch(() => ({}));
+  const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
+  const deep = body?.deep === true;
+  if (deep && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
+
   const url = siteUrl(body?.url);
   if (!url) return json({ error: "Type the brand's web address, like acme.sg." }, 400);
 
@@ -87,9 +123,13 @@ Deno.serve(async (req) => {
     return json({ error: `We couldn't read ${url.host}. Start with just a name instead.` }, 422);
   }
 
+  // the deep read's other pages, each fenced on its own; with none (Jev silent, nothing picked, all failed) the prompt is today's
+  const more = deep ? (await morePages(site, page.url)).map((p) => ({ url: p.url.href, text: p.text })) : [];
+  const fenced = more.length ? fencePages([{ url: page.url.href, text: site.text }, ...more]) : null;
+
   // the words (LLM) and the logo download run side by side; either may come back empty
   const [written, logo] = await Promise.all([
-    openaiChat({ model: OPENAI_MODEL, max_tokens: 700, response_format: WRITE_FORMAT, messages: writeMessages(site, page.url.href) }, { signal: AbortSignal.timeout(40_000) })
+    openaiChat({ model: OPENAI_MODEL, max_tokens: 700, response_format: WRITE_FORMAT, messages: writeMessages(site, page.url.href, fenced?.block) }, { signal: AbortSignal.timeout(40_000) })
       .then(async (r) => (r.ok ? parseWritten((await r.json())?.choices?.[0]?.message?.content) : (console.warn("brand-dna: openai", r.status), null)))
       .catch((e) => (console.warn("brand-dna: openai", e instanceof Error ? e.message : e), null)),
     logoOf(site.logos),
@@ -109,5 +149,6 @@ Deno.serve(async (req) => {
     topics: written?.topics ?? [],
     edge: written?.edge ?? "",
     voice: written?.voice ?? "",
+    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang } : {}),
   });
 });
