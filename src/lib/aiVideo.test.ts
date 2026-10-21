@@ -1,12 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
-vi.mock("@/lib/videoMedia", () => ({ currentJoin: vi.fn(() => null), getFile: vi.fn(async () => undefined), monoPcm: vi.fn(), startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn() }));
+vi.mock("@/lib/videoMedia", () => ({
+  currentJoin: vi.fn(() => null), getFile: vi.fn(async () => undefined), putFile: vi.fn(async () => {}), deleteFile: vi.fn(async () => {}), monoPcm: vi.fn(),
+  startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn(),
+}));
 vi.mock("@/lib/textVoice", () => ({ audioSeconds: vi.fn(async () => 30), speak: vi.fn(async () => new Blob(["mp3"])) }));
 
 import { callFn } from "@/lib/edgeFn";
-import { currentJoin, getFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
-import { DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar } from "./aiVideo";
+import { currentJoin, deleteFile, getFile, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
+import {
+  DEMO_GONE, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer, resumeAvatar, resumeExplainer,
+} from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
 type Body = { mode: string; refund?: string };
@@ -35,6 +40,8 @@ beforeEach(() => {
   vi.mocked(startSlides).mockReset();
   vi.mocked(getFile).mockReset().mockResolvedValue(undefined);
   vi.mocked(currentJoin).mockReset().mockReturnValue(null);
+  vi.mocked(putFile).mockReset().mockResolvedValue(undefined);
+  vi.mocked(deleteFile).mockReset().mockResolvedValue(undefined);
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -233,5 +240,117 @@ describe("a format's hand-off riding a paid clip", () => {
     const bodies = vi.mocked(callFn).mock.calls.map(([, b]) => b as Record<string, unknown>).filter((b) => b.mode === "presenter");
     // no setting sends today's body, which the server reads as the office
     expect(bodies).toEqual([{ mode: "presenter", look: "A Malay Singaporean man", setting: "car" }, { mode: "presenter", look: "A Malay Singaporean man" }]);
+  });
+});
+
+describe("a narrated video (Leo's explainer with stock clips, a look and moving scenes)", () => {
+  const SCENES = [1, 2, 3, 4].map((n) => ({ say: `Line ${n} of the script.`, picture: `A clinic waiting room, scene ${n}` }));
+  // a downloaded file says where it came from
+  const fetched = () => vi.stubGlobal("fetch", vi.fn(async (u: string) => (u.includes("broken") ? { ok: false } : { ok: true, blob: async () => new Blob([u]) })));
+  const text = (b: unknown) => (b as Blob).text();
+  /** ai-video answers: the pictures, their status, the move and the moving clips' status (m2 fails). */
+  const studio = (move: (string | null)[] = ["m1", "m2", "m3"]) =>
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      const b = body as { mode: string; pictures?: string[]; tokens?: string[] };
+      if (b.mode === "explainer") return { tokens: b.pictures!.map((_, i) => `p${i + 1}`), refund: "ticket" };
+      if (b.mode === "move") return { tokens: move };
+      return { jobs: b.tokens!.map((t) => (t === "m2" ? { state: "failed", error: "No." } : { state: "done", url: `https://cdn.example/${t}.${t[0] === "m" ? "mp4" : "png"}` })) };
+    });
+  const calls = (mode: string) => vi.mocked(callFn).mock.calls.map(([, b]) => b as Record<string, unknown>).filter((b) => b.mode === mode);
+  const slides = async () => Promise.all(vi.mocked(startSlides).mock.calls[0][1].map(async (s) => [("video" in s ? "video " : "image ") + (await text("video" in s ? s.video : s.image)), Math.round(s.seconds * 10) / 10]));
+
+  it("hands startSlides a moving clip per moved scene and the still for one that failed, polling the moves with no refund ticket", async () => {
+    fetched();
+    studio();
+    const run = makeExplainer("Co-pays", SCENES, "eric" as never, { draftId: "d1" }, { look: "paper", move: true, stock: [null, "https://pexels.example/stock.mp4", null, null] });
+    await vi.advanceTimersByTimeAsync(20_000);
+    await run;
+    // the stock scene takes no picture; the look rides the pictures and the move
+    expect(calls("explainer")).toEqual([{ mode: "explainer", pictures: [SCENES[0].picture, SCENES[2].picture, SCENES[3].picture], look: "paper" }]);
+    expect(calls("move")).toEqual([{ mode: "move", tokens: ["p1", "p2", "p3"], look: "paper" }]);
+    const polls = calls("status");
+    expect(polls[0]).toMatchObject({ tokens: ["p1", "p2", "p3"], refund: "ticket" });
+    for (const poll of polls.slice(1)) {
+      expect(poll.tokens).toEqual(["m1", "m2", "m3"]);
+      expect(poll.refund).toBeUndefined();
+    }
+    expect((await slides()).map(([what]) => what)).toEqual([
+      "video https://cdn.example/m1.mp4",
+      "video https://pexels.example/stock.mp4",
+      "image https://cdn.example/p2.png",
+      "video https://cdn.example/m3.mp4",
+    ]);
+    // the voice's 30 s split by words, in order
+    expect((await slides()).reduce((n, [, s]) => n + Number(s), 0)).toBeCloseTo(30);
+    const [, , , label, opts] = vi.mocked(startSlides).mock.calls[0];
+    expect(label).toBe("Putting your explainer together");
+    expect(opts?.extra).toEqual({ draftId: "d1", note: "Scene 3 stayed still; it didn't come through as a moving clip.", toast: "Your narrated video is ready" });
+    expect(aiJob()).toMatchObject({ kind: "explainer", state: "done" });
+    expect(pendingExplainer()).toBeNull();
+    expect(deleteFile).toHaveBeenCalledWith(vi.mocked(putFile).mock.calls[0][0]);
+  });
+
+  it("makes an all-stock video with no ai-video call at all, and gives a stock clip that won't download an AI picture first", async () => {
+    fetched();
+    studio();
+    const run = makeExplainer("Stock", SCENES.slice(0, 3), "eric" as never, undefined, { stock: ["https://pexels.example/a.mp4", "https://pexels.example/b.mp4", "https://pexels.example/c.mp4"] });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await run;
+    expect(vi.mocked(callFn)).not.toHaveBeenCalled();
+    expect(putFile).not.toHaveBeenCalled();
+    expect((await slides()).map(([what]) => what)).toEqual(["video https://pexels.example/a.mp4", "video https://pexels.example/b.mp4", "video https://pexels.example/c.mp4"]);
+
+    vi.mocked(startSlides).mockReset();
+    const again = makeExplainer("Stock", SCENES.slice(0, 3), "eric" as never, undefined, { stock: ["https://pexels.example/a.mp4", "https://broken.example/b.mp4", null] });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await again;
+    expect(calls("explainer")).toEqual([{ mode: "explainer", pictures: [SCENES[1].picture, SCENES[2].picture] }]);
+    expect(calls("move")).toEqual([]);
+  });
+
+  it("is kept on this device until it is put together, and a reload picks it up at no cost without moving it twice", async () => {
+    fetched();
+    studio();
+    const voice = new Blob(["kept voice"]);
+    vi.mocked(getFile).mockResolvedValue(voice);
+    vi.mocked(startSlides).mockImplementation(async () => {
+      vi.mocked(currentJoin).mockReturnValue({ progress: 0, state: "failed", error: "This browser can't record video." });
+    });
+    const run = makeExplainer("Co-pays", SCENES.slice(0, 3), "eric" as never, undefined, { move: true });
+    await vi.advanceTimersByTimeAsync(20_000);
+    await run;
+    expect(aiJob()).toMatchObject({ kind: "explainer", state: "failed", error: "This browser can't record video." });
+    const kept = pendingExplainer();
+    expect(kept).toMatchObject({ name: "Co-pays", tokens: ["p1", "p2", "p3"], refund: "ticket", move: true, moved: ["m1", "m2", "m3"], voice: vi.mocked(putFile).mock.calls[0][0] });
+
+    // a reload: the join works this time, with the kept voiceover and no new explainer or move
+    vi.mocked(currentJoin).mockReturnValue(null);
+    vi.mocked(startSlides).mockReset().mockResolvedValue(undefined);
+    resumeExplainer();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(calls("explainer")).toHaveLength(1);
+    expect(calls("move")).toHaveLength(1);
+    expect(vi.mocked(startSlides).mock.calls[0][2]).toBe(voice);
+    expect(aiJob()).toMatchObject({ kind: "explainer", state: "done" });
+    expect(pendingExplainer()).toBeNull();
+  });
+
+  it("drops the kept video when Higgsfield fails a picture (its use came back), and leaves today's explainer unkept", async () => {
+    fetched();
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as { mode: string }).mode === "explainer" ? { tokens: ["p1", "p2", "p3"], refund: "ticket" } : { jobs: [{ state: "failed", error: "Blocked." }] }));
+    const run = makeExplainer("Co-pays", SCENES.slice(0, 3), "eric" as never, undefined, { look: "clay" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await run;
+    expect(aiJob()).toMatchObject({ state: "failed", error: "Blocked." });
+    expect(pendingExplainer()).toBeNull();
+    expect(deleteFile).toHaveBeenCalled();
+
+    vi.mocked(putFile).mockClear();
+    studio();
+    const today = makeExplainer("Today", SCENES.slice(0, 3), "eric" as never);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await today;
+    expect(putFile).not.toHaveBeenCalled();
+    expect(calls("explainer").at(-1)).toEqual({ mode: "explainer", pictures: SCENES.slice(0, 3).map((s) => s.picture) });
   });
 });

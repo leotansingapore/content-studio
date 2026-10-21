@@ -7,10 +7,12 @@
 // pictures are in, they are put together on this device (videoMedia's join job) and Edit a video opens
 // the result like an upload, with captions. An avatar video's or a template clip's job tokens stay on this
 // device until it is put together, so a reload, a dropped download or a failed join picks up the paid clips again at no cost.
+// A narrated video (Leo's explainer with opts: stock clips, a look, moving scenes) is kept the same way, under its own key
+// with its voiceover as a device file; today's explainer (no opts) runs exactly as before and is not kept.
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
-import { currentJoin, getFile, monoPcm, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
+import { currentJoin, deleteFile, getFile, monoPcm, putFile, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
 import { audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
 import { MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
@@ -80,6 +82,27 @@ async function waitFor(tokens: string[], progress: (done: number) => void, refun
   }
   // not a JobFailed: Higgsfield hasn't failed it, so the paid job is kept for Try again at no cost
   throw new Error("It's taking too long. Try again later.");
+}
+
+/**
+ * Polls moving clips until each is done or failed, with no refund ticket (a failed move keeps the video's use): the
+ * links in order, null for a clip that failed or was still not done after 20 minutes, whose scene stays a still.
+ */
+async function settle(tokens: string[], progress: (done: number) => void): Promise<(string | null)[]> {
+  let last: MediaState[] = [];
+  let most = 0;
+  for (const until = Date.now() + GIVE_UP_MS; Date.now() < until; ) {
+    await sleep(POLL_MS);
+    const r = await callFn<{ jobs: MediaState[] }>("ai-video", { mode: "status", tokens }).catch(() => null);
+    if (!r) continue;
+    last = r.jobs;
+    if (last.every((j) => j.state !== "working")) break;
+    progress((most = Math.max(most, last.filter((j) => j.state === "done").length)));
+  }
+  return tokens.map((_, i) => {
+    const j = last[i];
+    return j?.state === "done" ? j.url : null;
+  });
 }
 
 async function download(url: string): Promise<Blob> {
@@ -273,23 +296,171 @@ export async function writeExplainer(topic: string): Promise<Scene[]> {
   return scenes;
 }
 
-export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId, extra?: JoinExtra): Promise<void> {
+/** A narrated video's choices (Leo's panel). Today's explainer passes none. */
+export interface ExplainerOpts {
+  /** The AI pictures' look (ai-video EXPLAINER_LOOKS; photo or none is today's). */
+  look?: string;
+  /** DoP lite moves each AI picture for 5 s (ai-video move). */
+  move?: boolean;
+  /** Per scene, a stock clip's file link that stands in for its AI picture, or null. */
+  stock?: (string | null)[];
+}
+
+/** A narrated video with paid pictures, kept on this device until it is put together (see the header). */
+export interface ExplainerPending {
+  name: string;
+  /** The voiceover: a device file key (putFile). */
+  voice: string;
+  says: string[];
+  /** Per scene, its stock clip's link, or null for an AI picture. */
+  stock: (string | null)[];
+  /** The AI pictures' jobs, in scene order. */
+  tokens: string[];
+  refund?: string;
+  look?: string;
+  move?: boolean;
+  /** The moving clips' jobs once asked for, per AI picture (null: Higgsfield didn't take it, so it stays a still). */
+  moved?: (string | null)[];
+  extra?: JoinExtra;
+}
+const EXPLAINER_PENDING = "cs-ai-video-explainer-pending";
+export const VOICE_GONE = "Your voiceover isn't on this device any more. Make the video again.";
+const JOIN_LABEL = "Putting your explainer together";
+
+export function pendingExplainer(): ExplainerPending | null {
+  try {
+    const p = JSON.parse(localStorage.getItem(EXPLAINER_PENDING) ?? "null");
+    return p && typeof p.name === "string" && typeof p.voice === "string" && Array.isArray(p.says) && Array.isArray(p.stock) && Array.isArray(p.tokens) ? p : null;
+  } catch {
+    return null;
+  }
+}
+const keepExplainer = (p: ExplainerPending | null) => {
+  try {
+    if (p) localStorage.setItem(EXPLAINER_PENDING, JSON.stringify(p));
+    else localStorage.removeItem(EXPLAINER_PENDING);
+  } catch {
+    /* storage blocked: the video still gets made, it just can't be picked up after a reload */
+  }
+};
+
+/** "Scene 3 stayed still; ..." for each scene that was to move and didn't. */
+export const stillNote = (scenes: number[]) =>
+  scenes.map((n) => `Scene ${n} stayed still; it didn't come through as a moving clip.`).join(" ");
+
+/**
+ * Today's explainer (no opts): the voiceover, one AI picture per scene, then the slides. A narrated video (opts) also
+ * takes a stock clip for a scene that has one (a clip that won't download gets an AI picture instead, before anything
+ * is paid for), its look, and its scenes moved; with no AI picture it takes no ai-video use at all.
+ */
+export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId, extra?: JoinExtra, opts?: ExplainerOpts): Promise<void> {
   if (aiBusy()) return;
   set({ kind: "explainer", state: "working", step: "Making the voiceover..." });
   try {
     // the voiceover first: if it fails, no pictures have been paid for
     const mp3 = await speak(scenes.map((s) => s.say).join(" "), voice);
-    const seconds = await audioSeconds(mp3);
-    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "explainer", pictures: scenes.map((s) => s.picture) }, RETRY);
-    const n = tokens.length;
-    set({ kind: "explainer", state: "working", step: `Making the pictures, 0 of ${n} ready...` });
-    const urls = await waitFor(tokens, (d) => set({ kind: "explainer", state: "working", step: `Making the pictures, ${d} of ${n} ready...` }), refund);
-    const images = await Promise.all(urls.map(download));
-    const secs = sceneSeconds(scenes.map((s) => s.say), seconds);
-    await joinSlot();
-    set({ kind: "explainer", state: "done", step: "" });
-    void startSlides(name, images.map((image, i) => ({ image, seconds: secs[i] })), mp3, "Putting your explainer together", { extra });
+    if (!opts) {
+      const seconds = await audioSeconds(mp3);
+      const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "explainer", pictures: scenes.map((s) => s.picture) }, RETRY);
+      const n = tokens.length;
+      set({ kind: "explainer", state: "working", step: `Making the pictures, 0 of ${n} ready...` });
+      const urls = await waitFor(tokens, (d) => set({ kind: "explainer", state: "working", step: `Making the pictures, ${d} of ${n} ready...` }), refund);
+      const images = await Promise.all(urls.map(download));
+      const secs = sceneSeconds(scenes.map((s) => s.say), seconds);
+      await joinSlot();
+      set({ kind: "explainer", state: "done", step: "" });
+      void startSlides(name, images.map((image, i) => ({ image, seconds: secs[i] })), mp3, JOIN_LABEL, { extra });
+      return;
+    }
+    const clips = await Promise.all(scenes.map(async (_, i) => {
+      const url = opts.stock?.[i];
+      return url ? { url, file: await download(url).catch(() => null) } : null;
+    }));
+    const stock = clips.map((c) => (c?.file ? c.url : null));
+    const pictures = scenes.flatMap((s, i) => (stock[i] ? [] : [s.picture]));
+    const look = opts.look && opts.look !== "photo" ? opts.look : undefined;
+    let p: ExplainerPending = { name, voice: "", says: scenes.map((s) => s.say), stock, tokens: [], ...(look ? { look } : {}), ...(opts.move ? { move: true } : {}), ...(extra ? { extra } : {}) };
+    if (pictures.length) {
+      const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "explainer", pictures, ...(look ? { look } : {}) }, RETRY);
+      const key = `vo-explainer-${Date.now().toString(36)}`;
+      // a voiceover that can't be kept still makes this video; only a reload can't pick it up
+      const kept = await putFile(key, mp3).then(() => true, () => false);
+      p = { ...p, voice: kept ? key : "", tokens, ...(refund ? { refund } : {}) };
+      if (kept) keepExplainer(p);
+    }
+    await finishExplainer(p, { mp3, clips: clips.map((c) => c?.file ?? null) });
   } catch (e) {
     fail("explainer", e);
   }
+}
+
+/** Waits for a narrated video's paid parts, moves them when asked, and puts it together; kept until the join is done. */
+async function finishExplainer(p: ExplainerPending, have: { mp3?: Blob; clips?: (Blob | null)[] } = {}): Promise<void> {
+  const step = (s: string) => set({ kind: "explainer", state: "working", step: s });
+  try {
+    const mp3 = have.mp3 ?? (await getFile(p.voice).catch(() => undefined));
+    if (!mp3) {
+      keepExplainer(null);
+      throw new Error(VOICE_GONE);
+    }
+    const n = p.tokens.length;
+    let urls: string[] = [];
+    if (n) {
+      step(`Making the pictures, 0 of ${n} ready...`);
+      urls = await waitFor(p.tokens, (d) => step(`Making the pictures, ${d} of ${n} ready...`), p.refund);
+    }
+    let movedUrls: (string | null)[] = urls.map(() => null);
+    if (p.move && n) {
+      if (!p.moved) {
+        step("Making the scenes move...");
+        // a refusal (already moving, no connection) leaves every scene a still: the video is still made
+        const r = await callFn<{ tokens: (string | null)[] }>("ai-video", { mode: "move", tokens: p.tokens, ...(p.look ? { look: p.look } : {}) }).catch(() => null);
+        p = { ...p, moved: p.tokens.map((_, i) => (typeof r?.tokens?.[i] === "string" ? r.tokens[i] : null)) };
+        keepExplainer(p);
+      }
+      const asked = p.moved!.flatMap((t) => (t ? [t] : []));
+      step(`Making the scenes move, 0 of ${asked.length}...`);
+      const got = asked.length ? await settle(asked, (d) => step(`Making the scenes move, ${d} of ${asked.length}...`)) : [];
+      let k = 0;
+      movedUrls = p.moved!.map((t) => (t ? got[k++] : null));
+    }
+    step("Downloading your video...");
+    const moving = await Promise.all(movedUrls.map((u) => (u ? download(u).catch(() => null) : null)));
+    const stills = await Promise.all(urls.map((u, i) => (moving[i] ? null : download(u))));
+    const clips = await Promise.all(p.stock.map((u, i) => have.clips?.[i] ?? (u ? download(u) : null)));
+    const secs = sceneSeconds(p.says, await audioSeconds(mp3));
+    let a = 0;
+    const still: number[] = [];
+    const slides = p.says.map((_, i) => {
+      if (clips[i]) return { video: clips[i]!, seconds: secs[i] };
+      const j = a++;
+      if (moving[j]) return { video: moving[j]!, seconds: secs[i] };
+      if (p.move) still.push(i + 1);
+      return { image: stills[j]!, seconds: secs[i] };
+    });
+    const note = [p.extra?.note, stillNote(still)].filter(Boolean).join(" ");
+    const extra: JoinExtra | undefined = note ? { ...p.extra, note, toast: p.extra?.toast ?? "Your narrated video is ready" } : p.extra;
+    await joinSlot();
+    // working until the join is done, so a remount can't start a second one, and paid for until then
+    step("Putting your video together...");
+    await startSlides(p.name, slides, mp3, JOIN_LABEL, { extra });
+    const joined = currentJoin();
+    if (joined?.state === "failed") throw new Error(joined.error || "Couldn't put the video together. Try again.");
+    keepExplainer(null);
+    if (p.voice) void deleteFile(p.voice).catch(() => {});
+    set({ kind: "explainer", state: "done", step: "" });
+  } catch (e) {
+    // pictures Higgsfield failed are gone (their use came back); anything else can be picked up again
+    if (e instanceof JobFailed) {
+      keepExplainer(null);
+      if (p.voice) void deleteFile(p.voice).catch(() => {});
+    }
+    fail("explainer", e);
+  }
+}
+
+/** Picks up a narrated video whose pictures were paid for but never put together (a reload, a dropped download). */
+export function resumeExplainer(): void {
+  const p = pendingExplainer();
+  if (p && !aiBusy()) void finishExplainer(p);
 }
