@@ -4,12 +4,18 @@
 // device key that keeps what was typed.
 //   device: cs-make-talking-head-<scoped uid>: { script, look, filled? } (the typed script and presenter look; filled
 //   is the source key the script was last filled from, so a reload never fills over an edit). Cleared after a make.
+// Who speaks (people-in-videos, Leo only, shared with the editor's You speaking): your saved face (myFace.ts) or one of
+// the brand's saved presenters (presenters.ts), the brand's "Who appears" preselected, and the AI mark each make carries.
 
 import { links } from "@/lib/links";
+import { loadFace, onFaceChanged, type MyFace } from "@/lib/myFace";
+import { loadPresenters, onPresenters, onPresentersChanged, type Presenter } from "@/lib/presenters";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
 import { sourceKey, type RemixSource } from "@/lib/remixSource";
 import type { SavedClone } from "@/lib/reelClone";
+import type { VoiceId } from "@/lib/textVoice";
+import type { AiMark } from "@/lib/videoProjects";
 import { MAX_AVATAR_SECONDS, type SettingId } from "../../supabase/functions/ai-video/logic.ts";
 import { MAX_TOPIC, SPEAKING_SECONDS, speakingWords, type SpeakingSeconds } from "../../supabase/functions/remix/logic.ts";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
@@ -17,7 +23,8 @@ import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts
 export type TalkLength = SpeakingSeconds;
 export const TALK_LENGTHS = SPEAKING_SECONDS;
 export const DEFAULT_LENGTH: TalkLength = 15;
-export type TalkWho = "photo" | "presenter";
+/** A photo picked for this one video, a new AI presenter, your saved face, or a saved presenter's id. */
+export type TalkWho = "photo" | "presenter" | "mine" | `pr-${string}`;
 export type TalkSetting = Extract<SettingId, "office" | "car" | "kitchen" | "couch" | "cafe">;
 export const TALK_SETTINGS: { id: TalkSetting; label: string }[] = [
   { id: "office", label: "Office desk" },
@@ -86,7 +93,7 @@ export const talkCaps = (o: TalkSpend): UsageFeature[] => [...(o.write ? ["remix
 export function talkParams(a: { source?: string; who: TalkWho; setting: TalkSetting; length: TalkLength; voice: string }): Record<string, string | undefined> {
   return {
     source: a.source,
-    who: a.who === "presenter" ? "presenter" : undefined,
+    who: a.who === "photo" ? undefined : a.who,
     setting: a.who === "presenter" && a.setting !== "office" ? a.setting : undefined,
     length: a.length === DEFAULT_LENGTH ? undefined : String(a.length),
     voice: a.voice === "alice" ? undefined : a.voice,
@@ -138,4 +145,83 @@ export function saveTyped(userId: string, t: Typed): void {
 /** After a make: the script goes (a source fills it again next time), the presenter look stays for the next one. */
 export function clearScript(userId: string): void {
   saveTyped(userId, { script: "", look: loadTyped(userId).look });
+}
+
+// ---- who speaks: your saved face or a saved presenter (Leo only) ----
+
+export interface Speakers {
+  /** Your verified face, when it is on. */
+  face: MyFace | null;
+  /** This brand's presenters that are on, oldest first. */
+  presenters: Presenter[];
+  /** The brand's "Who appears": "me", "ask" or a presenter id. */
+  who: string;
+}
+
+export const speakers = (userId: string): Speakers => {
+  const p = loadPresenters(userId);
+  return { face: loadFace(userId), presenters: onPresenters(p), who: p.who };
+};
+
+/** Re-reads on a face or presenter saved here, in another tab or from sync. */
+export function onSpeakersChanged(fn: () => void): () => void {
+  const a = onFaceChanged(fn);
+  const b = onPresentersChanged(fn);
+  return () => {
+    a();
+    b();
+  };
+}
+
+/** The brand's "Who appears" as the pick: me is your face, a presenter its id, and Ask each time picks none (""). */
+export const defaultWho = (s: Speakers) => (s.who === "me" ? "mine" : s.who === "ask" ? "" : s.who);
+
+/** The picks a ?face= or ?who= link may hold: your face, a new presenter, or a saved one. */
+export const whoChoices = (s: Speakers) => ["mine", "presenter", ...s.presenters.map((p) => p.id)];
+
+export type Speaker = { person: "mine"; face: MyFace } | { person: "presenter"; p: Presenter };
+
+/** The pick read: your face (only while it is on), a saved presenter that is on, or null for anything else. */
+export function speakerOf(s: Speakers, who: string): Speaker | null {
+  if (who === "mine") return s.face ? { person: "mine", face: s.face } : null;
+  const p = s.presenters.find((x) => x.id === who);
+  return p ? { person: "presenter", p } : null;
+}
+
+/** A saved data URL (a face or a presenter's copy) as a file: its bytes, the data-URL prefix gone. */
+export function dataBlob(url: string): Blob {
+  const comma = url.indexOf(",");
+  const bin = atob(url.slice(comma + 1));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: /^data:([^;,]+)/.exec(url)?.[1] ?? "image/jpeg" });
+}
+
+type Get = (url: string) => Promise<Response>;
+const fetched = (url: string, get: Get) => get(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+
+/** What Speak starts from: your face; a presenter's link while it still answers (a GET), else its saved copy (decision 10). */
+export async function speakerFace(sp: Speaker, get: Get = (u) => fetch(u)): Promise<Blob | string> {
+  if (sp.person === "mine") return dataBlob(sp.face.photo);
+  return (await fetched(sp.p.url, get)) ? sp.p.url : dataBlob(sp.p.photo);
+}
+
+/** The same person as a picture file, for a template clip's first frame: the link's own picture, else the copy. */
+export async function speakerFile(sp: Speaker, get: Get = (u) => fetch(u)): Promise<Blob> {
+  if (sp.person === "mine") return dataBlob(sp.face.photo);
+  return (await fetched(sp.p.url, get)) ?? dataBlob(sp.p.photo);
+}
+
+/**
+ * The AI mark a make hands the editor (JoinExtra.ai): your face or a presenter by id, "generated" for a person with no
+ * saved likeness (a new presenter, a one-off photo, a template's person), none when no person is in it. A premade
+ * voice is named; your own recording is not an AI voice, so it leaves `voice` unset.
+ */
+export function aiMark(kind: AiMark["kind"], person: Speaker | "generated" | null, voice: VoiceId | "mine" | null, now = new Date()): AiMark {
+  return {
+    kind,
+    madeAt: now.toISOString(),
+    ...(person === "generated" ? { person } : person ? { person: person.person, who: person.person === "mine" ? person.face.id : person.p.id } : {}),
+    ...(voice && voice !== "mine" ? { voice: "premade" as const, voiceId: voice } : {}),
+  };
 }

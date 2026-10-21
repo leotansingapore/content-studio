@@ -45,9 +45,11 @@ vi.mock("@/lib/aiVideo", () => ({
 
 import { EdgeError } from "./edgeFn";
 import { formatJobs } from "./formatJob";
+import { saveFace, turnOffFace } from "./myFace";
+import { keepPresenter, removePresenter } from "./presenters";
 import type { RemixSource } from "./remixSource";
-import { TALK_TOAST, loadTyped, saveTyped } from "./talkingHead";
-import { JOINING, dropTalk, goOnAtPrice, madePresenter, onTalkJob, resumeTalk, startTalk, talkJob, writeTalk, type TalkAsk } from "./talkingHeadJob";
+import { TALK_TOAST, loadTyped, saveTyped, type TalkWho } from "./talkingHead";
+import { JOINING, NO_FACE, PRESENTER_GONE, dropTalk, goOnAtPrice, madePresenter, onTalkJob, resumeTalk, startTalk, talkJob, writeTalk, type TalkAsk } from "./talkingHeadJob";
 
 const SCRIPT = "Honestly, most of us lose deals in the follow-up, not the pitch. So here's what I do every morning before nine. I list three people to call back and I call them first. Try it this week.";
 const ASK: TalkAsk = { source: null, text: "Why follow-ups win deals", who: "presenter", photo: null, look: "A Malay Singaporean man in his late 30s, light blue shirt", setting: "car", voice: "george", length: 15, mention: true };
@@ -61,11 +63,13 @@ let steps: string[];
 let off: () => void;
 beforeEach(() => {
   const store = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
+  const storage = {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, v),
     removeItem: (k: string) => void store.delete(k),
-  });
+  };
+  vi.stubGlobal("localStorage", storage);
+  vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true, addEventListener: () => {}, removeEventListener: () => {} });
   dropTalk();
   ai.reset();
   order = [];
@@ -123,7 +127,7 @@ describe("one press", () => {
     const [name, face, , extra] = ai.makeAvatar.mock.calls[0];
     expect(name).toBe(SCRIPT.slice(0, 40));
     expect(face).toBe("https://cdn.example/car.png");
-    expect(extra).toEqual({ toast: TALK_TOAST, caption: "Three calls before nine. #sales" });
+    expect(extra).toEqual({ toast: TALK_TOAST, caption: "Three calls before nine. #sales", ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
     expect(talkJob()).toMatchObject({ state: "done", script: SCRIPT });
     // the script is cleared after a make; the presenter is kept for the next press
     expect(loadTyped("u1").script).toBe("");
@@ -150,7 +154,7 @@ describe("one press", () => {
     expect(order).toEqual(["speak george", "avatar"]);
     expect(steps[0]).toBe("voice:Making the voiceover...");
     expect(ai.makeAvatar.mock.calls[0][1]).toBe(photo);
-    expect(ai.makeAvatar.mock.calls[0][3]).toEqual({ toast: TALK_TOAST });
+    expect(ai.makeAvatar.mock.calls[0][3]).toEqual({ toast: TALK_TOAST, ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
   });
 
   it("keeps a Clone a reel result's own script and caption, writing nothing, and names the source in the editor", async () => {
@@ -196,6 +200,8 @@ describe("a press that stops before Speak is paid for", () => {
     expect(ai.makeAvatar).toHaveBeenCalledTimes(1);
     expect(ai.makeAvatar.mock.calls[0][2]).toBe(v);
     expect(ai.makeAvatar.mock.calls[0][1]).toBe("https://cdn.example/car.png");
+    // the mark made at the price check goes with it
+    expect(ai.makeAvatar.mock.calls[0][3].ai).toMatchObject({ kind: "avatar", person: "generated", voiceId: "george" });
     expect(talkJob()?.state).toBe("done");
   });
 
@@ -219,6 +225,70 @@ describe("a press that stops before Speak is paid for", () => {
     // a setting with no presenter made yet this session
     await startTalk("u1", { ...ASK, setting: "cafe" });
     expect(talkJob()).toMatchObject({ state: "failed", error: "The safety filter blocked it. Try another photo or wording." });
+    expect(speak).not.toHaveBeenCalled();
+  });
+});
+
+describe("your saved face or a saved presenter (Leo only)", () => {
+  const UID = "u1";
+  // stand-ins for an AI-made face and presenter copy, never a real person
+  const FACE = `data:image/jpeg;base64,${Buffer.from("face-jpeg-bytes").toString("base64")}`;
+  const COPY = `data:image/jpeg;base64,${Buffer.from("presenter-copy-bytes").toString("base64")}`;
+  const LINK = "https://cdn.higgsfield.ai/soul/mei.png";
+  const at = new Date(Date.UTC(2026, 9, 22, 1, 0, 0));
+  const saveMyFace = () => {
+    const r = saveFace(UID, { photo: FACE, photoHash: "ab".repeat(32), consent: { at: at.toISOString(), line: "I'm the person on camera.", heard: "4 8 2 1", token: "t.k" } }, at);
+    if (r.ok === false) throw new Error(r.error);
+    return r.face;
+  };
+  const keepMei = () => {
+    const r = keepPresenter(UID, { name: "Mei", look: "A Chinese Singaporean woman in her early 30s", url: LINK, photo: COPY }, at);
+    if (r.ok === false) throw new Error(r.error);
+    return r.presenter;
+  };
+  const MINE: TalkAsk = { ...ASK, who: "mine", text: SCRIPT };
+
+  it("speaks with your saved face, makes no presenter, and marks the video as yours", async () => {
+    const f = saveMyFace();
+    await startTalk(UID, MINE);
+    expect(order).toEqual(["speak george", "avatar"]);
+    expect(ai.makePresenter).not.toHaveBeenCalled();
+    const [, face, , extra] = ai.makeAvatar.mock.calls[0];
+    expect(face).toBeInstanceOf(Blob);
+    expect(await (face as Blob).text()).toBe("face-jpeg-bytes");
+    expect(extra.ai).toEqual({ kind: "avatar", person: "mine", who: f.id, voice: "premade", voiceId: "george", madeAt: expect.any(String) });
+    expect(talkJob()?.params.who).toBe("mine");
+  });
+
+  it("stops before anything is paid when your face is off", async () => {
+    saveMyFace();
+    turnOffFace(UID);
+    await startTalk(UID, MINE);
+    expect(talkJob()).toMatchObject({ state: "failed", error: NO_FACE });
+    expect(speak).not.toHaveBeenCalled();
+    expect(ai.makeAvatar).not.toHaveBeenCalled();
+  });
+
+  it("sends a saved presenter's link while it answers, and its copy once it doesn't", async () => {
+    const mei = keepMei();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("png", { status: 200 })));
+    await startTalk(UID, { ...MINE, who: mei.id as TalkWho });
+    expect(fetch).toHaveBeenCalledWith(LINK);
+    expect(ai.makeAvatar.mock.calls[0][1]).toBe(LINK);
+    expect(ai.makeAvatar.mock.calls[0][3].ai).toMatchObject({ person: "presenter", who: mei.id as TalkWho });
+
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 403 })));
+    await startTalk(UID, { ...MINE, who: mei.id as TalkWho });
+    const copy = ai.makeAvatar.mock.calls[1][1];
+    expect(copy).toBeInstanceOf(Blob);
+    expect(await (copy as Blob).text()).toBe("presenter-copy-bytes");
+  });
+
+  it("stops before anything is paid when the presenter was removed", async () => {
+    const mei = keepMei();
+    removePresenter(UID, mei.id);
+    await startTalk(UID, { ...MINE, who: mei.id as TalkWho });
+    expect(talkJob()).toMatchObject({ state: "failed", error: PRESENTER_GONE });
     expect(speak).not.toHaveBeenCalled();
   });
 });

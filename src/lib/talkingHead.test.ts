@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 
+import { saveFace, turnOffFace } from "./myFace";
+import { keepPresenter, removePresenter, setWho } from "./presenters";
 import { priceOf, sumPrices, type Price } from "./prices";
 import type { SavedClone } from "./reelClone";
 import {
-  TALK_LENGTHS, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, loadTyped, needsPriceCheck, saveTyped, talkCaps, talkParams,
-  talkPrice, videoEstimate, wordLine, writePlan,
+  TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
+  speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, whoChoices, wordLine, writePlan, type Speaker,
 } from "./talkingHead";
+import { aiOf } from "./videoProjects";
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
 const usd = (p: ReturnType<typeof talkPrice>) => (p as Price).usd;
@@ -100,6 +103,9 @@ describe("links", () => {
   it("leave defaults out of the page's params", () => {
     expect(talkParams({ who: "photo", setting: "car", length: 15, voice: "alice" })).toEqual({ source: undefined, who: undefined, setting: undefined, length: undefined, voice: undefined });
     expect(talkParams({ source: "trend:t1", who: "presenter", setting: "car", length: 30, voice: "george" })).toEqual({ source: "trend:t1", who: "presenter", setting: "car", length: "30", voice: "george" });
+    // your face and a saved presenter reopen as themselves; a setting is a new presenter's only
+    expect(talkParams({ who: "mine", setting: "car", length: 15, voice: "alice" })).toMatchObject({ who: "mine", setting: undefined });
+    expect(talkParams({ who: "pr-lq3k9z", setting: "car", length: 15, voice: "alice" })).toMatchObject({ who: "pr-lq3k9z", setting: undefined });
   });
 
   it("Make it as a talking head opens this page on the clone for Leo, and is nothing for anyone else", () => {
@@ -137,5 +143,100 @@ describe("what was typed", () => {
     expect(loadTyped("u1")).toEqual({ script: "", look: "A man in a blue shirt" });
     localStorage.setItem("cs-make-talking-head-u1", "{not json");
     expect(loadTyped("u1")).toEqual({ script: "", look: "" });
+  });
+});
+
+describe("who speaks (Leo only)", () => {
+  const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+  // AI-made pictures' bytes stand-ins, never a real person
+  const FACE = `data:image/jpeg;base64,${Buffer.from("face-jpeg-bytes").toString("base64")}`;
+  const COPY = `data:image/jpeg;base64,${Buffer.from("presenter-copy-bytes").toString("base64")}`;
+  const LINK = "https://cdn.higgsfield.ai/soul/mei.png";
+  const at = new Date(Date.UTC(2026, 9, 22, 1, 0, 0));
+  const consent = { at: at.toISOString(), line: "I'm the person on camera.", heard: "my code is 4 8 2 1", token: "bGlrZW5lc3M.cd" };
+  const face = () => saveFace(UID, { photo: FACE, photoHash: "ab".repeat(32), consent }, at);
+  const keep = (name: string, s: number) => {
+    const r = keepPresenter(UID, { name, look: "A Malay Singaporean woman in her 30s", url: LINK, photo: COPY }, new Date(at.getTime() + s * 1000));
+    if (r.ok === false) throw new Error(r.error);
+    return r.presenter;
+  };
+
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true, addEventListener: () => {}, removeEventListener: () => {} });
+  });
+
+  it("preselects the brand's Who appears: me is your face, a presenter its id, Ask each time none", () => {
+    expect(speakers(UID)).toEqual({ face: null, presenters: [], who: "ask" });
+    expect(defaultWho(speakers(UID))).toBe("");
+    const mei = keep("Mei", 1);
+    // the first kept presenter is the brand's default
+    expect(defaultWho(speakers(UID))).toBe(mei.id);
+    setWho(UID, "me");
+    expect(defaultWho(speakers(UID))).toBe("mine");
+    setWho(UID, "ask");
+    expect(defaultWho(speakers(UID))).toBe("");
+    expect(whoChoices(speakers(UID))).toEqual(["mine", "presenter", mei.id]);
+  });
+
+  it("reads your face only while it is on, and a presenter only while it is kept", () => {
+    expect(speakerOf(speakers(UID), "mine")).toBeNull();
+    face();
+    const mine = speakerOf(speakers(UID), "mine");
+    expect(mine).toMatchObject({ person: "mine", face: { photo: FACE, status: "on" } });
+    turnOffFace(UID);
+    expect(speakerOf(speakers(UID), "mine")).toBeNull();
+    const raj = keep("Raj", 2);
+    expect(speakerOf(speakers(UID), raj.id)).toMatchObject({ person: "presenter", p: { name: "Raj", url: LINK } });
+    removePresenter(UID, raj.id);
+    expect(speakerOf(speakers(UID), raj.id)).toBeNull();
+    expect(speakerOf(speakers(UID), "presenter")).toBeNull();
+    expect(speakerOf(speakers(UID), "")).toBeNull();
+  });
+
+  it("turns a saved data URL into its bytes, the prefix gone", async () => {
+    const b = dataBlob(FACE);
+    expect(b.type).toBe("image/jpeg");
+    expect(await b.text()).toBe("face-jpeg-bytes");
+  });
+
+  it("sends a presenter's link while it answers, and its saved copy once it doesn't", async () => {
+    keep("Mei", 1);
+    const sp = speakerOf(speakers(UID), speakers(UID).presenters[0].id)!;
+    const answers = vi.fn(async () => new Response("png", { status: 200 }));
+    expect(await speakerFace(sp, answers)).toBe(LINK);
+    expect(answers).toHaveBeenCalledWith(LINK);
+    for (const gone of [vi.fn(async () => new Response("", { status: 403 })), vi.fn(async () => Promise.reject(new TypeError("Failed to fetch")))]) {
+      const copy = await speakerFace(sp, gone);
+      expect(copy).toBeInstanceOf(Blob);
+      expect(await (copy as Blob).text()).toBe("presenter-copy-bytes");
+    }
+    // a template's first frame takes the link's own picture, else the copy
+    expect(await (await speakerFile(sp, answers)).text()).toBe("png");
+    expect(await (await speakerFile(sp, vi.fn(async () => new Response("", { status: 404 })))).text()).toBe("presenter-copy-bytes");
+  });
+
+  it("sends your face as its saved photo, with no fetch", async () => {
+    face();
+    const get = vi.fn();
+    const sent = await speakerFace(speakerOf(speakers(UID), "mine")!, get);
+    expect(await (sent as Blob).text()).toBe("face-jpeg-bytes");
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("marks what the AI made: who by id, a premade voice by name, your own recording as no AI voice", () => {
+    face();
+    const f = speakers(UID).face!;
+    const mine = speakerOf(speakers(UID), "mine") as Speaker;
+    expect(aiMark("avatar", mine, "george", at)).toEqual({ kind: "avatar", madeAt: at.toISOString(), person: "mine", who: f.id, voice: "premade", voiceId: "george" });
+    expect(aiMark("avatar", mine, "mine", at)).toEqual({ kind: "avatar", madeAt: at.toISOString(), person: "mine", who: f.id });
+    const mei = keep("Mei", 1);
+    expect(aiMark("template", speakerOf(speakers(UID), mei.id), null, at)).toEqual({ kind: "template", madeAt: at.toISOString(), person: "presenter", who: mei.id });
+    expect(aiMark("avatar", "generated", "alice", at)).toEqual({ kind: "avatar", madeAt: at.toISOString(), person: "generated", voice: "premade", voiceId: "alice" });
+    expect(aiMark("template", null, null, at)).toEqual({ kind: "template", madeAt: at.toISOString() });
+    // every mark survives the editor's read (videoProjects aiOf)
+    for (const m of [aiMark("avatar", mine, "mine", at), aiMark("explainer", "generated", "eric", at)]) expect(aiOf(JSON.parse(JSON.stringify(m)))).toEqual(m);
   });
 });

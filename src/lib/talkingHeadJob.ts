@@ -1,7 +1,8 @@
 // Make a talking head (/make/talking-head, docs/north-star/items/formats-talking-head.md) outside React, so leaving the
 // page keeps it going. One press runs every step in order: the script (remix make "speaking" with the length's
 // seconds, only when the box holds a topic or the page has a post to write from; a Clone a reel result keeps its own),
-// the AI presenter (makePresenter with the setting, once per look and setting this session), the voiceover (speak,
+// the AI presenter (makePresenter with the setting, once per look and setting this session; Leo's saved face or a saved
+// presenter instead is read from this device, and a presenter's link is checked before it is sent), the voiceover (speak,
 // then sliceVoiceover), the price check (the real slices against the chip's estimate: dearer stops here, keeping the
 // voiceover, until "Make it for US$x"), then makeAvatar with the toast in its extra. aiVideo.ts keeps the paid Speak
 // tokens in cs-ai-video-pending, so a reload resumes the video at no cost (resumeTalk). Each step is mirrored into
@@ -18,11 +19,12 @@ import { requestMake, tooLongLine, type Flags } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import {
-  TALK_TOAST, asTopic, clearScript, loadTyped, needsPriceCheck, saveTyped, talkParams, videoEstimate, videoPrice, writePlan,
-  type TalkLength, type TalkSetting, type TalkWho,
+  TALK_TOAST, aiMark, asTopic, clearScript, loadTyped, needsPriceCheck, saveTyped, speakerFace, speakerOf, speakers, talkParams, videoEstimate,
+  videoPrice, writePlan, type TalkLength, type TalkSetting, type TalkWho,
 } from "@/lib/talkingHead";
 import { speak, type VoiceId } from "@/lib/textVoice";
 import type { JoinExtra } from "@/lib/videoMedia";
+import type { AiMark } from "@/lib/videoProjects";
 import { noteOf } from "@/lib/wallJob";
 import { MAX_AVATAR_SECONDS } from "../../supabase/functions/ai-video/logic.ts";
 
@@ -31,6 +33,7 @@ export interface TalkAsk {
   source: RemixSource | null;
   /** The script box: the script, or a topic to write it from. */
   text: string;
+  /** "mine" and a presenter id are read from this device when the press needs the face. */
   who: TalkWho;
   /** My photo, picked on this visit. */
   photo: Blob | null;
@@ -61,6 +64,8 @@ export interface TalkJob {
   /** Kept at the price check, so going on never pays for them again. */
   face?: Blob | string;
   voice?: Voiceover;
+  /** Kept at the price check: the AI mark the video goes to the editor with. */
+  ai?: AiMark;
   /** At the price check: how long the voiceover runs and what the video really costs. */
   real?: { seconds: number; price: Price };
   error?: string;
@@ -76,6 +81,8 @@ export const WRITE_FAILED = "Couldn't write the script. Try again in a minute.";
 export const PRESENTER_FAILED = "Couldn't make the presenter. Try again in a minute.";
 export const VOICE_FAILED = "Couldn't make the voiceover. Try again in a minute.";
 export const START_FAILED = "Couldn't start the video right now. Try again in a minute.";
+export const NO_FACE = "Save your face first.";
+export const PRESENTER_GONE = "That presenter is no longer here. Pick who speaks again.";
 const WRITING = "Writing your script...";
 const PRESENTER = "Making your presenter...";
 const VOICE = "Making the voiceover...";
@@ -165,7 +172,8 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   const fail = (patch: Partial<TalkJob>) => mine(id, { state: "failed", step: "", ...patch });
   const from = writePlan(a.text, a.length, a.source);
   let said = { script: a.text.trim(), caption: a.caption ?? "", flags: undefined as Flags | undefined };
-  let face: Blob | string | null = a.who === "photo" ? a.photo : madePresenter(a.look, a.setting);
+  const saved = a.who !== "photo" && a.who !== "presenter";
+  let face: Blob | string | null = a.who === "photo" ? a.photo : saved ? null : madePresenter(a.look, a.setting);
   const first: Pick<TalkJob, "state" | "step"> =
     from ? { state: "writing", step: WRITING } : a.who === "presenter" && !face ? { state: "presenter", step: PRESENTER } : { state: "voice", step: VOICE };
   set({ id, ...first, params: paramsOf(a), ask: a, ...(from ? {} : { script: said.script, caption: said.caption }) });
@@ -186,6 +194,11 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
     presenter = { url: p.url, look: a.look.trim(), setting: a.setting };
     face = p.url;
   }
+  const sp = saved ? speakerOf(speakers(userId), a.who) : null;
+  if (saved) {
+    if (!sp) return fail({ error: a.who === "mine" ? NO_FACE : PRESENTER_GONE });
+    face = await speakerFace(sp);
+  }
   if (!face) return fail({ error: "Pick a photo first." });
 
   mine(id, { state: "voice", step: VOICE });
@@ -196,31 +209,34 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
     return fail({ error: (e as Error).message || VOICE_FAILED });
   }
   if (voice.seconds > MAX_AVATAR_SECONDS + 0.5) return fail({ error: tooLongLine(voice.seconds) });
+  const ai = aiMark("avatar", sp ?? "generated", a.voice);
   const real = videoPrice(voice.slices.map((s) => s.end - s.start));
   if (needsPriceCheck(videoEstimate(a.length).usd, real.usd)) {
-    return mine(id, { state: "priced", step: "", face, voice, real: { seconds: voice.seconds, price: real } });
+    return mine(id, { state: "priced", step: "", face, voice, ai, real: { seconds: voice.seconds, price: real } });
   }
-  await video(userId, id, face, voice, said.script, extraOf(a.source, said));
+  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai));
 }
 
 /** "Make it for US$x" at the price check: the kept voiceover and face go to Speak. */
 export function goOnAtPrice(userId: string): Promise<void> {
   const j = job;
   if (j?.state !== "priced" || !j.face || !j.voice || aiBusy()) return Promise.resolve();
-  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags }));
+  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags }, j.ai));
 }
 
-function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags }): JoinExtra {
+/** The editor's hand-off: the toast, caption, note and source, and the AI mark (who speaks and in which voice). */
+function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags }, ai?: AiMark): JoinExtra {
   return {
     toast: TALK_TOAST,
     ...(w.caption ? { caption: w.caption } : {}),
     ...(noteOf(source, w.flags) ? { note: noteOf(source, w.flags) } : {}),
     ...(source ? { source: { ...source, remixedAt: new Date().toISOString() } } : {}),
+    ...(ai ? { ai } : {}),
   };
 }
 
 function video(userId: string, id: number, face: Blob | string, voice: Voiceover, script: string, extra: JoinExtra): Promise<void> {
-  mine(id, { state: "video", step: SENDING, real: undefined });
+  mine(id, { state: "video", step: SENDING, real: undefined, ai: undefined });
   return follow(userId, id, () => void makeAvatar(script.slice(0, 40) || "Talking head", face, voice, extra));
 }
 
