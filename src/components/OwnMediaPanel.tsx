@@ -39,7 +39,7 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
   userId: string | null;
   /** The editor's own line while it saves, captions or puts a video together. */
   busy: string;
-  onUpload: (file: File, extra?: JoinExtra, ask?: { own: { about: string } }) => void;
+  onUpload: (file: File, extra?: JoinExtra, ask?: { own: { about: string } }) => unknown;
   /** Opens Join takes beside this panel. */
   onJoin: () => void;
   onClose: () => void;
@@ -114,8 +114,10 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
     if (video) {
       const music = s.sound === "music" && s.music ? await keepMusic(s.music) : undefined;
       const extra: JoinExtra | undefined = music ? { settings: mutedWithMusic(music) } : undefined;
-      onUpload(video.file, extra, s.words ? { own: { about } } : undefined);
-      return clearOwn();
+      await onUpload(video.file, extra, s.words ? { own: { about } } : undefined);
+      // the pick stays until the editor has the video, so a failed upload can be tried again
+      if (new URLSearchParams(window.location.search).has("p")) clearOwn();
+      return;
     }
     if (writes && userId) return writeOwn(userId);
     return makeOwn();

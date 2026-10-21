@@ -412,7 +412,7 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
   leo: boolean;
   busy: string;
   projects: VideoProject[];
-  onUpload: (f: File, extra?: JoinExtra, ask?: { look?: string; clips?: ClipAsk; own?: { about: string } }) => void;
+  onUpload: (f: File, extra?: JoinExtra, ask?: { look?: string; clips?: ClipAsk; own?: { about: string } }) => Promise<unknown> | void;
   onOpen: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
