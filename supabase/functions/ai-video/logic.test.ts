@@ -71,7 +71,7 @@ describe("parseVideoRequest", () => {
     const cut = long.ok && long.request.mode === "script" ? long.request.notes ?? "" : "";
     expect(cut.length).toBeLessThanOrEqual(MAX_NOTES);
     expect(cut.length).toBeGreaterThan(MAX_NOTES - 10);
-    expect(cut.endsWith("word…")).toBe(true);
+    expect(cut.endsWith("word\u2026")).toBe(true);
     // notes never make today's explainer a listed-only request
     expect(northStarOnly(req({ mode: "script", topic: "Why co-pays", notes }))).toBe(false);
     expect(narratedUser({ topic: "Co-pays", notes: "Use Asian presenters" })).toBe("Topic: Co-pays\n\nThe adviser's standing notes (follow them): Use Asian presenters");

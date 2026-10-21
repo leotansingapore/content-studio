@@ -776,6 +776,6 @@ describe("the script writers' prompts", () => {
     const notes = line.replace("The adviser's standing notes (follow them): ", "");
     expect(notes.length).toBeLessThanOrEqual(600);
     expect(notes.length).toBeGreaterThan(590);
-    expect(notes.endsWith("note…")).toBe(true);
+    expect(notes.endsWith("note\u2026")).toBe(true);
   });
 });
