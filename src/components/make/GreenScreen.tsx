@@ -219,6 +219,8 @@ export default function GreenScreen({ userId, source }: { userId: string; source
     }
   };
   const pickSaved = async (d: DemoVideo) => {
+    // the one already behind them: no second copy
+    if (pick?.from === d.key) return;
     setPickError("");
     setSaving(true);
     try {
