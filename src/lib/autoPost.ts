@@ -11,14 +11,16 @@ import { tagLinks, toPlainText, withCredit, withDisclosure, withSignOff, type Di
 import { keyToDate, timeLabel } from "@/lib/dueDates";
 import {
   MAX_IMAGE_BYTES,
+  MAX_PDF_BYTES,
   MAX_PICTURES,
   MAX_VIDEO_BYTES,
   MEDIA_TYPES,
+  PDF_TYPE,
   type CreatorInfo,
   type PostView,
 } from "../../supabase/functions/social/posts.ts";
 
-export { CAPTION_MAX, NEEDS_MEDIA, THREAD_MIXED, YOUTUBE_TITLE_MAX, checkSchedule, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
+export { CAPTION_MAX, NEEDS_MEDIA, PDF_LINKEDIN_ONLY, PDF_TYPE, THREAD_MIXED, YOUTUBE_TITLE_MAX, checkSchedule, isPdf, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
 export { MAX_PICTURES, MEDIA_TYPES, type CreatorInfo, type PostView };
 
 // ---- the draft ----
@@ -90,6 +92,8 @@ export interface ScheduleRequest {
   youtube?: { title: string; visibility: "public" | "unlisted" | "private" };
   /** A Threads thread (Leo only): 2 to 10 posts, Threads accounts only; content is its first post. */
   thread?: string[];
+  /** The title LinkedIn shows on a PDF document (Leo only); sent with a PDF. */
+  documentTitle?: string;
 }
 
 export const schedulePost = (profileId: string, req: ScheduleRequest) =>
@@ -107,17 +111,22 @@ export interface MediaFile {
   type: string;
 }
 
-/** The upload type for a file: its own type when Zernio takes it, else read from its name; null when it can't go. */
-export function fileType(f: { name: string; type: string }): string | null {
-  if (MEDIA_TYPES[f.type]) return f.type;
+/**
+ * The upload type for a file: its own type when Zernio takes it, else read from its name; null when it can't go.
+ * A PDF only with `pdf` (a carousel's LinkedIn document, Leo only), so a picked file is a picture or a video as before.
+ */
+export function fileType(f: { name: string; type: string }, o: { pdf?: boolean } = {}): string | null {
+  const ok = (t: string) => o.pdf || t !== PDF_TYPE;
+  if (MEDIA_TYPES[f.type] && ok(f.type)) return f.type;
   const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-  return Object.keys(MEDIA_TYPES).find((t) => MEDIA_TYPES[t].includes(ext)) ?? null;
+  return Object.keys(MEDIA_TYPES).find((t) => ok(t) && MEDIA_TYPES[t].includes(ext)) ?? null;
 }
 
 /** Why this file can't go, or null. The same caps the server checks. */
-export function fileProblem(f: { name: string; type: string; size: number }): string | null {
-  const type = fileType(f);
+export function fileProblem(f: { name: string; type: string; size: number }, o: { pdf?: boolean } = {}): string | null {
+  const type = fileType(f, o);
   if (!type) return `${f.name} isn't a JPG, PNG or WebP picture, or an MP4 or MOV video.`;
+  if (type === PDF_TYPE) return f.size > MAX_PDF_BYTES ? `${f.name} is over 20 MB.` : null;
   const video = type.startsWith("video/");
   if (f.size > (video ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return `${f.name} is over ${video ? "300" : "8"} MB.`;
   return null;

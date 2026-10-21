@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { THREAD_MIXED, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, schedulePost, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
+const { PDF_LINKEDIN_ONLY, THREAD_MIXED, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, schedulePost, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -49,6 +49,20 @@ describe("the files", () => {
     expect(fileProblem({ name: "big.jpg", type: "image/jpeg", size: 8_000_001 })).toBe("big.jpg is over 8 MB.");
     expect(fileProblem({ name: "long.mp4", type: "video/mp4", size: 300_000_001 })).toBe("long.mp4 is over 300 MB.");
     expect(fileProblem({ name: "ok.mp4", type: "video/mp4", size: 300_000_000 })).toBeNull();
+  });
+
+  it("takes a PDF only when asked for one (a carousel's LinkedIn document), up to 20 MB", () => {
+    // a picked PDF is refused as before
+    expect(fileType({ name: "deck.pdf", type: "application/pdf" })).toBeNull();
+    expect(fileType({ name: "deck.pdf", type: "" })).toBeNull();
+    expect(fileProblem({ name: "deck.pdf", type: "application/pdf", size: 10 })).toBe("deck.pdf isn't a JPG, PNG or WebP picture, or an MP4 or MOV video.");
+    expect(fileType({ name: "deck.pdf", type: "application/pdf" }, { pdf: true })).toBe("application/pdf");
+    expect(fileType({ name: "deck.PDF", type: "" }, { pdf: true })).toBe("application/pdf");
+    expect(fileProblem({ name: "deck.pdf", type: "application/pdf", size: 20_000_000 }, { pdf: true })).toBeNull();
+    expect(fileProblem({ name: "deck.pdf", type: "application/pdf", size: 20_000_001 }, { pdf: true })).toBe("deck.pdf is over 20 MB.");
+    expect(fileProblem({ name: "big.jpg", type: "image/jpeg", size: 8_000_001 }, { pdf: true })).toBe("big.jpg is over 8 MB.");
+    expect(uploadName("My carousel.pdf", "application/pdf", 0)).toBe("My-carousel-1.pdf");
+    expect(PDF_LINKEDIN_ONLY).toMatch(/^Only LinkedIn takes a PDF/);
   });
 
   it("names each upload plainly, numbered, with the type's own ending", () => {

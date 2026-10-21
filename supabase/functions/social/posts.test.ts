@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { THREAD_MIXED, checkSchedule, checkUpload, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
+import { PDF_LINKEDIN_ONLY, THREAD_MIXED, checkSchedule, checkUpload, isPdf, northStarOnly, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
 
 const MINE = "0123456789abcdef01234561";
 const THEIRS = "0123456789abcdef01234569";
@@ -117,7 +117,11 @@ describe("the request", () => {
     const up = (filename: string, contentType: string, size: unknown) => checkUpload({ filename, contentType, size });
     expect(up("slide-01.png", "image/png", 900_000)).toEqual({ value: { filename: "slide-01.png", contentType: "image/png", size: 900_000 } });
     expect(up("reel.mov", "video/quicktime", 299_000_000)).toMatchObject({ value: {} });
-    expect(up("a.pdf", "application/pdf", 10)).toMatchObject({ error: expect.stringMatching(/JPG, PNG or WebP/) });
+    expect(up("a.gif", "image/gif", 10)).toMatchObject({ error: expect.stringMatching(/JPG, PNG or WebP/) });
+    // a PDF passes the type check up to 20 MB; runPost refuses it for anyone off NORTH_STAR_USERS
+    expect(up("carousel-1.pdf", "application/pdf", 20_000_000)).toMatchObject({ value: { contentType: "application/pdf" } });
+    expect(up("carousel-1.pdf", "application/pdf", 20_000_001)).toMatchObject({ error: "Keep a PDF under 20 MB." });
+    expect(up("a.png", "application/pdf", 10)).toMatchObject({ error: expect.stringMatching(/Rename/) });
     expect(up("a.png", "image/jpeg", 10)).toMatchObject({ error: expect.stringMatching(/Rename/) });
     expect(up("../a.png", "image/png", 10)).toMatchObject({ error: expect.stringMatching(/Rename/) });
     expect(up("a.png", "image/png", 8_000_001)).toMatchObject({ error: "Keep a picture under 8 MB." });
@@ -418,5 +422,83 @@ describe("a thread on Threads (Leo only)", () => {
     const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [LI]) });
     expect((await runPost(f.z, MINE, OTHER_UID, schedule([LI], input({ mediaUrls: [] })), NOW)).status).toBe(200);
     expect(JSON.stringify(f.req("POST /posts")!.body)).not.toContain("threadItems");
+  });
+});
+
+describe("a carousel PDF as a LinkedIn document (Leo only)", () => {
+  const PDF = "https://media.zernio.com/temp/1_a_carousel-1.pdf";
+  const title = "3 things to check on your hospital plan";
+  const pdfPost = (extra: Partial<ScheduleInput> = {}) => input({ mediaUrls: [PDF], documentTitle: title, ...extra });
+  const listed = (uids: string) => vi.stubGlobal("Deno", { env: { get: (k: string) => (k === "NORTH_STAR_USERS" ? uids : undefined) } });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("takes one PDF with its title, on its own", () => {
+    const sched = (extra: Record<string, unknown>) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls: [PDF], ...extra }, NOW);
+    expect(sched({ documentTitle: ` ${title} ` })).toMatchObject({ value: { mediaUrls: [PDF], documentTitle: title } });
+    expect(sched({ mediaUrls: [PDF, PNG], documentTitle: title })).toEqual({ error: "Post the PDF on its own." });
+    expect(sched({ mediaUrls: [PDF, PDF], documentTitle: title })).toEqual({ error: "Post the PDF on its own." });
+    expect(sched({})).toEqual({ error: "Give the PDF a title." });
+    expect(sched({ documentTitle: "x".repeat(201) })).toEqual({ error: "Keep the PDF's title under 201 characters." });
+    expect(sched({ mediaUrls: ["http://media.zernio.com/a.pdf"], documentTitle: title })).toEqual({ error: "Attach the media again." });
+    // with no PDF the title is dropped, so a picture post's fields are exactly as before
+    expect(checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls: [PNG], documentTitle: title }, NOW)).toEqual({ value: input({ content: "hi" }) });
+    expect(isPdf(PDF)).toBe(true);
+    expect(isPdf("https://x.sg/a.pdf.png")).toBe(false);
+  });
+
+  it("goes to LinkedIn alone, and is refused for Instagram or beside it", () => {
+    expect(platformProblem(pdfPost(), ["linkedin"])).toBeNull();
+    expect(platformProblem(pdfPost(), ["instagram"])).toBe(PDF_LINKEDIN_ONLY);
+    expect(platformProblem(pdfPost(), ["linkedin", "facebook"])).toBe(PDF_LINKEDIN_ONLY);
+    expect(PDF_LINKEDIN_ONLY).toBe("Only LinkedIn takes a PDF. Post the pictures for Instagram.");
+  });
+
+  it("is sent as a document with its title, and documentTitle on the LinkedIn entry only", () => {
+    const b = postBody(pdfPost({ firstComment: "More: https://x.sg" }), [{ _id: LI, platform: "linkedin" }]);
+    expect(b.mediaItems).toEqual([{ url: PDF, type: "document", title }]);
+    expect(b.platforms).toEqual([{ platform: "linkedin", accountId: LI, customContent: "Three things to check before you renew.", platformSpecificData: { documentTitle: title, firstComment: "More: https://x.sg" } }]);
+    // a picture post to LinkedIn is today's body
+    const pics = postBody(input(), [{ _id: LI, platform: "linkedin" }]);
+    expect(pics.mediaItems).toEqual([{ url: PNG }]);
+    expect(pics.platforms).toEqual([{ platform: "linkedin", accountId: LI, customContent: "Three things to check before you renew." }]);
+  });
+
+  it("names a PDF's upload and post as Leo's, and nothing else", () => {
+    const presign = (contentType: string): PostRequest => ({ action: "presign", profileId: "me", file: { filename: "a.pdf", contentType, size: 10 } });
+    expect(northStarOnly(presign("application/pdf"))).toBe(true);
+    expect(northStarOnly(presign("image/png"))).toBe(false);
+    expect(northStarOnly(schedule([LI], pdfPost()))).toBe(true);
+    expect(northStarOnly(schedule([LI], input({ thread: ["a", "b"] })))).toBe(true);
+    expect(northStarOnly(schedule([LI, IG]))).toBe(false);
+    expect(northStarOnly({ action: "cancel", profileId: "me", postId: POST })).toBe(false);
+  });
+
+  it("is refused for an account not on NORTH_STAR_USERS before Zernio hears of it, the upload too", async () => {
+    listed("13b28b1d-2ecb-40be-b3a9-aefc90366f9b");
+    const f = fake({});
+    const off = { status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } };
+    expect(await runPost(f.z, MINE, UID, schedule([LI], pdfPost()), NOW)).toEqual(off);
+    expect(await runPost(f.z, MINE, UID, { action: "presign", profileId: "me", file: { filename: "carousel-1.pdf", contentType: "application/pdf", size: 1000 } })).toEqual(off);
+    expect(f.keys()).toEqual([]);
+  });
+
+  it("uploads and schedules the document for a listed account, and refuses it for Instagram before posting", async () => {
+    listed(`x, ${UID}`);
+    const up = fake({ "POST /media/presign": { uploadUrl: "https://storage.example/put?sig=1", publicUrl: PDF } });
+    expect(await runPost(up.z, MINE, UID, { action: "presign", profileId: "me", file: { filename: "carousel-1.pdf", contentType: "application/pdf", size: 1000 } })).toEqual({ status: 200, body: { uploadUrl: "https://storage.example/put?sig=1", publicUrl: PDF } });
+    const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [LI]) });
+    expect((await runPost(f.z, MINE, UID, schedule([LI], pdfPost()), NOW)).status).toBe(200);
+    const sent = f.req("POST /posts")!.body as { mediaItems: unknown[]; platforms: { platformSpecificData: Record<string, unknown> }[] };
+    expect(sent.mediaItems).toEqual([{ url: PDF, type: "document", title }]);
+    expect(sent.platforms[0].platformSpecificData).toEqual({ documentTitle: title });
+    const ig = fake({ "GET /accounts": accounts });
+    expect(await runPost(ig.z, MINE, UID, schedule([IG], pdfPost()), NOW)).toEqual({ status: 400, body: { error: PDF_LINKEDIN_ONLY } });
+    expect(ig.keys()).toEqual(["GET /accounts"]);
+  });
+
+  it("leaves a picture post alone for everyone", async () => {
+    const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG, LI]) });
+    expect((await runPost(f.z, MINE, OTHER_UID, schedule([IG, LI]), NOW)).status).toBe(200);
+    expect(JSON.stringify(f.req("POST /posts")!.body)).not.toMatch(/document/);
   });
 });

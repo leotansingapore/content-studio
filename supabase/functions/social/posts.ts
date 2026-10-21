@@ -30,16 +30,24 @@ export type PostAction = (typeof POST_ACTIONS)[number];
 export const TIMEZONE = "Asia/Singapore";
 
 // What one upload may be. The app's video exports run at 8 Mbps, so 300 MB (Instagram's own cap for
-// a Reel) holds about 5 minutes; slides and pictures are far under 8 MB.
+// a Reel) holds about 5 minutes; slides and pictures are far under 8 MB. A PDF is a carousel as a LinkedIn
+// document (Leo only, formats-carousel-designs).
 export const MEDIA_TYPES: Record<string, string[]> = {
   "image/jpeg": ["jpg", "jpeg"],
   "image/png": ["png"],
   "image/webp": ["webp"],
   "video/mp4": ["mp4"],
   "video/quicktime": ["mov"],
+  "application/pdf": ["pdf"],
 };
+export const PDF_TYPE = "application/pdf";
 export const MAX_IMAGE_BYTES = 8_000_000;
 export const MAX_VIDEO_BYTES = 300_000_000;
+/** Our own cap on a carousel PDF: LinkedIn's limit is unverified (Zernio's page says 100 MB), pdf.ts makes a few MB. */
+export const MAX_PDF_BYTES = 20_000_000;
+/** A LinkedIn document's title: LinkedIn's limit is unverified, a carousel's title is at most 120 characters. */
+export const DOCUMENT_TITLE_MAX = 200;
+export const PDF_LINKEDIN_ONLY = "Only LinkedIn takes a PDF. Post the pictures for Instagram.";
 export const MAX_PICTURES = 10;
 
 /** Caption limits from each platform's Zernio page. */
@@ -83,6 +91,8 @@ export interface ScheduleInput {
   youtube: YouTubeInput | null;
   /** A Threads thread, 2 to 10 posts, the first the root (Leo only, formats-text-threads). content is then its first post. */
   thread?: string[];
+  /** A PDF's document title on LinkedIn, kept only beside a PDF (Leo only, formats-carousel-designs). */
+  documentTitle?: string;
 }
 
 /** A thread's posts, the first the root. Zernio's ThreadsPlatformData.threadItems (zernio.com/openapi.json, read 2026-10-21). */
@@ -111,6 +121,16 @@ export function mediaKind(url: string): "image" | "video" | null {
   }
 }
 
+/** True for an https link to a PDF, read from its file ending as mediaKind reads a picture's. */
+export function isPdf(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && url.length <= 2000 && /\.pdf$/i.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
+
 /** The fields, checked the same way whatever the platforms. Plain words for the adviser. */
 export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleInput> {
   if (!raw || typeof raw !== "object") return refuse("Fill in the post first.");
@@ -130,7 +150,15 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   const rawCaptions = b.captions && typeof b.captions === "object" ? (b.captions as Record<string, unknown>) : {};
   for (const p of SOCIAL_PLATFORMS) if (typeof rawCaptions[p] === "string") captions[p] = text(rawCaptions[p]);
   const mediaUrls = Array.isArray(b.mediaUrls) ? b.mediaUrls : [];
-  if (mediaUrls.some((u) => typeof u !== "string" || !mediaKind(u))) return refuse("Attach the media again.");
+  if (mediaUrls.some((u) => typeof u !== "string" || !(mediaKind(u) || isPdf(u)))) return refuse("Attach the media again.");
+  const pdf = (mediaUrls as string[]).some(isPdf);
+  if (pdf && mediaUrls.length > 1) return refuse("Post the PDF on its own.");
+  let documentTitle: string | undefined;
+  if (pdf) {
+    documentTitle = text(b.documentTitle);
+    if (!documentTitle) return refuse("Give the PDF a title.");
+    if (documentTitle.length > DOCUMENT_TITLE_MAX) return refuse(`Keep the PDF's title under ${DOCUMENT_TITLE_MAX + 1} characters.`);
+  }
   const kinds = (mediaUrls as string[]).map(mediaKind);
   const videos = kinds.filter((k) => k === "video").length;
   if (videos > 1 || (videos === 1 && kinds.length > 1)) return refuse("Post one video, or up to 10 pictures.");
@@ -159,7 +187,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
     const visibility = y.visibility === "unlisted" || y.visibility === "private" ? y.visibility : "public";
     youtube = { title, visibility };
   }
-  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube, ...(thread ? { thread } : {}) } };
+  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}) } };
 }
 
 export const captionFor = (input: ScheduleInput, platform: string) => input.captions[platform as SocialPlatform] ?? input.content;
@@ -168,6 +196,7 @@ export const captionFor = (input: ScheduleInput, platform: string) => input.capt
 export function platformProblem(input: ScheduleInput, platforms: string[]): string | null {
   if (!platforms.length) return "Pick an account to post to.";
   if (input.thread && platforms.some((p) => p !== "threads")) return THREAD_MIXED;
+  if (input.mediaUrls.some(isPdf) && platforms.some((p) => p !== "linkedin")) return PDF_LINKEDIN_ONLY;
   const kinds = input.mediaUrls.map(mediaKind);
   const video = kinds.includes("video");
   for (const p of platforms) {
@@ -209,6 +238,8 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
     // item 0 is the root post and carries the media; the rest are chained as replies
     data.threadItems = input.thread.map((content, i) => (i === 0 && input.mediaUrls.length ? { content, mediaItems: input.mediaUrls.map((url) => ({ url })) } : { content }));
   }
+  // a PDF goes as a document; LinkedIn requires its title (zernio.com/openapi.json LinkedInPlatformData, read 2026-10-21)
+  if (platform === "linkedin" && input.documentTitle && input.mediaUrls.some(isPdf)) data.documentTitle = input.documentTitle;
   if (input.firstComment && FIRST_COMMENT_PLATFORMS.includes(platform)) data.firstComment = input.firstComment;
   return Object.keys(data).length ? data : null;
 }
@@ -217,7 +248,7 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
 export function postBody(input: ScheduleInput, accounts: { _id: string; platform: string }[], now = Date.now()): Record<string, unknown> {
   return {
     content: input.content,
-    mediaItems: input.mediaUrls.map((url) => ({ url })),
+    mediaItems: input.mediaUrls.map((url) => (isPdf(url) ? { url, type: "document", title: input.documentTitle } : { url })),
     platforms: accounts.map((a) => {
       const data = platformData(input, a.platform);
       return { platform: a.platform, accountId: a._id, customContent: captionFor(input, a.platform), ...(data ? { platformSpecificData: data } : {}) };
@@ -253,9 +284,10 @@ export function checkUpload(raw: Record<string, unknown>): Checked<UploadFile> {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(filename) || !exts.includes(ext)) return refuse("Rename the file to letters and numbers, with its own ending.");
   const size = raw.size;
-  const max = (raw.contentType as string).startsWith("video/") ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  const pdf = raw.contentType === PDF_TYPE;
+  const max = pdf ? MAX_PDF_BYTES : (raw.contentType as string).startsWith("video/") ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   if (!Number.isInteger(size) || (size as number) <= 0) return refuse("That file is empty.");
-  if ((size as number) > max) return refuse(`Keep ${max === MAX_VIDEO_BYTES ? "a video under 300 MB" : "a picture under 8 MB"}.`);
+  if ((size as number) > max) return refuse(`Keep ${pdf ? "a PDF under 20 MB" : max === MAX_VIDEO_BYTES ? "a video under 300 MB" : "a picture under 8 MB"}.`);
   return { value: { filename, contentType: raw.contentType as string, size: size as number } };
 }
 
@@ -359,10 +391,19 @@ type Reply = { status: number; body: Record<string, unknown> };
 const northStarUsers = () => (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno?.env.get("NORTH_STAR_USERS");
 const ok = (body: Record<string, unknown>): Reply => ({ status: 200, body });
 
+/**
+ * True for what only NORTH_STAR_USERS may send, on top of SOCIAL_CONNECT_USERS: a thread (formats-text-threads),
+ * and a PDF's upload or post (formats-carousel-designs). index.ts asks it before counting a use; runPost again.
+ */
+export function northStarOnly(q: PostRequest): boolean {
+  if (q.action === "presign") return q.file.contentType === PDF_TYPE;
+  return q.action === "schedule" && (!!q.input.thread || q.input.mediaUrls.some(isPdf));
+}
+
 /** Runs one posting action for the caller's brand. mapped: the brand's Zernio profile, or null before its first connect. */
 export async function runPost(z: Zernio, mapped: string | null, uid: string, q: PostRequest, now = Date.now()): Promise<Reply> {
-  // a thread is Leo's (NORTH_STAR_USERS) on top of SOCIAL_CONNECT_USERS, refused before Zernio hears of it
-  if (q.action === "schedule" && q.input.thread && !isAllowed(northStarUsers(), uid)) {
+  // a thread or a PDF is Leo's (NORTH_STAR_USERS) on top of SOCIAL_CONNECT_USERS, refused before Zernio hears of it
+  if (northStarOnly(q) && !isAllowed(northStarUsers(), uid)) {
     return { status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } };
   }
   if (!mapped) throw new NotYours("no profile");
@@ -371,7 +412,7 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
     const data = await z("POST", "/media/presign", { body: q.file });
     const uploadUrl = https(data?.uploadUrl);
     const publicUrl = https(data?.publicUrl);
-    if (!uploadUrl || !publicUrl || !mediaKind(publicUrl)) throw new ZernioError(502, "unreadable", "Zernio didn't send an upload link.");
+    if (!uploadUrl || !publicUrl || !(mediaKind(publicUrl) || isPdf(publicUrl))) throw new ZernioError(502, "unreadable", "Zernio didn't send an upload link.");
     return ok({ uploadUrl, publicUrl });
   }
 
