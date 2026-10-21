@@ -43,6 +43,7 @@ import {
   MessageSquareText,
   Paperclip,
   Send,
+  ListOrdered,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -72,6 +73,7 @@ import { useDraftReviews } from "@/hooks/useDraftReviews";
 import PreviewLinkPanel from "@/components/review/PreviewLinkPanel";
 import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import {
   fetchMyPreviewLinks,
   linksByDraft,
@@ -190,6 +192,8 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
 export default function DraftsPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  // Make it a thread on a text post's menu (formats-text-threads, north-star gate)
+  const leo = useLeoUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [, setParams] = useSearchParams();
@@ -747,6 +751,9 @@ export default function DraftsPage() {
                       { label: "Repurpose", icon: Wand2, onSelect: () => setRepurposeOpenId(d.id) },
                       ...(d.draft?.trim()
                         ? [{ label: "Make a carousel", icon: GalleryHorizontalEnd, onSelect: () => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`) }]
+                        : []),
+                      ...(leo && d.format === "text-post" && d.draft?.trim()
+                        ? [{ label: "Make it a thread", icon: ListOrdered, onSelect: () => navigate(links.generate({ draft: d.id, panel: "thread" })) }]
                         : []),
                       ...(d.draft?.trim()
                         ? [{ label: "Share for review", icon: Link2, onSelect: () => openPreview(d.id) }]
