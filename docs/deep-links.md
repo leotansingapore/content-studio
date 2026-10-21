@@ -250,7 +250,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /carousel | carousel | a saved carousel id (d:<post id> or p:<time>): reopens it with its edits; beats draft; the address takes it once an edit is kept | none | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /edit | p | a video project id. Projects live on one device: elsewhere the link opens the upload screen | none | push (opening a project drops the other /edit params) | /edit?p=vm1abc2 |
 | /edit | tab | style, cuts, frame, face, stickers, broll, words, with p | style | replace | /edit?p=vm1abc2&tab=words |
-| /edit | mode | fix, cut (the Words tab) | fix | replace | /edit?p=vm1abc2&tab=words&mode=cut |
+| /edit | mode | fix, cut (the Words tab); key on Leo's sign-ins while key words are on (tap a line to change its key word) | fix | replace | /edit?p=vm1abc2&tab=words&mode=cut |
 | /edit | sticker | a sticker id, selected (Stickers tab) | none | replace | /edit?p=vm1abc2&tab=stickers&sticker=o1 |
 | /edit | broll | a B-roll clip id, selected (B-roll tab) | none | replace | /edit?p=vm1abc2&tab=broll&broll=b1 |
 | /edit | guide | instagram, tiktok: that app's buttons drawn over the 9:16 preview | off | replace | /edit?p=vm1abc2&guide=instagram |
