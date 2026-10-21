@@ -225,6 +225,12 @@ describe("your own clip first", () => {
     expect(opts.extra.settings.overlays[0].to).toBe(3.4);
     expect(stock.search).not.toHaveBeenCalled();
   });
+
+  it("never falls back to stock when your own clip is missing", async () => {
+    expect(await run({ ...ASK, play: "mine", hook: "Stop guessing", mine: null })).toMatchObject({ state: "failed", error: "Pick your hook clip first." });
+    expect(stock.search).not.toHaveBeenCalled();
+    expect(media.start).not.toHaveBeenCalled();
+  });
 });
 
 describe("someone says it", () => {
@@ -273,6 +279,17 @@ describe("someone says it", () => {
     expect(hookDemoJob()?.state).toBe("done");
     expect(media.start.mock.calls[0][1][1].file).toBe(again);
     expect(called("ai-video", "template")).toHaveLength(1);
+  });
+
+  it("orders nothing when another video starts while the hooks are written", async () => {
+    make.mockImplementationOnce(async () => {
+      store.set("cs-ai-video-pending", JSON.stringify({ name: "Laksa", tokens: ["old"], seconds: [4], kind: "template" }));
+      return hooksResponse();
+    });
+    expect(await run({ ...SPOKEN, hook: "" })).toMatchObject({ state: "failed", error: VIDEO_LIMITS.waiting });
+    expect(make).toHaveBeenCalledTimes(1);
+    expect(called("ai-video", "template")).toHaveLength(0);
+    expect(pendingAvatar()?.tokens).toEqual(["old"]);
   });
 
   it("spends nothing while another paid clip waits on this device", async () => {

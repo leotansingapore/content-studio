@@ -294,7 +294,8 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
     if (ask.play === "spoken") return await spoken(id, ask, hook, flags);
     let first: Blob;
     let length: number;
-    if (ask.play === "mine" && ask.mine) {
+    if (ask.play === "mine") {
+      if (!ask.mine) return mine({ state: "failed", error: "Pick your hook clip first." });
       first = ask.mine.file;
       length = ask.mine.seconds;
     } else {
@@ -324,6 +325,9 @@ async function spoken(id: number, ask: HookDemoAsk, hook: string, flags?: Flags)
   const plan = joinPlan("spoken", SPOKEN_HOOK_SECONDS, ask.demo.seconds);
   const extra = hookExtra(hook, plan, ask.source, flags);
   const mine = patcher(id);
+  // checked again right before paying: a video started elsewhere while the hooks were written
+  const blocked = paidClipBlock();
+  if (blocked) return mine({ state: "failed", error: blocked });
   mine({ state: "clip", step: "Writing the shots..." });
   await follow(id, () =>
     makeTemplateClip(HOOK_NAME, { template: "spoken-hook", seconds: SPOKEN_HOOK_SECONDS, quality: "480p", fields: { line: hook }, photo: null }, {
