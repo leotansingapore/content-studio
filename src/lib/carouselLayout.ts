@@ -36,13 +36,29 @@ export interface FontSpec {
   family: "serif" | "sans";
   weight: 400 | 600;
   size: number;
+  /** Set only while measuring Chinese or Tamil text, so fontCss names their fonts; layouts never store it. */
+  scripts?: true;
 }
 
 export type Measure = (text: string, font: FontSpec) => number;
 
-export function fontCss(font: FontSpec): string {
-  return `${font.weight} ${font.size}px ${font.family === "serif" ? SERIF_STACK : SANS_STACK}`;
+/** Chinese and Tamil fonts on Mac, Android and Windows (the names videoMedia.ts gives subtitles). */
+const SCRIPT_FONTS = "'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', 'Tamil Sangam MN', 'Noto Sans Tamil', Latha";
+// Han, Tamil, CJK punctuation and full-width forms
+const OTHER_SCRIPT = /[\p{Script=Han}\p{Script=Tamil}\u3000-\u303F\uFF00-\uFFEF]/u;
+
+/** The family's stack; text in Chinese or Tamil gets their fonts before the generic family, and Latin text keeps today's stack exactly. */
+export function stackFor(family: FontSpec["family"], scripts = false): string {
+  const stack = family === "serif" ? SERIF_STACK : SANS_STACK;
+  return scripts ? stack.replace(/, ([a-z-]+)$/, `, ${SCRIPT_FONTS}, $1`) : stack;
 }
+
+export function fontCss(font: FontSpec): string {
+  return `${font.weight} ${font.size}px ${stackFor(font.family, font.scripts)}`;
+}
+
+/** The caller's measure, with Chinese or Tamil text measured in their fonts (Latin text gets the very font it was given). */
+const scriptAware = (measure: Measure): Measure => (text, font) => measure(text, OTHER_SCRIPT.test(text) ? { ...font, scripts: true } : font);
 
 // ---- Colour -------------------------------------------------------------------
 
@@ -116,34 +132,57 @@ function breakWord(word: string, maxWidth: number, font: FontSpec, measure: Meas
   return pieces;
 }
 
-/** Greedy word wrap. Line breaks in the text start new lines; blank lines collapse. */
-export function wrapText(text: string, maxWidth: number, font: FontSpec, measure: Measure): string[] {
+// Chinese (edit-translate): no spaces to break at, so a line may break between any two characters, but never before
+// its closing punctuation (U+FF0C, U+3002, U+FF01, U+FF1F, U+3001, U+FF1A, U+FF1B, U+300D, U+FF09) nor after an
+// opening bracket (U+300C, U+FF08).
+const CLOSE = "\uFF0C\u3002\uFF01\uFF1F\u3001\uFF1A\uFF1B\u300D\uFF09";
+const OPEN = "\u300C\uFF08";
+const HAN = /\p{Script=Han}/u;
+const SPACE_BEFORE_CLOSE = new RegExp(`\\s+(?=[${CLOSE}])`, "g");
+// one Han character or a run of anything else (Latin words keep together), brackets and closing punctuation held on
+const PIECE = new RegExp(`[${OPEN}]*(?:\\p{Script=Han}|[^\\p{Script=Han}${OPEN}${CLOSE}]+)[${CLOSE}]*|[${OPEN}]+[${CLOSE}]*|[${CLOSE}]+`, "gu");
+
+/**
+ * Greedy word wrap. Line breaks in the text start new lines; blank lines collapse. Chinese breaks between characters,
+ * never starting a line with its closing punctuation; Latin words, in Chinese text too, break at spaces.
+ */
+export function wrapText(text: string, maxWidth: number, font: FontSpec, measureAny: Measure): string[] {
+  const measure = scriptAware(measureAny);
   const lines: string[] = [];
   for (const paragraph of String(text ?? "").split("\n")) {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    const han = HAN.test(paragraph);
+    const words = (han ? paragraph.replace(SPACE_BEFORE_CLOSE, "") : paragraph).trim().split(/\s+/).filter(Boolean);
     let line = "";
-    for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
+    const place = (word: string, glue: string) => {
+      const candidate = line ? `${line}${glue}${word}` : word;
       if (measure(candidate, font) <= maxWidth) {
         line = candidate;
-        continue;
+        return;
       }
       if (line) lines.push(line);
       if (measure(word, font) <= maxWidth) {
         line = word;
-        continue;
+        return;
       }
       const pieces = breakWord(word, maxWidth, font, measure);
       lines.push(...pieces.slice(0, -1));
       line = pieces[pieces.length - 1] ?? "";
+    };
+    for (const word of words) {
+      if (han && HAN.test(word)) word.match(PIECE)!.forEach((piece, i) => place(piece, i ? "" : " "));
+      else place(word, " ");
     }
     if (line) lines.push(line);
   }
   return lines;
 }
 
-export function ellipsize(line: string, maxWidth: number, font: FontSpec, measure: Measure): string {
-  let chars = Array.from(line.replace(/[\s.,;:!?…-]+$/, ""));
+// what a shortened line drops before its "…"
+const TRAILING = new RegExp(`[\\s.,;:!?…${CLOSE}-]+$`);
+
+export function ellipsize(line: string, maxWidth: number, font: FontSpec, measureAny: Measure): string {
+  const measure = scriptAware(measureAny);
+  let chars = Array.from(line.replace(TRAILING, ""));
   while (chars.length && measure(`${chars.join("")}…`, font) > maxWidth) chars = chars.slice(0, -1);
   return `${chars.join("").trimEnd()}…`;
 }
@@ -547,7 +586,7 @@ export function renderSvg(layout: Pick<SlideLayout, "width" | "height" | "nodes"
         `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}"${rx} fill="${escapeXml(node.fill)}"${opacity}/>`,
       );
     } else {
-      const family = node.font.family === "serif" ? SERIF_STACK : SANS_STACK;
+      const family = stackFor(node.font.family, OTHER_SCRIPT.test(node.text));
       const anchor = node.anchor ? ` text-anchor="${node.anchor}"` : "";
       const stroke = node.stroke ? ` stroke="${escapeXml(node.stroke)}" stroke-width="${node.strokeWidth ?? 1}" stroke-linejoin="round" paint-order="stroke"` : "";
       out.push(

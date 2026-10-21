@@ -83,6 +83,74 @@ describe("wrapText on Latin text (pinned at b65fc14f, before Chinese wraps)", ()
   });
 });
 
+describe("wrapText on Chinese and Tamil (edit-translate)", () => {
+  const font: FontSpec = { family: "sans", weight: 400, size: 10 }; // 4.8px a character
+  const CLOSING = [..."，。！？、：；」）"];
+  const zh = "大多数人以为住院保险什么都保，其实不然。共付额、免赔额和附加保险，每两年要检查一次！「你检查过了吗？」（很重要）";
+
+  it("breaks a Chinese paragraph between characters, within the width, and never starts a line with closing punctuation", () => {
+    for (let chars = 3; chars <= 40; chars++) {
+      const lines = wrapText(zh, chars * 4.8, font, measure);
+      expect(lines.join("")).toBe(zh);
+      for (const line of lines) {
+        expect(measure(line, font)).toBeLessThanOrEqual(chars * 4.8);
+        expect(CLOSING).not.toContain(line[0]);
+        expect(line.endsWith("「") || line.endsWith("（")).toBe(false);
+      }
+    }
+    expect(wrapText(zh, 10 * 4.8, font, measure)[0]).toBe("大多数人以为住院保险");
+  });
+
+  it("keeps Latin words and numbers whole inside Chinese, breaking them at spaces", () => {
+    const mixed = "我的CPF账户 has 3 accounts，记得 check 一下。";
+    for (let chars = 10; chars <= 30; chars++) {
+      const lines = wrapText(mixed, chars * 4.8, font, measure);
+      expect(lines.join(" ").replace(/\s+/g, "")).toBe(mixed.replace(/\s+/g, ""));
+      for (const word of ["CPF", "has", "accounts，", "check"]) expect(lines.some((l) => l.includes(word))).toBe(true);
+      for (const line of lines) expect(CLOSING).not.toContain(line[0]);
+    }
+  });
+
+  it("drops a space typed before Chinese closing punctuation, so it can't start a line", () => {
+    for (let chars = 3; chars <= 12; chars++) {
+      for (const line of wrapText("你好 ，世界 。再见", chars * 4.8, font, measure)) expect(CLOSING).not.toContain(line[0]);
+    }
+    expect(wrapText("你好 ，世界", 500, font, measure)).toEqual(["你好，世界"]);
+  });
+
+  it("still breaks Tamil and Malay at spaces", () => {
+    expect(wrapText("உங்கள் காப்பீட்டை சரிபாருங்கள்", 12 * 4.8, font, measure)).toEqual(["உங்கள்", "காப்பீட்டை", "சரிபாருங்கள்"]);
+    expect(wrapText("Semak pelan anda", 6 * 4.8, font, measure)).toEqual(["Semak", "pelan", "anda"]);
+  });
+
+  it("measures Chinese and Tamil in their fonts and Latin in today's", () => {
+    const seen: [string, FontSpec][] = [];
+    const spy: Measure = (t, f) => (seen.push([t, f]), measure(t, f));
+    wrapText("你好世界", 500, font, spy);
+    wrapText("உங்கள்", 500, font, spy);
+    wrapText("Hello there", 500, font, spy);
+    expect(seen.map(([t, f]) => [t, !!f.scripts])).toEqual([["你", true], ["你好", true], ["你好世", true], ["你好世界", true], ["உங்கள்", true], ["Hello", false], ["Hello there", false]]);
+    expect(fontCss({ ...font, scripts: true })).toBe(
+      "400 10px system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', 'Tamil Sangam MN', 'Noto Sans Tamil', Latha, sans-serif",
+    );
+    expect(fontCss({ family: "serif", weight: 600, size: 64, scripts: true })).toBe(
+      "600 64px Georgia, 'Times New Roman', Times, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', 'Tamil Sangam MN', 'Noto Sans Tamil', Latha, serif",
+    );
+  });
+
+  it("drops Chinese punctuation before a shortened line's ellipsis", () => {
+    expect(ellipsize("你好，", 500, font, measure)).toBe("你好…");
+  });
+
+  it("draws Chinese text in its fonts and the Latin name row as today", () => {
+    const svg = renderSvg(layoutSlide({ title: "住院要付两次钱", body: "共付额，每两年检查一次。", index: 1, total: 3, brand }, measure));
+    const families = [...svg.matchAll(/font-family="([^"]+)"[^>]*>([^<]*)<\/text>/g)].map((m) => [m[2], m[1].includes("PingFang SC")]);
+    expect(families).toContainEqual(["住院要付两次钱", true]);
+    expect(families).toContainEqual(["共付额，每两年检查一次。", true]);
+    expect(families).toContainEqual(["Jane Tan", false]);
+  });
+});
+
 describe("colour", () => {
   it("picks readable text for the brand colour", () => {
     expect(contrastRatio("#FFFFFF", "#000000")).toBeCloseTo(21, 0);
