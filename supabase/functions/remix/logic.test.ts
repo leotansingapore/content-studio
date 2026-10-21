@@ -852,6 +852,7 @@ describe("textProblem: a post that stops mid-sentence or names the brand twice",
   it("tells the post's model to name the brand once across hook, body and cta", () => {
     const { system } = buildMakePrompt(dogfood("017-remix.json").req);
     expect(system).toContain("appears once in the hook, body and cta together: if the cta names it, the body does not.");
+    expect(buildMakePrompt({ ...dogfood("017-remix.json").req, as: "carousel" }).system).toContain("appears once in the whole carousel, counting the cover and the cta.");
   });
 });
 

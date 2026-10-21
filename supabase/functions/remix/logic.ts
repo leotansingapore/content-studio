@@ -313,7 +313,7 @@ const FORMAT_RULES: Record<Exclude<(typeof MAKE_AS)[number], "slideshow" | "wall
     "- hook: the cover line, under 12 words.",
     "- slides: 4 to 8 slides after the cover, each with a title under 8 words and a body under 30 words.",
     "- cta: the last slide as one line that starts with Save this, Share this, Comment, DM me, Follow or Book a call.",
-    "- The brand's name, when it goes in, appears on one slide only, counting the cover and the cta.",
+    "- The brand's name, when it goes in, appears once in the whole carousel, counting the cover and the cta.",
   ],
   script: [
     "",
