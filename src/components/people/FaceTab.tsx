@@ -81,11 +81,12 @@ export default function FaceTab({ userId }: { userId: string }) {
     };
   }, [record, attempt]);
 
-  // the live preview, once its element is on screen
+  // the live preview, once its element is on screen; on a phone the line and the button come into view with it
   useEffect(() => {
     if ((step.s === "ready" || step.s === "recording") && video.current && stream.current && video.current.srcObject !== stream.current) {
       video.current.srcObject = stream.current;
     }
+    if (step.s === "ready") document.getElementById("face-recorder")?.scrollIntoView({ block: "start" });
   }, [step.s]);
 
   // a check that finished, here or while the page was closed: say so once and close the recorder
@@ -178,11 +179,11 @@ export default function FaceTab({ userId }: { userId: string }) {
     const spaced = code ? code.code.split("").join(" ") : "";
     const live = step.s === "ready" || step.s === "recording";
     return (
-      <section className={CARD} aria-label="Record your face">
+      <section id="face-recorder" className={`${CARD} scroll-mt-16`} aria-label="Record your face">
         <h2 className="font-serif text-lg font-semibold">Your face</h2>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,280px)_minmax(0,1fr)] sm:items-start">
           {live && (
-            <div className="relative mx-auto aspect-[3/4] w-full max-w-[280px] overflow-hidden rounded-xl bg-black sm:mx-0">
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl bg-black sm:mx-0 sm:max-w-[280px]">
               <video ref={video} autoPlay muted playsInline className="h-full w-full -scale-x-100 object-cover" aria-label="Your camera" />
               {/* where the face goes */}
               <div className="pointer-events-none absolute left-1/2 top-[42%] h-[58%] w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-dashed border-white/70" aria-hidden />
