@@ -340,6 +340,65 @@ describe("Captions: key words (edit-captions)", () => {
   });
 });
 
+describe("Caption translation (pinned at b65fc14f, before posts are translated)", () => {
+  const lines = ["Most people pay twice for a hospital stay.", "Check your co-pay."];
+  const translate = (uid: string, body: Record<string, unknown> = {}) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "translate", lang: "zh", lines, ...body }) }));
+  const used = (uid: string) => db.rows.get(`${uid}|video-translate|${db.today()}`) ?? 0;
+  const reply = (out: unknown) => () => Response.json({ model: "m", choices: [{ message: { content: JSON.stringify(out) } }] });
+  const SYSTEM = [
+    "Translate short video captions spoken by a Singapore financial adviser into Simplified Chinese as subtitles.",
+    "Keep each line short and natural for on-screen subtitles, keep numbers and dollar amounts exact, keep CPF, MediShield, HDB and other Singapore terms as locals write them.",
+    'Return JSON only: {"lines":[...]} with exactly one translation per input line, in the same order.',
+  ].join("\n");
+  const asked = (sentLines: string[]) =>
+    JSON.stringify({
+      model: "gpt-6-luna",
+      response_format: { type: "json_object" },
+      messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify({ lines: sentLines }) }],
+      reasoning_effort: "low",
+      max_completion_tokens: 8000,
+    });
+
+  for (const uid of [UID, LEO]) {
+    it(`sends OpenAI today's request and answers today's lines for one use (${uid === LEO ? "a listed uid" : "anyone else"})`, async () => {
+      answer = reply({ lines: ["大多数人住院要付两次钱。", "查一查你的自付额。"] });
+      const res = await translate(uid);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe(JSON.stringify({ lines: ["大多数人住院要付两次钱。", "查一查你的自付额。"] }));
+      expect(calls).toEqual(["https://api.openai.com/v1/chat/completions"]);
+      expect(sent[0]).toBe(asked(lines));
+      expect(used(uid)).toBe(1);
+    });
+  }
+  it("cuts each line to 300 characters on the way in and on the way out", async () => {
+    answer = reply({ lines: ["x".repeat(400)] });
+    const res = await translate(UID, { lines: ["a".repeat(400)] });
+    expect(await res.json()).toEqual({ lines: ["x".repeat(300)] });
+    expect(sent[0]).toBe(asked(["a".repeat(300)]));
+  });
+  it("refuses an unknown language before counting", async () => {
+    const res = await translate(UID, { lang: "fr" });
+    expect(res.status).toBe(400);
+    expect(await res.text()).toBe(JSON.stringify({ error: "Pick Chinese, Malay or Tamil." }));
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("keeps the use when OpenAI fails", async () => {
+    const res = await translate(UID);
+    expect(res.status).toBe(502);
+    expect(await res.text()).toBe(JSON.stringify({ error: "Couldn't translate right now. Try again in a minute." }));
+    expect(used(UID)).toBe(1);
+  });
+  it("keeps the use when the reply is short a line", async () => {
+    answer = reply({ lines: ["只有一行。"] });
+    const res = await translate(UID);
+    expect(res.status).toBe(502);
+    expect(await res.text()).toBe(JSON.stringify({ error: "The translation came back incomplete. Try again." }));
+    expect(used(UID)).toBe(1);
+  });
+});
+
 describe("Montage pick from a media set", () => {
   const JEV = "https://api.typesafe.ai/v1/systemone";
   const beats = [{ say: "Coins in a jar on a table", candidates: Array.from({ length: 14 }, (_, j) => ({ desc: `A jar of coins, photo ${j}` })) }];
