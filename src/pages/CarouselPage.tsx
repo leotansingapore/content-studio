@@ -939,7 +939,7 @@ export default function CarouselPage() {
       onPickMedia: (key: string) => pickMedia(s.id, key),
       onRemovePicture: () => removePicture(s.id),
       children: leo ? (
-        <SlideRewrite slides={slides} index={i} platform={platform} left={askLeft} busy={busy}
+        <SlideRewrite carousel={carouselId} slides={slides} index={i} platform={platform} left={askLeft} busy={busy}
           onUse={(texts) => change((prev) => prev.map((x) => (x.id === s.id ? { ...x, title: texts[0] ?? "", body: texts[1] ?? "" } : x)))} />
       ) : undefined,
     };

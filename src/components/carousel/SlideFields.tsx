@@ -210,8 +210,9 @@ function MediaThumb({ item, onPick }: { item: MediaItem; onPick: () => void }) {
 }
 
 // ---- Rewrite this slide (Leo only) ----
-// One run per slide id, outside React. A suggestion that came back and a typed ask are kept for the tab
-// (sessionStorage), so a reload never loses words that were paid for or typed.
+// One run per slide, outside React, keyed by carousel and slide id (split slides are numbered slide-1, slide-2 in
+// every carousel). A suggestion that came back and a typed ask are kept for the tab (sessionStorage), so a reload
+// never loses words that were paid for or typed.
 
 type Rewrite = { state: "working" } | { state: "ready"; texts: string[]; reply: string } | { state: "failed"; error: string };
 const REWRITES_KEY = "cs-carousel-rewrites";
@@ -259,6 +260,8 @@ const CHIP = "rounded-full border border-border/70 px-2.5 py-1 text-xs font-semi
 
 /** "Rewrite this slide": Shorter, Plainer words, Stronger hook (cover only) or your own ask, shown as a suggestion to use or keep. */
 export function SlideRewrite(p: {
+  /** The open carousel's id, so another carousel's slide 4 never shows this one's suggestion. */
+  carousel: string;
   slides: Slide[];
   index: number;
   platform: "instagram" | "linkedin";
@@ -269,7 +272,7 @@ export function SlideRewrite(p: {
   onUse: (texts: string[]) => void;
 }) {
   const s = p.slides[p.index];
-  const id = s.id;
+  const id = `${p.carousel} ${s.id}`;
   const r = useSyncExternalStore(subscribe, () => rewrites.get(id));
   const ask = useSyncExternalStore(subscribe, () => typedAsks.get(id) ?? "");
   const [menu, setMenu] = useState(false);
@@ -301,7 +304,7 @@ export function SlideRewrite(p: {
         </div>
       )}
       {own && (
-        <form className="flex gap-2" onSubmit={(e) => (e.preventDefault(), ask.trim() && !working && !empty && send(ask.trim()))}>
+        <form className="flex gap-2" onSubmit={(e) => (e.preventDefault(), ask.trim() && !working && !empty && !p.busy && p.left !== 0 && send(ask.trim()))}>
           <Input value={ask} maxLength={ASK_MAX_CHARS} aria-label="Your own ask" placeholder="Say what to change, like: end on a question"
             onChange={(e) => (typedAsks.set(id, e.target.value), changed())} className="h-9 min-w-0 flex-1 text-sm [@media(pointer:coarse)]:h-11" />
           <Button type="submit" size="sm" variant="outline" disabled={!ask.trim() || working || empty || p.busy || p.left === 0} className="h-9 [@media(pointer:coarse)]:h-11">Rewrite</Button>
