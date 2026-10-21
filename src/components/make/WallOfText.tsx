@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBySlug } from "@/data/formats";
-import { onAiJob, pendingAvatar, type ClipQuality } from "@/lib/aiVideo";
+import { onAiJob, type ClipQuality } from "@/lib/aiVideo";
 import { loadFollowing } from "@/lib/following";
 import { links } from "@/lib/links";
 import { priceOf, priceText, sumPrices } from "@/lib/prices";
