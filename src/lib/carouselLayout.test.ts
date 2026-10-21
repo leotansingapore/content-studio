@@ -543,3 +543,27 @@ describe("designs and sizes", () => {
     expect(renderSvg({ width: 10, height: 10, nodes: [{ type: "rect", x: 0, y: 0, width: 5, height: 5, fill: "#FFFFFF" }] })).not.toContain("rx");
   });
 });
+
+describe("today's carousels in every design, before the brand kit's second colour and signer (pinned at 7cd872f4)", () => {
+  const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+  const PIC = "data:image/png;base64,iVBORw0KGgo=";
+
+  it("draws every design, size, role, paper and brand the same way as before", () => {
+    const out: string[] = [];
+    for (const b of [brand, { ...brand, photo: PHOTO, role: "Adviser" }, { ...brand, color: "#FDE68A", name: "", handle: "" }]) {
+      for (const design of CAROUSEL_DESIGNS) {
+        for (const size of ["4x5", "1x1", "9x16"] as const) {
+          for (const paper of [undefined, "dark", "tint"] as const) {
+            for (const index of [0, 1, 2, 4]) {
+              const body = index === 2 ? "One.\nTwo.\nThree." : "Six months of expenses, kept where you can reach them.";
+              const layout = layoutSlide({ title: "Know your number", body, index, total: 5, brand: b, paper, design, size, image: index === 1 ? PIC : undefined }, measure);
+              out.push(JSON.stringify(layout), renderSvg(layout));
+            }
+          }
+        }
+      }
+    }
+    expect(out.length).toBe(2 * 3 * CAROUSEL_DESIGNS.length * 3 * 3 * 4);
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("d077aba6d973ea5acafe251e411a7db6d6dcd052b4f56037f47a517756fb4c6a");
+  });
+});

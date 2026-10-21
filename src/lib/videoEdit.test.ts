@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { sanitizeBackdrop } from "./faceVision";
 import {
@@ -257,6 +258,18 @@ describe("brand kit on video", () => {
     const { next, changed } = applyPatch(defaultSettings(), { logo: true, endCard: true });
     expect(next.logo && next.endCard).toBe(true);
     expect(changed).toEqual(["logo", "endCard"]);
+  });
+});
+
+describe("a new video's settings for everyone else (pinned at 7cd872f4, before the brand kit's switches)", () => {
+  it("starts from today's default skill look and saves the same look", () => {
+    const skill = { ...defaultSettings("minimal"), logo: true, endCard: true, nameTag: "Jane Tan", font: "serif" as const, filter: "warm" as const, speed: 1.2 };
+    const looks = [undefined, { logo: false, endCard: false }, { logo: true }, lookOf(skill), lookOf(defaultSettings("bold"))];
+    const out = looks.flatMap((look) => {
+      const s = withLook(defaultSettings("bold"), look);
+      return [JSON.stringify(s), JSON.stringify(lookOf(s))];
+    });
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("0463a7f05f396574ebff1c354dceb6e8e05fa6bd1d219e65a6224b1681dd9b4c");
   });
 });
 

@@ -130,3 +130,24 @@ describe("Leo's learnings in the picture prompt", () => {
     expect(sent()).toBe(full);
   });
 });
+
+// Pinned before the brand kit's "Logo on AI pictures" (brand-kit): everyone else's picture goes to Media byte for byte
+// as Higgsfield made it, whatever their kit holds.
+describe("the picture kept for everyone else", () => {
+  it("is the downloaded file as it came", async () => {
+    const LOGO = "data:image/png;base64,iVBORw0KGgo=";
+    const store = new Map<string, string>([["content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "Ada", handle: "@ada", logo: LOGO, stamp: { pictureLogo: true } })]]);
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/fixed.png" } : { token: "t2" });
+    await settle(fixImage("u1", "make the sky bluer"));
+    const kept = vi.mocked(storePicture).mock.calls.map(([b]) => b as Blob);
+    expect(kept).toHaveLength(2);
+    for (const b of kept) expect(await b.text()).toBe("png");
+  });
+});
