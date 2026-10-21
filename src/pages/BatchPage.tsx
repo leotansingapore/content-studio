@@ -25,7 +25,8 @@ import {
   newDraftId,
   type DraftEntry,
 } from "@/lib/draftHistory";
-import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
+import { loadVoiceProfile, isVoiceProfileUsable, voiceSummaryOf } from "@/lib/voiceProfile";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import {
   Layers,
   Check,
@@ -99,6 +100,8 @@ export default function BatchPage() {
   const [running, setRunning] = useState(false);
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  // Leo's facts and learnings ride in through streamOnePost; his website voice (no posts behind it) is read here
+  const leo = useLeoOnly();
   const offerLinks = useMemo(() => allowedLinks(loadBrand(userId), loadSocialAccounts(userId)), [userId]);
   const avoidWords = useMemo(() => avoidList(loadBrand(userId)), [userId]);
 
@@ -194,7 +197,9 @@ export default function BatchPage() {
     const kit = loadBrand(data.user?.id);
     const usableVoice = isVoiceProfileUsable(voiceProfile)
       ? voiceProfile?.voiceSummary
-      : undefined;
+      : leo
+        ? voiceSummaryOf(voiceProfile) || undefined
+        : undefined;
 
     await Promise.all(
       activeTargets.map(async (t) => {
