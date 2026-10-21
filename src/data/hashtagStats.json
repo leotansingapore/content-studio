@@ -1,1 +1,389 @@
-{ "updated": null, "tags": {} }
+{
+  "updated": "2026-10-21",
+  "tags": {
+    "budgeting": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 18,
+          "medianViews": 248700
+        }
+      ],
+      "related": [
+        {
+          "tag": "personalfinance",
+          "overlap": 0.17
+        },
+        {
+          "tag": "fintok",
+          "overlap": 0.17
+        },
+        {
+          "tag": "moneytok",
+          "overlap": 0.17
+        },
+        {
+          "tag": "budgetingtips",
+          "overlap": 0.17
+        },
+        {
+          "tag": "budget",
+          "overlap": 0.11
+        }
+      ],
+      "finance": true
+    },
+    "financialliteracy": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 21,
+          "medianViews": 29100
+        }
+      ],
+      "related": [
+        {
+          "tag": "personalfinance",
+          "overlap": 0.29
+        },
+        {
+          "tag": "investing",
+          "overlap": 0.19
+        },
+        {
+          "tag": "moneytips",
+          "overlap": 0.19
+        },
+        {
+          "tag": "investingforbeginners",
+          "overlap": 0.19
+        },
+        {
+          "tag": "personalfinancetips",
+          "overlap": 0.14
+        }
+      ],
+      "finance": true
+    },
+    "fintok": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 16,
+          "medianViews": 95700
+        }
+      ],
+      "related": [
+        {
+          "tag": "investing",
+          "overlap": 0.38
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.31
+        },
+        {
+          "tag": "budgeting",
+          "overlap": 0.19
+        },
+        {
+          "tag": "moneytok",
+          "overlap": 0.19
+        },
+        {
+          "tag": "finance",
+          "overlap": 0.19
+        }
+      ],
+      "finance": true
+    },
+    "fyp": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 11,
+          "medianViews": 246700
+        }
+      ],
+      "related": [
+        {
+          "tag": "moneytok",
+          "overlap": 0.64
+        },
+        {
+          "tag": "money",
+          "overlap": 0.55
+        },
+        {
+          "tag": "budgeting",
+          "overlap": 0.18
+        },
+        {
+          "tag": "sidehustle",
+          "overlap": 0.18
+        },
+        {
+          "tag": "foryou",
+          "overlap": 0.18
+        }
+      ],
+      "finance": false
+    },
+    "investing": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 10,
+          "medianViews": 14550
+        }
+      ],
+      "related": [
+        {
+          "tag": "fintok",
+          "overlap": 0.6
+        },
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.4
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.3
+        },
+        {
+          "tag": "money",
+          "overlap": 0.3
+        },
+        {
+          "tag": "finance",
+          "overlap": 0.3
+        }
+      ],
+      "finance": true
+    },
+    "money": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 12,
+          "medianViews": 256850
+        }
+      ],
+      "related": [
+        {
+          "tag": "moneytok",
+          "overlap": 0.5
+        },
+        {
+          "tag": "investing",
+          "overlap": 0.25
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.17
+        },
+        {
+          "tag": "fintok",
+          "overlap": 0.17
+        },
+        {
+          "tag": "finance",
+          "overlap": 0.17
+        }
+      ],
+      "finance": true
+    },
+    "moneytips": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 5,
+          "medianViews": 7341
+        }
+      ],
+      "related": [
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.8
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.8
+        },
+        {
+          "tag": "savingmoney",
+          "overlap": 0.4
+        },
+        {
+          "tag": "investingforbeginners",
+          "overlap": 0.2
+        },
+        {
+          "tag": "buildwealth",
+          "overlap": 0.2
+        }
+      ],
+      "finance": true
+    },
+    "moneytok": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 16,
+          "medianViews": 85300
+        }
+      ],
+      "related": [
+        {
+          "tag": "money",
+          "overlap": 0.38
+        },
+        {
+          "tag": "budgeting",
+          "overlap": 0.19
+        },
+        {
+          "tag": "fintok",
+          "overlap": 0.19
+        },
+        {
+          "tag": "investing",
+          "overlap": 0.13
+        },
+        {
+          "tag": "finance",
+          "overlap": 0.13
+        }
+      ],
+      "finance": true
+    },
+    "personalfinance": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 17,
+          "medianViews": 7273
+        }
+      ],
+      "related": [
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.35
+        },
+        {
+          "tag": "fintok",
+          "overlap": 0.29
+        },
+        {
+          "tag": "moneytips",
+          "overlap": 0.24
+        },
+        {
+          "tag": "budgeting",
+          "overlap": 0.18
+        },
+        {
+          "tag": "investing",
+          "overlap": 0.18
+        }
+      ],
+      "finance": true
+    },
+    "personalfinancetips": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 5,
+          "medianViews": 1480
+        }
+      ],
+      "related": [
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.6
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.4
+        },
+        {
+          "tag": "investingforbeginners",
+          "overlap": 0.4
+        },
+        {
+          "tag": "budgeting",
+          "overlap": 0.2
+        },
+        {
+          "tag": "moneytok",
+          "overlap": 0.2
+        }
+      ],
+      "finance": true
+    },
+    "tiktokbusinesscampaign": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 15,
+          "medianViews": 38400
+        }
+      ],
+      "related": [
+        {
+          "tag": "financialliteracy",
+          "overlap": 1
+        },
+        {
+          "tag": "investing",
+          "overlap": 0.2
+        },
+        {
+          "tag": "taxes",
+          "overlap": 0.2
+        },
+        {
+          "tag": "fypシ",
+          "overlap": 0.13
+        },
+        {
+          "tag": "taxseason",
+          "overlap": 0.13
+        }
+      ],
+      "finance": false
+    },
+    "viral": {
+      "history": [
+        {
+          "day": "2026-10-21",
+          "videos": 7,
+          "medianViews": 267000
+        }
+      ],
+      "related": [
+        {
+          "tag": "money",
+          "overlap": 0.86
+        },
+        {
+          "tag": "moneytok",
+          "overlap": 0.71
+        },
+        {
+          "tag": "moneyspread",
+          "overlap": 0.29
+        },
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.14
+        },
+        {
+          "tag": "foryou",
+          "overlap": 0.14
+        }
+      ],
+      "finance": false
+    }
+  }
+}
