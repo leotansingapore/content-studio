@@ -17,11 +17,14 @@ const STEP = { captions: "Reading the captions...", clips: "Finding the best mom
 // the captions plus one clip pass; a video over about 40 minutes takes a pass per 40, so this is a floor
 const RUN_PRICE: Price = { ...(sumPrices(priceOf("yt-captions"), priceOf("video-clips")) as Price), kind: "from" };
 
-/** Edit a video's start screen: paste a YouTube link, get its best clips from the captions. */
-export default function YoutubeClips({ userId }: { userId: string | null }) {
+/**
+ * Edit a video's start screen: paste a YouTube link, get its best clips from the captions. Inside Leo's clips panel
+ * (`panel`) the button finds moments rather than clips, since no file is cut, and ?yt= fills the link.
+ */
+export default function YoutubeClips({ userId, panel }: { userId: string | null; panel?: { yt?: string } }) {
   const [job, setJob] = useState<YoutubeJob | null>(youtubeJob());
   const [saved, setSaved] = useState<Result | null>(null);
-  const [url, setUrl] = useState(job?.url ?? "");
+  const [url, setUrl] = useState(job?.url ?? panel?.yt ?? "");
 
   useEffect(() => onYoutubeJob(setJob), []);
   useEffect(() => setSaved(userId ? loadYoutubeClips(userId) : null), [userId]);
@@ -37,8 +40,8 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
   const why = reasonText({ left, leo });
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border/60 p-4">
-      <h2 className="text-sm font-semibold">Find clips in a YouTube video</h2>
+    <section className={panel ? "space-y-2" : "space-y-3 rounded-2xl border border-border/60 p-4"}>
+      <h2 className={panel ? "text-xs font-semibold" : "text-sm font-semibold"}>{panel ? "Or paste a YouTube link" : "Find clips in a YouTube video"}</h2>
       <form
         className="flex flex-col gap-2 sm:flex-row"
         onSubmit={(e) => {
@@ -49,7 +52,7 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
         <Input type="url" inputMode="url" placeholder="Paste a YouTube link" aria-label="YouTube link" value={url}
           onChange={(e) => setUrl(e.target.value)} disabled={busy} className="h-11 sm:h-10" />
         <Button type="submit" variant="outline" disabled={busy || !userId || !url.trim() || left === 0} className="h-11 shrink-0 sm:h-10">
-          {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {STEP[job.state]}</> : "Find clips"}
+          {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {STEP[job.state]}</> : panel ? "Find moments" : "Find clips"}
         </Button>
       </form>
       {leo && !busy && <p><PriceChip price={RUN_PRICE} left={left} /></p>}
@@ -83,7 +86,9 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-muted-foreground">To cut one into a reel, upload the video file above.</p>
+          <p className="text-xs text-muted-foreground">
+            {panel ? "YouTube's terms don't allow downloading the video. Upload your own copy to cut these into clips." : "To cut one into a reel, upload the video file above."}
+          </p>
         </div>
       )}
     </section>

@@ -116,7 +116,7 @@ export function startFind(projectId: string, run: () => Promise<FoundClip[]>, wh
     (list) => {
       found.set(projectId, list);
       if (mirror) landed.add(projectId);
-      if (mirror) setFormatJob({ slug: SLUG, label: LABEL, format: "video", state: "ready", href: links.edit({ p: projectId, section: "clips" }) });
+      if (mirror) setFormatJob({ slug: SLUG, label: LABEL, format: "video", state: "ready", step: `${list.length} ${list.length === 1 ? "clip" : "clips"} ready`, href: links.edit({ p: projectId, section: "clips" }) });
       return list;
     },
     (e: unknown) => {

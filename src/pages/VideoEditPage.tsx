@@ -9,6 +9,8 @@ import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
 import ClipFinder from "@/components/ClipFinder";
+import ClipsPanel from "@/components/ClipsPanel";
+import OwnMediaPanel from "@/components/OwnMediaPanel";
 import ExportRunning from "@/components/ExportRunning";
 import ExportSizes from "@/components/ExportSizes";
 import MotionControls from "@/components/MotionControls";
@@ -193,9 +195,9 @@ import { pairShare, slidesCaptionY } from "@/lib/stacked";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
-import { onCaptionJob } from "@/lib/captionJob";
-import { onClipFind } from "@/lib/clipAsk";
-import { readsLonger } from "@/lib/ownMedia";
+import { onCaptionJob, startCaptions } from "@/lib/captionJob";
+import { onClipFind, runClipAsk, setClipAsk, startLook, type ClipAsk } from "@/lib/clipAsk";
+import { FEW_WORDS, LEO_PANELS, NO_SOUND, START_PANELS, footageWords, readsLonger, withPanel, type StartPanel } from "@/lib/ownMedia";
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
@@ -203,15 +205,15 @@ import { peaksFrom } from "@/lib/videoEdit";
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
 // then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
 type Tab = EditTab;
-const START_PANELS = ["join", "ai"] as const;
-// Words over a video is north-star work: Leo's sign-ins only (docs/north-star/README.md, "The gate")
-const LEO_PANELS = [...START_PANELS, "wall"] as const;
-type StartPanel = (typeof LEO_PANELS)[number];
+// The start panels are START_PANELS for everyone; Words over a video, Your own video or pictures and Long video into
+// clips are north-star work for Leo's sign-ins only (LEO_PANELS, src/lib/ownMedia.ts; docs/north-star/README.md, "The gate").
 const WALL_ERROR = "That video couldn't be opened. Try an MP4 or MOV.";
 // stickers with no words; every other kind gets a text field in the sticker editor
 const SHAPES: OverlayKind[] = ["arrow", "circle", "underline"];
 // the AI panel's params (docs/deep-links.md), dropped when it closes
 const AI_PARAMS_GONE = Object.fromEntries(["kind", "template", "talk", "offer", "look", "from", "topic", "link", "draft", "secs", "visuals"].map((k) => [k, null]));
+// the clips panel's (about is read once and gone already), dropped when it or the own panel's closes or own opens
+const CLIPS_PARAMS_GONE = { about: null, len: null, yt: null };
 // An upload is captioned in one use only while it is one part (captionPlan: up to 1.2 x PART_SECONDS), so its price is a ceiling.
 const UPLOAD_CAPTIONS: Price = { ...(priceOf("video-transcribe", { minutes: (PART_SECONDS * 1.2) / 60 }) as Price), kind: "upTo" };
 
@@ -241,7 +243,12 @@ export default function VideoEditPage() {
   // a find saves its clips as projects (clipAsk.ts, outside React), whichever screen is open
   useEffect(() => (userId ? onClipFind(() => setProjects(loadProjects(userId))) : undefined), [userId]);
 
-  const upload = async (file: File, extra?: JoinExtra) => {
+  /**
+   * `ask` is what a start panel wants beyond a hand-off's extra: the look a recording starts with (else today's default
+   * skill), the clips to find by itself once its words land (clipAsk.ts), and words on screen for footage that turns
+   * out to have little or no speech (ownMedia.ts). A recording from a panel captions itself.
+   */
+  const upload = async (file: File, extra?: JoinExtra, ask?: { look?: string; clips?: ClipAsk; own?: { about: string } }) => {
     // A file picked before the sign-in check finished must not be dropped.
     const uid = userId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
     if (!uid) return toast({ title: "Sign in again to edit videos", variant: "destructive" });
@@ -249,6 +256,21 @@ export default function VideoEditPage() {
     if (!file.type.startsWith("video/") && !sound) return toast({ title: "That isn't a video or sound file", variant: "destructive" });
     if (file.size > MAX_LONG_BYTES) return toast({ title: "That file is over 4 GB", description: "Trim it or export a smaller copy first.", variant: "destructive" });
     const id = `v${Date.now().toString(36)}`;
+    const look = startLook(loadSkills(uid), ask?.look ?? "");
+    const pending = look.skill?.prompt ? { pendingSkill: look.skill.id } : {};
+    // the own panel's words on screen for footage with little or no speech; a failure keeps the video as it is
+    const withOwnWords = async (p: VideoProject, about: string): Promise<VideoProject> => {
+      setBusy("Writing the words...");
+      try {
+        const w = await footageWords(uid, about, p.duration);
+        const next = { ...p, settings: { ...p.settings, hook: w.hook, overlays: [...(p.settings.overlays ?? []), ...w.overlays] } };
+        setProjects(saveProject(uid, next));
+        return next;
+      } catch (e) {
+        toast({ title: "Couldn't write the words", description: (e as Error).message, variant: "destructive" });
+        return p;
+      }
+    };
     try {
       setBusy("Reading your video...");
       const read = await mediaLength(file);
@@ -290,41 +312,58 @@ export default function VideoEditPage() {
         const thumb = sound ? waveThumb(peaksFrom(await (await openSound(file, length)).read(0, 120), RATE)) : (await stills(file, [0.3], 240))[0];
         setBusy("Saving it on this device...");
         await putFile(id, file);
-        setProjects(saveProject(uid, {
+        const long: VideoProject = {
           id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
-          words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra?.settings }, thumb,
-          ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
+          words: [], settings: { ...look.settings, ...extra?.settings }, thumb, ...pending,
           ...pickupPlan(extra, "long").keep,
-        }));
+        };
+        setProjects(saveProject(uid, long));
         open("long");
+        if (ask?.clips) setClipAsk(id, ask.clips);
+        // a panel's recording captions itself, with no "Caption it in N parts" press (formats-clips)
+        // shortcut: a long video from the own panel gets captions only; words for footage over 12 minutes with no speech wait for a real case
+        if (ask) void startCaptions(uid, long, file).catch((e) => toast({ title: "Captions didn't start", description: (e as Error).message, variant: "destructive" }));
         return;
       }
       await putFile(id, file);
       const thumb = sound ? waveThumb(await audioPeaks(file)) : (await stills(file, [0.3], 240))[0];
-      const { wav, duration } = await extractWav(file);
+      // a video with no sound track at all, sent by the own panel, is silent footage: words on screen, nothing to caption
+      const heard = await extractWav(file).catch((e) => {
+        if (ask?.own && Number.isFinite(length) && length > 0) return null;
+        throw e;
+      });
+      const duration = heard?.duration ?? length;
       let p: VideoProject = {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
-        words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra?.settings }, thumb,
-        ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
+        words: [], settings: { ...look.settings, ...extra?.settings }, thumb, ...pending,
         ...pickupPlan(extra, extra?.settings?.captions === false ? "no-captions" : "captions").keep,
       };
       setProjects(saveProject(uid, p));
+      if (ask?.clips) setClipAsk(id, ask.clips);
       // a montage has no speech to caption; it opens with its look, words and music, and says what stood in for a clip
-      if (extra?.settings?.captions === false) {
+      if (extra?.settings?.captions === false || !heard) {
+        if (ask?.own) await withOwnWords(p, ask.own.about);
         open("no-captions");
         return;
       }
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       let landed = false;
+      let silent = false;
       try {
-        const t = await transcribe(wav);
+        const t = await transcribe(heard.wav);
         const fixed = applyFixes(t.words, loadFixes(uid));
         p = { ...p, words: fixed.words };
         setProjects(saveProject(uid, p));
         landed = true;
         if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
       } catch (e) {
-        toast({ title: "Captions didn't come through", description: `${(e as Error).message} Your video is saved; press Caption it to retry.`, variant: "destructive" });
+        silent = (e as Error).message === NO_SOUND;
+        // footage from the own panel with no sound gets words on screen below instead
+        if (!(ask?.own && silent)) toast({ title: "Captions didn't come through", description: `${(e as Error).message} Your video is saved; press Caption it to retry.`, variant: "destructive" });
+      }
+      if (ask?.clips && landed) runClipAsk(id, p.words);
+      if (ask?.own && (landed ? p.words.length < FEW_WORDS : silent)) {
+        p = await withOwnWords(p, ask.own.about);
       }
       // a format's toast once the captions land; a failure keeps the failure's words on screen
       open("captions", !landed);
@@ -373,7 +412,7 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
   leo: boolean;
   busy: string;
   projects: VideoProject[];
-  onUpload: (f: File, extra?: JoinExtra) => void;
+  onUpload: (f: File, extra?: JoinExtra, ask?: { look?: string; clips?: ClipAsk; own?: { about: string } }) => void;
   onOpen: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
@@ -385,11 +424,14 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
   const joinOpen = panels.includes("join");
   const aiOpen = aiAuto || panels.includes("ai");
   const wallOpen = panels.includes("wall");
-  // opening pushes, so Back closes it; closing the AI panel drops every param it reads too
-  const openPanel = (k: StartPanel) => updateUrl({ panel: [...panels, k].join(",") }, { push: true });
+  const ownOpen = panels.includes("own");
+  const clipsOpen = panels.includes("clips");
+  // opening pushes, so Back closes it; own and clips open one at a time; closing a panel drops the params it reads too
+  const gone = (k: StartPanel) => (k === "ai" ? AI_PARAMS_GONE : k === "clips" || k === "own" ? CLIPS_PARAMS_GONE : {});
+  const openPanel = (k: StartPanel) => updateUrl({ panel: withPanel(panels, k).join(","), ...(k === "own" ? CLIPS_PARAMS_GONE : {}) }, { push: true });
   const closePanel = (k: StartPanel) => {
     if (k === "ai") setAiAuto(false);
-    updateUrl({ panel: panels.filter((x) => x !== k).join(","), ...(k === "ai" ? AI_PARAMS_GONE : {}) });
+    updateUrl({ panel: panels.filter((x) => x !== k).join(","), ...gone(k) });
   };
   const left = useUsesLeft(!!busy);
   const captions = left("video-transcribe");
@@ -403,7 +445,8 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
           ))}
         </ul>
       </header>
-      <label
+      {/* the own and clips panels have their own drop zone and show the busy line themselves */}
+      {!ownOpen && !clipsOpen && <label
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) onUpload(f); }}
@@ -428,13 +471,17 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
         )}
         <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
-      </label>
+      </label>}
+      {ownOpen && <OwnMediaPanel userId={userId} busy={busy} onUpload={onUpload} onJoin={() => openPanel("join")} onClose={() => closePanel("own")} />}
+      {clipsOpen && <ClipsPanel userId={userId} busy={busy} onStart={(f, ask) => onUpload(f, undefined, ask)} onClose={() => closePanel("clips")} />}
       {wallOpen && <WallStart busy={busy} onMake={(f, text) => onUpload(f, { settings: wallSettings(text, readSeconds(text)) })} onClose={() => closePanel("wall")} />}
       {joinOpen && <JoinTakes onClose={() => closePanel("join")} />}
       {aiOpen && <AiVideo onClose={() => closePanel("ai")} />}
-      {!busy && (!joinOpen || !aiOpen || (leo && !wallOpen)) && (
-        <div className="flex flex-col gap-2 sm:flex-row">
+      {!busy && (!joinOpen || !aiOpen || (leo && (!wallOpen || !ownOpen || !clipsOpen))) && (
+        <div className="flex flex-col flex-wrap gap-2 sm:flex-row">
           {leo && !wallOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("wall")}>Words over a video</Button>}
+          {leo && !ownOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("own")}>Your own video or pictures</Button>}
+          {leo && !clipsOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("clips")}>Long video into clips</Button>}
           {!joinOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("join")}>Join several takes into one video</Button>}
           {!aiOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("ai")}>Make a video without filming</Button>}
         </div>
@@ -462,7 +509,8 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
           </ul>
         </section>
       )}
-      <YoutubeClips userId={userId} />
+      {/* Leo finds YouTube moments inside Long video into clips */}
+      {!leo && <YoutubeClips userId={userId} />}
     </>
   );
 }
