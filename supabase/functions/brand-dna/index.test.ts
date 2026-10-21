@@ -196,6 +196,16 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(db.refunded).toEqual([]);
   });
 
+  it("never follows a same-site link whose path starts with // onto another host", async () => {
+    site();
+    // anchorsOf keeps the path "//evil.example/steal"; resolved against the home page it would name evil.example
+    routes["https://acme.sg/"] = html(`<html lang="en"><title>Acme Wealth</title><a href="https://acme.sg//evil.example/steal">About us</a>`);
+    jevReply = (q: Record<string, unknown>) => ("p0" in q ? { p0: { type: "noul", noul: 0.9 } } : picks(q));
+    const r = await call({ url: "acme.sg", deep: true }, "leo");
+    expect(r.status).toBe(200);
+    expect(seen.some((u) => new URL(u).hostname.endsWith("evil.example"))).toBe(false);
+  });
+
   it("reads the home page alone, in today's prompt, when Jev is silent, and a listed plain read gains pagesRead and lang", async () => {
     site();
     delete env.TYPESAFE_API_KEY;

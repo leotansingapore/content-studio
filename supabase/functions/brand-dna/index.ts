@@ -90,7 +90,10 @@ async function morePages(site: SiteFacts, home: URL): Promise<{ url: URL; html: 
   const deadline = AbortSignal.timeout(20_000);
   const pages = await Promise.all(pickPages(answers, site.anchors).map(async (a) => {
     try {
-      const page = await fetchCapped(new URL(a.path, home), PAGE_BYTES, HTML, deadline);
+      // the path is the site's own, but "//host/x" would resolve to another host: rebuild it on the home page's origin
+      const at = new URL(`/${a.path.replace(/^\/+/, "")}`, home.origin);
+      if (at.host !== home.host) return null;
+      const page = await fetchCapped(at, PAGE_BYTES, HTML, deadline);
       // not a web page, or a link that lands back on the home page
       if (!/html|xml|text/.test(page.type) || page.url.href === home.href) return null;
       const html = new TextDecoder().decode(page.bytes);
