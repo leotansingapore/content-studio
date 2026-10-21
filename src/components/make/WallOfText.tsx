@@ -30,7 +30,8 @@ import { loadFollowing } from "@/lib/following";
 import { links } from "@/lib/links";
 import { priceOf, priceText, sumPrices } from "@/lib/prices";
 import { brandName } from "@/lib/remixBrand";
-import { fromFollowPost, fromTopPost, fromTrend, noteKey, rememberSource, type RemixSource } from "@/lib/remixSource";
+import { fromFollowPost, fromFormatTrend, fromTopPost, fromTrend, noteKey, rememberSource, type RemixSource } from "@/lib/remixSource";
+import { currentFormatTrends } from "@/lib/formatTrends";
 import { engagementScore, getAllTopPosts } from "@/lib/topPosts";
 import { TRENDS } from "@/lib/trends";
 import { useUrlFlag, useUrlState, useUrlUpdate } from "@/lib/urlState";
@@ -115,15 +116,16 @@ function lastBg(): WallBg {
   }
 }
 
-/** Trend kits with a TikTok or Instagram video, then the swipe file's videos by engagement, then followed accounts' videos. */
+/** This week's trending TikTok walls of text, trend kits with a TikTok or Instagram video, then the swipe file's videos by engagement, then followed accounts' videos. */
 function trendingWalls(userId: string): RemixSource[] {
+  const formats = currentFormatTrends().filter((t) => t.kind === "wall-of-text").map(fromFormatTrend);
   const trends = TRENDS.filter((t) => t.source_url && (t.platform === "tiktok" || t.platform === "instagram")).map(fromTrend);
   const top = getAllTopPosts()
     .slice()
     .sort((a, b) => engagementScore(b) - engagementScore(a))
     .map((p) => fromTopPost(p, { id: p.advisorId, name: p.advisorName, handle: p.handle }));
   const followed = loadFollowing(userId).flatMap((a) => a.posts.map((p) => fromFollowPost(a, p)));
-  return [...trends, ...top, ...followed].filter((s) => s.format === "video");
+  return [...formats, ...trends, ...top, ...followed].filter((s) => s.format === "video");
 }
 
 /** `scene`: Words over a made scene (/make/text-over-clip), a clip ai-video makes behind the words. */

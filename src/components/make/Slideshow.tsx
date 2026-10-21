@@ -25,7 +25,8 @@ import { slideFileName } from "@/lib/carousel";
 import { downloadBlob } from "@/lib/carouselRender";
 import { scanCompliance } from "@/lib/compliance";
 import { draftsChanged, getDraftById, upsertDraft } from "@/lib/draftHistory";
-import { fromFollowPost, fromTopPost, noteKey, rememberSource, type RemixSource } from "@/lib/remixSource";
+import { fromFollowPost, fromFormatTrend, fromTopPost, noteKey, rememberSource, type RemixSource } from "@/lib/remixSource";
+import { currentFormatTrends } from "@/lib/formatTrends";
 import { loadFollowing } from "@/lib/following";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
@@ -101,12 +102,13 @@ function useShow(userId: string, id: string | null | undefined): Show | null {
   return (id && shows.find((s) => s.id === id)) || null;
 }
 
-/** The swipe file's carousels and any a followed account posted, most engaging first (engagementScore). */
+/** This week's trending TikTok slideshows first, then the swipe file's carousels and any a followed account posted, most engaging first (engagementScore). */
 function trendingSlideshows(userId: string): RemixSource[] {
+  const formats = currentFormatTrends().filter((t) => t.kind === "slideshow").map(fromFormatTrend);
   const top = getAllTopPosts().map((p) => fromTopPost(p, { id: p.advisorId, name: p.advisorName, handle: p.handle }));
   const followed = loadFollowing(userId).flatMap((a) => a.posts.map((p) => fromFollowPost(a, p)));
   const score = (s: RemixSource) => (s.numbers?.likes ?? 0) + 3 * (s.numbers?.comments ?? 0);
-  return [...top, ...followed].filter((s) => s.format === "carousel").sort((a, b) => score(b) - score(a));
+  return [...formats, ...[...top, ...followed].filter((s) => s.format === "carousel").sort((a, b) => score(b) - score(a))];
 }
 
 export default function Slideshow({ userId, source }: { userId: string; source: RemixSource | null }) {
