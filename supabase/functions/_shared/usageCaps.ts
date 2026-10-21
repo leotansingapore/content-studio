@@ -160,6 +160,16 @@ export const DAILY_LIMITS = {
   "search-topics-global": 10,
   // What worked for a followed account (remix-patterns): Jev on 12 posts plus one OpenAI call for the ideas.
   "remix-patterns": 10,
+  // North star phase 3, declared up front (Leo only, NORTH_STAR_USERS). Words for your own video or pictures (video-assist own-words): one short LLM call plus one Jev hook pick.
+  "own-words": 20,
+  // A pasted article read for a narrated video (ai-video read): one capped page fetch and one Jev question.
+  "page-read": 10,
+  // A post split into a Threads or X thread (video-assist thread): one LLM call.
+  "thread-copy": 30,
+  // One carousel slide rewritten from a typed ask (carousel-copy ask): about 700 tokens in and 100 out on gpt-4.1.
+  "edit-ask": 60,
+  // The key word and emoji for each caption line (video-assist keywords): Jev only.
+  "caption-keywords": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

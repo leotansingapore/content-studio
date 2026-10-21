@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CREDIT_USD, avatarCredits, clipCredits, creditsUsd, explainerCredits } from "../ai-video/logic";
-import { AVATAR_MAX, NO_PRICE, PRICES, WRITE_PRICE, priceOf, priceText, sumPrices } from "./prices";
+import { AVATAR_MAX, DOP_LITE_CREDITS, NO_PRICE, PRICES, WRITE_PRICE, priceOf, priceText, sumPrices } from "./prices";
 import { DAILY_LIMITS, type UsageFeature } from "./usageCaps";
 
 describe("the price table", () => {
@@ -36,6 +36,24 @@ describe("the price table", () => {
       "viral-search-global", "brief-pick", "creator-fit", "search-topics-global"] as UsageFeature[]) {
       expect(priceOf(f), f).toBeNull();
     }
+  });
+
+  it("prices the phase-3 caps", () => {
+    expect(priceOf("own-words")).toEqual({ usd: 0.01, kind: "about" });
+    expect(priceOf("thread-copy")).toEqual({ usd: 0.01, kind: "about" });
+    expect(priceOf("edit-ask")).toEqual({ usd: 0.002, kind: "about" });
+    expect(priceText(priceOf("edit-ask") as { usd: number; kind: "about" })).toBe("Under US$0.01");
+    expect(priceOf("page-read")).toBeNull();
+    expect(priceOf("caption-keywords")).toBeNull();
+  });
+
+  it("adds DoP lite per scene when an explainer's scenes move", () => {
+    expect(DOP_LITE_CREDITS).toBe(2);
+    expect(priceOf("ai-video", { scenes: 5, move: false })).toEqual(priceOf("ai-video", { scenes: 5 }));
+    expect(priceOf("ai-video", { scenes: 5, move: true })).toEqual({ usd: creditsUsd(explainerCredits(5) + 10), kind: "about" });
+    expect(priceText(priceOf("ai-video", { scenes: 5, move: true }) as { usd: number; kind: "about" })).toBe("About US$0.65");
+    // move only touches the explainer's pictures, never an avatar's slices
+    expect(priceOf("ai-video", { seconds: 15, move: true })).toEqual(priceOf("ai-video", { seconds: 15 }));
   });
 
   it("prices AI video from the Higgsfield credits", () => {

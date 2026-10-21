@@ -18,9 +18,13 @@ export interface PriceOpts {
   scenes?: number;
   minutes?: number;
   passes?: number;
+  /** An explainer whose scenes move: DoP lite per scene on top of its pictures. */
+  move?: boolean;
 }
 
 const about = (usd: number): Price => ({ usd, kind: "about" });
+/** DoP lite moving one scene's picture for 5 s. Higgsfield estimate 2026-10-09, ai-image/broll.ts. */
+export const DOP_LITE_CREDITS = 2;
 const upTo = (usd: number): Price => ({ usd, kind: "upTo" });
 
 /** Every paid cap, priced from the cost constants in the functions. A function gives null while its option is not picked. */
@@ -28,10 +32,11 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // Higgsfield credits (ai-video/logic.ts). An avatar by its voiceover slices: about US$2.75 for 15 s, up to US$5.50
   // (AVATAR_MAX, for a price before the script exists). Before the voiceover exists, `seconds` (from the script's
   // words, capped at MAX_AVATAR_SECONDS) is cut the way planSlices cuts flat audio: whole MAX_SLICE slices, then the rest.
-  // An explainer by its scene pictures only: callers add priceOf("ai-voice") for its voiceover (sumPrices).
+  // An explainer by its scene pictures only, plus DOP_LITE_CREDITS a scene with move: callers add priceOf("ai-voice")
+  // for its voiceover (sumPrices).
   "ai-video": (o) => {
     if (o.slices?.length) return about(creditsUsd(avatarCredits(o.slices.slice(0, MAX_SLICES))));
-    if (o.scenes && o.scenes > 0) return about(creditsUsd(explainerCredits(o.scenes)));
+    if (o.scenes && o.scenes > 0) return about(creditsUsd(explainerCredits(o.scenes) + (o.move ? DOP_LITE_CREDITS * o.scenes : 0)));
     if (o.seconds && o.seconds > 0) {
       const slices: number[] = [];
       let rest = Math.min(o.seconds, MAX_AVATAR_SECONDS);
@@ -100,6 +105,10 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "post-tags": about(0.01), // teardown OpenAI + Jev, unverified
   "search-topics": upTo(0.098), // 5 Labs tasks + 30 items each + 10 YouTube pages
   "remix-patterns": about(0.01), // Jev on 12 posts + one OpenAI call, unverified
+  // North star phase 3 (phase3-build-brief.md, vendors).
+  "own-words": about(0.01), // one short LLM call plus one Jev pick, unverified
+  "thread-copy": about(0.01), // one LLM call, unverified
+  "edit-ask": about(0.002), // about 700 tokens in and 100 out at gpt-4.1's US$2 / US$8 per million
 };
 
 /** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
@@ -109,7 +118,9 @@ export const AVATAR_MAX: Price = upTo(creditsUsd(avatarCredits(Array<number>(MAX
 export const NO_PRICE: UsageFeature[] = [
   // Jev only
   "post-score", "writing-judge", "fact-check", "cold-open", "motion-picks", "montage-pick", "music-mood", "week-pick",
-  "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit",
+  "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "caption-keywords",
+  // one capped page fetch and one Jev question
+  "page-read",
   // free or a relay
   "stock-search", "reel-video",
   // across everyone

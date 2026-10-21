@@ -115,6 +115,15 @@ describe("the north-star phase-2 caps", () => {
   });
 });
 
+describe("north-star phase-3 caps", () => {
+  // Declared up front so no later phase-3 task edits this file (phase3-build-brief.md, usage caps and prices).
+  it("holds the 5 limits the build brief set", () => {
+    const phase3 = { "own-words": 20, "page-read": 10, "thread-copy": 30, "edit-ask": 60, "caption-keywords": 30 };
+    expect(Object.keys(phase3)).toHaveLength(5);
+    expect(DAILY_LIMITS).toMatchObject(phase3);
+  });
+});
+
 describe("the edge functions that spend", () => {
   // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
   // every call: the feature would say "You've used all undefined for today" from its first use.
