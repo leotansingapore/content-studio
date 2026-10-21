@@ -6,13 +6,14 @@ vi.mock("@/lib/videoMedia", () => ({
   startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn(), endJoin: vi.fn(() => null),
 }));
 vi.mock("@/lib/textVoice", () => ({
-  audioSeconds: vi.fn(async () => 30), speak: vi.fn(async () => new Blob(["mp3"])),
+  audioSeconds: vi.fn(async () => 30), speak: vi.fn(async () => new Blob(["mp3"])), speakDub: vi.fn(), DUB_LANGS: { zh: "Chinese", ms: "Malay", ta: "Tamil" },
 }));
 
 import { callFn } from "@/lib/edgeFn";
-import { currentJoin, deleteFile, endJoin, getFile, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
+import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
+import { speakDub } from "@/lib/textVoice";
 import {
-  DEMO_GONE, REMAKE_FAILED, aiBusy, aiJob, makeAvatar, makeExplainer, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
+  DEMO_GONE, REMAKE_FAILED, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
   pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake,
 } from "./aiVideo";
 
@@ -540,4 +541,31 @@ describe("an AI video of your face or a saved presenter (people-dub-lipsync)", (
     });
   });
 
+  describe("the same face in another language", () => {
+    const dub = (seconds: number) => {
+      vi.mocked(speakDub).mockResolvedValue({ audio: new Blob(["dub"]), spans: [{ s: 0.2, e: 2.8 }, null, { s: 3.4, e: 5.6 }] });
+      vi.mocked(monoPcm).mockResolvedValue({ pcm: new Float32Array(Math.round(24000 * seconds)), duration: seconds });
+    };
+
+    it("speaks the reviewed lines, gives the part their words from the dub's times, and makes it on the same face", async () => {
+      made(1);
+      dub(6);
+      const extra = { toast: "Your Chinese video is ready.", ai: { ...mark, lang: "zh" as const } };
+      const run = makeInLanguage("Clip (Chinese)", "https://cdn.example/face.jpg", ["大多数人付太多。", "", "看看你的。"], "alice", "zh", extra);
+      expect(aiJob()).toMatchObject({ kind: "avatar", state: "working", step: "Making the Chinese voice..." });
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      expect(speakDub).toHaveBeenCalledWith(["大多数人付太多。", "", "看看你的。"], "alice", "zh");
+      expect(vi.mocked(startJoin).mock.calls[0][0]).toBe("Clip (Chinese)");
+      expect(joinedExtra()).toMatchObject({ toast: "Your Chinese video is ready.", ai: { ...mark, lang: "zh", slices: [{ text: "大多数人付太多。看看你的。", start: 0, end: 6 }] } });
+    });
+
+    it("refuses a dub that runs past 30 seconds before anything goes to Speak", async () => {
+      made(1);
+      dub(31.5);
+      await makeInLanguage("Clip (Malay)", "https://cdn.example/face.jpg", ["Satu.", "", "Dua."], "alice", "ms", { ai: mark });
+      expect(aiJob()).toMatchObject({ state: "failed", error: "It runs 32 seconds in Malay. Shorten a line to keep it under 30." });
+      expect(callFn).not.toHaveBeenCalled();
+    });
+  });
 });

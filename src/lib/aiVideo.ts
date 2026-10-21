@@ -10,14 +10,15 @@
 // A narrated video (Leo's explainer with opts: stock clips, a look, moving scenes) is kept the same way, under its own key
 // with its voiceover as a device file; today's explainer (no opts) runs exactly as before and is not kept.
 // An avatar video of your face or a saved presenter (people-dub-lipsync, Leo's) also keeps each Speak part on this device,
-// so a changed line is made again on its own parts (remakeParts).
+// so a changed line is made again on its own parts (remakeParts) and the same face can speak another language (makeInLanguage).
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
 import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
-import { audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
+import { DUB_LANGS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
+import { textsFromSpans } from "@/lib/avatarScript";
 import type { AiPart } from "@/lib/videoEdit";
-import { MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
+import { MAX_AVATAR_SECONDS, MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
 
 export {
@@ -322,6 +323,28 @@ export async function makeTemplateClip(name: string, ask: TemplateAsk, more?: { 
 export function resumeAvatar(): void {
   const p = pendingAvatar();
   if (p && !aiBusy()) void finishAvatar(p);
+}
+
+// ---------- the same face in another language (people-dub-lipsync part B) ----------
+
+/**
+ * The reviewed lines spoken in `lang` in one call with when each is said, cut into Speak parts like any voiceover, each
+ * part's words from those times, then made on the same face as a new avatar video that opens as its own project.
+ */
+export async function makeInLanguage(name: string, photo: Blob | string, lines: string[], voice: VoiceId, lang: DubLang, extra: JoinExtra): Promise<void> {
+  if (aiBusy()) return;
+  set({ kind: "avatar", state: "working", step: `Making the ${DUB_LANGS[lang]} voice...` });
+  let vo: Voiceover;
+  try {
+    const { audio, spans } = await speakDub(lines, voice, lang);
+    const cut = await sliceVoiceover(audio);
+    if (cut.seconds > MAX_AVATAR_SECONDS + 0.5) throw new Error(`It runs ${Math.round(cut.seconds)} seconds in ${DUB_LANGS[lang]}. Shorten a line to keep it under ${MAX_AVATAR_SECONDS}.`);
+    const texts = textsFromSpans(spans, lines, cut.slices, lang);
+    vo = { ...cut, slices: cut.slices.map((s, i) => ({ ...s, text: texts[i] })) };
+  } catch (e) {
+    return fail("avatar", e);
+  }
+  await startAvatar(name, photo, vo, extra);
 }
 
 // ---------- fixing a line: only the changed parts made again (people-dub-lipsync part A) ----------
