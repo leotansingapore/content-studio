@@ -88,9 +88,26 @@ describe("the Script card", () => {
   it("asks you to record the line when the video has your own voice", () => {
     store.set("cs-script-v1", JSON.stringify({ edits: ["Most people overpay.", "Get one plan you understand."] }));
     const mine = html({ ...project, ai: { ...project.ai, voice: undefined, voiceId: undefined } } as unknown as P, "/edit?p=v1&script=1");
+    expect(mine).toContain("Your own voice is in this video, so record each changed line again.");
     expect(mine).toContain("Record it");
     expect(mine).toContain("Record each changed line first.");
     expect(mine).not.toContain("Hear it");
+    expect(mine).not.toContain('aria-label="Voice"');
+
+    // its other language is spoken by a premade voice, picked here, and the card says it won't sound like you
+    store.set("cs-script-v1", JSON.stringify({ review: { lang: "ta", lines: ["ஒன்று.", "இரண்டு."] } }));
+    const ta = html({ ...project, ai: { ...project.ai, voice: undefined, voiceId: undefined } } as unknown as P, "/edit?p=v1&script=1&lang=ta");
+    expect(ta).toContain('aria-label="Voice"');
+    expect(ta).toContain("The Tamil version is spoken by the voice you pick, so it won&#x27;t sound like you.");
+    expect(html(project, "/edit?p=v1&script=1&lang=ta")).not.toContain("won&#x27;t sound like you");
+  });
+
+  it("lets you pick the voice when a premade video didn't record which", () => {
+    store.set("cs-script-v1", JSON.stringify({ edits: ["Most people overpay.", "Get one plan you understand."] }));
+    const unknown = html({ ...project, ai: { ...project.ai, voiceId: undefined } } as unknown as P, "/edit?p=v1&script=1");
+    expect(unknown).toContain('aria-label="Voice"');
+    expect(unknown).toContain("Hear it");
+    expect(html(project, "/edit?p=v1&script=1")).not.toContain('aria-label="Voice"');
   });
 
   it("opens a language's review beside the English with its price, or the button that translates it", () => {

@@ -145,6 +145,7 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
 
   if (!fixable || !ai) return null;
 
+  // only a premade voice can say a new line; a video with your own recording (voice unset) or a clone (4b) is recorded again
   const premade = ai.voice === "premade";
   const voice: VoiceId = ai.voiceId ?? picked;
   const fresh = (i: number) => !!takes[i] && takes[i].text === tidy(edits[i]);
@@ -246,7 +247,9 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
   const unheard = changed.some((i) => !fresh(i));
   const tooLong = changed.some((i) => fresh(i) && !!tooLongLine(takes[i].vo.seconds));
   const short = changed.some((i) => tidy(edits[i]).length < MIN_LINE);
-  const canRemake = k > 0 && !unheard && !tooLong && !short && !!face && here !== false && !busy && left("ai-video") !== 0;
+  // a fix paid for and not laid in yet is picked up with Try again, never paid twice
+  const owed = pendingRemake()?.projectId === project.id;
+  const canRemake = k > 0 && !unheard && !tooLong && !short && !!face && here !== false && !busy && !owed && left("ai-video") !== 0;
   const doRemake = () => {
     setAsking(false);
     void remakeParts(project, parts.map((p, i) => ({ ...p, text: base[i] })), face!, changed.map((i) => ({ i, text: tidy(edits[i]), voice: takes[i].vo })));
@@ -295,6 +298,14 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
     </div>
   );
   const fixing = remake?.projectId === project.id ? remake : null;
+  const status = fixing?.state === "working" ? working(fixing.step) : fixing?.state === "failed" ? (
+    <div className="flex flex-wrap items-center gap-2" role="alert">
+      <p className="text-sm text-destructive">{fixing.error}</p>
+      {owed && <Button size="sm" variant="outline" className={btn} onClick={resumeRemake}>Try again at no cost</Button>}
+    </div>
+  ) : null;
+  // the fix's progress sits where its button was; anywhere else in the card, at the top
+  const inFooter = open && !!face && !needsRead && !lang && here !== false;
 
   return (
     <section className="space-y-3 rounded-xl border border-border/70 p-3" aria-label="Script">
@@ -319,13 +330,7 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
           {LANGS.map((l) => <Button key={l} size="sm" variant="outline" className={btn} onClick={() => pickLang(l)}>{LANG_NAMES[l]}</Button>)}
         </div>
       )}
-      {fixing?.state === "working" && working(fixing.step)}
-      {fixing?.state === "failed" && (
-        <div className="flex flex-wrap items-center gap-2" role="alert">
-          <p className="text-sm text-destructive">{fixing.error}</p>
-          {pendingRemake()?.projectId === project.id && <Button size="sm" variant="outline" className={btn} onClick={resumeRemake}>Try again at no cost</Button>}
-        </div>
-      )}
+      {!inFooter && status}
 
       {open && face && (needsRead ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -354,6 +359,7 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
               ))}
             </ol>
             {!ai.voiceId && voicePills}
+            {!premade && <p className="text-xs text-muted-foreground">The {LANG_NAMES[lang]} version is spoken by the voice you pick, so it won't sound like you.</p>}
             <p className="flex flex-wrap items-center gap-x-2 text-sm">Check the {LANG_NAMES[lang]} before it's made. <PriceChip price={priceB} left={left("ai-video")} /></p>
             {redB && <p className="text-xs text-destructive">Check the flagged words first.</p>}
             {ours && job?.state === "working" ? working(job.step) : asking && askFirst(priceB) ? confirm("makes a video", priceB as Price, makeLang) : (
@@ -384,6 +390,8 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
         <p className="text-sm text-muted-foreground">{PARTS_GONE}</p>
       ) : (
         <div className="space-y-3">
+          {!premade && <p className="text-xs text-muted-foreground">Your own voice is in this video, so record each changed line again.</p>}
+          {premade && !ai.voiceId && voicePills}
           <ol className="space-y-3">
             {parts.map((p, i) => {
               const edited = changed.includes(i);
@@ -424,15 +432,20 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
               );
             })}
           </ol>
-          {k > 0 && (
+          {(k > 0 || status) && (
             <div className="space-y-2 border-t border-border/60 pt-3">
-              <p className="flex flex-wrap items-center gap-x-2 text-sm">Remakes {k} {k === 1 ? "part" : "parts"} of {parts.length}. <PriceChip price={price} left={left("ai-video")} /></p>
-              {unheard && !short && <p className="text-xs text-muted-foreground">{premade ? "Hear each changed line first." : "Record each changed line first."}</p>}
-              {red && <p className="text-xs text-destructive">Check the flagged words first.</p>}
-              {asking && askFirst(price) ? confirm(`remakes ${k === 1 ? "1 part" : `${k} parts`}`, price as Price, doRemake) : (
-                <Button className="h-11 sm:h-10" disabled={!canRemake} onClick={() => (askFirst(price) ? setAsking(true) : doRemake())}>
-                  {red ? "Make it anyway" : "Remake changed parts"}
-                </Button>
+              {k > 0 && <p className="flex flex-wrap items-center gap-x-2 text-sm">Remakes {k} {k === 1 ? "part" : "parts"} of {parts.length}. <PriceChip price={price} left={left("ai-video")} /></p>}
+              {fixing?.state === "working" ? status : (
+                <>
+                  {k > 0 && unheard && !short && <p className="text-xs text-muted-foreground">{premade ? "Hear each changed line first." : "Record each changed line first."}</p>}
+                  {k > 0 && red && <p className="text-xs text-destructive">Check the flagged words first.</p>}
+                  {k > 0 && (asking && askFirst(price) ? confirm(`remakes ${k === 1 ? "1 part" : `${k} parts`}`, price as Price, doRemake) : (
+                    <Button className="h-11 sm:h-10" disabled={!canRemake} onClick={() => (askFirst(price) ? setAsking(true) : doRemake())}>
+                      {red ? "Make it anyway" : "Remake changed parts"}
+                    </Button>
+                  ))}
+                  {status}
+                </>
               )}
             </div>
           )}
