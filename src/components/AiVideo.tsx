@@ -21,7 +21,7 @@ import { getDraftById } from "@/lib/draftHistory";
 import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { BANNER_MAX, MUSIC_LEVEL, STYLES, defaultSettings, moveTake, withLook } from "@/lib/videoEdit";
+import { BANNER_MAX, MUSIC_LEVEL, defaultSettings, moveTake, styleLabel, withLook } from "@/lib/videoEdit";
 import { defaultSkill, loadSkills } from "@/lib/videoSkills";
 import type { JoinExtra } from "@/lib/videoMedia";
 import {
@@ -1093,7 +1093,8 @@ function FromPost({ draftId, fill, gone, cut, onClear }: { draftId: string | nul
 /** Leo: the caption look a new video starts with (the default skill's, as the editor's upload uses), as Fastlane shows it. */
 function CaptionsLine({ userId }: { userId: string }) {
   const s = withLook(defaultSettings("bold"), defaultSkill(loadSkills(userId))?.look);
-  return <p className="text-xs text-muted-foreground">Captions: {s.captions === false ? "off" : STYLES[s.style].label}, saved for every new video.</p>;
+  // shown to Leo only, so his plain style names ("Outline", not "TikTok")
+  return <p className="text-xs text-muted-foreground">Captions: {s.captions === false ? "off" : styleLabel(s.style, true)}, saved for every new video.</p>;
 }
 
 function Pill({ on, onClick, disabled, children }: { on: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
