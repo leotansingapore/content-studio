@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -163,5 +164,17 @@ describe("the recap slide and the six-word cover", () => {
     expect(validateRecap(reply({ title: "", body: " " }))).toBeNull();
     expect(validateRecap("not json")).toBeNull();
     expect(validateRecap(reply({ title: "Recap", body: "• one\n\n• two" }))?.body).toBe("• one\n• two");
+  });
+});
+
+describe("today's tighten prompt (pinned at c49a22ca, before mode ask)", () => {
+  const four = [...slides.slice(0, 2), { title: "Second point", body: "More." }, slides[2]];
+  it("stays byte for byte for every platform and recap", () => {
+    const out = [
+      buildCarouselPrompt({ slides, platform: "instagram", recap: false }),
+      buildCarouselPrompt({ slides: four, platform: "linkedin", recap: true }),
+      buildCarouselPrompt({ slides: four, platform: "instagram", recap: true }),
+    ].map((p) => JSON.stringify(buildOpenAiBody(p)));
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("12859b3e25f10ded3bba68c79ef9ca784007a4deb0275ad074e2c25ffdd869e4");
   });
 });
