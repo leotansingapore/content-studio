@@ -387,7 +387,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
   const credits = vo ? avatarCredits(vo.slices.map((s) => s.end - s.start)) : 0;
   const videos = left("ai-video");
   const price = vo ? priceOf("ai-video", { slices: vo.slices.map((s) => s.end - s.start) }) : null;
-  // Leo's dearer presses ask first (phase 1: anything over about US$1)
+  // Leo's dearer presses ask first (phase 1: anything over about a dollar)
   const askFirst = !!user && !!price && price !== "pick" && price.usd >= 1;
   const make = async () => {
     setAsking(false);
