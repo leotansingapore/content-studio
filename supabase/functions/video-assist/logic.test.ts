@@ -566,3 +566,15 @@ describe("caption language", () => {
     for (const v of ["klingon", "", null, "en-US", "e"]) expect(langCode(v)).toBeNull();
   });
 });
+
+describe("the vibe edit prompt (pinned at c49a22ca, before caption key words)", () => {
+  it("is today's, word for word", async () => {
+    const { createHash } = await import("node:crypto");
+    const { VIBE_KEYS } = await import("./logic");
+    const all = Object.fromEntries(Object.keys(VIBE_KEYS).map((k) => [k, k]));
+    const settings = cleanSettings({ ...all, style: "native", size: 1.2, uppercase: true, keyWordsOn: true, captionEmoji: true, keyWords: [{ at: 1 }] });
+    expect(Object.keys(settings)).toEqual(Object.keys(VIBE_KEYS));
+    const m = buildVibeMessages({ instruction: "bigger captions", settings, transcript: "Most people pay twice.", duration: 12, frames: [] });
+    expect(createHash("sha256").update(JSON.stringify(m)).digest("hex")).toBe("690f5e0fcf2851acc66fbc82d641f3f844a861f26f5c27df1f02cecd86f7ee29");
+  });
+});

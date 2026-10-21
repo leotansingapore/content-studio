@@ -36,8 +36,9 @@ const db = vi.hoisted(() => {
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
 const calls: string[] = [];
-// what each provider call was sent (the request body as text)
+// what each provider call was sent (the request body as text, and as it was)
 const sent: string[] = [];
+const bodies: unknown[] = [];
 // what the stubbed providers answer; every call fails unless a test says otherwise
 let answer: (url: string) => Response = () => new Response("{}", { status: 500 });
 const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
@@ -50,6 +51,7 @@ beforeAll(async () => {
   vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
     calls.push(String(u));
     sent.push(String(init?.body ?? ""));
+    bodies.push(init?.body);
     return answer(String(u));
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -63,6 +65,7 @@ beforeEach(() => {
   db.rows.clear();
   calls.length = 0;
   sent.length = 0;
+  bodies.length = 0;
   answer = () => new Response("{}", { status: 500 });
 });
 
@@ -225,5 +228,23 @@ describe("Long video into clips: the panel's length", () => {
     await find(UID);
     expect(asked()).toContain("Each clip is 25 to 75 seconds");
     expect(asked()).not.toContain("12 to 35");
+  });
+});
+
+describe("Captions: what Whisper is asked (pinned at c49a22ca)", () => {
+  const FILLERS = "Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.";
+  const caption = (uid: string, q = "") =>
+    db.handler!(new Request(`http://x/video-assist?mode=transcribe${q}`, { method: "POST", headers: { Authorization: `Bearer ${uid}`, "content-length": "2000" }, body: new Uint8Array(2000) }));
+  const asked = () => bodies[0] as FormData;
+
+  it("sends everyone else the filler sample as the whole prompt, for one use", async () => {
+    answer = () => Response.json({ text: "Hi there.", duration: 1, language: "english", words: [] });
+    const res = await caption(UID, "&lang=en");
+    expect(res.status).toBe(200);
+    expect(calls).toEqual(["https://api.openai.com/v1/audio/transcriptions"]);
+    expect(asked().get("prompt")).toBe(FILLERS);
+    expect(asked().get("language")).toBe("en");
+    expect(asked().get("model")).toBe("whisper-1");
+    expect(db.rows.get(`${UID}|video-transcribe|${db.today()}`)).toBe(1);
   });
 });
