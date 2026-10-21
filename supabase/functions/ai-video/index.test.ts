@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
+import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
+import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM } from "./logic";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -40,9 +42,12 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 // Higgsfield: each picture submit answers from `submits` in turn; every call is kept, with each body sent to it.
 // OpenAI (the template's prompt writer) answers a usable shot prompt and keeps what it was sent.
 // `replies` (when set) answers OpenAI in turn instead: a body, or a status for a failure. Jev answers `jev` (null: no answer).
+// `answers` (when set) is Jev's whole reply instead. `status` answers a Higgsfield status read by job id (done by default),
+// and `pages` a page read by its link (a status number for a failure); `dns` resolves a host (public by default).
 const hf: {
   calls: string[]; submits: number[]; bodies: Record<string, unknown>[]; openai: { messages: { content: string }[] }[]; replies: (object | number)[]; jev: number | null; asked: unknown[];
-} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [] };
+  answers: Record<string, unknown> | null; status: Record<string, unknown>; pages: Record<string, { html: string; type?: string } | number>; dns: Record<string, string[]>;
+} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {} };
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
@@ -51,11 +56,26 @@ beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", HF_API_KEY: "k", HF_API_SECRET: "s", OPENAI_API_KEY: "k", NORTH_STAR_USERS: LEO, TYPESAFE_API_KEY: "k" };
-  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
+  vi.stubGlobal("Deno", {
+    serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn),
+    env: { get: (k: string) => env[k] },
+    resolveDns: async (host: string, t: string) => (t === "A" ? hf.dns[host] ?? ["93.184.216.34"] : []),
+  });
+  vi.stubGlobal("fetch", async (u: string | URL, init?: RequestInit) => {
     if (String(u).includes("typesafe")) {
       hf.asked.push(JSON.parse(String(init?.body)));
+      if (hf.answers) return answer({ answers: hf.answers });
       return hf.jev === null ? answer({}, 503) : answer({ answers: { mas: { type: "noul", noul: hf.jev } } });
+    }
+    const page = hf.pages[String(u)];
+    if (page !== undefined) {
+      hf.calls.push(String(u));
+      return typeof page === "number" ? new Response("no", { status: page }) : new Response(page.html, { headers: { "content-type": page.type ?? "text/html; charset=utf-8" } });
+    }
+    if (String(u).endsWith("/status")) {
+      hf.calls.push(String(u));
+      const id = String(u).split("/").at(-2)!;
+      return answer(hf.status[id] ?? { status: "completed", images: [{ url: `https://cdn.example/${id}.png` }] });
     }
     if (String(u).includes("openai")) {
       hf.openai.push(JSON.parse(String(init?.body)));
@@ -88,6 +108,10 @@ beforeEach(() => {
   hf.replies.length = 0;
   hf.jev = null;
   hf.asked.length = 0;
+  hf.answers = null;
+  hf.status = {};
+  hf.pages = {};
+  hf.dns = {};
 });
 
 const PICTURES = ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"];
@@ -236,5 +260,182 @@ describe("the presenter formats' script and set (NORTH_STAR_USERS only)", () => 
     hf.submits.push(500);
     expect((await send(LEO, { mode: "set", talk: "news" })).status).toBe(502);
     expect(used(LEO, "ai-image")).toBe(1);
+  });
+});
+
+describe("the narrated video (NORTH_STAR_USERS only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
+  const scenes = (n: number, words = 15) => Array.from({ length: n }, (_, i) => ({ say: `Scene ${i} ${"word ".repeat(words - 2).trim()}.`, picture: "A Malay Singaporean man in his 30s at a hawker centre", search: "hawker centre" }));
+  const SCRIPT = "Most people pay for their hospital stay twice. First the plan pays the ward. Then the bill still has a co-pay. Ask me what yours covers.";
+  const IDS = ["11111111-2222-4333-8444-555555555555", "66666666-7777-4888-9999-aaaaaaaaaaaa", "77777777-7777-4888-9999-bbbbbbbbbbbb"];
+  const tokensOf = async (uid: string, ids = IDS) => Promise.all(ids.map(async (id) => jobToken(await tokenSecret("service-role-key"), uid, id)));
+
+  it("refuses anyone not listed before any count or call: a source, a length, 7 pictures, a move or a read", async () => {
+    for (const body of [
+      { mode: "script", topic: "Why co-pays", seconds: 60 },
+      { mode: "script", topic: "", source: { kind: "script", text: SCRIPT } },
+      { mode: "explainer", pictures: Array(7).fill("A clinic waiting room in Toa Payoh") },
+      { mode: "explainer", pictures: ["A clinic waiting room in Toa Payoh"] },
+      { mode: "status", tokens: Array(7).fill("a.b") },
+      { mode: "move", tokens: ["a.b"] },
+      { mode: "move" },
+      { mode: "read", url: "https://www.moneysense.gov.sg/articles/co-pay" },
+      { mode: "read", url: "http://localhost/x" },
+    ]) {
+      const res = await send(UID, body);
+      expect(res.status, JSON.stringify(body)).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect(db.rows.size).toBe(0);
+    expect([hf.calls, hf.openai, hf.asked]).toEqual([[], [], []]);
+  });
+
+  it("writes anyone else's explainer exactly as today: today's rules, no search, no Jev", async () => {
+    hf.replies.push({ scenes: scenes(4, 12).map(({ say, picture }) => ({ say, picture })) });
+    const res = await send(UID, { mode: "script", topic: "Why hospital plans have a co-pay" });
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(Object.keys(out)).toEqual(["scenes", "usage"]);
+    expect(hf.openai[0].messages[0].content).toBe(SCRIPT_SYSTEM);
+    expect(hf.asked).toEqual([]);
+  });
+
+  it("makes anyone else's pictures as photos, a typed look ignored", async () => {
+    await send(UID, { mode: "explainer", pictures: ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"], look: "clay" });
+    expect(hf.bodies.map((b) => b.prompt)).toEqual(["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"].map((p) => `${p}\n\n${PEOPLE_RULE}`));
+  });
+
+  it("writes a listed account's 60 s script with a search per scene, Jev's look and its MAS answer, for one script use", async () => {
+    hf.replies.push({ scenes: scenes(9, 16) });
+    hf.answers = { look: { type: "choice", choice: "chalk", probabilities: { chalk: 0.55 } }, mas: { type: "noul", noul: 0.2 } };
+    const res = await send(LEO, { mode: "script", topic: "Why hospital plans have a co-pay", seconds: 60 });
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out.scenes).toHaveLength(9);
+    expect(out.scenes[0]).toMatchObject({ search: "hawker centre" });
+    expect(out).toMatchObject({ look: { id: "chalk", p: 0.55 }, mas: false });
+    expect(hf.openai[0].messages[0].content).toContain("140 to 170 words, about 60 seconds");
+    expect(JSON.stringify(hf.asked[0])).toContain("60-second narrated explainer");
+    expect(used(LEO, "ai-video-script")).toBe(1);
+  });
+
+  it("splits a pasted script keeping its words, retries once on a changed word, then keeps the use", async () => {
+    const split = ["Most people pay for their hospital stay twice.", "First the plan pays the ward. Then the bill still has a co-pay.", "Ask me what yours covers."];
+    const asScenes = (says: string[]) => ({ scenes: says.map((say) => ({ say, picture: "A clinic waiting room in Toa Payoh", search: "clinic" })) });
+    hf.replies.push(asScenes([...split.slice(0, 2), "Message me."]), asScenes(split));
+    const ok = await send(LEO, { mode: "script", topic: "", source: { kind: "script", text: SCRIPT } });
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).scenes.map((s: { say: string }) => s.say)).toEqual(split);
+    expect(hf.openai).toHaveLength(2);
+    expect(hf.openai[0].messages[1].content).toBe(`Script to split (keep every word): ${SCRIPT}`);
+
+    hf.replies.push(asScenes(["Changed."]), asScenes(["Changed again."]));
+    const bad = await send(LEO, { mode: "script", topic: "", source: { kind: "script", text: SCRIPT } });
+    expect(bad.status).toBe(422);
+    expect(await bad.json()).toMatchObject({ code: "unusable", error: "Couldn't split your script without changing it. Try again." });
+    expect(used(LEO, "ai-video-script")).toBe(2);
+  });
+
+  it("gives the script use back only when OpenAI never answered, and says nothing of a look or MAS with no Jev", async () => {
+    hf.replies.push(500);
+    const down = await send(LEO, { mode: "script", topic: "Why co-pays" });
+    expect(down.status).toBe(502);
+    expect(await down.json()).toMatchObject({ code: "failed" });
+    expect(used(LEO, "ai-video-script")).toBe(0);
+    hf.replies.push({ scenes: scenes(4) });
+    const res = await send(LEO, { mode: "script", topic: "Why co-pays" });
+    expect(await res.json()).toMatchObject({ look: null, mas: null });
+  });
+
+  it("makes a listed account's pictures in its look, up to 10, and 1 beside stock clips, for one video use", async () => {
+    const res = await send(LEO, { mode: "explainer", pictures: Array(10).fill("A clinic waiting room in Toa Payoh"), look: "clay" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ credits: 0.9, tokens: expect.arrayContaining([expect.any(String)]) });
+    expect(hf.bodies).toHaveLength(10);
+    expect(String(hf.bodies[0].prompt)).toContain(EXPLAINER_LOOKS.clay.style);
+    expect(String(hf.bodies[0].prompt)).not.toContain("Polished lifestyle photograph.");
+    expect((await send(LEO, { mode: "explainer", pictures: ["A clinic waiting room in Toa Payoh"] })).status).toBe(200);
+    expect([used(LEO, "ai-video"), used(GLOBAL_COUNTER_USER, "ai-video-global")]).toEqual([2, 2]);
+    expect((await send(LEO, { mode: "status", tokens: Array(10).fill("a.b") })).status).toBe(200);
+  });
+
+  it("moves each finished picture once with DoP lite in the look's motion, taking no new use", async () => {
+    const tokens = await tokensOf(LEO);
+    const res = await send(LEO, { mode: "move", tokens, look: "paper" });
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out).toMatchObject({ credits: 6 });
+    expect(out.tokens).toHaveLength(3);
+    const moves = hf.calls.filter((u) => u.endsWith("/higgsfield-ai/dop/lite"));
+    expect(moves).toHaveLength(3);
+    expect(hf.bodies).toEqual(IDS.map((id) => ({ prompt: "Paper layers slide and bob slightly, stop-motion steps. No text, no cuts.", image_url: `https://cdn.example/${id}.png`, duration: 5 })));
+    expect([used(LEO, "ai-video"), used(GLOBAL_COUNTER_USER, "ai-video-global")]).toEqual([0, 0]);
+    expect(db.rows.get(`${LEO}|move:${IDS[0]}|${db.today()}`)).toBe(1);
+
+    const again = await send(LEO, { mode: "move", tokens, look: "paper" });
+    expect(again.status).toBe(409);
+    expect(await again.json()).toEqual({ code: "already_moving", error: "These scenes are already moving." });
+    // a later call that starts on a fresh picture skips the ones already moving
+    hf.calls.length = 0;
+    const later = await send(LEO, { mode: "move", tokens: await tokensOf(LEO, ["88888888-7777-4888-9999-cccccccccccc", IDS[1]]) });
+    expect((await later.json()).tokens).toEqual([expect.any(String), null]);
+    expect(hf.calls.filter((u) => u.endsWith("/dop/lite"))).toHaveLength(1);
+  });
+
+  it("refuses a move before any claim when a picture isn't finished or isn't the caller's, and leaves a scene Higgsfield won't take still", async () => {
+    hf.status[IDS[1]] = { status: "in_progress" };
+    const early = await send(LEO, { mode: "move", tokens: await tokensOf(LEO) });
+    expect(early.status).toBe(409);
+    expect(await early.json()).toMatchObject({ code: "not_ready" });
+    expect(hf.calls.some((u) => u.includes("dop"))).toBe(false);
+    expect([...db.rows.keys()].some((k) => k.includes("move:"))).toBe(false);
+
+    const theirs = await send(LEO, { mode: "move", tokens: await tokensOf(UID) });
+    expect(theirs.status).toBe(400);
+
+    delete hf.status[IDS[1]];
+    hf.submits.push(200, 500, 200);
+    const res = await send(LEO, { mode: "move", tokens: await tokensOf(LEO) });
+    const out = await res.json();
+    expect(out.tokens.map((t: string | null) => t === null)).toEqual([false, true, false]);
+    expect(out.credits).toBe(4);
+  });
+
+  it("reads a public page's article for one page use, kept when the page answered and given back when it never did", async () => {
+    const LINK = "https://www.moneysense.gov.sg/articles/co-pay";
+    const article = `<html><head><title>Co-pays</title><meta property="og:site_name" content="MoneySense"></head><body><article>${"A co-pay is the part of the bill you pay. ".repeat(10)}</article></body></html>`;
+    hf.pages[LINK] = { html: article };
+    hf.answers = { point: { type: "noul", noul: 0.8 } };
+    const ok = await send(LEO, { mode: "read", url: LINK });
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject({ title: "Co-pays", site: "MoneySense", text: expect.stringMatching(/^A co-pay is the part/) });
+    expect(JSON.stringify(hf.asked[0])).toContain("at least one clear point");
+    expect(used(LEO, "page-read")).toBe(1);
+
+    // no clear point, or a login wall with too few words: the page answered, so the use is kept
+    hf.answers = { point: { type: "noul", noul: 0.3 } };
+    const vague = await send(LEO, { mode: "read", url: LINK });
+    expect([vague.status, (await vague.json()).code]).toEqual([422, "no_point"]);
+    hf.pages[LINK] = { html: "<body><form>Sign in to continue</form></body>" };
+    const login = await send(LEO, { mode: "read", url: LINK });
+    expect(await login.json()).toEqual({ code: "unreadable", error: READ_FAILED });
+    expect(used(LEO, "page-read")).toBe(3);
+
+    // a refusal, or a host that resolves to a private address: never answered, so the use comes back
+    hf.pages[LINK] = 403;
+    const blocked = await send(LEO, { mode: "read", url: LINK });
+    expect([blocked.status, (await blocked.json()).error]).toEqual([502, READ_FAILED]);
+    hf.dns["intranet.example.sg"] = ["10.0.0.5"];
+    hf.pages["https://intranet.example.sg/a"] = { html: article };
+    expect((await send(LEO, { mode: "read", url: "https://intranet.example.sg/a" })).status).toBe(502);
+    expect(hf.calls).not.toContain("https://intranet.example.sg/a");
+    expect(used(LEO, "page-read")).toBe(3);
+
+    // Jev with no answer passes the page
+    hf.pages[LINK] = { html: article };
+    hf.answers = null;
+    expect((await send(LEO, { mode: "read", url: LINK })).status).toBe(200);
   });
 });

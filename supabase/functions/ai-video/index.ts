@@ -14,6 +14,18 @@
 //        ("ai-video-script" cap; the use comes back only when OpenAI never answered)
 //   POST {mode:"set", talk} -> {token}  one Soul v2 picture of an empty news studio or stage, 9:16, nobody in it,
 //        for the editor to paint behind an adviser's own photo ("ai-image" cap)
+// The narrated video (formats-faceless-video, formats-animated), NORTH_STAR_USERS only:
+//   POST {mode:"script", topic, source?, seconds?} -> {scenes:[{say, picture, search}], look: {id, p} | null, mas}
+//        for a listed account, always this shape: 30 or 60 s, from a topic, a pasted script (its words kept) or a read
+//        page, a stock search per scene, Jev's look pick and its MAS answer in one call ("ai-video-script" cap; the use
+//        comes back only when OpenAI never answered). Anyone else's script is today's, and source or seconds is 403.
+//   POST {mode:"explainer", pictures, look?} up to 10 pictures, or 1 or 2 beside stock clips; look ignored for anyone else
+//   POST {mode:"move", tokens, look?} -> {tokens: (token | null)[], credits}  DoP lite moves each finished picture
+//        5 s in the look's motion (ai-image/broll.ts); no new use, once per video (claimOnce on its first picture),
+//        polled by status without a refund ticket, so a failed move keeps the use and its scene stays a still
+//   POST {mode:"read", url} -> {title, site, text}  a public page's article, at most 300 KB read and 6,000 characters
+//        kept (_shared/safeFetch.ts), passed when Jev finds a clear point ("page-read" cap; the use comes back only
+//        when the page never answered)
 // A video (avatar or explainer) counts once against the adviser's "ai-video" cap (2 a day) and once
 // against "ai-video-global" (20 a day across everyone, kept on the owner's account), so nobody can
 // drain the prepaid Higgsfield pool. Tokens are the Higgsfield request ids signed for the adviser who
@@ -30,15 +42,18 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, claimOnce, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { HF_BASE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic.ts";
+import { MOTION_MODEL, motionBody } from "../ai-image/broll.ts";
+import { fetchCapped } from "../_shared/safeFetch.ts";
 import { isAllowed } from "../market/logic.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
-  NORTH_STAR_MODES, PICTURE_MODEL, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, TALK_FORMAT, avatarCredits, clipCredits, explainerCredits,
-  northStarOnly, parseVideoRequest, pictureBody, presenterBody, readMedia, refundFailed, refundTicket, seedanceRequest, setBody, speakBody, talkSystem,
-  talkUser, validateScript, validateTalk, type Refundable,
+  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
+  TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
+  northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
+  speakBody, talkSystem, talkUser, validateScript, validateTalk, type Refundable,
 } from "./logic.ts";
 import { PROMPT_FORMAT, clipPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
 
@@ -94,7 +109,8 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to make videos." }, 401);
-    if ((newMode || (parsed.ok && northStarOnly(parsed.request))) && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+    const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
+    if ((newMode || (parsed.ok && northStarOnly(parsed.request))) && !listed) {
       return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
     }
     if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
@@ -123,6 +139,61 @@ Deno.serve(async (req) => {
       if (!out) return json({ code: "unusable", error: "The script didn't come back right. Try again." }, 422);
       const answers = await askJev({ post: out.say }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: "ai-video talk-script mas" });
       return json({ ...out, mas: masWarn(noulOf(answers, "mas")), usage: { used: usage.used, limit: usage.limit } });
+    }
+
+    if (r.mode === "read") {
+      const day = new Date().toISOString().slice(0, 10);
+      const usage = await consumeUsage(admin, uid, "page-read");
+      if (!usage.allowed) {
+        const refusal = usageRefusal(usage);
+        return json(refusal.body, refusal.status);
+      }
+      let page: Awaited<ReturnType<typeof fetchCapped>>;
+      try {
+        page = await fetchCapped(new URL(r.url), PAGE_BYTES, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5", AbortSignal.timeout(20_000));
+      } catch (e) {
+        // a private address, a refused or failed answer, a timeout: the page never answered, so the use comes back
+        console.error("ai-video read", r.url, String(e).slice(0, 200));
+        await refundUsage(admin, uid, "page-read", day);
+        return json({ code: "failed", error: READ_FAILED }, 502);
+      }
+      const article = readArticle(new TextDecoder().decode(page.bytes), page.url, page.type);
+      if (!article) return json({ code: "unreadable", error: READ_FAILED }, 422);
+      const answers = await askJev({ title: article.title, page: article.text.slice(0, 3000) }, { point: { type: "noul", instructions: POINT_QUESTION } }, { who: "ai-video read point" });
+      if (!pointPasses(noulOf(answers, "point"))) return json({ code: "no_point", error: NO_POINT }, 422);
+      return json({ ...article, usage: { used: usage.used, limit: usage.limit } });
+    }
+
+    if (r.mode === "script" && listed) {
+      const openai = Deno.env.get("OPENAI_API_KEY");
+      if (!openai) return json({ error: "Explainers aren't switched on yet." }, 503);
+      const day = new Date().toISOString().slice(0, 10);
+      const usage = await consumeUsage(admin, uid, "ai-video-script");
+      if (!usage.allowed) {
+        const refusal = usageRefusal(usage);
+        return json(refusal.body, refusal.status);
+      }
+      const seconds = r.seconds ?? 30;
+      const keep = r.source?.kind === "script" ? r.source.text : undefined;
+      // one retry on scenes that run long or change a pasted script's words; a reply that never comes gives the use back
+      let scenes: ReturnType<typeof validateScript> = null;
+      for (let i = 0; i < 2 && !scenes; i++) {
+        const content = await writeJson(openai, narratedSystem(r), narratedUser(r), NARRATED_FORMAT, seconds === 60 ? 2400 : 1500);
+        if (content === null) {
+          await refundUsage(admin, uid, "ai-video-script", day);
+          return json({ code: "failed", error: "Couldn't write the script. Try again in a minute." }, 502);
+        }
+        scenes = validateScript(content, { seconds, keep });
+        if (!scenes) console.error("ai-video narrated script rejected", content.slice(0, 300));
+      }
+      if (!scenes) return json({ code: "unusable", error: keep ? "Couldn't split your script without changing it. Try again." : "The explainer didn't come back right. Try again." }, 422);
+      const script = scenes.map((s) => s.say).join(" ");
+      const answers = await askJev(
+        { topic: r.topic || (r.source?.kind === "link" ? r.source.title : ""), script },
+        { look: lookQuestion(seconds), mas: { type: "noul", instructions: MAS_QUESTION } },
+        { who: "ai-video narrated script" },
+      );
+      return json({ scenes, look: lookPick(answers), mas: masWarn(noulOf(answers, "mas")), usage: { used: usage.used, limit: usage.limit } });
     }
 
     if (r.mode === "script") {
@@ -208,6 +279,27 @@ Deno.serve(async (req) => {
     /** Nothing was made after the uses were taken: both come back (the adviser's alone when everyone's wasn't taken). */
     const giveBack = (feature: Refundable, both = true) =>
       Promise.all([refundUsage(admin, uid, feature, day), both && refundUsage(admin, GLOBAL_COUNTER_USER, REFUNDS[feature], day)]);
+
+    if (r.mode === "move") {
+      // no new use: the explainer took its ai-video use; the pictures must be this caller's and finished
+      const ids = await Promise.all(r.tokens.map((token) => openJobToken(signing, uid, token)));
+      if (!ids.every(Boolean)) return json({ code: "bad_request", error: "Those pictures aren't known." }, 400);
+      const urls = await Promise.all(ids.map(async (id) => {
+        const res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+        const m = res?.ok ? readMedia(await res.json().catch(() => null)) : null;
+        return m?.state === "done" ? m.url : null;
+      }));
+      if (urls.some((u) => !u)) return json({ code: "not_ready", error: "The pictures aren't ready yet. Try again in a minute." }, 409);
+      // each picture moves once: the video's first picture says whether it already has, and a picture sent again later is skipped
+      if (!(await claimOnce(admin, uid, moveClaimKey(ids[0]!)))) return json({ code: "already_moving", error: "These scenes are already moving." }, 409);
+      const fresh = [true, ...(await Promise.all(ids.slice(1).map((id) => claimOnce(admin, uid, moveClaimKey(id!)))))];
+      const prompt = motionPrompt(r.look);
+      // a scene Higgsfield won't take stays a still; the rest move
+      const moved = await Promise.all(urls.map((u, i) => (fresh[i] ? submit(MOTION_MODEL, motionBody(u!, prompt)).then((id) => jobToken(signing, uid, id), () => null) : null)));
+      const credits = moveCredits(moved.filter(Boolean).length);
+      console.log("ai-video move", moved.filter(Boolean).length, "of", moved.length, "scenes,", credits, "credits");
+      return json({ tokens: moved, credits });
+    }
 
     if (r.mode === "presenter") {
       const usage = await consumeUsage(admin, uid, "ai-image");
@@ -298,7 +390,9 @@ Deno.serve(async (req) => {
         const seed = Math.floor(Math.random() * 1_000_000);
         for (let i = 0; i < r.slices.length; i++) ids.push(await submit(SPEAK_MODEL, speakBody(image, audio[i], r.slices[i].seconds, seed)));
       } else {
-        for (const p of r.pictures) ids.push(await submit(PICTURE_MODEL, pictureBody(p)));
+        // a look is NORTH_STAR_USERS only: anyone else gets today's photos
+        const look = listed ? r.look : undefined;
+        for (const p of r.pictures) ids.push(await submit(PICTURE_MODEL, pictureBody(p, look)));
       }
     } catch (e) {
       // a half-started video is no use: cancel what is still queued (refunded) before saying so
