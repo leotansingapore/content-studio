@@ -37,7 +37,7 @@ import { useUrlFlag, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { currentJoin, onJoinJob, type JoinJob } from "@/lib/videoMedia";
 import { loadProjects } from "@/lib/videoProjects";
 import {
-  MINE_SECONDS, SCENE_SECONDS, finishAgain, onWallJob, pendingScene, resumeScene, sceneBlock, startFrom, startWall, stepText, wallBusy, wallJob,
+  MINE_SECONDS, SCENE_SECONDS, finishAgain, onWallJob, pendingScene, resumeScene, paidClipBlock, startFrom, startWall, stepText, wallBusy, wallJob,
   type WallAsk, type WallBg, type WallFrom, type WallJob, type WallScene, type WallSlot,
 } from "@/lib/wallJob";
 
@@ -174,7 +174,7 @@ export default function WallOfText({ userId, source, scene = false }: { userId: 
     remix && !source ? "Pick a post to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type what it's about first."
     : !scene && bg === "mine" && !file ? "Pick your video first."
-    : scene && !busy ? (pendingScene() ? SCENE_WAITING : sceneBlock())
+    : scene && !busy ? (pendingScene() ? SCENE_WAITING : paidClipBlock())
     : null;
   // a scene paid for and waiting on this device: Try again at no cost picks it up with its words
   const resumable = scene && !busy && pendingScene();

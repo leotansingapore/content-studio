@@ -14,7 +14,7 @@
 // reload picks it up at no cost and still puts the words on it. The scene's steps show in /library through formatJob.
 
 import { chooseClips } from "@/lib/autoBroll";
-import { aiBusy, aiJob, makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, type ClipQuality } from "@/lib/aiVideo";
+import { aiBusy, aiJob, makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, type AiJob, type ClipQuality } from "@/lib/aiVideo";
 import { applyBrandRules } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
 import { callFn } from "@/lib/edgeFn";
@@ -105,7 +105,7 @@ export const SCENE_TOAST = "Your video is ready. Export it when it looks right."
 /** ai-video's clip lengths are 4 or 8 s (CLIP_SECONDS); 30 words read in 8. */
 export const SCENE_SECONDS = 8;
 /** ai-video's step once the paid clip is downloaded and being put together: the editor takes over from here. */
-const JOIN_STEP = "Putting your video together...";
+export const JOIN_STEP = "Putting your video together...";
 
 /** A source opens on Remix a trending one, no source on A topic. */
 export const startFrom = (source: RemixSource | null): WallFrom => (source ? "remix" : "topic");
@@ -206,7 +206,7 @@ export async function startWall(userId: string, ask: WallAsk): Promise<void> {
   const mine = patcher(slot, id);
   set(slot, { id, state: "writing", ask });
   // a scene pays for a clip after the words: one that can't be ordered now stops before the write spends anything
-  const blocked = ask.scene ? sceneBlock() : null;
+  const blocked = ask.scene ? paidClipBlock() : null;
   if (blocked) return void mine({ state: "failed", error: blocked });
   let written: Written;
   try {
@@ -283,8 +283,8 @@ async function finish(id: number, ask: WallAsk, w: Written): Promise<void> {
 
 // ---- a made scene ----
 
-/** Why a scene's paid clip can't be ordered now: another AI video running, or one paid for and waiting (a new one would write over it). */
-export function sceneBlock(): string | null {
+/** Why a paid clip (a scene, a spoken hook) can't be ordered now: another AI video running, or one paid for and waiting (a new one would write over it). */
+export function paidClipBlock(): string | null {
   return aiBusy() ? VIDEO_LIMITS.busy : pendingAvatar() ? VIDEO_LIMITS.waiting : null;
 }
 
@@ -320,11 +320,13 @@ const aiSettled = () =>
     });
   });
 
-/** Follows ai-video's steps into the scene's run, from ordering the clip to putting it together. */
-async function followClip(id: number, run: () => Promise<void>): Promise<void> {
-  const mine = patcher("scene", id);
+/**
+ * Runs a paid template clip (`run` orders it, or resumes the one waiting) and reports ai-video's steps, from writing
+ * the shots to putting it together (JOIN_STEP). Resolves with ai-video's job once it stops working.
+ */
+export async function followClip(onStep: (step: string) => void, run: () => Promise<void> | void): Promise<AiJob | null> {
   const relay = onAiJob((j) => {
-    if (j?.kind === "template" && j.state === "working") mine({ state: j.step === JOIN_STEP ? "joining" : "clip", step: j.step });
+    if (j?.kind === "template" && j.state === "working") onStep(j.step);
   });
   try {
     await run();
@@ -332,7 +334,13 @@ async function followClip(id: number, run: () => Promise<void>): Promise<void> {
   } finally {
     relay();
   }
-  const j = aiJob();
+  return aiJob();
+}
+
+/** The scene's run from ai-video's clip: its steps, then done, or failed in ai-video's words. */
+async function sceneFollow(id: number, run: () => Promise<void> | void): Promise<void> {
+  const mine = patcher("scene", id);
+  const j = await followClip((step) => mine({ state: step === JOIN_STEP ? "joining" : "clip", step }), run);
   if (j?.kind === "template" && j.state === "done") return void mine({ state: "done", step: undefined });
   mine({ state: "failed", step: undefined, error: j?.state === "failed" && j.error ? j.error : FINISH_FAILED });
 }
@@ -344,11 +352,11 @@ async function sceneClip(id: number, ask: WallAsk, w: Written): Promise<void> {
     await ensureCaptionFonts();
     const extra = sceneExtra(ask, w);
     // checked again right before paying: a video started elsewhere while the words were written
-    const blocked = sceneBlock();
+    const blocked = paidClipBlock();
     if (blocked) return void mine({ state: "failed", error: blocked });
     mine({ state: "clip", step: "Writing the shots...", extra });
     const person = s.person.trim();
-    await followClip(id, () =>
+    await sceneFollow(id, () =>
       makeTemplateClip(SCENE_NAME, { template: `scene-${s.id}`, seconds: SCENE_SECONDS, quality: s.quality, fields: person ? { person } : {}, photo: null }, { extra }),
     );
   } catch (e) {
@@ -367,7 +375,7 @@ export function resumeScene(ask: WallAsk): void {
   const written: Written = { text: block?.text ?? "", caption: p.extra?.caption ?? "", scene: "", search: "", flags: { copied: [], claim: false, invented: false } };
   const id = ++seq;
   set("scene", { id, state: "clip", step: "Making your video...", ask, written, extra: p.extra });
-  void followClip(id, async () => resumeAvatar());
+  void sceneFollow(id, resumeAvatar);
 }
 
 // ---- the clip ----
