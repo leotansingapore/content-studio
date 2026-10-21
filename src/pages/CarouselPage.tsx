@@ -262,9 +262,12 @@ export default function CarouselPage() {
   // Undo and Redo (Leo's buttons and keys): every slide change is a step, in memory for this carousel
   const hist = useRef(emptyHistory<Slide[]>());
   const lastKey = useRef<{ at: number; field: string } | null>(null);
+  // which carousel is open, counted up on each new one, so an old delete toast's Undo can't reach the next carousel
+  const opened = useRef(0);
   const resetHistory = () => {
     hist.current = emptyHistory();
     lastKey.current = null;
+    opened.current++;
   };
   const [split, setSplit] = useState<SplitInfo | null>(null);
   const [byHand, setByHand] = useState(false);
@@ -692,10 +695,11 @@ export default function CarouselPage() {
     if (!leo || !gone || slidesRef.current.some((s) => s.id === gone.id)) return;
     if (view === "one") go(Math.min(i, slidesRef.current.length - 1));
     const oneView = view === "one";
+    const on = opened.current;
     toast({
       title: `Slide ${i + 1} deleted`,
       action: (
-        <ToastAction altText="Undo" onClick={() => (change((prev) => restoreSlide(prev, i, gone)), oneView && goRef.current(i))}>
+        <ToastAction altText="Undo" onClick={() => on === opened.current && (change((prev) => restoreSlide(prev, i, gone)), oneView && goRef.current(i))}>
           Undo
         </ToastAction>
       ),
