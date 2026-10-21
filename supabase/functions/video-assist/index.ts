@@ -6,6 +6,11 @@
 //        Frames are up to 3 stills from a reference video to match its look.
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
+//   POST {mode:"translate", kind:"post", back:true, lang, lines:[...] (a post's lines, at most 60, 1,500 each, 5,000 in all)}
+//        -> {lines, back, same: number | null}: a post in Chinese, Malay or Tamil with its English meaning line by line, and
+//        Jev's yes probability that the meaning matches the English (edit-translate, "post-translate" cap). NORTH_STAR_USERS
+//        only (403 not_enabled before any count); the use goes back only when OpenAI never answered, and an incomplete reply
+//        keeps it (422). Any other kind is today's caption request.
 //   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?, length?} -> {clips:[{start,end,title,hook,reason,score?,parts?,onTopic?,skip?}]}:
 //        standalone reels cut from one long video, 3-5 under 8 minutes and up to 16 an hour beyond: the
 //        LLM proposes about twice that, reading a long recording in passes of about 40 minutes
@@ -79,7 +84,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { isAllowed } from "../market/logic.ts";
-import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { askJev, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
 import { buildCaptionsMessages, buildThreadMessages, ctaLine, keywordCandidates, keywordQuestion, parseCaptionsReply, parseCaptionsRequest, parseThreadReply, parseThreadRequest, readKeyword } from "./captions.ts";
@@ -118,6 +123,11 @@ import {
   buildTranslateMessages,
   parseTranslateReply,
   parseTranslateRequest,
+  buildPostTranslateMessages,
+  parsePostTranslateReply,
+  POST_MAX_TOKENS,
+  SAME_QUESTION,
+  translateState,
   buildVibeMessages,
   cleanWords,
   parseClipsReply,
@@ -215,6 +225,36 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
+    if (body?.mode === "translate" && body.kind === "post") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      const t = parseTranslateRequest(body);
+      if (!t.ok) return json({ code: "bad_request", error: t.error }, 400);
+      const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
+      const usage = await consumeUsage(admin, uid, "post-translate");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.2, max_tokens: POST_MAX_TOKENS, response_format: { type: "json_object" }, messages: buildPostTranslateMessages(t.lang, t.lines) }),
+        signal: AbortSignal.timeout(120_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist translate post", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        // OpenAI never answered: the use goes back
+        await refundUsage(admin, uid, "post-translate", day);
+        return json({ code: "failed", error: "Couldn't translate it right now. Try again in a minute." }, 502);
+      }
+      const out = parsePostTranslateReply((await res.json().catch(() => null))?.choices?.[0]?.message?.content ?? null, t.lines.length, t.lang);
+      // a reply short or long a line keeps the use (phase 4 decision 3)
+      if (!out) return json({ code: "incomplete", error: "The translation came back incomplete. Try again." }, 422);
+      const same = noulOf(await askJev(translateState(t.lines, out.back), { same: SAME_QUESTION }, { who: "video-assist translate", timeoutMs: 10_000 }), "same");
+      // the shadow run's numbers for setting SAME_WARN (decision 15); the post's words stay out of the log
+      console.log(`video-assist translate post ${t.lang} lines=${t.lines.length} same=${same ?? "none"}`);
+      return json({ lines: out.lines, back: out.back, same });
+    }
     if (body?.mode === "translate") {
       const t = parseTranslateRequest(body);
       if (!t.ok) return json({ error: t.error }, 400);

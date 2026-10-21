@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK, langCode, playable, CLIP_LENGTHS} from "./logic";
+import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, buildPostTranslateMessages, parsePostTranslateReply, SAME_QUESTION, translateState, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK, langCode, playable, CLIP_LENGTHS} from "./logic";
 import { clipPasses, WINDOW_OVERLAP } from "./passes";
 
 describe("cleanWords", () => {
@@ -181,12 +181,68 @@ describe("translate", () => {
   it("accepts only the three languages and needs lines", async () => {
     expect(parseTranslateRequest({ lang: "fr", lines: ["x"] }).ok).toBe(false);
     expect(parseTranslateRequest({ lang: "zh", lines: [] }).ok).toBe(false);
-    expect(parseTranslateRequest({ lang: "zh", lines: ["Most people think", 5] })).toEqual({ ok: true, lang: "zh", lines: ["Most people think", "5"] });
+    expect(parseTranslateRequest({ lang: "zh", lines: ["Most people think", 5] })).toEqual({ ok: true, kind: "captions", lang: "zh", lines: ["Most people think", "5"] });
   });
   it("keeps the reply only when it has one line per caption", async () => {
     expect(parseTranslateReply('{"lines":["a","b"]}', 2)).toEqual(["a", "b"]);
     expect(parseTranslateReply('{"lines":["a"]}', 2)).toBeNull();
     expect(parseTranslateReply("nope", 1)).toBeNull();
+  });
+  it("reads captions as the default, cut to 300 a line, whatever else kind says", () => {
+    for (const kind of [undefined, "captions", "posts", 1]) {
+      expect(parseTranslateRequest({ kind, lang: "ta", lines: ["a".repeat(400)] })).toEqual({ ok: true, kind: "captions", lang: "ta", lines: ["a".repeat(300)] });
+    }
+    expect(parseTranslateReply(JSON.stringify({ lines: ["b".repeat(400)] }), 1)).toEqual(["b".repeat(300)]);
+  });
+});
+
+describe("translate a post (edit-translate)", () => {
+  const post = (lines: unknown, lang = "zh") => parseTranslateRequest({ kind: "post", lang, lines });
+
+  it("takes a 1,200-character line uncut and keeps empty lines as empty entries", () => {
+    expect(post(["x".repeat(1200), "", "Comment PLAN."])).toEqual({ ok: true, kind: "post", lang: "zh", lines: ["x".repeat(1200), "", "Comment PLAN."] });
+  });
+  it("refuses a post over 5,000 characters in all, a line over 1,500 or more than 60 lines", () => {
+    const tooLong = { ok: false, error: "This post is too long to translate in one go." };
+    expect(post(["a".repeat(1500), "b".repeat(1500), "c".repeat(1500), "d".repeat(500)]).ok).toBe(true);
+    expect(post(["a".repeat(1500), "b".repeat(1500), "c".repeat(1500), "d".repeat(501)])).toEqual(tooLong);
+    expect(post(["a".repeat(1501)])).toEqual(tooLong);
+    expect(post(Array.from({ length: 60 }, () => "Line.")).ok).toBe(true);
+    expect(post(Array.from({ length: 61 }, () => "Line."))).toEqual(tooLong);
+  });
+  it("needs a language it knows and some words", () => {
+    expect(post(["Hello"], "fr")).toEqual({ ok: false, error: "Pick Chinese, Malay or Tamil." });
+    expect(post(["", "  "])).toEqual({ ok: false, error: "Write the post first." });
+    expect(post("Hello")).toEqual({ ok: false, error: "Write the post first." });
+  });
+  it("builds the post prompt for each language, MAS line included", () => {
+    for (const [lang, name] of [["zh", "Simplified Chinese"], ["ms", "Malay"], ["ta", "Tamil"]]) {
+      const [system, user] = buildPostTranslateMessages(lang, ["Hi", ""]);
+      expect(system.content).toContain(`Translate a social media post by a Singapore financial adviser into ${name}.`);
+      expect(system.content).toContain("Add nothing: no new claims, promises, figures or product names.");
+      expect(system.content).toContain('Return JSON only: {"lines": [...], "back": [...]}, one entry per input line in the same order.');
+      expect(user.content).toBe(JSON.stringify({ lines: ["Hi", ""] }));
+    }
+  });
+  it("keeps the reply only when lines and back each have one entry per line, and never cuts a long one", () => {
+    const reply = (o: unknown) => parsePostTranslateReply(JSON.stringify(o), 2, "ms");
+    const long = "y".repeat(1400);
+    expect(reply({ lines: [long, ""], back: ["Many pay twice.", ""] })).toEqual({ lines: [long, ""], back: ["Many pay twice.", ""] });
+    expect(reply({ lines: [long], back: ["a", "b"] })).toBeNull();
+    expect(reply({ lines: ["a", "b"], back: ["a"] })).toBeNull();
+    expect(reply({ lines: ["a", "b"] })).toBeNull();
+    expect(parsePostTranslateReply("not json", 1, "ms")).toBeNull();
+    expect(parsePostTranslateReply(null, 1, "ms")).toBeNull();
+  });
+  it("takes the em dashes out: Chinese gets its own comma, the rest a comma and a space", () => {
+    const o = JSON.stringify({ lines: ["\u4f60\u597d \u2014 \u4e16\u754c"], back: ["Hello \u2014 world"] });
+    expect(parsePostTranslateReply(o, 1, "zh")).toEqual({ lines: ["\u4f60\u597d\uFF0C\u4e16\u754c"], back: ["Hello, world"] });
+    expect(parsePostTranslateReply(o, 1, "ta")!.lines).toEqual(["\u4f60\u597d, \u4e16\u754c"]);
+  });
+  it("asks Jev about the English only: the post beside the version's meaning", () => {
+    expect(translateState(["One.", "", "Two."], ["Uno.", "", "Dos."])).toEqual({ source: "One.\n\nTwo.", back: "Uno.\n\nDos." });
+    expect(SAME_QUESTION.type).toBe("noul");
+    expect(SAME_QUESTION.instructions).toContain("Does `back` say the same thing as `source`");
   });
 });
 

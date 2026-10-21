@@ -763,15 +763,83 @@ export function coverAt(answers: Record<string, JevAnswer> | null, sentences: Cl
 
 export const TRANSLATE_LANGS: Record<string, string> = { zh: "Simplified Chinese", ms: "Malay", ta: "Tamil" };
 export const MAX_TRANSLATE_LINES = 400;
+/** A post (edit-translate, kind "post"): Write's longest post, sent as its lines and never cut. */
+export const MAX_POST_LINES = 60;
+export const MAX_POST_LINE = 1500;
+export const MAX_POST_CHARS = 5000;
+/** A Tamil post plus its English meaning can pass the captions' 4,000. */
+export const POST_MAX_TOKENS = 12_000;
 
-export function parseTranslateRequest(body: unknown): { ok: true; lang: string; lines: string[] } | { ok: false; error: string } {
+/**
+ * kind "captions" (anything but "post") is today's request: 400 lines at most, each cut to 300. kind "post" keeps every
+ * line whole (empty ones too, so the line breaks come back) and refuses a post over 60 lines, a line over 1,500 or 5,000 in all.
+ */
+export function parseTranslateRequest(body: unknown): { ok: true; kind: "captions" | "post"; lang: string; lines: string[] } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const lang = String(b.lang ?? "");
   if (!(lang in TRANSLATE_LANGS)) return { ok: false, error: "Pick Chinese, Malay or Tamil." };
+  if (b.kind === "post") {
+    const lines = (Array.isArray(b.lines) ? b.lines : []).map((l) => String(l ?? ""));
+    if (!lines.some((l) => l.trim())) return { ok: false, error: "Write the post first." };
+    const chars = lines.reduce((n, l) => n + l.length, 0);
+    if (lines.length > MAX_POST_LINES || chars > MAX_POST_CHARS || lines.some((l) => l.length > MAX_POST_LINE)) return { ok: false, error: "This post is too long to translate in one go." };
+    return { ok: true, kind: "post", lang, lines };
+  }
   const lines = (Array.isArray(b.lines) ? b.lines : []).slice(0, MAX_TRANSLATE_LINES).map((l) => String(l ?? "").slice(0, 300));
   if (!lines.length) return { ok: false, error: "Caption the video first." };
-  return { ok: true, lang, lines };
+  return { ok: true, kind: "captions", lang, lines };
 }
+
+/** The post's words in another language with their English meaning (edit-translate). MAS: the translation adds nothing. */
+export function buildPostTranslateMessages(lang: string, lines: string[]): { role: string; content: string }[] {
+  return [
+    {
+      role: "system",
+      content: [
+        `Translate a social media post by a Singapore financial adviser into ${TRANSLATE_LANGS[lang]}.`,
+        "Keep every line break, number, dollar amount and call to action exactly.",
+        "Keep CPF, MediShield, HDB and other Singapore terms as locals write them.",
+        "Write it the way a Singaporean adviser would post it, plain and warm, with no em dashes.",
+        "Add nothing: no new claims, promises, figures or product names.",
+        "Then translate your version back into English, line by line.",
+        'Return JSON only: {"lines": [...], "back": [...]}, one entry per input line in the same order.',
+      ].join(" "),
+    },
+    { role: "user", content: JSON.stringify({ lines }) },
+  ];
+}
+
+// an em dash and the spaces round it; Chinese takes its own comma (U+FF0C)
+const DASH = /\s*\u2014+\s*/g;
+
+/** The version and its English meaning, each exactly one per line and never cut, or null (a short or long array is unusable). */
+export function parsePostTranslateReply(content: string | null, n: number, lang: string): { lines: string[]; back: string[] } | null {
+  if (!content) return null;
+  try {
+    const out = JSON.parse(content);
+    const ok = (a: unknown): a is unknown[] => Array.isArray(a) && a.length === n;
+    if (!ok(out?.lines) || !ok(out?.back)) return null;
+    return {
+      lines: out.lines.map((l: unknown) => String(l ?? "").replace(DASH, lang === "zh" ? "\uFF0C" : ", ")),
+      back: out.back.map((l: unknown) => String(l ?? "").replace(DASH, ", ")),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** What Jev reads: the English and the version's English meaning, never the translation itself (it reads English best). */
+export const translateState = (source: string[], back: string[]) => ({ source: source.join("\n"), back: back.join("\n") });
+
+/** Shadow until src/lib/translate.ts SAME_WARN is set (decision 15): the answer goes back as `same` and nothing else uses it. */
+export const SAME_QUESTION: JevQuestion = {
+  type: "noul",
+  instructions: "Does `back` say the same thing as `source`: the same facts, numbers and asks, with nothing added, such as a promise, a guarantee or a product name?",
+  criteria: {
+    true: "Same meaning, facts, numbers and asks, only worded differently.",
+    false: "A fact, number or ask is changed or missing, or something is added.",
+  },
+};
 
 export function buildTranslateMessages(lang: string, lines: string[]): { role: string; content: string }[] {
   return [

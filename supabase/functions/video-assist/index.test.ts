@@ -399,6 +399,95 @@ describe("Caption translation (pinned at b65fc14f, before posts are translated)"
   });
 });
 
+describe("Post translation (edit-translate)", () => {
+  const JEV = "https://api.typesafe.ai/v1/systemone";
+  const lines = ["Most people pay twice for a hospital stay.", "", "Comment PLAN and I'll send the checklist."];
+  const translate = (uid: string, body: Record<string, unknown> = {}) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "translate", kind: "post", back: true, lang: "ms", lines, ...body }) }));
+  const used = (uid = LEO) => db.rows.get(`${uid}|post-translate|${db.today()}`) ?? 0;
+  const version = ["Ramai orang bayar dua kali untuk tinggal di hospital.", "", "Komen PLAN dan saya hantar senarai semak."];
+  const meaning = ["Many people pay twice to stay in hospital.", "", "Comment PLAN and I will send the checklist."];
+  const openai = (out: unknown) => Response.json({ model: "m", choices: [{ message: { content: JSON.stringify(out) } }] });
+  const reply = (out: unknown) => () => openai(out);
+
+  it("refuses anyone not on the list before counting anything or asking OpenAI", async () => {
+    const res = await translate(UID);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("refuses a post too long to translate in one go before counting", async () => {
+    const res = await translate(LEO, { lines: ["a".repeat(1500), "b".repeat(1500), "c".repeat(1500), "d".repeat(501)] });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ code: "bad_request", error: "This post is too long to translate in one go." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("translates the post with its English meaning for one use", async () => {
+    answer = reply({ lines: version, back: meaning });
+    const res = await translate(LEO);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ lines: version, back: meaning, same: null });
+    expect(used()).toBe(1);
+    expect(calls).toEqual(["https://api.openai.com/v1/chat/completions"]);
+    const asked = JSON.parse(sent[0]);
+    expect(asked.max_completion_tokens).toBe(16_000);
+    expect(asked.messages[0].content).toContain("into Malay.");
+    expect(asked.messages[0].content).toContain("Add nothing: no new claims, promises, figures or product names.");
+    expect(JSON.parse(asked.messages[1].content)).toEqual({ lines });
+  });
+  it("sends a long line whole, with the empty lines kept, and keeps the reply's long line whole", async () => {
+    const long = ["Most people pay twice.", "", "x".repeat(1200)];
+    answer = reply({ lines: ["Ramai bayar dua kali.", "", "y".repeat(1400)], back: ["Many pay twice.", "", "z".repeat(1300)] });
+    const res = await translate(LEO, { lines: long });
+    expect(JSON.parse(JSON.parse(sent[0]).messages[1].content)).toEqual({ lines: long });
+    expect(await res.json()).toEqual({ lines: ["Ramai bayar dua kali.", "", "y".repeat(1400)], back: ["Many pay twice.", "", "z".repeat(1300)], same: null });
+  });
+  it("asks Jev whether the English meaning says the same as the English, and returns its answer in the same one use", async () => {
+    answer = (u) => (u === JEV ? Response.json({ answers: { same: { type: "noul", noul: 0.82 } } }) : openai({ lines: version, back: meaning }));
+    env.TYPESAFE_API_KEY = "k";
+    try {
+      const res = await translate(LEO);
+      expect(await res.json()).toEqual({ lines: version, back: meaning, same: 0.82 });
+    } finally {
+      delete env.TYPESAFE_API_KEY;
+    }
+    expect(calls).toEqual(["https://api.openai.com/v1/chat/completions", JEV]);
+    // Jev reads English only: the post and the version's meaning, never the Malay
+    expect(JSON.parse(sent[1]).state).toEqual({ source: lines.join("\n"), back: meaning.join("\n") });
+    expect(used()).toBe(1);
+  });
+  it("gives the use back when OpenAI never answered", async () => {
+    const res = await translate(LEO);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "failed", error: "Couldn't translate it right now. Try again in a minute." });
+    expect(used()).toBe(0);
+  });
+  it("keeps the use when the reply came back incomplete", async () => {
+    answer = reply({ lines: version, back: meaning.slice(0, 2) });
+    const res = await translate(LEO);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ code: "incomplete", error: "The translation came back incomplete. Try again." });
+    expect(used()).toBe(1);
+  });
+  it("stops at the day's 30", async () => {
+    db.rows.set(`${LEO}|post-translate|${db.today()}`, 30);
+    const res = await translate(LEO);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ code: "daily_limit", error: "You've used all 30 for today. It resets at 8am Singapore time." });
+    expect(calls).toEqual([]);
+  });
+  it("reads kind captions, or no kind, as today's caption request on the caption cap", async () => {
+    answer = reply({ lines: ["a", "b", "c"] });
+    const res = await translate(LEO, { kind: "captions" });
+    expect(await res.json()).toEqual({ lines: ["a", "b", "c"] });
+    expect(JSON.parse(sent[0]).max_completion_tokens).toBe(8000);
+    expect(db.rows.get(`${LEO}|video-translate|${db.today()}`)).toBe(1);
+    expect(used()).toBe(0);
+  });
+});
+
 describe("Montage pick from a media set", () => {
   const JEV = "https://api.typesafe.ai/v1/systemone";
   const beats = [{ say: "Coins in a jar on a table", candidates: Array.from({ length: 14 }, (_, j) => ({ desc: `A jar of coins, photo ${j}` })) }];
