@@ -397,13 +397,19 @@ export default function GreenScreen({ userId, source }: { userId: string; source
           </Field>
         </CardContent>
       </Card>
+    </fieldset>
+  );
+  // the price check sits outside the locked options, just above the footer holding "Make it for US$x"
+  const setup = (
+    <>
+      {options}
       {priced && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm">
+        <div role="status" className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm">
           <p className="min-w-0">Your voiceover is kept, so going on doesn't pay for it again.</p>
           <Button size="sm" variant="ghost" onClick={() => dropTalk()} className={TOUCH}>Shorten the script</Button>
         </div>
       )}
-    </fieldset>
+    </>
   );
 
   const stepText = job?.state === "talking" || job?.state === "joining" ? job.step || talk?.step || "Making your presenter..." : job?.step;
@@ -449,7 +455,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
     <FormatShell
       title={def.name}
       blurb={def.blurb}
-      options={options}
+      options={setup}
       result={result}
       footer={{
         cap,
