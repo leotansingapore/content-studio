@@ -31,7 +31,8 @@ const html = (media: MediaItem[] | null) =>
   );
 
 describe("SlideFields' From media picker for everyone else", () => {
-  it("draws the photos grid as before", () => {
+  it("draws the photos grid as before, even with sets on the device", () => {
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => (k.startsWith("cs-media-sets-") ? JSON.stringify([{ name: "Money and budgeting", kind: "photos" }]) : null), setItem: () => undefined } });
     expect(html([photo(1, "Money and budgeting"), photo(2), photo(3, "AI images")]).match(/<div class="rounded-lg border border-border\/60 p-2">.*?<\/ul><\/div>/)?.[0]).toBe(
       '<div class="rounded-lg border border-border/60 p-2"><ul class="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">' +
         [1, 2, 3].map((n) => `<li><button type="button" title="Photo ${n}" aria-label="Use Photo ${n}" class="block aspect-square w-full overflow-hidden rounded-md border border-border/70 bg-muted hover:border-primary disabled:opacity-40"></button></li>`).join("") +
