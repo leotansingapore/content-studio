@@ -614,8 +614,9 @@ describe("a saved face's consent request (people-my-face)", () => {
 
   it("refuses a photo that isn't a JPEG or runs over 350,000 characters, and another kind", () => {
     const line = "The photo didn't come through. Pick it again.";
-    expect(refused({ ...good, photo: `/9j/${"A".repeat(MAX_FACE_PHOTO - 4)}` })).toBeNull();
-    expect(refused({ ...good, photo: `/9j/${"A".repeat(MAX_FACE_PHOTO - 3)}` })).toBe(line);
+    expect(MAX_FACE_PHOTO).toBe(350_000);
+    expect(refused({ ...good, photo: `/9j/${"A".repeat(350_000 - 4)}` })).toBeNull();
+    expect(refused({ ...good, photo: `/9j/${"A".repeat(350_000 - 3)}` })).toBe(line);
     expect(refused({ ...good, photo: "iVBORw0KGgo" })).toBe(line);
     expect(refused({ ...good, photo: undefined })).toBe(line);
     expect(refused({ ...good, kind: "voice" })).toBe("Pick what to record first.");

@@ -134,6 +134,8 @@ describe("the photos", () => {
     expect(r.portraitCrop({ x0: 0.3, y0: 0.2, x1: 0.7, y1: 0.4 }, 720, 1280)).toEqual({ x: 0, y: 0, w: 720, h: 1280 });
     // a 3:4 portrait frame: as tall as it is, the sides trimmed
     expect(r.portraitCrop({ x0: 0.4, y0: 0.3, x1: 0.6, y1: 0.5 }, 960, 1280)).toEqual({ x: 120, y: 0, w: 720, h: 1280 });
+    // a frame taller than 9:16: the face sits 40% down the cut
+    expect(r.portraitCrop({ x0: 0.4, y0: 0.4, x1: 0.6, y1: 0.6 }, 720, 1600)).toEqual({ x: 0, y: 288, w: 720, h: 1280 });
   });
 
   it("steps the JPEG quality down until the photo fits", () => {
