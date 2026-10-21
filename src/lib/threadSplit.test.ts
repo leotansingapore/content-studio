@@ -56,7 +56,7 @@ describe("Split it myself", () => {
     const posts = splitThread(POST, "threads", ["Leo Tan, financial adviser"]);
     expect(posts[0]).toBe("Most people pay for their hospital stay twice.");
     const last = posts[posts.length - 1];
-    expect(last.endsWith("Leo Tan, financial adviser\n\nWritten with AI assistance. Paid partnership.\n\n#cpf #sg #hospital #insurance")).toBe(true);
+    expect(last.endsWith(`${sentence(10)} DM me PLAN and I'll send the checklist.\n\n#cpf #sg\n\nLeo Tan, financial adviser\n\nWritten with AI assistance. Paid partnership.\n\n#hospital #insurance`)).toBe(true);
     for (const p of posts.slice(0, -1)) {
       expect(p).not.toMatch(/#|Written with AI|Leo Tan/);
     }
@@ -136,6 +136,14 @@ describe("kept with the draft", () => {
     await expect(run).resolves.toEqual(["One.", "Two.", "Three."]);
     expect(threadOf(getDraftById(UID, "d1")!)).toEqual({ network: "threads", posts: ["One.", "Two.", "Three."] });
     expect(threadWriting("d1")).toBeNull();
+  });
+
+  it("the writer gets the body, and the disclosure and sign-off go back on the last post in code", async () => {
+    upsertDraft(UID, entry());
+    callFn.mockResolvedValueOnce({ posts: ["One.", "Two.", "Three."] });
+    const posts = await startThreadWrite(UID, "d1", "The post body.\n\nLeo Tan\n\nWritten with AI assistance. #cpf", "threads", ["Leo Tan"]);
+    expect(callFn.mock.calls[0][1]).toEqual({ mode: "thread", post: "The post body.", network: "threads" });
+    expect(posts).toEqual(["One.", "Two.", "Three.\n\nLeo Tan\n\nWritten with AI assistance. #cpf"]);
   });
 
   it("a failed write saves nothing and can be tried again", async () => {

@@ -38,34 +38,45 @@ function piecesOf(block: string, room: number): string[] {
 }
 
 /**
- * The post as a thread, for free: the hook alone as post 1 when it fits, then the paragraphs packed into posts of
- * the network's room (blank lines first, then between sentences, and inside a sentence only at a word). Hashtags,
- * the sign-off, the disclosure line and the credit (`tails`) are lifted off and added back to the last post. Every
- * word is kept, so a long post can come back with more than THREAD_MAX_POSTS posts; the panel says so.
+ * The post's hashtags, sign-off, disclosure line and credit (`tails`) lifted off its body, so a thread can carry
+ * them on its last post. Hashtag-only lines go wherever they sit, and so does a run of hashtags ending the body.
  */
-export function splitThread(text: string, network: ThreadNetwork, tails: string[] = []): string[] {
-  const room = threadRoom(network);
+export function liftClosing(text: string, tails: string[] = []): { body: string; closing: string } {
   const lines = text.replace(/\r/g, "").split("\n");
   const tagLines = lines.filter((l) => TAG_LINE.test(l)).map((l) => l.trim());
   let body = lines.filter((l) => !TAG_LINE.test(l)).join("\n").trim();
-  // the closing lines, in the order they were written
+  // the closing lines and hashtags at the end, kept as they were written
   const known = [...tails, ...Object.values(DISCLOSURES).map((d) => d.line)].map((t) => t.trim()).filter(Boolean);
   let end = body.length;
   for (;;) {
     const head = body.slice(0, end).trimEnd();
     const k = known.find((t) => head.endsWith(t));
-    if (!k) break;
-    end = head.length - k.length;
+    const run = k ? null : head.match(TAG_RUN);
+    if (!k && !run) break;
+    end = k ? head.length - k.length : run!.index!;
   }
-  let closing = body.slice(end).trim();
+  const closing = body.slice(end).trim();
   body = body.slice(0, end).trim();
-  const run = body.match(TAG_RUN);
-  if (run) {
-    body = body.slice(0, run.index).trim();
-    tagLines.unshift(run[0].trim());
-  }
-  closing = [closing, tagLines.join(" ")].filter(Boolean).join("\n\n");
+  return { body, closing: [closing, tagLines.join(" ")].filter(Boolean).join("\n\n") };
+}
 
+/** The closing lines added back to the last post, or as a post of their own when they don't fit on it. */
+export function withClosing(posts: string[], closing: string, room: number): string[] {
+  if (!closing) return posts;
+  const last = posts[posts.length - 1];
+  if (last && `${last}\n\n${closing}`.length <= room) return [...posts.slice(0, -1), `${last}\n\n${closing}`];
+  return [...posts, ...(closing.length <= room ? [closing] : piecesOf(closing, room))];
+}
+
+/**
+ * The post as a thread, for free: the hook alone as post 1 when it fits, then the paragraphs packed into posts of
+ * the network's room (blank lines first, then between sentences, and inside a sentence only at a word). The closing
+ * lines (liftClosing) go back on the last post. Every word is kept, so a long post can come back with more than
+ * THREAD_MAX_POSTS posts; the panel says so.
+ */
+export function splitThread(text: string, network: ThreadNetwork, tails: string[] = []): string[] {
+  const room = threadRoom(network);
+  const { body, closing } = liftClosing(text, tails);
   const [first = "", ...rest] = body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const [hook = "", ...afterHook] = first.split("\n");
   const blocks = [...(afterHook.length ? [afterHook.join("\n").trim()] : []), ...rest].filter(Boolean);
@@ -89,12 +100,7 @@ export function splitThread(text: string, network: ThreadNetwork, tails: string[
     }
   }
   flush();
-  if (closing) {
-    const last = posts[posts.length - 1];
-    if (last && `${last}\n\n${closing}`.length <= room) posts[posts.length - 1] = `${last}\n\n${closing}`;
-    else posts.push(...(closing.length <= room ? [closing] : piecesOf(closing, room)));
-  }
-  return posts.filter(Boolean);
+  return withClosing(posts.filter(Boolean), closing, room);
 }
 
 const LEADING_NUMBER = /^\d+\/\d+ /;
@@ -155,14 +161,19 @@ const writing = new Map<string, Promise<string[]>>();
 /** The thread being written for this draft, if any. */
 export const threadWriting = (draftId: string) => writing.get(draftId) ?? null;
 
-/** Writes the post again as a thread; the answer is saved on the draft (and this tab's copy) even if the panel has closed. */
-export function startThreadWrite(userId: string, draftId: string, post: string, network: ThreadNetwork): Promise<string[]> {
+/**
+ * Writes the post again as a thread: the writer gets its body, and its closing lines (the disclosure among them) go
+ * back on the last post in code. The answer is saved on the draft (and this tab's copy) even if the panel has closed.
+ */
+export function startThreadWrite(userId: string, draftId: string, text: string, network: ThreadNetwork, tails: string[] = []): Promise<string[]> {
   const running = writing.get(draftId);
   if (running) return running;
-  const run = callFn<{ posts?: unknown }>("video-assist", { mode: "thread", post, network }, "Couldn't write the thread right now. Try again in a minute.")
+  const { body, closing } = liftClosing(text, tails);
+  const run = callFn<{ posts?: unknown }>("video-assist", { mode: "thread", post: body, network }, "Couldn't write the thread right now. Try again in a minute.")
     .then((res) => {
-      const posts = Array.isArray(res?.posts) ? res.posts.filter((p): p is string => typeof p === "string" && p.trim() !== "") : [];
-      if (posts.length < 2) throw new Error("That thread didn't come out right. Try again.");
+      const written = Array.isArray(res?.posts) ? res.posts.filter((p): p is string => typeof p === "string" && p.trim() !== "") : [];
+      if (written.length < 2) throw new Error("That thread didn't come out right. Try again.");
+      const posts = withClosing(written, closing, threadRoom(network));
       keepWorking(draftId, { network, posts });
       saveThread(userId, draftId, { network, posts });
       return posts;
