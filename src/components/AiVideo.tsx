@@ -365,11 +365,11 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
           const uses = role === "person" && people && (people.face || people.presenters.length > 0) && (
             <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Who appears">
               {people.face && (
-                <Button size="sm" variant="outline" className="h-11 text-xs sm:h-9" disabled={busy || !!personTaking} aria-pressed={personId === people.face.id}
+                <Button size="sm" variant="outline" className="h-11 text-xs aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary sm:h-9" disabled={busy || !!personTaking} aria-pressed={personId === people.face.id}
                   onClick={() => void takePerson({ person: "mine", face: people.face! })}>Use my face</Button>
               )}
               {people.presenters.map((p) => (
-                <Button key={p.id} size="sm" variant="outline" className="h-11 text-xs sm:h-9" disabled={busy || !!personTaking} aria-pressed={personId === p.id}
+                <Button key={p.id} size="sm" variant="outline" className="h-11 text-xs aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary sm:h-9" disabled={busy || !!personTaking} aria-pressed={personId === p.id}
                   onClick={() => void takePerson({ person: "presenter", p })}>Use {p.name}</Button>
               ))}
             </div>
@@ -476,6 +476,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   };
   // My own voice: a take on the mic (micRecorder.ts), released if the panel closes mid-take
   const [rec, setRec] = useState<{ take: MicTake; t0: number } | null>(null);
+  const [micStarting, setMicStarting] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
   const recRef = useRef<MicTake | null>(null);
   useEffect(() => {
@@ -604,11 +605,14 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   };
   const record = async () => {
     setVoError("");
+    setMicStarting(true);
     try {
       setRec({ take: await startMic(), t0: Date.now() });
     } catch (e) {
       // a blocked or missing mic: the line, and the script and any take stay as they were
       setVoError((e as Error).message || MIC_BLOCKED);
+    } finally {
+      setMicStarting(false);
     }
   };
   const stopRec = async () => {
@@ -836,7 +840,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
             {rec ? (
               <Button size="sm" className="h-11 sm:h-9" onClick={() => void stopRec()}>Stop, {clock(recSecs)}</Button>
             ) : (
-              <Button ref={voiceRef} size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void record()} disabled={busy || voBusy}>Record it</Button>
+              <Button ref={voiceRef} size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void record()} disabled={busy || voBusy || micStarting}>{micStarting ? "Starting the mic..." : "Record it"}</Button>
             )}
             <label className={`${pickBtn} ${busy || voBusy || rec ? "pointer-events-none opacity-60" : ""}`}>
               Upload audio
