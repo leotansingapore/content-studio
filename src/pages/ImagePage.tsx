@@ -405,7 +405,11 @@ function ImageEditor({ userId }: { userId: string }) {
       upsertDraft(userId, entry);
       setDraftAttached(userId, entry.id, [key]);
       draftsChanged();
-      if (img.draftId !== entry.id) edit({ draftId: entry.id });
+      if (img.draftId !== entry.id) {
+        // kept at once: the post and its design point at each other from here on
+        edit({ draftId: entry.id });
+        flush();
+      }
       setPosting(getDraftById(userId, entry.id));
     } catch {
       toast({ title: "Couldn't get the image ready", description: "Try again, or download it and post it yourself.", variant: "destructive" });
