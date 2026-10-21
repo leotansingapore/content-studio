@@ -14,7 +14,7 @@ import { scoped } from "@/lib/profiles";
 import { type Brand, type Candidate, type Handles, MAX_CANDIDATES, nameKey, parseInput, type Suggestion } from "../../supabase/functions/competitors/logic.ts";
 
 export { nameKey, parseInput };
-export type { Handles, Suggestion };
+export type { Brand, Handles, Suggestion };
 
 export const MAX_COMPETITORS = 12;
 const MAX_DISMISSED = 200;
@@ -383,7 +383,8 @@ export function loadSuggestions(userId: string): SuggestResult | null {
 
 export const isSuggesting = () => suggesting;
 
-export async function runSuggest(userId: string): Promise<void> {
+/** `brand` is what the suggestions are for: the brand's stores by default, or a website read before it is saved. */
+export async function runSuggest(userId: string, brand: Brand = brandFacts(userId)): Promise<void> {
   if (suggesting) return;
   suggesting = true;
   emit();
@@ -391,7 +392,7 @@ export async function runSuggest(userId: string): Promise<void> {
   try {
     const r = await callFn<{ suggestions: Suggestion[]; note?: string }>(
       "competitors",
-      { mode: "suggest", brand: brandFacts(userId), candidates: suggestCandidates(userId), exclude: [...s.list.map((c) => nameKey(c.name)), ...s.list.map((c) => c.site ?? "").filter(Boolean), ...s.dismissed] },
+      { mode: "suggest", brand, candidates: suggestCandidates(userId), exclude: [...s.list.map((c) => nameKey(c.name)), ...s.list.map((c) => c.site ?? "").filter(Boolean), ...s.dismissed] },
       "Couldn't suggest anything right now. Try again in a few minutes.",
     );
     const keep: SuggestResult = { at: new Date().toISOString(), suggestions: Array.isArray(r.suggestions) ? r.suggestions.slice(0, 6) : [], ...(r.note ? { note: r.note } : {}) };

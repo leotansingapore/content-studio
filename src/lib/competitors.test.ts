@@ -237,4 +237,15 @@ describe("reading a site or a name outside React", () => {
     expect(c.loadSuggestions("u1")?.suggestions.map((s) => s.name)).toEqual(["Pipedrive"]);
     expect(c.isSuggesting()).toBe(false);
   });
+
+  it("sends the brand's own facts by default, and a website read's facts when given", async () => {
+    storage.setItem("content-studio-positioning-u1", JSON.stringify({ oneLiner: "We help reps hit their numbers.", audience: "general", audienceDetail: "Sales reps", topics: ["follow-ups"] }));
+    callFn.mockResolvedValue({ suggestions: [] });
+    await c.runSuggest("u1");
+    expect(callFn.mock.calls[0][1].brand).toEqual(c.brandFacts("u1"));
+    expect(callFn.mock.calls[0][1].brand).toEqual({ name: "", site: "", sells: "We help reps hit their numbers.", serves: "Sales reps", topics: ["follow-ups"] });
+    const read = { name: "ActivityTracker", site: "activity-tracker.io", sells: "One app for sales reps.", serves: "Financial advisers", topics: ["WhatsApp"] };
+    await c.runSuggest("u1", read);
+    expect(callFn.mock.calls[1][1]).toMatchObject({ mode: "suggest", brand: read });
+  });
 });
