@@ -78,6 +78,13 @@ describe("fullText", () => {
     expect(text).not.toContain("and sen");
   });
 
+  it("keeps a body longer than the store's cap whole (the drop's ads are not cut), even when it ends without a full stop", () => {
+    const body = `${"A whole sentence here. ".repeat(30)}Then a last line with no stop`;
+    expect(body.length).toBeGreaterThan(600);
+    localStorage.setItem(`content-studio-space-ads-${UID}`, JSON.stringify({ checkedAt: "2026-10-20T00:00:00Z", keywords: ["sales"], ads: [{ ...aaron, id: "999", body }] }));
+    expect(fullText(resolveSource(sourceKey.ad("999"), UID)!, UID)).toContain("Then a last line with no stop");
+  });
+
   it("reads a competitor's ad whole from Their ads, and keeps a body the store did not cut as it is", () => {
     const body = "Short ad with no full stop at the end";
     localStorage.setItem(`content-studio-competitor-ads-${UID}`, JSON.stringify({ c1: { checkedAt: "2026-10-20T00:00:00Z", pageName: "Apollo.io", ads: [{ ...aaron, id: "1075280991926367", body: `${"Still waiting. ".repeat(20)}${body}`, cta: "Sign up" }] } }));

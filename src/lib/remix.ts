@@ -125,7 +125,9 @@ export function fullText(s: RemixSource, userId: string): string {
   if (prefix === "ad") {
     // the snapshot's caption is cut at 400 ("Which means replyi"), so the whole ad comes from the store that holds it
     const ad = adFor(rest, userId);
-    text = ad ? joined([ad.headline, ad.body.length >= MAX_AD_BODY - 10 ? wholeSentences(ad.body) : ad.body, ad.cta]) : "";
+    // a body at the competitors store's cap was cut there; the drop's longer bodies are whole
+    const cut = ad && ad.body.length > MAX_AD_BODY - 10 && ad.body.length <= MAX_AD_BODY;
+    text = ad ? joined([ad.headline, cut ? wholeSentences(ad.body) : ad.body, ad.cta]) : "";
   }
   if (prefix === "follow") {
     const [platform, ...id] = rest.split(":");
