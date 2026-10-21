@@ -416,7 +416,8 @@ async function finishExplainer(p: ExplainerPending, have: { mp3?: Blob; clips?: 
         // a refusal (already moving, no connection) leaves every scene a still: the video is still made
         const r = await callFn<{ tokens: (string | null)[] }>("ai-video", { mode: "move", tokens: p.tokens, ...(p.look ? { look: p.look } : {}) }).catch(() => null);
         p = { ...p, moved: p.tokens.map((_, i) => (typeof r?.tokens?.[i] === "string" ? r.tokens[i] : null)) };
-        keepExplainer(p);
+        // only a video whose voiceover is kept on this device can be picked up again
+        if (p.voice) keepExplainer(p);
       }
       const asked = p.moved!.flatMap((t) => (t ? [t] : []));
       step(`Making the scenes move, 0 of ${asked.length}...`);

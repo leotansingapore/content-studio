@@ -782,7 +782,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   const canWrite =
     from === "topic" ? d.topic.trim().length >= 5 && d.topic.trim().length <= MAX_TOPIC
     : from === "link" ? /^https?:\/\/[^\s/]+\.[^\s]+$/i.test(d.link.trim())
-    : d.script.trim().length >= 20 && !tooLong;
+    : (from === "script" || !!picked) && d.script.trim().length >= 20 && !tooLong;
   const scripts = left("ai-video-script");
   const reads = left("page-read");
   const write = () => {
