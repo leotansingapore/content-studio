@@ -98,7 +98,9 @@ import {
   isNudgeDismissed,
   dismissNudgeForSession,
   VOICE_MIN_CHARS,
+  voiceSummaryOf,
 } from "@/lib/voiceProfile";
+import { memoryLine } from "@/lib/voiceMemory";
 import HumanCheck from "@/components/HumanCheck";
 import ComplianceChips from "@/components/ComplianceChips";
 import FactFlags from "@/components/FactFlags";
@@ -949,6 +951,10 @@ export default function GeneratePage() {
       active = false;
     };
   }, []);
+  // Leo only (brand-voice-memory): a summary with no posts behind it, such as a brand read from its website, still writes.
+  useEffect(() => {
+    if (leo && userId && !voiceProfileUsable) setVoiceSummary(voiceSummaryOf(loadVoiceProfile(userId)) || null);
+  }, [leo, userId, voiceProfileUsable]);
 
   // On mount or query change: if ?vibe=<id> present, load that entry as vibe.
   useEffect(() => {
@@ -1420,6 +1426,9 @@ export default function GeneratePage() {
     ctxParts.push(BLANKS_RULE);
     const rules = brandRulesLine(brandKit, platform);
     if (rules) ctxParts.push(rules);
+    // Leo only (brand-voice-memory): his facts and learnings after the brand rules; the voice summary has its own field
+    const memory = leo && userId ? memoryLine(userId, "posts") : "";
+    if (memory) ctxParts.push(memory);
 
     // Combine an active vibe reference with a competitor's angle reference.
     const styleParts: string[] = [];
