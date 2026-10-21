@@ -61,6 +61,7 @@ import {
   Keyboard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Pencil,
   Gauge,
   BookmarkPlus,
@@ -138,7 +139,7 @@ import {
   type LimitCheck,
   type ReelLength,
 } from "@/lib/platformCounters";
-import { splitScriptCaption } from "@/lib/scriptCaption";
+import { MAKE_VIDEO, makeVideoHref, splitScriptCaption } from "@/lib/scriptCaption";
 import ShotList from "@/components/ShotList";
 import PostReceipt from "@/components/PostReceipt";
 import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } from "@/lib/board";
@@ -4196,6 +4197,20 @@ export default function GeneratePage() {
             {leo && format === "short-video" && savedEntry && shortScript && (
               <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* edit-video: the AI panel opened on this post, its script filled (Film it is the button beside it) */}
+                  <details className="relative">
+                    <Button asChild variant="outline" size="sm" className="h-11 cursor-pointer list-none gap-1.5 sm:h-9 [&::-webkit-details-marker]:hidden">
+                      <summary>
+                        <Wand2 className="h-3.5 w-3.5" /> Make the video <ChevronDown className="h-3.5 w-3.5" />
+                      </summary>
+                    </Button>
+                    <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-xl border border-border/70 bg-popover p-1 shadow-elegant">
+                      {MAKE_VIDEO.filter((m) => m.kind !== "film").map((m) => (
+                        <Link key={m.kind} to={makeVideoHref(m.kind, savedEntry.id)}
+                          className="flex h-11 items-center rounded-lg px-3 text-sm hover:bg-accent focus:bg-accent focus:outline-none sm:h-9">{m.label}</Link>
+                      ))}
+                    </div>
+                  </details>
                   <Button variant="outline" size="sm" onClick={() => openView("prompter")} disabled={isStreaming} className="h-11 gap-1.5 sm:h-9">
                     <Video className="h-3.5 w-3.5" /> Film it
                   </Button>
