@@ -1,6 +1,6 @@
 # How close to the original
 
-`remix-closeness` | remix | phase 1 | status: missing | /north-star#remix-closeness
+`remix-closeness` | remix | phase 1 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#remix-closeness
 
 ## Leo asked
 
