@@ -455,7 +455,7 @@ function ImageEditor({ userId }: { userId: string }) {
                   <XIcon className="h-4 w-4" />
                 </Button>
               </div>
-              {mineDone?.layoutBy === "jev" && (
+              {mineDone?.layoutBy === "jev" && mineDone.layout === layout && (
                 <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                   <Check className="h-3.5 w-3.5" aria-hidden /> Matches the original
                 </p>
@@ -551,21 +551,21 @@ function ImageEditor({ userId }: { userId: string }) {
         <CardContent className="space-y-4 pt-4 sm:pt-5">
           <Row label="Font">
             {(Object.keys(SLIDE_FONTS) as SlideFont[]).map((f) => (
-              <FilterChip key={f} active={img.font === f} onClick={() => edit({ font: f })}>
+              <FilterChip key={f} active={img.font === f} disabled={writing} onClick={() => edit({ font: f })}>
                 {SLIDE_FONTS[f].label}
               </FilterChip>
             ))}
           </Row>
           <Row label="Background">
             {PAPERS.map((p) => (
-              <FilterChip key={p.id} active={img.paper === p.id} onClick={() => edit({ paper: p.id })}>
+              <FilterChip key={p.id} active={img.paper === p.id} disabled={writing} onClick={() => edit({ paper: p.id })}>
                 {p.label}
               </FilterChip>
             ))}
           </Row>
           <Row label="Words">
-            <FilterChip active={img.align !== "center"} onClick={() => edit({ align: "left" })}>Left</FilterChip>
-            <FilterChip active={img.align === "center"} onClick={() => edit({ align: "center" })}>Centred</FilterChip>
+            <FilterChip active={img.align !== "center"} disabled={writing} onClick={() => edit({ align: "left" })}>Left</FilterChip>
+            <FilterChip active={img.align === "center"} disabled={writing} onClick={() => edit({ align: "center" })}>Centred</FilterChip>
           </Row>
         </CardContent>
       </Card>

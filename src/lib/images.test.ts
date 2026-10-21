@@ -161,7 +161,7 @@ describe("Write it for me", () => {
     expect(parseMakeRequest(body).ok).toBe(true);
     const saved = loadImages(U)[0];
     expect(saved).toMatchObject({ id: "img-job1xx", layout: "stat", words: { number: "57%", statSource: "MOH 2024", statLabel: "of families plan care too late", caption: "Plan early." } });
-    expect(imageWrite()).toMatchObject({ state: "done", layoutBy: "jev", flags: { mas: false } });
+    expect(imageWrite()).toMatchObject({ state: "done", layout: "stat", layoutBy: "jev", flags: { mas: false } });
     expect(formatJobs().find((j) => j.slug === "static-ad")).toMatchObject({ state: "ready", format: "image", href: "/image?image=img-job1xx" });
     expect(cachedShows(swipe.key)).toBe("A big number on an orange block.");
 

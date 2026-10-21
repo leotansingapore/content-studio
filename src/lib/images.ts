@@ -233,6 +233,8 @@ export interface ImageWrite {
   /** The writer said no (422): the use is kept. */
   refused?: boolean;
   capped?: boolean;
+  /** Done: the layout written for, and whether Jev picked it from the ad. */
+  layout?: AdLayout;
   layoutBy?: "jev" | "default";
   flags?: Flags;
 }
@@ -282,7 +284,7 @@ export async function startImageWrite(userId: string, ask: ImageWriteAsk): Promi
     const result = res.result;
     const design = loadImages(userId).find((x) => x.id === ask.designId);
     if (design) saveImage(userId, { ...design, layout: result.layout, words: wordsFromMake(design.words, result) });
-    set({ ...base, state: "done", layoutBy: result.layoutBy, flags: res.flags });
+    set({ ...base, state: "done", layout: result.layout, layoutBy: result.layoutBy, flags: res.flags });
   } catch (e) {
     set({ ...base, state: "failed", ...failure(e, WRITE_FAILED) });
   }
