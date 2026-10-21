@@ -19,6 +19,9 @@ import {
   draftsOfBrand,
   getDraftStats,
   getPostingActivity,
+  threadOf,
+  titlesOf,
+  coverOf,
   type DraftEntry,
 } from "./draftHistory";
 import { addProfile, DEFAULT_PROFILE_ID, setActiveProfile } from "./profiles";
@@ -189,6 +192,59 @@ describe("upsertDraft and the hook formula", () => {
     expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited body", hookFormula: "number-reveal" });
     upsertDraft(UID, post({ hook: "A hook I typed myself" }));
     expect(loadDrafts(UID)[0].hookFormula).toBeUndefined();
+  });
+});
+
+describe("a draft's thread, titles and cover", () => {
+  const thread = { network: "threads" as const, posts: ["Most people pay for their hospital stay twice.", "First through the premium. Then through the co-pay."] };
+  const titles = ["Why your hospital bill comes twice", "The co-pay nobody explains", "Two bills, one stay"];
+  const cover = "Two bills, one stay";
+  const junk = (v: unknown) => v as never;
+
+  it("survive a save and a reload", () => {
+    upsertDraft(UID, post({ thread, titles, cover }));
+    const back = JSON.parse(JSON.stringify(loadDrafts(UID)))[0] as DraftEntry;
+    expect(threadOf(back)).toEqual(thread);
+    expect(titlesOf(back)).toEqual(titles);
+    expect(coverOf(back)).toBe(cover);
+  });
+
+  it("an older draft without them still loads, and reads as none", () => {
+    saveDrafts(UID, [post({})]);
+    const old = loadDrafts(UID)[0];
+    expect(old.hook).toBe("Weekly tip");
+    expect(threadOf(old)).toBeNull();
+    expect(titlesOf(old)).toEqual([]);
+    expect(coverOf(old)).toBe("");
+  });
+
+  it("drops junk: a bad network, non-text and blank posts, fewer than 2 posts, past 10, past 500 characters", () => {
+    expect(threadOf({ thread: junk({ network: "bluesky", posts: thread.posts }) })).toBeNull();
+    expect(threadOf({ thread: junk({ network: "x", posts: "one long post" }) })).toBeNull();
+    expect(threadOf({ thread: junk("a thread") })).toBeNull();
+    expect(threadOf({ thread: junk(null) })).toBeNull();
+    expect(threadOf({ thread: junk({ network: "x", posts: ["Only one", "  ", 3, null] }) })).toBeNull();
+    expect(threadOf({ thread: junk({ network: "x", posts: ["One", "", { t: 1 }, "Two"] }) })).toEqual({ network: "x", posts: ["One", "Two"] });
+    const twelve = Array.from({ length: 12 }, (_, i) => `Post ${i + 1}`);
+    expect(threadOf({ thread: { network: "threads", posts: twelve } })!.posts).toEqual(twelve.slice(0, 10));
+    const long = "a".repeat(700);
+    expect(threadOf({ thread: { network: "threads", posts: [long, "Two"] } })!.posts[0]).toBe("a".repeat(500));
+  });
+
+  it("drops junk titles and cover: non-text, blank, past 3", () => {
+    expect(titlesOf({ titles: junk("one title") })).toEqual([]);
+    expect(titlesOf({ titles: junk(["One", "", 2, null, "Two", "Three", "Four"]) })).toEqual(["One", "Two", "Three"]);
+    expect(coverOf({ cover: junk(42) })).toBe("");
+    expect(coverOf({ cover: "   " })).toBe("");
+  });
+
+  it("upsertDraft keeps them when a writer leaves them out, and takes new ones", () => {
+    upsertDraft(UID, post({ thread, titles, cover }));
+    upsertDraft(UID, post({ draft: "Edited in Write" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", thread, titles, cover });
+    const next = { network: "x" as const, posts: ["New one", "New two"] };
+    upsertDraft(UID, post({ thread: next, titles: ["Only this"], cover: "New cover" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ thread: next, titles: ["Only this"], cover: "New cover" });
   });
 });
 

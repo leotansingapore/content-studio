@@ -60,7 +60,36 @@ export interface DraftEntry {
   source?: RemixSource;
   // How the Remix sheet made it (remixJob.ts).
   remix?: DraftRemix;
+  // The post as a thread (formats-text-threads); read it through threadOf.
+  thread?: DraftThread;
+  // A short video script's titles and cover line (formats-hooks-scripts); read them through titlesOf and coverOf.
+  titles?: string[];
+  cover?: string;
 }
+
+export interface DraftThread {
+  network: "threads" | "x";
+  /** 2 to 10 posts of at most 500 characters. */
+  posts: string[];
+}
+
+const nonBlank = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
+
+/** The draft's thread as it should be: a known network and 2 to 10 posts, blanks and non-text dropped, each cut to 500. Else null. */
+export function threadOf(entry: Pick<DraftEntry, "thread">): DraftThread | null {
+  const t = entry.thread as unknown;
+  if (!t || typeof t !== "object") return null;
+  const { network, posts } = t as { network?: unknown; posts?: unknown };
+  if ((network !== "threads" && network !== "x") || !Array.isArray(posts)) return null;
+  const kept = posts.filter(nonBlank).slice(0, 10).map((p) => p.slice(0, 500));
+  return kept.length >= 2 ? { network, posts: kept } : null;
+}
+
+/** At most 3 titles, blanks and non-text dropped. */
+export const titlesOf = (entry: Pick<DraftEntry, "titles">): string[] => (Array.isArray(entry.titles) ? entry.titles.filter(nonBlank).slice(0, 3) : []);
+
+/** The cover line, or "" when there is none or it isn't text. */
+export const coverOf = (entry: Pick<DraftEntry, "cover">): string => (nonBlank(entry.cover) ? entry.cover : "");
 
 export interface DraftRemix {
   keep: string;
@@ -295,6 +324,9 @@ export function upsertDraft(
   // A writer that never heard of the source leaves the key out; Write always sets it (undefined clears it).
   if (prev?.source && !("source" in entry)) entry = { ...entry, source: prev.source };
   if (prev?.remix && !entry.remix) entry = { ...entry, remix: prev.remix };
+  if (prev?.thread && !entry.thread) entry = { ...entry, thread: prev.thread };
+  if (prev?.titles && !entry.titles) entry = { ...entry, titles: prev.titles };
+  if (prev?.cover && !entry.cover) entry = { ...entry, cover: prev.cover };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);
