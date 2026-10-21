@@ -65,6 +65,8 @@
 //        the one word in each caption line Jev says carries the meaning (drawn bigger), and with emoji an emoji from motion.ts's
 //        set on lit lines, one in 6 s (keywords.ts, "caption-keywords" cap). Leo only (NORTH_STAR_USERS, 403 not_enabled before
 //        any count); the use goes back only when Jev never answered, and no use is counted when no line can be asked.
+//   ?mode=transcribe takes &terms= (comma-separated, NORTH_STAR_USERS only, ignored for anyone else): the caller's own fixed
+//        words, added to the prompt after Singapore finance words so Whisper spells them right (logic.ts whisperPrompt).
 //   POST ?mode=watch&seconds=<edit length>, body = the exported video -> {findings:[{kind,start,end,what,fix}]}:
 //        Gemini watches the file twice and lists what a viewer would trip on (watch.ts, "video-watch" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
@@ -123,6 +125,8 @@ import {
   parseVibeReply,
   parseVibeRequest,
   langCode,
+  parseTerms,
+  whisperPrompt,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -166,8 +170,9 @@ Deno.serve(async (req) => {
       form.append("response_format", "verbose_json");
       form.append("timestamp_granularities[]", "word");
       form.append("timestamp_granularities[]", "segment");
-      // Whisper tidies away fillers unless the prompt shows them (OpenAI's documented trick); the editor needs them to cut them.
-      form.append("prompt", "Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.");
+      // the filler sample (the editor needs fillers heard to cut them); a NORTH_STAR_USERS caller's prompt also spells
+      // Singapore finance words and their own fixed words (?terms=), ignored for anyone else
+      form.append("prompt", whisperPrompt(isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid) ? parseTerms(new URL(req.url).searchParams.get("terms")) : null));
       // a long recording's later parts are held to the language heard in its first: on its own, a Singlish stretch came back in Malay
       const lang = langCode(new URL(req.url).searchParams.get("lang"));
       if (lang) form.append("language", lang);

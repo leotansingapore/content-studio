@@ -232,7 +232,7 @@ describe("Long video into clips: the panel's length", () => {
   });
 });
 
-describe("Captions: what Whisper is asked (pinned at c49a22ca)", () => {
+describe("Captions: what Whisper is asked (pinned at c49a22ca; terms added for edit-captions)", () => {
   const FILLERS = "Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.";
   const caption = (uid: string, q = "") =>
     db.handler!(new Request(`http://x/video-assist?mode=transcribe${q}`, { method: "POST", headers: { Authorization: `Bearer ${uid}`, "content-length": "2000" }, body: new Uint8Array(2000) }));
@@ -247,6 +247,30 @@ describe("Captions: what Whisper is asked (pinned at c49a22ca)", () => {
     expect(asked().get("language")).toBe("en");
     expect(asked().get("model")).toBe("whisper-1");
     expect(db.rows.get(`${UID}|video-transcribe|${db.today()}`)).toBe(1);
+  });
+});
+
+describe("Captions: finance words and your own fixed words (edit-captions)", () => {
+  const caption = (uid: string, q = "") =>
+    db.handler!(new Request(`http://x/video-assist?mode=transcribe${q}`, { method: "POST", headers: { Authorization: `Bearer ${uid}`, "content-length": "2000" }, body: new Uint8Array(2000) }));
+  const prompt = () => (bodies[0] as FormData).get("prompt") as string;
+  const terms = `&terms=${encodeURIComponent("Leo Tan,ActivityTracker,PruShield")}`;
+  beforeEach(() => {
+    answer = () => Response.json({ text: "Hi there.", duration: 1, language: "english", words: [] });
+  });
+
+  it("adds them for a listed uid, in the same one use", async () => {
+    await caption(LEO, `&lang=en${terms}`);
+    expect(prompt()).toBe("Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing. CPF, MediSave, MediShield Life, CareShield Life, Integrated Shield Plan, SRS, HDB, BTO, MAS, ILP, CPF LIFE, Leo Tan, ActivityTracker, PruShield.");
+    expect(db.rows.get(`${LEO}|video-transcribe|${db.today()}`)).toBe(1);
+  });
+  it("adds the finance words for a listed uid that sends none of its own", async () => {
+    await caption(LEO);
+    expect(prompt()).toContain("CPF, MediSave, MediShield Life, CareShield Life");
+  });
+  it("ignores them for anyone else, who keeps today's prompt", async () => {
+    await caption(UID, terms);
+    expect(prompt()).toBe("Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.");
   });
 });
 

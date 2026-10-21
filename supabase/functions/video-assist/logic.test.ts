@@ -578,3 +578,26 @@ describe("the vibe edit prompt (pinned at c49a22ca, before caption key words)", 
     expect(createHash("sha256").update(JSON.stringify(m)).digest("hex")).toBe("690f5e0fcf2851acc66fbc82d641f3f844a861f26f5c27df1f02cecd86f7ee29");
   });
 });
+
+describe("the Whisper prompt (edit-captions)", () => {
+  it("is the filler sample alone for anyone off NORTH_STAR_USERS", async () => {
+    const { whisperPrompt, FILLER_PROMPT } = await import("./logic");
+    expect(whisperPrompt(null)).toBe("Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.");
+    expect(FILLER_PROMPT).toBe(whisperPrompt(null));
+  });
+  it("keeps the filler sample, adds the finance words and the adviser's own, and stays under 800 characters", async () => {
+    const { whisperPrompt, parseTerms, FILLER_PROMPT } = await import("./logic");
+    const own = Array.from({ length: 30 }, (_, i) => `Term number ${String(i).padStart(2, "0")} abcdefghijklm`);
+    const p = whisperPrompt(parseTerms(own.join(",")));
+    expect(p.startsWith(`${FILLER_PROMPT} CPF, MediSave, MediShield Life, CareShield Life, Integrated Shield Plan, SRS, HDB, BTO, MAS, ILP, CPF LIFE, Term number 00`)).toBe(true);
+    expect(p.length).toBeLessThan(800);
+    expect(p.endsWith(".")).toBe(true);
+    expect(whisperPrompt(["cpf", "Leo Tan"])).toBe(`${FILLER_PROMPT} CPF, MediSave, MediShield Life, CareShield Life, Integrated Shield Plan, SRS, HDB, BTO, MAS, ILP, CPF LIFE, Leo Tan.`);
+  });
+  it("takes the adviser's words from ?terms=: at most 20, none over 30 characters, plain words only, once each", async () => {
+    const { parseTerms } = await import("./logic");
+    expect(parseTerms(" Leo  Tan ,ActivityTracker,,activitytracker,O'Brien & Co,x".padEnd(10) + "," + "a".repeat(31) + ",<script>,new\nline")).toEqual(["Leo Tan", "ActivityTracker", "O'Brien & Co", "x", "new line"]);
+    expect(parseTerms(Array.from({ length: 25 }, (_, i) => `t${i}`).join(","))).toHaveLength(20);
+    expect(parseTerms(null)).toEqual([]);
+  });
+});

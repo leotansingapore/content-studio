@@ -812,3 +812,41 @@ export function langCode(v: unknown): string | null {
   const s = String(v ?? "").toLowerCase().trim();
   return WHISPER_LANGS[s] ?? (Object.values(WHISPER_LANGS).includes(s) ? s : null);
 }
+
+// ---------- Whisper's prompt ----------
+
+/** Whisper tidies away fillers unless the prompt shows them (OpenAI's documented trick); the editor needs them to cut them. */
+export const FILLER_PROMPT = "Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.";
+/** Singapore finance words Whisper mishears, spelled the way advisers write them (edit-captions). */
+export const FINANCE_TERMS = ["CPF", "MediSave", "MediShield Life", "CareShield Life", "Integrated Shield Plan", "SRS", "HDB", "BTO", "MAS", "ILP", "CPF LIFE"];
+export const MAX_TERMS = 20;
+export const MAX_TERM = 30;
+export const MAX_PROMPT = 800;
+
+/** The adviser's own fixed words from ?terms= (comma-separated): plain words of at most 30 characters, once each, at most 20. */
+export function parseTerms(raw: string | null | undefined): string[] {
+  const out: string[] = [];
+  for (const part of String(raw ?? "").split(",")) {
+    const t = part.replace(/\s+/g, " ").trim();
+    if (!t || t.length > MAX_TERM || !/^[\p{L}\p{N}][\p{L}\p{N} '&.\-]*$/u.test(t) || out.some((x) => x.toLowerCase() === t.toLowerCase())) continue;
+    out.push(t);
+    if (out.length >= MAX_TERMS) break;
+  }
+  return out;
+}
+
+/**
+ * The transcription prompt: the filler sample, then for a NORTH_STAR_USERS caller the finance words and their own fixed
+ * words, as many as fit under 800 characters. null (anyone else) is the filler sample alone, as it always was.
+ */
+export function whisperPrompt(terms: string[] | null): string {
+  if (!terms) return FILLER_PROMPT;
+  const known = new Set(FINANCE_TERMS.map((t) => t.toLowerCase()));
+  let out = `${FILLER_PROMPT} ${FINANCE_TERMS.join(", ")}`;
+  for (const t of terms) {
+    if (known.has(t.toLowerCase())) continue;
+    if (out.length + t.length + 3 >= MAX_PROMPT) break;
+    out += `, ${t}`;
+  }
+  return `${out}.`;
+}
