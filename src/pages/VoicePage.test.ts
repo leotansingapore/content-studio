@@ -32,3 +32,13 @@ describe("/voice for everyone else", () => {
     await expect(html()).toMatchFileSnapshot("./__pins__/voice-page-everyone.html");
   });
 });
+
+describe("/voice for Leo", () => {
+  it("waits for the account before drawing anything that can be typed in", () => {
+    as.user = { id: "u1", email: "leo@example.com" };
+    const out = html();
+    expect(out).toContain('aria-label="Loading"');
+    expect(out).not.toContain("<textarea");
+    expect(out).not.toContain("Your past posts");
+  });
+});
