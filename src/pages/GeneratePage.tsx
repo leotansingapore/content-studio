@@ -656,6 +656,9 @@ interface BasePayload {
 
 // A remixed post's original beside it (Leo only). Lazy: it reads the top posts and ads drops.
 const RemixCompare = lazy(() => import("@/components/RemixCompare"));
+// Make it a thread (Leo only, formats-text-threads). Lazy, so nobody else loads it.
+const ThreadPanel = lazy(() => import("@/components/ThreadPanel"));
+const ThreadButton = lazy(() => import("@/components/ThreadPanel").then((m) => ({ default: m.ThreadButton })));
 
 export default function GeneratePage() {
   const { toast } = useToast();
@@ -824,7 +827,8 @@ export default function GeneratePage() {
     };
   }, []);
 
-  // ?panel=shortcuts (the keyboard shortcuts dialog) or post (Post it for me); opening pushes, so Back closes it.
+  // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me) or thread (Leo's Make it a thread,
+  // ThreadPanel.tsx); opening pushes, so Back closes it.
   const [panel, openPanel, closePanel] = useUrlItem("panel");
   // ?compare=original|more: a remixed post's compare tab on phones (RemixCompare reads the same param)
   const [compareTab, setCompareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
@@ -3988,7 +3992,26 @@ export default function GeneratePage() {
                   </Button>
                 );
               })}
+              {leo && format === "text-post" && savedEntry && (
+                <Suspense fallback={null}>
+                  <ThreadButton draftId={savedEntry.id} post={draft} ready={!isStreaming} />
+                </Suspense>
+              )}
             </div>
+            {leo && format === "text-post" && savedEntry && userId && panel === "thread" && (
+              <Suspense fallback={null}>
+                <ThreadPanel
+                  key={savedEntry.id}
+                  userId={userId}
+                  draft={savedEntry}
+                  text={forPosting(draft, "threads")}
+                  tails={[brandSignOff, withCredit("", remixSource ?? undefined)].filter(Boolean)}
+                  samples={voiceSamples}
+                  blockReason={mainCopyBlock}
+                  onDrafts={() => setScheduleTick((n) => n + 1)}
+                />
+              </Suspense>
+            )}
 
             {format === "short-video" && savedEntry && (
               <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
