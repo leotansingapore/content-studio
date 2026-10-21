@@ -1404,9 +1404,9 @@ function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     setKeyError("");
     try {
       const picks = await pickKeyWords(lines.map((l) => ({ text: l.text, words: keyCandidates(l.words.map((w) => w.w)), s: l.s })), emojiRule === "none" ? false : emojiRule === "one" ? "one" : true);
-      const cur = settingsRef.current;
-      setHistory((h) => [...h.slice(-19), cur]);
-      setSettings({ ...cur, keyWordsOn: true, keyWords: keyWordsFrom(lines, picks) });
+      // kept like a measured fact, with no Undo step of its own: Undo goes back past the switch, never to "on, not picked",
+      // which would pick (and spend) again by itself
+      setSettings((x) => ({ ...x, keyWords: keyWordsFrom(lines, picks) }));
     } catch (e) {
       // nothing lit: the switch goes back off and says why (the server gave the use back if Jev never answered)
       setSettings((x) => ({ ...x, keyWordsOn: false }));
