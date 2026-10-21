@@ -12,6 +12,7 @@ import { addDays, localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates"
 import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 import type { Numbers } from "../../supabase/functions/social/metrics.ts";
 import type { RemixSource } from "@/lib/remixSource";
+import type { PostLang } from "@/lib/links";
 export const MAX_DRAFTS = 50;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -65,6 +66,19 @@ export interface DraftEntry {
   // A short video script's titles and cover line (formats-hooks-scripts); read them through titlesOf and coverOf.
   titles?: string[];
   cover?: string;
+  // A version in another language (edit-translate): its language, the English post it was made from, the English
+  // meaning line by line and Jev's same-meaning answer (null: Jev had no answer). Read through translate.ts.
+  lang?: PostLang;
+  translationOf?: TranslationLink;
+  back?: string[];
+  sameP?: number | null;
+}
+
+/** The English post a version was made from: its id, textKey(platform, text) of it when translated, and when. */
+export interface TranslationLink {
+  id: string;
+  key: string;
+  at: string;
 }
 
 export interface DraftThread {
@@ -327,6 +341,11 @@ export function upsertDraft(
   if (prev?.thread && !entry.thread) entry = { ...entry, thread: prev.thread };
   if (prev?.titles && !entry.titles) entry = { ...entry, titles: prev.titles };
   if (prev?.cover && !entry.cover) entry = { ...entry, cover: prev.cover };
+  // ...or a version's language, its link to the English, the English meaning and Jev's answer (a writer that sets one, even to undefined, wins)
+  if (prev?.lang && !("lang" in entry)) entry = { ...entry, lang: prev.lang };
+  if (prev?.translationOf && !("translationOf" in entry)) entry = { ...entry, translationOf: prev.translationOf };
+  if (prev?.back && !("back" in entry)) entry = { ...entry, back: prev.back };
+  if (prev && prev.sameP !== undefined && !("sameP" in entry)) entry = { ...entry, sameP: prev.sameP };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);

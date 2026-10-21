@@ -248,6 +248,47 @@ describe("a draft's thread, titles and cover", () => {
   });
 });
 
+describe("a version in another language (edit-translate)", () => {
+  const translationOf = { id: "english-1", key: "48-abc123", at: "2026-10-21T10:00:00.000Z" };
+  const back = ["Most people pay twice.", "", "Comment PLAN."];
+  const version = { lang: "zh" as const, translationOf, back, sameP: 0.82 };
+
+  it("survives a save and a reload", () => {
+    upsertDraft(UID, post(version));
+    expect(JSON.parse(JSON.stringify(loadDrafts(UID)))[0]).toMatchObject(version);
+  });
+
+  it("upsertDraft keeps it when a writer leaves the fields out, as Write's rebuilt entry does", () => {
+    upsertDraft(UID, post(version));
+    upsertDraft(UID, post({ draft: "Edited in Write" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", ...version });
+  });
+
+  it("keeps a same-meaning answer of 0 and a null one (Jev had no answer)", () => {
+    upsertDraft(UID, post({ ...version, sameP: 0 }));
+    upsertDraft(UID, post({ draft: "Edited" }));
+    expect(loadDrafts(UID)[0].sameP).toBe(0);
+    upsertDraft(UID, post({ ...version, sameP: null }));
+    upsertDraft(UID, post({ draft: "Edited again" }));
+    expect(loadDrafts(UID)[0].sameP).toBeNull();
+  });
+
+  it("takes new values from a writer that sets them, and clears one set to undefined", () => {
+    upsertDraft(UID, post(version));
+    const again = { id: "english-1", key: "52-def456", at: "2026-10-22T09:00:00.000Z" };
+    upsertDraft(UID, post({ translationOf: again, back: ["New meaning."], sameP: undefined }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ lang: "zh", translationOf: again, back: ["New meaning."] });
+    expect(loadDrafts(UID)[0].sameP).toBeUndefined();
+  });
+
+  it("an English post saves with none of them", () => {
+    upsertDraft(UID, post({}));
+    upsertDraft(UID, post({ draft: "Edited" }));
+    const saved = JSON.parse(JSON.stringify(loadDrafts(UID)))[0];
+    expect(Object.keys(saved).filter((k) => ["lang", "translationOf", "back", "sameP"].includes(k))).toEqual([]);
+  });
+});
+
 describe("undoPosted", () => {
   it("puts a one-off post back to scheduled", () => {
     const before = [post({ status: "scheduled", scheduledFor: "2026-10-08T19:30" }), post({ id: "other" })];
