@@ -107,6 +107,8 @@ import {
   loadDrafts,
   newDraftId,
   setDraftAttached,
+  coverOf,
+  titlesOf,
   upsertDraft,
   type DraftEntry,
   type DraftRemix,
@@ -144,6 +146,7 @@ import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
 import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom, provenFormulas, provenOpen, type HookFormula } from "@/lib/hookFormulas";
 import { HOOK_BANK } from "@/lib/hookBank";
+import { titlesRun, writeTitles, TITLES_FAILED } from "@/lib/prompter";
 import {
   cleanAiTells,
   DISCLOSURES,
@@ -789,6 +792,9 @@ export default function GeneratePage() {
   const [storyboardFor, setStoryboardFor] = useState<string | null>(null);
   const [storyboardError, setStoryboardError] = useState<string | null>(null);
   const [boardStages, setBoardStages] = useState<Record<string, ProductionStage>>({});
+  // A short video's titles being written (Leo only): the draft they are for, and why the last run failed.
+  const [titlesFor, setTitlesFor] = useState<string | null>(null);
+  const [titlesError, setTitlesError] = useState<string | null>(null);
   const draftIdRef = useRef<string | null>(null);
   draftIdRef.current = currentDraftId;
   // The address names the post being written, so a reload or a copied link reopens it (docs/deep-links.md).
@@ -810,6 +816,7 @@ export default function GeneratePage() {
     setFirstComment(null);
     setStoryboard(null);
     setStoryboardError(null);
+    setTitlesError(null);
   };
   useEffect(
     () => () => {
@@ -1020,6 +1027,8 @@ export default function GeneratePage() {
     setStoryboard(entry.storyboard ?? null);
     const making = storyboardRun(entry.id);
     if (making) void followStoryboard(entry.id, making);
+    const titling = titlesRun(entry.id);
+    if (titling) void followTitles(entry.id, titling);
     // A written post opens on its draft, not on step 1 of a brief it already has.
     if (entry.draft.trim()) setBriefOpen(false);
     setCurrentDraftId(entry.id);
@@ -2448,11 +2457,16 @@ export default function GeneratePage() {
   const scriptWarn = shortScript ? reelTooLong(scriptWords, reelSeconds) ?? (leo && !isStreaming ? reelTooShort(scriptWords, reelSeconds) : null) : null;
   const storyboardStale = Boolean(storyboard && storyboard.script !== shortScript);
   const storyboardBusy = Boolean(currentDraftId && storyboardFor === currentDraftId);
+  const titlesBusy = Boolean(currentDraftId && titlesFor === currentDraftId);
+  const titles = savedEntry ? titlesOf(savedEntry) : [];
+  const cover = savedEntry ? coverOf(savedEntry) : "";
   // Leo's price chips (business-cost-preview): only his sessions read today's uses, so everyone else's stay null
   const imgRunning = imgJob?.state === "working" || imgJob?.state === "saving";
-  const usesLeft = useUsesLeft(!leo || storyboardBusy || imgRunning);
+  const usesLeft = useUsesLeft(!leo || storyboardBusy || imgRunning || titlesBusy);
   const storyboardLeft = usesLeft("storyboard");
   const storyboardWhy = reasonText({ left: storyboardLeft, leo: Boolean(leo) });
+  const titlesLeft = usesLeft("video-publish");
+  const titlesWhy = reasonText({ left: titlesLeft, leo: Boolean(leo) });
   const imageLeft = usesLeft("ai-image");
   const imageWhy = reasonText({ left: imageLeft, leo: Boolean(leo) });
   // a fix spends from the adviser's cap and the across-everyone one, so the smaller of the two is what's left
@@ -2477,6 +2491,31 @@ export default function GeneratePage() {
       setStoryboardFor((f) => (f === draftId ? null : f));
     }
   }
+
+  // Titles and a cover line for the script (Leo only); the run saves them on the draft, wherever Leo goes.
+  async function followTitles(draftId: string, run: Promise<unknown>) {
+    setTitlesFor(draftId);
+    setTitlesError(null);
+    try {
+      await run;
+    } catch (e) {
+      if (draftIdRef.current === draftId) setTitlesError(e instanceof Error && e.message ? e.message : TITLES_FAILED);
+    } finally {
+      setTitlesFor((f) => (f === draftId ? null : f));
+    }
+  }
+  const handleTitles = () => {
+    if (!userId || !currentDraftId || titlesBusy) return;
+    void followTitles(currentDraftId, writeTitles(userId, currentDraftId, shortScript));
+  };
+  const titleRow = (text: string) => (
+    <div key={text} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background py-1 pl-3 pr-1 text-sm">
+      <span className="min-w-0 flex-1">{text}</span>
+      <Button variant="ghost" size="sm" className="h-11 shrink-0 gap-1.5 sm:h-9" onClick={() => void navigator.clipboard.writeText(text).then(() => toast({ title: "Copied" }))}>
+        <Copy className="h-3.5 w-3.5" /> Copy
+      </Button>
+    </div>
+  );
 
   const handleStoryboard = () => {
     if (!userId || !currentDraftId || storyboardBusy) return;
@@ -4144,6 +4183,42 @@ export default function GeneratePage() {
                   <p role="alert" className="text-xs font-medium text-destructive">
                     {storyboardError}
                   </p>
+                )}
+              </div>
+            )}
+
+            {leo && format === "short-video" && savedEntry && shortScript && (
+              <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTitles}
+                    disabled={titlesBusy || isStreaming || titlesLeft === 0}
+                    className={`h-11 gap-1.5 sm:h-9 ${titlesBusy ? "disabled:opacity-100" : ""}`}
+                  >
+                    {titlesBusy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <AlignLeft className="h-3.5 w-3.5" />}
+                    {titlesBusy ? "Writing titles..." : "Write 3 titles"}
+                  </Button>
+                  {!titlesBusy && <PriceChip feature="video-publish" left={titlesLeft} />}
+                  {titlesWhy && <p className="basis-full text-xs text-destructive">{titlesWhy}</p>}
+                </div>
+                {titlesError && (
+                  <p role="alert" className="text-xs font-medium text-destructive">
+                    {titlesError}
+                  </p>
+                )}
+                {titles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Titles</p>
+                    {titles.map(titleRow)}
+                    {cover && (
+                      <>
+                        <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Cover line</p>
+                        {titleRow(cover)}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}
