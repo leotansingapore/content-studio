@@ -39,7 +39,8 @@ beforeAll(async () => {
   job = await import("@/lib/hookDemoJob");
   page = (play) =>
     renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/make/hook-demo${play ? `?play=${play}` : ""}`] }, createElement(HookDemo, { userId: UID, source: null })));
-});
+  // the page's first import transforms a large tree (8 s alone on a cold cache), so the default 10 s is too tight in a full parallel run
+}, 60_000);
 
 /** The footer chip's words: the last aria-live span on the page. */
 const chip = (html: string) => [...html.matchAll(/aria-live="polite"><span[^>]*>([^<]*)<\/span>/g)].at(-1)?.[1];
