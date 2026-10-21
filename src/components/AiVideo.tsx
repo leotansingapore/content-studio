@@ -469,6 +469,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const own = voice === "mine";
   const chooseVoice = (v: VoiceId | "mine") => {
     if (user) {
+      // pressing the voice already picked keeps its voiceover (a recorded take is not made again for free)
+      if (v === voiceParam) return;
       setVoiceParam(v);
       setVoError("");
     } else setVoice(v as VoiceId);
@@ -617,6 +619,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   };
   const stopRec = async () => {
     if (!rec) return;
+    setVoBusy(true);
     setRec(null);
     void takeVoice(await rec.take.stop());
   };
@@ -648,8 +651,10 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
     if (!people) return void makeAvatar(name, image as File | string, vo!, extra);
     // Leo: your face, or a saved presenter's link while it answers and its copy after; the mark says who and which voice
     setStarting(true);
-    const sent = speaker ? await speakerFace(speaker) : shown;
+    const sent = speaker ? await speakerFace(speaker).catch(() => null) : shown;
     setStarting(false);
+    // a saved picture that no longer reads: nothing is sent or spent
+    if (!sent) return setVoError(speaker?.person === "mine" ? "Your saved face didn't open. Record it again on Faces and voices." : "That presenter's picture didn't open. Pick who speaks again.");
     void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice) });
   };
   // New presenter (AI presenter for everyone else): today's look box

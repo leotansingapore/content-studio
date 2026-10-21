@@ -197,7 +197,9 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   const sp = saved ? speakerOf(speakers(userId), a.who) : null;
   if (saved) {
     if (!sp) return fail({ error: a.who === "mine" ? NO_FACE : PRESENTER_GONE });
-    face = await speakerFace(sp);
+    // a saved picture that no longer reads stops here, before anything is paid
+    face = await speakerFace(sp).catch(() => null);
+    if (!face) return fail({ error: a.who === "mine" ? NO_FACE : PRESENTER_GONE });
   }
   if (!face) return fail({ error: "Pick a photo first." });
 
