@@ -1295,6 +1295,8 @@ describe("the wave 1 live check (21 Oct)", () => {
     expect(notes("5 Ways To Clear Admin Faster")).toBe("5 ways to clear admin faster");
     expect(notes("Make more room for Sales")).toBe("Make more room for Sales");
     expect(notes("Save More")).toBe("Save More");
+    // an item's first word is not a name, even when the item before it has no full stop
+    expect(validateMake("notes", { title: "Stop Losing Chats, Bring Them Together", items: ["Check your setup", "Bring chats into one place", "Review it weekly"], caption, cta, hashtags: [] })).toMatchObject({ title: "Stop losing chats, bring them together" });
     expect(buildMakePrompt(shape("notes")).system).toContain("- title: the note's title, at most 8 words, in sentence case");
   });
 

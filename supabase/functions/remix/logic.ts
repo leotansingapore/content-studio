@@ -1086,7 +1086,7 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: M
   if (as === "notes") {
     const rows = Array.isArray(r.items) ? r.items : [];
     const items = rows.map((x) => line(x, 300)).filter(Boolean);
-    const title = sentenceCase(line(r.title, 200), [...items, String(r.caption ?? "")].join(" "));
+    const title = sentenceCase(line(r.title, 200), [...items, String(r.caption ?? "")].join(". "));
     const fits = title && wordCount(title) <= NOTES.titleWords && items.length === rows.length && items.length >= NOTES.min && items.length <= NOTES.max && items.every((i) => wordCount(i) <= NOTES.itemWords);
     const caption = fits ? slideshowCaption(r, [{ title, sub: items.join(" ") }]) : null;
     return caption ? { as, title, items, caption } : null;
