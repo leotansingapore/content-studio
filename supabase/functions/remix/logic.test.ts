@@ -1282,4 +1282,18 @@ describe("the wave 1 live check (21 Oct)", () => {
     expect((validateMake("meme", { options: [{ top: "Nobody: payday", bottom: "Me" }, { top: "a", bottom: "b" }, { top: "c", bottom: "d" }], ...CAP }, { layout: "top-bottom" }) as Extract<MakeResult, { as: "meme" }>).options[0].top).toBe("Nobody: payday");
     expect(buildMakePrompt(make({ as: "meme", layout: "nobody-me" })).system).toContain("The layout prints 'Nobody:' itself, so never write it.");
   });
+
+  it("asks for a note title in sentence case and puts an obvious Title Case one into it, keeping names", () => {
+    const r = live("3-notes").response.result as { title: string; items: string[]; caption: string };
+    const [caption, cta] = r.caption.split("\n\n");
+    const notes = (title: string, cap = caption) => (validateMake("notes", { title, items: r.items, caption: cap, cta, hashtags: [] }) as Extract<MakeResult, { as: "notes" }>).title;
+    expect(notes(r.title)).toBe("Make more room for sales");
+    expect(notes("Plan Your Retirement In Singapore", "Young adults in Singapore often wait. A plan helps.")).toBe("Plan your retirement in Singapore");
+    expect(notes("Get Your CRM And WhatsApp In One Place")).toBe("Get your CRM and WhatsApp in one place");
+    expect(notes("Stop Missing Follow-Ups: A Checklist I Use")).toBe("Stop missing follow-ups: A checklist I use");
+    expect(notes("5 Ways To Clear Admin Faster")).toBe("5 ways to clear admin faster");
+    expect(notes("Make more room for Sales")).toBe("Make more room for Sales");
+    expect(notes("Save More")).toBe("Save More");
+    expect(buildMakePrompt(shape("notes")).system).toContain("- title: the note's title, at most 8 words, in sentence case");
+  });
 });

@@ -551,7 +551,7 @@ function notesRules(req: MakeRequest): string[] {
   return [
     "",
     "Write a note list: a short video shows a person standing in front of it, like a plain note on a phone.",
-    `- title: the note's title, at most ${NOTES.titleWords} words, about the reader's problem or goal.`,
+    `- title: the note's title, at most ${NOTES.titleWords} words, in sentence case (only the first word and names capitalised), about the reader's problem or goal.`,
     `- items: ${NOTES.min} to ${NOTES.max} items, each one plain thing the reader can do or check, at most ${NOTES.itemWords} words, with no number in front and no emoji.`,
     "- Never state a figure, rate or result as a fact.",
     ...CAPTION_RULES,
@@ -1049,6 +1049,24 @@ export function validateMake(as: RemixAs, raw: unknown, req: MakeOpts = {}): Mak
  */
 const withoutNobody = (v: unknown) => line(v, 400).replace(/^nobody\b\s*(?::\s*|(?=me\b))/i, "").replace(/^me\b/, "Me");
 
+/**
+ * An obvious Title Case title ("Make More Room For Sales": 3 or more words, none starting lower case) in sentence case,
+ * Leo's rule for titles (wave 1 live check, 21 Oct). A word keeps its capital when it isn't a plain capitalised word
+ * (CRM, WhatsApp), is I, follows a stop, or is capitalised mid-sentence in `rest` (a name, such as Singapore).
+ */
+function sentenceCase(title: string, rest: string): string {
+  const words = title.split(" ");
+  if (words.length < 3 || words.some((w) => /^[^\p{L}]*\p{Ll}/u.test(w))) return title;
+  const names = new Set(rest.match(/(?<=[\p{L}\p{N},;]\s+)\p{Lu}[\p{L}'\u2019-]*/gu) ?? []);
+  return words
+    .map((w, i) => {
+      const core = w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "");
+      const plain = /^\p{Lu}[\p{Ll}'\u2019]*(?:-\p{Lu}[\p{Ll}'\u2019]*)*$/u.test(core);
+      return i === 0 || !plain || /[.!?:]$/.test(words[i - 1]) || /^I(?:['\u2019]|$)/.test(core) || names.has(core) ? w : w.toLowerCase();
+    })
+    .join(" ");
+}
+
 /** Phase 3's shapes, each held to its limits; a caption is its own complete sentences, as the slideshow's. */
 function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: MakeOpts): MakeResult | null {
   if (as === "hooks") {
@@ -1061,9 +1079,9 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: M
     return ok ? { as, hooks } : null;
   }
   if (as === "notes") {
-    const title = line(r.title, 200);
     const rows = Array.isArray(r.items) ? r.items : [];
     const items = rows.map((x) => line(x, 300)).filter(Boolean);
+    const title = sentenceCase(line(r.title, 200), [...items, String(r.caption ?? "")].join(" "));
     const fits = title && wordCount(title) <= NOTES.titleWords && items.length === rows.length && items.length >= NOTES.min && items.length <= NOTES.max && items.every((i) => wordCount(i) <= NOTES.itemWords);
     const caption = fits ? slideshowCaption(r, [{ title, sub: items.join(" ") }]) : null;
     return caption ? { as, title, items, caption } : null;
