@@ -74,7 +74,10 @@ describe("key shapes", () => {
   it("names the original the way the screens say it", () => {
     expect(sourceNoun({ kind: "top-post", format: "video", platform: "instagram" })).toBe("reel");
     expect(sourceNoun({ kind: "follow", format: "video", platform: "tiktok" })).toBe("video");
-    expect(sourceNoun({ kind: "link", format: "video", platform: "youtube" })).toBe("Short");
+    // a 5-minute /watch video was called a Short (dogfood 21 Oct, IphYQzGtYyk)
+    expect(sourceNoun({ kind: "link", format: "video", platform: "youtube", url: "https://www.youtube.com/watch?v=IphYQzGtYyk" })).toBe("video");
+    expect(sourceNoun({ kind: "link", format: "video", platform: "youtube", url: "https://www.youtube.com/shorts/IphYQzGtYyk" })).toBe("Short");
+    expect(sourceNoun({ kind: "link", format: "video", platform: "youtube" })).toBe("video");
     expect(sourceNoun({ kind: "follow", format: "carousel" })).toBe("carousel");
     expect(sourceNoun({ kind: "own", format: "text" })).toBe("post");
     expect(sourceNoun({ kind: "ad", format: "video" })).toBe("ad");

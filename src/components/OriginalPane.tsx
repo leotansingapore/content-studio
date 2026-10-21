@@ -21,7 +21,7 @@ const PLATFORM_NAME: Record<string, string> = {
 };
 
 /** "Instagram reel", "Meta ad", "YouTube Short"; "Your post" for the adviser's own. */
-export function kindLabel(s: Pick<RemixSource, "kind" | "format" | "platform">): string {
+export function kindLabel(s: Pick<RemixSource, "kind" | "format" | "platform" | "url">): string {
   if (s.kind === "own") return "Your post";
   const noun = sourceNoun(s);
   const name = s.platform && Object.prototype.hasOwnProperty.call(PLATFORM_NAME, s.platform) ? PLATFORM_NAME[s.platform] : undefined;

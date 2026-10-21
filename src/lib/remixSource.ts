@@ -65,12 +65,13 @@ export const sourceKey = {
 
 export type SourceNoun = "reel" | "video" | "carousel" | "post" | "ad" | "Short" | "trend" | "upload";
 
-export function sourceNoun(s: Pick<RemixSource, "kind" | "format" | "platform">): SourceNoun {
+/** A YouTube video is a Short only on a /shorts/ link, which viral search writes from is_shorts; a /watch link is a video. */
+export function sourceNoun(s: Pick<RemixSource, "kind" | "format" | "platform" | "url">): SourceNoun {
   if (s.kind === "ad") return "ad";
   if (s.kind === "trend") return "trend";
   if (s.kind === "upload") return "upload";
   if (s.format === "carousel") return "carousel";
-  if (s.format === "video") return s.platform === "instagram" ? "reel" : s.platform === "youtube" ? "Short" : "video";
+  if (s.format === "video") return s.platform === "instagram" ? "reel" : s.platform === "youtube" && /^https:\/\/[^/]+\/shorts\//.test(s.url ?? "") ? "Short" : "video";
   return "post";
 }
 

@@ -196,7 +196,8 @@ describe("pane words", () => {
   it("names the kind with its platform, and the adviser's own as Your post", () => {
     expect(kindLabel({ kind: "top-post", format: "video", platform: "instagram" })).toBe("Instagram reel");
     expect(kindLabel({ kind: "ad", platform: "meta-ad" })).toBe("Meta ad");
-    expect(kindLabel({ kind: "link", format: "video", platform: "youtube" })).toBe("YouTube Short");
+    expect(kindLabel({ kind: "link", format: "video", platform: "youtube", url: "https://www.youtube.com/shorts/IphYQzGtYyk" })).toBe("YouTube Short");
+    expect(kindLabel({ kind: "link", format: "video", platform: "youtube", url: "https://www.youtube.com/watch?v=IphYQzGtYyk" })).toBe("YouTube video");
     expect(kindLabel({ kind: "own", format: "text", platform: "linkedin" })).toBe("Your post");
     expect(kindLabel({ kind: "trend" })).toBe("Trend");
   });
