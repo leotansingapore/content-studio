@@ -791,7 +791,7 @@ export default function GeneratePage() {
   // What the Undo line says happened: a rewrite, a clean or an insert.
   const [undoNote, setUndoNote] = useState("Rewritten.");
   // The editor, and the text its cursor was placed in (by a tap, typing or an insert): Insert puts text at the
-  // cursor while the post is still that text, else where its kind goes. A rewrite, Undo or a new post clears it.
+  // cursor while the post is still that text, else where its kind goes, so a rewrite, Undo or a new post resets it.
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const caretIn = useRef<string | null>(null);
   const rewriteAbortRef = useRef<AbortController | null>(null);
@@ -3897,7 +3897,7 @@ export default function GeneratePage() {
                     </button>
                   </p>
                 )}
-                {leo && userId && panel === "insert" && (
+                {leo && userId && panel === "insert" && !isStreaming && (
                   <Suspense fallback={null}>
                     <InsertPanel
                       userId={userId}
