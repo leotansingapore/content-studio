@@ -389,7 +389,7 @@ export default function VideoEditPage() {
     else if (j?.error) toast({ title: j.label ? "Couldn't put the video together" : "Couldn't join the takes", description: j.error, variant: "destructive" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [join?.state]);
-  const joining = join?.state === "running" ? `${join.label ?? "Joining your takes"}, ${Math.round(join.progress * 100)}%...` : "";
+  const joining = join?.state === "running" ? `${join.label ?? "Joining your takes"}${join.waiting ? `: ${join.waiting}` : `, ${Math.round(join.progress * 100)}%...`}` : "";
 
   return (
     <div className="space-y-5">

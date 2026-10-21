@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
 import {
-  addToJoin, currentJoin, drawFrame, endJoin, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, pickupPlan, planFor, slidePlan, startExport, stopExportQueue, syncBackdrop,
-  withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
+  addToJoin, currentJoin, drawFrame, endJoin, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, onJoinJob, pickupPlan, planFor, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
+  TAP_TO_FINISH, withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
 } from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
@@ -268,5 +268,45 @@ describe("an extra added to another format's join", () => {
     expect(withJoinAdd("Talking head", base, 7 * 864e5)).toBe(base);
     store.set("cs-join-add", "{nope");
     expect(joinAdd()).toBeNull();
+  });
+});
+
+describe("startSound", () => {
+  const fakeCtx = (heldFirst: boolean) => {
+    const ctx = { state: "suspended", resumes: 0, resume() {
+      ctx.resumes++;
+      if (heldFirst && ctx.resumes === 1) return new Promise<void>(() => {}); // Chrome with no click behind it
+      ctx.state = "running";
+      return Promise.resolve();
+    } };
+    return ctx;
+  };
+
+  it("starts at once when a click is behind it, and asks for nothing", async () => {
+    const seen: (string | undefined)[] = [];
+    const off = onJoinJob((j) => seen.push(j?.waiting));
+    const ctx = fakeCtx(false);
+    await startSound(ctx as unknown as AudioContext, 10);
+    off();
+    expect(ctx.resumes).toBe(1);
+    expect(seen).not.toContain(TAP_TO_FINISH);
+  });
+
+  it("asks for a tap when the browser holds the sound after a reload, and starts it on the tap", async () => {
+    const page = new EventTarget();
+    vi.stubGlobal("window", page);
+    const seen: (string | undefined)[] = [];
+    const off = onJoinJob((j) => seen.push(j?.waiting));
+    const ctx = fakeCtx(true);
+    const started = startSound(ctx as unknown as AudioContext, 10);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(seen).toContain(TAP_TO_FINISH);
+    page.dispatchEvent(new Event("pointerdown"));
+    await started;
+    off();
+    vi.unstubAllGlobals();
+    expect(ctx.resumes).toBe(2);
+    expect(ctx.state).toBe("running");
+    expect(seen.at(-1)).toBeUndefined();
   });
 });

@@ -1501,6 +1501,8 @@ export interface JoinJob {
   error?: string;
   /** What is being put together, when it isn't takes (an AI video). */
   label?: string;
+  /** Set while the join waits for a click: the browser keeps sound off until the page is touched (a paid clip resumed after a reload). */
+  waiting?: string;
   /** Handed to the editor with the finished file (a montage's look, music and words, and what stood in for a clip). */
   extra?: JoinExtra;
 }
@@ -1649,6 +1651,31 @@ export function withJoinAdd(name: string, extra: JoinExtra | undefined, now = Da
  * With extra.topKey (the Spokesperson's offer picture) the frame is 1080x1920: the picture across the top and each
  * take below it, cropped round the face (stacked.ts offerBand).
  */
+export const TAP_TO_FINISH = "Tap anywhere on the page to finish it.";
+
+/**
+ * Join's sound. A press of Join starts it at once, but a paid clip resumed after a reload has no click behind it, and
+ * Chrome then holds the AudioContext with resume() never settling: so wait half a second, then ask for a tap and start
+ * it on that (the tap also lets the videos play with sound).
+ */
+export async function startSound(ctx: AudioContext, wait = 500): Promise<void> {
+  const ran = await Promise.race([ctx.resume().then(() => true, () => false), new Promise<boolean>((r) => setTimeout(() => r(false), wait))]);
+  if (ran || ctx.state === "running") return;
+  joinJob = { ...joinJob!, waiting: TAP_TO_FINISH };
+  emitJoin();
+  await new Promise<void>((done) => {
+    const go = () => {
+      window.removeEventListener("pointerdown", go);
+      window.removeEventListener("keydown", go);
+      void ctx.resume().then(done, done);
+    };
+    window.addEventListener("pointerdown", go);
+    window.addEventListener("keydown", go);
+  });
+  joinJob = { ...joinJob!, waiting: undefined };
+  emitJoin();
+}
+
 export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[], label?: string, opts?: { mute?: boolean; extra?: JoinExtra }) {
   if (joinJob?.state === "running") throw new Error("Takes are already being joined.");
   const { extra } = opts ?? {};
@@ -1673,7 +1700,7 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
     canvas.height = H;
     const g = canvas.getContext("2d")!;
     actx = new AudioContext();
-    await actx.resume(); // allowed: Join was a click
+    await startSound(actx);
     const dest = actx.createMediaStreamDestination();
     const gain = actx.createGain();
     gain.gain.value = 0;
