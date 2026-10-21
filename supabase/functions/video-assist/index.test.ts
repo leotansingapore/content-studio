@@ -36,6 +36,8 @@ const db = vi.hoisted(() => {
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
 const calls: string[] = [];
+// what each provider call was sent (the request body as text)
+const sent: string[] = [];
 // what the stubbed providers answer; every call fails unless a test says otherwise
 let answer: (url: string) => Response = () => new Response("{}", { status: 500 });
 const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
@@ -45,8 +47,9 @@ beforeAll(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string) => {
+  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
     calls.push(String(u));
+    sent.push(String(init?.body ?? ""));
     return answer(String(u));
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -59,6 +62,7 @@ afterAll(() => {
 beforeEach(() => {
   db.rows.clear();
   calls.length = 0;
+  sent.length = 0;
   answer = () => new Response("{}", { status: 500 });
 });
 
@@ -147,5 +151,22 @@ describe("Make it a thread", () => {
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ code: "daily_limit" });
     expect(calls).toEqual([]);
+  });
+});
+
+describe("Long video into clips: the panel's length", () => {
+  const sentences = Array.from({ length: 12 }, (_, i) => ({ s: i * 20, e: i * 20 + 18, text: `Point number ${i + 1} about hospital bills.` }));
+  const find = (uid: string) =>
+    db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "clips", duration: 300, sentences, length: "short" }) }));
+  const asked = () => JSON.parse(sent[0]).messages[0].content as string;
+
+  it("asks for short clips for a listed uid", async () => {
+    await find(LEO);
+    expect(asked()).toContain("Each clip is 12 to 35 seconds");
+  });
+  it("ignores the length for anyone else, who gets today's clips", async () => {
+    await find(UID);
+    expect(asked()).toContain("Each clip is 25 to 75 seconds");
+    expect(asked()).not.toContain("12 to 35");
   });
 });

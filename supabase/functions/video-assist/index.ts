@@ -6,14 +6,16 @@
 //        Frames are up to 3 stills from a reference video to match its look.
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
-//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?} -> {clips:[{start,end,title,hook,reason,score?,onTopic?,skip?}]}:
+//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?, length?} -> {clips:[{start,end,title,hook,reason,score?,parts?,onTopic?,skip?}]}:
 //        standalone reels cut from one long video, 3-5 under 8 minutes and up to 16 an hour beyond: the
 //        LLM proposes about twice that, reading a long recording in passes of about 40 minutes
 //        (passes.ts), Jev scores every candidate out of 100 and the best come first (score unset and
 //        the LLM's order when Jev has no answer) ("video-clips" cap, one use per pass).
 //        With word timings, each clip's edges are cleaned first (cleanEdges). With `about` (what the
 //        person typed), the LLM lists those parts first and Jev says which clips are about it. A clip
-//        may skip one tangent in its middle when Jev reads it as an aside (skip:{start,end}).
+//        may skip one tangent in its middle when Jev reads it as an aside (skip:{start,end}). parts holds the score's
+//        parts out of 100 ({alone, opening, topic?}). length "short" or "long" (the clips panel, NORTH_STAR_USERS
+//        only, ignored for anyone else) asks for 12-35 s or 50-100 s clips and keeps 12-40 s or 45-120 s.
 //   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
 //        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
 //        to, per section of a filmed talking head ("video-cutaways" cap).
@@ -221,6 +223,8 @@ Deno.serve(async (req) => {
     if (body?.mode === "clips") {
       const c = parseClipsRequest(body);
       if (!c.ok) return json({ error: c.error }, 400);
+      // Short and Long are the clips panel's (formats-clips), NORTH_STAR_USERS only; anyone else gets today's length
+      const length = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid) ? c.length : "auto";
       // a long recording is read in passes of about 40 minutes, each one use of the cap
       const windows = clipWindows(c.sentences, c.duration);
       const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
@@ -243,7 +247,7 @@ Deno.serve(async (req) => {
           const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(w.sentences, c.duration, c.about, w) }),
+            body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(w.sentences, c.duration, c.about, w, length) }),
             signal: AbortSignal.timeout(60_000),
           }).catch((e) => (console.error("video-assist clips", e), null));
           if (!res?.ok) {
@@ -251,7 +255,7 @@ Deno.serve(async (req) => {
             return { found: null, proposed, failed: true };
           }
           const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
-          found = parseClipsReply(content, c.duration, limit);
+          found = parseClipsReply(content, c.duration, limit, length);
           proposed += proposedCount(content);
           if (!found?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
         }
@@ -264,7 +268,7 @@ Deno.serve(async (req) => {
       if (!clips.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
       const usable = clips.length;
       // edges on whole sentences and strong words, before Jev reads them; no word timings, no skips
-      clips = c.words.length ? clips.map((x) => cleanEdges(x, c.words, c.duration)) : clips.map(({ skip: _, ...x }) => x);
+      clips = c.words.length ? clips.map((x) => cleanEdges(x, c.words, c.duration, length)) : clips.map(({ skip: _, ...x }) => x);
       const english = mostlyEnglish(c.sentences.slice(0, 400).map((x) => x.text).join(" "));
       // Jev in batches side by side: a 2-hour podcast has 60 candidates; null when every batch had no answer
       const ask = async (state: unknown, q: Record<string, JevQuestion>, who: string) => {
@@ -273,7 +277,7 @@ Deno.serve(async (req) => {
       };
       // a skipped tangent stays only when Jev reads it as an aside (a decision); without an answer, no skip
       const skips = english && clips.some((x) => x.skip) ? await ask({}, skipQuestions(clips, c.sentences, c.words), "video-assist clip skips") : null;
-      clips = applySkips(clips, skips);
+      clips = applySkips(clips, skips, length);
       if (!clips.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
       // Jev ranks the candidates from every pass together (Leo's rule: a ranking is a decision); without an answer, the LLM's order
       const answers = english ? await ask({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words, c.about), "video-assist clips") : null;

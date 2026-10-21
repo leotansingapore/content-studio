@@ -166,6 +166,8 @@ export interface FoundClip {
   onTopic?: boolean;
   /** A tangent in the middle that the clip leaves out, seconds on the source. */
   skip?: Span;
+  /** The score's parts, each out of 100 from Jev's own answers: stands alone, opening, and on topic when one was asked. */
+  parts?: { alone: number; opening: number; topic?: number };
 }
 export interface Span {
   start: number;
@@ -174,8 +176,18 @@ export interface Span {
 
 /** How long a clip plays: its span less the tangent it skips. */
 export const playedLength = (c: Span & { skip?: Span }) => c.end - c.start - (c.skip ? c.skip.end - c.skip.start : 0);
-/** A clip that plays 18 to 120 s; with a skip its span may run to 180. */
-const playable = (c: Span & { skip?: Span }) => playedLength(c) >= 18 && playedLength(c) <= 120 && c.end - c.start <= 180;
+
+/** The clips panel's Length (formats-clips): auto is today's. */
+export type ClipLength = "auto" | "short" | "long";
+/** What the LLM is asked for (lo to hi, aiming for aim) and the played seconds a clip is kept within (min to max). */
+export const CLIP_LENGTHS: Record<ClipLength, { lo: number; hi: number; aim: [number, number]; min: number; max: number }> = {
+  auto: { lo: 25, hi: 75, aim: [30, 60], min: 18, max: 120 },
+  short: { lo: 12, hi: 35, aim: [15, 30], min: 12, max: 40 },
+  long: { lo: 50, hi: 100, aim: [60, 90], min: 45, max: 120 },
+};
+/** A clip that plays within its length's bounds (auto: 18 to 120 s); with a skip its span may run to 180. */
+export const playable = (c: Span & { skip?: Span }, length: ClipLength = "auto") =>
+  playedLength(c) >= CLIP_LENGTHS[length].min && playedLength(c) <= CLIP_LENGTHS[length].max && c.end - c.start <= 180;
 
 /** What the person typed the clip should be about, at most this long. */
 export const MAX_ABOUT = 200;
@@ -183,7 +195,7 @@ export const MAX_ABOUT = 200;
 /** Word timings for clean clip edges: a 2-hour podcast at a fast 200 words a minute. */
 export const MAX_CLIP_WORDS = 25000;
 
-export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[]; about: string } | { ok: false; error: string } {
+export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[]; about: string; length: ClipLength } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const duration = Number(b.duration);
   // optional (a YouTube link has captions, not word timings); only well-formed words in time order count
@@ -201,7 +213,9 @@ export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSen
   if (!Number.isFinite(duration) || duration < 45) return { ok: false, error: "Clips need a video of at least 45 seconds." };
   if (sentences.length < 5) return { ok: false, error: "Caption the video first, then find clips." };
   const about = String(b.about ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_ABOUT);
-  return { ok: true, sentences, duration, words, about };
+  // an unknown length is today's
+  const length: ClipLength = b.length === "short" || b.length === "long" ? b.length : "auto";
+  return { ok: true, sentences, duration, words, about, length };
 }
 
 /**
@@ -253,7 +267,8 @@ export function batches<T>(questions: Record<string, T>, size = 30): Record<stri
   return Array.from({ length: Math.ceil(keys.length / size) }, (_, i) => Object.fromEntries(keys.slice(i * size, (i + 1) * size).map((k) => [k, questions[k]])));
 }
 
-export function buildClipsMessages(sentences: ClipSentence[], duration: number, about = "", window?: Pick<ClipWindow, "from" | "to">): { role: string; content: string }[] {
+export function buildClipsMessages(sentences: ClipSentence[], duration: number, about = "", window?: Pick<ClipWindow, "from" | "to">, length: ClipLength = "auto"): { role: string; content: string }[] {
+  const { lo, hi, aim } = CLIP_LENGTHS[length];
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
   const n = candidateCount(duration);
   const part = window && (window.from > 0 || window.to < duration) ? `This is the stretch from ${clock(window.from)} to ${clock(window.to)} of the video; the other stretches are read separately.` : "";
@@ -266,9 +281,9 @@ export function buildClipsMessages(sentences: ClipSentence[], duration: number, 
       content: [
         "You cut short-form reels out of a long talking video by a Singapore financial adviser (podcast, talk or explainer).",
         `Propose up to ${n} candidate clips from across the whole ${part ? "stretch" : "video"} (fewer when it is too short to hold that many). Each should stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.`,
-        "Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.",
+        `Each clip is ${lo} to ${hi} seconds (aim for ${aim[0]} to ${aim[1]}): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.`,
         "For each: a title of 3 to 7 words written from the payoff, what the viewer has by the end (the answer, the number, the lesson), not the topic, in sentence case (only the first word capitalised); a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning; and a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end. Only what the speaker says. No em dashes. Never promise returns.",
-        'A clip may leave out one tangent in its middle (an aside or a detour its point does not need): give it as skip {"start":number,"end":number} on sentence times, with at least one sentence kept on each side, and the clip without it still 25 to 75 seconds. Most clips skip nothing: leave skip out.',
+        `A clip may leave out one tangent in its middle (an aside or a detour its point does not need): give it as skip {"start":number,"end":number} on sentence times, with at least one sentence kept on each side, and the clip without it still ${lo} to ${hi} seconds. Most clips skip nothing: leave skip out.`,
         asked,
         part,
         'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string,"skip"?:{"start":number,"end":number}}]}',
@@ -284,8 +299,8 @@ const clock = (t: number) => {
   return `${s >= 3600 ? `${Math.floor(s / 3600)}:` : ""}${mm}:${`${s % 60}`.padStart(2, "0")}`;
 };
 
-/** Keeps only clips that fit the video, play 18-120 s and do not overlap, in the order given, at most `limit`. */
-export function parseClipsReply(content: string | null, duration: number, limit = 5): FoundClip[] | null {
+/** Keeps only clips that fit the video, play within their length (auto 18-120 s) and do not overlap, in the order given, at most `limit`. */
+export function parseClipsReply(content: string | null, duration: number, limit = 5, length: ClipLength = "auto"): FoundClip[] | null {
   if (!content) return null;
   let raw: unknown;
   try {
@@ -305,7 +320,7 @@ export function parseClipsReply(content: string | null, duration: number, limit 
     const skip = { start: Number(k.start), end: Number(k.end) };
     const skips = skip.start > start && skip.end < end && skip.end - skip.start >= 3;
     const clip = { start, end, ...(skips ? { skip } : {}) };
-    if (!playable(clip)) continue;
+    if (!playable(clip, length)) continue;
     if (out.some((x) => start < x.end && end > x.start)) continue;
     const clean = (v: unknown, n: number) => String(v ?? "").replace(/\s*\u2014\s*/g, ", ").trim().slice(0, n);
     out.push({ ...clip, title: clean(o.title, 60) || "Clip", hook: clean(o.hook, 90), reason: clean(o.reason, 160) });
@@ -332,9 +347,9 @@ export function clipText(sentences: ClipSentence[], clip: Pick<FoundClip, "start
  */
 export const SKIP_OK = 0.7;
 
-/** Shortest and longest clip kept, seconds (played, a skip left out). */
-export const CLIP_MIN = 18;
-export const CLIP_MAX = 120;
+/** Shortest and longest clip kept at auto length, seconds (played, a skip left out); CLIP_LENGTHS holds the others. */
+export const CLIP_MIN = CLIP_LENGTHS.auto.min;
+export const CLIP_MAX = CLIP_LENGTHS.auto.max;
 /** Words a clip never opens on: trimmed from the head of its first sentence. */
 const LEAD_INS = new Set(["so", "yeah", "and", "but", "like", "um", "umm", "uh", "uhh", "er", "erm", "ah", "okay", "ok", "well", "oh"]);
 /** Words that point back to something said before: the clip takes in the sentence before, or skips this one. */
@@ -361,10 +376,11 @@ export function sentenceSpans(words: Word[]): [number, number][] {
  * answer starts on its question; a question at the end is dropped (it opens the
  * next topic); leading "so", "and", "um" and the like are cut. Then 0.2-0.35 s of
  * the pause before the first word and up to 0.45 s after the last, never into a
- * neighbouring word. Every step keeps the clip CLIP_MIN to CLIP_MAX long, or is skipped.
+ * neighbouring word. Every step keeps the clip within its length's bounds (auto: CLIP_MIN to CLIP_MAX), or is skipped.
  * The lead and trail numbers are OpenShorts' (snap_clip_to_words).
  */
-export function cleanEdges<T extends Span & { skip?: Span }>(clip: T, words: Word[], duration: number): T {
+export function cleanEdges<T extends Span & { skip?: Span }>(clip: T, words: Word[], duration: number, length: ClipLength = "auto"): T {
+  const { min, max } = CLIP_LENGTHS[length];
   const spans = sentenceSpans(words);
   let a = spans.findIndex(([, j]) => words[j].e > clip.start + 0.05);
   let b = -1;
@@ -381,7 +397,7 @@ export function cleanEdges<T extends Span & { skip?: Span }>(clip: T, words: Wor
     if (x > a && y >= x && y < b) sk = [x, y];
   }
   const skipped = sk ? tail(sk[1]) - head(sk[0]) : 0;
-  const fits = (x: number, y: number, from = head(x)) => tail(y) - from - skipped >= CLIP_MIN && tail(y) - from - skipped <= CLIP_MAX;
+  const fits = (x: number, y: number, from = head(x)) => tail(y) - from - skipped >= min && tail(y) - from - skipped <= max;
   // moving an edge inward never reaches the tangent
   const clearOf = (x: number, y: number) => !sk || (x < sk[0] && y > sk[1]);
   const asks = (k: number) => /\?["')\]]?$/.test(words[spans[k][1]].w);
@@ -422,9 +438,9 @@ export function cleanEdges<T extends Span & { skip?: Span }>(clip: T, words: Wor
 /**
  * A skip stays only when Jev reads the clip as whole without it (p from SKIP_OK);
  * without an answer, no skip (the clip plays straight through, as before skips).
- * Then only clips that play 18 to 120 s are kept.
+ * Then only clips that play within their length (auto: 18 to 120 s) are kept.
  */
-export function applySkips(cands: FoundClip[], answers: Record<string, JevAnswer> | null): FoundClip[] {
+export function applySkips(cands: FoundClip[], answers: Record<string, JevAnswer> | null, length: ClipLength = "auto"): FoundClip[] {
   return cands
     .map((c, i) => {
       if (!c.skip) return c;
@@ -433,7 +449,7 @@ export function applySkips(cands: FoundClip[], answers: Record<string, JevAnswer
       const { skip: _, ...whole } = c;
       return whole;
     })
-    .filter(playable);
+    .filter((c) => playable(c, length));
 }
 
 /** One Noul per clip that skips: k<i>, was what it leaves out only an aside. */
@@ -548,6 +564,7 @@ const clash = (x: FoundClip, kept: FoundClip[], ratio = OVERLAP) =>
  * When overlaps leave fewer than `min`, the best of the rest top it up unless
  * they share half of a kept clip.
  * With a request, the clips about it come first and are all kept (up to `max`).
+ * Each scored clip carries its parts out of 100 (formats-clips' score line).
  * Without any answer, the LLM's own order and no scores. A clip that mostly
  * repeats a better one (their cleaned edges can meet) is dropped.
  */
@@ -557,7 +574,9 @@ export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer>
     const h = scoreOf(answers, `h${i}`);
     if (s === null || h === null) return c;
     const r = about ? scoreOf(answers, `r${i}`) : null;
-    return { ...c, score: Math.max(0, Math.min(100, Math.round((100 * (0.6 * s + 0.4 * h)) / 3))), ...(r === null ? {} : { onTopic: r >= ON_TOPIC }) };
+    const of100 = (x: number) => Math.max(0, Math.min(100, Math.round((100 * x) / 3)));
+    const parts = { alone: of100(s), opening: of100(h), ...(r === null ? {} : { topic: of100(r) }) };
+    return { ...c, score: of100(0.6 * s + 0.4 * h), parts, ...(r === null ? {} : { onTopic: r >= ON_TOPIC }) };
   });
   const jev = scored.some((c) => c.score !== undefined);
   const rank = (c: FoundClip) => (c.onTopic ? 1000 : 0) + (c.score ?? -1);

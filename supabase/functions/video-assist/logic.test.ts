@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK, langCode} from "./logic";
+import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK, langCode, playable, CLIP_LENGTHS} from "./logic";
 import { clipPasses, WINDOW_OVERLAP } from "./passes";
 
 describe("cleanWords", () => {
@@ -419,6 +419,63 @@ describe("clips: ask for a clip by typing", () => {
     expect(out.map((c) => [c.title, c.score, c.onTopic])).toEqual([["CPF top-up", 20, true], ["Insurance mistake", 100, false]]);
     // nothing typed: no onTopic, plain score order
     expect(rankClips(cands, answers, { min: 0, max: 5 }).map((c) => [c.title, c.onTopic])).toEqual([["Insurance mistake", undefined]]);
+  });
+});
+
+describe("clips: the panel's length and the score's parts (formats-clips)", () => {
+  const sentences = Array.from({ length: 8 }, (_, i) => ({ s: i * 20, e: i * 20 + 18, text: `Point ${i + 1} about hospital bills.` }));
+  const cand = (start: number, end: number, title: string) => ({ start, end, title, hook: "", reason: "" });
+
+  it("asks for each length's seconds, auto in today's words, the skip line on the same range", () => {
+    const sys = (length?: "auto" | "short" | "long") => buildClipsMessages(sentences, 900, "", undefined, length)[0].content;
+    expect(sys()).toContain("Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences");
+    expect(sys()).toContain("and the clip without it still 25 to 75 seconds.");
+    expect(sys("auto")).toBe(sys());
+    expect(sys("short")).toContain("Each clip is 12 to 35 seconds (aim for 15 to 30): join");
+    expect(sys("short")).toContain("and the clip without it still 12 to 35 seconds.");
+    expect(sys("long")).toContain("Each clip is 50 to 100 seconds (aim for 60 to 90): join");
+    expect(sys("short")).not.toContain("25 to 75");
+  });
+
+  it("keeps a 14-second clip only for short and a 110-second one for auto and long", () => {
+    const s14 = { start: 10, end: 24 };
+    const s110 = { start: 10, end: 120 };
+    expect([playable(s14, "auto"), playable(s14, "short"), playable(s14, "long")]).toEqual([false, true, false]);
+    expect([playable(s110, "auto"), playable(s110, "short"), playable(s110, "long")]).toEqual([true, false, true]);
+    expect(playable(s110)).toBe(true);
+    expect(CLIP_LENGTHS.auto).toMatchObject({ min: CLIP_MIN, max: 120 });
+    // the reply parser keeps only what the length plays
+    const reply = JSON.stringify({ clips: [{ start: 0, end: 14, title: "Short", hook: "", reason: "" }, { start: 30, end: 140, title: "Long", hook: "", reason: "" }] });
+    expect(parseClipsReply(reply, 200, 5, "short")!.map((c) => c.title)).toEqual(["Short"]);
+    expect(parseClipsReply(reply, 200, 5)!.map((c) => c.title)).toEqual(["Long"]);
+    expect(parseClipsReply(reply, 200, 5, "long")!.map((c) => c.title)).toEqual(["Long"]);
+  });
+
+  it("reads an unknown length as auto", () => {
+    const base = { duration: 300, sentences };
+    expect(parseClipsRequest({ ...base, length: "short" })).toMatchObject({ length: "short" });
+    expect(parseClipsRequest({ ...base, length: "long" })).toMatchObject({ length: "long" });
+    expect(parseClipsRequest({ ...base, length: "huge" })).toMatchObject({ length: "auto" });
+    expect(parseClipsRequest(base)).toMatchObject({ length: "auto" });
+  });
+
+  it("keeps clips after the skips by their length's floor", () => {
+    // 16 s once Jev had no answer on its tangent: under auto's 18 s floor, inside short's 12
+    const c = { ...cand(0, 16, "Sixteen"), skip: { start: 5, end: 9 } };
+    expect(applySkips([c], null)).toEqual([]);
+    expect(applySkips([c], null, "short")).toEqual([cand(0, 16, "Sixteen")]);
+  });
+
+  it("gives each part out of 100 from the answers Jev already gave, the combined score unchanged", () => {
+    const cands = [cand(0, 40, "A"), cand(50, 90, "B")];
+    const a = { s0: { type: "score" as const, score: 2.7 }, h0: { type: "score" as const, score: 2.4 }, s1: { type: "score" as const, score: 2 }, h1: { type: "score" as const, score: 1.5 } };
+    const out = rankClips(cands, a, { min: 2, max: 5 });
+    expect(out.map((c) => [c.title, c.score, c.parts])).toEqual([["A", 86, { alone: 90, opening: 80 }], ["B", 60, { alone: 67, opening: 50 }]]);
+    // asked about a topic: its part too
+    const t = rankClips(cands, { ...a, r0: { type: "score" as const, score: 0.6 }, r1: { type: "score" as const, score: 2.7 } }, { min: 2, max: 5 }, "bills");
+    expect(t.map((c) => [c.title, c.score, c.parts])).toEqual([["B", 60, { alone: 67, opening: 50, topic: 90 }], ["A", 86, { alone: 90, opening: 80, topic: 20 }]]);
+    // no answer: no parts, no score
+    expect(rankClips(cands, null, { min: 2, max: 5 }).map((c) => [c.score, c.parts])).toEqual([[undefined, undefined], [undefined, undefined]]);
   });
 });
 
