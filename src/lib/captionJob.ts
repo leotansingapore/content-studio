@@ -5,7 +5,9 @@
 // device as it lands, so a job that stops (a closed tab, no uses left today)
 // carries on from the next part. The words go into the project when all are in.
 
-import { applyFixes, type Word } from "@/lib/videoEdit";
+import { loadBrand } from "@/lib/carousel";
+import { leoUser } from "@/lib/useLeoOnly";
+import { applyFixes, brandFixes, type Word } from "@/lib/videoEdit";
 import { captionPlan, stitchParts, type Part } from "@/lib/longCaptions";
 import { RATE, openSound, type SoundReader } from "@/lib/longAudio";
 import { deleteFile, encodeWav, getFile, putFile } from "@/lib/videoMedia";
@@ -108,7 +110,9 @@ export async function startCaptions(userId: string, project: VideoProject, file:
     if (todo.length) await worker(true);
     if (!failed && todo.length) await Promise.all([worker(), worker()]);
     if (failed) throw failed;
-    const words = applyFixes(stitchParts(plan, results as Word[][]), loadFixes(userId)).words;
+    // Leo's captions spell the brand kit's name as the kit has it, as the editor's short recordings do
+    const brand = (await leoUser().catch(() => null)) ? brandFixes(loadBrand(userId)?.name) : [];
+    const words = applyFixes(stitchParts(plan, results as Word[][]), [...loadFixes(userId), ...brand]).words;
     const latest = loadProjects(userId).find((x) => x.id === project.id);
     if (latest) saveProject(userId, { ...latest, words });
     await deleteFile(progressKey(project.id)).catch(() => {});

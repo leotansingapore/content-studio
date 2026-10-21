@@ -9,9 +9,12 @@ vi.mock("@/lib/videoMedia", () => ({
 }));
 vi.mock("@/lib/longAudio", () => ({ RATE: 16000, openSound: async () => ({ read: async () => new Float32Array(1) }) }));
 vi.mock("@/lib/videoProjects", () => ({ transcribe: vi.fn(), loadProjects: vi.fn(), saveProject: vi.fn(), loadFixes: () => [] }));
+vi.mock("@/lib/useLeoOnly", () => ({ leoUser: vi.fn(async () => null) }));
+vi.mock("@/lib/carousel", () => ({ loadBrand: () => ({ name: "ActivityTracker" }) }));
 
 import { loadProjects, saveProject, transcribe, type VideoProject } from "@/lib/videoProjects";
 import { captionPlan } from "./longCaptions";
+import { leoUser } from "@/lib/useLeoOnly";
 import { captionJob, partsDone, startCaptions } from "./captionJob";
 
 const transcribed = vi.mocked(transcribe);
@@ -47,6 +50,18 @@ describe("captions for a long recording", () => {
     expect(transcribed).toHaveBeenCalledTimes(2);
     expect(saved.mock.calls[0][1].words.map((w) => w.w)).toEqual(["first", "later", "later"]);
     expect(files.has("captions-v1")).toBe(false);
+  });
+
+  it("spells the brand kit's name as the kit has it on Leo's sign-ins only", async () => {
+    const heard = { words: [{ w: "Activity", s: 1, e: 1.2 }, { w: "Tracker", s: 1.2, e: 1.5 }], text: "Activity Tracker", duration: 1 };
+    transcribed.mockResolvedValue(heard);
+    await startCaptions("u", project(), new Blob(["x"]));
+    expect(saved.mock.calls[0][1].words.map((w) => w.w)).not.toContain("ActivityTracker");
+    saved.mockClear();
+    transcribed.mockResolvedValue(heard);
+    vi.mocked(leoUser).mockResolvedValueOnce({ id: "u", email: "leo" } as never);
+    await startCaptions("u", project(), new Blob(["x"]));
+    expect(saved.mock.calls[0][1].words.map((w) => w.w)).toContain("ActivityTracker");
   });
 
   it("captions the first part alone, then holds every later part to the language it heard", async () => {
