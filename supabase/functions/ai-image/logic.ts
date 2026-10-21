@@ -85,7 +85,7 @@ export function readStatus(data: unknown): JobState {
 
 const enc = new TextEncoder();
 
-async function hmacHex(secret: string, message: string): Promise<string> {
+export async function hmacHex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(message)));
   return Array.from(sig, (b) => b.toString(16).padStart(2, "0")).join("");
