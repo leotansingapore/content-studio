@@ -67,6 +67,9 @@ describe("saved designs", () => {
     expect(list).toHaveLength(MAX_IMAGES);
     expect(list[0].id).toBe("img-a24xx");
     expect(list.at(-1)?.id).toBe("img-a5xx");
+    // the stored list itself is cut, not only what is read back
+    const key = [...storage.s.keys()].find((k) => k.startsWith("content-studio-images-"))!;
+    expect(JSON.parse(storage.getItem(key)!)).toHaveLength(MAX_IMAGES);
     saveImage(U, design("img-a10xx"));
     expect(loadImages(U)[0].id).toBe("img-a10xx");
     expect(loadImages(U)).toHaveLength(MAX_IMAGES);
