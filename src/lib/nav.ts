@@ -98,6 +98,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },
       { to: "/carousel", label: "Carousel" },
+      { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },
       { to: "/edit", label: "Video" },
       { to: "/media", label: "Media" },

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, visiblePages } from "./nav";
 
 const routes = [
-  "/home", "/welcome", "/generate", "/make", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
+  "/home", "/welcome", "/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
@@ -99,6 +99,20 @@ describe("nav", () => {
     // a format's own page sits under the gallery, in Write
     expect(pageFor("/make/slideshow")?.page.to).toBe("/make");
     expect(mobileTabs(false).filter((t) => t.active("/make")).map((t) => t.label)).toEqual(["Write"]);
+  });
+
+  it("shows Image only to Leo's sign-ins, after Carousel, and leaves everyone else's nav and More sheet as they were", () => {
+    const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
+    expect(write("someone@example.com")).toEqual(["/generate", "/generate/batch", "/carousel", "/edit", "/media"]);
+    expect(write("tanjunsing@gmail.com")).toEqual(["/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit", "/media"]);
+    const tiles = (email: string) => {
+      const sheet = moreSheet(email, false);
+      return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
+    };
+    expect(tiles("someone@example.com")).not.toContain("/image");
+    expect(pageFor("/image")?.page.label).toBe("Image");
+    expect(pageTitle("/image")).toBe("Image - Content Studio");
+    expect(mobileTabs(false).filter((t) => t.active("/image")).map((t) => t.label)).toEqual(["Write"]);
   });
 
   it("shows Library only to Leo's sign-ins, after My posts", () => {

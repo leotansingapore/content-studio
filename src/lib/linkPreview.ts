@@ -30,6 +30,7 @@ export const PAGES: Record<string, string> = {
   "/make": "Formats",
   "/generate/batch": "Batch",
   "/carousel": "Carousel",
+  "/image": "Image",
   "/slideshow": "Slideshow",
   "/edit": "Video",
   "/media": "Media",

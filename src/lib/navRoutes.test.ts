@@ -51,6 +51,12 @@ describe("routes and the nav", () => {
     expect(EXCEPTIONS["/make/:format"]).toBeDefined();
   });
 
+  it("serves the Image page from the nav, not as an exception", () => {
+    expect(routes).toContain("/image");
+    expect(navPaths.has("/image")).toBe(true);
+    expect("/image" in EXCEPTIONS).toBe(false);
+  });
+
   it("lists no stale exceptions", () => {
     expect(Object.keys(EXCEPTIONS).filter((r) => !routes.includes(r))).toEqual([]);
   });
