@@ -17,6 +17,8 @@ import {
   MAS_FLAG, SET_LABELS, TALKS, TALK_LABELS, TALK_SETTING, UNBOXING, isSetTalk, loadTalk, makeSet, notePresenter, offerAt, offerNames, onPresenterSet,
   onTalkScript, pickOffer, presenterFits, presenterSet, savedSet, saveTalk, takeScript, talkExtra, talkScript, writeTalkScript, type Talk,
 } from "@/lib/presenter";
+import { getDraftById } from "@/lib/draftHistory";
+import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { BANNER_MAX, MUSIC_LEVEL, moveTake } from "@/lib/videoEdit";
@@ -43,6 +45,10 @@ const cost = (credits: number) => `${credits} Higgsfield credits (about US$${cre
 const KINDS = ["template", "montage", "avatar", "explainer"] as const;
 type Kind = (typeof KINDS)[number];
 
+/** "What you say" holds 600 characters; a post fills it with whole sentences that also fit 30 s at 2.5 words a second. */
+const SAY_MAX = 600;
+const FILL = { say: SAY_MAX, sayWords: MAX_AVATAR_SECONDS * 2.5, theme: MAX_THEME, line: MAX_FIELD };
+
 /** Edit a video's start screen: a video made without filming, from a template, of you or a presenter speaking, or an explainer. */
 export default function AiVideo({ onClose }: { onClose: () => void }) {
   const [job, setJob] = useState<AiJob | null>(aiJob());
@@ -61,6 +67,25 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
   const busy = job?.state === "working";
   const left = useUsesLeft(busy);
 
+  // edit-video, Leo only: ?draft=<id> fills the kind's form from that post and stays while the panel is open; a post
+  // that is gone (deleted, or another brand's) says so and leaves the address. Everyone else's panel ignores it.
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const draftId = user ? params.get("draft") : null;
+  const entry = useMemo(() => (user && draftId ? getDraftById(user.id, draftId) : null), [user, draftId]);
+  const fill = useMemo(() => (entry ? postFill(entry, FILL) : null), [entry]);
+  const [gone, setGone] = useState(false);
+  useEffect(() => {
+    if (!user || !draftId || entry) return;
+    setGone(true);
+    update({ draft: null });
+  }, [user, draftId, entry, update]);
+  const clearPost = () => {
+    update({ draft: null });
+    // the narrated video keeps its typed words but no longer saves to the post
+    if (user) saveDraft(user.id, { fromDraft: undefined });
+  };
+
   return (
     <section className="space-y-3 rounded-2xl border border-border/70 p-4" aria-label="Make a video without filming">
       <div className="flex items-center justify-between gap-2">
@@ -76,9 +101,10 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
         <Pill on={tab === "avatar"} onClick={() => setTab("avatar")} disabled={busy}>You speaking</Pill>
         <Pill on={tab === "explainer"} onClick={() => setTab("explainer")} disabled={busy}>{user ? "Narrated video" : "Explainer"}</Pill>
       </div>
-      {tab === "template" ? <Templates busy={busy} left={left} />
-        : tab === "montage" ? <Montage busy={busy} left={left} />
-        : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} />
+      {user && !busy && <FromPost draftId={draftId} fill={fill} gone={gone} cut={tab === "avatar" && !!fill?.say.left} onClear={clearPost} />}
+      {tab === "template" ? <Templates busy={busy} left={left} fill={fill} />
+        : tab === "montage" ? <Montage busy={busy} left={left} fill={fill} />
+        : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} fill={fill} />
         : user ? <Narrated userId={user.id} busy={busy} />
         : <Explainer busy={busy} left={left} />}
       {busy && (
@@ -106,7 +132,7 @@ type Left = ReturnType<typeof useUsesLeft>;
 const MONTAGE_STEP = { writing: "Planning the shots...", finding: "Finding clips", joining: "Putting your montage together...", done: "", failed: "" } as const;
 
 /** A montage from a theme: stock clips that fit it, one look over all, words on screen, your own track if you add one. */
-function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
+function Montage({ busy, left: panelLeft, fill }: { busy: boolean; left: Left; fill: PostFill | null }) {
   const [job, setJob] = useState<MontageJob | null>(montageJob());
   useEffect(() => onMontageJob(setJob), []);
   const [theme, setTheme] = useState("");
@@ -115,6 +141,11 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
   const [music, setMusic] = useState<File | null>(null);
   const running = montageBusy();
   const off = busy || running;
+  const makeRef = useRef<HTMLButtonElement>(null);
+  useFill(fill, off, (f) => {
+    setTheme(f?.theme ?? "");
+    if (f) focusSoon(makeRef);
+  });
   const leo = useLeoOnly();
   // Leo's chip says what is left after this run, so his count is read again after a montage too
   const mine = useUsesLeft(off || !leo);
@@ -122,10 +153,10 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
 
   return (
     <div className="space-y-3">
-      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void startMontage({ theme: theme.trim(), seconds, words, music }); }}>
+      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void startMontage({ theme: theme.trim(), seconds, words, music, draftId: fill?.id }); }}>
         <Input value={theme} maxLength={MAX_THEME} onChange={(e) => { setTheme(e.target.value); dismissMontage(); }} disabled={off}
           placeholder="A theme, like Singapore mornings" aria-label="What the montage is about" className="h-11 sm:h-10" />
-        <Button type="submit" className="h-11 shrink-0 sm:h-10" disabled={off || theme.trim().length < 3 || uses === 0}>
+        <Button ref={makeRef} type="submit" className="h-11 shrink-0 sm:h-10" disabled={off || theme.trim().length < 3 || uses === 0}>
           {running ? "Making..." : "Make the montage"}
         </Button>
       </form>
@@ -166,11 +197,13 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
 }
 
 /** The gallery: pick a look, fill its blanks, read its warnings and the cost, make one Seedance clip. */
-function Templates({ busy, left }: { busy: boolean; left: Left }) {
+function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: PostFill | null }) {
   // ?template=<id> opens its form (push, so Back goes back to the gallery)
   const [templateId, openTemplate, closeTemplate] = useUrlItem("template");
   // kept across templates, so a product typed once carries over
   const [fields, setFields] = useState<Partial<Record<FieldKey, string>>>({});
+  // a post's first spoken sentence is "What they say" on every template that has that field
+  useFill(fill, busy, (f) => setFields((x) => ({ ...x, line: f?.line ?? "" })));
   const [photos, setPhotos] = useState<Partial<Record<PhotoRole, { file: File; url: string }>>>({});
   const [seconds, setSeconds] = useState<ClipSeconds>(8);
   const [quality, setQuality] = useState<ClipQuality>("720p");
@@ -223,7 +256,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
       quality,
       fields: Object.fromEntries(pick.fields.flatMap((f) => (value(f.key) ? [[f.key, value(f.key)]] : []))),
       photo: chosen ? { role: chosen, file: photos[chosen]!.file } : null,
-    });
+    }, fill ? { extra: { draftId: fill.id } } : undefined);
 
   return (
     <div className="space-y-3">
@@ -286,7 +319,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
   );
 }
 
-function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boolean; left: Left }) {
+function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy: boolean; left: Left; fill: PostFill | null }) {
   const [face, setFace] = useState<"photo" | "presenter">("photo");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState("");
@@ -340,6 +373,14 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
     take(talkScript());
     return onTalkScript(take);
   }, []);
+  // a post's script (edit-video): filled once, then the voiceover is the next press
+  const voiceRef = useRef<HTMLButtonElement>(null);
+  useFill(fill, busy, (f) => {
+    setScript(f?.say.text ?? "");
+    setVo(null);
+    setUndo(null);
+    if (f) focusSoon(voiceRef);
+  });
   // the empty set behind your own photo: made once (presenter.ts), then reused from this device
   const setTalk = isSetTalk(talk) ? talk : null;
   const [behind, setBehind] = useState<"keep" | "set">("keep");
@@ -417,9 +458,11 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
       topKey = `offer-${Date.now().toString(36)}`;
       await putFile(topKey, offerPic.file).catch(() => (topKey = undefined));
     }
-    const extra = user
+    const talked = user
       ? talkExtra({ talk, headline, setKey: face === "photo" && behind === "set" && setUrl ? setKey : null, offer: offerName, brand: loadBrand(user.id)?.name, topKey })
       : undefined;
+    // made from a post: the editor saves its caption back there, even after a reload mid-make (Pending keeps extra)
+    const extra = fill ? { ...talked, draftId: fill.id } : talked;
     void makeAvatar(script.trim().slice(0, 40) || "AI video", image!, vo!, extra);
   };
   const pickBtn = "inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11";
@@ -561,7 +604,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
           </p>
         )}
         {user && scriptJob?.state === "failed" && <p className="text-xs text-destructive" role="alert">{scriptJob.error}</p>}
-        <Textarea rows={4} value={script} maxLength={600} disabled={busy || (!!user && writing)}
+        <Textarea rows={4} value={script} maxLength={SAY_MAX} disabled={busy || (!!user && writing)}
           onChange={(e) => { setScript(e.target.value); setVo(null); setUndo(null); }} aria-label="What you say"
           placeholder={user && talk !== "plain" ? "What you say, or a topic to write it from" : `What you say, up to about ${MAX_AVATAR_SECONDS} seconds`} className="text-sm" />
         {user && talk === "news" && (
@@ -577,7 +620,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void makeVoice()}
+          <Button ref={voiceRef} size="sm" variant={vo ? "outline" : "default"} className="h-11 sm:h-9" onClick={() => void makeVoice()}
             disabled={busy || voBusy || n < 3 || left("ai-voice") === 0}>
             {voBusy ? "Making the voiceover..." : vo ? "Make the voiceover again" : "Make the voiceover"}
           </Button>
@@ -727,7 +770,10 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   const writing = !!w && (w.state === "reading" || w.state === "writing" || w.state === "finding");
   const left = useUsesLeft(busy || writing);
 
-  const [from, setFrom] = useUrlState<From>("from", "topic", { allowed: FROMS });
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  // a post's link (?draft=, edit-video) starts on A draft
+  const [from, setFrom] = useUrlState<From>("from", params.get("draft") ? "draft" : "topic", { allowed: FROMS });
   const [len, setLen] = useUrlState<(typeof LENGTHS)[number]>("secs", "30", { allowed: LENGTHS, remember: "cs-narrated-length" });
   const [visuals, setVisuals] = useUrlState<Visuals>("visuals", "stock", { allowed: VISUALS, remember: "cs-narrated-visuals" });
   const kept = useMemo(() => loadLook(userId), [userId]);
@@ -738,8 +784,6 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   const keep = from === "script" || from === "draft";
 
   // topic= and link= fill their box once, then leave the address
-  const [params] = useSearchParams();
-  const update = useUrlUpdate();
   const topicParam = params.get("topic");
   const linkParam = params.get("link");
   useEffect(() => {
@@ -752,7 +796,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   const draftParam = params.get("draft");
   const picked = list.find((x) => x.id === draftParam) ?? null;
   useEffect(() => {
-    if (picked && loadDraft(userId).fromDraft !== picked.id) saveDraft(userId, { script: picked.script.slice(0, MAX_SCRIPT), fromDraft: picked.id });
+    if (picked && loadDraft(userId).fromDraft !== picked.id) saveDraft(userId, { script: fitScript(picked.script, MAX_SCRIPT).text, fromDraft: picked.id });
   }, [userId, picked]);
   // Stock first picked after the scenes were written AI only: look for clips now (free, capped)
   const scenes = d.scenes;
@@ -978,6 +1022,54 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
       )}
     </div>
   );
+}
+
+/** Runs `apply` once per post a ?draft= link brings, and with null once it is cleared; never while a video is being made. */
+function useFill(fill: PostFill | null, off: boolean, apply: (f: PostFill | null) => void) {
+  const done = useRef<string | null>(null);
+  useEffect(() => {
+    const id = fill?.id ?? null;
+    if (off || id === done.current) return;
+    done.current = id;
+    apply(fill);
+    // apply only sets state, so a new one each render changes nothing
+  }, [fill, off]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** The next press, focused once the filled form has drawn; the page doesn't jump, so the strip above stays in view. */
+const focusSoon = (ref: React.RefObject<HTMLButtonElement>) => requestAnimationFrame(() => ref.current?.focus({ preventScroll: true }));
+
+/** edit-video (Leo only): the post the form was filled from, with the way back to it and Clear, or why nothing was. */
+function FromPost({ draftId, fill, gone, cut, onClear }: { draftId: string | null; fill: PostFill | null; gone: boolean; cut: boolean; onClear: () => void }) {
+  const link = "inline-flex h-11 items-center px-2 text-xs font-medium text-primary underline-offset-2 hover:underline sm:h-9 [@media(pointer:coarse)]:h-11";
+  if (fill) {
+    const n = fill.say.kept;
+    return (
+      <div className="rounded-xl border border-primary/25 bg-primary/5 px-3 py-1">
+        <div className="flex flex-wrap items-center gap-x-2">
+          {/* a phone puts the buttons under the title rather than cutting it to a few letters */}
+          <p className="min-w-[12rem] flex-1 truncate pt-2 text-sm sm:pt-0">From your post: <span className="font-semibold">{fill.title}</span></p>
+          <div className="-mr-2 flex items-center">
+            <Link to={links.generate({ draft: fill.id })} className={link}>Open in Write</Link>
+            <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={onClear}>Clear</Button>
+          </div>
+        </div>
+        {cut && (
+          <p className="pb-2 text-xs text-amber-700 dark:text-amber-300">
+            Cut to the first {n === 1 ? "sentence" : `${n} sentences`} to fit 30 seconds. Change it before you make it.
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (draftId) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        That post has no script yet. <Link to={links.generate({ draft: draftId })} className={`${link} -ml-2`}>Write it</Link>
+      </p>
+    );
+  }
+  return gone ? <p className="text-sm text-muted-foreground" role="status">We couldn't find that post. Type the script instead.</p> : null;
 }
 
 function Pill({ on, onClick, disabled, children }: { on: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
