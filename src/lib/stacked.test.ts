@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OPEN_END, drawSlides, drawStacked, halfCrop, lifted, meOf, pairAt, pairShare, pairsOf, sanitizeMe, sanitizePairs, slidesCaptionY, slidesHeight, type Pair } from "./stacked";
+import { OPEN_END, drawSlides, drawStacked, halfCrop, lifted, meOf, offerBand, pairAt, pairShare, pairsOf, sanitizeMe, sanitizePairs, slidesCaptionY, slidesHeight, type Pair } from "./stacked";
 import type { SeenFace } from "./speakers";
 import { sanitizeTrack } from "./faceFollow";
 
@@ -115,5 +115,43 @@ describe("slides and me", () => {
     expect(sanitizeMe(null)).toBeNull();
     expect(sanitizeMe([0.5, 2, 0.1])).toBeUndefined();
     expect(sanitizeMe(undefined)).toBeUndefined();
+  });
+});
+
+describe("the Spokesperson's offer band (formats-presenter)", () => {
+  const near = (r: Record<string, number>, want: Record<string, number>) => Object.entries(want).forEach(([k, v]) => expect(r[k], k).toBeCloseTo(v, 6));
+
+  it("puts a tall picture whole in the top 45% of a 1080x1920 frame, and the speaker's face below", () => {
+    // a 4:5 guide cover over a 720x1280 Speak clip
+    const b = offerBand(1080, 1350, 720, 1280, 1080, 1920);
+    near(b.pic, { x: 194.4, y: 0, w: 691.2, h: 864 });
+    near(b.under, { x: 0, y: 864, w: 1080, h: 1056 });
+    // the clip's whole width, the face 42% down the crop
+    expect(b.face.x).toBe(0);
+    expect(b.face.w).toBe(720);
+    expect(b.face.h).toBeCloseTo(704, 6);
+    expect(b.face.y).toBeCloseTo(0.4 * 1280 - 704 * 0.42, 6);
+  });
+
+  it("gives a wide picture only the height it needs, and the speaker the rest", () => {
+    // a 16:9 phone screenshot turned sideways, a 1080x1920 clip
+    const b = offerBand(1920, 1080, 1080, 1920, 1080, 1920);
+    near(b.pic, { x: 0, y: 0, w: 1080, h: 607.5 });
+    near(b.under, { x: 0, y: 607.5, w: 1080, h: 1312.5 });
+    expect(b.face.w).toBe(1080);
+    expect(b.face.y + b.face.h).toBeLessThanOrEqual(1920);
+  });
+
+  it("never crops past the clip's edges, whatever the face's spot", () => {
+    for (const spot of [[0, 0, 0.3], [1, 1, 0.3], [0.5, 0.4, 0.3]] as [number, number, number][]) {
+      // a square own photo: the band is wider than the clip, so the crop takes its full height
+      const { face } = offerBand(1080, 1350, 1000, 1000, 1080, 1920, spot);
+      expect(face.x).toBeGreaterThanOrEqual(0);
+      expect(face.y).toBeGreaterThanOrEqual(0);
+      expect(face.x + face.w).toBeLessThanOrEqual(1000 + 1e-9);
+      expect(face.y + face.h).toBeLessThanOrEqual(1000 + 1e-9);
+      // the crop keeps the band's shape, so nothing is stretched
+      expect(face.w / face.h).toBeCloseTo(1080 / 1056, 6);
+    }
   });
 });

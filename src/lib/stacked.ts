@@ -110,6 +110,34 @@ export function meOf(looks: (SeenFace[] | null)[]): Spot | null {
 /** The screen's band: the whole picture across the frame's width (W x H), at most 45% of its height. */
 export const slidesHeight = (srcW: number, srcH: number, W: number, H: number) => Math.min(H * 0.45, (W * srcH) / srcW);
 
+export type Rect = { x: number; y: number; w: number; h: number };
+
+/**
+ * Where the face sits in a speaker's clip with no face read of its own (shortcut: assumed centred a little above the
+ * middle, as in the head-and-shoulders portraits Speak animates; read it with faceVision's findFaceBox if own photos
+ * come out off-centre).
+ */
+export const PORTRAIT_FACE: Spot = [0.5, 0.4, 0.3];
+
+/**
+ * The Spokesperson's offer band (formats-presenter) in a W x H frame: the offer's picture whole across the top, at
+ * most 45% of the height (slidesHeight), centred where it is narrower than the frame (`pic`); below it (`under`), the
+ * speaker's clip cropped from the source (`face`) as wide as the source allows, the face a little above the middle.
+ * Not halfCrop: its half-width cap keeps a second person out, and here there is one, so the crop stays sharp.
+ */
+export function offerBand(picW: number, picH: number, srcW: number, srcH: number, W: number, H: number, spot: Spot = PORTRAIT_FACE): { pic: Rect; under: Rect; face: Rect } {
+  const top = slidesHeight(picW, picH, W, H);
+  const k = Math.min(W / picW, top / picH);
+  const pic = { x: (W - picW * k) / 2, y: (top - picH * k) / 2, w: picW * k, h: picH * k };
+  const under = { x: 0, y: top, w: W, h: H - top };
+  let cw = srcW;
+  let ch = (cw * under.h) / W;
+  if (ch > srcH) [ch, cw] = [srcH, (srcH * W) / under.h];
+  const x = Math.min(srcW - cw, Math.max(0, spot[0] * srcW - cw / 2));
+  const y = Math.min(srcH - ch, Math.max(0, spot[1] * srcH - ch * 0.42));
+  return { pic, under, face: { x, y, w: cw, h: ch } };
+}
+
 /** Where captions sit under the slides: three quarters of the way down the face's band, over the chest. */
 export const slidesCaptionY = (srcW: number, srcH: number, W: number, H: number) => {
   const seam = slidesHeight(srcW, srcH, W, H) / H;

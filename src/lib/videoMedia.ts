@@ -3,7 +3,8 @@
 // and up to three small stills for "match this reference". Preview and export
 // draw every frame with drawFrame, so what you see is what you get.
 
-import { drawSlides, drawStacked, lifted, pairAt } from "@/lib/stacked";
+import { drawSlides, drawStacked, lifted, offerBand, pairAt } from "@/lib/stacked";
+import { getFile } from "@/lib/deviceFiles";
 import { keepTop } from "@/lib/burnedText";
 import { readableOn } from "@/lib/carouselLayout";
 import type { CarouselBrand } from "@/lib/carousel";
@@ -1560,6 +1561,8 @@ export async function handToEditor(file: File, extra: JoinExtra, label?: string)
  * time (no new dependency can join MP4s in the browser without re-encoding).
  * The frame is the first take's, at most 1920 on the long side; a take of
  * another shape fits inside it. The sound fades for 25 ms at each join so it doesn't click.
+ * With extra.topKey (the Spokesperson's offer picture) the frame is 1080x1920: the picture across the top and each
+ * take below it, cropped round the face (stacked.ts offerBand).
  */
 export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[], label?: string, opts?: { mute?: boolean; extra?: JoinExtra }) {
   if (joinJob?.state === "running") throw new Error("Takes are already being joined.");
@@ -1568,15 +1571,18 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
   emitJoin();
   const els: HTMLVideoElement[] = [];
   let actx: AudioContext | null = null;
+  let top: ImageBitmap | null = null;
   try {
     // avc3 carries the codec setup in the stream, so pausing between takes doesn't trip Chrome's "codec description changed" warning
     const avc3 = "video/mp4;codecs=avc3.42E01E,mp4a.40.2";
     const { mime, ext } = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(avc3) ? { mime: avc3, ext: "mp4" } : pickMime();
     for (const t of takes) els.push(await loadVideo(t.file));
+    // shortcut: an offer picture gone from this device leaves the plain video rather than failing a paid one
+    if (extra?.topKey) top = await getFile(extra.topKey).then((f) => (f ? createImageBitmap(f) : null)).catch(() => null);
     const total = takes.reduce((n, t) => n + (t.end - t.start), 0);
     const k = Math.min(1, 1920 / Math.max(els[0].videoWidth, els[0].videoHeight));
-    const W = Math.round((els[0].videoWidth * k) / 2) * 2;
-    const H = Math.round((els[0].videoHeight * k) / 2) * 2;
+    const W = top ? 1080 : Math.round((els[0].videoWidth * k) / 2) * 2;
+    const H = top ? 1920 : Math.round((els[0].videoHeight * k) / 2) * 2;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -1596,6 +1602,12 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
       const s = Math.min(W / v.videoWidth, H / v.videoHeight);
       g.fillStyle = "#000";
       g.fillRect(0, 0, W, H);
+      if (top) {
+        const b = offerBand(top.width, top.height, v.videoWidth, v.videoHeight, W, H);
+        g.drawImage(top, b.pic.x, b.pic.y, b.pic.w, b.pic.h);
+        g.drawImage(v, b.face.x, b.face.y, b.face.w, b.face.h, b.under.x, b.under.y, b.under.w, b.under.h);
+        return;
+      }
       g.drawImage(v, (W - v.videoWidth * s) / 2, (H - v.videoHeight * s) / 2, v.videoWidth * s, v.videoHeight * s);
     };
     const FADE = 0.025;
@@ -1662,6 +1674,7 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
       v.pause();
       URL.revokeObjectURL(v.src);
     }
+    top?.close();
     void actx?.close();
     emitJoin();
   }
