@@ -93,3 +93,42 @@ describe("streamOnePost for everyone else", () => {
     await expect(JSON.stringify(await write(), null, 2)).toMatchFileSnapshot("./__pins__/stream-one-post-everyone.json");
   });
 });
+
+describe("streamOnePost for Leo", () => {
+  const LEO = { id: UID, email: "leo@example.com" };
+  const pinned = async () => JSON.parse((await import("./__pins__/stream-one-post-everyone.json?raw")).default);
+
+  it("adds his facts and post learnings after the brand rules, with Coach's lists, and nothing else changes", async () => {
+    seedMemory();
+    as.user = LEO;
+    const req = await write();
+    const block = [
+      "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):",
+      "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser",
+      "- Keep doing or avoid: Never use emoji; Lean into: client stories; Steer clear of: jargon",
+    ].join("\n");
+    expect(req.body.ideaContext).toBe(`MY BRAND RULES: Never use the words: guaranteed.\n\n${block}`);
+    expect(String(req.body.ideaContext)).not.toContain("Use Asian presenters");
+    const today = await pinned();
+    expect({ ...req, body: { ...req.body, ideaContext: today.body.ideaContext } }).toEqual(today);
+  });
+
+  it("makes the block the whole context when the caller sends none", async () => {
+    seedMemory();
+    as.user = LEO;
+    const req = await write({ ...PAYLOAD, ideaContext: undefined });
+    expect(String(req.body.ideaContext).startsWith("ABOUT ME, FROM WHAT I HAVE TOLD YOU")).toBe(true);
+  });
+
+  it("sends today's request when nothing is saved, and when the session can't be read", async () => {
+    as.user = LEO;
+    expect(await write()).toEqual(await pinned());
+    seedMemory();
+    const { leoUser } = await import("@/lib/useLeoOnly");
+    vi.mocked(leoUser).mockImplementationOnce(() => {
+      throw new Error("no auth");
+    });
+    sent.length = 0;
+    expect(await write()).toEqual(await pinned());
+  });
+});

@@ -8,6 +8,8 @@
 // separate so batch mode doesn't depend on GeneratePage's internal state.
 
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase";
+import { leoUser } from "@/lib/useLeoOnly";
+import { memoryLine } from "@/lib/voiceMemory";
 
 export interface GeneratePostPayload {
   pillar: string;
@@ -21,6 +23,22 @@ export interface GeneratePostPayload {
   audience: string;
   voiceSummary?: string;
   singlish?: boolean;
+}
+
+/**
+ * Leo's facts and learnings for posts after the caller's context (brand-voice-memory, decision 13), so Write's short
+ * calls, Batch, the carousel topic writer, the video caption writer and the recruit agent all get them. The context
+ * already holds the brand rules, which come first. Everyone else's payload goes out as it came in.
+ */
+async function withMemory(payload: GeneratePostPayload): Promise<GeneratePostPayload> {
+  let me: Awaited<ReturnType<typeof leoUser>> = null;
+  try {
+    me = await leoUser();
+  } catch {
+    // a session that can't be read is not Leo's
+  }
+  const memory = me ? memoryLine(me.id, "posts") : "";
+  return memory ? { ...payload, ideaContext: [payload.ideaContext, memory].filter(Boolean).join("\n\n") } : payload;
 }
 
 export async function streamOnePost(
@@ -46,7 +64,7 @@ export async function streamOnePost(
         apikey: SUPABASE_ANON_KEY,
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ ...payload, mode: "post", n: 1, stream: true }),
+      body: JSON.stringify({ ...(await withMemory(payload)), mode: "post", n: 1, stream: true }),
       signal,
     });
   } catch (err) {
