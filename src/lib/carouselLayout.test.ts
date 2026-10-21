@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { CAROUSEL_DESIGNS, type CarouselDesign } from "@/lib/links";
 import {
   CONTENT_WIDTH,
+  checklistItems,
   FOOTER_RULE_Y,
   INK,
   PAD_X,
@@ -276,5 +278,163 @@ describe("today's carousels, before designs and sizes (pinned at 7e8f1493)", () 
     }
     expect(out.length).toBe(2 * 3 * 4 * 4 * 4 * 3 * 3);
     expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("38872daf1170af64b4255f0a5843db8bb7e7a7678f1b623ed6bbd7981f942589");
+  });
+});
+
+describe("designs and sizes", () => {
+  const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+  const PIC = "data:image/png;base64,iVBORw0KGgo=";
+  const kit = { ...brand, photo: PHOTO };
+  // a 6-slide carousel at the splitter's limits: a 6-word hook, 12-word titles and 40-word bodies
+  const forty = "Check the ward class, the co-pay and the rider before you renew, because a plan that looked cheap at thirty can leave a gap at forty when the bill arrives and the rider you dropped was the one you needed.";
+  const six = [
+    { title: "Your hospital plan has a gap", body: "" },
+    { title: "Check the ward class you actually want to stay in", body: forty },
+    { title: "Know your co-pay", body: "Most plans ask you to pay part of the bill.\nFind the number.\nWrite it down." },
+    { title: "", body: forty },
+    { title: "Review it every two years or after a big life event", body: forty },
+    { title: "Found this useful?", body: "Save it for later and share it with someone who needs it." },
+  ];
+  const slidesOf = (design: CarouselDesign, size: "4x5" | "1x1" | "9x16", extra: Partial<Parameters<typeof layoutSlide>[0]> = {}) =>
+    six.map((s, index) => layoutSlide({ ...s, index, total: six.length, brand: kit, design, size, ...extra }, measure));
+  const HEIGHTS = { "4x5": 1350, "1x1": 1080, "9x16": 1920 };
+
+  it("draws all eight designs at 4:5, 1:1 and 9:16 with every line inside the slide and in reading order", () => {
+    for (const design of CAROUSEL_DESIGNS) {
+      for (const size of ["4x5", "1x1", "9x16"] as const) {
+        const layouts = slidesOf(design, size, { image: PIC });
+        layouts.forEach((layout, i) => {
+          const where = `${design} ${size} slide ${i + 1}`;
+          expect(layout.height, where).toBe(HEIGHTS[size]);
+          expect(layout.width, where).toBe(1080);
+          const texts = textNodes(layout.nodes);
+          for (const t of texts) {
+            const w = measure(t.text, t.font);
+            const left = t.anchor === "end" ? t.x - w : t.anchor === "middle" ? t.x - w / 2 : t.x;
+            expect(left, where).toBeGreaterThanOrEqual(PAD_X);
+            expect(left + w, where).toBeLessThanOrEqual(PAD_X + CONTENT_WIDTH + 0.5);
+            expect(t.y - t.font.size, where).toBeGreaterThanOrEqual(0);
+            expect(t.y, where).toBeLessThanOrEqual(layout.height);
+          }
+          // the lines of the title and text never overlap: each sits below the one before it
+          const words = texts.filter((t) => t.font.size < 100 && t.text !== "✓" && t.text !== "Swipe →" && !/^\d+\/\d+$/.test(t.text) && t.text !== "Jane Tan" && t.text !== "@janetan.finance");
+          words.slice(1).forEach((t, k) => expect(t.y - t.font.size * 0.8, where).toBeGreaterThanOrEqual(words[k].y - 1));
+        });
+      }
+    }
+  });
+
+  it("fits the 6-slide carousel without cutting it at 4:5 and 9:16, in every design", () => {
+    for (const design of CAROUSEL_DESIGNS) {
+      for (const size of ["4x5", "9x16"] as const) {
+        expect(slidesOf(design, size).map((l) => l.overflow), `${design} ${size}`).toEqual([false, false, false, false, false, false]);
+      }
+    }
+  });
+
+  it("keeps every line of a 9:16 slide out of the top and bottom 250 px", () => {
+    for (const design of CAROUSEL_DESIGNS) {
+      for (const layout of [...slidesOf(design, "9x16"), ...slidesOf(design, "9x16", { image: PIC, align: "center", scale: 1.25 })]) {
+        for (const t of textNodes(layout.nodes)) {
+          expect(t.y - t.font.size, `${design} ${t.text}`).toBeGreaterThanOrEqual(250);
+          expect(t.y, `${design} ${t.text}`).toBeLessThanOrEqual(1920 - 250);
+        }
+      }
+    }
+  });
+
+  it("draws clean at 4:5 exactly as a slide with no design or size", () => {
+    six.forEach((s, index) => {
+      const plain = layoutSlide({ ...s, index, total: 6, brand: kit, image: PIC }, measure);
+      expect(layoutSlide({ ...s, index, total: 6, brand: kit, image: PIC, design: "clean", size: "4x5" }, measure)).toEqual(plain);
+      // an unknown design or size reads as clean at 4:5
+      expect(layoutSlide({ ...s, index, total: 6, brand: kit, image: PIC, design: "comic" as CarouselDesign, size: "2x3" as "4x5" }, measure)).toEqual(plain);
+    });
+  });
+
+  it("Bold cover sets the hook larger, readable on the brand colour; its point slides are today's", () => {
+    const [bold, boldPoint] = slidesOf("bold", "4x5");
+    const [clean, cleanPoint] = slidesOf("clean", "4x5");
+    expect(textNodes(bold.nodes)[0].font.size).toBeGreaterThan(textNodes(clean.nodes)[0].font.size);
+    expect(textNodes(bold.nodes)[0].fill).toBe("#FFFFFF");
+    expect(bold.background).toBe(brand.color);
+    expect(boldPoint).toEqual(cleanPoint);
+  });
+
+  it("Numbered puts 01, 02 in the brand colour above each point's title, in place of the accent bar", () => {
+    const layouts = slidesOf("numbered", "4x5");
+    expect(textNodes(layouts[1].nodes)[0]).toMatchObject({ text: "01", fill: brand.color, font: { size: 128 } });
+    expect(textNodes(layouts[4].nodes)[0].text).toBe("04");
+    expect(layouts[1].nodes.some((n) => n.type === "rect" && n.width === 96 && n.height === 10)).toBe(false);
+    // the cover and the call to action keep today's
+    expect(textNodes(layouts[0].nodes).some((t) => /^\d\d$/.test(t.text))).toBe(false);
+  });
+
+  it("Checklist starts each line of the text with a ticked box, the text set right of it", () => {
+    const point = slidesOf("checklist", "4x5")[2];
+    const ticks = textNodes(point.nodes).filter((t) => t.text === "✓");
+    expect(ticks).toHaveLength(3);
+    const boxes = point.nodes.filter((n) => n.type === "rect" && n.rx);
+    expect(boxes).toHaveLength(3);
+    const lines = textNodes(point.nodes).filter((t) => /^(Most plans|Find the number|Write it down)/.test(t.text));
+    expect(lines).toHaveLength(3);
+    // each item's first line sits beside its box, right of it
+    lines.forEach((l, k) => {
+      expect(l.x).toBeGreaterThan(PAD_X + 30);
+      expect(Math.abs(ticks[k].y - l.y)).toBeLessThan(l.font.size);
+    });
+    expect(checklistItems("One. Two! Three?")).toEqual(["One.", "Two!", "Three?"]);
+    expect(checklistItems("• a\n- b\n✓ c")).toEqual(["a", "b", "c"]);
+    expect(checklistItems("")).toEqual([]);
+  });
+
+  it("Post card draws each point as a rounded card on the brand colour, the name row at its top and the number under it", () => {
+    const point = slidesOf("post-card", "4x5")[1];
+    expect(point.background).toBe(brand.color);
+    const cardRect = point.nodes.find((n) => n.type === "rect" && n.rx === 40);
+    expect(cardRect).toMatchObject({ x: 48, width: 984, fill: PAPER });
+    const texts = textNodes(point.nodes);
+    const name = texts.find((t) => t.text === "Jane Tan")!;
+    const titleLine = texts.find((t) => t.text.startsWith("Check the"))!;
+    expect(name.y).toBeLessThan(titleLine.y);
+    expect(point.nodes.find((n) => n.type === "image" && n.shape === "circle")).toMatchObject({ x: PAD_X });
+    expect(texts.find((t) => t.anchor === "end")).toMatchObject({ text: "2/6", fill: "#FFFFFF" });
+    // no footer rule and no second name row
+    expect(texts.filter((t) => t.text === "Jane Tan")).toHaveLength(1);
+    expect(point.nodes.some((n) => n.type === "rect" && n.height === 2)).toBe(false);
+  });
+
+  it("Photo cover puts the cover's picture full bleed under a dark fade with the hook in white; with no picture it is today's cover", () => {
+    const withPic = layoutSlide({ ...six[0], index: 0, total: 6, brand: { ...brand, color: "#FDE68A" }, image: PIC, design: "photo-cover" }, measure);
+    expect(withPic.nodes[1]).toEqual({ type: "image", x: 0, y: 0, width: 1080, height: 1350, href: PIC, shape: "square" });
+    expect(withPic.nodes[2]).toMatchObject({ type: "fade", color: "#000000", opacity: 0.85 });
+    for (const t of textNodes(withPic.nodes)) expect(t.fill).toBe("#FFFFFF");
+    const svg = renderSvg(withPic);
+    expect(svg).toContain('<linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.85"/></linearGradient>');
+    expect(svg).toContain('fill="url(#g2)"/>');
+    const noPic = layoutSlide({ ...six[0], index: 0, total: 6, brand: kit, design: "photo-cover" }, measure);
+    expect(noPic).toEqual(layoutSlide({ ...six[0], index: 0, total: 6, brand: kit }, measure));
+    // its point slides keep a slide picture above the text as today
+    expect(slidesOf("photo-cover", "4x5", { image: PIC })[1].nodes.some((n) => n.type === "image" && n.shape === "rounded")).toBe(true);
+  });
+
+  it("Quote sets a large quote mark in the brand colour above the title", () => {
+    const point = slidesOf("quote", "4x5")[1];
+    expect(textNodes(point.nodes)[0]).toMatchObject({ text: "“", fill: brand.color, font: { family: "serif", size: 240 } });
+  });
+
+  it("Notebook draws a margin line in the brand colour and faint rules behind the text, down the page", () => {
+    const point = slidesOf("notebook", "4x5")[1];
+    expect(point.nodes).toContainEqual({ type: "rect", x: 56, y: 24, width: 3, height: 1326, fill: brand.color });
+    const rules = point.nodes.filter((n) => n.type === "rect" && n.height === 2 && n.width === 1080);
+    expect(rules.length).toBeGreaterThan(5);
+    const firstText = point.nodes.findIndex((n) => n.type === "text");
+    expect(point.nodes.indexOf(rules[rules.length - 1])).toBeLessThan(firstText);
+    for (const r of rules) expect(r.type === "rect" && r.y < FOOTER_RULE_Y - 64).toBe(true);
+  });
+
+  it("writes a card's rounded corner only when it has one", () => {
+    expect(renderSvg({ width: 10, height: 10, nodes: [{ type: "rect", x: 0, y: 0, width: 5, height: 5, fill: "#FFFFFF", rx: 8 }] })).toContain('<rect x="0" y="0" width="5" height="5" rx="8" fill="#FFFFFF"/>');
+    expect(renderSvg({ width: 10, height: 10, nodes: [{ type: "rect", x: 0, y: 0, width: 5, height: 5, fill: "#FFFFFF" }] })).not.toContain("rx");
   });
 });

@@ -1,12 +1,15 @@
 // Slide drawing for the carousel maker, as data. layoutSlide() places every
-// shape and wrapped line on a 1080x1350 (4:5) slide and renderSvg() turns that
-// into an SVG string. Text is measured by a function the caller passes in (a
+// shape and wrapped line on a 1080x1350 (4:5) slide, or 1:1 or 9:16 with a size,
+// in one of the designs in carouselDesigns.ts, and renderSvg() turns that into
+// an SVG string. Clean at 4:5 (no design, no size) draws exactly as before. Text is measured by a function the caller passes in (a
 // canvas 2D context in the browser, a fake in tests), so this file is pure.
 //
 // Fonts: an SVG drawn into a canvas can't load web fonts, so slides use system
 // serif and sans stacks, which render the same in the SVG and in measureText.
 
-import { normalizeHandle, sanitizeImage, slideRole, type CarouselBrand, type SlideRole } from "@/lib/carousel";
+import { normalizeHandle, sanitizeImage, slideRole, splitSentences, type CarouselBrand, type CarouselSize, type SlideRole } from "@/lib/carousel";
+import { DESIGNS, SLIDE_SIZES } from "@/lib/carouselDesigns";
+import type { CarouselDesign } from "@/lib/links";
 
 export const SLIDE_WIDTH = 1080;
 export const SLIDE_HEIGHT = 1350;
@@ -24,7 +27,6 @@ export const CONTENT_WIDTH = SLIDE_WIDTH - PAD_X * 2;
 export const BAR_HEIGHT = 24;
 export const CONTENT_TOP = 168;
 export const FOOTER_RULE_Y = 1176;
-const CONTENT_BOTTOM = FOOTER_RULE_Y - 64;
 const ACCENT = { width: 96, height: 10, gap: 52 };
 const TITLE_BODY_GAP = 40;
 /** Room kept under the cover text for "Swipe →". */
@@ -146,17 +148,30 @@ export function ellipsize(line: string, maxWidth: number, font: FontSpec, measur
   return `${chars.join("").trimEnd()}…`;
 }
 
-function clampLines(lines: string[], maxLines: number, font: FontSpec, measure: Measure): string[] {
+function clampLines(lines: string[], maxLines: number, font: FontSpec, measure: Measure, width = CONTENT_WIDTH): string[] {
   if (lines.length <= maxLines) return lines;
   const kept = lines.slice(0, Math.max(0, maxLines));
-  if (kept.length) kept[kept.length - 1] = ellipsize(kept[kept.length - 1], CONTENT_WIDTH, font, measure);
+  if (kept.length) kept[kept.length - 1] = ellipsize(kept[kept.length - 1], width, font, measure);
   return kept;
+}
+
+/** A checklist slide's ticked lines: one per line of its text, or one per sentence when it is one paragraph. */
+export function checklistItems(body: string): string[] {
+  const lines = String(body ?? "")
+    .split("\n")
+    .map((l) => l.replace(/^(?:[•●▪◦‣*+-]|[✓✔☑✅]\uFE0F?)\s*/u, "").trim())
+    .filter(Boolean);
+  if (lines.length !== 1) return lines;
+  const sentences = splitSentences(lines[0]);
+  return sentences.length > 1 ? sentences : lines;
 }
 
 // ---- Layout -------------------------------------------------------------------
 
 export type SvgNode =
-  | { type: "rect"; x: number; y: number; width: number; height: number; fill: string; opacity?: number }
+  | { type: "rect"; x: number; y: number; width: number; height: number; fill: string; opacity?: number; rx?: number }
+  /** A fade from clear at its top to `color` at `opacity` at its bottom: the dark fade under a photo cover's hook. */
+  | { type: "fade"; x: number; y: number; width: number; height: number; color: string; opacity: number }
   | {
       type: "text";
       x: number;
@@ -190,6 +205,9 @@ interface TextBlock {
   font: FontSpec;
   lines: string[];
   lineHeight: number;
+  /** A checklist's lines that start an item (each gets a ticked box), and how far its text sits right of the box. */
+  marks?: number[];
+  indent?: number;
 }
 
 const heightOf = (b: TextBlock) => b.lines.length * b.lineHeight;
@@ -217,37 +235,76 @@ export interface SlideInput {
   scale?: number;
   font?: SlideFont;
   paper?: SlidePaper;
+  /** carouselDesigns.ts; absent is clean, today's look. */
+  design?: CarouselDesign;
+  /** 4x5 (absent, today's 1080x1350), 1x1 or 9x16. */
+  size?: CarouselSize;
 }
 
-/** Height of a slide picture and the gap under it. */
+/** Height of a slide picture at 4:5 (SLIDE_SIZES has each size's) and the gap under it. */
 export const SLIDE_IMAGE = { height: 470, gap: 44 };
+/** The hook on a Bold cover: very large first, down to today's sizes for a long one. */
+const BOLD_COVER_TITLE = [152, 136, 120, 108, 96, 86, 76, 68];
+/** What sits above a point slide's title in place of the accent bar: Numbered's "01", Quote's mark. */
+const NUMBER = { height: 112, gap: 28, size: 128 };
+const QUOTE_MARK = { height: 96, gap: 16, size: 240 };
+/** A post card's inset from the slide edge, its corner, and the gap from its top to the text with and without a name row. */
+const CARD = { inset: PAD_X / 2, rx: 40, above: 96, header: 184, bare: 80 };
 
 export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const role = slideRole(input.index, input.total);
+  const design = DESIGNS[input.design as CarouselDesign] ?? DESIGNS.clean;
+  const frame = SLIDE_SIZES[input.size as CarouselSize] ?? SLIDE_SIZES["4x5"];
+  const height = frame.height;
+  const contentBottom = frame.footer - 64;
+  const point = role === "point" ? design.point : "plain";
+  const card = point === "card";
   const onBrand = role !== "point";
   const brandColor = input.brand.color;
   const pc = paperColors(input.paper, brandColor);
   const fonts = SLIDE_FONTS[input.font ?? "classic"] ?? SLIDE_FONTS.classic;
-  const background = onBrand ? brandColor : pc.bg;
-  const ink = onBrand ? readableOn(brandColor) : pc.ink;
+  // a Photo cover is the cover's own picture full bleed; with no picture it is today's cover
+  const coverPhoto = role === "cover" && design.cover === "photo" ? sanitizeImage(input.image) : undefined;
+  // a post card sits on the brand colour; its text is the paper's, inside the card
+  const background = onBrand || card ? brandColor : pc.bg;
+  const ink = coverPhoto ? "#FFFFFF" : onBrand ? readableOn(brandColor) : pc.ink;
   const nodes: SvgNode[] = [
-    { type: "rect", x: 0, y: 0, width: SLIDE_WIDTH, height: SLIDE_HEIGHT, fill: background },
+    { type: "rect", x: 0, y: 0, width: SLIDE_WIDTH, height, fill: background },
   ];
-  if (!onBrand) nodes.push({ type: "rect", x: 0, y: 0, width: SLIDE_WIDTH, height: BAR_HEIGHT, fill: brandColor });
+  if (!onBrand && !card) nodes.push({ type: "rect", x: 0, y: 0, width: SLIDE_WIDTH, height: BAR_HEIGHT, fill: brandColor });
+  if (coverPhoto) {
+    const fadeTop = Math.round(height * 0.3);
+    nodes.push(
+      { type: "image", x: 0, y: 0, width: SLIDE_WIDTH, height, href: coverPhoto, shape: "square" },
+      { type: "fade", x: 0, y: fadeTop, width: SLIDE_WIDTH, height: height - fadeTop, color: "#000000", opacity: 0.85 },
+    );
+  }
+  if (point === "notebook") {
+    nodes.push({ type: "rect", x: PAD_X - 40, y: BAR_HEIGHT, width: 3, height: height - BAR_HEIGHT, fill: accentOnPaper(brandColor, pc.bg) });
+  }
+  const cardTop = frame.top - CARD.above;
+  const cardBottom = frame.footer + 40;
+  if (card) nodes.push({ type: "rect", x: CARD.inset, y: cardTop, width: SLIDE_WIDTH - CARD.inset * 2, height: cardBottom - cardTop, fill: pc.bg, rx: CARD.rx });
 
   const scale = Math.min(1.25, Math.max(0.8, input.scale ?? 1));
   const sized = (list: number[]) => list.map((n) => Math.round(n * scale));
-  const base = STYLES[role];
+  const base = role === "cover" && design.cover === "bold" ? { ...STYLES.cover, title: BOLD_COVER_TITLE } : STYLES[role];
   const style = { ...base, title: sized(base.title), body: sized(base.body) };
-  const center = input.align === "center";
+  // a checklist's ticked lines read down the left edge
+  const center = input.align === "center" && point !== "checklist";
   const title = String(input.title ?? "").trim();
   const body = String(input.body ?? "").trim();
-  const bottom = role === "cover" ? CONTENT_BOTTOM - SWIPE_SPACE : CONTENT_BOTTOM;
+  const photo = sanitizeImage(input.brand.photo);
+  const name = String(input.brand.name ?? "").replace(/\s+/g, " ").trim();
+  const handle = normalizeHandle(input.brand.handle);
+  const contentTop = card ? cardTop + (photo || name || handle ? CARD.header : CARD.bare) : frame.top;
+  const bottom = role === "cover" ? contentBottom - SWIPE_SPACE : card ? cardBottom - 64 : contentBottom;
   // a slide picture sits above the text, which fits into what is left
-  const pic = sanitizeImage(input.image);
-  const top = pic ? CONTENT_TOP + SLIDE_IMAGE.height + SLIDE_IMAGE.gap : CONTENT_TOP;
-  if (pic) nodes.push({ type: "image", x: PAD_X, y: CONTENT_TOP, width: CONTENT_WIDTH, height: SLIDE_IMAGE.height, href: pic, shape: "rounded" });
-  const room = bottom - top - ACCENT.height - ACCENT.gap;
+  const pic = coverPhoto ? undefined : sanitizeImage(input.image);
+  const top = pic ? contentTop + frame.image + SLIDE_IMAGE.gap : contentTop;
+  if (pic) nodes.push({ type: "image", x: PAD_X, y: contentTop, width: CONTENT_WIDTH, height: frame.image, href: pic, shape: "rounded" });
+  const lead = point === "numbered" ? NUMBER : point === "quote" ? QUOTE_MARK : ACCENT;
+  const room = bottom - top - lead.height - lead.gap;
 
   const options = (
     text: string,
@@ -255,17 +312,28 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     family: FontSpec["family"],
     weight: FontSpec["weight"],
     line: number,
+    ticked = false,
   ): TextBlock[] => {
     if (!text) return [{ font: { family, weight, size: sizes[0] }, lines: [], lineHeight: 0 }];
     return sizes.map((size) => {
       const font: FontSpec = { family, weight, size };
-      return { font, lines: wrapText(text, CONTENT_WIDTH, font, measure), lineHeight: Math.round(size * line) };
+      const lineHeight = Math.round(size * line);
+      if (!ticked) return { font, lines: wrapText(text, CONTENT_WIDTH, font, measure), lineHeight };
+      const indent = tickBox(size) + 24;
+      const lines: string[] = [];
+      const marks: number[] = [];
+      for (const item of checklistItems(text)) {
+        marks.push(lines.length);
+        lines.push(...wrapText(item, CONTENT_WIDTH - indent, font, measure));
+      }
+      return { font, lines, lineHeight, marks, indent };
     });
   };
+  const ticked = point === "checklist";
   const titles = options(title, style.title, fonts.title, 600, style.titleLine);
   const bodies = title
-    ? options(body, style.body, fonts.body, 400, style.bodyLine)
-    : options(body, sized(BODY_ONLY.sizes), fonts.title, 400, BODY_ONLY.line);
+    ? options(body, style.body, fonts.body, 400, style.bodyLine, ticked)
+    : options(body, sized(BODY_ONLY.sizes), fonts.title, 400, BODY_ONLY.line, ticked);
   const gap = title && body ? TITLE_BODY_GAP : 0;
 
   const pick = (bodyCount: number): [TextBlock, TextBlock] | null => {
@@ -286,32 +354,54 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     const titleRoom = body ? Math.floor(room / 2) : room;
     const tFit = { ...t, lines: t.lineHeight ? clampLines(t.lines, Math.floor(titleRoom / t.lineHeight), t.font, measure) : [] };
     const bodyRoom = room - heightOf(tFit) - gap;
-    const bFit = { ...b, lines: b.lineHeight ? clampLines(b.lines, Math.floor(bodyRoom / b.lineHeight), b.font, measure) : [] };
+    const bFit = { ...b, lines: b.lineHeight ? clampLines(b.lines, Math.floor(bodyRoom / b.lineHeight), b.font, measure, CONTENT_WIDTH - (b.indent ?? 0)) : [] };
     chosen = [tFit, bFit];
   }
   const [t, b] = chosen;
   const usedGap = t.lines.length && b.lines.length ? gap : 0;
 
-  const blockHeight = ACCENT.height + ACCENT.gap + heightOf(t) + usedGap + heightOf(b);
+  const blockHeight = lead.height + lead.gap + heightOf(t) + usedGap + heightOf(b);
   const slack = Math.max(0, bottom - top - blockHeight);
-  let y = top + Math.round(slack * (role === "point" && !pic ? 0.4 : pic ? 0.25 : 0.5));
-  nodes.push({
-    type: "rect",
-    x: center ? (SLIDE_WIDTH - ACCENT.width) / 2 : PAD_X,
-    y,
-    width: ACCENT.width,
-    height: ACCENT.height,
-    fill: onBrand ? ink : accentOnPaper(brandColor, pc.bg),
-  });
-  y += ACCENT.height + ACCENT.gap;
+  // a photo cover's hook sits low, on the dark end of the fade
+  let y = top + Math.round(slack * (coverPhoto ? 1 : role === "point" && !pic ? 0.4 : pic ? 0.25 : 0.5));
+  const behindText = nodes.length;
+  const accent = onBrand ? ink : accentOnPaper(brandColor, pc.bg);
+  const leadX = center ? SLIDE_WIDTH / 2 : PAD_X;
+  const leadAnchor = center ? { anchor: "middle" as const } : {};
+  if (point === "numbered") {
+    const font: FontSpec = { family: "sans", weight: 600, size: NUMBER.size };
+    nodes.push({ type: "text", x: leadX, y: y + NUMBER.height - 6, text: String(input.index).padStart(2, "0"), font, fill: accent, ...leadAnchor });
+  } else if (point === "quote") {
+    const font: FontSpec = { family: "serif", weight: 600, size: QUOTE_MARK.size };
+    nodes.push({ type: "text", x: leadX, y: y + Math.round(QUOTE_MARK.size * 0.72), text: "\u201C", font, fill: accent, ...leadAnchor });
+  } else {
+    nodes.push({
+      type: "rect",
+      x: center ? (SLIDE_WIDTH - ACCENT.width) / 2 : PAD_X,
+      y,
+      width: ACCENT.width,
+      height: ACCENT.height,
+      fill: accent,
+    });
+  }
+  y += lead.height + lead.gap;
 
   const place = (block: TextBlock, fill: string, opacity?: number) => {
     const baseline = Math.round((block.lineHeight - block.font.size) / 2 + block.font.size * 0.8);
+    const box = tickBox(block.font.size);
     block.lines.forEach((line, i) => {
+      const lineY = y + i * block.lineHeight + baseline;
+      if (block.marks?.includes(i)) {
+        const boxY = lineY - Math.round(block.font.size * 0.78);
+        nodes.push(
+          { type: "rect", x: PAD_X, y: boxY, width: box, height: box, fill: accent, rx: Math.round(box / 5) },
+          { type: "text", x: PAD_X + box / 2, y: boxY + Math.round(box * 0.8), text: "\u2713", font: { family: "sans", weight: 600, size: Math.round(box * 0.8) }, fill: readableOn(accent), anchor: "middle" },
+        );
+      }
       nodes.push({
         type: "text",
-        x: center ? SLIDE_WIDTH / 2 : PAD_X,
-        y: y + i * block.lineHeight + baseline,
+        x: center ? SLIDE_WIDTH / 2 : PAD_X + (block.indent ?? 0),
+        y: lineY,
         text: line,
         font: block.font,
         fill,
@@ -323,14 +413,24 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   };
   place(t, ink);
   y += usedGap;
+  const ruled = b.lines.length ? b : t;
+  const ruledTop = b.lines.length ? y : y - usedGap - heightOf(t);
   if (onBrand) place(b, ink, title ? 0.9 : undefined);
   else place(b, title ? pc.body : pc.ink);
+  if (point === "notebook" && ruled.lineHeight) {
+    // faint ruled lines under each line of the text, on down the page
+    const rules: SvgNode[] = [];
+    for (let ry = ruledTop + ruled.lineHeight - 6; ry < contentBottom; ry += ruled.lineHeight) {
+      rules.push({ type: "rect", x: 0, y: ry, width: SLIDE_WIDTH, height: 2, fill: pc.rule });
+    }
+    nodes.splice(behindText, 0, ...rules);
+  }
 
   if (role === "cover") {
     nodes.push({
       type: "text",
       x: center ? SLIDE_WIDTH / 2 : PAD_X,
-      y: CONTENT_BOTTOM - 24,
+      y: contentBottom - 24,
       text: "Swipe →",
       font: { family: "sans", weight: 600, size: 36 },
       fill: ink,
@@ -339,21 +439,45 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     });
   }
 
-  // Footer: name and handle on the left, "3/8" on the right.
+  // the brand kit headshot, a circle left of the name, then the name over the handle
+  const PHOTO = 88;
+  const nameFont: FontSpec = { family: "sans", weight: 600, size: 34 };
+  const handleFont: FontSpec = { family: "sans", weight: 400, size: 30 };
+  const nameRow = (middle: number, reserve: number, nameFill: string, handleFill: string, handleOpacity: { opacity?: number }) => {
+    if (photo) nodes.push({ type: "image", x: PAD_X, y: middle - PHOTO / 2, width: PHOTO, height: PHOTO, href: photo, shape: "circle" });
+    const textX = photo ? PAD_X + PHOTO + 24 : PAD_X;
+    const rowWidth = CONTENT_WIDTH - (textX - PAD_X) - reserve;
+    const fit = (text: string, font: FontSpec) => (measure(text, font) <= rowWidth ? text : ellipsize(text, rowWidth, font, measure));
+    if (name) {
+      nodes.push({ type: "text", x: textX, y: handle ? middle - 8 : middle + 12, text: fit(name, nameFont), font: nameFont, fill: nameFill });
+    }
+    if (handle) {
+      nodes.push({ type: "text", x: textX, y: name ? middle + 34 : middle + 11, text: fit(handle, handleFont), font: handleFont, fill: handleFill, ...handleOpacity });
+    }
+  };
+
+  // Footer: name and handle on the left, "3/8" on the right. A post card shows its name row at the card's
+  // top, like a social post, and only the number under it.
+  const numberFont: FontSpec = { family: "sans", weight: 600, size: 32 };
+  const numberText = `${input.index + 1}/${input.total}`;
+  if (card) {
+    nameRow(cardTop + 92, 0, pc.ink, pc.muted, {});
+    const middle = Math.round((cardBottom + frame.footerEnd) / 2);
+    nodes.push({ type: "text", x: SLIDE_WIDTH - PAD_X, y: middle + 11, text: numberText, font: numberFont, fill: readableOn(brandColor), anchor: "end", opacity: 0.8 });
+    return { width: SLIDE_WIDTH, height, role, background, nodes, overflow };
+  }
   const muted = onBrand ? ink : pc.muted;
   const mutedOpacity = onBrand ? { opacity: 0.8 } : {};
   nodes.push({
     type: "rect",
     x: PAD_X,
-    y: FOOTER_RULE_Y,
+    y: frame.footer,
     width: CONTENT_WIDTH,
     height: 2,
     fill: onBrand ? ink : pc.rule,
     ...(onBrand ? { opacity: 0.3 } : {}),
   });
-  const middle = Math.round((FOOTER_RULE_Y + SLIDE_HEIGHT) / 2);
-  const numberFont: FontSpec = { family: "sans", weight: 600, size: 32 };
-  const numberText = `${input.index + 1}/${input.total}`;
+  const middle = Math.round((frame.footer + frame.footerEnd) / 2);
   nodes.push({
     type: "text",
     x: SLIDE_WIDTH - PAD_X,
@@ -364,35 +488,13 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     anchor: "end",
     ...mutedOpacity,
   });
-  // the brand kit headshot, a circle left of the name
-  const PHOTO = 88;
-  const photo = sanitizeImage(input.brand.photo);
-  if (photo) nodes.push({ type: "image", x: PAD_X, y: middle - PHOTO / 2, width: PHOTO, height: PHOTO, href: photo, shape: "circle" });
-  const textX = photo ? PAD_X + PHOTO + 24 : PAD_X;
-  const footerWidth = CONTENT_WIDTH - (textX - PAD_X) - measure(numberText, numberFont) - 48;
-  const fit = (text: string, font: FontSpec) =>
-    measure(text, font) <= footerWidth ? text : ellipsize(text, footerWidth, font, measure);
-  const name = String(input.brand.name ?? "").replace(/\s+/g, " ").trim();
-  const handle = normalizeHandle(input.brand.handle);
-  const nameFont: FontSpec = { family: "sans", weight: 600, size: 34 };
-  const handleFont: FontSpec = { family: "sans", weight: 400, size: 30 };
-  if (name) {
-    nodes.push({ type: "text", x: textX, y: handle ? middle - 8 : middle + 12, text: fit(name, nameFont), font: nameFont, fill: ink });
-  }
-  if (handle) {
-    nodes.push({
-      type: "text",
-      x: textX,
-      y: name ? middle + 34 : middle + 11,
-      text: fit(handle, handleFont),
-      font: handleFont,
-      fill: muted,
-      ...mutedOpacity,
-    });
-  }
+  nameRow(middle, measure(numberText, numberFont) + 48, ink, muted, mutedOpacity);
 
-  return { width: SLIDE_WIDTH, height: SLIDE_HEIGHT, role, background, nodes, overflow };
+  return { width: SLIDE_WIDTH, height, role, background, nodes, overflow };
 }
+
+/** A checklist's ticked box, sized to the text it starts. */
+const tickBox = (fontSize: number) => Math.round(fontSize * 0.9);
 
 // ---- SVG ----------------------------------------------------------------------
 
@@ -430,10 +532,19 @@ export function renderSvg(layout: Pick<SlideLayout, "width" | "height" | "nodes"
       );
       return;
     }
+    if (node.type === "fade") {
+      const color = escapeXml(node.color);
+      out.push(
+        `<linearGradient id="g${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity="0"/><stop offset="1" stop-color="${color}" stop-opacity="${node.opacity}"/></linearGradient>`,
+        `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" fill="url(#g${i})"/>`,
+      );
+      return;
+    }
     const opacity = node.opacity !== undefined ? ` fill-opacity="${node.opacity}"` : "";
     if (node.type === "rect") {
+      const rx = node.rx ? ` rx="${node.rx}"` : "";
       out.push(
-        `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" fill="${escapeXml(node.fill)}"${opacity}/>`,
+        `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}"${rx} fill="${escapeXml(node.fill)}"${opacity}/>`,
       );
     } else {
       const family = node.font.family === "serif" ? SERIF_STACK : SANS_STACK;
