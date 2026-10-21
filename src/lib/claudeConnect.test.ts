@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// removing a profile disconnects its social accounts first: answered here, so the test never reaches the network
+vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(async () => ({ disconnected: 0 })) }));
 import { createLink, loadLinks, MCP_ENDPOINT, newSecret, removeLink, restoreLink } from "@/lib/claudeConnect";
 import { addProfile, DEFAULT_PROFILE_ID, removeProfile, setActiveProfile } from "@/lib/profiles";
 import { linkIsLive, parseToken, sha256Hex, linkKey } from "../../supabase/functions/content-studio-mcp/logic";
@@ -62,7 +64,7 @@ describe("removing a profile", () => {
     const { link } = await createLink(UID);
     removeLink(UID, link.hash);
     setActiveProfile(UID, DEFAULT_PROFILE_ID);
-    removeProfile(UID, client.id);
+    await removeProfile(UID, client.id);
     const scope = `${UID}~${client.id}`;
     // a device that never saw the turn-off still holds the link row and syncs it back up
     map.set(linkKey(link.hash, scope), JSON.stringify({ createdAt: link.createdAt }));
