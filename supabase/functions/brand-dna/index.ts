@@ -8,18 +8,24 @@
 // pinned unchanged in index.test.ts):
 //   deep: true      Jev picks up to 4 more pages from the home page's links; the writer reads them fenced. The answer
 //                   gains pagesRead and lang (a listed uid gets both on any read). Counts "brand-dna" once.
+//   mode products   the home page and the picked pages' words, pictures and JSON-LD items, one strict LLM call and one
+//                   Jev call (offer, named product, kind). Cap "brand-products", given back when the home page or
+//                   OpenAI never answered.
 //
-// Daily cap "brand-dna". Deploy WITH JWT verification:
+// Daily caps "brand-dna", "brand-products". Deploy WITH JWT verification:
 //   supabase functions deploy brand-dna --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, choiceOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
-import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, type UsageResult, usageRefusal } from "../_shared/usageCaps.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { isAllowed } from "../market/logic.ts";
-import { AUDIENCES, audienceAsk, fencePages, pageQuestions, parseWritten, pickPages, readSite, type SiteFacts, siteUrl, WRITE_FORMAT, writeMessages } from "./logic.ts";
+import {
+  AUDIENCES, audienceAsk, clueLines, fencePages, KINDS, offerAsk, pageQuestions, parseProducts, parseWritten, pickPages, productClues, productMessages,
+  PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl, withOffers, WRITE_FORMAT, writeMessages,
+} from "./logic.ts";
 
 const PAGE_BYTES = 300_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
@@ -31,7 +37,13 @@ const headers = {
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 const fail = (status: number, code: string, error: string) => json({ code, error }, status);
+const refusal = (u: Extract<UsageResult, { allowed: false }>) => {
+  const r = usageRefusal(u);
+  return json(r.body, r.status);
+};
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
+// deno-lint-ignore no-explicit-any
+type Admin = any; // as competitors: ReturnType<typeof createClient> resolves to a schema the usage helpers reject
 
 // the file's own first bytes, not the server's word for it
 const imageType = (b: Uint8Array) =>
@@ -83,6 +95,57 @@ async function morePages(site: SiteFacts, home: URL): Promise<{ url: URL; html: 
   return pages.filter((p) => p !== null);
 }
 
+const SCAN_FAILED = "Couldn't list what this site sells right now. Try again in a few minutes.";
+
+async function products(admin: Admin, uid: string, body: { url?: unknown }): Promise<Response> {
+  const url = siteUrl(body?.url);
+  if (!url) return fail(400, "bad_request", "Type the brand's web address, like acme.sg.");
+  const day = new Date().toISOString().slice(0, 10);
+  const usage = await consumeUsage(admin, uid, "brand-products");
+  if (!usage.allowed) return refusal(usage);
+  const giveBack = async (error: string) => (await refundUsage(admin, uid, "brand-products", day), fail(502, "failed", error));
+
+  let page: { bytes: Uint8Array; type: string; url: URL };
+  try {
+    page = await fetchCapped(url, PAGE_BYTES, HTML, AbortSignal.timeout(20_000));
+  } catch (e) {
+    console.warn("brand-dna: products page", url.host, msg(e));
+    return giveBack(`We couldn't open ${url.host}. Check the address and try again.`);
+  }
+  // the site answered: from here the use is kept
+  if (!/html|xml|text/.test(page.type)) return fail(422, "not_a_page", `${url.host} didn't send a web page. Check the address.`);
+  const html = new TextDecoder().decode(page.bytes);
+  let site: SiteFacts;
+  try {
+    site = readSite(html, page.url);
+  } catch (e) {
+    console.warn("brand-dna: products read", url.host, msg(e));
+    return fail(422, "unreadable", `We couldn't read ${url.host}.`);
+  }
+  const read = [{ url: page.url, html, text: site.text }, ...(await morePages(site, page.url))]
+    .map((p) => ({ url: p.url.href, text: p.text, clues: productClues(p.html, p.url) }));
+  const fenced = fencePages(read.map((p) => ({ url: p.url, text: p.text, extra: clueLines(p.clues) })));
+  const pages = read.filter((p) => fenced.read.includes(p.url)).map((p) => ({ url: p.url, pictures: p.clues.pictures }));
+
+  let reply: Response;
+  try {
+    reply = await openaiChat({ model: OPENAI_MODEL, max_tokens: 2000, response_format: PRODUCTS_FORMAT, messages: productMessages(site, page.url.href, fenced.block) }, { signal: AbortSignal.timeout(50_000) });
+  } catch (e) {
+    console.warn("brand-dna: products openai", msg(e));
+    return giveBack(SCAN_FAILED);
+  }
+  if (!reply.ok) {
+    console.warn("brand-dna: products openai", reply.status);
+    return giveBack(SCAN_FAILED);
+  }
+  const items = parseProducts((await reply.json().catch(() => null))?.choices?.[0]?.message?.content, pages);
+  if (!items) return fail(422, "bad_reply", "The list came back unreadable. Try again.");
+
+  const ask = offerAsk({ name: site.name, about: site.description }, items);
+  const answers = await askJev(ask.state, ask.questions, { who: "brand-dna products", timeoutMs: 15_000 });
+  return json({ site: page.url.origin, readAt: new Date().toISOString(), pagesRead: fenced.read, kind: choiceOf(answers, "kind", KINDS), items: withOffers(items, answers) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -95,8 +158,10 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
+  const mode = body?.mode === "products" ? body.mode : null;
   const deep = body?.deep === true;
-  if (deep && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
+  if ((mode || deep) && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
+  if (mode === "products") return await products(admin, uid, body);
 
   const url = siteUrl(body?.url);
   if (!url) return json({ error: "Type the brand's web address, like acme.sg." }, 400);

@@ -71,6 +71,8 @@ beforeEach(() => {
 });
 const html = (body: string) => () => new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
 const OPENAI = "https://api.openai.com/v1/chat/completions";
+const JEV = "https://api.typesafe.ai/v1/systemone";
+const reply = (content: unknown) => () => Response.json({ choices: [{ message: { content: JSON.stringify(content) } }] });
 
 const call = async (body: unknown, uid = "u1") => {
   const r = await db.handler!(new Request("http://x/brand-dna", { method: "POST", headers: uid ? { Authorization: `Bearer ${uid}` } : {}, body: JSON.stringify(body) }));
@@ -137,11 +139,13 @@ describe("brand-dna phase 4 (Leo only)", () => {
 <a href="/start">Start here</a>`;
   const PAGES: Record<string, string> = {
     "https://acme.sg/about": "<title>About</title><p>Two advisers in Tampines.</p>",
-    "https://acme.sg/services/": "<title>Services</title><p>Family cover reviews and retirement plans.</p>",
+    "https://acme.sg/services/": `<title>Services</title><p>Family cover reviews and retirement plans.</p><img src="/s1.png" alt="A review">
+<script type="application/ld+json">{"@type":"Service","name":"Retirement plan","image":"/ret.png"}</script>`,
   };
-  // Jev: about 0.9, services 0.8, tips 0.2, contact 0.6, start 0.7
+  // Jev: about 0.9, services 0.8, tips 0.2, contact 0.6, start 0.7; on the items, the first is an offer and not a named product
   const picks = (q: Record<string, unknown>) => {
     if ("p0" in q) return { p0: { type: "noul", noul: 0.9 }, p1: { type: "noul", noul: 0.8 }, p2: { type: "noul", noul: 0.2 }, p3: { type: "noul", noul: 0.6 }, p4: { type: "noul", noul: 0.7 } };
+    if ("offer_0" in q) return { offer_0: { type: "noul", noul: 0.92 }, named_0: { type: "noul", noul: 0.1 }, offer_1: { type: "noul", noul: 0.3 }, named_1: { type: "noul", noul: 0.7 }, kind: { type: "choice", choice: "service" } };
     return { audience: { type: "choice", choice: "parent" } };
   };
   const site = () => {
@@ -157,9 +161,11 @@ describe("brand-dna phase 4 (Leo only)", () => {
   };
   const userText = () => (sent[OPENAI] as { messages: { content: string }[] }).messages[1].content;
 
-  it("refuses a deep read before any count for a uid not on NORTH_STAR_USERS, whose plain read is today's", async () => {
+  it("refuses deep and products before any count for a uid not on NORTH_STAR_USERS, whose plain read is today's", async () => {
     site();
-    expect(await call({ url: "acme.sg", deep: true }, "u1")).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
+    for (const body of [{ url: "acme.sg", deep: true }, { mode: "products", url: "acme.sg" }]) {
+      expect(await call(body, "u1")).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
+    }
     expect(seen).toEqual([]);
     expect(db.spent).toEqual([]);
     const r = await call({ url: "acme.sg" }, "u1");
@@ -200,6 +206,61 @@ describe("brand-dna phase 4 (Leo only)", () => {
     const listed = await call({ url: "acme.sg" }, "leo");
     expect(listed.body).toMatchObject({ pagesRead: ["https://acme.sg/"], lang: "zh" });
     expect(db.spent).toEqual(["brand-dna", "brand-dna", "brand-dna"]);
+  });
+
+  it("scans for products: one brand-products use, every link and picture from the pages read, Jev's numbers on each item", async () => {
+    site();
+    routes[OPENAI] = reply({
+      items: [
+        { name: "Retirement plan", what: "A plan for your retirement.", forWho: "People in their 50s", price: "", url: "https://acme.sg/services", picture: "https://acme.sg/ret.png", generic: "a retirement plan" },
+        { name: "Shield Max", what: "Hospital cover.", forWho: "", price: "S$20 a month", url: "https://acme.sg/buy-now", picture: "https://evil.sg/x.png", generic: "a hospital plan" },
+      ],
+    });
+    const r = await call({ mode: "products", url: "acme.sg" }, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({
+      site: "https://acme.sg",
+      readAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+      pagesRead: ["https://acme.sg/", "https://acme.sg/about", "https://acme.sg/services/"],
+      kind: "service",
+      items: [
+        { name: "Retirement plan", what: "A plan for your retirement.", forWho: "People in their 50s", url: "https://acme.sg/services/", picture: "https://acme.sg/ret.png", generic: "a retirement plan", offerP: 0.92, namedP: 0.1 },
+        { name: "Shield Max", what: "Hospital cover.", forWho: "", price: "S$20 a month", generic: "a hospital plan", offerP: 0.3, namedP: 0.7 },
+      ],
+    });
+    // the writer saw each page's pictures and listed items inside that page's fence
+    expect(userText()).toMatch(/<page url="https:\/\/acme.sg\/services\/">[^]*Picture: https:\/\/acme.sg\/s1.png[^]*Listed item: Retirement plan[^]*<\/page>/);
+    expect(userText()).toContain("Picture: https://acme.sg/og.jpg");
+    expect((sent[OPENAI] as { response_format: { json_schema: { strict: boolean } } }).response_format.json_schema.strict).toBe(true);
+    expect(db.spent).toEqual(["brand-products"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("leaves every item unticked with no error when Jev is silent", async () => {
+    site();
+    delete env.TYPESAFE_API_KEY;
+    routes[OPENAI] = reply({ items: [{ name: "Retirement plan", what: "w", forWho: "", price: "", url: "", picture: "", generic: "a retirement plan" }] });
+    const r = await call({ mode: "products", url: "acme.sg" }, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ pagesRead: ["https://acme.sg/"], kind: null, items: [{ name: "Retirement plan", offerP: null, namedP: null }] });
+  });
+
+  it("gives the products use back when OpenAI or the home page never answered, and keeps it for a reply that fails the schema", async () => {
+    site();
+    routes[OPENAI] = () => new Response("overloaded", { status: 503 });
+    expect(await call({ mode: "products", url: "acme.sg" }, "leo")).toEqual({ status: 502, body: { code: "failed", error: "Couldn't list what this site sells right now. Try again in a few minutes." } });
+    routes[OPENAI] = () => {
+      throw new DOMException("The signal has been aborted", "TimeoutError");
+    };
+    expect((await call({ mode: "products", url: "acme.sg" }, "leo")).status).toBe(502);
+    expect(await call({ mode: "products", url: "down.sg" }, "leo")).toEqual({ status: 502, body: { code: "failed", error: "We couldn't open down.sg. Check the address and try again." } });
+    expect(db.refunded).toEqual(["brand-products", "brand-products", "brand-products"]);
+
+    db.refunded.length = 0;
+    routes[OPENAI] = reply({ products: "not the schema" });
+    expect(await call({ mode: "products", url: "acme.sg" }, "leo")).toMatchObject({ status: 422, body: { code: "bad_reply" } });
+    expect(db.refunded).toEqual([]);
+    expect(db.spent.every((f) => f === "brand-products")).toBe(true);
   });
 
 });
