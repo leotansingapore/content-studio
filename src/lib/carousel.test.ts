@@ -359,6 +359,63 @@ describe("brand", () => {
     expect(loadBrand(null)).toBeNull();
   });
 
+  it("keeps the phase-4 kit fields and drops bad ones", () => {
+    const photo = "data:image/jpeg;base64,/9j/4AAQ";
+    const person = (id: string) => ({ id, name: `Person ${id}`, role: "Adviser", handle: "@p", photo });
+    const kit = sanitizeBrand({
+      website: "https://ada.sg/about?x=1",
+      websiteReadAt: "2026-10-21T08:30:00.000Z",
+      palette: [{ name: "Sea", hex: "0f766e" }, { name: "Sun", hex: "#fc0" }, { name: "Sky", hex: "#2563EB" }, { name: "Extra", hex: "#000000" }],
+      people: [person("a"), person("b"), person("c"), person("d"), person("e")],
+      stamp: { videoLogo: false, videoEnd: true, videoIntro: true, pictureLogo: true },
+      slideFont: "serif",
+      slidePaper: "tint",
+      postLang: "zh",
+    });
+    expect(kit).toMatchObject({
+      website: "https://ada.sg",
+      websiteReadAt: "2026-10-21T08:30:00.000Z",
+      palette: [{ name: "Sea", hex: "#0F766E" }, { name: "Sun", hex: "#FFCC00" }, { name: "Sky", hex: "#2563EB" }],
+      stamp: { videoLogo: false, videoEnd: true, videoIntro: true, pictureLogo: true },
+      slideFont: "serif",
+      slidePaper: "tint",
+      postLang: "zh",
+    });
+    // a fifth person is dropped
+    expect(kit.people?.map((p) => p.id)).toEqual(["a", "b", "c", "d"]);
+    expect(kit.people?.[0]).toEqual(person("a"));
+    expect(sanitizeBrand({ website: "http://ada.sg:8080/" }).website).toBe("http://ada.sg:8080");
+    for (const website of ["javascript:alert(1)", "ftp://ada.sg", "ada.sg", "data:text/html,x", `https://${"a".repeat(200)}.sg`]) {
+      expect(sanitizeBrand({ website }).website, website).toBeUndefined();
+    }
+    const bad = sanitizeBrand({
+      websiteReadAt: "21 Oct 2026",
+      palette: [{ name: "x".repeat(30), hex: "red" }, { hex: "#abc" }, null, "#fff"],
+      people: [{ id: "a", name: "No photo" }, { id: "", photo }, { name: "No id", photo }, { id: "b", name: 5, photo: "javascript:x", role: 7 }, person("c")],
+      stamp: { videoLogo: "yes", videoEnd: 1 },
+      slideFont: "comic",
+      slidePaper: "neon",
+      postLang: "fr",
+    });
+    expect(bad.websiteReadAt).toBeUndefined();
+    expect(bad.palette).toEqual([{ name: "", hex: "#AABBCC" }]);
+    expect(bad.people).toEqual([person("c")]);
+    expect(bad.stamp).toBeUndefined();
+    expect(bad).toMatchObject({ slideFont: undefined, slidePaper: undefined, postLang: undefined });
+    for (const postLang of ["en", "ZH", 1, null]) expect(sanitizeBrand({ postLang }).postLang).toBeUndefined();
+    expect(sanitizeBrand({ palette: [{ name: "x".repeat(30), hex: "#000" }] }).palette).toEqual([{ name: "x".repeat(20), hex: "#000000" }]);
+  });
+
+  it("saves the phase-4 fields through a reload, and a kit without them writes no new keys", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
+    const full = { color: "#1E3A8A", name: "Ada", handle: "@ada", website: "https://ada.sg", websiteReadAt: "2026-10-21T08:30:00Z", palette: [{ name: "Sea", hex: "#0F766E" }], stamp: { videoLogo: true }, slideFont: "modern" as const, slidePaper: "dark" as const, postLang: "ms" as const };
+    saveBrand("u1", full);
+    expect(loadBrand("u1")).toEqual(full);
+    saveBrand("u2", { color: "#abc", name: "Jane", handle: "@jane", website: "", postLang: undefined, stamp: {} });
+    expect(store.get("content-studio-carousel-brand-u2")).toBe(`{"color":"#AABBCC","name":"Jane","handle":"@jane"}`);
+  });
+
   // Pinned on main e0e6cf48, before phase 4 added kit fields: a kit with every field of today writes the same JSON.
   it("writes today's full kit byte for byte", () => {
     const store = new Map<string, string>();
@@ -441,6 +498,25 @@ describe("saved carousels", () => {
     expect(store.get("content-studio-carousels-u1")).toBe(
       `[{"id":"p:3","title":"New","platform":"instagram","slides":[{"id":"a","title":"Hook","body":""},{"id":"b","title":"Point","body":"Body"}],"updatedAt":"2026-10-02T00:00:00.000Z"},${today.slice(1)}`,
     );
+  });
+
+  it("keeps a version's language and source and the signer, and drops bad ones", () => {
+    const from = { id: "d:9", at: "2026-10-21T08:30:00.000Z" };
+    saveCarousel("u1", { id: "v:1", title: "Chinese", platform: "instagram", slides, lang: "zh", translationOf: from, signer: "pa" });
+    store.set("content-studio-carousels-u1", JSON.stringify([
+      ...JSON.parse(store.get("content-studio-carousels-u1")!),
+      { id: "v:2", title: "Odd", slides, lang: "fr", translationOf: { id: "d:9" }, signer: 5, updatedAt: "" },
+      { id: "v:3", title: "Odder", slides, lang: "ZH", translationOf: { id: 9, at: "x" }, signer: "", updatedAt: "" },
+      { id: "v:4", title: "Malay", slides, lang: "ms", translationOf: "d:9", updatedAt: "" },
+    ]));
+    const [version, odd, odder, malay] = loadCarousels("u1");
+    expect(version).toMatchObject({ lang: "zh", translationOf: from, signer: "pa" });
+    expect(malay).toMatchObject({ lang: "ms" });
+    for (const c of [odd, odder, malay]) {
+      expect(c).not.toHaveProperty("translationOf");
+      expect(c).not.toHaveProperty("signer");
+    }
+    for (const c of [odd, odder]) expect(c).not.toHaveProperty("lang");
   });
 
   it("reads a carousel saved before designs exactly as before", () => {

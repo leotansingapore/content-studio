@@ -7,7 +7,8 @@ import { toPlainText } from "@/lib/plainText";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { scoped } from "@/lib/profiles";
-import { CAROUSEL_DESIGNS, type CarouselDesign } from "@/lib/links";
+import { CAROUSEL_DESIGNS, type CarouselDesign, type PostLang } from "@/lib/links";
+import type { SlideFont, SlidePaper } from "@/lib/carouselLayout";
 
 export const MAX_SLIDES = 10;
 export const MIN_SLIDES = 2;
@@ -644,6 +645,21 @@ export interface CarouselBrand {
   hashtagPolicy?: "ten" | "few" | "none";
   /** Words and phrases written posts leave out, as typed (commas or new lines between them; brandRules.ts avoidList). */
   avoidWords?: string;
+  // North star phase 4 (Leo only): the fields below are read and written only on Leo's sign-ins.
+  /** The brand's site, an http or https origin (brand-from-website), and when it was last read (ISO). */
+  website?: string;
+  websiteReadAt?: string;
+  /** Up to 3 more colours beside `color` (brand-kit). */
+  palette?: { name: string; hex: string }[];
+  /** Up to 4 people who sign posts: footer photos only, never sent to an AI model (brand-kit). */
+  people?: { id: string; name: string; role?: string; handle?: string; photo: string }[];
+  /** What goes on every post (brand-kit). `videoLogo` unset reads as on when a logo exists. */
+  stamp?: { videoLogo?: boolean; videoEnd?: boolean; videoIntro?: boolean; pictureLogo?: boolean };
+  /** The slide look a new carousel starts from (brand-kit). */
+  slideFont?: SlideFont;
+  slidePaper?: SlidePaper;
+  /** The language posts are written in (edit-translate); unset is English. */
+  postLang?: PostLang;
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -666,6 +682,10 @@ export const MAX_OFFERS = 5;
 export const MAX_OFFER_NAME = 60;
 export const MAX_OFFER_URL = 300;
 export const MAX_AVOID_CHARS = 400;
+export const MAX_WEBSITE_CHARS = 200;
+export const MAX_PALETTE = 3;
+export const MAX_PALETTE_NAME = 20;
+export const MAX_PEOPLE = 4;
 /** Encoded image cap: keeps a synced brand kit small. */
 export const MAX_IMAGE_CHARS = 350_000;
 export const BRAND_KEY_PREFIX = "content-studio-carousel-brand-";
@@ -697,6 +717,23 @@ export function normalizeHandle(input: string): string {
   return h.slice(0, MAX_HANDLE_CHARS);
 }
 
+const POST_LANGS: readonly unknown[] = ["zh", "ms", "ta"] satisfies PostLang[];
+const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+const isoTime = (raw: unknown) => (typeof raw === "string" && ISO_TIME.test(raw) && !Number.isNaN(Date.parse(raw)) ? raw : undefined);
+
+/** "https://ada.sg/about" -> "https://ada.sg"; anything but an http or https address is dropped. */
+function webOrigin(raw: string): string | undefined {
+  try {
+    const u = new URL(raw.trim());
+    return /^https?:$/.test(u.protocol) && u.origin.length <= MAX_WEBSITE_CHARS ? u.origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const objects = (raw: unknown[]) => raw.filter((o): o is Record<string, unknown> => !!o && typeof o === "object");
+const text = (raw: unknown, max: number) => (typeof raw === "string" && raw ? raw.slice(0, max) : undefined);
+
 export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BRAND): CarouselBrand {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   return {
@@ -724,7 +761,40 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     emojiPolicy: r.emojiPolicy === "one" || r.emojiPolicy === "none" ? r.emojiPolicy : fallback.emojiPolicy,
     hashtagPolicy: r.hashtagPolicy === "ten" || r.hashtagPolicy === "few" || r.hashtagPolicy === "none" ? r.hashtagPolicy : fallback.hashtagPolicy,
     avoidWords: typeof r.avoidWords === "string" ? r.avoidWords.slice(0, MAX_AVOID_CHARS) : fallback.avoidWords,
+    website: typeof r.website === "string" ? webOrigin(r.website) : fallback.website,
+    websiteReadAt: typeof r.websiteReadAt === "string" ? isoTime(r.websiteReadAt) : fallback.websiteReadAt,
+    palette: Array.isArray(r.palette)
+      ? objects(r.palette)
+          .flatMap((c) => {
+            const hex = normalizeHex(String(c.hex ?? ""));
+            return hex ? [{ name: String(c.name ?? "").slice(0, MAX_PALETTE_NAME), hex }] : [];
+          })
+          .slice(0, MAX_PALETTE)
+      : fallback.palette,
+    people: Array.isArray(r.people)
+      ? objects(r.people)
+          .flatMap((p) => {
+            const photo = sanitizeImage(p.photo);
+            const id = text(p.id, 40);
+            if (!photo || !id) return [];
+            const role = text(p.role, MAX_ROLE_CHARS);
+            const handle = text(p.handle, MAX_HANDLE_CHARS);
+            return [{ id, name: String(p.name ?? "").slice(0, MAX_NAME_CHARS), ...(role ? { role } : {}), ...(handle ? { handle } : {}), photo }];
+          })
+          .slice(0, MAX_PEOPLE)
+      : fallback.people,
+    stamp: r.stamp && typeof r.stamp === "object" ? stampOf(r.stamp as Record<string, unknown>) : fallback.stamp,
+    slideFont: r.slideFont === "classic" || r.slideFont === "modern" || r.slideFont === "serif" ? r.slideFont : fallback.slideFont,
+    slidePaper: r.slidePaper === "light" || r.slidePaper === "dark" || r.slidePaper === "tint" ? r.slidePaper : fallback.slidePaper,
+    postLang: POST_LANGS.includes(r.postLang) ? (r.postLang as PostLang) : fallback.postLang,
   };
+}
+
+/** Only the four switches, and only as booleans; none set reads as no stamp at all. */
+function stampOf(r: Record<string, unknown>): CarouselBrand["stamp"] {
+  const kept: NonNullable<CarouselBrand["stamp"]> = {};
+  for (const k of ["videoLogo", "videoEnd", "videoIntro", "pictureLogo"] as const) if (typeof r[k] === "boolean") kept[k] = r[k] as boolean;
+  return Object.keys(kept).length ? kept : undefined;
 }
 
 function storage(): Storage | null {
@@ -781,6 +851,12 @@ export interface SavedCarousel {
   design?: CarouselDesign;
   /** Absent reads as 4x5. */
   size?: CarouselSize;
+  // North star phase 4 (Leo only).
+  /** The id of the brand kit person who signs it (CarouselBrand.people). */
+  signer?: string;
+  /** A version in another language: its language and the carousel it was made from. */
+  lang?: PostLang;
+  translationOf?: { id: string; at: string };
   updatedAt: string;
 }
 
@@ -804,6 +880,8 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
       }))
       .slice(0, MAX_SLIDES);
     if (slides.length === 0) return [];
+    const signer = text(r.signer, 40);
+    const from = translationOf(r.translationOf);
     return [{
       id: r.id,
       title: typeof r.title === "string" ? r.title.slice(0, 120) : "Carousel",
@@ -817,9 +895,17 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
       // only known values, and the defaults left out, so a carousel saved before designs reads back as it was
       ...(r.design !== "clean" && (CAROUSEL_DESIGNS as readonly unknown[]).includes(r.design) ? { design: r.design as CarouselDesign } : {}),
       ...(r.size !== "4x5" && (CAROUSEL_SIZES as readonly unknown[]).includes(r.size) ? { size: r.size as CarouselSize } : {}),
+      ...(signer ? { signer } : {}),
+      ...(POST_LANGS.includes(r.lang) ? { lang: r.lang as PostLang } : {}),
+      ...(from ? { translationOf: from } : {}),
       updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
     }];
   });
+}
+
+function translationOf(raw: unknown): SavedCarousel["translationOf"] {
+  const t = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return typeof t.id === "string" && t.id && typeof t.at === "string" ? { id: t.id, at: t.at } : undefined;
 }
 
 export function loadCarousels(userId: string | null | undefined): SavedCarousel[] {
