@@ -5,12 +5,13 @@
 // cost); the rules are src/lib/talkingHead.ts.
 //
 // URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it; clone:<platform>:<postId> fills the
-// box with that Clone a reel result's own script), mention=no, who=presenter, setting=car|kitchen|couch|cafe,
+// box with that Clone a reel result's own script), mention=no, who=mine|presenter|<saved presenter id> (your saved face,
+// a new AI presenter, or one of the brand's; the brand's Who appears when absent), setting=car|kitchen|couch|cafe,
 // length=8|20|30 and voice=<voice id>, all replace. The press is always the adviser's: this format costs more than
 // US$1, so nothing makes on arrival. Device: cs-make-talking-head-<scoped uid> keeps the typed script and look.
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import ComplianceChips from "@/components/ComplianceChips";
 import FormatShell from "@/components/make/FormatShell";
@@ -29,8 +30,8 @@ import { links } from "@/lib/links";
 import { loadSavedClones } from "@/lib/reelClone";
 import type { RemixSource } from "@/lib/remixSource";
 import {
-  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, canWrite, cloneWords, loadTyped, saveTyped, talkCaps, talkPrice, wordCount, wordLine, writePlan,
-  type TalkLength, type TalkSetting, type TalkWho, type Typed,
+  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, canWrite, cloneWords, defaultWho, loadTyped, saveTyped, speakerOf, talkCaps, talkPrice, useSpeakers,
+  whoChoices, wordCount, wordLine, writePlan, type TalkLength, type TalkSetting, type TalkWho, type Typed,
 } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, madePresenter, onTalkJob, ownsPending, resumeTalk, startTalk, talkBusy, talkJob, writeTalk, type TalkAsk, type TalkJob } from "@/lib/talkingHeadJob";
 import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
@@ -57,7 +58,12 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   // the AI video slot is shared with the editor's AI panel: its changes decide whether this can start
   const [, bump] = useReducer((n: number) => n + 1, 0);
   useEffect(() => onAiJob(() => bump()), []);
-  const [who, setWho] = useUrlState<TalkWho>("who", "photo", { allowed: ["photo", "presenter"] });
+  // who speaks: your saved face, a saved presenter or a new one, the brand's Who appears preselected (Ask each time
+  // picks none); a photo picked by hand is not offered on Leo's pages (people-my-face)
+  const people = useSpeakers(userId);
+  const [whoParam, setWho] = useUrlState<string>("who", people ? defaultWho(people) : "", { allowed: people ? whoChoices(people) : [] });
+  const who = whoParam as TalkWho | "";
+  const speaker = people ? speakerOf(people, who) : null;
   const [setting, setSetting] = useUrlState<TalkSetting>("setting", "office", { allowed: TALK_SETTINGS.map((s) => s.id) });
   const [lengthParam, setLength] = useUrlState<string>("length", String(DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
   const length = Number(lengthParam) as TalkLength;
@@ -69,7 +75,6 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   });
   // the text a write or a clone replaced, one Undo away
   const [undo, setUndo] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const left = useUsesLeft(!!job && talkBusy());
   const scriptRef = useRef<HTMLTextAreaElement>(null);
@@ -84,7 +89,6 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   };
 
   useEffect(() => saveTyped(userId, typed), [userId, typed]);
-  useEffect(() => () => void (photo && URL.revokeObjectURL(photo.url)), [photo]);
 
   // a talking head paid for but never put together picks up again at no cost
   useEffect(() => {
@@ -148,7 +152,8 @@ export default function TalkingHead({ userId, source }: { userId: string; source
     : elsewhere ? OTHER_VIDEO
     : ours ? PAID_WAITING
     : !plan && n < 3 ? "Type your script, or a topic to write it from."
-    : who === "photo" && !photo ? "Pick a photo first."
+    : !who ? "Pick who speaks first."
+    : who === "mine" && !speaker ? "Save your face first."
     : who === "presenter" && typed.look.trim().length < 10 ? "Describe your presenter first."
     : null;
   const retry = job?.state === "failed" && !job.writeOnly && !job.refused && !job.waiting;
@@ -156,8 +161,9 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   const ask = (): TalkAsk => ({
     source,
     text: typed.script,
-    who,
-    photo: photo?.file ?? null,
+    // none picked yet only reaches Write it for me, whose run then keeps who out of its link
+    who: who || "photo",
+    photo: null,
     look: typed.look,
     setting,
     voice,
@@ -183,9 +189,6 @@ export default function TalkingHead({ userId, source }: { userId: string; source
     dropTalk();
     scriptRef.current?.focus();
     scriptRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-  };
-  const onPhoto = (f: File | undefined) => {
-    if (f) setPhoto({ file: f, url: URL.createObjectURL(f) });
   };
 
   const options = (
@@ -241,31 +244,11 @@ export default function TalkingHead({ userId, source }: { userId: string; source
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-4 pt-4 sm:pt-5">
           <Field label="Who speaks">
-            <FilterChip active={who === "photo"} onClick={() => setWho("photo")}>My photo</FilterChip>
-            <FilterChip active={who === "presenter"} onClick={() => setWho("presenter")}>AI presenter</FilterChip>
+            {people && (people.face || who === "mine") && <FilterChip active={who === "mine"} onClick={() => setWho("mine")}>My face</FilterChip>}
+            {people?.presenters.map((p) => <FilterChip key={p.id} active={who === p.id} onClick={() => setWho(p.id)}>{p.name}, AI</FilterChip>)}
+            <FilterChip active={who === "presenter"} onClick={() => setWho("presenter")}>New presenter</FilterChip>
           </Field>
-          {who === "photo" ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                {photo && <img src={photo.url} alt="Your photo" className="h-24 w-20 shrink-0 rounded-lg object-cover" />}
-                <label className={`inline-flex h-9 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 ${TOUCH}`}>
-                  {photo ? "Change photo" : "Pick a photo of your face"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={(e) => {
-                      onPhoto(e.target.files?.[0]);
-                      // the same file picked again still fires
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-muted-foreground">Use a photo of yourself, or of someone who agreed to it.</p>
-              <p className="text-xs text-muted-foreground">Your photo keeps its own background.</p>
-            </div>
-          ) : (
+          {who === "presenter" ? (
             <>
               <div className="flex flex-col gap-3 sm:flex-row">
                 {shown && <img src={shown} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
@@ -290,7 +273,18 @@ export default function TalkingHead({ userId, source }: { userId: string; source
                 ))}
               </Field>
             </>
-          )}
+          ) : speaker ? (
+            <div className="flex items-center gap-3">
+              <img
+                src={speaker.person === "mine" ? speaker.face.photo : speaker.p.photo}
+                alt={speaker.person === "mine" ? "Your saved face" : `${speaker.p.name}, your AI presenter`}
+                className="h-24 w-14 shrink-0 rounded-lg object-cover"
+              />
+              <p className="text-xs text-muted-foreground">{speaker.person === "mine" ? "Made by AI from your saved face." : "The person is made by AI."}</p>
+            </div>
+          ) : who === "mine" ? (
+            <Link to={links.people({ record: true })} className={`inline-flex items-center text-sm font-medium text-primary underline-offset-2 hover:underline ${TOUCH}`}>Save your face first</Link>
+          ) : null}
           <Field label="Voice">
             {VOICE_IDS.map((v) => (
               <FilterChip key={v} active={voice === v} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</FilterChip>
