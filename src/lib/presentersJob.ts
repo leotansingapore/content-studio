@@ -111,7 +111,7 @@ export async function keepPick(userId: string, i: number, name: string, copy = c
   const photo = await copy(urls[i]).catch(() => null);
   if (!photo) return { ok: false, error: SAVE_FAILED };
   const saved = keepPresenter(userId, { name, look: looks[i], url: urls[i], photo });
-  if (!saved.ok || !saved.presenter) return { ok: false, error: saved.ok ? SAVE_FAILED : saved.error };
+  if (saved.ok === false) return saved;
   keepPending(scope, null);
   set({ state: "idle" });
   return { ok: true, presenter: saved.presenter };

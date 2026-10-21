@@ -101,7 +101,7 @@ function write(userId: string, p: Presenters): Saved {
 export const FULL = `You have ${MAX_ON} presenters. Remove one to make another.`;
 
 /** Keeps a picked presenter. The brand's first one becomes its "Who appears" choice, unless that is your own face. */
-export function keepPresenter(userId: string, x: { name: string; look: string; url: string; photo: string }, now = new Date()): Saved & { presenter?: Presenter } {
+export function keepPresenter(userId: string, x: { name: string; look: string; url: string; photo: string }, now = new Date()): { ok: true; presenters: Presenters; presenter: Presenter } | { ok: false; error: string } {
   const p = loadPresenters(userId);
   const on = onPresenters(p);
   if (on.length >= MAX_ON) return { ok: false, error: FULL };
@@ -117,7 +117,7 @@ export function keepPresenter(userId: string, x: { name: string; look: string; u
   };
   const who = !on.length && p.who !== "me" ? presenter.id : p.who;
   const saved = write(userId, { ...p, who, items: [...p.items, presenter] });
-  return saved.ok ? { ...saved, presenter } : saved;
+  return saved.ok === false ? saved : { ...saved, presenter };
 }
 
 export function renamePresenter(userId: string, id: string, name: string): Saved {

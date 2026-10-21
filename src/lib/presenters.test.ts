@@ -24,6 +24,11 @@ const LOOK = "A Chinese Singaporean woman in her early 30s, shoulder-length blac
 const URL_ = "https://cdn.higgsfield.ai/soul/abc.png";
 const at = (s: number) => new Date(Date.UTC(2026, 9, 21, 9, 0, s));
 const keep = (name: string, s = 0, o: Partial<{ photo: string; look: string }> = {}) => keepPresenter(UID, { name, look: LOOK, url: URL_, photo: PHOTO, ...o }, at(s));
+const kept = (name: string, s = 0) => {
+  const r = keep(name, s);
+  if (r.ok === false) throw new Error(r.error);
+  return r.presenter;
+};
 const stored = (key = `content-studio-presenters-${UID}`) => JSON.parse(storage.getItem(key) ?? "null");
 
 beforeEach(() => {
@@ -47,15 +52,14 @@ describe("saved presenters", () => {
   });
 
   it("make the brand's first kept presenter its default, and keep it after a reload", () => {
-    const r = keep("Mei");
-    expect(r.ok).toBe(true);
-    expect(r.presenter).toEqual({ id: `pr-${at(0).getTime().toString(36)}`, name: "Mei", look: LOOK, url: URL_, photo: PHOTO, createdAt: at(0).toISOString(), status: "on" });
-    expect(loadPresenters(UID).who).toBe(r.presenter!.id);
+    const presenter = kept("Mei");
+    expect(presenter).toEqual({ id: `pr-${at(0).getTime().toString(36)}`, name: "Mei", look: LOOK, url: URL_, photo: PHOTO, createdAt: at(0).toISOString(), status: "on" });
+    expect(loadPresenters(UID).who).toBe(presenter.id);
     expect(stored().items).toHaveLength(1);
     expect(changed).toHaveBeenCalledWith(PRESENTERS_CHANGED);
     // the second doesn't take over
     keep("Raj", 1);
-    expect(loadPresenters(UID).who).toBe(r.presenter!.id);
+    expect(loadPresenters(UID).who).toBe(presenter.id);
   });
 
   it("leave your own face as the choice when it was picked before the first presenter", () => {
@@ -72,7 +76,7 @@ describe("saved presenters", () => {
   });
 
   it("keep a removed presenter in the data with status off and no picture, so a fifth can be made", () => {
-    const first = keep("Mei").presenter!;
+    const first = kept("Mei");
     for (let i = 1; i < MAX_ON; i++) keep(`P${i}`, i);
     expect(removePresenter(UID, first.id).ok).toBe(true);
     const p = loadPresenters(UID);
@@ -85,7 +89,7 @@ describe("saved presenters", () => {
   });
 
   it("rename, refusing an empty name and cutting a long one to 24 characters", () => {
-    const { id } = keep("Mei").presenter!;
+    const { id } = kept("Mei");
     expect(renamePresenter(UID, id, "   ")).toEqual({ ok: false, error: "Give your presenter a name." });
     renamePresenter(UID, id, "  Mei from the Tampines branch office ");
     expect(loadPresenters(UID).items[0].name).toBe("Mei from the Tampines br");
@@ -106,7 +110,7 @@ describe("saved presenters", () => {
   });
 
   it("keep each brand's presenters and choice apart", () => {
-    const mei = keep("Mei").presenter!;
+    const mei = kept("Mei");
     const brand = addProfile(UID, "MoneyBees");
     setActiveProfile(UID, brand.id);
     expect(loadPresenters(UID)).toEqual({ who: "ask", prefs: {}, items: [] });
