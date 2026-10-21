@@ -63,6 +63,11 @@ Deno.serve(async (req) => {
   if (q.action === "status" && !q.profileId) return json({ enabled: true });
   const profileId = q.profileId!;
 
+  // a thread is Leo's: refused before a use is counted (runPost checks again before Zernio hears of it)
+  if (posting?.ok && posting.req.action === "schedule" && posting.req.input.thread && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+    return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+  }
+
   // the daily cap this action counts against
   const feature = q.action === "presign" ? "social-presign" : q.action === "schedule" || q.action === "retry" ? "social-schedule"
     : q.action === "connect" ? "social-connect" : isAutomationWrite(q.action) ? "social-automation-write" : "social-read";

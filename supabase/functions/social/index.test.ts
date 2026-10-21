@@ -85,6 +85,15 @@ describe("the social function", () => {
     expect(db.spent).toEqual(["social-connect", "social-read"]);
   });
 
+  it("refuses a thread from an adviser off NORTH_STAR_USERS before counting a use or calling Zernio", async () => {
+    const ID = "0123456789abcdef0123456b";
+    const res = await call(UID, { action: "schedule", profileId: "me", accountIds: [ID], clientKey: UID, content: "Hi", mediaUrls: [], now: true, thread: ["One.", "Two."] });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.spent).toEqual([]);
+    expect(zernio).toEqual([]);
+  });
+
   it("counts real numbers against the read cap", async () => {
     await call(UID, { action: "metrics", profileId: "me" });
     await call(UID, { action: "followers", profileId: "me" });
