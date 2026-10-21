@@ -567,3 +567,40 @@ describe("today's carousels in every design, before the brand kit's second colou
     expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("d077aba6d973ea5acafe251e411a7db6d6dcd052b4f56037f47a517756fb4c6a");
   });
 });
+
+describe("the brand kit's second colour and signer (brand-kit)", () => {
+  const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+  const SARAH = "data:image/jpeg;base64,/9j/U2FyYWg=";
+  const kit = { ...brand, photo: PHOTO, palette: [{ name: "Rust", hex: "#B7410E" }], people: [{ id: "p1", name: "Sarah Lim", role: "Adviser", photo: SARAH }] };
+  const slide = (index: number, extra: Partial<Parameters<typeof layoutSlide>[0]> = {}) =>
+    layoutSlide({ title: "Know your number", body: "Six months of expenses.", index, total: 5, brand: kit, ...extra }, measure);
+  const accentBar = (l: ReturnType<typeof layoutSlide>) => l.nodes.find((n) => n.type === "rect" && n.width === 96 && n.height === 10);
+
+  it("puts the second colour on the accent and the CTA slide, and keeps the main colour on the cover and the top bar", () => {
+    expect(accentBar(slide(1))).toMatchObject({ fill: "#B7410E" });
+    expect(slide(4).background).toBe("#B7410E");
+    expect(slide(0).background).toBe("#1E3A8A");
+    expect(slide(1).nodes[1]).toMatchObject({ type: "rect", height: 24, fill: "#1E3A8A" });
+    expect(textNodes(slide(4).nodes).every((t) => t.fill === readableOn("#B7410E"))).toBe(true);
+  });
+
+  it("uses the main colour on the accent and the CTA slide when there is no second colour", () => {
+    const plain = { ...kit, palette: undefined };
+    expect(accentBar(layoutSlide({ title: "T", body: "B", index: 1, total: 5, brand: plain }, measure))).toMatchObject({ fill: "#1E3A8A" });
+    expect(layoutSlide({ title: "T", body: "B", index: 4, total: 5, brand: plain }, measure).background).toBe("#1E3A8A");
+  });
+
+  it("draws the signer's photo and name in the footer and on a post card, with the brand's handle when they have none", () => {
+    for (const layout of [slide(1, { signer: "p1" }), slide(1, { signer: "p1", design: "post-card" })]) {
+      const texts = textNodes(layout.nodes).map((t) => t.text);
+      expect(texts).toContain("Sarah Lim");
+      expect(texts).toContain("@janetan.finance");
+      expect(texts).not.toContain("Jane Tan");
+      expect(layout.nodes.find((n) => n.type === "image" && n.shape === "circle")).toMatchObject({ href: SARAH });
+    }
+    const own = slide(1, { signer: "gone" });
+    expect(textNodes(own.nodes).map((t) => t.text)).toContain("Jane Tan");
+    expect(own.nodes.find((n) => n.type === "image" && n.shape === "circle")).toMatchObject({ href: PHOTO });
+    expect(JSON.stringify(own)).toBe(JSON.stringify(slide(1)));
+  });
+});

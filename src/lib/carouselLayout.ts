@@ -278,6 +278,8 @@ export interface SlideInput {
   design?: CarouselDesign;
   /** 4x5 (absent, today's 1080x1350), 1x1 or 9x16. */
   size?: CarouselSize;
+  /** The brand kit person who signs it (CarouselBrand.people id): their photo, name and handle in the name row. */
+  signer?: string;
 }
 
 /** Height of a slide picture at 4:5 (SLIDE_SIZES has each size's) and the gap under it. */
@@ -299,7 +301,9 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const point = role === "point" ? design.point : "plain";
   const card = point === "card";
   const onBrand = role !== "point";
-  const brandColor = input.brand.color;
+  // the kit's second colour (brand-kit) takes the CTA slide and the accent; the main colour keeps everything else
+  const second = input.brand.palette?.[0]?.hex;
+  const brandColor = role === "cta" && second ? second : input.brand.color;
   const pc = paperColors(input.paper, brandColor);
   const fonts = SLIDE_FONTS[input.font ?? "classic"] ?? SLIDE_FONTS.classic;
   // a Photo cover is the cover's own picture full bleed; with no picture it is today's cover
@@ -333,9 +337,10 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const center = input.align === "center" && point !== "checklist";
   const title = String(input.title ?? "").trim();
   const body = String(input.body ?? "").trim();
-  const photo = sanitizeImage(input.brand.photo);
-  const name = String(input.brand.name ?? "").replace(/\s+/g, " ").trim();
-  const handle = normalizeHandle(input.brand.handle);
+  const signer = input.signer ? input.brand.people?.find((p) => p.id === input.signer) : undefined;
+  const photo = sanitizeImage(signer ? signer.photo : input.brand.photo);
+  const name = String((signer ?? input.brand).name ?? "").replace(/\s+/g, " ").trim();
+  const handle = normalizeHandle(signer?.handle || input.brand.handle);
   const contentTop = card ? cardTop + (photo || name || handle ? CARD.header : CARD.bare) : frame.top;
   const bottom = role === "cover" ? contentBottom - SWIPE_SPACE : card ? cardBottom - 64 : contentBottom;
   // a slide picture sits above the text, which fits into what is left; a Bold cover is the brand colour alone
@@ -404,7 +409,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   // a photo cover's hook sits low, on the dark end of the fade
   let y = top + Math.round(slack * (coverPhoto ? 1 : role === "point" && !pic ? 0.4 : pic ? 0.25 : 0.5));
   const behindText = nodes.length;
-  const accent = onBrand ? ink : accentOnPaper(brandColor, pc.bg);
+  const accent = onBrand ? ink : accentOnPaper(second ?? brandColor, pc.bg);
   const leadX = center ? SLIDE_WIDTH / 2 : PAD_X;
   const leadAnchor = center ? { anchor: "middle" as const } : {};
   if (point === "numbered") {
