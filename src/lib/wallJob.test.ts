@@ -21,8 +21,11 @@ vi.mock("@/lib/videoMedia", async (orig) => ({
 const measure = (text: string, css: string) => text.length * Number(/([\d.]+)px/.exec(css)?.[1] ?? 40) * 0.55;
 vi.mock("@/lib/slideshowDraw", async (orig) => ({ ...(await orig<typeof import("./slideshowDraw")>()), screenMeasure: () => measure }));
 
+import { aiJob, pendingAvatar } from "./aiVideo";
 import { EdgeError } from "./edgeFn";
+import { formatJobs, onFormatJob, type FormatJob } from "./formatJob";
 import { links } from "./links";
+import { VIDEO_LIMITS } from "./remix";
 import type { MakeResponse } from "./remix";
 import type { RemixSource } from "./remixSource";
 import type { StockItem } from "./stockMedia";
@@ -31,6 +34,8 @@ import {
   FINISH_FAILED,
   NO_CLIP,
   OPEN_FAILED,
+  SCENE_NAME,
+  SCENE_TOAST,
   WALL_TOAST,
   WRITE_FAILED,
   clearWallJob,
@@ -38,6 +43,9 @@ import {
   loopTakes,
   noteOf,
   onWallJob,
+  pendingScene,
+  resumeScene,
+  sceneExtra,
   simpleQuery,
   startWall,
   stepText,
@@ -312,5 +320,147 @@ describe("the page's words and links", () => {
   it("reopens what ran, defaults left out", () => {
     expect(links.makeFormat("wall-of-text", wallParams(ASK))).toBe(`/make/wall-of-text?source=${encodeURIComponent(SOURCE.key)}`);
     expect(links.makeFormat("wall-of-text", wallParams({ source: null, mention: false, bg: "mine" }))).toBe("/make/wall-of-text?from=topic&mention=no&bg=mine");
+  });
+});
+
+describe("words over a made scene", () => {
+  const SCENE: WallAsk = { ...ASK, scene: { id: "walk", quality: "720p", person: "A Tamil man in his 50s in a batik shirt" } };
+  const WORDS = "POV: you finally write down every client call this week and the follow-ups stop slipping, because tomorrow already knows who to call first and why";
+  const sceneResponse = (): MakeResponse => ({ ...response(WORDS), result: { ...response(WORDS).result, text: WORDS } as MakeResponse["result"] });
+  type Body = { mode: string; template?: string };
+  /** ai-video: the start hands back one job; each status check answers with `status` (default: done). */
+  const higgsfield = (status: () => unknown = () => ({ jobs: [{ state: "done", url: "https://cdn.example/scene.mp4" }] })) =>
+    fn.mockImplementation(async (name: string, body: Body) => {
+      if (name !== "ai-video") throw new Error(name);
+      return body.mode === "template" ? { tokens: ["t1"], refund: "ticket" } : status();
+    });
+  const store = new Map<string, string>();
+  const calls = (mode: string) => fn.mock.calls.filter(([n, b]) => n === "ai-video" && (b as Body).mode === mode);
+  const runScene = async (ask: WallAsk = SCENE) => {
+    const done = startWall(UID, ask);
+    await vi.runAllTimersAsync();
+    await done;
+    await vi.runAllTimersAsync();
+    return wallJob("scene")!;
+  };
+
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["scene"]) })));
+    make.mockReset().mockResolvedValue(sceneResponse());
+    higgsfield();
+    clearWallJob("scene");
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("writes the words first, then orders the scene, then joins it with the words over the whole clip and its sound on", async () => {
+    const j = await runScene();
+    expect(j.state).toBe("done");
+    // the write asks for the scene and the 30-word ceiling
+    expect(make.mock.calls[0][0]).toMatchObject({ mode: "make", as: "wall", scene: "walk", maxWords: 30, source: { key: SOURCE.key } });
+    const [start] = calls("template");
+    expect(start[1]).toEqual({ mode: "template", template: "scene-walk", seconds: 8, quality: "720p", fields: { person: "A Tamil man in his 50s in a batik shirt" }, photos: [] });
+    // write, then clip, then join
+    const order = [make.mock.invocationCallOrder[0], fn.mock.invocationCallOrder[fn.mock.calls.indexOf(start)], join.start.mock.invocationCallOrder[0]];
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    const [name, takes, , opts] = join.start.mock.calls[0];
+    expect(name).toBe(SCENE_NAME);
+    expect(takes).toHaveLength(1);
+    expect(takes[0].end).toBe(8);
+    // a stock wall is muted; a made scene keeps its room or street sound
+    expect(opts.mute).toBeUndefined();
+    expect(opts.extra.settings).toMatchObject({ wall: true, captions: false, volume: 1, aspect: "9:16" });
+    expect(opts.extra.settings.overlays).toHaveLength(1);
+    expect(opts.extra.settings.overlays[0]).toMatchObject({ kind: "block", text: WORDS, from: 0, to: 8 });
+    expect(opts.extra).toMatchObject({ toast: SCENE_TOAST, tab: "stickers", caption: "Busy weeks hide the work.\n\nFollow for more.", source: { key: SOURCE.key } });
+    // the paid clip is put together, so nothing waits on the device; the wall's own run is untouched
+    expect(pendingAvatar()).toBeNull();
+    expect(wallJob()).toBeNull();
+    expect(stock.search).not.toHaveBeenCalled();
+  });
+
+  it("orders no clip when the writer refuses, and none when the words come back unusable", async () => {
+    make.mockRejectedValueOnce(new EdgeError("That post can't be turned into something safe to post. Pick another one.", 422, "refused"));
+    expect(await runScene()).toMatchObject({ state: "failed", refused: true, error: "That post can't be turned into something safe to post. Pick another one." });
+    make.mockRejectedValueOnce(new Error("network"));
+    expect(await runScene()).toMatchObject({ state: "failed", error: WRITE_FAILED });
+    expect(calls("template")).toHaveLength(0);
+    expect(join.start).not.toHaveBeenCalled();
+  });
+
+  it("spends nothing while a paid clip waits on this device: it never writes over it", async () => {
+    store.set("cs-ai-video-pending", JSON.stringify({ name: "Laksa", tokens: ["old"], seconds: [4], kind: "template" }));
+    expect(await runScene()).toMatchObject({ state: "failed", error: VIDEO_LIMITS.waiting });
+    expect(make).not.toHaveBeenCalled();
+    expect(calls("template")).toHaveLength(0);
+    expect(pendingAvatar()?.tokens).toEqual(["old"]);
+  });
+
+  it("keeps the paid clip when it won't download, then a reload picks it up at no cost with the words still on it", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false })));
+    const failed = await runScene();
+    expect(failed).toMatchObject({ state: "failed", error: "It was made but didn't download. Try again." });
+    expect(pendingScene()).toBe(true);
+    expect(pendingAvatar()?.extra?.settings?.overlays?.[0].text).toBe(WORDS);
+    expect(join.start).not.toHaveBeenCalled();
+
+    // a reload: this tab's memory is gone, the pending clip and its extra are not
+    clearWallJob("scene");
+    make.mockClear();
+    fn.mockClear();
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["scene"]) })));
+    resumeScene({ ...SCENE, source: null });
+    expect(wallJob("scene")?.state).toBe("clip");
+    await vi.runAllTimersAsync();
+    expect(wallJob("scene")).toMatchObject({ state: "done", written: { text: WORDS } });
+    expect(make).not.toHaveBeenCalled();
+    expect(calls("template")).toHaveLength(0);
+    expect(calls("status").length).toBeGreaterThan(0);
+    const opts = join.start.mock.calls[0][3];
+    expect(opts.extra.settings.overlays[0].text).toBe(WORDS);
+    expect(opts.extra.settings.volume).toBe(1);
+    expect(pendingAvatar()).toBeNull();
+  });
+
+  it("says Higgsfield's failure in its words and drops the clip, so Try again orders a new one for the same words", async () => {
+    higgsfield(() => ({ jobs: [{ state: "failed", error: "The safety filter blocked it. Try another photo or wording." }] }));
+    const j = await runScene();
+    expect(j).toMatchObject({ state: "failed", error: "The safety filter blocked it. Try another photo or wording.", written: { text: WORDS } });
+    expect(pendingScene()).toBe(false);
+    higgsfield();
+    finishAgain({}, "scene");
+    await vi.runAllTimersAsync();
+    expect(wallJob("scene")?.state).toBe("done");
+    expect(make).toHaveBeenCalledTimes(1);
+    expect(calls("template")).toHaveLength(2);
+    expect(aiJob()?.state).toBe("done");
+  });
+
+  it("shows each step in the library's Making now, linked back to its page, and clears it once made", async () => {
+    const seen: FormatJob[][] = [];
+    const off = onFormatJob((l) => seen.push(l));
+    await runScene();
+    off();
+    const steps = [...new Set(seen.flatMap((l) => l.map((j) => j.step)))];
+    expect(steps[0]).toBe("Writing the text");
+    expect(steps).toContain("Making your video, 0 of 1 part ready. This takes a few minutes.");
+    expect(seen.flat()[0]).toMatchObject({ slug: "text-over-clip", label: "Words over a made scene", format: "video", href: `/make/text-over-clip?source=${encodeURIComponent(SOURCE.key)}&scene=walk&quality=720p` });
+    // once put together, the editor has it: its link is the editor's, then the row goes
+    expect(seen.flat().find((j) => j.step === "Putting your video together")?.href).toBe("/edit");
+    expect(formatJobs()).toEqual([]);
+  });
+
+  it("puts the words in the editor's block, sized to fit, with the copy check's warnings in the note", () => {
+    const extra = sceneExtra({ ...SCENE, source: null }, { text: WORDS, caption: "c", flags: { copied: [], claim: true, invented: false } });
+    expect(extra.settings?.overlays?.[0]).toMatchObject({ text: WORDS, to: 8, font: "clean", box: "none" });
+    expect(extra.note).toBe("Uses a figure or claim from the original. Check it or take it out.");
+    expect(extra.source).toBeUndefined();
+    expect(stepText({ state: "clip", step: "Downloading your video..." })).toBe("Downloading your video...");
+    expect(links.makeFormat("text-over-clip", wallParams({ source: null, mention: true, bg: "stock", scene: { id: "kitchen", quality: "480p", person: "" } }))).toBe("/make/text-over-clip?from=topic");
   });
 });

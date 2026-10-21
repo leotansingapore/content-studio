@@ -7,21 +7,30 @@
 // In memory only: a reload mid-make loses the run, and the server has given back the use of any write the model
 // never answered. The words are kept once written, so finishing again (another clip, the adviser's own) never
 // writes, or spends, again.
+// Words over a made scene (/make/text-over-clip, docs/north-star/items/formats-text-over-clip.md) runs here too, in
+// its own slot so a wall and a scene never share a run: the same write (as "wall" with the scene and 30 words) comes
+// first, so a refusal pays for no clip; then ai-video makes the 8 s scene (aiVideo.ts makeTemplateClip) and joins it
+// with the words riding in its extra, sound kept. That paid clip waits in cs-ai-video-pending with its extra, so a
+// reload picks it up at no cost and still puts the words on it. The scene's steps show in /library through formatJob.
 
 import { chooseClips } from "@/lib/autoBroll";
+import { aiBusy, aiJob, makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, type ClipQuality } from "@/lib/aiVideo";
 import { applyBrandRules } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
 import { callFn } from "@/lib/edgeFn";
+import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
+import { links } from "@/lib/links";
 import { mediaLength } from "@/lib/longAudio";
 import { describe as clipDesc } from "@/lib/montage";
 import { stripDashes } from "@/lib/plainText";
-import { requestMake, type Flags } from "@/lib/remix";
+import { VIDEO_LIMITS, requestMake, type Flags } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import { screenMeasure, type Measure } from "@/lib/slideshowDraw";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { BLOCK_W, FONTS, readSeconds, wallSettings, wrapBlock } from "@/lib/videoEdit";
 import { currentJoin, ensureCaptionFonts, handToEditor, startJoin, type JoinExtra } from "@/lib/videoMedia";
+import { MADE_SCENE_WORDS, type WallScene } from "../../supabase/functions/remix/logic.ts";
 import { MAX_CANDIDATES } from "../../supabase/functions/video-assist/montage.ts";
 
 export type WallFrom = "topic" | "remix";
@@ -36,6 +45,16 @@ export interface WallAsk {
   bg: WallBg;
   /** The adviser's own clip with bg mine; it stays on this device. */
   file?: File | null;
+  /** Words over a made scene: ai-video makes this clip behind the words, and bg is not used. */
+  scene?: SceneAsk;
+}
+
+export type { WallScene };
+export interface SceneAsk {
+  id: WallScene;
+  quality: ClipQuality;
+  /** Who is in it, as typed; empty lets the writer pick a Singaporean. */
+  person: string;
 }
 
 export interface Written {
@@ -48,7 +67,10 @@ export interface Written {
 
 export interface WallJob {
   id: number;
-  state: "writing" | "finding" | "joining" | "done" | "failed";
+  /** clip: ai-video is making a scene (step says how far). */
+  state: "writing" | "finding" | "clip" | "joining" | "done" | "failed";
+  /** A scene's own step while ai-video makes and joins it. */
+  step?: string;
   ask: WallAsk;
   /** Kept once the words are written: finishing again reuses them. */
   written?: Written;
@@ -75,16 +97,29 @@ export const MINE_SECONDS = 15;
 const LOOP_NEED = 3;
 const JOIN_LABEL = "Putting your wall of text together";
 
+export const SCENE_SLUG = "text-over-clip";
+export const SCENE_LABEL = "Words over a made scene";
+/** The paid clip's name in cs-ai-video-pending: how a reload knows the waiting clip is a scene. */
+export const SCENE_NAME = "Words over a made scene";
+export const SCENE_TOAST = "Your video is ready. Export it when it looks right.";
+/** ai-video's clip lengths are 4 or 8 s (CLIP_SECONDS); 30 words read in 8. */
+export const SCENE_SECONDS = 8;
+/** ai-video's step once the paid clip is downloaded and being put together: the editor takes over from here. */
+const JOIN_STEP = "Putting your video together...";
+
 /** A source opens on Remix a trending one, no source on A topic. */
 export const startFrom = (source: RemixSource | null): WallFrom => (source ? "remix" : "topic");
 
-export function stepText(j: Pick<WallJob, "state">): string {
+export function stepText(j: Pick<WallJob, "state" | "step">): string {
+  if (j.step && (j.state === "clip" || j.state === "joining")) return j.step;
   return j.state === "writing" ? "Writing the text..." : j.state === "finding" ? "Finding a clip..." : j.state === "joining" ? "Putting it together..." : "";
 }
 
 /** The page's params for a run, defaults left out: the library row and Try again reopen what ran. */
-export function wallParams(a: Pick<WallAsk, "source" | "mention" | "bg">): Record<string, string | undefined> {
-  return { source: a.source?.key, from: a.source ? undefined : "topic", mention: a.mention ? undefined : "no", bg: a.bg === "mine" ? "mine" : undefined };
+export function wallParams(a: Pick<WallAsk, "source" | "mention" | "bg" | "scene">): Record<string, string | undefined> {
+  const base = { source: a.source?.key, from: a.source ? undefined : "topic", mention: a.mention ? undefined : "no" };
+  if (a.scene) return { ...base, scene: a.scene.id === "kitchen" ? undefined : a.scene.id, quality: a.scene.quality === "480p" ? undefined : a.scene.quality };
+  return { ...base, bg: a.bg === "mine" ? "mine" : undefined };
 }
 
 // ---- the video's length, the clip's loops and the words' size ----
@@ -128,33 +163,56 @@ export function noteOf(source: RemixSource | null, flags?: Flags): string | unde
 
 // ---- the job ----
 
-let job: WallJob | null = null;
+/** A wall and a scene each have their own run: /library lists the wall's here and the scene's through formatJob. */
+export type WallSlot = "wall" | "scene";
+const slotOf = (ask: Pick<WallAsk, "scene">): WallSlot => (ask.scene ? "scene" : "wall");
+const jobs: Record<WallSlot, WallJob | null> = { wall: null, scene: null };
 let seq = 0;
-const listeners = new Set<(j: WallJob | null) => void>();
-const set = (next: WallJob | null) => {
-  job = next;
-  listeners.forEach((l) => l(job && { ...job }));
+const listeners: Record<WallSlot, Set<(j: WallJob | null) => void>> = { wall: new Set(), scene: new Set() };
+const set = (slot: WallSlot, next: WallJob | null) => {
+  jobs[slot] = next;
+  if (slot === "scene") mirror(next);
+  listeners[slot].forEach((l) => l(next && { ...next }));
 };
-export const wallJob = () => job;
-export const wallBusy = () => job?.state === "writing" || job?.state === "finding" || job?.state === "joining";
-export function onWallJob(fn: (j: WallJob | null) => void): () => void {
-  listeners.add(fn);
-  return () => void listeners.delete(fn);
+const busyJob = (j: WallJob | null) => j?.state === "writing" || j?.state === "finding" || j?.state === "clip" || j?.state === "joining";
+export const wallJob = (slot: WallSlot = "wall") => jobs[slot];
+export const wallBusy = (slot: WallSlot = "wall") => busyJob(jobs[slot]);
+export function onWallJob(fn: (j: WallJob | null) => void, slot: WallSlot = "wall"): () => void {
+  listeners[slot].add(fn);
+  return () => void listeners[slot].delete(fn);
 }
 /** Clears a finished or failed run; a running one stays. */
-export const clearWallJob = () => void (job && !wallBusy() && set(null));
+export const clearWallJob = (slot: WallSlot = "wall") => void (jobs[slot] && !wallBusy(slot) && set(slot, null));
+/** A patch for run `id` only: a newer run in the slot is never touched by an older one finishing. */
+const patcher = (slot: WallSlot, id: number) => (patch: Partial<WallJob>) => {
+  const j = jobs[slot];
+  if (j?.id === id) set(slot, { ...j, ...patch });
+};
+
+/** The scene's step on /library's Making now (phase 3 decision 8); the editor opens it once it is put together. */
+function mirror(j: WallJob | null): void {
+  if (!j || j.state === "done") return clearFormatJob(SCENE_SLUG);
+  const href = j.state === "joining" ? links.edit() : links.makeFormat(SCENE_SLUG, wallParams(j.ask));
+  if (j.state === "failed") return setFormatJob({ slug: SCENE_SLUG, label: SCENE_LABEL, format: "video", state: "failed", error: j.error, href });
+  setFormatJob({ slug: SCENE_SLUG, label: SCENE_LABEL, format: "video", state: "working", step: stepText(j).replace(/\.\.\.$/, ""), href });
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function startWall(userId: string, ask: WallAsk): Promise<void> {
-  if (wallBusy()) return;
+  const slot = slotOf(ask);
+  if (wallBusy(slot)) return;
   const id = ++seq;
-  const mine = (patch: Partial<WallJob>) => job?.id === id && set({ ...job, ...patch });
-  set({ id, state: "writing", ask });
+  const mine = patcher(slot, id);
+  set(slot, { id, state: "writing", ask });
+  // a scene pays for a clip after the words: one that can't be ordered now stops before the write spends anything
+  const blocked = ask.scene ? sceneBlock() : null;
+  if (blocked) return void mine({ state: "failed", error: blocked });
   let written: Written;
   try {
     const about = ask.about.trim();
-    const res = await requestMake(makeBody(userId, { source: ask.source, topic: ask.source ? "" : about, note: ask.source ? about : "", mention: ask.mention, size: "9x16" }, "wall"));
+    const more: Parameters<typeof makeBody>[3] = ask.scene ? { scene: ask.scene.id, maxWords: MADE_SCENE_WORDS } : {};
+    const res = await requestMake(makeBody(userId, { source: ask.source, topic: ask.source ? "" : about, note: ask.source ? about : "", mention: ask.mention, size: "9x16" }, "wall", more));
     if (res?.result?.as !== "wall") throw new Error(WRITE_FAILED);
     const r = res.result;
     written = { text: stripDashes(r.text).trim(), caption: stripDashes(applyBrandRules(r.caption, loadBrand(userId), "tiktok")).trim(), scene: r.scene, search: r.search, flags: res.flags };
@@ -162,24 +220,30 @@ export async function startWall(userId: string, ask: WallAsk): Promise<void> {
     return void mine({ state: "failed", ...failure(e, WRITE_FAILED) });
   }
   mine({ written });
-  await finish(id, ask, written);
+  await (ask.scene ? sceneClip(id, ask, written) : finish(id, ask, written));
 }
 
 /**
  * After the words are written but the video failed (no clip fit, a download dropped, a file that won't open): the
- * same words over a new background, with no second write. `bg` and `file` replace the run's own.
+ * same words over a new background, with no second write. `bg` and `file` replace the run's own. A scene orders a
+ * new clip (paid again, so its page asks first); a clip paid for and waiting is resumeScene's, at no cost.
  */
-export function finishAgain(change: Pick<WallAsk, "bg" | "file">): void {
-  const j = job;
-  if (!j?.written || j.state !== "failed" || wallBusy()) return;
+export function finishAgain(change: Partial<Pick<WallAsk, "bg" | "file">>, slot: WallSlot = "wall"): void {
+  const j = jobs[slot];
+  if (!j?.written || j.state !== "failed" || wallBusy(slot)) return;
   const id = ++seq;
   const ask = { ...j.ask, ...change };
-  set({ id, state: ask.bg === "mine" ? "joining" : "finding", ask, written: j.written });
+  if (ask.scene) {
+    set(slot, { id, state: "clip", ask, written: j.written });
+    void sceneClip(id, ask, j.written);
+    return;
+  }
+  set(slot, { id, state: ask.bg === "mine" ? "joining" : "finding", ask, written: j.written });
   void finish(id, ask, j.written);
 }
 
 async function finish(id: number, ask: WallAsk, w: Written): Promise<void> {
-  const mine = (patch: Partial<WallJob>) => job?.id === id && set({ ...job, ...patch });
+  const mine = patcher("wall", id);
   try {
     const seconds = wallSeconds(w.text);
     await ensureCaptionFonts();
@@ -215,6 +279,95 @@ async function finish(id: number, ask: WallAsk, w: Written): Promise<void> {
   } catch (e) {
     mine({ state: "failed", error: e instanceof Error && e.message ? e.message : FINISH_FAILED });
   }
+}
+
+// ---- a made scene ----
+
+/** Why a scene's paid clip can't be ordered now: another AI video running, or one paid for and waiting (a new one would write over it). */
+export function sceneBlock(): string | null {
+  return aiBusy() ? VIDEO_LIMITS.busy : pendingAvatar() ? VIDEO_LIMITS.waiting : null;
+}
+
+/** The clip waiting on this device is a scene's (cs-ai-video-pending), so this page can pick it up at no cost. */
+export const pendingScene = (): boolean => {
+  const p = pendingAvatar();
+  return p?.kind === "template" && p.name === SCENE_NAME;
+};
+
+/** What the scene's clip carries to the editor: the words as one block over the whole clip, with its own sound. */
+export function sceneExtra(ask: WallAsk, w: Pick<Written, "text" | "caption" | "flags">): JoinExtra {
+  const settings = wallSettings(w.text, SCENE_SECONDS, { size: wallSize(w.text, screenMeasure()), font: "clean", box: "none" });
+  return {
+    // the scene's room or street sound plays: a wall's stock clip is muted, a made scene is not
+    settings: { ...settings, volume: 1 },
+    caption: w.caption,
+    toast: SCENE_TOAST,
+    note: noteOf(ask.source, w.flags),
+    tab: "stickers",
+    ...(ask.source ? { source: { ...ask.source, remixedAt: new Date().toISOString() } } : {}),
+  };
+}
+
+/** Resolves once no AI video is working: aiVideo's jobs never throw, so its job is read after. */
+const aiSettled = () =>
+  new Promise<void>((resolve) => {
+    if (!aiBusy()) return resolve();
+    const off = onAiJob((j) => {
+      if (j?.state !== "working") {
+        off();
+        resolve();
+      }
+    });
+  });
+
+/** Follows ai-video's steps into the scene's run, from ordering the clip to putting it together. */
+async function followClip(id: number, run: () => Promise<void>): Promise<void> {
+  const mine = patcher("scene", id);
+  const relay = onAiJob((j) => {
+    if (j?.kind === "template" && j.state === "working") mine({ state: j.step === JOIN_STEP ? "joining" : "clip", step: j.step });
+  });
+  try {
+    await run();
+    await aiSettled();
+  } finally {
+    relay();
+  }
+  const j = aiJob();
+  if (j?.kind === "template" && j.state === "done") return void mine({ state: "done", step: undefined });
+  mine({ state: "failed", step: undefined, error: j?.state === "failed" && j.error ? j.error : FINISH_FAILED });
+}
+
+async function sceneClip(id: number, ask: WallAsk, w: Written): Promise<void> {
+  const mine = patcher("scene", id);
+  const s = ask.scene!;
+  try {
+    await ensureCaptionFonts();
+    const extra = sceneExtra(ask, w);
+    // checked again right before paying: a video started elsewhere while the words were written
+    const blocked = sceneBlock();
+    if (blocked) return void mine({ state: "failed", error: blocked });
+    mine({ state: "clip", step: "Writing the shots...", extra });
+    const person = s.person.trim();
+    await followClip(id, () =>
+      makeTemplateClip(SCENE_NAME, { template: `scene-${s.id}`, seconds: SCENE_SECONDS, quality: s.quality, fields: person ? { person } : {}, photo: null }, { extra }),
+    );
+  } catch (e) {
+    mine({ state: "failed", step: undefined, error: e instanceof Error && e.message ? e.message : FINISH_FAILED });
+  }
+}
+
+/**
+ * Picks up a scene paid for but never put together (a reload, a dropped download, a failed join) at no cost: the
+ * words ride in the waiting clip's extra. `ask` is the page's, for its links; the video keeps the clip's own source.
+ */
+export function resumeScene(ask: WallAsk): void {
+  if (wallBusy("scene") || aiBusy() || !pendingScene()) return;
+  const p = pendingAvatar()!;
+  const block = p.extra?.settings?.overlays?.find((o) => o.kind === "block");
+  const written: Written = { text: block?.text ?? "", caption: p.extra?.caption ?? "", scene: "", search: "", flags: { copied: [], claim: false, invented: false } };
+  const id = ++seq;
+  set("scene", { id, state: "clip", step: "Making your video...", ask, written, extra: p.extra });
+  void followClip(id, async () => resumeAvatar());
 }
 
 // ---- the clip ----
