@@ -71,6 +71,7 @@ import {
   draftsWithText,
   draftToOpen,
   loadBrand,
+  carouselStartLook,
   moveSlide,
   newSlideId,
   normalizeHandle,
@@ -229,6 +230,8 @@ export default function CarouselPage() {
       return { font: "classic", paper: "light" };
     }
   });
+  // who signs this carousel (brand-kit, Leo only): a kit person's id, "" for the kit's own name
+  const [signer, setSigner] = useState("");
   const pickLook = (p: Partial<typeof look>) => {
     const next = { ...look, ...p };
     setLook(next);
@@ -348,6 +351,10 @@ export default function CarouselPage() {
         }
       : {};
     updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null, ...(fromLink ? {} : { compare: null, slide: null }), ...startOn });
+    if (leo) {
+      setLook(carouselStartLook(null, brand, hint));
+      setSigner("");
+    }
     resetHistory();
     setCarouselId(source.kind === "paste" ? `p:${Date.now().toString(36)}` : `d:${source.id}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
@@ -402,6 +409,7 @@ export default function CarouselPage() {
           if (work.align === "center") setAlign("center");
           if (typeof work.scale === "number") setScale(work.scale);
           if (work.look && work.look.font in SLIDE_FONTS) setLook({ font: work.look.font, paper: ["dark", "tint"].includes(work.look.paper) ? work.look.paper : "light" });
+          if (typeof work.signer === "string") setSigner(work.signer);
           if (work.slides.length > 0) toast({ title: "Your carousel is back" });
         }
       } catch {
@@ -443,13 +451,13 @@ export default function CarouselPage() {
       } else {
         sessionStorage.setItem(
           workKey(userId),
-          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, ...(leo ? { design, size } : {}) }),
+          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, ...(leo ? { design, size, ...(signer ? { signer } : {}) } : {}) }),
         );
       }
     } catch {
       // storage blocked: the work just won't survive a page change
     }
-  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, leo, design, size]);
+  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, leo, design, size, signer]);
 
   useEffect(() => {
     const want = slides.map((x) => x.image).filter((k): k is string => !!k && SLIDE_IMAGE_KEY.test(k) && !pictures[k] && !missing.has(k));
@@ -575,6 +583,7 @@ export default function CarouselPage() {
       id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper,
       ...(leo && design !== "clean" ? { design } : {}),
       ...(leo && size !== "4x5" ? { size } : {}),
+      ...(leo && signer ? { signer } : {}),
     }));
     // once kept, the address reopens it with its edits
     if (searchParams.get("carousel") !== id) updateUrl({ carousel: id, draft: null });
@@ -587,7 +596,7 @@ export default function CarouselPage() {
     const t = window.setTimeout(() => keepRef.current(), 800);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides, edited, platform, align, scale, look, design, size]);
+  }, [slides, edited, platform, align, scale, look, design, size, signer]);
 
   // the Saved tab goes with the last saved carousel, so don't leave the picker on it
   useEffect(() => {
@@ -610,6 +619,7 @@ export default function CarouselPage() {
     setAlign(c.align ?? "left");
     setScale(c.scale ?? 1);
     setLook({ font: c.font ?? "classic", paper: c.paper ?? "light" });
+    setSigner(c.signer ?? "");
     setNotice(null);
     // a saved carousel opens in its own design and size, unless the link names others
     const keepDesign = fromLink && isDesign(searchParams.get("design"));
@@ -740,11 +750,11 @@ export default function CarouselPage() {
     () =>
       slides.map((s, i) =>
         layoutSlide(
-          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: look.font, paper: look.paper, design, size },
+          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: look.font, paper: look.paper, design, size, ...(leo && signer ? { signer } : {}) },
           measure,
         ),
       ),
-    [slides, brand, measure, pictures, align, scale, look, design, size],
+    [slides, brand, measure, pictures, align, scale, look, design, size, leo, signer],
   );
   const images = useMemo(
     () =>
@@ -881,7 +891,7 @@ export default function CarouselPage() {
       const urls = [0, 1].map((i) => {
         const s = slides[i];
         const layout = layoutSlide(
-          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: own.font, paper: own.paper, design: d, size },
+          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: own.font, paper: own.paper, design: d, size, ...(signer ? { signer } : {}) },
           measure,
         );
         return svgDataUrl(renderSvg(layout));
@@ -890,7 +900,7 @@ export default function CarouselPage() {
     });
     // only the cover and first point draw here, so edits further down don't redraw the row
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leo, slides[0], slides[1], slides.length, brand, pictures, align, scale, look, size, measure]);
+  }, [leo, slides[0], slides[1], slides.length, brand, pictures, align, scale, look, size, measure, signer]);
   // Jev's pick, once a carousel is made or opened; no tag when Jev is unsure or down
   useEffect(() => {
     if (!leo || !showEditor || !carouselId || slides.length < MIN_SLIDES) return;
@@ -1276,6 +1286,20 @@ export default function CarouselPage() {
                     />
                   </div>
                 </div>
+                {leo && (brand.people?.length ?? 0) > 0 && (
+                  <div className="min-w-0 space-y-1.5">
+                    <Label htmlFor="carousel-signer">Signed by</Label>
+                    <select
+                      id="carousel-signer"
+                      value={brand.people?.some((p) => p.id === signer) ? signer : ""}
+                      onChange={(e) => { setSigner(e.target.value); setEdited(true); }}
+                      className="h-10 w-full max-w-xs rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
+                    >
+                      <option value="">{brand.name.trim() || "Your brand"}</option>
+                      {brand.people?.map((p) => <option key={p.id} value={p.id}>{p.name.trim() || "Unnamed"}{p.role?.trim() ? `, ${p.role.trim()}` : ""}</option>)}
+                    </select>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1420,6 +1444,12 @@ export default function CarouselPage() {
                       </button>
                     ))}
                   </span>
+                  {leo && (look.font !== brand.slideFont || look.paper !== brand.slidePaper) && (
+                    <button type="button" onClick={() => { updateBrand({ slideFont: look.font, slidePaper: look.paper }); toast({ title: "Saved as your brand's look", description: "New carousels start with it." }); }}
+                      className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                      Make this my brand's look
+                    </button>
+                  )}
                   <span className="flex items-center gap-1.5">
                     <span className="font-medium text-muted-foreground">Text</span>
                     {(["left", "center"] as const).map((a) => (
@@ -1579,7 +1609,7 @@ export default function CarouselPage() {
                 {leo && userId && carouselId && (
                   <CarouselVersions
                     userId={userId}
-                    carousel={{ id: carouselId, title: fileBase || "Carousel", platform, slides, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper, ...(design !== "clean" ? { design } : {}), ...(size !== "4x5" ? { size } : {}) }}
+                    carousel={{ id: carouselId, title: fileBase || "Carousel", platform, slides, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper, ...(design !== "clean" ? { design } : {}), ...(size !== "4x5" ? { size } : {}), ...(signer ? { signer } : {}) }}
                   />
                 )}
               </CardContent>
