@@ -16,8 +16,15 @@ export class EdgeError extends Error {
   }
 }
 
-export async function callFn<T>(name: string, body: unknown, fallback = "That didn't go through. Try again in a minute."): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(name, { body });
+export async function callFn<T>(
+  name: string,
+  body: unknown,
+  fallback = "That didn't go through. Try again in a minute.",
+  opts: { signal?: AbortSignal } = {},
+): Promise<T> {
+  // signal only when given, so every call without one still hands invoke exactly { body } (edgeFn.test.ts).
+  // An abort comes back as the can't-reach EdgeError (status 0): a caller that stops checks signal.aborted.
+  const { data, error } = await supabase.functions.invoke(name, opts.signal ? { body, signal: opts.signal } : { body });
   if (error) {
     // FunctionsHttpError hides the status and JSON body behind error.context.
     const ctx = (error as { context?: Response }).context;
