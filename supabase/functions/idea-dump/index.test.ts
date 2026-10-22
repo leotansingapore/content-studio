@@ -347,3 +347,30 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
     expect(sent[OPENAI]).toBeUndefined();
   });
 });
+
+describe("idea-dump campaign MAS (phase 5)", () => {
+  it("asks Jev once per call about a person's posts and returns masWarn per post", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(CAMPAIGN_REPLY);
+    jevReply = () => ({ mas_1: { type: "noul", noul: 0.8 }, mas_2: { type: "noul", noul: 0.1 } });
+    const r = await call(CAMPAIGN, "leo");
+    expect(r.body.posts.map((p: { mas: boolean | null }) => p.mas)).toEqual([true, false]);
+    expect(sent[JEV]).toHaveLength(1);
+    expect(Object.keys((sent[JEV][0] as { questions: object }).questions)).toEqual(["mas_1", "mas_2"]);
+  });
+
+  it("gives null when Jev has no answer, and never asks about a business's posts", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(CAMPAIGN_REPLY);
+    jevReply = () => ({});
+    expect((await call(CAMPAIGN, "leo")).body.posts.map((p: { mas: null }) => p.mas)).toEqual([null, null]);
+    for (const k of Object.keys(sent)) delete sent[k];
+    jevReply = () => ({ mas_1: { type: "noul", noul: 0.9 } });
+    const r = await call({ ...CAMPAIGN, context: { ...PLAN_CONTEXT, speaker: "business", audience: "Sales reps" } }, "leo");
+    expect(r.body.posts.map((p: { mas: null }) => p.mas)).toEqual([null, null]);
+    expect(sent[JEV]).toBeUndefined();
+    const prompt = (sent[OPENAI][0] as { messages: { content: string }[] }).messages.map((m) => m.content).join("\n");
+    expect(prompt).toContain("- Write as the business:");
+    expect(prompt).not.toMatch(/adviser/i);
+  });
+});

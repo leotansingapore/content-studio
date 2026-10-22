@@ -8,6 +8,7 @@
 // "campaign" writes up to 7 of a campaign's posts in one call (or one again, as a swap).
 
 import { complianceIssues } from "../_shared/socialAudit.ts";
+import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { BUSINESS_VOICE, speakingWords, type Speaker } from "../remix/logic.ts";
 
@@ -1063,4 +1064,20 @@ export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts
     out.push(post);
   }
   return out;
+}
+
+/** The words Jev reads for one post: a script holds its own hook and call to action. */
+const postText = (p: WrittenPost) => p.script ?? [p.hook, p.body ?? p.brief ?? "", p.cta].filter(Boolean).join("\n\n");
+
+/** One Jev request for a person's posts: `mas_<n>` on MAS_QUESTION, each reading its own `post_<n>`. */
+export function masAsk(posts: WrittenPost[]): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
+  return {
+    state: Object.fromEntries(posts.map((p) => [`post_${p.n}`, postText(p)])),
+    questions: Object.fromEntries(posts.map((p) => [`mas_${p.n}`, { type: "noul" as const, instructions: `Read only \`post_${p.n}\`. ${MAS_QUESTION}` }])),
+  };
+}
+
+/** Each post's MAS warning: masWarn on Jev's answer for a person's brand (null when Jev gave none), null for a business. */
+export function withMas(posts: WrittenPost[], answers: Record<string, JevAnswer> | null, speaker: Speaker): WrittenPost[] {
+  return posts.map((p) => ({ ...p, mas: speaker === "business" ? null : masWarn(noulOf(answers, `mas_${p.n}`)) }));
 }

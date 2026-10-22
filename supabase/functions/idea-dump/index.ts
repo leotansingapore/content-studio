@@ -17,6 +17,7 @@
 // mode "campaign" (phase 5, Leo only, the same gate): up to 7 of a campaign's posts in one call, each in its
 // format's shape, or one post written again with `swap`. Cap "campaign-swap" for a swap, else "campaign-draft"; the
 // use goes back only when OpenAI never answered (502), and a reply where no post survives keeps it (422 unusable).
+// A person's posts each get Jev's MAS question in one call (`mas`, a warning that never blocks); a business's get null.
 //
 // Secrets: OPENAI_API_KEY; TYPESAFE_API_KEY for Jev (the plan modes work without it). Deploy WITH JWT verification.
 // Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009), and the phase 5 caps.
@@ -40,6 +41,7 @@ import {
   campaignCap,
   buildLongPrompt,
   keepAngles,
+  masAsk,
   parseAnglesRequest,
   parseCampaignRequest,
   parseIdeaDumpRequest,
@@ -48,6 +50,7 @@ import {
   validateBriefs,
   validateCampaign,
   validateLong,
+  withMas,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 
@@ -195,9 +198,17 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
     await refundUsage(admin, uid, cap, day);
     return json({ code: "failed", error: request.swap ? "Couldn't write new words right now. Try again in a minute." : "Couldn't write these posts right now. Try again in a minute." }, 502);
   }
-  const posts = (reply.ok && validateCampaign(reply.text, request)) || [];
-  console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written", posts.length);
-  if (!posts.length) return json({ code: "unusable", error: "The words that came back couldn't be used. Try again." }, 422);
+  const written = (reply.ok && validateCampaign(reply.text, request)) || [];
+  if (!written.length) {
+    console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written 0");
+    return json({ code: "unusable", error: "The words that came back couldn't be used. Try again." }, 422);
+  }
+  const speaker = request.context.speaker;
+  const mas = speaker === "person" ? masAsk(written) : null;
+  const answers = mas ? await askJev(mas.state, mas.questions, { who: "idea-dump campaign mas" }) : null;
+  const posts = withMas(written, answers, speaker);
+  // decision 12: Jev's MAS yes per post number (never the words) for setting MAS_WARN
+  console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written", posts.length, "mas", JSON.stringify(posts.map((p) => [p.n, noulOf(answers, `mas_${p.n}`)])));
   return json({ posts });
 }
 

@@ -794,3 +794,26 @@ describe("mode campaign", () => {
     expect(validateCampaign({ posts: [] }, campaignRequest())).toEqual([]);
   });
 });
+
+import { MAS_QUESTION } from "../_shared/mas.ts";
+import { masAsk, withMas } from "./logic.ts";
+
+describe("campaign MAS question", () => {
+  const posts = validateCampaign(written(), campaignRequest())!;
+
+  it("asks mas_<n> on MAS_QUESTION about each post's own words, a script as written", () => {
+    const { state, questions } = masAsk(posts);
+    expect(Object.keys(questions)).toEqual(["mas_1", "mas_2", "mas_3", "mas_4", "mas_5", "mas_6"]);
+    expect(questions.mas_4).toEqual({ type: "noul", instructions: `Read only \`post_4\`. ${MAS_QUESTION}` });
+    expect(state.post_1).toBe(`Most reps lose the deal after the first call\n\n${words(100)}\n\nSave this for your next follow-up.`);
+    expect(state.post_4).toBe(posts[3].script);
+    expect(state.post_5).toBe("Three messages that bring a lead back\n\nThe check-in\nThe useful link\nThe honest close\n\nFollow for more.");
+  });
+
+  it("warns a person's post at MAS_WARN, gives null when Jev said nothing, and null for a business", () => {
+    const answers = { mas_1: { type: "noul" as const, noul: 0.5 }, mas_2: { type: "noul" as const, noul: 0.49 } };
+    expect(withMas(posts, answers, "person").map((p) => p.mas)).toEqual([true, false, null, null, null, null]);
+    expect(withMas(posts, null, "person").every((p) => p.mas === null)).toBe(true);
+    expect(withMas(posts, answers, "business").every((p) => p.mas === null)).toBe(true);
+  });
+});
