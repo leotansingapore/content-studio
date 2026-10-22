@@ -43,7 +43,7 @@ describe("the stored brand font", () => {
 
   it("saves, loads and removes it, the removal kept as an empty record so it syncs", async () => {
     const r = await readFont(file("OTTO"));
-    if (!r.ok) throw new Error(r.error);
+    if ("error" in r) throw new Error(r.error);
     expect(saveBrandFont("u1", r.font)).toEqual({ ok: true });
     expect(loadBrandFont("u1")).toEqual(r.font);
     expect(events).toEqual([BRAND_FONT_CHANGED]);
