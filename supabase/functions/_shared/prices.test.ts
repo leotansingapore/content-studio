@@ -83,6 +83,15 @@ describe("the price table", () => {
     expect(priceText(sumPrices(d, d) as { usd: number; kind: "about" })).toBe("About US$0.07");
   });
 
+  it("prices the phase-6 caps from the brief's vendor table: the answer skill only, the agent and Claude's calls free", () => {
+    expect(priceOf("skill-answer")).toEqual({ usd: 0.003, kind: "about" });
+    expect(priceText(priceOf("skill-answer") as { usd: number; kind: "about" })).toBe("Under US$0.01");
+    for (const f of ["agent-act", "mcp-calls"] as UsageFeature[]) {
+      expect(priceOf(f), f).toBeNull();
+      expect(NO_PRICE, f).toContain(f);
+    }
+  });
+
   it("adds DoP lite per scene when an explainer's scenes move", () => {
     expect(DOP_LITE_CREDITS).toBe(2);
     expect(priceOf("ai-video", { scenes: 5, move: false })).toEqual(priceOf("ai-video", { scenes: 5 }));

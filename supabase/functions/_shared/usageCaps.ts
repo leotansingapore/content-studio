@@ -194,6 +194,12 @@ export const DAILY_LIMITS = {
   "campaign-swap": 40,
   // A set of ideas for the inbox (idea-dump ideas): one LLM call plus Jev.
   "ideas-daily": 15,
+  // North star phase 6, declared up front (Leo only, NORTH_STAR_USERS). One agent message (assistant-act agent mode): one Jev call, given back when Jev has no answer.
+  "agent-act": 100,
+  // Claude's tool calls on a switched-on Connect Claude link (content-studio-mcp tools/call): reads and add_draft, no paid work.
+  "mcp-calls": 500,
+  // Three angles to answer a competitor's new ad (idea-dump answer): one Jev pick and one short OpenAI call.
+  "skill-answer": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

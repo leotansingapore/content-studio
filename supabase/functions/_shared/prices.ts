@@ -128,6 +128,8 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "campaign-draft": about(0.035),
   "campaign-swap": about(0.005), // gpt-4.1, one post, about 600 in and 500 out
   "ideas-daily": about(0.012), // gpt-4.1, about 2,000 in and 1,000 out, plus Jev
+  // North star phase 6 (phase6-build-brief.md, vendors, read 2026-10-22).
+  "skill-answer": about(0.003), // one Jev pick plus one short OpenAI call, about 1,200 in and 400 out
 };
 
 /** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
@@ -138,8 +140,11 @@ export const NO_PRICE: UsageFeature[] = [
   // Jev only
   "post-score", "writing-judge", "fact-check", "cold-open", "motion-picks", "montage-pick", "music-mood", "week-pick",
   "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "caption-keywords",
+  "agent-act",
   // one capped page fetch and one Jev question
   "page-read",
+  // Claude's MCP tool calls: reads and add_draft, no paid work
+  "mcp-calls",
   // free or a relay; a capped public picture fetch
   "stock-search", "reel-video", "brand-image",
   // across everyone
