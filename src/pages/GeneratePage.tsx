@@ -2362,6 +2362,8 @@ export default function GeneratePage() {
   }, []);
   // Leo only (edit-translate): another language's version, or its English, opens in place once the typing is saved
   const openDraft = (id: string, note: Parameters<typeof toast>[0] | null) => {
+    // already open (a toast's link pressed after the tab): nothing loads, so no note may wait for the next post
+    if (id === draftIdRef.current) return;
     flushSave.current();
     openNote.current = note;
     navigate(links.generate({ draft: id }));

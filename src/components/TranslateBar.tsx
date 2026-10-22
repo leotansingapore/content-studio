@@ -205,6 +205,9 @@ export default function TranslateBar(p: {
   const mountedAt = useRef(Date.now());
   const textRef = useRef(text);
   textRef.current = text;
+  // the post open when a toast's Undo is pressed, which can be after a tab switch
+  const openId = useRef(entry.id);
+  openId.current = entry.id;
   useEffect(() => {
     if (!job || job.state === "running") return;
     if (job.at < mountedAt.current) return ackJob(job);
@@ -235,7 +238,7 @@ export default function TranslateBar(p: {
             altText="Undo"
             onClick={() => {
               undoAgain(userId, done);
-              if (entry.id === done.versionId && done.before) onReplaced(done.before.draft);
+              if (openId.current === done.versionId && done.before) onReplaced(done.before.draft);
             }}
           >
             Undo
