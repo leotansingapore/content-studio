@@ -106,6 +106,8 @@ import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
 import SlideFields, { SlideRewrite, WARN_BOX, useRewriting } from "@/components/carousel/SlideFields";
 import CarouselVersions from "@/components/carousel/CarouselVersions";
 import { emptyHistory, newTypingStep, record, redo, undo } from "@/lib/carouselHistory";
+import { registerEditTarget, type EditTarget } from "@/lib/editTarget";
+import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -185,6 +187,68 @@ function recommendDesign(id: string, slides: Slide[]): Promise<CarouselDesign | 
     designPicks.set(id, pick);
   }
   return pick;
+}
+
+type Words = { title: string; body: string };
+const putWords = (slides: Slide[], words: Map<string, Words>) => slides.map((s) => (words.has(s.id) ? { ...s, ...words.get(s.id) } : s));
+
+/**
+ * The open carousel for the agent to change (edit-by-chat, Leo only). propose asks carousel-copy mode ask, the call
+ * Rewrite this slide makes, for one slide or every slide, and changes nothing; apply writes those words through the
+ * page's change(), one Undo step, and its undo puts back only those slides' words, so edits made since stay.
+ */
+export function carouselTarget(io: {
+  title: () => string;
+  slides: () => Slide[];
+  /** The slide shown one at a time, 1-based. */
+  onScreen: () => number | undefined;
+  platform: () => "instagram" | "linkedin";
+  change: (update: (prev: Slide[]) => Slide[]) => void;
+  /** False once this carousel is closed. */
+  open: () => boolean;
+}): EditTarget {
+  const gone = () => new Error("That carousel is no longer open.");
+  return {
+    kind: "carousel",
+    get title() {
+      return io.title();
+    },
+    get slides() {
+      return io.slides().map((s) => [s.title, s.body].filter(Boolean).join(" ").slice(0, 80));
+    },
+    get onScreen() {
+      return io.onScreen();
+    },
+    async propose(ask, slide) {
+      const base = io.slides();
+      const index = slide ? slide - 1 : undefined;
+      const r = await callFn<{ slides?: { texts?: unknown }[]; reply?: unknown }>("carousel-copy", {
+        mode: "ask", ask: ask.trim().slice(0, ASK_MAX_CHARS), ...(index === undefined ? {} : { index }), platform: io.platform(),
+        slides: base.map((s) => ({ texts: [s.title, s.body] })),
+      }, ASK_FAILED);
+      const asked = index === undefined ? base : [base[index]];
+      const got = r?.slides?.map((x) => x?.texts);
+      if (!got || got.length !== asked.length || !got.every((t) => Array.isArray(t) && t.every((x) => typeof x === "string"))) throw new Error(ASK_FAILED);
+      const words = new Map(asked.map((s, k) => [s.id, { title: String(got[k][0] ?? ""), body: String(got[k][1] ?? "") }]));
+      return {
+        reply: typeof r.reply === "string" ? r.reply : "",
+        preview: [...words.values()].map((w) => [w.title, w.body].filter(Boolean).join("\n")).join("\n\n"),
+        flags: [],
+        apply() {
+          if (!io.open()) throw gone();
+          const before = new Map(io.slides().filter((s) => words.has(s.id)).map((s) => [s.id, { title: s.title, body: s.body }]));
+          io.change((prev) => putWords(prev, words));
+          return {
+            done: index === undefined ? `Done. "${io.title()}" changed. Undo here or on the page.` : `Done. Slide ${slide} changed. Undo here or on the page.`,
+            undo: () => {
+              if (!io.open()) throw gone();
+              io.change((prev) => putWords(prev, before));
+            },
+          };
+        },
+      };
+    },
+  };
 }
 
 export default function CarouselPage() {
@@ -886,6 +950,27 @@ export default function CarouselPage() {
   const compareDraft = leo && showEditor && draftId && carouselId === `d:${draftId}` ? (drafts.find((d) => d.id === draftId) ?? null) : null;
   const compareOn = Boolean(compareDraft?.source);
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
+
+  // edit-by-chat (Leo only): the open carousel is what the agent changes, and only on its Use this
+  const editIn = useRef({ title: "", onScreen: undefined as number | undefined, platform, change });
+  editIn.current = { title: (fileBase || "Carousel").slice(0, 60).trim(), onScreen: view === "one" ? at + 1 : undefined, platform, change };
+  const leoOn = !!leo;
+  useEffect(() => {
+    if (!leoOn || !showEditor || !carouselId) return;
+    let live = true;
+    const off = registerEditTarget(carouselTarget({
+      title: () => editIn.current.title,
+      slides: () => slidesRef.current,
+      onScreen: () => editIn.current.onScreen,
+      platform: () => editIn.current.platform,
+      change: (update) => editIn.current.change(update),
+      open: () => live,
+    }));
+    return () => {
+      live = false;
+      off();
+    };
+  }, [leoOn, showEditor, carouselId]);
 
   // Leo's Design row: each design drawn small from this carousel's own cover and first point, in its starting look
   const designPreviews = useMemo(() => {
