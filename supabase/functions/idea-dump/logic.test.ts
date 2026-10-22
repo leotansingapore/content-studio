@@ -1429,7 +1429,7 @@ const LIVE_P5W3_CONTEXT = {
   },
   goal: "",
   platforms: ["linkedin"],
-  voice: "Use plain, direct language and describe practical actions. Keep the focus on what the app does in a sales rep’s day.",
+  voice: "Use plain, direct language and describe practical actions. Keep the focus on what the app does in a sales rep\u2019s day.",
   memory: "",
   speaker: "business",
   product: "",
@@ -1506,21 +1506,21 @@ import { SHORT_VIDEO_HOOK_WORDS } from "./logic.ts";
 
 const LIVE_P5W3_POST_9 = {
   n: 9,
-  hook: "“Who do I need to call today?” It’s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find.",
+  hook: "\u201cWho do I need to call today?\u201d It\u2019s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find.",
   body: "",
   script:
-    "HOOK: “Who do I need to call today?” It’s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find.\nBODY: When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.\nCTA: DM us “CALLS” to see how it works.",
+    "HOOK: \u201cWho do I need to call today?\u201d It\u2019s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find.\nBODY: When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.\nCTA: DM us \u201cCALLS\u201d to see how it works.",
   brief: "",
-  cta: "DM us “CALLS” to see how it works.",
+  cta: "DM us \u201cCALLS\u201d to see how it works.",
 };
 const LIVE_P5W3_POST_12 = {
   n: 12,
   hook: "Weekly goals beside tracked activity, or activity without a pace check? The second can leave you guessing.",
   body: "",
   script:
-    "HOOK: Weekly goals beside tracked activity, or activity without a pace check? The second can leave you guessing.\nBODY: When you can compare your logged activity with your weekly goals, you can see where you are in the week and what still needs attention. Our app brings activity and goals together on your phone, so checking your pace can fit into your regular workflow.\nCTA: DM us “PACE” to see how it works.",
+    "HOOK: Weekly goals beside tracked activity, or activity without a pace check? The second can leave you guessing.\nBODY: When you can compare your logged activity with your weekly goals, you can see where you are in the week and what still needs attention. Our app brings activity and goals together on your phone, so checking your pace can fit into your regular workflow.\nCTA: DM us \u201cPACE\u201d to see how it works.",
   brief: "",
-  cta: "DM us “PACE” to see how it works.",
+  cta: "DM us \u201cPACE\u201d to see how it works.",
 };
 
 describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32 words)", () => {
@@ -1542,11 +1542,11 @@ describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32
     const got = validateCampaign({ posts: [LIVE_P5W3_POST_9, LIVE_P5W3_POST_12] }, scripts, dropped)!;
     expect(dropped).toEqual([]);
     const [p9, p12] = got;
-    expect(p9.hook).toBe("“Who do I need to call today?”");
+    expect(p9.hook).toBe("\u201cWho do I need to call today?\u201d");
     expect(p9.script!.split("\n")).toEqual([
-      "HOOK: “Who do I need to call today?”",
-      "BODY: It’s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
-      "CTA: DM us “CALLS” to see how it works.",
+      "HOOK: \u201cWho do I need to call today?\u201d",
+      "BODY: It\u2019s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
+      "CTA: DM us \u201cCALLS\u201d to see how it works.",
     ]);
     expect(spoken(p9.script!)).toBe(spoken(LIVE_P5W3_POST_9.script));
     expect(p12.hook).toBe("Weekly goals beside tracked activity, or activity without a pace check?");
