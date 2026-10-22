@@ -25,6 +25,7 @@ import {
   suggestingNow, type Waiting,
 } from "@/lib/audienceSuggest";
 import { links } from "@/lib/links";
+import { speakerFor } from "@/lib/remixBrand";
 import type { PlanAudience } from "@/lib/positioning";
 import { reasonText } from "@/lib/prices";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -344,7 +345,7 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
           )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="aud-says">How they talk about money (optional)</Label>
+          <Label htmlFor="aud-says">How they talk about {speakerFor(userId) === "person" ? "money" : "it"} (optional)</Label>
           <Input id="aud-says" value={f.says} maxLength={AUDIENCE_LIMITS.says} onChange={(e) => set({ says: e.target.value })} />
         </div>
         {line && <p className="text-sm text-destructive" role="alert">{line}</p>}
