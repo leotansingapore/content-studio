@@ -39,3 +39,20 @@ describe("/welcome for Leo", () => {
     expect(out.match(/bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95/g)).toHaveLength(1);
   });
 });
+
+describe("onboardThenGo", () => {
+  it("marks the account from the device's session when tapped before the sign-in lookup answers", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
+    const { onboardThenGo } = await import("./WelcomePage");
+    const { isOnboarded } = await import("@/lib/onboarding");
+    const to: string[] = [];
+    await onboardThenGo(null, "/generate", (p) => to.push(p), async () => "u-fast-tap");
+    expect(isOnboarded("u-fast-tap")).toBe(true);
+    expect(to).toEqual(["/generate"]);
+    await onboardThenGo("u-known", "/plan", (p) => to.push(p), async () => "never-used");
+    expect(isOnboarded("u-known")).toBe(true);
+    expect(isOnboarded("never-used")).toBe(false);
+    vi.unstubAllGlobals();
+  });
+});

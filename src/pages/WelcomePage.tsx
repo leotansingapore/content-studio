@@ -41,6 +41,18 @@ const STEPS = [
   },
 ];
 
+/** A tap before the sign-in lookup answers still marks the account, from the session kept on this device, so /home
+ * never sends a first-run account back here. */
+export async function onboardThenGo(
+  known: string | null,
+  to: string,
+  navigate: (to: string) => void,
+  session: () => Promise<string | null> = async () => (await supabase.auth.getSession()).data.session?.user?.id ?? null,
+): Promise<void> {
+  markOnboarded(known ?? (await session().catch(() => null)));
+  navigate(to);
+}
+
 export default function WelcomePage() {
   const navigate = useNavigate();
   const leo = useLeoUser();
@@ -64,10 +76,7 @@ export default function WelcomePage() {
     };
   }, []);
 
-  const go = (to: string) => {
-    markOnboarded(userId);
-    navigate(to);
-  };
+  const go = (to: string) => void onboardThenGo(userId, to, navigate);
 
   const start = (
     <Button
