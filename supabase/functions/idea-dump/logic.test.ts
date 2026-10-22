@@ -819,7 +819,8 @@ describe("mode campaign", () => {
     expect(countWords(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Eight more words fit in this one too.")!.script!)).toBe(48);
     // 49 words: the last sentence before the call to action goes (wave 1 live check fix), 39 words
     expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")!.script!.split("\n")).toEqual([...[1, 2, 3].map(tenWords), "Nine more words do not fit in this one."]);
-    expect(ai([1, 2, 3, 4, 5].map(tenWords).join(" ") + " Six more words do not fit.")).toBeUndefined(); // 56 words
+    // 56 words, past the old 15% band: cut too (wave 2 live check), 46 words
+    expect(ai([1, 2, 3, 4, 5].map(tenWords).join(" ") + " Six more words do not fit.")!.script!.split("\n")).toEqual([...[1, 2, 3, 4].map(tenWords), "Six more words do not fit."]);
     const labelled = ai(`HOOK: ${tenWords(1)}\n${tenWords(2)} ${tenWords(3)}\nCTA: ${tenWords(4)}`)!;
     expect(labelled.script).toBe([1, 2, 3, 4].map(tenWords).join("\n"));
     expect(labelled.cta).toBe(tenWords(4));
@@ -914,16 +915,22 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
     expect(dropped).toEqual([[3, "script 50 words, needs 60 to 90"]]);
   });
 
-  it("drops a script over its top by more than 15%, and cuts a short video's body sentences, never its HOOK or CTA line", () => {
+  it("cuts a script well past its top too (wave 2 live check), and a short video's body sentences, never its HOOK or CTA line", () => {
     const body = (k: number) => Array.from({ length: k }, (_, i) => tenWords(i + 1)).join(" ");
     const short = (k: number) => `HOOK: Busy fathers can still invest well.\nBODY: ${body(k)}\nCTA: Comment PLAN below.`; // 6 + 10k + 3 words
     const dropped: [number, string][] = [];
     const got = validateCampaign(reply({ 3: short(9), 4: `${AI_51} Nothing gets decided on the spot.` }), live, dropped)!;
     expect(got.find((p) => p.n === 3)!.script).toBe(`HOOK: Busy fathers can still invest well.\nBODY: ${body(8)}\nCTA: Comment PLAN below.`); // 99 words to 89
-    expect(dropped).toEqual([[4, "script 57 words, needs 36 to 48"]]);
-    const over: [number, string][] = [];
-    validateCampaign(reply({ 3: short(10) }), live, over);
-    expect(over).toEqual([[3, "script 109 words, needs 60 to 90"], [4, "no script"]]);
+    // 57 words: the last line is now the call to action, so "Book a short call..." is the body sentence that goes
+    expect(got.find((p) => p.n === 4)!.script!.split("\n")).toEqual([
+      "Worried about locking money away for five years?",
+      "That worry makes sense when you have a family to provide for.",
+      "Start by working out how much you need to keep within reach.",
+      "Then we can look at longer-term goals separately.",
+      "Nothing gets decided on the spot.",
+    ]);
+    expect(dropped).toEqual([]);
+    expect(validateCampaign(reply({ 3: short(10) }), live)!.find((p) => p.n === 3)!.script).toBe(`HOOK: Busy fathers can still invest well.\nBODY: ${body(8)}\nCTA: Comment PLAN below.`); // 109 to 89
   });
 
   it("names the rule each dropped post broke, for every format", () => {
@@ -1003,6 +1010,55 @@ describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 en
     const points = [1, 2, 3, 4].map((i) => `Point ${i}: ${words(10)}`);
     const got = validateCampaign(written({ 2: { body: [...points, "Save this."].join("\n\n") } }), campaignRequest())!.find((p) => p.n === 2)!;
     expect(got.body!.split("\n\n")).toEqual(points);
+  });
+});
+
+// wave 2 live check (22 Oct), live-p5w2 calls/001: the business draft's two scripts as asked; post 3 as it came back
+const P5W2_001_ASK_3 = { n: 3, angle: { title: "Fewer App Switches", line: "We bring CRM, chats, tasks and goals into one phone app, reducing the need to jump between tools." }, format: "short-video", stage: "attraction", formula: null, ctaType: "comment-keyword", platforms: ["instagram"] };
+const P5W2_001_ASK_4 = { n: 4, angle: { title: "Target Progress View", line: "Track team goals alongside activity, so you can review progress and discuss what needs attention." }, format: "ai-video", stage: "conversion", formula: null, ctaType: "book-call", platforms: ["instagram"] };
+const P5W2_001_SCRIPT_3 =
+  "HOOK: Switching between sales apps can make simple follow-ups harder to keep in view.\nBODY: Your CRM may hold client details, WhatsApp may hold conversations, and tasks may live somewhere else. When goals sit in another tool, checking the full picture takes extra steps. We bring CRM, chats, tasks and goals into one phone app, with activity logged in one tap. Fewer switches can make the workday feel more connected, while your team still decides what needs attention.\nCTA: Comment APP if you want to see how the pieces fit together.";
+// post 4 never reached the record (dropped: "script 70 words, needs 36 to 48"), so this stands in at the same 70 words
+const P5W2_001_AI_70 = [
+  "Is your team on pace for this month's targets?",
+  "Most sales managers only find out at the end of the month.",
+  "By then, there is little time left to help.",
+  "ActivityTracker keeps team goals beside each rep's daily activity.",
+  "You can see calls, follow-ups and progress in one phone app.",
+  "That makes weekly check-ins shorter and more useful.",
+  "Book a short demo to see the target view for your team.",
+].join(" ");
+
+describe("campaign scripts past the old 15% band (wave 2 live check: calls/001 dropped a 70-word AI video)", () => {
+  const live = campaignRequest({ mode: "campaign", posts: [P5W2_001_ASK_3, P5W2_001_ASK_4], context: LIVE_011_CONTEXT });
+  const reply = (ai: string) => ({ posts: [{ n: 3, hook: "", body: "", script: P5W2_001_SCRIPT_3, brief: "", cta: "" }, { n: 4, hook: "", body: "", script: ai, brief: "", cta: "" }] });
+
+  it("cuts the 70-word script's last body sentences into 36 to 48, keeping its hook and call to action", () => {
+    expect(countWords(P5W2_001_AI_70)).toBe(70);
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply(P5W2_001_AI_70), live, dropped)!;
+    expect(dropped).toEqual([]);
+    expect(got.map((p) => p.n)).toEqual([3, 4]);
+    expect(got[0].script).toBe(P5W2_001_SCRIPT_3); // 76 words, in range: untouched
+    expect(got[1].script!.split("\n")).toEqual([
+      "Is your team on pace for this month's targets?",
+      "Most sales managers only find out at the end of the month.",
+      "By then, there is little time left to help.",
+      "Book a short demo to see the target view for your team.",
+    ]);
+    expect(countWords(got[1].script!)).toBe(42);
+    expect(got[1]).toMatchObject({ hook: "Is your team on pace for this month's targets?", cta: "Book a short demo to see the target view for your team." });
+  });
+
+  it("passes over a sentence whose loss would go under 36, and drops only what cannot fit", () => {
+    // 10 + 7 + 30 + 4 words: losing the last body sentence (30) leaves 21, so the 7-word one goes instead (44)
+    const long = `Here is a hook for a team of sales reps. Then a short one sits here now. ${words(30, "long")} Book a demo now.`;
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply(long), live, dropped)!.find((p) => p.n === 4)!;
+    expect(got.script!.split("\n")).toEqual(["Here is a hook for a team of sales reps.", words(30, "long"), "Book a demo now."]);
+    // one body sentence of 50 words cannot lose it and keep a body: dropped, never cut mid-sentence or padded
+    validateCampaign(reply(`Hook line here. ${words(50, "body")} Book a demo now.`), live, dropped);
+    expect(dropped).toEqual([[4, "script 57 words, needs 36 to 48"]]);
   });
 });
 

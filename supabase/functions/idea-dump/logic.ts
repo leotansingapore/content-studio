@@ -1063,21 +1063,33 @@ const LABEL_RE = /^(?:HOOK|BODY|CTA)\s*:\s*/i;
 const scriptWords = (lines: string[]) => wordCount(lines.map((l) => l.replace(LABEL_RE, "")).join(" "));
 
 /**
- * A script's lines held to its range without a second paid call. One over the top by at most 15% (49 to 55 words for
- * an AI video, 91 to 103 for a short video) loses whole sentences from the end of the lines between its first line and
- * its call to action (line `end`) until it fits: nothing is cut mid-sentence, and the hook and call to action stay.
- * Null when it is short (never padded) or still out of range.
+ * A script's lines held to its range without a second paid call. One over its top loses whole body sentences (the
+ * lines between its first line and its call to action, line `end`), last first, passing over one whose loss would take
+ * it under its floor, until it fits: nothing is cut mid-sentence, the hook and call to action stay, and at least one
+ * body sentence is left. Null when it is short (never padded) or cannot fit that way (wave 2 live check, 22 Oct: a
+ * business brand's 70-word AI video was dropped by the old 15% band).
  */
 function fitScript(lines: string[], end: number, { low, high }: { low: number; high: number }): string[] | null {
-  if (scriptWords(lines) > Math.floor(high * 1.15)) return null;
-  const out = [...lines];
-  for (let i = end - 1; i >= 1 && scriptWords(out) > high; ) {
-    const shorter = out[i].match(/^([\s\S]*[.!?]["')\]]?)\s+\S/)?.[1];
-    if (shorter) out[i] = shorter;
-    else out.splice(i--, 1);
+  let words = scriptWords(lines);
+  if (words <= high) return words >= low ? lines : null;
+  // each body line as its HOOK:/BODY: label and its sentences, so a sentence can go and the label stay
+  const body = lines.slice(1, end).map((l) => {
+    const label = l.match(LABEL_RE)?.[0] ?? "";
+    return { label, parts: l.slice(label.length).split(/(?<=[.!?]["')\]]?)\s+(?=\S)/).filter(Boolean) };
+  });
+  let left = body.reduce((n, b) => n + b.parts.length, 0);
+  for (let i = body.length - 1; i >= 0 && words > high; i--) {
+    for (let k = body[i].parts.length - 1; k >= 0 && words > high; k--) {
+      const w = wordCount(body[i].parts[k]);
+      if (left > 1 && words - w >= low) {
+        body[i].parts.splice(k, 1);
+        words -= w;
+        left--;
+      }
+    }
   }
-  const words = scriptWords(out);
-  return words >= low && words <= high ? out : null;
+  if (words < low || words > high) return null;
+  return [lines[0], ...body.filter((b) => b.parts.length).map((b) => b.label + b.parts.join(" ")), ...lines.slice(end)];
 }
 
 /** A body without a last line that repeats its call to action, in any case or punctuation (live check 22 Oct: the CTA showed twice). */
