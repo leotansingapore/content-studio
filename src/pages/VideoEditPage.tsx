@@ -423,7 +423,7 @@ export default function VideoEditPage() {
   );
 }
 
-function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
+export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
   userId: string | null;
   leo: boolean;
   busy: string;

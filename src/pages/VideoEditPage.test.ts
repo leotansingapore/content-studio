@@ -15,7 +15,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false }));
 
-const { Editor } = await import("./VideoEditPage");
+const { Editor, Start } = await import("./VideoEditPage");
 const { defaultSettings } = await import("@/lib/videoEdit");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -50,5 +50,18 @@ describe("the editor for a project the AI didn't make", () => {
   it("draws an AI video as before for everyone else, Script card params and all", () => {
     expect(html(marked, false)).toBe(html(plain, false));
     expect(html(marked, false, "/edit?p=v1&script=1&lang=zh")).toBe(html(plain, false));
+  });
+});
+
+describe("Recent on the start screen", () => {
+  // a clip found in a 9:05.5 recording (live check 22 Oct): the recording's duration, the clip in its trims
+  const clip = { ...plain, id: "v2", name: "Webinar - Follow up the same day", duration: 545.5, settings: { ...defaultSettings("bold"), trimStart: 100, trimEnd: 545.5 - 118.5 } };
+  const lengths = (projects: (typeof plain)[]) => {
+    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/edit"] }, createElement(Start, { userId: "u1", leo: false, busy: "", projects, onUpload: () => {}, onOpen: () => {}, onRemove: () => {} })));
+    return [...markup.matchAll(/<span class="block text-\[11px\] text-muted-foreground">([^<]*)<\/span>/g)].map((m) => m[1]);
+  };
+
+  it("shows each project's length", () => {
+    expect(lengths([plain, clip])).toEqual(["0:12.0", "9:05.5"]);
   });
 });
