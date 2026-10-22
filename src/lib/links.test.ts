@@ -322,6 +322,61 @@ describe("links", () => {
     expect(links.makeFormat("talking-head", { who: "pr-lq3k9z", length: 15 })).toBe("/make/talking-head?who=pr-lq3k9z&length=15");
   });
 
+  it("builds the phase-5 plans and campaigns links with defaults left out (docs/deep-links.md, Plans and campaigns)", () => {
+    // /audiences
+    expect(links.audiences()).toBe("/audiences");
+    expect(links.audiences({ open: "au-lq3k9z" })).toBe("/audiences?open=au-lq3k9z");
+    // the goal editor on Home and /campaigns
+    expect(links.home({ goal: "change" })).toBe("/home?goal=change");
+    expect(links.home({ goal: "change", section: "what-moved" })).toBe("/home?goal=change#what-moved");
+    expect(links.campaigns()).toBe("/campaigns");
+    expect(links.campaigns({ goal: "change" })).toBe("/campaigns?goal=change");
+    // the wizard: no fixed default step, so every step stays in the link
+    expect(links.campaignNew()).toBe("/campaigns/new");
+    for (const step of ["who", "angles", "where", "pace", "review"] as const) expect(links.campaignNew({ step })).toBe(`/campaigns/new?step=${step}`);
+    expect(links.campaignNew({ audience: "au-lq3k9z" })).toBe("/campaigns/new?audience=au-lq3k9z");
+    expect(links.campaignNew({ audience: "au-lq3k9z", step: "angles" })).toBe("/campaigns/new?step=angles&audience=au-lq3k9z");
+    // one campaign
+    expect(links.campaign("c1")).toBe("/campaigns/c1");
+    expect(links.campaign("c1", { post: 4, view: "grid" })).toBe("/campaigns/c1?post=4&view=grid");
+    expect(links.campaign("c1", { angle: "a2" })).toBe("/campaigns/c1?angle=a2");
+    expect(links.campaign("c1", { section: "queue" })).toBe("/campaigns/c1#queue");
+    expect(links.campaign("c1", { section: "queue", post: 4, angle: "a2" })).toBe("/campaigns/c1?post=4&angle=a2#queue");
+    expect(links.campaign("c 1/x")).toBe("/campaigns/c%201%2Fx");
+    // /plan's autopilot and pillars
+    expect(links.plan({ section: "autopilot" })).toBe("/plan#autopilot");
+    expect(links.plan({ section: "pillars" })).toBe("/plan#pillars");
+    expect(links.plan({ autopilot: "settings" })).toBe("/plan?autopilot=settings");
+    expect(links.plan({ week: "2026-10-27", section: "autopilot" })).toBe("/plan?week=2026-10-27#autopilot");
+    expect(links.plan({ pillars: "edit" })).toBe("/plan?pillars=edit");
+    expect(links.plan({ view: "plan", pillars: "edit", section: "pillars" })).toBe("/plan?pillars=edit#pillars");
+    // /coach's long piece: no piece is left out, since Leo's default and everyone else's differ
+    for (const piece of ["questions", "voice", "paste"] as const) expect(links.coach({ piece })).toBe(`/coach?piece=${piece}`);
+    expect(links.coach({ section: "long-piece" })).toBe("/coach#long-piece");
+    expect(links.coach({ piece: "voice", section: "long-piece" })).toBe("/coach?piece=voice#long-piece");
+    // /ideas
+    expect(links.ideas()).toBe("/ideas");
+    expect(links.ideas({ tab: "inbox", source: "all" })).toBe("/ideas");
+    expect(links.ideas({ tab: "shortlist" })).toBe("/ideas?tab=shortlist");
+    expect(links.ideas({ tab: "discarded", source: "foryou" })).toBe("/ideas?tab=discarded&source=foryou");
+    expect(links.ideas({ source: "today", label: "lb-1" })).toBe("/ideas?source=today&label=lb-1");
+    expect(links.ideas({ idea: "gen:2026-10-22:3" })).toBe("/ideas?idea=gen%3A2026-10-22%3A3");
+    expect(links.ideas({ idea: "market:a b&c", tab: "inbox" })).toBe("/ideas?idea=market%3Aa+b%26c");
+  });
+
+  it("puts Write's aud and label after lang, and keeps Batch's aud in the address", () => {
+    expect(links.generate({ aud: "au-lq3k9z" })).toBe("/generate?aud=au-lq3k9z");
+    expect(links.generate({ label: "lb-1" })).toBe("/generate?label=lb-1");
+    expect(links.generate({ label: "lb-1", aud: "au-lq3k9z", lang: "zh", pillar: "topic" })).toBe("/generate?lang=zh&pillar=topic&aud=au-lq3k9z&label=lb-1");
+    expect(links.generate({ pillar: "topic", detail: "CPF", format: "carousel", label: "lb-1" })).toBe(
+      "/generate?pillar=topic&detail=CPF&format=carousel&label=lb-1",
+    );
+    expect(links.generate({ aud: "", label: undefined })).toBe("/generate");
+    expect(links.batch({ aud: "au-lq3k9z" })).toBe("/generate/batch?aud=au-lq3k9z");
+    expect(links.batch({ pillar: "market", audience: "parent", aud: "au-lq3k9z" })).toBe("/generate/batch?pillar=market&audience=parent&aud=au-lq3k9z");
+    expect(links.batch({ pillar: "topic", audience: "general", aud: undefined })).toBe("/generate/batch");
+  });
+
   it("builds the Trends formats view with defaults left out", () => {
     expect(links.trends({ view: "formats", kind: "all" })).toBe("/trends?view=formats");
     expect(links.trends({ view: "formats", kind: "slideshow" })).toBe("/trends?view=formats&kind=slideshow");
