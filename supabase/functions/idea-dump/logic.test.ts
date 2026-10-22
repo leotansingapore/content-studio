@@ -780,7 +780,9 @@ describe("mode campaign", () => {
     expect(ai([1, 2, 3].map(tenWords).join(" ") + " Five more words right here.")).toBeUndefined(); // 35 words
     expect(countWords(ai([1, 2, 3].map(tenWords).join(" ") + " Six more words right here now.")!.script!)).toBe(36);
     expect(countWords(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Eight more words fit in this one too.")!.script!)).toBe(48);
-    expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")).toBeUndefined();
+    // 49 words: the last sentence before the call to action goes (wave 1 live check fix), 39 words
+    expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")!.script!.split("\n")).toEqual([...[1, 2, 3].map(tenWords), "Nine more words do not fit in this one."]);
+    expect(ai([1, 2, 3, 4, 5].map(tenWords).join(" ") + " Six more words do not fit.")).toBeUndefined(); // 56 words
     const labelled = ai(`HOOK: ${tenWords(1)}\n${tenWords(2)} ${tenWords(3)}\nCTA: ${tenWords(4)}`)!;
     expect(labelled.script).toBe([1, 2, 3, 4].map(tenWords).join("\n"));
     expect(labelled.cta).toBe(tenWords(4));
@@ -792,6 +794,114 @@ describe("mode campaign", () => {
     expect(validateCampaign(reply, campaignRequest())!.map((p) => p.n)).toEqual([1, 2, 3, 4]);
     expect(validateCampaign("not json", campaignRequest())).toBeNull();
     expect(validateCampaign({ posts: [] }, campaignRequest())).toEqual([]);
+  });
+});
+
+// ---- Wave 1 live check (22 Oct): calls/014 asked 4 posts and got 2 back, both scripts missing ----------------
+
+import { SHORT_VIDEO_WORDS } from "./logic.ts";
+
+// calls/014, the person draft: the asks and context as sent, posts 1 and 2 as they came back
+const LIVE_014 = {
+  mode: "campaign",
+  posts: [
+    { n: 1, angle: { title: "Money sitting idle", line: "Cash left in the bank feels safe but quietly loses ground to rising costs." }, format: "text-post", stage: "attraction", formula: null, ctaType: "open-question", platforms: ["linkedin"] },
+    { n: 2, angle: { title: "Jargon-free plans", line: "A one-page plan beats a 40-page report you never read again." }, format: "carousel", stage: "trust", formula: null, ctaType: "save-share", platforms: ["instagram"] },
+    { n: 3, angle: { title: "No time to invest", line: "Busy fathers can set up a plan once and review it quarterly instead of daily." }, format: "short-video", stage: "trust", formula: null, ctaType: "comment-keyword", platforms: ["instagram"] },
+    { n: 4, angle: { title: "Five-year commitment fears", line: "Worried about locking money away for years? Start with what you need to stay liquid." }, format: "ai-video", stage: "conversion", formula: null, ctaType: "book-call", platforms: ["instagram"] },
+  ],
+  context: {
+    positioning: {
+      oneLiner: "I help busy working fathers achieve financial freedom and peace of mind through my F.A.T. Method",
+      audienceDetail: "Auditor / Accountant, aged 30-48, Middle to upper-middle income",
+      topics: ["Not taking action", "Letting money sit in bank", "Afraid of >5yr commitment", "Lack of time to invest", "Too much information and jargon"],
+      edge: "Quarterly one-page plan with decision log, proactive check-ins after major life events",
+    },
+    goal: "Get 3 new client meetings a month",
+    platforms: ["linkedin", "instagram"],
+    speaker: "person",
+    audience: "Working fathers in audit and accounting: Auditors and accountants aged 30 to 48, with middle to upper-middle incomes, balancing work and family while seeking financial freedom and peace of mind.",
+  },
+};
+const LIVE_014_POSTS = [
+  {
+    n: 1,
+    hook: "Cash can feel safe while costs keep moving.",
+    body: "I understand why a busy father might leave money in the bank. It is familiar, accessible and easy to track between work deadlines and family routines.\n\nBut when everyday costs rise, the amount your cash can buy may change over time. That does not mean you should rush to invest it. It means it can help to be clear about what the money is for, when you may need it and how much you want readily available.\n\nI find that separating short-term needs from longer-term goals is a useful place to start. It turns “I’ll deal with this later” into a question you can actually work through, without making a decision on the spot.",
+    script: "",
+    brief: "",
+    cta: "How do you decide what to keep accessible and what to plan for long term?",
+  },
+  {
+    n: 2,
+    hook: "A plan you can actually use",
+    body: "I start with the priorities that matter to you, not a stack of jargon.\n\nI put the key decisions and next steps on one page, so you can revisit them without digging through a lengthy report.\n\nI note why each decision was made. That gives you context when work or family circumstances change.\n\nI keep short-term cash needs distinct from longer-term goals. Each has a different job in the plan.\n\nI review the plan quarterly with you, and check in after major life events. A plan should stay relevant as life changes.",
+    script: "",
+    brief: "",
+    cta: "Save this for your next money review, or share it with a working parent who prefers plain English.",
+  },
+];
+// the scripts never reached the record (it holds the reply after validation), so these stand in at the lengths that drop
+const SHORT_50 = "HOOK: No time to invest? You are not alone.\nBODY: You do not need to watch the markets every day. Set up a plan once, then review it every quarter. That keeps it simple, and it leaves room for family time.\nCTA: Comment PLAN and I will share how a quarterly review works.";
+const AI_51 = "Worried about locking money away for five years? That worry makes sense when you have a family to provide for. Start by working out how much you need to keep within reach. Then we can look at longer-term goals separately. Book a short call and we can map it out together.";
+
+describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came back missing)", () => {
+  const live = campaignRequest(LIVE_014);
+  const reply = (scripts: Record<number, string>) => ({ posts: [...LIVE_014_POSTS, ...[3, 4].map((n) => ({ n, hook: "", body: "", script: scripts[n] ?? "", brief: "", cta: "" }))] });
+
+  it("states each post's word range on the post itself", () => {
+    const { system, user } = buildCampaignPrompt(live);
+    expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used.");
+    expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
+    expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
+    expect(user).toContain("instead of daily.\nWords: script 60 to 90 words across its HOOK, BODY and CTA lines");
+    expect(user).toContain("Start with what you need to stay liquid.\nWords: script 36 to 48 words in all");
+    expect(SHORT_VIDEO_WORDS).toEqual({ low: 60, high: 90 });
+  });
+
+  it("cuts a 51-word AI video script at a sentence end inside 36 to 48, keeping its hook and call to action", () => {
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply({ 3: SHORT_50, 4: AI_51 }), live, dropped)!;
+    expect(countWords(AI_51)).toBe(51);
+    expect(got.map((p) => p.n)).toEqual([1, 2, 4]);
+    const ai = got[2];
+    expect(ai.script!.split("\n")).toEqual([
+      "Worried about locking money away for five years?",
+      "That worry makes sense when you have a family to provide for.",
+      "Start by working out how much you need to keep within reach.",
+      "Book a short call and we can map it out together.",
+    ]);
+    expect(countWords(ai.script!)).toBe(43);
+    expect(ai).toMatchObject({ hook: "Worried about locking money away for five years?", cta: "Book a short call and we can map it out together." });
+    // a short script is never padded: it is dropped, and the log gets its number and the rule, never its words
+    expect(dropped).toEqual([[3, "script 50 words, needs 60 to 90"]]);
+  });
+
+  it("drops a script over its top by more than 15%, and cuts a short video's body sentences, never its HOOK or CTA line", () => {
+    const body = (k: number) => Array.from({ length: k }, (_, i) => tenWords(i + 1)).join(" ");
+    const short = (k: number) => `HOOK: Busy fathers can still invest well.\nBODY: ${body(k)}\nCTA: Comment PLAN below.`; // 6 + 10k + 3 words
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply({ 3: short(9), 4: `${AI_51} Nothing gets decided on the spot.` }), live, dropped)!;
+    expect(got.find((p) => p.n === 3)!.script).toBe(`HOOK: Busy fathers can still invest well.\nBODY: ${body(8)}\nCTA: Comment PLAN below.`); // 99 words to 89
+    expect(dropped).toEqual([[4, "script 57 words, needs 36 to 48"]]);
+    const over: [number, string][] = [];
+    validateCampaign(reply({ 3: short(10) }), live, over);
+    expect(over).toEqual([[3, "script 109 words, needs 60 to 90"], [4, "no script"]]);
+  });
+
+  it("names the rule each dropped post broke, for every format", () => {
+    const dropped: [number, string][] = [];
+    validateCampaign(
+      written({ 1: { body: words(79) }, 2: { body: "One.\n\nTwo.\n\nThree." }, 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` }, 4: { script: "One line only" }, 5: { brief: "" }, 6: { cta: "" } }),
+      campaignRequest(),
+      dropped,
+    );
+    expect(dropped).toEqual([[1, "body 79 words, needs 80 to 220"], [2, "3 points, needs 4 to 8"], [3, "script 43 words, needs 60 to 90"], [4, "one line"], [5, "no brief"], [6, "no cta"]]);
+    const missing: [number, string][] = [];
+    const reply2 = written({ 5: { hook: "Most reps lose sleep over follow-ups" }, 6: { hook: "your FOLLOW-UP is the real pitch" } });
+    reply2.posts.splice(1, 1);
+    validateCampaign(reply2, campaignRequest(), missing);
+    expect(missing).toEqual([[2, "not written"], [5, "opens like an earlier post"], [6, "repeats a hook to avoid"]]);
   });
 });
 

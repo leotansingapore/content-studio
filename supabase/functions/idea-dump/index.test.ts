@@ -340,6 +340,23 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
     expect(db.refunded).toEqual([]);
   });
 
+  it("logs each dropped post's number and the rule it broke, never its words (live check: only 'asked 4 written 2')", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      openai = () => reply({ posts: [CAMPAIGN_REPLY.posts[0], { ...CAMPAIGN_REPLY.posts[1], brief: "" }] });
+      expect((await call(CAMPAIGN, "leo")).body.posts.map((p: { n: number }) => p.n)).toEqual([1]);
+      openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], body: "Too short to post." }] });
+      expect((await call(CAMPAIGN, "leo")).body.code).toBe("unusable");
+      const lines = log.mock.calls.map((c) => c.join(" ")).filter((l) => l.startsWith("idea-dump campaign"));
+      expect(lines[0]).toBe('idea-dump campaign leo campaign-draft asked 2 written 1 dropped [[2,"no brief"]] mas [[1,null]]');
+      expect(lines[1]).toBe('idea-dump campaign leo campaign-draft asked 2 written 0 dropped [[1,"body 4 words, needs 80 to 220"],[2,"not written"]]');
+      expect(lines).toHaveLength(2);
+      expect(log.mock.calls.flat().join("\n")).not.toMatch(/Too short|checking in|Most reps/);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it("answers the daily limit with 429 and calls nothing", async () => {
     db.limit = true;
     // the limit's number is the contracts task's (usageCaps.test.ts)
