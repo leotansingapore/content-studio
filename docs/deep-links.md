@@ -459,6 +459,7 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 | /generate | panel | Leo only. insert: the Insert panel over that post (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert |
 | /generate | kind | Leo only. with panel=insert: hashtags, ending, hook, post (the panel's tab) | line | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert&kind=hashtags |
 | /generate | lang | Leo only. zh, ms, ta: this make's language, read once like the other pre-fills, then removed | the brand's post language, else English | replace | /generate?lang=zh |
+| /generate, /carousel | meaning | Leo only. 1: the English meaning shown beside a Chinese, Malay or Tamil version (a carousel's meaning lives on the device that made it) | hidden | push | /generate?draft=<id>&meaning=1 |
 
 Closing /edit's AI panel drops face, voice, product and set with the other AI panel params. A version made in
 another language is a draft or a carousel like any other: /generate?draft=<version id>, /carousel?carousel=<version id>.
