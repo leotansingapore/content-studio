@@ -828,7 +828,7 @@ export const ANGLES_SCHEMA = {
 
 /**
  * The candidates worth asking Jev about: 2 to 5 word titles of at most 40 characters, none repeated or already saved.
- * A Title Case title comes back in sentence case (remix's sentenceCase; live check 22 Oct, calls/010), keeping
+ * A Title Case title, two words included, comes back in sentence case (remix's sentenceCase; live checks 22 Oct), keeping
  * acronyms, brand names like WhatsApp, and a word capitalised mid-sentence in its line or in `names`.
  * Null when it isn't the expected JSON.
  */
@@ -840,7 +840,7 @@ export function validateAngles(raw: unknown, avoid: string[] = [], names = ""): 
   for (const a of obj.angles) {
     if (!isRecord(a)) continue;
     const line = clip(cutWords(cleanText(a.line, 600), 19), 140);
-    const title = sentenceCase(cleanText(a.title, 200), `${line}. ${names}`);
+    const title = sentenceCase(cleanText(a.title, 200), `${line}. ${names}`, { short: true });
     const n = wordCount(title);
     if (n < 2 || n > 5 || title.length > 40 || !line || seen.has(wordsKey(title))) continue;
     seen.add(wordsKey(title));

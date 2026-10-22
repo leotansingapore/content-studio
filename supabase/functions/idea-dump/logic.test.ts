@@ -460,7 +460,7 @@ describe("pinned prompts", () => {
 
 // ---- Plan modes (phase 5): angles ----------------------------------------------
 
-import { BUSINESS_VOICE } from "../remix/logic.ts";
+import { BUSINESS_VOICE, sentenceCase } from "../remix/logic.ts";
 import {
   ANGLE_CANDIDATES,
   PLAN_LINES,
@@ -595,7 +595,7 @@ describe("mode angles", () => {
       ["Why Fastlane Works", "Teams switch to Fastlane for one inbox."],
       ["Grow With Northstar Today", "One app for the team."],
       ["Follow-ups that stick", "Already in sentence case."],
-      ["Shared Inbox", "Two words stay as written."],
+      ["Shared Inbox", "Two words too, since wave 2."],
     ];
     const got = validateAngles({ angles: [...live, ...more].map(([title, line]) => ({ title, line })) }, [], "Sales teams pick Northstar for its inbox.");
     expect(got?.map((a) => a.title)).toEqual([
@@ -612,9 +612,42 @@ describe("mode angles", () => {
       "Why Fastlane works",
       "Grow with Northstar today",
       "Follow-ups that stick",
-      "Shared Inbox",
+      "Shared inbox",
     ]);
     expect(validateAngles({ angles: [{ title: "Grow With Northstar Today", line: "One app." }] })?.[0].title).toBe("Grow with northstar today");
+  });
+
+  it("puts two-word Title Case titles in sentence case too (wave 2 live check, calls/004 and calls/008)", () => {
+    // live-p5w2 calls/008's five titles and lines, and calls/004's "Smoother Handoffs", as they came back
+    const live = [
+      ["Follow-up Tasks", "Keep follow-ups beside your client chats, instead of relying on memory."],
+      ["One-Tap Activity", "Log a call or client update in one tap while the details are fresh."],
+      ["Deal Pipeline", "Track where each deal stands so you can review your next steps."],
+      ["Call Visibility", "See which calls need logging and keep your daily activity in one place."],
+      ["Daily Priorities", "Bring calls, tasks and client follow-ups together to plan your day."],
+      ["Smoother Handoffs", "Keep client conversation context accessible when work moves between team members."],
+      ["Shared WhatsApp view", "See how a shared inbox can help your team coordinate client chats in one place."],
+    ];
+    const names = "ActivityTracker: CRM, a shared WhatsApp inbox, tasks and goals in one phone app. SGD 34 a person a month.";
+    expect(validateAngles({ angles: live.map(([title, line]) => ({ title, line })) }, [], names)?.map((a) => a.title)).toEqual([
+      "Follow-up tasks",
+      "One-tap activity",
+      "Deal pipeline",
+      "Call visibility",
+      "Daily priorities",
+      "Smoother handoffs",
+      "Shared WhatsApp view",
+    ]);
+    // acronyms and brand names keep their capitals, in two words as in more
+    const two = [["CRM Basics", "Start here."], ["WhatsApp Inbox", "One place."], ["Meet ActivityTracker", "One app."], ["Coca-Cola Deals", "Teams at Coca-Cola use it."]];
+    expect(validateAngles({ angles: two.map(([title, line]) => ({ title, line })) })?.map((a) => a.title)).toEqual(["CRM basics", "WhatsApp inbox", "Meet ActivityTracker", "Coca-Cola deals"]);
+  });
+
+  it("leaves remix's callers as they were: two words unchanged, a hyphenated first word kept", () => {
+    expect(sentenceCase("Save More", "")).toBe("Save More");
+    expect(sentenceCase("One-Tap Activity Logs", "")).toBe("One-Tap activity logs");
+    expect(sentenceCase("Save More", "", { short: true })).toBe("Save more");
+    expect(sentenceCase("One-Tap Activity Logs", "", { short: true })).toBe("One-tap activity logs");
   });
 
   it("asks Jev whether the audience would stop and whether it is unsafe, from the adviser or the business", () => {
