@@ -1115,6 +1115,48 @@ describe("a body that ends on a near copy of its cta (wave 4 live check: calls/0
   });
 });
 
+// wave 4 live check (22 Oct), live-p5w4 calls/004: the swap of post 5 on ActivityTracker as asked and as it came back
+const P5W4_004_SWAP = {
+  mode: "campaign",
+  swap: true,
+  posts: [P5W4_003_ASKS[2]],
+  avoid: ["3 things to check when setting sales goals", "Most people say more apps mean more control. We disagree.", "Put follow-ups on the task list", "The cost of skipping one tap is missing activity context.", "Before, client details and sales conversations can be scattered across different places.", "One app for sales work", "If you still rely on memory for every follow-up, stop."],
+  context: LIVE_011_CONTEXT,
+};
+const P5W4_004_POST = {
+  n: 5,
+  hook: "5 things I wish I knew before tracking sales goals",
+  body: "Sales goals are easier to review when they sit close to the work that moves them forward.\n\nHere are five practical reminders:\n\n1. Keep the goal visible alongside client and follow-up work.\n2. Check your activity as well as the target. Logged activity gives you context for your sales work.\n3. Make it easy to record activity. With one-tap logging, you can add it as you go.\n4. Keep follow-ups organised so the next action is clear.\n5. Review your goals in the same place you manage clients, tasks and conversations.\n\nWhen goals, client management, tasks and a shared WhatsApp inbox are together in one phone app, you have fewer places to check during the day. That gives you a clearer view of how your sales work is moving, without relying on memory alone.",
+  script: "",
+  brief: "",
+  cta: "Save this checklist or share it with a sales professional who tracks goals.",
+};
+
+describe("a business brand's hooks never say I (wave 4 live check: calls/004 swapped in \"5 things I wish I knew\")", () => {
+  const business = campaignRequest(P5W4_004_SWAP);
+  const person = campaignRequest({ ...P5W4_004_SWAP, context: { ...PLAN_CONTEXT, audience: "Parents in their 30s with a first child" } });
+
+  it("tells a business's writer to say a formula as the business, in the campaign and the swap prompts", () => {
+    const line = 'never "I" ("I {did something} {N} times" becomes "We {did something} {N} times")';
+    expect(buildCampaignPrompt(business).system).toContain(line);
+    expect(buildCampaignPrompt(campaignRequest({ ...P5W4_004_SWAP, swap: false })).system).toContain(line);
+    expect(buildCampaignPrompt(person).system).not.toContain(line);
+  });
+
+  it("drops a business's post whose hook says I and logs its number and rule, so the job's retry writes it again", () => {
+    const dropped: [number, string][] = [];
+    expect(validateCampaign({ posts: [P5W4_004_POST] }, business, dropped)).toEqual([]);
+    expect(dropped).toEqual([[5, "says I in a business hook"]]);
+    expect(validateCampaign({ posts: [P5W4_004_POST] }, person)!.map((p) => p.hook)).toEqual([P5W4_004_POST.hook]);
+  });
+
+  it("catches I and its contractions as the speaker, and keeps a quoted I and words that only contain the letter", () => {
+    const hookOf = (hook: string) => validateCampaign({ posts: [{ ...P5W4_004_POST, hook }] }, business)!.map((p) => p.hook);
+    for (const hook of ["I tracked sales goals 40 times. Here is what came out of it.", "Here is what I learned about sales goals", "I'd keep sales goals in view, always", "Sales goals? I\u2019ve stopped guessing", "Nobody tracks goals better than I."]) expect(hookOf(hook)).toEqual([]);
+    for (const hook of ['"I never have time," reps tell us about sales goals', "5 things we wish every rep knew about sales goals", "Is your sales goal in view?"]) expect(hookOf(hook)).toEqual([hook]);
+  });
+});
+
 // wave 2 live check (22 Oct), live-p5w2 calls/001: the business draft's two scripts as asked; post 3 as it came back
 const P5W2_001_ASK_3 = { n: 3, angle: { title: "Fewer App Switches", line: "We bring CRM, chats, tasks and goals into one phone app, reducing the need to jump between tools." }, format: "short-video", stage: "attraction", formula: null, ctaType: "comment-keyword", platforms: ["instagram"] };
 const P5W2_001_ASK_4 = { n: 4, angle: { title: "Target Progress View", line: "Track team goals alongside activity, so you can review progress and discuss what needs attention." }, format: "ai-video", stage: "conversion", formula: null, ctaType: "book-call", platforms: ["instagram"] };
@@ -1629,9 +1671,9 @@ describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32
     expect(cut.hook).toBe(Array.from({ length: 15 }, (_, i) => `w${i + 1}`).join(" "));
     expect(cut.script!.split("\n")[1]).toBe(`BODY: w16 w17 w18 w19 w20 end. ${words(50)}`);
     expect(spoken(cut.script!)).toBe(spoken(long));
-    const two = video(`HOOK: Who do I call today? ${words(60)}\nCTA: DM us CALLS.`)!;
-    expect(two.script!.split("\n")).toEqual(["HOOK: Who do I call today?", `BODY: ${words(60)}`, "CTA: DM us CALLS."]);
+    const two = video(`HOOK: Who needs a call today? ${words(60)}\nCTA: DM us CALLS.`)!;
+    expect(two.script!.split("\n")).toEqual(["HOOK: Who needs a call today?", `BODY: ${words(60)}`, "CTA: DM us CALLS."]);
     // a HOOK line inside the limit is left as written
-    expect(video(`HOOK: Who do I call today? Here is how.\nBODY: ${words(60)}\nCTA: DM us CALLS.`)!.script!.split("\n")[0]).toBe("HOOK: Who do I call today? Here is how.");
+    expect(video(`HOOK: Who needs a call today? Here is how.\nBODY: ${words(60)}\nCTA: DM us CALLS.`)!.script!.split("\n")[0]).toBe("HOOK: Who needs a call today? Here is how.");
   });
 });
