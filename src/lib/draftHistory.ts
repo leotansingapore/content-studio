@@ -61,6 +61,8 @@ export interface DraftEntry {
   source?: RemixSource;
   // How the Remix sheet made it (remixJob.ts).
   remix?: DraftRemix;
+  // The agent's chat and message that made it (remixJob.ts), so a draft links back to /agent/<thread>?m=<msg>.
+  agent?: { thread: string; msg: string };
   // The post as a thread (formats-text-threads); read it through threadOf.
   thread?: DraftThread;
   // A short video script's titles and cover line (formats-hooks-scripts); read them through titlesOf and coverOf.
@@ -338,6 +340,7 @@ export function upsertDraft(
   // A writer that never heard of the source leaves the key out; Write always sets it (undefined clears it).
   if (prev?.source && !("source" in entry)) entry = { ...entry, source: prev.source };
   if (prev?.remix && !entry.remix) entry = { ...entry, remix: prev.remix };
+  if (prev?.agent && !entry.agent) entry = { ...entry, agent: prev.agent };
   if (prev?.thread && !entry.thread) entry = { ...entry, thread: prev.thread };
   if (prev?.titles && !entry.titles) entry = { ...entry, titles: prev.titles };
   if (prev?.cover && !entry.cover) entry = { ...entry, cover: prev.cover };

@@ -208,6 +208,23 @@ describe("drafts saved before the agent field", () => {
   });
 });
 
+describe("the agent that made a draft", () => {
+  const agent = { thread: "t1a2b", msg: "m3c4d" };
+
+  it("survives a save, a reload and an edit that leaves it out", () => {
+    upsertDraft(UID, post({ agent }));
+    expect(JSON.parse(JSON.stringify(loadDrafts(UID)))[0].agent).toEqual(agent);
+    upsertDraft(UID, post({ draft: "Edited in Write" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", agent });
+  });
+
+  it("is never added to a draft without one", () => {
+    upsertDraft(UID, post({}));
+    upsertDraft(UID, post({ draft: "Edited" }));
+    expect(Object.keys(JSON.parse(JSON.stringify(loadDrafts(UID)))[0])).not.toContain("agent");
+  });
+});
+
 describe("upsertDraft and the hook formula", () => {
   it("keeps the formula while the hook is the same, and drops it with a new hook", () => {
     saveDrafts(UID, [post({ hook: "I reviewed 40 families.", hookFormula: "number-reveal" })]);
