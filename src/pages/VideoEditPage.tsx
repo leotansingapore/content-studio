@@ -123,6 +123,7 @@ import {
   sameLook,
   toSrt,
   withLook,
+  withKit,
   sentencesOf,
   defaultSettings,
   fmtTime,
@@ -308,7 +309,7 @@ export default function VideoEditPage() {
         const named = overlays?.find((o) => o.kind === "block")?.text.split("\n")[0].trim().slice(0, 40);
         setProjects(saveProject(uid, {
           id, name: named || file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
-          words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra.settings, overlays }, thumb,
+          words: [], settings: { ...withKit(withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), loadBrand(uid), leo), ...extra.settings, overlays }, thumb,
           // a wall of text made on /make/wall-of-text brings its caption and the post it remixed
           ...pickupPlan(extra, "wall").keep,
         }));
@@ -327,7 +328,7 @@ export default function VideoEditPage() {
         await putFile(id, file);
         const long: VideoProject = {
           id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
-          words: [], settings: { ...look.settings, ...extra?.settings }, thumb, ...pending,
+          words: [], settings: { ...withKit(look.settings, loadBrand(uid), leo), ...extra?.settings }, thumb, ...pending,
           ...pickupPlan(extra, "long").keep,
         };
         setProjects(saveProject(uid, long));
@@ -348,7 +349,7 @@ export default function VideoEditPage() {
       const duration = heard?.duration ?? length;
       let p: VideoProject = {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
-        words: [], settings: { ...look.settings, ...extra?.settings }, thumb, ...pending,
+        words: [], settings: { ...withKit(look.settings, loadBrand(uid), leo), ...extra?.settings }, thumb, ...pending,
         ...pickupPlan(extra, extra?.settings?.captions === false ? "no-captions" : "captions").keep,
       };
       setProjects(saveProject(uid, p));
