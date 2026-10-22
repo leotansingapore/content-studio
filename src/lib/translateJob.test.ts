@@ -147,7 +147,7 @@ describe("translateCarousel", () => {
     { id: "s1", title: "Pay twice?", body: "Most people do.\nHere is why.", image: "cimg-lq3k9z01" },
     { id: "s2", title: "The fix", body: "Check the co-pay." },
   ];
-  const carousel = { id: "p:abc", title: "Hospital", platform: "instagram" as const, slides, draftId: "en-1", font: "modern" as const };
+  const carousel = { id: "p:abc", title: "Hospital", platform: "instagram" as const, slides, draftId: "en-1", font: "modern" as const, signer: "pp-1" };
 
   it("saves a v: carousel with its language, its link and the slides' words swapped, pictures kept", async () => {
     saveCarousel(UID, carousel);
@@ -156,7 +156,7 @@ describe("translateCarousel", () => {
     expect(callFn.mock.calls[0][1]).toEqual({ mode: "translate", kind: "post", back: true, lang: "ms", lines: ["Pay twice?", "Most people do.", "Here is why.", "The fix", "Check the co-pay."] });
     expect(done.versionId).toMatch(/^v:/);
     const v = loadCarousels(UID).find((c) => c.id === done.versionId)!;
-    expect(v).toMatchObject({ title: "Hospital (Malay)", lang: "ms", translationOf: { id: "p:abc", at: expect.any(String) }, font: "modern", platform: "instagram" });
+    expect(v).toMatchObject({ title: "Hospital (Malay)", lang: "ms", translationOf: { id: "p:abc", at: expect.any(String) }, font: "modern", platform: "instagram", signer: "pp-1" });
     expect(v.draftId).toBeUndefined();
     expect(v.slides).toEqual([
       { id: "s1", title: "ZH Pay twice?", body: "ZH Most people do.\nZH Here is why.", image: "cimg-lq3k9z01" },
