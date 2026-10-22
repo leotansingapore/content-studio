@@ -7,6 +7,8 @@
 // No Jev answer, or nothing the app does: null, and the chat answers in words.
 // Leo only (the server offers it to NORTH_STAR_USERS): "remember" saves a lasting
 // preference as a learning, checked first against the ones kept (writing-judge conflict).
+// The agent (agentRun.ts, Leo only) asks through askAgent instead: agent mode's acts, slots and probabilities, with
+// every refusal thrown to the caller so the agent can say why (a 429 is its cap line), and Stop through `signal`.
 
 import type { DockAct } from "@/components/feedback/AssistantDock";
 import { EdgeError, callFn } from "@/lib/edgeFn";
@@ -17,17 +19,17 @@ import { loadFollowing } from "@/lib/following";
 import { loadGoals, sgDay } from "@/lib/goals";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { LEARNING_CHARS, addLearning, notesFor, undoLearning, type LearningScope } from "@/lib/voiceMemory";
-import { MAX_POSTS, type ActPick, type ActPost } from "../../supabase/functions/assistant-act/logic.ts";
+import { MAX_POSTS, type ActPick, type ActPost, type AgentFields, type AgentP, type AgentPick } from "../../supabase/functions/assistant-act/logic.ts";
 import { reportFacts, weekReport } from "../../supabase/functions/notify/logic.ts";
 import { mostlyEnglish } from "../../supabase/functions/post-score/logic.ts";
 
 /** Opens a page in the app; `replace` for a reload of the page already open. */
 export type Go = (path: string, replace?: boolean) => void;
 
-const titleOf = (d: DraftEntry) => (d.hook || d.pillarDetail || d.draft.split("\n").find((l) => l.trim()) || "Untitled post").trim().slice(0, 80);
+export const titleOf = (d: DraftEntry) => (d.hook || d.pillarDetail || d.draft.split("\n").find((l) => l.trim()) || "Untitled post").trim().slice(0, 80);
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 3).trimEnd()}...` : s);
 /** "Tue 14 Oct, 9am" for a scheduledFor value. */
-const whenWords = (scheduledFor: string) => {
+export const whenWords = (scheduledFor: string) => {
   const time = scheduleTime(scheduledFor);
   return `${keyToDate(scheduledFor.slice(0, 10)).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}${time ? `, ${timeLabel(time)}` : ""}`;
 };
@@ -54,6 +56,15 @@ export async function proposeAct(userId: string, message: string, go: Go): Promi
   } catch {
     return null; // over the cap, offline or off: words, as before
   }
+}
+
+/** What the agent sends beside today's body: agent mode's fields as assistant-act reads them (all optional). */
+export type AgentAsk = Partial<Omit<AgentFields, "open" | "source">> & { open?: { kind: string; title: string; slides?: string[]; onScreen?: number }; source?: { kind: string; format: string; title: string } };
+
+/** The agent's question (Leo only): today's body plus `agent: true` and its fields. Throws every refusal, a 429 included. */
+export async function askAgent(userId: string, message: string, fields: AgentAsk, signal?: AbortSignal): Promise<{ pick: AgentPick | null; p: AgentP }> {
+  const posts = postsForJev(loadDrafts(userId).slice(0, MAX_POSTS));
+  return callFn("assistant-act", { message, today: localDateKey(), posts, agent: true, ...fields }, undefined, signal ? { signal } : {});
 }
 
 /** A kept note a new one replaces, "capped" when the check is over its daily limit, or null (none, or no answer). */
@@ -89,6 +100,15 @@ export function actFor(userId: string, pick: ActPick, message: string, drafts: D
 
 const MY_POSTS = { path: "/drafts", label: "Open My posts" };
 
+/** Where a move pick puts a post: its day (a scheduled post keeps its own) and time, or null with no day or a past one. */
+export function moveWhen(d: DraftEntry, pick: Pick<ActPick, "day" | "time">, today: string): { when: string; label: string } | null {
+  const day = pick.day ?? (draftStatus(d) === "scheduled" && d.scheduledFor ? d.scheduledFor.slice(0, 10) : null);
+  if (!day || day < today) return null;
+  // a new day keeps the posting time, as a drag on Calendar does
+  const when = scheduleAt(day, pick.time ?? scheduleTime(d.scheduledFor));
+  return { when, label: whenWords(when) };
+}
+
 function moveAct(userId: string, d: DraftEntry, pick: ActPick, today: string): DockAct | null {
   const title = titleOf(d);
   if (draftStatus(d) === "posted") return { say: `"${title}" is marked posted. Mark it unposted on My posts to move it.`, go: [MY_POSTS] };
@@ -96,11 +116,9 @@ function moveAct(userId: string, d: DraftEntry, pick: ActPick, today: string): D
   if (d.zernio?.postId && !["cancelled", "failed"].includes(d.zernio.status ?? ""))
     return { say: `"${title}" is set to go out through Post it for me. Change its time on My posts.`, go: [MY_POSTS] };
   const wasScheduled = draftStatus(d) === "scheduled";
-  const day = pick.day ?? (wasScheduled && d.scheduledFor ? d.scheduledFor.slice(0, 10) : null);
-  if (!day || day < today) return null;
-  // a new day keeps the posting time, as a drag on Calendar does
-  const when = scheduleAt(day, pick.time ?? scheduleTime(d.scheduledFor));
-  const label = whenWords(when);
+  const target = moveWhen(d, pick, today);
+  if (!target) return null;
+  const { when, label } = target;
   if (wasScheduled && d.scheduledFor === when) return { say: `"${title}" is already set for ${label}.`, go: [{ path: "/calendar", label: "Open Calendar" }] };
   const [verb, done, to] = wasScheduled ? ["Move", "Moved", "to"] : ["Schedule", "Scheduled", "for"];
   return {
