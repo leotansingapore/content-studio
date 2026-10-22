@@ -73,6 +73,7 @@ import {
   clearOfApp,
   fixFromEdit,
   END_CARD_SECONDS,
+  INTRO_CARD_SECONDS,
   introLength,
   FONTS,
   FILTERS,
@@ -2787,7 +2788,10 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
                   <Row label="Logo in the corner">
                     {art.logo ? <Toggle on={!!settings.logo} set={(v) => patch({ logo: v })} /> : <Link to={links.brand({ section: "logo" })} className="text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">Add a logo</Link>}
                   </Row>
-                  <Row label={`End card (${END_CARD_SECONDS}s)`}><Toggle on={!!settings.endCard} set={(v) => { endAt.current = v ? 0.6 : null; patch({ endCard: v }); }} /></Row>
+                  {art.intro && (
+                    <Row label={`Intro card (${INTRO_CARD_SECONDS}s)`}><Toggle on={!!settings.introCard} set={(v) => { introAt.current = v ? 0.6 : null; endAt.current = null; patch({ introCard: v }); }} /></Row>
+                  )}
+                  <Row label={`End card (${END_CARD_SECONDS}s)`}><Toggle on={!!settings.endCard} set={(v) => { endAt.current = v ? 0.6 : null; introAt.current = null; patch({ endCard: v }); }} /></Row>
                 </>
               ) : (
                 <p className="text-xs"><Link to="/brand" className="font-semibold text-primary hover:underline">Set up your brand kit</Link> for a logo and an end card.</p>
