@@ -106,7 +106,7 @@ export interface RemixJobState {
   rows: RemixRow[];
   /** The run's own choices: the pill reopens the sheet on them and the done line reads them. `as`: the formats as=
    * holds, left out when they are the source's default. */
-  run: Pick<RemixRun, "keep" | "about" | "close" | "mention" | "offer"> & { as?: string };
+  run: Pick<RemixRun, "keep" | "about" | "close" | "mention" | "offer" | "agent"> & { as?: string };
 }
 
 export const READING = "Reading the post";
@@ -163,7 +163,7 @@ export function startRemix(userId: string, run: RemixRun): void {
   const { source: s, keep, about, close, mention, offer } = run;
   const as = !s || (run.as.length === 1 && run.as[0] === defaultOutput(s)) ? undefined : run.as.join(",");
   const step = s ? READING : writingStep(ordered.as[0]);
-  emit({ id, key: s?.key ?? "", state: "working", step, rows: ordered.as.map((a) => ({ as: a, state: "waiting" })), run: { keep, about, close, mention, offer, as } });
+  emit({ id, key: s?.key ?? "", state: "working", step, rows: ordered.as.map((a) => ({ as: a, state: "waiting" })), run: { keep, about, close, mention, offer, as, ...(run.agent ? { agent: run.agent } : {}) } });
   void runRows(id, userId, ordered);
 }
 

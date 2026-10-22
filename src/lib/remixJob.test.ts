@@ -136,6 +136,17 @@ describe("startRemix", () => {
     expect(sent.brand).toMatchObject({ mention: true, offer: null });
   });
 
+  it("keeps the agent's chat on the running job only when the agent started it, so the pill can step aside", async () => {
+    make.mockRejectedValue(new EdgeError("That remix didn't go through. Nothing was used.", 502, "failed"));
+    let done = finished();
+    startRemix(UID, run(["post"]));
+    expect("agent" in remixJob()!.run).toBe(false);
+    await done;
+    done = finished();
+    startRemix(UID, run(["post"], { agent: { thread: "t1", msg: "m1" } }));
+    expect(remixJob()!.run.agent).toEqual({ thread: "t1", msg: "m1" });
+    await done;
+  });
   it("saves nothing when the call fails, and says nothing was used", async () => {
     make.mockRejectedValue(new EdgeError("That remix didn't go through. Nothing was used.", 502, "failed"));
     local.setItem(`cs-remix-note-${source.key}`, "keep me");
