@@ -120,3 +120,123 @@ describe("hookFormulasFrom", () => {
     expect(hookFormulasFrom(last.id).map((f) => f.id)).toEqual([last.id, HOOK_FORMULAS[0].id, HOOK_FORMULAS[1].id]);
   });
 });
+
+// ---- Pins: today's generatePlan and the options /plan builds, taken on 0d23f6a6 before the plan
+// engine changed. Plans are live for everyone, so these files never change: never vitest -u.
+import { afterEach, vi } from "vitest";
+import { nextFormulaStart, WEEKDAYS, type ContentPlan, type GeneratePlanOptions } from "./contentPlan";
+import { getBreakdown, getDayOfWeekBreakdown, getTrackedPosts, MIN_GROUP_SAMPLE, postingTimeOn } from "./analytics";
+import { loadBrand } from "./carousel";
+import { loadDrafts } from "./draftHistory";
+import type { PlanFormat } from "./contentPlan";
+
+const PIN_POS = pos({ audience: "parent", audienceDetail: "Parents of under-5s", platform: "instagram", edge: "Ex-teacher" });
+const stable = (p: ContentPlan) => {
+  const { id: _id, createdAt: _at, ...rest } = p;
+  return rest;
+};
+
+describe("generatePlan, pinned", () => {
+  it("lays out today's plan at 3, 4, 5 and 7 a week, and with every option", async () => {
+    const out: Record<string, unknown> = {};
+    for (const cadence of [3, 4, 5, 7]) out[`cadence ${cadence}`] = stable(generatePlan({ ...PIN_POS, cadence }, { weeks: 2, salt: 1 }));
+    out["cadence 4, salt 0"] = stable(generatePlan({ ...PIN_POS, cadence: 4 }, { weeks: 2 }));
+    out["every option"] = stable(
+      generatePlan({ ...PIN_POS, cadence: 5 }, {
+        weeks: 2,
+        salt: 2,
+        competitors: [{ name: "Ada", handle: "@ada", styleNotes: "short lines" }, { name: "Bo", handle: "@bo", styleNotes: "" }],
+        performance: { bestFormat: "carousel", bestDays: ["Thu", "Sat"] },
+        formulaStart: 5,
+        recentThemes: new Set(["cpf top-ups"]),
+        postingDays: ["Tue"],
+        postingTime: (d) => (d === 1 ? "08:30" : d % 2 ? "20:00" : null),
+      }),
+    );
+    await expect(JSON.stringify(out, null, 2)).toMatchFileSnapshot("./__pins__/generate-plan-today.json");
+  });
+
+  it("splits each week 1/1/1, 1/2/1, 2/2/1 and 3/3/1 at 3, 4, 5 and 7 a week", () => {
+    const split = (cadence: number) => {
+      const week = generatePlan({ ...PIN_POS, cadence }, { weeks: 1 }).items.map((i) => i.stage);
+      return ["attraction", "trust", "conversion"].map((s) => week.filter((x) => x === s).length);
+    };
+    expect([3, 4, 5, 7].map(split)).toEqual([[1, 1, 1], [1, 2, 1], [2, 2, 1], [3, 3, 1]]);
+  });
+});
+
+describe("the options /plan builds, pinned", () => {
+  const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+  class MemStorage {
+    private m = new Map<string, string>();
+    get length() { return this.m.size; }
+    key(i: number) { return [...this.m.keys()][i] ?? null; }
+    getItem(k: string) { return this.m.get(k) ?? null; }
+    setItem(k: string, v: string) { this.m.set(k, v); }
+    removeItem(k: string) { this.m.delete(k); }
+    clear() { this.m.clear(); }
+  }
+  // scheduledFor carries the posting hour as typed, so the best time reads the same in every time zone
+  const posted = (id: string, format: string, postedAt: string, at: string, reactions: number, pillarDetail = ""): DraftEntry =>
+    post({ id, format, platform: "instagram", status: "posted", postedAt, scheduledFor: at, pillarDetail, metrics: { impressions: 1000, reactions } });
+  const seed = () => {
+    const mem = new MemStorage();
+    (globalThis as { window?: unknown }).window = { localStorage: mem };
+    mem.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: ["1T08:30", "3T20:00"] }));
+    mem.setItem(`content-studio-drafts-${UID}`, JSON.stringify([
+      posted("c1", "carousel", "2026-10-01T06:00:00.000Z", "2026-10-01T12:00", 80, "CPF top-ups"),
+      posted("c2", "carousel", "2026-09-24T06:00:00.000Z", "2026-09-24T12:00", 90),
+      posted("t1", "text-post", "2026-10-03T06:00:00.000Z", "2026-10-03T19:00", 30, "Hospital plans"),
+      posted("t2", "text-post", "2026-09-26T06:00:00.000Z", "2026-09-26T19:00", 20),
+    ]));
+  };
+  const lastPlan = { items: [{ formulaId: HOOK_FORMULAS[3].id }] } as unknown as ContentPlan;
+  const competitors = [{ id: "x", name: "Ada", handle: "@ada", styleNotes: "short lines", platformUrl: "https://instagram.com/ada", platform: "instagram" }];
+
+  // PlanPage's performance memo and planOptions as they are on 0d23f6a6, run on fixed stores.
+  const todaysOptions = (id: string, platform: string, comps: typeof competitors, plan: ContentPlan | null) => {
+    const performance = (() => {
+      const formats = getBreakdown(id, "format").filter((r) => r.count >= MIN_GROUP_SAMPLE && r.key !== "unspecified");
+      const bestFormat = formats.length >= 2 && formats[0].avgEngagementRate > formats[1].avgEngagementRate ? (formats[0].key as PlanFormat) : null;
+      const days = getDayOfWeekBreakdown(id).filter((r) => r.count >= MIN_GROUP_SAMPLE).sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+      const bestDays = days.length >= 2 ? days.slice(0, 2).map((r) => r.day) : [];
+      return bestFormat || bestDays.length ? { bestFormat, bestDays } : undefined;
+    })();
+    const slots = loadBrand(id)?.slots ?? [];
+    const posts = getTrackedPosts(id);
+    return {
+      competitors: comps.map((c) => ({ name: c.name, handle: c.handle, styleNotes: c.styleNotes })),
+      performance,
+      formulaStart: nextFormulaStart(plan),
+      recentThemes: recentThemes(loadDrafts(id)),
+      postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
+      postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
+    };
+  };
+  const shown = (o: GeneratePlanOptions) => ({
+    competitors: o.competitors,
+    performance: o.performance ?? null,
+    formulaStart: o.formulaStart,
+    recentThemes: [...(o.recentThemes ?? [])].sort(),
+    postingDays: o.postingDays,
+    postingTime: WEEKDAYS.map((_, d) => o.postingTime?.(d) ?? null),
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete (globalThis as { window?: unknown }).window;
+  });
+
+  it("builds today's options and plan from the brand's slots, results, recent posts and last plan", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 8, 10, 0));
+    seed();
+    const full = todaysOptions(UID, "instagram", competitors, lastPlan);
+    const empty = todaysOptions("someone-else", "linkedin", [], null);
+    const out = {
+      stores: { options: shown(full), plan: stable(generatePlan({ ...PIN_POS, cadence: 5 }, { weeks: 2, salt: 0, ...full })) },
+      empty: { options: shown(empty), plan: stable(generatePlan({ ...PIN_POS, platform: "linkedin", cadence: 3 }, { weeks: 1, salt: 0, ...empty })) },
+    };
+    await expect(JSON.stringify(out, null, 2)).toMatchFileSnapshot("./__pins__/plan-options-today.json");
+  });
+});
