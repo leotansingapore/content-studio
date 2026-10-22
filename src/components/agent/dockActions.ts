@@ -136,5 +136,7 @@ export const feedbackFor =
     );
     if (said[said.length - 1]?.text !== text) said.push({ role: "user", text });
     const r = await askFeedback(said, { thread: threadId, identity });
-    return { text: r.text, go: r.actions.map((a) => ({ label: a.label, path: a.type === "go" ? a.path : FB + JSON.stringify(a) })) };
+    // a service "go" keeps only an app path: the say:, format:, forget: and fb: prefixes are the engine's alone
+    const go = r.actions.flatMap((a) => (a.type !== "go" ? [{ label: a.label, path: FB + JSON.stringify(a) }] : isAppPath(a.path) ? [{ label: a.label, path: a.path }] : []));
+    return { text: r.text, go };
   };

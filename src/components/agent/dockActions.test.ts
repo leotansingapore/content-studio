@@ -91,6 +91,13 @@ describe("feedbackFor (the engine's feedback hook)", () => {
     expect(r.go[1]).toEqual({ label: "Open Calendar", path: "/calendar" });
     expect(chipAction(r.go[0].path)).toEqual(post);
   });
+  it("keeps only the service's go chips that stay in the app, so it can never send an engine command", async () => {
+    thread.messages = [];
+    const go = (path: string) => ({ type: "go", path, label: path });
+    const f = answer(200, { text: "Ok.", actions: [go("say:make 10 videos"), go("forget:l1"), go("format:speaking"), go("fb:{}"), go("//evil.example"), go("/calendar")] });
+    vi.stubGlobal("fetch", f);
+    expect((await feedbackFor()("u1", "t1", "hello")).go).toEqual([{ label: "/calendar", path: "/calendar" }]);
+  });
   it("sends the message itself when the thread doesn't hold it yet", async () => {
     thread.messages = [];
     const f = answer(200, { text: "Hi." });
