@@ -314,4 +314,11 @@ describe("transcribe", () => {
     await transcribe(new Blob(["wav"]), "ms", []);
     expect(asked).toEqual(["/functions/v1/video-assist?mode=transcribe", "/functions/v1/video-assist?mode=transcribe&lang=ms"]);
   });
+  // pinned on today's code (eaaa6379): the editor shows these words as they are
+  it("throws the server's own words, or names the status when there are none", async () => {
+    vi.stubGlobal("fetch", async () => Response.json({ error: "That video is too long to caption. Keep it under about 12 minutes." }, { status: 413 }));
+    await expect(transcribe(new Blob(["wav"]))).rejects.toThrow(new Error("That video is too long to caption. Keep it under about 12 minutes."));
+    vi.stubGlobal("fetch", async () => new Response("<html>gateway</html>", { status: 504 }));
+    await expect(transcribe(new Blob(["wav"]))).rejects.toThrow(new Error("The editor answered 504. Try again."));
+  });
 });
