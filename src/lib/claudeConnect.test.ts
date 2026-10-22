@@ -35,6 +35,17 @@ describe("Claude connection links", () => {
     expect(map.get(key)).not.toContain(parsed.secret);
   });
 
+  // pinned on a9d04b4e: everyone's link row and the record the page lists, byte for byte
+  it("stores only the time a link was made, and lists it with its hash", async () => {
+    const { link } = await createLink(UID, new Date("2026-10-08T03:00:00Z"));
+    expect(map.get(`content-studio-mcplink-${link.hash}-${UID}`)).toBe('{"createdAt":"2026-10-08T03:00:00.000Z"}');
+    expect(loadLinks(UID)).toEqual([{ hash: link.hash, createdAt: "2026-10-08T03:00:00.000Z" }]);
+    removeLink(UID, link.hash, new Date("2026-10-09T03:00:00Z"));
+    expect(map.get(`content-studio-mcprevoked-${link.hash}-${UID}`)).toBe('{"revokedAt":"2026-10-09T03:00:00.000Z"}');
+    restoreLink(UID, link);
+    expect([...map.entries()]).toEqual([[`content-studio-mcplink-${link.hash}-${UID}`, '{"createdAt":"2026-10-08T03:00:00.000Z"}']]);
+  });
+
   it("lists, turns off and puts back this profile's links", async () => {
     const { link } = await createLink(UID);
     map.set(`content-studio-mcplink-${"a".repeat(64)}-${UID}~p9`, "{}"); // another profile's
