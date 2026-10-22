@@ -46,3 +46,17 @@ describe("One long piece, five posts for everyone", () => {
     await expect(html(LongPiece, "/coach?piece=questions")).toMatchFileSnapshot("./__pins__/long-piece-everyone.html");
   });
 });
+
+describe("One long piece, five posts for Leo", () => {
+  it("shows the three-way switch, Answer questions first, and the paste box only on Paste text", () => {
+    as.user = { id: "u1", email: "leo@example.com" };
+    const out = html(LongPiece);
+    expect(out).toMatch(/aria-pressed="true"[^>]*>Answer questions</);
+    expect(out).toContain(">Voice note</button>");
+    expect(out).toContain(">Paste text</button>");
+    expect(out).not.toContain('id="long-piece-text"');
+    expect(html(LongPiece, "/coach?piece=paste")).toContain('id="long-piece-text"');
+    expect(html(LongPiece, "/coach?piece=voice")).toMatch(/aria-pressed="true"[^>]*>Voice note</);
+    expect(html(LongPiece, "/coach?piece=nonsense")).toMatch(/aria-pressed="true"[^>]*>Answer questions</);
+  });
+});
