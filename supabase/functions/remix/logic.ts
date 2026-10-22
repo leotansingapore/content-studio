@@ -68,6 +68,8 @@ export const MADE_SCENE_WORDS = 30;
 export const NOTES = { titleWords: 8, itemWords: 12, min: 3, max: 6 } as const;
 /** formats-hook-demo's hooks: three, one per formula sent. */
 export const MAKE_HOOK_WORDS = 12;
+/** A hook someone says in ai-video's 4 s spoken-hook clip (the app's "Someone says it"): asked for with maxWords. */
+export const SPOKEN_HOOK_WORDS = 8;
 /** A hook formula as the app sends it (src/lib/hookFormulas.ts through writeHooks' shape). */
 export interface HookFormula {
   id: string;
@@ -147,8 +149,8 @@ export interface MakeRequest {
   seconds?: SpeakingSeconds;
   /** wall only: the made clip the words go over (Words over a made scene). */
   scene?: WallScene;
-  /** wall only: 25 to 30 words, read in an 8 s clip. */
-  maxWords?: typeof MADE_SCENE_WORDS;
+  /** wall: 25 to 30 words, read in an 8 s clip; hooks: at most 8, said in a 4 s clip. */
+  maxWords?: typeof MADE_SCENE_WORDS | typeof SPOKEN_HOOK_WORDS;
   /** hooks only: exactly 3, one hook each. */
   formulas?: HookFormula[];
   /** hooks only: the demo the hook opens, the only thing known about it. */
@@ -363,11 +365,12 @@ function parseShape(as: RemixAs, r: Item, speaker: Speaker): Partial<MakeRequest
     });
     const ids = new Set(formulas.map((x) => x.id));
     if (formulas.length !== 3 || ids.size !== 3 || formulas.some((x) => !/^[a-z-]+$/.test(x.id) || !x.name || !x.template)) return "Send three hook formulas.";
+    if (r.maxWords != null && r.maxWords !== SPOKEN_HOOK_WORDS) return `A spoken hook takes at most ${SPOKEN_HOOK_WORDS} words.`;
     const d = obj(r.demo);
     const name = line(d.name, 120);
     const seconds = Math.round(Number(d.seconds) * 10) / 10;
     // the demo is context only: a bad one is left out, never a refusal
-    return { formulas, ...(name && seconds > 0 && seconds <= 30 ? { demo: { name, seconds } } : {}) };
+    return { formulas, ...(name && seconds > 0 && seconds <= 30 ? { demo: { name, seconds } } : {}), ...(r.maxWords != null ? { maxWords: SPOKEN_HOOK_WORDS } : {}) };
   }
   if (as === "image") {
     const layout = AD_LAYOUTS.find((x) => x === r.layout);
@@ -569,7 +572,7 @@ function hooksRules(req: MakeRequest): string[] {
     "",
     `Write 3 hooks: the line a short video opens on${req.demo ? ", before a demo of the product (described in the message)" : ""}, read or heard before the viewer decides to stay.`,
     "- hooks: exactly 3, one for each formula listed in the message, in that formula's shape, each with that formula's id.",
-    `- text: at most ${MAKE_HOOK_WORDS} words, sentence case, plain words, no hashtags, emoji or quote marks.`,
+    `- text: at most ${req.maxWords ?? MAKE_HOOK_WORDS} words${req.maxWords ? ", so someone can say it in 4 seconds" : ""}, sentence case, plain words, no hashtags, emoji or quote marks.`,
     '- search: 2 to 4 plain lowercase English words a stock video library would match for a 3-second clip behind that hook, naming something a camera can film, like "person checking phone": never a brand or product name, text, a logo or a close-up face.',
     "- Never invent a number, a client or a result. When a formula needs a number you were not given, keep its shape without one.",
     ...(req.formulas?.some((f) => f.id === LIST_FORMULA) ? [`- The ${LIST_FORMULA} formula is the exception: it always says how many things it holds, as a digit or a word, at most 10. That count is its shape, not a fact.`] : []),
@@ -915,7 +918,7 @@ export function responseFormat(req: MakeRequest): unknown {
             required: ["formula", "text", "search"],
             properties: {
               formula: { type: "string", enum: (req.formulas ?? []).map((f) => f.id) },
-              text: str(`At most ${MAKE_HOOK_WORDS} words`),
+              text: str(`At most ${req.maxWords ?? MAKE_HOOK_WORDS} words`),
               search: str("2 to 4 word stock video search"),
             },
           },
@@ -1102,7 +1105,7 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: M
     const ok =
       hooks.length === 3 &&
       new Set(hooks.map((h) => h.formula)).size === 3 &&
-      hooks.every((h) => h.text && wordCount(h.text) <= MAKE_HOOK_WORDS && ids.includes(h.formula));
+      hooks.every((h) => h.text && wordCount(h.text) <= (req.maxWords ?? MAKE_HOOK_WORDS) && ids.includes(h.formula));
     return ok ? { as, hooks } : null;
   }
   if (as === "notes") {

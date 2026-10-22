@@ -136,6 +136,15 @@ describe("the hooks", () => {
     expect(hookSet()?.set).toBe(1);
   });
 
+  it("asks for hooks of at most 8 words when someone says it, from Write 3 hooks and from a make (live check 22 Oct)", async () => {
+    await writeHooks(UID, { ...ASK, play: "spoken" });
+    expect(make.mock.calls[0][0]).toMatchObject({ as: "hooks", maxWords: 8 });
+    await run({ ...ASK, play: "spoken" });
+    expect(make.mock.calls[1][0]).toMatchObject({ as: "hooks", maxWords: 8 });
+    await writeHooks(UID, { ...ASK, play: "mine" });
+    expect(make.mock.calls[2][0]).not.toHaveProperty("maxWords");
+  });
+
   it("marks none when Jev has no answer, and a make then takes the first", async () => {
     serve({ pick: null });
     await writeHooks(UID, ASK);

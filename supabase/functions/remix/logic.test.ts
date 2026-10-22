@@ -1127,6 +1127,19 @@ describe("hooks (formats-hook-demo)", () => {
     expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("20f33b1d95a953214a92165e4d60aa75ee22f54d3f049b3831856ca297b52764");
   });
 
+  it("holds a spoken hook to 8 words in the prompt, the schema and the check, and only that request (live check 22 Oct)", () => {
+    const spoken = shape("hooks", { formulas: FORMULAS, maxWords: 8 });
+    expect(spoken.maxWords).toBe(8);
+    expect(parseMakeRequest(body({ as: "hooks", formulas: FORMULAS, maxWords: 12 }))).toEqual({ ok: false, error: "A spoken hook takes at most 8 words." });
+    expect(parseMakeRequest(body({ as: "hooks", formulas: FORMULAS, maxWords: "8" })).ok).toBe(false);
+    expect(buildMakePrompt(spoken).system).toContain("- text: at most 8 words, so someone can say it in 4 seconds, sentence case,");
+    expect(JSON.stringify(responseFormat(spoken))).toContain('"text":{"type":"string","description":"At most 8 words"}');
+    const rows = (last: string) => ({ refuse: false, reason: "", hooks: [{ formula: "contrarian", text: n(8) }, { formula: "mistake", text: n(5) }, { formula: "blunt", text: last }] });
+    expect(validateMake("hooks", rows(n(8)), spoken)).not.toBeNull();
+    expect(validateMake("hooks", rows(n(9)), spoken)).toBeNull();
+    expect(validateMake("hooks", rows(n(9)), req())).not.toBeNull();
+  });
+
   it("takes three hooks of at most 12 words, each a distinct formula id from those sent", () => {
     expect(hooks(three)).toEqual({ as: "hooks", hooks: three.map((h) => ({ text: h.text, formula: h.formula })) });
     expect(hooks(three.slice(0, 2))).toBeNull();

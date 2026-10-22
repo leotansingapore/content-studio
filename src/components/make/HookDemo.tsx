@@ -177,7 +177,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
     seen.current ??= "start";
     void makeHookDemo(userId, ask);
   };
-  const write = () => void writeHooks(userId, { source, topic, mention: mention !== "no", demo });
+  const write = () => void writeHooks(userId, { source, topic, mention: mention !== "no", play, demo });
 
   const onDemo = async (f: File | undefined) => {
     if (!f) return;
@@ -201,7 +201,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
         return;
       }
       // the hooks are written once there is a demo and something to write them from (one remix use)
-      if (!set && !writing && !typed.own.trim() && (source || topic.trim().length >= 3)) void writeHooks(userId, { source, topic, mention: mention !== "no", demo: ref });
+      if (!set && !writing && !typed.own.trim() && (source || topic.trim().length >= 3)) void writeHooks(userId, { source, topic, mention: mention !== "no", play, demo: ref });
     } catch {
       setDemoError(UNREADABLE);
     } finally {
@@ -216,7 +216,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
     void keepOnlyDemo(ref.key);
     saveDemo(ref);
     setDemo(ref);
-    if (!set && !writing && !typed.own.trim() && (source || topic.trim().length >= 3)) void writeHooks(userId, { source, topic, mention: mention !== "no", demo: ref });
+    if (!set && !writing && !typed.own.trim() && (source || topic.trim().length >= 3)) void writeHooks(userId, { source, topic, mention: mention !== "no", play, demo: ref });
   };
   const isSaved = !!demo && saved.some((d) => d.key === demo.key);
 

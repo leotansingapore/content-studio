@@ -57,7 +57,7 @@ describe("Hook plus demo's footer chip", () => {
     make.mockResolvedValue(d.response as MakeResponse);
     // Jev had no pick that day; the first hook is selected
     fn.mockResolvedValue({ pick: null });
-    await job.writeHooks(UID, { source: null, topic: d.request.topic, mention: true, demo: null });
+    await job.writeHooks(UID, { source: null, topic: d.request.topic, mention: true, play: "stock", demo: null });
     expect(job.hookSet()?.hooks).toHaveLength(3);
     expect(chip(page())).toBe("No AI cost");
     expect(chip(page("mine"))).toBe("No AI cost");

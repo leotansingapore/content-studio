@@ -4,6 +4,7 @@
 
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
+import { SPOKEN_HOOK_WORDS } from "../../supabase/functions/remix/logic.ts";
 
 export type HookPlay = "stock" | "mine" | "spoken";
 /** Words on a stock clip (no face, the default), the adviser's own clip, then an AI person: the faces rule's order. */
@@ -14,9 +15,9 @@ export const DEMO_MAX_MB = 100;
 export const DEMO_MAX_SECONDS = 30;
 /** A stock hook runs 3 s; findClip only offers clips that long. */
 export const STOCK_HOOK_SECONDS = 3;
-/** ai-video's spoken-hook template is a 4 s clip (CLIP_SECONDS) and takes 8 words. */
+/** ai-video's spoken-hook template is a 4 s clip (CLIP_SECONDS) and takes 8 words, the limit remix writes a spoken hook to. */
 export const SPOKEN_HOOK_SECONDS = 4;
-export const SPOKEN_HOOK_WORDS = 8;
+export { SPOKEN_HOOK_WORDS };
 /** The adviser's own hook clip: long enough to say a line, short enough to stay a hook. */
 export const MINE_MIN_SECONDS = 2;
 export const MINE_MAX_SECONDS = 5;

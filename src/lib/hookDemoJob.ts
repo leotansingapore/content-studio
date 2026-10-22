@@ -216,7 +216,7 @@ function writeFailure(e: unknown): Pick<HookDemoJob, "error" | "refused" | "capp
 }
 
 /** Three hooks in the next formula set, and Jev's pick of them for this brand's audience. Throws as the make does. */
-type WriteAsk = Pick<HookDemoAsk, "source" | "topic" | "mention"> & { demo: DemoRef | null };
+type WriteAsk = Pick<HookDemoAsk, "source" | "topic" | "mention" | "play"> & { demo: DemoRef | null };
 
 async function write(userId: string, a: WriteAsk): Promise<HookSet> {
   const key = hooksFor(a);
@@ -227,6 +227,8 @@ async function write(userId: string, a: WriteAsk): Promise<HookSet> {
     formulas,
     // the demo's name and length are all that is known about it; hooks written before one is picked go without
     ...(a.demo ? { demo: { name: a.demo.name, seconds: Math.round(a.demo.seconds * 10) / 10 } } : {}),
+    // a spoken hook is said in 4 s, so the writer keeps all three short enough (live check 22 Oct: 10 to 12 words came back)
+    ...(a.play === "spoken" ? { maxWords: SPOKEN_HOOK_WORDS } : {}),
   });
   const res = await requestMake(body);
   if (res?.result?.as !== "hooks" || !res.result.hooks.length) throw new Error(HOOKS_FAILED);
