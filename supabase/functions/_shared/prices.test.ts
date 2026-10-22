@@ -68,6 +68,21 @@ describe("the price table", () => {
     expect(priceOf("brand-image")).toBeNull();
   });
 
+  it("prices the phase-5 caps from the brief's vendor table, with the chips they show", () => {
+    const chip = (f: UsageFeature) => priceText(priceOf(f) as { usd: number; kind: "about" });
+    expect(priceOf("audience-suggest")).toEqual({ usd: 0.001, kind: "about" });
+    expect(priceOf("campaign-angles")).toEqual({ usd: 0.008, kind: "about" });
+    expect(priceOf("campaign-draft")).toEqual({ usd: 0.035, kind: "about" });
+    expect(priceOf("campaign-swap")).toEqual({ usd: 0.005, kind: "about" });
+    expect(priceOf("ideas-daily")).toEqual({ usd: 0.012, kind: "about" });
+    for (const f of ["audience-suggest", "campaign-angles", "campaign-swap"] as UsageFeature[]) expect(chip(f), f).toBe("Under US$0.01");
+    expect(chip("ideas-daily")).toBe("About US$0.01");
+    expect(chip("campaign-draft")).toBe("About US$0.04");
+    // 12 posts are two writing calls, so the Add chip sums two uses
+    const d = priceOf("campaign-draft");
+    expect(priceText(sumPrices(d, d) as { usd: number; kind: "about" })).toBe("About US$0.07");
+  });
+
   it("adds DoP lite per scene when an explainer's scenes move", () => {
     expect(DOP_LITE_CREDITS).toBe(2);
     expect(priceOf("ai-video", { scenes: 5, move: false })).toEqual(priceOf("ai-video", { scenes: 5 }));

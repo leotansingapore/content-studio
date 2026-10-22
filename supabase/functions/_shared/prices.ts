@@ -121,6 +121,13 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "brand-products": about(0.002), // gpt-6-luna, about 8,000 in and 2,000 out, plus Jev
   "media-sort": about(0.001), // gpt-4.1 low-detail vision (85 tokens plus 250 of prompt in, 80 out) plus one Jev pick
   "post-translate": about(0.01), // gpt-4.1, about 600 in and 1,000 out
+  // North star phase 5 (phase5-build-brief.md, vendors, read 2026-10-22).
+  "audience-suggest": about(0.001), // gpt-6-luna, about 5,500 in and 900 out, plus Jev
+  "campaign-angles": about(0.008), // gpt-4.1, about 1,200 in and 700 out, plus 16 Jev questions
+  // gpt-4.1, up to 7 posts a call, about 2,500 in and 3,500 out, plus the MAS question per post
+  "campaign-draft": about(0.035),
+  "campaign-swap": about(0.005), // gpt-4.1, one post, about 600 in and 500 out
+  "ideas-daily": about(0.012), // gpt-4.1, about 2,000 in and 1,000 out, plus Jev
 };
 
 /** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
