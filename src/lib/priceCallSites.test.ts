@@ -8,7 +8,7 @@ const CALL_SITES = [
   "components/ReelStyleCopy.tsx", "pages/VideoEditPage.tsx", "components/IdeaDump.tsx", "components/LongPiece.tsx",
   "components/engage/Replies.tsx", "components/engage/Dms.tsx", "components/engage/Comments.tsx", "components/engage/Connect.tsx",
   "pages/AddBrandPage.tsx", "components/YoutubeClips.tsx", "components/Mentions.tsx", "components/YourFeeds.tsx",
-  "components/ProfileScore.tsx",
+  "components/ProfileScore.tsx", "pages/SlideshowPage.tsx", "pages/CarouselPage.tsx", "components/agent/ActionCard.tsx",
 ];
 const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
 
