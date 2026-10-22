@@ -121,6 +121,39 @@ function dayPattern(cadence: number): string[] {
   return out;
 }
 
+// Largest remainder: floor each share of `count`, then one more to the largest
+// fractions, ties to the earlier entry. A zero weight never gets one.
+function largestRemainder(weights: number[], count: number): number[] {
+  const total = weights.reduce((a, b) => a + b, 0);
+  const shares = weights.map((w) => (count * w) / total);
+  const counts = shares.map((x) => Math.floor(x));
+  const frac = (i: number) => shares[i] - counts[i];
+  const byFraction = weights.map((_, i) => i).sort((a, b) => (Math.abs(frac(b) - frac(a)) > 1e-9 ? frac(b) - frac(a) : a - b));
+  let left = count - counts.reduce((a, b) => a + b, 0);
+  for (const i of byFraction) {
+    if (left <= 0) break;
+    counts[i]++;
+    left--;
+  }
+  return counts;
+}
+
+/**
+ * A week's stages in funnel order. Without weights, today's split (4/4/2); with them
+ * (a goal's), the largest remainder, ties to the earlier stage, then at least one attraction.
+ */
+export function stageSplit(cadence: number, weights?: Record<FunnelStageId, number>): FunnelStageId[] {
+  const w = FUNNEL_STAGES.map((s) => Math.max(0, Number(weights?.[s.id]) || 0));
+  if (!weights || !(w.reduce((a, b) => a + b, 0) > 0)) return stageOrderForWeek(cadence);
+  const counts = largestRemainder(w, cadence);
+  const donor = counts.findIndex((n) => n > 1);
+  if (cadence >= 1 && counts[0] === 0 && donor >= 0) {
+    counts[donor]--;
+    counts[0]++;
+  }
+  return FUNNEL_STAGES.flatMap((s, i) => Array<FunnelStageId>(counts[i]).fill(s.id));
+}
+
 // Distribute `cadence` slots across stages by weight, ordered A -> B -> C so a
 // week reads top-of-funnel to bottom-of-funnel.
 function stageOrderForWeek(cadence: number): FunnelStageId[] {
@@ -203,6 +236,8 @@ export interface GeneratePlanOptions {
   postingDays?: string[];
   /** The "HH:MM" to post on a weekday (0 = Mon). */
   postingTime?: (weekday: number) => string | null;
+  /** Funnel stage weights (a goal's): each week is split by stageSplit. */
+  weights?: Record<FunnelStageId, number>;
 }
 
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -275,7 +310,7 @@ export function generatePlan(
   let socialIndex = 0;
 
   for (let w = 1; w <= weeks; w++) {
-    const order = stageOrderForWeek(cadence);
+    const order = stageSplit(cadence, opts.weights);
     for (let slot = 0; slot < order.length; slot++) {
       const stageId = order[slot];
       const stage = FUNNEL_STAGES.find((s) => s.id === stageId)!;

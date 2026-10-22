@@ -34,7 +34,7 @@ describe("planCalendarEntries", () => {
   });
 });
 
-import { generatePlan, planItemToGenerateUrl, recentThemes } from "./contentPlan";
+import { generatePlan, planItemToGenerateUrl, recentThemes, stageSplit } from "./contentPlan";
 import { HOOK_FORMULAS, hookFormulasFrom } from "./hookFormulas";
 import { EMPTY_POSITIONING, type Positioning } from "./positioning";
 
@@ -238,5 +238,35 @@ describe("the options /plan builds, pinned", () => {
       empty: { options: shown(empty), plan: stable(generatePlan({ ...PIN_POS, platform: "linkedin", cadence: 3 }, { weeks: 1, salt: 0, ...empty })) },
     };
     await expect(JSON.stringify(out, null, 2)).toMatchFileSnapshot("./__pins__/plan-options-today.json");
+  });
+});
+
+describe("stageSplit", () => {
+  const AUDIENCE = { attraction: 6, trust: 3, conversion: 1 };
+  const CLIENTS = { attraction: 2, trust: 4, conversion: 4 };
+  const TRUST = { attraction: 3, trust: 6, conversion: 1 };
+  const counts = (order: string[]) => ["attraction", "trust", "conversion"].map((s) => order.filter((x) => x === s).length);
+
+  it("is today's split exactly without weights", () => {
+    expect([3, 4, 5, 7].map((c) => counts(stageSplit(c)))).toEqual([[1, 1, 1], [1, 2, 1], [2, 2, 1], [3, 3, 1]]);
+    expect(stageSplit(4, { attraction: 0, trust: 0, conversion: 0 })).toEqual(stageSplit(4));
+  });
+
+  it("splits by the largest remainder, ties to the earlier stage, in funnel order", () => {
+    expect([3, 5, 7].map((c) => counts(stageSplit(c, CLIENTS)))).toEqual([[1, 1, 1], [1, 2, 2], [1, 3, 3]]);
+    expect([3, 5, 7].map((c) => counts(stageSplit(c, AUDIENCE)))).toEqual([[2, 1, 0], [3, 2, 0], [4, 2, 1]]);
+    expect([3, 5, 7].map((c) => counts(stageSplit(c, TRUST)))).toEqual([[1, 2, 0], [2, 3, 0], [2, 4, 1]]);
+    expect(stageSplit(5, CLIENTS)).toEqual(["attraction", "trust", "trust", "conversion", "conversion"]);
+  });
+
+  it("keeps at least one attraction slot", () => {
+    expect(stageSplit(3, { attraction: 0, trust: 1, conversion: 1 })).toEqual(["attraction", "trust", "conversion"]);
+  });
+
+  it("steers generatePlan: 3/2/0 a week at 5 with an audience goal, 1/2/2 with clients", () => {
+    const week = (weights?: typeof AUDIENCE) => counts(generatePlan(pos({ cadence: 5 }), { weeks: 2, weights }).items.filter((i) => i.week === 2).map((i) => i.stage));
+    expect(week(AUDIENCE)).toEqual([3, 2, 0]);
+    expect(week(CLIENTS)).toEqual([1, 2, 2]);
+    expect(week()).toEqual([2, 2, 1]);
   });
 });
