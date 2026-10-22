@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import { scoped } from "@/lib/profiles";
@@ -60,6 +61,7 @@ import {
   planItemToGenerateUrl,
   planCalendarEntries,
   planOptionsFor,
+  steerFor,
   upcomingMonday,
   type ContentPlan,
   type PlanItem,
@@ -142,6 +144,8 @@ export default function PlanPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
   const [goals, setGoals] = useState<WeeklyGoals>({});
+  // Leo only (north star phase 5): the goal and saved pillars steer the plan.
+  const leo = useLeoUser();
   // Slots count as posted when ticked here or when their calendar post is marked posted.
   const items = useMemo(
     () =>
@@ -245,6 +249,8 @@ export default function PlanPage() {
     });
   };
 
+  const steer = (uid: string) => (leo ? steerFor(uid) : {});
+
   const handleGenerate = () => {
     if (!userId) return;
     const topics = parseTopics(topicsRaw);
@@ -266,7 +272,7 @@ export default function PlanPage() {
     const salt = plan ? plan.salt : 0;
     const story = thisWeek.trim();
     const newPlan: ContentPlan = {
-      ...generatePlan(merged, { weeks, salt, ...planOptionsFor(userId, merged.platform, { competitors, plan }) }),
+      ...generatePlan(merged, { weeks, salt, ...planOptionsFor(userId, merged.platform, { competitors, plan }), ...steer(userId) }),
       ...(story ? { thisWeek: story } : {}),
     };
     savePlan(userId, newPlan);
@@ -283,7 +289,7 @@ export default function PlanPage() {
     const topics = parseTopics(topicsRaw);
     const merged: Positioning = { ...positioning, topics };
     const newPlan: ContentPlan = {
-      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptionsFor(userId, merged.platform, { competitors, plan }) }),
+      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptionsFor(userId, merged.platform, { competitors, plan }), ...steer(userId) }),
       ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
     };
     savePlan(userId, newPlan);
