@@ -153,7 +153,7 @@ describe("/plan for everyone else", () => {
 describe("/plan for Leo", () => {
   const LEO = { id: UID, email: "tanjunsing@gmail.com" };
 
-  it("shows the Pillars section with the grid", async () => {
+  it("shows the Pillars section and the label each slot counts toward", async () => {
     as.user = LEO;
     seed({ labels: true });
     const { loaded } = await frames();
@@ -162,6 +162,9 @@ describe("/plan for Leo", () => {
     expect(loaded).toContain("aim 50%");
     expect(loaded).toContain("posted in the last 4 weeks | in this plan");
     expect(loaded).not.toContain("These come from your topics.");
+    // a slot about CPF top-ups wears the saved label by name, and takes it into Write
+    expect(loaded).toContain(">Change</button>");
+    expect(loaded).toMatch(/href="\/generate\?[^"]*ctx=[^"]*label=t-cpf-top-ups"[^>]*>Draft in Studio/);
     // an empty cell links to Write with the pillar, format and label set
     expect(loaded).toContain('aria-label="Write a text post about Retirement"');
     expect(loaded).toContain('href="/generate?pillar=topic&amp;detail=Retirement&amp;format=text-post&amp;label=lx"');

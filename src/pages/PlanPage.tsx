@@ -27,6 +27,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { loadLabels, type Label as PlanLabel } from "@/lib/labels";
 import PillarsSection from "@/components/plan/PillarsSection";
+import SlotLabelMenu from "@/components/plan/SlotLabelMenu";
 import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import { scoped } from "@/lib/profiles";
@@ -65,6 +66,8 @@ import {
   planCalendarEntries,
   planOptionsFor,
   rebuildPlan,
+  relabelSlot,
+  slotLabel,
   steerFor,
   upcomingMonday,
   type ContentPlan,
@@ -148,7 +151,7 @@ export default function PlanPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
   const [goals, setGoals] = useState<WeeklyGoals>({});
-  // Leo only (north star phase 5): pillars and the goal steer the plan.
+  // Leo only (north star phase 5): pillars and the goal steer the plan, and each slot wears the label it counts toward.
   const leo = useLeoUser();
   const [labels, setLabels] = useState<PlanLabel[]>([]);
   const [pillarsParam, openPillars, closePillars] = useUrlItem("pillars");
@@ -261,6 +264,8 @@ export default function PlanPage() {
   };
 
   const steer = (uid: string) => (leo ? steerFor(uid) : {});
+  // Leo's slots carry the label they show (a seeded label matches by topic), into Write and onto the calendar.
+  const labelled = (item: PlanItem): PlanItem => (leo ? { ...item, labelId: slotLabel(item, labels)?.id } : item);
 
   const handleGenerate = () => {
     if (!userId) return;
@@ -308,6 +313,29 @@ export default function PlanPage() {
     toast({
       title: "Fresh angles",
       description: "Same positioning, new ideas. Posted ticks were reset.",
+    });
+  };
+
+  const moveSlot = (itemId: string, label: PlanLabel | null) => {
+    const before = plan?.items.find((i) => i.id === itemId);
+    if (!userId || !plan || !before) return;
+    const next: ContentPlan = { ...plan, items: plan.items.map((i) => (i.id === itemId ? relabelSlot(i, label) : i)) };
+    savePlan(userId, next);
+    setPlan(next);
+    const undo = () => {
+      const cur = loadPlan(userId);
+      if (!cur) return;
+      const back: ContentPlan = { ...cur, items: cur.items.map((i) => (i.id === itemId ? { ...before, posted: i.posted } : i)) };
+      savePlan(userId, back);
+      setPlan(back);
+    };
+    toast({
+      title: label ? `Slot moved to ${label.name}.` : "Label taken off.",
+      action: (
+        <ToastAction altText="Undo" onClick={undo}>
+          Undo
+        </ToastAction>
+      ),
     });
   };
 
@@ -371,7 +399,7 @@ export default function PlanPage() {
   // upcoming Monday). Re-running updates untouched slots and keeps written ones.
   const handleAddToCalendar = () => {
     if (!userId || !plan) return;
-    const { entries, kept } = planCalendarEntries(plan.items, upcomingMonday(new Date()), loadDrafts(userId));
+    const { entries, kept } = planCalendarEntries(plan.items.map(labelled), upcomingMonday(new Date()), loadDrafts(userId));
     for (const entry of entries) upsertDraft(userId, entry);
     toast({
       title: `${entries.length} post${entries.length === 1 ? "" : "s"} added to your calendar`,
@@ -988,6 +1016,10 @@ export default function PlanPage() {
                           <span className="rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
                             {PILLAR_LABEL[item.pillar] ?? item.pillar}
                           </span>
+                          {/* personal slots (identity, interest) take no pillar unless one was picked by hand */}
+                          {leo && (item.labelId || item.pillar === "topic" || item.pillar === "market") && (
+                            <SlotLabelMenu label={slotLabel(item, labels)} labels={labels} onPick={(l) => moveSlot(item.id, l)} />
+                          )}
                         </div>
 
                         <p
@@ -1037,7 +1069,7 @@ export default function PlanPage() {
                               : ""
                           }`}
                         >
-                          <Link to={planItemToGenerateUrl(item, plan.thisWeek)}>
+                          <Link to={planItemToGenerateUrl(labelled(item), plan.thisWeek)}>
                             Draft in Studio
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
