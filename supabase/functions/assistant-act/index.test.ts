@@ -42,6 +42,21 @@ const call = async (body: unknown, uid = "u1") => {
   return { status: r.status, body: await r.json() };
 };
 const posts = [{ title: "Hospital plans in plain words", status: "draft", when: "", platform: "instagram" }];
+// Every field agent mode reads (phase 6), each filled.
+const AGENT_FIELDS = {
+  agent: true,
+  chip: "video",
+  speaker: "business",
+  source: { kind: "ad", format: "video", title: "Why teams stop logging calls" },
+  pending: "A 15-second talking video about prospecting",
+  open: { kind: "carousel", title: "Three CPF myths", slides: ["Myth one", "Myth two"], onScreen: 2 },
+  learnings: ["Never use emoji (posts)", "Use an older man as my presenter (videos)"],
+  lastChange: "Moved Three CPF myths to Friday",
+  speakers: [{ id: "mine", look: "Your own face" }, { id: "pr-abc", look: "A Malay Singaporean man in his late 30s" }],
+  audiences: [{ id: "a1", name: "Young parents" }],
+  skills: [{ slash: "/polish", name: "Polish", instruction: "Tighten the hook" }],
+  competitorAds: true,
+};
 
 describe("the assistant's actions", () => {
   it("moves a saved post to the day and time the message names, for one daily use", async () => {
@@ -63,6 +78,13 @@ describe("the assistant's actions", () => {
     const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today: "2026-10-11", posts });
     expect(r.status).toBe(200);
     await expect(JSON.stringify(asked[0], null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
+  });
+
+  it("ignores every agent field from an account not on the list: today's Jev request (pinned) and today's counter", async () => {
+    const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today: "2026-10-11", posts, ...AGENT_FIELDS });
+    expect(r).toEqual({ status: 200, body: { pick: { act: "move", post: 0, day: tomorrow, time: "09:00" } } });
+    await expect(JSON.stringify(asked[0], null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
+    expect(db.spent).toEqual(["assistant-act"]);
   });
 
   it("stops at the daily limit without asking Jev", async () => {
