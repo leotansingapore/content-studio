@@ -43,15 +43,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-/** One structured-output call. Returns the JSON text, or null on any failure. */
+/** What one OpenAI call gave: its text, or whether it answered at all (non-2xx, timeout or no connection is not answering). */
+type OpenAiReply = { ok: true; text: string } | { ok: false; answered: boolean };
+
+/** One structured-output call. A use goes back only when `answered` is false (phase 4 decision 3). */
 async function developWithOpenAi(
   system: string,
   user: string,
   apiKey: string,
   out: { name: string; schema: unknown; maxTokens: number } = { name: "idea_briefs", schema: IDEA_BRIEF_SCHEMA, maxTokens: 6000 },
-): Promise<string | null> {
+): Promise<OpenAiReply> {
+  let res: Response;
   try {
-    const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
+    res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -69,23 +73,27 @@ async function developWithOpenAi(
       }),
       signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
     });
-    if (!res.ok) {
-      console.error("openai failed", res.status, (await res.text()).slice(0, 300));
-      return null;
-    }
-    const data = await res.json();
-    const choice = data?.choices?.[0];
-    if (choice?.message?.refusal) {
-      console.error("openai refused", String(choice.message.refusal).slice(0, 200));
-      return null;
-    }
-    if (choice?.finish_reason === "length") console.error("openai output hit max_tokens");
-    return typeof choice?.message?.content === "string" ? choice.message.content : null;
   } catch (e) {
     console.error("openai error", e);
-    return null;
+    return { ok: false, answered: false };
   }
+  if (!res.ok) {
+    console.error("openai failed", res.status, (await res.text().catch(() => "")).slice(0, 300));
+    return { ok: false, answered: false };
+  }
+  // OpenAI answered (and billed): from here a failure keeps the use
+  const data = await res.json().catch(() => null);
+  const choice = data?.choices?.[0];
+  if (choice?.message?.refusal) {
+    console.error("openai refused", String(choice.message.refusal).slice(0, 200));
+    return { ok: false, answered: true };
+  }
+  if (choice?.finish_reason === "length") console.error("openai output hit max_tokens");
+  return typeof choice?.message?.content === "string" ? { ok: true, text: choice.message.content } : { ok: false, answered: true };
 }
+
+/** Today's modes read any failure as null and never give the use back (pinned). */
+const textOf = (r: OpenAiReply) => (r.ok ? r.text : null);
 
 async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Promise<Response> {
   const parsed = parseLongRequest(body);
@@ -103,7 +111,7 @@ async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Prom
     return json(refusal.body, refusal.status);
   }
   const { system, user } = buildLongPrompt(request);
-  const content = await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 });
+  const content = textOf(await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 }));
   const result = content === null ? null : validateLong(content, request.formulas);
   if (!result || result.posts.length === 0) {
     return json({ error: "Couldn't write posts from this piece right now. Try again in a minute.", code: "ai_failed" }, 502);
@@ -147,7 +155,7 @@ Deno.serve(async (req) => {
     }
 
     const { system, user } = buildIdeaDumpPrompt(request);
-    const content = await developWithOpenAi(system, user, apiKey);
+    const content = textOf(await developWithOpenAi(system, user, apiKey));
     const result =
       content === null ? null : validateBriefs(content, { notes: request.ideas, platforms: request.context.platforms });
     if (!result) {
