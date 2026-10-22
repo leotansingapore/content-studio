@@ -1,27 +1,42 @@
 // Connect Claude (/connect): make a private link that lets Claude read this
 // profile's posts, calendar, results and brand, and save drafts to My posts
 // (MCP server: supabase/functions/content-studio-mcp).
+// Leo's sign-ins also get (agent-mcp-api): a name for the link, the curl line for
+// Zapier, Make, n8n or a script (#api), the tools his links list (#tools), "See
+// what it added" on each link (#links) and the made and turned-off activity rows.
+// Everyone else's page is pinned (ConnectPage.test.ts).
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Check, Copy, Link2, Trash2 } from "lucide-react";
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
-import { createLink, linkIsLive, loadLinks, removeLink, restoreLink, type ClaudeLink } from "@/lib/claudeConnect";
+import { createLink, linkIsLive, loadLinks, NAME_MAX, removeLink, restoreLink, type ClaudeLink } from "@/lib/claudeConnect";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { useScrollToHash } from "@/lib/urlState";
+import { links as to } from "@/lib/links";
+import { logActivity } from "@/lib/activity";
+import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
+import { LEO_TOOLS, TOOL_LINES } from "../../supabase/functions/content-studio-mcp/logic.ts";
 
 const TRY = ["What's on my calendar this week?", "Which of my posts did best, and why?", "Write a LinkedIn post about CPF top-ups in my voice and save it as a draft."];
 
 export default function ConnectPage() {
   const { toast } = useToast();
+  const leo = useLeoUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [links, setLinks] = useState<ClaudeLink[]>([]);
   const [fresh, setFresh] = useState<{ url: string; state: "checking" | "ready" | "offline" } | null>(null);
   const [making, setMaking] = useState(false);
-  const [copied, setCopied] = useState<"" | "url" | "cli">("");
+  const [copied, setCopied] = useState<"" | "url" | "cli" | "api">("");
+  const [name, setName] = useState("Claude");
+  useScrollToHash(Boolean(leo) && userId !== null);
 
   useEffect(() => {
     document.title = "Connect Claude - Content Studio";
@@ -37,8 +52,9 @@ export default function ConnectPage() {
     if (!uid) return toast({ title: "Sign in again to connect Claude", variant: "destructive" });
     setMaking(true);
     try {
-      const { url } = await createLink(uid);
+      const { url } = await createLink(uid, undefined, leo ? name.trim() || "Claude" : undefined);
       setLinks(loadLinks(uid));
+      if (leo) logActivity(uid, { who: "you", kind: "connect", title: "Made a Claude connection link", link: to.connect() });
       setFresh({ url, state: "checking" });
       // the link goes live once this device has synced it, usually within a second or two
       for (let i = 0; i < 10; i++) {
@@ -51,7 +67,7 @@ export default function ConnectPage() {
     }
   };
 
-  const copy = (text: string, which: "url" | "cli") =>
+  const copy = (text: string, which: "url" | "cli" | "api") =>
     navigator.clipboard.writeText(text).then(
       () => {
         setCopied(which);
@@ -65,6 +81,7 @@ export default function ConnectPage() {
     removeLink(userId, link.hash);
     setLinks(loadLinks(userId));
     setFresh(null);
+    if (leo) logActivity(userId, { who: "you", kind: "connect", title: "Turned off a Claude connection link", link: to.connect() });
     toast({
       title: "Link turned off",
       description: "Claude can no longer reach your posts with it.",
@@ -78,6 +95,20 @@ export default function ConnectPage() {
 
   const profile = activeProfile(userId);
   const cli = fresh ? `claude mcp add --transport http content-studio ${fresh.url}` : "";
+  const curl = fresh
+    ? `curl -X POST ${fresh.url} -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"add_draft","arguments":{"text":"..."}}}'`
+    : "";
+  const made = (l: ClaudeLink) => `Made ${l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "earlier"}`;
+  const makeButton = (
+    <Button onClick={make} disabled={making} className="h-11 gap-2">
+      <Link2 className="h-4 w-4" /> {making ? "Making the link..." : "Make a connection link"}
+    </Button>
+  );
+  const turnOff = (l: ClaudeLink) => (
+    <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => remove(l)}>
+      <Trash2 className="h-3.5 w-3.5" /> Turn off
+    </Button>
+  );
 
   return (
     <div className="space-y-6">
@@ -118,10 +149,31 @@ export default function ConnectPage() {
             </li>
           </ol>
         </section>
+      ) : leo ? (
+        <div className="space-y-3">
+          <label className="block max-w-sm space-y-1.5">
+            <span className="text-sm font-semibold">
+              Name this link <span className="font-normal text-muted-foreground">(optional)</span>
+            </span>
+            <Input value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} className="h-11" />
+          </label>
+          {makeButton}
+        </div>
       ) : (
-        <Button onClick={make} disabled={making} className="h-11 gap-2">
-          <Link2 className="h-4 w-4" /> {making ? "Making the link..." : "Make a connection link"}
-        </Button>
+        makeButton
+      )}
+
+      {leo && fresh && (
+        <section id="api" className="scroll-mt-20 space-y-2">
+          <h2 className="text-sm font-semibold">Use it from Zapier, Make, n8n or a script</h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-md border border-border/60 bg-background px-2 py-2 text-xs">{curl}</code>
+            <Button size="sm" variant="outline" onClick={() => copy(curl, "api")} className="h-9 shrink-0 gap-1.5 self-start">
+              {copied === "api" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied === "api" ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Each call is JSON-RPC 2.0 over POST. Use the tool names below. {DAILY_LIMITS["mcp-calls"]} calls a day.</p>
+        </section>
       )}
 
       <section className="space-y-2">
@@ -133,20 +185,45 @@ export default function ConnectPage() {
         </ul>
       </section>
 
-      {links.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold">Links in use</h2>
+      {leo && (
+        <section id="tools" className="scroll-mt-20 space-y-2">
+          <h2 className="text-sm font-semibold">What Claude can do</h2>
           <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
-            {links.map((l) => (
-              <li key={l.hash} className="flex items-center gap-2 px-3 py-2 text-sm">
-                <span className="mr-auto">
-                  Made {l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "earlier"}
-                </span>
-                <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => remove(l)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Turn off
-                </Button>
+            {LEO_TOOLS.map((t) => (
+              <li key={t.name} className="flex flex-col gap-0.5 px-3 py-2 text-sm sm:flex-row sm:items-baseline sm:gap-3">
+                <code className="font-mono text-xs sm:w-44 sm:shrink-0">{t.name}</code>
+                <span className="text-muted-foreground">{TOOL_LINES[t.name]}</span>
               </li>
             ))}
+          </ul>
+        </section>
+      )}
+
+      {links.length > 0 && (
+        <section id={leo ? "links" : undefined} className={leo ? "scroll-mt-20 space-y-2" : "space-y-2"}>
+          <h2 className="text-sm font-semibold">Links in use</h2>
+          <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
+            {links.map((l) =>
+              leo ? (
+                <li key={l.hash} className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-sm">
+                  <span className="mr-auto min-w-0">
+                    {l.name && <span className="block truncate font-medium">{l.name}</span>}
+                    <span className={l.name ? "block text-xs text-muted-foreground" : undefined}>{made(l)}</span>
+                  </span>
+                  <Link to={to.activity({ view: "claude" })} className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-primary hover:underline">
+                    See what it added &gt;
+                  </Link>
+                  {turnOff(l)}
+                </li>
+              ) : (
+                <li key={l.hash} className="flex items-center gap-2 px-3 py-2 text-sm">
+                  <span className="mr-auto">
+                    Made {l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "earlier"}
+                  </span>
+                  {turnOff(l)}
+                </li>
+              ),
+            )}
           </ul>
         </section>
       )}

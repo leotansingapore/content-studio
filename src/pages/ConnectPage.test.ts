@@ -35,3 +35,21 @@ describe("/connect for everyone else", () => {
     await expect(html("/connect#tools")).toMatchFileSnapshot("./__pins__/connect-page-everyone.html");
   });
 });
+
+describe("/connect for Leo", () => {
+  it("names the link, Claude by default, and lists every tool his links answer with its line", () => {
+    as.user = { id: "u1", email: "leo@example.com" };
+    const out = html("/connect#tools");
+    expect(out).toContain("Name this link");
+    expect(out).toMatch(/<input[^>]*maxLength="30"[^>]*value="Claude"|<input[^>]*value="Claude"[^>]*maxLength="30"/);
+    expect(out).toContain('id="tools"');
+    expect(out).toContain("What Claude can do");
+    for (const [tool, line] of [["list_posts", "Your posts, newest first"], ["check_post", "MAS wording check on any text"], ["get_activity", "What ran lately, and who ran it"]]) {
+      expect(out).toContain(`>${tool}</code>`);
+      expect(out).toContain(line);
+    }
+    expect(out.match(/<code class="font-mono/g)).toHaveLength(13);
+    // the curl line shows only beside a fresh link
+    expect(out).not.toContain("Use it from Zapier");
+  });
+});
