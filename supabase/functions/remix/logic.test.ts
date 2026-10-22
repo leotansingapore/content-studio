@@ -1230,7 +1230,8 @@ describe("an ad image's words (formats-static-ad)", () => {
     expect(parseMakeRequest(body({ as: "image", layout: "testimonial" }))).toEqual({ ok: false, error: "Testimonials are for business brands only." });
     expect(parseMakeRequest(body({ as: "image", layout: "testimonial", brand: BIZ })).ok).toBe(true);
     expect(parseMakeRequest(body({ as: "image", layout: "poster" })).ok).toBe(false);
-    expect(parseMakeRequest(body({ as: "image", shows: "x".repeat(301) })).ok).toBe(false);
+    expect(parseMakeRequest(body({ as: "image", shows: "x".repeat(801) })).ok).toBe(false);
+    expect(parseMakeRequest(body({ as: "image", shows: "x".repeat(800) })).ok).toBe(true);
   });
 
   it("keeps each swipe ad's own shape in sentence case, never one Title Case headline for all three (live check 22 Oct)", () => {

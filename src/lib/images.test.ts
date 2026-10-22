@@ -174,7 +174,7 @@ describe("Write it for me", () => {
     expect(make.mock.calls[1][0]).toMatchObject({ layout: "stat", shows: "A big number on an orange block." });
   });
 
-  it("passes the picture's own words to the writer, cut at a word to the server's 300 characters", async () => {
+  it("passes the picture's own words to the writer, cut at a word to the server's 800 characters", async () => {
     // the WATI ad: its numbered steps are only in the picture, the ad's text just says "Swipe for the steps."
     const steps = "1. Connect your WhatsApp number 2. Import your contacts 3. Send your first broadcast Book a Demo";
     fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: "Green numbered instructions on a white card." }, text: steps, remixedAt: "" } });
@@ -185,12 +185,23 @@ describe("Write it for me", () => {
     expect(parseMakeRequest(body).ok).toBe(true);
 
     localStorage.removeItem("cs-image-shows");
-    fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: "A long checklist." }, text: "word ".repeat(120), remixedAt: "" } });
+    fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: "A long checklist." }, text: "word ".repeat(300), remixedAt: "" } });
     await startImageWrite(U, ask());
     const long = make.mock.calls[1][0].shows as string;
-    expect(long.length).toBeLessThanOrEqual(300);
+    expect(long.length).toBeLessThanOrEqual(800);
     expect(long.endsWith("word")).toBe(true);
     expect(parseMakeRequest(make.mock.calls[1][0]).ok).toBe(true);
+
+    // the live 22 Oct read: a 199-character description and 738 characters of words, the steps starting near character 320
+    localStorage.removeItem("cs-image-shows");
+    const description = "A clean white promotional graphic has a green Wati logo and headline at the top, with a numbered list and bright green demo button on the left. A small, pale workflow and messaging mockup appears at it.";
+    const words = `Chats build up. Follow-ups slip. Here is how teams on Wati keep every lead moving without a single missed reply. ${steps} ${"Wati DMs them the right next step at the right time. ".repeat(10)}`.slice(0, 738);
+    fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: description }, text: words, remixedAt: "" } });
+    await startImageWrite(U, ask());
+    const wati = make.mock.calls[2][0].shows as string;
+    expect(wati).toContain("3. Send your first broadcast");
+    expect(wati.length).toBeLessThanOrEqual(800);
+    expect(parseMakeRequest(make.mock.calls[2][0]).ok).toBe(true);
   });
 
   it("never reads a competitor's picture, a missing file the app answers with its own page, or with no picture reads left", async () => {

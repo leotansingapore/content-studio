@@ -377,8 +377,9 @@ function parseShape(as: RemixAs, r: Item, speaker: Speaker): Partial<MakeRequest
     if (r.layout != null && !layout) return "Pick a layout: headline, quote, stat or testimonial.";
     // decision 12: an adviser's ads never carry a client's words (MAS and insurers' own rules)
     if (layout === "testimonial" && speaker !== "business") return "Testimonials are for business brands only.";
-    if (typeof r.shows === "string" && r.shows.length > 300) return "Keep what the picture shows under 300 characters.";
-    const shows = line(r.shows, 300);
+    // the description plus the picture's own words (an ad's steps live there)
+    if (typeof r.shows === "string" && r.shows.length > 800) return "Keep what the picture shows under 800 characters.";
+    const shows = line(r.shows, 800);
     return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}) };
   }
   if (as === "meme") {

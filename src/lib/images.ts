@@ -203,8 +203,8 @@ async function readShows(path: string): Promise<string> {
   const answer = await callFn<{ source: LinkedSource }>("remix-link", { mode: "image", image: await scalePicture(blob), sha1: await sha1Hex(blob) });
   const shows = answer.source?.teardown?.structure?.trim() ?? "";
   const words = answer.source?.text?.trim() ?? "";
-  // the picture's own words carry what the description only names (an ad's numbered steps); remix takes 300 characters
-  return cutAtWord(words ? `${shows} Words in it: ${words}` : shows, 300);
+  // the picture's own words carry what the description only names (an ad's numbered steps); remix takes 800 characters
+  return cutAtWord(words ? `${shows} Words in it: ${words}` : shows, 800);
 }
 
 /** The words a make wrote, over the design's own: the layout's fields replaced, a testimonial's into clientWords. */
