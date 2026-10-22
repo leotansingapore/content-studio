@@ -8,10 +8,12 @@ import {
   reviewWords,
   saveInterview,
   startSession,
+  THIN_KIND,
   transcriptOf,
   type InterviewStore,
 } from "./interview";
 import { seedAudience } from "./audiences";
+import { INTERVIEW_KIND } from "../../supabase/functions/writing-judge/logic.ts";
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -89,6 +91,12 @@ describe("fillFrom", () => {
       .toEqual({ topic: "WhatsApp workflows", who: "sales-oriented self-employed professionals and coaches" });
     expect(fillFrom({ topics: ["Activity tracking", "CPF top-ups"], audience: "general" })).toMatchObject({ topic: "activity tracking" });
     expect(fillFrom({ topics: ["Building wealth", "CPF top-ups"], audience: "general" })).toMatchObject({ topic: "CPF top-ups" });
+  });
+});
+
+describe("THIN_KIND", () => {
+  it("is the kind writing-judge asks its interview question for", () => {
+    expect(THIN_KIND).toBe(INTERVIEW_KIND);
   });
 });
 

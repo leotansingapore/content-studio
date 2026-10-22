@@ -7,7 +7,8 @@
 //     the hook Jev recommends for this audience. About 560 tokens.
 //   mode "idea" {topic, notes, kind} -> {thin: boolean | null}
 //     whether a brief lacks a specific true thing, so Write asks one
-//     question before writing. About 450 tokens.
+//     question before writing. About 450 tokens. An interview answer (kind
+//     INTERVIEW_KIND) is asked whether a post can be built on it instead.
 //   mode "profile" {platform, name, bio, pinned, top, link} -> ProfileScore
 //     the consultant's own Instagram or TikTok profile out of 100 (Jev score
 //     questions, about 800 tokens) with the name and bio rewritten by OpenAI
@@ -59,7 +60,7 @@ import {
   factQuestions,
   readFacts,
   splitSentences,
-  IDEA_QUESTIONS,
+  ideaQuestions,
   buildProfileRewritePrompt,
   composeProfile,
   profileQuestions,
@@ -204,7 +205,7 @@ Deno.serve(async (req) => {
       return json({ textPostBetter: readTextPostBetter(answers) });
     }
     if (r.mode === "idea") {
-      const answers = await askJev(ideaState(r), IDEA_QUESTIONS, { who: "writing-judge idea" });
+      const answers = await askJev(ideaState(r), ideaQuestions(r.kind), { who: "writing-judge idea" });
       if (!answers) return json({ error: UNAVAILABLE }, 503);
       // the kind and score only, for reading the 0.5 cut per kind (interview answers included); never the words
       console.log("writing-judge idea", JSON.stringify({ kind: r.kind || null, p: answers.specific?.noul ?? null }));
