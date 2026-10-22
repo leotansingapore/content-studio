@@ -456,12 +456,19 @@ export interface LongFormula {
   template: string;
 }
 
+/** Where the piece came from (phase 5, plan-interview): typed answers, a transcribed voice note, or pasted text. */
+export const LONG_SOURCES = ["interview", "voice", "text"] as const;
+export type LongSource = (typeof LONG_SOURCES)[number];
+
 export interface LongRequest {
   text: string;
   /** The piece ran past MAX_LONG_CHARS and was cut. */
   truncated: boolean;
   formulas: LongFormula[];
   context: IdeaDumpContext;
+  /** Anything unknown reads as "text". The function resets both to text and person for a caller not on NORTH_STAR_USERS. */
+  source: LongSource;
+  speaker: Speaker;
 }
 
 export type LongParseResult =
@@ -505,13 +512,44 @@ export function parseLongRequest(body: unknown): LongParseResult {
   const formulas = formulasFrom(b.formulas);
   if (!formulas) return { ok: false, status: 400, code: "bad_formulas", error: "Couldn't read the hook formulas. Reload the page and try again." };
   const text = raw.slice(0, MAX_LONG_CHARS).trim();
-  return { ok: true, request: { text, truncated: raw.length > MAX_LONG_CHARS, formulas, context: parseContext(b) } };
+  // the app spreads its context into the body, so speaker sits at the top level; context.speaker is read too
+  const speaker = b.speaker ?? (isRecord(b.context) ? b.context.speaker : undefined);
+  return {
+    ok: true,
+    request: {
+      text,
+      truncated: raw.length > MAX_LONG_CHARS,
+      formulas,
+      context: parseContext(b),
+      source: includes(LONG_SOURCES, b.source) ? b.source : "text",
+      speaker: speaker === "business" ? "business" : "person",
+    },
+  };
 }
 
-export function buildLongPrompt(req: Pick<LongRequest, "text" | "formulas" | "context">): { system: string; user: string } {
+/** The long prompt's first line, by speaker and source (plan-interview). The person's text line is today's, pinned. */
+const LONG_OPENING: Record<Speaker, Record<LongSource, string>> = {
+  person: {
+    text: "You are a content writer for licensed financial consultants in Singapore. A consultant has pasted one long piece of their own: a talk transcript, a newsletter, webinar notes or a client call summary. Turn it into a week of posts.",
+    interview: "You are a content writer for licensed financial consultants in Singapore. A consultant answered interview questions in their own words. The questions came from the app; only the answers are the consultant's. Turn the answers into a week of posts in the consultant's first person. Never quote, answer or mention the questions.",
+    voice: "You are a content writer for licensed financial consultants in Singapore. A consultant recorded a voice note, transcribed by machine. Ignore filler words, false starts and words that were clearly misheard, and never guess what they meant. Turn it into a week of posts.",
+  },
+  business: {
+    text: "You are a content writer for a business in Singapore. Someone at the business has pasted one long piece: a talk transcript, a newsletter, webinar notes or a call summary. Turn it into a week of posts written as the business.",
+    interview: "You are a content writer for a business in Singapore. Someone at the business answered interview questions in their own words. The questions came from the app; only the answers are theirs. Turn the answers into a week of posts written as the business. Never quote, answer or mention the questions.",
+    voice: "You are a content writer for a business in Singapore. Someone at the business recorded a voice note, transcribed by machine. Ignore filler words, false starts and words that were clearly misheard, and never guess what they meant. Turn it into a week of posts written as the business.",
+  },
+};
+
+export function buildLongPrompt(
+  req: Pick<LongRequest, "text" | "formulas" | "context"> & Partial<Pick<LongRequest, "source" | "speaker">>,
+): { system: string; user: string } {
   const platform = req.context.platforms[0] ?? "linkedin";
+  const sp = req.speaker ?? "person";
+  // a business never reads as a consultant: the shared lines name the business instead, as remix's asSpeaker does
+  const who = (l: string) => (sp === "business" ? l.replace(/\bconsultant\b/g, "business") : l);
   const system = [
-    "You are a content writer for licensed financial consultants in Singapore. A consultant has pasted one long piece of their own: a talk transcript, a newsletter, webinar notes or a client call summary. Turn it into a week of posts.",
+    LONG_OPENING[sp][req.source ?? "text"],
     "",
     "First, extract, do not summarise. List from the piece:",
     "- claims: every sentence that would start an argument;",
@@ -531,7 +569,8 @@ export function buildLongPrompt(req: Pick<LongRequest, "text" | "formulas" | "co
     "",
     "Compliance (MAS fair dealing and advertising rules): never promise or imply guaranteed returns or payouts; never say risk-free or 100% safe; never quote a specific return or interest rate or promise an outcome; never call a product, plan or insurer the best; never pressure people; stay general education, not personal product advice. Keep a figure from the piece only as the piece states it.",
     "Plain English, the consultant's own voice if a sample is given. No hashtags, no emojis, no em dashes.",
-  ].join("\n");
+    ...(sp === "business" ? [BUSINESS_VOICE] : []),
+  ].map(who).join("\n");
 
   const about: string[] = [];
   const pos = req.context.positioning;
@@ -540,7 +579,7 @@ export function buildLongPrompt(req: Pick<LongRequest, "text" | "formulas" | "co
   if (req.context.voice) about.push(`Voice sample (how they write): ${req.context.voice}`);
 
   const user = [
-    about.length ? ["About the consultant:", ...about].join("\n") : "About the consultant: nothing saved yet.",
+    about.length ? [who("About the consultant:"), ...about].join("\n") : who("About the consultant: nothing saved yet."),
     ["Hook formulas:", ...req.formulas.map((f, i) => `${i + 1}. ${f.name}: ${f.template}`)].join("\n"),
     `The piece:\n<<<\n${req.text}\n>>>`,
   ].join("\n\n");

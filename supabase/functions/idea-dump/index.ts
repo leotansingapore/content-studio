@@ -7,7 +7,9 @@
 // mode "long": one long piece (a talk transcript, newsletter, webinar notes)
 // comes back as its claims, numbers, stories and quotable lines, and 5
 // standalone posts, each opening with one of the 5 hook formulas the app sent.
-// The app saves the posts the consultant keeps as drafts.
+// The app saves the posts the consultant keeps as drafts. For a caller on NORTH_STAR_USERS (phase 5,
+// plan-interview) the optional `source` ("interview", "voice", "text") and `speaker` pick the prompt's first line;
+// everyone else's are ignored, so today's prompt is unchanged.
 //
 // mode "angles" (phase 5, Leo only while NORTH_STAR_USERS lists the caller, 403 not_enabled before anything is
 // counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit and are safe.
@@ -136,7 +138,9 @@ async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Prom
     const refusal = usageRefusal(usage);
     return json(refusal.body, refusal.status);
   }
-  const { system, user } = buildLongPrompt(request);
+  // source and speaker (plan-interview) are read for a listed caller only; everyone else gets today's prompt
+  const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
+  const { system, user } = buildLongPrompt(listed ? request : { ...request, source: "text", speaker: "person" });
   const content = textOf(await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 }));
   const result = content === null ? null : validateLong(content, request.formulas);
   if (!result || result.posts.length === 0) {

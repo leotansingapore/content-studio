@@ -817,3 +817,53 @@ describe("campaign MAS question", () => {
     expect(withMas(posts, answers, "business").every((p) => p.mas === null)).toBe(true);
   });
 });
+
+// ---- Long piece source and speaker (phase 5, plan-interview) ------------------
+
+describe("long piece source and speaker", () => {
+  const longOf = (extra: Record<string, unknown>) => {
+    const r = parseLongRequest({ ...PIN_BODY, mode: "long", text: LONG_TEXT, formulas: FORMULAS, ...extra });
+    if (!r.ok) throw new Error("parse");
+    return r.request;
+  };
+
+  it("keeps interview and voice, reads anything else as text, and reads speaker at the top level or in context", () => {
+    expect(longOf({ source: "interview" }).source).toBe("interview");
+    expect(longOf({ source: "voice" }).source).toBe("voice");
+    for (const source of [undefined, "text", "podcast", 3]) expect(longOf({ source }).source).toBe("text");
+    expect(longOf({}).speaker).toBe("person");
+    expect(longOf({ speaker: "business" }).speaker).toBe("business");
+    expect(longOf({ context: { speaker: "business" } }).speaker).toBe("business");
+    expect(longOf({ speaker: "robot" }).speaker).toBe("person");
+  });
+
+  it("keeps the text prompt byte for byte when the source is sent as text", async () => {
+    await expect(promptText(buildLongPrompt(longOf({ source: "text", speaker: "person" })))).toMatchFileSnapshot("./fixtures/long-prompt.txt");
+  });
+
+  it("opens an interview with the first-person line and keeps the compliance block", () => {
+    const { system } = buildLongPrompt(longOf({ source: "interview" }));
+    expect(system.split("\n")[0]).toContain(
+      "A consultant answered interview questions in their own words. The questions came from the app; only the answers are the consultant's. Turn the answers into a week of posts in the consultant's first person. Never quote, answer or mention the questions.",
+    );
+    expect(system).toContain("Compliance (MAS fair dealing and advertising rules): never promise or imply guaranteed returns");
+    expect(system).not.toContain("has pasted one long piece");
+  });
+
+  it("opens a voice note with the transcription line", () => {
+    const { system } = buildLongPrompt(longOf({ source: "voice" }));
+    expect(system.split("\n")[0]).toContain("A consultant recorded a voice note, transcribed by machine. Ignore filler words, false starts and words that were clearly misheard, and never guess what they meant.");
+  });
+
+  it("writes a business's interview as the business, never as a consultant or an adviser", () => {
+    for (const source of ["interview", "voice", "text"]) {
+      const p = buildLongPrompt(longOf({ source, speaker: "business" }));
+      expect(p.system).toContain(BUSINESS_VOICE);
+      expect(p.system).toContain("Compliance (MAS fair dealing");
+      expect(p.user).toContain("About the business:");
+      expect(`${p.system}\n${p.user}`).not.toMatch(/consultant|adviser/i);
+    }
+    expect(buildLongPrompt(longOf({ source: "interview", speaker: "business" })).system.split("\n")[0]).toContain("Someone at the business answered interview questions in their own words.");
+    expect(buildLongPrompt(longOf({ source: "interview" })).system).not.toContain(BUSINESS_VOICE);
+  });
+});

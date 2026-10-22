@@ -374,3 +374,31 @@ describe("idea-dump campaign MAS (phase 5)", () => {
     expect(prompt).not.toMatch(/adviser/i);
   });
 });
+
+describe("idea-dump long source and speaker (phase 5, listed callers only)", () => {
+  const LONG = { ...PROFILE, mode: "long", text: LONG_TEXT, formulas: FORMULAS };
+  const systemSent = () => (sent[OPENAI][0] as { messages: { content: string }[] }).messages[0].content;
+
+  it("writes an interview in the first person for a listed caller, on repurpose-long with no refund", async () => {
+    openai = () => reply(LONG_REPLY);
+    const r = await call({ ...LONG, source: "interview" }, "leo");
+    expect(r.status).toBe(200);
+    expect(systemSent()).toContain("Turn the answers into a week of posts in the consultant's first person.");
+    expect(db.spent).toEqual(["repurpose-long"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("writes a listed business's voice note as the business", async () => {
+    openai = () => reply(LONG_REPLY);
+    await call({ ...LONG, source: "voice", speaker: "business" }, "leo");
+    expect(systemSent()).toContain("Someone at the business recorded a voice note");
+    expect(systemSent()).toContain("- Write as the business:");
+  });
+
+  it("ignores source and speaker for a caller not on NORTH_STAR_USERS: today's request byte for byte", async () => {
+    openai = () => reply(LONG_REPLY);
+    const r = await call({ ...LONG, source: "interview", speaker: "business", context: { speaker: "business" } });
+    expect(r.status).toBe(200);
+    await expect(JSON.stringify(sent[OPENAI], null, 2)).toMatchFileSnapshot("./fixtures/long-request.json");
+  });
+});
