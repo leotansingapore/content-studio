@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMPLIANCE_FLAGS } from "../../../src/lib/compliance.ts";
 import {
-  COMPLIANCE_RULES,
   buildAdvicePrompt,
   computeAudit,
   normalizeHandle,
@@ -48,14 +46,6 @@ const tiktokPosts = [
   post("p5", { views: 400, likes: 4, shares: 0, saves: 0, durationSec: 90, postedAt: daysAgo(6) }),
   post("p6", { views: 100000, likes: 1000, shares: 0, saves: 0, durationSec: 45, postedAt: daysAgo(1 / 24) }),
 ];
-
-describe("compliance", () => {
-  it("mirrors the app's compliance rules exactly", () => {
-    const shape = (rules: { id: string; pattern: RegExp }[]) =>
-      rules.map((r) => ({ id: r.id, source: r.pattern.source, flags: r.pattern.flags }));
-    expect(shape(COMPLIANCE_RULES)).toEqual(shape(COMPLIANCE_FLAGS));
-  });
-});
 
 describe("normalizeHandle", () => {
   it("accepts handles and profile links", () => {

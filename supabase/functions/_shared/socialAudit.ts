@@ -1,13 +1,15 @@
 // Own-account audit: the pure logic behind "Your account audit" on the
 // Analytics page. Shared by the audit-social-account and refresh-social-audits
-// edge functions (Deno) and the app (Vite), so it imports nothing and vitest
-// covers it directly (socialAudit.test.ts).
+// edge functions (Deno) and the app (Vite), so it imports only the pure
+// compliance rules beside it and vitest covers it directly (socialAudit.test.ts).
 //
 // Honesty rules:
 // - Numbers always come from the scrape, never from the model.
 // - Every post is judged against this account's OWN medians, not other creators.
 // - Advice may only cite posts that exist in the scrape; anything else is dropped.
 // - Posts younger than two days are still collecting views, so they aren't judged.
+
+import { COMPLIANCE_FLAGS } from "./compliance.ts";
 
 export type AuditPlatform = "instagram" | "tiktok";
 export type PostFormat = "video" | "carousel" | "image";
@@ -544,20 +546,9 @@ export function buildAdvicePrompt(input: {
 
 // ---- Validating the model's advice -----------------------------------------
 
-/** Mirror of COMPLIANCE_FLAGS in src/lib/compliance.ts (a test keeps them identical). */
-export const COMPLIANCE_RULES: { id: string; pattern: RegExp }[] = [
-  { id: "guarantee", pattern: /\b(guaranteed?|guarantee[ds]?)\b/i },
-  { id: "risk-free", pattern: /\b(risk[-\s]?free|no\s+risk)\b/i },
-  { id: "100-safe", pattern: /\b(100%|completely)\s+(safe|secure)\b/i },
-  { id: "best-superlative", pattern: /\b(best|number\s*one|#1)\s+(insurance|policy|plan|fund|product)/i },
-  { id: "aia-best", pattern: /\bAIA\s+is\s+the\s+best/i },
-  { id: "specific-return", pattern: /\b(\d+%\s+(return|p\.a\.|annual)|\d+%\s+(rate|interest))\b/i },
-  { id: "easy-money", pattern: /\b(easy|guaranteed|sure)\s+(money|profit|win)/i },
-  { id: "act-now", pattern: /\bact\s+(now|today)\b/i },
-];
-
+/** Ids of the compliance rules (./compliance.ts) the text breaks, in rule order. */
 export function complianceIssues(text: string): string[] {
-  return COMPLIANCE_RULES.filter((r) => r.pattern.test(text)).map((r) => r.id);
+  return COMPLIANCE_FLAGS.filter((r) => r.pattern.test(text)).map((r) => r.id);
 }
 
 export function parseJsonObject(raw: string): Record<string, unknown> | null {

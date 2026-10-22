@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COMPLIANCE_FLAGS, hasComplianceErrors, scanCompliance } from "../../../src/lib/compliance.ts";
+import * as shared from "./compliance.ts";
 import { complianceIssues } from "./socialAudit.ts";
 
 // Pin, written on the code before the rules moved to _shared/compliance.ts:
@@ -187,5 +188,33 @@ describe("compliance pin (today's outputs)", () => {
 
   it("gives nothing for input that is not a string", () => {
     for (const v of [null, undefined, 42, { a: 1 }]) expect(scanCompliance(v as unknown as string)).toEqual([]);
+  });
+});
+
+describe("one list in _shared/compliance.ts", () => {
+  it("is the very list the app reads through src/lib/compliance.ts", () => {
+    expect(COMPLIANCE_FLAGS).toBe(shared.COMPLIANCE_FLAGS);
+    expect(scanCompliance).toBe(shared.scanCompliance);
+    expect(hasComplianceErrors).toBe(shared.hasComplianceErrors);
+  });
+
+  it('flags "guaranteed" once as a warn, not an error', () => {
+    const flags = shared.scanCompliance("Returns are guaranteed.");
+    expect(flags.map((f) => [f.ruleId, f.severity])).toEqual([["guarantee", "warn"]]);
+    expect(shared.hasComplianceErrors(flags)).toBe(false);
+  });
+
+  it('flags "risk-free" once as an error', () => {
+    const flags = shared.scanCompliance("A risk-free plan.");
+    expect(flags.map((f) => [f.ruleId, f.severity])).toEqual([["risk-free", "error"]]);
+    expect(shared.hasComplianceErrors(flags)).toBe(true);
+  });
+
+  it("flags a repeated word once", () => {
+    expect(shared.scanCompliance("Act now. Act now. ACT NOW.").map((f) => f.ruleId)).toEqual(["act-now"]);
+  });
+
+  it("gives clean text no flags", () => {
+    expect(shared.scanCompliance("Review your cover once a year with someone you trust.")).toEqual([]);
   });
 });
