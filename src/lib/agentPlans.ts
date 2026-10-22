@@ -500,7 +500,8 @@ export function withScript(userId: string, c: AgentCard, script: string): AgentC
     ...c,
     step: "video",
     title: `Talking video: "${clip(script.trim(), 50)}"`,
-    line: `A ${Math.round(est.seconds)}-second video of ${f.who === "mine" ? "you" : "your presenter"} saying this script. It takes a few minutes and opens in the video editor.`,
+    // "It takes a few minutes and opens in the video editor." is the card's own row under the price (agent-approvals)
+    line: `A ${Math.round(est.seconds)}-second video of ${f.who === "mine" ? "you" : "your presenter"} saying this script.`,
     script: script.trim().split(/\n+|(?<=[.!?])\s+(?=[A-Z0-9"])/).map((l) => l.trim()).filter(Boolean),
     details: videoDetails(userId, g, est.seconds),
     price: est.price,

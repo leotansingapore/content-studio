@@ -33,7 +33,7 @@ vi.stubGlobal("window", { localStorage: ls, sessionStorage: ls, dispatchEvent: (
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const { default: ActionCard, whoOption } = await import("./ActionCard");
-const { competitorCard, fieldsOf, flagsFor, makeCard } = await import("@/lib/agentPlans");
+const { competitorCard, fieldsOf, flagsFor, makeCard, withScript } = await import("@/lib/agentPlans");
 const { default: MadeBlock } = await import("./MadeBlock");
 const { saveDrafts } = await import("@/lib/draftHistory");
 const { press } = await import("@/lib/agentRun");
@@ -114,5 +114,14 @@ describe("a flagged make", () => {
     );
     expect(card.flags).toHaveLength(1);
     expect(html.match(/is flagged\./g)).toHaveLength(1);
+  });
+});
+
+describe("a talking video's second card", () => {
+  it("says once that it takes a few minutes and opens in the video editor", () => {
+    const script = "Most people never check what CPF LIFE will pay them. Here's where to see your own estimate. Log in, open the planner, and look at the monthly payout.";
+    const card = withScript(UID, makeCard(UID, { plan: "speaking", format: "speaking", act: "make", p: {}, topic: "CPF LIFE", speaker: null }), script);
+    expect(card.step).toBe("video");
+    expect(draw(card).match(/It takes a few minutes and opens in the video editor\./g)).toHaveLength(1);
   });
 });
