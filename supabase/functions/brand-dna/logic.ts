@@ -673,6 +673,14 @@ export interface AudienceCandidate {
   says?: string;
 }
 
+/**
+ * An audience field before clipWord (live check 22 Oct, calls/008): an en or em dash between two numbers reads " to "
+ * (clip turned a range into "5,20 years"), and quote marks wrapping the whole field go ("says" came back in curly
+ * quotes). The plain read keeps clip as it is (pinned).
+ */
+const audienceWords = (v: unknown) =>
+  typeof v === "string" ? v.trim().replace(/(\d)\s*[\u2013\u2014]\s*(?=\d)/g, "$1 to ").replace(/^["'\u201c\u2018]([\s\S]*)["'\u201d\u2019]$/, "$1") : v;
+
 /** The LLM's groups cut at a word to the stored lengths, at most 4, one per name; null when the reply isn't the schema's JSON. */
 export function parseAudiences(raw: unknown): AudienceCandidate[] | null {
   let o: unknown;
@@ -687,11 +695,11 @@ export function parseAudiences(raw: unknown): AudienceCandidate[] | null {
   for (const it of list) {
     if (out.length === MAX_SUGGESTED || !it || typeof it !== "object") continue;
     const r = it as Record<string, unknown>;
-    const name = clipWord(r.name, 60);
-    const who = clipWord(r.who, 240);
+    const name = clipWord(audienceWords(r.name), 60);
+    const who = clipWord(audienceWords(r.who), 240);
     if (!name || !who || out.some((a) => a.name.toLowerCase() === name.toLowerCase())) continue;
-    const cares = (Array.isArray(r.cares) ? r.cares : []).map((c) => clipWord(c, 80)).filter(Boolean).slice(0, 5);
-    const says = clipWord(r.says, 160);
+    const cares = (Array.isArray(r.cares) ? r.cares : []).map((c) => clipWord(audienceWords(c), 80)).filter(Boolean).slice(0, 5);
+    const says = clipWord(audienceWords(r.says), 160);
     out.push({ name, who, cares, ...(says ? { says } : {}) });
   }
   return out;

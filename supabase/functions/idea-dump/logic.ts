@@ -11,7 +11,7 @@
 import { complianceIssues } from "../_shared/socialAudit.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { BUSINESS_VOICE, speakingWords, type Speaker } from "../remix/logic.ts";
+import { BUSINESS_VOICE, sentenceCase, speakingWords, type Speaker } from "../remix/logic.ts";
 
 export const MAX_NOTES_CHARS = 4000;
 export const MAX_IDEAS = 10;
@@ -826,17 +826,22 @@ export const ANGLES_SCHEMA = {
   },
 } as const;
 
-/** The candidates worth asking Jev about: 2 to 5 word titles of at most 40 characters, none repeated or already saved. Null when it isn't the expected JSON. */
-export function validateAngles(raw: unknown, avoid: string[] = []): AngleCandidate[] | null {
+/**
+ * The candidates worth asking Jev about: 2 to 5 word titles of at most 40 characters, none repeated or already saved.
+ * A Title Case title comes back in sentence case (remix's sentenceCase; live check 22 Oct, calls/010), keeping
+ * acronyms, brand names like WhatsApp, and a word capitalised mid-sentence in its line or in `names`.
+ * Null when it isn't the expected JSON.
+ */
+export function validateAngles(raw: unknown, avoid: string[] = [], names = ""): AngleCandidate[] | null {
   const obj = typeof raw === "string" ? parseJsonObject(raw) : isRecord(raw) ? raw : null;
   if (!obj || !Array.isArray(obj.angles)) return null;
   const seen = new Set(avoid.map(wordsKey));
   const out: AngleCandidate[] = [];
   for (const a of obj.angles) {
     if (!isRecord(a)) continue;
-    const title = cleanText(a.title, 200);
-    const n = wordCount(title);
     const line = clip(cutWords(cleanText(a.line, 600), 19), 140);
+    const title = sentenceCase(cleanText(a.title, 200), `${line}. ${names}`);
+    const n = wordCount(title);
     if (n < 2 || n > 5 || title.length > 40 || !line || seen.has(wordsKey(title))) continue;
     seen.add(wordsKey(title));
     out.push({ title, line });
@@ -891,6 +896,20 @@ export type CampaignFormat = (typeof CAMPAIGN_FORMATS)[number];
 export const MAX_CAMPAIGN_POSTS = 7;
 /** A 15 s AI video speaks round(2.4 x 15) to round(3.2 x 15) words: 36 to 48. */
 export const AI_VIDEO_WORDS = speakingWords(15);
+/** A short video you film: about 30 seconds. */
+export const SHORT_VIDEO_WORDS = { low: 60, high: 90 };
+/**
+ * Each format's lengths, stated on every post in the message (wave 1 live check, 22 Oct: 3 of 4 scripts asked for
+ * came back unusable when the ranges sat only in the format list).
+ */
+const POST_WORDS: Record<CampaignFormat, string> = {
+  "text-post": "hook at most 15 words; body 80 to 220 words",
+  carousel: "cover at most 6 words; 4 to 8 points of at most 40 words each",
+  "short-video": `script ${SHORT_VIDEO_WORDS.low} to ${SHORT_VIDEO_WORDS.high} words across its HOOK, BODY and CTA lines`,
+  slideshow: "hook at most 12 words; brief at most 40 words",
+  wall: "hook at most 12 words; brief at most 40 words",
+  "ai-video": `script ${AI_VIDEO_WORDS.low} to ${AI_VIDEO_WORDS.high} words in all`,
+};
 
 export interface PostAsk {
   n: number;
@@ -967,6 +986,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "",
     "Every post:",
     "- n: the post's number from the message.",
+    "- Count the words: a post outside the word range on its Words line cannot be used.",
     "- No two posts in your reply open with the same three words, and no hook repeats one listed under 'Hooks already used'.",
     "- Never mention the campaign, the angle's title, the funnel stage or the hook formula's name.",
     "- Leave a field as an empty string when the post's format does not use it.",
@@ -998,12 +1018,15 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
       `Post ${p.n}: ${p.format}, ${p.stage} stage, call to action ${p.ctaType}${p.platforms.length ? `, for ${p.platforms.join(", ")}` : ""}`,
       `Angle: ${p.angle.title}${p.angle.line ? `: ${p.angle.line}` : ""}`,
       p.formula ? `Hook formula: ${p.formula.name}: ${p.formula.template}` : "",
+      `Words: ${POST_WORDS[p.format]}`,
     ].filter(Boolean).join("\n");
   const user = [
     ...contextBlocks(req.context, req.audience),
     req.avoid.length ? ["Hooks already used (open differently):", ...req.avoid.map((h) => `- ${h}`)].join("\n") : "",
     ["Posts to write:", ...req.posts.map(post)].join("\n\n"),
-    req.swap ? `Write post ${req.posts[0].n} again: the same angle, format and stage, with new words and a different opening.` : "",
+    req.swap
+      ? `Write post ${req.posts[0].n} again: the same angle, format and stage, with new words and a different opening. The hook must be new: it shares no run of four words with a hook already used, apart from the hook formula's own words.`
+      : "",
   ].filter(Boolean).join("\n\n");
   return { system, user };
 }
@@ -1036,48 +1059,85 @@ export const CAMPAIGN_SCHEMA = {
 const oneLine = (v: unknown, max: number) => cutWords(cleanText(v, 1000), max);
 const LABEL_RE = /^(?:HOOK|BODY|CTA)\s*:\s*/i;
 
-/** One post shaped to its format's limits, or null when it can't meet them (too short, or no hook or call to action). */
-function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | null {
+/** Spoken words in a script's lines, its HOOK:, BODY: and CTA: labels left out. */
+const scriptWords = (lines: string[]) => wordCount(lines.map((l) => l.replace(LABEL_RE, "")).join(" "));
+
+/**
+ * A script's lines held to its range without a second paid call. One over the top by at most 15% (49 to 55 words for
+ * an AI video, 91 to 103 for a short video) loses whole sentences from the end of the lines between its first line and
+ * its call to action (line `end`) until it fits: nothing is cut mid-sentence, and the hook and call to action stay.
+ * Null when it is short (never padded) or still out of range.
+ */
+function fitScript(lines: string[], end: number, { low, high }: { low: number; high: number }): string[] | null {
+  if (scriptWords(lines) > Math.floor(high * 1.15)) return null;
+  const out = [...lines];
+  for (let i = end - 1; i >= 1 && scriptWords(out) > high; ) {
+    const shorter = out[i].match(/^([\s\S]*[.!?]["')\]]?)\s+\S/)?.[1];
+    if (shorter) out[i] = shorter;
+    else out.splice(i--, 1);
+  }
+  const words = scriptWords(out);
+  return words >= low && words <= high ? out : null;
+}
+
+/** A body without a last line that repeats its call to action, in any case or punctuation (live check 22 Oct: the CTA showed twice). */
+function withoutCta(body: string, cta: string): string {
+  const lines = body.split("\n");
+  return cta && wordsKey(lines[lines.length - 1]) === wordsKey(cta) ? lines.slice(0, -1).join("\n").trim() : body;
+}
+
+/** The first empty field, as the rule a post broke. */
+const lacks = (fields: Record<string, string>) => {
+  const empty = Object.keys(fields).find((k) => !fields[k]);
+  return empty ? `no ${empty}` : null;
+};
+
+/** One post shaped to its format's limits, or the rule it broke when it can't meet them (never its words, for the log). */
+function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | string {
   const base = { n: ask.n, ctaType: ask.ctaType, mas: null };
   const cta = oneLine(item.cta, 40);
   switch (ask.format) {
     case "text-post": {
       const hook = oneLine(item.hook, 15);
-      const body = cutWords(cleanPost(item.body), 220);
-      return hook && cta && wordCount(body) >= 80 ? { ...base, hook, body, cta } : null;
+      const body = cutWords(withoutCta(cleanPost(item.body), cta), 220);
+      const words = wordCount(body);
+      return lacks({ hook, cta }) ?? (words >= 80 ? { ...base, hook, body, cta } : `body ${words} words, needs 80 to 220`);
     }
     case "carousel": {
       const hook = oneLine(item.hook, 6);
-      const points = cleanPost(item.body).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
-      return hook && cta && points.length >= 4 ? { ...base, hook, body: points.join("\n\n"), cta } : null;
+      const points = withoutCta(cleanPost(item.body), cta).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
+      return lacks({ hook, cta }) ?? (points.length >= 4 ? { ...base, hook, body: points.join("\n\n"), cta } : `${points.length} points, needs 4 to 8`);
     }
     case "slideshow":
     case "wall": {
       const hook = oneLine(item.hook, 12);
       const brief = cutWords(cleanPost(item.brief), 40);
-      return hook && brief && cta ? { ...base, hook, brief, cta } : null;
+      return lacks({ hook, brief, cta }) ?? { ...base, hook, brief, cta };
     }
     case "short-video": {
-      // a cut script would lose its call to action, so a script outside 60 to 90 words is dropped
+      // HOOK, BODY and CTA lines: an over-long script loses body sentences (fitScript), never its call to action
       const lines = cleanPost(item.script).split("\n").map((l) => l.trim()).filter(Boolean);
-      const words = wordCount(lines.map((l) => l.replace(LABEL_RE, "")).join(" "));
+      const at = lines.findIndex((l) => /^CTA\s*:/i.test(l));
+      const end = at === -1 ? lines.length - 1 : at;
       const hook = (lines[0] ?? "").replace(LABEL_RE, "");
-      const end = (lines.find((l) => /^CTA\s*:/i.test(l)) ?? lines[lines.length - 1] ?? "").replace(LABEL_RE, "");
-      return hook && end && words >= 60 && words <= 90 ? { ...base, hook, script: lines.join("\n"), cta: end } : null;
+      const close = (lines[end] ?? "").replace(LABEL_RE, "");
+      const fit = fitScript(lines, end, SHORT_VIDEO_WORDS);
+      const { low, high } = SHORT_VIDEO_WORDS;
+      return lacks({ script: lines.join(" "), hook, cta: close }) ?? (fit ? { ...base, hook, script: fit.join("\n"), cta: close } : `script ${scriptWords(lines)} words, needs ${low} to ${high}`);
     }
     case "ai-video": {
       // spoken as written: no labels, one sentence per line, and a length the 15 s voiceover fits
-      const script = cleanPost(item.script)
+      const lines = cleanPost(item.script)
         .split("\n")
         .map((l) => l.replace(LABEL_RE, "").trim())
         .filter(Boolean)
         .join("\n")
-        .replace(/([.!?]["')\]]?)[ \t]+(?=\S)/g, "$1\n");
-      const lines = script.split("\n");
-      const words = wordCount(script);
-      return words >= AI_VIDEO_WORDS.low && words <= AI_VIDEO_WORDS.high && lines.length > 1
-        ? { ...base, hook: lines[0], script, cta: lines[lines.length - 1] }
-        : null;
+        .replace(/([.!?]["')\]]?)[ \t]+(?=\S)/g, "$1\n")
+        .split("\n");
+      const fit = lines.length > 1 ? fitScript(lines, lines.length - 1, AI_VIDEO_WORDS) : null;
+      if (fit) return { ...base, hook: fit[0], script: fit.join("\n"), cta: fit[fit.length - 1] };
+      const words = scriptWords(lines);
+      return !words ? "no script" : lines.length < 2 ? "one line" : `script ${words} words, needs ${AI_VIDEO_WORDS.low} to ${AI_VIDEO_WORDS.high}`;
     }
   }
 }
@@ -1085,12 +1145,29 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
 /** The opening a hook is compared on: its first three words. */
 const opener = (hook: string) => wordsKey(hook).split(" ").slice(0, 3).join(" ");
 
+/** Every run of 4 words in a text, lowercased and without punctuation. */
+const runsOf4 = (s: string) => {
+  const w = wordsKey(s).split(" ").filter(Boolean);
+  return w.slice(3).map((_, i) => w.slice(i, i + 4).join(" "));
+};
+
+/**
+ * A swap's hook that shares a run of 4 words with a hook already used (the old one among them), not counting runs that
+ * are the hook formula's own words (live check 22 Oct, calls/013: a swap kept the old hook and changed two words).
+ */
+function echoesUsed(hook: string, used: string[], formula: PostAsk["formula"]): boolean {
+  const own = new Set(formula ? formula.template.split(/\[[^\]]*\]|\{[^}]*\}/).flatMap(runsOf4) : []);
+  const old = new Set(used.flatMap(runsOf4));
+  return runsOf4(hook).some((r) => old.has(r) && !own.has(r));
+}
+
 /**
  * The model's posts, each shaped to its format's limits: posts whose n was not asked go, as do posts that can't
- * meet their format, a later post that opens with the same three words as an earlier one, and a hook that repeats
- * one in `avoid`. In the order asked. Null when it isn't the expected JSON.
+ * meet their format, a later post that opens with the same three words as an earlier one, a hook that repeats
+ * one in `avoid`, and a swap's hook that shares 4 words in a row with one in `avoid` (echoesUsed). In the order asked;
+ * each dropped post's number and the rule it broke go into `dropped`, for the log. Null when it isn't the expected JSON.
  */
-export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts" | "avoid">): WrittenPost[] | null {
+export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts" | "avoid" | "swap">, dropped: [number, string][] = []): WrittenPost[] | null {
   const obj = typeof raw === "string" ? parseJsonObject(raw) : isRecord(raw) ? raw : null;
   if (!obj || !Array.isArray(obj.posts)) return null;
   const used = new Set(req.avoid.map(wordsKey));
@@ -1098,8 +1175,17 @@ export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts
   const out: WrittenPost[] = [];
   for (const ask of req.posts) {
     const item = obj.posts.find((p): p is Record<string, unknown> => isRecord(p) && p.n === ask.n);
-    const post = item ? writtenFor(ask, item) : null;
-    if (!post || used.has(wordsKey(post.hook)) || opened.has(opener(post.hook))) continue;
+    const post = item ? writtenFor(ask, item) : "not written";
+    const why =
+      typeof post === "string" ? post
+      : used.has(wordsKey(post.hook)) ? "repeats a hook to avoid"
+      : opened.has(opener(post.hook)) ? "opens like an earlier post"
+      : req.swap && echoesUsed(post.hook, req.avoid, ask.formula) ? "shares 4 words with a used hook"
+      : "";
+    if (typeof post === "string" || why) {
+      dropped.push([ask.n, why]);
+      continue;
+    }
     opened.add(opener(post.hook));
     out.push(post);
   }

@@ -218,6 +218,37 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
     expect(prompt).toContain("- Hospital bills shock");
   });
 
+  it("sends Title Case titles back in sentence case, keeping names the brand's words use mid-sentence (live check, calls/010)", async () => {
+    // calls/010's request as sent, with one product line that names Lark mid-sentence
+    const live = {
+      mode: "angles",
+      audience: "Sales team managers: People coordinating a sales team who want a shared WhatsApp inbox, team activity records and a view of progress toward targets.",
+      avoid: [],
+      context: {
+        positioning: {
+          oneLiner: "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+          audienceDetail: "Sales-oriented self-employed professionals and coaches",
+          topics: ["Sales follow-ups", "WhatsApp workflows", "Client management", "Activity tracking", "Sales goals"],
+          edge: "It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.",
+        },
+        goal: "Get more sales team managers to book a demo",
+        platforms: ["linkedin", "instagram"],
+        speaker: "business",
+        product: "ActivityTracker: CRM, a shared WhatsApp inbox, tasks and goals in one phone app, and it works beside Lark. SGD 34 a person a month.",
+      },
+    };
+    openai = () => reply({
+      angles: [
+        { title: "Shared Chat Visibility", line: "We bring team WhatsApp conversations into one shared inbox, so you can see where client chats stand." },
+        { title: "Clear Follow-Up Ownership", line: "See who owns each next step, so client follow-ups are easier to coordinate across your team." },
+        { title: "Chats Beside Lark Too", line: "Keep the team's tools where they are." },
+      ],
+    });
+    const r = await call(live, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Shared chat visibility", "Clear follow-up ownership", "Chats beside Lark too"]);
+  });
+
   it("drops a suggested title that is already saved, before asking Jev", async () => {
     env.TYPESAFE_API_KEY = "t";
     openai = () => reply({ angles: [{ title: "HOSPITAL bills shock", line: "Saved already." }, ...ANGLES_REPLY.angles.slice(0, 2)] });
@@ -338,6 +369,34 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
       expect(r).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
     }
     expect(db.refunded).toEqual([]);
+  });
+
+  it("logs each dropped post's number and the rule it broke, never its words (live check: only 'asked 4 written 2')", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      openai = () => reply({ posts: [CAMPAIGN_REPLY.posts[0], { ...CAMPAIGN_REPLY.posts[1], brief: "" }] });
+      expect((await call(CAMPAIGN, "leo")).body.posts.map((p: { n: number }) => p.n)).toEqual([1]);
+      openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], body: "Too short to post." }] });
+      expect((await call(CAMPAIGN, "leo")).body.code).toBe("unusable");
+      const lines = log.mock.calls.map((c) => c.join(" ")).filter((l) => l.startsWith("idea-dump campaign"));
+      expect(lines[0]).toBe('idea-dump campaign leo campaign-draft asked 2 written 1 dropped [[2,"no brief"]] mas [[1,null]]');
+      expect(lines[1]).toBe('idea-dump campaign leo campaign-draft asked 2 written 0 dropped [[1,"body 4 words, needs 80 to 220"],[2,"not written"]]');
+      expect(lines).toHaveLength(2);
+      expect(log.mock.calls.flat().join("\n")).not.toMatch(/Too short|checking in|Most reps/);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("refuses a swap whose hook shares 4 words in a row with a used one: 422 unusable, use kept (live check, calls/013)", async () => {
+    const formula = { name: "Contrarian", template: "Most [audience] think [belief]. Here is why that is wrong." };
+    const swap = { ...CAMPAIGN, swap: true, posts: [{ ...askOf(1, "text-post"), formula }], avoid: ["Most sales managers think visibility means reading every chat. Here is why that is wrong."] };
+    openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think visibility means checking every chat. Here is why that is wrong." }] });
+    expect(await call(swap, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
+    expect(db.spent).toEqual(["campaign-swap"]);
+    expect(db.refunded).toEqual([]);
+    openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think more chats mean more sales. Here is why that is wrong." }] });
+    expect((await call(swap, "leo")).status).toBe(200);
   });
 
   it("answers the daily limit with 429 and calls nothing", async () => {

@@ -182,7 +182,10 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
     await refundUsage(admin, uid, "campaign-angles", day);
     return json({ code: "failed", error: "Couldn't suggest angles right now. Try again in a minute." }, 502);
   }
-  const candidates = (reply.ok && validateAngles(reply.text, request.avoid)) || [];
+  // shortcut: a one-word brand name (Fastlane) keeps its capital only when these words use it mid-sentence; send the brand's name in PlanContext if that bites
+  const pos = request.context.positioning;
+  const names = [request.audience, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
+  const candidates = (reply.ok && validateAngles(reply.text, request.avoid, names)) || [];
   const answers = await pool(candidates, 6, (a) => {
     const ask = angleAsk(request, a);
     return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
@@ -213,9 +216,11 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
     await refundUsage(admin, uid, cap, day);
     return json({ code: "failed", error: request.swap ? "Couldn't write new words right now. Try again in a minute." : "Couldn't write these posts right now. Try again in a minute." }, 502);
   }
-  const written = (reply.ok && validateCampaign(reply.text, request)) || [];
+  // each dropped post's number and the rule it broke (never its words): live check 22 Oct logged only "asked 4 written 2"
+  const dropped: [number, string][] = [];
+  const written = (reply.ok && validateCampaign(reply.text, request, dropped)) || [];
   if (!written.length) {
-    console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written 0");
+    console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written 0", "dropped", JSON.stringify(dropped));
     return json({ code: "unusable", error: "The words that came back couldn't be used. Try again." }, 422);
   }
   const speaker = request.context.speaker;
@@ -223,7 +228,7 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
   const answers = mas ? await askJev(mas.state, mas.questions, { who: "idea-dump campaign mas" }) : null;
   const posts = withMas(written, answers, speaker);
   // decision 12: Jev's MAS yes per post number (never the words) for setting MAS_WARN
-  console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written", posts.length, "mas", JSON.stringify(posts.map((p) => [p.n, noulOf(answers, `mas_${p.n}`)])));
+  console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written", posts.length, "dropped", JSON.stringify(dropped), "mas", JSON.stringify(posts.map((p) => [p.n, noulOf(answers, `mas_${p.n}`)])));
   return json({ posts });
 }
 

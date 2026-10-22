@@ -580,6 +580,43 @@ describe("mode angles", () => {
     expect(validateAngles(many)).toHaveLength(ANGLE_CANDIDATES);
   });
 
+  it("puts Title Case titles in sentence case, keeping acronyms and names (wave 1 live check, calls/010)", () => {
+    // calls/010's five kept titles and lines, as they came back
+    const live = [
+      ["Shared Chat Visibility", "We bring team WhatsApp conversations into one shared inbox, so you can see where client chats stand."],
+      ["Clear Follow-Up Ownership", "See who owns each next step, so client follow-ups are easier to coordinate across your team."],
+      ["Target Progress View", "Track team goals alongside activity, so you can review progress and discuss what needs attention."],
+      ["Coaching From Activity", "Use recorded follow-ups and tasks as talking points for practical team coaching."],
+      ["Fewer App Switches", "We bring CRM, chats, tasks and goals into one phone app, reducing the need to jump between tools."],
+    ];
+    const more = [
+      ["One CRM For Teams", "Keep clients and chats in one place."],
+      ["Shared WhatsApp Inbox", "See every chat."],
+      ["Why Fastlane Works", "Teams switch to Fastlane for one inbox."],
+      ["Grow With Northstar Today", "One app for the team."],
+      ["Follow-ups that stick", "Already in sentence case."],
+      ["Shared Inbox", "Two words stay as written."],
+    ];
+    const got = validateAngles({ angles: [...live, ...more].map(([title, line]) => ({ title, line })) }, [], "Sales teams pick Northstar for its inbox.");
+    expect(got?.map((a) => a.title)).toEqual([
+      "Shared chat visibility",
+      "Clear follow-up ownership",
+      "Target progress view",
+      "Coaching from activity",
+      "Fewer app switches",
+      "One CRM for teams",
+      "Shared WhatsApp inbox",
+      "Why Fastlane works",
+    ]);
+    expect(validateAngles({ angles: more.slice(2).map(([title, line]) => ({ title, line })) }, [], "Sales teams pick Northstar for its inbox.")?.map((a) => a.title)).toEqual([
+      "Why Fastlane works",
+      "Grow with Northstar today",
+      "Follow-ups that stick",
+      "Shared Inbox",
+    ]);
+    expect(validateAngles({ angles: [{ title: "Grow With Northstar Today", line: "One app." }] })?.[0].title).toBe("Grow with northstar today");
+  });
+
   it("asks Jev whether the audience would stop and whether it is unsafe, from the adviser or the business", () => {
     const a = { title: "Follow-ups that stick", line: "Most deals die in the follow-up." };
     const person = angleAsk(anglesRequest(), a);
@@ -780,7 +817,9 @@ describe("mode campaign", () => {
     expect(ai([1, 2, 3].map(tenWords).join(" ") + " Five more words right here.")).toBeUndefined(); // 35 words
     expect(countWords(ai([1, 2, 3].map(tenWords).join(" ") + " Six more words right here now.")!.script!)).toBe(36);
     expect(countWords(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Eight more words fit in this one too.")!.script!)).toBe(48);
-    expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")).toBeUndefined();
+    // 49 words: the last sentence before the call to action goes (wave 1 live check fix), 39 words
+    expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")!.script!.split("\n")).toEqual([...[1, 2, 3].map(tenWords), "Nine more words do not fit in this one."]);
+    expect(ai([1, 2, 3, 4, 5].map(tenWords).join(" ") + " Six more words do not fit.")).toBeUndefined(); // 56 words
     const labelled = ai(`HOOK: ${tenWords(1)}\n${tenWords(2)} ${tenWords(3)}\nCTA: ${tenWords(4)}`)!;
     expect(labelled.script).toBe([1, 2, 3, 4].map(tenWords).join("\n"));
     expect(labelled.cta).toBe(tenWords(4));
@@ -792,6 +831,212 @@ describe("mode campaign", () => {
     expect(validateCampaign(reply, campaignRequest())!.map((p) => p.n)).toEqual([1, 2, 3, 4]);
     expect(validateCampaign("not json", campaignRequest())).toBeNull();
     expect(validateCampaign({ posts: [] }, campaignRequest())).toEqual([]);
+  });
+});
+
+// ---- Wave 1 live check (22 Oct): calls/014 asked 4 posts and got 2 back, both scripts missing ----------------
+
+import { SHORT_VIDEO_WORDS } from "./logic.ts";
+
+// calls/014, the person draft: the asks and context as sent, posts 1 and 2 as they came back
+const LIVE_014 = {
+  mode: "campaign",
+  posts: [
+    { n: 1, angle: { title: "Money sitting idle", line: "Cash left in the bank feels safe but quietly loses ground to rising costs." }, format: "text-post", stage: "attraction", formula: null, ctaType: "open-question", platforms: ["linkedin"] },
+    { n: 2, angle: { title: "Jargon-free plans", line: "A one-page plan beats a 40-page report you never read again." }, format: "carousel", stage: "trust", formula: null, ctaType: "save-share", platforms: ["instagram"] },
+    { n: 3, angle: { title: "No time to invest", line: "Busy fathers can set up a plan once and review it quarterly instead of daily." }, format: "short-video", stage: "trust", formula: null, ctaType: "comment-keyword", platforms: ["instagram"] },
+    { n: 4, angle: { title: "Five-year commitment fears", line: "Worried about locking money away for years? Start with what you need to stay liquid." }, format: "ai-video", stage: "conversion", formula: null, ctaType: "book-call", platforms: ["instagram"] },
+  ],
+  context: {
+    positioning: {
+      oneLiner: "I help busy working fathers achieve financial freedom and peace of mind through my F.A.T. Method",
+      audienceDetail: "Auditor / Accountant, aged 30-48, Middle to upper-middle income",
+      topics: ["Not taking action", "Letting money sit in bank", "Afraid of >5yr commitment", "Lack of time to invest", "Too much information and jargon"],
+      edge: "Quarterly one-page plan with decision log, proactive check-ins after major life events",
+    },
+    goal: "Get 3 new client meetings a month",
+    platforms: ["linkedin", "instagram"],
+    speaker: "person",
+    audience: "Working fathers in audit and accounting: Auditors and accountants aged 30 to 48, with middle to upper-middle incomes, balancing work and family while seeking financial freedom and peace of mind.",
+  },
+};
+const LIVE_014_POSTS = [
+  {
+    n: 1,
+    hook: "Cash can feel safe while costs keep moving.",
+    body: "I understand why a busy father might leave money in the bank. It is familiar, accessible and easy to track between work deadlines and family routines.\n\nBut when everyday costs rise, the amount your cash can buy may change over time. That does not mean you should rush to invest it. It means it can help to be clear about what the money is for, when you may need it and how much you want readily available.\n\nI find that separating short-term needs from longer-term goals is a useful place to start. It turns \u201cI\u2019ll deal with this later\u201d into a question you can actually work through, without making a decision on the spot.",
+    script: "",
+    brief: "",
+    cta: "How do you decide what to keep accessible and what to plan for long term?",
+  },
+  {
+    n: 2,
+    hook: "A plan you can actually use",
+    body: "I start with the priorities that matter to you, not a stack of jargon.\n\nI put the key decisions and next steps on one page, so you can revisit them without digging through a lengthy report.\n\nI note why each decision was made. That gives you context when work or family circumstances change.\n\nI keep short-term cash needs distinct from longer-term goals. Each has a different job in the plan.\n\nI review the plan quarterly with you, and check in after major life events. A plan should stay relevant as life changes.",
+    script: "",
+    brief: "",
+    cta: "Save this for your next money review, or share it with a working parent who prefers plain English.",
+  },
+];
+// the scripts never reached the record (it holds the reply after validation), so these stand in at the lengths that drop
+const SHORT_50 = "HOOK: No time to invest? You are not alone.\nBODY: You do not need to watch the markets every day. Set up a plan once, then review it every quarter. That keeps it simple, and it leaves room for family time.\nCTA: Comment PLAN and I will share how a quarterly review works.";
+const AI_51 = "Worried about locking money away for five years? That worry makes sense when you have a family to provide for. Start by working out how much you need to keep within reach. Then we can look at longer-term goals separately. Book a short call and we can map it out together.";
+
+describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came back missing)", () => {
+  const live = campaignRequest(LIVE_014);
+  const reply = (scripts: Record<number, string>) => ({ posts: [...LIVE_014_POSTS, ...[3, 4].map((n) => ({ n, hook: "", body: "", script: scripts[n] ?? "", brief: "", cta: "" }))] });
+
+  it("states each post's word range on the post itself", () => {
+    const { system, user } = buildCampaignPrompt(live);
+    expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used.");
+    expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
+    expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
+    expect(user).toContain("instead of daily.\nWords: script 60 to 90 words across its HOOK, BODY and CTA lines");
+    expect(user).toContain("Start with what you need to stay liquid.\nWords: script 36 to 48 words in all");
+    expect(SHORT_VIDEO_WORDS).toEqual({ low: 60, high: 90 });
+  });
+
+  it("cuts a 51-word AI video script at a sentence end inside 36 to 48, keeping its hook and call to action", () => {
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply({ 3: SHORT_50, 4: AI_51 }), live, dropped)!;
+    expect(countWords(AI_51)).toBe(51);
+    expect(got.map((p) => p.n)).toEqual([1, 2, 4]);
+    const ai = got[2];
+    expect(ai.script!.split("\n")).toEqual([
+      "Worried about locking money away for five years?",
+      "That worry makes sense when you have a family to provide for.",
+      "Start by working out how much you need to keep within reach.",
+      "Book a short call and we can map it out together.",
+    ]);
+    expect(countWords(ai.script!)).toBe(43);
+    expect(ai).toMatchObject({ hook: "Worried about locking money away for five years?", cta: "Book a short call and we can map it out together." });
+    // a short script is never padded: it is dropped, and the log gets its number and the rule, never its words
+    expect(dropped).toEqual([[3, "script 50 words, needs 60 to 90"]]);
+  });
+
+  it("drops a script over its top by more than 15%, and cuts a short video's body sentences, never its HOOK or CTA line", () => {
+    const body = (k: number) => Array.from({ length: k }, (_, i) => tenWords(i + 1)).join(" ");
+    const short = (k: number) => `HOOK: Busy fathers can still invest well.\nBODY: ${body(k)}\nCTA: Comment PLAN below.`; // 6 + 10k + 3 words
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply({ 3: short(9), 4: `${AI_51} Nothing gets decided on the spot.` }), live, dropped)!;
+    expect(got.find((p) => p.n === 3)!.script).toBe(`HOOK: Busy fathers can still invest well.\nBODY: ${body(8)}\nCTA: Comment PLAN below.`); // 99 words to 89
+    expect(dropped).toEqual([[4, "script 57 words, needs 36 to 48"]]);
+    const over: [number, string][] = [];
+    validateCampaign(reply({ 3: short(10) }), live, over);
+    expect(over).toEqual([[3, "script 109 words, needs 60 to 90"], [4, "no script"]]);
+  });
+
+  it("names the rule each dropped post broke, for every format", () => {
+    const dropped: [number, string][] = [];
+    validateCampaign(
+      written({ 1: { body: words(79) }, 2: { body: "One.\n\nTwo.\n\nThree." }, 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` }, 4: { script: "One line only" }, 5: { brief: "" }, 6: { cta: "" } }),
+      campaignRequest(),
+      dropped,
+    );
+    expect(dropped).toEqual([[1, "body 79 words, needs 80 to 220"], [2, "3 points, needs 4 to 8"], [3, "script 43 words, needs 60 to 90"], [4, "one line"], [5, "no brief"], [6, "no cta"]]);
+    const missing: [number, string][] = [];
+    const reply2 = written({ 5: { hook: "Most reps lose sleep over follow-ups" }, 6: { hook: "your FOLLOW-UP is the real pitch" } });
+    reply2.posts.splice(1, 1);
+    validateCampaign(reply2, campaignRequest(), missing);
+    expect(missing).toEqual([[2, "not written"], [5, "opens like an earlier post"], [6, "repeats a hook to avoid"]]);
+  });
+});
+
+// calls/011, the business draft: posts 1 and 5 as asked and as they came back (the body ending on the cta)
+const LIVE_011_CONTEXT = {
+  positioning: {
+    oneLiner: "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    audienceDetail: "Sales-oriented self-employed professionals and coaches",
+    topics: ["Sales follow-ups", "WhatsApp workflows", "Client management", "Activity tracking", "Sales goals"],
+    edge: "It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.",
+  },
+  goal: "Get more sales team managers to book a demo",
+  platforms: ["linkedin", "instagram"],
+  speaker: "business",
+  product: "ActivityTracker: CRM, a shared WhatsApp inbox, tasks and goals in one phone app. SGD 34 a person a month.",
+  audience: "Sales team managers: People coordinating a sales team who want a shared WhatsApp inbox, team activity records and a view of progress toward targets.",
+};
+const LIVE_011_ASK_1 = {
+  n: 1,
+  angle: { title: "Shared Chat Visibility", line: "We bring team WhatsApp conversations into one shared inbox, so you can see where client chats stand." },
+  format: "text-post",
+  stage: "attraction",
+  formula: { name: "Contrarian", template: "Most [audience] think [belief]. Here is why that is wrong." },
+  ctaType: "open-question",
+  platforms: ["linkedin"],
+};
+const LIVE_011_ASK_5 = { n: 5, angle: { title: "Coaching From Activity", line: "Use recorded follow-ups and tasks as talking points for practical team coaching." }, format: "text-post", stage: "trust", formula: null, ctaType: "dm-keyword", platforms: ["linkedin"] };
+const LIVE_011_POST_1 = {
+  n: 1,
+  hook: "Most sales managers think visibility means reading every chat. Here is why that is wrong.",
+  body: "Visibility is not the same as watching every message come in. When conversations are spread across individual phones, managers can end up asking for updates just to understand what is happening. That takes time, and it can leave the team repeating information or missing who is handling the next step.\n\nA clearer view starts with knowing where a client conversation stands and who is following up. It does not mean monitoring every word or taking over the relationship. It means making it easier for the team to coordinate and for managers to spot where support may be useful.\n\nWhat helps you keep track of client chats without hovering over your team?",
+  script: "",
+  brief: "",
+  cta: "What helps you keep track of client chats without hovering over your team?",
+};
+const LIVE_011_POST_5 = {
+  n: 5,
+  hook: "Useful coaching can start with the next step.",
+  body: "A coaching conversation does not have to begin with a target that feels far away. Recorded follow-ups and tasks can help managers talk through the work in front of the team.\n\nStart by looking at what was agreed with a client. Is the next action clear? Does it have an owner and a due date? If a task is still open, ask what is getting in the way before deciding what support could help.\n\nThis keeps the conversation practical and focused on the workflow, rather than relying on memory or assumptions. It also gives the team a chance to clarify priorities and handovers.\n\nGood activity records are not a score by themselves. They are useful prompts for a thoughtful check-in.\n\nDM COACH if you would like to discuss ways to structure team coaching around follow-ups.",
+  script: "",
+  brief: "",
+  cta: "DM COACH if you would like to discuss ways to structure team coaching around follow-ups.",
+};
+
+describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 ended the body with the cta)", () => {
+  const live = campaignRequest({ mode: "campaign", posts: [LIVE_011_ASK_1, LIVE_011_ASK_5], context: LIVE_011_CONTEXT });
+
+  it("removes a last body line that repeats the cta and keeps the rest of the body as written", () => {
+    const [p1, p5] = validateCampaign({ posts: [LIVE_011_POST_1, LIVE_011_POST_5] }, live)!;
+    expect(p1.body).toBe(LIVE_011_POST_1.body.slice(0, LIVE_011_POST_1.body.lastIndexOf("\n\n")));
+    expect(p1.cta).toBe(LIVE_011_POST_1.cta);
+    expect(p5.body).toBe(LIVE_011_POST_5.body.slice(0, LIVE_011_POST_5.body.lastIndexOf("\n\n")));
+    expect(p5.body!.endsWith("They are useful prompts for a thoughtful check-in.")).toBe(true);
+    expect(p5.cta).toBe(LIVE_011_POST_5.cta);
+  });
+
+  it("matches in any case or punctuation, keeps a body whose last line only mentions the cta, and does the same for a carousel's last point", () => {
+    const loose = { ...LIVE_011_POST_1, body: LIVE_011_POST_1.body.replace("What helps you keep track of client chats without hovering over your team?", "what helps you keep track of client chats, without hovering over your team") };
+    expect(validateCampaign({ posts: [loose] }, live)![0].body!.endsWith("useful.")).toBe(true);
+    const kept = { ...LIVE_011_POST_1, body: `${LIVE_011_POST_1.body} Tell us below.` };
+    expect(validateCampaign({ posts: [kept] }, live)![0].body).toBe(kept.body);
+    const points = [1, 2, 3, 4].map((i) => `Point ${i}: ${words(10)}`);
+    const got = validateCampaign(written({ 2: { body: [...points, "Save this."].join("\n\n") } }), campaignRequest())!.find((p) => p.n === 2)!;
+    expect(got.body!.split("\n\n")).toEqual(points);
+  });
+});
+
+describe("campaign swap hook (wave 1 live check: calls/013 changed two words of calls/011's post 1 hook)", () => {
+  // calls/013 as sent: the swap of post 1, with every hook of calls/011 in avoid
+  const avoid = [LIVE_011_POST_1.hook, "Who owns the next follow-up?", "If your sales day means jumping between apps, it is easy to lose track of the next step.", LIVE_011_POST_5.hook, "A shared inbox, clearer handovers"];
+  const swap = campaignRequest({ mode: "campaign", swap: true, posts: [LIVE_011_ASK_1], avoid, context: LIVE_011_CONTEXT });
+  const LIVE_013_POST_1 = {
+    n: 1,
+    hook: "Most sales teams think visibility means checking every chat. Here is why that is wrong.",
+    body: "Visibility is not the same as reading every message. When conversations sit across individual WhatsApp accounts, a manager can spend the day checking in and still miss the useful question: where does each client conversation stand?\n\nA shared view can make it easier to spot chats that need a reply, a handover or a follow-up. It also gives the team a clearer picture of what is moving without turning every conversation into a status meeting.\n\nThe point is not to watch every message. It is to make the next step easier to see, while keeping client conversations in context. That can make coordination feel less like chasing updates and more like helping the team keep work moving.",
+    script: "",
+    brief: "",
+    cta: "What makes it hardest to see where team chats stand?",
+  };
+
+  it("refuses the live swap's hook, which shares 'every chat here is' with the old one", () => {
+    const dropped: [number, string][] = [];
+    expect(validateCampaign({ posts: [LIVE_013_POST_1] }, swap, dropped)).toEqual([]);
+    expect(dropped).toEqual([[1, "shares 4 words with a used hook"]]);
+  });
+
+  it("keeps a new hook in the same formula, whose shared words are only the formula's own, and leaves a draft (not a swap) alone", () => {
+    const fresh = { ...LIVE_013_POST_1, hook: "Most sales teams think more chats mean more sales. Here is why that is wrong." };
+    expect(validateCampaign({ posts: [fresh] }, swap)!.map((p) => p.hook)).toEqual([fresh.hook]);
+    // the formula's words count only for its own post: "here is why that" from another hook still echoes
+    expect(validateCampaign({ posts: [fresh] }, { ...swap, posts: [{ ...swap.posts[0], formula: null }] })).toEqual([]);
+    expect(validateCampaign({ posts: [LIVE_013_POST_1] }, { ...swap, swap: false })!.map((p) => p.n)).toEqual([1]);
+  });
+
+  it("tells the writer the hook must be new", () => {
+    expect(buildCampaignPrompt(swap).user).toContain(
+      "Write post 1 again: the same angle, format and stage, with new words and a different opening. The hook must be new: it shares no run of four words with a hook already used, apart from the hook formula's own words.",
+    );
   });
 });
 

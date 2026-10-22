@@ -1077,7 +1077,7 @@ const withoutNobody = (v: unknown) => line(v, 400).replace(/^nobody\b\s*(?::\s*|
  * Leo's rule for titles (wave 1 live check, 21 Oct). A word keeps its capital when it isn't a plain capitalised word
  * (CRM, WhatsApp), is I, follows a stop, or is capitalised mid-sentence in `rest` (a name, such as Singapore).
  */
-function sentenceCase(title: string, rest: string): string {
+export function sentenceCase(title: string, rest: string): string {
   const words = title.split(" ");
   if (words.length < 3 || words.some((w) => /^[^\p{L}]*\p{Ll}/u.test(w))) return title;
   const names = new Set(rest.match(/(?<=[\p{L}\p{N},;]\s+)\p{Lu}[\p{L}'\u2019-]*/gu) ?? []);
