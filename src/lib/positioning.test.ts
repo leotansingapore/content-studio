@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { EMPTY_POSITIONING, GOAL_KINDS, GOAL_WEIGHTS, goalChips, loadPositioning, saveGoal } from "./positioning";
+import { GOAL_KINDS as JUDGE_GOAL_KINDS } from "../../supabase/functions/writing-judge/logic.ts";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const KEY = `content-studio-positioning-${UID}`;
@@ -65,5 +66,11 @@ describe("positioning goal", () => {
     expect(goalChips("business").clients).toBe("Get more sign-ups and enquiries");
     expect(Object.keys(GOAL_WEIGHTS)).toEqual(["clients", "audience", "trust"]);
     expect(GOAL_WEIGHTS.audience).toEqual({ attraction: 6, trust: 3, conversion: 1 });
+  });
+});
+
+describe("goal kinds", () => {
+  it("the server's goal judge picks from exactly the kinds the app stores", () => {
+    expect([...JUDGE_GOAL_KINDS]).toEqual(GOAL_KINDS);
   });
 });
