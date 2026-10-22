@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
 import { cheaperFor, leftOf, limitOf, type Plan } from "@/lib/agentBudget";
 import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
-import { MAX_SCRIPT_WORDS } from "@/lib/agentPlans";
+import { fieldsOf, MAX_SCRIPT_WORDS } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
@@ -81,7 +81,8 @@ export default function ActionCard({
   const field: "script" | "prompt" | null = card.kind === "image" ? "prompt" : isVideo(card) && !stepIs(card, "script") ? "script" : null;
   const current = field === "prompt" ? (card.prompt ?? "") : (card.script ?? []).join(" ");
   const [typed, setTyped] = useState<string | null>(() => (editable ? readTyped(card.id) : null));
-  const [name, setName] = useState(() => readTyped(card.id) ?? str(card.plan.name) ?? "");
+  // the competitor box: what was typed here, else the link or @handle the engine took from the message
+  const [name, setName] = useState(() => readTyped(card.id) ?? fieldsOf(card).input ?? "");
   const [details, setDetails] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +121,7 @@ export default function ActionCard({
   };
   const approve = () => {
     // the competitor box: the name as typed goes on the card before the press
-    if (card.kind === "competitor" && name.trim() !== (str(card.plan.name) ?? "")) {
+    if (card.kind === "competitor" && name.trim() !== (fieldsOf(card).input ?? "")) {
       if (!change({ name: name.trim() })) return;
       writeTyped(card.id, null);
     }
