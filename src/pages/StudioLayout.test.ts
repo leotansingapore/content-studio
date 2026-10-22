@@ -3,7 +3,8 @@
 // with vitest -u.
 //
 // Node has no DOM, so effects never run in a server render. A small shim stands in for useState and useEffect inside
-// StudioLayout's own body only (the PlanPage pin's pattern): the first render collects its effects and the test runs them.
+// StudioLayout's own body only (the PlanPage pin's pattern): each render collects the effects whose deps changed and
+// the test runs them.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -11,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
-const shim = vi.hoisted(() => ({ on: false, i: 0, slots: [] as unknown[], effects: [] as (() => unknown)[] }));
+const shim = vi.hoisted(() => ({ on: false, i: 0, e: 0, slots: [] as unknown[], deps: [] as (unknown[] | undefined)[], effects: [] as (() => unknown)[] }));
 const auth = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
 const jobs = vi.hoisted(() => ({ runAutopilot: vi.fn(async () => undefined), startMorning: vi.fn(), autopilotWaiting: vi.fn(() => 0), onAutopilot: vi.fn(() => () => undefined) }));
 
@@ -23,7 +24,15 @@ vi.mock("react", async (actual) => {
     if (!(i in shim.slots)) shim.slots[i] = typeof init === "function" ? (init as () => unknown)() : init;
     return [shim.slots[i], (v: unknown) => (shim.slots[i] = typeof v === "function" ? (v as (p: unknown) => unknown)(shim.slots[i]) : v)];
   };
-  const useEffect = (fn: () => unknown, deps?: unknown[]) => (shim.on ? void shim.effects.push(fn) : real.useEffect(fn as () => void, deps));
+  // as React does: an effect runs again only when one of its deps changed (cleanups are not run)
+  const useEffect = (fn: () => unknown, deps?: unknown[]) => {
+    if (!shim.on) return real.useEffect(fn as () => void, deps);
+    const k = shim.e++;
+    const prev = shim.deps[k];
+    if (deps && prev && deps.length === prev.length && deps.every((d, j) => Object.is(d, prev[j]))) return;
+    shim.deps[k] = deps;
+    shim.effects.push(fn);
+  };
   return { ...real, default: { ...real, useState, useEffect }, useState, useEffect };
 });
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user }));
@@ -74,9 +83,10 @@ const { default: StudioLayout } = await import("./StudioLayout");
 // React's dev warnings call a component again outside the render to name it in a stack: that call must not
 // touch the shim's state or effects
 function Pinned() {
-  const was = { on: shim.on, i: shim.i, effects: shim.effects.length };
+  const was = { on: shim.on, i: shim.i, e: shim.e, effects: shim.effects.length };
   shim.on = true;
   shim.i = 0;
+  shim.e = 0;
   try {
     return StudioLayout();
   } catch (e) {
@@ -85,6 +95,7 @@ function Pinned() {
   } finally {
     shim.on = was.on;
     shim.i = was.i;
+    shim.e = was.e;
   }
 }
 const draw = (path: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(Pinned)));
@@ -93,6 +104,7 @@ const draw = (path: string) => renderToStaticMarkup(createElement(MemoryRouter, 
  * sign-in), each with a tick for its promises; returns the first frame and the one drawn after them. */
 async function load(path = "/home") {
   shim.slots = [];
+  shim.deps = [];
   shim.effects = [];
   const first = draw(path);
   let loaded = first;
@@ -170,5 +182,27 @@ describe("StudioLayout for Leo", () => {
     expect(loaded.match(/, 4 need you/g)).toHaveLength(2);
     expect(jobs.autopilotWaiting).toHaveBeenCalledWith(UID, "2026-10-23");
     expect(jobs.onAutopilot).toHaveBeenCalled();
+  });
+
+  it("runs autopilot and today's ideas once on load, for the open brand", async () => {
+    as.user = LEO;
+    auth.user = LEO;
+    await load("/calendar");
+    // a page change later does not run them again
+    draw("/plan");
+    for (const fn of shim.effects.splice(0)) fn();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(jobs.runAutopilot).toHaveBeenCalledTimes(1);
+    expect(jobs.runAutopilot).toHaveBeenCalledWith(UID);
+    expect(jobs.startMorning).toHaveBeenCalledTimes(1);
+    expect(jobs.startMorning).toHaveBeenCalledWith(UID);
+  });
+
+  it("starts nothing while the sign-in is still being read", async () => {
+    as.user = undefined;
+    auth.user = LEO;
+    await load();
+    expect(jobs.runAutopilot).not.toHaveBeenCalled();
+    expect(jobs.startMorning).not.toHaveBeenCalled();
   });
 });

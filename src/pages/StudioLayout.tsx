@@ -245,16 +245,22 @@ export default function StudioLayout() {
     void loadRemixPill();
   }, [leo]);
 
-  // Leo's plans (north star phase 5): his autopilot posts waiting for an OK join the Pipeline count, read with the
-  // module that keeps them. Loaded for Leo only, so none of it reaches anyone else's session or the main chunk.
+  // Leo's plans (north star phase 5): his autopilot posts waiting for an OK join the Pipeline count, and autopilot and
+  // today's ideas run once on load, each doing nothing (and spending nothing) until he has turned it on. Loaded for
+  // Leo only, so none of it reaches anyone else's session or the main chunk.
   const leoId = leo?.id;
   const [autopilot, setAutopilot] = useState<{ waiting: (id: string) => number; on: (cb: () => void) => () => void } | null>(null);
   useEffect(() => {
     if (!leoId) return;
     let active = true;
-    void Promise.all([import("@/lib/autopilot"), import("@/lib/autopilotJob")]).then(
-      ([ap, job]) => active && setAutopilot({ waiting: (id) => ap.autopilotWaiting(id, sgDay()), on: job.onAutopilot }),
-      () => {}, // a chunk gone after a deploy: the count leaves autopilot out until the next load
+    void Promise.all([import("@/lib/autopilot"), import("@/lib/autopilotJob"), import("@/lib/ideasInbox")]).then(
+      ([ap, job, ideas]) => {
+        if (!active) return; // React's dev double mount: only the second load runs
+        setAutopilot({ waiting: (id) => ap.autopilotWaiting(id, sgDay()), on: job.onAutopilot });
+        void job.runAutopilot(leoId).catch(() => {}); // its card shows the run's error
+        ideas.startMorning(leoId);
+      },
+      () => {}, // a chunk gone after a deploy: no runs, and the count leaves autopilot out until the next load
     );
     return () => {
       active = false;
