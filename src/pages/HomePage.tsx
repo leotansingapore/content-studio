@@ -19,7 +19,7 @@ import {
   onDraftsChanged,
   draftsOfBrand,
 } from "@/lib/draftHistory";
-import { GOAL_PLATFORMS, MAX_WEEKLY_GOAL, loadGoals, saveGoals, weekProgress, type WeeklyGoals } from "@/lib/goals";
+import { GOAL_PLATFORMS, MAX_WEEKLY_GOAL, loadGoals, saveGoals, sgDay, weekProgress, type WeeklyGoals } from "@/lib/goals";
 import {
   daysOverdue,
   dueHeading,
@@ -50,10 +50,12 @@ import {
   Target,
   Minus,
   Plus,
+  Inbox,
 } from "lucide-react";
 import { loadBrand } from "@/lib/carousel";
 import { checkMe, sharedBoard, waitsOnMe, type Board, type Me } from "@/lib/reelsBoard";
-import { homeToday } from "@/lib/needsYou";
+import { campaignsToReview, homeToday, type PlanCounts } from "@/lib/needsYou";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { marketShown } from "@/lib/market";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
 import WhatMovedCard from "@/components/WhatMovedCard";
@@ -133,6 +135,37 @@ export default function HomePage() {
   const [day, setDay] = useState<{ me: Me; board: Board | null } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Leo's plans (north star phase 5): the counts behind his Today rows and the Today's ideas tile, read from the open
+  // brand's device stores again whenever autopilot, a campaign or the ideas change. Their modules load for Leo only.
+  const leoId = useLeoUser()?.id;
+  const [plan, setPlan] = useState<(PlanCounts & { set: boolean }) | null>(null);
+  useEffect(() => {
+    if (!leoId) return;
+    let active = true;
+    const offs: (() => void)[] = [];
+    void Promise.all([import("@/lib/autopilot"), import("@/lib/autopilotJob"), import("@/lib/campaigns"), import("@/lib/ideasInbox")]).then(
+      ([ap, job, cm, ideas]) => {
+        if (!active) return;
+        const read = () => {
+          const day = sgDay();
+          setPlan({
+            autopilot: ap.autopilotWaiting(leoId, day),
+            campaigns: campaignsToReview(cm.loadCampaigns(leoId)),
+            ideas: ideas.newIdeasCount(leoId, day),
+            set: ideas.hasTodaysSet(ideas.loadIdeas(leoId), new Date()),
+          });
+        };
+        read();
+        offs.push(job.onAutopilot(read), cm.onCampaignsChanged(read), ideas.onIdeasChanged(read));
+      },
+      () => {}, // a chunk gone after a deploy: Home shows no plan rows until the next load
+    );
+    return () => {
+      active = false;
+      offs.forEach((off) => off());
+    };
+  }, [leoId]);
 
   useEffect(() => {
     document.title = "Home - Content Studio";
@@ -241,13 +274,14 @@ export default function HomePage() {
     });
   };
 
-  // Board users' daily jobs, counts and links only (needsYou.homeToday). Leo's "Posting today" counts every brand's drafts.
+  // Board users' daily jobs, counts and links only (needsYou.homeToday). Leo's "Posting today" counts every brand's
+  // drafts; his plan rows count the open brand's, and show even when the board has not answered.
   const today = useMemo(() => {
-    if (!day || !userId) return [];
+    if (!userId || (!day && !plan)) return [];
     const open = activeProfileId(userId);
-    const all = day.me.owner ? [...drafts, ...loadProfiles(userId).filter((p) => p.id !== open).flatMap((p) => draftsOfBrand(userId, p.id))] : [];
-    return homeToday(day.me, day.board, all, localDateKey(), marketShown());
-  }, [day, userId, drafts]);
+    const all = day?.me.owner ? [...drafts, ...loadProfiles(userId).filter((p) => p.id !== open).flatMap((p) => draftsOfBrand(userId, p.id))] : [];
+    return homeToday(day?.me ?? null, day?.board ?? null, all, localDateKey(), marketShown(), plan ?? undefined);
+  }, [day, userId, drafts, plan]);
 
   const kit = loadBrand(userId);
   const checklist = [
@@ -788,7 +822,7 @@ export default function HomePage() {
         <h2 className="font-serif text-lg font-semibold text-foreground">
           Need an idea?
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 ${plan ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2"}`}>
           <Link
             to="/inspiration"
             className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
@@ -821,6 +855,22 @@ export default function HomePage() {
               </p>
             </div>
           </Link>
+          {plan && (
+            <Link
+              to="/ideas"
+              className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                <Inbox className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Today's ideas</p>
+                <p className="text-xs text-muted-foreground">
+                  {plan.set ? `${plan.ideas} new for you today.` : "A fresh set each day, written for you."}
+                </p>
+              </div>
+            </Link>
+          )}
         </div>
       </section>
     </div>

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, notesByBrand, waitingByBrand } from "./needsYou";
+import { badgeText, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, notesByBrand, waitingByBrand } from "./needsYou";
+import { links } from "./links";
+import type { CampaignPost, PostState } from "./campaigns";
 import type { DraftEntry } from "./draftHistory";
 import type { ReelCard, ReelComment, StageId } from "./reelsBoard";
 import type { TeamPost } from "./teamPosts";
@@ -43,6 +45,19 @@ describe("countNeedsYou", () => {
     expect(countNeedsYou(drafts, [team({})], {}, TODAY, 3)).toBe(5);
     expect(countNeedsYou([], [], {}, TODAY, 4)).toBe(4);
     expect(countNeedsYou(drafts, [team({})], {}, TODAY, 0)).toBe(countNeedsYou(drafts, [team({})], {}, TODAY));
+  });
+});
+
+describe("campaignsToReview", () => {
+  const post = (n: number, state: PostState) => ({ n, state }) as CampaignPost;
+  it("counts written posts not yet made, skipped or failed, per campaign with any", () => {
+    const list = [
+      { id: "c-new", posts: [post(1, "ready"), post(2, "ready"), post(3, "made"), post(4, "waiting")] },
+      { id: "c-done", posts: [post(1, "made"), post(2, "skipped"), post(3, "failed"), post(4, "making"), post(5, "drafting")] },
+      { id: "c-old", posts: [post(1, "ready")] },
+    ];
+    expect(campaignsToReview(list)).toEqual([{ id: "c-new", n: 2 }, { id: "c-old", n: 1 }]);
+    expect(campaignsToReview([])).toEqual([]);
   });
 });
 
@@ -106,6 +121,33 @@ describe("homeToday", () => {
       { label: "Team notes: Radiant", n: 1, to: "/reels?brand=radiant&view=feed&stage=notes" },
       { label: "Your market", to: "/market" },
     ]);
+  });
+
+  it("adds Leo's plan rows after the review rows, each only above 0, linking where links.ts would", () => {
+    const plan = { autopilot: 3, campaigns: [{ id: "c-mz1ab", n: 5 }], ideas: 6 };
+    const rows = homeToday({ owner: true, member: false }, board, [], TODAY, false, plan);
+    expect(rows.map((r) => r.label)).toEqual(["To review: MoneyBees", "To review: Radiant", "Posts for your OK", "Campaign posts to review", "Today's ideas", "Posting today", "Team notes: Radiant"]);
+    expect(rows.slice(2, 5)).toEqual([
+      { label: "Posts for your OK", n: 3, to: links.plan({ section: "autopilot" }) },
+      { label: "Campaign posts to review", n: 5, to: links.campaign("c-mz1ab", { section: "queue" }) },
+      { label: "Today's ideas", n: 6, to: links.ideas() },
+    ]);
+    expect(links.plan({ section: "autopilot" })).toBe("/plan#autopilot");
+    expect(homeToday({ owner: true, member: false }, null, [], TODAY, false, { autopilot: 0, campaigns: [], ideas: 0 })).toEqual([{ label: "Posting today", n: 0, to: "/calendar?view=week" }]);
+    expect(homeToday({ owner: true, member: false }, null, [], TODAY, false, { autopilot: 1, campaigns: [], ideas: 0 }).map((r) => r.label)).toEqual(["Posts for your OK", "Posting today"]);
+  });
+
+  it("sends several campaigns' written posts to the list, with their total", () => {
+    const rows = homeToday(null, null, [], TODAY, false, { autopilot: 0, campaigns: [{ id: "a", n: 2 }, { id: "b", n: 4 }], ideas: 0 });
+    expect(rows).toEqual([{ label: "Campaign posts to review", n: 6, to: links.campaigns() }]);
+  });
+
+  it("gives Leo's plan rows with no board answer (signed in as Leo on a brand off the board)", () => {
+    expect(homeToday(null, null, [], TODAY, true, { autopilot: 2, campaigns: [], ideas: 4 })).toEqual([
+      { label: "Posts for your OK", n: 2, to: "/plan#autopilot" },
+      { label: "Today's ideas", n: 4, to: "/ideas" },
+    ]);
+    expect(homeToday(null, null, [], TODAY, true)).toEqual([]);
   });
 
   it("gives a teammate only the review rows, and nothing breaks when the board didn't answer", () => {
