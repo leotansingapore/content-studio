@@ -1,9 +1,12 @@
 // How many things wait on the user, for the count on the Pipeline rail icon and the phone Calendar tab:
 // scheduled posts whose day has passed, and team posts waiting for approval. The calendar's Needs you
 // strip and Overdue block list them; this only counts, from what the device already holds (no network). Leo's
-// autopilot posts waiting for an OK are added by the caller (north star phase 5).
+// autopilot posts waiting for an OK are added by the caller (north star phase 5). needsYouItems ranks the same things,
+// and the agent's, for Leo's Next up on Home (agent-home).
+import type { AgentCard } from "@/lib/agentCards";
 import type { Campaign } from "@/lib/campaigns";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
+import { daysOverdue, overdueLabel, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { statusOf, type TeamPost, type TeamReviews } from "@/lib/teamPosts";
 import { brandOf, feedCards, type Board, type Me, type ReelCard } from "@/lib/reelsBoard";
 
@@ -74,6 +77,143 @@ export function homeToday(me: Me | null, board: Board | null, drafts: DraftEntry
   if (market) rows.push({ label: "Your market", to: "/market" });
   return rows;
 }
+
+/** One thing in Leo's Next up: its words, an optional count, and its buttons (a link, or Mark posted on a draft). */
+export interface NextUpItem {
+  /** Stable per thing, so hiding one never hides another. */
+  id: string;
+  kind: "card" | "failed" | "overdue" | "today" | "team" | "unscheduled" | "autopilot" | "campaign" | "ideas" | "market" | "setup";
+  title: string;
+  /** The post's or card's own words. */
+  quote?: string;
+  line?: string;
+  n?: number;
+  actions: { label: string; to?: string; markPosted?: string }[];
+}
+
+/** What Next up reads from the device; a source left out adds nothing. */
+export interface NextUpInput {
+  /** agentRun's waitingCards, each with its price line. */
+  cards?: { thread: string; msg: string; card: Pick<AgentCard, "id" | "kind" | "title">; price?: string | null }[];
+  /** The brand's agent chats, for asks that failed in the last 24 hours. */
+  threads?: { id: string; messages: { id: string; card?: Pick<AgentCard, "status" | "title" | "decidedAt">; job?: { state: string; endedAt?: string; title?: string } }[] }[];
+  /** The open brand's posts. */
+  drafts: DraftEntry[];
+  /** Posts board: To review per brand; for its owner also Team notes, Your market and the other brands' posts out today. */
+  me?: Me | null;
+  board?: Board | null;
+  otherDrafts?: DraftEntry[];
+  market?: boolean;
+  teamPosts?: TeamPost[];
+  reviews?: TeamReviews;
+  autopilot?: number;
+  campaigns?: Pick<Campaign, "id" | "name" | "audienceName" | "posts">[];
+  ideas?: number;
+  /** The first undone "Get set up" step. */
+  setup?: { label: string; to: string } | null;
+  /** Item ids hidden on this device, with the day each was hidden. */
+  hidden?: Record<string, string>;
+}
+
+const CARD_NOUN: Partial<Record<AgentCard["kind"], string>> = {
+  video: "A video", explainer: "A video", image: "A picture", edit: "A change", move: "A move",
+  competitor: "A competitor", learning: "A note", campaign: "A campaign",
+};
+const DAY_MS = 86_400_000;
+const hookOf = (d: DraftEntry) => d.hook || d.draft.slice(0, 60) || "Untitled";
+
+/**
+ * Leo's Next up, in a fixed order (a product rule, so no Jev): agent cards waiting, failures, overdue, today, team
+ * posts and the board's reviews and notes, unscheduled made posts, autopilot, campaigns, today's ideas, Your market,
+ * then setup. Items hidden today drop out; a hide from another day counts for nothing. Plain URLs, as homeToday's.
+ */
+export function needsYouItems(input: NextUpInput, today: string, now = Date.now()): NextUpItem[] {
+  const items: NextUpItem[] = [];
+  const recent = (at: string | undefined, days: number) => !!at && now - Date.parse(at) < days * DAY_MS;
+  const agentLink = (thread: string, msg: string) => `/agent/${encodeURIComponent(thread)}?m=${encodeURIComponent(msg)}`;
+  const draftLink = (id: string, panel?: "post") => `/generate?draft=${encodeURIComponent(id)}${panel ? "&panel=post" : ""}`;
+  const scheduled = (d: DraftEntry) => draftStatus(d) === "scheduled" && !!d.scheduledFor;
+
+  for (const { thread, msg, card, price } of input.cards ?? [])
+    items.push({
+      id: `card:${card.id}`, kind: "card", title: `${CARD_NOUN[card.kind] ?? "A post"} is waiting for your yes`,
+      quote: card.title, line: price ?? undefined, actions: [{ label: "Open", to: agentLink(thread, msg) }],
+    });
+
+  for (const d of input.drafts.filter((x) => x.zernio?.status === "failed"))
+    items.push({ id: `failed:${d.id}`, kind: "failed", title: "A post didn't go out", quote: hookOf(d), line: "Try it again or post it yourself.", actions: [{ label: "Open", to: draftLink(d.id, "post") }] });
+  for (const t of input.threads ?? [])
+    for (const m of t.messages) {
+      const failed = (m.card?.status === "failed" && recent(m.card.decidedAt, 1)) || (m.job?.state === "failed" && recent(m.job.endedAt, 1));
+      if (failed)
+        items.push({ id: `failed:${m.id}`, kind: "failed", title: "Something you asked for wasn't made", quote: m.card?.title ?? m.job?.title, line: "Nothing was used.", actions: [{ label: "Open", to: agentLink(t.id, m.id) }] });
+    }
+
+  const overdue = input.drafts
+    .filter((d) => scheduled(d) && d.scheduledFor!.slice(0, 10) < today)
+    .sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? 1 : -1));
+  if (overdue.length) {
+    const d = overdue[0];
+    items.push({
+      id: "overdue", kind: "overdue", title: overdue.length === 1 ? "1 post is overdue" : `${overdue.length} posts are overdue`,
+      quote: hookOf(d), line: overdueLabel(daysOverdue(d.scheduledFor!, today), scheduleTime(d.scheduledFor)),
+      actions: [{ label: "Reschedule", to: "/calendar#overdue" }, { label: "Mark posted", markPosted: d.id }],
+    });
+  }
+
+  const dueToday = input.drafts.filter((d) => scheduled(d) && d.scheduledFor!.slice(0, 10) === today).sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? -1 : 1));
+  const elsewhere = input.me?.owner ? countPostingToday(input.board?.cards ?? [], input.otherDrafts ?? [], today) : 0;
+  const goOut = dueToday.length + elsewhere;
+  if (goOut) {
+    const d = dueToday[0];
+    const time = d && scheduleTime(d.scheduledFor);
+    items.push({
+      id: "today", kind: "today", title: goOut === 1 ? "1 post goes out today" : `${goOut} posts go out today`,
+      quote: d && hookOf(d), line: time ? timeLabel(time) : undefined,
+      actions: [{ label: "Open", to: d ? draftLink(d.id) : "/calendar?view=week" }],
+    });
+  }
+
+  const waiting = (input.teamPosts ?? []).filter((p) => statusOf(p, input.reviews?.[p.id]) === "waiting").sort((a, b) => (`${a.day}T${a.time}` < `${b.day}T${b.time}` ? -1 : 1));
+  if (waiting.length)
+    items.push({
+      id: "team", kind: "team", title: waiting.length === 1 ? "1 team post waits for you" : `${waiting.length} team posts wait for you`,
+      line: "Approve or skip each one.", actions: [{ label: "Review", to: `/calendar?business=team-posts&teampost=${encodeURIComponent(waiting[0].id)}` }],
+    });
+  const board = input.board;
+  for (const b of board ? waitingByBrand(board, "") : [])
+    items.push({ id: `review:${b.id}`, kind: "team", title: `To review: ${b.name}`, n: b.n, actions: [{ label: "Review", to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}` }] });
+  if (input.me?.owner)
+    for (const b of board ? notesByBrand(board, input.me) : [])
+      items.push({ id: `notes:${b.id}`, kind: "team", title: `Team notes: ${b.name}`, n: b.n, actions: [{ label: "Open", to: `/reels?brand=${encodeURIComponent(b.id)}&view=feed&stage=notes` }] });
+
+  const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  for (const d of made)
+    items.push({
+      id: `draft:${d.id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(d), line: "Schedule it, or leave it in My posts.",
+      actions: [{ label: "Open", to: draftLink(d.id) }, { label: "Schedule", to: draftLink(d.id, "post") }],
+    });
+
+  if (input.autopilot) items.push({ id: "autopilot", kind: "autopilot", title: "Posts for your OK", n: input.autopilot, actions: [{ label: "Open", to: "/plan#autopilot" }] });
+  for (const c of input.campaigns ?? []) {
+    const ready = c.posts.filter((p) => p.state === "ready").length;
+    if (!ready) continue;
+    const done = c.posts.filter((p) => p.state === "made").length;
+    items.push({
+      id: `campaign:${c.id}`, kind: "campaign", title: "Keep making your campaign", quote: c.audienceName || c.name,
+      line: `${done} of ${c.posts.length} made | ${ready} ${ready === 1 ? "draft" : "drafts"} waiting for you`,
+      actions: [{ label: "Open", to: `/campaigns/${encodeURIComponent(c.id)}#queue` }],
+    });
+  }
+  if (input.ideas) items.push({ id: "ideas", kind: "ideas", title: "Today's ideas", n: input.ideas, actions: [{ label: "Open", to: "/ideas" }] });
+  if (input.market && input.me?.owner) items.push({ id: "market", kind: "market", title: "Your market", actions: [{ label: "Open", to: "/market" }] });
+  if (input.setup) items.push({ id: "setup", kind: "setup", title: input.setup.label, actions: [{ label: "Open", to: input.setup.to }] });
+
+  return items.filter((i) => input.hidden?.[i.id] !== today);
+}
+
+/** Next up's label: "NEXT UP" alone when empty. */
+export const nextUpLabel = (n: number) => (n === 0 ? "NEXT UP" : n === 1 ? "NEXT UP | THE 1 THING THAT NEEDS YOU" : `NEXT UP | 1 OF ${n} THAT NEED YOU`);
 
 // The posts board hands the shell its new count after every change, so the badge drops without another board call.
 const BOARD_WAITING = "content-studio-board-waiting";

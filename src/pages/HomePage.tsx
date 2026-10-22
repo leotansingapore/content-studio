@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,10 @@ import { marketShown } from "@/lib/market";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
 import WhatMovedCard from "@/components/WhatMovedCard";
 import GoalLine from "@/components/GoalLine";
+import type { Campaign } from "@/lib/campaigns";
+
+// Leo's Home (agent-home): its own chunk, so the agent engine never loads for anyone else.
+const AgentHome = lazy(() => import("@/components/home/AgentHome"));
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -116,19 +120,29 @@ function StatCard({
   );
 }
 
+/** The greeting's name: the email's prefix when it is 2 to 18 letters. */
+function nameOf(email: string): string {
+  const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
+  return /^[a-zA-Z ]{2,18}$/.test(prefix) ? prefix : "";
+}
+
 export default function HomePage() {
+  // Leo's sign-in is known from the stored session on the first frame, so his Home reads the device at once (uid)
+  // rather than after the Auth round trip; everyone else starts empty, as before.
+  const leo = useLeoUser();
   const [userId, setUserId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  const uid = userId ?? leo?.id ?? null;
+  const [drafts, setDrafts] = useState<DraftEntry[]>(() => (leo ? loadDrafts(leo.id) : []));
   // The assistant moves posts from outside this page: read them again when it does.
-  useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
+  useEffect(() => (uid ? onDraftsChanged(() => setDrafts(loadDrafts(uid))) : undefined), [uid]);
   // Team rule: members on approval can't mark a post posted until it is approved.
-  const reviews = useDraftReviews(userId, drafts);
-  const [voiceReady, setVoiceReady] = useState<boolean>(true);
-  const [coachRuns, setCoachRuns] = useState<number>(0);
-  const [goals, setGoals] = useState<WeeklyGoals>({});
+  const reviews = useDraftReviews(uid, drafts);
+  const [voiceReady, setVoiceReady] = useState<boolean>(() => (leo ? isVoiceProfileUsable(loadVoiceProfile(leo.id)) : true));
+  const [coachRuns, setCoachRuns] = useState<number>(() => (leo ? loadCoachHistory(leo.id).length : 0));
+  const [goals, setGoals] = useState<WeeklyGoals>(() => (leo ? loadGoals(leo.id) : {}));
   // Goal being edited on the This week card (null = not editing).
   const [goalDraft, setGoalDraft] = useState<WeeklyGoals | null>(null);
-  const [name, setName] = useState<string>("");
+  const [name, setName] = useState<string>(() => (leo ? nameOf(leo.email) : ""));
   const [nextAct, setNextAct] = useState<NextAction | null>(null);
   const [contentScore, setContentScore] = useState<number | null>(null);
   // Posts board users: who they are on the team and the board (null when it didn't answer).
@@ -136,10 +150,10 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Leo's plans (north star phase 5): the counts behind his Today rows and the Today's ideas tile, read from the open
-  // brand's device stores again whenever autopilot, a campaign or the ideas change. Their modules load for Leo only.
-  const leoId = useLeoUser()?.id;
-  const [plan, setPlan] = useState<(PlanCounts & { set: boolean }) | null>(null);
+  // Leo's plans (north star phase 5): what his Next up counts, and the Today's ideas tile, read from the open brand's
+  // device stores again whenever autopilot, a campaign or the ideas change. Their modules load for Leo only.
+  const leoId = leo?.id;
+  const [plan, setPlan] = useState<(PlanCounts & { list: Campaign[] }) | null>(null);
   useEffect(() => {
     if (!leoId) return;
     let active = true;
@@ -149,11 +163,12 @@ export default function HomePage() {
         if (!active) return;
         const read = () => {
           const day = sgDay();
+          const list = cm.loadCampaigns(leoId);
           setPlan({
             autopilot: ap.autopilotWaiting(leoId, day),
-            campaigns: campaignsToReview(cm.loadCampaigns(leoId)),
+            campaigns: campaignsToReview(list),
+            list,
             ideas: ideas.newIdeasCount(leoId, day),
-            set: ideas.hasTodaysSet(ideas.loadIdeas(leoId), new Date()),
           });
         };
         read();
@@ -184,9 +199,7 @@ export default function HomePage() {
         return;
       }
       setUserId(id);
-      const email = data.user?.email ?? "";
-      const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
-      setName(/^[a-zA-Z ]{2,18}$/.test(prefix) ? prefix : "");
+      setName(nameOf(data.user?.email ?? ""));
       setDrafts(loadDrafts(id));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setCoachRuns(loadCoachHistory(id).length);
@@ -256,18 +269,18 @@ export default function HomePage() {
 
   const markDuePosted = (id: string) => {
     const prev = drafts.find((d) => d.id === id);
-    if (!userId || !prev) return;
+    if (!uid || !prev) return;
     const blocked = reviews.blockReason(prev);
     if (blocked) {
       toast({ title: "Approval needed before posting", description: `Team rule. ${blocked}` });
       return;
     }
     const before = drafts;
-    setDrafts(setDraftStatus(userId, id, "posted"));
+    setDrafts(setDraftStatus(uid, id, "posted"));
     toast({
       title: "Marked as posted",
       action: (
-        <ToastAction altText="Undo" onClick={() => setDrafts(undoPosted(userId, prev, before))}>
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoPosted(uid, prev, before))}>
           Undo
         </ToastAction>
       ),
@@ -283,7 +296,7 @@ export default function HomePage() {
     return homeToday(day?.me ?? null, day?.board ?? null, all, localDateKey(), marketShown(), plan ?? undefined);
   }, [day, userId, drafts, plan]);
 
-  const kit = loadBrand(userId);
+  const kit = loadBrand(uid);
   const checklist = [
     { done: voiceReady, label: "Set your voice", to: "/voice" },
     // the brand kit puts your photo, name and sign-off on every carousel, video and copied post
@@ -294,271 +307,296 @@ export default function HomePage() {
   ];
   const checklistDone = checklist.filter((c) => c.done).length;
   const showChecklist = checklistDone < checklist.length;
+  const greet = (
+    <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
+      {greeting()}
+      {name ? (
+        <span className="capitalize">, {name}</span>
+      ) : null}
+    </h1>
+  );
 
   return (
     <div className="space-y-8">
-      {today.length > 0 && (
-        <section aria-labelledby="home-today" className="space-y-2">
-          <h2 id="home-today" className="text-sm font-semibold text-foreground">
-            Today
-          </h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {today.map((r) => (
-              <Link
-                key={r.to}
-                to={r.to}
-                className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm shadow-card transition-colors hover:border-primary/40 [@media(pointer:coarse)]:min-h-11"
-              >
-                <span className="min-w-0 flex-1 truncate font-medium text-foreground">{r.label}</span>
-                {r.n !== undefined && <span className="shrink-0 font-semibold tabular-nums text-foreground">{r.n}</span>}
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Due today / overdue reminder */}
-      {dueNow.length > 0 && (
-        <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <CalendarClock className="h-4 w-4 text-warning" />
-            {dueHeading(dueNow.length, overdueCount)}
-          </p>
-          <div className="space-y-1.5">
-            {dueNow.slice(0, 3).map(({ draft: d, days }) => (
-              <div
-                key={d.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2"
-              >
-                <div className="w-full min-w-0 sm:w-auto sm:flex-1">
-                  <p className="line-clamp-2 text-sm font-medium text-foreground sm:truncate">
-                    {d.hook || d.draft.slice(0, 60) || "Untitled"}
-                  </p>
-                  <p
-                    className={`text-[11px] ${days > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}
+      {leoId ? (
+        // the greeting paints at once; Next up, the tiles and the composer follow with the chunk
+        <Suspense fallback={<header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3"><div className="min-w-0">{greet}<GoalLine /></div></header>}>
+          <AgentHome
+            userId={leoId}
+            greeting={<>{greet}<GoalLine /></>}
+            drafts={drafts}
+            day={day}
+            plan={plan}
+            market={marketShown()}
+            setup={checklist.find((c) => !c.done) ?? null}
+            markPosted={markDuePosted}
+            blocked={(id) => {
+              const d = drafts.find((x) => x.id === id);
+              return d ? reviews.blockReason(d) : null;
+            }}
+          />
+        </Suspense>
+      ) : (
+        <>
+          {today.length > 0 && (
+            <section aria-labelledby="home-today" className="space-y-2">
+              <h2 id="home-today" className="text-sm font-semibold text-foreground">
+                Today
+              </h2>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {today.map((r) => (
+                  <Link
+                    key={r.to}
+                    to={r.to}
+                    className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm shadow-card transition-colors hover:border-primary/40 [@media(pointer:coarse)]:min-h-11"
                   >
-                    {overdueLabel(days, scheduleTime(d.scheduledFor))}
-                    {days > 0 && (
-                      <>
-                        {" "}
-                        · scheduled{" "}
-                        {new Date(d.scheduledFor!.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        {scheduleTime(d.scheduledFor) && `, ${timeLabel(scheduleTime(d.scheduledFor)!)}`}
-                      </>
-                    )}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
-                    <Link to={`/generate?draft=${d.id}`}>Open</Link>
-                  </Button>
-                  {days > 0 && (
-                    <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
-                      <Link to="/calendar#overdue">Reschedule</Link>
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={() => markDuePosted(d.id)}
-                    disabled={reviews.blockReason(d) !== null}
-                    title={reviews.blockReason(d) ?? undefined}
-                    className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11"
-                  >
-                    <CheckCircle2 className="h-3 w-3" /> Mark posted
-                  </Button>
-                </div>
+                    <span className="min-w-0 flex-1 truncate font-medium text-foreground">{r.label}</span>
+                    {r.n !== undefined && <span className="shrink-0 font-semibold tabular-nums text-foreground">{r.n}</span>}
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  </Link>
+                ))}
               </div>
-            ))}
-          </div>
-          {dueNow.length > 3 && (
-            <Link
-              to="/calendar"
-              className="inline-block py-1 text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3"
-            >
-              See all {dueNow.length} on the calendar
-            </Link>
+            </section>
           )}
-        </section>
-      )}
 
-      {/* Greeting + primary actions */}
-      <section className="space-y-5">
-        <header>
-          <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
-            {greeting()}
-            {name ? (
-              <span className="capitalize">, {name}</span>
-            ) : null}
-          </h1>
-          <GoalLine />
-        </header>
+          {/* Due today / overdue reminder */}
+          {dueNow.length > 0 && (
+            <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <CalendarClock className="h-4 w-4 text-warning" />
+                {dueHeading(dueNow.length, overdueCount)}
+              </p>
+              <div className="space-y-1.5">
+                {dueNow.slice(0, 3).map(({ draft: d, days }) => (
+                  <div
+                    key={d.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2"
+                  >
+                    <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+                      <p className="line-clamp-2 text-sm font-medium text-foreground sm:truncate">
+                        {d.hook || d.draft.slice(0, 60) || "Untitled"}
+                      </p>
+                      <p
+                        className={`text-[11px] ${days > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                      >
+                        {overdueLabel(days, scheduleTime(d.scheduledFor))}
+                        {days > 0 && (
+                          <>
+                            {" "}
+                            · scheduled{" "}
+                            {new Date(d.scheduledFor!.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
+                              day: "numeric",
+                              month: "short",
+                            })}
+                            {scheduleTime(d.scheduledFor) && `, ${timeLabel(scheduleTime(d.scheduledFor)!)}`}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
+                        <Link to={`/generate?draft=${d.id}`}>Open</Link>
+                      </Button>
+                      {days > 0 && (
+                        <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
+                          <Link to="/calendar#overdue">Reschedule</Link>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={() => markDuePosted(d.id)}
+                        disabled={reviews.blockReason(d) !== null}
+                        title={reviews.blockReason(d) ?? undefined}
+                        className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11"
+                      >
+                        <CheckCircle2 className="h-3 w-3" /> Mark posted
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {dueNow.length > 3 && (
+                <Link
+                  to="/calendar"
+                  className="inline-block py-1 text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3"
+                >
+                  See all {dueNow.length} on the calendar
+                </Link>
+              )}
+            </section>
+          )}
 
-        {/* Your next move — the single most important thing to do now. Driven
-            by the Content Diagnosis so the Home never leaves you wondering. */}
-        {nextAct?.kind === "mission" && nextAct.mission && (
-          <Card className="border-primary/30 bg-primary/[0.05] shadow-card">
-            <CardContent className="space-y-3 py-5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-                  Your next move
-                </p>
-                {contentScore !== null && (
+          {/* Greeting + primary actions */}
+          <section className="space-y-5">
+            <header>
+              {greet}
+              <GoalLine />
+            </header>
+
+            {/* Your next move — the single most important thing to do now. Driven
+                by the Content Diagnosis so the Home never leaves you wondering. */}
+            {nextAct?.kind === "mission" && nextAct.mission && (
+              <Card className="border-primary/30 bg-primary/[0.05] shadow-card">
+                <CardContent className="space-y-3 py-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+                      Your next move
+                    </p>
+                    {contentScore !== null && (
+                      <Link
+                        to="/coach"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
+                      >
+                        <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
+                      </Link>
+                    )}
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Target className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        {nextAct.headline}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">
+                        Mission: {nextAct.mission.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {nextAct.mission.objective}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      asChild
+                      className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+                    >
+                      <Link to={nextAct.mission.to}>
+                        Start mission <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {nextAct?.kind === "diagnose" && (
+              <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Gauge className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Get your Content Score
+                      </p>
+                      <p className="max-w-md text-xs text-muted-foreground">
+                        {nextAct.detail}
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5 [@media(pointer:coarse)]:h-11">
+                    <Link to="/coach">
+                      Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            {nextAct?.kind === "maintain" && contentScore !== null && (
+              <Card className="border-success/30 bg-success/[0.05] shadow-card">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {nextAct.headline}
+                      </p>
+                      <p className="max-w-md text-xs text-muted-foreground">
+                        {nextAct.detail}
+                      </p>
+                    </div>
+                  </div>
                   <Link
                     to="/coach"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
                   >
                     <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
                   </Link>
-                )}
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Target className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {nextAct.headline}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">
-                    Mission: {nextAct.mission.title}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {nextAct.mission.objective}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  asChild
-                  className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-                >
-                  <Link to={nextAct.mission.to}>
-                    Start mission <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {nextAct?.kind === "diagnose" && (
-          <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="flex items-start gap-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Gauge className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Get your Content Score
-                  </p>
-                  <p className="max-w-md text-xs text-muted-foreground">
-                    {nextAct.detail}
-                  </p>
-                </div>
-              </div>
-              <Button asChild size="sm" variant="outline" className="gap-1.5 [@media(pointer:coarse)]:h-11">
-                <Link to="/coach">
-                  Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+              >
+                <Link to="/generate">
+                  <Pencil className="h-4 w-4" /> Write a post
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-        )}
-        {nextAct?.kind === "maintain" && contentScore !== null && (
-          <Card className="border-success/30 bg-success/[0.05] shadow-card">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="flex items-start gap-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {nextAct.headline}
-                  </p>
-                  <p className="max-w-md text-xs text-muted-foreground">
-                    {nextAct.detail}
-                  </p>
-                </div>
-              </div>
-              <Link
-                to="/coach"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
-              >
-                <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            asChild
-            size="lg"
-            className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
-          >
-            <Link to="/generate">
-              <Pencil className="h-4 w-4" /> Write a post
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="gap-2">
-            <Link to="/plan">
-              <CalendarRange className="h-4 w-4" /> Plan a week
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="gap-2">
-            <Link to="/generate/batch">
-              <Layers className="h-4 w-4" /> Weekly batch
-            </Link>
-          </Button>
-        </div>
-      </section>
-
-      {/* Get-started checklist (until every step is done) */}
-      {showChecklist && (
-        <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
-          <CardContent className="space-y-3 py-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-foreground">
-                Get set up
-              </p>
-              <span className="text-xs font-medium text-muted-foreground">
-                {checklistDone} / {checklist.length} done
-              </span>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {checklist.map((c) => (
-                <Link
-                  key={c.label}
-                  to={c.to}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors [@media(pointer:coarse)]:min-h-11 ${
-                    c.done
-                      ? "border-success/30 bg-success/5 text-muted-foreground"
-                      : "border-border/70 bg-card text-foreground hover:border-primary/40"
-                  }`}
-                >
-                  {c.done ? (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
-                  ) : (
-                    <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className={c.done ? "line-through" : "font-medium"}>
-                    {c.label}
-                  </span>
-                  {!c.done && (
-                    <ArrowRight className="ml-auto h-3.5 w-3.5 text-primary" />
-                  )}
+              <Button asChild size="lg" variant="outline" className="gap-2">
+                <Link to="/plan">
+                  <CalendarRange className="h-4 w-4" /> Plan a week
                 </Link>
-              ))}
+              </Button>
+              <Button asChild size="lg" variant="outline" className="gap-2">
+                <Link to="/generate/batch">
+                  <Layers className="h-4 w-4" /> Weekly batch
+                </Link>
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </section>
+
+          {/* Get-started checklist (until every step is done) */}
+          {showChecklist && (
+            <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
+              <CardContent className="space-y-3 py-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-foreground">
+                    Get set up
+                  </p>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {checklistDone} / {checklist.length} done
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {checklist.map((c) => (
+                    <Link
+                      key={c.label}
+                      to={c.to}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors [@media(pointer:coarse)]:min-h-11 ${
+                        c.done
+                          ? "border-success/30 bg-success/5 text-muted-foreground"
+                          : "border-border/70 bg-card text-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      {c.done ? (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+                      ) : (
+                        <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className={c.done ? "line-through" : "font-medium"}>
+                        {c.label}
+                      </span>
+                      {!c.done && (
+                        <ArrowRight className="ml-auto h-3.5 w-3.5 text-primary" />
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* What moved this week (Leo only; /home#what-moved) */}
@@ -865,9 +903,8 @@ export default function HomePage() {
               </span>
               <div>
                 <p className="text-sm font-semibold text-foreground">Today's ideas</p>
-                <p className="text-xs text-muted-foreground">
-                  {plan.set ? `${plan.ideas} new for you today.` : "A fresh set each day, written for you."}
-                </p>
+                {/* the count lives in Next up */}
+                <p className="text-xs text-muted-foreground">A fresh set each day, written for you.</p>
               </div>
             </Link>
           )}
