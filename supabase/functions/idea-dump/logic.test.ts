@@ -414,6 +414,8 @@ describe("validateLong", () => {
 });
 
 // ---- Pins (phase 5): today's prompts, byte for byte ---------------------------
+
+import { COMPLIANCE_LINES } from "./logic.ts";
 // Never update these with vitest -u: the default and long modes are live for everyone, and every later change
 // to logic.ts (COMPLIANCE_LINES, the plan modes) must leave them exactly as they are.
 
@@ -430,6 +432,13 @@ const PIN_BODY = {
 const promptText = (p: { system: string; user: string }) => `${p.system}\n\n===== user =====\n\n${p.user}\n`;
 
 describe("pinned prompts", () => {
+  it("sends COMPLIANCE_LINES in the default prompt as one block", () => {
+    const r = parseIdeaDumpRequest({ notes: "why young adults skip hospital plans" });
+    if (!r.ok) throw new Error("parse");
+    expect(buildIdeaDumpPrompt(r.request).system).toContain(`\n\n${COMPLIANCE_LINES.join("\n")}\n\n`);
+    expect(COMPLIANCE_LINES).toHaveLength(7);
+  });
+
   it("keeps the default prompt with a saved profile", async () => {
     const r = parseIdeaDumpRequest({ ...PIN_BODY, notes: "- why young adults skip hospital plans\n- CPF top ups before December\n- the day I left engineering for this job" });
     if (!r.ok) throw new Error("parse");

@@ -235,6 +235,17 @@ export function parseIdeaDumpRequest(body: unknown): ParseResult {
 
 // ---- Prompt -------------------------------------------------------------------
 
+/** The brief prompt's MAS block, which every new mode (angles, campaign, ideas) sends too. */
+export const COMPLIANCE_LINES = [
+  "Compliance (MAS fair dealing and advertising rules). Every idea, angle, hook, point and CTA must:",
+  '- never promise or imply guaranteed returns or payouts, and never use the word "guaranteed" about them;',
+  '- never say risk-free, no risk, 100% safe or completely safe;',
+  "- never quote a specific return or interest rate, and never promise an outcome;",
+  "- never call a product, plan or insurer the best or number one;",
+  '- never pressure people ("act now", "before it\'s too late");',
+  '- stay general education rather than personal product advice, and never invent client stories, statistics or testimonials. Where a point needs a figure, write "[check the latest figure]".',
+];
+
 export function buildIdeaDumpPrompt(input: Pick<IdeaDumpRequest, "ideas" | "context">): {
   system: string;
   user: string;
@@ -265,13 +276,7 @@ export function buildIdeaDumpPrompt(input: Pick<IdeaDumpRequest, "ideas" | "cont
     "- trust: middle of funnel. Name a real pain point and show how you solve it: teaching, frameworks, checklists, before-and-after. The CTA invites a save or share, or offers a free resource.",
     "- conversion: bottom of funnel. Make the offer clear: what working together looks like, why now, why you. A direct but low-pressure CTA such as a DM keyword or a 15-minute review.",
     "",
-    "Compliance (MAS fair dealing and advertising rules). Every idea, angle, hook, point and CTA must:",
-    '- never promise or imply guaranteed returns or payouts, and never use the word "guaranteed" about them;',
-    '- never say risk-free, no risk, 100% safe or completely safe;',
-    "- never quote a specific return or interest rate, and never promise an outcome;",
-    "- never call a product, plan or insurer the best or number one;",
-    '- never pressure people ("act now", "before it\'s too late");',
-    '- stay general education rather than personal product advice, and never invent client stories, statistics or testimonials. Where a point needs a figure, write "[check the latest figure]".',
+    ...COMPLIANCE_LINES,
     "",
     "Use Singapore references (CPF, MediShield Life, Integrated Shield plans, HDB, SRS) only when they fit the note. Plain English. No hashtags, no emojis, no em dashes.",
     "If a voice sample is given, write the hooks, points and CTA the way that consultant talks.",
