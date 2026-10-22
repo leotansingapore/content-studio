@@ -7,8 +7,10 @@ vi.mock("@/lib/videoMedia", () => ({ currentJoin: vi.fn(() => null), monoPcm: vi
 
 import { callFn } from "@/lib/edgeFn";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
+import { getFile } from "@/lib/deviceFiles";
 import { startJoin } from "@/lib/videoMedia";
-import { SHORTEST, SNAP, beatTimes, chooseFor, describe, montageJob, noteOf, snapCuts, startMontage } from "./montage";
+import type { MediaItem } from "@/lib/mediaLibrary";
+import { SHORTEST, SNAP, beatTimes, chooseFor, chooseFromSet, describe, montageJob, noteOf, setCandidates, snapCuts, startMontage } from "./montage";
 import type { StockItem } from "./stockMedia";
 
 const item = (id: string, slug = "x"): StockItem => ({ id, w: 720, h: 1280, alt: "", thumb: "", src: "", by: "", byUrl: "", url: `https://www.pexels.com/video/${slug}-${id}/`, duration: 10 });
@@ -153,5 +155,66 @@ suite("everyone's montage", () => {
     expect(opts).toMatchObject({ mute: true, extra: { note: 'Left out for lack of a clip: "Rain on the window".', settings: { filter: "warm", captions: false } } });
     expect(opts?.extra?.settings?.overlays?.map((o) => [o.text, o.from, o.to])).toEqual([["Start slow", 0.1, 3.9]]);
     expect(opts?.extra && "draftId" in opts.extra).toBe(false);
+  });
+});
+
+suite("a montage from a clip set", () => {
+  const clip = (n: number, seconds: number, alt = `clip ${n}`): MediaItem => ({ key: `cvid-clip00${n}`, name: `c${n}`, folder: "City clips", alt, width: 720, height: 1280, addedAt: `2026-10-1${n}`, kind: "video", seconds });
+
+  it("offers each beat only the set's clips at least as long as it, the ones with no words last", () => {
+    const clips = [clip(1, 3), clip(2, 8, ""), clip(3, 5), clip(4, 12)];
+    const got = setCandidates(clips, [4, 6, 10, 20]);
+    expect(got.map((xs) => xs.map((c) => c.key))).toEqual([
+      ["cvid-clip003", "cvid-clip004", "cvid-clip002"],
+      ["cvid-clip004", "cvid-clip002"],
+      ["cvid-clip004"],
+      [],
+    ]);
+    for (const [i, len] of [4, 6, 10, 20].entries()) for (const c of got[i]) expect(c.seconds).toBeGreaterThanOrEqual(len);
+  });
+
+  it("takes Jev's pick or the first unused, never a clip twice, and sends a none to stock", () => {
+    const a = [clip(1, 9), clip(2, 9)];
+    expect(chooseFromSet([a, a, a, []], [1, 1, -1, null]).map((c) => c?.key ?? null)).toEqual(["cvid-clip002", "cvid-clip001", null, null]);
+    expect(chooseFromSet([a, a, a], [null, null, null]).map((c) => c?.key ?? null)).toEqual(["cvid-clip001", "cvid-clip002", null]);
+  });
+
+  it("says which beats came from stock", () => {
+    expect(noteOf({ swapped: [], missed: [], stock: { set: "City clips", beats: [] } })).toBe("");
+    expect(noteOf({ swapped: [], missed: [], stock: { set: "City clips", beats: ["Rain on the window", "Hawker lunch"] } })).toBe('From stock, as nothing in City clips fit: "Rain on the window", "Hawker lunch".');
+  });
+
+  it("fills the beats from the set with one set pick, and only the rest from stock, labelled stock", async () => {
+    vi.mocked(callFn).mockReset();
+    vi.mocked(searchStock).mockReset();
+    vi.mocked(startJoin).mockReset();
+    const beats = [
+      { say: "Kopi at dawn", search: "coffee morning", fallback: "coffee", text: "", seconds: 4 },
+      { say: "The MRT fills up", search: "train commute", fallback: "city crowd", text: "", seconds: 4 },
+      { say: "Night lights", search: "city night", fallback: "city night", text: "", seconds: 4 },
+      { say: "Hawker lunch", search: "hawker food", fallback: "street food", text: "", seconds: 6 },
+    ];
+    let picks = 0;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as { mode: string }).mode === "montage" ? { beats, grade: "warm" } : { picks: ++picks === 1 ? [0, -1, 1, null] : [0, 0, 0, 0] }));
+    vi.mocked(searchStock).mockImplementation(async (_k, q) => ({ items: [{ ...item(String(q.length), q.replace(/ /g, "-")), src: `https://p/${q}.mp4` }], more: false }));
+    vi.mocked(downloadStock).mockImplementation(async (src: string) => new Blob([src]));
+    vi.mocked(getFile).mockImplementation(async (k: string) => new Blob([`file ${k}`]));
+    const clips = [clip(1, 9, "busy train platform"), clip(2, 5, "city lights at night"), clip(3, 2, "too short")];
+    await startMontage({ theme: "Singapore mornings", seconds: 20, words: false, music: null, set: { name: "City clips", clips } });
+    const asked = vi.mocked(callFn).mock.calls.map(([, b]) => b as { mode: string; set?: boolean; beats: { say: string; candidates: { desc: string }[] }[] });
+    expect(asked[1]).toEqual({ mode: "montage-pick", theme: "Singapore mornings", set: true, beats: [
+      { say: "Kopi at dawn", candidates: [{ desc: "busy train platform" }, { desc: "city lights at night" }] },
+      { say: "The MRT fills up", candidates: [{ desc: "busy train platform" }, { desc: "city lights at night" }] },
+      { say: "Night lights", candidates: [{ desc: "busy train platform" }, { desc: "city lights at night" }] },
+      { say: "Hawker lunch", candidates: [{ desc: "busy train platform" }] },
+    ] });
+    // stock only for the beat Jev said nothing in the set shows, and the one the set had no clip left for
+    expect(vi.mocked(searchStock).mock.calls.map(([, q]) => q)).toEqual(["train commute", "hawker food"]);
+    expect(asked[2].set).toBeUndefined();
+    const [, takes, , opts] = vi.mocked(startJoin).mock.calls[0];
+    expect(await Promise.all(takes.map(async (t) => [await (t.file as Blob).text(), t.end]))).toEqual([
+      ["file cvid-clip001", 4], ["https://p/train commute.mp4", 4], ["file cvid-clip002", 4], ["https://p/hawker food.mp4", 6],
+    ]);
+    expect(opts?.extra?.note).toBe('From stock, as nothing in City clips fit: "The MRT fills up", "Hawker lunch".');
   });
 });

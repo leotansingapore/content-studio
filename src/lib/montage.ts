@@ -4,13 +4,16 @@
 // each beat is filled from stock (stock-media, Pexels) with the clip Jev says shows it (mode "montage-pick"),
 // a broader search standing in when nothing fits. The clips are put together on this device by videoMedia's
 // join (as the AI presenter and explainer are) and open in the editor like an upload. No paid generation.
+// Leo can draw from a clip set (brand-media-sets): a beat takes the set's clip that shows it, stock only where none fits.
 // Cuts land on the beats of your track when you add one. AI music is off (AI_MUSIC in aiMusic.ts); when it is
 // switched on the editor's Music for me fills the same music slot, so nothing here changes.
 // The job lives outside React, so it carries on while the adviser uses other pages.
 
 import { callFn } from "@/lib/edgeFn";
-import { putFile } from "@/lib/deviceFiles";
+import { getFile, putFile } from "@/lib/deviceFiles";
 import { chooseClips } from "@/lib/autoBroll";
+import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
+import { ofKind, rotateCandidates } from "@/lib/mediaSets";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { MAX_OVERLAYS, MUSIC_LEVEL, newOverlay, type FilterId, type Overlay } from "@/lib/videoEdit";
 import { currentJoin, monoPcm, startJoin } from "@/lib/videoMedia";
@@ -83,12 +86,15 @@ export interface Report {
   swapped: Swapped[];
   /** Beats left out: nothing usable was found. */
   missed: string[];
+  /** A clip set's montage: the beats nothing in the set fit, filled from stock. */
+  stock?: { set: string; beats: string[] };
 }
 
 /** The plain sentence the adviser reads when the editor opens; empty when every beat had its clip. */
 export function noteOf(r: Report): string {
   return [
     ...r.swapped.map((s) => `No good clip for "${s.beat}", used "${s.used || "a nearby clip"}" instead.`),
+    r.stock?.beats.length ? `From stock, as nothing in ${r.stock.set} fit: ${r.stock.beats.map((m) => `"${m}"`).join(", ")}.` : "",
     r.missed.length ? `Left out for lack of a clip: ${r.missed.map((m) => `"${m}"`).join(", ")}.` : "",
   ].filter(Boolean).join(" ");
 }
@@ -125,6 +131,29 @@ export function chooseFor(lists: [StockItem[], StockItem[]][], picks: [number | 
   });
 }
 
+// ---------- a clip set (Leo's) ----------
+
+/** A clip set's clips on this device, in set order. */
+export const setClips = (userId: string, set: string): MediaItem[] => loadMedia(userId, { videos: true }).filter((m) => m.folder === set && ofKind(m, "clips"));
+
+/** Per beat, the set's clips at least as long as it: up to 12, a bigger set rotated over the beats, clips with no words last. */
+export function setCandidates(clips: MediaItem[], lengths: number[]): MediaItem[][] {
+  const described = [...clips].sort((a, b) => Number(!a.alt.trim()) - Number(!b.alt.trim()));
+  return lengths.map((len, i) => rotateCandidates(described.filter((c) => (c.seconds ?? 0) >= len), lengths.length)[i]);
+}
+
+/** Per beat, the set clip Jev picked, or the first unused with no answer; null (none fits, none left) goes to stock. A clip goes in once. */
+export function chooseFromSet(cands: MediaItem[][], picks: (number | null)[]): (MediaItem | null)[] {
+  const used = new Set<string>();
+  return cands.map((xs, i) => {
+    if (picks[i] === -1) return null;
+    const want = picks[i] === null ? undefined : xs[picks[i]!];
+    const it = want && !used.has(want.key) ? want : xs.find((x) => !used.has(x.key));
+    if (it) used.add(it.key);
+    return it ?? null;
+  });
+}
+
 // ---------- the job ----------
 
 export interface MontageAsk {
@@ -136,6 +165,8 @@ export interface MontageAsk {
   music: File | null;
   /** The post it is made from (Leo's /edit?draft=), so the editor saves its caption back there. */
   draftId?: string;
+  /** Leo's clip set: its clips fill the beats they show, stock the rest. */
+  set?: { name: string; clips: MediaItem[] };
 }
 export interface MontageJob {
   state: "writing" | "finding" | "joining" | "done" | "failed";
@@ -182,43 +213,51 @@ export async function startMontage(a: MontageAsk): Promise<void> {
 
     // a clip for each beat: its search, then Jev's pick; the broader search where nothing fits
     set({ state: "finding", done: 0, of: beats.length });
-    const pick = async (asks: { say: string; items: StockItem[] }[]): Promise<(number | null)[]> => {
-      if (!asks.some((x) => x.items.length)) return asks.map(() => null);
+    const pick = async (asks: { say: string; descs: string[] }[], fromSet?: true): Promise<(number | null)[]> => {
+      if (!asks.some((x) => x.descs.length)) return asks.map(() => null);
       const r = await callFn<{ picks: (number | null)[] }>("video-assist", {
         mode: "montage-pick",
         theme: a.theme,
-        beats: asks.map((x) => ({ say: x.say, candidates: x.items.map((it) => ({ desc: describe(it) })) })),
+        beats: asks.map((x) => ({ say: x.say, candidates: x.descs.map((desc) => ({ desc })) })),
+        ...(fromSet ? { set: fromSet } : {}),
       }).catch(() => null);
       return asks.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null));
     };
+    const descs = (items: StockItem[]) => items.map(describe);
+    // the clip set first: a beat stock fills only where nothing in the set is long enough or Jev says none fits
+    const mine = a.set ? setCandidates(a.set.clips, lengths) : [];
+    const own = a.set ? chooseFromSet(mine, await pick(beats.map((b, i) => ({ say: b.say, descs: mine[i].map((m) => m.alt.trim() || "a clip") })), true)) : beats.map(() => null);
     const candidates = async (query: string, need: number) => chooseClips((await searchStock("video", query, 1, "portrait")).items, new Set(), need + 0.5, "portrait").slice(0, 5);
     const first: StockItem[][] = [];
     for (let i = 0; i < beats.length; i++) {
-      first.push(await candidates(beats[i].search, lengths[i]));
+      first.push(own[i] ? [] : await candidates(beats[i].search, lengths[i]));
       set({ state: "finding", done: i + 1, of: beats.length });
     }
-    const p1 = await pick(beats.map((b, i) => ({ say: b.say, items: first[i] })));
+    const p1 = await pick(beats.map((b, i) => ({ say: b.say, descs: descs(first[i]) })));
     // the broader search, for a beat with nothing or where Jev said none fits
     const broad: StockItem[][] = beats.map(() => []);
-    const again = beats.flatMap((b, i) => (first[i].length && p1[i] !== -1) || b.fallback === b.search ? [] : [i]);
+    const again = beats.flatMap((b, i) => own[i] || (first[i].length && p1[i] !== -1) || b.fallback === b.search ? [] : [i]);
     for (const i of again) broad[i] = await candidates(beats[i].fallback, lengths[i]);
-    const p2 = await pick(beats.map((b, i) => ({ say: b.say, items: broad[i] })));
+    const p2 = await pick(beats.map((b, i) => ({ say: b.say, descs: descs(broad[i]) })));
     const chosen = chooseFor(beats.map((_, i) => [first[i], broad[i]]), beats.map((_, i) => [p1[i], p2[i]]));
 
     // keep them, and build the report of what had no good clip
-    const report: Report = { swapped: [], missed: [] };
+    const report: Report = { swapped: [], missed: [], ...(a.set ? { stock: { set: a.set.name, beats: [] } } : {}) };
     const takes: { file: Blob; start: number; end: number }[] = [];
     const lens: number[] = [];
     const kept: number[] = [];
     for (let i = 0; i < beats.length; i++) {
-      const c = chosen[i];
-      const blob = c ? await downloadStock(c.item.src).catch(() => null) : null;
-      if (!c || !blob) {
+      const m = own[i];
+      const c = m ? null : chosen[i];
+      // shortcut: a set clip gone from this device leaves its beat out rather than looking for stock; fine while sets are device-only
+      const blob = m ? await getFile(m.key).catch(() => undefined) : c ? await downloadStock(c.item.src).catch(() => null) : null;
+      if (!blob) {
         report.missed.push(beats[i].say);
         continue;
       }
-      if (!c.fits) report.swapped.push({ beat: beats[i].say, used: describe(c.item) });
-      takes.push({ file: blob, start: 0, end: Math.min(lengths[i], c.item.duration ?? lengths[i]) });
+      if (c && !c.fits) report.swapped.push({ beat: beats[i].say, used: describe(c.item) });
+      if (c) report.stock?.beats.push(beats[i].say);
+      takes.push({ file: blob, start: 0, end: Math.min(lengths[i], m?.seconds ?? c?.item.duration ?? lengths[i]) });
       lens.push(takes[takes.length - 1].end);
       kept.push(i);
     }
