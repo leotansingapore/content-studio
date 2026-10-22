@@ -7,7 +7,7 @@
 // The run lives outside React, so leaving the page keeps it. A swipe ad's own picture is read first (remix-link image
 // mode, one remix-image use, only when /ads/<id>.jpg really answers image/jpeg: the SPA answers 200 with index.html
 // for a missing file); its `shows` sentence steers Jev's layout pick and is kept on this device
-// (cs-image-shows, newest 30), so writing it again reads nothing. Then one remix make "image" writes the words into
+// (cs-image-shows-2, newest 30), so writing it again reads nothing. Then one remix make "image" writes the words into
 // the design, and the run mirrors its step into formatJob for /library's Making now.
 
 import { callFn } from "@/lib/edgeFn";
@@ -168,7 +168,8 @@ export function imageDraft(img: SavedImage, main: string, o: { id: string; now: 
 export const swipePicture = (s: Pick<RemixSource, "kind" | "cover"> | null): string | null =>
   s?.kind === "ad" && s.cover && /^\/ads\/\d{5,25}\.jpg$/.test(s.cover) ? s.cover : null;
 
-const SHOWS_KEY = "cs-image-shows";
+// -2: descriptions kept before the picture's words were added are read once more
+const SHOWS_KEY = "cs-image-shows-2";
 
 /** What a source's picture shows, as read before on this device, or "". */
 export function cachedShows(key: string): string {

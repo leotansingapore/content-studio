@@ -184,7 +184,7 @@ describe("Write it for me", () => {
     expect(body.shows).toBe(`Green numbered instructions on a white card. Words in it: ${steps}`);
     expect(parseMakeRequest(body).ok).toBe(true);
 
-    localStorage.removeItem("cs-image-shows");
+    localStorage.removeItem("cs-image-shows-2");
     fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: "A long checklist." }, text: "word ".repeat(300), remixedAt: "" } });
     await startImageWrite(U, ask());
     const long = make.mock.calls[1][0].shows as string;
@@ -193,7 +193,7 @@ describe("Write it for me", () => {
     expect(parseMakeRequest(make.mock.calls[1][0]).ok).toBe(true);
 
     // the live 22 Oct read: a 199-character description and 738 characters of words, the steps starting near character 320
-    localStorage.removeItem("cs-image-shows");
+    localStorage.removeItem("cs-image-shows-2");
     const description = "A clean white promotional graphic has a green Wati logo and headline at the top, with a numbered list and bright green demo button on the left. A small, pale workflow and messaging mockup appears at it.";
     const words = `Chats build up. Follow-ups slip. Here is how teams on Wati keep every lead moving without a single missed reply. ${steps} ${"Wati DMs them the right next step at the right time. ".repeat(10)}`.slice(0, 738);
     fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: description }, text: words, remixedAt: "" } });

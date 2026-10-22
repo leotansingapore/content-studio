@@ -393,7 +393,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /image | size | Leo only. 4x5, 1x1, 9x16, wide | 4x5 | replace | /image?layout=stat&size=1x1 |
 | /image | source | Leo only. a remix source key (ad:<id>, own:<draft id>, and the other /generate?source= shapes): fills the words once, then removed | none | replace | /image?source=ad%3A2095783381019179 |
 | /image | image | Leo only. a saved design's id: opens it; the address takes it once an edit is kept | none | replace | /image?image=img-mh2k9x01ab |
-| /image | pick | Leo only. media, make, stock: opens the picture picker (your media, Make one, or free stock); what a swipe ad's picture shows is kept on the device in cs-image-shows (newest 30), so a second write never reads it again, and a meme's last options in cs-meme-options (newest 20 designs) | none | replace | /image?pick=media |
+| /image | pick | Leo only. media, make, stock: opens the picture picker (your media, Make one, or free stock); what a swipe ad's picture shows is kept on the device in cs-image-shows-2 (newest 30), so a second write never reads it again, and a meme's last options in cs-meme-options (newest 20 designs) | none | replace | /image?pick=media |
 | /edit | panel | Leo only. own (Your own video or pictures), clips (Long video into clips), one at a time | none | push | /edit?panel=own |
 | /edit | about | Leo only. with panel=own or clips: what it is about, filled once | none | replace | /edit?panel=clips&about=cpf |
 | /edit | len | Leo only. with panel=clips: short, long | auto | replace | /edit?panel=clips&about=cpf&len=short |
