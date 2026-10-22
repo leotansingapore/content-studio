@@ -10,7 +10,7 @@ vi.mock("@/lib/mediaLibrary", () => ({
 
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
-import { fixImage, imageJob, makeImage } from "./aiImage";
+import { fixImage, imageJob, logoBox, makeImage } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
 
 type Body = { mode: string };
@@ -140,6 +140,9 @@ describe("the picture kept for everyone else", () => {
     const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
     vi.stubGlobal("localStorage", localStorage);
     vi.stubGlobal("window", { localStorage, location: { search: "" } });
+    // a browser that could stamp it
+    vi.stubGlobal("createImageBitmap", async () => ({ width: 1080, height: 1440 }));
+    vi.stubGlobal("document", { createElement: () => ({ getContext: () => ({ drawImage: () => {} }), toBlob: (cb: (b: Blob) => void) => cb(new Blob(["stamped"])) }) });
     vi.mocked(callFn).mockImplementation(async (_fn, body) =>
       (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
     await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
@@ -149,5 +152,50 @@ describe("the picture kept for everyone else", () => {
     const kept = vi.mocked(storePicture).mock.calls.map(([b]) => b as Blob);
     expect(kept).toHaveLength(2);
     for (const b of kept) expect(await b.text()).toBe("png");
+  });
+});
+
+describe("Logo on AI pictures (brand-kit)", () => {
+  const LOGO = "data:image/png;base64,iVBORw0KGgo=";
+  const store = new Map<string, string>();
+  const drawn: unknown[][] = [];
+  const kit = (pictureLogo: boolean, logo: string | undefined = LOGO) =>
+    store.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "Ada", handle: "@ada", ...(logo ? { logo } : {}), stamp: { pictureLogo } }));
+  beforeEach(() => {
+    store.clear();
+    drawn.length = 0;
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+    vi.stubGlobal("createImageBitmap", async () => ({ width: 1080, height: 1440 }));
+    vi.stubGlobal("document", {
+      createElement: () => ({ getContext: () => ({ drawImage: (...a: unknown[]) => drawn.push(a) }), toBlob: (cb: (b: Blob) => void) => cb(new Blob(["stamped"])) }),
+    });
+    as.user = { id: "u1", email: "leo@example.com" };
+  });
+  const run = async () => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
+    await settle(fixImage("u1", "make the sky bluer"));
+    return Promise.all(vi.mocked(storePicture).mock.calls.map(([b]) => (b as Blob).text()));
+  };
+
+  it("puts the logo bottom right at 12% of the width", () => {
+    expect(logoBox(1000, 1500, 400, 200)).toEqual({ x: 850, y: 1410, width: 120, height: 60 });
+  });
+
+  it("stamps the made picture and the fixed one when the switch is on", async () => {
+    kit(true);
+    expect(await run()).toEqual(["stamped", "stamped"]);
+    expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440))]);
+  });
+
+  it("keeps the picture as made with the switch off or no logo", async () => {
+    kit(false);
+    expect(await run()).toEqual(["png", "png"]);
+    vi.mocked(storePicture).mockClear();
+    kit(true, "");
+    expect(await run()).toEqual(["png", "png"]);
   });
 });

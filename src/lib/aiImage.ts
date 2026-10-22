@@ -4,6 +4,7 @@
 // outside React, so it carries on while the adviser moves to another page.
 
 import { callFn } from "@/lib/edgeFn";
+import { loadBrand } from "@/lib/carousel";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
@@ -55,6 +56,41 @@ async function withMemory(userId: string, prompt: string): Promise<string> {
   return memory ? `${prompt}\n\n${memory}` : prompt;
 }
 
+/** Where the logo sits on a picture: 12% of its width, bottom right, 3% in from the edges. */
+export function logoBox(w: number, h: number, logoW: number, logoH: number) {
+  const width = Math.round(w * 0.12);
+  const height = Math.round((width * logoH) / Math.max(1, logoW));
+  const margin = Math.round(w * 0.03);
+  return { x: w - margin - width, y: h - margin - height, width, height };
+}
+
+async function stampLogo(pic: Blob, logo: string): Promise<Blob> {
+  const [img, mark] = await Promise.all([createImageBitmap(pic), fetch(logo).then((r) => r.blob()).then((b) => createImageBitmap(b))]);
+  const c = document.createElement("canvas");
+  c.width = img.width;
+  c.height = img.height;
+  const g = c.getContext("2d");
+  if (!g) return pic;
+  g.drawImage(img, 0, 0);
+  const box = logoBox(img.width, img.height, mark.width, mark.height);
+  g.drawImage(mark, box.x, box.y, box.width, box.height);
+  return new Promise((resolve) => c.toBlob((out) => resolve(out ?? pic), "image/png"));
+}
+
+/**
+ * "Logo on AI pictures" (brand-kit, Leo only): the kit's logo on the picture before it is kept, a fix's result
+ * included (Fix it edits Higgsfield's unstamped original). Anyone else's picture, or one the stamp fails on, as it came.
+ */
+async function withLogo(userId: string, pic: Blob): Promise<Blob> {
+  try {
+    if (!(await leoUser())) return pic;
+    const kit = loadBrand(userId);
+    return kit?.logo && kit.stamp?.pictureLogo ? await stampLogo(pic, kit.logo) : pic;
+  } catch {
+    return pic;
+  }
+}
+
 export const makeImage = async (userId: string, prompt: string, name: string): Promise<void> =>
   run(userId, prompt, name.slice(0, 80) || "AI image", { mode: "start", prompt: await withMemory(userId, prompt) });
 
@@ -83,7 +119,7 @@ async function run(userId: string, prompt: string, name: string, body: Record<st
     set({ prompt, state: "saving", fix });
     const res = await fetch(url).catch(() => null);
     if (!res?.ok) throw new Error("The image was made but didn't download. Try again.");
-    const pic = await storePicture(await res.blob());
+    const pic = await storePicture(await withLogo(userId, await res.blob()));
     const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
       key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),
