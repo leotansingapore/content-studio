@@ -1,7 +1,8 @@
 // /plan's Autopilot card (plan-autopilot, Leo only), id "autopilot": off, on, writing, the week's posts waiting for an
 // OK, paused, failed and done, all read from the brand's autopilot store and the run on this device. The run itself
 // is autopilotJob.ts, so leaving the page never stops it. ?week=<monday> shows that week's batch (the newest one
-// that has not ended when it is missing), ?autopilot=settings opens the settings dialog.
+// that has not ended, or the earlier one still waiting for an OK, when it is missing), ?autopilot=settings opens the
+// settings dialog.
 import { useEffect, useReducer, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -71,8 +72,10 @@ export default function AutopilotCard({ userId, onDraftsChange }: { userId: stri
   const byId = new Map(drafts.map((d) => [d.id, d]));
   const labels = loadLabels(userId);
   const weekParam = params.get("week");
-  const newest = batches[0] && addDays(batches[0].week, 6) >= today ? batches[0] : null;
-  const shown = batches.find((b) => b.week === weekParam) ?? newest;
+  // without ?week=: the earliest running week with posts to OK or to try again (daily mode can hold two), else the newest
+  const open = batches.filter((b) => addDays(b.week, 6) >= today);
+  const waiting = [...open].reverse().find((b) => b.posts.some((p) => p.state === "review" || p.state === "failed"));
+  const shown = batches.find((b) => b.week === weekParam) ?? waiting ?? open[0] ?? null;
   const rows = (shown?.posts ?? []).filter((p) => p.state === "review" || p.state === "approved" || p.state === "missed" || p.state === "failed");
   const count = (s: BatchPost["state"]) => (shown?.posts ?? []).filter((p) => p.state === s).length;
   const review = count("review");
