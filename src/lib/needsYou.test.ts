@@ -37,6 +37,13 @@ describe("countNeedsYou", () => {
   it("adds both", () => {
     expect(countNeedsYou([draft({ status: "scheduled", scheduledFor: "2026-10-01" })], [team({})], {}, TODAY)).toBe(2);
   });
+
+  it("adds Leo's autopilot posts waiting for an OK as a fifth argument, and 0 when it is left out", () => {
+    const drafts = [draft({ status: "scheduled", scheduledFor: "2026-10-01" })];
+    expect(countNeedsYou(drafts, [team({})], {}, TODAY, 3)).toBe(5);
+    expect(countNeedsYou([], [], {}, TODAY, 4)).toBe(4);
+    expect(countNeedsYou(drafts, [team({})], {}, TODAY, 0)).toBe(countNeedsYou(drafts, [team({})], {}, TODAY));
+  });
 });
 
 describe("countBoardWaiting", () => {

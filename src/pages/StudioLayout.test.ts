@@ -110,6 +110,7 @@ afterEach(() => {
   auth.user = null;
   local.clear();
   vi.clearAllMocks();
+  jobs.autopilotWaiting.mockReturnValue(0);
 });
 
 describe("StudioLayout for everyone else", () => {
@@ -149,5 +150,25 @@ describe("StudioLayout for everyone else", () => {
     expect(jobs.startMorning).not.toHaveBeenCalled();
     expect(jobs.autopilotWaiting).not.toHaveBeenCalled();
     expect(jobs.onAutopilot).not.toHaveBeenCalled();
+  });
+});
+
+describe("StudioLayout for Leo", () => {
+  const LEO = { id: UID, email: "tanjunsing@gmail.com" };
+  const overdue = (id: string, day: string) => ({ id, createdAt: "2026-10-01T00:00:00Z", draft: "x", hook: "x", platform: "linkedin", status: "scheduled", scheduledFor: day });
+
+  it("adds his autopilot posts waiting for an OK to the Pipeline count, read for today in Singapore", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-22T17:00:00Z")); // 01:00 on the 23rd in Singapore
+    as.user = LEO;
+    auth.user = LEO;
+    jobs.autopilotWaiting.mockReturnValue(3);
+    local.setItem(`content-studio-drafts-${UID}`, JSON.stringify([overdue("a", "2026-10-20T08:00")]));
+    const { first, loaded } = await load();
+    vi.useRealTimers();
+    expect(first).not.toContain("need you");
+    expect(loaded.match(/, 4 need you/g)).toHaveLength(2);
+    expect(jobs.autopilotWaiting).toHaveBeenCalledWith(UID, "2026-10-23");
+    expect(jobs.onAutopilot).toHaveBeenCalled();
   });
 });

@@ -1,14 +1,15 @@
 // How many things wait on the user, for the count on the Pipeline rail icon and the phone Calendar tab:
 // scheduled posts whose day has passed, and team posts waiting for approval. The calendar's Needs you
-// strip and Overdue block list them; this only counts, from what the device already holds (no network).
+// strip and Overdue block list them; this only counts, from what the device already holds (no network). Leo's
+// autopilot posts waiting for an OK are added by the caller (north star phase 5).
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { statusOf, type TeamPost, type TeamReviews } from "@/lib/teamPosts";
 import { brandOf, feedCards, type Board, type Me, type ReelCard } from "@/lib/reelsBoard";
 
-export function countNeedsYou(drafts: DraftEntry[], teamPosts: TeamPost[], reviews: TeamReviews, today: string): number {
+export function countNeedsYou(drafts: DraftEntry[], teamPosts: TeamPost[], reviews: TeamReviews, today: string, autopilotWaiting = 0): number {
   const overdue = drafts.filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) < today && !!d.scheduledFor).length;
   const toApprove = teamPosts.filter((p) => statusOf(p, reviews[p.id]) === "waiting").length;
-  return overdue + toApprove;
+  return overdue + toApprove + autopilotWaiting;
 }
 
 /** Posts on the posts board waiting on a decision (Review or Needs changes), for the count on its nav item. */

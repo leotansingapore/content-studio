@@ -19,6 +19,7 @@ import { badgeText, countBoardWaiting, countNeedsYou, onBoardWaiting } from "@/l
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { readTeamPosts, readTeamReviews } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
+import { sgDay } from "@/lib/goals";
 import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import {
@@ -244,6 +245,22 @@ export default function StudioLayout() {
     void loadRemixPill();
   }, [leo]);
 
+  // Leo's plans (north star phase 5): his autopilot posts waiting for an OK join the Pipeline count, read with the
+  // module that keeps them. Loaded for Leo only, so none of it reaches anyone else's session or the main chunk.
+  const leoId = leo?.id;
+  const [autopilot, setAutopilot] = useState<{ waiting: (id: string) => number; on: (cb: () => void) => () => void } | null>(null);
+  useEffect(() => {
+    if (!leoId) return;
+    let active = true;
+    void Promise.all([import("@/lib/autopilot"), import("@/lib/autopilotJob")]).then(
+      ([ap, job]) => active && setAutopilot({ waiting: (id) => ap.autopilotWaiting(id, sgDay()), on: job.onAutopilot }),
+      () => {}, // a chunk gone after a deploy: the count leaves autopilot out until the next load
+    );
+    return () => {
+      active = false;
+    };
+  }, [leoId]);
+
   useEffect(() => {
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
@@ -281,21 +298,25 @@ export default function StudioLayout() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Counted from what this device holds, again on every page change, tab return and half minute.
+  // Counted from what this device holds, again on every page change, tab return and half minute (and, for Leo, on
+  // every autopilot change).
   useEffect(() => {
     if (!uid) return;
-    const recount = () => setNeedsYou(countNeedsYou(loadDrafts(uid), readTeamPosts(uid), readTeamReviews(uid), localDateKey()));
+    const recount = () =>
+      setNeedsYou(countNeedsYou(loadDrafts(uid), readTeamPosts(uid), readTeamReviews(uid), localDateKey(), autopilot?.waiting(uid)));
     recount();
     const timer = window.setInterval(recount, 30_000);
     const onVisible = () => document.visibilityState === "visible" && recount();
     document.addEventListener("visibilitychange", onVisible);
     const off = onDraftsChanged(recount);
+    const offAutopilot = autopilot?.on(recount);
     return () => {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
       off();
+      offAutopilot?.();
     };
-  }, [uid, pathname]);
+  }, [uid, pathname, autopilot]);
 
   // One team-board call on load (shared with Home) and on tab return (not on the timer), for board users only;
   // the board page sends its own count after every change.
