@@ -11,7 +11,7 @@
 import { complianceIssues } from "../_shared/socialAudit.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { BUSINESS_VOICE, speakingWords, type Speaker } from "../remix/logic.ts";
+import { BUSINESS_VOICE, sentenceCase, speakingWords, type Speaker } from "../remix/logic.ts";
 
 export const MAX_NOTES_CHARS = 4000;
 export const MAX_IDEAS = 10;
@@ -826,17 +826,22 @@ export const ANGLES_SCHEMA = {
   },
 } as const;
 
-/** The candidates worth asking Jev about: 2 to 5 word titles of at most 40 characters, none repeated or already saved. Null when it isn't the expected JSON. */
-export function validateAngles(raw: unknown, avoid: string[] = []): AngleCandidate[] | null {
+/**
+ * The candidates worth asking Jev about: 2 to 5 word titles of at most 40 characters, none repeated or already saved.
+ * A Title Case title comes back in sentence case (remix's sentenceCase; live check 22 Oct, calls/010), keeping
+ * acronyms, brand names like WhatsApp, and a word capitalised mid-sentence in its line or in `names`.
+ * Null when it isn't the expected JSON.
+ */
+export function validateAngles(raw: unknown, avoid: string[] = [], names = ""): AngleCandidate[] | null {
   const obj = typeof raw === "string" ? parseJsonObject(raw) : isRecord(raw) ? raw : null;
   if (!obj || !Array.isArray(obj.angles)) return null;
   const seen = new Set(avoid.map(wordsKey));
   const out: AngleCandidate[] = [];
   for (const a of obj.angles) {
     if (!isRecord(a)) continue;
-    const title = cleanText(a.title, 200);
-    const n = wordCount(title);
     const line = clip(cutWords(cleanText(a.line, 600), 19), 140);
+    const title = sentenceCase(cleanText(a.title, 200), `${line}. ${names}`);
+    const n = wordCount(title);
     if (n < 2 || n > 5 || title.length > 40 || !line || seen.has(wordsKey(title))) continue;
     seen.add(wordsKey(title));
     out.push({ title, line });

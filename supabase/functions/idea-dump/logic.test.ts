@@ -580,6 +580,43 @@ describe("mode angles", () => {
     expect(validateAngles(many)).toHaveLength(ANGLE_CANDIDATES);
   });
 
+  it("puts Title Case titles in sentence case, keeping acronyms and names (wave 1 live check, calls/010)", () => {
+    // calls/010's five kept titles and lines, as they came back
+    const live = [
+      ["Shared Chat Visibility", "We bring team WhatsApp conversations into one shared inbox, so you can see where client chats stand."],
+      ["Clear Follow-Up Ownership", "See who owns each next step, so client follow-ups are easier to coordinate across your team."],
+      ["Target Progress View", "Track team goals alongside activity, so you can review progress and discuss what needs attention."],
+      ["Coaching From Activity", "Use recorded follow-ups and tasks as talking points for practical team coaching."],
+      ["Fewer App Switches", "We bring CRM, chats, tasks and goals into one phone app, reducing the need to jump between tools."],
+    ];
+    const more = [
+      ["One CRM For Teams", "Keep clients and chats in one place."],
+      ["Shared WhatsApp Inbox", "See every chat."],
+      ["Why Fastlane Works", "Teams switch to Fastlane for one inbox."],
+      ["Grow With Northstar Today", "One app for the team."],
+      ["Follow-ups that stick", "Already in sentence case."],
+      ["Shared Inbox", "Two words stay as written."],
+    ];
+    const got = validateAngles({ angles: [...live, ...more].map(([title, line]) => ({ title, line })) }, [], "Sales teams pick Northstar for its inbox.");
+    expect(got?.map((a) => a.title)).toEqual([
+      "Shared chat visibility",
+      "Clear follow-up ownership",
+      "Target progress view",
+      "Coaching from activity",
+      "Fewer app switches",
+      "One CRM for teams",
+      "Shared WhatsApp inbox",
+      "Why Fastlane works",
+    ]);
+    expect(validateAngles({ angles: more.slice(2).map(([title, line]) => ({ title, line })) }, [], "Sales teams pick Northstar for its inbox.")?.map((a) => a.title)).toEqual([
+      "Why Fastlane works",
+      "Grow with Northstar today",
+      "Follow-ups that stick",
+      "Shared Inbox",
+    ]);
+    expect(validateAngles({ angles: [{ title: "Grow With Northstar Today", line: "One app." }] })?.[0].title).toBe("Grow with northstar today");
+  });
+
   it("asks Jev whether the audience would stop and whether it is unsafe, from the adviser or the business", () => {
     const a = { title: "Follow-ups that stick", line: "Most deals die in the follow-up." };
     const person = angleAsk(anglesRequest(), a);

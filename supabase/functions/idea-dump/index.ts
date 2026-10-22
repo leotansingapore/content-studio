@@ -182,7 +182,10 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
     await refundUsage(admin, uid, "campaign-angles", day);
     return json({ code: "failed", error: "Couldn't suggest angles right now. Try again in a minute." }, 502);
   }
-  const candidates = (reply.ok && validateAngles(reply.text, request.avoid)) || [];
+  // shortcut: a one-word brand name (Fastlane) keeps its capital only when these words use it mid-sentence; send the brand's name in PlanContext if that bites
+  const pos = request.context.positioning;
+  const names = [request.audience, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
+  const candidates = (reply.ok && validateAngles(reply.text, request.avoid, names)) || [];
   const answers = await pool(candidates, 6, (a) => {
     const ask = angleAsk(request, a);
     return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });

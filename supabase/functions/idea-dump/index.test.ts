@@ -218,6 +218,37 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
     expect(prompt).toContain("- Hospital bills shock");
   });
 
+  it("sends Title Case titles back in sentence case, keeping names the brand's words use mid-sentence (live check, calls/010)", async () => {
+    // calls/010's request as sent, with one product line that names Lark mid-sentence
+    const live = {
+      mode: "angles",
+      audience: "Sales team managers: People coordinating a sales team who want a shared WhatsApp inbox, team activity records and a view of progress toward targets.",
+      avoid: [],
+      context: {
+        positioning: {
+          oneLiner: "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+          audienceDetail: "Sales-oriented self-employed professionals and coaches",
+          topics: ["Sales follow-ups", "WhatsApp workflows", "Client management", "Activity tracking", "Sales goals"],
+          edge: "It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.",
+        },
+        goal: "Get more sales team managers to book a demo",
+        platforms: ["linkedin", "instagram"],
+        speaker: "business",
+        product: "ActivityTracker: CRM, a shared WhatsApp inbox, tasks and goals in one phone app, and it works beside Lark. SGD 34 a person a month.",
+      },
+    };
+    openai = () => reply({
+      angles: [
+        { title: "Shared Chat Visibility", line: "We bring team WhatsApp conversations into one shared inbox, so you can see where client chats stand." },
+        { title: "Clear Follow-Up Ownership", line: "See who owns each next step, so client follow-ups are easier to coordinate across your team." },
+        { title: "Chats Beside Lark Too", line: "Keep the team's tools where they are." },
+      ],
+    });
+    const r = await call(live, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Shared chat visibility", "Clear follow-up ownership", "Chats beside Lark too"]);
+  });
+
   it("drops a suggested title that is already saved, before asking Jev", async () => {
     env.TYPESAFE_API_KEY = "t";
     openai = () => reply({ angles: [{ title: "HOSPITAL bills shock", line: "Saved already." }, ...ANGLES_REPLY.angles.slice(0, 2)] });
