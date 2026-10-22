@@ -52,6 +52,8 @@ vi.mock("@/lib/ideasInbox", () => ({ startMorning: jobs.startMorning }));
 // Leo's Remix sheet loads its own chunk; it is not this pin's
 vi.mock("@/components/remix/RemixSheet", () => ({ default: () => null }));
 vi.mock("@/components/remix/RemixPill", () => ({ default: () => null }));
+// Activity's recorder loads in its own chunk too; it is tested on its own
+vi.mock("@/components/ActivityRecorder", () => ({ default: () => null }));
 
 class MemStorage {
   private m = new Map<string, string>();
@@ -82,6 +84,7 @@ vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {}, vis
 // render both import the Remix chunks), so each mocked module is imported once here first
 await import("@/components/remix/RemixSheet");
 await import("@/components/remix/RemixPill");
+await import("@/components/ActivityRecorder");
 // vitest can still hand a second in-flight import the real RemixPill under load; load its heavy chain now so it never
 // finishes loading after the environment is torn down
 await import("@/lib/remixJob");
@@ -225,5 +228,16 @@ describe("StudioLayout for Leo", () => {
     await load();
     expect(jobs.runAutopilot).not.toHaveBeenCalled();
     expect(jobs.startMorning).not.toHaveBeenCalled();
+  });
+
+  it("turns the Activity log on from the first frame, and off again for the next session that is not his", async () => {
+    as.user = LEO;
+    shim.slots = [];
+    draw("/home");
+    local.setItem("cs-device-tag", "dev001");
+    expect(logActivity(UID, { who: "you", kind: "post", title: "Made a post" })).toMatchObject({ title: "Made a post" });
+    as.user = null;
+    await load();
+    expect(logActivity(UID, { who: "you", kind: "post", title: "Made another post" })).toBeNull();
   });
 });

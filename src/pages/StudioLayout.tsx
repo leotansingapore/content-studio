@@ -12,6 +12,7 @@ import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard, sharedBoard, wait
 import { applyBrandLink, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { setActivityOn } from "@/lib/activity";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
@@ -46,6 +47,8 @@ const loadRemixSheet = () => import("@/components/remix/RemixSheet");
 const loadRemixPill = () => import("@/components/remix/RemixPill");
 const RemixSheet = lazy(loadRemixSheet);
 const RemixPill = lazy(loadRemixPill);
+// Activity's recorder (Leo only) listens to every job store, so it loads in its own chunk too.
+const ActivityRecorder = lazy(() => import("@/components/ActivityRecorder"));
 const FOOT_SECTIONS = SECTIONS.filter((s) => s.foot);
 
 function Logo() {
@@ -224,6 +227,9 @@ export default function StudioLayout() {
   useScrollMemory();
 
   const leo = useLeoUser();
+  // Activity logs for Leo's sessions only. Set while drawing, before any page below reads its drafts (a Claude
+  // draft absorbed on the first read logs then, and its sync row is gone after).
+  setActivityOn(!!leo);
   const [searchParams, setSearchParams] = useSearchParams();
   const remixKey = searchParams.get("remix");
   // A typed ?remix= on anyone else's session is dropped; while the session is still being read (undefined) it
@@ -641,6 +647,13 @@ export default function StudioLayout() {
           <Suspense fallback={null}>
             <RemixSheet user={leo} />
             <RemixPill />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+      {leo && (
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <ActivityRecorder userId={leo.id} />
           </Suspense>
         </ErrorBoundary>
       )}
