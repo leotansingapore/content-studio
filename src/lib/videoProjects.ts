@@ -7,7 +7,7 @@ import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { deleteFile, putFile, stills } from "@/lib/videoMedia";
 import { mediaLength } from "@/lib/longAudio";
-import { callFn } from "@/lib/edgeFn";
+import { callFn, EdgeError } from "@/lib/edgeFn";
 import { removePlatformCaptions } from "@/lib/platformCaptions";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
 import type { WatchFinding } from "../../supabase/functions/video-assist/watch.ts";
@@ -243,7 +243,8 @@ async function call(path: string, init: RequestInit): Promise<Response> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error || `The editor answered ${res.status}. Try again.`);
+    // an EdgeError is still an Error, so the editor shows the same words; the voice note reads the status
+    throw new EdgeError(body?.error || `The editor answered ${res.status}. Try again.`, res.status, typeof body?.code === "string" ? body.code : "");
   }
   return res;
 }
