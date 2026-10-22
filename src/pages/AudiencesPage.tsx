@@ -148,7 +148,8 @@ function Audiences({ userId }: { userId: string }) {
               <Button variant="outline" className={TOUCH} onClick={() => openEditor("new")} disabled={full}>Add one yourself</Button>
               {list.length > 0 && <span className="ml-auto text-xs font-semibold text-muted-foreground">{list.length} of {MAX_ACTIVE}</span>}
             </div>
-            {full && <p className="text-xs text-muted-foreground">{FULL_LINE}</p>}
+            {/* with rows waiting, the line sits under their disabled Keep buttons instead */}
+            {full && !waiting && !running && <p className="text-xs text-muted-foreground">{FULL_LINE}</p>}
             {line && <p className="text-sm text-destructive" role="alert">{line}</p>}
             {list.length > 0 && (
               <ul className="divide-y divide-border/60 rounded-xl border border-border/60">
@@ -233,6 +234,7 @@ function Suggestions({ waiting, full, onKeep, onKeepAll, onRemove }: {
         ))}
       </ul>
       <Button className={TOUCH} disabled={full} onClick={onKeepAll}>Keep all</Button>
+      {full && <p className="text-xs text-muted-foreground">{FULL_LINE}</p>}
     </section>
   );
 }
