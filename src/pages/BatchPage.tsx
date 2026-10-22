@@ -27,6 +27,8 @@ import {
 } from "@/lib/draftHistory";
 import { loadVoiceProfile, isVoiceProfileUsable, voiceSummaryOf } from "@/lib/voiceProfile";
 import { useLeoOnly } from "@/lib/useLeoOnly";
+import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
+import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences";
 import {
   Layers,
   Check,
@@ -104,6 +106,14 @@ export default function BatchPage() {
   const leo = useLeoOnly();
   const offerLinks = useMemo(() => allowedLinks(loadBrand(userId), loadSocialAccounts(userId)), [userId]);
   const avoidWords = useMemo(() => avoidList(loadBrand(userId)), [userId]);
+  // Leo only (brand-audiences): ?aud=<id> picks a saved audience, which wins over ?audience= and goes out in words
+  const savedAudiences = useSavedAudiences(leo ? userId : null);
+  const audPick = leo ? audienceFromParams(params, savedAudiences).aud : null;
+  const lifeStage = audPick ? audPick.lifeStage : audience;
+  // an unknown or removed id leaves the address, so the life stages show as picked
+  useEffect(() => {
+    if (leo && userId && params.get("aud") && !audienceFromParams(params, loadAudiences(userId)).aud) updateUrl({ aud: null });
+  }, [leo, userId, params, savedAudiences, updateUrl]);
 
   useEffect(() => {
     let active = true;
@@ -212,9 +222,9 @@ export default function BatchPage() {
               format: t.format,
               platform: t.platform,
               ctaType: "comment-keyword",
-              audience,
+              audience: lifeStage,
               voiceSummary: usableVoice,
-              ideaContext: brandRulesLine(kit, t.platform) || undefined,
+              ideaContext: [brandRulesLine(kit, t.platform), audPick ? audienceLine(audPick) : ""].filter(Boolean).join("\n\n") || undefined,
             },
             {
               onToken: (text) =>
@@ -250,7 +260,7 @@ export default function BatchPage() {
     draft: card.text,
     pillar,
     pillarDetail: topic.trim(),
-    audience,
+    audience: lifeStage,
     format: t.format,
     platform: t.platform,
     ctaType: "comment-keyword",
@@ -338,15 +348,25 @@ export default function BatchPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Audience</Label>
+              <AudiencePicker
+                saved={savedAudiences}
+                picked={audPick?.id ?? null}
+                onPick={(a) => updateUrl({ aud: a.id, audience: a.lifeStage === "general" ? null : a.lifeStage })}
+                chip={(on) =>
+                  `rounded-full border px-3 py-1 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
+                    on ? "border-primary/60 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
+                  }`
+                }
+              >
               <div className="flex flex-wrap gap-1.5">
                 {AUDIENCES.map((a) => (
                   <button
                     key={a.value}
                     type="button"
-                    onClick={() => setAudience(a.value)}
-                    aria-pressed={audience === a.value}
+                    onClick={() => (audPick ? updateUrl({ aud: null, audience: a.value === "general" ? null : a.value }) : setAudience(a.value))}
+                    aria-pressed={!audPick && audience === a.value}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
-                      audience === a.value
+                      !audPick && audience === a.value
                         ? "border-primary/60 bg-primary/10 text-primary"
                         : "border-border/70 text-muted-foreground hover:text-foreground"
                     }`}
@@ -355,6 +375,7 @@ export default function BatchPage() {
                   </button>
                 ))}
               </div>
+              </AudiencePicker>
             </div>
           </div>
 
