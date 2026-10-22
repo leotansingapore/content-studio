@@ -795,6 +795,13 @@ describe("mode campaign", () => {
     expect(p).not.toMatch(/adviser/i);
   });
 
+  it("asks a person's campaign and swap exactly as pinned (never update these with vitest -u)", async () => {
+    await expect(promptText(buildCampaignPrompt(campaignRequest()))).toMatchFileSnapshot("./fixtures/campaign-prompt-person.txt");
+    const list = { name: "The list", template: "{N} things I wish I knew before {milestone}." };
+    const swap = campaignRequest({ ...CAMPAIGN_ASK, swap: true, posts: [postAskOf(5, "text-post", { formula: list })] });
+    await expect(promptText(buildCampaignPrompt(swap))).toMatchFileSnapshot("./fixtures/campaign-swap-prompt-person.txt");
+  });
+
   it("has a strict schema", () => {
     const item = CAMPAIGN_SCHEMA.properties.posts.items;
     expect(item.additionalProperties).toBe(false);
