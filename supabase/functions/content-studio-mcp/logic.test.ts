@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { INBOX_PREFIX, MAX_INBOX, TOOLS, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
@@ -199,5 +199,64 @@ describe("JSON-RPC", () => {
     expect(await handleRpc({ jsonrpc: "2.0", method: "notifications/initialized" }, s, link)).toBeNull();
     expect(await handleRpc({ jsonrpc: "2.0", id: 4, method: "resources/list" }, s, link)).toMatchObject({ error: { code: -32601 } });
     expect(await handleRpc({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "drop_tables" } }, s, link)).toMatchObject({ error: { code: -32602 } });
+  });
+});
+
+// Every answer a link off NORTH_STAR_USERS gets, pinned on 22 Oct 2026 (a9d04b4e) before phase 6's tools: the
+// protocol, all six tools with their refusals, and the rows add_draft writes. Never update the file with vitest -u.
+const EVERYONE_STORE = {
+  [`content-studio-drafts-${UID}`]: posts,
+  [`content-studio-positioning-${UID}`]: { goal: "More reviews booked", goalKind: "clients", audience: "parent", topics: ["CPF"], platform: "instagram", cadence: 3, edge: "" },
+  [`content-studio-carousel-brand-${UID}`]: { name: "Jane", handle: "@jane", role: "Financial adviser", signOff: "DM me", photo: "data:image/jpeg;base64,xx" },
+  [`content-studio-voice-${UID}`]: { voiceSummary: "Warm, plain" },
+  [`content-studio-learnings-${UID}`]: [{ id: "l1", text: "No emoji", scope: "all", source: "typed", createdAt: "2026-10-01T00:00:00Z" }],
+  [`content-studio-following-${UID}`]: [{ platform: "instagram", handle: "rival", history: [], posts: [{ id: "x1", url: "https://instagram.com/p/x1", caption: "Hi", postedAt: "2026-10-07T00:00:00Z", views: 10, likes: 1, comments: 0 }], fresh: ["x1"] }],
+};
+const EVERYONE_CALLS: Record<string, unknown>[] = [
+  { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } },
+  { jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "2024-11-05" } },
+  { jsonrpc: "2.0", method: "notifications/initialized" },
+  { jsonrpc: "2.0", id: 3, method: "ping" },
+  { jsonrpc: "2.0", id: 4, method: "tools/list" },
+  { jsonrpc: "2.0", id: 5, method: "prompts/list" },
+  { jsonrpc: "2.0", id: 6, method: "prompts/get", params: { name: "remix_post", arguments: { source: "x" } } },
+  { jsonrpc: "2.0", id: 7, method: "resources/list" },
+  { jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "list_posts", arguments: {} } },
+  { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "list_posts", arguments: { status: "posted", limit: 1 } } },
+  { jsonrpc: "2.0", id: 10, method: "tools/call", params: { name: "get_post", arguments: { id: "b" } } },
+  { jsonrpc: "2.0", id: 11, method: "tools/call", params: { name: "get_post", arguments: { id: "zz" } } },
+  { jsonrpc: "2.0", id: 12, method: "tools/call", params: { name: "get_calendar", arguments: {} } },
+  { jsonrpc: "2.0", id: 13, method: "tools/call", params: { name: "get_calendar", arguments: { from: "2026-12-30", days: 5 } } },
+  { jsonrpc: "2.0", id: 14, method: "tools/call", params: { name: "get_results" } },
+  { jsonrpc: "2.0", id: 15, method: "tools/call", params: { name: "get_brand", arguments: {} } },
+  { jsonrpc: "2.0", id: 16, method: "tools/call", params: { name: "add_draft", arguments: { text: "Hook line\n\nBody", scheduledFor: "2026-10-20T19:30" } } },
+  { jsonrpc: "2.0", id: 17, method: "tools/call", params: { name: "add_draft", arguments: { text: "Second", title: "A title", platform: "tiktok", format: "carousel" } } },
+  { jsonrpc: "2.0", id: 18, method: "tools/call", params: { name: "add_draft", arguments: { text: " " } } },
+  { jsonrpc: "2.0", id: 19, method: "tools/call", params: { name: "add_draft", arguments: { text: "x", platform: "myspace" } } },
+  { jsonrpc: "2.0", id: 20, method: "tools/call", params: { name: "add_draft", arguments: { text: "x", scheduledFor: "tomorrow" } } },
+  { jsonrpc: "2.0", id: 21, method: "tools/call", params: { name: "check_post", arguments: { text: "risk-free" } } },
+  { jsonrpc: "2.0", id: 22, method: "tools/call", params: { name: "get_week", arguments: {} } },
+  { jsonrpc: "2.0", id: 23, method: "tools/call", params: { name: "list_following_posts", arguments: {} } },
+  { jsonrpc: "2.0", id: 24, method: "tools/call", params: { name: "get_activity", arguments: {} } },
+  { method: "tools/list" },
+];
+
+/** The transcript a link off the list gets for EVERYONE_CALLS, then every row in the store. */
+async function everyoneTranscript(run: (m: Record<string, unknown>, s: Store) => Promise<object | null>) {
+  const s = memoryStore(EVERYONE_STORE);
+  const replies = [];
+  for (const m of EVERYONE_CALLS) replies.push(await run(m, s));
+  // a full inbox, then its refusal
+  for (let i = 0; i < MAX_INBOX; i++) if (!s.rows.has(inboxKey(i, UID))) s.rows.set(inboxKey(i, UID), "{}");
+  replies.push(await run({ jsonrpc: "2.0", id: 25, method: "tools/call", params: { name: "add_draft", arguments: { text: "one more" } } }, s));
+  return JSON.stringify({ replies, rows: Object.fromEntries([...s.rows].sort(([a], [b]) => a.localeCompare(b))) }, null, 2);
+}
+
+describe("a link off the list (pinned)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("answers every call exactly as before phase 6", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.123456789);
+    await expect(await everyoneTranscript((m, s) => handleRpc(m, s, link, now))).toMatchFileSnapshot("./fixtures/everyone.json");
   });
 });
