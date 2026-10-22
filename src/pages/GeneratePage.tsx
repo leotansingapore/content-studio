@@ -2368,6 +2368,10 @@ export default function GeneratePage() {
     openNote.current = note;
     navigate(links.generate({ draft: id }));
   };
+  // a version asked for once is forgotten when another post opens, so coming back to the English never spends again
+  useEffect(() => {
+    if (autoTranslate && currentDraftId && currentDraftId !== autoTranslate.id) setAutoTranslate(null);
+  }, [currentDraftId, autoTranslate]);
 
   // Pictures or one video attached in Write: kept on this device, shown in the preview and
   // loaded into Post it for me. Pictures are shrunk to 1080px JPEGs, so size and WebP never block them.
