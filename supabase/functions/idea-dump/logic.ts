@@ -1168,10 +1168,32 @@ function holdHook(lines: string[], end: number): number {
   return end + 1;
 }
 
-/** A body without a last line that repeats its call to action, in any case or punctuation (live check 22 Oct: the CTA showed twice). */
+/** Words that don't change what a line asks: function words and fillers ("currently", "really"). */
+const MINOR_WORDS = new Set("a an the and or of to for in on at with your you do does is are can what how which currently really actually just".split(" "));
+const keyWords = (s: string) => wordsKey(s).split(" ").filter((w) => w && !MINOR_WORDS.has(w));
+const asks = (s: string) => /\?\W*$/.test(s.trim());
+
+/**
+ * A sentence that repeats the call to action: the same key words in any case or punctuation, or, when both ask or both
+ * don't, at least 80% of a 4-or-more-word cta's key words (live-p5w4 F1: "For self-employed professionals and coaches,
+ * what part of your sales workflow currently involves the most app switching?" over the cta "What part of your sales
+ * workflow involves the most app switching?"). A line that only shares the topic keeps too few of them.
+ */
+function repeatsCta(sentence: string, cta: string): boolean {
+  const c = keyWords(cta);
+  const s = keyWords(sentence);
+  if (!c.length) return false;
+  return s.join(" ") === c.join(" ") || (c.length >= 4 && asks(sentence) === asks(cta) && c.filter((w) => s.includes(w)).length >= 0.8 * c.length);
+}
+
+/** A body without the last sentences (as many as the cta has) when they repeat its call to action (live checks 22 Oct: the CTA showed twice). */
 function withoutCta(body: string, cta: string): string {
   const lines = body.split("\n");
-  return cta && wordsKey(lines[lines.length - 1]) === wordsKey(cta) ? lines.slice(0, -1).join("\n").trim() : body;
+  const parts = lines[lines.length - 1].split(SENTENCE_GAP);
+  const k = cta.split(SENTENCE_GAP).length;
+  if (!cta || !repeatsCta(parts.slice(-k).join(" "), cta)) return body;
+  lines[lines.length - 1] = parts.slice(0, -k).join(" ");
+  return lines.join("\n").trim();
 }
 
 /** The first empty field, as the rule a post broke. */

@@ -1046,6 +1046,68 @@ describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 en
   });
 });
 
+// wave 4 live check (22 Oct), live-p5w4 calls/003: posts 1, 2, 5 and 6 as asked and as they came back (1 and 2 end the
+// body on a near copy of the cta; 5 and 6 end on a line that only shares the campaign's topic)
+const P5W4_003_ASKS = [
+  { n: 1, angle: { title: "Fewer app switches", line: "Use one phone app for CRM, WhatsApp, tasks and goals." }, format: "text-post", stage: "attraction", formula: { name: "Contrarian take", template: "Most people say {common advice}. After {what you have seen}, I disagree." }, ctaType: "open-question", platforms: ["linkedin"] },
+  { n: 2, angle: { title: "Follow-up tasks", line: "Keep sales follow-ups as tasks so they stay part of your workday." }, format: "carousel", stage: "attraction", formula: { name: "Number reveal", template: "I {did something} {N} times. Here is what came out of it." }, ctaType: "open-question", platforms: ["linkedin"] },
+  { n: 5, angle: { title: "Goals in view", line: "Bring sales goals into the same app where you manage clients and follow-ups." }, format: "text-post", stage: "trust", formula: { name: "The list", template: "{N} things I wish I knew before {milestone}." }, ctaType: "save-share", platforms: ["linkedin"] },
+  { n: 6, angle: { title: "Fewer app switches", line: "Use one phone app for CRM, WhatsApp, tasks and goals." }, format: "carousel", stage: "trust", formula: { name: "Insider view", template: "After {N} years as {role}, here is what nobody tells you about {topic}." }, ctaType: "save-share", platforms: ["linkedin"] },
+];
+const P5W4_003_POSTS = [
+  {
+    n: 1,
+    hook: "Most people say more apps mean more control. We disagree.",
+    body: "When client details, WhatsApp chats, follow-ups and goals sit in different places, switching between them becomes part of the workday.\n\nThe practical question is not how many tools you can add. It is whether you can see what needs attention and keep moving between client work and sales tasks.\n\nWe bring CRM, a shared WhatsApp inbox, tasks and goals together in one phone app. Sales activity can also be logged in one tap.\n\nThat gives you one place to check client context, manage conversations, keep follow-ups as tasks and view goals. It keeps the tools close to the work, instead of making you move between separate apps.\n\nFor self-employed professionals and coaches, what part of your sales workflow currently involves the most app switching?",
+    cta: "What part of your sales workflow involves the most app switching?",
+  },
+  {
+    n: 2,
+    hook: "Put follow-ups on the task list",
+    body: "A follow-up written as a task has a place in your workday.\n\nKeep the next step with the client details, so you can check what needs attention.\n\nA WhatsApp conversation can be part of the sales workflow, not a separate reminder to remember.\n\nReview your tasks as you plan the day, then make time for the follow-ups that are due.\n\nHow do you keep your sales follow-ups visible during a busy day?",
+    cta: "How do you keep sales follow-ups visible during a busy day?",
+  },
+  {
+    n: 5,
+    hook: "3 things to check when setting sales goals",
+    body: "Goals are easier to keep in view when they sit alongside the work that moves them forward.\n\nBefore setting your next sales goal, check these three parts of your workflow.\n\nFirst, can you see the client details you need to follow up? Second, are follow-ups recorded as tasks, so they can be part of your workday? Third, can you view your goals in the same place you manage clients and conversations?\n\nWe bring CRM, a shared WhatsApp inbox, tasks and goals together in one phone app. Sales activity can be logged in one tap, too.\n\nThe point is to keep client work, follow-ups and goals connected to the way you work each day.",
+    cta: "Save this checklist for your next planning session, or share it with a sales professional who sets their own goals.",
+  },
+  {
+    n: 6,
+    hook: "One app for sales work",
+    body: "CRM, a shared WhatsApp inbox, tasks and goals can sit together in one phone app.\n\nKeep client information close to the conversations you manage.\n\nMake sales follow-ups tasks, so they have a place in your workday.\n\nLog sales activity in one tap while moving between client work.\n\nKeep goals in the same app where you manage clients and follow-ups.",
+    cta: "Which part of your sales workflow would you most like to keep together?",
+  },
+].map((p) => ({ ...p, script: "", brief: "" }));
+
+describe("a body that ends on a near copy of its cta (wave 4 live check: calls/003 posts 1 and 2 asked twice)", () => {
+  const live = campaignRequest({ mode: "campaign", posts: P5W4_003_ASKS, context: LIVE_011_CONTEXT });
+  const cut = (body: string) => body.slice(0, body.lastIndexOf("\n\n"));
+
+  it("removes the last sentence when it asks the cta's question again, and keeps every line that only shares the topic", () => {
+    const dropped: [number, string][] = [];
+    const [p1, p2, p5, p6] = validateCampaign({ posts: P5W4_003_POSTS }, live, dropped)!;
+    expect(dropped).toEqual([]);
+    expect(p1.body).toBe(cut(P5W4_003_POSTS[0].body));
+    expect(p1.body!.endsWith("instead of making you move between separate apps.")).toBe(true);
+    expect(p2.body).toBe(cut(P5W4_003_POSTS[1].body));
+    expect(p2.body!.split("\n\n")).toHaveLength(4);
+    expect(p5.body).toBe(P5W4_003_POSTS[2].body);
+    expect(p6.body).toBe(P5W4_003_POSTS[3].body);
+    expect([p1, p2, p5, p6].map((p) => p.cta)).toEqual(P5W4_003_POSTS.map((p) => p.cta));
+  });
+
+  it("removes only the repeating sentence of a last line, a two-sentence cta's both, and never a statement on the cta's words", () => {
+    const post1 = (end: string, cta = P5W4_003_POSTS[0].cta) => validateCampaign({ posts: [{ ...P5W4_003_POSTS[0], body: `${cut(P5W4_003_POSTS[0].body)}\n\n${end}`, cta }] }, live)![0].body!;
+    expect(post1("Tell us. What part of your sales workflow really involves the most app switching?").endsWith("\n\nTell us.")).toBe(true);
+    expect(post1("Save this. Then share it with a coach who switches apps all day.", "Save this. Share it with a coach who switches apps all day.")).toBe(cut(P5W4_003_POSTS[0].body));
+    const statement = "The part of your sales workflow that involves the most app switching is where follow-ups slip.";
+    expect(post1(statement).endsWith(statement)).toBe(true);
+    expect(post1("What part of your week goes to admin?").endsWith("What part of your week goes to admin?")).toBe(true);
+  });
+});
+
 // wave 2 live check (22 Oct), live-p5w2 calls/001: the business draft's two scripts as asked; post 3 as it came back
 const P5W2_001_ASK_3 = { n: 3, angle: { title: "Fewer App Switches", line: "We bring CRM, chats, tasks and goals into one phone app, reducing the need to jump between tools." }, format: "short-video", stage: "attraction", formula: null, ctaType: "comment-keyword", platforms: ["instagram"] };
 const P5W2_001_ASK_4 = { n: 4, angle: { title: "Target Progress View", line: "Track team goals alongside activity, so you can review progress and discuss what needs attention." }, format: "ai-video", stage: "conversion", formula: null, ctaType: "book-call", platforms: ["instagram"] };
