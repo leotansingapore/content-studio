@@ -246,6 +246,87 @@ describe("startRemix", () => {
   });
 });
 
+// phase 6's remix-topic pin, taken before a run could start from a topic: a source run's bodies and drafts, byte for byte
+describe("a source run, as it was before topic runs", () => {
+  it("sends the same make bodies and saves the same drafts for a post, a carousel and a script", async () => {
+    const beat = (say: string) => ({ say, onScreen: "On screen", visual: "Me to camera", seconds: 5, delivery: "Pause" });
+    const results: Record<string, MakeResult> = {
+      post: { as: "post", hook: "Three checks before you sign", body: "First, read it slowly.", cta: "DM me CHECK", hashtags: ["money"] },
+      carousel: { as: "carousel", hook: "Four CPF checks", slides: Array.from({ length: 4 }, (_, i) => ({ title: `Check ${i + 1}`, body: `Why check ${i + 1} matters.` })), cta: "Save this for your next review" },
+      script: { as: "script", hook: "Stop checking CPF once a year", beats: [beat("Stop checking CPF once a year"), beat("Here's why it moves."), beat("Check it monthly"), beat("Comment CPF for my list")], caption: "Your CPF moves. Comment CPF.", cta: "Comment CPF" },
+    };
+    make.mockImplementation(async (b: { as: string }) => answer(results[b.as], { copied: [], claim: b.as === "post", invented: false }));
+    local.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#000", name: "Leo", handle: "" }));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-22T04:00:00.000Z"));
+    try {
+      const done = finished();
+      startRemix(UID, run(["post", "carousel", "script"], { note: "use my offer", fit: { verdict: "good", reasons: [] } }));
+      await done;
+    } finally {
+      vi.useRealTimers();
+    }
+    // written in the order the job builds them, so the JSON compares byte for byte
+    const at = "2026-10-22T04:00:00.000Z";
+    const brand = (rules = "") => ({ name: "Leo", oneLiner: "", audience: "", topics: [], facts: "", mention: true, offer: null, rules, speaker: "person" });
+    const sent = (as: string, rules?: string) => ({
+      mode: "make",
+      as,
+      source: { key: "ad:123", kind: "ad", format: "image", author: "Singlife", text: "Save $12,000 a year with us." },
+      keep: "structure",
+      close: "balanced",
+      note: "use my offer",
+      voice: null,
+      brand: brand(rules),
+      teardown: { hookPattern: "Save [amount] a [period] with [brand].", beats: TEARDOWN.beats, dontReuse: ["$12,000", "Singlife"] },
+      fit: { verdict: "good", reasons: [] },
+    });
+    expect(JSON.stringify(make.mock.calls.map(([b]) => b))).toBe(
+      JSON.stringify([sent("post"), sent("carousel"), sent("script", "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.")]),
+    );
+    const base = (as: string, platform: string, claim = false) => ({
+      id: "ID",
+      createdAt: at,
+      pillar: "topic",
+      audience: "general",
+      platform,
+      source: { ...source, remixedAt: at },
+      remix: { keep: "structure", as, close: "balanced", fit: "good", flags: { copied: [], claim, invented: false } },
+    });
+    const script = results.script as Extract<MakeResult, { as: "script" }>;
+    const spoken = script.beats.map((b) => b.say).join("\n");
+    expect(JSON.stringify(loadDrafts(UID).map((d) => ({ ...d, id: "ID" })))).toBe(
+      JSON.stringify([
+        {
+          ...base("script", "instagram"),
+          hook: script.hook,
+          draft: `${spoken}\n\n---\n\nCAPTION:\n${script.caption}`,
+          pillarDetail: script.hook,
+          format: "short-video",
+          ctaType: "comment-keyword",
+          storyboard: { beats: script.beats, script: spoken, madeAt: at },
+        },
+        {
+          ...base("carousel", "linkedin"),
+          hook: "Four CPF checks",
+          draft: "Slide 1: Four CPF checks\n\nSlide 2: Check 1\nWhy check 1 matters.\n\nSlide 3: Check 2\nWhy check 2 matters.\n\nSlide 4: Check 3\nWhy check 3 matters.\n\nSlide 5: Check 4\nWhy check 4 matters.\n\nSlide 6: Save this for your next review",
+          pillarDetail: "Four CPF checks",
+          format: "carousel",
+          ctaType: "save-share",
+        },
+        {
+          ...base("post", "linkedin", true),
+          hook: "Three checks before you sign",
+          draft: "Three checks before you sign\n\nFirst, read it slowly.\n\nDM me CHECK\n\n#money",
+          pillarDetail: "Three checks before you sign",
+          format: "text-post",
+          ctaType: "dm-keyword",
+        },
+      ]),
+    );
+  });
+});
+
 describe("the breakdown before the first row", () => {
   it("breaks the source down once when this device has none, and sends it to every make", async () => {
     vi.useFakeTimers();
