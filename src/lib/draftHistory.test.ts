@@ -466,3 +466,31 @@ describe("another brand's posts, for the Calendar's every-brand view", () => {
     expect(draftsOfBrand(UID, mb.id)).toEqual([]);
   });
 });
+
+// phase 6's activity-page pin, taken before the absorb logged to Activity: what absorbClaudeDrafts makes of Claude's
+// sync rows, field for field, and which rows it leaves
+describe("drafts Claude saved, as absorbed today", () => {
+  const ls = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+  const row = (id: string, o: Record<string, unknown> = {}) =>
+    JSON.stringify({ id, createdAt: "2026-10-08T03:00:00.000Z", hook: "From Claude", draft: "Body", platform: "instagram", format: "carousel", status: "draft", ...o });
+
+  it("join My posts newest first with these fields, and only this brand's rows go", () => {
+    ls().setItem(`content-studio-drafts-${UID}`, JSON.stringify([post({ id: "old" })]));
+    ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1", { pillarDetail: "CPF at 55" }));
+    ls().setItem(`content-studio-mcpdraft-claude-b2-${UID}`, row("claude-b2", { createdAt: "2026-10-08T04:00:00.000Z", status: "scheduled", scheduledFor: "2026-10-20T19:30", hook: "x".repeat(200) }));
+    ls().setItem(`content-studio-mcpdraft-claude-c3-${UID}~p9`, row("claude-c3"));
+    ls().setItem(`content-studio-mcpdraft-claude-old-${UID}`, row("old"));
+    expect(loadDrafts(UID)).toEqual([
+      {
+        id: "claude-b2", createdAt: "2026-10-08T04:00:00.000Z", hook: "x".repeat(160), draft: "Body", pillar: "topic", pillarDetail: "x".repeat(160),
+        audience: "general", format: "carousel", platform: "instagram", ctaType: "comment-keyword", status: "scheduled", scheduledFor: "2026-10-20T19:30",
+      },
+      {
+        id: "claude-a1", createdAt: "2026-10-08T03:00:00.000Z", hook: "From Claude", draft: "Body", pillar: "topic", pillarDetail: "CPF at 55",
+        audience: "general", format: "carousel", platform: "instagram", ctaType: "comment-keyword", status: "draft",
+      },
+      post({ id: "old" }),
+    ]);
+    expect(Array.from({ length: ls().length }, (_, i) => ls().key(i)).sort()).toEqual([`content-studio-drafts-${UID}`, `content-studio-mcpdraft-claude-c3-${UID}~p9`]);
+  });
+});

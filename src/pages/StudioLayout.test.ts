@@ -89,6 +89,7 @@ await import("@/lib/autopilot");
 await import("@/lib/autopilotJob");
 await import("@/lib/ideasInbox");
 const { default: StudioLayout } = await import("./StudioLayout");
+const { logActivity } = await import("@/lib/activity");
 
 // React's dev warnings call a component again outside the render to name it in a stack: that call must not
 // touch the shim's state or effects
@@ -172,6 +173,16 @@ describe("StudioLayout for everyone else", () => {
     expect(jobs.startMorning).not.toHaveBeenCalled();
     expect(jobs.autopilotWaiting).not.toHaveBeenCalled();
     expect(jobs.onAutopilot).not.toHaveBeenCalled();
+  });
+
+  it("leaves the Activity log off, signed in or still being read", async () => {
+    auth.user = { id: UID, email: "someone@example.com" };
+    await load();
+    expect(logActivity(UID, { who: "you", kind: "post", title: "Made a post" })).toBeNull();
+    as.user = undefined;
+    await load();
+    expect(logActivity(UID, { who: "you", kind: "post", title: "Made a post" })).toBeNull();
+    expect(Array.from({ length: local.length }, (_, i) => local.key(i)).filter((k) => k?.startsWith("content-studio-activity-"))).toEqual([]);
   });
 });
 
