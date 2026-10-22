@@ -78,6 +78,13 @@ vi.stubGlobal("window", {
 });
 vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {}, visibilityState: "visible", activeElement: null });
 
+// vitest 4.1 hands the real module to the second of two imports in flight at once (the layout's preload and its lazy
+// render both import the Remix chunks), so each mocked module is imported once here first
+await import("@/components/remix/RemixSheet");
+await import("@/components/remix/RemixPill");
+await import("@/lib/autopilot");
+await import("@/lib/autopilotJob");
+await import("@/lib/ideasInbox");
 const { default: StudioLayout } = await import("./StudioLayout");
 
 // React's dev warnings call a component again outside the render to name it in a stack: that call must not
