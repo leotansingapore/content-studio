@@ -48,6 +48,10 @@ export interface PlanItem {
   formulaId?: string;
   /** "HH:MM" local posting time for the slot's day. */
   time?: string;
+  /** The label (pillar) a topic or market slot was spread to. */
+  labelId?: string;
+  /** The campaign angle this slot takes. */
+  angleId?: string;
   posted: boolean;
 }
 
@@ -238,6 +242,34 @@ export interface GeneratePlanOptions {
   postingTime?: (weekday: number) => string | null;
   /** Funnel stage weights (a goal's): each week is split by stageSplit. */
   weights?: Record<FunnelStageId, number>;
+  /** Slot i takes angles[i % n]. */
+  angles?: { id: string; title: string; line: string }[];
+  /** The format rotation uses only these. */
+  formats?: PlanFormat[];
+  /** Topic and market slots are spread over these by weight (weightedOrder) and carry the pillar's id. */
+  pillars?: { id: string; name: string; weight: number }[];
+}
+
+/**
+ * `count` pillar ids spread by weight (largest remainder), never the same pillar twice
+ * in a row while another is left. Every weight 0 gives none.
+ */
+export function weightedOrder(pillars: { id: string; weight: number }[], count: number): string[] {
+  const w = pillars.map((p) => Math.max(0, Number(p.weight) || 0));
+  if (count <= 0 || !(w.reduce((a, b) => a + b, 0) > 0)) return [];
+  const left = largestRemainder(w, count);
+  const out: string[] = [];
+  let prev = -1;
+  for (let k = 0; k < count; k++) {
+    // the most left of the others, ties to the earlier pillar; the last one may repeat
+    let pick = -1;
+    for (let i = 0; i < left.length; i++) if (left[i] > 0 && i !== prev && (pick < 0 || left[i] > left[pick])) pick = i;
+    if (pick < 0) pick = prev;
+    out.push(pillars[pick].id);
+    left[pick]--;
+    prev = pick;
+  }
+  return out;
 }
 
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -289,12 +321,15 @@ export function generatePlan(
   // Performance weighting: interleave the user's winning format into every
   // other rotation slot, and start the week on their best posting days.
   const bestFormat = opts.performance?.bestFormat ?? null;
-  const formatRotation: PlanFormat[] = bestFormat
+  const bestRotation: PlanFormat[] = bestFormat
     ? FORMAT_ROTATION.filter((f) => f !== bestFormat).flatMap((f) => [
         bestFormat,
         f,
       ])
     : FORMAT_ROTATION;
+  const allowed = opts.formats ?? [];
+  const kept = bestRotation.filter((f) => allowed.includes(f));
+  const formatRotation = !allowed.length ? bestRotation : kept.length ? kept : allowed;
   const bestDays = (opts.performance?.bestDays ?? []).filter((d) => WEEKDAYS.includes(d));
   const postingDays = (opts.postingDays ?? []).filter((d) => WEEKDAYS.includes(d));
   // The adviser's own posting days first, then their best days, then the default
@@ -304,13 +339,24 @@ export function generatePlan(
     .slice(0, pattern.length)
     .sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b));
 
+  // Pillars: the topic and market slots, counted first, are spread by weight.
+  const order = stageSplit(cadence, opts.weights);
+  let pillarSlots = 0;
+  for (let g = 0; g < weeks * order.length; g++) {
+    const stage = FUNNEL_STAGES.find((s) => s.id === order[g % order.length])!;
+    const p = stage.pillars[(g + salt) % stage.pillars.length];
+    if (p === "topic" || p === "market") pillarSlots++;
+  }
+  const pillarOrder = weightedOrder(opts.pillars ?? [], pillarSlots);
+  const pillarName = new Map((opts.pillars ?? []).map((p) => [p.id, p.name]));
+  const angles = opts.angles ?? [];
+
   const items: PlanItem[] = [];
   let globalIndex = 0;
   let authIndex = 0;
   let socialIndex = 0;
 
   for (let w = 1; w <= weeks; w++) {
-    const order = stageSplit(cadence, opts.weights);
     for (let slot = 0; slot < order.length; slot++) {
       const stageId = order[slot];
       const stage = FUNNEL_STAGES.find((s) => s.id === stageId)!;
@@ -321,10 +367,15 @@ export function generatePlan(
       const isSocial = pillar === "identity" || pillar === "interest";
 
       let pillarDetail: string;
+      let labelId: string | undefined;
       if (isSocial) {
         pillarDetail =
           socialSubjects[(socialIndex + salt) % socialSubjects.length];
         socialIndex++;
+      } else if (pillarOrder.length > 0) {
+        labelId = pillarOrder[authIndex];
+        pillarDetail = pillarName.get(labelId)!;
+        authIndex++;
       } else if (topics.length > 0) {
         pillarDetail = topics[(authIndex + salt) % topics.length];
         authIndex++;
@@ -343,7 +394,7 @@ export function generatePlan(
         angle = `${anchor} — ${ideaLabel}`;
       }
       // Borrow a concrete topical detail from the seed to keep it specific.
-      if (!isSocial && seed && seed.topic && topics.length > 0) {
+      if (!isSocial && seed && seed.topic && (topics.length > 0 || labelId)) {
         angle = `${titleCase(pillarDetail)} — ${ideaLabel} (angle: ${seed.topic})`;
       }
 
@@ -378,6 +429,8 @@ export function generatePlan(
         competitorHandle: competitor?.handle,
         formulaId: HOOK_FORMULAS[(formulaStart + globalIndex) % HOOK_FORMULAS.length].id,
         ...(time ? { time } : {}),
+        ...(labelId ? { labelId } : {}),
+        ...(angles.length ? { angleId: angles[globalIndex % angles.length].id } : {}),
         posted: false,
       });
       globalIndex++;
@@ -409,7 +462,7 @@ export function generatePlan(
     performanceNote: noteParts.length
       ? `Weighted by your analytics: ${noteParts.join("; ")}.`
       : undefined,
-    ...(topics.length < allTopics.length ? { restedThemes: allTopics.filter((t) => !topics.includes(t)) } : {}),
+    ...(!pillarOrder.length && topics.length < allTopics.length ? { restedThemes: allTopics.filter((t) => !topics.includes(t)) } : {}),
   };
 }
 
@@ -430,6 +483,7 @@ export function planItemToGenerateUrl(item: PlanItem, thisWeek?: string): string
   if (ctx) params.set("ctx", ctx);
   if (item.formulaId) params.set("formula", item.formulaId);
   if (item.competitorHandle) params.set("ref", item.competitorHandle);
+  if (item.labelId) params.set("label", item.labelId);
   return `/generate?${params.toString()}`;
 }
 
@@ -496,6 +550,7 @@ export function planCalendarEntries(
       platform: item.platform,
       ctaType: item.ctaType,
       vibeSourceId: item.seedId,
+      ...(item.labelId ? { labels: [item.labelId] } : {}),
       status: "scheduled",
       scheduledFor: scheduleAt(localDateKey(date), item.time),
     });

@@ -34,7 +34,7 @@ describe("planCalendarEntries", () => {
   });
 });
 
-import { generatePlan, planItemToGenerateUrl, recentThemes, stageSplit } from "./contentPlan";
+import { generatePlan, planItemToGenerateUrl, recentThemes, stageSplit, weightedOrder } from "./contentPlan";
 import { HOOK_FORMULAS, hookFormulasFrom } from "./hookFormulas";
 import { EMPTY_POSITIONING, type Positioning } from "./positioning";
 
@@ -268,5 +268,74 @@ describe("stageSplit", () => {
     expect(week(AUDIENCE)).toEqual([3, 2, 0]);
     expect(week(CLIENTS)).toEqual([1, 2, 2]);
     expect(week()).toEqual([2, 2, 1]);
+  });
+});
+
+describe("weightedOrder", () => {
+  const P = (...w: number[]) => w.map((weight, i) => ({ id: "abc"[i], weight }));
+
+  it("spreads 2, 1, 1 over 8 as 4, 2, 2 with no pillar twice in a row", () => {
+    expect(weightedOrder(P(2, 1, 1), 8).join("")).toBe("abacabac");
+  });
+
+  it("never picks a zero weight, fills every slot with one pillar, and gives none when every weight is 0", () => {
+    expect(weightedOrder(P(1, 0), 5)).toEqual(["a", "a", "a", "a", "a"]);
+    expect(weightedOrder(P(3), 3)).toEqual(["a", "a", "a"]);
+    expect(weightedOrder(P(0, 0), 4)).toEqual([]);
+    expect(weightedOrder([], 4)).toEqual([]);
+  });
+
+  it("repeats a pillar only once the others are used up", () => {
+    expect(weightedOrder(P(6, 1, 1), 8).join("")).toBe("abacaaaa");
+  });
+});
+
+describe("generatePlan pillars, angles and formats", () => {
+  const PILLARS = [
+    { id: "cpf", name: "CPF top-ups", weight: 50 },
+    { id: "ins", name: "Insurance", weight: 25 },
+    { id: "ret", name: "Retirement", weight: 25 },
+  ];
+
+  it("spreads 8 topic and market slots over pillars 50/25/25 as 4, 2, 2, never twice in a row, past the two-week rest, and leaves social slots unlabelled", () => {
+    const plan = generatePlan(pos({ cadence: 7 }), { weeks: 2, pillars: PILLARS, recentThemes: new Set(["cpf top-ups"]) });
+    const topical = plan.items.filter((i) => i.pillar === "topic" || i.pillar === "market");
+    expect(topical).toHaveLength(8);
+    const ids = topical.map((i) => i.labelId);
+    expect(["cpf", "ins", "ret"].map((id) => ids.filter((x) => x === id).length)).toEqual([4, 2, 2]);
+    expect(ids.some((id, k) => k > 0 && id === ids[k - 1])).toBe(false);
+    expect(topical.map((i) => i.pillarDetail)).toEqual(ids.map((id) => PILLARS.find((p) => p.id === id)!.name));
+    expect(topical[0].angle.startsWith(topical[0].pillarDetail)).toBe(true);
+    expect(plan.items.filter((i) => i.pillar === "identity" || i.pillar === "interest").every((i) => !("labelId" in i))).toBe(true);
+    expect(plan.restedThemes).toBeUndefined();
+  });
+
+  it("falls back to today's topic rotation when every pillar weight is 0", () => {
+    const zero = PILLARS.map((p) => ({ ...p, weight: 0 }));
+    expect(stable(generatePlan(pos({ cadence: 7 }), { weeks: 2, salt: 1, pillars: zero }))).toEqual(stable(generatePlan(pos({ cadence: 7 }), { weeks: 2, salt: 1 })));
+  });
+
+  it("cycles the angles: 12 posts over 5 angles give 3, 3, 2, 2, 2", () => {
+    const angles = ["a1", "a2", "a3", "a4", "a5"].map((id) => ({ id, title: id, line: "" }));
+    const ids = generatePlan(pos({ cadence: 4 }), { weeks: 3, angles }).items.map((i) => i.angleId);
+    expect(ids.slice(0, 6)).toEqual(["a1", "a2", "a3", "a4", "a5", "a1"]);
+    expect(angles.map((a) => ids.filter((x) => x === a.id).length)).toEqual([3, 3, 2, 2, 2]);
+    expect(generatePlan(pos({ cadence: 4 }), { weeks: 1 }).items.some((i) => "angleId" in i)).toBe(false);
+  });
+
+  it("rotates only the given formats, even past the best format", () => {
+    const formats = (o: Parameters<typeof generatePlan>[1]) => [...new Set(generatePlan(pos({ cadence: 7 }), { weeks: 2, ...o }).items.map((i) => i.format))].sort();
+    expect(formats({ formats: ["carousel"] })).toEqual(["carousel"]);
+    expect(formats({ formats: ["text-post", "short-video"], performance: { bestFormat: "carousel" } })).toEqual(["short-video", "text-post"]);
+    expect(formats({ formats: ["story"] })).toEqual(["story"]);
+    expect(formats({})).toEqual(["carousel", "short-video", "text-post"]);
+  });
+
+  it("passes a slot's label to Write and to its calendar placeholder", () => {
+    const labelled = { ...item("a", "Wk 1 · Mon"), labelId: "cpf" };
+    expect(new URLSearchParams(planItemToGenerateUrl(labelled).split("?")[1]).get("label")).toBe("cpf");
+    expect(new URLSearchParams(planItemToGenerateUrl(item("b", "Mon")).split("?")[1]).has("label")).toBe(false);
+    const { entries } = planCalendarEntries([labelled, item("b", "Wk 1 · Tue")], monday, []);
+    expect(entries.map((e) => e.labels)).toEqual([["cpf"], undefined]);
   });
 });
