@@ -144,6 +144,77 @@ describe("finding stock clips", () => {
   });
 });
 
+describe("photos from a media set", () => {
+  const k = (n: number) => `cimg-pic00${n}`;
+  const photo = (n: number, alt = `photo ${n}`) => ({ key: k(n), name: `p${n}`, folder: "Work and career", alt, width: 1080, height: 1920, addedAt: `2026-10-${10 + n}` });
+  const set = (n: number) => Array.from({ length: n }, (_, i) => photo(i + 1));
+  const scenes = [{ say: "One" }, { say: "Two" }, { say: "Three" }, { say: "Four" }];
+
+  it("asks Jev once with set: true, up to 12 photos a scene by their words, and every photo of a bigger set offered", async () => {
+    vi.mocked(callFn).mockResolvedValue({ picks: [2, null, null, null] });
+    const items = set(20);
+    items[0] = photo(1, " ");
+    await explainer.pickPhotos(scenes, items, "Work");
+    expect(vi.mocked(callFn)).toHaveBeenCalledTimes(1);
+    const [fn, body] = vi.mocked(callFn).mock.calls[0] as [string, { mode: string; theme: string; set: boolean; beats: { say: string; candidates: { desc: string }[] }[] }];
+    expect([fn, body.mode, body.theme, body.set]).toEqual(["video-assist", "montage-pick", "Work", true]);
+    expect(body.beats.map((b) => b.candidates.length)).toEqual([12, 12, 12, 12]);
+    const offered = new Set(body.beats.flatMap((b) => b.candidates.map((c) => c.desc)));
+    expect(offered.size).toBe(20);
+    // a photo with no words is offered last, as "a photo"
+    expect(body.beats[0].candidates[0].desc).toBe("photo 2");
+    expect(offered.has("a photo")).toBe(true);
+    expect(body.beats.flatMap((b) => b.candidates.map((c) => c.desc)).indexOf("a photo")).toBeGreaterThan(11);
+  });
+
+  it("takes Jev's pick, and with no answer or none fills in set order, marking none", async () => {
+    vi.mocked(callFn).mockResolvedValue({ picks: [2, null, -1, 2] });
+    expect(await explainer.pickPhotos(scenes, set(5), "Work")).toEqual([{ photo: k(3) }, { photo: k(1) }, { photo: k(2), miss: true }, { photo: k(4) }]);
+    // Jev off (no key, a timeout, a refusal): every scene from the set, in order
+    vi.mocked(callFn).mockRejectedValue(new Error("Montage picks are used up for today."));
+    expect(await explainer.pickPhotos(scenes, set(5), "Work")).toEqual([k(1), k(2), k(3), k(4)].map((photo) => ({ photo })));
+    vi.mocked(callFn).mockResolvedValue({ picks: [-1, -1, -1, -1] });
+    expect((await explainer.pickPhotos(scenes, set(5), "Work")).map((x) => [x.photo, x.miss])).toEqual([[k(1), true], [k(2), true], [k(3), true], [k(4), true]]);
+  });
+
+  it("starts the set over when it has fewer photos than scenes, so every scene has one", () => {
+    expect(explainer.choosePhotos(set(3), scenes.map(() => set(3)), [null, null, null, 0]).map((x) => x.photo)).toEqual([k(1), k(2), k(3), k(1)]);
+  });
+
+  it("keeps the picks in the draft with the set's name, and a new script clears it", async () => {
+    vi.stubGlobal("window", { localStorage, dispatchEvent: () => true });
+    localStorage.setItem(`cs-media-${UID}`, JSON.stringify([...set(4), { ...photo(9), folder: "Other" }]));
+    explainer.saveDraft(UID, { topic: "Work", scenes: [{ ...SCENE, stock: null, use: "ai" }, { ...SCENE, stock: null, use: "ai" }] });
+    vi.mocked(callFn).mockResolvedValue({ picks: [1, -1] });
+    const steps: string[] = [];
+    const off = explainer.onNarratedWrite((w) => w?.step && steps.push(w.step));
+    await explainer.pickPhotosNow(UID, "Work and career");
+    off();
+    expect(steps).toEqual(["Picking photos from Work and career..."]);
+    const d = explainer.loadDraft(UID);
+    expect(d.photosFrom).toBe("Work and career");
+    expect(d.scenes?.map((s) => [s.photo, s.miss])).toEqual([[k(2), undefined], [k(1), true]]);
+    // a set with no photos on this device asks nothing
+    vi.mocked(callFn).mockClear();
+    await explainer.pickPhotosNow(UID, "Nothing here");
+    expect(callFn).not.toHaveBeenCalled();
+
+    vi.mocked(callFn).mockResolvedValue({ scenes: [SCENE, SCENE, SCENE], look: null, mas: null });
+    await explainer.writeNarrated(UID, { from: "topic", seconds: 30, stock: false });
+    expect(explainer.loadDraft(UID).photosFrom).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("makes the video from the scenes' photos, with no look, move or stock", async () => {
+    const scenes = [{ ...SCENE, stock: clip("a"), use: "stock" as const, photo: k(1) }, { ...SCENE, stock: null, use: "ai" as const, photo: k(2) }];
+    await explainer.makeNarrated(UID, { name: "N", scenes, voice: "eric", look: "clay", move: true, visuals: "stock", set: "Work and career" });
+    expect(vi.mocked(makeExplainer).mock.calls[0][4]).toEqual({ images: [k(1), k(2)] });
+    expect(explainer.summaryLine(scenes, 29.6, true, "Work and career")).toBe("2 scenes, about 30 seconds. Uses 1 voiceover. Pictures from your set are free.");
+    expect(explainer.usesPhoto(scenes[0], "Work and career")).toBe(true);
+    expect(explainer.usesPhoto(scenes[0], "")).toBe(false);
+  });
+});
+
 describe("the write", () => {
   const written = { scenes: [SCENE, { ...SCENE, search: "hawker" }, { ...SCENE, search: "hdb" }], look: { id: "chalk", p: 0.5 }, mas: false };
 

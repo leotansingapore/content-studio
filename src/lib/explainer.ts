@@ -1,6 +1,7 @@
 // The narrated video on Edit a video's AI panel, for Leo (docs/north-star/items/formats-faceless-video.md and
 // formats-animated.md): start from a topic, your script, a link or a draft; 30 or 60 s; stock clips first where Jev
-// says one shows the scene, else an AI picture in the look; the scenes can move. The make itself is aiVideo.ts
+// says one shows the scene, else an AI picture in the look; the scenes can move. Or every scene a photo from one of
+// the brand's media sets (brand-media-sets), free: Jev picks one per scene. The make itself is aiVideo.ts
 // makeExplainer with its opts.
 //   synced: content-studio-explainer-look-<scoped uid>: { look, move } the brand's last look and whether it moves
 //   device, this tab: cs-narrated-draft-<scoped uid> (sessionStorage): what was typed and the scenes written, so leaving
@@ -13,6 +14,8 @@ import { aiJob, makeExplainer, type ExplainerOpts } from "@/lib/aiVideo";
 import { chooseClips } from "@/lib/autoBroll";
 import { EdgeError, callFn } from "@/lib/edgeFn";
 import { loadDrafts } from "@/lib/draftHistory";
+import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
+import { rotateCandidates } from "@/lib/mediaSets";
 import { describe as clipDesc } from "@/lib/montage";
 import { scoped } from "@/lib/profiles";
 import { splitScriptCaption } from "@/lib/scriptCaption";
@@ -69,6 +72,10 @@ export interface NarratedScene extends Scene {
   stock: StockItem | null;
   /** What the adviser picked for it ("Use a picture instead" / "Use stock instead"). */
   use: "stock" | "ai";
+  /** The media set photo it shows (a device key) when a set is picked: Jev's pick, the next in set order, or Swap's. */
+  photo?: string;
+  /** Jev said none of the set's photos shows it, so its Swap is outlined. */
+  miss?: boolean;
 }
 
 export interface NarratedDraft {
@@ -88,6 +95,8 @@ export interface NarratedDraft {
   mas?: boolean | null;
   /** Stock was looked for on these scenes. */
   found?: boolean;
+  /** The media set the scenes' photos were picked from. */
+  photosFrom?: string;
 }
 
 const EMPTY: NarratedDraft = { topic: "", script: "", link: "", scenes: null, seconds: 30 };
@@ -115,6 +124,7 @@ export function loadDraft(userId: string): NarratedDraft {
         ...(r.recommended !== undefined ? { recommended: r.recommended } : {}),
         ...(r.mas !== undefined ? { mas: r.mas } : {}),
         ...(r.found ? { found: true } : {}),
+        ...(typeof r.photosFrom === "string" ? { photosFrom: r.photosFrom } : {}),
       };
     }
   } catch {
@@ -281,7 +291,7 @@ export async function writeNarrated(userId: string, a: { from: From; seconds: Na
     );
     const written = r.scenes.map((s) => ({ say: s.say, picture: s.picture, search: s.search ?? "" }));
     const scenes = a.stock ? await withStock(written, topic || page?.title || written[0]?.say || "") : written.map((s) => ({ ...s, stock: null, use: "ai" as const }));
-    saveDraft(userId, { scenes, seconds: a.seconds, source: page, recommended: r.look ?? null, mas: r.mas ?? null, found: a.stock });
+    saveDraft(userId, { scenes, seconds: a.seconds, source: page, recommended: r.look ?? null, mas: r.mas ?? null, found: a.stock, photosFrom: undefined });
     setWrite({ state: "done", step: "" });
   } catch (e) {
     // the server's own words for a refusal or a used-up cap; anything else is the step's line
@@ -304,16 +314,67 @@ export async function findStockNow(userId: string): Promise<void> {
 
 export const dismissWrite = () => void (write && !writing() && setWrite(null));
 
+// ---------- photos from a media set (brand-media-sets, Leo's) ----------
+
+/** A photo set's photos on this device, in set order (newest first, as Media lists them). */
+export const setPhotos = (userId: string, set: string): MediaItem[] => loadMedia(userId).filter((m) => m.folder === set);
+
+/**
+ * Per scene, its photo: Jev's pick when it is still unused, else the next unused photo in set order (Jev gave no
+ * answer, or said none fits, which also marks it `miss`). A set smaller than the scenes starts over once every photo
+ * is used, so no scene is left without one.
+ */
+export function choosePhotos(items: MediaItem[], cands: MediaItem[][], picks: (number | null)[]): { photo: string; miss?: true }[] {
+  const used = new Set<string>();
+  return cands.map((xs, i) => {
+    if (used.size >= items.length) used.clear();
+    const p = picks[i];
+    const want = typeof p === "number" && p >= 0 ? xs[p] : undefined;
+    const it = want && !used.has(want.key) ? want : items.find((m) => !used.has(m.key))!;
+    used.add(it.key);
+    return { photo: it.key, ...(p === -1 ? { miss: true as const } : {}) };
+  });
+}
+
+/**
+ * One montage-pick call with `set: true`: each scene offered up to 12 of the set's photos by their alt text (a set
+ * over 12 rotated, so every photo is offered; photos with no words last, as "a photo"). No answer fills in set order.
+ */
+export async function pickPhotos(scenes: Pick<NarratedScene, "say">[], items: MediaItem[], theme: string): Promise<{ photo: string; miss?: true }[]> {
+  const described = [...items].sort((a, b) => Number(!a.alt.trim()) - Number(!b.alt.trim()));
+  const cands = rotateCandidates(described, scenes.length);
+  const r = await callFn<{ picks: (number | null)[] }>("video-assist", {
+    mode: "montage-pick",
+    theme,
+    set: true,
+    beats: scenes.map((s, i) => ({ say: s.say, candidates: cands[i].map((m) => ({ desc: m.alt.trim() || "a photo" })) })),
+  }).catch(() => null);
+  return choosePhotos(items, cands, scenes.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null)));
+}
+
+/** A set picked with scenes on screen: a photo for each scene, kept in the draft. A set with no photos here does nothing. */
+export async function pickPhotosNow(userId: string, set: string): Promise<void> {
+  const d = loadDraft(userId);
+  const items = setPhotos(userId, set);
+  if (writing() || !d.scenes?.length || !items.length) return;
+  setWrite({ state: "finding", step: `Picking photos from ${set}...` });
+  const got = await pickPhotos(d.scenes, items, d.topic.trim() || d.source?.title || d.scenes[0].say);
+  saveDraft(userId, { scenes: d.scenes.map((s, i) => ({ ...s, photo: got[i].photo, miss: got[i].miss })), photosFrom: set });
+  setWrite({ state: "done", step: "" });
+}
+
 // ---------- the make ----------
 
-/** The scenes the video uses, each a stock clip or an AI picture. */
+/** The scenes the video uses, each a stock clip or an AI picture, or with a set picked its photo. */
 export const usesStock = (s: NarratedScene, on: boolean) => on && s.use === "stock" && !!s.stock;
+export const usesPhoto = (s: NarratedScene, set: string) => !!set && !!s.photo;
 
-/** "5 scenes, about 30 seconds. 3 stock clips and 2 AI pictures." */
-export function summaryLine(scenes: NarratedScene[], seconds: number, on: boolean): string {
+/** "5 scenes, about 30 seconds. 3 stock clips and 2 AI pictures.", or with a set what the set costs. */
+export function summaryLine(scenes: NarratedScene[], seconds: number, on: boolean, set = ""): string {
   const stock = scenes.filter((s) => usesStock(s, on)).length;
   const ai = scenes.length - stock;
   const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+  if (set) return `${n(scenes.length, "scene", "scenes")}, about ${Math.round(seconds)} seconds. Uses 1 voiceover. Pictures from your set are free.`;
   const parts = [stock ? n(stock, "stock clip", "stock clips") : "", ai ? n(ai, "AI picture", "AI pictures") : ""].filter(Boolean).join(" and ");
   return `${n(scenes.length, "scene", "scenes")}, about ${Math.round(seconds)} seconds. ${parts.replace(/^./, (c) => c.toUpperCase())}.`;
 }
@@ -321,14 +382,13 @@ export function summaryLine(scenes: NarratedScene[], seconds: number, on: boolea
 /** Makes the video (aiVideo.ts), and clears the draft once the video is being put together. */
 export async function makeNarrated(
   userId: string,
-  a: { name: string; scenes: NarratedScene[]; voice: VoiceId; look: LookId; move: boolean; visuals: Visuals; extra?: JoinExtra },
+  a: { name: string; scenes: NarratedScene[]; voice: VoiceId; look: LookId; move: boolean; visuals: Visuals; extra?: JoinExtra; set?: string },
 ): Promise<void> {
   const on = stockOn(a.visuals, a.look);
-  const opts: ExplainerOpts = {
-    look: a.look,
-    move: a.move,
-    stock: a.scenes.map((s) => (usesStock(s, on) ? s.stock!.src : null)),
-  };
+  // a set: every scene its photo, so no look, move or stock rides along
+  const opts: ExplainerOpts = a.set
+    ? { images: a.scenes.map((s) => s.photo ?? "") }
+    : { look: a.look, move: a.move, stock: a.scenes.map((s) => (usesStock(s, on) ? s.stock!.src : null)) };
   await makeExplainer(a.name, a.scenes.map((s) => ({ say: s.say.trim(), picture: s.picture.trim() })), a.voice, a.extra, opts);
   const j = aiJob();
   if (j?.kind === "explainer" && j.state === "done") clearDraft(userId);
