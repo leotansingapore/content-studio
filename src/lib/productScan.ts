@@ -200,9 +200,33 @@ function enqueue(id: string, run: () => Promise<void>): void {
   void drain();
 }
 
+// Addresses brand-dna image refused for the picture itself (422: not a PNG, JPEG or WebP, or over 2 MB). Asking again
+// would be refused again and count against brand-image's 100 a day, so this device stops asking, across visits.
+const REFUSED_PICTURES = "cs-brand-pictures-refused"; // this device only, on purpose: not content-studio-, so never synced
+const MAX_REFUSED = 50;
+function refusedPictures(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(REFUSED_PICTURES) ?? "[]");
+    return Array.isArray(v) ? v.filter((u): u is string => typeof u === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function refusePicture(url: string): void {
+  try {
+    localStorage.setItem(REFUSED_PICTURES, JSON.stringify([...refusedPictures().filter((u) => u !== url), url].slice(-MAX_REFUSED)));
+  } catch {
+    // storage blocked: the next visit asks once more
+  }
+}
+
 /** One picture from the brand's site, resized and kept on this device under a new key. */
 async function fetchPicture(url: string): Promise<{ key: string; width: number; height: number }> {
-  const { dataUrl } = await callFn<{ dataUrl: string }>("brand-dna", { mode: "image", url }, PICTURE_FAILED);
+  if (refusedPictures().includes(url)) throw new Error(PICTURE_FAILED);
+  const { dataUrl } = await callFn<{ dataUrl: string }>("brand-dna", { mode: "image", url }, PICTURE_FAILED).catch((e) => {
+    if (e instanceof EdgeError && e.status === 422) refusePicture(url);
+    throw e;
+  });
   const blob = await (await fetch(dataUrl)).blob();
   const { key, width, height } = await storePicture(blob);
   return { key, width, height };
@@ -256,7 +280,8 @@ export async function pictureFile(userId: string, p: Product): Promise<File | nu
   if (!key) return null;
   let blob = await getFile(key);
   if (!blob && p.sources[0]) {
-    // a picture that failed earlier is asked for again on a press; one already on its way is waited for
+    // a picture that failed earlier is asked for again on a press (unless the site refused it for itself); one already
+    // on its way is waited for
     if (pictures.get(key) !== "fetching") pictures.delete(key);
     ensurePicture(userId, key, p.sources[0], p.name);
     await new Promise<void>((done) => {

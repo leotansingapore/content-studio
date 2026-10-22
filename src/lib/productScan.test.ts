@@ -183,6 +183,36 @@ describe("a saved product's picture on another device", () => {
     expect(s.pictureState("cimg-alreadyhere")).toBe("done");
   });
 
+  const gif = { id: "pd-gif00001", name: "Loop", what: "", forWho: "", pictures: ["cimg-gifloop1"], sources: ["https://acme.sg/loop.gif"], use: true, from: "website" as const, addedAt: "" };
+  const nextVisit = async () => {
+    vi.resetModules();
+    return await import("./productScan");
+  };
+
+  it("is asked for once when the site refuses the picture itself, and not again on the next visit or a press", async () => {
+    callFn.mockRejectedValue(new EdgeError("That address isn't a PNG, JPEG or WebP picture. Upload one instead.", 422, "not_image"));
+    s.ensurePicture("u1", gif.pictures[0], gif.sources[0], gif.name);
+    await idle();
+    expect(s.pictureState(gif.pictures[0])).toBe("failed");
+    const next = await nextVisit();
+    next.ensurePicture("u1", gif.pictures[0], gif.sources[0], gif.name);
+    await idle();
+    expect(next.pictureState(gif.pictures[0])).toBe("failed");
+    expect(await next.pictureFile("u1", gif)).toBeNull();
+    expect(callFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("is asked for again on the next visit when the site never answered", async () => {
+    const down = { ...gif, pictures: ["cimg-sitedown"], sources: ["https://acme.sg/down.jpg"] };
+    callFn.mockRejectedValue(new EdgeError("Couldn't fetch that picture. Upload one instead.", 502, "failed"));
+    s.ensurePicture("u1", down.pictures[0], down.sources[0], down.name);
+    await idle();
+    const next = await nextVisit();
+    next.ensurePicture("u1", down.pictures[0], down.sources[0], down.name);
+    await idle();
+    expect(callFn).toHaveBeenCalledTimes(2);
+  });
+
   it("is null for an upload this device doesn't have", async () => {
     const prod = { id: "pd-upload01", name: "Mine", what: "", forWho: "", pictures: ["cimg-uploaded"], sources: [""], use: true, from: "you" as const, addedAt: "" };
     expect(await s.pictureFile("u1", prod)).toBeNull();
