@@ -152,7 +152,7 @@ An SVG with an inline `@font-face { src: url(data:font/woff2;base64,...) }`, dra
 ## Open questions
 
 - Defaults: Fastlane leaves the logo off what it makes. This spec turns the video logo on when a logo exists and leaves the cards off. Leo decides.
-- Spike result for brand fonts on carousels: not run yet.
+- Spike result for brand fonts on carousels (run 22 Oct 2026, builder brand-kit): an SVG with an inline `@font-face { src: url(data:font/ttf;base64,...) }`, drawn into a canvas through an `<img>` from a `data:image/svg+xml` URL the way `svgDataUrl` and the PNG export do, drew the uploaded face (pixels differ from the fallback on the first draw) and left the canvas readable (`toDataURL` did not throw) in Chromium 151 and WebKit 26.5 (Playwright's builds, desktop). Firefox and Safari on iOS were not tested: no Firefox build on this machine and no phone. Since the rule is "if any browser draws the fallback face, carousels keep system fonts" and two browsers are unknown, carousels keep system fonts in phase 4 and the brand font applies to the video end card only. To turn it on later: check Safari on an iPhone and Firefox, then embed the `@font-face` in `renderSvg` and register the same face before `createCanvasMeasure` measures (each slide SVG grows by the font's data URL, up to 400,000 characters).
 - A brand font adds up to about 400,000 characters to one synced key. `cs_user_data` has no size check in code (supabase/hub/004_user_data_sync.sql); the server limit is unverified.
 - Fonts are taken on the user's word that they hold the licence. Leo decides whether that line is enough.
 - "Copy this kit to another brand" for agencies is left out until someone runs more than three brands.
