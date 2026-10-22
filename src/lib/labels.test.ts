@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { loadDrafts, saveDrafts, upsertDraft, type DraftEntry } from "./draftHistory";
-import { addLabel, deleteLabel, labelMix, loadLabels, seedLabels, setDraftLabels, updateLabel, type Label } from "./labels";
+import {
+  addLabel, deleteLabel, hasSavedLabels, labelMix, labelsForNewDraft, labelWeights, loadLabels, pillarsFromLabels, seedLabels, setDraftLabels, updateLabel, type Label,
+} from "./labels";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -99,5 +101,39 @@ describe("labelMix", () => {
     expect(m.posts).toBe(4);
     expect(m.rows.map((r) => r.target)).toEqual([50, 25, 25]);
     expect(labelMix(posts, [{ ...L[0], target: 2 }, { ...L[1], target: 1 }, { ...L[2], target: 1 }], 0, NOW).rows.map((r) => r.target)).toEqual([50, 25, 25]);
+  });
+});
+
+describe("labels as pillars", () => {
+  const L: Label[] = [
+    { id: "a", name: "CPF", color: "primary", target: 50 },
+    { id: "b", name: "Insurance", color: "brand" },
+    { id: "c", name: "Retirement", color: "success", target: 0 },
+  ];
+
+  it("weighs a label by its target when set, else an equal share", () => {
+    expect(labelWeights(L)).toEqual([50, 100 / 3, 0]);
+    expect(pillarsFromLabels(L)).toEqual([
+      { id: "a", name: "CPF", weight: 50 },
+      { id: "b", name: "Insurance", weight: 100 / 3 },
+      { id: "c", name: "Retirement", weight: 0 },
+    ]);
+  });
+
+  it("tells saved labels from seeded ones", () => {
+    mem.setItem(`content-studio-positioning-${UID}`, JSON.stringify({ topics: ["CPF"] }));
+    expect(loadLabels(UID)).toHaveLength(1);
+    expect(hasSavedLabels(UID)).toBe(false);
+    updateLabel(UID, "t-cpf", { target: 40 });
+    expect(hasSavedLabels(UID)).toBe(true);
+    expect(hasSavedLabels(null)).toBe(false);
+  });
+
+  it("gives a new post the link's label, ignores an unknown id, and leaves an existing post alone", () => {
+    expect(labelsForNewDraft("b", L, null)).toEqual(["b"]);
+    expect(labelsForNewDraft("gone", L, null)).toBeUndefined();
+    expect(labelsForNewDraft(null, L, undefined)).toBeUndefined();
+    expect(labelsForNewDraft("b", L, post("x", { labels: ["a"] }))).toEqual(["a"]);
+    expect(labelsForNewDraft("b", L, post("x"))).toBeUndefined();
   });
 });
