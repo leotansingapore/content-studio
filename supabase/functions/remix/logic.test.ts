@@ -1112,6 +1112,21 @@ describe("hooks (formats-hook-demo)", () => {
     expect(schema).toContain('"enum":["contrarian","mistake","blunt"]');
   });
 
+  it("writes today's prompt and schema for every hooks request with no spoken limit (pinned 22 Oct, before the spoken hook's 8 words)", () => {
+    const LIST = [{ ...FORMULAS[0], id: "list" }, ...FORMULAS.slice(1)];
+    const reqs = [
+      shape("hooks", { formulas: FORMULAS }),
+      req(),
+      shape("hooks", { formulas: LIST }),
+      shape("hooks", { formulas: FORMULAS, brand: BIZ }),
+      topic("hooks", { formulas: FORMULAS }),
+      topic("hooks", { formulas: LIST, demo: { name: "demo.mp4", seconds: 10 }, brand: BIZ }),
+      make(W2.find((x) => x.call === "hook-demo-hooks")!.request),
+    ];
+    const out = reqs.map((m) => [buildMakePrompt(m), responseFormat(m)]);
+    expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("20f33b1d95a953214a92165e4d60aa75ee22f54d3f049b3831856ca297b52764");
+  });
+
   it("takes three hooks of at most 12 words, each a distinct formula id from those sent", () => {
     expect(hooks(three)).toEqual({ as: "hooks", hooks: three.map((h) => ({ text: h.text, formula: h.formula })) });
     expect(hooks(three.slice(0, 2))).toBeNull();

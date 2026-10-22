@@ -123,6 +123,8 @@ describe("the hooks", () => {
     await writeHooks(UID, ASK);
     const body = make.mock.calls[0][0];
     expect(body).toMatchObject({ mode: "make", as: "hooks", topic: ASK.topic, demo: { name: "screen-recording.mp4", seconds: 24 } });
+    // a stock hook asks for no word limit: the server's 12 stands
+    expect(body).not.toHaveProperty("maxWords");
     // the formulas go as writeHooks sends them: five fields, never bestFor
     expect(body.formulas).toEqual(hookFormulaSet(0).map(({ id, name, template, example, trap }) => ({ id, name, template, example, trap })));
     const [judge] = called("writing-judge", "hooks");
