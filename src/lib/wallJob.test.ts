@@ -301,6 +301,36 @@ describe("the wall job", () => {
   });
 });
 
+// pinned before WallAsk.draftId (plan-review-queue): a wall started without one hands the editor exactly today's extra
+describe("the editor's extra without a draftId", () => {
+  it("joins a stock clip with today's keys, from a source and from a topic", async () => {
+    answer({ "desk night tea": [clip("a")] });
+    await run();
+    expect(Object.keys(join.start.mock.calls[0][3].extra).sort()).toEqual(["caption", "note", "settings", "source", "toast"]);
+    clearWallJob();
+    await run({ ...ASK, source: null, about: "Why busy weeks feel empty" });
+    expect(Object.keys(join.start.mock.calls[1][3].extra).sort()).toEqual(["caption", "note", "settings", "toast"]);
+  });
+
+  it("hands the adviser's own clip over with today's keys", async () => {
+    length.mockResolvedValue(10);
+    await run({ ...ASK, bg: "mine", file: new File(["mine"], "phone.mp4", { type: "video/mp4" }) });
+    expect(Object.keys(join.hand.mock.calls[0][1]).sort()).toEqual(["caption", "note", "settings", "source", "toast"]);
+  });
+
+  it("carries a campaign post's draftId to the editor on both paths, and nothing else changes", async () => {
+    answer({ "desk night tea": [clip("a")] });
+    await run({ ...ASK, draftId: "cmp_c-1_4" });
+    const extra = join.start.mock.calls[0][3].extra;
+    expect(extra.draftId).toBe("cmp_c-1_4");
+    expect(Object.keys(extra).sort()).toEqual(["caption", "draftId", "note", "settings", "source", "toast"]);
+    clearWallJob();
+    length.mockResolvedValue(10);
+    await run({ ...ASK, draftId: "cmp_c-1_4", bg: "mine", file: new File(["mine"], "phone.mp4", { type: "video/mp4" }) });
+    expect(join.hand.mock.calls[0][1].draftId).toBe("cmp_c-1_4");
+  });
+});
+
 describe("the page's words and links", () => {
   it("names each step", () => {
     expect(stepText({ state: "writing" })).toBe("Writing the text...");

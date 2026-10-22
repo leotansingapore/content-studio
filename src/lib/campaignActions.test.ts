@@ -1,0 +1,449 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
+
+// the makers' job stores, faked: each start moves its store the way the real one does, and the test drives the rest
+const fake = vi.hoisted(() => {
+  type J = Record<string, unknown> & { id: number; state: string };
+  const store = () => {
+    const ls = new Set<(j: J | null) => void>();
+    return {
+      job: null as J | null,
+      set(j: J | null) {
+        this.job = j;
+        ls.forEach((l) => l(j && { ...j }));
+      },
+      patch(p: Partial<J>) {
+        this.set({ ...(this.job as J), ...p });
+      },
+      on(l: (j: J | null) => void) {
+        ls.add(l);
+        return () => void ls.delete(l);
+      },
+      reset() {
+        this.job = null;
+        ls.clear();
+      },
+    };
+  };
+  return { show: store(), wall: store(), talk: store(), seq: 0, ai: { busy: false, pending: null as unknown }, who: "me", fn: null as unknown as ReturnType<typeof vi.fn> };
+});
+const busyIn = (j: { state: string } | null, states: string[]) => !!j && states.includes(j.state);
+const startSlideshow = vi.hoisted(() => vi.fn());
+const startWall = vi.hoisted(() => vi.fn());
+const startTalk = vi.hoisted(() => vi.fn());
+const resumeTalk = vi.hoisted(() => vi.fn());
+const startDrafting = vi.hoisted(() => vi.fn());
+const fn = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("./edgeFn")>()), callFn: fn }));
+vi.mock("@/lib/slideshowJob", async (orig) => ({
+  ...(await orig<typeof import("./slideshowJob")>()),
+  startSlideshow,
+  slideshowJob: () => fake.show.job,
+  slideshowBusy: () => busyIn(fake.show.job, ["writing", "finding", "drawing"]),
+}));
+vi.mock("@/lib/wallJob", async (orig) => ({
+  ...(await orig<typeof import("./wallJob")>()),
+  startWall,
+  wallJob: () => fake.wall.job,
+  wallBusy: () => busyIn(fake.wall.job, ["writing", "finding", "clip", "joining"]),
+  onWallJob: (l: (j: unknown) => void) => fake.wall.on(l as never),
+}));
+vi.mock("@/lib/talkingHeadJob", async (orig) => ({
+  ...(await orig<typeof import("./talkingHeadJob")>()),
+  startTalk,
+  resumeTalk,
+  talkJob: () => fake.talk.job,
+  talkBusy: () => busyIn(fake.talk.job, ["writing", "presenter", "voice", "video", "joining"]),
+  onTalkJob: (l: (j: unknown) => void) => fake.talk.on(l as never),
+}));
+vi.mock("@/lib/aiVideo", async (orig) => ({ ...(await orig<typeof import("./aiVideo")>()), aiBusy: () => fake.ai.busy, pendingAvatar: () => fake.ai.pending }));
+// the brand's "Who appears": "me" with a face saved and on, or "ask" (Ask each time)
+vi.mock("@/lib/talkingHead", async (orig) => ({ ...(await orig<typeof import("./talkingHead")>()), speakers: () => ({ face: { id: "f1" }, presenters: [], who: fake.who }) }));
+vi.mock("@/lib/campaignJob", async (orig) => ({ ...(await orig<typeof import("./campaignJob")>()), startDrafting }));
+
+import { saveAudience } from "./audiences";
+import { angleCounts, campaignCost, getCampaign, saveCampaigns, type Campaign, type CampaignPost } from "./campaigns";
+import { splitDraftIntoSlides } from "./carousel";
+import { getDraftById, loadDrafts, MAX_DRAFTS, saveDrafts, type DraftEntry } from "./draftHistory";
+import { blankSlideshow, loadSlideshows, MAX_SHOWS, saveSlideshow } from "./slideshow";
+
+class MemStorage {
+  s = new Map<string, string>();
+  get length() { return this.s.size; }
+  key(i: number) { return [...this.s.keys()][i] ?? null; }
+  getItem(k: string) { return this.s.get(k) ?? null; }
+  setItem(k: string, v: string) { this.s.set(k, v); }
+  removeItem(k: string) { this.s.delete(k); }
+}
+
+const UID = "u1";
+const NOW = new Date("2026-10-22T10:00:00.000Z");
+const ANGLES = [
+  { id: "a1", title: "The hospital bill question", line: "What a stay really costs" },
+  { id: "a2", title: "Busy weeks", line: "Why follow-ups slip" },
+];
+const SCRIPT = Array.from({ length: 40 }, (_, i) => `word${i}`).join(" ");
+const post = (n: number, o: Partial<CampaignPost> = {}): CampaignPost => ({
+  n, day: `2026-11-0${n}`, time: "20:00", angleId: ANGLES[(n - 1) % 2].id, format: "text-post", stage: "trust", pillar: "topic", ctaType: "open-question",
+  formulaId: "contrarian", state: "ready", hook: `Most people get post ${n} wrong`, body: "First point here.\n\nSecond point here.\n\nThird point here.", cta: "What would you add?",
+  mas: false, ...o,
+});
+let audienceId = "";
+const campaign = (posts: CampaignPost[], o: Partial<Campaign> = {}): Campaign => ({
+  id: "c-1", name: "Young families | November", createdAt: NOW.toISOString(), audience: audienceId, audienceName: "Young families", angles: ANGLES,
+  platforms: ["linkedin", "instagram"], formats: ["text-post"], weeks: 1, perWeek: 7, startDay: "2026-11-01", pictures: "stock",
+  target: { posts: posts.length, winners: 1 }, posts, ...o,
+});
+const seed = (posts: CampaignPost[], o: Partial<Campaign> = {}) => expect(saveCampaigns(UID, [campaign(posts, o)])).toBeNull();
+const the = (n: number) => getCampaign(UID, "c-1")!.posts.find((p) => p.n === n)!;
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+let local: MemStorage;
+// fresh per test: a make or swap left running by one test must not hold its post in the next
+let act: typeof import("./campaignActions");
+let EdgeError: typeof import("./edgeFn").EdgeError;
+beforeEach(async () => {
+  vi.resetModules();
+  act = await import("./campaignActions");
+  EdgeError = (await import("./edgeFn")).EdgeError;
+  local = new MemStorage();
+  vi.stubGlobal("localStorage", local);
+  vi.stubGlobal("sessionStorage", new MemStorage());
+  vi.stubGlobal("window", { localStorage: local, dispatchEvent: () => true, addEventListener: () => {}, removeEventListener: () => {} });
+  fake.show.reset();
+  fake.wall.reset();
+  fake.talk.reset();
+  fake.ai = { busy: false, pending: null };
+  fake.who = "me";
+  fn.mockReset();
+  startDrafting.mockReset();
+  startSlideshow.mockReset().mockImplementation(async (userId: string, ask: { topic: string }) => {
+    fake.show.set({ id: ++fake.seq, state: "writing", done: 0, of: 0, ask });
+    await tick();
+    const show = { ...blankSlideshow({}, NOW), id: "ss-made", title: ask.topic, caption: "Made caption. Save this." };
+    saveSlideshow(userId, show, NOW);
+    fake.show.patch({ state: "done", showId: show.id });
+  });
+  startWall.mockReset().mockImplementation(async (_: string, ask: unknown) => {
+    fake.wall.set({ id: ++fake.seq, state: "writing", ask });
+  });
+  startTalk.mockReset().mockImplementation(async (_: string, ask: unknown) => {
+    fake.talk.set({ id: ++fake.seq, state: "voice", step: "Making the voiceover...", params: {}, ask });
+  });
+  resumeTalk.mockReset().mockImplementation(() => {
+    fake.talk.set({ id: ++fake.seq, state: "video", step: "", params: {} });
+    return true;
+  });
+  const a = saveAudience(UID, { name: "Young families", who: "Parents with kids under 10", lifeStage: "parent" }, NOW);
+  if (a.ok === false) throw new Error(a.error);
+  audienceId = a.audience.id;
+});
+afterEach(() => vi.unstubAllGlobals());
+
+describe("makePost, free formats", () => {
+  it("puts a text post on the calendar as cmp_<id>_<n> at its day and time, with its plan fields, and moves it to made", async () => {
+    seed([post(1)]);
+    const r = await act.makePost(UID, "c-1", 1, NOW);
+    expect(r).toMatchObject({ ok: true, toast: "Post 1 is on your calendar for Sun 1 Nov, 8pm." });
+    const d = getDraftById(UID, "cmp_c-1_1")!;
+    expect(d).toMatchObject({
+      status: "scheduled", scheduledFor: "2026-11-01T20:00", format: "text-post", platform: "linkedin", pillar: "topic", pillarDetail: "The hospital bill question",
+      audience: "parent", ctaType: "open-question", hookFormula: "contrarian", hook: "Most people get post 1 wrong",
+    });
+    expect(d.draft).toBe("Most people get post 1 wrong\n\nFirst point here.\n\nSecond point here.\n\nThird point here.\n\nWhat would you add?");
+    expect(the(1)).toMatchObject({ state: "made", draftId: "cmp_c-1_1", made: { kind: "draft", id: "cmp_c-1_1" } });
+  });
+
+  it("makes a carousel whose draft rebuilds the slides the queue showed, and saves no carousel", async () => {
+    seed([post(2, { format: "carousel", body: "Point one is short.\n\nPoint two is short.\n\nPoint three is short.\n\nPoint four is short." })]);
+    const shown = act.postSlides(the(2));
+    await act.makePost(UID, "c-1", 2, NOW);
+    const d = getDraftById(UID, "cmp_c-1_2")!;
+    expect(d.format).toBe("carousel");
+    expect(splitDraftIntoSlides(d.draft, { hook: d.hook }).slides).toEqual(shown);
+    expect(shown.length).toBeGreaterThanOrEqual(4);
+    expect([...local.s.keys()].some((k) => /carousel/i.test(k))).toBe(false);
+  });
+
+  it("never makes a post twice, and its Undo takes it off the calendar and back to ready", async () => {
+    seed([post(1), post(3)]);
+    const r = await act.makePost(UID, "c-1", 1, NOW);
+    expect(await act.makePost(UID, "c-1", 1, NOW)).toEqual({ ok: false, error: act.MADE_LINE });
+    expect(loadDrafts(UID)).toHaveLength(1);
+    if (r.ok === false) throw new Error(r.error);
+    r.undo();
+    expect(getDraftById(UID, "cmp_c-1_1")).toBeNull();
+    expect(the(1)).toMatchObject({ state: "ready" });
+    expect(the(1).made).toBeUndefined();
+    expect(the(1).draftId).toBeUndefined();
+  });
+
+  it("refuses a post still being written", async () => {
+    seed([post(1, { state: "drafting", hook: undefined }), post(2, { state: "waiting", hook: undefined })]);
+    expect(await act.makePost(UID, "c-1", 1, NOW)).toEqual({ ok: false, error: act.WRITING_LINE });
+    expect(await act.makePost(UID, "c-1", 2, NOW)).toEqual({ ok: false, error: act.WRITING_LINE });
+    expect(loadDrafts(UID)).toHaveLength(0);
+  });
+
+  it("makes every written free post in order with each step counted, and one Undo takes them all back", async () => {
+    seed([post(1), post(2, { format: "slideshow", brief: "A\nB" }), post(3, { format: "short-video", script: "HOOK: x\nBODY: y\nCTA: z" }), post(4, { state: "waiting", hook: undefined }), post(5, { format: "carousel" })]);
+    const steps: string[] = [];
+    const r = await act.makeFreePosts(UID, "c-1", (done, of) => steps.push(`${done}/${of}`));
+    expect(r).toMatchObject({ made: 3, failed: 0 });
+    expect(steps).toEqual(["1/3", "2/3", "3/3"]);
+    expect(loadDrafts(UID).map((d) => d.id).sort()).toEqual(["cmp_c-1_1", "cmp_c-1_3", "cmp_c-1_5"]);
+    expect(getDraftById(UID, "cmp_c-1_3")!.draft).toBe("HOOK: x\nBODY: y\nCTA: z");
+    expect(startSlideshow).not.toHaveBeenCalled();
+    r.undo();
+    expect(loadDrafts(UID)).toHaveLength(0);
+    expect([1, 3, 5].map((n) => the(n).state)).toEqual(["ready", "ready", "ready"]);
+  });
+});
+
+describe("makePost, a slideshow", () => {
+  it("runs the slideshow maker from the hook and brief, links the show to the post and schedules it with its slides", async () => {
+    seed([post(4, { format: "slideshow", hook: "Three things a ward bill hides", brief: "Room type\nTests\nDays", body: undefined })], { pictures: "mine", platforms: ["tiktok", "instagram"] });
+    const r = await act.makePost(UID, "c-1", 4, NOW);
+    expect(r).toMatchObject({ ok: true, toast: "Post 4 is on your calendar for Wed 4 Nov, 8pm, with its slides." });
+    expect(startSlideshow.mock.calls[0][1]).toEqual({ source: null, topic: "Three things a ward bill hides", note: "Room type\nTests\nDays", mention: true, size: "9x16", pictures: "mine" });
+    expect(loadSlideshows(UID).find((s) => s.id === "ss-made")?.draftId).toBe("cmp_c-1_4");
+    expect(getDraftById(UID, "cmp_c-1_4")).toMatchObject({ status: "scheduled", scheduledFor: "2026-11-04T20:00", format: "carousel", draft: "Made caption. Save this.", pillarDetail: "Busy weeks", audience: "parent" });
+    expect(the(4)).toMatchObject({ state: "made", draftId: "cmp_c-1_4", made: { kind: "slideshow", id: "ss-made" } });
+  });
+
+  it("is 4:5 for every network but TikTok, and waits while another slideshow is being made", async () => {
+    seed([post(4, { format: "slideshow", brief: "x" })]);
+    fake.show.set({ id: 99, state: "finding", done: 1, of: 4, ask: {} });
+    expect(await act.makePost(UID, "c-1", 4, NOW)).toEqual({ ok: false, error: act.SHOW_BUSY });
+    expect(startSlideshow).not.toHaveBeenCalled();
+    fake.show.reset();
+    await act.makePost(UID, "c-1", 4, NOW);
+    expect(startSlideshow.mock.calls[0][1].size).toBe("4x5");
+  });
+
+  it("goes back to ready with the maker's words when it fails, and says when today's makes are used", async () => {
+    seed([post(4, { format: "slideshow", brief: "x" })]);
+    startSlideshow.mockImplementationOnce(async (_: string, ask: unknown) => {
+      fake.show.set({ id: ++fake.seq, state: "writing", done: 0, of: 0, ask });
+      fake.show.patch({ state: "failed", error: "You've used all 30 remixes for today.", capped: true });
+    });
+    expect(await act.makePost(UID, "c-1", 4, NOW)).toEqual({ ok: false, error: "You've used all 30 remixes for today.", capped: true });
+    expect(the(4)).toMatchObject({ state: "ready", error: "You've used all 30 remixes for today." });
+    expect(loadDrafts(UID)).toHaveLength(0);
+  });
+
+  it("says first when Slideshows is full and this one drops the oldest", () => {
+    expect(act.showDropLine(UID)).toBeNull();
+    for (let i = 0; i < MAX_SHOWS; i++) saveSlideshow(UID, { ...blankSlideshow({}, NOW), id: `s${i}`, title: `Show ${i}` }, new Date(NOW.getTime() + i));
+    expect(act.showDropLine(UID)).toBe(`Slideshows keeps your newest ${MAX_SHOWS}, so this drops Show 0.`);
+  });
+});
+
+describe("makePost, a wall of text", () => {
+  it("schedules a short-video draft first, then starts the wall with its draftId, and is made once the editor has it", async () => {
+    seed([post(5, { format: "wall", hook: "Nobody reads your follow-up", brief: "Write it the same day", body: undefined })]);
+    startWall.mockImplementationOnce(async (userId: string, ask: { draftId: string }) => {
+      // the draft is on the calendar before the wall is written
+      expect(getDraftById(userId, ask.draftId)).toMatchObject({ status: "scheduled", format: "short-video" });
+      fake.wall.set({ id: ++fake.seq, state: "writing", ask });
+    });
+    const made = act.makePost(UID, "c-1", 5, NOW);
+    await tick();
+    expect(startWall.mock.calls[0][1]).toEqual({ source: null, about: "Nobody reads your follow-up\nWrite it the same day", mention: true, bg: "stock", draftId: "cmp_c-1_5" });
+    expect(the(5)).toMatchObject({ state: "making", draftId: "cmp_c-1_5" });
+    expect(act.makerOf("c-1", 5)).toBe("wall");
+    fake.wall.patch({ state: "finding" });
+    expect(the(5).state).toBe("making");
+    fake.wall.patch({ state: "joining" });
+    expect(await made).toMatchObject({ ok: true, toast: "Post 5's wall of text is in the editor. Check it and export it there." });
+    expect(the(5)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_5" } });
+    expect(act.makerOf("c-1", 5)).toBeNull();
+  });
+
+  it("takes its draft off the calendar and goes back to ready when the wall fails", async () => {
+    seed([post(5, { format: "wall", brief: "x" })]);
+    const made = act.makePost(UID, "c-1", 5, NOW);
+    await tick();
+    fake.wall.patch({ state: "failed", error: "No stock clip fits these words." });
+    expect(await made).toEqual({ ok: false, error: "No stock clip fits these words." });
+    expect(getDraftById(UID, "cmp_c-1_5")).toBeNull();
+    expect(the(5)).toMatchObject({ state: "ready", error: "No stock clip fits these words." });
+  });
+});
+
+describe("makePost, an AI video", () => {
+  it("speaks the script with the saved who, the remembered voice and the post's draftId, waits at a price check, and is made at joining", async () => {
+    local.setItem("content-studio-remix-prefs-u1", JSON.stringify({ voice: "george" }));
+    seed([post(6, { format: "ai-video", script: SCRIPT, body: undefined })]);
+    const made = act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(startTalk.mock.calls[0][1]).toMatchObject({ source: null, text: SCRIPT, who: "mine", photo: null, look: "", setting: "office", voice: "george", length: 15, mention: true, draftId: "cmp_c-1_6" });
+    expect(getDraftById(UID, "cmp_c-1_6")).toMatchObject({ status: "scheduled", format: "short-video", draft: SCRIPT });
+    // the price check waits for a press: still making, nothing settled
+    fake.talk.patch({ state: "priced", step: "" });
+    await tick();
+    expect(the(6).state).toBe("making");
+    let settled = false;
+    void made.then(() => (settled = true));
+    await tick();
+    expect(settled).toBe(false);
+    fake.talk.patch({ state: "video", step: "Making your video, 1 of 2 parts ready." });
+    fake.talk.patch({ state: "joining", step: "Putting your video together..." });
+    expect(await made).toMatchObject({ ok: true });
+    expect(the(6)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_6" } });
+  });
+
+  it("uses the remembered voice, Alice when none was picked", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT })]);
+    void act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(startTalk.mock.calls[0][1].voice).toBe("alice");
+  });
+
+  it("with Ask each time, leaves a scheduled short-video draft and opens the AI video maker on it", async () => {
+    fake.who = "ask";
+    seed([post(6, { format: "ai-video", script: SCRIPT })]);
+    const r = await act.makePost(UID, "c-1", 6, NOW);
+    expect(r).toMatchObject({ ok: true, open: "/edit?panel=ai&kind=avatar&draft=cmp_c-1_6" });
+    expect(startTalk).not.toHaveBeenCalled();
+    expect(getDraftById(UID, "cmp_c-1_6")).toMatchObject({ status: "scheduled", format: "short-video", draft: SCRIPT });
+    expect(the(6)).toMatchObject({ state: "made", made: { kind: "draft", id: "cmp_c-1_6" } });
+  });
+
+  it("waits while another AI video is made, and refuses a script too short to speak as written", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT }), post(7, { format: "ai-video", script: "Too short to say." })]);
+    fake.ai.busy = true;
+    expect(await act.makePost(UID, "c-1", 6, NOW)).toEqual({ ok: false, error: act.AI_BUSY });
+    fake.ai.busy = false;
+    expect(await act.makePost(UID, "c-1", 7, NOW)).toEqual({ ok: false, error: act.SHORT_SCRIPT });
+    expect(startTalk).not.toHaveBeenCalled();
+    expect(loadDrafts(UID)).toHaveLength(0);
+  });
+
+  it("goes back to ready when the job fails before anything is paid", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT })]);
+    const made = act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    fake.talk.patch({ state: "failed", step: "", error: "Save your face first." });
+    expect(await made).toEqual({ ok: false, error: "Save your face first." });
+    expect(the(6)).toMatchObject({ state: "ready", error: "Save your face first." });
+    expect(getDraftById(UID, "cmp_c-1_6")).toBeNull();
+  });
+
+  it("after a reload, picks up the paid video waiting for its draft and marks the right post made; any other make goes back to ready", async () => {
+    seed([
+      post(6, { format: "ai-video", script: SCRIPT, state: "making", draftId: "cmp_c-1_6" }),
+      post(7, { format: "ai-video", script: SCRIPT, state: "making", draftId: "cmp_c-1_7" }),
+      post(5, { format: "wall", brief: "x", state: "making", draftId: "cmp_c-1_5" }),
+    ]);
+    fake.ai.pending = { name: "x", tokens: ["t"], seconds: [9.5], extra: { draftId: "cmp_c-1_6" } };
+    const runs = act.resumeMakes(UID, "c-1");
+    expect(runs).toHaveLength(1);
+    expect(resumeTalk).toHaveBeenCalledTimes(1);
+    expect(the(7)).toMatchObject({ state: "ready", error: act.STOPPED_LINE });
+    expect(the(5)).toMatchObject({ state: "ready", error: act.STOPPED_LINE });
+    expect(the(6).state).toBe("making");
+    fake.talk.patch({ state: "joining" });
+    expect(await runs[0]).toMatchObject({ ok: true });
+    expect(the(6)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_6" } });
+    // a second visit while it runs picks up nothing twice
+    expect(act.resumeMakes(UID, "c-1")).toHaveLength(0);
+  });
+});
+
+describe("swapPost", () => {
+  it("asks for this one post with swap, its own old hook first in avoid, keeps the old words in prev, and Undo brings them back", async () => {
+    seed([post(1), post(2, { hook: "Another hook in this campaign" })]);
+    fn.mockResolvedValueOnce({ posts: [{ n: 1, hook: "A different way in", body: "New body.", cta: "Tell me below.", ctaType: "open-question", mas: true }] });
+    const r = await act.swapPost(UID, "c-1", 1);
+    expect(r).toMatchObject({ ok: true, toast: "New words for post 1." });
+    const [name, body] = fn.mock.calls[0];
+    expect(name).toBe("idea-dump");
+    expect(body).toMatchObject({ mode: "campaign", swap: true });
+    expect(body.posts).toHaveLength(1);
+    expect(body.posts[0]).toMatchObject({ n: 1, format: "text-post", angle: { title: "The hospital bill question" } });
+    expect(body.avoid).toEqual(["Most people get post 1 wrong", "Another hook in this campaign"]);
+    expect(the(1)).toMatchObject({ hook: "A different way in", body: "New body.", cta: "Tell me below.", mas: true, prev: { hook: "Most people get post 1 wrong", body: post(1).body, cta: "What would you add?" } });
+    if (r.ok === false) throw new Error(r.error);
+    r.undo();
+    expect(the(1)).toMatchObject({ hook: "Most people get post 1 wrong", body: post(1).body, cta: "What would you add?", mas: null });
+    expect(the(1).prev).toBeUndefined();
+  });
+
+  it("leaves the words alone at the cap with the cap line, and on a reply it can't use", async () => {
+    seed([post(1)]);
+    fn.mockRejectedValueOnce(new EdgeError("You've used all 40 for today.", 429, "daily_limit"));
+    expect(await act.swapPost(UID, "c-1", 1)).toEqual({ ok: false, error: act.SWAP_CAP_LINE, capped: true });
+    expect(act.SWAP_CAP_LINE).toBe("You've used all 40 swaps for today. It resets at 8am Singapore time. Edit the words instead.");
+    fn.mockResolvedValueOnce({ posts: [] });
+    expect(await act.swapPost(UID, "c-1", 1)).toEqual({ ok: false, error: act.SWAP_FAILED });
+    fn.mockRejectedValueOnce(new EdgeError("The words that came back couldn't be used. Try again.", 422, "unusable"));
+    expect(await act.swapPost(UID, "c-1", 1)).toEqual({ ok: false, error: "The words that came back couldn't be used. Try again." });
+    expect(the(1)).toMatchObject({ hook: "Most people get post 1 wrong", mas: false });
+    expect(the(1).prev).toBeUndefined();
+  });
+
+  it("is refused on a made post, and runs once at a time", async () => {
+    seed([post(1, { state: "made", draftId: "cmp_c-1_1" }), post(2)]);
+    expect(await act.swapPost(UID, "c-1", 1)).toEqual({ ok: false, error: act.SWAP_MADE_LINE });
+    let answer: (v: unknown) => void = () => {};
+    fn.mockReturnValueOnce(new Promise((r) => (answer = r)));
+    const first = act.swapPost(UID, "c-1", 2);
+    expect(act.isSwapping("c-1", 2)).toBe(true);
+    expect(await act.swapPost(UID, "c-1", 2)).toEqual({ ok: false, error: act.MAKING_LINE });
+    expect(await act.makePost(UID, "c-1", 2, NOW)).toEqual({ ok: false, error: act.MAKING_LINE });
+    answer({ posts: [{ n: 2, hook: "Fresh hook", body: "b", cta: "c", ctaType: "open-question", mas: false }] });
+    expect((await first).ok).toBe(true);
+    expect(act.isSwapping("c-1", 2)).toBe(false);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("editPost and skipPost", () => {
+  it("saves typed words, and Jev's old answer gives way to the pattern check", () => {
+    seed([post(1, { mas: true })]);
+    expect(act.editPost(UID, "c-1", 1, { hook: " Typed hook ", body: "Typed body" })).toBeNull();
+    expect(the(1)).toMatchObject({ hook: "Typed hook", body: "Typed body", cta: "What would you add?", mas: null, state: "ready" });
+  });
+
+  it("Skip toggles, leaves the cost and the angle mix, and Skip again brings it back", () => {
+    seed([post(1), post(2, { format: "ai-video", script: SCRIPT })]);
+    const before = campaignCost(getCampaign(UID, "c-1")!, { video: 2, remix: 30 });
+    expect(before.made.videos).toBe(1);
+    const r = act.skipPost(UID, "c-1", 2);
+    expect(r).toMatchObject({ ok: true, toast: "Post 2 skipped." });
+    expect(the(2).state).toBe("skipped");
+    const c = getCampaign(UID, "c-1")!;
+    expect(campaignCost(c, { video: 2, remix: 30 }).made.videos).toBe(0);
+    expect(angleCounts(c).find((a) => a.id === "a2")?.count).toBe(0);
+    expect(act.skipPost(UID, "c-1", 2)).toMatchObject({ ok: true, toast: "" });
+    expect(the(2).state).toBe("ready");
+    expect(angleCounts(getCampaign(UID, "c-1")!).find((a) => a.id === "a2")?.count).toBe(1);
+  });
+
+  it("a skipped post with no words is written again when it comes back; a made or drafting post can't be skipped", () => {
+    seed([post(1, { state: "waiting", hook: undefined }), post(2, { state: "made" }), post(3, { state: "drafting", hook: undefined })]);
+    act.skipPost(UID, "c-1", 1);
+    expect(startDrafting).not.toHaveBeenCalled();
+    act.skipPost(UID, "c-1", 1);
+    expect(the(1).state).toBe("waiting");
+    expect(startDrafting).toHaveBeenCalledWith(UID, "c-1");
+    expect(act.skipPost(UID, "c-1", 2)).toEqual({ ok: false, error: act.SWAP_MADE_LINE });
+    expect(act.skipPost(UID, "c-1", 3)).toEqual({ ok: false, error: act.WRITING_LINE });
+  });
+});
+
+describe("a full My posts", () => {
+  const draft = (o: Partial<DraftEntry> = {}): DraftEntry => ({ id: "d", createdAt: NOW.toISOString(), hook: "Old hook", draft: "Old words", pillar: "topic", pillarDetail: "", audience: "general", format: "text-post", platform: "linkedin", ctaType: "open-question", ...o });
+
+  it("names the oldest post only when it is posted or has numbers", () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => draft({ id: `d${i}`, hook: `Hook ${i}` }));
+    expect(act.droppedHook(full)).toBeNull();
+    expect(act.droppedHook(full.map((d, i) => (i === MAX_DRAFTS - 1 ? { ...d, status: "posted" as const } : d)))).toBe(`Hook ${MAX_DRAFTS - 1}`);
+    expect(act.droppedHook(full.map((d, i) => (i === MAX_DRAFTS - 1 ? { ...d, metrics: { reactions: 3 } } : d)))).toBe(`Hook ${MAX_DRAFTS - 1}`);
+    saveDrafts(UID, full);
+    expect(act.droppedHook(loadDrafts(UID))).toBeNull();
+  });
+});

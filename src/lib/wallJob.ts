@@ -47,6 +47,8 @@ export interface WallAsk {
   file?: File | null;
   /** Words over a made scene: ai-video makes this clip behind the words, and bg is not used. */
   scene?: SceneAsk;
+  /** The My posts entry this wall is made for (a campaign post): the editor's Save to your post updates it. */
+  draftId?: string;
 }
 
 export type { WallScene };
@@ -254,6 +256,7 @@ async function finish(id: number, ask: WallAsk, w: Written): Promise<void> {
       toast: WALL_TOAST,
       note: noteOf(ask.source, w.flags),
       ...(ask.source ? { source: { ...ask.source, remixedAt: new Date().toISOString() } } : {}),
+      ...(ask.draftId ? { draftId: ask.draftId } : {}),
     };
     if (ask.bg === "mine" && ask.file) {
       const length = await mediaLength(ask.file);
