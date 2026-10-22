@@ -34,7 +34,8 @@ describe("planCalendarEntries", () => {
   });
 });
 
-import { generatePlan, planItemToGenerateUrl, recentThemes, stageSplit, weightedOrder } from "./contentPlan";
+import { angleText, generatePlan, pillarGrid, planItemToGenerateUrl, rebuildPlan, recentThemes, relabelSlot, slotLabel, stageSplit, weightedOrder } from "./contentPlan";
+import type { Label } from "./labels";
 import { HOOK_FORMULAS, hookFormulasFrom } from "./hookFormulas";
 import { EMPTY_POSITIONING, type Positioning } from "./positioning";
 
@@ -337,5 +338,68 @@ describe("generatePlan pillars, angles and formats", () => {
     expect(new URLSearchParams(planItemToGenerateUrl(item("b", "Mon")).split("?")[1]).has("label")).toBe(false);
     const { entries } = planCalendarEntries([labelled, item("b", "Wk 1 · Tue")], monday, []);
     expect(entries.map((e) => e.labels)).toEqual([["cpf"], undefined]);
+  });
+});
+
+describe("slot labels, rebuild and the pillar grid", () => {
+  const LABELS: Label[] = [
+    { id: "cpf", name: "CPF top-ups", color: "primary" },
+    { id: "ci", name: "Critical illness", color: "brand" },
+  ];
+  const topicSlot = (o: Partial<PlanItem> = {}): PlanItem => ({
+    ...item("s", "Wk 1 · Mon"), pillar: "topic", pillarDetail: "critical illness", angle: "Critical illness \u2014 a myth worth busting", hook: "Hook s", ...o,
+  });
+
+  it("angleText swaps the em dash for a colon", () => {
+    expect(angleText(topicSlot())).toBe("Critical illness: a myth worth busting");
+    const plan = generatePlan(pos({ cadence: 7 }), { weeks: 2 });
+    expect(plan.items.some((i) => i.angle.includes("\u2014"))).toBe(true);
+    expect(plan.items.every((i) => !angleText(i).includes("\u2014"))).toBe(true);
+  });
+
+  it("slotLabel prefers the slot's label, falls back to a name match, and ignores a deleted id", () => {
+    expect(slotLabel(topicSlot({ labelId: "cpf" }), LABELS)!.id).toBe("cpf");
+    expect(slotLabel(topicSlot({ pillarDetail: "  Critical Illness " }), LABELS)!.id).toBe("ci");
+    expect(slotLabel(topicSlot({ labelId: "gone" }), LABELS)!.id).toBe("ci");
+    expect(slotLabel(topicSlot({ pillarDetail: "Wills" }), LABELS)).toBeNull();
+  });
+
+  it("relabelSlot renames a topic slot's topic and angle head, only labels a personal slot, and No label clears it", () => {
+    const moved = relabelSlot(topicSlot(), LABELS[0]);
+    expect(moved).toMatchObject({ labelId: "cpf", pillarDetail: "CPF top-ups", angle: "CPF top-ups \u2014 a myth worth busting", hook: "Hook s" });
+    const personal = topicSlot({ pillar: "identity", pillarDetail: "a value you refuse to compromise on", angle: "A value you refuse to compromise on" });
+    expect(relabelSlot(personal, LABELS[0])).toEqual({ ...personal, labelId: "cpf" });
+    expect(relabelSlot(moved, null)).not.toHaveProperty("labelId");
+    expect(relabelSlot(moved, null).pillarDetail).toBe("CPF top-ups");
+  });
+
+  it("rebuildPlan with new pillars keeps posted ticks by slot id, the first hook formula and this week's story", () => {
+    const before = { ...generatePlan(pos({ cadence: 5 }), { weeks: 2, salt: 1, formulaStart: 7 }), thisWeek: "Lost a client" };
+    before.items = before.items.map((i, k) => (k === 1 || k === 6 ? { ...i, posted: true } : i));
+    const after = rebuildPlan(before, pos({ cadence: 5 }), { pillars: [{ id: "cpf", name: "CPF top-ups", weight: 1 }], formulaStart: 0 });
+    expect(after.items.map((i) => i.id)).toEqual(before.items.map((i) => i.id));
+    expect(after.items.filter((i) => i.posted).map((i) => i.id)).toEqual([before.items[1].id, before.items[6].id]);
+    expect(after.items.map((i) => i.formulaId)).toEqual(before.items.map((i) => i.formulaId));
+    expect(after).toMatchObject({ id: before.id, createdAt: before.createdAt, salt: 1, weeks: 2, thisWeek: "Lost a client" });
+    expect(after.items.some((i) => i.labelId === "cpf")).toBe(true);
+  });
+
+  it("pillarGrid counts posts out in the last 28 days and this plan's slots, by label and format", () => {
+    const now = new Date("2026-10-22T04:00:00.000Z");
+    const drafts = [
+      post({ id: "1", status: "posted", postedAt: "2026-10-20T02:00:00.000Z", format: "carousel", labels: ["cpf", "ci"] }),
+      post({ id: "2", status: "posted", postedAt: "2026-09-25T02:00:00.000Z", format: "carousel", labels: ["cpf"] }),
+      post({ id: "3", status: "posted", postedAt: "2026-09-20T02:00:00.000Z", format: "carousel", labels: ["cpf"] }),
+      post({ id: "4", status: "scheduled", scheduledFor: "2026-10-25", format: "text-post", labels: ["cpf"] }),
+      post({ id: "5", status: "posted", postedAt: "2026-10-21T02:00:00.000Z", format: "story", labels: ["cpf"] }),
+      post({ id: "6", status: "draft", postedAt: "2026-10-21T02:00:00.000Z", format: "carousel", labels: ["ci"] }),
+    ];
+    const plan = { items: [topicSlot({ format: "short-video" }), topicSlot({ labelId: "cpf", format: "short-video" }), topicSlot({ labelId: "cpf", format: "text-post" })] } as ContentPlan;
+    const grid = pillarGrid(LABELS, drafts, plan, now);
+    expect(grid.map((r) => [r.labelId, r.cells])).toEqual([
+      ["cpf", { "text-post": { posted: 0, planned: 1 }, carousel: { posted: 2, planned: 0 }, "short-video": { posted: 0, planned: 1 } }],
+      ["ci", { "text-post": { posted: 0, planned: 0 }, carousel: { posted: 1, planned: 0 }, "short-video": { posted: 0, planned: 1 } }],
+    ]);
+    expect(pillarGrid(LABELS, [], null, now)[0].cells.carousel).toEqual({ posted: 0, planned: 0 });
   });
 });

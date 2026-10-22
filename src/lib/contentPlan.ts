@@ -18,6 +18,7 @@ import { scoped } from "@/lib/profiles";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, localDateKey, postedDay, scheduleAt } from "@/lib/dueDates";
+import type { Label } from "@/lib/labels";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -464,6 +465,78 @@ export function generatePlan(
       : undefined,
     ...(!pillarOrder.length && topics.length < allTopics.length ? { restedThemes: allTopics.filter((t) => !topics.includes(t)) } : {}),
   };
+}
+
+/** A slot's angle for a new surface or a writer: the em dash in a topic slot's angle becomes ": ". */
+export function angleText(item: Pick<PlanItem, "angle">): string {
+  return item.angle.replace(/\s*\u2014\s*/g, ": ");
+}
+
+/**
+ * The plan again with new options (pillars, weights): same weeks, salt and hook
+ * formulas, posted ticks kept by slot id, and this week's story carried over.
+ */
+export function rebuildPlan(plan: ContentPlan, positioning: Positioning, options: GeneratePlanOptions): ContentPlan {
+  const first = HOOK_FORMULAS.findIndex((f) => f.id === plan.items[0]?.formulaId);
+  const next = generatePlan(positioning, { ...options, weeks: plan.weeks, salt: plan.salt, ...(first >= 0 ? { formulaStart: first } : {}) });
+  const ticked = new Set(plan.items.filter((i) => i.posted).map((i) => i.id));
+  return {
+    ...next,
+    id: plan.id,
+    createdAt: plan.createdAt,
+    items: next.items.map((i) => (ticked.has(i.id) ? { ...i, posted: true } : i)),
+    ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
+  };
+}
+
+/** A slot's label: its own when that label still exists, else the label named like its topic. */
+export function slotLabel(item: PlanItem, labels: Label[]): Label | null {
+  return labels.find((l) => l.id === item.labelId) ?? labels.find((l) => themeKey(l.name) === themeKey(item.pillarDetail)) ?? null;
+}
+
+/** Moves a slot to a label, or off any. A topic or market slot takes the label's name as its topic, at the head of its angle too. */
+export function relabelSlot(item: PlanItem, label: Label | null): PlanItem {
+  const { labelId: _old, ...rest } = item;
+  if (!label) return rest;
+  if (item.pillar !== "topic" && item.pillar !== "market") return { ...rest, labelId: label.id };
+  const head = titleCase(item.pillarDetail);
+  return {
+    ...rest,
+    labelId: label.id,
+    pillarDetail: label.name,
+    angle: item.angle.startsWith(head) ? titleCase(label.name) + item.angle.slice(head.length) : item.angle,
+  };
+}
+
+const GRID_FORMATS = ["text-post", "carousel", "short-video"] as const;
+type GridFormat = (typeof GRID_FORMATS)[number];
+type GridCells = Record<GridFormat, { posted: number; planned: number }>;
+
+/** Per label and format: posts that went out in the last 28 days, and this plan's slots (by slotLabel). */
+export function pillarGrid(labels: Label[], drafts: DraftEntry[], plan: ContentPlan | null, now: Date): { labelId: string; cells: GridCells }[] {
+  const rows = labels.map((l) => ({
+    labelId: l.id,
+    cells: Object.fromEntries(GRID_FORMATS.map((f) => [f, { posted: 0, planned: 0 }])) as GridCells,
+  }));
+  const cell = (labelId: string, format: string) =>
+    (GRID_FORMATS as readonly string[]).includes(format) ? rows.find((r) => r.labelId === labelId)?.cells[format as GridFormat] : undefined;
+  const to = now.getTime();
+  const from = to - 28 * 86_400_000;
+  for (const d of drafts) {
+    if (draftStatus(d) !== "posted" || !d.postedAt) continue;
+    const t = new Date(d.postedAt).getTime();
+    if (!(t > from && t <= to)) continue;
+    for (const id of new Set(d.labels ?? [])) {
+      const c = cell(id, d.format);
+      if (c) c.posted++;
+    }
+  }
+  for (const item of plan?.items ?? []) {
+    const label = slotLabel(item, labels);
+    const c = label && cell(label.id, item.format);
+    if (c) c.planned++;
+  }
+  return rows;
 }
 
 /** Build the /generate deep-link that prefills the studio for a plan item. */
