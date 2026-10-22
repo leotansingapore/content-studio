@@ -377,6 +377,68 @@ describe("links", () => {
     expect(links.batch({ pillar: "topic", audience: "general", aud: undefined })).toBe("/generate/batch");
   });
 
+  it("builds the phase-6 agent links, with ask and remix for a new chat only (docs/deep-links.md, The agent)", () => {
+    expect(links.agent()).toBe("/agent");
+    expect(links.agent({ thread: "t1" })).toBe("/agent/t1");
+    expect(links.agent({ thread: "t1", m: "m4" })).toBe("/agent/t1?m=m4");
+    expect(links.agent({ thread: "t1", panel: "chats" })).toBe("/agent/t1?panel=chats");
+    expect(links.agent({ panel: "chats" })).toBe("/agent?panel=chats");
+    expect(links.agent({ ask: " make a carousel about CPF & me " })).toBe("/agent?ask=make+a+carousel+about+CPF+%26+me");
+    expect(links.agent({ remix: "ig:abc 1" })).toBe("/agent?remix=ig%3Aabc+1");
+    expect(links.agent({ ask: "  ", remix: "" })).toBe("/agent");
+    // a thread drops what only a new chat reads, and a message needs its thread
+    expect(links.agent({ thread: "t1", m: "m4", ask: "hi", remix: "ig:abc" })).toBe("/agent/t1?m=m4");
+    expect(links.agent({ m: "m4" })).toBe("/agent");
+    expect(links.agent({ thread: "t 1/x" })).toBe("/agent/t%201%2Fx");
+  });
+
+  it("builds Home's phase-6 Next up, Ask and tour links, with defaults left out", () => {
+    expect(links.home({ waiting: "all" })).toBe("/home?waiting=all");
+    expect(links.home({ section: "next-up" })).toBe("/home#next-up");
+    expect(links.home({ section: "ask" })).toBe("/home#ask");
+    expect(links.home({ tour: "1" })).toBe("/home?tour=1");
+    expect(links.home({ tour: "competitors" })).toBe("/home?tour=competitors");
+    expect(links.home({ section: "next-up", waiting: "all", goal: "change", tour: "home" })).toBe("/home?goal=change&waiting=all&tour=home#next-up");
+    expect(links.home({ waiting: undefined, tour: "" })).toBe("/home");
+  });
+
+  it("builds /activity, /automations, /skills and /connect with defaults left out", () => {
+    expect(links.activity()).toBe("/activity");
+    expect(links.activity({ view: "all" })).toBe("/activity");
+    for (const view of ["agent", "you", "claude", "autopilot", "schedule", "learnings", "plan", "ai-use"] as const) {
+      expect(links.activity({ view })).toBe(`/activity?view=${view}`);
+    }
+    expect(links.activity({ month: "2026-09" })).toBe("/activity?month=2026-09");
+    expect(links.activity({ event: "almh2k9xab12" })).toBe("/activity?event=almh2k9xab12");
+    expect(links.activity({ event: "a1", view: "claude", month: "2026-10" })).toBe("/activity?view=claude&month=2026-10&event=a1");
+    expect(links.automations()).toBe("/automations");
+    for (const section of ["alone", "runs", "limits"] as const) expect(links.automations({ section })).toBe(`/automations#${section}`);
+    expect(links.skills()).toBe("/skills");
+    expect(links.skills({ run: "rmh2k9x" })).toBe("/skills?run=rmh2k9x");
+    expect(links.skills({ skill: "check", post: "3f2a9c1e" })).toBe("/skills?skill=check&post=3f2a9c1e");
+    expect(links.skills({ edit: "tighten-for-linkedin" })).toBe("/skills?edit=tighten-for-linkedin");
+    expect(links.skills({ new: true })).toBe("/skills?new=1");
+    expect(links.skills({ new: true, post: "p1", edit: "e", skill: "retro", run: "r1" })).toBe("/skills?run=r1&skill=retro&post=p1&edit=e&new=1");
+    expect(links.connect()).toBe("/connect");
+    for (const section of ["api", "tools", "links"] as const) expect(links.connect({ section })).toBe(`/connect#${section}`);
+  });
+
+  it("adds ask to /carousel, /slideshow and /edit last, trimmed and cut at 300 characters", () => {
+    expect(links.carousel({ carousel: "d:abc", ask: " shorter hook " })).toBe("/carousel?carousel=d%3Aabc&ask=shorter+hook");
+    expect(links.carousel({ carousel: "d:abc", view: "one", slide: 3, ask: "x" })).toBe("/carousel?carousel=d%3Aabc&view=one&slide=3&ask=x");
+    expect(links.slideshow({ s: "ss1", ask: "bigger text on slide 2" })).toBe("/slideshow?s=ss1&ask=bigger+text+on+slide+2");
+    expect(links.slideshow({ s: "ss1", view: "original", ask: "x" })).toBe("/slideshow?s=ss1&view=original&ask=x");
+    expect(links.edit({ p: "vm1abc2", ask: "bigger yellow captions at the top" })).toBe("/edit?p=vm1abc2&ask=bigger+yellow+captions+at+the+top");
+    expect(links.edit({ p: "vm1abc2", section: "clips", lang: "zh", ask: "x" })).toBe("/edit?p=vm1abc2&lang=zh&ask=x#clips");
+    const long = "a".repeat(299) + "bc";
+    for (const url of [links.carousel({ ask: long }), links.slideshow({ ask: long }), links.edit({ ask: long })]) {
+      expect(new URLSearchParams(url.split("?")[1]).get("ask")).toBe("a".repeat(299) + "b");
+    }
+    expect(links.carousel({ ask: "  " })).toBe("/carousel");
+    expect(links.slideshow({ ask: "" })).toBe("/slideshow");
+    expect(links.edit({ ask: undefined })).toBe("/edit");
+  });
+
   it("builds the Trends formats view with defaults left out", () => {
     expect(links.trends({ view: "formats", kind: "all" })).toBe("/trends?view=formats");
     expect(links.trends({ view: "formats", kind: "slideshow" })).toBe("/trends?view=formats&kind=slideshow");

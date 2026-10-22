@@ -27,6 +27,9 @@ export const slug = (label: string) =>
 
 const list = (values?: string[]) => (values?.length ? values.join(",") : undefined);
 
+/** ?ask= on /carousel, /slideshow and /edit: at most 300 characters, as Write's MAX_ASK. */
+const askText = (ask?: string) => ask?.trim().slice(0, 300);
+
 export type CalendarView = "month" | "week" | "upcoming";
 export type AnalyticsPeriod = "7d" | "30d" | "90d" | "all";
 export type PostStatus = "scheduled" | "posted";
@@ -274,8 +277,12 @@ export const links = {
       format: o.format !== "all" && o.format,
       item: o.item,
     })}${o.item && o.breakdown ? "#breakdown" : ""}`,
-  /** Home; what-moved scrolls to the What moved card. goal=change opens the goal editor (Leo only, replace). */
-  home: (o: { section?: "what-moved"; goal?: "change" } = {}) => `/home${qs({ goal: o.goal })}${o.section ? `#${o.section}` : ""}`,
+  /**
+   * Home; section scrolls to What moved, or (Leo only, phase 6) Next up or the Ask tiles. goal=change opens the goal
+   * editor and waiting=all the whole Next up list (Leo only, replace); tour=<step> starts the tour there (read once).
+   */
+  home: (o: { section?: "what-moved" | "next-up" | "ask"; goal?: "change"; waiting?: "all"; tour?: string } = {}) =>
+    `/home${qs({ goal: o.goal, waiting: o.waiting, tour: o.tour })}${o.section ? `#${o.section}` : ""}`,
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
     `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,
@@ -360,6 +367,8 @@ export const links = {
       view?: "one" | "all";
       /** The open slide, 1-based, with view=one. */
       slide?: number;
+      /** Leo only (phase 6): a change proposed on the open carousel, at most 300 characters, read once (replace). */
+      ask?: string;
     } = {},
   ) =>
     `/carousel${qs({
@@ -371,6 +380,7 @@ export const links = {
       size: o.size !== "4x5" && o.size,
       view: o.view,
       slide: o.slide !== 1 && o.slide,
+      ask: askText(o.ask),
     })}`,
   edit: (
     o: {
@@ -426,6 +436,8 @@ export const links = {
       script?: true;
       /** With script: that language's version to review. */
       lang?: PostLang;
+      /** Leo only (phase 6): a change for the vibe box on the open project, at most 300 characters, read once (replace). */
+      ask?: string;
     } = {},
   ) =>
     `/edit${qs({
@@ -457,6 +469,7 @@ export const links = {
       set: o.set,
       script: o.script && 1,
       lang: o.lang,
+      ask: askText(o.ask),
     })}${o.section ? `#${o.section}` : ""}`,
   /** source=<link:|upload: key> reopens a source read on Leo's Remix a post (push). */
   clone: (o: { url?: string; clone?: string; source?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone, source: o.source })}`,
@@ -501,9 +514,9 @@ export const links = {
   playbook: () => "/playbook",
   academy: (o: { lesson?: string } = {}) => `/academy${qs({ lesson: o.lesson })}`,
   // ---- end Create pages ----
-  /** The slideshow editor (Leo only): s opens one (push); slide is 1-based; slide 1 and the Slide tab are left out. */
-  slideshow: (o: { s?: string; slide?: number; panel?: "text" | "overlay"; box?: string; view?: "original" } = {}) =>
-    `/slideshow${qs({ s: o.s, slide: o.slide !== 1 && o.slide, panel: o.panel, box: o.box, view: o.view })}`,
+  /** The slideshow editor (Leo only): s opens one (push); slide is 1-based; slide 1 and the Slide tab are left out; ask (phase 6) proposes a change, read once. */
+  slideshow: (o: { s?: string; slide?: number; panel?: "text" | "overlay"; box?: string; view?: "original"; ask?: string } = {}) =>
+    `/slideshow${qs({ s: o.s, slide: o.slide !== 1 && o.slide, panel: o.panel, box: o.box, view: o.view, ask: askText(o.ask) })}`,
   /** Everything made (Leo only): format, status and q replace; panel=making opens the Making now sheet on phones (push). */
   library: (o: { format?: LibraryFormat; status?: LibraryStatus; q?: string; panel?: "making" } = {}) =>
     `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
@@ -532,6 +545,24 @@ export const links = {
     } = {},
   ) => `/ideas${qs({ tab: o.tab !== "inbox" && o.tab, source: o.source !== "all" && o.source, label: o.label, idea: o.idea })}`,
   // ---- end phase 5
+  // ---- North star phase 6 (Leo only): the agent, skills, activity, automations and Connect Claude's sections.
+  /** A thread (push) and one message in it; ask and remix start a new chat only, read once, so a thread drops them. panel=chats: the thread list on phones (push). */
+  agent: (o: { thread?: string; m?: string; panel?: "chats"; ask?: string; remix?: string } = {}) =>
+    o.thread
+      ? `/agent/${encodeURIComponent(o.thread)}${qs({ m: o.m, panel: o.panel })}`
+      : `/agent${qs({ panel: o.panel, ask: o.ask?.trim(), remix: o.remix })}`,
+  /** view (all left out) and month (YYYY-MM) replace; event opens one event's row (push). */
+  activity: (
+    o: { view?: "all" | "agent" | "you" | "claude" | "autopilot" | "schedule" | "learnings" | "plan" | "ai-use"; month?: string; event?: string } = {},
+  ) => `/activity${qs({ view: o.view !== "all" && o.view, month: o.month, event: o.event })}`,
+  /** A section of /automations, scrolled to. */
+  automations: (o: { section?: "alone" | "runs" | "limits" } = {}) => `/automations${o.section ? `#${o.section}` : ""}`,
+  /** run opens a result, edit (a skill's slash) and new=1 a form (push); skill with post runs that skill on that post. */
+  skills: (o: { run?: string; skill?: string; post?: string; edit?: string; new?: true } = {}) =>
+    `/skills${qs({ run: o.run, skill: o.skill, post: o.post, edit: o.edit, new: o.new && 1 })}`,
+  /** A section of Connect Claude, scrolled to. */
+  connect: (o: { section?: "api" | "tools" | "links" } = {}) => `/connect${o.section ? `#${o.section}` : ""}`,
+  // ---- end phase 6
   /** The Image page (Leo only): layout (headline left out) and size (4x5 left out) replace; source is read once, then removed; image opens a saved design (replace). */
   image: (o: { layout?: ImageLayout; size?: "4x5" | "1x1" | "9x16" | "wide"; source?: string; image?: string } = {}) =>
     `/image${qs({ layout: o.layout !== "headline" && o.layout, size: o.size !== "4x5" && o.size, source: o.source, image: o.image })}`,

@@ -181,7 +181,7 @@ so one that is gone shows everything.
 | /fads/:tab | (path) | personality, purpose, experience, audience, solutions, messaging, output; anything else opens personality | personality | push (Next/Back steps) | /fads/audience |
 | /recruit/:tab | (path) | /recruit (Brand Brain), /recruit/conversations, /recruit/agent | | | /recruit/conversations |
 | /feedback | tab, post, status, category, entry | owned by the shared feedback board (components/feedback/FeedbackBoard.tsx, copied from leotansingapore/feedback-board, not edited here): tab=roadmap, feedback, changelog; post=<number>; with tab=feedback, status=under_review, planned, in_progress, complete, declined and category=<category>; entry=<changelog slug> | roadmap | replace | /feedback?tab=feedback&status=planned |
-| /home, /bio, /accounts, /connect, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow (/home's #what-moved is below) | | | /bio |
+| /bio, /accounts, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow (/home and /connect have rows of their own below) | | | /bio |
 | /join, /review/:token, /l/:slug, /t/report/:slug, /roadmap | (path or #) | public pages that a link already fully names: /join#<invite token>, a preview, a bio page, a campaign report, the public roadmap | | | /join#abc123 |
 | /swipe | tab | Leo only (src/lib/useLeoOnly.ts). foryou (For you), search (Search), hooks (Hooks); anyone else gets posts, and a Leo tab shows the page skeleton while the sign-in loads. Leo also gets ads whenever Competitors or Your space holds ads | posts | replace; switching tab clears every param below too | /swipe?tab=foryou |
 | /swipe | kind | Leo only. foryou tab: organic, ads | both | replace | /swipe?tab=foryou&kind=ads |
@@ -505,3 +505,41 @@ who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults
 A campaign post's own link is /campaigns/<id>?post=<n>. Once made it is a post like any other: /generate?draft=cmp_<id>_<n>
 (an autopilot post is ap_<week>_<n>), and /carousel?draft=<id> for a carousel. Paid steps never start from a link:
 a paid start on arrival rides navigation state only, as on /make.
+
+## The agent (Leo only)
+
+North star phase 6 (docs/north-star/items/agent-chat.md, agent-approvals.md, agent-budget.md, agent-home.md,
+agent-memory.md, agent-activity.md, agent-autonomy.md, agent-skills.md, agent-mcp-api.md, agent-tour.md,
+edit-by-chat.md). Every row below is Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides /agent, /skills,
+/activity and /automations and anyone else gets the not-found page there (and at /agent/<thread>), and the new
+params and anchors on /home, /connect, /carousel, /slideshow, /edit and the tour's ?tour= are ignored for anyone
+else, who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults left out of links. Ids are
+never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 chars>, results r<base36>.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /agent | (path) | Leo only. a new, empty chat | | | /agent |
+| /agent/<thread> | (path) | Leo only. a thread's id: that thread, with Copy link in its header | | push | /agent/tmh2k9x |
+| /agent/<thread> | m | Leo only. a message's id: scrolls to that message (a card, a receipt, a MADE block) and rings it for 2 seconds; receipts, Activity and Home link here | none | push | /agent/tmh2k9x?m=mmh2k9y |
+| /agent | panel | Leo only. chats: the thread list sheet at phone width, with or without a thread | closed | push | /agent/tmh2k9x?panel=chats |
+| /agent | ask | Leo only. words for a new chat: the composer filled, not sent; read once, then removed; a thread drops it | none | replace | /agent?ask=make+a+carousel+about+CPF+LIFE |
+| /agent | remix | Leo only. a remix source key (the ?remix= shapes above): a new chat with that source on the composer, in place of the Remix sheet; a thread drops it | none | replace | /agent?remix=top%3Athe-woke-salaryman-instagram-Ddkxv39j961 |
+| /home | waiting | Leo only. all: every Next up item, not just the first few | the first few | replace | /home?waiting=all |
+| /home | #next-up, #ask | Leo only. scrolls to Next up or the Ask tiles | top | (anchor) | /home#next-up |
+| any studio page | tour | Leo only. 1 starts the tour at step 1; a step's id (home, competitors, formats, campaigns, brand, agent) starts at that step; an unknown value starts at step 1. Read once, then removed | no tour | replace | /home?tour=1 |
+| /activity | view | Leo only. agent, you, claude, autopilot, schedule, learnings, plan, ai-use | all | replace | /activity?view=claude |
+| /activity | month | Leo only. YYYY-MM: loads back to that month and scrolls to its group | this month | replace | /activity?month=2026-09 |
+| /activity | event | Leo only. an event's id: that event's row open | none | push | /activity?event=amh2k9xab12 |
+| /skills | run | Leo only. a result's id: that result open and marked seen | none | push | /skills?run=rmh2k9x |
+| /skills | skill, post | Leo only. a skill (check, retro, check-week, answer, or one of yours by its slash) and a post id: runs that skill on that post, then becomes ?run=<the new result's id>; a skill with a price waits for its button | none | replace | /skills?skill=check&post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /skills | edit | Leo only. one of your skills by its slash: its edit form open | closed | push | /skills?edit=tighten-for-linkedin |
+| /skills | new | Leo only. 1: the New skill form open | closed | push | /skills?new=1 |
+| /automations | #alone, #runs, #limits | Leo only. scrolls to What the agent does alone, What runs now, or Daily limits | top | (anchor) | /automations#limits |
+| /connect | #api, #tools, #links | Leo only. scrolls to the API (the curl line), the tools Claude can use, or your links | top | (anchor) | /connect#tools |
+| /carousel | ask | Leo only. with carousel or draft: a change in words, at most 300 characters (Write's MAX_ASK), proposed on the open carousel as the in-page suggestion with Use this and Keep mine; read once, then removed | none | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&ask=shorter+hook |
+| /slideshow | ask | Leo only. with s: the same, on the open slideshow | none | replace | /slideshow?s=ssmh2k9x01ab&ask=bigger+text+on+slide+2 |
+| /edit | ask | Leo only. with p: the words in the vibe box of the open project; read once, then removed | none | replace | /edit?p=vm1abc2&ask=bigger+yellow+captions+at+the+top |
+
+Paid steps never start from these links: ask fills the page's own box, and nothing is written until its button,
+with the price on it, is pressed. A receipt or a card links to its message, /agent/<thread>?m=<msg>; a learning
+saved from a chat links back the same way from /voice#learned.
