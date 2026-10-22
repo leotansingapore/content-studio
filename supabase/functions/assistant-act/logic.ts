@@ -11,6 +11,12 @@
 // lasting preference, with a second question for what it applies to. Adding an
 // option changes Jev's routing for every message, so everyone else gets exactly
 // today's questions (pinned in fixtures/).
+//
+// Agent mode (phase 6, Leo only, `agent: true`): the same one Jev request picks the
+// agent's act and fills its fixed slots (format, length, who, audience, weeks,
+// pace, slide, which, skill beside post, day, time and scope), and the answer
+// carries each question's probability for the shadow log. The agent's steps are
+// fixed code in the app; nothing here plans or writes.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 
@@ -44,6 +50,8 @@ export interface ActBody {
   message: string;
   today: string;
   posts: ActPost[];
+  /** Agent mode's fields: set only for an account on NORTH_STAR_USERS that sent `agent: true`. */
+  agent?: AgentFields;
 }
 export interface ActPick {
   act: Exclude<Act, "none">;
@@ -83,8 +91,11 @@ export function dayKeys(today: string): string[] {
 // deno-lint-ignore no-control-regex
 const clean = (s: string, n: number) => s.replace(/[\u0000-\u0009\u000b-\u001f\u007f]+/g, " ").trim().slice(0, n);
 
-/** The function's body, checked: the message, today's date and up to 50 posts. Null when anything is off. */
-export function actBody(raw: unknown): ActBody | null {
+/**
+ * The function's body, checked: the message, today's date and up to 50 posts. Null when anything is off. With
+ * `leo` (the north-star gate) and `agent: true`, agent mode's fields too; anyone else's agent fields are dropped.
+ */
+export function actBody(raw: unknown, leo = false): ActBody | null {
   const b = raw as { message?: unknown; today?: unknown; posts?: unknown } | null;
   if (!b || typeof b.message !== "string" || typeof b.today !== "string" || !realDay(b.today)) return null;
   if (b.posts !== undefined && (!Array.isArray(b.posts) || b.posts.length > MAX_POSTS)) return null;
@@ -97,7 +108,10 @@ export function actBody(raw: unknown): ActBody | null {
     const when = typeof p.when === "string" && /^\d{4}-\d{2}-\d{2}(T([01]\d|2[0-3]):[0-5]\d)?$/.test(p.when) ? p.when : "";
     posts.push({ title: clean(p.title, 100), status, when, platform: typeof p.platform === "string" ? clean(p.platform, 20) : "" });
   }
-  return { message, today: b.today, posts };
+  const body: ActBody = { message, today: b.today, posts };
+  if (!leo || (raw as Raw).agent !== true) return body;
+  const agent = agentFields(raw as Raw);
+  return agent ? { ...body, agent } : null;
 }
 
 function postLine(p: ActPost): string {
@@ -114,6 +128,7 @@ function postLine(p: ActPost): string {
  */
 export function actAsk(body: ActBody, leo = false): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
   const today = utc(body.today)!;
+  const a = leo ? body.agent : undefined;
   const questions: Record<string, JevQuestion> = {
     act: {
       type: "choice",
@@ -128,6 +143,7 @@ export function actAsk(body: ActBody, leo = false): { state: Record<string, stri
         engage_thread: "Help them reply in one back-and-forth direct message conversation with one person. The message contains that conversation.",
         engage_comment: "Help them write a comment to leave on someone else's post. The message contains that post.",
         ...(leo ? { remember: REMEMBER } : {}),
+        ...(a ? agentActs(a) : {}),
         none: "Anything else: a question about how the app works, an idea, a problem or bug, a feature request, a message for the team, small talk, or something the app cannot do.",
       },
     },
@@ -155,7 +171,8 @@ export function actAsk(body: ActBody, leo = false): { state: Record<string, stri
     };
   }
   if (leo) questions.scope = SCOPE_QUESTION;
-  return { state: { today: longDay(today), message: body.message }, questions };
+  const more = a ? agentAsk(a) : { state: {}, questions: {} };
+  return { state: { today: longDay(today), message: body.message, ...more.state }, questions: { ...questions, ...more.questions } };
 }
 
 const REMEMBER =
@@ -193,5 +210,285 @@ export function actPick(answers: Record<string, JevAnswer> | null, body: ActBody
     post: post && post !== "none" ? keys.indexOf(post) : null,
     day: day && day !== "none" ? day : null,
     time: time && time !== "none" ? time : null,
+  };
+}
+
+// ---- Agent mode (phase 6, Leo only) ----
+
+export const CHIPS = ["post", "carousel", "video", "campaign"] as const;
+export type Chip = (typeof CHIPS)[number];
+export const SPEAKERS = ["person", "business"] as const;
+export const OPEN_KINDS = ["carousel", "slideshow", "video"] as const;
+export const FORMATS = ["post", "carousel", "script", "slideshow", "wall", "speaking", "explainer", "image"] as const;
+export type Format = (typeof FORMATS)[number];
+/** The acts agent mode adds to today's (remember included): approve and decline only with `pending`, edit only with `open`, answer only with `competitorAds`. */
+export const AGENT_ACTS = ["remix", "make", "competitor", "campaign", "capabilities", "refuse", "budget", "forget", "memory", "check", "approve", "decline", "edit", "answer"] as const;
+export type AgentAct = Exclude<Act, "none"> | (typeof AGENT_ACTS)[number];
+
+// shortcut: thresholds not read off real agent messages; set them from 50 of Leo's own messages run side by side with his labels.
+/** A typed yes spends money, so it must be surer than any other act (decline stays at ACT_MIN). */
+export const APPROVE_MIN = 0.8;
+/** One of the person's own saved skills. Format, length, who, audience, weeks, pace, slide and which use PICK_MIN. */
+export const SKILL_MIN = 0.7;
+
+export interface AgentFields {
+  chip: Chip | null;
+  speaker: (typeof SPEAKERS)[number];
+  source: { kind: string; format: string; title: string } | null;
+  /** The title of the one proposed card, or "". */
+  pending: string;
+  open: { kind: (typeof OPEN_KINDS)[number]; title: string; slides: string[]; onScreen: number | null } | null;
+  /** "<text> (<scope>)", newest first as the app sends them. */
+  learnings: string[];
+  lastChange: string;
+  speakers: { id: string; look: string }[];
+  audiences: { id: string; name: string }[];
+  skills: { slash: string; name: string; instruction: string }[];
+  competitorAds: boolean;
+}
+
+/** Each slot is null when Jev is unsure, it was not asked, or Jev picked its "nothing said" option (none, any, the whole item). */
+export interface AgentPick {
+  act: AgentAct | null;
+  format: Format | null;
+  /** Seconds: 8, 15, 20 or 30. */
+  length: number | null;
+  /** Index into `speakers` sent. */
+  who: number | null;
+  /** Index into `audiences` sent. */
+  audience: number | null;
+  /** 1, 2 or 4. */
+  weeks: number | null;
+  /** Posts a week: 2, 3, 5 or 7. */
+  pace: number | null;
+  /** Index into `open.slides`; null means the whole item. */
+  slide: number | null;
+  /** Index into `learnings` sent, or the last change. */
+  which: number | "last" | null;
+  /** Index into `skills` sent. */
+  skill: number | null;
+  post: number | null;
+  day: string | null;
+  time: string | null;
+  scope: Scope | null;
+}
+/** Jev's probability for the option it picked on each question, below the cut too; null when not asked or no answer. */
+export type AgentP = Record<keyof AgentPick, number | null>;
+export const SLOTS = ["act", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill", "post", "day", "time", "scope"] as const satisfies readonly (keyof AgentPick)[];
+export const noP = (): AgentP => Object.fromEntries(SLOTS.map((k) => [k, null])) as AgentP;
+
+type Raw = Record<string, unknown>;
+const isObj = (v: unknown): v is Raw => !!v && typeof v === "object" && !Array.isArray(v);
+const oneOf = <T extends string>(v: unknown, options: readonly T[]): T | null => ((options as readonly unknown[]).includes(v) ? (v as T) : null);
+/** Required words, cleaned and cut; null when missing or blank. */
+const words = (v: unknown, n: number) => (typeof v === "string" && clean(v, n) ? clean(v, n) : null);
+/** Optional words: "" when absent, null when not a string. */
+const maybe = (v: unknown, n: number) => (v === undefined ? "" : typeof v === "string" ? clean(v, n) : null);
+/** The first `max` entries, each read by `one`; null when it is not a list or a kept entry is malformed, so indexes stay the app's. */
+function listOf<T>(v: unknown, max: number, one: (x: unknown) => T | null): T[] | null {
+  if (v === undefined) return [];
+  if (!Array.isArray(v)) return null;
+  const out = v.slice(0, max).map(one);
+  return out.every((x) => x !== null) ? (out as T[]) : null;
+}
+const SPEAKER_ID = /^(mine|new|pr-[A-Za-z0-9_-]{1,60})$/;
+
+/** Agent mode's fields, checked and cut to their sizes. Null when one has the wrong shape (the app sent a bad body). */
+function agentFields(b: Raw): AgentFields | null {
+  if ((b.chip !== undefined && !oneOf(b.chip, CHIPS)) || (b.speaker !== undefined && !oneOf(b.speaker, SPEAKERS))) return null;
+  if (b.competitorAds !== undefined && typeof b.competitorAds !== "boolean") return null;
+  const pending = maybe(b.pending, 120);
+  const lastChange = maybe(b.lastChange, 120);
+  let source: AgentFields["source"] = null;
+  if (b.source !== undefined) {
+    const s = isObj(b.source) ? b.source : {};
+    const [kind, format, title] = [maybe(s.kind, 40), maybe(s.format, 40), words(s.title, 120)];
+    if (kind === null || format === null || !title) return null;
+    source = { kind, format, title };
+  }
+  let open: AgentFields["open"] = null;
+  if (b.open !== undefined) {
+    const o = isObj(b.open) ? b.open : {};
+    const [kind, title] = [oneOf(o.kind, OPEN_KINDS), words(o.title, 120)];
+    const slides = listOf(o.slides, 10, (x) => (typeof x === "string" ? clean(x, 80) : null));
+    if (!kind || !title || !slides) return null;
+    const n = o.onScreen;
+    open = { kind, title, slides, onScreen: typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= slides.length ? n : null };
+  }
+  const learnings = listOf(b.learnings, 10, (x) => words(x, 160));
+  const speakers = listOf(b.speakers, 7, (x) => (isObj(x) && typeof x.id === "string" && SPEAKER_ID.test(x.id) && words(x.look, 160) ? { id: x.id, look: words(x.look, 160)! } : null));
+  const audiences = listOf(b.audiences, 6, (x) => (isObj(x) && words(x.id, 60) && words(x.name, 60) ? { id: words(x.id, 60)!, name: words(x.name, 60)! } : null));
+  const skills = listOf(b.skills, 12, (x) =>
+    isObj(x) && maybe(x.slash, 40) !== null && words(x.name, 40) && words(x.instruction, 300) ? { slash: maybe(x.slash, 40)!, name: words(x.name, 40)!, instruction: words(x.instruction, 300)! } : null,
+  );
+  if (pending === null || lastChange === null || !learnings || !speakers || !audiences || !skills) return null;
+  return {
+    chip: oneOf(b.chip, CHIPS),
+    speaker: oneOf(b.speaker, SPEAKERS) ?? "person",
+    source,
+    pending,
+    open,
+    learnings,
+    lastChange,
+    speakers,
+    audiences,
+    skills,
+    competitorAds: b.competitorAds === true,
+  };
+}
+
+const REFUSE = {
+  person:
+    "Ask for something that must not be made: a post that promises returns or guaranteed results, names an insurer's product, copies another person's words exactly, or uses another real person's face or voice.",
+  business: "Ask for something that must not be made: a post that copies another person's words exactly, or uses another real person's face or voice.",
+};
+
+/** The act criteria agent mode adds, in the order Jev reads them. */
+function agentActs(a: AgentFields): Record<string, string> {
+  return {
+    remix: "Make their own version of a post, ad, reel or video someone else made: remix it, copy its idea or format, or do one like it. The message has a link, or a post is attached to it.",
+    make: "Make a new piece of content from a topic or idea: a post, a carousel, a script, a talking video, an explainer video or a picture.",
+    competitor: "Add a business, brand or social account to the competitors they track.",
+    campaign: "Plan a campaign, a month of posts or several weeks of content.",
+    capabilities: "Ask what the assistant can do, make or help with.",
+    refuse: REFUSE[a.speaker],
+    budget: "Ask how many AI videos, pictures, voiceovers or other AI uses they have left today, or what something costs to make.",
+    forget: "Take something back: undo the last change, forget a preference they gave earlier, or stop doing something the app was told to do.",
+    memory: "Ask what the app remembers, has learned or follows about them and their preferences.",
+    check: "Check one of their saved posts before it goes out: compliance, facts, whether it sounds human, how it might do.",
+    ...(a.pending
+      ? {
+          approve: "Say yes to the proposal waiting for them, `pending`: approve it, go ahead, do it, make it.",
+          decline: "Say no to the proposal waiting for them, `pending`: not now, cancel it, don't make it.",
+        }
+      : {}),
+    ...(a.open ? { edit: `Change the ${a.open.kind} that is open on screen right now, "${a.open.title}": its words, length, tone, captions, look, or the order of its slides.` } : {}),
+    ...(a.competitorAds ? { answer: "Answer or respond to a competitor's new ad or post with a post of their own." } : {}),
+  };
+}
+
+const choice = (instructions: string, criteria: Record<string, string>): JevQuestion => ({ type: "choice", instructions, criteria });
+const numbered = (prefix: string, texts: string[]) => Object.fromEntries(texts.map((t, i) => [`${prefix}${i + 1}`, t]));
+/** A learning's own words, without the "(scope)" the app appends. */
+const SCOPED = /\s*\((posts|videos|pictures|all)\)$/;
+
+/** Agent mode's slot questions, each only under its "asked when", and the state they read. */
+function agentAsk(a: AgentFields): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
+  const state: Record<string, string> = {};
+  if (a.chip) state.chip = `The person pressed the ${a.chip[0].toUpperCase()}${a.chip.slice(1)} chip`;
+  if (a.source) state.source = `The person attached a post to the message: "${a.source.title}" (${[a.source.kind, a.source.format].filter(Boolean).join(", ")})`;
+  if (a.pending) state.pending = a.pending;
+  const questions: Record<string, JevQuestion> = {
+    format: choice("If the message asks the app to make or remix something, what should it make? Pick none when it does not say.", {
+      post: "A written post or caption.",
+      carousel: "A carousel: several slides to swipe through.",
+      script: "A script or shot list they film themselves.",
+      slideshow: "Words on a few photos, swiped one at a time.",
+      wall: "One bold claim over a short clip.",
+      speaking: "A video of them or a presenter talking to camera.",
+      explainer: "A narrated video made of pictures, with no one on camera.",
+      image: "One picture.",
+      none: "The message does not say what to make.",
+    }),
+    length: choice("If the message asks for a video, how long should it be? Pick none when it does not say.", {
+      8: "About 8 seconds, a very short clip.",
+      15: "About 15 seconds.",
+      20: "About 20 seconds.",
+      30: "About 30 seconds, or half a minute.",
+      none: "The message does not say how long.",
+    }),
+  };
+  if (a.speakers.length) {
+    const prefs = a.learnings.filter((l) => /\((videos|all)\)$/.test(l)).map((l) => l.replace(SCOPED, ""));
+    state.video_preferences = prefs.length ? prefs.join("; ") : "None.";
+    questions.who = choice(
+      "If the message asks for a video with someone on camera, who should appear in it? Read the message and the person's standing preferences in `video_preferences`. Pick any when neither says anything about who appears.",
+      { ...numbered("w", a.speakers.map((s) => s.look)), any: "The message and their preferences say nothing about who appears." },
+    );
+  }
+  if (a.audiences.length) {
+    questions.audience = choice("If the message asks for content or a campaign for a particular audience, which one does it mean? Pick none when it names none of these.", {
+      ...numbered("a", a.audiences.map((x) => x.name)),
+      none: "No audience is named, or none of these fits.",
+    });
+  }
+  questions.weeks = choice("If the message asks to plan a campaign or several weeks of posts, how many weeks should it cover? Pick none when it does not say.", {
+    1: "One week.",
+    2: "Two weeks.",
+    4: "Four weeks, or a month.",
+    none: "The message does not say how long.",
+  });
+  questions.pace = choice("If the message asks to plan a campaign or several weeks of posts, how many posts a week does it ask for? Pick none when it does not say.", {
+    2: "2 posts a week.",
+    3: "3 posts a week.",
+    5: "5 posts a week, or every weekday.",
+    7: "7 posts a week, or one every day.",
+    none: "The message does not say how often.",
+  });
+  if (a.open?.slides.length) {
+    const { kind, slides, onScreen } = a.open;
+    questions.slide = choice(
+      `The adviser has a ${kind} open with ${slides.length} slides${onScreen ? `, and slide ${onScreen} is the one on screen` : ""}. Which slide does the message mean? Pick all when it means the whole ${kind} or names no slide.`,
+      { ...Object.fromEntries(slides.map((t, i) => [`s${i + 1}`, `Slide ${i + 1}: "${t}"`])), all: `The whole ${kind}, or no slide is named.` },
+    );
+  }
+  if (a.learnings.length || a.lastChange) {
+    if (a.lastChange) state.last_change = a.lastChange;
+    questions.which = choice("If the message asks the app to forget or undo something, which one does it mean?", {
+      ...numbered("l", a.learnings),
+      ...(a.lastChange ? { last: "The most recent change made in this chat: `last_change`." } : {}),
+      none: "None of these fits.",
+    });
+  }
+  if (a.skills.length) {
+    questions.skill = choice("Does the message ask the app to run one of the adviser's own saved skills? Pick none when it does not.", {
+      ...numbered("s", a.skills.map((x) => `${x.name}: ${x.instruction}`)),
+      none: "The message does not ask for any of these.",
+    });
+  }
+  return { state, questions };
+}
+
+/**
+ * Agent mode's answer: every slot Jev is sure of, and Jev's probability on every question asked. The options read are the
+ * ones `actAsk` offered for this body, so a stray answer (approve with nothing pending, edit with nothing open) is never taken.
+ */
+export function agentPick(answers: Record<string, JevAnswer> | null, body: ActBody): { pick: AgentPick | null; p: AgentP } {
+  const { questions } = actAsk(body, true);
+  const read = (id: string) => {
+    const q = questions[id] as { criteria?: Record<string, unknown> } | undefined;
+    const c = q?.criteria ? choiceOf(answers, id, Object.keys(q.criteria)) : null;
+    const p = c ? answers?.[id]?.probabilities?.[c] : undefined;
+    return c && typeof p === "number" ? { c, p } : null;
+  };
+  const p = Object.fromEntries(SLOTS.map((k) => [k, read(k)?.p ?? null])) as AgentP;
+  if (!answers) return { pick: null, p };
+  /** Jev's pick at `min` or more, null for an option that says nothing. */
+  const at = (id: string, min = PICK_MIN) => {
+    const r = read(id);
+    return r && r.p >= min && r.c !== "none" && r.c !== "any" && !(r.c === "all" && id !== "scope") ? r.c : null;
+  };
+  const index = (k: string | null) => (k ? Number(k.slice(1)) - 1 : null);
+  const number = (k: string | null) => (k ? Number(k) : null);
+  const act = at("act", read("act")?.c === "approve" ? APPROVE_MIN : ACT_MIN) as AgentAct | null;
+  const which = at("which");
+  return {
+    pick: {
+      act,
+      format: at("format") as Format | null,
+      length: number(at("length")),
+      who: index(at("who")),
+      audience: index(at("audience")),
+      weeks: number(at("weeks")),
+      pace: number(at("pace")),
+      slide: index(at("slide")),
+      which: which === "last" ? "last" : index(which),
+      skill: index(at("skill", SKILL_MIN)),
+      post: index(at("post")),
+      day: at("day"),
+      time: at("time"),
+      scope: at("scope") as Scope | null,
+    },
+    p,
   };
 }

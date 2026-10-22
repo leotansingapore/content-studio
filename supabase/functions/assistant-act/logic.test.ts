@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACT_MIN, DAYS_AHEAD, MAX_MESSAGE, PICK_MIN, TIMES, actAsk, actBody, actPick, dayKeys, timeWords, type ActBody } from "./logic";
+import { ACT_MIN, APPROVE_MIN, DAYS_AHEAD, MAX_MESSAGE, PICK_MIN, SKILL_MIN, SLOTS, TIMES, actAsk, actBody, actPick, agentPick, dayKeys, noP, timeWords, type ActBody } from "./logic";
 import type { JevAnswer } from "../_shared/jev";
 
 const posts = [
@@ -139,3 +139,266 @@ describe("the remember act (Leo only)", () => {
 
 // keeps the type import honest
 export const _b: ActBody = body;
+
+// ---- Agent mode (phase 6, Leo only) ----
+
+const FULL = {
+  agent: true,
+  chip: "video",
+  source: { kind: "ad", format: "video", title: "Why teams stop logging calls" },
+  pending: "A 15-second talking video about prospecting",
+  open: { kind: "carousel", title: "Three CPF myths", slides: ["Myth one: CPF is locked forever", "Myth two", "Myth three"], onScreen: 2 },
+  learnings: ["Never use emoji (posts)", "Use an older man as my presenter (videos)", "Keep it short (all)"],
+  lastChange: "Moved Three CPF myths to Friday",
+  speakers: [
+    { id: "mine", look: "Your own saved face" },
+    { id: "pr-k1", look: "A Malay Singaporean man in his late 30s" },
+    { id: "new", look: "A Chinese Singaporean man in his 50s, short greying hair" },
+  ],
+  audiences: [
+    { id: "a1", name: "Young parents" },
+    { id: "a2", name: "Fresh graduates" },
+  ],
+  skills: [
+    { slash: "/polish", name: "Polish", instruction: "Tighten the hook and cut filler" },
+    { slash: "/linkedin", name: "LinkedIn voice", instruction: "Rewrite in my LinkedIn tone" },
+  ],
+  competitorAds: true,
+};
+const agentBody = (extra: Record<string, unknown> = {}, withPosts = true) =>
+  actBody({ message: "make a 15 second video for young parents with the older presenter", today: "2026-10-11", ...(withPosts ? { posts } : {}), agent: true, ...extra }, true)!;
+type AQ = Record<string, { instructions: string; criteria: Record<string, string> }>;
+const asked = (b: ActBody) => actAsk(b, true).questions as AQ;
+const TODAY_ACTS = ["move", "write", "week", "engage_replies", "engage_dms", "engage_thread", "engage_comment"];
+const ALWAYS_ACTS = ["remix", "make", "competitor", "campaign", "capabilities", "refuse", "budget", "forget", "memory", "check"];
+
+describe("actBody in agent mode", () => {
+  it("reads the agent fields only with the gate and agent: true; anyone else's body is today's", () => {
+    const raw = { message: "hi", today: "2026-10-11", posts, ...FULL };
+    const today = actBody({ message: "hi", today: "2026-10-11", posts })!;
+    expect(actBody(raw)).toEqual(today);
+    expect(actBody(raw, false)).toEqual(today);
+    expect("agent" in actBody(raw)!).toBe(false);
+    expect(actBody({ ...raw, agent: "yes" }, true)).toEqual(today);
+    expect(actBody(raw, true)!.agent).toEqual({ ...FULL, agent: undefined, speaker: "person", open: { ...FULL.open } });
+  });
+  it("starts every field empty, and cuts lists and words to their sizes", () => {
+    expect(actBody({ message: "hi", today: "2026-10-11", agent: true }, true)!.agent).toEqual({
+      chip: null,
+      speaker: "person",
+      source: null,
+      pending: "",
+      open: null,
+      learnings: [],
+      lastChange: "",
+      speakers: [],
+      audiences: [],
+      skills: [],
+      competitorAds: false,
+    });
+    const long = "x".repeat(400);
+    const a = agentBody({
+      pending: long,
+      lastChange: long,
+      source: { kind: "ad", title: long },
+      open: { kind: "slideshow", title: long, slides: Array.from({ length: 12 }, () => long), onScreen: 11 },
+      learnings: Array.from({ length: 12 }, () => long),
+      speakers: Array.from({ length: 9 }, () => ({ id: "new", look: long })),
+      audiences: Array.from({ length: 8 }, (_, i) => ({ id: `a${i}`, name: long })),
+      skills: Array.from({ length: 14 }, () => ({ slash: long, name: long, instruction: long })),
+    }).agent!;
+    expect([a.pending.length, a.lastChange.length, a.source!.title.length, a.source!.format, a.open!.title.length]).toEqual([120, 120, 120, "", 120]);
+    expect([a.open!.slides.length, a.open!.slides[0].length, a.open!.onScreen]).toEqual([10, 80, null]);
+    expect([a.learnings.length, a.learnings[0].length, a.speakers.length, a.speakers[0].look.length, a.audiences.length, a.audiences[0].name.length]).toEqual([10, 160, 7, 160, 6, 60]);
+    expect([a.skills.length, a.skills[0].slash.length, a.skills[0].name.length, a.skills[0].instruction.length]).toEqual([12, 40, 40, 300]);
+    expect(agentBody({ open: { kind: "video", title: "My reel" } }).agent!.open).toEqual({ kind: "video", title: "My reel", slides: [], onScreen: null });
+  });
+  it("refuses a body whose agent fields have the wrong shape, so the indexes it answers with stay the app's", () => {
+    for (const extra of [
+      { chip: "image" },
+      { speaker: "brand" },
+      { competitorAds: "yes" },
+      { pending: 3 },
+      { lastChange: ["x"] },
+      { source: { kind: "ad" } },
+      { source: "a link" },
+      { open: { kind: "post", title: "A" } },
+      { open: { kind: "carousel", title: " " } },
+      { open: { kind: "carousel", title: "A", slides: "one" } },
+      { open: { kind: "carousel", title: "A", slides: ["one", 2] } },
+      { learnings: "never emoji" },
+      { learnings: ["ok", " "] },
+      { speakers: [{ id: "u-1", look: "A face" }] },
+      { speakers: [{ id: "13b28b1d-2ecb-40be-b3a9-aefc90366f9b", look: "A face" }] },
+      { speakers: [{ id: "new", look: "" }] },
+      { audiences: [{ id: "a1" }] },
+      { skills: [{ slash: "/x", name: "X" }] },
+    ])
+      expect(agentBody(extra), JSON.stringify(extra)).toBeNull();
+  });
+});
+
+describe("actAsk in agent mode", () => {
+  it("asks each question only under its 'asked when'", () => {
+    const bare = asked(agentBody({}, false));
+    expect(Object.keys(bare)).toEqual(["act", "scope", "format", "length", "weeks", "pace"]);
+    expect(Object.keys(bare.act.criteria)).toEqual([...TODAY_ACTS, "remember", ...ALWAYS_ACTS, "none"]);
+    expect(Object.keys(asked(agentBody()))).toEqual(["act", "post", "day", "time", "scope", "format", "length", "weeks", "pace"]);
+    const full = asked(agentBody(FULL));
+    expect(Object.keys(full)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill"]);
+    expect(Object.keys(full.act.criteria)).toEqual([...TODAY_ACTS, "remember", ...ALWAYS_ACTS, "approve", "decline", "edit", "answer", "none"]);
+    const one = (extra: Record<string, unknown>) => {
+      const q = asked(agentBody(extra, false));
+      return [...Object.keys(q).filter((k) => !Object.keys(bare).includes(k)), ...Object.keys(q.act.criteria).filter((k) => !(k in bare.act.criteria))];
+    };
+    expect(one({ pending: FULL.pending })).toEqual(["approve", "decline"]);
+    expect(one({ open: FULL.open })).toEqual(["slide", "edit"]);
+    expect(one({ open: { kind: "video", title: "My reel" } })).toEqual(["edit"]);
+    expect(one({ competitorAds: true })).toEqual(["answer"]);
+    expect(one({ speakers: FULL.speakers })).toEqual(["who"]);
+    expect(one({ audiences: FULL.audiences })).toEqual(["audience"]);
+    expect(one({ learnings: FULL.learnings })).toEqual(["which"]);
+    expect(one({ lastChange: FULL.lastChange })).toEqual(["which"]);
+    expect(one({ skills: FULL.skills })).toEqual(["skill"]);
+    expect(one({ chip: "post", source: FULL.source })).toEqual([]);
+  });
+  it("leaves today's criteria word for word and adds the rest only in agent mode", () => {
+    const today = actAsk(body, true).questions as AQ;
+    const full = asked(agentBody(FULL));
+    for (const k of ["post", "day", "time", "scope"]) expect(full[k], k).toEqual(today[k]);
+    expect(full.act.instructions).toBe(today.act.instructions);
+    for (const k of [...TODAY_ACTS, "remember", "none"]) expect(full.act.criteria[k], k).toBe(today.act.criteria[k]);
+    expect(actAsk(agentBody(FULL), false)).toEqual(actAsk(actBody({ message: agentBody().message, today: "2026-10-11", posts })!));
+  });
+  it("names the pending card, the open item, the slides, the speakers, the learnings and the skills", () => {
+    const { state, questions } = actAsk(agentBody(FULL), true);
+    const q = questions as AQ;
+    expect(state).toEqual({
+      today: "Sunday 11 October 2026",
+      message: "make a 15 second video for young parents with the older presenter",
+      chip: "The person pressed the Video chip",
+      source: 'The person attached a post to the message: "Why teams stop logging calls" (ad, video)',
+      pending: "A 15-second talking video about prospecting",
+      video_preferences: "Use an older man as my presenter; Keep it short",
+      last_change: "Moved Three CPF myths to Friday",
+    });
+    expect(q.act.criteria.edit).toBe('Change the carousel that is open on screen right now, "Three CPF myths": its words, length, tone, captions, look, or the order of its slides.');
+    expect(q.slide.instructions).toBe(
+      "The adviser has a carousel open with 3 slides, and slide 2 is the one on screen. Which slide does the message mean? Pick all when it means the whole carousel or names no slide.",
+    );
+    expect(q.slide.criteria).toEqual({ s1: 'Slide 1: "Myth one: CPF is locked forever"', s2: 'Slide 2: "Myth two"', s3: 'Slide 3: "Myth three"', all: "The whole carousel, or no slide is named." });
+    expect(asked(agentBody({ open: { ...FULL.open, onScreen: undefined } })).slide.instructions).toMatch(/^The adviser has a carousel open with 3 slides\. Which slide/);
+    expect(q.who.criteria).toEqual({ w1: "Your own saved face", w2: "A Malay Singaporean man in his late 30s", w3: "A Chinese Singaporean man in his 50s, short greying hair", any: "The message and their preferences say nothing about who appears." });
+    expect(actAsk(agentBody({ speakers: FULL.speakers, learnings: ["Never use emoji (posts)"] }), true).state.video_preferences).toBe("None.");
+    expect(q.audience.criteria).toEqual({ a1: "Young parents", a2: "Fresh graduates", none: "No audience is named, or none of these fits." });
+    expect(q.which.criteria).toEqual({
+      l1: "Never use emoji (posts)",
+      l2: "Use an older man as my presenter (videos)",
+      l3: "Keep it short (all)",
+      last: "The most recent change made in this chat: `last_change`.",
+      none: "None of these fits.",
+    });
+    expect(Object.keys(asked(agentBody({ learnings: FULL.learnings })).which.criteria)).toEqual(["l1", "l2", "l3", "none"]);
+    expect(q.skill.criteria).toEqual({ s1: "Polish: Tighten the hook and cut filler", s2: "LinkedIn voice: Rewrite in my LinkedIn tone", none: "The message does not ask for any of these." });
+    expect(Object.keys(q.format.criteria)).toEqual(["post", "carousel", "script", "slideshow", "wall", "speaking", "explainer", "image", "none"]);
+    expect([Object.keys(q.length.criteria), Object.keys(q.weeks.criteria), Object.keys(q.pace.criteria)]).toEqual([
+      ["8", "15", "20", "30", "none"],
+      ["1", "2", "4", "none"],
+      ["2", "3", "5", "7", "none"],
+    ]);
+  });
+  it("gives a business brand the refuse criterion with no adviser rules", () => {
+    expect(asked(agentBody()).act.criteria.refuse).toBe(
+      "Ask for something that must not be made: a post that promises returns or guaranteed results, names an insurer's product, copies another person's words exactly, or uses another real person's face or voice.",
+    );
+    expect(asked(agentBody({ speaker: "business" })).act.criteria.refuse).toBe(
+      "Ask for something that must not be made: a post that copies another person's words exactly, or uses another real person's face or voice.",
+    );
+  });
+  it("sends Jev this request for a full agent body (pinned: read the diff before changing it)", async () => {
+    await expect(JSON.stringify(actAsk(agentBody(FULL), true), null, 2)).toMatchFileSnapshot("./fixtures/act-ask-agent.json");
+  });
+});
+
+describe("agentPick", () => {
+  const b = agentBody(FULL);
+  const sure = {
+    act: choice("make"),
+    format: choice("speaking"),
+    length: choice("15"),
+    who: choice("w3"),
+    audience: choice("a1"),
+    weeks: choice("4"),
+    pace: choice("7"),
+    slide: choice("s2"),
+    which: choice("l2"),
+    skill: choice("s1"),
+    post: choice("p2"),
+    day: choice("2026-10-15"),
+    time: choice("20:00"),
+    scope: choice("videos"),
+  };
+  it("fills every slot Jev is sure of and returns each probability", () => {
+    expect(agentPick(sure, b)).toEqual({
+      pick: { act: "make", format: "speaking", length: 15, who: 2, audience: 0, weeks: 4, pace: 7, slide: 1, which: 1, skill: 0, post: 1, day: "2026-10-15", time: "20:00", scope: "videos" },
+      p: Object.fromEntries(SLOTS.map((k) => [k, 0.9])),
+    });
+    expect(agentPick({ ...sure, which: choice("last") }, b).pick!.which).toBe("last");
+  });
+  it("holds each cut at its number and gives null just under it, with the probability still in p", () => {
+    const cuts: [keyof typeof sure, string, number][] = [
+      ["act", "make", ACT_MIN],
+      ["act", "approve", APPROVE_MIN],
+      ["act", "decline", ACT_MIN],
+      ["act", "edit", ACT_MIN],
+      ["act", "budget", ACT_MIN],
+      ["act", "forget", ACT_MIN],
+      ["format", "carousel", PICK_MIN],
+      ["length", "30", PICK_MIN],
+      ["who", "w1", PICK_MIN],
+      ["audience", "a2", PICK_MIN],
+      ["weeks", "2", PICK_MIN],
+      ["pace", "3", PICK_MIN],
+      ["slide", "s3", PICK_MIN],
+      ["which", "l3", PICK_MIN],
+      ["skill", "s2", SKILL_MIN],
+      ["post", "p1", PICK_MIN],
+      ["day", "2026-10-12", PICK_MIN],
+      ["time", "09:00", PICK_MIN],
+      ["scope", "posts", PICK_MIN],
+    ];
+    for (const [id, c, cut] of cuts) {
+      const at = agentPick({ ...sure, [id]: choice(c, cut) }, b);
+      const under = agentPick({ ...sure, [id]: choice(c, cut - 0.01) }, b);
+      expect(at.pick![id], `${id} ${c} at ${cut}`).not.toBeNull();
+      expect(under.pick![id], `${id} ${c} under ${cut}`).toBeNull();
+      expect(under.p[id]).toBeCloseTo(cut - 0.01);
+    }
+    expect([APPROVE_MIN, SKILL_MIN]).toEqual([0.8, 0.7]);
+    expect(agentPick({ act: choice("approve", 0.79) }, b).pick!.act).toBeNull();
+    expect(agentPick({ act: choice("approve", 0.8) }, b).pick!.act).toBe("approve");
+  });
+  it("reads an option that says nothing as null, and keeps scope's all", () => {
+    const none = agentPick({ act: choice("none"), format: choice("none"), length: choice("none"), who: choice("any"), audience: choice("none"), slide: choice("all"), which: choice("none"), skill: choice("none"), post: choice("none"), scope: choice("all") }, b).pick!;
+    expect([none.act, none.format, none.length, none.who, none.audience, none.slide, none.which, none.skill, none.post, none.scope]).toEqual([null, null, null, null, null, null, null, null, null, "all"]);
+  });
+  it("never takes an option this body was not offered", () => {
+    const bare = agentBody({}, false);
+    expect(agentPick({ act: choice("approve", 0.95) }, bare).pick!.act).toBeNull();
+    expect(agentPick({ act: choice("decline") }, bare).pick!.act).toBeNull();
+    expect(agentPick({ act: choice("edit") }, bare).pick!.act).toBeNull();
+    expect(agentPick({ act: choice("answer") }, bare).pick!.act).toBeNull();
+    expect(agentPick({ act: choice("delete") }, bare).pick!.act).toBeNull();
+    const stray = agentPick({ ...sure, who: choice("w4"), audience: choice("a3"), slide: choice("s4"), which: choice("l4"), skill: choice("s3"), post: choice("p9"), length: choice("45") }, b);
+    expect([stray.pick!.who, stray.pick!.audience, stray.pick!.slide, stray.pick!.which, stray.pick!.skill, stray.pick!.post, stray.pick!.length]).toEqual([null, null, null, null, null, null, null]);
+    expect([stray.p.who, stray.p.audience, stray.p.slide, stray.p.post]).toEqual([null, null, null, null]);
+    const notAsked = agentPick(sure, bare);
+    expect([notAsked.pick!.who, notAsked.pick!.slide, notAsked.pick!.post, notAsked.p.who, notAsked.p.skill, notAsked.p.day]).toEqual([null, null, null, null, null, null]);
+    expect(agentPick({ act: choice("make") }, agentBody({ speaker: "business" })).pick!.act).toBe("make");
+  });
+  it("keeps a sure skill when the act is unsure, and gives no pick and no probabilities when Jev never answered", () => {
+    expect(agentPick({ act: choice("none", 0.7), skill: choice("s2", 0.75) }, b).pick).toMatchObject({ act: null, skill: 1 });
+    expect(agentPick(null, b)).toEqual({ pick: null, p: noP() });
+    expect(Object.values(noP())).toEqual(SLOTS.map(() => null));
+  });
+});

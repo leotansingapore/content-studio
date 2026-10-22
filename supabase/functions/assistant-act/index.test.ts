@@ -8,6 +8,11 @@ const db = vi.hoisted(() => {
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
     // the counter answers the uses so far, or null once the day's limit is reached
     rpc: async (_fn: string, a: Record<string, unknown>) => (spent.push(String(a.p_feature)), { data: left ? 1 : null, error: null }),
+    // refundUsage: one row read, then the conditional update that gives the use back
+    from: () => ({
+      select: () => ({ match: async () => ({ data: [{ count: 1 }], error: null }) }),
+      update: () => ({ match: (q: Record<string, unknown>) => ({ select: async () => (spent.push(`refund:${q.feature}`), { data: [{ count: 0 }], error: null }) }) }),
+    }),
   };
   return { admin, spent, capReached: (v: boolean) => (left = !v), handler: null as null | ((r: Request) => Promise<Response>) };
 });
@@ -19,13 +24,15 @@ const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
 const choice = (c: string) => ({ type: "choice", choice: c, probabilities: { [c]: 0.9 } });
 const moveAnswers = () => ({ act: choice("move"), post: choice("p1"), day: choice(tomorrow), time: choice("09:00") });
 let jev: () => Record<string, unknown> = moveAnswers;
+/** Jev's HTTP status: anything but 200 is Jev never answering. */
+let jevStatus = 200;
+const env: Record<string, string | undefined> = {};
 
 beforeAll(async () => {
-  const env: Record<string, string> = { TYPESAFE_API_KEY: "test-key", NORTH_STAR_USERS: "leo-uid" };
-  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] ?? "x" } });
+  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => (k in env ? env[k] : "x") } });
   vi.stubGlobal("fetch", async (_u: string, init: RequestInit) => {
     asked.push(JSON.parse(String(init.body)));
-    return new Response(JSON.stringify({ answers: jev() }));
+    return new Response(JSON.stringify({ answers: jev() }), { status: jevStatus });
   });
   await import("./index.ts");
 }, 30_000);
@@ -35,6 +42,8 @@ beforeEach(() => {
   db.capReached(false);
   asked.length = 0;
   jev = moveAnswers;
+  jevStatus = 200;
+  Object.assign(env, { TYPESAFE_API_KEY: "test-key", NORTH_STAR_USERS: "leo-uid" });
 });
 
 const call = async (body: unknown, uid = "u1") => {
@@ -115,5 +124,61 @@ describe("the remember act", () => {
     expect(q.act.criteria.remember).toBeUndefined();
     expect(q.scope).toBeUndefined();
     expect(db.spent).toEqual(["assistant-act"]);
+  });
+});
+
+describe("agent mode (Leo only)", () => {
+  type Sent = { state: Record<string, string>; questions: Record<string, { criteria: Record<string, string> }> };
+  const msg = { message: "make a 15 second talking video about MediShield Life", today: "2026-10-11", posts };
+  const nothing = { act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null };
+  it("asks the agent's questions, answers the pick with every probability, and counts agent-act", async () => {
+    jev = () => ({ act: choice("make"), format: choice("speaking"), length: choice("15"), weeks: { type: "choice", choice: "none", probabilities: { none: 0.7 } } });
+    const r = await call({ ...msg, ...AGENT_FIELDS }, "leo-uid");
+    expect(r.status).toBe(200);
+    expect(r.body.pick).toEqual({ ...nothing, act: "make", format: "speaking", length: 15 });
+    expect(r.body.p).toEqual({ ...nothing, act: 0.9, format: 0.9, length: 0.9, weeks: 0.7 });
+    expect(db.spent).toEqual(["agent-act"]);
+    const q = (asked[0] as Sent).questions;
+    expect(Object.keys(q)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill"]);
+    expect(q.act.criteria.refuse).toBe("Ask for something that must not be made: a post that copies another person's words exactly, or uses another real person's face or voice.");
+    expect((asked[0] as Sent).state.pending).toBe(AGENT_FIELDS.pending);
+  });
+  it("keeps today's dock for the same account without agent: true", async () => {
+    const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today, posts, ...AGENT_FIELDS, agent: false }, "leo-uid");
+    expect(r).toEqual({ status: 200, body: { pick: { act: "move", post: 0, day: tomorrow, time: "09:00" } } });
+    expect(Object.keys((asked[0] as Sent).questions)).toEqual(["act", "post", "day", "time", "scope"]);
+    expect(db.spent).toEqual(["assistant-act"]);
+  });
+  it("gives agent-act back when Jev never answers, and only in agent mode", async () => {
+    jevStatus = 503;
+    expect(await call({ ...msg, agent: true }, "leo-uid")).toEqual({ status: 200, body: { pick: null, p: nothing } });
+    expect(db.spent).toEqual(["agent-act", "refund:agent-act"]);
+    db.spent.length = 0;
+    expect(await call(msg, "leo-uid")).toEqual({ status: 200, body: { pick: null } });
+    expect(await call(msg, "u1")).toEqual({ status: 200, body: { pick: null } });
+    expect(db.spent).toEqual(["assistant-act", "assistant-act"]);
+  });
+  it("keeps the use when Jev answered, even with nothing sure", async () => {
+    jev = () => ({ act: choice("none") });
+    expect(await call({ ...msg, agent: true }, "leo-uid")).toEqual({ status: 200, body: { pick: nothing, p: { ...nothing, act: 0.9 } } });
+    expect(db.spent).toEqual(["agent-act"]);
+  });
+  it("spends nothing and asks nothing on a message mostly not in English, a bad body, no Jev key or the daily limit", async () => {
+    expect(await call({ ...msg, message: "\u5e2e\u6211\u505a\u4e00\u4e2a\u5341\u4e94\u79d2\u7684\u89c6\u9891", agent: true }, "leo-uid")).toEqual({ status: 200, body: { pick: null, p: nothing } });
+    expect(await call({ ...msg, agent: true, chip: "image" }, "leo-uid")).toEqual({ status: 400, body: { code: "bad_request", error: "Nothing to read." } });
+    expect(await call({ ...msg, message: " ", agent: true }, "leo-uid")).toEqual({ status: 400, body: { code: "bad_request", error: "Nothing to read." } });
+    // a bad agent field from anyone else is ignored, as every agent field is
+    expect((await call({ ...msg, agent: true, chip: "image" }, "u1")).status).toBe(200);
+    expect(db.spent).toEqual(["assistant-act"]);
+    db.spent.length = 0;
+    asked.length = 0;
+    env.TYPESAFE_API_KEY = undefined;
+    expect(await call({ ...msg, agent: true }, "leo-uid")).toEqual({ status: 503, body: { code: "not_configured", error: "The agent isn't set up yet." } });
+    env.TYPESAFE_API_KEY = "test-key";
+    db.capReached(true);
+    const capped = await call({ ...msg, agent: true }, "leo-uid");
+    expect([capped.status, capped.body.code]).toEqual([429, "daily_limit"]);
+    expect(db.spent).toEqual(["agent-act"]);
+    expect(asked).toEqual([]);
   });
 });
