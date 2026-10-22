@@ -63,6 +63,9 @@ const KEYWORDS: Record<string, string> = {
   "/slideshow": "slideshow photo carousel tiktok photos",
   "/make": "make slideshow wall of text talking head green screen hook",
   "/image": "static ad quote card stat testimonial graphic design",
+  "/audiences": "audience avatar persona who buys",
+  "/campaigns": "campaign month angles plan posts",
+  "/ideas": "ideas inbox shortlist daily ideas",
 };
 
 /** Every page this sign-in sees, labelled with its section. */

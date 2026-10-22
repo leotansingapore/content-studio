@@ -22,6 +22,8 @@ const EXCEPTIONS: Record<string, string> = {
   "/inspiration/:id": "one inspiration, opened from /inspiration",
   "/profiles/:id": "one creator, opened from /profiles",
   "/make/:format": "a format's create page, opened from Remix buttons and the /make gallery",
+  "/campaigns/new": "reached from /campaigns",
+  "/campaigns/:id": "reached from /campaigns",
 };
 
 const appSource = readFileSync(resolve(__dirname, "../App.tsx"), "utf8");
@@ -61,6 +63,18 @@ describe("routes and the nav", () => {
     expect(routes).toContain("/people");
     expect(navPaths.has("/people")).toBe(true);
     expect("/people" in EXCEPTIONS).toBe(false);
+  });
+
+  it("serves Campaigns, Ideas and Audiences from the nav, and the wizard and a campaign as exceptions", () => {
+    for (const r of ["/campaigns", "/ideas", "/audiences"]) {
+      expect(routes, r).toContain(r);
+      expect(navPaths.has(r), r).toBe(true);
+      expect(r in EXCEPTIONS, r).toBe(false);
+    }
+    for (const r of ["/campaigns/new", "/campaigns/:id"]) {
+      expect(routes, r).toContain(r);
+      expect(navPaths.has(r), r).toBe(false);
+    }
   });
 
   it("lists no stale exceptions", () => {

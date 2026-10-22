@@ -5,7 +5,7 @@ const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
-  "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
+  "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
 ];
 
 describe("nav", () => {
@@ -144,10 +144,11 @@ describe("nav", () => {
     expect(tiles("tanjunsing@gmail.com")).toContain("/saved");
   });
 
-  it("shows Faces and voices only to Leo's sign-ins, in Playbook after Brand kit, and leaves everyone else's More sheet as it was", () => {
+  it("shows Faces and voices only to Leo's sign-ins, in Playbook after Brand kit and Audiences, and leaves everyone else's More sheet as it was", () => {
     const playbook = (email: string) => visiblePages(section("playbook").pages, email).map((p) => p.to);
     expect(playbook("someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/bio", "/links", "/fads", "/connect"]);
-    for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) expect(playbook(email).indexOf("/people"), email).toBe(playbook(email).indexOf("/brand") + 1);
+    // phase 5 puts Audiences between Brand kit and Faces and voices
+    for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) expect(playbook(email).indexOf("/people"), email).toBe(playbook(email).indexOf("/audiences") + 1);
     expect(pageFor("/people")?.page.label).toBe("Faces and voices");
     expect(pageTitle("/people")).toBe("Faces and voices - Content Studio");
     // pinned from main before /people: Playbook is one tile, its tabs carry the page
@@ -156,6 +157,29 @@ describe("nav", () => {
       singles: ["/welcome", "/recruit", "/playbook", "/academy", "/feedback"],
       groups: [["Improve", ["/coach", "/analytics", "/team"]], ["Discover", ["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]]],
     });
+  });
+
+  it("shows Campaigns, Ideas and Audiences only to Leo's sign-ins, after Plan and Brand kit, and leaves everyone else's nav as it was", () => {
+    const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
+    expect(pages("pipeline", "someone@example.com")).toEqual(["/plan", "/calendar", "/board", "/drafts", "/grid"]);
+    expect(pages("playbook", "someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/bio", "/links", "/fads", "/connect"]);
+    for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) {
+      expect(pages("pipeline", email).slice(0, 3), email).toEqual(["/plan", "/campaigns", "/ideas"]);
+      expect(pages("playbook", email).indexOf("/audiences"), email).toBe(pages("playbook", email).indexOf("/brand") + 1);
+    }
+    expect(pageTitle("/campaigns")).toBe("Campaigns - Content Studio");
+    expect(pageTitle("/ideas")).toBe("Ideas - Content Studio");
+    expect(pageTitle("/audiences")).toBe("Audiences - Content Studio");
+    // the wizard and a campaign sit under Campaigns, in Pipeline
+    expect(pageFor("/campaigns/new")?.page.to).toBe("/campaigns");
+    expect(pageFor("/campaigns/c-lq3k9z")?.page.to).toBe("/campaigns");
+    expect(mobileTabs(false).filter((t) => t.active("/campaigns/new")).map((t) => t.label)).toEqual(["Calendar"]);
+    expect(sectionFor("/audiences")?.id).toBe("playbook");
+    const tiles = (email: string) => {
+      const sheet = moreSheet(email, false);
+      return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
+    };
+    for (const to of ["/campaigns", "/ideas", "/audiences"]) expect(tiles("someone@example.com")).not.toContain(to);
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
