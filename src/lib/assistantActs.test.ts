@@ -304,3 +304,27 @@ describe("remembering a preference (Leo only on the server)", () => {
     expect(b.ask).toBe('Remember this for your posts?\n"from now on use lots of emoji in my posts"');
   });
 });
+
+// Pin (phase 6, agent-run): everyone's dock calls proposeAct with no agent context. It must keep sending today's body
+// exactly, offering today's acts, and a refusal at the daily cap must still leave the chat to answer in words.
+describe("proposeAct for everyone (pinned before the agent's call is added)", () => {
+  const refusal = (status: number, code: string) => ({ data: null, error: { context: new Response(JSON.stringify({ code, error: "You've used all 30 for today." }), { status }) } });
+  it("sends today's body with no agent fields and turns each of today's acts into its card or answer", async () => {
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-14T09:00" })]);
+    const asks: Record<string, string> = {};
+    for (const act of ["move", "write", "week", "engage_replies"] as const) {
+      invoke.mockResolvedValue({ data: { pick: pick({ act, day: act === "move" ? "2026-10-16" : null }) }, error: null });
+      const a = await proposeAct(UID, "Reply to these:\nGreat post!", go);
+      asks[act] = a && "ask" in a ? a.yes : (a as { say: string } | null)?.say.split("\n")[0] ?? "null";
+      expect(invoke).toHaveBeenLastCalledWith("assistant-act", { body: { message: "Reply to these:\nGreat post!", today: TODAY, posts: [expect.objectContaining({ title: "Three CPF myths" })] } });
+      expect(Object.keys(invoke.mock.lastCall![1].body)).toEqual(["message", "today", "posts"]);
+    }
+    expect(asks).toEqual({ move: "Move it", write: "Open in Write", week: "No posts marked posted in the last 14 days.", engage_replies: "Paste it" });
+  });
+  it("answers in words (null) when assistant-act refuses at its daily cap", async () => {
+    invoke.mockResolvedValue(refusal(429, "daily_limit"));
+    expect(await proposeAct(UID, "move my CPF myths post to Friday", go)).toBeNull();
+    invoke.mockResolvedValue(refusal(503, "usage_unavailable"));
+    expect(await proposeAct(UID, "move my CPF myths post to Friday", go)).toBeNull();
+  });
+});
