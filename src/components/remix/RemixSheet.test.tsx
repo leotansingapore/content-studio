@@ -1,5 +1,6 @@
 // The Remix sheet's first frame, pinned on today's code for any session that is not Leo's: it must draw exactly as
 // it did before the agent link. Never update the pinned file with vitest -u.
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -69,5 +70,18 @@ describe("the Remix sheet on /agent", () => {
     expect(html("/agent")).toBe("");
     expect(html("/agent/tk2x")).toBe("");
     expect(html("/agents")).toContain('aria-labelledby="remix-title"');
+  });
+});
+
+describe("the Remix sheet for Leo", () => {
+  const AGENT_LINK = /<a [^>]*href="\/agent\?remix=top%3Aa1-ABC"[^>]*>Ask the agent instead<\/a>/;
+
+  it("adds 'Ask the agent instead' under the main button, handing the agent this post, and nothing else", () => {
+    as.user = { id: "u1", email: "leo@example.com" };
+    const out = html();
+    expect(out).toMatch(AGENT_LINK);
+    expect(out.indexOf("Ask the agent instead")).toBeGreaterThan(out.indexOf("<footer"));
+    const pinned = readFileSync(new URL("../__pins__/remix-sheet-everyone.html", import.meta.url), "utf8");
+    expect(out.replace(AGENT_LINK, "")).toBe(pinned);
   });
 });
