@@ -218,7 +218,8 @@ export function loadVideo(file: Blob): Promise<HTMLVideoElement> {
 
 export const seek = (v: HTMLVideoElement, t: number) =>
   new Promise<void>((resolve) => {
-    if (Math.abs(v.currentTime - t) < 0.01) return resolve();
+    // a fresh element is already at 0 with no picture decoded (readyState 1), and draws as black: seek anyway, so 'seeked' brings the picture
+    if (Math.abs(v.currentTime - t) < 0.01 && v.readyState >= 2) return resolve();
     v.addEventListener("seeked", () => resolve(), { once: true });
     v.currentTime = t;
   });
