@@ -377,20 +377,20 @@ describe("audience suggestions (phase 5)", () => {
           name: "Young adults starting work",
           who: "Career starters and young adults in Singapore who are beginning to manage a salary, budget, accounts, insurance and their first investments.",
           cares: ["Making a budget", "Choosing accounts", "Managing credit cards", "Getting suitable cover", "Starting to invest"],
-          says: "“I just started working and haven’t really thought about money.”",
+          says: "\u201cI just started working and haven\u2019t really thought about money.\u201d",
         },
         {
           name: "Mid-career people planning retirement",
-          who: "Mid-career professionals, including people in their 40s and those 5–20 years from retirement, who want to estimate income and close a retirement savings gap.",
+          who: "Mid-career professionals, including people in their 40s and those 5\u201320 years from retirement, who want to estimate income and close a retirement savings gap.",
           cares: ["CPF LIFE income", "Retirement savings", "SRS and CPF top-ups", "Monthly retirement income", "Years to financial independence"],
-          says: "“I’m worried about retirement and want to know how much I’ll actually have.”",
+          says: "\u201cI\u2019m worried about retirement and want to know how much I\u2019ll actually have.\u201d",
         },
-        { name: "Parents of 3 — 5 year olds", who: "Saving for ages 7 – 12, and a 'big' school fee", cares: ["Fees 2025–2030"], says: "'We want a plan.'" },
+        { name: "Parents of 3 \u2014 5 year olds", who: "Saving for ages 7 \u2013 12, and a 'big' school fee", cares: ["Fees 2025\u20132030"], says: "'We want a plan.'" },
       ],
     }))!;
-    expect(r[0].says).toBe("I just started working and haven’t really thought about money.");
+    expect(r[0].says).toBe("I just started working and haven\u2019t really thought about money.");
     expect(r[1].who).toBe("Mid-career professionals, including people in their 40s and those 5 to 20 years from retirement, who want to estimate income and close a retirement savings gap.");
-    expect(r[1].says).toBe("I’m worried about retirement and want to know how much I’ll actually have.");
+    expect(r[1].says).toBe("I\u2019m worried about retirement and want to know how much I\u2019ll actually have.");
     expect(r[2]).toEqual({ name: "Parents of 3 to 5 year olds", who: "Saving for ages 7 to 12, and a 'big' school fee", cares: ["Fees 2025 to 2030"], says: "We want a plan." });
   });
 

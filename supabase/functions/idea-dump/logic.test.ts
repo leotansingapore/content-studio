@@ -864,7 +864,7 @@ const LIVE_014_POSTS = [
   {
     n: 1,
     hook: "Cash can feel safe while costs keep moving.",
-    body: "I understand why a busy father might leave money in the bank. It is familiar, accessible and easy to track between work deadlines and family routines.\n\nBut when everyday costs rise, the amount your cash can buy may change over time. That does not mean you should rush to invest it. It means it can help to be clear about what the money is for, when you may need it and how much you want readily available.\n\nI find that separating short-term needs from longer-term goals is a useful place to start. It turns “I’ll deal with this later” into a question you can actually work through, without making a decision on the spot.",
+    body: "I understand why a busy father might leave money in the bank. It is familiar, accessible and easy to track between work deadlines and family routines.\n\nBut when everyday costs rise, the amount your cash can buy may change over time. That does not mean you should rush to invest it. It means it can help to be clear about what the money is for, when you may need it and how much you want readily available.\n\nI find that separating short-term needs from longer-term goals is a useful place to start. It turns \u201cI\u2019ll deal with this later\u201d into a question you can actually work through, without making a decision on the spot.",
     script: "",
     brief: "",
     cta: "How do you decide what to keep accessible and what to plan for long term?",
