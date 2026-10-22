@@ -52,7 +52,7 @@ export type PageFormat = FormatDef & { cap: UsageFeature; Component: NonNullable
 /** A price whose options can make it dearer: "From US$0.82". */
 const from = (p: Price | "pick" | null): Price | "pick" | null => (p && p !== "pick" ? { ...p, kind: "from" } : p);
 
-const explainerPrice = () => sumPrices(priceOf("ai-video", { scenes: 5 }), priceOf("ai-voice"), priceOf("ai-video-script"));
+export const explainerPrice = () => sumPrices(priceOf("ai-video", { scenes: 5 }), priceOf("ai-voice"), priceOf("ai-video-script"));
 const presenterTalkPrice = () => sumPrices(priceOf("ai-video", { seconds: 25 }), priceOf("ai-video-script"), priceOf("ai-voice"), priceOf("ai-image"));
 
 const LOOKS: { id: Exclude<ExplainerLook, "photo">; name: string; blurb: string }[] = [
