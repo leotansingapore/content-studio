@@ -13,12 +13,12 @@
 
 import inspirationData from "@/data/inspiration.json";
 import { FUNNEL_STAGES, type FunnelStageId } from "@/data/funnelFramework";
-import type { Positioning } from "@/lib/positioning";
+import { GOAL_WEIGHTS, loadPositioning, type Positioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
 import { draftStatus, loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, localDateKey, postedDay, scheduleAt } from "@/lib/dueDates";
-import type { Label } from "@/lib/labels";
+import { hasSavedLabels, loadLabels, pillarsFromLabels, type Label } from "@/lib/labels";
 import { getBreakdown, getDayOfWeekBreakdown, getTrackedPosts, MIN_GROUP_SAMPLE, postingTimeOn } from "@/lib/analytics";
 import { loadBrand } from "@/lib/carousel";
 
@@ -344,6 +344,16 @@ export function planOptionsFor(
     recentThemes: recentThemes(loadDrafts(userId)),
     postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
     postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
+  };
+}
+
+/** What steers a plan: the goal's stage weights, and pillars once labels are saved. Callers pass it for Leo only. */
+export function steerFor(userId: string): Pick<GeneratePlanOptions, "weights" | "pillars"> {
+  const kind = loadPositioning(userId)?.goalKind;
+  const weights = kind ? GOAL_WEIGHTS[kind] : undefined;
+  return {
+    ...(weights ? { weights } : {}),
+    ...(hasSavedLabels(userId) ? { pillars: pillarsFromLabels(loadLabels(userId)) } : {}),
   };
 }
 

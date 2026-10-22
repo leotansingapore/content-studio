@@ -125,7 +125,9 @@ describe("hookFormulasFrom", () => {
 // ---- Pins: today's generatePlan and the options /plan builds, taken on 0d23f6a6 before the plan
 // engine changed. Plans are live for everyone, so these files never change: never vitest -u.
 import { afterEach, vi } from "vitest";
-import { planOptionsFor, planPerformance, WEEKDAYS, type ContentPlan, type GeneratePlanOptions } from "./contentPlan";
+import { planOptionsFor, planPerformance, steerFor, WEEKDAYS, type ContentPlan, type GeneratePlanOptions } from "./contentPlan";
+import { saveGoal } from "./positioning";
+import { updateLabel } from "./labels";
 
 const PIN_POS = pos({ audience: "parent", audienceDetail: "Parents of under-5s", platform: "instagram", edge: "Ex-teacher" });
 const stable = (p: ContentPlan) => {
@@ -176,9 +178,10 @@ describe("the options /plan builds, pinned", () => {
   // scheduledFor carries the posting hour as typed, so the best time reads the same in every time zone
   const posted = (id: string, format: string, postedAt: string, at: string, reactions: number, pillarDetail = ""): DraftEntry =>
     post({ id, format, platform: "instagram", status: "posted", postedAt, scheduledFor: at, pillarDetail, metrics: { impressions: 1000, reactions } });
+  const localStorage = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
   const seed = () => {
     const mem = new MemStorage();
-    (globalThis as { window?: unknown }).window = { localStorage: mem };
+    (globalThis as { window?: unknown }).window = { localStorage: mem, dispatchEvent: () => true };
     mem.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: ["1T08:30", "3T20:00"] }));
     mem.setItem(`content-studio-drafts-${UID}`, JSON.stringify([
       posted("c1", "carousel", "2026-10-01T06:00:00.000Z", "2026-10-01T12:00", 80, "CPF top-ups"),
@@ -202,6 +205,18 @@ describe("the options /plan builds, pinned", () => {
   afterEach(() => {
     vi.useRealTimers();
     delete (globalThis as { window?: unknown }).window;
+  });
+
+  it("steerFor gives the goal's weights and, once labels are saved, the pillars", () => {
+    seed();
+    expect(steerFor(UID)).toEqual({});
+    localStorage().setItem(`content-studio-positioning-${UID}`, JSON.stringify({ topics: ["CPF", "Wills"] }));
+    saveGoal(UID, "Get known", "audience");
+    expect(steerFor(UID)).toEqual({ weights: { attraction: 6, trust: 3, conversion: 1 } });
+    updateLabel(UID, "t-cpf", { target: 75 });
+    expect(steerFor(UID).pillars).toEqual([{ id: "t-cpf", name: "CPF", weight: 75 }, { id: "t-wills", name: "Wills", weight: 50 }]);
+    saveGoal(UID, "Hire two", "recruit");
+    expect(steerFor(UID)).not.toHaveProperty("weights");
   });
 
   it("builds today's options and plan from the brand's slots, results, recent posts and last plan (PlanPage's planOptions, moved out)", async () => {
