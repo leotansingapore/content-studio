@@ -9,14 +9,14 @@ vi.mock("@/lib/agentStarters", () => ({ starterChips: () => [] }));
 vi.mock("@/lib/chatSkills", () => ({ BUILT_IN_SKILLS: [], loadMySkills: () => [] }));
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: { auth: {}, from: () => ({}) } }));
 
-import { ENGINE_CHIP, metaLine, runLabel } from "./AgentThread";
+import { ENGINE_CHIP, metaLine, newlyMade, runLabel } from "./AgentThread";
 import { isAppPath } from "./dockActions";
 import { ownComposer } from "./AgentDock";
 import { madeNoun, tookWords } from "./MadeBlock";
 import { slashItems } from "./SlashMenu";
 import { lastLine, whenGroup } from "./ThreadList";
 import type { AgentCard } from "@/lib/agentCards";
-import type { AgentThread } from "@/lib/agentThreads";
+import type { AgentMsg, AgentThread } from "@/lib/agentThreads";
 
 const SKILLS = [
   { slash: "check", name: "Check before posting" },
@@ -103,6 +103,17 @@ describe("MADE block", () => {
     expect(madeNoun({ kind: "talk", state: "done", startedAt: "" })).toBe("talking video");
     expect(tookWords({ startedAt: "2026-10-22T10:00:00Z", endedAt: "2026-10-22T10:00:14Z" })).toBe("14s");
     expect(tookWords({ startedAt: "2026-10-22T10:00:00Z", endedAt: "2026-10-22T10:03:43Z" })).toBe("3m 43s");
+  });
+});
+
+describe("Your <format> is ready", () => {
+  const msg = (id: string, job?: AgentMsg["job"]["state"]): AgentMsg => ({ id, at: "", role: "agent", ...(job ? { job: { kind: "remix", state: job, startedAt: "" } } : {}) });
+  it("points at a make that landed since the last look, whether or not it was seen running", () => {
+    const seen = new Map<string, string>();
+    expect(newlyMade(seen, [msg("m1"), msg("m2", "running"), msg("m3", "done")])).toEqual([]);
+    // the engine writes the job once, already done; another job's running state still counts
+    expect(newlyMade(seen, [msg("m1", "done"), msg("m2", "done"), msg("m3", "done"), msg("m4", "done")]).map((m) => m.id)).toEqual(["m1", "m2"]);
+    expect(newlyMade(seen, [msg("m1", "done"), msg("m4", "done")])).toEqual([]);
   });
 });
 

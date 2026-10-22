@@ -40,6 +40,20 @@ export function metaLine(at: string, meta: { steps: number; ms: number }): strin
   return meta.steps > 0 ? `${hhmm(at)} | ${meta.steps} ${meta.steps === 1 ? "step" : "steps"} | ${s}` : `${hhmm(at)} | ${s}`;
 }
 
+/**
+ * The messages whose make landed since `seen` was last updated: seen before without a done job, done now (the engine
+ * writes a job once, when it is done). Updates `seen`; a message seen for the first time never counts.
+ */
+export function newlyMade(seen: Map<string, string>, messages: AgentMsg[]): AgentMsg[] {
+  const out: AgentMsg[] = [];
+  for (const m of messages) {
+    const state = m.job?.state ?? "";
+    if (seen.has(m.id) && seen.get(m.id) !== "done" && state === "done") out.push(m);
+    seen.set(m.id, state);
+  }
+  return out;
+}
+
 export function useThreads(userId: string) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
@@ -130,11 +144,8 @@ export default function AgentThread({
   // new words follow the bottom while it is in view; a make that lands while scrolled up gets the "ready" chip
   const tail = messages.map((m) => `${m.id}:${m.turn ?? ""}:${m.card?.status ?? ""}:${m.job?.state ?? ""}:${m.receipt ? 1 : 0}`).join("|");
   useLayoutEffect(() => {
-    for (const m of messages) {
-      const was = jobs.current.get(m.id);
-      if (m.job && was === "running" && m.job.state === "done" && !near.current) setReady({ id: m.id, noun: madeNoun(m.job) });
-      if (m.job) jobs.current.set(m.id, m.job.state);
-    }
+    const made = newlyMade(jobs.current, messages).pop();
+    if (made?.job && !near.current) setReady({ id: made.id, noun: madeNoun(made.job) });
     if (near.current) toBottom();
   }, [tail]); // eslint-disable-line react-hooks/exhaustive-deps
 
