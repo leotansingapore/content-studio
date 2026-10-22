@@ -31,7 +31,7 @@
         "forget": "Take something back: undo the last change, forget a preference they gave earlier, or stop doing something the app was told to do.",
         "memory": "Ask what the app remembers, has learned or follows about them and their preferences.",
         "check": "Check one of their saved posts before it goes out: compliance, facts, whether it sounds human, how it might do.",
-        "approve": "Say yes to the proposal waiting for them, `pending`: approve it, go ahead, do it, make it.",
+        "approve": "Say an explicit yes to the proposal waiting for them, `pending`: approve it, go ahead, do it, make it. A bare acknowledgement such as ok, okay, noted, got it or thanks is not a yes.",
         "decline": "Say no to the proposal waiting for them, `pending`: not now, cancel it, don't make it.",
         "edit": "Change the carousel that is open on screen right now, \"Three CPF myths\": its words, length, tone, captions, look, or the order of its slides.",
         "answer": "Answer or respond to a competitor's new ad or post with a post of their own.",

@@ -322,6 +322,14 @@ describe("actAsk in agent mode", () => {
 
 describe("agentPick", () => {
   const b = agentBody(FULL);
+  it("never takes a bare acknowledgement as a yes, however sure Jev is (Leo's rule: ok is noted, not go)", () => {
+    for (const message of ["ok", "OK.", "okay", "k", "noted", "got it", "thanks!", "Thank you"]) {
+      expect(agentPick({ act: choice("approve", 0.99) }, { ...b, message }).pick!.act, message).toBeNull();
+    }
+    for (const message of ["yes", "ok go ahead", "ok make it", "do it"]) {
+      expect(agentPick({ act: choice("approve", 0.99) }, { ...b, message }).pick!.act, message).toBe("approve");
+    }
+  });
   it("refuses making a real person appear to endorse something, and promised returns, for a person and a business", () => {
     const person = JSON.stringify(actAsk(b, true).questions.act);
     const business = JSON.stringify(actAsk({ ...b, agent: { ...b.agent!, speaker: "business" } }, true).questions.act);

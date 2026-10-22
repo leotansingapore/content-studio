@@ -359,7 +359,7 @@ function agentActs(a: AgentFields): Record<string, string> {
     check: "Check one of their saved posts before it goes out: compliance, facts, whether it sounds human, how it might do.",
     ...(a.pending
       ? {
-          approve: "Say yes to the proposal waiting for them, `pending`: approve it, go ahead, do it, make it.",
+          approve: "Say an explicit yes to the proposal waiting for them, `pending`: approve it, go ahead, do it, make it. A bare acknowledgement such as ok, okay, noted, got it or thanks is not a yes.",
           decline: "Say no to the proposal waiting for them, `pending`: not now, cancel it, don't make it.",
         }
       : {}),
@@ -454,6 +454,8 @@ function agentAsk(a: AgentFields): { state: Record<string, string>; questions: R
  * Agent mode's answer: every slot Jev is sure of, and Jev's probability on every question asked. The options read are the
  * ones `actAsk` offered for this body, so a stray answer (approve with nothing pending, edit with nothing open) is never taken.
  */
+const BARE_ACK = /^(ok|okay|k|kk|noted|got it|thanks|thank you|ty)[.!]*$/i;
+
 export function agentPick(answers: Record<string, JevAnswer> | null, body: ActBody): { pick: AgentPick | null; p: AgentP } {
   const { questions } = actAsk(body, true);
   const read = (id: string) => {
@@ -471,7 +473,9 @@ export function agentPick(answers: Record<string, JevAnswer> | null, body: ActBo
   };
   const index = (k: string | null) => (k ? Number(k.slice(1)) - 1 : null);
   const number = (k: string | null) => (k ? Number(k) : null);
-  const act = at("act", read("act")?.c === "approve" ? APPROVE_MIN : ACT_MIN) as AgentAct | null;
+  const picked = at("act", read("act")?.c === "approve" ? APPROVE_MIN : ACT_MIN) as AgentAct | null;
+  // Leo's standing rule: a bare ok is noted, never go, so no score lets it approve a paid card
+  const act = picked === "approve" && BARE_ACK.test(body.message.trim()) ? null : picked;
   const which = at("which");
   return {
     pick: {
