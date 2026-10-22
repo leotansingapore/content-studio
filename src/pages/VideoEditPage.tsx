@@ -514,7 +514,8 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
                     {p.thumb && <img src={p.thumb} alt="" className="h-full w-full object-cover" />}
                   </span>
                   <span className="mt-1 block truncate text-xs font-semibold">{p.name}</span>
-                  <span className="block text-[11px] text-muted-foreground">{fmtTime(p.duration)}</span>
+                  {/* the length it plays: a clip keeps its recording's duration, with the clip in its trims */}
+                  <span className="block text-[11px] text-muted-foreground">{fmtTime(p.duration - (p.settings?.trimStart || 0) - (p.settings?.trimEnd || 0))}</span>
                 </button>
                 <button type="button" aria-label={`Delete ${p.name}`} onClick={() => window.confirm(`Delete ${p.name}?`) && onRemove(p.id)}
                   className="absolute right-1.5 top-1.5 rounded-md bg-background/85 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus:opacity-100 [@media(pointer:coarse)]:p-[15px] [@media(pointer:coarse)]:opacity-100">

@@ -61,7 +61,8 @@ describe("Recent on the start screen", () => {
     return [...markup.matchAll(/<span class="block text-\[11px\] text-muted-foreground">([^<]*)<\/span>/g)].map((m) => m[1]);
   };
 
-  it("shows each project's length", () => {
-    expect(lengths([plain, clip])).toEqual(["0:12.0", "9:05.5"]);
+  it("shows the length each project plays: a whole video's, a clip's own and a trimmed video's (live check 22 Oct)", () => {
+    const trimmed = { ...plain, id: "v3", settings: { ...defaultSettings("bold"), trimStart: 1.5, trimEnd: 0.5 } };
+    expect(lengths([plain, clip, trimmed])).toEqual(["0:12.0", "0:18.5", "0:10.0"]);
   });
 });
