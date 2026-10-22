@@ -327,6 +327,67 @@ describe("a source run, as it was before topic runs", () => {
   });
 });
 
+describe("a run from a typed topic (the agent's)", () => {
+  const agent = { thread: "t1a2b", msg: "m3c4d" };
+  const beat = (say: string) => ({ say, onScreen: "", visual: "Me to camera", seconds: 5, delivery: "Pause" });
+  const results: Record<string, MakeResult> = {
+    post: { as: "post", hook: "Why I log every call", body: "It shows me the week.", cta: "Comment LOG.", hashtags: [] },
+    carousel: { as: "carousel", hook: "Log every call", slides: Array.from({ length: 4 }, (_, i) => ({ title: `Reason ${i + 1}`, body: "It adds up." })), cta: "Save this for Monday" },
+    script: { as: "script", hook: "I log every call", beats: [beat("I log every call"), beat("Here's why."), beat("It shows the gaps."), beat("Comment LOG for mine.")], caption: "Log it. Comment LOG.", cta: "Comment LOG" },
+  };
+  const topicRun = (extra: Partial<RemixRun> = {}): RemixRun => ({ source: null, topic: "  Why I log every client call ", keep: "structure", close: "balanced", as: ["post", "carousel", "script"], mention: true, offer: null, agent, ...extra });
+
+  it("sends the topic with no source and no breakdown, and saves one draft per format with no source and the agent's chat", async () => {
+    make.mockImplementation(async (b: { as: string }) => answer(results[b.as]));
+    const done = finished();
+    startRemix(UID, topicRun());
+    // nothing to read: the walk starts on the writing, and there is no sheet to reopen
+    expect(remixJob()).toMatchObject({ key: "", step: writingStep("post"), run: { as: undefined } });
+    expect(runParams(remixJob()!.key, remixJob()!.run)).toMatchObject({ remix: "", as: null });
+    const j = await done;
+
+    expect(tear.local).not.toHaveBeenCalled();
+    expect(tear.ensure).not.toHaveBeenCalled();
+    expect(make.mock.calls.map(([b]) => b.as)).toEqual(["post", "carousel", "script"]);
+    for (const [b] of make.mock.calls) {
+      expect(b).toMatchObject({ mode: "make", topic: "Why I log every client call" });
+      expect("source" in b).toBe(false);
+      expect("agent" in b).toBe(false);
+    }
+    const drafts = loadDrafts(UID);
+    expect(drafts.map((d) => d.format)).toEqual(["short-video", "carousel", "text-post"]);
+    for (const d of drafts) {
+      expect("source" in d).toBe(false);
+      expect(d.agent).toEqual(agent);
+      expect(d.remix).toMatchObject({ keep: "structure", close: "balanced" });
+    }
+    expect(j.state).toBe("done");
+    expect(j.rows.map((r) => r.href)).toEqual([`/generate?draft=${drafts[2].id}`, `/carousel?draft=${drafts[1].id}`, `/generate?draft=${drafts[0].id}`]);
+  });
+
+  it("stamps the agent's chat on a source run's draft too, and leaves the source run's body as it was", async () => {
+    make.mockResolvedValue(answer(results.post));
+    const done = finished();
+    startRemix(UID, run(["post"], { agent: { ...agent, extra: "dropped" } as RemixRun["agent"] }));
+    await done;
+    const d = loadDrafts(UID)[0];
+    expect(d.source).toMatchObject({ key: "ad:123" });
+    expect(d.agent).toEqual(agent);
+    expect("agent" in make.mock.calls[0][0]).toBe(false);
+    expect(make.mock.calls[0][0].source).toMatchObject({ key: "ad:123" });
+  });
+
+  it("passes the server's no-topic refusal on, with nothing used", async () => {
+    make.mockRejectedValue(new EdgeError("Type a topic or pick a post to remix.", 400, "bad_request"));
+    const done = finished();
+    startRemix(UID, topicRun({ topic: " ", as: ["post"] }));
+    const j = await done;
+    expect(make.mock.calls[0][0].topic).toBe("");
+    expect(j.rows[0]).toMatchObject({ state: "failed", error: "Type a topic or pick a post to remix.", refunded: true });
+    expect(loadDrafts(UID)).toHaveLength(0);
+  });
+});
+
 describe("the breakdown before the first row", () => {
   it("breaks the source down once when this device has none, and sends it to every make", async () => {
     vi.useFakeTimers();
