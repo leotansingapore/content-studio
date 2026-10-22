@@ -31,9 +31,11 @@ import { defaultSkill, loadSkills } from "@/lib/videoSkills";
 import type { JoinExtra } from "@/lib/videoMedia";
 import {
   EXPLAINER_LOOKS, FROMS, FROM_LABELS, LOOK_IDS, MAX_SCRIPT, SCRIPT_LIMITS, STOCK_TIP, dismissWrite, findStockNow, loadDraft, loadLook, makeNarrated, narratedWrite,
-  onDraft, onNarratedWrite, saveDraft, saveLook, scriptDrafts, stockOn, summaryLine, usesStock, writeNarrated, type From, type LookId, type NarratedScene, type Visuals,
+  onDraft, onNarratedWrite, pickPhotosNow, saveDraft, saveLook, scriptDrafts, setPhotos, stockOn, summaryLine, usesPhoto, usesStock, writeNarrated, type From, type LookId,
+  type NarratedScene, type Visuals,
 } from "@/lib/explainer";
-import { LEN_MAX, LEN_MIN, MAX_THEME, describe, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
+import { usableSets } from "@/lib/mediaSets";
+import { LEN_MAX, LEN_MIN, MAX_THEME, describe, dismissMontage, montageBusy, montageJob, onMontageJob, setClips, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
   CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
@@ -156,10 +158,15 @@ function Montage({ busy, left: panelLeft, fill }: { busy: boolean; left: Left; f
   // Leo's chip says what is left after this run, so his count is read again after a montage too
   const mine = useUsesLeft(off || !leo);
   const uses = (leo ? mine : panelLeft)("montage-beats");
+  // Leo's clip sets (brand-media-sets), ?set=<name>; everyone else has none, so ?set= reads as stock
+  const user = useLeoUser();
+  const clipSets = useMemo(() => (user ? usableSets(user.id, "clips") : []), [user]);
+  const [clipSet, setClipSet] = useUrlState<string>("set", "", { allowed: clipSets.map((s) => s.name) });
+  const start = () => startMontage({ theme: theme.trim(), seconds, words, music, draftId: fill?.id, ...(user && clipSet ? { set: { name: clipSet, clips: setClips(user.id, clipSet) } } : {}) });
 
   return (
     <div className="space-y-3">
-      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void startMontage({ theme: theme.trim(), seconds, words, music, draftId: fill?.id }); }}>
+      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void start(); }}>
         <Input value={theme} maxLength={MAX_THEME} onChange={(e) => { setTheme(e.target.value); dismissMontage(); }} disabled={off}
           placeholder="A theme, like Singapore mornings" aria-label="What the montage is about" className="h-11 sm:h-10" />
         <Button ref={makeRef} type="submit" className="h-11 shrink-0 sm:h-10" disabled={off || theme.trim().length < 3 || uses === 0}>
@@ -177,6 +184,13 @@ function Montage({ busy, left: panelLeft, fill }: { busy: boolean; left: Left; f
         </div>
         <Pill on={words} disabled={off} onClick={() => setWords(!words)}>Words on screen</Pill>
       </div>
+      {clipSets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Clips from">
+          <span className="mr-1 text-xs font-medium">Clips from</span>
+          <Pill on={!clipSet} disabled={off} onClick={() => setClipSet("")}>Free stock</Pill>
+          {clipSets.map((s) => <Pill key={s.name} on={clipSet === s.name} disabled={off} onClick={() => setClipSet(s.name)}>{s.name}</Pill>)}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
           {music ? "Change music" : "Add your music (optional)"}
@@ -996,6 +1010,7 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
 
 const LENGTHS = ["30", "60"] as const;
 const VISUALS: Visuals[] = ["stock", "ai"];
+const VISUALS_KEY = "cs-narrated-visuals";
 
 /**
  * Leo's narrated video: start from a topic, your script, a link or a draft; 30 or 60 s; stock clips first or AI only;
@@ -1019,12 +1034,17 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   // a post's link (?draft=, edit-video) starts on A draft
   const [from, setFrom] = useUrlState<From>("from", params.get("draft") ? "draft" : "topic", { allowed: FROMS });
   const [len, setLen] = useUrlState<(typeof LENGTHS)[number]>("secs", "30", { allowed: LENGTHS, remember: "cs-narrated-length" });
-  const [visuals, setVisuals] = useUrlState<Visuals>("visuals", "stock", { allowed: VISUALS, remember: "cs-narrated-visuals" });
+  const [visuals, setVisuals] = useUrlState<Visuals>("visuals", "stock", { allowed: VISUALS, remember: VISUALS_KEY });
+  // a photo set instead (brand-media-sets), ?set=<name>: every scene one of its photos, free
+  const sets = useMemo(() => usableSets(userId, "photos"), [userId]);
+  const [set, setSet] = useUrlState<string>("set", "", { allowed: sets.map((s) => s.name) });
+  const photos = useMemo(() => (set ? setPhotos(userId, set) : []), [userId, set]);
+  const [swap, setSwap] = useState<number | null>(null);
   const kept = useMemo(() => loadLook(userId), [userId]);
   const [look, setLookParam] = useUrlState<LookId>("look", kept.look, { allowed: LOOK_IDS });
   const [move, setMove] = useState(kept.move);
   const seconds = len === "60" ? 60 : 30;
-  const on = stockOn(visuals, look);
+  const on = !set && stockOn(visuals, look);
   const keep = from === "script" || from === "draft";
 
   // topic= and link= fill their box once, then leave the address
@@ -1047,6 +1067,20 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   useEffect(() => {
     if (on && scenes?.length && !d.found && !busy) void findStockNow(userId);
   }, [on, scenes, d.found, busy, userId]);
+  // a set picked, or new scenes written with one: a photo for each scene (one montage-pick, free)
+  useEffect(() => {
+    if (set && scenes?.length && d.photosFrom !== set && !busy && !writing) void pickPhotosNow(userId, set);
+  }, [set, scenes, d.photosFrom, busy, writing, userId]);
+  const pickVisuals = (v: Visuals) => {
+    if (!set) return setVisuals(v);
+    // one write for both params (two setters keep only the last), and the pick remembered as setVisuals would
+    try {
+      localStorage.setItem(VISUALS_KEY, v);
+    } catch {
+      // kept for this visit by the address
+    }
+    update({ visuals: v === "stock" ? null : v, set: null });
+  };
 
   const [voice, setVoice] = useState<VoiceId>("eric");
   const [music, setMusic] = useState<File | null>(null);
@@ -1078,12 +1112,13 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
     void writeNarrated(userId, { from, seconds, stock: on });
   };
 
-  const aiCount = scenes ? scenes.filter((s) => !usesStock(s, on)).length : 0;
+  const aiCount = scenes ? scenes.filter((s) => !usesStock(s, on) && !usesPhoto(s, set)).length : 0;
   const videos = left("ai-video");
   const voices = left("ai-voice");
   const price = aiCount ? sumPrices(priceOf("ai-video", { scenes: aiCount, move }), priceOf("ai-voice")) : priceOf("ai-voice");
   const least = aiCount ? (videos === null || voices === null ? null : Math.min(videos, voices)) : voices;
-  const ready = !!scenes?.length && scenes.every(sceneReady);
+  // with a set every scene shows a photo picked from it, so the hidden picture words don't matter
+  const ready = !!scenes?.length && (set ? d.photosFrom === set && scenes.every((s) => s.say.trim() && s.photo) : scenes.every(sceneReady));
   const askFirst = !!price && price !== "pick" && price.usd >= 1;
   const total = scenes ? scenes.reduce((n, s) => n + words(s.say), 0) : 0;
   const edit = (i: number, change: Partial<NarratedScene>) => patch({ scenes: scenes!.map((x, j) => (j === i ? { ...x, ...change } : x)) });
@@ -1104,7 +1139,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
       ai: aiMark("explainer", aiCount ? "generated" : null, voice),
     };
     const name = (d.topic.trim() || d.source?.title || scenes![0].say).slice(0, 40) || "Narrated video";
-    void makeNarrated(userId, { name, scenes: scenes!, voice, look, move, visuals, extra });
+    void makeNarrated(userId, { name, scenes: scenes!, voice, look, move, visuals, extra, ...(set ? { set } : {}) });
   };
   const off = busy || writing;
 
@@ -1150,10 +1185,11 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
             {LENGTHS.map((n) => <Pill key={n} on={len === n} disabled={off} onClick={() => setLen(n)}>{n} seconds</Pill>)}
           </div>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pictures">
-            <Pill on={on} disabled={off || look !== "photo"} onClick={() => setVisuals("stock")}>Stock first</Pill>
-            <Pill on={!on} disabled={off} onClick={() => setVisuals("ai")}>AI only</Pill>
+            <Pill on={on} disabled={off || look !== "photo"} onClick={() => pickVisuals("stock")}>Stock first</Pill>
+            <Pill on={!on && !set} disabled={off} onClick={() => pickVisuals("ai")}>AI only</Pill>
+            {sets.map((x) => <Pill key={x.name} on={set === x.name} disabled={off} onClick={() => setSet(x.name)}>{x.name} (free)</Pill>)}
           </div>
-          {look !== "photo" && <span className="text-[11px] text-muted-foreground">{STOCK_TIP}</span>}
+          {look !== "photo" && !set && <span className="text-[11px] text-muted-foreground">{STOCK_TIP}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Look">
           <span className="mr-1 text-xs font-medium">Look</span>
@@ -1187,6 +1223,8 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
           <ol className="space-y-2">
             {scenes.map((s, i) => {
               const stock = usesStock(s, on);
+              const shown = usesPhoto(s, set) ? photos.find((m) => m.key === s.photo) : undefined;
+              const alt = shown?.alt.trim() ?? "";
               return (
                 <li key={i} className="space-y-1 rounded-xl border border-border/60 p-2">
                   <div className="flex items-center justify-between gap-1">
@@ -1202,7 +1240,27 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
                   </div>
                   <Textarea rows={2} value={s.say} maxLength={300} disabled={off} aria-label={`Scene ${i + 1}, what the voice says`} className="text-sm"
                     onChange={(e) => edit(i, { say: e.target.value })} />
-                  {stock ? (
+                  {usesPhoto(s, set) ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <PictureTile userId={userId} pictureKey={s.photo!} name={alt || `A photo from ${set}`} className="h-14 w-10" fetchMissing={false} />
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{set}{alt ? `: ${alt}` : ""}</span>
+                        <Button size="sm" variant={s.miss ? "outline" : "ghost"} className="h-11 text-xs sm:h-8" disabled={off} aria-expanded={swap === i}
+                          onClick={() => setSwap(swap === i ? null : i)}>Swap</Button>
+                      </div>
+                      {swap === i && (
+                        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8" role="group" aria-label={`Photos in ${set}`}>
+                          {photos.map((m) => (
+                            <button key={m.key} type="button" aria-pressed={m.key === s.photo} aria-label={`Use ${m.alt.trim() || m.name}`} disabled={off}
+                              className={`min-h-11 overflow-hidden rounded-lg ${m.key === s.photo ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"}`}
+                              onClick={() => { edit(i, { photo: m.key, miss: undefined }); setSwap(null); }}>
+                              <PictureTile userId={userId} pictureKey={m.key} name={m.alt.trim() || m.name} className="block aspect-[9/16] w-full" fetchMissing={false} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : stock ? (
                     <div className="flex items-center gap-2">
                       <img src={s.stock!.thumb} alt="" className="h-14 w-10 shrink-0 rounded-md object-cover" />
                       <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">Stock clip{describe(s.stock!) ? `: ${describe(s.stock!)}` : ""}</span>
@@ -1247,7 +1305,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
             )}
           </div>
           {aiCount > 0 && <p className="text-xs text-muted-foreground">The people in the AI pictures are made by AI.</p>}
-          <p className="text-sm" aria-live="polite">{summaryLine(scenes, total / 2.5, on)}</p>
+          <p className="text-sm" aria-live="polite">{summaryLine(scenes, total / 2.5, on, set)}</p>
           <CaptionsLine userId={userId} />
           {asking && !busy && price && price !== "pick" ? (
             <div className="space-y-2">
