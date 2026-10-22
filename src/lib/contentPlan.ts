@@ -15,10 +15,12 @@ import inspirationData from "@/data/inspiration.json";
 import { FUNNEL_STAGES, type FunnelStageId } from "@/data/funnelFramework";
 import type { Positioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
-import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, localDateKey, postedDay, scheduleAt } from "@/lib/dueDates";
 import type { Label } from "@/lib/labels";
+import { getBreakdown, getDayOfWeekBreakdown, getTrackedPosts, MIN_GROUP_SAMPLE, postingTimeOn } from "@/lib/analytics";
+import { loadBrand } from "@/lib/carousel";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -298,6 +300,51 @@ export function recentThemes(drafts: DraftEntry[], now = new Date()): Set<string
 export function nextFormulaStart(plan: ContentPlan | null): number {
   const last = plan?.items[plan.items.length - 1]?.formulaId;
   return (HOOK_FORMULAS.findIndex((f) => f.id === last) + 1) % HOOK_FORMULAS.length;
+}
+
+/**
+ * Closes the loop with Analytics: once the user has tracked real numbers, the
+ * plan leans toward their proven format and best posting days.
+ */
+export function planPerformance(userId: string): GeneratePlanOptions["performance"] {
+  const formats = getBreakdown(userId, "format").filter(
+    (r) => r.count >= MIN_GROUP_SAMPLE && r.key !== "unspecified",
+  );
+  const bestFormat =
+    formats.length >= 2 &&
+    formats[0].avgEngagementRate > formats[1].avgEngagementRate
+      ? (formats[0].key as PlanFormat)
+      : null;
+  const days = getDayOfWeekBreakdown(userId)
+    .filter((r) => r.count >= MIN_GROUP_SAMPLE)
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+  const bestDays = days.length >= 2 ? days.slice(0, 2).map((r) => r.day) : [];
+  return bestFormat || bestDays.length ? { bestFormat, bestDays } : undefined;
+}
+
+/**
+ * The options /plan builds a plan with. Each slot: the next hook formula in the
+ * rotation, a posting time on its day, and a theme no post used in the last two weeks.
+ */
+export function planOptionsFor(
+  userId: string,
+  platform: string,
+  o: { competitors?: PlanCompetitorSeed[]; plan: ContentPlan | null },
+): GeneratePlanOptions {
+  const slots = loadBrand(userId)?.slots ?? [];
+  const posts = getTrackedPosts(userId);
+  return {
+    competitors: (o.competitors ?? []).map((c) => ({
+      name: c.name,
+      handle: c.handle,
+      styleNotes: c.styleNotes,
+    })),
+    performance: planPerformance(userId),
+    formulaStart: nextFormulaStart(o.plan),
+    recentThemes: recentThemes(loadDrafts(userId)),
+    postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
+    postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
+  };
 }
 
 export function generatePlan(

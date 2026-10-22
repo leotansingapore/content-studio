@@ -125,11 +125,7 @@ describe("hookFormulasFrom", () => {
 // ---- Pins: today's generatePlan and the options /plan builds, taken on 0d23f6a6 before the plan
 // engine changed. Plans are live for everyone, so these files never change: never vitest -u.
 import { afterEach, vi } from "vitest";
-import { nextFormulaStart, WEEKDAYS, type ContentPlan, type GeneratePlanOptions } from "./contentPlan";
-import { getBreakdown, getDayOfWeekBreakdown, getTrackedPosts, MIN_GROUP_SAMPLE, postingTimeOn } from "./analytics";
-import { loadBrand } from "./carousel";
-import { loadDrafts } from "./draftHistory";
-import type { PlanFormat } from "./contentPlan";
+import { planOptionsFor, planPerformance, WEEKDAYS, type ContentPlan, type GeneratePlanOptions } from "./contentPlan";
 
 const PIN_POS = pos({ audience: "parent", audienceDetail: "Parents of under-5s", platform: "instagram", edge: "Ex-teacher" });
 const stable = (p: ContentPlan) => {
@@ -194,26 +190,6 @@ describe("the options /plan builds, pinned", () => {
   const lastPlan = { items: [{ formulaId: HOOK_FORMULAS[3].id }] } as unknown as ContentPlan;
   const competitors = [{ id: "x", name: "Ada", handle: "@ada", styleNotes: "short lines", platformUrl: "https://instagram.com/ada", platform: "instagram" }];
 
-  // PlanPage's performance memo and planOptions as they are on 0d23f6a6, run on fixed stores.
-  const todaysOptions = (id: string, platform: string, comps: typeof competitors, plan: ContentPlan | null) => {
-    const performance = (() => {
-      const formats = getBreakdown(id, "format").filter((r) => r.count >= MIN_GROUP_SAMPLE && r.key !== "unspecified");
-      const bestFormat = formats.length >= 2 && formats[0].avgEngagementRate > formats[1].avgEngagementRate ? (formats[0].key as PlanFormat) : null;
-      const days = getDayOfWeekBreakdown(id).filter((r) => r.count >= MIN_GROUP_SAMPLE).sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
-      const bestDays = days.length >= 2 ? days.slice(0, 2).map((r) => r.day) : [];
-      return bestFormat || bestDays.length ? { bestFormat, bestDays } : undefined;
-    })();
-    const slots = loadBrand(id)?.slots ?? [];
-    const posts = getTrackedPosts(id);
-    return {
-      competitors: comps.map((c) => ({ name: c.name, handle: c.handle, styleNotes: c.styleNotes })),
-      performance,
-      formulaStart: nextFormulaStart(plan),
-      recentThemes: recentThemes(loadDrafts(id)),
-      postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
-      postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
-    };
-  };
   const shown = (o: GeneratePlanOptions) => ({
     competitors: o.competitors,
     performance: o.performance ?? null,
@@ -228,17 +204,18 @@ describe("the options /plan builds, pinned", () => {
     delete (globalThis as { window?: unknown }).window;
   });
 
-  it("builds today's options and plan from the brand's slots, results, recent posts and last plan", async () => {
+  it("builds today's options and plan from the brand's slots, results, recent posts and last plan (PlanPage's planOptions, moved out)", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 9, 8, 10, 0));
     seed();
-    const full = todaysOptions(UID, "instagram", competitors, lastPlan);
-    const empty = todaysOptions("someone-else", "linkedin", [], null);
+    const full = planOptionsFor(UID, "instagram", { competitors, plan: lastPlan });
+    const empty = planOptionsFor("someone-else", "linkedin", { plan: null });
     const out = {
       stores: { options: shown(full), plan: stable(generatePlan({ ...PIN_POS, cadence: 5 }, { weeks: 2, salt: 0, ...full })) },
       empty: { options: shown(empty), plan: stable(generatePlan({ ...PIN_POS, platform: "linkedin", cadence: 3 }, { weeks: 1, salt: 0, ...empty })) },
     };
     await expect(JSON.stringify(out, null, 2)).toMatchFileSnapshot("./__pins__/plan-options-today.json");
+    expect(planPerformance(UID)).toEqual(full.performance);
   });
 });
 

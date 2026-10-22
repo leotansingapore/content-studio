@@ -27,14 +27,6 @@ import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import { scoped } from "@/lib/profiles";
 import QuickTip from "@/components/QuickTip";
-import {
-  getBreakdown,
-  getDayOfWeekBreakdown,
-  getTrackedPosts,
-  MIN_GROUP_SAMPLE,
-  postingTimeOn,
-} from "@/lib/analytics";
-import { loadBrand } from "@/lib/carousel";
 import { hookFormula } from "@/lib/hookFormulas";
 import { timeLabel } from "@/lib/dueDates";
 import CompetitorReference, {
@@ -67,12 +59,9 @@ import {
   clearPlan,
   planItemToGenerateUrl,
   planCalendarEntries,
+  planOptionsFor,
   upcomingMonday,
-  recentThemes,
-  nextFormulaStart,
-  WEEKDAYS,
   type ContentPlan,
-  type PlanFormat,
   type PlanItem,
 } from "@/lib/contentPlan";
 import {
@@ -216,24 +205,6 @@ export default function PlanPage() {
     [positioning, topicsRaw],
   );
 
-  // Close the loop with Analytics: if the user has tracked real numbers, the
-  // plan leans toward their proven format and best posting days.
-  const performance = useMemo(() => {
-    const formats = getBreakdown(userId, "format").filter(
-      (r) => r.count >= MIN_GROUP_SAMPLE && r.key !== "unspecified",
-    );
-    const bestFormat =
-      formats.length >= 2 &&
-      formats[0].avgEngagementRate > formats[1].avgEngagementRate
-        ? (formats[0].key as PlanFormat)
-        : null;
-    const days = getDayOfWeekBreakdown(userId)
-      .filter((r) => r.count >= MIN_GROUP_SAMPLE)
-      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
-    const bestDays = days.length >= 2 ? days.slice(0, 2).map((r) => r.day) : [];
-    return bestFormat || bestDays.length ? { bestFormat, bestDays } : undefined;
-  }, [userId]);
-
   const prefillFromFads = () => {
     const text = fadsPaste.trim();
     if (!text) return;
@@ -274,25 +245,6 @@ export default function PlanPage() {
     });
   };
 
-  // Each slot: the next hook formula in the rotation, a posting time on its day,
-  // and a theme no post used in the last two weeks.
-  const planOptions = (id: string, platform: string) => {
-    const slots = loadBrand(id)?.slots ?? [];
-    const posts = getTrackedPosts(id);
-    return {
-      competitors: competitors.map((c) => ({
-        name: c.name,
-        handle: c.handle,
-        styleNotes: c.styleNotes,
-      })),
-      performance,
-      formulaStart: nextFormulaStart(plan),
-      recentThemes: recentThemes(loadDrafts(id)),
-      postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
-      postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
-    };
-  };
-
   const handleGenerate = () => {
     if (!userId) return;
     const topics = parseTopics(topicsRaw);
@@ -312,7 +264,7 @@ export default function PlanPage() {
     const salt = plan ? plan.salt : 0;
     const story = thisWeek.trim();
     const newPlan: ContentPlan = {
-      ...generatePlan(merged, { weeks, salt, ...planOptions(userId, merged.platform) }),
+      ...generatePlan(merged, { weeks, salt, ...planOptionsFor(userId, merged.platform, { competitors, plan }) }),
       ...(story ? { thisWeek: story } : {}),
     };
     savePlan(userId, newPlan);
@@ -329,7 +281,7 @@ export default function PlanPage() {
     const topics = parseTopics(topicsRaw);
     const merged: Positioning = { ...positioning, topics };
     const newPlan: ContentPlan = {
-      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptions(userId, merged.platform) }),
+      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptionsFor(userId, merged.platform, { competitors, plan }) }),
       ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
     };
     savePlan(userId, newPlan);
