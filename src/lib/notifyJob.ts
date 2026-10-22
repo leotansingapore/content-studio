@@ -1,8 +1,8 @@
 // Make a notification stack (/make/notification-stack, src/lib/notifyStack.ts) outside React, so leaving the page keeps
 // it going (wallJob.ts's shape). No AI writes anything: the adviser types the lines and the word. The clip behind them
-// is a Pexels clip Jev picks, the way a wall of text finds one, or the adviser's own video; either loops to the stack's
-// length and videoMedia's join records it, muted, with the cards and the word riding in its extra, then the editor
-// opens it. In memory only: a reload mid-make loses the run, and nothing paid goes with it.
+// is a Pexels clip of an Asian person Jev picks, the way a wall of text finds one, or the adviser's own video; either
+// loops to the stack's length and videoMedia's join records it, muted, with the cards and the word riding in its
+// extra, then the editor opens it. In memory only: a reload mid-make loses the run, and nothing paid goes with it.
 
 import { mediaLength } from "@/lib/longAudio";
 import { stackLines, stackSettings, stackTimes } from "@/lib/notifyStack";
@@ -35,8 +35,12 @@ export interface NotifyJob {
 export const NOTIFY_TOAST = "Your notification stack is ready. Export it when it looks right.";
 export const NO_STOCK = "No stock clip came up. Try again in a minute or pick your own video.";
 const JOIN_LABEL = "Putting your notification stack together";
-/** What the stock search asks for and Jev looks for: someone alone with their thoughts suits any list of worries. */
-export const STOCK = { search: "person thinking", scene: "someone alone, deep in thought", again: "city night" };
+/**
+ * What the stock search asks for and Jev looks for: someone alone with their thoughts suits any list of worries. The
+ * search asks for an Asian person (people are Singaporean by default; a plain "person thinking" drew a Western woman);
+ * the scene stays race-blind, because Jev reads only Pexels page names, which never say who is in the clip.
+ */
+export const STOCK = { search: "asian person thinking", scene: "someone alone, deep in thought", again: "city night" };
 
 let job: NotifyJob | null = null;
 let seq = 0;
