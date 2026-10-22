@@ -32,13 +32,13 @@ describe("what it costs", () => {
     expect(out.big).toBe("US$11.08");
     expect(out.lines).toEqual([
       "8 free posts. 4 AI videos at about US$2.77 each.",
-      "Today's limit covers 2 of the 4 AI videos. The other 2 can be made from 8am tomorrow.",
+      "Today's limit covers 2 of the 4 AI videos. The other 2 can be made after 8am Singapore time.",
     ]);
   });
 
   it("all covered, none left, and limits unread", () => {
     expect(lines(twelve(), 4).lines[1]).toBe("Today's limit covers all 4 AI videos.");
-    expect(lines(twelve(), 0).lines[1]).toBe("No AI videos left today. The 4 can be made from 8am tomorrow.");
+    expect(lines(twelve(), 0).lines[1]).toBe("No AI videos left today. The 4 can be made after 8am Singapore time.");
     expect(lines(twelve(), null).lines[1]).toBe(UNREAD_LINE);
   });
 
@@ -61,11 +61,11 @@ describe("what it costs", () => {
       sub: "to make what's left",
       lines: [
         "6 slideshows and 6 walls of text at about US$0.02 each, from today's remix limit.",
-        "Today's remix limit covers 10 of the 12 slideshows and walls. The other 2 can be made from 8am tomorrow.",
+        "Today's remix limit covers 10 of the 12 slideshows and walls. The other 2 can be made after 8am Singapore time.",
       ],
     });
     expect(lines(posts, 2, 30).lines).toHaveLength(1);
-    expect(lines(posts, 2, 0).lines[1]).toBe("Today's remix limit is used. The 12 can be made from 8am tomorrow.");
+    expect(lines(posts, 2, 0).lines[1]).toBe("Today's remix limit is used. The 12 can be made after 8am Singapore time.");
     expect(lines(posts, 2, null).lines[1]).toBe(UNREAD_LINE);
   });
 });

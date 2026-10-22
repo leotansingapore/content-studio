@@ -22,7 +22,7 @@ export const UNREAD_LINE = "Couldn't read today's limits. Make still checks them
 export const CAUTION_LINE = "AI can make mistakes. Check each post before it goes out.";
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
-const later = (n: number) => `${n === 1 ? "It" : `The ${n}`} can be made from 8am tomorrow.`;
+const later = (n: number) => `${n === 1 ? "It" : `The ${n}`} can be made after 8am Singapore time.`;
 
 /** The big figure, the line under it, and the lines naming what is paid and what today's limits cover. */
 export function costLines(c: Pick<Campaign, "posts">, cost: CampaignCost): { big: string; sub: string; lines: string[] } {
@@ -44,11 +44,11 @@ export function costLines(c: Pick<Campaign, "posts">, cost: CampaignCost): { big
     if (videos && cv !== null) {
       if (cv >= videos) lines.push(videos === 1 ? "Today's limit covers the AI video." : `Today's limit covers all ${videos} AI videos.`);
       else if (cv === 0) lines.push(`No AI videos left today. ${later(videos)}`);
-      else lines.push(`Today's limit covers ${cv} of the ${videos} AI videos. The other ${videos - cv} can be made from 8am tomorrow.`);
+      else lines.push(`Today's limit covers ${cv} of the ${videos} AI videos. The other ${videos - cv} can be made after 8am Singapore time.`);
     }
     if (remix && cr !== null && cr < remix) {
       const name = slideshows && walls ? "slideshows and walls" : slideshows ? "slideshows" : "walls of text";
-      lines.push(cr === 0 ? `Today's remix limit is used. ${later(remix)}` : `Today's remix limit covers ${cr} of the ${remix} ${name}. The other ${remix - cr} can be made from 8am tomorrow.`);
+      lines.push(cr === 0 ? `Today's remix limit is used. ${later(remix)}` : `Today's remix limit covers ${cr} of the ${remix} ${name}. The other ${remix - cr} can be made after 8am Singapore time.`);
     }
   }
   return { big: `US$${cost.usd.toFixed(2)}`, sub: "to make what's left", lines };
