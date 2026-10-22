@@ -647,16 +647,17 @@ export function readFacts(answers: Record<string, JevAnswer> | null, sentences: 
 }
 
 // ---- Mode "conflict" (brand-voice-memory, Leo only) -------------------------
-// Whether a new standing note to the AI ("use lots of emoji") asks for the
-// opposite of one already kept ("never use emoji"), so the assistant's card can
-// say which one it replaces. One yes/no per kept note, in one request.
+// Whether a new standing note to the AI ("use lots of emoji", "one emoji at
+// most") changes one already kept ("never use emoji"): reverses, loosens,
+// tightens or narrows it, so the assistant's card can say which one it
+// replaces. One yes/no per kept note, in one request.
 
 /** A note, and each kept note, at most this long (the learnings' own limit). */
 export const CONFLICT_NOTE = 140;
 /** The most kept notes compared in one check (the learnings' active limit). */
 export const MAX_CONFLICT_NOTES = 30;
 // shortcut: threshold not read off real notes; set it from a side-by-side run of 30 real pairs
-/** p(they ask for opposite things) at or above this names the note it replaces. */
+/** p(the new note changes the kept note's rule) at or above this names the note it replaces. */
 export const CONFLICT_MIN = 0.7;
 
 export function conflictQuestions(note: string, notes: string[]): Record<string, JevQuestion> {
@@ -668,11 +669,11 @@ export function conflictQuestions(note: string, notes: string[]): Record<string,
         instructions: {
           new_note: note,
           old_note: old,
-          question: "Does `new_note` ask for the opposite of `old_note`, so that both cannot be followed?",
+          question: "Does `new_note` change the rule in `old_note`, by reversing it, loosening or tightening it, or narrowing or widening where it applies?",
         },
         criteria: {
-          true: "They ask for opposite things, for example 'use emoji' and 'never use emoji'.",
-          false: "They can both be followed, or they are about different things.",
+          true: "The new note is another version of the old note's rule on the same thing: its opposite ('use emoji' after 'never use emoji'), a looser or stricter limit ('one emoji at most' after 'no emoji', 'up to 5 hashtags' after 'no hashtags') or the same rule for fewer or more places ('no emoji on LinkedIn' after 'never use emoji').",
+          false: "They are about different things, or the new note says the same as the old one.",
         },
       } satisfies JevQuestion,
     ]),

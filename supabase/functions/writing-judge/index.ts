@@ -31,9 +31,9 @@
 //     like "thread", the use given back when Jev never answered. About 300
 //     tokens for a 6-slide carousel.
 //   mode "conflict" {note, notes} -> {replaces: index | null}
-//     which kept note to the AI a new one asks the opposite of (the
+//     which kept note to the AI a new one reverses, loosens or narrows (the
 //     assistant's "This replaces" line, at CONFLICT_MIN). Leo only like
-//     "thread", the use given back when Jev never answered. About 100 tokens
+//     "thread", the use given back when Jev never answered. About 170 tokens
 //     a kept note, up to 30.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
