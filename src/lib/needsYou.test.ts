@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, notesByBrand, waitingByBrand } from "./needsYou";
+import { badgeText, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
 import { links } from "./links";
 import type { CampaignPost, PostState } from "./campaigns";
 import type { DraftEntry } from "./draftHistory";
@@ -153,6 +153,104 @@ describe("homeToday", () => {
   it("gives a teammate only the review rows, and nothing breaks when the board didn't answer", () => {
     expect(homeToday({ owner: false, member: true, role: "editor" }, board, [], TODAY, true).map((r) => r.label)).toEqual(["To review: MoneyBees", "To review: Radiant"]);
     expect(homeToday({ owner: true, member: false }, null, [], TODAY, false)).toEqual([{ label: "Posting today", n: 0, to: "/calendar?view=week" }]);
+  });
+});
+
+describe("needsYouItems", () => {
+  const NOW = Date.parse("2026-10-14T10:00:00+08:00");
+  const note = { id: "n", at: "", text: "x", t: null, version: "v1", resolved: false, by: { id: "u2", label: "Amy", role: "editor" } } as ReelComment;
+  const rc = (stage: StageId, brand: string, o: Partial<ReelCard> = {}) => ({ id: stage + brand, title: "t", stage, brand, version: "v1", versions: [], comments: [], history: [], ...o }) as ReelCard;
+  const post = (state: PostState) => ({ n: 1, state }) as CampaignPost;
+  const full: NextUpInput = {
+    cards: [{ thread: "t1", msg: "m2", card: { id: "k1", kind: "video", title: 'Talking video: "Most people"' }, price: "About US$2.77 | about 44 Higgsfield credits" }],
+    threads: [
+      { id: "t2", messages: [{ id: "m5", card: { status: "failed", title: "Picture: CPF", decidedAt: "2026-10-14T00:00:00Z" } }, { id: "m6", card: { status: "failed", title: "Old", decidedAt: "2026-10-12T00:00:00Z" } }] },
+      { id: "t3", messages: [{ id: "m7", job: { state: "failed", endedAt: "2026-10-13T23:00:00Z", title: "A slideshow" } }, { id: "m8", job: { state: "done", endedAt: "2026-10-14T01:00:00Z" } }] },
+    ],
+    drafts: [
+      draft({ id: "z1", hook: "Zernio hook", zernio: { key: "k", status: "failed" } }),
+      draft({ id: "o1", hook: "Older", status: "scheduled", scheduledFor: "2026-10-10" }),
+      draft({ id: "o2", hook: "Newest overdue", status: "scheduled", scheduledFor: "2026-10-13T08:30" }),
+      draft({ id: "d1", hook: "Due later", status: "scheduled", scheduledFor: "2026-10-14T19:30" }),
+      draft({ id: "d2", hook: "Due first", status: "scheduled", scheduledFor: "2026-10-14T08:00" }),
+      draft({ id: "r1", hook: "Remixed", createdAt: "2026-10-12T00:00:00Z", remix: {} as DraftEntry["remix"] }),
+      draft({ id: "a1", hook: "Agent made", createdAt: "2026-10-13T00:00:00Z", agent: { thread: "t1", msg: "m3" } }),
+      draft({ id: "r0", hook: "Remixed long ago", createdAt: "2026-10-01T00:00:00Z", remix: {} as DraftEntry["remix"] }),
+      draft({ id: "w1", hook: "Typed by hand", createdAt: "2026-10-13T00:00:00Z" }),
+    ],
+    me: { owner: true, member: false },
+    board: { stages: [], brands: [{ id: "moneybees", name: "MoneyBees" }, { id: "radiant", name: "Radiant" }], cards: [rc("review", "moneybees"), rc("changes", "radiant", { comments: [note] }), rc("approved", "moneybees", { id: "x", schedule: "2026-10-14T19:00" })] },
+    otherDrafts: [draft({ status: "scheduled", scheduledFor: "2026-10-14T12:00" })],
+    market: true,
+    teamPosts: [team({ id: "tp2", day: "2026-10-21" }), team({ id: "tp1", day: "2026-10-20" })],
+    reviews: {},
+    autopilot: 3,
+    campaigns: [
+      { id: "c1", name: "Young families, October", audienceName: "Young families", posts: [post("ready"), post("ready"), post("made"), post("waiting")] },
+      { id: "c2", name: "Done", audienceName: "Grads", posts: [post("made")] },
+    ],
+    ideas: 6,
+    setup: { label: "Set your voice", to: "/voice" },
+  };
+
+  it("orders every kind as the table says, with each button's link", () => {
+    const items = needsYouItems(full, TODAY, NOW);
+    expect(items.map((i) => i.id)).toEqual([
+      "card:k1", "failed:z1", "failed:m5", "failed:m7", "overdue", "today", "team", "review:moneybees", "review:radiant", "notes:radiant",
+      "draft:a1", "draft:r1", "autopilot", "campaign:c1", "ideas", "market", "setup",
+    ]);
+    const by = Object.fromEntries(items.map((i) => [i.id, i]));
+    expect(by["card:k1"]).toEqual({ id: "card:k1", kind: "card", title: "A video is waiting for your yes", quote: 'Talking video: "Most people"', line: "About US$2.77 | about 44 Higgsfield credits", actions: [{ label: "Open", to: links.agent({ thread: "t1", m: "m2" }) }] });
+    expect(by["failed:z1"]).toMatchObject({ title: "A post didn't go out", quote: "Zernio hook", line: "Try it again or post it yourself.", actions: [{ label: "Open", to: links.generate({ draft: "z1", panel: "post" }) }] });
+    expect(by["failed:m5"]).toMatchObject({ title: "Something you asked for wasn't made", quote: "Picture: CPF", line: "Nothing was used.", actions: [{ label: "Open", to: links.agent({ thread: "t2", m: "m5" }) }] });
+    expect(by.overdue).toEqual({ id: "overdue", kind: "overdue", title: "2 posts are overdue", quote: "Newest overdue", line: "1 day overdue", actions: [{ label: "Reschedule", to: "/calendar#overdue" }, { label: "Mark posted", markPosted: "o2" }] });
+    // two of this brand's, one board post and one other brand's
+    expect(by.today).toEqual({ id: "today", kind: "today", title: "4 posts go out today", quote: "Due first", line: "8am", actions: [{ label: "Open", to: links.generate({ draft: "d2" }) }] });
+    expect(by.team).toEqual({ id: "team", kind: "team", title: "2 team posts wait for you", line: "Approve or skip each one.", actions: [{ label: "Review", to: links.calendar({ business: "team-posts", teampost: "tp1" }) }] });
+    expect(by["review:radiant"]).toMatchObject({ title: "To review: Radiant", n: 1, actions: [{ label: "Review", to: "/reels?brand=radiant&stage=all" }] });
+    expect(by["notes:radiant"]).toMatchObject({ title: "Team notes: Radiant", n: 1, actions: [{ label: "Open", to: "/reels?brand=radiant&view=feed&stage=notes" }] });
+    expect(by["draft:a1"]).toEqual({ id: "draft:a1", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Agent made", line: "Schedule it, or leave it in My posts.", actions: [{ label: "Open", to: links.generate({ draft: "a1" }) }, { label: "Schedule", to: links.generate({ draft: "a1", panel: "post" }) }] });
+    expect(by.autopilot).toMatchObject({ title: "Posts for your OK", n: 3, actions: [{ label: "Open", to: links.plan({ section: "autopilot" }) }] });
+    expect(by["campaign:c1"]).toEqual({ id: "campaign:c1", kind: "campaign", title: "Keep making your campaign", quote: "Young families", line: "1 of 4 made | 2 drafts waiting for you", actions: [{ label: "Open", to: links.campaign("c1", { section: "queue" }) }] });
+    expect(by.ideas).toMatchObject({ title: "Today's ideas", n: 6, actions: [{ label: "Open", to: links.ideas() }] });
+    expect(by.market).toMatchObject({ title: "Your market", actions: [{ label: "Open", to: "/market" }] });
+    expect(by.setup).toEqual({ id: "setup", kind: "setup", title: "Set your voice", actions: [{ label: "Open", to: "/voice" }] });
+  });
+
+  it("leaves out every kind whose source is missing", () => {
+    expect(needsYouItems({ drafts: [] }, TODAY, NOW)).toEqual([]);
+    const items = needsYouItems({ drafts: full.drafts, campaigns: [{ id: "c", name: "n", audienceName: "", posts: [post("ready")] }] }, TODAY, NOW);
+    expect(items.map((i) => i.kind)).toEqual(["failed", "overdue", "today", "unscheduled", "unscheduled", "campaign"]);
+    expect(items.find((i) => i.kind === "today")!.title).toBe("2 posts go out today");
+    expect(items.find((i) => i.kind === "campaign")).toMatchObject({ quote: "n", line: "0 of 1 made | 1 draft waiting for you" });
+    // a teammate gets the review rows only, not notes, market or the other brands' posts
+    const mate = needsYouItems({ ...full, me: { owner: false, member: true, role: "editor" }, cards: [], threads: [], drafts: [] }, TODAY, NOW);
+    expect(mate.map((i) => i.id)).toEqual(["team", "review:moneybees", "review:radiant", "autopilot", "campaign:c1", "ideas", "setup"]);
+  });
+
+  it("reads overdue and today by the day passed in, so a post due today is never also overdue", () => {
+    const drafts = [draft({ id: "a", status: "scheduled", scheduledFor: "2026-10-14T00:30" }), draft({ id: "b", status: "scheduled", scheduledFor: "2026-10-13T23:30" })];
+    const sg = needsYouItems({ drafts }, "2026-10-14", NOW);
+    expect(sg.map((i) => [i.id, i.title])).toEqual([["overdue", "1 post is overdue"], ["today", "1 post goes out today"]]);
+    expect(sg[0].actions[1]).toEqual({ label: "Mark posted", markPosted: "b" });
+    expect(needsYouItems({ drafts }, "2026-10-13", NOW).map((i) => i.title)).toEqual(["1 post goes out today"]);
+  });
+
+  it("drops what was hidden today and ignores yesterday's hides", () => {
+    const hidden = { "card:k1": TODAY, overdue: TODAY, "draft:a1": "2026-10-13", setup: "2026-10-01" };
+    const ids = needsYouItems({ ...full, hidden }, TODAY, NOW).map((i) => i.id);
+    expect(ids).not.toContain("card:k1");
+    expect(ids).not.toContain("overdue");
+    expect(ids).toContain("draft:a1");
+    expect(ids).toContain("setup");
+    expect(ids).toContain("draft:r1");
+    expect(ids).toHaveLength(15);
+  });
+
+  it("labels one item and several", () => {
+    expect(nextUpLabel(1)).toBe("NEXT UP | THE 1 THING THAT NEEDS YOU");
+    expect(nextUpLabel(3)).toBe("NEXT UP | 1 OF 3 THAT NEED YOU");
+    expect(nextUpLabel(0)).toBe("NEXT UP");
   });
 });
 
