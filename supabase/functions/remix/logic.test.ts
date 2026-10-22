@@ -1398,6 +1398,12 @@ describe("the wave 1 live check (21 Oct)", () => {
     expect(buildMakePrompt(shape("hooks", { formulas: FORMULAS })).system).not.toContain("list formula");
   });
 
+  it("asks the meme writer to keep the small words a line needs (live check 22 Oct: \"MY TASK LIST SAID SAME THING\")", () => {
+    const d = P3.find((x) => x.call === "meme-named-insurer")!;
+    expect((d.response.result as { options: Record<string, string>[] }).options[0].bottom).toBe("MY TASK LIST SAID SAME THING");
+    expect(buildMakePrompt(make(d.request)).system).toContain("- Keep every small word a line needs (the, a, my), even in capitals: Singapore words are welcome, but a dropped word reads as a typo.");
+  });
+
   it("tells the meme writer the caption's needs and questions are the reader's, not the adviser's", () => {
     // live 7-leo-meme's caption: "A clear look at today's needs can help me plan what questions to ask next."
     expect(live("7-leo-meme").response.result.caption).toContain("help me plan what questions to ask next");

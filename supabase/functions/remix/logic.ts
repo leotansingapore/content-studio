@@ -636,6 +636,7 @@ function memeRules(req: MakeRequest): string[] {
     "Write 3 memes: short, dry jokes about a moment the audience lives through (paying the bills, saving for a flat, a parent asking about insurance), in the Singapore English they use, from what the brand does and who it serves.",
     "- options: exactly 3, each a different joke, each with these fields:",
     MEME_RULES[req.layout as MemeLayout],
+    "- Keep every small word a line needs (the, a, my), even in capitals: Singapore words are welcome, but a dropped word reads as a typo.",
     "- Never mock a group of people, a race, a religion, a company or a competitor, and never name or picture a real person.",
     "- No promised returns or results, and never name an insurer or anyone else's product.",
     "- In the options, I, me and my are the audience living the moment. In the caption, the reader is you: the needs, plans and questions are the reader's, never the brand's.",
