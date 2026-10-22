@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { HOOK_FORMULAS } from "./hookFormulas";
-import { longFailure, longPieceFormulas, longPostEntry, longSuccess } from "./repurpose";
+import { longFailure, longPieceFormulas, longPostEntry, longSuccess, weekFromLongPiece } from "./repurpose";
+
+const invoke = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke } } }));
 
 describe("longPieceFormulas", () => {
   it("takes 5 different formulas in order from the start, wrapping at the end", () => {
@@ -62,5 +65,18 @@ describe("longPostEntry", () => {
       createdAt: "2026-10-08T10:00:00.000Z",
     });
     expect(e.id).toBeTruthy();
+  });
+});
+
+describe("weekFromLongPiece", () => {
+  // pinned on today's code (eaaa6379): everyone's request, byte for byte, keys in order
+  it("sends today's body when no source is given", async () => {
+    invoke.mockResolvedValueOnce({ data: { extracts: {}, posts: [] }, error: null });
+    const context = { voice: "Short lines.", positioning: { oneLiner: "I help nurses", audienceDetail: "nurses", topics: ["CPF"], edge: "ex-nurse" }, platforms: ["linkedin" as const] };
+    await weekFromLongPiece("The piece.", context, longPieceFormulas(0).slice(0, 2));
+    expect(invoke.mock.calls[0][0]).toBe("idea-dump");
+    expect(JSON.stringify(invoke.mock.calls[0][1].body)).toBe(
+      `{"mode":"long","text":"The piece.","formulas":${JSON.stringify(longPieceFormulas(0).slice(0, 2))},"voice":"Short lines.","positioning":{"oneLiner":"I help nurses","audienceDetail":"nurses","topics":["CPF"],"edge":"ex-nurse"},"platforms":["linkedin"]}`,
+    );
   });
 });
