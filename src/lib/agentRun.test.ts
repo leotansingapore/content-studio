@@ -507,6 +507,8 @@ describe("nothing priced runs before its card's press", () => {
     expect(page.text).toBe("old");
     await approve(id);
     expect(page.text).toBe("new");
+    // the log names what changed, not the page's "Done."
+    expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).some((e) => e.title === "Slide 3 changed")).toBe(true);
     expect(await undoReceipt(UID, id, cardMsg(id).id)).toBe(UNDONE);
     expect(page.undone).toBe(true);
     // the item closed before the press
@@ -514,6 +516,22 @@ describe("nothing priced runs before its card's press", () => {
     off();
     await approve(t2);
     expect(cardMsg(t2).card).toMatchObject({ status: "failed", error: "That carousel is no longer open. Open it and ask again." });
+  });
+
+  it("an edit the writer can't do in words answers in its words, with no refund line and no Try again", async () => {
+    const target = {
+      kind: "video" as const,
+      title: "CPF reel",
+      propose: vi.fn(async () => ({ reply: "Music is added on the Cuts tab, not with words.", preview: "", flags: [], apply: () => ({ done: "", undo: () => undefined }) })),
+    };
+    const off = registerEditTarget(target);
+    const id = await say("add music", { act: "edit" });
+    await approve(id);
+    off();
+    const m = cardMsg(id);
+    expect(m.card?.status).not.toBe("failed");
+    expect(m.receipt).toMatchObject({ title: "No change made", line: "Music is added on the Cuts tab, not with words." });
+    expect(m.receipt?.undo).toBeUndefined();
   });
 
   it("Open in Write opens Write only on the press", async () => {

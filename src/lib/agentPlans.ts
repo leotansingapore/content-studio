@@ -872,8 +872,9 @@ async function editPress(userId: string, msgId: string, x: Press, live: Live): P
     live.step("Writing the change...", "writing");
     const p = await target.propose(f.message ?? "", f.slide ?? null);
     if (currentEditTarget() !== target) return x.fail(LINES.gone(target.kind));
-    // an empty change means the writer couldn't do it: its own words say why
-    if (!p.preview.trim()) return x.fail(p.reply || LINES.editFailed);
+    // an empty change means it isn't a words change: the writer's own words say where to do it. Not a failure, so
+    // no refund line (the use was spent) and no Try again (it would spend again for the same answer)
+    if (!p.preview.trim()) return x.done({ title: "No change made", line: p.reply || LINES.editFailed });
     proposals.set(x.card().id, p);
     return x.step("apply", { line: p.reply, preview: clip(p.preview.trim(), 160), flags: [...p.flags, ...flagsFor(userId, p.preview)], price: undefined, needs: [] });
   }
@@ -882,7 +883,7 @@ async function editPress(userId: string, msgId: string, x: Press, live: Live): P
   const r = p.apply();
   proposals.delete(x.card().id);
   pageUndos.set(msgId, r.undo);
-  x.log("post", r.done.replace(/\.$/, "").split(". ")[0]);
+  x.log("post", r.done.replace(/^Done\.\s*/, "").replace(/\.$/, "").split(". ")[0]);
   x.done({ title: "Changed", line: r.done, undo: { kind: "page", page: `the ${target.kind}` } });
 }
 
