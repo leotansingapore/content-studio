@@ -99,16 +99,19 @@ function Pinned() {
 }
 const draw = (path: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(Pinned)));
 
-/** The first frame, then the frame after the page's effects have read the stores. */
+/** The first frame, then the frame after the page's effects have read the stores (two rounds: Leo's labels load once the user is known). */
 async function frames(path = "/plan") {
   shim.slots = [];
   shim.effects = [];
   const first = draw(path);
-  const effects = shim.effects.splice(0);
-  for (const fn of effects) fn();
-  await new Promise((r) => setTimeout(r, 0));
-  shim.effects = [];
-  return { first, loaded: draw(path) };
+  let loaded = first;
+  for (let round = 0; round < 2; round++) {
+    for (const fn of shim.effects.splice(0)) fn();
+    await new Promise((r) => setTimeout(r, 0));
+    shim.effects = [];
+    loaded = draw(path);
+  }
+  return { first, loaded };
 }
 
 // React's generated ids (useId, behind the Radix selects) follow the tree, not what is drawn
@@ -144,5 +147,41 @@ describe("/plan for everyone else", () => {
     const { first } = await frames();
     expect(first).toContain("Build my content plan");
     expect(sha(first)).toBe("cd60e395638d9df71d4d608765389d8063d279b087af681cbbda06d621dd4b69");
+  });
+});
+
+describe("/plan for Leo", () => {
+  const LEO = { id: UID, email: "tanjunsing@gmail.com" };
+
+  it("shows the Pillars section with the grid", async () => {
+    as.user = LEO;
+    seed({ labels: true });
+    const { loaded } = await frames();
+    expect(loaded).toContain('id="pillars"');
+    expect(loaded).toContain('aria-label="About pillars"');
+    expect(loaded).toContain("aim 50%");
+    expect(loaded).toContain("posted in the last 4 weeks | in this plan");
+    expect(loaded).not.toContain("These come from your topics.");
+    // an empty cell links to Write with the pillar, format and label set
+    expect(loaded).toContain('aria-label="Write a text post about Retirement"');
+    expect(loaded).toContain('href="/generate?pillar=topic&amp;detail=Retirement&amp;format=text-post&amp;label=lx"');
+  });
+
+  it("counts seeded labels from the topics until labels are saved", async () => {
+    as.user = LEO;
+    seed();
+    const { loaded } = await frames();
+    expect(loaded).toContain("These come from your topics. Set an aim for each to steer the plan.");
+    expect(loaded).toContain("aim 33%");
+  });
+
+  it("opens the edit panel from ?pillars=edit", async () => {
+    as.user = LEO;
+    seed({ labels: true });
+    const { loaded } = await frames("/plan?pillars=edit");
+    expect(loaded).toContain("Save and rebuild plan");
+    expect(loaded).toContain("Adds up to 100%");
+    expect(loaded).not.toContain("They don&#x27;t need to add up to 100.");
+    expect(loaded).not.toContain(">Edit pillars<");
   });
 });

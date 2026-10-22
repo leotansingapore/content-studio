@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useUrlState, withParam } from "@/lib/urlState";
+import { useScrollToHash, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { draftStatus, loadDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
@@ -23,7 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { loadLabels, type Label as PlanLabel } from "@/lib/labels";
+import PillarsSection from "@/components/plan/PillarsSection";
 import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import { scoped } from "@/lib/profiles";
@@ -61,6 +64,7 @@ import {
   planItemToGenerateUrl,
   planCalendarEntries,
   planOptionsFor,
+  rebuildPlan,
   steerFor,
   upcomingMonday,
   type ContentPlan,
@@ -144,8 +148,11 @@ export default function PlanPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
   const [goals, setGoals] = useState<WeeklyGoals>({});
-  // Leo only (north star phase 5): the goal and saved pillars steer the plan.
+  // Leo only (north star phase 5): pillars and the goal steer the plan.
   const leo = useLeoUser();
+  const [labels, setLabels] = useState<PlanLabel[]>([]);
+  const [pillarsParam, openPillars, closePillars] = useUrlItem("pillars");
+  useScrollToHash(!!leo && !editing);
   // Slots count as posted when ticked here or when their calendar post is marked posted.
   const items = useMemo(
     () =>
@@ -192,6 +199,10 @@ export default function PlanPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (leo && userId) setLabels(loadLabels(userId));
+  }, [leo, userId]);
 
   // Kept while the form is open; building the plan or going back to it clears it.
   useEffect(() => {
@@ -297,6 +308,33 @@ export default function PlanPage() {
     toast({
       title: "Fresh angles",
       description: "Same positioning, new ideas. Posted ticks were reset.",
+    });
+  };
+
+  // Save and rebuild plan: same weeks, salt and hook formulas, posted ticks kept, the slots spread by the new aims.
+  const rebuildAroundPillars = (next: PlanLabel[]) => {
+    setLabels(next);
+    closePillars();
+    if (!userId || !plan) return;
+    const prev = plan;
+    const pos: Positioning = { ...positioning, topics: parseTopics(topicsRaw), cadence: plan.cadence };
+    const rebuilt = rebuildPlan(plan, pos, { ...planOptionsFor(userId, pos.platform, { competitors, plan }), ...steerFor(userId) });
+    savePlan(userId, rebuilt);
+    setPlan(rebuilt);
+    const undo = () => {
+      // the plan as it was, with any tick made since kept
+      const ticks = new Map((loadPlan(userId)?.items ?? []).map((i) => [i.id, i.posted]));
+      const back: ContentPlan = { ...prev, items: prev.items.map((i) => ({ ...i, posted: ticks.get(i.id) ?? i.posted })) };
+      savePlan(userId, back);
+      setPlan(back);
+    };
+    toast({
+      title: "Plan rebuilt around your pillars.",
+      action: (
+        <ToastAction altText="Undo" onClick={undo}>
+          Undo
+        </ToastAction>
+      ),
     });
   };
 
@@ -873,6 +911,22 @@ export default function PlanPage() {
           </div>
         </div>
       </Card>
+
+      {leo && userId && (
+        <PillarsSection
+          userId={userId}
+          labels={labels}
+          drafts={drafts}
+          plan={plan}
+          formatLabel={FORMAT_LABEL}
+          editing={pillarsParam === "edit"}
+          onEdit={() => openPillars("edit")}
+          onClose={closePillars}
+          onLabelsChange={setLabels}
+          onDraftsChange={setDrafts}
+          onSaved={rebuildAroundPillars}
+        />
+      )}
 
       <QuickTip context="plan" />
 
