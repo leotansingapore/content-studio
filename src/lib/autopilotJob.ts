@@ -32,6 +32,7 @@ import { loadGoals, sgDay, withGoalCadence } from "@/lib/goals";
 import { loadLabels } from "@/lib/labels";
 import { isPositioningUsable, loadPositioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
+import { speakerFor } from "@/lib/remixBrand";
 import type { WrittenPost } from "../../supabase/functions/idea-dump/logic.ts";
 
 export const ERROR_LINE = "Couldn't write next week's posts. Try again.";
@@ -169,7 +170,7 @@ async function writeChunk(userId: string, audienceDetail: string, chunk: { week:
   const key = (t: { week: string; post: BatchPost }) => `${t.week}:${t.post.n}`;
   const ids = new Set(chunk.map(key));
   const main = loadAudiences(userId, now)[0];
-  const context = { ...planContextFor(userId, chunk[0].post.slot.platform), audience: main ? audienceLine(main) : audienceDetail };
+  const context = { ...planContextFor(userId, chunk[0].post.slot.platform), audience: main ? audienceLine(main, speakerFor(userId)) : audienceDetail };
   // hooks autopilot already wrote, newest first, so a new week never opens like the last one
   const avoid = loadDrafts(userId).filter((d) => d.id.startsWith("ap_") && d.hook.trim()).slice(0, 20).map((d) => d.hook.trim());
   try {
