@@ -4,7 +4,7 @@
 //   localStorage cs-interview-<scoped(uid)> = { sessions, current? }
 
 import { scoped } from "@/lib/profiles";
-import { STAGE_GROUPS } from "@/lib/audiences";
+import { STAGE_GROUPS, type Audience } from "@/lib/audiences";
 import type { Positioning } from "@/lib/positioning";
 
 export const QUESTION_COUNT = 5;
@@ -16,9 +16,9 @@ export const THIN_KIND = "an interview answer for a social post";
 export const FOLLOW_UP = "Can you give one example? What happened, to whom, and what changed for them?";
 
 export interface Fill {
-  /** The first positioning topic. */
+  /** The first positioning topic that reads as a topic. */
   topic?: string;
-  /** Who they serve: audienceDetail, else the life stage's group. */
+  /** Who they serve: the main saved audience's name, else the life stage's group. */
   who?: string;
 }
 
@@ -34,10 +34,39 @@ const BANK: ((f: Fill) => string | null)[] = [
   () => "What question do you get so often you could answer it in your sleep?",
 ];
 
-export function fillFrom(p: Pick<Positioning, "topics" | "audienceDetail" | "audience"> | null): Fill {
-  const topic = p?.topics?.find((t) => t.trim())?.trim();
+/**
+ * Words that read as a short noun phrase in a question's blank: 1 to `max` words of letters, hyphens, apostrophes
+ * and &, with no comma, slash, number or symbol ("Auditor / Accountant, aged 30-48" is not one). A plain capitalised
+ * first word goes to lower case ("Sales reps" to "sales reps"); CPF and WhatsApp keep theirs.
+ */
+function phrase(raw: string | undefined, max: number): string | undefined {
+  const t = raw?.trim().replace(/\s+/g, " ") ?? "";
+  if (!/^\p{L}[\p{L}'\u2019&-]*(?: \p{L}[\p{L}'\u2019&-]*)*$/u.test(t) || t.split(" ").length > max) return undefined;
+  // shortcut: a place name as the first word ("Singapore retirees") loses its capital too; fine until one shows up
+  return /^\p{Lu}[\p{Ll}'\u2019-]*(?: |$)/u.test(t) ? t[0].toLowerCase() + t.slice(1) : t;
+}
+
+/**
+ * A topic reads as one when it is a short noun phrase with no -ing word before its last: "Activity tracking" and
+ * "CPF top-ups" do; "Not taking action" and "Letting money sit in bank" are pains (wave 2 live check, 22 Oct).
+ * shortcut: a shape check, not Jev; it can also skip a fine topic ("Building wealth"), which only means the bank's
+ * other questions are asked.
+ */
+const asTopic = (t: string) => {
+  const p = phrase(t, 3);
+  return p && !p.split(" ").slice(0, -1).some((w) => /ing$/i.test(w)) ? p : undefined;
+};
+
+/**
+ * The blanks: never raw profile text (wave 2 live check: "What would you tell Auditor / Accountant, aged 30-48, ...").
+ * `main` is the brand's main saved audience; a blank with nothing that reads right stays empty, and its question is
+ * skipped for the bank's others.
+ */
+export function fillFrom(p: Pick<Positioning, "topics" | "audience"> | null, main?: Pick<Audience, "name"> | null): Fill {
+  const topic = p?.topics?.map(asTopic).find(Boolean);
+  const named = main && main.name !== STAGE_GROUPS.general ? phrase(main.name, 6) : undefined;
   const stage = p?.audience && p.audience !== "general" ? STAGE_GROUPS[p.audience]?.toLowerCase() : undefined;
-  return { topic, who: p?.audienceDetail?.trim() || stage };
+  return { topic, who: named || stage };
 }
 
 /** 5 questions from the bank, starting at `sessions % 8`, skipping any whose blank can't be filled. */

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { IDEA_MIN, IDEA_QUESTIONS, INTERVIEW_KIND, INTERVIEW_QUESTIONS } from "./logic.ts";
 
 // The handler's gate and money path for "Reads well as a thread" (Leo only), and that the other checks stay open.
 const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
@@ -238,6 +239,44 @@ describe("the goal kind (plan-goal)", () => {
     db.rows.set(`${LEO}|writing-judge|${db.today()}`, 60);
     expect((await ask(LEO, body)).status).toBe(429);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("an interview answer's read (wave 2 live check, calls/009 to 013)", () => {
+  // the five answers as sent, and the thin read each got from the everyday question
+  const LIVE: [string, string, boolean][] = [
+    ["What did a client or a friend ask you about money this week?", "A friend who just had his second kid asked if he should keep all his savings in the bank or start investing. He has about eight months of expenses in a savings account and feels guilty every time he checks it, but he is scared of locking money away for years.", false],
+    ["What is one thing people get wrong about Not taking action?", "They wait for the perfect time.", true],
+    ["Tell me about a client situation that stayed with you. Leave out names and anything that could identify them.", "An accountant I worked with kept putting off his plan for three years because tax season was always busy. When his father fell sick, he realised he did not know what cover he had. We sat down for one evening, wrote a one-page plan, and he told me the relief was the biggest change.", false],
+    ["What would you tell Auditor / Accountant, aged 30-48, Middle to upper-middle income who are just starting to plan?", "Start with your cash buffer and your insurance gaps before you think about returns. Write down what each pot of money is for and when you need it. Then review it once a quarter, not every day.", true],
+    ["What is an opinion about your work that other advisers might disagree with?", "Most busy fathers do not need more information. They need fewer decisions. A one-page plan with a decision log beats a forty-page report that nobody reads again.", true],
+  ];
+  const instructions = (k = 0) => (sent[k] as { questions: { specific: { instructions: string } } }).questions.specific.instructions;
+
+  it("asks whether a post can be built on the answer, not whether it tells a story", async () => {
+    for (const [topic, notes] of LIVE) {
+      sent.length = 0;
+      jev = () => Response.json({ answers: { specific: { type: "noul", noul: 0.7 } } });
+      const res = await ask(LEO, { mode: "idea", topic, notes, kind: INTERVIEW_KIND });
+      expect(await res.json()).toEqual({ thin: false });
+      expect(sent[0]).toMatchObject({ state: { post_kind: INTERVIEW_KIND, topic, notes }, questions: INTERVIEW_QUESTIONS });
+    }
+    expect(instructions()).toContain("a fact, a number, an opinion with a reason, an example, or a story");
+    // 3 of the 5 (a 6-word truism, 37 words of advice, a 27-word opinion) read thin on the everyday question
+    expect(LIVE.map(([, , thin]) => thin)).toEqual([false, true, false, true, true]);
+  });
+
+  it("keeps the everyday question for every other kind, and the 0.5 cut for both", async () => {
+    jev = () => Response.json({ answers: { specific: { type: "noul", noul: IDEA_MIN - 0.01 } } });
+    const [topic, notes] = LIVE[3];
+    expect(await (await ask(OTHER, { mode: "idea", topic, notes, kind: "story" })).json()).toEqual({ thin: true });
+    expect(sent[0]).toMatchObject({ questions: IDEA_QUESTIONS });
+    sent.length = 0;
+    expect(await (await ask(OTHER, { mode: "idea", topic, notes, kind: "" })).json()).toEqual({ thin: true });
+    expect(sent[0]).toMatchObject({ questions: IDEA_QUESTIONS });
+    sent.length = 0;
+    expect(await (await ask(OTHER, { mode: "idea", topic, notes, kind: INTERVIEW_KIND })).json()).toEqual({ thin: true });
+    expect(instructions()).toBe(INTERVIEW_QUESTIONS.specific.instructions);
   });
 });
 

@@ -434,6 +434,8 @@ describe("idea-dump campaign MAS (phase 5)", () => {
   });
 });
 
+import LIVE_014_LONG from "./fixtures/live-p5w2-014-long.json";
+
 describe("idea-dump long source and speaker (phase 5, listed callers only)", () => {
   const LONG = { ...PROFILE, mode: "long", text: LONG_TEXT, formulas: FORMULAS };
   const systemSent = () => (sent[OPENAI][0] as { messages: { content: string }[] }).messages[0].content;
@@ -452,6 +454,30 @@ describe("idea-dump long source and speaker (phase 5, listed callers only)", () 
     await call({ ...LONG, source: "voice", speaker: "business" }, "leo");
     expect(systemSent()).toContain("Someone at the business recorded a voice note");
     expect(systemSent()).toContain("- Write as the business:");
+  });
+
+  it("drops a listed caller's posts that kept a formula blank, logging only numbers and rules (wave 2 live check, calls/014)", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      openai = () => reply(LIVE_014_LONG.reply);
+      const r = await call(LIVE_014_LONG.body, "leo");
+      expect(r.status).toBe(200);
+      expect(r.body.posts.map((p: { formulaId: string }) => p.formulaId)).toEqual(["callout"]);
+      expect(systemSent()).toContain("- Every blank in a hook formula, in {braces} or [brackets], is replaced with real words from the piece.");
+      const line = log.mock.calls.find((c) => c[0] === "idea-dump long")!;
+      expect(line).toEqual(["idea-dump long", "leo", "chars", LIVE_014_LONG.body.text.length, "posts", 1, "dropped", '[[1,"a blank left in"],[2,"a blank left in"],[3,"a blank left in"],[4,"a blank left in"]]']);
+      // every post kept a blank: 502 with the use kept, as any long run that writes nothing
+      openai = () => reply({ ...LIVE_014_LONG.reply, posts: LIVE_014_LONG.reply.posts.slice(0, 4) });
+      db.spent.length = 0;
+      expect((await call(LIVE_014_LONG.body, "leo")).body.code).toBe("ai_failed");
+      expect(db.spent).toEqual(["repurpose-long"]);
+      expect(db.refunded).toEqual([]);
+      // a caller not on the list gets today's answer, blanks and all
+      openai = () => reply(LIVE_014_LONG.reply);
+      expect((await call(LIVE_014_LONG.body)).body.posts).toHaveLength(5);
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it("ignores source and speaker for a caller not on NORTH_STAR_USERS: today's request byte for byte", async () => {

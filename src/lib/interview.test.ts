@@ -8,9 +8,12 @@ import {
   reviewWords,
   saveInterview,
   startSession,
+  THIN_KIND,
   transcriptOf,
   type InterviewStore,
 } from "./interview";
+import { seedAudience } from "./audiences";
+import { INTERVIEW_KIND } from "../../supabase/functions/writing-judge/logic.ts";
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -56,11 +59,44 @@ describe("pickQuestions", () => {
 });
 
 describe("fillFrom", () => {
-  it("takes the first topic and the audience line, else the life stage's group, never 'general'", () => {
-    expect(fillFrom({ topics: ["", " CPF top-ups ", "wills"], audienceDetail: " nurses in their 30s ", audience: "parent" })).toEqual({ topic: "CPF top-ups", who: "nurses in their 30s" });
-    expect(fillFrom({ topics: [], audienceDetail: "", audience: "parent" })).toEqual({ topic: undefined, who: "parents" });
-    expect(fillFrom({ topics: [], audienceDetail: "", audience: "general" })).toEqual({ topic: undefined, who: undefined });
+  it("takes the first topic that reads as one and the main audience's name, else the life stage's group, never 'general'", () => {
+    expect(fillFrom({ topics: ["", " CPF top-ups ", "wills"], audience: "parent" }, { name: "Nurses in their thirties" })).toEqual({ topic: "CPF top-ups", who: "nurses in their thirties" });
+    expect(fillFrom({ topics: [], audience: "parent" })).toEqual({ topic: undefined, who: "parents" });
+    expect(fillFrom({ topics: [], audience: "general" }, { name: "Everyone I serve" })).toEqual({ topic: undefined, who: undefined });
     expect(fillFrom(null)).toEqual({ topic: undefined, who: undefined });
+  });
+
+  // wave 2 live check (22 Oct), live-p5w2 calls/014: the Me brand's profile as the interview read it
+  const ME = {
+    topics: ["Not taking action", "Letting money sit in bank", "Afraid of >5yr commitment", "Lack of time to invest", "Too much information and jargon"],
+    audienceDetail: "Auditor / Accountant, aged 30-48, Middle to upper-middle income",
+    audience: "working-adult" as const,
+  };
+
+  it("never pastes raw profile text into a question (calls/014)", () => {
+    const main = seedAudience(ME, NOW);
+    expect(main.name).toBe("Auditor / Accountant, aged 30-48, Middle to upper-middle");
+    const fill = fillFrom(ME, main);
+    expect(fill).toEqual({ topic: undefined, who: "working adults" });
+    const asked = [0, 1, 2, 3, 4, 5, 6, 7].flatMap((k) => pickQuestions(k, fill));
+    expect(asked.some((q) => /Not taking action|Auditor|aged 30-48/i.test(q))).toBe(false);
+    expect(asked.some((q) => q.includes("wrong about"))).toBe(false);
+    expect(asked).toContain("What would you tell working adults who are just starting to plan?");
+  });
+
+  it("fills from a business brand's topics and saved audience in lower case, keeping acronyms and brand names", () => {
+    const at = { topics: ["Sales follow-ups", "WhatsApp workflows"], audience: "working-adult" as const };
+    expect(fillFrom(at, { name: "Sales representatives" })).toEqual({ topic: "sales follow-ups", who: "sales representatives" });
+    expect(fillFrom({ topics: ["WhatsApp workflows"], audience: "general" }, seedAudience({ audience: "working-adult", audienceDetail: "Sales-oriented self-employed professionals and coaches" }, NOW)))
+      .toEqual({ topic: "WhatsApp workflows", who: "sales-oriented self-employed professionals and coaches" });
+    expect(fillFrom({ topics: ["Activity tracking", "CPF top-ups"], audience: "general" })).toMatchObject({ topic: "activity tracking" });
+    expect(fillFrom({ topics: ["Building wealth", "CPF top-ups"], audience: "general" })).toMatchObject({ topic: "CPF top-ups" });
+  });
+});
+
+describe("THIN_KIND", () => {
+  it("is the kind writing-judge asks its interview question for", () => {
+    expect(THIN_KIND).toBe(INTERVIEW_KIND);
   });
 });
 

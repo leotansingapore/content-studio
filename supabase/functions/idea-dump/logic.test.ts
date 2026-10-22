@@ -460,7 +460,7 @@ describe("pinned prompts", () => {
 
 // ---- Plan modes (phase 5): angles ----------------------------------------------
 
-import { BUSINESS_VOICE } from "../remix/logic.ts";
+import { BUSINESS_VOICE, sentenceCase } from "../remix/logic.ts";
 import {
   ANGLE_CANDIDATES,
   PLAN_LINES,
@@ -595,7 +595,7 @@ describe("mode angles", () => {
       ["Why Fastlane Works", "Teams switch to Fastlane for one inbox."],
       ["Grow With Northstar Today", "One app for the team."],
       ["Follow-ups that stick", "Already in sentence case."],
-      ["Shared Inbox", "Two words stay as written."],
+      ["Shared Inbox", "Two words too, since wave 2."],
     ];
     const got = validateAngles({ angles: [...live, ...more].map(([title, line]) => ({ title, line })) }, [], "Sales teams pick Northstar for its inbox.");
     expect(got?.map((a) => a.title)).toEqual([
@@ -612,9 +612,42 @@ describe("mode angles", () => {
       "Why Fastlane works",
       "Grow with Northstar today",
       "Follow-ups that stick",
-      "Shared Inbox",
+      "Shared inbox",
     ]);
     expect(validateAngles({ angles: [{ title: "Grow With Northstar Today", line: "One app." }] })?.[0].title).toBe("Grow with northstar today");
+  });
+
+  it("puts two-word Title Case titles in sentence case too (wave 2 live check, calls/004 and calls/008)", () => {
+    // live-p5w2 calls/008's five titles and lines, and calls/004's "Smoother Handoffs", as they came back
+    const live = [
+      ["Follow-up Tasks", "Keep follow-ups beside your client chats, instead of relying on memory."],
+      ["One-Tap Activity", "Log a call or client update in one tap while the details are fresh."],
+      ["Deal Pipeline", "Track where each deal stands so you can review your next steps."],
+      ["Call Visibility", "See which calls need logging and keep your daily activity in one place."],
+      ["Daily Priorities", "Bring calls, tasks and client follow-ups together to plan your day."],
+      ["Smoother Handoffs", "Keep client conversation context accessible when work moves between team members."],
+      ["Shared WhatsApp view", "See how a shared inbox can help your team coordinate client chats in one place."],
+    ];
+    const names = "ActivityTracker: CRM, a shared WhatsApp inbox, tasks and goals in one phone app. SGD 34 a person a month.";
+    expect(validateAngles({ angles: live.map(([title, line]) => ({ title, line })) }, [], names)?.map((a) => a.title)).toEqual([
+      "Follow-up tasks",
+      "One-tap activity",
+      "Deal pipeline",
+      "Call visibility",
+      "Daily priorities",
+      "Smoother handoffs",
+      "Shared WhatsApp view",
+    ]);
+    // acronyms and brand names keep their capitals, in two words as in more
+    const two = [["CRM Basics", "Start here."], ["WhatsApp Inbox", "One place."], ["Meet ActivityTracker", "One app."], ["Coca-Cola Deals", "Teams at Coca-Cola use it."]];
+    expect(validateAngles({ angles: two.map(([title, line]) => ({ title, line })) })?.map((a) => a.title)).toEqual(["CRM basics", "WhatsApp inbox", "Meet ActivityTracker", "Coca-Cola deals"]);
+  });
+
+  it("leaves remix's callers as they were: two words unchanged, a hyphenated first word kept", () => {
+    expect(sentenceCase("Save More", "")).toBe("Save More");
+    expect(sentenceCase("One-Tap Activity Logs", "")).toBe("One-Tap activity logs");
+    expect(sentenceCase("Save More", "", { short: true })).toBe("Save more");
+    expect(sentenceCase("One-Tap Activity Logs", "", { short: true })).toBe("One-tap activity logs");
   });
 
   it("asks Jev whether the audience would stop and whether it is unsafe, from the adviser or the business", () => {
@@ -819,7 +852,8 @@ describe("mode campaign", () => {
     expect(countWords(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Eight more words fit in this one too.")!.script!)).toBe(48);
     // 49 words: the last sentence before the call to action goes (wave 1 live check fix), 39 words
     expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")!.script!.split("\n")).toEqual([...[1, 2, 3].map(tenWords), "Nine more words do not fit in this one."]);
-    expect(ai([1, 2, 3, 4, 5].map(tenWords).join(" ") + " Six more words do not fit.")).toBeUndefined(); // 56 words
+    // 56 words, past the old 15% band: cut too (wave 2 live check), 46 words
+    expect(ai([1, 2, 3, 4, 5].map(tenWords).join(" ") + " Six more words do not fit.")!.script!.split("\n")).toEqual([...[1, 2, 3, 4].map(tenWords), "Six more words do not fit."]);
     const labelled = ai(`HOOK: ${tenWords(1)}\n${tenWords(2)} ${tenWords(3)}\nCTA: ${tenWords(4)}`)!;
     expect(labelled.script).toBe([1, 2, 3, 4].map(tenWords).join("\n"));
     expect(labelled.cta).toBe(tenWords(4));
@@ -891,8 +925,8 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
     expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used.");
     expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
     expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
-    expect(user).toContain("instead of daily.\nWords: script 60 to 90 words across its HOOK, BODY and CTA lines");
-    expect(user).toContain("Start with what you need to stay liquid.\nWords: script 36 to 48 words in all");
+    expect(user).toContain("instead of daily.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
+    expect(user).toContain("Start with what you need to stay liquid.\nWords: script about 42 spoken words in all (36 to 48), counted across every line");
     expect(SHORT_VIDEO_WORDS).toEqual({ low: 60, high: 90 });
   });
 
@@ -914,16 +948,22 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
     expect(dropped).toEqual([[3, "script 50 words, needs 60 to 90"]]);
   });
 
-  it("drops a script over its top by more than 15%, and cuts a short video's body sentences, never its HOOK or CTA line", () => {
+  it("cuts a script well past its top too (wave 2 live check), and a short video's body sentences, never its HOOK or CTA line", () => {
     const body = (k: number) => Array.from({ length: k }, (_, i) => tenWords(i + 1)).join(" ");
     const short = (k: number) => `HOOK: Busy fathers can still invest well.\nBODY: ${body(k)}\nCTA: Comment PLAN below.`; // 6 + 10k + 3 words
     const dropped: [number, string][] = [];
     const got = validateCampaign(reply({ 3: short(9), 4: `${AI_51} Nothing gets decided on the spot.` }), live, dropped)!;
     expect(got.find((p) => p.n === 3)!.script).toBe(`HOOK: Busy fathers can still invest well.\nBODY: ${body(8)}\nCTA: Comment PLAN below.`); // 99 words to 89
-    expect(dropped).toEqual([[4, "script 57 words, needs 36 to 48"]]);
-    const over: [number, string][] = [];
-    validateCampaign(reply({ 3: short(10) }), live, over);
-    expect(over).toEqual([[3, "script 109 words, needs 60 to 90"], [4, "no script"]]);
+    // 57 words: the last line is now the call to action, so "Book a short call..." is the body sentence that goes
+    expect(got.find((p) => p.n === 4)!.script!.split("\n")).toEqual([
+      "Worried about locking money away for five years?",
+      "That worry makes sense when you have a family to provide for.",
+      "Start by working out how much you need to keep within reach.",
+      "Then we can look at longer-term goals separately.",
+      "Nothing gets decided on the spot.",
+    ]);
+    expect(dropped).toEqual([]);
+    expect(validateCampaign(reply({ 3: short(10) }), live)!.find((p) => p.n === 3)!.script).toBe(`HOOK: Busy fathers can still invest well.\nBODY: ${body(8)}\nCTA: Comment PLAN below.`); // 109 to 89
   });
 
   it("names the rule each dropped post broke, for every format", () => {
@@ -1003,6 +1043,61 @@ describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 en
     const points = [1, 2, 3, 4].map((i) => `Point ${i}: ${words(10)}`);
     const got = validateCampaign(written({ 2: { body: [...points, "Save this."].join("\n\n") } }), campaignRequest())!.find((p) => p.n === 2)!;
     expect(got.body!.split("\n\n")).toEqual(points);
+  });
+});
+
+// wave 2 live check (22 Oct), live-p5w2 calls/001: the business draft's two scripts as asked; post 3 as it came back
+const P5W2_001_ASK_3 = { n: 3, angle: { title: "Fewer App Switches", line: "We bring CRM, chats, tasks and goals into one phone app, reducing the need to jump between tools." }, format: "short-video", stage: "attraction", formula: null, ctaType: "comment-keyword", platforms: ["instagram"] };
+const P5W2_001_ASK_4 = { n: 4, angle: { title: "Target Progress View", line: "Track team goals alongside activity, so you can review progress and discuss what needs attention." }, format: "ai-video", stage: "conversion", formula: null, ctaType: "book-call", platforms: ["instagram"] };
+const P5W2_001_SCRIPT_3 =
+  "HOOK: Switching between sales apps can make simple follow-ups harder to keep in view.\nBODY: Your CRM may hold client details, WhatsApp may hold conversations, and tasks may live somewhere else. When goals sit in another tool, checking the full picture takes extra steps. We bring CRM, chats, tasks and goals into one phone app, with activity logged in one tap. Fewer switches can make the workday feel more connected, while your team still decides what needs attention.\nCTA: Comment APP if you want to see how the pieces fit together.";
+// post 4 never reached the record (dropped: "script 70 words, needs 36 to 48"), so this stands in at the same 70 words
+const P5W2_001_AI_70 = [
+  "Is your team on pace for this month's targets?",
+  "Most sales managers only find out at the end of the month.",
+  "By then, there is little time left to help.",
+  "ActivityTracker keeps team goals beside each rep's daily activity.",
+  "You can see calls, follow-ups and progress in one phone app.",
+  "That makes weekly check-ins shorter and more useful.",
+  "Book a short demo to see the target view for your team.",
+].join(" ");
+
+describe("campaign scripts past the old 15% band (wave 2 live check: calls/001 dropped a 70-word AI video)", () => {
+  const live = campaignRequest({ mode: "campaign", posts: [P5W2_001_ASK_3, P5W2_001_ASK_4], context: LIVE_011_CONTEXT });
+  const reply = (ai: string) => ({ posts: [{ n: 3, hook: "", body: "", script: P5W2_001_SCRIPT_3, brief: "", cta: "" }, { n: 4, hook: "", body: "", script: ai, brief: "", cta: "" }] });
+
+  it("states each script's length as spoken words to aim at, on the post itself", () => {
+    const { user } = buildCampaignPrompt(live);
+    expect(user).toContain("Angle: Target Progress View: Track team goals alongside activity, so you can review progress and discuss what needs attention.\nWords: script about 42 spoken words in all (36 to 48), counted across every line");
+    expect(user).toContain("reducing the need to jump between tools.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
+  });
+
+  it("cuts the 70-word script's last body sentences into 36 to 48, keeping its hook and call to action", () => {
+    expect(countWords(P5W2_001_AI_70)).toBe(70);
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply(P5W2_001_AI_70), live, dropped)!;
+    expect(dropped).toEqual([]);
+    expect(got.map((p) => p.n)).toEqual([3, 4]);
+    expect(got[0].script).toBe(P5W2_001_SCRIPT_3); // 76 words, in range: untouched
+    expect(got[1].script!.split("\n")).toEqual([
+      "Is your team on pace for this month's targets?",
+      "Most sales managers only find out at the end of the month.",
+      "By then, there is little time left to help.",
+      "Book a short demo to see the target view for your team.",
+    ]);
+    expect(countWords(got[1].script!)).toBe(42);
+    expect(got[1]).toMatchObject({ hook: "Is your team on pace for this month's targets?", cta: "Book a short demo to see the target view for your team." });
+  });
+
+  it("passes over a sentence whose loss would go under 36, and drops only what cannot fit", () => {
+    // 10 + 7 + 30 + 4 words: losing the last body sentence (30) leaves 21, so the 7-word one goes instead (44)
+    const long = `Here is a hook for a team of sales reps. Then a short one sits here now. ${words(30, "long")} Book a demo now.`;
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(reply(long), live, dropped)!.find((p) => p.n === 4)!;
+    expect(got.script!.split("\n")).toEqual(["Here is a hook for a team of sales reps.", words(30, "long"), "Book a demo now."]);
+    // one body sentence of 50 words cannot lose it and keep a body: dropped, never cut mid-sentence or padded
+    validateCampaign(reply(`Hook line here. ${words(50, "body")} Book a demo now.`), live, dropped);
+    expect(dropped).toEqual([[4, "script 57 words, needs 36 to 48"]]);
   });
 });
 
@@ -1110,6 +1205,54 @@ describe("long piece source and speaker", () => {
     }
     expect(buildLongPrompt(longOf({ source: "interview", speaker: "business" })).system.split("\n")[0]).toContain("Someone at the business answered interview questions in their own words.");
     expect(buildLongPrompt(longOf({ source: "interview" })).system).not.toContain(BUSINESS_VOICE);
+  });
+});
+
+// ---- Wave 2 live check (22 Oct): calls/014's interview posts opened on the formula's blanks ------------------
+
+import LIVE_014_LONG from "./fixtures/live-p5w2-014-long.json";
+import { withoutBlanks } from "./logic.ts";
+
+describe("long piece blanks for a listed caller (wave 2 live check: calls/014)", () => {
+  const req = (source: string) => {
+    const r = parseLongRequest({ ...LIVE_014_LONG.body, source });
+    if (!r.ok) throw new Error("parse");
+    return r.request;
+  };
+  const FILL = "- Every blank in a hook formula, in {braces} or [brackets], is replaced with real words from the piece. A post that keeps a blank in brackets or braces, or asks the reader to fill anything in, cannot be used.";
+
+  it("asks a listed caller to fill every formula blank, whatever the source; everyone else's prompt keeps today's blanks", () => {
+    const [interview, text, voice] = ["interview", "text", "voice"].map((s) => buildLongPrompt(req(s), { listed: true }).system.split("\n"));
+    for (const lines of [interview, text, voice]) {
+      expect(lines).toContain(FILL);
+      expect(lines.join("\n")).not.toMatch(/write a short blank|put a blank such as/);
+    }
+    // the interview's prompt differs from pasted text's only in its first line: the blanks were never the interview's doing
+    expect(interview.slice(1)).toEqual(text.slice(1));
+    expect(interview[0]).not.toBe(text[0]);
+    const today = buildLongPrompt(req("text")).system;
+    expect(today).toContain("write a short blank in square brackets such as [your number]");
+    expect(today).not.toContain(FILL);
+  });
+
+  it("drops the four posts that kept the formula's blanks and keeps the filled one, naming each rule", () => {
+    const got = validateLong(LIVE_014_LONG.reply, req("interview").formulas)!;
+    expect(got.posts.map((p) => p.post.split("\n")[0])).toEqual([
+      "[What it cost] is what [one mistake] cost me.",
+      "[Some time ago] I [low point]. Now I [better point]. One change did it.",
+      "[N] things I wish I knew before [milestone].",
+      "After [N] years as [role], here is what nobody tells you about [topic].",
+      "If you still wait for the perfect time, stop.",
+    ]);
+    const dropped: [number, string][] = [];
+    expect(withoutBlanks(got.posts, dropped).map((p) => p.formulaId)).toEqual(["callout"]);
+    expect(dropped).toEqual([[1, "a blank left in"], [2, "a blank left in"], [3, "a blank left in"], [4, "a blank left in"]]);
+    // post 3's body told the reader to fill the blanks in; with its hook filled, that line still drops it
+    const filled = { ...got.posts[2], post: got.posts[2].post.replace("[N] things I wish I knew before [milestone].", "3 things I wish I knew before I started to plan.") };
+    const why: [number, string][] = [];
+    expect(withoutBlanks([filled, { ...got.posts[1], post: "A {low point} kept in braces." }], why)).toEqual([]);
+    expect(why).toEqual([[1, "asks the reader to fill in"], [2, "a blank left in"]]);
+    expect(withoutBlanks([got.posts[4], { ...got.posts[4], post: "Fill in the CPF nomination form this week." }])).toHaveLength(2);
   });
 });
 

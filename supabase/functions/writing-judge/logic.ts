@@ -324,6 +324,30 @@ export const IDEA_QUESTIONS: Record<string, JevQuestion> = {
   },
 };
 
+/** The kind the interview sends with each answer (src/lib/interview.ts THIN_KIND; a test keeps the two equal). */
+export const INTERVIEW_KIND = "an interview answer for a social post";
+
+/**
+ * An interview answer is read on whether a post can be built on it, story or not (wave 2 live check, 22 Oct: the
+ * question above read 37 words of concrete advice and a 27-word opinion at p 0.03 and 0.05, so 3 of 5 answers got the
+ * follow-up). Same id, so readIdeaThin reads it.
+ * shortcut: IDEA_MIN 0.5 is a proposal for this question, not set from real answers; read the logged { kind, p }.
+ */
+export const INTERVIEW_QUESTIONS: Record<string, JevQuestion> = {
+  specific: {
+    type: "noul",
+    instructions:
+      "Does `notes`, an answer to the interview question in `topic`, give the writer something specific to build a post on: a fact, a number, an opinion with a reason, an example, or a story?",
+    criteria: {
+      true: "Something a post can stand on: a concrete step or piece of advice, a fact or a number, an opinion with the reason behind it, an example, or something that happened.",
+      false: "Too short or general to build on: a one-line truism such as 'people should plan earlier', a bare subject, or a yes or no with nothing behind it.",
+    },
+  },
+};
+
+/** The interview's question for its answers; every other kind (Write's included) gets IDEA_QUESTIONS as before. */
+export const ideaQuestions = (kind: string) => (kind === INTERVIEW_KIND ? INTERVIEW_QUESTIONS : IDEA_QUESTIONS);
+
 /** True when the idea is thin (ask first), false when it has a specific, null without an answer. */
 export function readIdeaThin(answers: Record<string, JevAnswer> | null): boolean | null {
   const p = answers?.specific?.noul;

@@ -169,12 +169,21 @@ export function onAudiencesChanged(cb: () => void): () => void {
   return () => window.removeEventListener(AUDIENCES_CHANGED, cb);
 }
 
-/** The line Write and Batch add to ideaContext for a picked audience (brand-audiences' writer line). */
-export function audienceLine(a: Pick<Audience, "name" | "who" | "cares" | "says">): string {
+/**
+ * The line Write and Batch add to ideaContext for a picked audience (brand-audiences' writer line). `says` is
+ * introduced as talk about money only for an adviser's brand (remixBrand's speakerFor gives "person"); a business's
+ * buyers, or a caller that doesn't say, get "How they talk about it" (wave 2 live check, 22 Oct: sales reps' "who I
+ * need to call" went out as money talk).
+ */
+export function audienceLine(a: Pick<Audience, "name" | "who" | "cares" | "says">, speaker?: "person" | "business"): string {
   // a seed has no cares yet: its line leaves that sentence out rather than end "They care about: ."
   const who = a.who.trim() && !/[.!?]$/.test(a.who.trim()) ? `${a.who.trim()}.` : a.who.trim();
   const cares = a.cares.length ? ` They care about: ${a.cares.join(", ")}.` : "";
-  return `WRITE FOR THIS AUDIENCE: ${a.name}.${who ? ` ${who}` : ""}${cares}${a.says ? ` How they talk about money: ${a.says}` : ""}`;
+  const says = a.says ? ` How they talk about ${speaker === "person" ? "money" : "it"}: ${a.says}` : "";
+  // a seed's who is its name, or the detail its name was cut from: say it once (wave 2 live check, 22 Oct)
+  const key = (s: string) => s.toLowerCase().replace(/[.!?\s]+$/, "").replace(/\s+/g, " ");
+  const named = key(who) === key(a.name) || key(who).startsWith(`${key(a.name)} `);
+  return `WRITE FOR THIS AUDIENCE: ${named ? who : `${a.name}.${who ? ` ${who}` : ""}`}${cares}${says}`;
 }
 
 /**

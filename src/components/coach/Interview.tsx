@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PriceChip from "@/components/PriceChip";
 import { useDictation } from "@/hooks/useDictation";
+import { loadAudiences } from "@/lib/audiences";
 import { appendDictation } from "@/lib/dictation";
 import { loadPositioning } from "@/lib/positioning";
 import { MAX_LONG_CHARS } from "@/lib/repurpose";
@@ -66,7 +67,7 @@ export default function Interview(p: {
 
   const begin = () => {
     // read from the device, so a second run of this (React's dev double effects) finds the session already there
-    const next = startSession(loadInterview(userId), fillFrom(loadPositioning(userId)), new Date());
+    const next = startSession(loadInterview(userId), fillFrom(loadPositioning(userId), loadAudiences(userId)[0]), new Date());
     saveInterview(userId, next);
     setStore(next);
   };

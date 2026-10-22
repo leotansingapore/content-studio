@@ -1076,16 +1076,19 @@ const withoutNobody = (v: unknown) => line(v, 400).replace(/^nobody\b\s*(?::\s*|
  * An obvious Title Case title ("Make More Room For Sales": 3 or more words, none starting lower case) in sentence case,
  * Leo's rule for titles (wave 1 live check, 21 Oct). A word keeps its capital when it isn't a plain capitalised word
  * (CRM, WhatsApp), is I, follows a stop, or is capitalised mid-sentence in `rest` (a name, such as Singapore).
+ * `short` (idea-dump's angle titles, 2 to 5 words; wave 2 live check, 22 Oct: "Deal Pipeline", "One-Tap Activity")
+ * takes 2-word titles too and a plain first word's hyphenated tail ("One-Tap" to "One-tap"); remix leaves it off.
  */
-export function sentenceCase(title: string, rest: string): string {
+export function sentenceCase(title: string, rest: string, { short = false } = {}): string {
   const words = title.split(" ");
-  if (words.length < 3 || words.some((w) => /^[^\p{L}]*\p{Ll}/u.test(w))) return title;
+  if (words.length < (short ? 2 : 3) || words.some((w) => /^[^\p{L}]*\p{Ll}/u.test(w))) return title;
   const names = new Set(rest.match(/(?<=[\p{L}\p{N},;]\s+)\p{Lu}[\p{L}'\u2019-]*/gu) ?? []);
   return words
     .map((w, i) => {
       const core = w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "");
       const plain = /^\p{Lu}[\p{Ll}'\u2019]*(?:-\p{Lu}[\p{Ll}'\u2019]*)*$/u.test(core);
-      return i === 0 || !plain || /[.!?:]$/.test(words[i - 1]) || /^I(?:['\u2019]|$)/.test(core) || names.has(core) ? w : w.toLowerCase();
+      if (i === 0) return short && plain && !names.has(core) ? w.replace(/-\p{Lu}/gu, (m) => m.toLowerCase()) : w;
+      return !plain || /[.!?:]$/.test(words[i - 1]) || /^I(?:['\u2019]|$)/.test(core) || names.has(core) ? w : w.toLowerCase();
     })
     .join(" ");
 }

@@ -29,6 +29,7 @@ import { loadVoiceProfile, isVoiceProfileUsable, voiceSummaryOf } from "@/lib/vo
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
 import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences";
+import { speakerFor } from "@/lib/remixBrand";
 import {
   Layers,
   Check,
@@ -224,7 +225,7 @@ export default function BatchPage() {
               ctaType: "comment-keyword",
               audience: lifeStage,
               voiceSummary: usableVoice,
-              ideaContext: [brandRulesLine(kit, t.platform), audPick ? audienceLine(audPick) : ""].filter(Boolean).join("\n\n") || undefined,
+              ideaContext: [brandRulesLine(kit, t.platform), audPick && userId ? audienceLine(audPick, speakerFor(userId)) : ""].filter(Boolean).join("\n\n") || undefined,
             },
             {
               onToken: (text) =>

@@ -1,0 +1,123 @@
+{
+  "_note": "live-p5w2 calls/014 (22 Oct 2026): the interview long request as sent, and the model reply rebuilt from the saved posts (formula ids back to numbers). A test input, not a snapshot.",
+  "body": {
+    "mode": "long",
+    "text": "Q: What did a client or a friend ask you about money this week?\nA: A friend who just had his second kid asked if he should keep all his savings in the bank or start investing. He has about eight months of expenses in a savings account and feels guilty every time he checks it, but he is scared of locking money away for years.\n\nQ: What is one thing people get wrong about Not taking action?\nA: They wait for the perfect time.\n\nLast month a father of two told me he had been waiting two years for markets to calm down. We split his cash into what he needs this year and what he will not touch for ten years, and he set up a small monthly amount the same week.\n\nQ: Tell me about a client situation that stayed with you. Leave out names and anything that could identify them.\nA: An accountant I worked with kept putting off his plan for three years because tax season was always busy. When his father fell sick, he realised he did not know what cover he had. We sat down for one evening, wrote a one-page plan, and he told me the relief was the biggest change.\n\nQ: What would you tell Auditor / Accountant, aged 30-48, Middle to upper-middle income who are just starting to plan?\nA: Start with your cash buffer and your insurance gaps before you think about returns. Write down what each pot of money is for and when you need it. Then review it once a quarter, not every day.\n\nQ: What is an opinion about your work that other advisers might disagree with?\nA: Most busy fathers do not need more information. They need fewer decisions. A one-page plan with a decision log beats a forty-page report that nobody reads again.",
+    "formulas": [
+      {
+        "id": "mistake",
+        "name": "Mistake confession",
+        "template": "{What it cost} is what {one mistake} cost me."
+      },
+      {
+        "id": "before-after",
+        "name": "Before and after",
+        "template": "{Some time ago} I {low point}. Now I {better point}. One change did it."
+      },
+      {
+        "id": "list",
+        "name": "The list",
+        "template": "{N} things I wish I knew before {milestone}."
+      },
+      {
+        "id": "insider",
+        "name": "Insider view",
+        "template": "After {N} years as {role}, here is what nobody tells you about {topic}."
+      },
+      {
+        "id": "callout",
+        "name": "The callout",
+        "template": "If you still {outdated habit}, stop."
+      }
+    ],
+    "voice": "",
+    "positioning": {
+      "oneLiner": "I help busy working fathers achieve financial freedom and peace of mind through my F.A.T. Method",
+      "audienceDetail": "Auditor / Accountant, aged 30-48, Middle to upper-middle income",
+      "topics": [
+        "Not taking action",
+        "Letting money sit in bank",
+        "Afraid of >5yr commitment",
+        "Lack of time to invest",
+        "Too much information and jargon"
+      ],
+      "edge": "Quarterly one-page plan with decision log, proactive check-ins after major life events"
+    },
+    "platforms": [
+      "linkedin",
+      "instagram"
+    ],
+    "source": "interview",
+    "speaker": "person"
+  },
+  "reply": {
+    "extracts": {
+      "claims": [
+        "They wait for the perfect time.",
+        "Start with your cash buffer and your insurance gaps before you think about returns.",
+        "Write down what each pot of money is for and when you need it.",
+        "Then review it once a quarter, not every day.",
+        "Most busy fathers do not need more information.",
+        "They need fewer decisions.",
+        "A one-page plan with a decision log beats a forty-page report that nobody reads again."
+      ],
+      "numbers": [
+        "Second kid: the friend had just had his second child.",
+        "Eight months of expenses: the friend's approximate savings buffer.",
+        "Last month: when the father of two described waiting for markets to calm down.",
+        "Two years: how long the father had been waiting.",
+        "This year: when part of the cash was needed.",
+        "Ten years: how long the other part of the cash would not be touched.",
+        "A small monthly amount: the amount he started setting aside; no figure given.",
+        "Three years: how long the accountant had put off his plan.",
+        "One evening: time spent writing the one-page plan.",
+        "One-page: the length of the plan.",
+        "Once a quarter: suggested review frequency.",
+        "Every day: the frequency the advice says not to review.",
+        "Forty-page: the length of the report contrasted with a one-page plan.",
+        "Father of two: the number of children of the father who had waited for markets to calm down."
+      ],
+      "stories": [
+        "A friend who had just had his second child had about eight months of expenses in savings, felt guilty checking it, and worried about locking money away for years.",
+        "Last month, a father of two who had waited two years for markets to calm down split his cash between what he needed that year and what he would not touch for ten years, then set up a small monthly amount the same week.",
+        "An accountant who had put off his plan for three years realised, when his father fell sick, that he did not know what cover he had; they spent one evening writing a one-page plan, and he said the relief was the biggest change."
+      ],
+      "lines": [
+        "They wait for the perfect time.",
+        "Start with your cash buffer and your insurance gaps before you think about returns.",
+        "Write down what each pot of money is for and when you need it.",
+        "Then review it once a quarter, not every day.",
+        "Most busy fathers do not need more information.",
+        "They need fewer decisions.",
+        "A one-page plan with a decision log beats a forty-page report that nobody reads again."
+      ]
+    },
+    "posts": [
+      {
+        "formula": 1,
+        "post": "[What it cost] is what [one mistake] cost me.\n\nWaiting for the perfect time can keep an important decision on hold. A father I worked with had waited two years for markets to calm down. We separated what he needed this year from what he would not touch for ten years, and he started a small monthly amount.\n\nThe useful first step is to decide what each pot of money is for and when you may need it. That is general education, not a recommendation about a specific investment.",
+        "basedOn": "Last month, a father of two who had waited two years for markets to calm down split his cash between what he needed that year and what he would not touch for ten years, then set up a small monthly amount the same week."
+      },
+      {
+        "formula": 2,
+        "post": "[Some time ago] I [low point]. Now I [better point]. One change did it.\n\nFor busy fathers, the change can start with a simple question: what is each pot of money for, and when might you need it?\n\nA plan can help organise decisions without needing to predict the perfect time. Start by considering your cash buffer and any insurance gaps before thinking about returns.",
+        "basedOn": "Start with your cash buffer and your insurance gaps before you think about returns."
+      },
+      {
+        "formula": 3,
+        "post": "[N] things I wish I knew before [milestone].\n\nWhen you are starting to plan, begin with the purpose and timing of your money. Consider your cash buffer and insurance gaps before thinking about returns. Write down what each pot is for, then review your plan once a quarter rather than every day.\n\nThe number and milestone are yours to fill in. The steps are general points to consider, not personal product advice.",
+        "basedOn": "Write down what each pot of money is for and when you need it."
+      },
+      {
+        "formula": 4,
+        "post": "After [N] years as [role], here is what nobody tells you about [topic].\n\nMost busy fathers do not need more information. They need fewer decisions.\n\nA one-page plan and a decision log can make it easier to see what you have decided and why. A longer report is not useful if nobody returns to it. Keep the plan practical, and review it at a regular interval that suits your circumstances.",
+        "basedOn": "A one-page plan with a decision log beats a forty-page report that nobody reads again."
+      },
+      {
+        "formula": 5,
+        "post": "If you still wait for the perfect time, stop.\n\nWaiting for certainty can leave a financial decision on the shelf. Instead, write down what your cash is for and when you may need it. A cash buffer and insurance gaps are sensible places to consider before thinking about returns.\n\nYour circumstances matter, so treat this as general education rather than personal product advice.",
+        "basedOn": "They wait for the perfect time."
+      }
+    ]
+  }
+}
