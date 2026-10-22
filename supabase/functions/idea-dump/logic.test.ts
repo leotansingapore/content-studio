@@ -612,3 +612,185 @@ describe("mode angles", () => {
     expect(keepAngles(list.slice(0, 2), [ans(0.9, null), ans(0.9, null)]).angles.map((a) => a.title)).toEqual(["Angle 0 here"]);
   });
 });
+
+// ---- Plan modes (phase 5): campaign --------------------------------------------
+
+import {
+  AI_VIDEO_WORDS,
+  CAMPAIGN_SCHEMA,
+  MAX_CAMPAIGN_POSTS,
+  buildCampaignPrompt,
+  campaignCap,
+  parseCampaignRequest,
+  validateCampaign,
+  type CampaignFormat,
+} from "./logic.ts";
+
+const postAskOf = (n: number, format: CampaignFormat, extra: Record<string, unknown> = {}) => ({
+  n,
+  angle: { title: "Follow-ups that stick", line: "Most deals die in the follow-up, not the pitch." },
+  format,
+  stage: "trust",
+  ctaType: "save-share",
+  platforms: ["instagram"],
+  ...extra,
+});
+const CAMPAIGN_ASK = {
+  mode: "campaign",
+  posts: [
+    postAskOf(1, "text-post", { formula: { name: "Contrarian take", template: "Most people say {x}. I disagree." } }),
+    postAskOf(2, "carousel"),
+    postAskOf(3, "short-video"),
+    postAskOf(4, "ai-video", { stage: "conversion", ctaType: "dm-keyword" }),
+    postAskOf(5, "slideshow"),
+    postAskOf(6, "wall"),
+  ],
+  context: { ...PLAN_CONTEXT, audience: "Parents in their 30s with a first child" },
+  avoid: ["Your follow-up is the real pitch"],
+};
+const campaignRequest = (body: unknown = CAMPAIGN_ASK) => {
+  const r = parseCampaignRequest(body);
+  if (!r.ok) throw new Error(r.error);
+  return r.request;
+};
+/** n words, the last one closing the only sentence. */
+const words = (n: number, w = "word") => Array.from({ length: n }, (_, i) => (i === n - 1 ? `${w}.` : w)).join(" ");
+const tenWords = (k: number) => `Sentence ${k} has exactly ten words in it right here.`;
+const countWords = (t: string) => t.split(/\s+/).filter((x) => /[\p{L}\p{N}]/u.test(x)).length;
+const written = (over: Record<number, Record<string, string>> = {}) => ({
+  posts: [
+    { n: 1, hook: "Most reps lose the deal after the first call", body: words(100), script: "", brief: "", cta: "Save this for your next follow-up." },
+    { n: 2, hook: "Five follow-up habits", body: [1, 2, 3, 4, 5].map((i) => `Point ${i}: ${words(10)}`).join("\n\n"), script: "", brief: "", cta: "Save this." },
+    { n: 3, hook: "", body: "", script: `HOOK: Nobody remembers your first call.\nBODY: ${words(60)}\nCTA: Save this for later.`, brief: "", cta: "" },
+    { n: 4, hook: "", body: "", script: [1, 2, 3, 4].map(tenWords).join(" "), brief: "", cta: "" },
+    { n: 5, hook: "Three messages that bring a lead back", body: "", script: "", brief: "The check-in\nThe useful link\nThe honest close", cta: "Follow for more." },
+    { n: 6, hook: "Stop sending just checking in", body: "", script: "", brief: "One bold line on why checking in fails.", cta: "Comment FOLLOW." },
+  ].map((p) => ({ ...p, ...over[p.n] })),
+});
+
+describe("mode campaign", () => {
+  it("refuses 0 or 8 posts, unknown formats or stages, bad or repeated numbers, and a swap of more than one post", () => {
+    const bad = (body: Record<string, unknown>) => expect(parseCampaignRequest({ ...CAMPAIGN_ASK, ...body })).toMatchObject({ ok: false });
+    bad({ posts: [] });
+    bad({ posts: Array.from({ length: MAX_CAMPAIGN_POSTS + 1 }, (_, i) => postAskOf(i + 1, "text-post")) });
+    bad({ posts: [postAskOf(1, "story" as CampaignFormat)] });
+    bad({ posts: [postAskOf(1, "text-post", { stage: "awareness" })] });
+    bad({ posts: [postAskOf(0, "text-post")] });
+    bad({ posts: [postAskOf(57, "text-post")] });
+    bad({ posts: [postAskOf(1, "text-post"), postAskOf(1, "carousel")] });
+    bad({ posts: [postAskOf(1, "text-post", { angle: { title: "", line: "x" } })] });
+    bad({ swap: true, posts: [postAskOf(1, "text-post"), postAskOf(2, "carousel")] });
+    expect(parseCampaignRequest({ ...CAMPAIGN_ASK, swap: true, posts: [postAskOf(4, "carousel")] })).toMatchObject({ ok: true, request: { swap: true } });
+    expect(campaignRequest({ ...CAMPAIGN_ASK, posts: Array.from({ length: 7 }, (_, i) => postAskOf(i + 50, "wall")) }).posts).toHaveLength(7);
+  });
+
+  it("reads the audience, clamps avoid to 20 hooks, and fills a bad call to action or formula safely", () => {
+    const r = campaignRequest({
+      ...CAMPAIGN_ASK,
+      avoid: Array.from({ length: 30 }, (_, i) => `Hook ${i}`),
+      posts: [postAskOf(1, "text-post", { ctaType: "buy-now", stage: "conversion", formula: { name: "Only a name" }, platforms: ["instagram", "myspace"] })],
+    });
+    expect(r.audience).toBe("Parents in their 30s with a first child");
+    expect(r.avoid).toHaveLength(20);
+    expect(r.posts[0]).toMatchObject({ ctaType: "dm-keyword", formula: null, platforms: ["instagram"] });
+    expect(r.swap).toBe(false);
+  });
+
+  it("spends campaign-swap for a swap and campaign-draft otherwise", () => {
+    expect(campaignCap({ swap: true })).toBe("campaign-swap");
+    expect(campaignCap({ swap: false })).toBe("campaign-draft");
+    expect(campaignCap(campaignRequest())).toBe("campaign-draft");
+  });
+
+  it("asks under COMPLIANCE_LINES and PLAN_LINES with the goal, the brand rules, each angle, the formula and the hooks to avoid", () => {
+    const { system, user } = buildCampaignPrompt(campaignRequest());
+    expect(system).toContain([...COMPLIANCE_LINES, ...PLAN_LINES].join("\n"));
+    expect(system).toContain(`${AI_VIDEO_WORDS.low} to ${AI_VIDEO_WORDS.high} words`);
+    expect(AI_VIDEO_WORDS).toEqual({ low: 36, high: 48 });
+    expect(system).toContain("Write in the first person, as the adviser");
+    expect(user).toContain("The goal of these posts: Get more enquiries from parents");
+    expect(user).toContain(PLAN_CONTEXT.rules);
+    expect(user).toContain("The audience: Parents in their 30s with a first child");
+    expect(user).toContain("Hooks already used (open differently):\n- Your follow-up is the real pitch");
+    expect(user).toContain("Post 1: text-post, trust stage, call to action save-share, for instagram\nAngle: Follow-ups that stick: Most deals die in the follow-up, not the pitch.\nHook formula: Contrarian take: Most people say {x}. I disagree.");
+    expect(user).toContain("Post 4: ai-video, conversion stage, call to action dm-keyword");
+    expect(user).not.toContain("again: the same angle");
+    expect(buildCampaignPrompt(campaignRequest({ ...CAMPAIGN_ASK, swap: true, posts: [postAskOf(4, "carousel")] })).user).toContain("Write post 4 again: the same angle, format and stage");
+  });
+
+  it("writes for a business as the business, and never says adviser", () => {
+    const p = fullPrompt(buildCampaignPrompt(campaignRequest({ ...CAMPAIGN_ASK, context: { ...BUSINESS_CONTEXT, audience: "Sales reps" } })));
+    expect(p).toContain(BUSINESS_VOICE);
+    expect(p).toContain("a business in Singapore");
+    expect(p).not.toMatch(/adviser/i);
+  });
+
+  it("has a strict schema", () => {
+    const item = CAMPAIGN_SCHEMA.properties.posts.items;
+    expect(item.additionalProperties).toBe(false);
+    expect([...item.required].sort()).toEqual(Object.keys(item.properties).sort());
+  });
+
+  it("keeps each format's words in its own fields, in the order asked", () => {
+    const got = validateCampaign(JSON.stringify(written()), campaignRequest())!;
+    expect(got.map((p) => p.n)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(got[0]).toEqual({ n: 1, hook: "Most reps lose the deal after the first call", body: words(100), cta: "Save this for your next follow-up.", ctaType: "save-share", mas: null });
+    expect(got[1].body!.split("\n\n")).toHaveLength(5);
+    expect(got[2]).toMatchObject({ hook: "Nobody remembers your first call.", cta: "Save this for later." });
+    expect(got[2].script!.split("\n")[0]).toBe("HOOK: Nobody remembers your first call.");
+    expect(got[3]).toMatchObject({ hook: tenWords(1), cta: tenWords(4), ctaType: "dm-keyword" });
+    expect(got[3].script!.split("\n")).toEqual([1, 2, 3, 4].map(tenWords));
+    expect(got[4]).toEqual({ n: 5, hook: "Three messages that bring a lead back", brief: "The check-in\nThe useful link\nThe honest close", cta: "Follow for more.", ctaType: "save-share", mas: null });
+    expect(got[5].brief).toBe("One bold line on why checking in fails.");
+  });
+
+  it("cuts over-length fields at a word and removes em dashes", () => {
+    const got = validateCampaign(
+      written({
+        1: { hook: `Follow-ups — the part ${words(20, "nobody")}`, body: words(240) },
+        2: { hook: "Seven words is too long for a cover", body: Array.from({ length: 9 }, (_, i) => `Point ${i} ${words(50)}`).join("\n\n") },
+        5: { hook: words(14, "slide"), brief: words(50, "point") },
+      }),
+      campaignRequest(),
+    )!;
+    const [text, carousel] = got;
+    expect(text.hook).toMatch(/^Follow-ups, the part nobody/);
+    expect(countWords(text.hook)).toBe(15);
+    expect(countWords(text.body!)).toBe(220);
+    expect(carousel.hook).toBe("Seven words is too long for");
+    expect(carousel.body!.split("\n\n")).toHaveLength(8);
+    expect(carousel.body!.split("\n\n").every((p) => countWords(p) <= 40)).toBe(true);
+    expect(countWords(got.find((p) => p.n === 5)!.hook)).toBe(12);
+    expect(countWords(got.find((p) => p.n === 5)!.brief!)).toBe(40);
+    expect(JSON.stringify(got)).not.toMatch(/[–—]/);
+  });
+
+  it("drops a post that can't meet its format: short bodies, too few points, scripts outside their length", () => {
+    const keptOf = (over: Record<number, Record<string, string>>) => validateCampaign(written(over), campaignRequest())!.map((p) => p.n);
+    expect(keptOf({ 1: { body: words(79) } })).not.toContain(1);
+    expect(keptOf({ 1: { cta: "" } })).not.toContain(1);
+    expect(keptOf({ 2: { body: "One.\n\nTwo.\n\nThree." } })).not.toContain(2);
+    expect(keptOf({ 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` } })).not.toContain(3);
+    expect(keptOf({ 3: { script: `HOOK: Long.\nBODY: ${words(95)}\nCTA: Save it.` } })).not.toContain(3);
+    expect(keptOf({ 5: { brief: "" } })).not.toContain(5);
+  });
+
+  it("holds an AI video script to 36 to 48 spoken words, labels and all", () => {
+    const ai = (script: string) => validateCampaign(written({ 4: { script } }), campaignRequest())!.find((p) => p.n === 4);
+    expect(ai([1, 2, 3].map(tenWords).join(" ") + " Five more words right here.")).toBeUndefined(); // 35 words
+    expect(countWords(ai([1, 2, 3].map(tenWords).join(" ") + " Six more words right here now.")!.script!)).toBe(36);
+    expect(countWords(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Eight more words fit in this one too.")!.script!)).toBe(48);
+    expect(ai([1, 2, 3, 4].map(tenWords).join(" ") + " Nine more words do not fit in this one.")).toBeUndefined();
+    const labelled = ai(`HOOK: ${tenWords(1)}\n${tenWords(2)} ${tenWords(3)}\nCTA: ${tenWords(4)}`)!;
+    expect(labelled.script).toBe([1, 2, 3, 4].map(tenWords).join("\n"));
+    expect(labelled.cta).toBe(tenWords(4));
+  });
+
+  it("drops posts not asked for, a later post that opens like an earlier one, and a hook it was told to avoid", () => {
+    const reply = written({ 5: { hook: "Most reps lose sleep over follow-ups" }, 6: { hook: "your FOLLOW-UP is the real pitch" } });
+    reply.posts.push({ n: 9, hook: "Not asked for", body: words(100), script: "", brief: "", cta: "Save this." });
+    expect(validateCampaign(reply, campaignRequest())!.map((p) => p.n)).toEqual([1, 2, 3, 4]);
+    expect(validateCampaign("not json", campaignRequest())).toBeNull();
+    expect(validateCampaign({ posts: [] }, campaignRequest())).toEqual([]);
+  });
+});

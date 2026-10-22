@@ -265,3 +265,85 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
     expect(sent[OPENAI]).toBeUndefined();
   });
 });
+
+const askOf = (n: number, format: string) => ({ n, angle: { title: "Follow-ups that stick", line: "Most deals die in the follow-up." }, format, stage: "trust", ctaType: "save-share", platforms: ["instagram"] });
+const CAMPAIGN = { mode: "campaign", posts: [askOf(1, "text-post"), askOf(2, "wall")], context: { ...PLAN_CONTEXT, audience: "Parents in their 30s" }, avoid: ["Your follow-up is the real pitch"] };
+const SWAP = { ...CAMPAIGN, swap: true, posts: [askOf(2, "wall")] };
+const body100 = Array.from({ length: 100 }, () => "word").join(" ") + ".";
+const CAMPAIGN_REPLY = {
+  posts: [
+    { n: 1, hook: "Most reps lose the deal after the first call", body: body100, script: "", brief: "", cta: "Save this for your next follow-up." },
+    { n: 2, hook: "Stop sending just checking in", body: "", script: "", brief: "One bold line on why checking in fails.", cta: "Comment FOLLOW." },
+  ],
+};
+
+describe("idea-dump campaign (phase 5, Leo only)", () => {
+  it("is 403 not_enabled before any count for a caller not on NORTH_STAR_USERS", async () => {
+    expect(await call(CAMPAIGN)).toEqual(NOT_ENABLED);
+    expect(await call(SWAP)).toEqual(NOT_ENABLED);
+    expect(db.spent).toEqual([]);
+    expect(sent[OPENAI]).toBeUndefined();
+  });
+
+  it("refuses a swap of two posts, and a bad body, with 400 before any count", async () => {
+    expect(await call({ ...SWAP, posts: CAMPAIGN.posts }, "leo")).toEqual({ status: 400, body: { code: "bad_request", error: "A swap writes exactly one post again." } });
+    expect((await call({ ...CAMPAIGN, posts: [] }, "leo")).body.code).toBe("bad_request");
+    expect(db.spent).toEqual([]);
+  });
+
+  it("writes the posts asked for on campaign-draft", async () => {
+    openai = () => reply(CAMPAIGN_REPLY);
+    const r = await call(CAMPAIGN, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.posts).toEqual([
+      { n: 1, hook: "Most reps lose the deal after the first call", body: body100, cta: "Save this for your next follow-up.", ctaType: "save-share", mas: null },
+      { n: 2, hook: "Stop sending just checking in", brief: "One bold line on why checking in fails.", cta: "Comment FOLLOW.", ctaType: "save-share", mas: null },
+    ]);
+    expect(db.spent).toEqual(["campaign-draft"]);
+    expect(db.refunded).toEqual([]);
+    const req = sent[OPENAI][0] as { max_completion_tokens: number; response_format: { json_schema: { name: string } }; messages: { content: string }[] };
+    expect(req.response_format.json_schema.name).toBe("campaign_posts");
+    expect(req.messages[1].content).toContain("- Your follow-up is the real pitch");
+  });
+
+  it("writes one post again on campaign-swap", async () => {
+    openai = () => reply({ posts: [CAMPAIGN_REPLY.posts[1]] });
+    const r = await call(SWAP, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.posts.map((p: { n: number }) => p.n)).toEqual([2]);
+    expect(db.spent).toEqual(["campaign-swap"]);
+  });
+
+  it("gives the use back to the cap it came from when OpenAI never answered: 502", async () => {
+    const timeout = () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError"));
+    for (const [body, cap] of [[CAMPAIGN, "campaign-draft"], [SWAP, "campaign-swap"]] as const) {
+      for (const fail of [() => new Response("down", { status: 503 }), timeout]) {
+        openai = fail;
+        db.spent.length = 0;
+        db.refunded.length = 0;
+        const r = await call(body, "leo");
+        expect(r.status).toBe(502);
+        expect(r.body.code).toBe("failed");
+        expect(db.spent).toEqual([cap]);
+        expect(db.refunded).toEqual([cap]);
+      }
+    }
+  });
+
+  it("keeps the use when OpenAI answered and no post survives: 422 unusable", async () => {
+    const refusal = () => Response.json({ choices: [{ message: { content: null, refusal: "No." } }] });
+    for (const bad of [() => reply("not json"), () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], n: 9 }] }), refusal]) {
+      openai = bad;
+      const r = await call(CAMPAIGN, "leo");
+      expect(r).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
+    }
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("answers the daily limit with 429 and calls nothing", async () => {
+    db.limit = true;
+    // the limit's number is the contracts task's (usageCaps.test.ts)
+    expect((await call(SWAP, "leo")).body.code).toBe("daily_limit");
+    expect(sent[OPENAI]).toBeUndefined();
+  });
+});

@@ -14,6 +14,10 @@
 // Cap "campaign-angles"; the use goes back only when OpenAI never answered (502), and a reply that keeps no angle
 // keeps it (422 no_angles).
 //
+// mode "campaign" (phase 5, Leo only, the same gate): up to 7 of a campaign's posts in one call, each in its
+// format's shape, or one post written again with `swap`. Cap "campaign-swap" for a swap, else "campaign-draft"; the
+// use goes back only when OpenAI never answered (502), and a reply where no post survives keeps it (422 unusable).
+//
 // Secrets: OPENAI_API_KEY; TYPESAFE_API_KEY for Jev (the plan modes work without it). Deploy WITH JWT verification.
 // Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009), and the phase 5 caps.
 // Logic: ./logic.ts (tested).
@@ -25,19 +29,24 @@ import { pool } from "../_shared/pool.ts";
 import { isAllowed } from "../market/logic.ts";
 import {
   ANGLES_SCHEMA,
+  CAMPAIGN_SCHEMA,
   IDEA_BRIEF_SCHEMA,
   LONG_SCHEMA,
   NO_IDEAS_MESSAGE,
   buildIdeaDumpPrompt,
   angleAsk,
   buildAnglesPrompt,
+  buildCampaignPrompt,
+  campaignCap,
   buildLongPrompt,
   keepAngles,
   parseAnglesRequest,
+  parseCampaignRequest,
   parseIdeaDumpRequest,
   parseLongRequest,
   validateAngles,
   validateBriefs,
+  validateCampaign,
   validateLong,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
@@ -167,6 +176,31 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
   return json(kept);
 }
 
+async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseCampaignRequest(body);
+  if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
+  const { request } = parsed;
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) return json({ code: "not_configured", error: "This isn't switched on yet." }, 503);
+  const cap = campaignCap(request) satisfies "campaign-swap" | "campaign-draft";
+  const day = usageDay();
+  const usage = await consumeUsage(admin, uid, cap);
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+  const { system, user } = buildCampaignPrompt(request);
+  const reply = await developWithOpenAi(system, user, apiKey, { name: "campaign_posts", schema: CAMPAIGN_SCHEMA, maxTokens: 6000 });
+  if (!reply.ok && !reply.answered) {
+    await refundUsage(admin, uid, cap, day);
+    return json({ code: "failed", error: request.swap ? "Couldn't write new words right now. Try again in a minute." : "Couldn't write these posts right now. Try again in a minute." }, 502);
+  }
+  const posts = (reply.ok && validateCampaign(reply.text, request)) || [];
+  console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written", posts.length);
+  if (!posts.length) return json({ code: "unusable", error: "The words that came back couldn't be used. Try again." }, 422);
+  return json({ posts });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -183,9 +217,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     const mode = body && typeof body === "object" ? (body as { mode?: unknown }).mode : undefined;
     if (mode === "long") return await repurposeLong(admin, uid, body);
-    if (mode === "angles") {
+    if (mode === "angles" || mode === "campaign") {
       if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
-      return await suggestAngles(admin, uid, body);
+      return mode === "angles" ? await suggestAngles(admin, uid, body) : await writeCampaign(admin, uid, body);
     }
     const parsed = parseIdeaDumpRequest(body);
     if (!parsed.ok) return json({ error: parsed.error, code: parsed.code }, parsed.status);
