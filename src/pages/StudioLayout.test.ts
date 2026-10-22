@@ -82,6 +82,9 @@ vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {}, vis
 // render both import the Remix chunks), so each mocked module is imported once here first
 await import("@/components/remix/RemixSheet");
 await import("@/components/remix/RemixPill");
+// vitest can still hand a second in-flight import the real RemixPill under load; load its heavy chain now so it never
+// finishes loading after the environment is torn down
+await import("@/lib/remixJob");
 await import("@/lib/autopilot");
 await import("@/lib/autopilotJob");
 await import("@/lib/ideasInbox");
