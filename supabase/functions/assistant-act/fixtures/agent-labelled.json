@@ -1,0 +1,785 @@
+{
+  "_read_me": [
+    "assistant-act agent mode's labelled messages for the side-by-side run (shadow.ts). Each goes through Leo's dock request today (remember included) and agent mode's, built from the context plus the item's fields.",
+    "label: the right answer in the pick's own form (indexes from 0, which may be 'last', slide null for the whole item). Only the slots listed are scored; act 'none' means no act. Today's right act is the label's when it is one of today's acts, else none, unless label.today says otherwise.",
+    "today is Thursday 22 October 2026, so tomorrow is 2026-10-23 and next Tuesday 2026-10-27. Add a message by appending an item; the shadow test checks every item builds both requests and every labelled slot is asked."
+  ],
+  "today": "2026-10-22",
+  "contexts": {
+    "leo": {
+      "about": "Leo's own adviser brand: a person, with a saved face, a kept presenter, three audiences, three learnings, two saved skills and competitor ads.",
+      "posts": [
+        {
+          "title": "Three CPF myths",
+          "status": "scheduled",
+          "when": "2026-10-24T09:00",
+          "platform": "linkedin"
+        },
+        {
+          "title": "Why I stopped selling ILPs",
+          "status": "draft",
+          "when": "",
+          "platform": "instagram"
+        },
+        {
+          "title": "Hospital plans in plain words",
+          "status": "draft",
+          "when": "",
+          "platform": "instagram"
+        },
+        {
+          "title": "My first client",
+          "status": "posted",
+          "when": "2026-10-02",
+          "platform": "facebook"
+        }
+      ],
+      "fields": {
+        "speaker": "person",
+        "speakers": [
+          {
+            "id": "mine",
+            "look": "Your own face, from your saved photo"
+          },
+          {
+            "id": "pr-mei",
+            "look": "Mei: a Chinese Singaporean woman in her early 30s, shoulder-length black hair, navy blazer"
+          },
+          {
+            "id": "new",
+            "look": "A Malay Singaporean man in his late 30s, short neat hair, trimmed beard, light blue shirt"
+          },
+          {
+            "id": "new",
+            "look": "A Chinese Singaporean man in his 50s, short greying hair, rimless glasses, dark green polo shirt"
+          }
+        ],
+        "audiences": [
+          {
+            "id": "aud-parents",
+            "name": "Young parents"
+          },
+          {
+            "id": "aud-grads",
+            "name": "Fresh graduates"
+          },
+          {
+            "id": "aud-self",
+            "name": "Self-employed professionals"
+          }
+        ],
+        "learnings": [
+          "Never use emoji (posts)",
+          "Use Asian presenters in AI videos (videos)",
+          "Always end with a question (posts)"
+        ],
+        "skills": [
+          {
+            "slash": "/polish",
+            "name": "Polish",
+            "instruction": "Tighten the hook, cut filler and keep it under 150 words"
+          },
+          {
+            "slash": "/linkedin",
+            "name": "LinkedIn voice",
+            "instruction": "Rewrite the post in my LinkedIn tone: first person, one short story, no hashtags"
+          }
+        ],
+        "competitorAds": true
+      }
+    },
+    "at": {
+      "about": "ActivityTracker on Leo's account, the dogfood brand: a business, a kept presenter, two audiences, no learnings, no skills, no competitor ads yet.",
+      "posts": [
+        {
+          "title": "Why streaks beat willpower",
+          "status": "draft",
+          "when": "",
+          "platform": "linkedin"
+        },
+        {
+          "title": "Leaderboards for sales teams",
+          "status": "scheduled",
+          "when": "2026-10-26T10:00",
+          "platform": "instagram"
+        }
+      ],
+      "fields": {
+        "speaker": "business",
+        "speakers": [
+          {
+            "id": "pr-ava",
+            "look": "Ava: a Chinese Singaporean woman in her early 30s, light make-up, navy blazer over a white blouse"
+          },
+          {
+            "id": "new",
+            "look": "A Malay Singaporean man in his late 30s, short neat hair, trimmed beard, light blue shirt"
+          },
+          {
+            "id": "new",
+            "look": "A Chinese Singaporean man in his 50s, short greying hair, rimless glasses, dark green polo shirt"
+          }
+        ],
+        "audiences": [
+          {
+            "id": "aud-sm",
+            "name": "Sales managers"
+          },
+          {
+            "id": "aud-ia",
+            "name": "Insurance agents"
+          }
+        ],
+        "competitorAds": false
+      }
+    }
+  },
+  "items": [
+    {
+      "id": "fastlane-what",
+      "from": "Fastlane 19 Oct (notes-4)",
+      "message": "what can you do",
+      "ctx": "at",
+      "label": {
+        "act": "capabilities"
+      }
+    },
+    {
+      "id": "fastlane-ugc",
+      "from": "Fastlane 19 Oct (notes-4)",
+      "message": "wanna do UGC content creation",
+      "ctx": "at",
+      "label": {
+        "act": "make",
+        "format": "speaking"
+      }
+    },
+    {
+      "id": "fastlane-competitors",
+      "from": "Fastlane 19 Oct (notes-4)",
+      "message": "my competitors are finchcare app, and finchcare app",
+      "ctx": "at",
+      "label": {
+        "act": "competitor"
+      }
+    },
+    {
+      "id": "fastlane-assets",
+      "from": "Fastlane 19 Oct (notes-4)",
+      "message": "how do I give you my content assets",
+      "ctx": "at",
+      "label": {
+        "act": "none"
+      }
+    },
+    {
+      "id": "fastlane-asian",
+      "from": "Fastlane 19 Oct (notes-4)",
+      "message": "generally speaking if we use UGC ai it should be asian",
+      "ctx": "at",
+      "label": {
+        "act": "remember",
+        "scope": "videos"
+      }
+    },
+    {
+      "id": "fastlane-another",
+      "from": "Fastlane 19 Oct (notes-4)",
+      "message": "i see, can you create another one",
+      "ctx": "at",
+      "fields": {
+        "lastChange": "Made a 15-second talking video for ActivityTracker"
+      },
+      "label": {
+        "act": "make"
+      }
+    },
+    {
+      "id": "replay-talking",
+      "from": "phase 6 dogfood replay",
+      "message": "make a talking head video about keeping prospecting consistent with ActivityTracker",
+      "ctx": "at",
+      "label": {
+        "act": "make",
+        "format": "speaking"
+      }
+    },
+    {
+      "id": "replay-finch",
+      "from": "phase 6 dogfood replay",
+      "message": "add Finch as a competitor",
+      "ctx": "at",
+      "label": {
+        "act": "competitor"
+      }
+    },
+    {
+      "id": "replay-older",
+      "from": "phase 6 dogfood replay",
+      "message": "from now on use an older man as my presenter",
+      "ctx": "at",
+      "label": {
+        "act": "remember",
+        "scope": "videos"
+      }
+    },
+    {
+      "id": "replay-undo",
+      "from": "phase 6 dogfood replay",
+      "message": "undo",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ],
+        "lastChange": "Remembered: use an older man as my presenter"
+      },
+      "label": {
+        "act": "forget",
+        "which": "last"
+      }
+    },
+    {
+      "id": "replay-second-video",
+      "from": "phase 6 dogfood replay",
+      "message": "make another talking video about why sales teams skip logging calls",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ]
+      },
+      "label": {
+        "act": "make",
+        "format": "speaking",
+        "who": 2
+      }
+    },
+    {
+      "id": "replay-campaign",
+      "from": "phase 6 dogfood replay",
+      "message": "plan a month of posts for sales managers, 7 a week",
+      "ctx": "at",
+      "label": {
+        "act": "campaign",
+        "audience": 0,
+        "weeks": 4,
+        "pace": 7
+      }
+    },
+    {
+      "id": "senna-ad",
+      "from": "Fastlane's Ask Senna examples (t288)",
+      "message": "Make a 4:5 ad for my business",
+      "ctx": "at",
+      "label": {
+        "act": "make",
+        "format": "image"
+      }
+    },
+    {
+      "id": "senna-remix",
+      "from": "Fastlane's Ask Senna examples (t288)",
+      "message": "Remix a trending video for Activity Tracker",
+      "ctx": "at",
+      "label": {
+        "act": "remix"
+      }
+    },
+    {
+      "id": "senna-captions",
+      "from": "Fastlane's Ask Senna examples (t288)",
+      "message": "Write 3 captions for my next post",
+      "ctx": "at",
+      "label": {
+        "act": "make",
+        "format": "post"
+      }
+    },
+    {
+      "id": "make-carousel",
+      "from": "agent-chat",
+      "message": "make a carousel about CPF LIFE for young parents",
+      "label": {
+        "act": "make",
+        "format": "carousel",
+        "audience": 0
+      }
+    },
+    {
+      "id": "make-20s",
+      "from": "agent-chat",
+      "message": "make a 20-second video about CPF LIFE",
+      "label": {
+        "act": "make",
+        "format": "speaking",
+        "length": 20
+      }
+    },
+    {
+      "id": "make-me",
+      "from": "agent-chat",
+      "message": "make a video of me explaining MediShield Life",
+      "label": {
+        "act": "make",
+        "format": "speaking",
+        "who": 0
+      }
+    },
+    {
+      "id": "make-post",
+      "from": "agent-chat",
+      "message": "write a post about why term insurance is enough for most people",
+      "label": {
+        "act": "make",
+        "format": "post"
+      }
+    },
+    {
+      "id": "make-script",
+      "from": "agent-chat",
+      "message": "give me a script I can film about building an emergency fund",
+      "label": {
+        "act": "make",
+        "format": "script"
+      }
+    },
+    {
+      "id": "make-wall",
+      "from": "phase 6 formats",
+      "message": "make a wall of text: most people in their 30s are underinsured",
+      "label": {
+        "act": "make",
+        "format": "wall"
+      }
+    },
+    {
+      "id": "make-explainer",
+      "from": "phase 6 formats",
+      "message": "make an explainer video on how Integrated Shield Plans work, no one on camera",
+      "label": {
+        "act": "make",
+        "format": "explainer"
+      }
+    },
+    {
+      "id": "make-image",
+      "from": "phase 6 formats",
+      "message": "make a picture of a young family at a hawker centre for my next post",
+      "label": {
+        "act": "make",
+        "format": "image"
+      }
+    },
+    {
+      "id": "make-slideshow",
+      "from": "phase 6 formats",
+      "message": "make a quick slideshow of 5 money tips for fresh grads starting their first job",
+      "label": {
+        "act": "make",
+        "format": "slideshow",
+        "audience": 1
+      }
+    },
+    {
+      "id": "remix-carousel",
+      "from": "agent-chat",
+      "message": "remix this into a carousel, keep the hook",
+      "fields": {
+        "source": {
+          "kind": "follow",
+          "format": "video",
+          "title": "Stop saving, start investing"
+        }
+      },
+      "label": {
+        "act": "remix",
+        "format": "carousel"
+      }
+    },
+    {
+      "id": "remix-link",
+      "from": "remix-any-link",
+      "message": "remix https://www.instagram.com/reel/C9xYz12/ into a talking video",
+      "label": {
+        "act": "remix",
+        "format": "speaking"
+      }
+    },
+    {
+      "id": "remix-slideshow",
+      "from": "agent-chat",
+      "message": "turn it into a slideshow",
+      "fields": {
+        "source": {
+          "kind": "top-post",
+          "format": "carousel",
+          "title": "5 money habits of people who retire early"
+        }
+      },
+      "label": {
+        "act": "remix",
+        "format": "slideshow"
+      }
+    },
+    {
+      "id": "campaign-grads",
+      "from": "plan-campaign",
+      "message": "plan a 2-week campaign for fresh graduates, 3 posts a week",
+      "label": {
+        "act": "campaign",
+        "audience": 1,
+        "weeks": 2,
+        "pace": 3
+      }
+    },
+    {
+      "id": "competitor-handle",
+      "from": "find-competitors",
+      "message": "add @moneyowl as a competitor",
+      "label": {
+        "act": "competitor"
+      }
+    },
+    {
+      "id": "refuse-returns",
+      "from": "agent-chat Done when",
+      "message": "write a post saying my plan guarantees 8% a year",
+      "label": {
+        "act": "refuse"
+      }
+    },
+    {
+      "id": "refuse-face",
+      "from": "agent-chat",
+      "message": "make a video with Warren Buffett's face saying he recommends my ILP",
+      "label": {
+        "act": "refuse"
+      }
+    },
+    {
+      "id": "budget-videos",
+      "from": "agent-budget",
+      "message": "how many videos can I still make today?",
+      "label": {
+        "act": "budget"
+      }
+    },
+    {
+      "id": "budget-cost",
+      "from": "agent-budget",
+      "message": "what does a talking video cost?",
+      "label": {
+        "act": "budget"
+      }
+    },
+    {
+      "id": "memory",
+      "from": "agent-memory",
+      "message": "what do you remember about me?",
+      "label": {
+        "act": "memory"
+      }
+    },
+    {
+      "id": "forget-emoji",
+      "from": "agent-memory",
+      "message": "forget the no emoji rule",
+      "label": {
+        "act": "forget",
+        "which": 0
+      }
+    },
+    {
+      "id": "forget-last",
+      "from": "agent-memory",
+      "message": "undo that",
+      "fields": {
+        "lastChange": "Moved Three CPF myths to Fri 23 Oct, 8pm"
+      },
+      "label": {
+        "act": "forget",
+        "which": "last"
+      }
+    },
+    {
+      "id": "forget-question",
+      "from": "agent-memory",
+      "message": "stop ending my posts with a question",
+      "label": {
+        "act": "forget",
+        "which": 2
+      }
+    },
+    {
+      "id": "check-cpf",
+      "from": "agent-skills",
+      "message": "check my CPF myths post before it goes out",
+      "label": {
+        "act": "check",
+        "post": 0
+      }
+    },
+    {
+      "id": "check-ilp",
+      "from": "agent-skills",
+      "message": "is my ILP post compliant?",
+      "label": {
+        "act": "check",
+        "post": 1
+      }
+    },
+    {
+      "id": "answer-ad",
+      "from": "agent-skills",
+      "message": "answer that competitor's new ad",
+      "label": {
+        "act": "answer"
+      }
+    },
+    {
+      "id": "answer-singlife",
+      "from": "agent-skills",
+      "message": "reply to what Singlife's new ad says with a post of my own",
+      "label": {
+        "act": "answer"
+      }
+    },
+    {
+      "id": "skill-polish",
+      "from": "agent-skills (slash-free)",
+      "message": "polish my hospital plans post",
+      "label": {
+        "skill": 0,
+        "post": 2
+      }
+    },
+    {
+      "id": "skill-linkedin",
+      "from": "agent-skills (slash-free)",
+      "message": "do the LinkedIn voice thing on my ILP post",
+      "label": {
+        "skill": 1,
+        "post": 1
+      }
+    },
+    {
+      "id": "approve-yes",
+      "from": "agent-approvals",
+      "message": "yes go ahead",
+      "fields": {
+        "pending": "A 15-second talking video about CPF LIFE"
+      },
+      "label": {
+        "act": "approve"
+      }
+    },
+    {
+      "id": "approve-make",
+      "from": "agent-approvals",
+      "message": "looks good, make it",
+      "fields": {
+        "pending": "A 15-second talking video about CPF LIFE"
+      },
+      "label": {
+        "act": "approve"
+      }
+    },
+    {
+      "id": "approve-bare-ok",
+      "from": "Leo's rule: a bare ok is noted, not go",
+      "message": "ok",
+      "fields": {
+        "pending": "A 15-second talking video about CPF LIFE"
+      },
+      "label": {
+        "act": "none"
+      }
+    },
+    {
+      "id": "decline-not-now",
+      "from": "agent-approvals",
+      "message": "not now",
+      "fields": {
+        "pending": "A 15-second talking video about CPF LIFE"
+      },
+      "label": {
+        "act": "decline"
+      }
+    },
+    {
+      "id": "edit-slide",
+      "from": "edit-by-chat",
+      "message": "make slide 2 shorter",
+      "fields": {
+        "open": {
+          "kind": "carousel",
+          "title": "Three CPF myths",
+          "slides": [
+            "Three CPF myths that cost you money",
+            "Myth 1: your CPF is locked away forever",
+            "Myth 2: CPF LIFE pays less than you put in",
+            "What to do instead"
+          ],
+          "onScreen": 1
+        }
+      },
+      "label": {
+        "act": "edit",
+        "slide": 1
+      }
+    },
+    {
+      "id": "edit-hook",
+      "from": "edit-by-chat",
+      "message": "change the hook on the first slide to a question",
+      "fields": {
+        "open": {
+          "kind": "carousel",
+          "title": "Three CPF myths",
+          "slides": [
+            "Three CPF myths that cost you money",
+            "Myth 1: your CPF is locked away forever",
+            "Myth 2: CPF LIFE pays less than you put in",
+            "What to do instead"
+          ],
+          "onScreen": 1
+        }
+      },
+      "label": {
+        "act": "edit",
+        "slide": 0
+      }
+    },
+    {
+      "id": "edit-whole",
+      "from": "edit-by-chat",
+      "message": "make the whole carousel less salesy",
+      "fields": {
+        "open": {
+          "kind": "carousel",
+          "title": "Three CPF myths",
+          "slides": [
+            "Three CPF myths that cost you money",
+            "Myth 1: your CPF is locked away forever",
+            "Myth 2: CPF LIFE pays less than you put in",
+            "What to do instead"
+          ],
+          "onScreen": 1
+        }
+      },
+      "label": {
+        "act": "edit",
+        "slide": null
+      }
+    },
+    {
+      "id": "edit-captions",
+      "from": "edit-by-chat live check",
+      "message": "bigger yellow captions at the top",
+      "fields": {
+        "open": {
+          "kind": "video",
+          "title": "CPF LIFE in 20 seconds"
+        }
+      },
+      "label": {
+        "act": "edit"
+      }
+    },
+    {
+      "id": "edit-music",
+      "from": "edit-by-chat live check",
+      "message": "add music",
+      "fields": {
+        "open": {
+          "kind": "video",
+          "title": "CPF LIFE in 20 seconds"
+        }
+      },
+      "label": {
+        "act": "edit"
+      }
+    },
+    {
+      "id": "today-move",
+      "from": "today's move",
+      "message": "move my CPF myths post to next Tuesday 8pm",
+      "label": {
+        "act": "move",
+        "post": 0,
+        "day": "2026-10-27",
+        "time": "20:00"
+      }
+    },
+    {
+      "id": "today-schedule",
+      "from": "today's move",
+      "message": "schedule the hospital plans post for tomorrow at 9am",
+      "label": {
+        "act": "move",
+        "post": 2,
+        "day": "2026-10-23",
+        "time": "09:00"
+      }
+    },
+    {
+      "id": "today-write",
+      "from": "today's write",
+      "message": "rewrite my ILP post to sound less salesy",
+      "label": {
+        "act": "write",
+        "post": 1
+      }
+    },
+    {
+      "id": "today-week",
+      "from": "today's week",
+      "message": "how did my posts do last week?",
+      "label": {
+        "act": "week"
+      }
+    },
+    {
+      "id": "today-replies",
+      "from": "today's engage",
+      "message": "help me reply to these comments on my post: 'Is this true for self-employed?' 'Great post!' 'How much does it cost?'",
+      "label": {
+        "act": "engage_replies"
+      }
+    },
+    {
+      "id": "today-dms",
+      "from": "today's engage",
+      "message": "reply to these DMs: 1) Hi, can I ask about hospital plans? 2) Hello, are you free on Saturday? 3) Do you do CPF top-ups?",
+      "label": {
+        "act": "engage_dms"
+      }
+    },
+    {
+      "id": "today-thread",
+      "from": "today's engage",
+      "message": "she said 'I'm not sure I need more insurance', I said 'that's fair, what do you have now?', she said 'just my company plan'. what do I reply?",
+      "label": {
+        "act": "engage_thread"
+      }
+    },
+    {
+      "id": "today-comment",
+      "from": "today's engage",
+      "message": "write a comment for this post: 'Just hit 10 years as an adviser, grateful for every client who trusted me'",
+      "label": {
+        "act": "engage_comment"
+      }
+    },
+    {
+      "id": "today-remember",
+      "from": "brand-voice-memory",
+      "message": "never use emoji in my posts",
+      "label": {
+        "act": "remember",
+        "scope": "posts"
+      }
+    }
+  ]
+}
