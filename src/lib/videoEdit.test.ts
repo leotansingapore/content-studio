@@ -27,6 +27,8 @@ import {
   captionIntro,
   fullLength,
   END_CARD_SECONDS,
+  INTRO_CARD_SECONDS,
+  introLength,
   endCardLine,
   lookOf,
   withLook,
@@ -246,6 +248,20 @@ describe("brand kit on video", () => {
     expect(fullLength(20, { endCard: true }, true)).toBe(20 + END_CARD_SECONDS);
     expect(fullLength(20, { endCard: true }, false)).toBe(20);
     expect(fullLength(20, {}, true)).toBe(20);
+  });
+
+  it("adds 1.5 s for the intro card only when it is on, in a video, on brand art loaded for Leo", async () => {
+    const leoArt = { intro: true };
+    expect(INTRO_CARD_SECONDS).toBe(1.5);
+    expect(introLength({ introCard: true }, leoArt)).toBe(1.5);
+    expect(fullLength(20, { endCard: true }, true, introLength({ introCard: true }, leoArt))).toBe(1.5 + 20 + END_CARD_SECONDS);
+    // everyone else's art has no intro flag, whatever the settings say; off, unset, no brand or sound only add nothing
+    expect(introLength({ introCard: true }, {})).toBe(0);
+    expect(introLength({ introCard: false }, leoArt)).toBe(0);
+    expect(introLength({}, leoArt)).toBe(0);
+    expect(introLength({ introCard: true }, null)).toBe(0);
+    expect(introLength({ introCard: true, exportAs: "audio" }, leoArt)).toBe(0);
+    expect(fullLength(20, { endCard: true }, true, 0)).toBe(fullLength(20, { endCard: true }, true));
   });
 
   it("takes the end card line from the sign-off, skipping hashtag lines", async () => {

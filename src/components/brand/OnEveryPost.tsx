@@ -35,7 +35,7 @@ export default function OnEveryPost({ brand, setBrand }: { brand: CarouselBrand;
       <div className="grid gap-x-4 sm:grid-cols-2">
         <Switch label="Logo on every video" on={!!brand.logo && stamp.videoLogo !== false} set={(v) => set({ videoLogo: v })} reason={noLogo} />
         <Switch label="End card on every video" on={!!stamp.videoEnd} set={(v) => set({ videoEnd: v })} />
-        {/* shortcut: "Intro card on every video" waits until the export and the editor preview draw drawIntroCard (videoMedia.ts); withKit already sets introCard */}
+        <Switch label="Intro card on every video" on={!!stamp.videoIntro} set={(v) => set({ videoIntro: v })} />
         <Switch label="Logo on AI pictures" on={!!brand.logo && !!stamp.pictureLogo} set={(v) => set({ pictureLogo: v })} reason={noLogo} />
       </div>
       <p className="border-t border-border/60 pt-2 text-sm">

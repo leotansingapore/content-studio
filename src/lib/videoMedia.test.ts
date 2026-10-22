@@ -7,6 +7,8 @@ import {
 
 const kitFont = vi.hoisted(() => ({ font: undefined as string | undefined }));
 vi.mock("@/lib/brandFont", () => ({ leoBrandFont: async () => kitFont.font }));
+const signIn = vi.hoisted(() => ({ leo: null as { id: string; email: string } | null }));
+vi.mock("@/lib/useLeoOnly", () => ({ leoUser: async () => signIn.leo }));
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
 
 describe("export all", () => {
@@ -404,5 +406,14 @@ describe("the brand kit's cards on video (brand-kit)", () => {
     kitFont.font = "BrandFont";
     expect(await loadBrandArt(kit)).toMatchObject({ font: "BrandFont" });
     kitFont.font = undefined;
+  });
+
+  it("lets the intro card be drawn only from art loaded on Leo's sign-in", async () => {
+    const kit = { color: "#1E3A8A", name: "Activity Tracker", handle: "" };
+    signIn.leo = null;
+    expect(await loadBrandArt(kit)).not.toHaveProperty("intro");
+    signIn.leo = { id: "leo", email: "leo@example.com" };
+    expect(await loadBrandArt(kit)).toMatchObject({ intro: true });
+    signIn.leo = null;
   });
 });

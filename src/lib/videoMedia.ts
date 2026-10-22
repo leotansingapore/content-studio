@@ -10,6 +10,7 @@ import { readableOn } from "@/lib/carouselLayout";
 import type { CarouselBrand } from "@/lib/carousel";
 import {
   END_CARD_SECONDS,
+  introLength,
   STYLES,
   aspectSize,
   exportSize,
@@ -477,6 +478,8 @@ export interface BrandArt {
   line: string;
   /** Leo's brand font family once loaded (brand-kit): the end card's words. Unset for everyone else. */
   font?: string;
+  /** Set only when loaded on Leo's sign-in: the intro card (brand-kit, introLength) may be drawn. */
+  intro?: boolean;
 }
 
 function loadImg(src: string | undefined): Promise<HTMLImageElement | undefined> {
@@ -491,23 +494,25 @@ function loadImg(src: string | undefined): Promise<HTMLImageElement | undefined>
 
 export async function loadBrandArt(brand: CarouselBrand | null): Promise<BrandArt | null> {
   if (!brand || !(brand.name?.trim() || brand.handle?.trim() || brand.photo || brand.logo)) return null;
-  const [logo, photo, font] = await Promise.all([
+  const [logo, photo, font, leo] = await Promise.all([
     loadImg(brand.logo),
     loadImg(brand.photo),
     // loaded only for Leo's sign-ins, and imported here so this module never pulls in the session
     import("@/lib/brandFont").then((m) => m.leoBrandFont()).catch(() => undefined),
+    import("@/lib/useLeoOnly").then((m) => m.leoUser()).catch(() => null),
   ]);
-  return { logo, photo, name: brand.name.trim(), handle: brand.handle.trim(), role: (brand.role ?? "").trim(), color: brand.color, line: endCardLine(brand.signOff), ...(font ? { font } : {}) };
+  return {
+    logo, photo, name: brand.name.trim(), handle: brand.handle.trim(), role: (brand.role ?? "").trim(), color: brand.color, line: endCardLine(brand.signOff),
+    ...(font ? { font } : {}), ...(leo ? { intro: true } : {}),
+  };
 }
 
 /** The card's words: the brand font first when there is one, else today's DM Sans. */
 const cardFont = (art: BrandArt) => `${art.font ? `"${art.font}", ` : ""}"DM Sans", Inter, system-ui, sans-serif`;
 
-export const INTRO_CARD_SECONDS = 1.5;
-
 /**
  * The opening card (brand-kit): the brand colour with the logo, or the photo when there is no logo, over the brand
- * name; the logo and name fade in over 0.3 s. Not drawn by the export yet.
+ * name; the logo and name fade in over 0.3 s. Plays for introLength before the first part, over silence.
  */
 export function drawIntroCard(g: CanvasRenderingContext2D, art: BrandArt, t: number) {
   const W = g.canvas.width;
@@ -1408,8 +1413,9 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     if (plan.total < 0.5) throw new Error("Nothing left to export after the cuts.");
     // a podcast or voice clip has no picture: it is drawn as a waveform
     const peaks = video.videoWidth || kind === "audio" ? null : await audioPeaks(file);
+    const introLen = introLength(settings, brand);
     // sized for the platform it is for: frame, bitrates, and under its upload cap
-    const size = exportSize(settings, plan.total + (settings.endCard && brand ? END_CARD_SECONDS : 0), video.videoWidth, video.videoHeight);
+    const size = exportSize(settings, introLen + plan.total + (settings.endCard && brand ? END_CARD_SECONDS : 0), video.videoWidth, video.videoHeight);
     const [W, H] = size.w ? [size.w, size.h] : aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
     const canvas = document.createElement("canvas");
     canvas.width = W;
@@ -1496,10 +1502,31 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
         for (const c of sfxTick(cues, out)) playCue(actx!, mix, c.kind);
       } else voStop();
       if (job) {
-        job.progress = Math.min(0.99, out / (plan.total + endLen));
+        job.progress = Math.min(0.99, (introLen + out) / (introLen + plan.total + endLen));
         emit();
       }
     };
+    if (introLen && brand) {
+      // the intro card: painted for its length in real time over silence, before the first part starts the sound
+      drawIntroCard(g, brand, 0);
+      rec.start(1000);
+      const start = performance.now();
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          const t = (performance.now() - start) / 1000;
+          drawIntroCard(g, brand, t);
+          if (job) {
+            job.progress = Math.min(0.99, t / (introLen + plan.total + endLen));
+            emit();
+          }
+          if (t >= introLen) return resolve();
+          // the last tick lands on the card's end, so the first part (and every caption after it) starts on time
+          window.setTimeout(tick, Math.min(1000 / 30, Math.ceil((introLen - t) * 1000)));
+        };
+        tick();
+      });
+      rec.pause();
+    }
     for (let i = 0; i < plan.segs.length; i++) {
       const seg = plan.segs[i];
       segI = i;
@@ -1511,7 +1538,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       // Play first, record once it is really playing: resuming the recorder before
       // playback starts records a frozen frame at every cut (an 8.6 s edit came out 10.6 s).
       await v.play();
-      if (i === 0) rec.start(1000);
+      if (i === 0 && !introLen) rec.start(1000);
       else rec.resume();
       gain.gain.cancelScheduledValues(actx.currentTime);
       gain.gain.setValueAtTime(0, actx.currentTime);
@@ -1575,7 +1602,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
           drawEndCard(g, brand, t);
           voSync(plan.total + t);
           if (job) {
-            job.progress = Math.min(0.99, (plan.total + t) / (plan.total + endLen));
+            job.progress = Math.min(0.99, (introLen + plan.total + t) / (introLen + plan.total + endLen));
             emit();
           }
           if (t >= endLen) return resolve();
@@ -1586,7 +1613,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     }
     rec.stop();
     await stopped;
-    deliver(name, kind, new Blob(chunks, { type: mime.split(";")[0] }), ext, plan.total + endLen, size.capBytes, size.label);
+    deliver(name, kind, new Blob(chunks, { type: mime.split(";")[0] }), ext, introLen + plan.total + endLen, size.capBytes, size.label);
   } catch (e) {
     job = { ...job!, state: "failed", error: e instanceof Error ? e.message : String(e) };
     emit();
