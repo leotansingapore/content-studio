@@ -30,6 +30,7 @@ import {
   endCardLine,
   lookOf,
   withLook,
+  withKit,
   sameLook,
   toSrt,
   findPhrase,
@@ -270,6 +271,39 @@ describe("a new video's settings for everyone else (pinned at 7cd872f4, before t
       return [JSON.stringify(s), JSON.stringify(lookOf(s))];
     });
     expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("0463a7f05f396574ebff1c354dceb6e8e05fa6bd1d219e65a6224b1681dd9b4c");
+  });
+});
+
+describe("the brand kit's switches on a new video (brand-kit)", () => {
+  const LOGO = "data:image/png;base64,iVBORw0KGgo=";
+  const offSkill = lookOf({ ...defaultSettings("minimal"), logo: false, endCard: false });
+
+  it("turns the logo on when the kit has one and its switch is unset, and keeps it off when switched off", () => {
+    expect(withKit(defaultSettings(), { logo: LOGO }, true)).toMatchObject({ logo: true, endCard: false, introCard: false });
+    expect(withKit(defaultSettings(), { logo: LOGO, stamp: { videoLogo: false } }, true).logo).toBe(false);
+    expect(withKit(defaultSettings(), { stamp: { videoLogo: true } }, true).logo).toBe(false);
+  });
+
+  it("sets the end and intro cards from the switches", () => {
+    expect(withKit(defaultSettings(), { stamp: { videoEnd: true, videoIntro: true } }, true)).toMatchObject({ endCard: true, introCard: true });
+    expect(withKit({ ...defaultSettings(), endCard: true }, { stamp: {} }, true).endCard).toBe(false);
+  });
+
+  it("wins over a default skill saved with the logo off, and a skill tapped on the video still turns it off", () => {
+    const fresh = withKit(withLook(defaultSettings("bold"), offSkill), { logo: LOGO }, true);
+    expect(fresh).toMatchObject({ style: "minimal", logo: true });
+    expect(withLook(fresh, offSkill).logo).toBe(false);
+  });
+
+  it("changes nothing for everyone else, or for Leo with no kit", () => {
+    const s = withLook(defaultSettings("bold"), offSkill);
+    expect(withKit(s, { logo: LOGO, stamp: { videoEnd: true } }, false)).toBe(s);
+    expect(withKit(s, null, true)).toBe(s);
+  });
+
+  it("keeps the intro card in a saved look", () => {
+    expect(lookOf({ ...defaultSettings(), introCard: true })).toMatchObject({ introCard: true });
+    expect(withLook(defaultSettings(), { introCard: true }).introCard).toBe(true);
   });
 });
 

@@ -10,6 +10,7 @@
 import type { Pair, Spot } from "@/lib/stacked";
 import type { FaceBox, KeyLine } from "@/lib/videoMotion";
 import type { Chart } from "@/lib/videoCharts";
+import type { CarouselBrand } from "@/lib/carousel";
 import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 import { findRetakes } from "@/lib/retakes";
 import { outWithin, segLength, srcWithin, withFast } from "@/lib/fastPauses";
@@ -122,6 +123,8 @@ export interface EditSettings {
   logo?: boolean;
   /** A closing card from the brand kit (photo, name, handle, sign-off line) after the last cut. */
   endCard?: boolean;
+  /** An opening card from the brand kit (logo, name) before the first cut (brand-kit). Not drawn by the export yet. */
+  introCard?: boolean;
   /** B-roll cutaways: stock clips shown full-frame, muted, over stretches of the edit. */
   broll?: Broll[];
   /** B-roll in a card at the top or the side over the dimmed shot (brollCard.ts). Unset = full frame. */
@@ -162,6 +165,17 @@ export const END_CARD_SECONDS = 2.5;
 /** The edit's full length: what is left after the cuts, plus the end card when it is on and there is a brand to show. */
 export function fullLength(total: number, s: Pick<EditSettings, "endCard">, hasBrand: boolean): number {
   return total + (s.endCard && hasBrand ? END_CARD_SECONDS : 0);
+}
+
+/**
+ * The brand kit's "Put on every post" switches over a new video's settings (brand-kit, Leo only). It runs after the
+ * default skill's look, because every saved look carries logo and endCard and would otherwise switch the kit off; a
+ * skill tapped on the open video, or its own toggles, still change them. The logo starts on when the kit has one,
+ * unless switched off. Everyone else's settings come back as they were, the same object.
+ */
+export function withKit(s: EditSettings, kit: Pick<CarouselBrand, "logo" | "stamp"> | null, leo: boolean): EditSettings {
+  if (!leo || !kit) return s;
+  return { ...s, logo: !!kit.logo && kit.stamp?.videoLogo !== false, endCard: !!kit.stamp?.videoEnd, introCard: !!kit.stamp?.videoIntro };
 }
 
 /** The end card's call to action: the sign-off's first line that isn't only hashtags. */
@@ -557,7 +571,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "pauseFast", "denoise", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups", "keyWordsOn", "captionEmoji"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "pauseFast", "denoise", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "introCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups", "keyWordsOn", "captionEmoji"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -588,7 +602,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "removeRetakes", "maxPause", "pauseFast", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "denoise", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop", "popups",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "introCard", "captionBox", "font", "filter", "transition", "voicePolish", "denoise", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop", "popups",
   "keyWordsOn", "captionEmoji",
 ] as const satisfies readonly (keyof EditSettings)[];
 
