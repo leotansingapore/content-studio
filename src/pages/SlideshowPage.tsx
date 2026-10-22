@@ -210,22 +210,28 @@ function AskBox(p: { text: string; left: number | null; target: () => EditTarget
       setR({ state: "failed", error: e instanceof Error && e.message ? e.message : ASK_FAILED });
     }
   };
+  // opened from a link, the box may sit below the fold: bring it into view once
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // Chrome's scroll methods answer a promise, which an effect must not return
+    void box.current?.scrollIntoView({ block: "center" });
+  }, []);
   return (
-    <section aria-label="Change every slide" className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+    <section ref={box} aria-label="Change every slide" className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
       <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => (e.preventDefault(), void run())}>
         <Input value={p.text} maxLength={ASK_MAX_CHARS} aria-label="What to change on every slide" disabled={working} onChange={(e) => p.onText(e.target.value)}
           className="h-9 min-w-0 flex-1 basis-48 text-sm [@media(pointer:coarse)]:h-11" />
         <Button type="submit" size="sm" disabled={!p.text.trim() || working || p.left === 0} className={`h-9 gap-1.5 ${TOUCH}`}>
           <Sparkles className="h-3.5 w-3.5" /> Rewrite
         </Button>
-        {!working && r?.state !== "ready" && (
-          <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className={`h-9 text-muted-foreground ${TOUCH}`}>Close</Button>
-        )}
       </form>
       {!working && (
         <p className="flex flex-wrap items-center gap-2">
           <PriceChip feature="edit-ask" left={p.left} />
           {why && <span className="text-[11px] text-muted-foreground">{why}</span>}
+          {r?.state !== "ready" && (
+            <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className={`ml-auto h-9 text-muted-foreground ${TOUCH}`}>Close</Button>
+          )}
         </p>
       )}
       {working && (
