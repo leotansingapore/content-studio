@@ -1293,7 +1293,7 @@ export default function CarouselPage() {
                       id="carousel-signer"
                       value={brand.people?.some((p) => p.id === signer) ? signer : ""}
                       onChange={(e) => { setSigner(e.target.value); setEdited(true); }}
-                      className="h-10 w-full max-w-xs rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
+                      className="block h-10 w-full max-w-xs rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
                     >
                       <option value="">{brand.name.trim() || "Your brand"}</option>
                       {brand.people?.map((p) => <option key={p.id} value={p.id}>{p.name.trim() || "Unnamed"}{p.role?.trim() ? `, ${p.role.trim()}` : ""}</option>)}
