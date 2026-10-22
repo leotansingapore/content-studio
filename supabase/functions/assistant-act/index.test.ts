@@ -140,7 +140,7 @@ describe("agent mode (Leo only)", () => {
     expect(db.spent).toEqual(["agent-act"]);
     const q = (asked[0] as Sent).questions;
     expect(Object.keys(q)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill"]);
-    expect(q.act.criteria.refuse).toBe("Ask for something that must not be made: a post that copies another person's words exactly, or uses another real person's face or voice.");
+    expect(q.act.criteria.refuse).toBe("Ask for something that must not be made: a post that copies another person's words exactly, uses another real person's face or voice, or makes a real person (a celebrity, a public figure or anyone outside the business) appear to say, recommend or endorse something.");
     expect((asked[0] as Sent).state.pending).toBe(AGENT_FIELDS.pending);
   });
   it("keeps today's dock for the same account without agent: true", async () => {

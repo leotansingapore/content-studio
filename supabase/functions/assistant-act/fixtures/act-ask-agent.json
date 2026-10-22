@@ -26,7 +26,7 @@
         "competitor": "Add a business, brand or social account to the competitors they track.",
         "campaign": "Plan a campaign, a month of posts or several weeks of content.",
         "capabilities": "Ask what the assistant can do, make or help with.",
-        "refuse": "Ask for something that must not be made: a post that promises returns or guaranteed results, names an insurer's product, copies another person's words exactly, or uses another real person's face or voice.",
+        "refuse": "Ask for something that must not be made: a post that promises returns, a percentage or results, or guarantees them; names an insurer's product; copies another person's words exactly; uses another real person's face or voice; or makes a real person (a celebrity, a public figure or anyone who is not them) appear to say, recommend or endorse something.",
         "budget": "Ask how many AI videos, pictures, voiceovers or other AI uses they have left today, or what something costs to make.",
         "forget": "Take something back: undo the last change, forget a preference they gave earlier, or stop doing something the app was told to do.",
         "memory": "Ask what the app remembers, has learned or follows about them and their preferences.",

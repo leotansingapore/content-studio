@@ -309,10 +309,10 @@ describe("actAsk in agent mode", () => {
   });
   it("gives a business brand the refuse criterion with no adviser rules", () => {
     expect(asked(agentBody()).act.criteria.refuse).toBe(
-      "Ask for something that must not be made: a post that promises returns or guaranteed results, names an insurer's product, copies another person's words exactly, or uses another real person's face or voice.",
+      "Ask for something that must not be made: a post that promises returns, a percentage or results, or guarantees them; names an insurer's product; copies another person's words exactly; uses another real person's face or voice; or makes a real person (a celebrity, a public figure or anyone who is not them) appear to say, recommend or endorse something.",
     );
     expect(asked(agentBody({ speaker: "business" })).act.criteria.refuse).toBe(
-      "Ask for something that must not be made: a post that copies another person's words exactly, or uses another real person's face or voice.",
+      "Ask for something that must not be made: a post that copies another person's words exactly, uses another real person's face or voice, or makes a real person (a celebrity, a public figure or anyone outside the business) appear to say, recommend or endorse something.",
     );
   });
   it("sends Jev this request for a full agent body (pinned: read the diff before changing it)", async () => {
@@ -322,6 +322,12 @@ describe("actAsk in agent mode", () => {
 
 describe("agentPick", () => {
   const b = agentBody(FULL);
+  it("refuses making a real person appear to endorse something, and promised returns, for a person and a business", () => {
+    const person = JSON.stringify(actAsk(b, true).questions.act);
+    const business = JSON.stringify(actAsk({ ...b, agent: { ...b.agent!, speaker: "business" } }, true).questions.act);
+    for (const words of ["appear to say, recommend or endorse", "a percentage or results"]) expect(person).toContain(words);
+    expect(business).toContain("appear to say, recommend or endorse");
+  });
   const sure = {
     act: choice("make"),
     format: choice("speaking"),
