@@ -19,7 +19,8 @@ export const KEEP_ROWS = 60;
 
 export const LEARNING_SCOPES = ["posts", "videos", "pictures", "all"] as const;
 export type LearningScope = (typeof LEARNING_SCOPES)[number];
-export type LearningSource = "assistant" | "rewrite" | "typed";
+/** "correction": saved from the agent's nudge after the same change on 3 cards (agent-memory). */
+export type LearningSource = "assistant" | "rewrite" | "typed" | "correction";
 
 export interface Fact {
   id: string;
@@ -38,6 +39,9 @@ export interface Learning {
   replacedBy?: string;
   /** The rewrite kept 3 times, for source "rewrite" (rewriteLog.ts REWRITE_LEARNINGS). */
   rewrite?: string;
+  /** The agent thread and message it was saved from (agent-memory), for /voice's "From a chat" link. */
+  thread?: string;
+  msg?: string;
 }
 
 export const FACTS_CHANGED = "content-studio-facts-changed";
@@ -123,7 +127,7 @@ export function setFactOff(userId: string, id: string, off: boolean, now = new D
 // ---------- learnings ----------
 
 const learningsKey = (userId: string) => `${LEARNINGS_PREFIX}${scoped(userId)}`;
-const SOURCES: LearningSource[] = ["assistant", "rewrite", "typed"];
+const SOURCES: LearningSource[] = ["assistant", "rewrite", "typed", "correction"];
 
 /** Every learning row, removed and replaced ones included, oldest first. Empty on bad JSON. */
 export function loadLearnings(userId: string): Learning[] {
@@ -139,6 +143,8 @@ export function loadLearnings(userId: string): Learning[] {
     if (iso(l?.offAt)) row.offAt = l!.offAt;
     if (str(l?.replacedBy, 40)) row.replacedBy = str(l?.replacedBy, 40);
     if (source === "rewrite" && str(l?.rewrite, 20)) row.rewrite = str(l?.rewrite, 20);
+    if (str(l?.thread, 40)) row.thread = str(l?.thread, 40);
+    if (str(l?.msg, 40)) row.msg = str(l?.msg, 40);
     return [row];
   });
 }
@@ -152,7 +158,7 @@ export const activeLearnings = (rows: Learning[]) => rows.filter(isOn).reverse()
  */
 export function addLearning(
   userId: string,
-  l: { text: string; scope: LearningScope; source: LearningSource; rewrite?: string },
+  l: { text: string; scope: LearningScope; source: LearningSource; rewrite?: string; thread?: string; msg?: string },
   replaces?: string | null,
   now = new Date(),
 ): Saved<Learning> {
@@ -163,7 +169,16 @@ export function addLearning(
   if (same) return { ok: true, item: same, existed: true };
   const old = replaces ? rows.find((r) => r.id === replaces && isOn(r)) : undefined;
   if (rows.filter(isOn).length - (old ? 1 : 0) >= MAX_LEARNINGS) return { ok: false, error: fullLine(MAX_LEARNINGS) };
-  const item: Learning = { id: newId("l", now), text, scope: l.scope, source: l.source, createdAt: now.toISOString(), ...(l.source === "rewrite" && l.rewrite ? { rewrite: l.rewrite } : {}) };
+  const item: Learning = {
+    id: newId("l", now),
+    text,
+    scope: l.scope,
+    source: l.source,
+    createdAt: now.toISOString(),
+    ...(l.source === "rewrite" && l.rewrite ? { rewrite: l.rewrite } : {}),
+    ...(str(l.thread, 40) ? { thread: str(l.thread, 40) } : {}),
+    ...(str(l.msg, 40) ? { msg: str(l.msg, 40) } : {}),
+  };
   const next = rows.map((r) => (r === old ? { ...r, offAt: item.createdAt, replacedBy: item.id } : r));
   return write(learningsKey(userId), LEARNINGS_CHANGED, [...next, item]) ? { ok: true, item } : { ok: false, error: SAVE_FAILED };
 }

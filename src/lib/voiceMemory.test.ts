@@ -148,6 +148,16 @@ describe("learnings", () => {
       ["l4", undefined],
     ]);
   });
+  it("keeps the agent's thread and message and the correction source through a save, a remove and a reload", () => {
+    const r = addLearning(UID, { text: "Make carousels unless I ask for something else.", scope: "all", source: "correction", thread: "tk1", msg: "mk2" }, null, at(0));
+    expect(r.ok && r.item).toMatchObject({ source: "correction", thread: "tk1", msg: "mk2" });
+    setLearningOff(UID, r.ok ? r.item.id : "", true, at(1));
+    expect(loadLearnings(UID)[0]).toMatchObject({ source: "correction", thread: "tk1", msg: "mk2", offAt: at(1).toISOString() });
+    const typed = addLearning(UID, { text: "no thread", scope: "posts", source: "typed", thread: "  " }, null, at(2));
+    expect(typed.ok && "thread" in typed.item).toBe(false);
+    store.set(`content-studio-learnings-${UID}`, JSON.stringify([{ id: "l1", text: "a", scope: "posts", source: "assistant", createdAt: "2026-10-21T00:00:00Z", thread: 5, msg: "m1" }]));
+    expect(loadLearnings(UID)).toEqual([{ id: "l1", text: "a", scope: "posts", source: "assistant", createdAt: "2026-10-21T00:00:00Z", msg: "m1" }]);
+  });
   it("checks a new note against its scope's notes and Everything's", () => {
     learn("posts note", "posts", 1);
     learn("video note", "videos", 2);
