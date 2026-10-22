@@ -2,7 +2,7 @@
 // (edit-snippets). Pure: no storage, no React.
 import { STARTER_ENDINGS } from "@/data/endings";
 import type { HookFormula } from "@/lib/hookFormulas";
-import { countHashtags } from "@/lib/platformCounters";
+import { countHashtags, LINKEDIN_HASHTAGS } from "@/lib/platformCounters";
 import { insertSnippet, type SnippetKind } from "@/lib/replySnippets";
 
 /** The editor's selection, when the cursor was placed in it. */
@@ -38,6 +38,12 @@ export function hashtagAsk(set: string, draft: string, max: number | undefined):
   const n = countHashtags(set);
   const have = countHashtags(draft);
   return have + n <= max ? null : { max, n, have, keep: Math.max(0, max - have) };
+}
+
+/** The limit the question holds a set to: the brand kit's or platform's (hashtagMax), and on LinkedIn no more than Write's counter. */
+export function insertHashtagMax(kitMax: number | undefined, platform: string): number | undefined {
+  if (platform !== "linkedin") return kitMax;
+  return Math.min(kitMax ?? LINKEDIN_HASHTAGS, LINKEDIN_HASHTAGS);
 }
 
 /** The starter endings, the one matching the draft's call to action first. */
