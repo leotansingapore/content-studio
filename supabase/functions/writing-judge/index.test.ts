@@ -178,6 +178,69 @@ describe("the learning conflict check", () => {
   });
 });
 
+describe("the goal kind (plan-goal)", () => {
+  const body = { mode: "goal", text: "more people booking a 15-minute review with me" };
+  const kind = (choice: string, p: number) => () => Response.json({ answers: { kind: { type: "choice", choice, probabilities: { [choice]: p } } } });
+
+  it("refuses anyone not on the list before counting anything or asking Jev", async () => {
+    const res = await ask(OTHER, body);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("answers Jev's kind for one writing-judge use, one choice question, and logs the kind and p but never the goal", async () => {
+    jev = kind("clients", 0.82);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const res = await ask(LEO, body);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ kind: "clients", p: 0.82 });
+      expect(used(LEO)).toBe(1);
+      expect(calls).toHaveLength(1);
+      const q = sent[0] as { model: string; state: unknown; questions: Record<string, { type: string }> };
+      expect(q.model).toBe("jev-1.13.0");
+      expect(q.state).toEqual({ goal: body.text, country: "Singapore", who: "a financial adviser or a small business that posts on social media" });
+      expect(Object.keys(q.questions)).toEqual(["kind"]);
+      expect(log.mock.calls).toEqual([["writing-judge goal", JSON.stringify({ kind: "clients", p: 0.82 })]]);
+      expect(JSON.stringify(log.mock.calls)).not.toContain("booking");
+    } finally {
+      log.mockRestore();
+    }
+  });
+  it("answers kind null below 0.6 and keeps the use, logging Jev's top kind", async () => {
+    jev = kind("trust", 0.59);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(await (await ask(LEO, body)).json()).toEqual({ kind: null, p: 0.59 });
+      expect(log.mock.calls).toEqual([["writing-judge goal", JSON.stringify({ kind: "trust", p: 0.59 })]]);
+    } finally {
+      log.mockRestore();
+    }
+    expect(used(LEO)).toBe(1);
+  });
+  it("gives the use back with 502 failed when Jev never answered", async () => {
+    const res = await ask(LEO, body);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "failed", error: "The check is unavailable for a moment. Try again shortly." });
+    expect(used(LEO)).toBe(0);
+  });
+  it("refuses a goal too short or too long, or not in English, before counting anything", async () => {
+    expect(await (await ask(LEO, { mode: "goal", text: "abc" })).json()).toEqual({ error: "Write a few more words." });
+    expect((await ask(LEO, { mode: "goal", text: "x".repeat(121) })).status).toBe(400);
+    const res = await ask(LEO, { mode: "goal", text: "更多客户来找我" });
+    expect(res.status).toBe(422);
+    expect(await res.json()).toMatchObject({ code: "not_english" });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+  it("stops at the daily limit without asking Jev", async () => {
+    db.rows.set(`${LEO}|writing-judge|${db.today()}`, 60);
+    expect((await ask(LEO, body)).status).toBe(429);
+    expect(calls).toEqual([]);
+  });
+});
+
 describe("the checks everyone has", () => {
   it("stay open to an account not on the list", async () => {
     jev = () => Response.json({ answers: { sequence: { type: "noul", noul: 0.2 } } });

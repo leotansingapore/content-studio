@@ -43,6 +43,12 @@ import {
   MAX_CONFLICT_NOTES,
   conflictQuestions,
   readConflict,
+  GOAL_KINDS,
+  GOAL_QUESTIONS,
+  JEV_GOAL_MIN,
+  goalPick,
+  goalState,
+  goalTop,
 } from "./logic";
 
 const post = "My client paid $0 for his ward stay.\nHis colleague paid $11,400.\n\nThe result? One rider at 3.5% of his premium. Thoughts?";
@@ -386,5 +392,46 @@ describe("the learning conflict check", () => {
     expect(readConflict({}, 2)).toBeNull();
     // an answer for a note that was not sent is ignored
     expect(readConflict({ conflict_0: noul(0.1), conflict_5: noul(0.99) }, 1)).toBeNull();
+  });
+});
+
+describe("the goal kind (plan-goal)", () => {
+  const choice = (c: string, p?: number) => ({ kind: { type: "choice" as const, choice: c, ...(p === undefined ? {} : { probabilities: { [c]: p } }) } });
+  it("takes a typed goal of 4 to 120 characters, trimmed, on its own check rather than the 40-character one", () => {
+    expect(parseJudgeRequest({ mode: "goal", text: "  more sign-ups  " })).toEqual({ ok: true, request: { mode: "goal", text: "more sign-ups" } });
+    expect(parseJudgeRequest({ mode: "goal", text: "Grow" }).ok).toBe(true);
+    expect(parseJudgeRequest({ mode: "goal", text: "x".repeat(120) }).ok).toBe(true);
+    expect(parseJudgeRequest({ mode: "goal", text: " abc " })).toEqual({ ok: false, error: "Write a few more words." });
+    for (const b of [{ mode: "goal", text: "x".repeat(121) }, { mode: "goal" }, { mode: "goal", text: 42 }]) expect(parseJudgeRequest(b).ok, JSON.stringify(b)).toBe(false);
+  });
+  it("asks one choice over the five kinds with the spec's criteria, in Singapore", () => {
+    expect(goalState("more people booking a review")).toEqual({ goal: "more people booking a review", country: "Singapore", who: "a financial adviser or a small business that posts on social media" });
+    expect(Object.keys(GOAL_QUESTIONS)).toEqual(["kind"]);
+    expect(GOAL_QUESTIONS.kind).toEqual({
+      type: "choice",
+      instructions: "Which outcome does `who` most want from posting, going by `goal`?",
+      criteria: {
+        clients: "new clients, enquiries, appointments, leads or sales",
+        audience: "more followers, reach, views or being known in a niche",
+        trust: "existing clients and followers trusting them more, staying in touch or sending referrals",
+        recruit: "recruiting people to join their team, agency or business",
+        time: "posting regularly with less effort, time or stress",
+      },
+    });
+    expect(Object.keys((GOAL_QUESTIONS.kind as { criteria: object }).criteria)).toEqual([...GOAL_KINDS]);
+  });
+  it("returns the kind at 0.6, null at 0.59, and null for an unknown choice or no answer", () => {
+    expect(JEV_GOAL_MIN).toBe(0.6);
+    expect(goalPick(choice("clients", 0.6))).toEqual({ kind: "clients", p: 0.6 });
+    expect(goalPick(choice("audience", 0.913))).toEqual({ kind: "audience", p: 0.91 });
+    expect(goalPick(choice("trust", 0.59))).toEqual({ kind: null, p: 0.59 });
+    expect(goalPick(choice("money", 0.9))).toEqual({ kind: null, p: null });
+    expect(goalPick(choice("time"))).toEqual({ kind: null, p: null });
+    expect(goalPick({})).toEqual({ kind: null, p: null });
+    expect(goalPick(null)).toEqual({ kind: null, p: null });
+  });
+  it("logs Jev's top kind below the cut too, so the cut can be read off real goals", () => {
+    expect(goalTop(choice("trust", 0.59))).toEqual({ kind: "trust", p: 0.59 });
+    expect(goalTop(null)).toEqual({ kind: null, p: null });
   });
 });
