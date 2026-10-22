@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { supabase } from "@/lib/supabase";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { AssistantDock } from "./AssistantDock";
 import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "./config";
 
@@ -12,9 +14,14 @@ import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "./config";
 // the bottom nav below the lg breakpoint. Before the chat answers, `act` asks whether the
 // message wants something done in the app (move a post, rewrite one in Write, last week's
 // numbers, paste into Engage): src/lib/assistantActs.ts, loaded on the first message.
+// Leo's sign-ins get the agent dock instead (agent-chat, north star phase 6), loaded only for him; everyone else,
+// and a sign-in still being read, gets AssistantDock with today's props (pinned in AssistantMount.test.ts).
+
+const AgentDock = lazy(() => import("@/components/agent/AgentDock"));
 
 export function AssistantMount() {
   const navigate = useNavigate();
+  const leo = useLeoUser();
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
     let alive = true;
@@ -36,12 +43,22 @@ export function AssistantMount() {
     [navigate],
   );
   const meta = (user?.user_metadata ?? {}) as { full_name?: string; name?: string };
+  const identity = user ? { id: user.id, name: meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? null, email: user.email ?? null } : undefined;
+  if (leo)
+    return (
+      // a crash or a chunk missing after a deploy stays inside the dock
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          <AgentDock userId={leo.id} identity={identity ?? { id: leo.id, email: leo.email }} />
+        </Suspense>
+      </ErrorBoundary>
+    );
   return (
     <AssistantDock
       apiUrl={FEEDBACK_API}
       boardKey={FEEDBACK_BOARD_KEY}
       appName="Content Studio"
-      identity={user ? { id: user.id, name: meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? null, email: user.email ?? null } : undefined}
+      identity={identity}
       navigate={navigate}
       offsetY={20}
       mobileOffsetY={88}
