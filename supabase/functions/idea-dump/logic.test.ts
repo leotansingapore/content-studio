@@ -1498,3 +1498,71 @@ describe("a business's plan prompts (live-p5w3 D2: calls/011 and 012 hedged like
     }
   });
 });
+
+// ---- live-p5w3 D4 (22 Oct): a short video's HOOK line had no word limit -------------------------------------------
+// calls/012 posts 9 and 12 as they came back: post 9 opened on a 32-word first line, post 12 on 17 words
+
+import { SHORT_VIDEO_HOOK_WORDS } from "./logic.ts";
+
+const LIVE_P5W3_POST_9 = {
+  n: 9,
+  hook: "“Who do I need to call today?” It’s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find.",
+  body: "",
+  script:
+    "HOOK: “Who do I need to call today?” It’s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find.\nBODY: When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.\nCTA: DM us “CALLS” to see how it works.",
+  brief: "",
+  cta: "DM us “CALLS” to see how it works.",
+};
+const LIVE_P5W3_POST_12 = {
+  n: 12,
+  hook: "Weekly goals beside tracked activity, or activity without a pace check? The second can leave you guessing.",
+  body: "",
+  script:
+    "HOOK: Weekly goals beside tracked activity, or activity without a pace check? The second can leave you guessing.\nBODY: When you can compare your logged activity with your weekly goals, you can see where you are in the week and what still needs attention. Our app brings activity and goals together on your phone, so checking your pace can fit into your regular workflow.\nCTA: DM us “PACE” to see how it works.",
+  brief: "",
+  cta: "DM us “PACE” to see how it works.",
+};
+
+describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32 words)", () => {
+  const live = campaignRequest(LIVE_P5W3_012);
+  const video = (script: string, n = 9) => validateCampaign({ posts: [{ ...LIVE_P5W3_POST_9, n, script }] }, live)!.find((p) => p.n === n);
+  const spoken = (script: string) => countWords(script.replace(/^(HOOK|BODY|CTA):/gm, ""));
+
+  it("asks for a HOOK line of at most 15 words, in the format list and on each short video", () => {
+    expect(SHORT_VIDEO_HOOK_WORDS).toBe(15);
+    const { system, user } = buildCampaignPrompt(live);
+    expect(system).toContain("in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most 15 words.");
+    expect(user).toContain("Post 9: short-video, conversion stage");
+    expect(user).toContain("the labels not counted; HOOK line at most 15 words");
+  });
+
+  it("keeps the live hooks' first sentences and opens the body with the rest, so no spoken word is lost", () => {
+    const dropped: [number, string][] = [];
+    const scripts = campaignRequest({ ...LIVE_P5W3_012, posts: LIVE_P5W3_012.posts.filter((p) => p.format === "short-video") });
+    const got = validateCampaign({ posts: [LIVE_P5W3_POST_9, LIVE_P5W3_POST_12] }, scripts, dropped)!;
+    expect(dropped).toEqual([]);
+    const [p9, p12] = got;
+    expect(p9.hook).toBe("“Who do I need to call today?”");
+    expect(p9.script!.split("\n")).toEqual([
+      "HOOK: “Who do I need to call today?”",
+      "BODY: It’s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
+      "CTA: DM us “CALLS” to see how it works.",
+    ]);
+    expect(spoken(p9.script!)).toBe(spoken(LIVE_P5W3_POST_9.script));
+    expect(p12.hook).toBe("Weekly goals beside tracked activity, or activity without a pace check?");
+    expect(p12.script!.split("\n")[1]).toMatch(/^BODY: The second can leave you guessing\. When you can compare/);
+    expect(got.every((p) => countWords(p.hook) <= SHORT_VIDEO_HOOK_WORDS)).toBe(true);
+  });
+
+  it("cuts a first sentence over 15 words at a word, the rest spoken in the body, and adds a body line when there is none", () => {
+    const long = `HOOK: ${Array.from({ length: 20 }, (_, i) => `w${i + 1}`).join(" ")} end.\nBODY: ${words(50)}\nCTA: DM us PACE.`;
+    const cut = video(long)!;
+    expect(cut.hook).toBe(Array.from({ length: 15 }, (_, i) => `w${i + 1}`).join(" "));
+    expect(cut.script!.split("\n")[1]).toBe(`BODY: w16 w17 w18 w19 w20 end. ${words(50)}`);
+    expect(spoken(cut.script!)).toBe(spoken(long));
+    const two = video(`HOOK: Who do I call today? ${words(60)}\nCTA: DM us CALLS.`)!;
+    expect(two.script!.split("\n")).toEqual(["HOOK: Who do I call today?", `BODY: ${words(60)}`, "CTA: DM us CALLS."]);
+    // a HOOK line inside the limit is left as written
+    expect(video(`HOOK: Who do I call today? Here is how.\nBODY: ${words(60)}\nCTA: DM us CALLS.`)!.script!.split("\n")[0]).toBe("HOOK: Who do I call today? Here is how.");
+  });
+});

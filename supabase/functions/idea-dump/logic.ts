@@ -943,6 +943,8 @@ export const MAX_CAMPAIGN_POSTS = 7;
 export const AI_VIDEO_WORDS = speakingWords(15);
 /** A short video you film: about 30 seconds. */
 export const SHORT_VIDEO_WORDS = { low: 60, high: 90 };
+/** A short video's HOOK line, the first thing said (live-p5w3 D4: post 9 opened on 32 words). */
+export const SHORT_VIDEO_HOOK_WORDS = 15;
 /** A script's words as a count to aim at, the middle of its range ("about 42 spoken words in all (36 to 48)"). */
 const spoken = ({ low, high }: { low: number; high: number }) => `about ${Math.round((low + high) / 2)} spoken words in all (${low} to ${high})`;
 /**
@@ -953,7 +955,7 @@ const spoken = ({ low, high }: { low: number; high: number }) => `about ${Math.r
 const POST_WORDS: Record<CampaignFormat, string> = {
   "text-post": "hook at most 15 words; body 80 to 220 words",
   carousel: "cover at most 6 words; 4 to 8 points of at most 40 words each",
-  "short-video": `script ${spoken(SHORT_VIDEO_WORDS)} across its HOOK, BODY and CTA lines, the labels not counted`,
+  "short-video": `script ${spoken(SHORT_VIDEO_WORDS)} across its HOOK, BODY and CTA lines, the labels not counted; HOOK line at most ${SHORT_VIDEO_HOOK_WORDS} words`,
   slideshow: "hook at most 12 words; brief at most 40 words",
   wall: "hook at most 12 words; brief at most 40 words",
   "ai-video": `script ${spoken(AI_VIDEO_WORDS)}, counted across every line`,
@@ -1043,7 +1045,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "Formats:",
     "- text-post: hook is the first line, at most 15 words. body is the rest of the post, 80 to 220 words in short paragraphs. cta is one line.",
     "- carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. cta is one line.",
-    "- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. hook is the HOOK line's words and cta the CTA line's.",
+    `- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most ${SHORT_VIDEO_HOOK_WORDS} words. hook is the HOOK line's words and cta the CTA line's.`,
     `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.`,
     "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. cta is one line.",
     "- wall: hook is at most 12 words. brief is at most 40 words on what the wall of text says. cta is one line.",
@@ -1139,6 +1141,33 @@ function fitScript(lines: string[], end: number, { low, high }: { low: number; h
   return [lines[0], ...body.filter((b) => b.parts.length).map((b) => b.label + b.parts.join(" ")), ...lines.slice(end)];
 }
 
+/** A sentence end inside a line, curly closing quotes included (they come back from the model: live-p5w3 calls/012). */
+const SENTENCE_GAP = /(?<=[.!?]["'\u201d\u2019)\]]?)\s+(?=\S)/;
+
+/**
+ * A short video's HOOK line held to SHORT_VIDEO_HOOK_WORDS without losing a spoken word: it keeps the first sentences that
+ * fit (a first sentence over is cut at a word, as a text post's hook is), and the rest opens the next line, a body line
+ * added when there is none before the call to action (line `end`). Returns where the call to action is now.
+ */
+function holdHook(lines: string[], end: number): number {
+  const label = lines[0].match(LABEL_RE)?.[0] ?? "";
+  const text = lines[0].slice(label.length);
+  const parts = text.split(SENTENCE_GAP);
+  let keep = 1;
+  while (keep < parts.length && wordCount(parts.slice(0, keep + 1).join(" ")) <= SHORT_VIDEO_HOOK_WORDS) keep++;
+  const hook = cutWords(parts.slice(0, keep).join(" "), SHORT_VIDEO_HOOK_WORDS);
+  const rest = text.slice(hook.length).replace(/^[\s,;:]+/, "");
+  if (!rest) return end;
+  lines[0] = label + hook;
+  if (end > 1) {
+    const next = lines[1].match(LABEL_RE)?.[0] ?? "";
+    lines[1] = `${next}${rest} ${lines[1].slice(next.length)}`;
+    return end;
+  }
+  lines.splice(1, 0, `${label ? "BODY: " : ""}${rest}`);
+  return end + 1;
+}
+
 /** A body without a last line that repeats its call to action, in any case or punctuation (live check 22 Oct: the CTA showed twice). */
 function withoutCta(body: string, cta: string): string {
   const lines = body.split("\n");
@@ -1174,10 +1203,12 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
       return lacks({ hook, brief, cta }) ?? { ...base, hook, brief, cta };
     }
     case "short-video": {
-      // HOOK, BODY and CTA lines: an over-long script loses body sentences (fitScript), never its call to action
+      // HOOK, BODY and CTA lines: a long HOOK line hands its later sentences to the body (holdHook), and an over-long
+      // script loses body sentences (fitScript), never its call to action
       const lines = cleanPost(item.script).split("\n").map((l) => l.trim()).filter(Boolean);
       const at = lines.findIndex((l) => /^CTA\s*:/i.test(l));
-      const end = at === -1 ? lines.length - 1 : at;
+      const last = at === -1 ? lines.length - 1 : at;
+      const end = last > 0 ? holdHook(lines, last) : last;
       const hook = (lines[0] ?? "").replace(LABEL_RE, "");
       const close = (lines[end] ?? "").replace(LABEL_RE, "");
       const fit = fitScript(lines, end, SHORT_VIDEO_WORDS);
