@@ -29,10 +29,9 @@ vi.mock("@/lib/edgeFn", () => {
   };
 });
 vi.mock("@/lib/deviceFiles", () => ({ getFile: async (k: string) => (k.includes("gone") ? undefined : new Blob(["x"])), putFile: async () => undefined }));
-vi.mock("@/lib/videoMedia", () => ({
-  stills: async () => ["data:image/jpeg;base64,VIDEO"],
-  thumbOf: async () => "data:image/jpeg;base64,PHOTO",
-}));
+vi.mock("@/lib/videoMedia", () => ({ stills: async () => ["data:image/jpeg;base64,VIDEO"] }));
+// a photo's still is drawn here: the canvas records what is painted, in order
+const painted: string[] = [];
 
 import { EdgeError } from "@/lib/edgeFn";
 import { addMedia, loadMedia, updateMedia } from "@/lib/mediaLibrary";
@@ -42,6 +41,18 @@ const store = new Map<string, string>();
 beforeEach(() => {
   store.clear();
   vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
+  painted.length = 0;
+  vi.stubGlobal("createImageBitmap", async () => ({ width: 180, height: 180, close: () => {} }));
+  vi.stubGlobal("document", {
+    createElement: () => {
+      const ctx = {
+        fillStyle: "",
+        fillRect: (x: number, y: number, w: number, h: number) => painted.push(`${ctx.fillStyle} ${x},${y} ${w}x${h}`),
+        drawImage: (_i: unknown, x: number, y: number, w: number, h: number) => painted.push(`picture ${x},${y} ${w}x${h}`),
+      };
+      return { width: 0, height: 0, getContext: () => ctx, toDataURL: (type: string) => `data:${type};base64,PHOTO` };
+    },
+  });
   fake.calls.length = 0;
   fake.most = 0;
   fake.answer = () => Promise.resolve({ alt: "A blue wordmark", type: "logo" });
@@ -93,6 +104,18 @@ describe("media sort queue", () => {
     expect(loadMedia("u1").map((m) => [m.type, m.alt])).toEqual([["other", ""], ["other", ""], ["other", ""]]);
     expect(fake.calls).toHaveLength(2);
     expect(sortState().notice).toBeNull();
+  });
+
+  it("sends a photo's still over a light checkerboard, so a transparent logo isn't read as on black", async () => {
+    addMedia("u1", item("cimg-fffff01", { width: 180, height: 180 }));
+    sortMedia("u1", ["cimg-fffff01"]);
+    await settled();
+    expect(fake.calls[0]).toMatchObject({ still: "data:image/jpeg;base64,PHOTO" });
+    expect(painted[0]).toBe("#ffffff 0,0 360x360");
+    expect(painted.slice(1, 3)).toEqual(["#cccccc 12,0 12x12", "#cccccc 36,0 12x12"]);
+    expect(painted).toContain("#cccccc 0,12 12x12");
+    expect(painted.at(-1)).toBe("picture 0,0 360x360");
+    expect(painted).toHaveLength(2 + 15 * 30);
   });
 
   it("says once when sorting is used up, and sends nothing more today", async () => {

@@ -135,6 +135,8 @@ export const MAX_CHARS: Record<PlatformId, number> = {
 };
 
 export const HASHTAG_CAP: Partial<Record<string, number>> = { instagram: 5, tiktok: 5 };
+/** Not a cap: Write's counter warns past it, and Insert's hashtag question asks past it. */
+export const LINKEDIN_HASHTAGS = 3;
 
 const NAMES: Record<PlatformId, string> = {
   instagram: "Instagram",
@@ -219,8 +221,8 @@ export function checkLimits(text: string, platform: PlatformId, offers: string[]
   if (cap !== undefined && hashtags > cap) {
     warnings.push({ level: "over", message: `${NAMES[platform]} takes ${cap} hashtags at most. Remove ${hashtags - cap}.` });
   }
-  if (platform === "linkedin" && hashtags > 3) {
-    warnings.push({ level: "warn", message: `LinkedIn works best with 3 hashtags or fewer. Remove ${hashtags - 3}.` });
+  if (platform === "linkedin" && hashtags > LINKEDIN_HASHTAGS) {
+    warnings.push({ level: "warn", message: `LinkedIn works best with ${LINKEDIN_HASHTAGS} hashtags or fewer. Remove ${hashtags - LINKEDIN_HASHTAGS}.` });
   }
   if (platform === "linkedin" && links > 0) {
     warnings.push({ level: "warn", message: "LinkedIn shows posts with a link to fewer people." });

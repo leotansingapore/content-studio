@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { fixImage, imageBusy, imageJob, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
+import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { FACTORS, loadScores, saveScore, scorePost, textKey } from "@/lib/postScore";
 import {
   Sparkles,
@@ -873,6 +873,10 @@ export default function GeneratePage() {
       off();
     };
   }, []);
+  // a picture whose make a reload cut off is picked up again at no cost
+  useEffect(() => {
+    if (userId) resumeImage(userId);
+  }, [userId]);
 
   // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me), thread (Leo's Make it a thread,
   // ThreadPanel.tsx) or insert (Leo's Insert panel, InsertPanel.tsx); opening pushes, so Back closes it.

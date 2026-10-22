@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { formulaTemplate, hashtagAsk, insertPlace, startersFor } from "@/lib/snippetInsert";
+import { formulaTemplate, hashtagAsk, insertHashtagMax, insertPlace, startersFor } from "@/lib/snippetInsert";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { blankRanges } from "@/lib/platformCounters";
 import { hashtagMax } from "@/lib/brandRules";
@@ -61,6 +61,22 @@ describe("hashtagAsk", () => {
     expect(hashtagAsk(eight, draft, hashtagMax({}, "linkedin"))).toBeNull();
     expect(hashtagAsk("#a #b", draft, 4)).toBeNull();
     expect(hashtagAsk("#a", draft, 0)).toEqual({ max: 0, n: 1, have: 0, keep: 0 });
+  });
+});
+
+describe("insertHashtagMax", () => {
+  it("asks past 3 on LinkedIn, where Write's counter says 3 max, whatever looser limit the kit sets", () => {
+    expect(insertHashtagMax(hashtagMax({}, "linkedin"), "linkedin")).toBe(3);
+    expect(insertHashtagMax(hashtagMax({ hashtagPolicy: "few" }, "linkedin"), "linkedin")).toBe(3);
+    expect(insertHashtagMax(hashtagMax({ hashtagPolicy: "none" }, "linkedin"), "linkedin")).toBe(0);
+    // the live check's case: a 3-tag set on a LinkedIn draft that already has 4
+    expect(hashtagAsk("#a #b #c", "Post #w #x #y #z", insertHashtagMax(hashtagMax({}, "linkedin"), "linkedin"))).toEqual({ max: 3, n: 3, have: 4, keep: 0 });
+  });
+
+  it("leaves the other platforms to the kit and their own caps", () => {
+    expect(insertHashtagMax(hashtagMax({}, "instagram"), "instagram")).toBe(5);
+    expect(insertHashtagMax(hashtagMax({ hashtagPolicy: "ten" }, "facebook"), "facebook")).toBe(10);
+    expect(insertHashtagMax(hashtagMax({}, "facebook"), "facebook")).toBeUndefined();
   });
 });
 

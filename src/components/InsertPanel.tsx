@@ -13,7 +13,7 @@ import { HOOK_BANK } from "@/lib/hookBank";
 import { HOOK_FORMULAS, provenFormulas, type HookFormula } from "@/lib/hookFormulas";
 import { links, type BrandSection } from "@/lib/links";
 import { BRAND_VALUE_NAME, fillVariables, KIND_NAME, loadSnippets, ofKind, type BrandValue, type SnippetKind } from "@/lib/replySnippets";
-import { formulaTemplate, hashtagAsk, insertPlace, startersFor, type Caret, type HashtagAsk } from "@/lib/snippetInsert";
+import { formulaTemplate, hashtagAsk, insertHashtagMax, insertPlace, startersFor, type Caret, type HashtagAsk } from "@/lib/snippetInsert";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
@@ -131,7 +131,7 @@ export default function InsertPanel({
   };
   const pick = (raw: string) => {
     const filled = fillVariables(raw, brand, accounts);
-    const q = kind === "hashtags" ? hashtagAsk(filled.text, draft, hashtagMax(brand, platform)) : null;
+    const q = kind === "hashtags" ? hashtagAsk(filled.text, draft, insertHashtagMax(hashtagMax(brand, platform), platform)) : null;
     if (q) {
       setMissing([]);
       return setAsk({ text: filled.text, missing: filled.missing, q });
@@ -142,8 +142,11 @@ export default function InsertPanel({
   const mine = ofKind(list, kind);
   const name = KIND_NAME[kind];
   const policy = brand?.hashtagPolicy ? HASHTAG_MAX[brand.hashtagPolicy] : undefined;
-  // shortcut: only Instagram and TikTok cap hashtags (HASHTAG_CAP); name the platform when its cap is the limit
-  const limitBy = ask && policy !== ask.q.max ? (platform === "tiktok" ? "TikTok" : "Instagram") : "Your Brand kit";
+  // the platform is named when its limit, not the kit's, is the one that holds (as Write's counter words LinkedIn's)
+  const limit = !ask ? ""
+    : policy === ask.q.max ? `Your Brand kit allows ${ask.q.max} hashtags`
+    : platform === "linkedin" ? `LinkedIn works best with ${ask.q.max} hashtags or fewer`
+    : `${platform === "tiktok" ? "TikTok" : "Instagram"} allows ${ask.q.max} hashtags`;
 
   return (
     <section ref={root} id="insert-panel" aria-label="Insert" data-testid="insert-panel" className="mt-1.5 scroll-mt-24 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
@@ -170,7 +173,7 @@ export default function InsertPanel({
           <p className="text-xs text-foreground">
             {ask.q.max === 0
               ? "Your Brand kit says no hashtags."
-              : `${limitBy} allows ${ask.q.max} hashtags. This set has ${ask.q.n}${ask.q.have ? ` and your post has ${ask.q.have}` : ""}.`}
+              : `${limit}. This set has ${ask.q.n}${ask.q.have ? ` and your post has ${ask.q.have}` : ""}.`}
           </p>
           <div className="flex flex-wrap gap-2">
             {ask.q.keep > 0 && (

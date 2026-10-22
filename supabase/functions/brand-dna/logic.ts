@@ -5,6 +5,7 @@
 
 import { type JevAnswer, type JevQuestion, noulOf } from "../_shared/jev.ts";
 import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
+import { cutAtWord } from "../video-assist/captions.ts";
 
 export const PLATFORMS = ["instagram", "facebook", "linkedin", "tiktok"] as const;
 export type Platform = (typeof PLATFORMS)[number];
@@ -356,7 +357,7 @@ export const audienceAsk = {
 
 /** What one page offers the scan besides its words: picture addresses the LLM may pick from, and JSON-LD items. */
 export interface PageClues {
-  /** og:image, then up to 8 images with alt text, then the listed items' own pictures; absolute, no SVG. */
+  /** og:image, then up to 8 images with alt text, then the listed items' own pictures; absolute, only kinds brand-dna image can fetch. */
   pictures: string[];
   /** "Listed item: <name> | <description> | <price>" for each schema.org Product, Service or app in the JSON-LD. */
   listed: string[];
@@ -377,21 +378,22 @@ function ldBlocks(html: string): string[] {
   }
   return out;
 }
-const svg = (h: string) => /\.svg(\?|$)/i.test(h);
+// brand-dna image takes PNG, JPEG or WebP only, so a picture named as any other kind is never offered
+const unfetchable = (h: string) => /\.(svg|gif|bmp|ico|avif|tiff?|heic|heif)(\?|#|$)/i.test(h);
 const str = (v: unknown, n: number) => (typeof v === "string" ? decode(v).replace(/\s+/g, " ").trim().slice(0, n) : "");
 
 export function productClues(html: string, base: URL): PageClues {
   const body = html.slice(0, 300_000);
   const pictures: string[] = [];
   const add = (h: string) => {
-    if (h && h.length <= 500 && !svg(h) && !pictures.includes(h)) pictures.push(h);
+    if (h && h.length <= 500 && !unfetchable(h) && !pictures.includes(h)) pictures.push(h);
   };
   add(absolute(meta(body.slice(0, 100_000), "og:image"), base));
   const alt = tagsOf(body, "img")
     .filter((t) => attr(t, "alt"))
     // a lazy image's src is often a data: placeholder, with the real address in data-src
     .map((t) => absolute(attr(t, "src"), base) || absolute(attr(t, "data-src"), base))
-    .filter((h) => h && !svg(h));
+    .filter((h) => h && !unfetchable(h));
   [...new Set(alt)].slice(0, ALT_PICTURES).forEach(add);
 
   const listed: string[] = [];
@@ -488,9 +490,14 @@ export interface ScannedProduct {
 }
 
 const noSlash = (u: string) => u.replace(/#.*$/, "").replace(/\/+$/, "");
+/** clip, but a cut ends at a word with "...": the scan's fields are shown as they come ("SGD 199 one-tim" was). */
+function clipWord(v: unknown, n: number): string {
+  const t = clip(v, n + 1);
+  return t.length <= n ? t : `${cutAtWord(t, n - 3).replace(/[\s,.;:-]+$/, "")}...`;
+}
 
 /**
- * The LLM's list, trimmed to the stored lengths, at most 24, one per name; a url is kept only when it is one of the
+ * The LLM's list, cut at a word to the stored lengths, at most 24, one per name; a url is kept only when it is one of the
  * pages read (returned as that page's own address) and a picture only when one of those pages listed it, so the model
  * cannot invent a link. null when the reply isn't the schema's JSON.
  */
@@ -508,19 +515,19 @@ export function parseProducts(raw: unknown, pages: { url: string; pictures: stri
   for (const it of items) {
     if (out.length === MAX_PRODUCTS || !it || typeof it !== "object") continue;
     const r = it as Record<string, unknown>;
-    const name = clip(r.name, 60);
+    const name = clipWord(r.name, 60);
     if (!name || out.some((p) => p.name.toLowerCase() === name.toLowerCase())) continue;
     const url = typeof r.url === "string" && r.url ? pages.find((p) => noSlash(p.url) === noSlash(r.url as string))?.url : undefined;
     const picture = typeof r.picture === "string" && pictures.has(r.picture) ? r.picture : undefined;
-    const price = clip(r.price, 40);
+    const price = clipWord(r.price, 40);
     out.push({
       name,
-      what: clip(r.what, 200),
-      forWho: clip(r.forWho, 120),
+      what: clipWord(r.what, 200),
+      forWho: clipWord(r.forWho, 120),
       ...(price ? { price } : {}),
       ...(url ? { url } : {}),
       ...(picture ? { picture } : {}),
-      generic: clip(r.generic, 120),
+      generic: clipWord(r.generic, 120),
       offerP: null,
       namedP: null,
     });

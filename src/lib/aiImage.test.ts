@@ -10,7 +10,7 @@ vi.mock("@/lib/mediaLibrary", () => ({
 
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
-import { fixImage, imageJob, logoBox, makeImage } from "./aiImage";
+import { fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
 
 type Body = { mode: string };
@@ -90,6 +90,115 @@ describe("the prompt sent for everyone else", () => {
       (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
     await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
     expect(JSON.stringify(starts().map(([fn, body]) => [fn, body]))).toBe('[["ai-image",{"mode":"start","prompt":"A family picnic at East Coast Park"}]]');
+  });
+});
+
+// A make and a fix for everyone else, pinned before a reload could pick a make up again (D4, 22 Oct live check): the
+// calls, what the page is told at each step and what lands in Media.
+describe("a make and a fix for everyone else, pinned", () => {
+  it("asks, polls, saves to AI images and says so, the same way", async () => {
+    let polls = 0;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      const b = body as { mode: string; token?: string };
+      if (b.mode === "start") return { token: "t1", usage: { used: 1, limit: 3 } };
+      if (b.mode === "fix") return { token: "t2", usage: { used: 2, limit: 3 } };
+      return ++polls === 1 ? { state: "working" } : { state: "done", url: `https://cdn.higgsfield.ai/${b.token}.png` };
+    });
+    const seen: unknown[] = [];
+    const off = onImageJob((j) => seen.push(j));
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic at East Coast Park"));
+    await settle(fixImage("u1", "make the sky bluer"));
+    off();
+    expect(vi.mocked(callFn).mock.calls).toEqual([
+      ["ai-image", { mode: "start", prompt: "A family picnic at East Coast Park" }, "Couldn't make the image right now. Try again in a minute."],
+      ["ai-image", { mode: "status", token: "t1" }],
+      ["ai-image", { mode: "status", token: "t1" }],
+      ["ai-image", { mode: "fix", token: "t1", fix: "make the sky bluer" }, "Couldn't make the image right now. Try again in a minute."],
+      ["ai-image", { mode: "status", token: "t2" }],
+    ]);
+    expect(vi.mocked(fetch).mock.calls.map(([u]) => u)).toEqual(["https://cdn.higgsfield.ai/t1.png", "https://cdn.higgsfield.ai/t2.png"]);
+    const done = { prompt: "A family picnic at East Coast Park", state: "done", mediaKey: "pic-1", preview: "data:image/png;base64,x", name: "Picnic at East Coast Park" };
+    expect(seen).toEqual([
+      { prompt: "A family picnic at East Coast Park", state: "working", fix: undefined },
+      { prompt: "A family picnic at East Coast Park", state: "saving", fix: undefined },
+      { ...done, token: "t1" },
+      { prompt: "A family picnic at East Coast Park", state: "working", fix: "make the sky bluer" },
+      { prompt: "A family picnic at East Coast Park", state: "saving", fix: "make the sky bluer" },
+      { ...done, token: "t2" },
+    ]);
+    expect(vi.mocked(addMedia).mock.calls.map(([u, m]) => [u, { ...m, addedAt: typeof m.addedAt }])).toEqual([
+      ["u1", { key: "pic-1", name: "Picnic at East Coast Park", folder: "AI images", alt: "A family picnic at East Coast Park", width: 1080, height: 1440, addedAt: "string" }],
+      ["u1", { key: "pic-1", name: "Picnic at East Coast Park (fixed)", folder: "AI images", alt: "A family picnic at East Coast Park Fixed: make the sky bluer", width: 1080, height: 1440, addedAt: "string" }],
+    ]);
+  });
+
+  it("says why when Higgsfield fails, and keeps nothing", async () => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "status" ? { state: "failed", error: "The image couldn't be made. Try a different prompt." } : { token: "t1" }));
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
+    expect(imageJob()).toEqual({ prompt: "A family picnic at East Coast Park", state: "failed", error: "The image couldn't be made. Try a different prompt." });
+    expect(addMedia).not.toHaveBeenCalled();
+  });
+});
+
+describe("a reload while a picture is made (D4)", () => {
+  const KEY = "cs-ai-image-making-u1";
+  const store = new Map<string, string>();
+  const done = { state: "done", url: "https://cdn.higgsfield.ai/t9.png" };
+  beforeEach(() => {
+    store.clear();
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+  });
+
+  it("keeps the paid token on this device until the picture is in Media", async () => {
+    let waiting: unknown = null;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      if ((body as Body).mode !== "status") return { token: "t1" };
+      waiting = JSON.parse(store.get(KEY) ?? "null");
+      return done;
+    });
+    await settle(makeImage("u1", "A sales rep checking her follow-ups on her phone", "Follow-ups", "img-1"));
+    expect(waiting).toEqual({ prompt: "A sales rep checking her follow-ups on her phone", name: "Follow-ups", designId: "img-1", token: "t1" });
+    expect(store.has(KEY)).toBe(false);
+    expect(imageJob()).toMatchObject({ state: "done", designId: "img-1" });
+  });
+
+  it("picks the picture up after a reload at no cost, keeps it in AI images and leaves nothing to pick up", async () => {
+    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A sales rep checking her follow-ups on her phone", name: "Follow-ups", designId: "img-1" }));
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "status" ? done : { token: "never" }));
+    resumeImage("u1");
+    expect(imageJob()).toMatchObject({ state: "working", prompt: "A sales rep checking her follow-ups on her phone", designId: "img-1" });
+    await settle(Promise.resolve());
+    expect(starts()).toHaveLength(0);
+    expect(vi.mocked(callFn).mock.calls[0]).toEqual(["ai-image", { mode: "status", token: "t9" }]);
+    expect(addMedia).toHaveBeenCalledWith("u1", expect.objectContaining({ key: "pic-1", name: "Follow-ups", folder: "AI images" }));
+    expect(imageJob()).toMatchObject({ state: "done", token: "t9", mediaKey: "pic-1", designId: "img-1" });
+    expect(store.has(KEY)).toBe(false);
+    vi.mocked(callFn).mockClear();
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    expect(callFn).not.toHaveBeenCalled();
+  });
+
+  it("drops the token when the picture fails, and never picks one up while another is being made", async () => {
+    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A sales rep", name: "Rep" }));
+    vi.mocked(callFn).mockImplementation(async () => ({ state: "failed", error: "That image job isn't known." }));
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    expect(imageJob()).toEqual({ prompt: "A sales rep", state: "failed", error: "That image job isn't known." });
+    expect(store.has(KEY)).toBe(false);
+
+    let start: (v: unknown) => void = () => {};
+    vi.mocked(callFn).mockImplementation((_fn, body) => ((body as Body).mode === "status" ? Promise.resolve(done) : new Promise((r) => (start = r))));
+    const making = makeImage("u1", "A hawker centre at lunchtime", "Hawker");
+    await vi.advanceTimersByTimeAsync(0);
+    store.set(KEY, JSON.stringify({ token: "t8", prompt: "Another", name: "Another" }));
+    resumeImage("u1");
+    expect(imageJob()).toMatchObject({ prompt: "A hawker centre at lunchtime" });
+    start({ token: "t1" });
+    await settle(making);
+    expect(vi.mocked(callFn).mock.calls.filter(([, b]) => (b as { token?: string }).token === "t8")).toHaveLength(0);
   });
 });
 
