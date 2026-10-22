@@ -1,12 +1,14 @@
 // Campaigns (plan-campaign, Leo only): a month of posts for one audience, synced per brand under
 // content-studio-campaigns-<scoped>, newest first, 12 at most. Deleting rewrites the array, so nothing depends on a
-// tombstone. Status, cost and the angle mix are worked out from the posts, never stored. The wizard's layout
-// (buildCampaignPosts, planCampaign, addCampaign) joins this file in wave 3.
+// tombstone. Status, cost and the angle mix are worked out from the posts, never stored. The wizard lays a campaign
+// out with buildCampaignPosts and planCampaign and keeps it with addCampaign.
 
 import type { FunnelStageId } from "@/data/funnelFramework";
-import type { PlanPillar } from "@/lib/contentPlan";
+import { loadAudiences } from "@/lib/audiences";
+import { generatePlan, planItemDate, planOptionsFor, steerFor, upcomingMonday, type GeneratePlanOptions, type PlanPillar } from "@/lib/contentPlan";
+import { localDateKey } from "@/lib/dueDates";
 import { draftStatus, engagement, MAX_DRAFTS, type DraftEntry } from "@/lib/draftHistory";
-import type { PlanPlatform } from "@/lib/positioning";
+import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
 import { BREAKOUT_RATIO, median } from "../../supabase/functions/_shared/socialAudit.ts";
@@ -73,6 +75,9 @@ export function saveCampaigns(userId: string, list: Campaign[]): string | null {
   return null;
 }
 
+/** Keeps a new campaign at the top of the list. Null when saved, else the line (12 kept, or no room). */
+export const addCampaign = (userId: string, c: Campaign): string | null => saveCampaigns(userId, [c, ...loadCampaigns(userId).filter((x) => x.id !== c.id)]);
+
 export const getCampaign = (userId: string | null | undefined, id: string): Campaign | null => loadCampaigns(userId).find((c) => c.id === id) ?? null;
 
 /** Changes one post (never its n). Returns the saved campaign, or null when it or the post is gone or it couldn't save. */
@@ -101,6 +106,81 @@ export function restoreCampaign(userId: string, c: Campaign): string | null {
 export function onCampaignsChanged(cb: () => void): () => void {
   window.addEventListener(CAMPAIGNS_CHANGED, cb);
   return () => window.removeEventListener(CAMPAIGNS_CHANGED, cb);
+}
+
+// ---- Laying a campaign out ---------------------------------------------------------
+
+/** "c-" and base 36, never "_": made posts are drafts `cmp_<id>_<n>`. */
+export const newCampaignId = () => `c-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/**
+ * Each post's format in order. With AI video picked, post floor(perWeek / 2) of every week is one, and the other
+ * posts rotate the other picked formats in order (a text post when AI video is the only one picked).
+ */
+export function campaignFormats(formats: CampaignFormat[], perWeek: number, weeks: number): CampaignFormat[] {
+  const video = formats.includes("ai-video");
+  const others = formats.filter((f) => f !== "ai-video");
+  let k = 0;
+  return Array.from({ length: perWeek * weeks }, (_, i): CampaignFormat => {
+    if (video && i % perWeek === Math.floor(perWeek / 2)) return "ai-video";
+    return others.length ? others[k++ % others.length] : "text-post";
+  });
+}
+
+/**
+ * The posts, all waiting to be written: the plan engine's slots (stage, pillar, hook formula, a posting day and time
+ * from the brand's slots, angle i mod n) over `weeks` from the Monday after `today`, with campaignFormats' formats.
+ */
+export function buildCampaignPosts(
+  ask: Pick<CampaignAsk, "angles" | "platforms" | "formats" | "weeks" | "perWeek">,
+  positioning: Positioning,
+  options: GeneratePlanOptions,
+  today: Date,
+): CampaignPost[] {
+  const plan = generatePlan(
+    { ...positioning, cadence: ask.perWeek, platform: ask.platforms[0] ?? positioning.platform },
+    { ...options, weeks: ask.weeks, angles: ask.angles },
+  );
+  const monday = upcomingMonday(today);
+  const formats = campaignFormats(ask.formats, ask.perWeek, ask.weeks);
+  return plan.items.map((item, i) => ({
+    n: i + 1,
+    day: localDateKey(planItemDate(item, monday)),
+    ...(item.time ? { time: item.time } : {}),
+    angleId: item.angleId ?? "",
+    format: formats[i],
+    stage: item.stage,
+    pillar: item.pillar,
+    ...(item.formulaId ? { formulaId: item.formulaId } : {}),
+    ctaType: item.ctaType,
+    state: "waiting",
+  }));
+}
+
+/** The wizard's answers as a campaign, laid out from this brand's positioning, posting slots and goal; not saved. */
+export function planCampaign(userId: string, ask: CampaignAsk, today: Date): Campaign {
+  const positioning = loadPositioning(userId) ?? EMPTY_POSITIONING;
+  const options = { ...planOptionsFor(userId, ask.platforms[0] ?? positioning.platform, { plan: null }), ...steerFor(userId) };
+  const posts = buildCampaignPosts(ask, positioning, options, today);
+  const goal = positioning.goal?.trim();
+  return {
+    id: newCampaignId(),
+    name: ask.name.trim().slice(0, 80),
+    createdAt: today.toISOString(),
+    audience: ask.audience,
+    audienceName: loadAudiences(userId).find((a) => a.id === ask.audience)?.name ?? "",
+    angles: ask.angles.map(({ id, title, line }) => ({ id, title, line })),
+    platforms: [...ask.platforms],
+    ...(ask.accountIds?.length ? { accountIds: [...ask.accountIds] } : {}),
+    formats: [...ask.formats],
+    weeks: ask.weeks,
+    perWeek: ask.perWeek,
+    startDay: localDateKey(upcomingMonday(today)),
+    pictures: ask.pictures,
+    ...(goal ? { goal } : {}),
+    target: { posts: posts.length, winners: winnersFor(posts.length) },
+    posts,
+  };
 }
 
 export type CampaignStatus = "draft" | "running" | "done";
