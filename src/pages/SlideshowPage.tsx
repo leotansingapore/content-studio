@@ -8,8 +8,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Download, FilePlus2, Images, Loader2, Redo2, Save, Shuffle, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Download, FilePlus2, Images, Loader2, Redo2, Save, Shuffle, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import PriceChip from "@/components/PriceChip";
+import { FlagList } from "@/components/carousel/SlideFields";
+import { Input } from "@/components/ui/input";
 import { OriginalPane } from "@/components/OriginalPane";
 import { FilterChip } from "@/components/ui/filter-chip";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
@@ -30,6 +33,10 @@ import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { callFn } from "@/lib/edgeFn";
+import { registerEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
+import { reasonText } from "@/lib/prices";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -69,6 +76,7 @@ import {
 } from "@/lib/slideshow";
 import { MissingPictureError, layoutBoxes, lookOf, pictureKey, screenMeasure, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
 import { PER_PAGE as STOCK_PER_PAGE } from "../../supabase/functions/stock-media/logic.ts";
+import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -88,6 +96,163 @@ async function coverWidth(file: Blob): Promise<number> {
   } catch {
     return 1080;
   }
+}
+
+const boxTexts = (s: ShowSlide) => (s.boxes.length ? s.boxes.map((b) => b.text) : [""]);
+/** Each named slide's boxes take the texts given, in order (changeBox keeps every limit). */
+function putTexts(show: Slideshow, words: Map<string, string[]>): Slideshow {
+  let next = show;
+  for (const s of show.slides) words.get(s.id)?.forEach((text, k) => s.boxes[k] && (next = changeBox(next, s.id, s.boxes[k].id, { text })));
+  return next;
+}
+
+/**
+ * The open slideshow for the agent to change (edit-by-chat). propose asks carousel-copy mode ask with each slide's
+ * box texts, for one slide or every slide with words, and changes nothing; apply writes them through commit, one
+ * Undo step, and its undo puts back only those slides' words, so edits made since stay.
+ */
+export function slideshowTarget(io: {
+  show: () => Slideshow;
+  /** The slide on screen, 1-based. */
+  onScreen: () => number;
+  commit: (next: (cur: Slideshow) => Slideshow) => void;
+  /** False once this slideshow is closed. */
+  open: () => boolean;
+}): EditTarget {
+  const gone = () => new Error("That slideshow is no longer open.");
+  return {
+    kind: "slideshow",
+    get title() {
+      return io.show().title;
+    },
+    get slides() {
+      return io.show().slides.map((s) => s.boxes.map((b) => b.text.trim()).filter(Boolean).join(" ").slice(0, 80));
+    },
+    get onScreen() {
+      return io.onScreen();
+    },
+    async propose(ask, slide) {
+      const all = io.show().slides;
+      // a named slide goes with every slide around it; the whole slideshow sends the slides that have words
+      const sent = slide ? all : all.filter((s) => s.boxes.some((b) => b.text.trim()));
+      const index = slide ? slide - 1 : undefined;
+      const r = await callFn<{ slides?: { texts?: unknown }[]; reply?: unknown }>("carousel-copy", {
+        mode: "ask", ask: ask.trim().slice(0, ASK_MAX_CHARS), ...(index === undefined ? {} : { index }), platform: "instagram",
+        slides: sent.map((s) => ({ texts: boxTexts(s) })),
+      }, ASK_FAILED);
+      const asked = index === undefined ? sent : [all[index]];
+      const got = r?.slides?.map((x) => x?.texts);
+      if (!got || got.length !== asked.length || !got.every((t, k) => Array.isArray(t) && t.length === asked[k].boxes.length && t.every((x) => typeof x === "string"))) throw new Error(ASK_FAILED);
+      const words = new Map(asked.map((s, k) => [s.id, got[k] as string[]]));
+      return {
+        reply: typeof r.reply === "string" ? r.reply : "",
+        preview: [...words.values()].map((t) => t.filter((x) => x.trim()).join("\n")).join("\n\n"),
+        flags: [],
+        apply() {
+          if (!io.open()) throw gone();
+          const before = new Map(io.show().slides.filter((s) => words.has(s.id)).map((s) => [s.id, s.boxes.map((b) => b.text)]));
+          io.commit((cur) => putTexts(cur, words));
+          return {
+            done: index === undefined ? `Done. "${io.show().title}" changed. Undo here or on the page.` : `Done. Slide ${slide} changed. Undo here or on the page.`,
+            undo: () => {
+              if (!io.open()) throw gone();
+              io.commit((cur) => putTexts(cur, before));
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+// ?ask= on an open slideshow: the box's words are kept for the tab, so a reload never loses what was typed
+const ASK_KEY = "cs-slideshow-ask";
+function keptAsk(id: string): string | null {
+  try {
+    const k = JSON.parse(sessionStorage.getItem(ASK_KEY) ?? "null");
+    return k?.id === id && typeof k.text === "string" ? k.text : null;
+  } catch {
+    return null;
+  }
+}
+function keepAsk(id: string, text: string | null) {
+  try {
+    if (text === null) sessionStorage.removeItem(ASK_KEY);
+    else sessionStorage.setItem(ASK_KEY, JSON.stringify({ id, text }));
+  } catch {
+    // storage blocked: kept while the page stays open
+  }
+}
+
+/** The words from ?ask=, proposed on every slide by Rewrite and shown as a suggestion to use or keep (CarouselPage has its twin). */
+function AskBox(p: { text: string; left: number | null; target: () => EditTarget | null; onText: (t: string) => void; onUsed: () => void; onClose: () => void }) {
+  // shortcut: the run lives in this box, so leaving the page mid-run drops its answer; move it outside React if that bites
+  const [r, setR] = useState<{ state: "working" } | { state: "ready"; p: Proposal } | { state: "failed"; error: string } | null>(null);
+  const working = r?.state === "working";
+  const why = reasonText({ left: p.left, leo: true });
+  const run = async () => {
+    const t = p.target();
+    if (!t || !p.text.trim() || working) return;
+    setR({ state: "working" });
+    try {
+      const got = await t.propose(p.text.trim(), null);
+      setR(got.preview.trim() ? { state: "ready", p: got } : { state: "failed", error: got.reply || ASK_FAILED });
+    } catch (e) {
+      setR({ state: "failed", error: e instanceof Error && e.message ? e.message : ASK_FAILED });
+    }
+  };
+  const use = () => {
+    if (r?.state !== "ready") return;
+    try {
+      r.p.apply();
+      p.onUsed();
+    } catch (e) {
+      setR({ state: "failed", error: e instanceof Error && e.message ? e.message : ASK_FAILED });
+    }
+  };
+  // opened from a link, the box may sit below the fold: bring it into view once
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // Chrome's scroll methods answer a promise, which an effect must not return
+    void box.current?.scrollIntoView({ block: "center" });
+  }, []);
+  return (
+    <section ref={box} aria-label="Change every slide" className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => (e.preventDefault(), void run())}>
+        <Input value={p.text} maxLength={ASK_MAX_CHARS} aria-label="What to change on every slide" disabled={working} onChange={(e) => p.onText(e.target.value)}
+          className="h-9 min-w-0 flex-1 basis-48 text-sm [@media(pointer:coarse)]:h-11" />
+        <Button type="submit" size="sm" disabled={!p.text.trim() || working || p.left === 0} className={`h-9 gap-1.5 ${TOUCH}`}>
+          <Sparkles className="h-3.5 w-3.5" /> Rewrite
+        </Button>
+      </form>
+      {!working && (
+        <p className="flex flex-wrap items-center gap-2">
+          <PriceChip feature="edit-ask" left={p.left} />
+          {why && <span className="text-[11px] text-muted-foreground">{why}</span>}
+          {r?.state !== "ready" && (
+            <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className={`ml-auto h-9 text-muted-foreground ${TOUCH}`}>Close</Button>
+          )}
+        </p>
+      )}
+      {working && (
+        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden /> Rewriting every slide...
+        </p>
+      )}
+      {r?.state === "failed" && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">{r.error}</p>}
+      {r?.state === "ready" && (
+        <div role="status" className="space-y-2">
+          {r.p.reply && <p className="text-[11px] text-muted-foreground">{r.p.reply}</p>}
+          <p className="whitespace-pre-line text-sm text-foreground">{r.p.preview}</p>
+          <FlagList flags={scanCompliance(r.p.preview)} />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={use} className={TOUCH}>Use this</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className={TOUCH}>Keep mine</Button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default function SlideshowPage() {
@@ -322,6 +487,39 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
     setWork(work.draftId ? { ...r.show, draftId: work.draftId } : r.show);
     if (index >= r.show.slides.length) go(r.show.slides.length - 1);
   };
+
+  // edit-by-chat: the open slideshow is what the agent changes, and only on its Use this
+  const editIn = useRef({ index, commit });
+  editIn.current = { index, commit };
+  const editTarget = useRef<EditTarget | null>(null);
+  useEffect(() => {
+    let live = true;
+    const off = registerEditTarget(editTarget.current = slideshowTarget({
+      show: () => workRef.current,
+      onScreen: () => editIn.current.index + 1,
+      commit: (next) => editIn.current.commit(next(workRef.current)),
+      open: () => live,
+    }));
+    return () => {
+      live = false;
+      editTarget.current = null;
+      off();
+    };
+  }, []);
+  // ?ask=: fills the box once and leaves the address; nothing is written until Rewrite
+  const [pageAsk, setPageAsk] = useState(() => keptAsk(show.id));
+  const setAskBox = (text: string | null) => {
+    setPageAsk(text);
+    keepAsk(show.id, text);
+  };
+  const linkAsk = params.get("ask");
+  useEffect(() => {
+    if (linkAsk === null) return;
+    setAskBox(linkAsk.trim().slice(0, ASK_MAX_CHARS));
+    update({ ask: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkAsk]);
+  const usesLeft = useUsesLeft(pageAsk === null);
 
   const removeBox = (id: string) => {
     const slideId = slide.id;
@@ -571,6 +769,10 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
           )}
         </div>
       </header>
+      {pageAsk !== null && (
+        <AskBox text={pageAsk} left={usesLeft("edit-ask")} target={() => editTarget.current} onText={setAskBox} onClose={() => setAskBox(null)}
+          onUsed={() => (setAskBox(null), toast({ title: "Slides changed", description: "Undo brings your words back." }))} />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-3">

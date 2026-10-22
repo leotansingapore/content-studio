@@ -103,9 +103,11 @@ import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
-import SlideFields, { SlideRewrite, WARN_BOX, useRewriting } from "@/components/carousel/SlideFields";
+import SlideFields, { FlagList, SlideRewrite, WARN_BOX, useRewriting } from "@/components/carousel/SlideFields";
 import CarouselVersions from "@/components/carousel/CarouselVersions";
 import { emptyHistory, newTypingStep, record, redo, undo } from "@/lib/carouselHistory";
+import { registerEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
+import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -185,6 +187,158 @@ function recommendDesign(id: string, slides: Slide[]): Promise<CarouselDesign | 
     designPicks.set(id, pick);
   }
   return pick;
+}
+
+type Words = { title: string; body: string };
+const putWords = (slides: Slide[], words: Map<string, Words>) => slides.map((s) => (words.has(s.id) ? { ...s, ...words.get(s.id) } : s));
+
+/**
+ * The open carousel for the agent to change (edit-by-chat, Leo only). propose asks carousel-copy mode ask, the call
+ * Rewrite this slide makes, for one slide or every slide, and changes nothing; apply writes those words through the
+ * page's change(), one Undo step, and its undo puts back only those slides' words, so edits made since stay.
+ */
+export function carouselTarget(io: {
+  title: () => string;
+  slides: () => Slide[];
+  /** The slide shown one at a time, 1-based. */
+  onScreen: () => number | undefined;
+  platform: () => "instagram" | "linkedin";
+  change: (update: (prev: Slide[]) => Slide[]) => void;
+  /** False once this carousel is closed. */
+  open: () => boolean;
+}): EditTarget {
+  const gone = () => new Error("That carousel is no longer open.");
+  return {
+    kind: "carousel",
+    get title() {
+      return io.title();
+    },
+    get slides() {
+      return io.slides().map((s) => [s.title, s.body].filter(Boolean).join(" ").slice(0, 80));
+    },
+    get onScreen() {
+      return io.onScreen();
+    },
+    async propose(ask, slide) {
+      const base = io.slides();
+      const index = slide ? slide - 1 : undefined;
+      const r = await callFn<{ slides?: { texts?: unknown }[]; reply?: unknown }>("carousel-copy", {
+        mode: "ask", ask: ask.trim().slice(0, ASK_MAX_CHARS), ...(index === undefined ? {} : { index }), platform: io.platform(),
+        slides: base.map((s) => ({ texts: [s.title, s.body] })),
+      }, ASK_FAILED);
+      const asked = index === undefined ? base : [base[index]];
+      const got = r?.slides?.map((x) => x?.texts);
+      if (!got || got.length !== asked.length || !got.every((t) => Array.isArray(t) && t.every((x) => typeof x === "string"))) throw new Error(ASK_FAILED);
+      const words = new Map(asked.map((s, k) => [s.id, { title: String(got[k][0] ?? ""), body: String(got[k][1] ?? "") }]));
+      return {
+        reply: typeof r.reply === "string" ? r.reply : "",
+        preview: [...words.values()].map((w) => [w.title, w.body].filter(Boolean).join("\n")).join("\n\n"),
+        flags: [],
+        apply() {
+          if (!io.open()) throw gone();
+          const before = new Map(io.slides().filter((s) => words.has(s.id)).map((s) => [s.id, { title: s.title, body: s.body }]));
+          io.change((prev) => putWords(prev, words));
+          return {
+            done: index === undefined ? `Done. "${io.title()}" changed. Undo here or on the page.` : `Done. Slide ${slide} changed. Undo here or on the page.`,
+            undo: () => {
+              if (!io.open()) throw gone();
+              io.change((prev) => putWords(prev, before));
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+// ?ask= on an open carousel (Leo only): the box's words are kept for the tab, so a reload never loses what was typed
+const ASK_KEY = "cs-carousel-ask";
+function keptAsk(id: string): string | null {
+  try {
+    const k = JSON.parse(sessionStorage.getItem(ASK_KEY) ?? "null");
+    return k?.id === id && typeof k.text === "string" ? k.text : null;
+  } catch {
+    return null;
+  }
+}
+function keepAsk(id: string, text: string | null) {
+  try {
+    if (text === null) sessionStorage.removeItem(ASK_KEY);
+    else sessionStorage.setItem(ASK_KEY, JSON.stringify({ id, text }));
+  } catch {
+    // storage blocked: kept while the page stays open
+  }
+}
+
+/** The words from ?ask=, proposed on every slide by Rewrite and shown as a suggestion to use or keep. */
+function AskBox(p: { text: string; left: number | null; busy: boolean; target: () => EditTarget | null; onText: (t: string) => void; onUsed: () => void; onClose: () => void }) {
+  // shortcut: the run lives in this box, so leaving the page mid-run drops its answer; move it outside React if that bites
+  const [r, setR] = useState<{ state: "working" } | { state: "ready"; p: Proposal } | { state: "failed"; error: string } | null>(null);
+  const working = r?.state === "working";
+  const why = reasonText({ left: p.left, leo: true });
+  const run = async () => {
+    const t = p.target();
+    if (!t || !p.text.trim() || working) return;
+    setR({ state: "working" });
+    try {
+      const got = await t.propose(p.text.trim(), null);
+      setR(got.preview.trim() ? { state: "ready", p: got } : { state: "failed", error: got.reply || ASK_FAILED });
+    } catch (e) {
+      setR({ state: "failed", error: e instanceof Error && e.message ? e.message : ASK_FAILED });
+    }
+  };
+  const use = () => {
+    if (r?.state !== "ready") return;
+    try {
+      r.p.apply();
+      p.onUsed();
+    } catch (e) {
+      setR({ state: "failed", error: e instanceof Error && e.message ? e.message : ASK_FAILED });
+    }
+  };
+  // opened from a link, the box may sit below the fold: bring it into view once
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // Chrome's scroll methods answer a promise, which an effect must not return
+    void box.current?.scrollIntoView({ block: "center" });
+  }, []);
+  return (
+    <section ref={box} aria-label="Change every slide" className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => (e.preventDefault(), void run())}>
+        <Input value={p.text} maxLength={ASK_MAX_CHARS} aria-label="What to change on every slide" disabled={working} onChange={(e) => p.onText(e.target.value)}
+          className="h-9 min-w-0 flex-1 basis-48 text-sm [@media(pointer:coarse)]:h-11" />
+        <Button type="submit" size="sm" disabled={!p.text.trim() || working || p.busy || p.left === 0} className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11">
+          <Sparkles className="h-3.5 w-3.5" /> Rewrite
+        </Button>
+      </form>
+      {!working && (
+        <p className="flex flex-wrap items-center gap-2">
+          <PriceChip feature="edit-ask" left={p.left} />
+          {why && <span className="text-[11px] text-muted-foreground">{why}</span>}
+          {r?.state !== "ready" && (
+            <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className="ml-auto h-9 text-muted-foreground [@media(pointer:coarse)]:h-11">Close</Button>
+          )}
+        </p>
+      )}
+      {working && (
+        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+          <ThinkingOrb state="composing" size={20} aria-hidden /> Rewriting every slide...
+        </p>
+      )}
+      {r?.state === "failed" && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">{r.error}</p>}
+      {r?.state === "ready" && (
+        <div role="status" className="space-y-2">
+          {r.p.reply && <p className="text-[11px] text-muted-foreground">{r.p.reply}</p>}
+          <p className="whitespace-pre-line text-sm text-foreground">{r.p.preview}</p>
+          <FlagList flags={scanCompliance(r.p.preview)} />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={use} className="[@media(pointer:coarse)]:h-11">Use this</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className="[@media(pointer:coarse)]:h-11">Keep mine</Button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default function CarouselPage() {
@@ -887,6 +1041,44 @@ export default function CarouselPage() {
   const compareOn = Boolean(compareDraft?.source);
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
 
+  // edit-by-chat (Leo only): the open carousel is what the agent changes, and only on its Use this
+  const editIn = useRef({ title: "", onScreen: undefined as number | undefined, platform, change });
+  editIn.current = { title: (fileBase || "Carousel").slice(0, 60).trim(), onScreen: view === "one" ? at + 1 : undefined, platform, change };
+  const leoOn = !!leo;
+  const editOpen = leoOn && showEditor && !!carouselId;
+  const editTarget = useRef<EditTarget | null>(null);
+  useEffect(() => {
+    if (!editOpen) return;
+    let live = true;
+    const off = registerEditTarget(editTarget.current = carouselTarget({
+      title: () => editIn.current.title,
+      slides: () => slidesRef.current,
+      onScreen: () => editIn.current.onScreen,
+      platform: () => editIn.current.platform,
+      change: (update) => editIn.current.change(update),
+      open: () => live,
+    }));
+    return () => {
+      live = false;
+      editTarget.current = null;
+      off();
+    };
+  }, [editOpen, carouselId]);
+  // ?ask= on an open carousel: fills the box once and leaves the address; nothing is written until Rewrite
+  const [pageAsk, setPageAsk] = useState<string | null>(null);
+  const setAskBox = (text: string | null) => {
+    setPageAsk(text);
+    keepAsk(carouselId, text);
+  };
+  useEffect(() => setPageAsk(editOpen ? keptAsk(carouselId) : null), [editOpen, carouselId]);
+  const linkAsk = leoOn ? searchParams.get("ask") : null;
+  useEffect(() => {
+    if (!editOpen || linkAsk === null) return;
+    setAskBox(linkAsk.trim().slice(0, ASK_MAX_CHARS));
+    updateUrl({ ask: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editOpen, linkAsk]);
+
   // Leo's Design row: each design drawn small from this carousel's own cover and first point, in its starting look
   const designPreviews = useMemo(() => {
     if (!leo || slides.length < MIN_SLIDES) return [];
@@ -1492,6 +1684,10 @@ export default function CarouselPage() {
                       </Button>
                     </div>
                   </div>
+                )}
+                {leo && pageAsk !== null && (
+                  <AskBox text={pageAsk} left={askLeft} busy={busy} target={() => editTarget.current} onText={setAskBox} onClose={() => setAskBox(null)}
+                    onUsed={() => (setAskBox(null), toast({ title: "Slides changed", description: "Undo brings your words back." }))} />
                 )}
                 {one ? (
                   <div className="space-y-3">
