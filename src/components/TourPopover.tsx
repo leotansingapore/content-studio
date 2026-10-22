@@ -71,7 +71,8 @@ export default function TourPopover() {
 
   // Focus moves only after a press (start, Next, Resume, Esc), so it never leaves a field someone is typing in.
   useEffect(() => {
-    const press = takeFocus();
+    // read only once something is drawn: a ?tour= start sets it in this same commit, before the popover exists
+    const press = view !== null && takeFocus();
     if (view === "popover" && press) nextBtn.current?.focus();
     if (view === "pill" && focusResume.current) resumeBtn.current?.focus();
     focusResume.current = false;
