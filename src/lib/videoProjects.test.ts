@@ -305,6 +305,10 @@ describe("transcribe", () => {
     await transcribe(new Blob(["wav"]), "en", ["MediShield Life", "O'Brien & Co"]);
     expect(asked).toEqual(["/functions/v1/video-assist?mode=transcribe&lang=en&terms=MediShield%20Life%2CO'Brien%20%26%20Co"]);
   });
+  it("reads an answer with no words list as no words, so the editor never crashes on it", async () => {
+    vi.stubGlobal("fetch", async () => Response.json({ duration: 3 }));
+    expect(await transcribe(new Blob(["wav"]))).toEqual({ duration: 3, words: [], text: "" });
+  });
   it("asks as before with no terms", async () => {
     await transcribe(new Blob(["wav"]));
     await transcribe(new Blob(["wav"]), "ms", []);

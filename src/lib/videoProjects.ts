@@ -252,7 +252,9 @@ async function call(path: string, init: RequestInit): Promise<Response> {
 export async function transcribe(wav: Blob, lang?: string, terms?: string[]): Promise<{ words: Word[]; text: string; duration: number; lang?: string }> {
   const q = `${lang ? `&lang=${encodeURIComponent(lang)}` : ""}${terms?.length ? `&terms=${encodeURIComponent(terms.join(","))}` : ""}`;
   const res = await call(`?mode=transcribe${q}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
-  return res.json();
+  const t = await res.json();
+  // an answer with no words list read as no words: the editor filtered it and crashed
+  return { ...t, words: Array.isArray(t?.words) ? t.words : [], text: typeof t?.text === "string" ? t.text : "" };
 }
 
 /** Jev's key word in each caption line (and an emoji on a lit line unless emoji is "off"); one "caption-keywords" use. Leo only. */
