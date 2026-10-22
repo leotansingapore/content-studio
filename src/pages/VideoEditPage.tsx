@@ -218,6 +218,7 @@ import { FEW_WORDS, LEO_PANELS, NO_SOUND, START_PANELS, footageWords, readsLonge
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
+import { registerEditTarget, type EditTarget } from "@/lib/editTarget";
 
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
 // then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
@@ -586,6 +587,55 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
       </div>
     </section>
   );
+}
+
+/**
+ * The open video for the agent to change (edit-by-chat, Leo only): propose asks vibe edit and changes nothing; apply
+ * puts the same patch on the settings as they are then, one Undo step; its undo puts back only the keys it changed.
+ */
+export function videoTarget(io: {
+  title: () => string;
+  settings: () => EditSettings;
+  vibe: (instruction: string, settings: EditSettings) => Promise<{ patch: Record<string, unknown>; reply: string }>;
+  /** One step on the editor's own Undo. */
+  set: (next: EditSettings) => void;
+  /** False once this video is closed. */
+  open: () => boolean;
+}): EditTarget {
+  return {
+    kind: "video",
+    get title() {
+      return io.title();
+    },
+    async propose(ask) {
+      const { patch, reply } = await io.vibe(ask, io.settings());
+      const { next, changed } = applyPatch(io.settings(), patch);
+      // a change the editor can't make comes back empty: the agent answers with the writer's reply
+      const shown = changed.filter((k) => next[k as keyof EditSettings] !== undefined);
+      const said = (v: unknown) => (v === true ? "on" : v === false ? "off" : typeof v === "object" ? "changed" : String(v));
+      const preview = (shown.length ? shown : changed).map((k) => `${k.replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`)}: ${said(next[k as keyof EditSettings])}`).join(", ");
+      return {
+        reply,
+        preview,
+        flags: [],
+        apply() {
+          if (!io.open()) throw new Error("That video is no longer open.");
+          const cur = io.settings();
+          const after = applyPatch(cur, patch).next;
+          const keys = [...new Set([...Object.keys(cur), ...Object.keys(after)])].filter((k) => after[k as keyof EditSettings] !== cur[k as keyof EditSettings]);
+          const before = Object.fromEntries(keys.map((k) => [k, cur[k as keyof EditSettings]])) as Partial<EditSettings>;
+          io.set(after);
+          return {
+            done: `Done. "${io.title()}" changed. Undo here or on the page.`,
+            undo: () => {
+              if (!io.open()) throw new Error("That video is no longer open.");
+              io.set({ ...io.settings(), ...before });
+            },
+          };
+        },
+      };
+    },
+  };
 }
 
 export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
@@ -1850,6 +1900,29 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     setHistory((h) => [...h.slice(-19), cur]);
     setSettings({ ...cur, broll: [...(cur.broll ?? []), ...added.broll].slice(0, MAX_BROLL), overlays: [...(cur.overlays ?? []), ...added.overlays].slice(0, MAX_OVERLAYS) });
   }), [project.id]);
+  // edit-by-chat (Leo only): the agent changes this video through vibe edit, and only on its Use this
+  const vibeIn = useRef({ transcript, name: project.name });
+  vibeIn.current = { transcript, name: project.name };
+  useEffect(() => {
+    if (!leo) return;
+    let live = true;
+    const off = registerEditTarget(videoTarget({
+      title: () => vibeIn.current.name,
+      settings: () => settingsRef.current,
+      vibe: (instruction, cur) => vibeEdit({ instruction, settings: cur, transcript: vibeIn.current.transcript, duration }),
+      set: (next) => {
+        const cur = settingsRef.current;
+        setHistory((h) => [...h.slice(-19), cur]);
+        settingsRef.current = next;
+        setSettings(next);
+      },
+      open: () => live,
+    }));
+    return () => {
+      live = false;
+      off();
+    };
+  }, [leo, duration]);
   const addBroll = async (it: StockItem) => {
     if (brolls.length >= MAX_BROLL) throw new Error(`Up to ${MAX_BROLL} on a video`);
     const blob = await downloadStock(it.src);

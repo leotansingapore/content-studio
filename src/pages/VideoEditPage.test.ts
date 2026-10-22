@@ -7,6 +7,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import type { EditSettings } from "@/lib/videoEdit";
 
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
@@ -17,7 +18,7 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row over the start screen reads the rails store, which has no server snapshot; not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { Editor, Start } = await import("./VideoEditPage");
+const { Editor, Start, videoTarget } = await import("./VideoEditPage");
 const { defaultSettings } = await import("@/lib/videoEdit");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -102,5 +103,58 @@ describe("the vibe box run (pinned on today's code at 4403dedf)", () => {
     expect(changed).toEqual(["position", "captionY", "size", "activeColor"]);
     expect(next).toEqual({ ...settings, position: "top", captionY: undefined, size: 1.3, activeColor: "#FFD400" });
     vi.unstubAllGlobals();
+  });
+});
+
+describe("the open video as the agent's edit target (Leo only)", () => {
+  const setup = (patch: Record<string, unknown>, reply = "Bigger yellow captions at the top.") => {
+    const io = {
+      now: { ...defaultSettings("bold"), captionY: 0.7 } as EditSettings,
+      live: true,
+      vibes: [] as string[],
+      sets: 0,
+    };
+    const target = videoTarget({
+      title: () => "Clip",
+      settings: () => io.now,
+      vibe: async (instruction) => (io.vibes.push(instruction), { patch, reply }),
+      set: (next) => ((io.now = next), io.sets++),
+      open: () => io.live,
+    });
+    return { io, target };
+  };
+
+  it("proposes through vibe edit and changes nothing; Use this changes the settings once; Undo puts back only those keys", async () => {
+    const { io, target } = setup({ position: "top", size: 1.3, activeColor: "#ffd400" });
+    const p = await target.propose("bigger yellow captions at the top", null);
+    expect(io.vibes).toEqual(["bigger yellow captions at the top"]);
+    expect(io.sets).toBe(0);
+    expect([target.kind, target.title, p.reply, p.preview, p.flags]).toEqual(["video", "Clip", "Bigger yellow captions at the top.", "position: top, size: 1.3, active color: #FFD400", []]);
+    // a change made on the page after the proposal stays
+    io.now = { ...io.now, uppercase: !io.now.uppercase };
+    const was = io.now;
+    const r = p.apply();
+    expect(io.sets).toBe(1);
+    expect(r.done).toBe('Done. "Clip" changed. Undo here or on the page.');
+    expect(io.now).toEqual({ ...was, position: "top", captionY: undefined, size: 1.3, activeColor: "#FFD400" });
+    io.now = { ...io.now, maxPause: 0.2 };
+    r.undo();
+    expect(io.now).toEqual({ ...was, maxPause: 0.2 });
+  });
+
+  it("a change the editor can't make proposes nothing, so the agent answers with the reply", async () => {
+    const { io, target } = setup({ music: true }, "I can't add music by asking yet. Add it in the Cuts tab.");
+    const p = await target.propose("add music", null);
+    expect([p.preview, p.reply, io.sets]).toEqual(["", "I can't add music by asking yet. Add it in the Cuts tab.", 0]);
+  });
+
+  it("a closed video takes no change and no undo", async () => {
+    const { io, target } = setup({ size: 1.3 });
+    const p = await target.propose("bigger", null);
+    const r = p.apply();
+    io.live = false;
+    expect(() => r.undo()).toThrow();
+    expect(() => p.apply()).toThrow();
+    expect(io.sets).toBe(1);
   });
 });
