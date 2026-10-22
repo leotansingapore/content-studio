@@ -579,7 +579,11 @@ export default function CarouselPage() {
     if (!userId || list.length < MIN_SLIDES) return;
     const id = carouselId || `p:${Date.now().toString(36)}`;
     if (!carouselId) setCarouselId(id);
+    // a language version keeps its language and its link to the English (set only on Leo's versions)
+    const was = loadCarousels(userId).find((c) => c.id === id);
     setSaved(saveCarousel(userId, {
+      ...(was?.lang ? { lang: was.lang } : {}),
+      ...(was?.translationOf ? { translationOf: was.translationOf } : {}),
       id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper,
       ...(leo && design !== "clean" ? { design } : {}),
       ...(leo && size !== "4x5" ? { size } : {}),
