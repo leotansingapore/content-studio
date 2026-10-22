@@ -32,8 +32,21 @@ export type AnalyticsPeriod = "7d" | "30d" | "90d" | "all";
 export type PostStatus = "scheduled" | "posted";
 
 export const links = {
-  plan: (o: { view?: "plan" | "setup"; competitor?: string } = {}) =>
-    `/plan${qs({ view: o.view !== "plan" && o.view, competitor: o.competitor })}`,
+  /**
+   * Leo only (phase 5): section scrolls to #autopilot or #pillars, autopilot=settings and pillars=edit open a dialog or
+   * panel (push), week=<YYYY-MM-DD> picks autopilot's batch (replace).
+   */
+  plan: (
+    o: {
+      view?: "plan" | "setup";
+      competitor?: string;
+      section?: "autopilot" | "pillars";
+      autopilot?: "settings";
+      week?: string;
+      pillars?: "edit";
+    } = {},
+  ) =>
+    `/plan${qs({ view: o.view !== "plan" && o.view, competitor: o.competitor, autopilot: o.autopilot, week: o.week, pillars: o.pillars })}${o.section ? `#${o.section}` : ""}`,
   calendar: (
     o: {
       view?: CalendarView;
@@ -261,8 +274,8 @@ export const links = {
       format: o.format !== "all" && o.format,
       item: o.item,
     })}${o.item && o.breakdown ? "#breakdown" : ""}`,
-  /** Home; what-moved scrolls to the What moved card. */
-  home: (o: { section?: "what-moved" } = {}) => `/home${o.section ? `#${o.section}` : ""}`,
+  /** Home; what-moved scrolls to the What moved card. goal=change opens the goal editor (Leo only, replace). */
+  home: (o: { section?: "what-moved"; goal?: "change" } = {}) => `/home${qs({ goal: o.goal })}${o.section ? `#${o.section}` : ""}`,
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
     `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,
@@ -323,11 +336,17 @@ export const links = {
       compare?: CompareView;
       /** Leo only: this make's language, read once like the other pre-fills (English left out). */
       lang?: PostLang;
+      /** Leo only (phase 5): a saved audience's id and a label's id, read once like the other pre-fills, after lang. */
+      aud?: string;
+      label?: string;
     } = {},
-  ) =>
-    `/generate${qs({ ...o, step: o.step !== "topic" && o.step, network: o.network !== "threads" && o.network, hooks: o.hooks !== "formulas" && o.hooks, kind: o.kind !== "line" && o.kind })}`,
-  batch: (o: { pillar?: string; audience?: string } = {}) =>
-    `/generate/batch${qs({ pillar: o.pillar !== "topic" && o.pillar, audience: o.audience !== "general" && o.audience })}`,
+  ) => {
+    const { aud, label, ...rest } = o;
+    return `/generate${qs({ ...rest, step: o.step !== "topic" && o.step, network: o.network !== "threads" && o.network, hooks: o.hooks !== "formulas" && o.hooks, kind: o.kind !== "line" && o.kind, aud, label })}`;
+  },
+  /** aud (Leo only): a saved audience's id; it stays in the address (replace) and wins over audience. */
+  batch: (o: { pillar?: string; audience?: string; aud?: string } = {}) =>
+    `/generate/batch${qs({ pillar: o.pillar !== "topic" && o.pillar, audience: o.audience !== "general" && o.audience, aud: o.aud })}`,
   /** design (clean left out), size (4x5 left out), view and slide (1 left out) replace. */
   carousel: (
     o: {
@@ -441,8 +460,9 @@ export const links = {
     })}${o.section ? `#${o.section}` : ""}`,
   /** source=<link:|upload: key> reopens a source read on Leo's Remix a post (push). */
   clone: (o: { url?: string; clone?: string; source?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone, source: o.source })}`,
-  coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>
-    `/coach${qs({ report: o.report, view: o.view })}${o.section ? `#${o.section}` : ""}`,
+  /** piece (Leo only, replace): the long piece's switch. No value is left out: Leo's default is questions, everyone else's paste. */
+  coach: (o: { report?: string; view?: "quiz"; piece?: "questions" | "voice" | "paste"; section?: "idea-dump" | "long-piece" } = {}) =>
+    `/coach${qs({ report: o.report, view: o.view, piece: o.piece })}${o.section ? `#${o.section}` : ""}`,
   /** Leo only: a section of /voice, and learning opens one learning (push). */
   voice: (o: { section?: "how-you-sound" | "facts" | "learned"; learning?: string } = {}) =>
     `/voice${qs({ learning: o.learning })}${o.section ? `#${o.section}` : ""}`,
@@ -491,6 +511,27 @@ export const links = {
   makeFormat: (slug: string, p: Record<string, string | number | undefined> = {}) => `/make/${encodeURIComponent(slug)}${qs(p)}`,
   /** The format gallery (Leo only): kind (all left out) and needs=none replace. */
   make: (o: { kind?: FormatKind | "all"; needsNone?: boolean } = {}) => `/make${qs({ kind: o.kind !== "all" && o.kind, needs: o.needsNone && "none" })}`,
+  // ---- North star phase 5 (Leo only): plans and campaigns.
+  /** open=<audience id>: that audience's editor (push). */
+  audiences: (o: { open?: string } = {}) => `/audiences${qs({ open: o.open })}`,
+  /** goal=change opens the goal editor under the H1 (replace). */
+  campaigns: (o: { goal?: "change" } = {}) => `/campaigns${qs({ goal: o.goal })}`,
+  /** step (replace) has no fixed default (the first unfinished step), so every step stays in the link; audience is read once. */
+  campaignNew: (o: { step?: "who" | "angles" | "where" | "pace" | "review"; audience?: string } = {}) =>
+    `/campaigns/new${qs({ step: o.step, audience: o.audience })}`,
+  /** post is 1-based (replace); view=grid (one at a time left out) and angle filter replace; section scrolls to #queue. */
+  campaign: (id: string, o: { post?: number; view?: "grid"; angle?: string; section?: "queue" } = {}) =>
+    `/campaigns/${encodeURIComponent(id)}${qs({ post: o.post, view: o.view, angle: o.angle })}${o.section ? `#${o.section}` : ""}`,
+  /** tab and source replace (inbox and all left out); label filters (replace); idea opens one (push). */
+  ideas: (
+    o: {
+      tab?: "inbox" | "shortlist" | "discarded";
+      source?: "all" | "today" | "dump" | "posts" | "market" | "foryou" | "trends" | "news" | "saved";
+      label?: string;
+      idea?: string;
+    } = {},
+  ) => `/ideas${qs({ tab: o.tab !== "inbox" && o.tab, source: o.source !== "all" && o.source, label: o.label, idea: o.idea })}`,
+  // ---- end phase 5
   /** The Image page (Leo only): layout (headline left out) and size (4x5 left out) replace; source is read once, then removed; image opens a saved design (replace). */
   image: (o: { layout?: ImageLayout; size?: "4x5" | "1x1" | "9x16" | "wide"; source?: string; image?: string } = {}) =>
     `/image${qs({ layout: o.layout !== "headline" && o.layout, size: o.size !== "4x5" && o.size, source: o.source, image: o.image })}`,

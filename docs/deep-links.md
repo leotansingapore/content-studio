@@ -307,6 +307,8 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   id), idea= (the idea source: real-question, common-mistake, news-hook, personal-story, before-after,
   three-things, myth-bust; not the idea text), ctx= (context text), ref= (a competitor handle), formula=
   (a hook formula id): Plan, Coach, Carousel and the assistant pre-fill the brief this way.
+- /generate?aud=<audience id> and label=<label id> (Leo only): a saved audience and a label, read once with the
+  other pre-fills (aud starts the pre-fill on its own); see "Plans and campaigns" below.
 - /generate?vibe=<inspiration id>: loads that example as the style reference.
 - /generate?draft=<id>&ask=<words>: opens the post and starts that rewrite (ask is removed once read).
 - /generate?draft=<id>&profile=<profile id>: a phone alert for another profile's post switches to it first.
@@ -463,3 +465,42 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 
 Closing /edit's AI panel drops face, voice, product and set with the other AI panel params. A version made in
 another language is a draft or a carousel like any other: /generate?draft=<version id>, /carousel?carousel=<version id>.
+
+## Plans and campaigns (Leo only)
+
+North star phase 5 (docs/north-star/items/brand-audiences.md, plan-goal.md, plan-campaign.md, plan-angles.md,
+plan-campaign-page.md, plan-review-queue.md, plan-autopilot.md, plan-content-plan.md, plan-interview.md,
+plan-ideas-inbox.md). Every row below is Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides /audiences,
+/campaigns and /ideas and anyone else gets the not-found page there (and at /campaigns/new and /campaigns/<id>),
+and the new params and anchors on /home, /plan, /coach, /generate and /generate/batch are ignored for anyone else,
+who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults left out of links.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /audiences | open | Leo only. a saved audience's id, its editor open; an unknown id shows the list | none | push | /audiences?open=au-lq3k9z |
+| /generate | aud | Leo only. a saved audience's id: preselected, read once like the other pre-fills (it starts the pre-fill on its own), then removed; wins over audience=; an unknown or removed id falls back to the life stages | the life stages | replace | /generate?aud=au-lq3k9z |
+| /generate | label | Leo only. a label's id: the draft saved from this brief wears that label; read once, then removed | none | replace | /generate?pillar=topic&detail=CPF&format=carousel&label=lb-1 |
+| /generate/batch | aud | Leo only. a saved audience's id; stays in the address and wins over audience=; an unknown or removed id is dropped | the life stages | replace | /generate/batch?aud=au-lq3k9z |
+| /home | goal | Leo only. change: the goal editor open under the greeting; closing removes it | closed | replace | /home?goal=change |
+| /campaigns | goal | Leo only. change: the goal editor open under the H1; closing removes it | closed | replace | /campaigns?goal=change |
+| /campaigns/new | step | Leo only. who, angles, where, pace, review: the wizard's open step | the first unfinished step | replace | /campaigns/new?step=angles |
+| /campaigns/new | audience | Leo only. an audience id: step 1 answered, the wizard opens on step 2; read once, then kept with the wizard's typed work | none | replace | /campaigns/new?audience=au-lq3k9z |
+| /campaigns/<id> | (path) | Leo only. a campaign's id: the campaign page, with Copy link beside the H1 | | push | /campaigns/c-lq3k9z |
+| /campaigns/<id> | post | Leo only. a post's number, 1-based: that post shown in the queue; out of range shows the first post not yet made | the first post not yet made | replace | /campaigns/c-lq3k9z?post=4 |
+| /campaigns/<id> | view | Leo only. grid: the queue as cards; a card opens one at a time on that post | one at a time | replace | /campaigns/c-lq3k9z?view=grid |
+| /campaigns/<id> | angle | Leo only. an angle's id: the queue filtered to it and its chip outlined; an unknown id shows every angle | every angle | replace | /campaigns/c-lq3k9z?angle=ang-2 |
+| /campaigns/<id> | #queue | Leo only. scrolls to the review queue | top | (anchor) | /campaigns/c-lq3k9z?post=4#queue |
+| /plan | #section | Leo only. autopilot, pillars | top | (anchor) | /plan#autopilot |
+| /plan | autopilot | Leo only. settings: autopilot's settings dialog | closed | push | /plan?autopilot=settings |
+| /plan | week | Leo only. a Monday, YYYY-MM-DD: that week's autopilot batch in the card; a week with no batch shows the newest | the newest batch | replace | /plan?week=2026-10-27#autopilot |
+| /plan | pillars | Leo only. edit: the Edit pillars panel | closed | push | /plan?pillars=edit |
+| /coach | piece | Leo only. questions, voice, paste: the long piece's switch, scrolled into view; anyone else has paste only | questions | replace | /coach?piece=voice |
+| /coach | #long-piece | Leo only. scrolls to One long piece, five posts | top | (anchor) | /coach#long-piece |
+| /ideas | tab | Leo only. inbox, shortlist, discarded | inbox | replace | /ideas?tab=shortlist |
+| /ideas | source | Leo only. all, today, dump, posts, market, foryou, trends, news, saved | all | replace | /ideas?source=foryou |
+| /ideas | label | Leo only. a label's id: only ideas with that label | all | replace | /ideas?label=lb-1 |
+| /ideas | idea | Leo only. an idea's key, URL-encoded (<source>:<id>, gen:<day>:<n> for a written one): that idea open, with Copy link; a key that is gone shows the list | none | push | /ideas?idea=gen%3A2026-10-22%3A3 |
+
+A campaign post's own link is /campaigns/<id>?post=<n>. Once made it is a post like any other: /generate?draft=cmp_<id>_<n>
+(an autopilot post is ap_<week>_<n>), and /carousel?draft=<id> for a carousel. Paid steps never start from a link:
+a paid start on arrival rides navigation state only, as on /make.

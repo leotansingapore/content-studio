@@ -184,6 +184,16 @@ export const DAILY_LIMITS = {
   "media-sort": 200,
   // A post translated with its English meaning (video-assist translate kind post): one gpt-4.1 call.
   "post-translate": 30,
+  // North star phase 5, declared up front (Leo only, NORTH_STAR_USERS). Audiences suggested for the brand (brand-dna audiences): one LLM call plus Jev.
+  "audience-suggest": 5,
+  // Angles suggested for a campaign (idea-dump angles): one LLM call writes 8, Jev keeps up to 5.
+  "campaign-angles": 10,
+  // Up to 7 campaign or autopilot posts written in one call (idea-dump campaign), plus Jev's MAS question per post.
+  "campaign-draft": 20,
+  // One campaign post written again (idea-dump campaign with swap).
+  "campaign-swap": 40,
+  // A set of ideas for the inbox (idea-dump ideas): one LLM call plus Jev.
+  "ideas-daily": 15,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

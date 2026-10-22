@@ -165,6 +165,22 @@ describe("Faces and voices", () => {
   });
 });
 
+describe("Campaigns, Ideas and Audiences", () => {
+  it("finds them for Leo by the words people use, and for nobody else", () => {
+    const leo = [...CREATE_ITEMS, ...pageItems("tanjunsing@gmail.com")];
+    for (const q of ["campaign", "campaigns", "month", "angles"]) expect(searchJump(leo, q)[0].to, q).toBe("/campaigns");
+    for (const q of ["ideas", "inbox", "shortlist", "daily ideas"]) expect(searchJump(leo, q)[0].to, q).toBe("/ideas");
+    for (const q of ["audience", "audiences", "persona", "avatar", "who buys"]) expect(searchJump(leo, q)[0].to, q).toBe("/audiences");
+    // the pages people already look for keep their place
+    expect(searchJump(leo, "plan")[0].to).toBe("/plan");
+    expect(searchJump(leo, "post ideas")[0].to).toBe("/inspiration");
+    const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
+    for (const to of ["/campaigns", "/ideas", "/audiences"]) expect(other.map((i) => i.to)).not.toContain(to);
+    expect(searchJump(other, "campaign")).toEqual([]);
+    expect(searchJump(other, "ideas")[0].to).toBe("/inspiration");
+  });
+});
+
 describe("recent pages", () => {
   it("keeps nav pages newest first, without repeats, up to the limit", () => {
     pushRecent("/calendar");

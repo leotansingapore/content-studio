@@ -76,6 +76,12 @@ const LinkInBioPage = lazy(() => import("@/pages/LinkInBioPage"));
 const TrackedReportPublicPage = lazy(() => import("@/pages/TrackedReportPublicPage"));
 const JoinPage = lazy(() => import("@/pages/JoinPage"));
 const TrackedLinksPage = lazy(() => import("@/pages/TrackedLinksPage"));
+// North star phase 5 (Leo only): stubs that answer the not-found page until their builders replace them.
+const AudiencesPage = lazy(() => import("@/pages/AudiencesPage"));
+const IdeasPage = lazy(() => import("@/pages/IdeasPage"));
+const CampaignsPage = lazy(() => import("@/pages/CampaignsPage"));
+const CampaignWizardPage = lazy(() => import("@/pages/CampaignWizardPage"));
+const CampaignPage = lazy(() => import("@/pages/CampaignPage"));
 
 export default function App() {
   return (
@@ -135,6 +141,10 @@ export default function App() {
           <Route path="/make/:format" element={<MakeFormatPage />} />
           <Route path="/edit" element={<VideoEditPage />} />
           <Route path="/plan" element={<PlanPage />} />
+          <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route path="/campaigns/new" element={<CampaignWizardPage />} />
+          <Route path="/campaigns/:id" element={<CampaignPage />} />
+          <Route path="/ideas" element={<IdeasPage />} />
           <Route path="/fads" element={<FadsPage />} />
           <Route path="/fads/:tab" element={<FadsPage />} />
           <Route path="/recruit" element={<RecruitPage />} />
@@ -157,6 +167,7 @@ export default function App() {
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/brand" element={<BrandPage />} />
+          <Route path="/audiences" element={<AudiencesPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/bio" element={<LinkInBioPage />} />
           <Route path="/links" element={<TrackedLinksPage />} />

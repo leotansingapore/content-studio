@@ -112,6 +112,8 @@ export const SECTIONS: NavSection[] = [
     tabbed: true,
     pages: [
       { to: "/plan", label: "Plan" },
+      { to: "/campaigns", label: "Campaigns", owners: LEO_EMAILS },
+      { to: "/ideas", label: "Ideas", owners: LEO_EMAILS },
       { to: "/calendar", label: "Calendar" },
       { to: "/board", label: "Board" },
       { to: "/drafts", label: "My posts" },
@@ -171,6 +173,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/playbook", label: "My Playbook" },
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
+      { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
       { to: "/people", label: "Faces and voices", owners: LEO_EMAILS },
       { to: "/bio", label: "Link in bio" },
       { to: "/links", label: "Tracked links" },
