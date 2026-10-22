@@ -80,3 +80,12 @@ describe("weekFromLongPiece", () => {
     );
   });
 });
+
+describe("weekFromLongPiece for Leo", () => {
+  it("adds the source and the speaker after everyone's fields", async () => {
+    invoke.mockResolvedValueOnce({ data: { extracts: {}, posts: [] }, error: null });
+    const context = { voice: "", positioning: null, platforms: [] };
+    await weekFromLongPiece("Answers.", context, [], "interview", "business");
+    expect(JSON.stringify(invoke.mock.lastCall![1].body)).toBe('{"mode":"long","text":"Answers.","formulas":[],"voice":"","positioning":null,"platforms":[],"source":"interview","speaker":"business"}');
+  });
+});
