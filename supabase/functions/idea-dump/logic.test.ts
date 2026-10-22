@@ -1677,3 +1677,82 @@ describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32
     expect(video(`HOOK: Who needs a call today? Here is how.\nBODY: ${words(60)}\nCTA: DM us CALLS.`)!.script!.split("\n")[0]).toBe("HOOK: Who needs a call today? Here is how.");
   });
 });
+
+import { ANSWER_PICK_MIN, answerAsk, buildAnswerPrompt, parseAnswerRequest, pickAd, validateAnswer, type AnswerRequest } from "./logic.ts";
+
+describe("mode answer (phase 6 agent-skills)", () => {
+  const AD = { id: "111", advertiser: "Finch Advisory", text: "Retire at 55 with our guaranteed income plan.\nBook a free review today.\nLimited slots.", days: 4, format: "video" };
+  const ADS = [AD, { id: "222", advertiser: "Owl Planners", text: "Your CPF is not enough.", days: 6, format: "image" }, { id: "333", advertiser: "Lark", text: "Free will writing.", days: 6, format: "carousel" }];
+  const req = (speaker = "person", ads: unknown[] = ADS): AnswerRequest => {
+    const r = parseAnswerRequest({ mode: "answer", ads, context: { ...PLAN_CONTEXT, speaker } });
+    if (!r.ok) throw new Error(r.error);
+    return r.request;
+  };
+  const choice = (pick: string, p: number) => ({ ad: { type: "choice" as const, choice: pick, probabilities: { [pick]: p } } });
+
+  it("takes 1 to 10 ads, cutting each field and dropping repeats and empty ones", () => {
+    expect(parseAnswerRequest({ ads: [] })).toEqual({ ok: false, error: "Send 1 to 10 competitor ads." });
+    expect(parseAnswerRequest({ ads: Array.from({ length: 11 }, (_, i) => ({ ...AD, id: String(i) })) })).toMatchObject({ ok: false });
+    const r = req("person", [{ ...AD, advertiser: "a".repeat(100), text: `${"t".repeat(400)}`, days: -3 }, AD, { id: "9", text: "" }, "junk", { ...AD, id: "2", days: 2.6, format: "" }]);
+    expect(r.ads.map((a) => [a.id, a.advertiser.length, a.text.length, a.days, a.format])).toEqual([["111", 80, 300, 0, "video"], ["2", 14, AD.text.length, 3, "ad"]]);
+    expect(r.ads[1].text.split("\n")).toHaveLength(3);
+  });
+
+  it("asks Jev to choose among 2 or more ads by advertiser, first two lines, days running and format; never with one", () => {
+    expect(answerAsk(req("person", [AD]))).toBeNull();
+    const ask = answerAsk(req())!;
+    expect(Object.keys(ask.questions)).toEqual(["ad"]);
+    const q = ask.questions.ad as { type: string; instructions: string; criteria: Record<string, string> };
+    expect(q.type).toBe("choice");
+    expect(q.instructions).toMatch(/^A Singapore financial adviser wants to answer one competitor ad this week/);
+    expect(q.criteria).toEqual({
+      a1: "Finch Advisory: Retire at 55 with our guaranteed income plan. Book a free review today., running 4 days, video",
+      a2: "Owl Planners: Your CPF is not enough., running 6 days, image",
+      a3: "Lark: Free will writing., running 6 days, carousel",
+    });
+    expect(ask.state).toEqual({ adviser: PLAN_CONTEXT.positioning.oneLiner, serves: "Parents in their 30s", country: "Singapore" });
+    const biz = answerAsk(req("business"))!;
+    expect(biz.questions.ad.instructions).toMatch(/^A Singapore business wants to answer/);
+    expect(JSON.stringify(biz)).not.toMatch(/adviser/i);
+  });
+
+  it(`takes Jev's pick at ${ANSWER_PICK_MIN} and the longest-running ad (the first of a tie) under it or with no answer`, () => {
+    expect(pickAd(ADS, choice("a1", 0.4))).toEqual({ ad: ADS[0], p: 0.4, scored: true });
+    expect(pickAd(ADS, choice("a1", 0.39))).toEqual({ ad: ADS[1], p: 0.39, scored: false });
+    expect(pickAd(ADS, null)).toEqual({ ad: ADS[1], p: null, scored: false });
+    // a pick that was not offered is no pick
+    expect(pickAd(ADS, choice("a9", 0.9))).toEqual({ ad: ADS[1], p: null, scored: false });
+  });
+
+  it("writes a person's angles under the MAS lines, from the ad's words without its advertiser", () => {
+    const { system, user } = buildAnswerPrompt(req(), AD);
+    expect(system).toContain([...COMPLIANCE_LINES, ...PLAN_LINES].join("\n"));
+    expect(system).toContain("never reuse the ad's wording, its brand or its claims");
+    expect(system).toContain("exactly 5 candidates");
+    expect(user).toContain(`The competitor's video ad, running 4 days:\n"""${AD.text}"""`);
+    expect(user).not.toContain("Finch");
+  });
+
+  it("gives a business its honesty lines and no adviser line", () => {
+    const { system, user } = buildAnswerPrompt(req("business"), AD);
+    expect(system).toContain(BUSINESS_RULE_LINES.join("\n"));
+    expect(system).toContain(BUSINESS_VOICE);
+    expect(system).toContain("a business in Singapore");
+    expect(system).not.toMatch(ADVISER_RULES);
+    expect(`${system}\n${user}`).not.toMatch(/adviser/i);
+  });
+
+  it("keeps the first 3 angles that neither echo 4 of the ad's words, name its advertiser nor trip the compliance patterns", () => {
+    const angles = [
+      { title: "Retire at 55 myth", line: "Retire at 55 with our plan is a line worth questioning." },
+      { title: "Fees they leave out", line: "The fees Finch Advisory never mentions in a retirement plan." },
+      { title: "Guaranteed income claims", line: "Why guaranteed income is never as simple as it sounds." },
+      { title: "Your CPF at 55", line: "What really happens to your CPF savings at 55." },
+      { title: "Questions to ask first", line: "Three questions to ask before any retirement review." },
+      { title: "When to start planning", line: "Planning early beats a rushed review at 54." },
+      { title: "One more angle here", line: "This one is past the three kept." },
+    ];
+    expect(validateAnswer(JSON.stringify({ angles }), AD)).toEqual(angles.slice(3, 6));
+    expect(validateAnswer("not json", AD)).toBeNull();
+  });
+});
