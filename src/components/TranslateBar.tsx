@@ -155,7 +155,8 @@ export function MeaningRows({ lines, back }: { lines: string[]; back: string[] }
 
 /**
  * Under the post. On an English post: "Make it in" with each language that has no version yet (a price first; when
- * My posts is full it asks before spending). On a version: "Checks run on the English version." and its English meaning.
+ * My posts is full it asks before spending). On a version: "Checks run on the English version.", a link to the English
+ * post and its English meaning.
  * `auto` asks for a version of a post just written in another language, or one My posts asked for.
  */
 export default function TranslateBar(p: {
@@ -254,6 +255,11 @@ export default function TranslateBar(p: {
       <div className="mt-3 space-y-2" data-testid="version-checks">
         <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
           Checks run on the English version.
+          {englishId && getDraftById(userId, englishId) ? (
+            <button type="button" onClick={() => onOpen(englishId, null)} className={linkButton}>
+              Open the English
+            </button>
+          ) : null}
           {entry.back?.length ? (
             <button type="button" aria-expanded={meaning === "1"} onClick={() => (meaning === "1" ? closeMeaning() : openMeaning("1"))} className={linkButton}>
               {meaning === "1" ? "Hide the English meaning" : "Show the English meaning"}

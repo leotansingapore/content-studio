@@ -1339,13 +1339,14 @@ export default function GeneratePage() {
     ? tagLinks(firstComment, { source: platform, campaign: chosenHook || pillarDetail || "post" })
     : (firstComment ?? "");
 
-  // Live craft check on the current draft (reuses the Coach engine).
+  // Live craft check on the current draft (reuses the Coach engine). It and the checks drawn with it read English
+  // only, so a Chinese, Malay or Tamil version has none (TranslateBar points to the English post's).
   const craftCheck = useMemo(
     () =>
-      draft.trim().length > 30
+      draft.trim().length > 30 && !draftLang
         ? analyzePosts([{ text: draft, platform: platform as PlatformId }])
         : null,
-    [draft, platform],
+    [draft, platform, draftLang],
   );
 
   const isStreaming = streamingMode !== "idle";
@@ -4270,7 +4271,8 @@ export default function GeneratePage() {
               })}
               {leo && format === "text-post" && savedEntry && (
                 <Suspense fallback={null}>
-                  <ThreadButton draftId={savedEntry.id} post={draft} ready={!isStreaming} />
+                  {/* the "reads well as a thread" check reads English only: never asked on a version */}
+                  <ThreadButton draftId={savedEntry.id} post={draft} ready={!isStreaming && !draftLang} />
                 </Suspense>
               )}
             </div>
