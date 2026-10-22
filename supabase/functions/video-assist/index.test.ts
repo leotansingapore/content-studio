@@ -494,8 +494,8 @@ describe("Montage pick from a media set", () => {
   const pick = (uid: string, body: Record<string, unknown> = {}) =>
     db.handler!(new Request("http://x/video-assist", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify({ mode: "montage-pick", theme: "Saving", beats, ...body }) }));
   const asked = () => JSON.parse(sent[calls.indexOf(JEV)]) as { questions: Record<string, { instructions: { question: string }; criteria: Record<string, string> }> };
-  const run = async (uid: string, body: Record<string, unknown>) => {
-    answer = (u) => (u === JEV ? Response.json({ answers: { pick_0: { type: "choice", choice: "c9", probabilities: { c9: 0.8 } } } }) : new Response("{}", { status: 500 }));
+  const run = async (uid: string, body: Record<string, unknown>, pick_0: unknown = { type: "choice", choice: "c9", probabilities: { c9: 0.8 } }) => {
+    answer = (u) => (u === JEV ? Response.json({ answers: { pick_0 } }) : new Response("{}", { status: 500 }));
     env.TYPESAFE_API_KEY = "k";
     try {
       return await pick(uid, body);
@@ -521,5 +521,14 @@ describe("Montage pick from a media set", () => {
     expect(q.instructions.question).toBe("Which stock clip, described by its page name, best shows `beat`?");
     expect(Object.keys(q.criteria)).toHaveLength(7);
     expect(db.rows.get(`${UID}|montage-pick|${db.today()}`)).toBe(1);
+  });
+  it("answers anyone else, and a listed caller with no set, with the picks alone, as today", async () => {
+    // Jev rates every option; only the pick reaches these callers
+    const all = { type: "choice", choice: "c2", probabilities: { c0: 0.1, c1: 0.05, c2: 0.7, c3: 0.05, c4: 0.05, c5: 0.03, none: 0.02 } };
+    for (const [uid, body] of [[UID, { set: true }], [UID, {}], [LEO, {}], [LEO, { noun: "photo" }]] as const) {
+      const res = await run(uid, body, all);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ picks: [2] });
+    }
   });
 });
