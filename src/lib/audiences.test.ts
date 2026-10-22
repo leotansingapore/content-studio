@@ -159,9 +159,14 @@ describe("saving", () => {
 describe("audienceLine", () => {
   it("is the writer line, exact", () => {
     const a = { name: "Young parents in their 30s", who: "Both working, kids under 10, HDB flat.", cares: ["childcare costs", "hospital bills", "school fees"], says: "They say 'money for the kids' first" };
-    expect(audienceLine(a)).toBe(
+    expect(audienceLine(a, "person")).toBe(
       "WRITE FOR THIS AUDIENCE: Young parents in their 30s. Both working, kids under 10, HDB flat. They care about: childcare costs, hospital bills, school fees. How they talk about money: They say 'money for the kids' first",
     );
+    // talk about money only for an adviser's brand: a business's buyers, or a caller that doesn't say, talk about it
+    expect(audienceLine(a, "business")).toBe(
+      "WRITE FOR THIS AUDIENCE: Young parents in their 30s. Both working, kids under 10, HDB flat. They care about: childcare costs, hospital bills, school fees. How they talk about it: They say 'money for the kids' first",
+    );
+    expect(audienceLine(a)).toContain(" How they talk about it: ");
     expect(audienceLine({ ...a, says: undefined })).toBe(
       "WRITE FOR THIS AUDIENCE: Young parents in their 30s. Both working, kids under 10, HDB flat. They care about: childcare costs, hospital bills, school fees.",
     );

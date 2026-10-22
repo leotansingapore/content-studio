@@ -109,6 +109,19 @@ describe("startDrafting", () => {
     expect(fn.calls[1].avoid).toEqual(range(1, 7).map((n) => `Hook number ${n} opens here`));
   });
 
+  it("introduces the audience's words as talk about money for an adviser's brand only (wave 2 live check, calls/007)", async () => {
+    const row = { id: "au-1", name: "Sales representatives", who: "Sales reps who track calls and deals", cares: [], says: "I want to see who I need to call.", main: true, createdAt: "2026-10-01T00:00:00.000Z", source: "website" };
+    local.setItem(`content-studio-audiences-${UID}`, JSON.stringify([row]));
+    const c = campaign();
+    const line = () => (job.campaignRequest(UID, c, c.posts.slice(0, 1)).context as { audience: string }).audience;
+    expect(line()).toContain(" How they talk about money: I want to see who I need to call.");
+    const { addProfile, setActiveProfile } = await import("./profiles");
+    const p = addProfile(UID, "ActivityTracker");
+    setActiveProfile(UID, p.id);
+    local.setItem(`content-studio-audiences-${UID}~${p.id}`, JSON.stringify([row]));
+    expect(line()).toContain(" How they talk about it: I want to see who I need to call.");
+  });
+
   it("names the audience by its name when the saved one is gone, and sends no goal when the campaign copied none", async () => {
     seed(campaign({ goal: undefined }, 3));
     fn.answers.push(wrote([1, 2, 3]));

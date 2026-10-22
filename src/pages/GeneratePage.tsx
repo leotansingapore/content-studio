@@ -172,6 +172,7 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import PriceChip from "@/components/PriceChip";
 import { WRITE_PRICE, priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { canCredit, dayMonth, draftLine, earlierRemix, rememberSource, sourceChip, type RemixSource } from "@/lib/remixSource";
+import { speakerFor } from "@/lib/remixBrand";
 import { reusedItems, sharedRuns } from "../../supabase/functions/remix/overlap.ts";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
@@ -1508,7 +1509,7 @@ export default function GeneratePage() {
     const rules = brandRulesLine(brandKit, platform);
     if (rules) ctxParts.push(rules);
     // Leo only (brand-audiences): the picked audience in words, since the post writer knows only the five life stages
-    if (audPick) ctxParts.push(audienceLine(audPick));
+    if (audPick) ctxParts.push(audienceLine(audPick, userId ? speakerFor(userId) : undefined));
     // Leo only (brand-voice-memory): his facts and learnings after the brand rules; the voice summary has its own field
     const memory = leo && userId ? memoryLine(userId, "posts") : "";
     if (memory) ctxParts.push(memory);

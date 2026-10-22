@@ -224,7 +224,7 @@ export async function startSuggest(userId: string, audience: AudienceIn, picks: 
   try {
     const r = await callFn<{ angles?: { title: string; line: string }[] }>(
       "idea-dump",
-      { mode: "angles", audience: audienceLine(audience), avoid: listed.map((x) => x.title.trim()).filter(Boolean).slice(0, 30), context: planContextFor(userId) },
+      { mode: "angles", audience: audienceLine(audience, speakerFor(userId)), avoid: listed.map((x) => x.title.trim()).filter(Boolean).slice(0, 30), context: planContextFor(userId) },
       FAILED_LINE,
     );
     // rows ticked, edited or added while it ran stay as they are now

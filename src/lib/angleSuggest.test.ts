@@ -73,6 +73,27 @@ describe("startSuggest", () => {
     expect(body.context.speaker).toBe("person");
   });
 
+  it("introduces a business's audience words as talk about it, an adviser's as talk about money (wave 2 live check, calls/008)", async () => {
+    // live-p5w2 calls/007's kept row: ActivityTracker's buyers, a business brand
+    const REPS = {
+      id: "au-mvj95qt8vx30",
+      name: "Sales representatives",
+      who: "Sales reps who track calls, deals, follow-ups and weekly goals, individually or with a team.",
+      cares: ["Call tracking", "Deal pipeline", "Daily tasks", "Weekly goals", "Team leaderboard"],
+      says: "I want to see who I need to call and whether I\u2019m on pace for my targets.",
+    };
+    const line = (n: number) => (fn.calls[n] as { audience: string }).audience;
+    fn.answers.push({ angles: [], scored: true }, { angles: [], scored: true });
+    await s.startSuggest(UID, REPS);
+    expect(line(0)).toContain(" How they talk about money: I want to see who I need to call");
+    const { addProfile, setActiveProfile } = await import("./profiles");
+    setActiveProfile(UID, addProfile(UID, "ActivityTracker").id);
+    await s.startSuggest(UID, REPS);
+    expect(line(1)).toBe(
+      "WRITE FOR THIS AUDIENCE: Sales representatives. Sales reps who track calls, deals, follow-ups and weekly goals, individually or with a team. They care about: Call tracking, Deal pipeline, Daily tasks, Weekly goals, Team leaderboard. How they talk about it: I want to see who I need to call and whether I\u2019m on pace for my targets.",
+    );
+  });
+
   it("puts a round at the top of the new rows, ticked, and shows suggesting at once", async () => {
     s.saveWork(UID, AUD.id, [row("Mine", { origin: "mine" })]);
     fn.answers.push({ angles: five, scored: true });
