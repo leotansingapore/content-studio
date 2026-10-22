@@ -463,13 +463,14 @@ export const links = {
    * A section of the brand kit. Leo only: review opens this device's waiting website read or products scan, product a
    * product's editor (new for a blank one) and demo one demo (push); each lands on its own section unless one is named.
    */
-  brand: (o: { section?: BrandSection; review?: "website" | "products"; product?: string; demo?: string } = {}) => {
+  brand: (o: { section?: BrandSection; review?: "website" | "products"; product?: string; demo?: string; preview?: "end" } = {}) => {
     const section = o.section ?? o.review ?? (o.product ? "products" : o.demo ? "demo-videos" : undefined);
     return `/brand${qs({
       website: o.review === "website" && "review",
       products: o.review === "products" && "review",
       product: o.product,
       demo: o.demo,
+      preview: o.preview,
     })}${section ? `#${section}` : ""}`;
   },
   /** Faces and voices (Leo only): tab (face left out) replaces; record, presenter and make open something (push). */

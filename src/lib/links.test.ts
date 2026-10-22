@@ -286,6 +286,7 @@ describe("links", () => {
   it("builds the phase-4 /brand sections, reviews and open items", () => {
     expect(links.brand({ review: "products" })).toBe("/brand?products=review#products");
     expect(links.brand({ review: "website" })).toBe("/brand?website=review#website");
+    expect(links.brand({ preview: "end" })).toBe("/brand?preview=end");
     expect(links.brand({ product: "new" })).toBe("/brand?product=new#products");
     expect(links.brand({ product: "pd-lq3k9z" })).toBe("/brand?product=pd-lq3k9z#products");
     expect(links.brand({ demo: "cvid-mh2k9x01ab" })).toBe("/brand?demo=cvid-mh2k9x01ab#demo-videos");

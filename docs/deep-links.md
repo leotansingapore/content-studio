@@ -453,6 +453,7 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 | /brand | products | Leo only. review: this device's waiting products scan; with nothing waiting the section shows and the param is dropped (replace) | none | push | /brand?products=review#products |
 | /brand | product | Leo only. a saved product's id, its editor open; new opens a blank one | none | push | /brand?product=new#products |
 | /brand | demo | Leo only. a saved demo's key, that demo open; closing replaces | none | push | /brand?demo=cvid-mh2k9x01ab#demo-videos |
+| /brand | preview | Leo only. end: the brand preview shows the video end card instead of a slide | slide | replace | /brand?preview=end |
 | /voice | #section | Leo only. how-you-sound, facts, learned | top | (anchor) | /voice#facts |
 | /voice | learning | Leo only. a learning's id, that learning open | none | push | /voice?learning=l-lq3k9z#learned |
 | /generate | panel | Leo only. insert: the Insert panel over that post (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert |
