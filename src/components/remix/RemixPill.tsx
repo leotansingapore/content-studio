@@ -16,7 +16,8 @@ export default function RemixPill() {
     };
   }, []);
   const params = new URLSearchParams(search);
-  if (!job || params.get("remix") === job.key) return null;
+  // the agent's own runs show in its chat and dock, and a topic run has no sheet to link to
+  if (!job || job.run.agent || params.get("remix") === job.key) return null;
   for (const [k, v] of Object.entries(runParams(job.key, job.run))) {
     if (v) params.set(k, v);
     else params.delete(k);
