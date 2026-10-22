@@ -26,6 +26,8 @@ import { draftStatus, setDraftStatus, setDraftZernio, type DraftEntry } from "@/
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { scheduleTime } from "@/lib/dueDates";
+import { logActivity } from "@/lib/activity";
+import { links } from "@/lib/links";
 import {
   CAPTION_MAX,
   MAX_PICTURES,
@@ -108,6 +110,13 @@ async function carouselPdf(userId: string, c: SavedCarousel): Promise<MediaFile>
     pages.push({ jpeg, width, height });
   }
   return { file: new Blob([buildPdf(pages)], { type: PDF_TYPE }), name: `${slugify(c.title)}.pdf`, type: PDF_TYPE };
+}
+
+/** One Activity row about the post: Leo's sessions only, since logActivity does nothing until his session turns it on. */
+function logPost(userId: string, d: DraftEntry, title: (name: string) => string, detail?: string) {
+  const hook = d.hook.replace(/\s+/g, " ").trim() || "Untitled";
+  const name = `"${hook.length > 70 ? `${hook.slice(0, 67).trimEnd()}...` : hook}"`;
+  logActivity(userId, { who: "you", kind: "post", title: title(name), ...(detail ? { detail } : {}), link: links.calendar({ post: d.id }) });
 }
 
 /** What Zernio said about the post, onto the draft; a published post marks the draft posted. */
@@ -193,14 +202,22 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
       if (what === "cancel") {
         await cancelPost(profileId, link.postId!);
         onDrafts(setDraftZernio(userId, draft.id, null));
+        logPost(userId, draft, (n) => `Cancelled posting ${n}`);
         toast({ title: "Cancelled", description: "Zernio won't post it. It stays in My posts." });
         return;
       }
       const { post } = what === "retry" ? await retryPost(profileId, link.postId!) : await readPost(profileId, link.postId!);
       setView(post);
       onDrafts(applyView(userId, draft, post));
-      if (what === "retry") toast({ title: post.status === "published" ? "Posted" : "Trying again", description: post.status === "published" ? undefined : "Zernio is posting it again." });
+      if (what === "retry") {
+        logPost(userId, draft, (n) => `Tried posting ${n} again`, post.status === "published" ? "Posted." : "Zernio is posting it again.");
+        toast({ title: post.status === "published" ? "Posted" : "Trying again", description: post.status === "published" ? undefined : "Zernio is posting it again." });
+      }
     } catch (e) {
+      if (what !== "read") {
+        const title = (n: string) => (gone(e) ? `${n} is gone from Zernio` : what === "cancel" ? `${n} could not be cancelled` : `${n} could not be posted`);
+        logPost(userId, draft, title, gone(e) ? "It stays in My posts." : message(e));
+      }
       if (gone(e)) {
         onDrafts(setDraftZernio(userId, draft.id, null));
         toast({ title: "That post is gone from Zernio", description: "It stays in My posts." });
@@ -482,12 +499,14 @@ export function PostItForMePanel({
         ...(platform === "youtube" ? { youtube: { title: ytTitle.trim(), visibility: "public" as const } } : {}),
       });
       onDrafts(setDraftZernio(userId, draft.id, linkFromView(key.current, post)));
+      logPost(userId, draft, (n) => `Set ${n} to post on ${platformName(platform)}`, `Goes out ${goesNow ? "now" : whenLabel(day, time)}.`);
       toast({
         title: goesNow ? `Posting to ${platformName(platform)}` : `Scheduled on ${platformName(platform)}`,
         description: goesNow ? "It goes out in about a minute." : `${whenLabel(day, time)}. The chip on the post shows when it's up.`,
       });
       onClose();
     } catch (e) {
+      logPost(userId, draft, (n) => `${n} could not be posted`, message(e));
       setError(message(e));
     } finally {
       setBusy(null);

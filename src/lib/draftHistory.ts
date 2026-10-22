@@ -8,11 +8,12 @@
 // module can swap to Supabase reads/writes without touching callers.
 
 import { scoped, DEFAULT_PROFILE_ID } from "@/lib/profiles";
-import { addDays, localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
+import { addDays, keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 import type { Numbers } from "../../supabase/functions/social/metrics.ts";
 import type { RemixSource } from "@/lib/remixSource";
-import type { PostLang } from "@/lib/links";
+import { links, type PostLang } from "@/lib/links";
+import { logActivity } from "@/lib/activity";
 export const MAX_DRAFTS = 150;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -250,17 +251,19 @@ export function loadDrafts(userId: string | null | undefined): DraftEntry[] {
       stored = [];
     }
   }
-  return absorbClaudeDrafts(storage, scoped(userId), stored);
+  return absorbClaudeDrafts(storage, userId, stored);
 }
 
 // Drafts Claude saved through the MCP connector (supabase/functions/content-studio-mcp)
 // arrive by sync as one row each: content-studio-mcpdraft-claude-<id>-<scope>. The
 // first read takes them into the drafts list and removes the rows, so a delete sticks
-// and a page saving an older copy of the list can't drop them.
+// and a page saving an older copy of the list can't drop them. Each one is a Claude row
+// in Activity (Leo only), at the time Claude saved it, under the draft's own id so a
+// second device absorbing the same row still makes one event.
 const CLAUDE_DRAFT = "content-studio-mcpdraft-";
 
-function absorbClaudeDrafts(storage: Storage, scope: string, stored: DraftEntry[]): DraftEntry[] {
-  const suffix = `-${scope}`;
+function absorbClaudeDrafts(storage: Storage, userId: string, stored: DraftEntry[]): DraftEntry[] {
+  const suffix = `-${scoped(userId)}`;
   const keys: string[] = [];
   for (let i = 0; i < storage.length; i++) {
     const k = storage.key(i);
@@ -296,12 +299,29 @@ function absorbClaudeDrafts(storage: Storage, scope: string, stored: DraftEntry[
   incoming.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const merged = [...incoming, ...stored].slice(0, MAX_DRAFTS);
   try {
-    storage.setItem(`${KEY_PREFIX}${scope}`, JSON.stringify(merged));
+    storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(merged));
   } catch (_) {
     return [...incoming, ...stored]; // storage full: keep the rows for the next read
   }
+  for (const d of incoming) logClaudeDraft(userId, d);
   for (const k of keys) storage.removeItem(k);
   return merged;
+}
+
+function logClaudeDraft(userId: string, d: DraftEntry): void {
+  const hook = d.hook.replace(/\s+/g, " ").trim() || "Untitled";
+  const day = d.scheduledFor?.slice(0, 10);
+  const time = scheduleTime(d.scheduledFor);
+  const when = day && `${keyToDate(day).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${time ? `, ${timeLabel(time)}` : ""}`;
+  logActivity(userId, {
+    id: d.id,
+    at: d.createdAt,
+    who: "claude",
+    kind: "post",
+    title: `Added a draft: "${hook.length > 90 ? `${hook.slice(0, 87).trimEnd()}...` : hook}"`,
+    detail: d.status === "scheduled" && when ? `Scheduled for ${when}.` : "Saved as a draft in My posts.",
+    link: links.generate({ draft: d.id }),
+  });
 }
 
 export function saveDrafts(userId: string, drafts: DraftEntry[]): void {
