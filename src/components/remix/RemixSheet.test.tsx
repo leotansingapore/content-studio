@@ -45,9 +45,9 @@ vi.mock("react-dom", async (load) => ({ ...(await load<object>()), createPortal:
 
 import RemixSheet from "./RemixSheet";
 
-const html = () =>
+const html = (page = "/swipe") =>
   renderToStaticMarkup(
-    createElement(MemoryRouter, { initialEntries: [`/swipe?remix=${encodeURIComponent(as.key)}`] }, createElement(RemixSheet, { user: { id: "u1", email: "someone@example.com" } })),
+    createElement(MemoryRouter, { initialEntries: [`${page}?remix=${encodeURIComponent(as.key)}`] }, createElement(RemixSheet, { user: { id: "u1", email: "someone@example.com" } })),
   );
 
 afterEach(() => {
@@ -61,5 +61,13 @@ describe("the Remix sheet for everyone else", () => {
   it("draws today's sheet while the sign-in is still being read", async () => {
     as.user = undefined;
     await expect(html()).toMatchFileSnapshot("../__pins__/remix-sheet-everyone.html");
+  });
+});
+
+describe("the Remix sheet on /agent", () => {
+  it("never opens there, since /agent takes ?remix= into its composer", () => {
+    expect(html("/agent")).toBe("");
+    expect(html("/agent/tk2x")).toBe("");
+    expect(html("/agents")).toContain('aria-labelledby="remix-title"');
   });
 });

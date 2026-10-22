@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ExternalLink, Loader2, Shuffle, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import BreakdownRow from "@/components/remix/BreakdownRow";
@@ -66,7 +66,9 @@ const SHEET_PARAMS = Object.fromEntries(["remix", "keep", "about", "close", "mor
 export default function RemixSheet({ user }: { user: LeoUser }) {
   const [key] = useUrlItem("remix");
   const update = useUrlUpdate();
-  return key ? <Sheet key={`${user.id}|${key}`} remixKey={key} userId={user.id} onClose={() => update(SHEET_PARAMS)} /> : null;
+  // /agent reads ?remix= into its composer (agent-chat), so the sheet never opens over it, even while it loads
+  const onAgent = /^\/agent(\/|$)/.test(useLocation().pathname);
+  return key && !onAgent ? <Sheet key={`${user.id}|${key}`} remixKey={key} userId={user.id} onClose={() => update(SHEET_PARAMS)} /> : null;
 }
 
 function useJob(): RemixJobState | null {
