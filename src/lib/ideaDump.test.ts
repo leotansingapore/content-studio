@@ -238,4 +238,14 @@ describe("buildIdeaDumpContext", () => {
   it("sends nothing when nothing is saved", () => {
     expect(buildIdeaDumpContext(USER)).toEqual({ voice: "", positioning: null, platforms: [] });
   });
+
+  it("does not take a platform from a row that holds only a goal", () => {
+    window.localStorage.setItem(`content-studio-positioning-${USER}`, JSON.stringify({ goal: "Win 3 new clients a month", goalKind: "clients" }));
+    expect(buildIdeaDumpContext(USER)).toEqual({ voice: "", positioning: null, platforms: [] });
+  });
+
+  it("still takes the platform from a row with no other words and no goal", () => {
+    window.localStorage.setItem(`content-studio-positioning-${USER}`, JSON.stringify({ platform: "facebook" }));
+    expect(buildIdeaDumpContext(USER).platforms).toEqual(["facebook"]);
+  });
 });

@@ -176,7 +176,9 @@ export function buildIdeaDumpContext(userId: string | null | undefined): IdeaDum
     if (d.platform) counts.set(d.platform, (counts.get(d.platform) ?? 0) + 1);
   }
   const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([p]) => p);
-  const platforms = [...new Set([...(pos ? [pos.platform] : []), ...ranked])]
+  // a row holding only a goal carries the default platform, not a choice
+  const platformChosen = pos && (positioning || !pos.goal);
+  const platforms = [...new Set([...(platformChosen ? [pos.platform] : []), ...ranked])]
     .filter((p): p is BriefPlatform => (BRIEF_PLATFORMS as readonly string[]).includes(p))
     .slice(0, 3);
 
