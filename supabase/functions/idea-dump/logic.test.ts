@@ -892,8 +892,8 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
     expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used.");
     expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
     expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
-    expect(user).toContain("instead of daily.\nWords: script 60 to 90 words across its HOOK, BODY and CTA lines");
-    expect(user).toContain("Start with what you need to stay liquid.\nWords: script 36 to 48 words in all");
+    expect(user).toContain("instead of daily.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
+    expect(user).toContain("Start with what you need to stay liquid.\nWords: script about 42 spoken words in all (36 to 48), counted across every line");
     expect(SHORT_VIDEO_WORDS).toEqual({ low: 60, high: 90 });
   });
 
@@ -1032,6 +1032,12 @@ const P5W2_001_AI_70 = [
 describe("campaign scripts past the old 15% band (wave 2 live check: calls/001 dropped a 70-word AI video)", () => {
   const live = campaignRequest({ mode: "campaign", posts: [P5W2_001_ASK_3, P5W2_001_ASK_4], context: LIVE_011_CONTEXT });
   const reply = (ai: string) => ({ posts: [{ n: 3, hook: "", body: "", script: P5W2_001_SCRIPT_3, brief: "", cta: "" }, { n: 4, hook: "", body: "", script: ai, brief: "", cta: "" }] });
+
+  it("states each script's length as spoken words to aim at, on the post itself", () => {
+    const { user } = buildCampaignPrompt(live);
+    expect(user).toContain("Angle: Target Progress View: Track team goals alongside activity, so you can review progress and discuss what needs attention.\nWords: script about 42 spoken words in all (36 to 48), counted across every line");
+    expect(user).toContain("reducing the need to jump between tools.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
+  });
 
   it("cuts the 70-word script's last body sentences into 36 to 48, keeping its hook and call to action", () => {
     expect(countWords(P5W2_001_AI_70)).toBe(70);

@@ -898,17 +898,20 @@ export const MAX_CAMPAIGN_POSTS = 7;
 export const AI_VIDEO_WORDS = speakingWords(15);
 /** A short video you film: about 30 seconds. */
 export const SHORT_VIDEO_WORDS = { low: 60, high: 90 };
+/** A script's words as a count to aim at, the middle of its range ("about 42 spoken words in all (36 to 48)"). */
+const spoken = ({ low, high }: { low: number; high: number }) => `about ${Math.round((low + high) / 2)} spoken words in all (${low} to ${high})`;
 /**
  * Each format's lengths, stated on every post in the message (wave 1 live check, 22 Oct: 3 of 4 scripts asked for
- * came back unusable when the ranges sat only in the format list).
+ * came back unusable when the ranges sat only in the format list). A script's is a number of spoken words to aim at
+ * (wave 2 live check: a business brand's AI video came back at 70 words for 36 to 48).
  */
 const POST_WORDS: Record<CampaignFormat, string> = {
   "text-post": "hook at most 15 words; body 80 to 220 words",
   carousel: "cover at most 6 words; 4 to 8 points of at most 40 words each",
-  "short-video": `script ${SHORT_VIDEO_WORDS.low} to ${SHORT_VIDEO_WORDS.high} words across its HOOK, BODY and CTA lines`,
+  "short-video": `script ${spoken(SHORT_VIDEO_WORDS)} across its HOOK, BODY and CTA lines, the labels not counted`,
   slideshow: "hook at most 12 words; brief at most 40 words",
   wall: "hook at most 12 words; brief at most 40 words",
-  "ai-video": `script ${AI_VIDEO_WORDS.low} to ${AI_VIDEO_WORDS.high} words in all`,
+  "ai-video": `script ${spoken(AI_VIDEO_WORDS)}, counted across every line`,
 };
 
 export interface PostAsk {
