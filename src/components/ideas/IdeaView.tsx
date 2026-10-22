@@ -10,7 +10,7 @@ import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getFunnelStage } from "@/data/funnelFramework";
-import { CAPPED_LINE, formatWord, STEER_MAX, type IdeaStatus, type InboxIdea } from "@/lib/ideasInbox";
+import { CAPPED_LINE, formatWord, safeLink, STEER_MAX, type IdeaStatus, type InboxIdea } from "@/lib/ideasInbox";
 import type { Label } from "@/lib/labels";
 import { links } from "@/lib/links";
 import { chipOf, fitText } from "@/components/ideas/IdeaList";
@@ -52,7 +52,7 @@ export default function IdeaView(p: {
   const { idea } = p;
   const label = p.labels.find((l) => l.id === idea.labelId);
   const stage = idea.stage ? getFunnelStage(idea.stage) : null;
-  const external = idea.fromUrl && /^https?:/.test(idea.fromUrl);
+  const source = safeLink(idea.fromUrl);
   const off = p.busy || p.capped;
   const refine = (e: FormEvent) => {
     e.preventDefault();
@@ -85,9 +85,9 @@ export default function IdeaView(p: {
       <div className="space-y-1">
         <Head>FROM</Head>
         <p className="text-sm">
-          {!idea.fromUrl ? idea.from
-            : external ? <a href={idea.fromUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">{idea.from}</a>
-            : <Link to={idea.fromUrl} className="underline underline-offset-2">{idea.from}</Link>}
+          {!source ? idea.from
+            : source.external ? <a href={source.href} target="_blank" rel="noreferrer" className="underline underline-offset-2">{idea.from}</a>
+            : <Link to={source.href} className="underline underline-offset-2">{idea.from}</Link>}
         </p>
       </div>
 

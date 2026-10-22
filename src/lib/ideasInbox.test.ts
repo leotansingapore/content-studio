@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EdgeError } from "@/lib/edgeFn";
 
@@ -5,6 +8,8 @@ const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 const setIdeaStatus = vi.fn(async () => undefined);
 vi.mock("@/lib/accountAudit", async (orig) => ({ ...(await orig<typeof import("@/lib/accountAudit")>()), setIdeaStatus: (...a: unknown[]) => setIdeaStatus(...(a as [])) }));
+
+vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoOnly: () => true }));
 
 class MemStorage {
   s = new Map<string, string>();
@@ -321,5 +326,49 @@ describe("getIdeas", () => {
     // a failed morning run does not ask again that day
     m.startMorning(UID, NOW);
     expect(callFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the source link", () => {
+  const BAD = ["javascript:alert(1)", "JAVASCRIPT:alert(1)", " javascript:alert(1)", "//evil.example", "/\\evil.example", "/\t/evil.example", "data:text/html,<b>x</b>", "vbscript:x", ""];
+
+  it("accepts http and https as outside links and same-app paths as app links, nothing else", () => {
+    for (const u of BAD) expect(m.safeLink(u), u).toBeNull();
+    expect(m.safeLink("https://st.sg/a?b=1")).toEqual({ external: true, href: "https://st.sg/a?b=1" });
+    expect(m.safeLink("HTTPS://ST.SG/a")).toEqual({ external: true, href: "https://st.sg/a" });
+    expect(m.safeLink("/analytics")).toEqual({ external: false, href: "/analytics" });
+    expect(m.safeLink("/coach#idea-dump")).toEqual({ external: false, href: "/coach#idea-dump" });
+  });
+
+  it("drops a bad link where pooled ideas are read, keeping the idea", () => {
+    const out = m.poolIdeas(stores({
+      news: [story("bad", "2026-10-21T00:00:00Z"), story("good", "2026-10-20T00:00:00Z")].map((s, i) => (i ? s : { ...s, url: "JAVASCRIPT:alert(1)" })),
+      trends: [{ ...trend("t1", DAY), source_url: "//evil.example" }],
+      boards: [{ ...boardItem("link:instagram:a", "Hook"), url: "data:text/html,x" }],
+    }), NOW);
+    const by = (k: string) => out.find((i) => i.key === k);
+    expect(by("news:bad")).toBeDefined();
+    expect(by("news:bad").fromUrl).toBeUndefined();
+    expect(by("trend:t1").fromUrl).toBeUndefined();
+    expect(by("saved:link:instagram:a").fromUrl).toBeUndefined();
+    expect(by("news:good").fromUrl).toBe("https://st.sg/good");
+  });
+
+  it("renders a bad link as plain text, https as an outside link and a path as an app link", async () => {
+    const { default: IdeaView } = await import("@/components/ideas/IdeaView");
+    const noop = () => undefined;
+    const html = (fromUrl: string) =>
+      renderToStaticMarkup(createElement(MemoryRouter, null, createElement(IdeaView, {
+        idea: { key: "news:x", source: "news", title: "T", angle: "A", why: "W", writeUrl: "/generate", from: "The source, Tue 20 Oct", fromUrl, at: "" },
+        status: null, labels: [], left: 3, busy: false, writing: null, capped: false, failed: null, refine: "",
+        onRefineText: noop, onWrite: noop, onShortlist: noop, onDiscard: noop, onMore: noop, onRetry: noop, onLabel: noop, onBack: noop,
+      })));
+    for (const u of BAD.filter(Boolean)) {
+      const out = html(u);
+      expect(out, u).toContain(">The source, Tue 20 Oct</p>");
+      expect(out.toLowerCase(), u).not.toMatch(/href="(javascript|data|vbscript):|href="\/\/|href="\/\\|evil\.example/);
+    }
+    expect(html("https://st.sg/a")).toContain('<a href="https://st.sg/a" target="_blank" rel="noreferrer"');
+    expect(html("/analytics")).toContain('<a class="underline underline-offset-2" href="/analytics">The source, Tue 20 Oct</a>');
   });
 });

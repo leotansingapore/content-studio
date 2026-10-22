@@ -257,6 +257,22 @@ export interface PoolStores {
   savedTop: TopPostWithAdvisor[];
 }
 
+/**
+ * A source link the page may render: http or https (any case) as an outside link, a same-app path ("/x", never
+ * "//x", "/\x" or a tab or newline inside, which browsers read as another site) as an app link; javascript:, data:
+ * and the rest give null.
+ */
+export function safeLink(url: string | null | undefined): { external: boolean; href: string } | null {
+  const u = (url ?? "").trim();
+  if (/^\/(?![/\\])[^\s\x00-\x1f]*$/.test(u)) return { external: false, href: u };
+  try {
+    const parsed = new URL(u);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? { external: true, href: parsed.href } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** "Mon 20 Oct" in Singapore, or "" for no date. */
 export function dayLabel(at: string | number): string {
   const t = typeof at === "number" ? at : Date.parse(at);
@@ -351,7 +367,8 @@ export function poolIdeas(s: PoolStores, now: Date): InboxIdea[] {
     });
   }
   out.push(...newest(saved, (x) => x.at));
-  return out;
+  // scraped and synced data can carry any link: only one safeLink accepts reaches the page
+  return out.map(({ fromUrl, ...i }) => (safeLink(fromUrl) ? { ...i, fromUrl: safeLink(fromUrl).href } : i));
 }
 
 /** The pooled sources this device holds (the audits load apart, from their table). */
