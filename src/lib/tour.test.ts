@@ -1,6 +1,16 @@
 // The tour's store against a fake localStorage: the six steps in Q12's order, every state, the device key, and the
 // ?tour= link.
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
+vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user }));
+vi.mock("@/lib/supabase", () => ({
+  SUPABASE_URL: "https://abc.supabase.co",
+  supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
+}));
 
 class MemStorage {
   m = new Map<string, string>();
@@ -27,6 +37,7 @@ import {
   tourParam,
   tourState,
 } from "./tour";
+import TourPopover from "@/components/TourPopover";
 
 // a fresh account per test: the store keeps a copy in memory for storage that refuses writes
 let n = 0;
@@ -37,6 +48,7 @@ beforeEach(() => {
 afterEach(() => {
   local.clear();
   takeFocus();
+  as.user = null;
 });
 
 describe("the steps", () => {
@@ -181,5 +193,62 @@ describe("tourParam", () => {
     expect(tourParam("?tour=")).toEqual({ step: "home", search: "" });
     expect(tourParam("?profile=me")).toBeNull();
     expect(tourParam("")).toBeNull();
+  });
+});
+
+describe("the popover", () => {
+  const draw = (path: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(TourPopover)));
+  const store = (step: string, state: string) => local.setItem(tourKey(U), JSON.stringify({ step, state, at: "2026-10-22T09:00:00.000Z" }));
+
+  it("draws nothing for anyone else or while the sign-in is being read, whatever this device holds", () => {
+    store("home", "running");
+    expect(draw("/home")).toBe("");
+    as.user = undefined;
+    expect(draw("/home")).toBe("");
+  });
+
+  it("shows the step on its own page for Leo, labelled with its place", () => {
+    as.user = { id: U, email: "leo@example.com" };
+    store("competitors", "running");
+    const out = draw("/competitors");
+    expect(out).toContain('role="dialog"');
+    expect(out).toContain('aria-modal="false"');
+    expect(out).toContain('aria-label="Tour, step 2 of 6"');
+    expect(out).toContain('aria-live="polite"');
+    expect(out).toContain(">Competitors</span>");
+    expect(out).toContain(TOUR_STEPS[1].text);
+    expect(out).toContain("2 of 6");
+    expect(out).toContain(">Skip tour</button>");
+    expect(out).toContain(">Next</button>");
+    expect(out).not.toContain("Tour paused");
+  });
+
+  it("reads Done on the last step, in any thread", () => {
+    as.user = { id: U, email: "leo@example.com" };
+    store("agent", "running");
+    const out = draw("/agent/t1");
+    expect(out).toContain('aria-label="Tour, step 6 of 6"');
+    expect(out).toContain(">Done</button>");
+    expect(out).not.toContain(">Next</button>");
+  });
+
+  it("shows the paused pill on a detour, and on the step's own page after Esc", () => {
+    as.user = { id: U, email: "leo@example.com" };
+    store("brand", "running");
+    for (const out of [draw("/home"), (store("brand", "paused"), draw("/brand"))]) {
+      expect(out).toContain("Tour paused at step 5 of 6");
+      expect(out).toContain(">Resume</button>");
+      expect(out).toContain('aria-label="Skip tour"');
+      expect(out).not.toContain('role="dialog"');
+    }
+  });
+
+  it("draws nothing once the tour is done or skipped, or never started", () => {
+    as.user = { id: U, email: "leo@example.com" };
+    expect(draw("/home")).toBe("");
+    store("agent", "done");
+    expect(draw("/agent")).toBe("");
+    store("home", "skipped");
+    expect(draw("/home")).toBe("");
   });
 });
