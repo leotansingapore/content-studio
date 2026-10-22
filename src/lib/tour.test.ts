@@ -21,6 +21,7 @@ class MemStorage {
 }
 const local = new MemStorage();
 vi.stubGlobal("localStorage", local);
+vi.stubGlobal("window", { localStorage: local });
 
 import {
   TOUR_STEPS,
@@ -38,6 +39,7 @@ import {
   tourState,
 } from "./tour";
 import TourPopover from "@/components/TourPopover";
+import { isOnboarded } from "@/lib/onboarding";
 
 // a fresh account per test: the store keeps a copy in memory for storage that refuses writes
 let n = 0;
@@ -82,6 +84,12 @@ describe("the store", () => {
     expect(tourState(U)).toMatchObject({ step: "agent", state: "running" });
     expect(nextStep(U)).toBeNull();
     expect(tourState(U)).toMatchObject({ step: "agent", state: "done" });
+  });
+
+  it("marks the account onboarded on start, so /home never sends it back to /welcome", () => {
+    expect(isOnboarded(U)).toBe(false);
+    startTour(U, "brand");
+    expect(isOnboarded(U)).toBe(true);
   });
 
   it("stores skipped and done, and a new start begins again at step 1", () => {

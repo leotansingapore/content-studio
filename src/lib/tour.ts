@@ -2,6 +2,8 @@
 // (cs-tour-<uid>), outside React, so it survives page changes, remounts, reloads and brand switches. Nothing here is
 // synced, sent or paid. A later page that joins the tour edits TOUR_STEPS in the same commit; keep it at six or fewer.
 
+import { markOnboarded } from "@/lib/onboarding";
+
 export type TourStepId = "home" | "competitors" | "formats" | "campaigns" | "brand" | "agent";
 
 export interface TourStep {
@@ -110,6 +112,12 @@ export function takeFocus(): boolean {
 /** Starts at the named step whatever the state was; no id, "1" or an unknown one starts at step 1. */
 export function startTour(userId: string, stepId?: string | null): TourStep {
   const step = isStep(stepId) ? stepOf(stepId).step : TOUR_STEPS[0];
+  // a first-run account would otherwise be sent from /home back to /welcome; storage that refuses it still tours
+  try {
+    markOnboarded(userId);
+  } catch {
+    // the tour runs anyway
+  }
   focusNext = true;
   write(userId, step.id, "running");
   return step;
