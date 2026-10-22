@@ -16,7 +16,7 @@
 //   supabase functions deploy assistant-act --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
-import { consumeUsage, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { isAllowed } from "../market/logic.ts";
@@ -46,8 +46,7 @@ Deno.serve(async (req) => {
     if (!mostlyEnglish(body.message)) return json(agent ? { pick: null, p: noP() } : { pick: null });
     if (agent && !Deno.env.get("TYPESAFE_API_KEY")) return json({ code: "not_configured", error: "The agent isn't set up yet." }, 503);
     const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before the count for a refund
-    // shortcut: the cast type-checks this branch before contracts adds "agent-act" to DAILY_LIMITS; drop it after the wave 1 merge.
-    const cap = ((agent ? "agent-act" : "assistant-act") satisfies "agent-act" | "assistant-act") as UsageFeature;
+    const cap = (agent ? "agent-act" : "assistant-act") satisfies "agent-act" | "assistant-act";
     const usage = await consumeUsage(admin, uid, cap);
     if (!usage.allowed) {
       const r = usageRefusal(usage);
