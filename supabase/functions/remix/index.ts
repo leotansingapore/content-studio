@@ -6,8 +6,8 @@
 // Jev call for claims and invented facts) and sends it back. The app saves it as a draft; nothing is stored here.
 // Phase 3's Jev decisions ride the same one use: an image with no layout gets Jev's layout pick before writing
 // (AD_LAYOUT_AT, else Headline ad); a meme's options get funny and unsafe in one call after (unsafe ones dropped,
-// all three dropped is 422 with the use kept); an image's words and the best meme get the shared MAS question
-// (_shared/mas.ts) for a person's brand, as flags.mas.
+// all three dropped is 422 with the use kept); an image's words, the best meme and a topic's post, carousel or script
+// get the shared MAS question (_shared/mas.ts) for a person's brand, one Jev call on the words, as flags.mas.
 //
 // Order: JWT, NORTH_STAR_USERS, validate, the cached transcript of a reel or TikTok (cs_reel_sources, never a new read),
 // consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
@@ -267,7 +267,8 @@ Deno.serve(async (req) => {
       if (dropped.length === result.options.length) return fail("refused", "None of these were safe to post. Try another topic.", 422);
       result = { ...result, best, dropped };
     }
-    if (result.as === "image" || result.as === "meme") {
+    // a topic's post, carousel or script too (the agent's makes); a source's keep today's answer, with no mas
+    if (result.as === "image" || result.as === "meme" || (!make.source && (result.as === "post" || result.as === "carousel" || result.as === "script"))) {
       // the shared MAS question warns and never blocks; a business isn't a licensed adviser, so it isn't asked
       const text = make.brand.speaker === "person" ? masText(result) : null;
       const answers = text ? await askJev({ post: text }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: `remix ${result.as} mas` }) : null;

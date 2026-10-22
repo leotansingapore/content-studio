@@ -180,7 +180,7 @@ export interface Flags {
   copied: string[];
   claim: boolean;
   invented: boolean;
-  /** image and meme only: Jev's MAS question on the words (masWarn), null when not asked or no answer (scanCompliance then). */
+  /** image, meme and a topic's post, carousel or script only: Jev's MAS question on the words (masWarn), null when not asked or no answer (scanCompliance then). */
   mas?: boolean | null;
 }
 
@@ -1557,9 +1557,12 @@ export function memeVerdict(answers: Record<string, JevAnswer> | null, count: nu
   return { best, dropped };
 }
 
-/** The words Jev's MAS question reads: an image's words and caption, or the best meme and the caption; null when there are none. */
+/**
+ * The words Jev's MAS question reads: an image's, a post's, a carousel's or a script's words (and caption), or the best
+ * meme and the caption; null when there are none.
+ */
 export function masText(r: MakeResult): string | null {
-  if (r.as === "image") return textFields(r).join("\n");
+  if (r.as === "image" || r.as === "post" || r.as === "carousel" || r.as === "script") return textFields(r).join("\n");
   if (r.as === "meme") return r.best === null ? null : [Object.values(r.options[r.best]).join("\n"), r.caption].join("\n");
   return null;
 }

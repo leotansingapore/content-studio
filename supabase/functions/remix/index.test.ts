@@ -423,3 +423,71 @@ describe("the wave 2 live check (21 Oct)", () => {
     expect(JSON.stringify(openai.sent[0])).toContain('"required":["formula","text","search"]');
   });
 });
+
+// ---- phase 6's remix-topic: a person's topic post, carousel and script get the MAS question image and meme get ----
+
+const TOPIC = "Why I log every client call";
+const BEAT = (say: string) => ({ say, onScreen: "One habit", visual: "Desk with a phone", seconds: 4 });
+const TOPIC_ANSWERS: Record<string, { answer: Record<string, unknown>; words: string }> = {
+  post: {
+    answer: { refuse: false, reason: "", hook: "I log every client call.", body: "It takes two minutes. The notes save me an hour later.", cta: "Try it this week.", hashtags: ["sales"] },
+    words: "I log every client call.\nIt takes two minutes. The notes save me an hour later.\nTry it this week.",
+  },
+  carousel: {
+    answer: { refuse: false, reason: "", hook: "Why I log every call.", slides: [1, 2, 3, 4].map((i) => ({ title: `Reason ${i}.`, body: `Line ${i}.` })), cta: "Save this." },
+    words: "Why I log every call.\nReason 1.\nLine 1.\nReason 2.\nLine 2.\nReason 3.\nLine 3.\nReason 4.\nLine 4.\nSave this.",
+  },
+  script: {
+    answer: { refuse: false, reason: "", hook: "I log every call.", beats: ["I log every call.", "It takes two minutes.", "The notes save me later.", "Start with one call."].map(BEAT), caption: "Why I log calls.", cta: "Follow for more." },
+    // the hook, then the beats (the first beat's say is the hook, as the claim check reads it too)
+    words: "I log every call.\nI log every call.\nOne habit\nIt takes two minutes.\nOne habit\nThe notes save me later.\nOne habit\nStart with one call.\nOne habit\nWhy I log calls.\nFollow for more.",
+  },
+};
+const masAsks = () => jev.questions.filter((q) => q.includes("mas"));
+
+describe("a topic's post, carousel and script (remix-topic)", () => {
+  it("ask a person's brand Jev's MAS question once, on the draft's words, and answer flags.mas", async () => {
+    for (const [as, { answer, words: text }] of Object.entries(TOPIC_ANSWERS)) {
+      jev.questions = [];
+      jev.states = [];
+      openai.mode = "queue";
+      openai.answers = [answer];
+      jev.answers = { copied_claim: { noul: 0.1 }, invented_self: { noul: 0.1 }, mas: { noul: 0.7 } };
+      const r = await send({ mode: "make", as, topic: TOPIC, brand: BRAND });
+      expect(r, as).toMatchObject({ status: 200, body: { as, flags: { claim: false, invented: false, mas: true } } });
+      expect(masAsks(), as).toEqual([["mas"]]);
+      expect(jev.states.at(-1), as).toEqual({ post: text });
+    }
+    jev.answers = { mas: { noul: 0.2 } };
+    openai.answers = [TOPIC_ANSWERS.post.answer];
+    expect((await send({ mode: "make", as: "post", topic: TOPIC, brand: BRAND })).body.flags.mas).toBe(false);
+    expect(used()).toBe(4);
+  });
+
+  it("answer mas null when Jev gives nothing, so the app falls back to its keyword scan", async () => {
+    openai.mode = "queue";
+    openai.answers = [TOPIC_ANSWERS.carousel.answer];
+    const r = await send({ mode: "make", as: "carousel", topic: TOPIC, brand: BRAND });
+    expect(r).toMatchObject({ status: 200, body: { flags: { mas: null } } });
+    expect(masAsks()).toEqual([["mas"]]);
+  });
+
+  it("never ask a business the MAS question, which is about licensed advisers", async () => {
+    openai.mode = "queue";
+    openai.answers = [TOPIC_ANSWERS.post.answer];
+    jev.answers = { mas: { noul: 0.9 } };
+    const r = await send({ mode: "make", as: "post", topic: TOPIC, brand: { name: "ActivityTracker", speaker: "business", mention: false } });
+    expect(r).toMatchObject({ status: 200, body: { flags: { mas: null } } });
+    expect(masAsks()).toEqual([]);
+  });
+
+  it("leave a source's post as today: no MAS question and no mas flag", async () => {
+    openai.mode = "queue";
+    openai.answers = [TOPIC_ANSWERS.post.answer];
+    jev.answers = { mas: { noul: 0.9 } };
+    const r = await make();
+    expect(r.status).toBe(200);
+    expect(r.body.flags).not.toHaveProperty("mas");
+    expect(masAsks()).toEqual([]);
+  });
+});
