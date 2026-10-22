@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { setActivityOn } from "@/lib/activity";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
+import TourPopover from "@/components/TourPopover";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
 import { badgeText, countBoardWaiting, countNeedsYou, onBoardWaiting } from "@/lib/needsYou";
@@ -657,6 +658,10 @@ export default function StudioLayout() {
           </Suspense>
         </ErrorBoundary>
       )}
+      {/* the agent's tour: Leo only, and for anyone else it only drops a typed ?tour= */}
+      <ErrorBoundary>
+        <TourPopover />
+      </ErrorBoundary>
       <AssistantMount />
     </div>
   );
