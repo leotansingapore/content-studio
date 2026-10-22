@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { markOnboarded } from "@/lib/onboarding";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { startTour } from "@/lib/tour";
 import {
   Sparkles,
   Mic,
   Pencil,
   CalendarRange,
   ArrowRight,
+  Compass,
 } from "lucide-react";
 
 const STEPS = [
@@ -40,6 +43,7 @@ const STEPS = [
 
 export default function WelcomePage() {
   const navigate = useNavigate();
+  const leo = useLeoUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState("");
 
@@ -64,6 +68,16 @@ export default function WelcomePage() {
     markOnboarded(userId);
     navigate(to);
   };
+
+  const start = (
+    <Button
+      size="lg"
+      onClick={() => go("/generate")}
+      className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+    >
+      <Pencil className="h-4 w-4" /> Start with my first post
+    </Button>
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-4">
@@ -105,13 +119,25 @@ export default function WelcomePage() {
       </div>
 
       <div className="flex flex-col items-center gap-3">
-        <Button
-          size="lg"
-          onClick={() => go("/generate")}
-          className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
-        >
-          <Pencil className="h-4 w-4" /> Start with my first post
-        </Button>
+        {leo ? (
+          // Leo's tour (agent-tour): go() marks him onboarded first, so /home does not send him back here
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            {start}
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => {
+                startTour(leo.id);
+                go("/home");
+              }}
+              className="gap-2"
+            >
+              <Compass className="h-4 w-4" /> Show me around
+            </Button>
+          </div>
+        ) : (
+          start
+        )}
         <button
           type="button"
           onClick={() => go("/home")}

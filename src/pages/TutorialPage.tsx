@@ -1,4 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { startTour } from "@/lib/tour";
 import { useScrollToHash } from "@/lib/urlState";
 import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import {
@@ -24,14 +27,30 @@ import {
   BarChart3,
   BookMarked,
   GraduationCap,
+  Compass,
 } from "lucide-react";
 
 export default function TutorialPage() {
   // /tutorial#tabs and the other section ids (docs/deep-links.md) land on that card
   useScrollToHash();
+  const leo = useLeoUser();
+  const navigate = useNavigate();
   return (
     <div className="space-y-6">
       <h1 className="sr-only">How the studio works</h1>
+      {leo && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            startTour(leo.id);
+            navigate("/home");
+          }}
+          className="h-11 gap-2"
+        >
+          <Compass className="h-4 w-4" /> Replay the tour
+        </Button>
+      )}
       <SectionTabs tabs={LEARN_TABS} />
       {/* Why */}
       <Card id="why" className="scroll-mt-20 border-border/60 shadow-card">

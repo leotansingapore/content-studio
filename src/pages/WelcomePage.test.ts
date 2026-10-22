@@ -29,3 +29,13 @@ describe("/welcome for everyone else", () => {
     await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
   });
 });
+
+describe("/welcome for Leo", () => {
+  it("adds Show me around beside the main button, which stays the one primary", () => {
+    as.user = { id: "u1", email: "leo@example.com" };
+    const out = html();
+    expect(out).toContain("Show me around");
+    expect(out.indexOf("Start with my first post")).toBeLessThan(out.indexOf("Show me around"));
+    expect(out.match(/bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95/g)).toHaveLength(1);
+  });
+});
