@@ -72,12 +72,36 @@ function pump() {
   }
 }
 
+const CHECK = 12;
+
+/**
+ * A photo's still, 360 px wide, drawn over a light checkerboard: a JPEG has no transparency, so drawn straight a
+ * transparent logo came out "on a black background", and white would hide a white logo.
+ */
+async function photoStill(pic: Blob): Promise<string> {
+  const img = await createImageBitmap(pic);
+  const c = document.createElement("canvas");
+  c.width = STILL_WIDTH;
+  c.height = Math.round((STILL_WIDTH * img.height) / img.width);
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#ffffff";
+  g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = "#cccccc";
+  for (let y = 0; y < c.height; y += CHECK) for (let x = (y / CHECK) % 2 ? 0 : CHECK; x < c.width; x += 2 * CHECK) g.fillRect(x, y, CHECK, CHECK);
+  g.drawImage(img, 0, 0, c.width, c.height);
+  img.close();
+  return c.toDataURL("image/jpeg", 0.7);
+}
+
 /** One still as a JPEG data URL, made from the file on this device. */
 async function stillOf(m: MediaItem): Promise<string> {
   const file = await getFile(m.key);
   if (!file) throw new Error("That file is not on this device.");
-  const { stills, thumbOf } = await (videoMedia ??= import("@/lib/videoMedia"));
-  const still = m.kind === "video" ? (await stills(file, [0.25], STILL_WIDTH))[0] : await thumbOf(file, STILL_WIDTH);
+  let still: string | undefined;
+  if (m.kind === "video") {
+    const { stills } = await (videoMedia ??= import("@/lib/videoMedia"));
+    still = (await stills(file, [0.25], STILL_WIDTH))[0];
+  } else still = await photoStill(file);
   if (!still || still.length > MAX_STILL) throw new Error("That still is too big to send.");
   return still;
 }
