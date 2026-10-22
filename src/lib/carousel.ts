@@ -6,7 +6,8 @@
 import { toPlainText } from "@/lib/plainText";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import type { DraftEntry } from "@/lib/draftHistory";
-import { scoped } from "@/lib/profiles";
+import { activeProfile, scoped } from "@/lib/profiles";
+import { cachedKit, withKit } from "@/lib/brandKitFeed";
 import { CAROUSEL_DESIGNS, type CarouselDesign, type PostLang } from "@/lib/links";
 import type { SlideFont, SlidePaper } from "@/lib/carouselLayout";
 
@@ -806,13 +807,16 @@ function storage(): Storage | null {
   }
 }
 
-/** The saved brand, or null when this user hasn't saved one. */
+/** The saved brand, or null when this user hasn't saved one. A profile linked to a board brand whose site publishes
+ *  a kit (brandKitFeed.ts) takes its colour, accents and logo from the kit this device last read. */
 export function loadBrand(userId: string | null | undefined): CarouselBrand | null {
   const s = storage();
   if (!s || !userId) return null;
   try {
     const raw = s.getItem(BRAND_KEY_PREFIX + scoped(userId));
-    return raw ? sanitizeBrand(JSON.parse(raw)) : null;
+    const saved = raw ? sanitizeBrand(JSON.parse(raw)) : null;
+    const kit = saved && cachedKit(activeProfile(userId)?.boardBrand);
+    return saved && kit ? withKit(saved, kit) : saved;
   } catch {
     return null;
   }

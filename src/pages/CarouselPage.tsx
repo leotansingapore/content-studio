@@ -48,7 +48,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
-import { scoped } from "@/lib/profiles";
+import { activeProfile, scoped } from "@/lib/profiles";
+import { KIT_FEEDS, refreshKit, withKit } from "@/lib/brandKitFeed";
 import { loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { streamOnePost } from "@/lib/batchGenerate";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
@@ -467,6 +468,21 @@ export default function CarouselPage() {
       active = false;
     };
   }, []);
+
+  // ig-kit (Leo only): a profile linked to a board brand whose site publishes a kit reads it again when a day old
+  useEffect(() => {
+    const board = userId ? activeProfile(userId)?.boardBrand : undefined;
+    if (!ready || !leo || !board || !KIT_FEEDS[board]) return;
+    let live = true;
+    void refreshKit(board).then(({ cache }) => {
+      if (!live || !cache) return;
+      setBrand((prev) => withKit(prev, cache));
+      setHexInput(cache.kit.colors[cache.kit.roles.primary]);
+    });
+    return () => {
+      live = false;
+    };
+  }, [ready, leo, userId]);
 
   // fromLink: a ?compare= link keeps its tab; any other new source opens on the slides
   const build = (source: Source, fromLink = false) => {

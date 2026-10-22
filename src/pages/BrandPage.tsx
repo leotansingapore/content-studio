@@ -55,6 +55,9 @@ import LanguageSection from "@/components/brand/LanguageSection";
 import PeopleWhoSign from "@/components/brand/PeopleWhoSign";
 import BrandFontSection from "@/components/brand/BrandFontSection";
 import OnEveryPost from "@/components/brand/OnEveryPost";
+import KitFromSite, { kitLockLine } from "@/components/brand/KitFromSite";
+import { KIT_FEEDS, cachedKit, refreshKit, withKit, type KitRefresh } from "@/lib/brandKitFeed";
+import { activeProfile } from "@/lib/profiles";
 
 /** Reads an image file into a small data URL: a centred square for the photo, a fitted box for the logo. */
 async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> {
@@ -221,6 +224,11 @@ export default function BrandPage() {
   const measure = useMemo(() => createCanvasMeasure(), []);
   // north star phase 4: Leo's sections, each saving through setKit (phase4-build-brief.md, decision 14)
   const leo = useLeoUser();
+  // ig-kit (Leo only): a profile linked to a board brand whose site publishes a kit takes its colours and logo from it
+  const board = userId ? activeProfile(userId)?.boardBrand : undefined;
+  const feed = leo && board ? KIT_FEEDS[board] : undefined;
+  const [kitState, setKitState] = useState<KitRefresh | null>(null);
+  const kitLocked = Boolean(feed && (kitState?.cache ?? cachedKit(board)));
   // ?preview=end (Leo only): the aside shows the video end card instead of a slide
   const [previewTab, setPreviewTab] = useUrlState("preview", "slide", { allowed: ["slide", "end"] as const });
   const endCanvas = useRef<HTMLCanvasElement>(null);
@@ -261,6 +269,23 @@ export default function BrandPage() {
     update(patch);
     if (patch.color) setHexInput(patch.color);
   };
+
+  const applySiteKit = (r: KitRefresh) => {
+    setKitState(r);
+    const k = r.cache;
+    if (!k) return;
+    setBrand((prev) => withKit(prev, k));
+    setHexInput(k.kit.colors[k.kit.roles.primary]);
+  };
+  useEffect(() => {
+    if (!feed || !ready) return;
+    let live = true;
+    void refreshKit(board).then((r) => live && applySiteKit(r));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feed, board, ready]);
 
   const pickColor = (color: string) => {
     update({ color });
@@ -471,8 +496,11 @@ export default function BrandPage() {
             <p className="text-xs text-muted-foreground">Separate them with commas or new lines.</p>
           </section>
 
+          {feed && <KitFromSite feed={feed} state={kitState} onRefresh={async () => applySiteKit(await refreshKit(board, { force: true }))} />}
           <section id="colour" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 id="brand-colour-label" className="font-serif text-lg font-semibold">{leo ? "Colours" : "Colour"}</h2>
+            {kitLocked && feed && <p className="text-xs text-muted-foreground">{kitLockLine(feed)}</p>}
+            <fieldset disabled={kitLocked} className="min-w-0 space-y-3 disabled:opacity-60">
             <div role="group" aria-labelledby="brand-colour-label" className="flex flex-wrap items-center gap-2">
               {BRAND_PRESETS.map((p) => {
                 const active = brand.color === p.color;
@@ -517,6 +545,7 @@ export default function BrandPage() {
               />
             </div>
             {leo && <PaletteRows brand={brand} setBrand={setKit} />}
+            </fieldset>
           </section>
           {leo && userId && <BrandFontSection userId={userId} />}
 
@@ -641,7 +670,8 @@ export default function BrandPage() {
 
           <section id="logo" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">Logo</h2>
-            <div className="flex flex-wrap items-center gap-4">
+            {kitLocked && feed && <p className="text-xs text-muted-foreground">{kitLockLine(feed)}</p>}
+            <fieldset disabled={kitLocked} className="flex min-w-0 flex-wrap items-center gap-4 disabled:opacity-60">
               {brand.logo && (
                 <span className="flex h-20 w-32 items-center justify-center rounded-lg border border-border/70 bg-neutral-800 p-2">
                   <img src={brand.logo} alt="Your logo" className="max-h-full max-w-full object-contain" />
@@ -656,8 +686,8 @@ export default function BrandPage() {
                   <Trash2 className="h-3.5 w-3.5" /> Remove
                 </Button>
               )}
-            </div>
-            <p className="text-xs text-muted-foreground">A PNG with a see-through background works best.</p>
+            </fieldset>
+            {!kitLocked && <p className="text-xs text-muted-foreground">A PNG with a see-through background works best.</p>}
           </section>
           {leo && userId && <OnEveryPost brand={brand} setBrand={setKit} />}
         </div>
