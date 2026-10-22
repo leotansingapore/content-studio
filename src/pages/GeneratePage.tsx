@@ -1063,9 +1063,8 @@ export default function GeneratePage() {
       setFormat(FORMATS.some((x) => x.value === entry.format) ? (entry.format as Format) : "text-post");
       setPlatform(PLATFORMS.some((x) => x.value === entry.platform) ? (entry.platform as Platform) : "linkedin");
       setCtaType(CTAS.some((x) => x.value === entry.ctaType) ? (entry.ctaType as CtaType) : "dm-keyword");
-      if (entry.hook) setChosenHook(entry.hook);
-      // a version tab or its English opens with its own hook, so a save never writes the last post's hook onto it
-      else if (note !== undefined) setChosenHook(null);
+      // every post opens with its own hook (or none), so a save never writes the last post's hook onto it
+      setChosenHook(entry.hook || null);
     }
     setDraft(entry.draft);
     clearDraftExtras();
