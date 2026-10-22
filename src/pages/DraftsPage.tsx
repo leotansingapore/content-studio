@@ -44,6 +44,7 @@ import {
   Paperclip,
   Send,
   ListOrdered,
+  Languages,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -74,6 +75,8 @@ import PreviewLinkPanel from "@/components/review/PreviewLinkPanel";
 import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { LANG_NAMES, langOf } from "@/lib/translate";
+import { LANGS, versionsOf } from "@/lib/translateJob";
 import {
   fetchMyPreviewLinks,
   linksByDraft,
@@ -754,6 +757,14 @@ export default function DraftsPage() {
                         : []),
                       ...(leo && d.format === "text-post" && d.draft?.trim()
                         ? [{ label: "Make it a thread", icon: ListOrdered, onSelect: () => navigate(links.generate({ draft: d.id, panel: "thread" })) }]
+                        : []),
+                      // edit-translate (Leo only): Write opens the English and makes the version there, once (navigation state, so a reload never spends)
+                      ...(leo && d.draft?.trim() && !langOf(d)
+                        ? LANGS.filter((l) => !versionsOf(drafts, d.id).some((v) => langOf(v) === l)).map((l) => ({
+                            label: `Make it in ${LANG_NAMES[l]}`,
+                            icon: Languages,
+                            onSelect: () => navigate(links.generate({ draft: d.id }), { state: { translate: { id: d.id, lang: l } } }),
+                          }))
                         : []),
                       ...(d.draft?.trim()
                         ? [{ label: "Share for review", icon: Link2, onSelect: () => openPreview(d.id) }]
