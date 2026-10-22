@@ -217,13 +217,13 @@ describe("undo history", () => {
 });
 
 describe("load and save", () => {
-  it("saves newest first under the synced key, keeps 20 and removes", () => {
-    for (let i = 0; i < 22; i++) saveSlideshow("u1", { ...blankSlideshow(), id: `ss${i}`, title: `T${i}` }, new Date(2026, 9, 1, 0, i));
+  it("saves newest first under the synced key, keeps 40 and removes", () => {
+    for (let i = 0; i < 42; i++) saveSlideshow("u1", { ...blankSlideshow(), id: `ss${i}`, title: `T${i}` }, new Date(2026, 9, 1, 0, i));
     const list = loadSlideshows("u1");
-    expect(list).toHaveLength(20);
-    expect(list[0]).toMatchObject({ id: "ss21", updatedAt: new Date(2026, 9, 1, 0, 21).toISOString() });
+    expect(list).toHaveLength(40);
+    expect(list[0]).toMatchObject({ id: "ss41", updatedAt: new Date(2026, 9, 1, 0, 41).toISOString() });
     expect([...store.keys()]).toContain("content-studio-slideshows-u1");
-    expect(removeSlideshow("u1", "ss21")[0].id).toBe("ss20");
+    expect(removeSlideshow("u1", "ss41")[0].id).toBe("ss40");
     expect(loadSlideshows(null)).toEqual([]);
   });
 
