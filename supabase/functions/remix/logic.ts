@@ -607,8 +607,15 @@ function imageRules(req: MakeRequest): string[] {
     `Write the words for one static ad picture. Its layout is ${shape}`,
     ...fields,
     "- Leave every other words field empty.",
+    "- Write the words in sentence case: capitalise only the first word, names and the brand, never every word.",
     "- Never put a number in the words: no figures, prices, percentages or counts.",
-    ...(req.source ? ["- Keep the original ad's structure and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers."] : []),
+    ...(req.source
+      ? [
+          "- Keep the original ad's structure and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers.",
+          "- Keep the original ad's shape: its headline's number of sentences (two short sentences stay two), a question stays a question, and a list or steps, in its words or its picture, stay a list of as many short items, with no numbers in front.",
+          "- Take the angle from the original ad, never from the brand's one-liner.",
+        ]
+      : []),
     ...CAPTION_RULES,
     refuseRule(req, "an ad"),
   ];
@@ -1119,7 +1126,11 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: M
   if (as === "image") {
     const layout = AD_LAYOUTS.find((x) => x === req.layout) ?? "headline";
     // a testimonial's words come only from the facts, so the writer may leave them for the brand to type
-    const words = fieldsWithin(r.words, AD_WORDS[layout], layout === "testimonial" ? ["quote"] : []);
+    const raw = fieldsWithin(r.words, AD_WORDS[layout], layout === "testimonial" ? ["quote"] : []);
+    // Leo's rule, sentence case (live check 22 Oct: "Keep Client Conversations Moving" on three ads); a quote stays as
+    // written, and the brand's own name keeps its capitals ("by" puts it mid-sentence, where sentenceCase reads names)
+    const rest = (k: string) => [...Object.entries(raw ?? {}).filter(([j]) => j !== k).map(([, v]) => v), String(r.caption ?? ""), `by ${req.brand?.name ?? ""}`].join(". ");
+    const words = raw && Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k === "quote" ? v : sentenceCase(v, rest(k))]));
     const caption = words ? slideshowCaption(r, [{ title: Object.values(words).join(" "), sub: "" }]) : null;
     return words && caption ? { as, layout, layoutBy: req.layoutBy ?? "default", words, caption } : null;
   }

@@ -64,6 +64,7 @@ import {
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
 import W2 from "./fixtures/phase3-w2-live.json";
+import P3 from "./fixtures/phase3-p3-live.json";
 
 const SOURCE_TEXT = "6 signs your CPF plan is off track. Most people never check their CPF statement until it is too late. Save $12,000 by starting early.";
 
@@ -1230,6 +1231,37 @@ describe("an ad image's words (formats-static-ad)", () => {
     expect(parseMakeRequest(body({ as: "image", layout: "testimonial", brand: BIZ })).ok).toBe(true);
     expect(parseMakeRequest(body({ as: "image", layout: "poster" })).ok).toBe(false);
     expect(parseMakeRequest(body({ as: "image", shows: "x".repeat(301) })).ok).toBe(false);
+  });
+
+  it("keeps each swipe ad's own shape in sentence case, never one Title Case headline for all three (live check 22 Oct)", () => {
+    const ads = P3.filter((x) => x.call.startsWith("static-ad-"));
+    expect(ads).toHaveLength(3);
+    const got = ads.map(({ request, response }) => {
+      const req = { ...make(request), layout: "headline" as const };
+      const { system } = buildMakePrompt(req);
+      expect(system).toContain("- Write the words in sentence case: capitalise only the first word, names and the brand, never every word.");
+      expect(system).toContain("- Keep the original ad's shape: its headline's number of sentences (two short sentences stay two), a question stays a question, and a list or steps, in its words or its picture, stay a list of as many short items, with no numbers in front.");
+      expect(system).toContain("- Take the angle from the original ad, never from the brand's one-liner.");
+      // the model's answer as it came back, before the caption, call to action and hashtags were joined
+      const r = response.result as { words: Record<string, string>; caption: string };
+      const [caption, cta, tags] = r.caption.split("\n\n");
+      const raw = { refuse: false, reason: "", words: { quote: "", statLabel: "", ...r.words }, caption, cta, hashtags: tags.split(" ") };
+      return (validateMake("image", raw, { ...req, layoutBy: "jev" }) as Extract<MakeResult, { as: "image" }>).words;
+    });
+    expect(got.map((w) => w.headline)).toEqual(["Keep client conversations moving", "Keep every sales chat moving", "Keep every follow-up moving"]);
+    // not obvious Title Case (two words, or a lower case word), and the brand keeps its capitals
+    expect(got.map((w) => w.button)).toEqual(["Explore ActivityTracker", "Explore the App", "Explore ActivityTracker"]);
+    expect(got[1].line).toBe("ActivityTracker brings client details, follow-ups, tasks and goals together in one phone app.");
+    // the WATI ad: its headline is two sentences and its picture holds numbered steps, both sent to the writer
+    const wati = make(ads[2].request);
+    expect(wati.source?.title).toBe("7-Day Free Trial. No Card Needed.");
+    expect(buildMakePrompt(wati).user).toContain("green numbered instructions");
+    // a brand name of plain words keeps its capitals; a quote keeps its words as written
+    const brand = make({ brand: { ...BIZ, name: "Catalyst Payroll" } }).brand;
+    const words = (w: Record<string, string>, layout = "headline") =>
+      (validateMake("image", { refuse: false, reason: "", words: { headline: "", line: "", button: "", quote: "", statLabel: "", ...w }, ...CAP }, { layout: layout as never, brand }) as Extract<MakeResult, { as: "image" }>).words;
+    expect(words({ headline: "Meet Catalyst Payroll Today", line: "Pay your team on time.", button: "Book A Demo" })).toEqual({ headline: "Meet Catalyst Payroll today", line: "Pay your team on time.", button: "Book a demo" });
+    expect(words({ quote: "Every Single Payslip Arrived On Time" }, "quote")).toEqual({ quote: "Every Single Payslip Arrived On Time" });
   });
 
   it("writes for the layout it was given, with the picture's sentence in the user message", () => {

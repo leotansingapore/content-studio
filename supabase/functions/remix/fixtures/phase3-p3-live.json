@@ -1,0 +1,242 @@
+[
+ {
+  "call": "static-ad-sleekflow-booking",
+  "request": {
+   "mode": "make",
+   "as": "image",
+   "source": {
+    "key": "ad:2253423575514827",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Automate Meeting Booking",
+    "author": "SleekFlow",
+    "url": "https://www.facebook.com/ads/library/?id=2253423575514827",
+    "text": "Automate Meeting Booking\n\nTurn chat enquiries into qualified opportunities 24/7.\n\nLet AI engage visitors, capture lead details, qualify intent and schedule the next step, while your team steps in when it matters most.\n\nLearn more"
+   },
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "- What it offers: We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving. It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.\n- Who it serves: Sales-oriented self-employed professionals and coaches",
+    "mention": true,
+    "offer": null,
+    "rules": "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.",
+    "speaker": "business"
+   },
+   "shows": "A blue gradient promotional graphic has large centered white and blue headline text, with a phone-style chat mockup on the lower left and a small photo of a hand writing beside a keyboard on the\u2026"
+  },
+  "response": {
+   "as": "image",
+   "result": {
+    "as": "image",
+    "layout": "headline",
+    "layoutBy": "jev",
+    "words": {
+     "headline": "Keep Client Conversations Moving",
+     "line": "Bring chats, follow-ups and goals together in one phone app.",
+     "button": "Explore ActivityTracker"
+    },
+    "caption": "For self-employed sales professionals and coaches, keeping client details and chats organised can make the next task easier to find. ActivityTracker brings CRM, a shared WhatsApp inbox, tasks and goals together, with activity logged in one tap.\n\nSave this post for your next workflow review.\n\n#SalesFollowUp #ClientManagement #WhatsAppWorkflow"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false,
+    "mas": null
+   },
+   "usage": {
+    "used": 2,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "static-ad-sleekflow-whatsapp",
+  "request": {
+   "mode": "make",
+   "as": "image",
+   "source": {
+    "key": "ad:1420193940250907",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Unlock More From WhatsApp",
+    "author": "SleekFlow",
+    "url": "https://www.facebook.com/ads/library/?id=1420193940250907",
+    "text": "Unlock More From WhatsApp\n\nYour WhatsApp Business App can do more with SleekFlow.\n\nKeep the app your team already knows while adding automation, CRM, broadcasts and a shared inbox\u2014all using the same number.\n\nLearn more"
+   },
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "- What it offers: We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving. It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.\n- Who it serves: Sales-oriented self-employed professionals and coaches",
+    "mention": true,
+    "offer": null,
+    "rules": "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.",
+    "speaker": "business"
+   },
+   "shows": "A blue-green gradient promotional graphic has a sleekflow logo at the top, large centered white headline text, and green messaging icons above a mockup of a contact list and messaging dashboard. A\u2026"
+  },
+  "response": {
+   "as": "image",
+   "result": {
+    "as": "image",
+    "layout": "headline",
+    "layoutBy": "jev",
+    "words": {
+     "headline": "Keep Every Sales Chat Moving",
+     "line": "ActivityTracker brings client details, follow-ups, tasks and goals together in one phone app.",
+     "button": "Explore the App"
+    },
+    "caption": "For self-employed sales professionals and coaches in Singapore, keeping chats and next steps together can help organise the workday. Log activity in one tap as conversations progress.\n\nSave this for your next workflow review.\n\n#SalesFollowUp #ClientManagement #WhatsAppWorkflows"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true,
+    "mas": null
+   },
+   "usage": {
+    "used": 3,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "static-ad-wati",
+  "request": {
+   "mode": "make",
+   "as": "image",
+   "source": {
+    "key": "ad:1761640958369977",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "7-Day Free Trial. No Card Needed.",
+    "author": "WATI - WhatsApp Team Inbox",
+    "url": "https://www.facebook.com/ads/library/?id=1761640958369977",
+    "text": "7-Day Free Trial. No Card Needed.\n\nA comment is a lead. Most of them go unanswered.\n\nWati replies publicly and DMs the commenter in the same second. We'll set it up with you on a free 30-minute call.\n\nSwipe for the steps.\n\nSee details"
+   },
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "- What it offers: We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving. It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.\n- Who it serves: Sales-oriented self-employed professionals and coaches",
+    "mention": true,
+    "offer": null,
+    "rules": "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.",
+    "speaker": "business"
+   },
+   "shows": "A clean white promotional graphic has the green-and-black wati logo at the top, large black headline text, green numbered instructions and a bright green call-to-action. Small workflow and messaging\u2026"
+  },
+  "response": {
+   "as": "image",
+   "result": {
+    "as": "image",
+    "layout": "headline",
+    "layoutBy": "jev",
+    "words": {
+     "headline": "Keep Every Follow-Up Moving",
+     "line": "Bring client chats, tasks and goals together in one phone app.",
+     "button": "Explore ActivityTracker"
+    },
+    "caption": "ActivityTracker brings CRM and a shared WhatsApp inbox together with tasks and goals. Log activity in one tap to keep your next step in view.\n\nSave this for your next workflow review.\n\n#SalesFollowUp #ClientManagement #WhatsAppWorkflow"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false,
+    "mas": null
+   },
+   "usage": {
+    "used": 4,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "meme-named-insurer",
+  "request": {
+   "mode": "make",
+   "as": "meme",
+   "topic": "Prudential agents who never return their clients' calls",
+   "voice": null,
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "- What it offers: We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving. It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.\n- Who it serves: Sales-oriented self-employed professionals and coaches",
+    "mention": true,
+    "offer": null,
+    "rules": "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.",
+    "speaker": "business"
+   },
+   "layout": "top-bottom"
+  },
+  "response": {
+   "as": "meme",
+   "result": {
+    "as": "meme",
+    "options": [
+     {
+      "top": "I SAID I\u2019D FOLLOW UP TODAY",
+      "bottom": "MY TASK LIST SAID SAME THING"
+     },
+     {
+      "top": "I HAVE THREE CLIENT CHATS OPEN",
+      "bottom": "AND ZERO REMINDERS SET"
+     },
+     {
+      "top": "I\u2019M CHECKING MY FOLLOW-UPS",
+      "bottom": "BEFORE MY PARENT CHECKS MY INSURANCE"
+     }
+    ],
+    "best": 1,
+    "dropped": [],
+    "caption": "When you manage client chats and follow-ups, it helps to keep the next step visible. ActivityTracker brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.\n\nSave this for your next follow-up check.\n\n#SalesFollowUp #ClientManagement #WhatsAppWorkflows"
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false,
+    "mas": null
+   },
+   "usage": {
+    "used": 7,
+    "limit": 30
+   }
+  }
+ }
+]
