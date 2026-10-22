@@ -175,7 +175,10 @@ export function nextReset(now: Date): string {
 export function layoutWeek(positioning: Positioning, options: GeneratePlanOptions, week: string, windowDays: number): BatchPost[] {
   // a salt per week, so each week takes the next topics and formats instead of repeating the last one's
   const salt = Math.round(keyToDate(week).getTime() / (7 * 86_400_000));
-  return generatePlan(positioning, { ...options, weeks: 1, salt }).items.map((slot, i) => {
+  // and the next angles (a business's saved ones), since slot i takes angles[i % n]
+  const angles = options.angles ?? [];
+  const k = angles.length ? salt % angles.length : 0;
+  return generatePlan(positioning, { ...options, weeks: 1, salt, ...(k ? { angles: [...angles.slice(k), ...angles.slice(0, k)] } : {}) }).items.map((slot, i) => {
     const day = localDateKey(planItemDate(slot, keyToDate(week)));
     return { n: i + 1, day, ...(slot.time ? { time: slot.time } : {}), slot, draftId: `ap_${week}_${i + 1}`, state: "waiting", reviewBy: reviewBy(day, windowDays) };
   });

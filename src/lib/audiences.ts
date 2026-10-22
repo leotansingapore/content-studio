@@ -180,10 +180,13 @@ export function audienceLine(a: Pick<Audience, "name" | "who" | "cares" | "says"
   const who = a.who.trim() && !/[.!?]$/.test(a.who.trim()) ? `${a.who.trim()}.` : a.who.trim();
   const cares = a.cares.length ? ` They care about: ${a.cares.join(", ")}.` : "";
   const says = a.says ? ` How they talk about ${speaker === "person" ? "money" : "it"}: ${a.says}` : "";
-  // a seed's who is its name, or the detail its name was cut from: say it once (wave 2 live check, 22 Oct)
-  const key = (s: string) => s.toLowerCase().replace(/[.!?\s]+$/, "").replace(/\s+/g, " ");
-  const named = key(who) === key(a.name) || key(who).startsWith(`${key(a.name)} `);
-  return `WRITE FOR THIS AUDIENCE: ${named ? who : `${a.name}.${who ? ` ${who}` : ""}`}${cares}${says}`;
+  return `WRITE FOR THIS AUDIENCE: ${whoRepeatsName(a) ? who : `${a.name}.${who ? ` ${who}` : ""}`}${cares}${says}`;
+}
+
+/** A seed's who is its name, or the detail its name was cut from: say it once (wave 2 live check; the wizard's step 1, live-p5w3). */
+export function whoRepeatsName(a: Pick<Audience, "name" | "who">): boolean {
+  const key = (s: string) => s.trim().toLowerCase().replace(/[.!?\s]+$/, "").replace(/\s+/g, " ");
+  return key(a.who) === key(a.name) || key(a.who).startsWith(`${key(a.name)} `);
 }
 
 /**

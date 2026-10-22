@@ -112,6 +112,26 @@ const SOCIAL_SUBJECTS = [
   "a lesson from your first year that you'd tell your younger self",
 ];
 
+// A business's social slots (speaker "business", autopilot on an added brand): about the business in its own facts,
+// never "how you advise" (live-p5w3 D1).
+const BUSINESS_SUBJECTS = [
+  "the problem we built this to solve",
+  "a belief about the work we stand behind",
+  "how we fit into a normal working day",
+  "a value we won't compromise on",
+  "who this is for, and who it is not for",
+  "a question people ask before they start",
+];
+
+// A business's idea sources: no Budget hook, and no personal or client story (BUSINESS_VOICE forbids both).
+const BUSINESS_IDEA_LABELS: Record<string, string> = {
+  ...IDEA_SOURCE_LABELS,
+  "real-question": "a real question customers ask",
+  "news-hook": "a news hook",
+  "personal-story": "a lesson from the work",
+  "before-after": "a before-and-after of how the work gets done",
+};
+
 // Day patterns per cadence — front-load the week so the funnel arcs Mon -> end.
 const DAY_PATTERNS: Record<number, string[]> = {
   3: ["Mon", "Wed", "Fri"],
@@ -251,6 +271,11 @@ export interface GeneratePlanOptions {
   formats?: PlanFormat[];
   /** Topic and market slots are spread over these by weight (weightedOrder) and carry the pillar's id. */
   pillars?: { id: string; name: string; weight: number }[];
+  /**
+   * "business": social slots take BUSINESS_SUBJECTS, and nothing comes from the adviser inspiration library: a topic
+   * slot's angle names its campaign angle (`angles`) instead. Autopilot passes it; /plan never does.
+   */
+  speaker?: "person" | "business";
 }
 
 /**
@@ -373,7 +398,9 @@ export function generatePlan(
   };
   const allTopics = positioning.topics.filter((t) => t.trim().length > 0);
   const topics = fresh(allTopics);
-  const socialSubjects = fresh(SOCIAL_SUBJECTS);
+  const business = opts.speaker === "business";
+  const socialSubjects = fresh(business ? BUSINESS_SUBJECTS : SOCIAL_SUBJECTS);
+  const ideaLabels = business ? BUSINESS_IDEA_LABELS : IDEA_SOURCE_LABELS;
   const formulaStart = opts.formulaStart ?? 0;
 
   // Performance weighting: interleave the user's winning format into every
@@ -438,12 +465,14 @@ export function generatePlan(
         pillarDetail = topics[(authIndex + salt) % topics.length];
         authIndex++;
       } else {
-        pillarDetail = positioning.audienceDetail || "your core financial topic";
+        pillarDetail = positioning.audienceDetail || (business ? "your core topic" : "your core financial topic");
       }
 
-      const seed = pickSeed(pillar, positioning.audience, globalIndex + salt);
+      // the inspiration library is an adviser's (finance hooks and topics): a business takes none of it
+      const seed = business ? undefined : pickSeed(pillar, positioning.audience, globalIndex + salt);
+      const hint = business ? angles[globalIndex % (angles.length || 1)]?.title : seed?.topic;
 
-      const ideaLabel = IDEA_SOURCE_LABELS[ideaSource] ?? "a concrete angle";
+      const ideaLabel = ideaLabels[ideaSource] ?? "a concrete angle";
       let angle: string;
       if (isSocial) {
         angle = titleCase(pillarDetail);
@@ -452,14 +481,16 @@ export function generatePlan(
         angle = `${anchor} — ${ideaLabel}`;
       }
       // Borrow a concrete topical detail from the seed to keep it specific.
-      if (!isSocial && seed && seed.topic && (topics.length > 0 || labelId)) {
-        angle = `${titleCase(pillarDetail)} — ${ideaLabel} (angle: ${seed.topic})`;
+      if (!isSocial && hint && (topics.length > 0 || labelId)) {
+        angle = `${titleCase(pillarDetail)} — ${ideaLabel} (angle: ${hint})`;
       }
 
       const hook =
         seed?.hook ??
         (isSocial
-          ? "Most people think advisors only care about closing. Here's what actually drives me."
+          ? business
+            ? "Here's what most people don't see about how we work."
+            : "Most people think advisors only care about closing. Here's what actually drives me."
           : `If you ${pillarDetail.toLowerCase()}, there's one thing most people get wrong.`);
 
       const competitor =

@@ -6,6 +6,7 @@
 
 import { audienceLine, loadAudiences } from "@/lib/audiences";
 import { planContextFor } from "@/lib/angleSuggest";
+import { anglesFor } from "@/lib/angles";
 import {
   AUTOPILOT_CHANGED,
   GUARD_MS,
@@ -108,10 +109,14 @@ export async function runAutopilot(userId: string, now = new Date()): Promise<vo
     if (!saved || !isPositioningUsable(saved)) return;
     const positioning = withGoalCadence(saved, loadGoals(userId));
     const { settings } = state;
+    const speaker = speakerFor(userId);
+    const main = speaker === "business" ? loadAudiences(userId, now)[0] : undefined;
     const options = {
       ...planOptionsFor(userId, positioning.platform, { competitors: [], plan: loadPlan(userId) }),
       ...steerFor(userId),
       formats: settings.formats,
+      // a business's week takes its own subjects and its audience's saved angles, never /plan's adviser library (live-p5w3 D1)
+      ...(speaker === "business" ? { speaker, angles: main ? anglesFor(userId, main.id) : [] } : {}),
     };
     const todo: { week: string; post: BatchPost }[] = [];
     const fresh: Batch[] = [];
