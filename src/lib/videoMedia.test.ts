@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
 import {
-  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, onJoinJob, pickupPlan, planFor, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
+  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, onJoinJob, pickupPlan, planFor, seek, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
   TAP_TO_FINISH, withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
 } from "./videoMedia";
 
@@ -292,6 +292,38 @@ describe("an extra added to another format's join", () => {
     expect(withJoinAdd("Talking head", base, 7 * 864e5)).toBe(base);
     store.set("cs-join-add", "{nope");
     expect(joinAdd()).toBeNull();
+  });
+});
+
+describe("seek", () => {
+  // a <video> as loadVideo hands it over: at 0 with readyState 1 (no picture decoded), and a seek that decodes one
+  const fakeVideo = (readyState: number) => {
+    const v = Object.assign(new EventTarget(), { readyState, at: 0, seeks: 0 });
+    Object.defineProperty(v, "currentTime", {
+      get: () => v.at,
+      set: (t: number) => {
+        v.seeks++;
+        v.at = t;
+        setTimeout(() => {
+          v.readyState = 4;
+          v.dispatchEvent(new Event("seeked"));
+        });
+      },
+    });
+    return v as typeof v & HTMLVideoElement;
+  };
+
+  it("waits for the picture of a fresh video already at the time, so a join's first frame is not black", async () => {
+    const v = fakeVideo(1);
+    await seek(v, 0);
+    expect(v.seeks).toBe(1);
+    expect(v.readyState).toBe(4);
+  });
+
+  it("does not seek again when the picture at that time is already there", async () => {
+    const v = fakeVideo(4);
+    await seek(v, 0.005);
+    expect(v.seeks).toBe(0);
   });
 });
 
