@@ -32,6 +32,8 @@ vi.stubGlobal("sessionStorage", ls);
 vi.stubGlobal("window", { localStorage: ls, sessionStorage: ls, dispatchEvent: () => true, addEventListener() {}, removeEventListener() {}, location: new URL("http://localhost/") });
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+// Leo's stored session, so PriceChip draws his chip on the first frame
+store.set("sb-abc-auth-token", JSON.stringify({ user: { id: UID, email: "tanjunsing@gmail.com" } }));
 const { default: ActionCard, whoOption } = await import("./ActionCard");
 const { competitorCard, fieldsOf, flagsFor, makeCard, withScript } = await import("@/lib/agentPlans");
 const { default: MadeBlock } = await import("./MadeBlock");
@@ -123,5 +125,15 @@ describe("a talking video's second card", () => {
     const card = withScript(UID, makeCard(UID, { plan: "speaking", format: "speaking", act: "make", p: {}, topic: "CPF LIFE", speaker: null }), script);
     expect(card.step).toBe("video");
     expect(draw(card).match(/It takes a few minutes and opens in the video editor\./g)).toHaveLength(1);
+  });
+});
+
+describe("a talking video's first card", () => {
+  it("prices Write the script without counting the video it doesn't spend yet", () => {
+    const card = makeCard(UID, { plan: "speaking", format: "speaking", act: "make", p: {}, topic: "CPF LIFE", speaker: null });
+    expect([card.step, card.needs[0].feature]).toEqual(["script", "ai-video"]);
+    const html = draw(card, { used: {} });
+    expect(html).toContain("2 of 2 videos left today");
+    expect(html).not.toContain("left after this");
   });
 });

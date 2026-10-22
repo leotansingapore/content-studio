@@ -328,7 +328,8 @@ export default function ActionCard({
                     <span>{approveLabel(card)}</span>
                     {card.price && (
                       <span className="text-[11px] [&>span]:text-primary-foreground/85">
-                        <PriceChip price={card.price} left={left} uses={card.needs[0]?.n} />
+                        {/* the script press spends its own price, not the video the needs list first: no "left after this" */}
+                        <PriceChip price={card.price} left={stepIs(card, "script") ? null : left} uses={card.needs[0]?.n} />
                       </span>
                     )}
                   </>
