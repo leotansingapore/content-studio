@@ -47,5 +47,6 @@ describe("Write for everyone else", () => {
   it("draws today's brief, audience chips included, on a plan slot's link", () => {
     expect(html(PLAN_LINK_AT)).toContain("Audience / life-stage");
     expect(sha(html(PLAN_LINK_AT))).toBe(BRIEF);
+    expect(html(`${PLAN_LINK_AT}&aud=au-lq3k9z&label=lb-1`)).toBe(html(PLAN_LINK_AT));
   });
 });

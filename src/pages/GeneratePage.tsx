@@ -1,5 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RealQuestions from "@/components/RealQuestions";
+import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
+import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences";
 import { loadPositioning } from "@/lib/positioning";
 import { withQuestion } from "@/lib/sgFeeds";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
@@ -732,6 +734,9 @@ export default function GeneratePage() {
   const remixSourceRef = useRef(remixSource);
   remixSourceRef.current = remixSource;
   const [pendingSourceKey, setPendingSourceKey] = useState<string | null>(null);
+  // Leo only (brand-audiences): a saved audience picked for this brief (?aud= once the session is read)
+  const [pendingAud, setPendingAud] = useState<string | null>(null);
+  const [audId, setAudId] = useState<string | null>(null);
   // Leo only (edit-translate): this make's language (undefined follows the brand's), a version to make once for a
   // post (just written in another language, or asked for on My posts), and the toast a version opens with.
   const [postLang, setPostLang] = useState<PostLang | null | undefined>(undefined);
@@ -769,6 +774,9 @@ export default function GeneratePage() {
 
   // Voice profile + nudge.
   const [userId, setUserId] = useState<string | null>(null);
+  const savedAudiences = useSavedAudiences(leo ? userId : null);
+  // the pick holds while the life stage is still its own: a life-stage chip, a loaded draft or a template drops it
+  const audPick = (audId && savedAudiences.find((a) => a.id === audId && a.lifeStage === audience)) || null;
   const [voiceSummary, setVoiceSummary] = useState<string | null>(null);
   const [voiceProfileUsable, setVoiceProfileUsable] = useState<boolean>(false);
   // Up to three saved voice posts, for the sounds-human check's voice match.
@@ -933,6 +941,7 @@ export default function GeneratePage() {
             if (PILLARS.some((p) => p.value === brief.pillar)) setPillar(brief.pillar);
             setPillarDetail(brief.pillarDetail);
             if (AUDIENCES.some((a) => a.value === brief.audience)) setAudience(brief.audience);
+            if (typeof brief.aud === "string") setAudId(brief.aud);
             setSinglish(brief.singlish === true);
             if (FUNNEL_STAGES.some((f) => f.id === brief.funnelStage)) setFunnelStage(brief.funnelStage);
             if (IDEA_SOURCES.some((i) => i.value === brief.ideaSource)) setIdeaSource(brief.ideaSource);
@@ -1141,7 +1150,7 @@ export default function GeneratePage() {
       searchParams.has("funnel") ||
       searchParams.has("idea") ||
       searchParams.has("ctx");
-    if (!filled && !searchParams.has("source") && !searchParams.has("lang")) return;
+    if (!filled && !["source", "lang", "aud"].some((k) => searchParams.has(k))) return;
     prefillAppliedRef.current = true;
 
     const pillarParam = searchParams.get("pillar");
@@ -1190,9 +1199,12 @@ export default function GeneratePage() {
     // only Leo's sessions read it (makeLang below)
     const langParam = asPostLang(searchParams.get("lang"));
     if (langParam) setPostLang(langParam);
+    // resolved below once the session is read: other sign-ins ignore it
+    const audParam = searchParams.get("aud");
+    if (audParam) setPendingAud(audParam.slice(0, 60));
 
     const next = new URLSearchParams(searchParams);
-    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang"].forEach(
+    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang", "aud"].forEach(
       (k) => next.delete(k),
     );
     // Every step is filled in: open the one with Generate (in this same write, or the strip would undo it). The
@@ -1225,6 +1237,19 @@ export default function GeneratePage() {
       .then(({ resolveSource }) => setRemixSource(resolveSource(key, userId)))
       .catch(() => {});
   }, [pendingSourceKey, leo, userId]);
+
+  // ?aud=<id> picks that saved audience and its life stage (it wins over ?audience=); an unknown or removed id leaves
+  // the life stages as they are. Leo's sessions only.
+  useEffect(() => {
+    if (!pendingAud || leo === undefined || !userId) return;
+    const id = pendingAud;
+    setPendingAud(null);
+    if (!leo) return;
+    const { aud } = audienceFromParams(new URLSearchParams({ aud: id }), loadAudiences(userId));
+    if (!aud) return;
+    setAudId(aud.id);
+    setAudience(aud.lifeStage);
+  }, [pendingAud, leo, userId]);
 
   // The chip's x and the credit box change the saved post and its platform versions too, once there are any.
   const changeSource = (next: RemixSource | null) => {
@@ -1418,6 +1443,7 @@ export default function GeneratePage() {
             variants,
             source: remixSource ?? undefined,
             ...(leo && postLang !== undefined ? { postLang } : {}),
+            ...(leo && audPick ? { aud: audPick.id } : {}),
           }),
         );
       }
@@ -1448,6 +1474,7 @@ export default function GeneratePage() {
     remixSource,
     leo,
     postLang,
+    audPick,
   ]);
 
   // The variant rows mount once the stream starts, after an async session read.
@@ -1472,6 +1499,8 @@ export default function GeneratePage() {
     ctxParts.push(BLANKS_RULE);
     const rules = brandRulesLine(brandKit, platform);
     if (rules) ctxParts.push(rules);
+    // Leo only (brand-audiences): the picked audience in words, since the post writer knows only the five life stages
+    if (audPick) ctxParts.push(audienceLine(audPick));
     // Leo only (brand-voice-memory): his facts and learnings after the brand rules; the voice summary has its own field
     const memory = leo && userId ? memoryLine(userId, "posts") : "";
     if (memory) ctxParts.push(memory);
@@ -3023,14 +3052,30 @@ export default function GeneratePage() {
           </div>
           <div className="space-y-2">
             <Label className="text-sm">Audience / life-stage</Label>
+            <AudiencePicker
+              saved={savedAudiences}
+              picked={audPick?.id ?? null}
+              onPick={(a) => {
+                setAudId(a.id);
+                setAudience(a.lifeStage);
+              }}
+              chip={(on) =>
+                `rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-all [@media(pointer:coarse)]:min-h-11 ${
+                  on ? "border-primary/60 bg-primary/5 shadow-sm" : "border-border/70 hover:border-primary/40 hover:bg-muted/40"
+                }`
+              }
+            >
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {AUDIENCES.map((a) => (
                 <button
                   key={a.value}
                   type="button"
-                  onClick={() => setAudience(a.value)}
+                  onClick={() => {
+                    setAudience(a.value);
+                    setAudId(null);
+                  }}
                   className={`rounded-lg border p-2 text-left text-xs transition-all ${
-                    audience === a.value
+                    !audPick && audience === a.value
                       ? "border-primary/60 bg-primary/5 shadow-sm"
                       : "border-border/70 hover:border-primary/40 hover:bg-muted/40"
                   }`}
@@ -3042,6 +3087,7 @@ export default function GeneratePage() {
                 </button>
               ))}
             </div>
+            </AudiencePicker>
             <label
               className={`mt-1 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all [@media(pointer:coarse)]:min-h-11 ${
                 singlish
@@ -3186,7 +3232,7 @@ export default function GeneratePage() {
           </Select>
           <p className="text-xs text-muted-foreground">{ideaMeta.example}</p>
           {ideaSource === "real-question" && (
-            <RealQuestions audience={userId ? loadPositioning(userId)?.audience : undefined} onPick={(q) => setIdeaContext((c) => withQuestion(c, q))} />
+            <RealQuestions audience={audPick ? audPick.lifeStage : userId ? loadPositioning(userId)?.audience : undefined} onPick={(q) => setIdeaContext((c) => withQuestion(c, q))} />
           )}
           <div className="space-y-1.5">
             <Label htmlFor="idea-context" className="flex items-center gap-1.5">
