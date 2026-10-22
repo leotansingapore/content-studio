@@ -1923,6 +1923,15 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       off();
     };
   }, [leo, duration]);
+  // ?ask= from a link (Leo only): fills the vibe box, read once; nothing runs until Change it
+  const [params] = useSearchParams();
+  const linkAsk = leo ? params.get("ask") : null;
+  useEffect(() => {
+    if (linkAsk === null) return;
+    setAsk(linkAsk.trim().slice(0, 300));
+    updateUrl({ ask: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkAsk]);
   const addBroll = async (it: StockItem) => {
     if (brolls.length >= MAX_BROLL) throw new Error(`Up to ${MAX_BROLL} on a video`);
     const blob = await downloadStock(it.src);
