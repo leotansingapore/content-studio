@@ -25,6 +25,7 @@ import {
   type DraftEntry,
 } from "./draftHistory";
 import { addProfile, DEFAULT_PROFILE_ID, setActiveProfile } from "./profiles";
+import { loadActivity, setActivityOn } from "./activity";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -492,5 +493,53 @@ describe("drafts Claude saved, as absorbed today", () => {
       post({ id: "old" }),
     ]);
     expect(Array.from({ length: ls().length }, (_, i) => ls().key(i)).sort()).toEqual([`content-studio-drafts-${UID}`, `content-studio-mcpdraft-claude-c3-${UID}~p9`]);
+  });
+});
+
+describe("drafts Claude saved, in Leo's Activity", () => {
+  const ls = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+  const row = (id: string, o: Record<string, unknown> = {}) =>
+    JSON.stringify({ id, createdAt: "2026-10-08T03:00:00.000Z", hook: "From Claude", draft: "Body", platform: "instagram", format: "carousel", status: "draft", ...o });
+  beforeEach(() => {
+    const storage = ls();
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true });
+    storage.setItem("cs-device-tag", "dev001");
+    setActivityOn(true);
+  });
+  afterEach(() => {
+    setActivityOn(false);
+    vi.unstubAllGlobals();
+  });
+
+  it("each is one Claude row at the time Claude saved it, under the draft's id, linked to Write", () => {
+    ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
+    ls().setItem(`content-studio-mcpdraft-claude-b2-${UID}`, row("claude-b2", { createdAt: "2026-10-08T04:00:00.000Z", status: "scheduled", scheduledFor: "2026-10-20T19:30", hook: "Why I stopped chasing yield" }));
+    loadDrafts(UID);
+    expect(loadActivity(UID, ["2026-10"])).toEqual([
+      { id: "claude-b2", at: "2026-10-08T04:00:00.000Z", who: "claude", kind: "post", title: 'Added a draft: "Why I stopped chasing yield"', detail: "Scheduled for Tue 20 Oct, 7:30pm.", link: "/generate?draft=claude-b2" },
+      { id: "claude-a1", at: "2026-10-08T03:00:00.000Z", who: "claude", kind: "post", title: 'Added a draft: "From Claude"', detail: "Saved as a draft in My posts.", link: "/generate?draft=claude-a1" },
+    ]);
+  });
+
+  it("stays one event when a second device absorbs the same row before the first one's removal syncs", () => {
+    ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
+    loadDrafts(UID);
+    ls().setItem("cs-device-tag", "dev002");
+    ls().removeItem(`content-studio-drafts-${UID}`);
+    ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
+    loadDrafts(UID);
+    expect(Array.from({ length: ls().length }, (_, i) => ls().key(i)).filter((k) => k?.startsWith("content-studio-activity-")).sort()).toEqual([
+      `content-studio-activity-2026-10-dev001-${UID}`,
+      `content-studio-activity-2026-10-dev002-${UID}`,
+    ]);
+    expect(loadActivity(UID, ["2026-10"]).map((e) => e.id)).toEqual(["claude-a1"]);
+  });
+
+  it("a draft already in My posts logs nothing", () => {
+    ls().setItem(`content-studio-drafts-${UID}`, JSON.stringify([post({ id: "claude-a1" })]));
+    ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
+    loadDrafts(UID);
+    expect(loadActivity(UID, ["2026-10"])).toEqual([]);
   });
 });
