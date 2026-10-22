@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { supabase } from "@/lib/supabase";
 import { loadBrand, type CarouselBrand } from "@/lib/carousel";
+import { speakerFor } from "@/lib/remixBrand";
 import { withCredit, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
 import type { RemixSource } from "@/lib/remixSource";
 import { blankRanges, foldAt, MAX_CHARS, type PlatformId } from "@/lib/platformCounters";
@@ -66,16 +67,20 @@ function ScriptBlock({ script }: { script: string }) {
   );
 }
 
-function useBrandKit(): CarouselBrand | null {
-  const [brand, setBrand] = useState<CarouselBrand | null>(null);
+/** The brand kit, and whether the brand speaks as a business (speakerFor), once the user is known. */
+function useBrandKit(): { brand: CarouselBrand | null; business: boolean } {
+  const [kit, setKit] = useState<{ brand: CarouselBrand | null; business: boolean }>({ brand: null, business: false });
   useEffect(() => {
     let live = true;
-    supabase.auth.getUser().then(({ data }) => live && setBrand(loadBrand(data.user?.id)));
+    supabase.auth.getUser().then(({ data }) => {
+      const id = data.user?.id;
+      if (live) setKit({ brand: loadBrand(id), business: !!id && speakerFor(id) === "business" });
+    });
     return () => {
       live = false;
     };
   }, []);
-  return brand;
+  return kit;
 }
 
 function Avatar({ brand }: { brand: CarouselBrand | null }) {
@@ -170,7 +175,7 @@ export default function PostPreview({
   /** The remix source: its "Idea from ..." line shows when credit is ticked. */
   source?: RemixSource;
 }) {
-  const brand = useBrandKit();
+  const { brand, business } = useBrandKit();
   const body = text.trim();
   if (!body) return <EmptyState />;
 
@@ -183,6 +188,8 @@ export default function PostPreview({
   const script = split.script;
   const caption = withCredit(withDisclosure(withSignOff(split.caption, brand?.signOff), disclosure), source);
   const handle = (brand?.handle ?? "").replace(/^@/, "").trim() || "your_handle";
+  // a business has no job title: no line rather than the adviser's (live-p5w4 N2: "Financial Consultant" under ActivityTracker)
+  const role = brand?.role?.trim() || (business ? "" : "Financial Consultant");
   const mediaLabel = MEDIA_LABELS[format ?? ""] ?? "Your image / carousel";
 
   if (platform === "instagram") {
@@ -230,9 +237,11 @@ export default function PostPreview({
             <p className="text-sm font-semibold leading-tight text-foreground">
               {brand?.name?.trim() || "Your Name"}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {brand?.role?.trim() || "Financial Consultant"}
-            </p>
+            {role && (
+              <p className="truncate text-xs text-muted-foreground">
+                {role}
+              </p>
+            )}
             <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
               Now · <Globe className="h-3 w-3" />
             </p>

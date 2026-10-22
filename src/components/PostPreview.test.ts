@@ -81,3 +81,17 @@ describe("PostPreview for a person", () => {
     await expect((await frames("facebook")).loaded).toMatchFileSnapshot("./__pins__/post-preview-person-no-role-facebook.html");
   });
 });
+
+describe("PostPreview for a business (live-p5w4 N2: \"Financial Consultant\" under ActivityTracker)", () => {
+  it("draws no role line under a business brand's name", async () => {
+    local.set(`content-studio-profiles-${UID}`, JSON.stringify([{ id: "p2", name: "ActivityTracker", createdAt: "" }]));
+    local.set(`cs-active-profile-${UID}`, "p2");
+    local.set(`content-studio-carousel-brand-${UID}~p2`, JSON.stringify({ name: "ActivityTracker", handle: "@activitytracker", role: "" }));
+    for (const platform of ["linkedin", "facebook"]) {
+      const { loaded } = await frames(platform);
+      expect(loaded).toContain(">ActivityTracker</p>");
+      expect(loaded).not.toContain("Financial Consultant");
+      expect(loaded).not.toContain('<p class="truncate text-xs text-muted-foreground">');
+    }
+  });
+});
