@@ -2,7 +2,7 @@
 // main first. The wizard page draws the step's header, Back and Confirm.
 
 import { Link } from "react-router-dom";
-import type { Audience } from "@/lib/audiences";
+import { whoRepeatsName, type Audience } from "@/lib/audiences";
 import { links } from "@/lib/links";
 
 export const ROW = "flex min-h-11 w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors";
@@ -30,7 +30,7 @@ export default function WhoStep({ audiences, picked, onPick }: { audiences: Audi
             <span aria-hidden className={dot(picked === a.id)} />
             <span className="min-w-0">
               <span className="block break-words font-medium">{a.name}</span>
-              {a.who && <span className="mt-0.5 line-clamp-2 block break-words text-xs text-muted-foreground">{a.who}</span>}
+              {a.who && !whoRepeatsName(a) && <span className="mt-0.5 line-clamp-2 block break-words text-xs text-muted-foreground">{a.who}</span>}
             </span>
           </button>
         ))}
