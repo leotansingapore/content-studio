@@ -348,3 +348,10 @@ describe("results", () => {
     expect(BUILT_IN_SKILLS.map((s) => [s.id, s.slash, s.needs])).toEqual([["check", "check", "post"], ["retro", "retro", "none"], ["check-week", "check-week", "none"], ["answer", "answer", "none"]]);
   });
 });
+
+describe("Claude's copy of the ready-made skills", () => {
+  it("lists the same skills by name and slash, in the same order, as the app", async () => {
+    const { BUILT_IN_SKILLS: claude } = await import("../../supabase/functions/content-studio-mcp/logic.ts");
+    expect(claude.map((s) => [s.name, s.slash.replace(/^\//, "")])).toEqual(BUILT_IN_SKILLS.map((s) => [s.name, s.slash]));
+  });
+});

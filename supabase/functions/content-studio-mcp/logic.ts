@@ -346,7 +346,7 @@ function competitorAds(state: unknown, limit: number) {
 }
 
 /** chatSkills' four built-ins (agent-skills); they run in the agent chat, so Claude gets their names only. */
-const BUILT_IN_SKILLS = [
+export const BUILT_IN_SKILLS = [
   { name: "Check before posting", slash: "/check", description: "Checks one post's wording, stated facts, how human it sounds and its predicted score." },
   { name: "Weekly retro", slash: "/retro", description: "The last 7 days against the 7 before, and the one move to make this week." },
   { name: "Check this week's posts", slash: "/check-week", description: "Checks the wording of every post scheduled in the next 7 days." },
