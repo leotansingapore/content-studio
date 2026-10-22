@@ -115,7 +115,7 @@ export interface DraftRemix {
   about?: string;
   /** good | weak | poor | unknown */
   fit?: string;
-  flags?: { copied: string[]; claim: boolean; invented: boolean };
+  flags?: { copied: string[]; claim: boolean; invented: boolean; mas?: boolean | null };
 }
 
 export interface ZernioLink {

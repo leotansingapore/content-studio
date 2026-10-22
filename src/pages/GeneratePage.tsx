@@ -564,10 +564,11 @@ function RemixFlags({
       .map((l) => ({ id: `remix-copied:${l}`, title: "Shares words with the original", match: l })),
     ...(flags.claim ? [{ id: "remix-claim", title: "Uses a figure or claim from the original. Check it or take it out.", match: "" }] : []),
     ...(flags.invented ? [{ id: "remix-invented", title: "Says something about you that isn't in your profile. Check it.", match: "" }] : []),
+    ...(flags.mas ? [{ id: "remix-mas", title: "These words may promise a result or point to a product. Check them before you post.", match: "" }] : []),
   ].filter((f) => !dismissed.has(f.id));
   if (!items.length) return null;
   // so each warning shows once on a large screen: the strip's copy, beside the draft, is the one counted live
-  const wide = (id: string) => (besideStrip && id !== "remix-invented" ? "lg:hidden " : "");
+  const wide = (id: string) => (besideStrip && id !== "remix-invented" && id !== "remix-mas" ? "lg:hidden " : "");
   return (
     <div className={`${items.every((f) => wide(f.id)) ? "lg:hidden " : ""}mb-3 flex flex-wrap gap-2`}>
       {items.map((f) => (
