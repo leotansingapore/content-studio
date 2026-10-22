@@ -185,6 +185,46 @@ describe("upsertDraft and the remix source", () => {
   });
 });
 
+// phase 6's remix-topic pin, taken before drafts gained `agent`: drafts stored today load and edit byte for byte
+describe("drafts saved before the agent field", () => {
+  const source = { key: "top:grace-koh-instagram-C931K2DSgnl", kind: "top-post" as const, author: "@gracedotc0m", remixedAt: "2026-10-08T02:00:00.000Z" };
+  const remix = { keep: "structure", as: "post", close: "balanced", flags: { copied: [], claim: false, invented: false } };
+  const OLD = JSON.stringify([
+    post({ id: "remixed", source, remix, labels: ["format:text"], metrics: { impressions: 900 } }),
+    post({ id: "scheduled", status: "scheduled", scheduledFor: "2026-10-09T19:30", repeat: { every: "week", start: "2026-10-09" } }),
+  ]);
+
+  it("load exactly as stored", () => {
+    (globalThis as unknown as { window: { localStorage: Storage } }).window.localStorage.setItem(`content-studio-drafts-${UID}`, OLD);
+    expect(JSON.stringify(loadDrafts(UID))).toBe(OLD);
+  });
+
+  it("keep what an edit leaves out, in the same order, and gain nothing", () => {
+    (globalThis as unknown as { window: { localStorage: Storage } }).window.localStorage.setItem(`content-studio-drafts-${UID}`, OLD);
+    upsertDraft(UID, post({ id: "remixed", draft: "Edited in Write" }));
+    expect(JSON.stringify(loadDrafts(UID))).toBe(
+      JSON.stringify([{ ...post({ id: "remixed", draft: "Edited in Write" }), metrics: { impressions: 900 }, labels: ["format:text"], source, remix }, JSON.parse(OLD)[1]]),
+    );
+  });
+});
+
+describe("the agent that made a draft", () => {
+  const agent = { thread: "t1a2b", msg: "m3c4d" };
+
+  it("survives a save, a reload and an edit that leaves it out", () => {
+    upsertDraft(UID, post({ agent }));
+    expect(JSON.parse(JSON.stringify(loadDrafts(UID)))[0].agent).toEqual(agent);
+    upsertDraft(UID, post({ draft: "Edited in Write" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", agent });
+  });
+
+  it("is never added to a draft without one", () => {
+    upsertDraft(UID, post({}));
+    upsertDraft(UID, post({ draft: "Edited" }));
+    expect(Object.keys(JSON.parse(JSON.stringify(loadDrafts(UID)))[0])).not.toContain("agent");
+  });
+});
+
 describe("upsertDraft and the hook formula", () => {
   it("keeps the formula while the hook is the same, and drops it with a new hook", () => {
     saveDrafts(UID, [post({ hook: "I reviewed 40 families.", hookFormula: "number-reveal" })]);

@@ -33,8 +33,8 @@ const NO_NAME: Record<Speaker, string> = { business: "the business", person: "th
 export const KEEPS: readonly Keep[] = ["structure", "hook", "energy", "topic", "part2", "react"];
 export const CLOSES: readonly Close[] = ["loose", "balanced", "close"];
 export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall", "notes", "hooks", "image", "meme"] as const satisfies readonly RemixAs[];
-/** The formats a make can write from a typed topic, with no original. */
-export const TOPIC_AS: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
+/** The formats a make can write from a typed topic, with no original (post, carousel and script for the agent, phase 6). */
+export const TOPIC_AS: readonly RemixAs[] = ["post", "carousel", "script", "slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
 export const MAX_TOPIC = 200;
 /** The two formats that go on to a paid AI video after the script. */
 export const VIDEO_AS = ["speaking", "explainer"] as const satisfies readonly RemixAs[];
@@ -776,7 +776,7 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
   return { system, user: user.replace(/\n{3,}/g, "\n\n") };
 }
 
-/** A make with no original (a slideshow from a typed topic): no keep, close or copy rules, the rest as above. */
+/** A make with no original (any TOPIC_AS format from a typed topic): no keep, close or copy rules, the rest as above. */
 function buildTopicPrompt(req: MakeRequest): { system: string; user: string } {
   const sp = req.brand.speaker;
   const system = [

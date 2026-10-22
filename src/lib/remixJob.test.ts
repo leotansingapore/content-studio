@@ -246,6 +246,148 @@ describe("startRemix", () => {
   });
 });
 
+// phase 6's remix-topic pin, taken before a run could start from a topic: a source run's bodies and drafts, byte for byte
+describe("a source run, as it was before topic runs", () => {
+  it("sends the same make bodies and saves the same drafts for a post, a carousel and a script", async () => {
+    const beat = (say: string) => ({ say, onScreen: "On screen", visual: "Me to camera", seconds: 5, delivery: "Pause" });
+    const results: Record<string, MakeResult> = {
+      post: { as: "post", hook: "Three checks before you sign", body: "First, read it slowly.", cta: "DM me CHECK", hashtags: ["money"] },
+      carousel: { as: "carousel", hook: "Four CPF checks", slides: Array.from({ length: 4 }, (_, i) => ({ title: `Check ${i + 1}`, body: `Why check ${i + 1} matters.` })), cta: "Save this for your next review" },
+      script: { as: "script", hook: "Stop checking CPF once a year", beats: [beat("Stop checking CPF once a year"), beat("Here's why it moves."), beat("Check it monthly"), beat("Comment CPF for my list")], caption: "Your CPF moves. Comment CPF.", cta: "Comment CPF" },
+    };
+    make.mockImplementation(async (b: { as: string }) => answer(results[b.as], { copied: [], claim: b.as === "post", invented: false }));
+    local.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#000", name: "Leo", handle: "" }));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-22T04:00:00.000Z"));
+    try {
+      const done = finished();
+      startRemix(UID, run(["post", "carousel", "script"], { note: "use my offer", fit: { verdict: "good", reasons: [] } }));
+      await done;
+    } finally {
+      vi.useRealTimers();
+    }
+    // written in the order the job builds them, so the JSON compares byte for byte
+    const at = "2026-10-22T04:00:00.000Z";
+    const brand = (rules = "") => ({ name: "Leo", oneLiner: "", audience: "", topics: [], facts: "", mention: true, offer: null, rules, speaker: "person" });
+    const sent = (as: string, rules?: string) => ({
+      mode: "make",
+      as,
+      source: { key: "ad:123", kind: "ad", format: "image", author: "Singlife", text: "Save $12,000 a year with us." },
+      keep: "structure",
+      close: "balanced",
+      note: "use my offer",
+      voice: null,
+      brand: brand(rules),
+      teardown: { hookPattern: "Save [amount] a [period] with [brand].", beats: TEARDOWN.beats, dontReuse: ["$12,000", "Singlife"] },
+      fit: { verdict: "good", reasons: [] },
+    });
+    expect(JSON.stringify(make.mock.calls.map(([b]) => b))).toBe(
+      JSON.stringify([sent("post"), sent("carousel"), sent("script", "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use 5 hashtags at most.")]),
+    );
+    const base = (as: string, platform: string, claim = false) => ({
+      id: "ID",
+      createdAt: at,
+      pillar: "topic",
+      audience: "general",
+      platform,
+      source: { ...source, remixedAt: at },
+      remix: { keep: "structure", as, close: "balanced", fit: "good", flags: { copied: [], claim, invented: false } },
+    });
+    const script = results.script as Extract<MakeResult, { as: "script" }>;
+    const spoken = script.beats.map((b) => b.say).join("\n");
+    expect(JSON.stringify(loadDrafts(UID).map((d) => ({ ...d, id: "ID" })))).toBe(
+      JSON.stringify([
+        {
+          ...base("script", "instagram"),
+          hook: script.hook,
+          draft: `${spoken}\n\n---\n\nCAPTION:\n${script.caption}`,
+          pillarDetail: script.hook,
+          format: "short-video",
+          ctaType: "comment-keyword",
+          storyboard: { beats: script.beats, script: spoken, madeAt: at },
+        },
+        {
+          ...base("carousel", "linkedin"),
+          hook: "Four CPF checks",
+          draft: "Slide 1: Four CPF checks\n\nSlide 2: Check 1\nWhy check 1 matters.\n\nSlide 3: Check 2\nWhy check 2 matters.\n\nSlide 4: Check 3\nWhy check 3 matters.\n\nSlide 5: Check 4\nWhy check 4 matters.\n\nSlide 6: Save this for your next review",
+          pillarDetail: "Four CPF checks",
+          format: "carousel",
+          ctaType: "save-share",
+        },
+        {
+          ...base("post", "linkedin", true),
+          hook: "Three checks before you sign",
+          draft: "Three checks before you sign\n\nFirst, read it slowly.\n\nDM me CHECK\n\n#money",
+          pillarDetail: "Three checks before you sign",
+          format: "text-post",
+          ctaType: "dm-keyword",
+        },
+      ]),
+    );
+  });
+});
+
+describe("a run from a typed topic (the agent's)", () => {
+  const agent = { thread: "t1a2b", msg: "m3c4d" };
+  const beat = (say: string) => ({ say, onScreen: "", visual: "Me to camera", seconds: 5, delivery: "Pause" });
+  const results: Record<string, MakeResult> = {
+    post: { as: "post", hook: "Why I log every call", body: "It shows me the week.", cta: "Comment LOG.", hashtags: [] },
+    carousel: { as: "carousel", hook: "Log every call", slides: Array.from({ length: 4 }, (_, i) => ({ title: `Reason ${i + 1}`, body: "It adds up." })), cta: "Save this for Monday" },
+    script: { as: "script", hook: "I log every call", beats: [beat("I log every call"), beat("Here's why."), beat("It shows the gaps."), beat("Comment LOG for mine.")], caption: "Log it. Comment LOG.", cta: "Comment LOG" },
+  };
+  const topicRun = (extra: Partial<RemixRun> = {}): RemixRun => ({ source: null, topic: "  Why I log every client call ", keep: "structure", close: "balanced", as: ["post", "carousel", "script"], mention: true, offer: null, agent, ...extra });
+
+  it("sends the topic with no source and no breakdown, and saves one draft per format with no source and the agent's chat", async () => {
+    make.mockImplementation(async (b: { as: string }) => answer(results[b.as]));
+    const done = finished();
+    startRemix(UID, topicRun());
+    // nothing to read: the walk starts on the writing, and there is no sheet to reopen
+    expect(remixJob()).toMatchObject({ key: "", step: writingStep("post"), run: { as: undefined } });
+    expect(runParams(remixJob()!.key, remixJob()!.run)).toMatchObject({ remix: "", as: null });
+    const j = await done;
+
+    expect(tear.local).not.toHaveBeenCalled();
+    expect(tear.ensure).not.toHaveBeenCalled();
+    expect(make.mock.calls.map(([b]) => b.as)).toEqual(["post", "carousel", "script"]);
+    for (const [b] of make.mock.calls) {
+      expect(b).toMatchObject({ mode: "make", topic: "Why I log every client call" });
+      expect("source" in b).toBe(false);
+      expect("agent" in b).toBe(false);
+    }
+    const drafts = loadDrafts(UID);
+    expect(drafts.map((d) => d.format)).toEqual(["short-video", "carousel", "text-post"]);
+    for (const d of drafts) {
+      expect("source" in d).toBe(false);
+      expect(d.agent).toEqual(agent);
+      expect(d.remix).toMatchObject({ keep: "structure", close: "balanced" });
+    }
+    expect(j.state).toBe("done");
+    expect(j.rows.map((r) => r.href)).toEqual([`/generate?draft=${drafts[2].id}`, `/carousel?draft=${drafts[1].id}`, `/generate?draft=${drafts[0].id}`]);
+  });
+
+  it("stamps the agent's chat on a source run's draft too, and leaves the source run's body as it was", async () => {
+    make.mockResolvedValue(answer(results.post));
+    const done = finished();
+    startRemix(UID, run(["post"], { agent: { ...agent, extra: "dropped" } as RemixRun["agent"] }));
+    await done;
+    const d = loadDrafts(UID)[0];
+    expect(d.source).toMatchObject({ key: "ad:123" });
+    expect(d.agent).toEqual(agent);
+    expect("agent" in make.mock.calls[0][0]).toBe(false);
+    expect(make.mock.calls[0][0].source).toMatchObject({ key: "ad:123" });
+  });
+
+  it("passes the server's no-topic refusal on, with nothing used", async () => {
+    make.mockRejectedValue(new EdgeError("Type a topic or pick a post to remix.", 400, "bad_request"));
+    const done = finished();
+    startRemix(UID, topicRun({ topic: " ", as: ["post"] }));
+    const j = await done;
+    expect(make.mock.calls[0][0].topic).toBe("");
+    expect(j.rows[0]).toMatchObject({ state: "failed", error: "Type a topic or pick a post to remix.", refunded: true });
+    expect(loadDrafts(UID)).toHaveLength(0);
+  });
+});
+
 describe("the breakdown before the first row", () => {
   it("breaks the source down once when this device has none, and sends it to every make", async () => {
     vi.useFakeTimers();

@@ -1,7 +1,8 @@
 // A remix run outside React (docs/north-star/items/remix-everywhere.md), the same shape as runCheck in
 // following.ts: one module-level job, so leaving the page keeps it going and the pill can say when it is ready.
 // Each format is one make call and, when it comes back, exactly one saved draft carrying its source and how it
-// was made. In memory only: a reload mid-run loses the run, and the server has refunded any call the model never answered.
+// was made; the agent's runs may start from a typed topic instead (no source, no breakdown) and stamp the draft with the chat.
+// In memory only: a reload mid-run loses the run, and the server has refunded any call the model never answered.
 // Before the first row, a source with no breakdown on this device is broken down once (remix-teardown) and the
 // breakdown goes into every make. The two video formats (remix-any-format) save their script draft first, then
 // hand it to the AI video job (aiVideo.ts), whose steps the row relays; the editor takes the finished video.
@@ -55,7 +56,10 @@ import { speak, type VoiceId } from "@/lib/textVoice";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 
 export interface RemixRun {
-  source: RemixSource;
+  /** The post, ad or trend to remix; null for a make from `topic` (the agent's post, carousel or script). */
+  source: RemixSource | null;
+  /** At most 200 (MAX_TOPIC); read only when there is no source. */
+  topic?: string;
   keep: Keep;
   about?: string;
   close: Close;
@@ -69,6 +73,8 @@ export interface RemixRun {
   /** The video formats' voice (For row, Video voice); alice when missing. */
   voice?: VoiceId;
   fit?: { verdict: string; reasons: FitReason[] };
+  /** The agent's chat and message that asked for it, kept on every draft it saves. */
+  agent?: { thread: string; msg: string };
 }
 
 export interface RemixRow {
@@ -93,6 +99,7 @@ export interface RemixRow {
 
 export interface RemixJobState {
   id: number;
+  /** The source's key; "" for a topic run, which has no sheet to reopen, so the pill's and the library's links carry no remix=. */
   key: string;
   state: "working" | "done" | "failed";
   step: string;
@@ -153,9 +160,10 @@ export function startRemix(userId: string, run: RemixRun): void {
   const id = ++seq;
   // a video takes minutes, so the text formats come back first
   const ordered = { ...run, as: [...run.as.filter((a) => !isVideo(a)), ...run.as.filter(isVideo)] };
-  const { keep, about, close, mention, offer } = run;
-  const as = run.as.length === 1 && run.as[0] === defaultOutput(run.source) ? undefined : run.as.join(",");
-  emit({ id, key: run.source.key, state: "working", step: READING, rows: ordered.as.map((a) => ({ as: a, state: "waiting" })), run: { keep, about, close, mention, offer, as } });
+  const { source: s, keep, about, close, mention, offer } = run;
+  const as = !s || (run.as.length === 1 && run.as[0] === defaultOutput(s)) ? undefined : run.as.join(",");
+  const step = s ? READING : writingStep(ordered.as[0]);
+  emit({ id, key: s?.key ?? "", state: "working", step, rows: ordered.as.map((a) => ({ as: a, state: "waiting" })), run: { keep, about, close, mention, offer, as } });
   void runRows(id, userId, ordered);
 }
 
@@ -166,15 +174,17 @@ function patch(id: number, i: number, row: Partial<RemixRow>) {
 }
 
 async function runRows(id: number, userId: string, run: RemixRun) {
-  const text = fullText(run.source, userId);
+  const s = run.source;
+  const text = s ? fullText(s, userId) : "";
   // the breakdown first, once per source; a failure or the cap just means the make goes on without it
-  let teardown = localTeardown(userId, run.source);
+  let teardown = s ? localTeardown(userId, s) : null;
+  // Reading the post is held on the first row only when nothing came before it: no breakdown, and a post to read
   const broke = !teardown;
-  if (!teardown) {
+  if (s && !teardown) {
     const breaking = setTimeout(() => {
       if (job?.id === id) emit({ ...job, step: BREAKING });
     }, READ_MS);
-    teardown = await ensureTeardown(userId, run.source, text).catch(() => null);
+    teardown = await ensureTeardown(userId, s, text).catch(() => null);
     clearTimeout(breaking);
   }
   // one after another; a failed row never stops the others
@@ -182,9 +192,9 @@ async function runRows(id: number, userId: string, run: RemixRun) {
   if (job?.id !== id) return;
   const done = job.rows.some((r) => r.state === "done");
   // a format that failed is tried again with the same note, so it stays until every format is done
-  if (job.rows.every((r) => r.state === "done")) {
+  if (s && job.rows.every((r) => r.state === "done")) {
     try {
-      globalThis.window?.localStorage?.removeItem(noteKey(run.source.key));
+      globalThis.window?.localStorage?.removeItem(noteKey(s.key));
     } catch {
       // the note just stays for next time
     }
@@ -208,12 +218,13 @@ export function failure(e: unknown): Pick<RemixRow, "error" | "refunded"> {
 async function makeRow(id: number, i: number, userId: string, run: RemixRun, text: string, teardown: Teardown | null, holdRead: boolean) {
   const as = run.as[i];
   patch(id, i, { state: "working", step: holdRead ? READING : writingStep(as) });
-  const platform = platformFor(run.source, as, loadPositioning(userId) ?? EMPTY_POSITIONING);
   const s = run.source;
+  // platformFor reads only the source's platform, and a topic has none
+  const platform = platformFor(s ?? ({} as RemixSource), as, loadPositioning(userId) ?? EMPTY_POSITIONING);
   const body: MakeRequest = {
     mode: "make",
     as,
-    source: { key: s.key, kind: s.kind, format: s.format, platform: s.platform, title: s.title, author: s.author, url: s.url, text },
+    ...(s ? { source: { key: s.key, kind: s.kind, format: s.format, platform: s.platform, title: s.title, author: s.author, url: s.url, text } } : { topic: run.topic?.trim() }),
     keep: run.keep,
     about: run.keep === "topic" ? run.about : undefined,
     close: run.close,
@@ -291,7 +302,7 @@ const firstSentence = (t: string) => t.trim().match(/^[\s\S]*?[.!?](?=\s|$)/)?.[
 
 export const hrefFor = (d: Pick<DraftEntry, "id" | "format">) => (d.format === "carousel" ? links.carousel({ draft: d.id }) : links.generate({ draft: d.id }));
 
-/** One remix result as a draft: the kit's emoji and hashtag rules and no dashes, with its source and how it was made. */
+/** One remix result as a draft: the kit's emoji and hashtag rules and no dashes, with its source (none from a topic), how it was made and the agent's chat. */
 export function toDraft(userId: string, run: RemixRun, r: MakeResult, flags: Flags, platform: string, now: Date): DraftEntry {
   const kit = loadBrand(userId);
   const clean = (t: string) => stripDashes(applyBrandRules(t.trim(), kit, platform)).trim();
@@ -301,8 +312,9 @@ export function toDraft(userId: string, run: RemixRun, r: MakeResult, flags: Fla
     pillar: "topic",
     audience: "general",
     platform,
-    source: { ...run.source, remixedAt: now.toISOString() },
+    ...(run.source ? { source: { ...run.source, remixedAt: now.toISOString() } } : {}),
     remix: { keep: run.keep, as: r.as, close: run.close, ...(run.keep === "topic" && run.about ? { about: run.about } : {}), ...(run.fit ? { fit: run.fit.verdict } : {}), flags },
+    ...(run.agent ? { agent: { thread: run.agent.thread, msg: run.agent.msg } } : {}),
   };
   if (r.as === "carousel") {
     const hook = clean(r.hook);
