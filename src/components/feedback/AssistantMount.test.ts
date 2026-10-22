@@ -62,3 +62,12 @@ describe("AssistantMount for everyone else", () => {
     await expect(out).toMatchFileSnapshot("./__pins__/assistant-mount-everyone.html");
   });
 });
+
+describe("AssistantMount for Leo", () => {
+  it("renders the agent dock instead of today's", () => {
+    seen.user = { id: "40f07a18-0000-4000-8000-000000000001", email: "tanjunsing@gmail.com" };
+    // the agent dock loads lazily: its first frame is the Suspense fallback, never today's dock
+    expect(html()).toBe("");
+    expect(seen.props).toBeNull();
+  });
+});

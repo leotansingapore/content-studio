@@ -12,6 +12,7 @@ vi.mock("@/lib/draftHistory", async (actual) => ({ ...(await actual<typeof impor
 
 import { approveLabel, blockedReason } from "./ActionCard";
 import { metaLine, runLabel } from "./AgentThread";
+import { ownComposer } from "./AgentDock";
 import { MAS_LINE, madeNoun, madeWarnings, tookWords } from "./MadeBlock";
 import { slashItems } from "./SlashMenu";
 import { lastLine, whenGroup } from "./ThreadList";
@@ -152,5 +153,12 @@ describe("MADE block", () => {
     expect(madeNoun({ kind: "talk", state: "done", startedAt: "" })).toBe("talking video");
     expect(tookWords({ startedAt: "2026-10-22T10:00:00Z", endedAt: "2026-10-22T10:00:14Z" })).toBe("14s");
     expect(tookWords({ startedAt: "2026-10-22T10:00:00Z", endedAt: "2026-10-22T10:03:43Z" })).toBe("3m 43s");
+  });
+});
+
+describe("agent dock", () => {
+  it("hides its launcher on the pages with their own composer", () => {
+    expect(["/home", "/agent", "/agent/t1"].map(ownComposer)).toEqual([true, true, true]);
+    expect(["/drafts", "/agents", "/homepage"].map(ownComposer)).toEqual([false, false, false]);
   });
 });
