@@ -937,6 +937,32 @@ describe("today's formats write exactly today's prompts (phase 3 adds shapes, ne
     expect(out).toHaveLength(109);
     expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("ff9c83240017ac211de59299c9828885a3ec31be5eb645f6a5a84f8e277f36c5");
   });
+
+  // phase 6's remix-topic pin, taken before post, carousel and script could start from a topic: one hash per request, so a change names it
+  it("builds the same prompt and schema for a topic slideshow and a source post, carousel and script, for a person and a business", () => {
+    const BIZ = { ...body().brand, name: "ActivityTracker", oneLiner: "Tracks daily sales activity", facts: "- Logs calls", speaker: "business", offer: null };
+    const reqs: Record<string, Record<string, unknown>> = {};
+    for (const [who, brand] of [["person", body().brand], ["business", BIZ]] as const) {
+      reqs[`topic slideshow, ${who}`] = { as: "slideshow", brand, source: undefined, topic: "5 things to check before you buy a hospital plan" };
+      for (const as of ["post", "carousel", "script"]) reqs[`source ${as}, ${who}`] = { as, brand };
+    }
+    const hashes = Object.fromEntries(
+      Object.entries(reqs).map(([what, r]) => {
+        const m = make(r);
+        return [what, createHash("sha256").update(JSON.stringify([buildMakePrompt(m), responseFormat(m)])).digest("hex")];
+      }),
+    );
+    expect(hashes).toEqual({
+      "topic slideshow, person": "94711017b78008fdc01f0a4103c131c058f9fe1d16eeed79e37121a4670f3e81",
+      "source post, person": "a79b8a9ecfcf9af70666ce3d256da3a9da537b2dc0228155b5556b004f3818ed",
+      "source carousel, person": "efd931c47c092437f97dcc99e6754922938cc0eb3bf6f7299847b14b21677205",
+      "source script, person": "e05a8a29d4b5e6a335199df3fe1aae6d263a928e2051f05ce5f4a128fda8ff9f",
+      "topic slideshow, business": "b7445923b8e184b316f0be5c701f9a940cbf165396c7004002a4103a26f8730b",
+      "source post, business": "02af15142699f76053df1a5f381618d634d6f728710f9b35604b471441bc6c9f",
+      "source carousel, business": "848fafdef9a3a201dca6b7f0d68793cd5ad44ca2484b58713e415aaabdfed981",
+      "source script, business": "c35a986a76705cc0d707399b165d8901e31ff79b7c1e117c71b501de0048464a",
+    });
+  });
 });
 
 // ---- phase 3's shapes (docs/north-star/items/formats-*.md) ----------------------------------------------
