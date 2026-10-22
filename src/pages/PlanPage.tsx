@@ -248,7 +248,9 @@ export default function PlanPage() {
   const handleGenerate = () => {
     if (!userId) return;
     const topics = parseTopics(topicsRaw);
-    const merged: Positioning = { ...positioning, topics };
+    // The goal is set on Home: keep the stored one, never this page's older copy.
+    const stored = loadPositioning(userId);
+    const merged: Positioning = { ...positioning, topics, goal: stored?.goal, goalKind: stored?.goalKind, goalSetAt: stored?.goalSetAt };
     if (!isPositioningUsable(merged)) {
       toast({
         title: "Add a bit more positioning",
