@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_BAD, HOOK_CLIP_LENGTH, SIDEWAYS, SPOKEN_TOO_LONG, clock, demoIssue, hookClipIssue, hookIssue, joinPlan } from "./hookDemo";
+import { priceOf, sumPrices } from "./prices";
+import {
+  CARD_TOO_LONG, DEMO_BAD, HOOK_CLIP_LENGTH, HOOK_PLAYS, SIDEWAYS, SPOKEN_TOO_LONG, cardFrameAt, clock, demoIssue, hookClipIssue, hookIssue, joinPlan, paidPlay, pressSpend,
+} from "./hookDemo";
 
 const MB = 1024 * 1024;
 const file = (type: string, size = 20 * MB, name = "screen-recording.mp4") => ({ type, size, name });
@@ -49,6 +52,34 @@ describe("the hook", () => {
     expect(hookIssue("I logged every call for 30 days and here is what changed", "spoken")).toBe(SPOKEN_TOO_LONG);
     expect(hookIssue("I logged every call for 30 days and here is what changed", "stock")).toBeNull();
     expect(SPOKEN_TOO_LONG).toBe("Keep it to 8 words, so it fits in 4 seconds.");
+  });
+});
+
+describe("the crumpled notification", () => {
+  it("sits between your own clip and an AI person, in the faces rule's order, and is paid like a spoken hook", () => {
+    expect(HOOK_PLAYS).toEqual(["stock", "mine", "crumple", "spoken"]);
+    expect(HOOK_PLAYS.filter(paidPlay)).toEqual(["crumple", "spoken"]);
+  });
+
+  it("keeps the card to 45 characters, any number of words", () => {
+    expect(hookIssue("You have 37 leads you never followed up on", "crumple")).toBeNull();
+    expect(hookIssue("I logged every call for 30 days and here is what changed", "crumple")).toBe(CARD_TOO_LONG);
+    expect(hookIssue(`${"a".repeat(45)}   `, "crumple")).toBeNull();
+    expect(CARD_TOO_LONG).toBe("Keep it to 45 characters, so it reads before the crumple.");
+  });
+
+  it("prices a 4 s clip at 720p, so the card's words stay sharp, plus the remix write when it writes the hooks", () => {
+    const clip = priceOf("ai-clip", { seconds: 4, quality: "720p" });
+    expect(pressSpend("crumple", false)).toEqual({ cap: "ai-clip", price: clip });
+    expect(pressSpend("crumple", true)).toEqual({ cap: "ai-clip", price: sumPrices(priceOf("remix-make"), clip), caps: ["remix-make"] });
+    expect(pressSpend("crumple", false).price).not.toEqual(pressSpend("spoken", false).price);
+  });
+
+  it("joins the 4 s clip, then the demo, and takes its frame a moment into the demo's window (a first frame can be blank)", () => {
+    expect(joinPlan("crumple", 4.04, 20).takes).toEqual([{ take: "hook", start: 0, end: 4 }, { take: "demo", start: 0, end: 20 }]);
+    expect(cardFrameAt(0, 20)).toBe(0.3);
+    expect(cardFrameAt(20, 30)).toBe(20.3);
+    expect(cardFrameAt(0, 0.4)).toBe(0.2);
   });
 });
 

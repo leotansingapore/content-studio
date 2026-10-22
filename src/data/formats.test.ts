@@ -86,7 +86,8 @@ describe("the format registry", () => {
 
   it("takes needs from the fixed list, and a template that needs a photo says so", () => {
     for (const f of FORMATS) if (f.needs) expect(Object.keys(NEED_LINES), f.slug).toContain(f.needs);
-    for (const t of TEMPLATES) expect(FORMATS.find((f) => f.slug === `template-${t.id}`)?.needs, t.id).toBe(t.needsPhoto ? "photo" : undefined);
+    // a hidden template has no card (a format page makes it, as crumple-hook from /make/hook-demo)
+    for (const t of TEMPLATES) expect(FORMATS.find((f) => f.slug === `template-${t.id}`)?.needs, t.id).toBe(t.needsPhoto && !t.hidden ? "photo" : undefined);
     expect(NEED_LINES["demo-video"]).toBe("Needs a demo video");
   });
 

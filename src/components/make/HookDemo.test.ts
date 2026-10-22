@@ -45,12 +45,15 @@ beforeAll(async () => {
 /** The footer chip's words: the last aria-live span on the page. */
 const chip = (html: string) => [...html.matchAll(/aria-live="polite"><span[^>]*>([^<]*)<\/span>/g)].at(-1)?.[1];
 const clip = priceText(priceOf("ai-clip", { seconds: 4, quality: "480p" }) as Price);
+// the crumpled notification's clip: 4 s at 720p, so the card's words stay sharp
+const crumple = priceText(priceOf("ai-clip", { seconds: 4, quality: "720p" }) as Price);
 
 describe("Hook plus demo's footer chip", () => {
   it("prices the remix write while no hook is written, picked or typed", () => {
     expect(chip(page())).toBe("About US$0.02");
     expect(chip(page("mine"))).toBe("About US$0.02");
     expect(chip(page("spoken"))).toBe(priceText(sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 4, quality: "480p" })) as Price));
+    expect(chip(page("crumple"))).toBe(priceText(sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 4, quality: "720p" })) as Price));
   });
 
   it("says No AI cost once the hooks are written, for a stock clip or your own, and only the AI clip for a spoken one", async () => {
@@ -62,6 +65,8 @@ describe("Hook plus demo's footer chip", () => {
     expect(chip(page())).toBe("No AI cost");
     expect(chip(page("mine"))).toBe("No AI cost");
     expect(chip(page("spoken"))).toBe(clip);
+    expect(chip(page("crumple"))).toBe(crumple);
     expect(clip).not.toBe("About US$0.02");
+    expect(crumple).toBe("About US$1.85");
   });
 });

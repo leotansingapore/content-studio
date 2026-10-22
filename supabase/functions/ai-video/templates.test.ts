@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { clipCredits, creditsUsd, parseVideoRequest, seedanceRequest } from "./logic";
-import { TEMPLATES, clipPrompt, editorTemplates, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
+import { TEMPLATES, clipPrompt, editorTemplates, fixedPrompt, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
 
 const JPEG = "/9j/4AAQSkZJRgABAQAAAQABAAD";
 const ok = (body: Record<string, unknown>) => parseVideoRequest({ mode: "template", seconds: 4, quality: "480p", ...body });
@@ -15,7 +15,7 @@ describe("the template gallery", () => {
   it("shows everyone the eight looks the brief picked, and Leo the three skits too, never a hidden one", () => {
     expect(editorTemplates(false).map((t) => t.id)).toEqual(TODAY);
     expect(editorTemplates(true).map((t) => t.id)).toEqual([...TODAY, "street-interview", "three-levels", "two-host-podcast"]);
-    expect(TEMPLATES.filter((t) => t.hidden).map((t) => t.id)).toEqual(["scene-kitchen", "scene-walk", "scene-interview", "spoken-hook"]);
+    expect(TEMPLATES.filter((t) => t.hidden).map((t) => t.id)).toEqual(["scene-kitchen", "scene-walk", "scene-interview", "spoken-hook", "crumple-hook"]);
     for (const t of editorTemplates(true)) expect(t.fields.some((f) => f.required), t.id).toBe(true);
   });
 
@@ -57,6 +57,23 @@ describe("phase 3's templates", () => {
     expect(ok({ template: "spoken-hook", fields: { line: "one two three four five six seven eight nine" } })).toEqual({ ok: false, error: 'Keep "What they say" to 8 words.' });
     expect(ok({ template: "spoken-hook", fields: { line: "Stop guessing why your pipeline is empty" } })).toMatchObject({ ok: true });
     expect(templateSystem(t, 4, null)).toContain("Spoken lines: few, each under 8 words");
+  });
+
+  it("makes a hidden crumpled-notification hook from the adviser's own frame, its tested prompt sent as written", () => {
+    const t = templateById("crumple-hook")!;
+    expect([t.hidden, t.fixed, t.leoOnly, t.photos, t.needsPhoto, t.fields]).toEqual([true, true, undefined, ["person"], "person", []]);
+    // no frame, no clip: refused before anything is paid
+    expect(ok({ template: "crumple-hook", quality: "720p", fields: {} })).toEqual({ ok: false, error: "Add a photo first." });
+    expect(ok({ template: "crumple-hook", quality: "720p", fields: {}, photos: [{ role: "person", jpeg: JPEG }] })).toMatchObject({ ok: true, request: { template: "crumple-hook", seconds: 4, quality: "720p", fields: {} } });
+    const p = fixedPrompt(t, "person");
+    expect(p.startsWith(`${t.structure[0]} ${t.structure[1]}`)).toBe(true);
+    expect(p.endsWith(referenceLock("person"))).toBe(true);
+    // the card's words are in the frame: the prompt never asks for text gone, only for none added, and never letters the card
+    expect(p).toContain("its words stay sharp and unchanged until the hand touches it");
+    expect(p).toContain("No new text, captions or logos appear.");
+    expect(p).not.toContain("No on-screen text");
+    expect(p).toMatch(/grab the card, crumple it[^.]*toss it/);
+    expect(fixedPrompt(t, null)).toBe(t.structure.join(" "));
   });
 
   it("makes the three one-take skits for Leo, with the question and answer blanks and the speakers' rule", () => {

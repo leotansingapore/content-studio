@@ -1,11 +1,13 @@
 // /make/hook-demo (docs/north-star/items/formats-hook-demo.md): a hook that stops the scroll, then the adviser's demo.
 // The demo is a file kept on this device (never in a link); the hooks are written from what it shows or from a post
 // (?source=, which MakeFormatPage resolves), Jev's pick marked; the hook plays as words on a stock clip, your own
-// clip, or an AI person saying it. The run is src/lib/hookDemoJob.ts (outside React, so leaving the page keeps it
-// going); the video opens in the editor (/edit), which this page pushes once it is being put together.
+// clip, you crumpling a notification card with the hook on it (AI moves a frame of your demo; the result area shows
+// that frame, card and all, before anything is paid), or an AI person saying it. The run is src/lib/hookDemoJob.ts
+// (outside React, so leaving the page keeps it going); the video opens in the editor (/edit), which this page pushes
+// once it is being put together.
 //
-// URL (docs/deep-links.md): play=mine|spoken (stock left out) and mention=no replace; topic=<words> fills what it
-// shows once, then leaves the address. Device hints: cs-make-hook-play (the last way picked) and cs-make-hook-demo
+// URL (docs/deep-links.md): play=mine|crumple|spoken (stock left out) and mention=no replace; topic=<words> fills
+// what it shows once, then leaves the address. Device hints: cs-make-hook-play (the last way picked) and cs-make-hook-demo
 // (the typed words); the demo's key and name ride in sessionStorage for this tab (hookDemoJob.ts). The brand's saved
 // demos (/brand#demo-videos) are listed first and the first is picked when this tab has none, so a saved demo makes
 // a video with no file picked again; it plays its window and is never cleared from this device here.
@@ -28,8 +30,10 @@ import { formatBySlug } from "@/data/formats";
 import { onAiJob } from "@/lib/aiVideo";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { demoVideos, type DemoVideo } from "@/lib/demoVideos";
+import { loadBrand } from "@/lib/carousel";
+import { cardFrame } from "@/lib/crumpleCard";
 import {
-  HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_TOO_LONG, clock, demoIssue, hookClipIssue, hookIssue, pressSpend, type HookPlay,
+  CARD_TOO_LONG, HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_TOO_LONG, cardFrameAt, clock, demoIssue, hookClipIssue, hookIssue, paidPlay, pressSpend, type HookPlay,
 } from "@/lib/hookDemo";
 import {
   hookDemoBusy, hookDemoJob, hookSet, hooksFailure, hooksFor, hooksWriting, keepOnlyDemo, loadDemo, makeHookDemo, newDemoKey, onHookDemo,
@@ -40,7 +44,7 @@ import { mediaLength } from "@/lib/longAudio";
 import type { RemixSource } from "@/lib/remixSource";
 import { cn } from "@/lib/utils";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { loadVideo, putFile, stills } from "@/lib/videoMedia";
+import { getFile, loadVideo, putFile, stills } from "@/lib/videoMedia";
 import { paidClipBlock } from "@/lib/wallJob";
 
 const TYPED_KEY = "cs-make-hook-demo";
@@ -49,7 +53,7 @@ const FIELD_LABEL = "text-xs font-semibold text-muted-foreground";
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const DEMO_LIMITS = "MP4 or MOV, up to 100 MB and 30 seconds. Stays on this device.";
 const UNREADABLE = "Couldn't read that video. Try an MP4 or MOV.";
-const HOOK_WAITING = "Your last spoken hook is paid for and waiting. Finish it at no cost first.";
+const HOOK_WAITING = "Your last hook clip is paid for and waiting. Finish it at no cost first.";
 
 /** A saved demo as this page plays it: its window's start and length. */
 const savedRef = (d: DemoVideo): DemoRef => ({ key: d.key, name: d.name, seconds: Math.round((d.end - d.start) * 100) / 100, ...(d.start > 0 ? { start: d.start } : {}) });
@@ -129,8 +133,9 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
     : !picked && !source && topic.trim().length < 3 ? "Type what your demo shows first."
     : play === "mine" && !mine ? "Pick your hook clip first."
     : picked && hookIssue(picked, play) ? hookIssue(picked, play)
-    : play === "spoken" && !busy ? (pendingHook() ? HOOK_WAITING : paidClipBlock())
+    : paidPlay(play) && !busy ? (pendingHook() ? HOOK_WAITING : paidClipBlock())
     : null;
+  const preview = useCardPreview(userId, play === "crumple" && demo && picked.trim() && !hookIssue(picked, play) ? { demo, hook: picked.trim() } : null);
   const toResult = () => {
     if (!window.matchMedia("(min-width: 1024px)").matches) resultRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   };
@@ -362,6 +367,12 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
               <p>The person is made by AI.</p>
             </div>
           )}
+          {play === "crumple" && (
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p>{CARD_TOO_LONG}</p>
+              <p>AI moves you from your demo's first frame, so start it on your face.</p>
+            </div>
+          )}
           {play === "mine" && (
             <div className="space-y-1.5">
               <div className="flex min-w-0 items-center gap-2">
@@ -426,6 +437,11 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
             Open it in the editor
           </Button>
         </Placeholder>
+      ) : play === "crumple" && preview ? (
+        <figure className="mx-auto w-full max-w-[300px] space-y-1.5">
+          <img src={preview} alt="Your demo's first frame with the hook card on it" className="aspect-[9/16] w-full rounded-xl border border-border/60 object-cover" />
+          <figcaption className="text-center text-xs text-muted-foreground">The clip starts here</figcaption>
+        </figure>
       ) : (
         <Placeholder>Your result shows here once you make it.</Placeholder>
       )}
@@ -452,6 +468,32 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
       }}
     />
   );
+}
+
+/**
+ * The crumpled hook's first frame as the make will draw it (crumpleCard.ts), redrawn 300 ms after the hook or the
+ * demo changes; null while there is nothing to draw or it can't be drawn (the make then says why).
+ */
+function useCardPreview(userId: string, want: { demo: DemoRef; hook: string } | null): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  const key = want ? `${want.demo.key}|${want.demo.start ?? 0}|${want.demo.seconds}|${want.hook}` : "";
+  useEffect(() => {
+    if (!want) return setUrl(null);
+    let live = true;
+    const t = setTimeout(async () => {
+      const file = await getFile(want.demo.key).catch(() => undefined);
+      const frame = file && (await cardFrame(file, cardFrameAt(want.demo.start ?? 0, want.demo.seconds), want.hook, loadBrand(userId)).catch(() => null));
+      if (live) setUrl(frame ? URL.createObjectURL(frame) : null);
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, key]);
+  // each drawn frame's link is let go once a newer one replaces it, or the page closes
+  useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url]);
+  return url;
 }
 
 /** A dashed 9:16 frame: before the first make, while one runs, and once the video is waiting for the editor. */

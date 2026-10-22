@@ -4,20 +4,26 @@
 //   stock:  Pexels finds a portrait clip with the hook's own search (the writer's 2 to 4 filmable words; a typed hook
 //           has none and searches the topic's first words) and Jev picks the one that fits (wallJob's findClip), cut to 3 s
 //   mine:   the adviser's own upright clip, 2 to 5 s
-//   spoken: ai-video's hidden spoken-hook template, a 4 s AI person saying it; the demo rides in the paid clip's
-//           Pending.after, so a reload joins it at no cost
-// The hook goes on screen as one block sticker from 0 to the hook's end, on the editor's no-captions path (never a
-// wall, which would mute the demo and stretch the words over it). The demo is a device file (putFile), never a link
+//   crumple: a frame of the demo with a notification card carrying the hook drawn on it (crumpleCard.ts) starts
+//           ai-video's hidden crumple-hook template, 4 s at 720p: they grab the card, crumple it and toss it
+//   spoken: ai-video's hidden spoken-hook template, a 4 s AI person saying it
+//   Both paid clips carry the demo in Pending.after, so a reload joins it at no cost
+// The hook (but a crumpled card's, which is in the frame) goes on screen as one block sticker from 0 to the hook's
+// end, on the editor's no-captions path (never a wall, which would mute the demo and stretch the words over it). The demo is a device file (putFile), never a link
 // and never synced; its key and name ride in sessionStorage for this tab. It is either picked for this video (an hd-
 // key this page owns and clears) or a demo saved on /brand (a cvid- key in Media, played from its window's start,
 // never deleted here). The written hooks live in memory here.
 // The run's steps show in /library through formatJob.
 
-import { aiBusy, pendingAvatar, makeTemplateClip, resumeAvatar, DEMO_GONE } from "@/lib/aiVideo";
+import { aiBusy, pendingAvatar, makeTemplateClip, resumeAvatar, DEMO_GONE, type TemplateAsk } from "@/lib/aiVideo";
+import { loadBrand } from "@/lib/carousel";
+import { FRAME_FAILED, cardFrame } from "@/lib/crumpleCard";
 import { EdgeError } from "@/lib/edgeFn";
 import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
 import { hookFormulaSet } from "@/lib/hookFormulas";
-import { joinPlan, SPOKEN_HOOK_SECONDS, SPOKEN_HOOK_WORDS, STOCK_HOOK_SECONDS, type HookPlay, type JoinPlan } from "@/lib/hookDemo";
+import {
+  CARD_MAX, CRUMPLE_QUALITY, CRUMPLE_SECONDS, cardFrameAt, joinPlan, paidPlay, SPOKEN_HOOK_SECONDS, SPOKEN_HOOK_WORDS, STOCK_HOOK_SECONDS, type HookPlay, type JoinPlan,
+} from "@/lib/hookDemo";
 import { links } from "@/lib/links";
 import { mediaLength } from "@/lib/longAudio";
 import { stripDashes } from "@/lib/plainText";
@@ -94,6 +100,7 @@ export const HOOK_REFUSED = "That can't be turned into a hook that's safe to pos
 export const NO_HOOK_CLIP = "No stock clip fits this hook. Try another hook or say it yourself.";
 export const JOIN_FAILED = "Couldn't put the video together. Try again.";
 export const NO_SPOKEN_FIT = "None of these hooks fits in 4 seconds. Pick a shorter one or type your own.";
+export const NO_CARD_FIT = "None of these hooks fits on the card. Pick a shorter one or type your own.";
 const JOIN_LABEL = "Putting your hook and demo together";
 const DEMO_KEY = "cs-make-hook-demo-file";
 /** Every demo file key this device holds, so one left by a closed tab is still cleared. */
@@ -227,8 +234,9 @@ async function write(userId: string, a: WriteAsk): Promise<HookSet> {
     formulas,
     // the demo's name and length are all that is known about it; hooks written before one is picked go without
     ...(a.demo ? { demo: { name: a.demo.name, seconds: Math.round(a.demo.seconds * 10) / 10 } } : {}),
-    // a spoken hook is said in 4 s, so the writer keeps all three short enough (live check 22 Oct: 10 to 12 words came back)
-    ...(a.play === "spoken" ? { maxWords: SPOKEN_HOOK_WORDS } : {}),
+    // a spoken hook is said in 4 s, so the writer keeps all three short enough (live check 22 Oct: 10 to 12 words came
+    // back); 8 words also keeps most hooks inside the crumpled card's 45 characters
+    ...(paidPlay(a.play) ? { maxWords: SPOKEN_HOOK_WORDS } : {}),
   });
   const res = await requestMake(body);
   if (res?.result?.as !== "hooks" || !res.result.hooks.length) throw new Error(HOOKS_FAILED);
@@ -255,7 +263,8 @@ export async function writeHooks(userId: string, a: WriteAsk): Promise<void> {
 
 /** The hook a make takes when none was picked: Jev's, else the first, so long as it fits how it plays. */
 export function chooseHook(set: Pick<HookSet, "hooks" | "pick">, play: HookPlay): string | null {
-  const fits = (t: string) => play !== "spoken" || t.split(/\s+/).filter(Boolean).length <= SPOKEN_HOOK_WORDS;
+  const fits = (t: string) =>
+    play === "crumple" ? t.trim().length <= CARD_MAX : play !== "spoken" || t.split(/\s+/).filter(Boolean).length <= SPOKEN_HOOK_WORDS;
   const order = set.pick !== null && set.hooks[set.pick] ? [set.hooks[set.pick], ...set.hooks.filter((_, i) => i !== set.pick)] : set.hooks;
   return order.find((h) => fits(h.text))?.text ?? null;
 }
@@ -267,10 +276,13 @@ export function hookOverlay(text: string, plan: JoinPlan): Overlay {
   return { ...newOverlay("block", 0, "#FFFFFF", plan.overlay.to), text, from: plan.overlay.from, to: plan.overlay.to, y: 0.25, box: "white", font: "heavy" };
 }
 
-/** What the joined video carries to the editor: the hook sticker, no captions (the demo's words are its own), the note. */
-export function hookExtra(text: string, plan: JoinPlan, source: RemixSource | null, flags?: Flags): JoinExtra {
+/**
+ * What the joined video carries to the editor: the hook sticker (none for a crumpled card, whose frame shows it), no
+ * captions (the demo's words are its own), the note.
+ */
+export function hookExtra(text: string, plan: JoinPlan, source: RemixSource | null, flags?: Flags, play?: HookPlay): JoinExtra {
   return {
-    settings: { captions: false, overlays: [hookOverlay(text, plan)] },
+    settings: { captions: false, overlays: play === "crumple" ? [] : [hookOverlay(text, plan)] },
     toast: HOOK_TOAST,
     note: noteOf(source, flags),
     ...(source ? { source: { ...source, remixedAt: new Date().toISOString() } } : {}),
@@ -282,11 +294,11 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
   const id = ++seq;
   const mine = patcher(id);
   // the first step it shows: writing when no hook is picked, else how the hook plays
-  setJob({ id, state: !ask.hook.trim() ? "writing" : ask.play === "stock" ? "finding" : ask.play === "spoken" ? "clip" : "joining", ask });
+  setJob({ id, state: !ask.hook.trim() ? "writing" : ask.play === "stock" ? "finding" : paidPlay(ask.play) ? "clip" : "joining", ask });
   // everything that stops it before a cent is spent: the demo gone from this device, a paid clip running or waiting
   const demo = await getFile(ask.demo.key).catch(() => undefined);
   if (!demo) return mine({ state: "failed", error: DEMO_GONE, demoGone: true });
-  const blocked = ask.play === "spoken" ? paidClipBlock() : null;
+  const blocked = paidPlay(ask.play) ? paidClipBlock() : null;
   if (blocked) return mine({ state: "failed", error: blocked });
   let hook = ask.hook.trim();
   let flags = hooks?.for === hooksFor(ask) ? hooks.flags : undefined;
@@ -300,12 +312,12 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
     }
     flags = hooks.flags;
     const chosen = chooseHook(hooks, ask.play);
-    if (!chosen) return mine({ state: "failed", error: NO_SPOKEN_FIT });
+    if (!chosen) return mine({ state: "failed", error: ask.play === "crumple" ? NO_CARD_FIT : NO_SPOKEN_FIT });
     hook = chosen;
     mine({ ask: { ...ask, hook } });
   }
   try {
-    if (ask.play === "spoken") return await spoken(id, ask, hook, flags);
+    if (paidPlay(ask.play)) return await paidHook(id, userId, ask, hook, demo, flags);
     let first: Blob;
     let length: number;
     if (ask.play === "mine") {
@@ -335,22 +347,28 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
   }
 }
 
-/** The spoken hook: a paid 4 s clip, the demo joined after it from this device (Pending.after), so a reload still joins it. */
-async function spoken(id: number, ask: HookDemoAsk, hook: string, flags?: Flags): Promise<void> {
-  const plan = joinPlan("spoken", SPOKEN_HOOK_SECONDS, ask.demo.seconds, ask.demo.start);
+/**
+ * A paid 4 s hook clip, the demo joined after it from this device (Pending.after), so a reload still joins it: an AI
+ * person saying the hook, or the adviser crumpling a card with it, from a frame of the demo with the card drawn on.
+ */
+async function paidHook(id: number, userId: string, ask: HookDemoAsk, hook: string, demoFile: Blob, flags?: Flags): Promise<void> {
+  const crumple = ask.play === "crumple";
+  const plan = joinPlan(ask.play, crumple ? CRUMPLE_SECONDS : SPOKEN_HOOK_SECONDS, ask.demo.seconds, ask.demo.start);
   const demo = plan.takes[1];
-  const extra = hookExtra(hook, plan, ask.source, flags);
+  const extra = hookExtra(hook, plan, ask.source, flags, ask.play);
   const mine = patcher(id);
   // checked again right before paying: a video started elsewhere while the hooks were written
   const blocked = paidClipBlock();
   if (blocked) return mine({ state: "failed", error: blocked });
+  let clip: TemplateAsk = { template: "spoken-hook", seconds: SPOKEN_HOOK_SECONDS, quality: "480p", fields: { line: hook }, photo: null };
+  if (crumple) {
+    mine({ state: "clip", step: "Drawing your card..." });
+    const frame = await cardFrame(demoFile, cardFrameAt(demo.start, demo.end - demo.start), hook, loadBrand(userId)).catch(() => null);
+    if (!frame) return mine({ state: "failed", step: undefined, error: FRAME_FAILED });
+    clip = { template: "crumple-hook", seconds: CRUMPLE_SECONDS, quality: CRUMPLE_QUALITY, fields: {}, photo: { role: "person", file: frame } };
+  }
   mine({ state: "clip", step: "Writing the shots..." });
-  await follow(id, () =>
-    makeTemplateClip(HOOK_NAME, { template: "spoken-hook", seconds: SPOKEN_HOOK_SECONDS, quality: "480p", fields: { line: hook }, photo: null }, {
-      extra,
-      after: [{ key: ask.demo.key, ...(demo.start > 0 ? { start: demo.start } : {}), end: demo.end }],
-    }),
-  );
+  await follow(id, () => makeTemplateClip(HOOK_NAME, clip, { extra, after: [{ key: ask.demo.key, ...(demo.start > 0 ? { start: demo.start } : {}), end: demo.end }] }));
 }
 
 async function follow(id: number, run: () => Promise<void> | void): Promise<void> {
@@ -361,7 +379,7 @@ async function follow(id: number, run: () => Promise<void> | void): Promise<void
   mine({ state: "failed", step: undefined, error, demoGone: error === DEMO_GONE });
 }
 
-/** The clip waiting on this device is a spoken hook's (cs-ai-video-pending). */
+/** The clip waiting on this device is a spoken or crumpled hook's (cs-ai-video-pending). */
 export const pendingHook = (): boolean => {
   const p = pendingAvatar();
   return p?.kind === "template" && p.name === HOOK_NAME;

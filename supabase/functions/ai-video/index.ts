@@ -6,7 +6,8 @@
 //   POST {mode:"explainer", pictures} -> {tokens, credits}  one Soul v2 picture per scene
 //   POST {mode:"template", template, seconds, quality, fields, photos} -> {tokens, credits}  a template clip:
 //        OpenAI writes the Seedance prompt by the template's structure (templates.ts), then Seedance 2.5 makes it
-//        (a person's photo as the first frame, a product's as a reference; logic.ts seedanceRequest).
+//        (a person's photo as the first frame, a product's as a reference; logic.ts seedanceRequest). A fixed template
+//        (crumple-hook) skips the writer: its structure is the prompt (templates.ts fixedPrompt).
 //        Counts against "ai-clip" (2 a day) and "ai-clip-global" (8 a day across everyone).
 //   POST {mode:"status", tokens, refund?} -> {jobs:[{state, url?, error?}]}
 //   POST {mode:"talk-script", talk, topic, offer?, source?} -> {say, headline?, mas}  a presenter format's script
@@ -70,7 +71,7 @@ import {
   northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
   speakBody, talkSystem, talkUser, validateScript, validateTalk, type Refundable,
 } from "./logic.ts";
-import { PROMPT_FORMAT, clipPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
+import { PROMPT_FORMAT, clipPrompt, fixedPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -454,8 +455,8 @@ Deno.serve(async (req) => {
         return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
       }
       const photo = r.photos[0] ?? null;
-      const written = await writeJson(openai, templateSystem(t, r.seconds, photo?.role ?? null), templateDetails(t, r.fields), PROMPT_FORMAT, 1500);
-      const prompt = clipPrompt(written, photo?.role ?? null);
+      const written = t.fixed ? null : await writeJson(openai, templateSystem(t, r.seconds, photo?.role ?? null), templateDetails(t, r.fields), PROMPT_FORMAT, 1500);
+      const prompt = t.fixed ? fixedPrompt(t, photo?.role ?? null) : clipPrompt(written, photo?.role ?? null);
       if (!prompt) {
         if (written) console.error("ai-video template prompt rejected", written.slice(0, 300));
         await giveBack("ai-clip");
