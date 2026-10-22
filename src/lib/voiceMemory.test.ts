@@ -148,6 +148,16 @@ describe("learnings", () => {
       ["l4", undefined],
     ]);
   });
+  it("keeps the agent's thread and message and the correction source through a save, a remove and a reload", () => {
+    const r = addLearning(UID, { text: "Make carousels unless I ask for something else.", scope: "all", source: "correction", thread: "tk1", msg: "mk2" }, null, at(0));
+    expect(r.ok && r.item).toMatchObject({ source: "correction", thread: "tk1", msg: "mk2" });
+    setLearningOff(UID, r.ok ? r.item.id : "", true, at(1));
+    expect(loadLearnings(UID)[0]).toMatchObject({ source: "correction", thread: "tk1", msg: "mk2", offAt: at(1).toISOString() });
+    const typed = addLearning(UID, { text: "no thread", scope: "posts", source: "typed", thread: "  " }, null, at(2));
+    expect(typed.ok && "thread" in typed.item).toBe(false);
+    store.set(`content-studio-learnings-${UID}`, JSON.stringify([{ id: "l1", text: "a", scope: "posts", source: "assistant", createdAt: "2026-10-21T00:00:00Z", thread: 5, msg: "m1" }]));
+    expect(loadLearnings(UID)).toEqual([{ id: "l1", text: "a", scope: "posts", source: "assistant", createdAt: "2026-10-21T00:00:00Z", msg: "m1" }]);
+  });
   it("checks a new note against its scope's notes and Everything's", () => {
     learn("posts note", "posts", 1);
     learn("video note", "videos", 2);
@@ -205,5 +215,65 @@ describe("memoryLine", () => {
     expect(memoryLine(UID, "posts", factOnly.length - 1)).toBe("");
     expect(memoryLine(UID, "posts", 0)).toBe("");
     for (const max of [50, 200, 300, 1000]) expect(memoryLine(UID, "posts", max).length).toBeLessThanOrEqual(max);
+  });
+});
+
+// Pinned before phase 6 adds thread, msg and the "correction" source: what the writers and /voice read off a fixed
+// store today. Never update these with vitest -u; a change here changes every writer's prompt.
+describe("pin: memoryLine and loadLearnings on a fixed store", () => {
+  const FIXED_LEARNINGS = [
+    { id: "l-a1", text: "never use emoji", scope: "posts", source: "typed", createdAt: "2026-10-01T01:00:00.000Z" },
+    { id: "l-a2", text: "use a woman presenter", scope: "videos", source: "assistant", createdAt: "2026-10-02T01:00:00.000Z", offAt: "2026-10-05T01:00:00.000Z", replacedBy: "l-a5" },
+    { id: "l-a3", text: "keep   it short ", scope: "all", source: "rewrite", rewrite: "shorter", createdAt: "2026-10-03T01:00:00.000Z" },
+    { id: "l-a4", text: "warm colours", scope: "pictures", source: "typed", createdAt: "2026-10-04T01:00:00.000Z", rewrite: "shorter" },
+    { id: "l-a5", text: "use an older man as my presenter", scope: "videos", source: "assistant", createdAt: "2026-10-05T01:00:00.000Z" },
+    { id: "l-a6", text: "old note", scope: "posts", source: "typed", createdAt: "2026-10-06T01:00:00.000Z", offAt: "2026-10-07T01:00:00.000Z" },
+    { id: "l-a7", text: "bad scope", scope: "music", source: "typed", createdAt: "2026-10-07T01:00:00.000Z" },
+    { id: "l-a8", text: "bad source", scope: "posts", source: "robot", createdAt: "2026-10-08T01:00:00.000Z" },
+    { id: "l-a9", text: "no date", scope: "posts", source: "typed" },
+    null,
+  ];
+  const FIXED_FACTS = [
+    { id: "f-a1", text: "12 years as an adviser", createdAt: "2026-10-01T01:00:00.000Z" },
+    { id: "f-a2", text: "removed fact", createdAt: "2026-10-02T01:00:00.000Z", offAt: "2026-10-03T01:00:00.000Z" },
+    { id: "f-a3", text: "Helped 300 families", createdAt: "2026-10-04T01:00:00.000Z" },
+  ];
+  beforeEach(() => {
+    store.set(`content-studio-learnings-${UID}`, JSON.stringify(FIXED_LEARNINGS));
+    store.set(`content-studio-facts-${UID}`, JSON.stringify(FIXED_FACTS));
+    store.set(`content-studio-coachprofile-${UID}`, JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] }));
+  });
+
+  it("loadLearnings keeps the valid rows as they are stored, junk dropped", () => {
+    expect(loadLearnings(UID)).toEqual([
+      { id: "l-a1", text: "never use emoji", scope: "posts", source: "typed", createdAt: "2026-10-01T01:00:00.000Z" },
+      { id: "l-a2", text: "use a woman presenter", scope: "videos", source: "assistant", createdAt: "2026-10-02T01:00:00.000Z", offAt: "2026-10-05T01:00:00.000Z", replacedBy: "l-a5" },
+      { id: "l-a3", text: "keep it short", scope: "all", source: "rewrite", createdAt: "2026-10-03T01:00:00.000Z", rewrite: "shorter" },
+      { id: "l-a4", text: "warm colours", scope: "pictures", source: "typed", createdAt: "2026-10-04T01:00:00.000Z" },
+      { id: "l-a5", text: "use an older man as my presenter", scope: "videos", source: "assistant", createdAt: "2026-10-05T01:00:00.000Z" },
+      { id: "l-a6", text: "old note", scope: "posts", source: "typed", createdAt: "2026-10-06T01:00:00.000Z", offAt: "2026-10-07T01:00:00.000Z" },
+    ]);
+  });
+
+  it("memoryLine gives each scope's block byte for byte", () => {
+    expect(memoryLine(UID, "posts")).toBe(
+      "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n" +
+        "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser; Helped 300 families\n" +
+        "- Keep doing or avoid: keep it short; never use emoji; Lean into: client stories; Steer clear of: jargon",
+    );
+    expect(memoryLine(UID, "videos")).toBe(
+      "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n" +
+        "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser; Helped 300 families\n" +
+        "- Keep doing or avoid: use an older man as my presenter; keep it short",
+    );
+    expect(memoryLine(UID, "pictures")).toBe(
+      "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n" +
+        "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser; Helped 300 families\n" +
+        "- Keep doing or avoid: warm colours; keep it short",
+    );
+    expect(memoryLine(UID, "posts", 250)).toBe(
+      "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n" +
+        "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser; Helped 300 families",
+    );
   });
 });
