@@ -1006,6 +1006,40 @@ describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 en
   });
 });
 
+describe("campaign swap hook (wave 1 live check: calls/013 changed two words of calls/011's post 1 hook)", () => {
+  // calls/013 as sent: the swap of post 1, with every hook of calls/011 in avoid
+  const avoid = [LIVE_011_POST_1.hook, "Who owns the next follow-up?", "If your sales day means jumping between apps, it is easy to lose track of the next step.", LIVE_011_POST_5.hook, "A shared inbox, clearer handovers"];
+  const swap = campaignRequest({ mode: "campaign", swap: true, posts: [LIVE_011_ASK_1], avoid, context: LIVE_011_CONTEXT });
+  const LIVE_013_POST_1 = {
+    n: 1,
+    hook: "Most sales teams think visibility means checking every chat. Here is why that is wrong.",
+    body: "Visibility is not the same as reading every message. When conversations sit across individual WhatsApp accounts, a manager can spend the day checking in and still miss the useful question: where does each client conversation stand?\n\nA shared view can make it easier to spot chats that need a reply, a handover or a follow-up. It also gives the team a clearer picture of what is moving without turning every conversation into a status meeting.\n\nThe point is not to watch every message. It is to make the next step easier to see, while keeping client conversations in context. That can make coordination feel less like chasing updates and more like helping the team keep work moving.",
+    script: "",
+    brief: "",
+    cta: "What makes it hardest to see where team chats stand?",
+  };
+
+  it("refuses the live swap's hook, which shares 'every chat here is' with the old one", () => {
+    const dropped: [number, string][] = [];
+    expect(validateCampaign({ posts: [LIVE_013_POST_1] }, swap, dropped)).toEqual([]);
+    expect(dropped).toEqual([[1, "shares 4 words with a used hook"]]);
+  });
+
+  it("keeps a new hook in the same formula, whose shared words are only the formula's own, and leaves a draft (not a swap) alone", () => {
+    const fresh = { ...LIVE_013_POST_1, hook: "Most sales teams think more chats mean more sales. Here is why that is wrong." };
+    expect(validateCampaign({ posts: [fresh] }, swap)!.map((p) => p.hook)).toEqual([fresh.hook]);
+    // the formula's words count only for its own post: "here is why that" from another hook still echoes
+    expect(validateCampaign({ posts: [fresh] }, { ...swap, posts: [{ ...swap.posts[0], formula: null }] })).toEqual([]);
+    expect(validateCampaign({ posts: [LIVE_013_POST_1] }, { ...swap, swap: false })!.map((p) => p.n)).toEqual([1]);
+  });
+
+  it("tells the writer the hook must be new", () => {
+    expect(buildCampaignPrompt(swap).user).toContain(
+      "Write post 1 again: the same angle, format and stage, with new words and a different opening. The hook must be new: it shares no run of four words with a hook already used, apart from the hook formula's own words.",
+    );
+  });
+});
+
 import { MAS_QUESTION } from "../_shared/mas.ts";
 import { masAsk, withMas } from "./logic.ts";
 

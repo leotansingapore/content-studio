@@ -1024,7 +1024,9 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     ...contextBlocks(req.context, req.audience),
     req.avoid.length ? ["Hooks already used (open differently):", ...req.avoid.map((h) => `- ${h}`)].join("\n") : "",
     ["Posts to write:", ...req.posts.map(post)].join("\n\n"),
-    req.swap ? `Write post ${req.posts[0].n} again: the same angle, format and stage, with new words and a different opening.` : "",
+    req.swap
+      ? `Write post ${req.posts[0].n} again: the same angle, format and stage, with new words and a different opening. The hook must be new: it shares no run of four words with a hook already used, apart from the hook formula's own words.`
+      : "",
   ].filter(Boolean).join("\n\n");
   return { system, user };
 }
@@ -1143,13 +1145,29 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
 /** The opening a hook is compared on: its first three words. */
 const opener = (hook: string) => wordsKey(hook).split(" ").slice(0, 3).join(" ");
 
+/** Every run of 4 words in a text, lowercased and without punctuation. */
+const runsOf4 = (s: string) => {
+  const w = wordsKey(s).split(" ").filter(Boolean);
+  return w.slice(3).map((_, i) => w.slice(i, i + 4).join(" "));
+};
+
+/**
+ * A swap's hook that shares a run of 4 words with a hook already used (the old one among them), not counting runs that
+ * are the hook formula's own words (live check 22 Oct, calls/013: a swap kept the old hook and changed two words).
+ */
+function echoesUsed(hook: string, used: string[], formula: PostAsk["formula"]): boolean {
+  const own = new Set(formula ? formula.template.split(/\[[^\]]*\]|\{[^}]*\}/).flatMap(runsOf4) : []);
+  const old = new Set(used.flatMap(runsOf4));
+  return runsOf4(hook).some((r) => old.has(r) && !own.has(r));
+}
+
 /**
  * The model's posts, each shaped to its format's limits: posts whose n was not asked go, as do posts that can't
- * meet their format, a later post that opens with the same three words as an earlier one, and a hook that repeats
- * one in `avoid`. In the order asked; each dropped post's number and the rule it broke go into `dropped`, for the
- * log. Null when it isn't the expected JSON.
+ * meet their format, a later post that opens with the same three words as an earlier one, a hook that repeats
+ * one in `avoid`, and a swap's hook that shares 4 words in a row with one in `avoid` (echoesUsed). In the order asked;
+ * each dropped post's number and the rule it broke go into `dropped`, for the log. Null when it isn't the expected JSON.
  */
-export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts" | "avoid">, dropped: [number, string][] = []): WrittenPost[] | null {
+export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts" | "avoid" | "swap">, dropped: [number, string][] = []): WrittenPost[] | null {
   const obj = typeof raw === "string" ? parseJsonObject(raw) : isRecord(raw) ? raw : null;
   if (!obj || !Array.isArray(obj.posts)) return null;
   const used = new Set(req.avoid.map(wordsKey));
@@ -1158,7 +1176,12 @@ export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts
   for (const ask of req.posts) {
     const item = obj.posts.find((p): p is Record<string, unknown> => isRecord(p) && p.n === ask.n);
     const post = item ? writtenFor(ask, item) : "not written";
-    const why = typeof post === "string" ? post : used.has(wordsKey(post.hook)) ? "repeats a hook to avoid" : opened.has(opener(post.hook)) ? "opens like an earlier post" : "";
+    const why =
+      typeof post === "string" ? post
+      : used.has(wordsKey(post.hook)) ? "repeats a hook to avoid"
+      : opened.has(opener(post.hook)) ? "opens like an earlier post"
+      : req.swap && echoesUsed(post.hook, req.avoid, ask.formula) ? "shares 4 words with a used hook"
+      : "";
     if (typeof post === "string" || why) {
       dropped.push([ask.n, why]);
       continue;

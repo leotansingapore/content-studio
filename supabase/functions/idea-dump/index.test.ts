@@ -388,6 +388,17 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
     }
   });
 
+  it("refuses a swap whose hook shares 4 words in a row with a used one: 422 unusable, use kept (live check, calls/013)", async () => {
+    const formula = { name: "Contrarian", template: "Most [audience] think [belief]. Here is why that is wrong." };
+    const swap = { ...CAMPAIGN, swap: true, posts: [{ ...askOf(1, "text-post"), formula }], avoid: ["Most sales managers think visibility means reading every chat. Here is why that is wrong."] };
+    openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think visibility means checking every chat. Here is why that is wrong." }] });
+    expect(await call(swap, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
+    expect(db.spent).toEqual(["campaign-swap"]);
+    expect(db.refunded).toEqual([]);
+    openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think more chats mean more sales. Here is why that is wrong." }] });
+    expect((await call(swap, "leo")).status).toBe(200);
+  });
+
   it("answers the daily limit with 429 and calls nothing", async () => {
     db.limit = true;
     // the limit's number is the contracts task's (usageCaps.test.ts)
