@@ -338,6 +338,15 @@ describe("the editor's extra without a draftId", () => {
     await goOnAtPrice("u1");
     expect(Object.keys(ai.makeAvatar.mock.calls[1][3]).sort()).toEqual(["ai", "caption", "toast"]);
   });
+
+  it("carries a campaign post's draftId to the editor, straight through and after the price check", async () => {
+    await startTalk("u1", { ...ASK, draftId: "cmp_c-1_6" });
+    expect(ai.makeAvatar.mock.calls[0][3]).toMatchObject({ draftId: "cmp_c-1_6", toast: TALK_TOAST });
+    ai.slice.mockResolvedValue(voiceOf(21, [9.5, 9.5, 2]));
+    await startTalk("u1", { ...ASK, draftId: "cmp_c-1_7" });
+    await goOnAtPrice("u1");
+    expect(ai.makeAvatar.mock.calls[1][3].draftId).toBe("cmp_c-1_7");
+  });
 });
 
 describe("Write it for me", () => {

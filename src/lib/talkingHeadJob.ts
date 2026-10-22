@@ -44,6 +44,8 @@ export interface TalkAsk {
   mention: boolean;
   /** A Clone a reel result's own caption, carried to the editor with its script. */
   caption?: string;
+  /** The My posts entry this video is made for (a campaign post): the editor's Save to your post updates it. */
+  draftId?: string;
 }
 
 export type TalkState = "writing" | "written" | "presenter" | "voice" | "priced" | "video" | "joining" | "done" | "failed";
@@ -216,24 +218,25 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   if (needsPriceCheck(videoEstimate(a.length).usd, real.usd)) {
     return mine(id, { state: "priced", step: "", face, voice, ai, real: { seconds: voice.seconds, price: real } });
   }
-  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai));
+  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai, a.draftId));
 }
 
 /** "Make it for US$x" at the price check: the kept voiceover and face go to Speak. */
 export function goOnAtPrice(userId: string): Promise<void> {
   const j = job;
   if (j?.state !== "priced" || !j.face || !j.voice || aiBusy()) return Promise.resolve();
-  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags }, j.ai));
+  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags }, j.ai, j.ask?.draftId));
 }
 
-/** The editor's hand-off: the toast, caption, note and source, and the AI mark (who speaks and in which voice). */
-function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags }, ai?: AiMark): JoinExtra {
+/** The editor's hand-off: the toast, caption, note and source, the AI mark (who speaks and in which voice) and the post it is for. */
+function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags }, ai?: AiMark, draftId?: string): JoinExtra {
   return {
     toast: TALK_TOAST,
     ...(w.caption ? { caption: w.caption } : {}),
     ...(noteOf(source, w.flags) ? { note: noteOf(source, w.flags) } : {}),
     ...(source ? { source: { ...source, remixedAt: new Date().toISOString() } } : {}),
     ...(ai ? { ai } : {}),
+    ...(draftId ? { draftId } : {}),
   };
 }
 

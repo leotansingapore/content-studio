@@ -317,6 +317,18 @@ describe("the editor's extra without a draftId", () => {
     await run({ ...ASK, bg: "mine", file: new File(["mine"], "phone.mp4", { type: "video/mp4" }) });
     expect(Object.keys(join.hand.mock.calls[0][1]).sort()).toEqual(["caption", "note", "settings", "source", "toast"]);
   });
+
+  it("carries a campaign post's draftId to the editor on both paths, and nothing else changes", async () => {
+    answer({ "desk night tea": [clip("a")] });
+    await run({ ...ASK, draftId: "cmp_c-1_4" });
+    const extra = join.start.mock.calls[0][3].extra;
+    expect(extra.draftId).toBe("cmp_c-1_4");
+    expect(Object.keys(extra).sort()).toEqual(["caption", "draftId", "note", "settings", "source", "toast"]);
+    clearWallJob();
+    length.mockResolvedValue(10);
+    await run({ ...ASK, draftId: "cmp_c-1_4", bg: "mine", file: new File(["mine"], "phone.mp4", { type: "video/mp4" }) });
+    expect(join.hand.mock.calls[0][1].draftId).toBe("cmp_c-1_4");
+  });
 });
 
 describe("the page's words and links", () => {
