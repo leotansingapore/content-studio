@@ -13,7 +13,7 @@ import PriceChip from "@/components/PriceChip";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { scanCompliance } from "@/lib/compliance";
-import { getDraftById, loadDrafts, onDraftsChanged, type DraftEntry } from "@/lib/draftHistory";
+import { getDraftById, loadDrafts, MAX_DRAFTS, onDraftsChanged, type DraftEntry } from "@/lib/draftHistory";
 import type { PostLang } from "@/lib/links";
 import { reasonText } from "@/lib/prices";
 import { isStale, LANG_NAMES, langOf, sameWarns, sourceOf } from "@/lib/translate";
@@ -299,7 +299,7 @@ export default function TranslateBar(p: {
       )}
       {ask && (
         <Ask onYes={() => start(ask)} onNo={() => setAsk(null)}>
-          My posts holds 50 posts. Saving this drops your oldest one.
+          My posts holds {MAX_DRAFTS} posts. Saving this drops your oldest one.
         </Ask>
       )}
       {job?.state === "failed" && job.kind === "post" && (

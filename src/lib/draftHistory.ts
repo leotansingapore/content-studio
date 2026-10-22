@@ -13,7 +13,7 @@ import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 import type { Numbers } from "../../supabase/functions/social/metrics.ts";
 import type { RemixSource } from "@/lib/remixSource";
 import type { PostLang } from "@/lib/links";
-export const MAX_DRAFTS = 50;
+export const MAX_DRAFTS = 150;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
 export type DraftStatus = "draft" | "scheduled" | "posted";

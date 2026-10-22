@@ -4,7 +4,7 @@ import {
   deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
   type PostState, REMIX_MAKE, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
-import type { DraftEntry } from "./draftHistory";
+import { MAX_DRAFTS, type DraftEntry } from "./draftHistory";
 import { priceOf, type Price } from "./prices";
 import { addProfile, setActiveProfile } from "./profiles";
 import { avatarCredits, creditsUsd } from "../../supabase/functions/ai-video/logic.ts";
@@ -193,21 +193,21 @@ describe("winners", () => {
 });
 
 describe("My posts room", () => {
-  it("draftsDropped: 48 + 8 gives 6, 10 + 8 gives 0", () => {
-    expect(draftsDropped(48, 8)).toBe(6);
+  it("draftsDropped: two short of full plus 8 gives 6, 10 + 8 gives 0", () => {
+    expect(draftsDropped(MAX_DRAFTS - 2, 8)).toBe(6);
     expect(draftsDropped(10, 8)).toBe(0);
-    expect(draftsDropped(50, 1)).toBe(1);
+    expect(draftsDropped(MAX_DRAFTS, 1)).toBe(1);
   });
 
   it("dropsPostedDraft is true only when an entry that drops out is posted or has numbers", () => {
-    const fifty = Array.from({ length: 50 }, (_, i) => draft({ id: `d${i}` }));
-    expect(dropsPostedDraft(fifty, 1)).toBe(false);
-    const oldestPosted = fifty.map((d, i) => (i === 49 ? { ...d, status: "posted" as const } : d));
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => draft({ id: `d${i}` }));
+    expect(dropsPostedDraft(full, 1)).toBe(false);
+    const oldestPosted = full.map((d, i) => (i === MAX_DRAFTS - 1 ? { ...d, status: "posted" as const } : d));
     expect(dropsPostedDraft(oldestPosted, 1)).toBe(true);
-    const oldestMeasured = fifty.map((d, i) => (i === 49 ? { ...d, metrics: { impressions: 40 } } : d));
+    const oldestMeasured = full.map((d, i) => (i === MAX_DRAFTS - 1 ? { ...d, metrics: { impressions: 40 } } : d));
     expect(dropsPostedDraft(oldestMeasured, 1)).toBe(true);
     // the posted one is second oldest: one Make keeps it, two drop it
-    const second = fifty.map((d, i) => (i === 48 ? { ...d, status: "posted" as const } : d));
+    const second = full.map((d, i) => (i === MAX_DRAFTS - 2 ? { ...d, status: "posted" as const } : d));
     expect(dropsPostedDraft(second, 1)).toBe(false);
     expect(dropsPostedDraft(second, 2)).toBe(true);
     expect(dropsPostedDraft(oldestPosted.slice(1), 1)).toBe(false);
