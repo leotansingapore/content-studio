@@ -356,7 +356,7 @@ export const audienceAsk = {
 
 /** What one page offers the scan besides its words: picture addresses the LLM may pick from, and JSON-LD items. */
 export interface PageClues {
-  /** og:image, then up to 8 images with alt text, then the listed items' own pictures; absolute, no SVG. */
+  /** og:image, then up to 8 images with alt text, then the listed items' own pictures; absolute, only kinds brand-dna image can fetch. */
   pictures: string[];
   /** "Listed item: <name> | <description> | <price>" for each schema.org Product, Service or app in the JSON-LD. */
   listed: string[];
@@ -377,21 +377,22 @@ function ldBlocks(html: string): string[] {
   }
   return out;
 }
-const svg = (h: string) => /\.svg(\?|$)/i.test(h);
+// brand-dna image takes PNG, JPEG or WebP only, so a picture named as any other kind is never offered
+const unfetchable = (h: string) => /\.(svg|gif|bmp|ico|avif|tiff?|heic|heif)(\?|#|$)/i.test(h);
 const str = (v: unknown, n: number) => (typeof v === "string" ? decode(v).replace(/\s+/g, " ").trim().slice(0, n) : "");
 
 export function productClues(html: string, base: URL): PageClues {
   const body = html.slice(0, 300_000);
   const pictures: string[] = [];
   const add = (h: string) => {
-    if (h && h.length <= 500 && !svg(h) && !pictures.includes(h)) pictures.push(h);
+    if (h && h.length <= 500 && !unfetchable(h) && !pictures.includes(h)) pictures.push(h);
   };
   add(absolute(meta(body.slice(0, 100_000), "og:image"), base));
   const alt = tagsOf(body, "img")
     .filter((t) => attr(t, "alt"))
     // a lazy image's src is often a data: placeholder, with the real address in data-src
     .map((t) => absolute(attr(t, "src"), base) || absolute(attr(t, "data-src"), base))
-    .filter((h) => h && !svg(h));
+    .filter((h) => h && !unfetchable(h));
   [...new Set(alt)].slice(0, ALT_PICTURES).forEach(add);
 
   const listed: string[] = [];

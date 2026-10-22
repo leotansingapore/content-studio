@@ -220,6 +220,12 @@ ${Array.from({ length: 10 }, (_, i) => `<img src="/p${i}.png" alt="Plan ${i}">`)
     ]);
   });
 
+  it("never offers a picture brand-dna image would refuse, such as a GIF", () => {
+    const html = `<meta property="og:image" content="/feature-media/home-v9-loop.gif"><img src="/a.gif?v=2" alt="Loop"><img src="/b.bmp" alt="B">
+<img src="/c.avif" alt="C"><img src="/d.jpeg" alt="D"><img src="/e.WEBP" alt="E"><img src="/_next/image?url=%2Ff.png&w=640" alt="F">`;
+    expect(productClues(html, BASE).pictures).toEqual(["https://www.acme.sg/d.jpeg", "https://www.acme.sg/e.WEBP", "https://www.acme.sg/_next/image?url=%2Ff.png&w=640"]);
+  });
+
   it("lists JSON-LD products, services and apps as plain lines, never the business itself", () => {
     expect(productClues(SHOP, BASE).listed).toEqual([
       "Listed item: Family cover review | We go through your family's cover. | SGD 0",
