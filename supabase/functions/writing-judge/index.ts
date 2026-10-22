@@ -206,6 +206,8 @@ Deno.serve(async (req) => {
     if (r.mode === "idea") {
       const answers = await askJev(ideaState(r), IDEA_QUESTIONS, { who: "writing-judge idea" });
       if (!answers) return json({ error: UNAVAILABLE }, 503);
+      // the kind and score only, for reading the 0.5 cut per kind (interview answers included); never the words
+      console.log("writing-judge idea", JSON.stringify({ kind: r.kind || null, p: answers.specific?.noul ?? null }));
       return json({ thin: readIdeaThin(answers) });
     }
     if (r.mode === "hooks") {
