@@ -18,6 +18,7 @@ import { IMAGE_LAYOUTS, links, type ImageLayout } from "@/lib/links";
 import { scoped } from "@/lib/profiles";
 import { requestMake, type Flags, type MakeResult } from "@/lib/remix";
 import { scalePicture } from "@/lib/remixLink";
+import { cutAtWord } from "@/lib/scriptCaption";
 import type { RemixSource } from "@/lib/remixSource";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { failure, makeBody } from "@/lib/slideshowJob";
@@ -200,7 +201,10 @@ async function readShows(path: string): Promise<string> {
   if (!res?.ok || !(res.headers.get("content-type") ?? "").startsWith("image/jpeg")) return "";
   const blob = await res.blob();
   const answer = await callFn<{ source: LinkedSource }>("remix-link", { mode: "image", image: await scalePicture(blob), sha1: await sha1Hex(blob) });
-  return answer.source?.teardown?.structure?.trim() ?? "";
+  const shows = answer.source?.teardown?.structure?.trim() ?? "";
+  const words = answer.source?.text?.trim() ?? "";
+  // the picture's own words carry what the description only names (an ad's numbered steps); remix takes 300 characters
+  return cutAtWord(words ? `${shows} Words in it: ${words}` : shows, 300);
 }
 
 /** The words a make wrote, over the design's own: the layout's fields replaced, a testimonial's into clientWords. */

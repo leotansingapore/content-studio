@@ -149,7 +149,7 @@ describe("Write it for me", () => {
   });
 
   it("reads a swipe ad's own picture once, lets Jev pick the layout from it, and writes into the design", async () => {
-    fn.mockResolvedValue({ source: { key: "upload:x", kind: "upload", teardown: { structure: "A big number on an orange block." }, text: "x", remixedAt: "" } });
+    fn.mockResolvedValue({ source: { key: "upload:x", kind: "upload", teardown: { structure: "A big number on an orange block." }, text: "", remixedAt: "" } });
     make.mockResolvedValue(reply());
     await startImageWrite(U, ask());
     expect(fetcher).toHaveBeenCalledWith("/ads/2095783381019179.jpg");
@@ -172,6 +172,25 @@ describe("Write it for me", () => {
     expect(fetcher).not.toHaveBeenCalled();
     expect(fn).not.toHaveBeenCalled();
     expect(make.mock.calls[1][0]).toMatchObject({ layout: "stat", shows: "A big number on an orange block." });
+  });
+
+  it("passes the picture's own words to the writer, cut at a word to the server's 300 characters", async () => {
+    // the WATI ad: its numbered steps are only in the picture, the ad's text just says "Swipe for the steps."
+    const steps = "1. Connect your WhatsApp number 2. Import your contacts 3. Send your first broadcast Book a Demo";
+    fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: "Green numbered instructions on a white card." }, text: steps, remixedAt: "" } });
+    make.mockResolvedValue(reply());
+    await startImageWrite(U, ask());
+    const body = make.mock.calls[0][0];
+    expect(body.shows).toBe(`Green numbered instructions on a white card. Words in it: ${steps}`);
+    expect(parseMakeRequest(body).ok).toBe(true);
+
+    localStorage.removeItem("cs-image-shows");
+    fn.mockResolvedValue({ source: { key: "upload:w", kind: "upload", teardown: { structure: "A long checklist." }, text: "word ".repeat(120), remixedAt: "" } });
+    await startImageWrite(U, ask());
+    const long = make.mock.calls[1][0].shows as string;
+    expect(long.length).toBeLessThanOrEqual(300);
+    expect(long.endsWith("word")).toBe(true);
+    expect(parseMakeRequest(make.mock.calls[1][0]).ok).toBe(true);
   });
 
   it("never reads a competitor's picture, a missing file the app answers with its own page, or with no picture reads left", async () => {
