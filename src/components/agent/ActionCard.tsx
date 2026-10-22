@@ -10,20 +10,16 @@ import { AlertTriangle, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-re
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
-import { cheaperFor, leftOf, limitOf, shortOf, unitOf, type Plan, type Short } from "@/lib/agentBudget";
-import * as engine from "@/lib/agentRun";
-import { editCard, press } from "@/lib/agentRun";
+import { cheaperFor, leftOf, limitOf, type Plan } from "@/lib/agentBudget";
+import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
+import { MAX_SCRIPT_WORDS } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
-import { aiBusy } from "@/lib/aiVideo";
-import { imageBusy } from "@/lib/aiImage";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
 import { speakers } from "@/lib/talkingHead";
-import { talkBusy, talkJob } from "@/lib/talkingHeadJob";
 import { VOICES, VOICE_IDS } from "@/lib/textVoice";
-import { activeLearnings, loadLearnings, MAX_LEARNINGS } from "@/lib/voiceMemory";
+import { MAX_LEARNINGS } from "@/lib/voiceMemory";
 import { cn } from "@/lib/utils";
-import { GLOBAL_COUNTER_USER } from "../../../supabase/functions/_shared/usageCaps.ts";
 
 export const hhmm = (iso: string | undefined) => (iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
 
@@ -35,48 +31,11 @@ const TAG: Record<AgentCard["status"], { text: string; cls: string }> = {
   failed: { text: "DIDN'T GO THROUGH", cls: "text-destructive" },
 };
 const APPROVED_TITLE = "Approved. Ask for a new one to change it.";
-const MAX_WORDS = 70;
-const BACK = "Back at 8am Singapore time.";
-
-/**
- * What agent-run's engine adds beyond the declared API (its own Approve words and block reasons, the chip resolver,
- * the feedback and router hooks), read when present so the declared API stays the only hard contract.
- */
-export const extra = engine as unknown as Partial<{
-  approveLabel(c: AgentCard): string;
-  blockedReason(userId: string, c: AgentCard, usage: Usage | null): string | null;
-  choose(userId: string, threadId: string, msgId: string, path: string): string | null;
-  setFeedback(fn: ((userId: string, threadId: string, text: string) => Promise<{ text: string; go?: { label: string; path: string }[] }>) | null): void;
-  setNavigate(fn: ((path: string) => void) | null): void;
-}>;
 
 const str = (v: unknown) => (typeof v === "string" ? v : undefined);
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 const stepIs = (c: AgentCard, s: AgentCard["step"]) => c.step === s;
 const isVideo = (c: AgentCard) => c.kind === "video" || c.kind === "explainer";
-
-/** The one primary button's words, when the engine doesn't name them. */
-export function approveLabel(c: AgentCard): string {
-  switch (c.kind) {
-    case "video":
-    case "explainer":
-      return stepIs(c, "script") ? "Write the script" : "Approve and make";
-    case "image":
-      return "Approve and make";
-    case "make":
-      return str(c.plan.link) ? `Remix this link into a ${str(c.plan.format) ?? "post"}` : "Make it";
-    case "competitor":
-      return "Add them";
-    case "move":
-      return "Move it";
-    case "learning":
-      return "Remember";
-    case "campaign":
-      return "Add and write";
-    case "edit":
-      return stepIs(c, "apply") ? "Use this" : "Write the change";
-  }
-}
 
 /** The budget's plan for a card: the ladder cheaperFor offers from. */
 function planOf(c: AgentCard): Plan {
@@ -84,23 +43,6 @@ function planOf(c: AgentCard): Plan {
   if (c.kind === "make") return (str(c.plan.format) as Plan) ?? "post";
   if (c.kind === "learning") return "learning";
   return c.kind;
-}
-
-const shortLine = (s: Short) => {
-  const base = s.feature.replace(/-global$/, "") as Short["feature"];
-  return base !== s.feature ? `Today's ${unitOf(base, 2)} for the whole studio are used up. ${BACK}` : `No ${unitOf(s.feature, 2)} left today. ${BACK}`;
-};
-
-/** Why Approve can't run now, or null: a busy maker first, then the first cap that is short, then a full memory. */
-export function blockedReason(userId: string, c: AgentCard, usage: Usage | null): string | null {
-  if (c.status !== "proposed") return null;
-  if (isVideo(c) && !stepIs(c, "script") && (aiBusy() || talkBusy() || talkJob()?.state === "priced")) return "Another video is being made. Approve this one when it's done.";
-  if (c.kind === "image" && imageBusy()) return "Another picture is being made. Approve this one when it's done.";
-  const short = shortOf(c.needs, usage, { leoGlobal: userId === GLOBAL_COUNTER_USER });
-  if (short.length) return shortLine(short[0]);
-  if (c.kind === "learning" && activeLearnings(loadLearnings(userId)).length >= MAX_LEARNINGS)
-    return `${MAX_LEARNINGS} is the most. Remove one on Your voice to add another.`;
-  return null;
 }
 
 const typedKey = (cardId: string) => `cs-agent-card-${cardId}`;
@@ -187,7 +129,7 @@ export default function ActionCard({
 
   const status = card.status;
   const starting = status === "starting" || (pending && status === "proposed");
-  const reason = (extra.blockedReason ?? blockedReason)(userId, card, usage);
+  const reason = blockedReason(userId, card, usage);
   const left = card.needs[0] ? leftOf(usage, card.needs[0].feature) : null;
   const line = priceLine(card, left);
   const tag = TAG[status];
@@ -257,11 +199,11 @@ export default function ActionCard({
             />
             <div className="flex flex-wrap items-center gap-2">
               {field === "script" && (
-                <span className={cn("mr-auto text-xs tabular-nums", n > MAX_WORDS ? "font-medium text-destructive" : "text-muted-foreground")}>
-                  {n} of {MAX_WORDS} words
+                <span className={cn("mr-auto text-xs tabular-nums", n > MAX_SCRIPT_WORDS ? "font-medium text-destructive" : "text-muted-foreground")}>
+                  {n} of {MAX_SCRIPT_WORDS} words
                 </span>
               )}
-              <Button type="button" size="sm" variant="outline" onClick={save} disabled={!typed.trim() || (field === "script" && n > MAX_WORDS)} className={quiet}>
+              <Button type="button" size="sm" variant="outline" onClick={save} disabled={!typed.trim() || (field === "script" && n > MAX_SCRIPT_WORDS)} className={quiet}>
                 Save
               </Button>
               <Button type="button" size="sm" variant="ghost" onClick={stopEdit} className={quiet}>
@@ -383,7 +325,7 @@ export default function ActionCard({
                   </>
                 ) : (
                   <>
-                    <span>{(extra.approveLabel ?? approveLabel)(card)}</span>
+                    <span>{approveLabel(card)}</span>
                     {card.price && (
                       <span className="text-[11px] [&>span]:text-primary-foreground/85">
                         <PriceChip price={card.price} left={left} uses={card.needs[0]?.n} />

@@ -1,6 +1,7 @@
-// The agent screens' own logic (agent-page): the slash menu's rows, a card's Approve words and why it is blocked, the
-// run and meta lines, the thread list's groups, the MADE block's warnings, and the dock's hidden pages. The engine
-// (agentRun), the starters and the skills are other tasks' modules: faked here, so these tests read only this code.
+// The agent screens' own logic (agent-page): the slash menu's rows, the run and meta lines, the thread list's groups,
+// the MADE block's warnings, and the dock's hidden pages. The engine (agentRun), the starters and the skills are other
+// tasks' modules: faked here, so these tests read only this code. A card's Approve words and blocked reason are the
+// engine's (agentPlans.test.ts).
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const store = vi.hoisted(() => ({ drafts: [] as unknown[] }));
@@ -10,7 +11,6 @@ vi.mock("@/lib/chatSkills", () => ({ BUILT_IN_SKILLS: [], loadMySkills: () => []
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: { auth: {}, from: () => ({}) } }));
 vi.mock("@/lib/draftHistory", async (actual) => ({ ...(await actual<typeof import("@/lib/draftHistory")>()), loadDrafts: () => store.drafts }));
 
-import { approveLabel, blockedReason } from "./ActionCard";
 import { ENGINE_CHIP, metaLine, runLabel } from "./AgentThread";
 import { isAppPath } from "./dockActions";
 import { ownComposer } from "./AgentDock";
@@ -19,7 +19,6 @@ import { slashItems } from "./SlashMenu";
 import { lastLine, whenGroup } from "./ThreadList";
 import type { AgentCard } from "@/lib/agentCards";
 import type { AgentThread } from "@/lib/agentThreads";
-import { utcDay } from "@/lib/aiUsage";
 
 afterEach(() => {
   store.drafts = [];
@@ -64,42 +63,6 @@ const card = (over: Partial<AgentCard>): AgentCard => ({
   proposedAt: "2026-10-22T14:25:00.000Z",
   ...over,
 });
-const usage = (used: Record<string, number>) => ({ day: utcDay(), used });
-
-describe("a card's Approve", () => {
-  it("names each press", () => {
-    expect(approveLabel(card({ step: "script" }))).toBe("Write the script");
-    expect(approveLabel(card({ step: "video" }))).toBe("Approve and make");
-    expect(approveLabel(card({ kind: "image" }))).toBe("Approve and make");
-    expect(approveLabel(card({ kind: "make", plan: { format: "carousel" } }))).toBe("Make it");
-    expect(approveLabel(card({ kind: "make", plan: { format: "carousel", link: "https://x.com/a" } }))).toBe("Remix this link into a carousel");
-    expect(approveLabel(card({ kind: "competitor" }))).toBe("Add them");
-    expect(approveLabel(card({ kind: "move" }))).toBe("Move it");
-    expect(approveLabel(card({ kind: "learning" }))).toBe("Remember");
-    expect(approveLabel(card({ kind: "campaign" }))).toBe("Add and write");
-    expect(approveLabel(card({ kind: "edit", step: "write" }))).toBe("Write the change");
-    expect(approveLabel(card({ kind: "edit", step: "apply" }))).toBe("Use this");
-  });
-
-  it("is blocked with the reason when a cap is used up, and only then", () => {
-    expect(blockedReason("u1", card({}), usage({ "ai-video": 2 }))).toBe("No AI videos left today. Back at 8am Singapore time.");
-    expect(blockedReason("u1", card({ kind: "image", needs: [{ feature: "ai-image", n: 1 }] }), usage({ "ai-image": 5 }))).toBe(
-      "No AI pictures left today. Back at 8am Singapore time.",
-    );
-    expect(blockedReason("u1", card({}), usage({ "ai-video": 1 }))).toBeNull();
-    // unread counts: the server decides
-    expect(blockedReason("u1", card({}), null)).toBeNull();
-    // only a proposed card can be blocked
-    expect(blockedReason("u1", card({ status: "approved" }), usage({ "ai-video": 2 }))).toBeNull();
-  });
-
-  it("names the studio's cap on Leo's own sign-in", () => {
-    const leo = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
-    expect(blockedReason(leo, card({}), usage({ "ai-video-global": 20 }))).toBe("Today's AI videos for the whole studio are used up. Back at 8am Singapore time.");
-    expect(blockedReason("u1", card({}), usage({ "ai-video-global": 20 }))).toBeNull();
-  });
-});
-
 describe("run and meta lines", () => {
   it("counts a live turn's seconds and drops them for a stored one", () => {
     expect(runLabel("starting", 0)).toBe("Starting");

@@ -6,15 +6,15 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDown, ArrowUp, Loader2, Sparkles } from "lucide-react";
-import ActionCard, { extra, hhmm } from "@/components/agent/ActionCard";
+import ActionCard, { hhmm } from "@/components/agent/ActionCard";
 import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent/Composer";
 import { chipAction, DONE, isAppPath, runAction, type DockIdentity } from "@/components/agent/dockActions";
 import MadeBlock, { madeNoun } from "@/components/agent/MadeBlock";
 import Receipt from "@/components/agent/Receipt";
 import { Button } from "@/components/ui/button";
-import { editCard, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
+import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
+import { fieldsOf } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
-import type { Nudge } from "@/lib/agentMemory";
 import { GONE_LINE, loadThreads, onThreadsChanged, patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
@@ -163,13 +163,7 @@ export default function AgentThread({
       return;
     }
     near.current = true;
-    const line = extra.choose
-      ? extra.choose(userId, threadId, m.id, g.path)
-      : g.path.startsWith("say:")
-        ? (send(userId, threadId, g.path.slice(4)), null)
-        : g.path.startsWith("format:")
-          ? editCard(userId, threadId, m.id, { format: g.path.slice(7) })
-          : null;
+    const line = choose(userId, threadId, m.id, g.path);
     setChipLine(line ? { msg: m.id, line } : null);
   };
 
@@ -287,7 +281,7 @@ export default function AgentThread({
                 </p>
               )}
               {m.job?.state === "done" && <MadeBlock userId={userId} job={m.job} />}
-              {m.receipt && threadId && <Receipt userId={userId} threadId={threadId} msgId={m.id} receipt={m.receipt} nudge={m.card?.plan.nudge as Nudge | undefined} />}
+              {m.receipt && threadId && <Receipt userId={userId} threadId={threadId} msgId={m.id} receipt={m.receipt} nudge={m.card ? fieldsOf(m.card).nudge : undefined} />}
               {(!!m.go?.length || (m.error && prev?.text)) && (
                 <div className="flex max-w-[92%] flex-wrap gap-1.5">
                   {m.error && prev?.text && (

@@ -8,9 +8,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ExternalLink, MessageSquare, Plus, X } from "lucide-react";
 import AgentThread, { useThreads } from "@/components/agent/AgentThread";
-import { extra } from "@/components/agent/ActionCard";
 import { feedbackFor, type DockIdentity } from "@/components/agent/dockActions";
-import { resumeAgent } from "@/lib/agentRun";
+import { resumeAgent, setFeedback, setNavigate } from "@/lib/agentRun";
 import { links } from "@/lib/links";
 
 const resumed = new Set<string>();
@@ -34,11 +33,11 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
   // the engine asks the feedback service, and opens Write, through this sign-in's dock
   const { id, name, email } = identity ?? { id: userId };
   useEffect(() => {
-    extra.setFeedback?.(feedbackFor({ id, name, email }));
-    extra.setNavigate?.(navigate);
+    setFeedback(feedbackFor({ id, name, email }));
+    setNavigate(navigate);
     return () => {
-      extra.setFeedback?.(null);
-      extra.setNavigate?.(null);
+      setFeedback(null);
+      setNavigate(null);
     };
   }, [id, name, email, navigate]);
   useEffect(() => {
