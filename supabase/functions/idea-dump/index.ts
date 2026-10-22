@@ -9,22 +9,48 @@
 // standalone posts, each opening with one of the 5 hook formulas the app sent.
 // The app saves the posts the consultant keeps as drafts.
 //
-// Secrets: OPENAI_API_KEY. Deploy WITH JWT verification.
-// Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009).
+// mode "angles" (phase 5, Leo only while NORTH_STAR_USERS lists the caller, 403 not_enabled before anything is
+// counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit and are safe.
+// Cap "campaign-angles"; the use goes back only when OpenAI never answered (502), and a reply that keeps no angle
+// keeps it (422 no_angles).
+//
+// mode "campaign" (phase 5, Leo only, the same gate): up to 7 of a campaign's posts in one call, each in its
+// format's shape, or one post written again with `swap`. Cap "campaign-swap" for a swap, else "campaign-draft"; the
+// use goes back only when OpenAI never answered (502), and a reply where no post survives keeps it (422 unusable).
+// A person's posts each get Jev's MAS question in one call (`mas`, a warning that never blocks); a business's get null.
+//
+// Secrets: OPENAI_API_KEY; TYPESAFE_API_KEY for Jev (the plan modes work without it). Deploy WITH JWT verification.
+// Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009), and the phase 5 caps.
 // Logic: ./logic.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, usageRefusal, type RpcClient } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "../_shared/usageCaps.ts";
+import { askJev, noulOf, JEV_TIMEOUT_MS } from "../_shared/jev.ts";
+import { pool } from "../_shared/pool.ts";
+import { isAllowed } from "../market/logic.ts";
 import {
+  ANGLES_SCHEMA,
+  CAMPAIGN_SCHEMA,
   IDEA_BRIEF_SCHEMA,
   LONG_SCHEMA,
   NO_IDEAS_MESSAGE,
   buildIdeaDumpPrompt,
+  angleAsk,
+  buildAnglesPrompt,
+  buildCampaignPrompt,
+  campaignCap,
   buildLongPrompt,
+  keepAngles,
+  masAsk,
+  parseAnglesRequest,
+  parseCampaignRequest,
   parseIdeaDumpRequest,
   parseLongRequest,
+  validateAngles,
   validateBriefs,
+  validateCampaign,
   validateLong,
+  withMas,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 
@@ -43,15 +69,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-/** One structured-output call. Returns the JSON text, or null on any failure. */
+/** What one OpenAI call gave: its text, or whether it answered at all (non-2xx, timeout or no connection is not answering). */
+type OpenAiReply = { ok: true; text: string } | { ok: false; answered: boolean };
+
+/** One structured-output call. A use goes back only when `answered` is false (phase 4 decision 3). */
 async function developWithOpenAi(
   system: string,
   user: string,
   apiKey: string,
   out: { name: string; schema: unknown; maxTokens: number } = { name: "idea_briefs", schema: IDEA_BRIEF_SCHEMA, maxTokens: 6000 },
-): Promise<string | null> {
+): Promise<OpenAiReply> {
+  let res: Response;
   try {
-    const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
+    res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -69,23 +99,27 @@ async function developWithOpenAi(
       }),
       signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
     });
-    if (!res.ok) {
-      console.error("openai failed", res.status, (await res.text()).slice(0, 300));
-      return null;
-    }
-    const data = await res.json();
-    const choice = data?.choices?.[0];
-    if (choice?.message?.refusal) {
-      console.error("openai refused", String(choice.message.refusal).slice(0, 200));
-      return null;
-    }
-    if (choice?.finish_reason === "length") console.error("openai output hit max_tokens");
-    return typeof choice?.message?.content === "string" ? choice.message.content : null;
   } catch (e) {
     console.error("openai error", e);
-    return null;
+    return { ok: false, answered: false };
   }
+  if (!res.ok) {
+    console.error("openai failed", res.status, (await res.text().catch(() => "")).slice(0, 300));
+    return { ok: false, answered: false };
+  }
+  // OpenAI answered (and billed): from here a failure keeps the use
+  const data = await res.json().catch(() => null);
+  const choice = data?.choices?.[0];
+  if (choice?.message?.refusal) {
+    console.error("openai refused", String(choice.message.refusal).slice(0, 200));
+    return { ok: false, answered: true };
+  }
+  if (choice?.finish_reason === "length") console.error("openai output hit max_tokens");
+  return typeof choice?.message?.content === "string" ? { ok: true, text: choice.message.content } : { ok: false, answered: true };
 }
+
+/** Today's modes read any failure as null and never give the use back (pinned). */
+const textOf = (r: OpenAiReply) => (r.ok ? r.text : null);
 
 async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Promise<Response> {
   const parsed = parseLongRequest(body);
@@ -103,13 +137,79 @@ async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Prom
     return json(refusal.body, refusal.status);
   }
   const { system, user } = buildLongPrompt(request);
-  const content = await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 });
+  const content = textOf(await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 }));
   const result = content === null ? null : validateLong(content, request.formulas);
   if (!result || result.posts.length === 0) {
     return json({ error: "Couldn't write posts from this piece right now. Try again in a minute.", code: "ai_failed" }, 502);
   }
   console.log("idea-dump long", uid, "chars", request.text.length, "posts", result.posts.length);
   return json({ ...result, truncated: request.truncated, usage: { used: usage.used, limit: usage.limit } });
+}
+
+/** Today's counter day (UTC), read before the counter moves so a refund lands on the same row. */
+const usageDay = () => new Date().toISOString().slice(0, 10);
+
+async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseAnglesRequest(body);
+  if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
+  const { request } = parsed;
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) return json({ code: "not_configured", error: "This isn't switched on yet." }, 503);
+  const day = usageDay();
+  const usage = await consumeUsage(admin, uid, "campaign-angles");
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+  const { system, user } = buildAnglesPrompt(request);
+  const reply = await developWithOpenAi(system, user, apiKey, { name: "campaign_angles", schema: ANGLES_SCHEMA, maxTokens: 1500 });
+  if (!reply.ok && !reply.answered) {
+    await refundUsage(admin, uid, "campaign-angles", day);
+    return json({ code: "failed", error: "Couldn't suggest angles right now. Try again in a minute." }, 502);
+  }
+  const candidates = (reply.ok && validateAngles(reply.text, request.avoid)) || [];
+  const answers = await pool(candidates, 6, (a) => {
+    const ask = angleAsk(request, a);
+    return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
+  });
+  const kept = keepAngles(candidates, answers);
+  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE
+  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])));
+  if (!kept.angles.length) return json({ code: "no_angles", error: "Couldn't find angles that fit this time. Try again, or write your own." }, 422);
+  return json(kept);
+}
+
+async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseCampaignRequest(body);
+  if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
+  const { request } = parsed;
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) return json({ code: "not_configured", error: "This isn't switched on yet." }, 503);
+  const cap = campaignCap(request) satisfies "campaign-swap" | "campaign-draft";
+  const day = usageDay();
+  const usage = await consumeUsage(admin, uid, cap);
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+  const { system, user } = buildCampaignPrompt(request);
+  const reply = await developWithOpenAi(system, user, apiKey, { name: "campaign_posts", schema: CAMPAIGN_SCHEMA, maxTokens: 6000 });
+  if (!reply.ok && !reply.answered) {
+    await refundUsage(admin, uid, cap, day);
+    return json({ code: "failed", error: request.swap ? "Couldn't write new words right now. Try again in a minute." : "Couldn't write these posts right now. Try again in a minute." }, 502);
+  }
+  const written = (reply.ok && validateCampaign(reply.text, request)) || [];
+  if (!written.length) {
+    console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written 0");
+    return json({ code: "unusable", error: "The words that came back couldn't be used. Try again." }, 422);
+  }
+  const speaker = request.context.speaker;
+  const mas = speaker === "person" ? masAsk(written) : null;
+  const answers = mas ? await askJev(mas.state, mas.questions, { who: "idea-dump campaign mas" }) : null;
+  const posts = withMas(written, answers, speaker);
+  // decision 12: Jev's MAS yes per post number (never the words) for setting MAS_WARN
+  console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written", posts.length, "mas", JSON.stringify(posts.map((p) => [p.n, noulOf(answers, `mas_${p.n}`)])));
+  return json({ posts });
 }
 
 Deno.serve(async (req) => {
@@ -126,8 +226,11 @@ Deno.serve(async (req) => {
     if (!uid) return json({ error: "Sign in to develop your ideas." }, 401);
 
     const body = await req.json().catch(() => null);
-    if (body && typeof body === "object" && (body as { mode?: unknown }).mode === "long") {
-      return await repurposeLong(admin, uid, body);
+    const mode = body && typeof body === "object" ? (body as { mode?: unknown }).mode : undefined;
+    if (mode === "long") return await repurposeLong(admin, uid, body);
+    if (mode === "angles" || mode === "campaign") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      return mode === "angles" ? await suggestAngles(admin, uid, body) : await writeCampaign(admin, uid, body);
     }
     const parsed = parseIdeaDumpRequest(body);
     if (!parsed.ok) return json({ error: parsed.error, code: parsed.code }, parsed.status);
@@ -147,7 +250,7 @@ Deno.serve(async (req) => {
     }
 
     const { system, user } = buildIdeaDumpPrompt(request);
-    const content = await developWithOpenAi(system, user, apiKey);
+    const content = textOf(await developWithOpenAi(system, user, apiKey));
     const result =
       content === null ? null : validateBriefs(content, { notes: request.ideas, platforms: request.context.platforms });
     if (!result) {
