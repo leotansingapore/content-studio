@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FILTERS } from "../../../src/lib/videoEdit";
-import { BEAT_MAX, BEAT_MIN, DEFAULT_GRADE, GRADES, MAX_BEATS, MAX_SET_CANDIDATES, MIN_BEATS, buildMontageMessages, fitBeats, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks, type Beat } from "./montage";
+import { BEAT_MAX, BEAT_MIN, DEFAULT_GRADE, GRADES, MAX_BEATS, MAX_SET_CANDIDATES, MIN_BEATS, buildMontageMessages, fitBeats, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks, readScores, type Beat } from "./montage";
 
 const beat = (n: number, seconds = 4, over: Partial<Beat> = {}): Beat => ({ say: `Shot ${n}`, search: `shot ${n}`, fallback: "city", text: "", seconds, ...over });
 const reply = (beats: unknown[]) => JSON.stringify({ beats });
@@ -165,5 +165,12 @@ describe("a media set's pick (listed callers only)", () => {
     if (!other.ok) throw new Error("refused");
     expect(question(pickQuestions(other.beats, other.noun, other.set))).toBe("Which stock clip, described by its page name, best shows `beat`?");
     expect(question(pickQuestions(other.beats, "photo", other.set))).toBe("Which stock photo, described in words, best shows `beat`?");
+  });
+  it("reads Jev's probability for every candidate, in order, so a file that tops several beats can go to one", () => {
+    const asks = [{ say: "a", candidates: [{ desc: "x" }, { desc: "y" }, { desc: "z" }] }, { say: "b", candidates: [{ desc: "x" }] }, { say: "c", candidates: [] }];
+    const answers = { pick_0: { type: "choice" as const, choice: "c1", probabilities: { c0: 0.1234, c1: 0.6, none: 0.2766 } }, pick_1: { type: "choice" as const, choice: "none" } };
+    // c2 left out reads 0; a beat with no probabilities, or no candidates, has none
+    expect(readScores(answers, asks)).toEqual([[0.123, 0.6, 0], null, null]);
+    expect(readScores(null, asks)).toEqual([null, null, null]);
   });
 });

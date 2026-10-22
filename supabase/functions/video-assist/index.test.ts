@@ -507,7 +507,7 @@ describe("Montage pick from a media set", () => {
   it("offers a listed caller's set 12 candidates, asked about in words, for one use", async () => {
     const res = await run(LEO, { set: true });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ picks: [9] });
+    expect(await res.json()).toEqual({ picks: [9], scores: [[...Array(9).fill(0), 0.8, 0, 0]] });
     const q = asked().questions.pick_0;
     expect(q.instructions.question).toBe("Which photo or clip, described in words, best shows `beat`?");
     expect(Object.keys(q.criteria)).toHaveLength(13);

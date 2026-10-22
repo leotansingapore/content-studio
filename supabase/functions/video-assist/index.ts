@@ -44,7 +44,7 @@
 //   POST {mode:"montage-pick", theme, beats:[{say, candidates:[{desc}]}], noun?: "photo", set?: true} -> {picks:[index | -1 | null]}:
 //        the stock clip (or, with noun "photo", the slideshow's stock photo) Jev says shows each beat, -1 when none
 //        does, null with no answer ("montage-pick" cap). set (a media set's files, up to 12 a beat) is read only for
-//        NORTH_STAR_USERS; anyone else's request is today's.
+//        NORTH_STAR_USERS, and adds scores:[[p per candidate] | null] from the same answer; anyone else's request is today's.
 //   POST {mode:"hooks", sentences:[{s,e,text}] on the edited timeline, duration, formulas:[{id,name,template,example,trap}] x2-3}
 //        -> {hooks:[{formula,text}], pick: index | null}: hook card lines the LLM writes, one per formula, and the
 //        one Jev would start with (Write's hook question; null on no answer, a tie or a video not in English)
@@ -89,7 +89,7 @@ import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
 import { buildCaptionsMessages, buildThreadMessages, ctaLine, keywordCandidates, keywordQuestion, parseCaptionsReply, parseCaptionsRequest, parseThreadReply, parseThreadRequest, readKeyword } from "./captions.ts";
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
-import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks } from "./montage.ts";
+import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks, readScores } from "./montage.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { keywordQuestions, keywordsState, parseKeywordsRequest, readKeywords } from "./keywords.ts";
 import { buildOwnMessages, ownQuestions, ownState, parseOwnReply, parseOwnRequest, pickOwnHook } from "./own.ts";
@@ -471,7 +471,7 @@ Deno.serve(async (req) => {
       // Jev picks the clip for each beat, or says none fits; null per beat when it has no answer (the editor takes the first)
       const q = pickQuestions(p.beats, p.noun, p.set);
       const answers = Object.keys(q).length && mostlyEnglish(p.beats.map((b) => b.say).join(" ")) ? await askJev({ theme: p.theme }, q, { who: "video-assist montage pick", timeoutMs: 10_000 }) : null;
-      return json({ picks: readPicks(answers, p.beats) });
+      return json({ picks: readPicks(answers, p.beats), ...(p.set ? { scores: readScores(answers, p.beats) } : {}) });
     }
 
     if (body?.mode === "hooks") {

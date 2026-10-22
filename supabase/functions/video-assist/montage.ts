@@ -171,3 +171,18 @@ export function readPicks(answers: Record<string, JevAnswer> | null, beats: Pick
     return n < b.candidates.length ? n : null;
   });
 }
+
+/**
+ * Per beat of a set's ask: Jev's probability for each candidate, in their order (0 for one it left out), or null with no
+ * answer. One file can top several beats; with these the app gives each beat its best file still unused.
+ */
+export function readScores(answers: Record<string, JevAnswer> | null, beats: PickAsk[]): (number[] | null)[] {
+  return beats.map((b, i) => {
+    const pr = answers?.[`pick_${i}`]?.probabilities;
+    if (!pr || !b.candidates.length) return null;
+    return b.candidates.map((_, j) => {
+      const v = pr[`c${j}`];
+      return typeof v === "number" && Number.isFinite(v) ? Math.round(v * 1000) / 1000 : 0;
+    });
+  });
+}
