@@ -20,6 +20,8 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { scoped } from "@/lib/profiles";
+import { appendDictation } from "@/lib/dictation";
+import { useDictation } from "@/hooks/useDictation";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { getFunnelStage } from "@/data/funnelFramework";
 import {
@@ -56,36 +58,6 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-
-// ---- Dictation (Web Speech API; the button hides where it's missing) ----------
-
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult:
-    | ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void)
-    | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-type SpeechCtor = new () => SpeechRecognitionLike;
-
-function speechRecognition(): SpeechCtor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
-function appendDictation(prev: string, chunk: string): string {
-  const t = chunk.trim();
-  if (!t) return prev;
-  const sep = !prev.trim() || /\s$/.test(prev) ? "" : " ";
-  return `${prev}${sep}${t}`.slice(0, MAX_NOTES_CHARS);
-}
 
 // ---- Display helpers ----------------------------------------------------------
 
@@ -359,7 +331,6 @@ const textKey = (userId: string) => `cs-idea-dump-${scoped(userId)}`;
 export default function IdeaDump() {
   const { hash } = useLocation();
   const sectionRef = useRef<HTMLElement>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [briefs, setBriefs] = useState<IdeaBrief[]>([]);
@@ -369,10 +340,8 @@ export default function IdeaDump() {
   const [pendingCount, setPendingCount] = useState(0);
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  const [speechSupported] = useState(() => speechRecognition() !== null);
-  const [listening, setListening] = useState(false);
-  const [interim, setInterim] = useState("");
-  const [micError, setMicError] = useState("");
+  const dictation = useDictation((chunk) => setText((prev) => appendDictation(prev, chunk, MAX_NOTES_CHARS)));
+  const { supported: speechSupported, listening, interim, error: micError } = dictation;
   const leo = useLeoOnly();
   // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
   const left = useUsesLeft(loading || !leo)("idea-dump");
@@ -395,7 +364,6 @@ export default function IdeaDump() {
     });
     return () => {
       active = false;
-      recognitionRef.current?.abort();
     };
   }, []);
 
@@ -423,55 +391,9 @@ export default function IdeaDump() {
   const split = useMemo(() => splitIdeas(text), [text]);
   const audience = useMemo(() => preferredAudience(userId), [userId]);
 
-  const toggleDictation = () => {
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const Recognition = speechRecognition();
-    if (!Recognition) return;
-    const rec = new Recognition();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = "en-SG";
-    rec.onresult = (e) => {
-      let finalText = "";
-      let interimText = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const result = e.results[i];
-        if (result.isFinal) finalText += result[0].transcript;
-        else interimText += result[0].transcript;
-      }
-      if (finalText.trim()) setText((prev) => appendDictation(prev, finalText));
-      setInterim(interimText);
-    };
-    rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setMicError("Microphone access is blocked. Allow it in your browser settings to dictate.");
-      } else if (e.error === "no-speech") {
-        setMicError("Didn't catch that. Try again a little closer to the mic.");
-      } else if (e.error !== "aborted") {
-        setMicError("Dictation stopped. Try again.");
-      }
-    };
-    rec.onend = () => {
-      setListening(false);
-      setInterim("");
-      recognitionRef.current = null;
-    };
-    try {
-      rec.start();
-      recognitionRef.current = rec;
-      setListening(true);
-      setMicError("");
-    } catch {
-      setMicError("Couldn't start dictation. Try again.");
-    }
-  };
-
   const handleDevelop = async () => {
     if (!userId || loading || left === 0) return;
-    recognitionRef.current?.stop();
+    dictation.stop();
     const { ideas, overflow, tooShort } = splitIdeas(text);
     if (ideas.length === 0) {
       setNotice({ kind: "no-ideas", message: NO_IDEAS_MESSAGE, thin: tooShort.slice(0, 3), skipped: [] });
@@ -589,7 +511,7 @@ export default function IdeaDump() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={toggleDictation}
+                onClick={dictation.toggle}
                 disabled={loading}
                 aria-pressed={listening}
                 className="gap-1.5"
