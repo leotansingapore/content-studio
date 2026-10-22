@@ -4,7 +4,7 @@
 // (video, canvas, recorder, sound) is faked in node on a fake clock; the plan, cuts, captions and drawing are real.
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultSettings } from "./videoEdit";
+import { INTRO_CARD_SECONDS, defaultSettings } from "./videoEdit";
 import { exportJob, startExport, type BrandArt } from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => null }));
@@ -211,14 +211,14 @@ const brand: BrandArt = { name: "Leo Tan", handle: "@leo", role: "Adviser", colo
 const settings = { ...defaultSettings("bold"), wordsPerCaption: 2, endCard: true, music: { key: "mu", name: "Song", level: 0.3 } };
 
 /** One real-time export, as the log of the recorder and everything painted, with the file's length. */
-async function run(s: typeof settings, art: BrandArt | null = brand): Promise<string[]> {
+async function run(s: typeof settings, art: BrandArt | null = brand, said = words): Promise<string[]> {
   // every run from 0 on the clock
   vi.useRealTimers();
   vi.useFakeTimers(CLOCK);
   log.length = 0;
   rec = null;
   let done = false;
-  const going = startExport("Clip", new Blob(["mp4"]), words, s, undefined, art, null, undefined, new Blob(["mp3"])).finally(() => (done = true));
+  const going = startExport("Clip", new Blob(["mp4"]), said, s, undefined, art, null, undefined, new Blob(["mp3"])).finally(() => (done = true));
   for (let i = 0; i < 2000 && !done; i++) await vi.advanceTimersByTimeAsync(1000 / 30);
   await going;
   const j = exportJob();
@@ -255,5 +255,54 @@ describe("the real-time export without the intro card (pinned)", () => {
     const today = await run(sound);
     expect(today.at(-1)).toBe("done 6.169999999999999 s m4a Instagram cap 0");
     expect(await run({ ...sound, introCard: true }, { ...brand, intro: true } as BrandArt)).toEqual(today);
+  });
+});
+
+describe("the real-time export with the intro card, on Leo's sign-in", () => {
+  const leoArt = { ...brand, intro: true };
+  /** What was recorded, with its time in the file; "words" keeps the painted words, which a frame's timing can't round. */
+  const recorded = (l: string[], what: RegExp) =>
+    l.flatMap((x) => {
+      const m = / @([\d.]+) recording$/.exec(x);
+      return m && what.test(x) ? [{ line: x.slice(0, m.index), at: Number(m[1]) }] : [];
+    });
+  const card = (x: { line: string }) => x.line.includes(" 800 80px ");
+  // the fake clock ticks in whole milliseconds, so a frame lands within a couple of them
+  const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(0.003);
+
+  it("records the card for 1.5 s first, then today's recording 1.5 s later, and the file runs 1.5 s longer", async () => {
+    const today = await run(settings);
+    const out = await run({ ...settings, introCard: true }, leoArt);
+    const events = (l: string[]) => l.filter((x) => x.startsWith("recorder ")).map((x) => / @([\d.]+)$/.exec(x)![1]).map(Number);
+    expect(out.filter((x) => x.startsWith("recorder ")).slice(0, 3)).toEqual(["recorder start @0.000", "recorder pause @1.500", "recorder resume @1.500"]);
+    events(out).slice(3).forEach((t, i) => near(t, events(today)[i + 1] + INTRO_CARD_SECONDS));
+    // the card's words (the brand name in its 80 px face) only under the card, from its first frame to its last
+    const intro = recorded(out, /^text /).filter(card);
+    expect(intro[0]).toEqual({ line: expect.stringContaining('text "Leo Tan" 800 80px'), at: 0 });
+    expect(intro.at(-1)!.at).toBe(INTRO_CARD_SECONDS);
+    // every caption and end card word after it as today, 1.5 s later
+    const words = recorded(out, /^text /).filter((x) => !card(x));
+    const before = recorded(today, /^text /);
+    expect(words.map((x) => x.line)).toEqual(before.map((x) => x.line));
+    words.forEach((x, i) => near(x.at, before[i].at + INTRO_CARD_SECONDS));
+    expect(out.at(-1)).toBe(`done ${INTRO_CARD_SECONDS + 8.669999999999998} s mp4 Instagram cap 0`);
+  });
+
+  it("shows the caption said at 2.0 s at 2.0 + 1.5 s in the file", async () => {
+    // "four" ends at 1.7 s, so "three four" is gone by 2.0 s (a caption lingers 0.25 s) and "five six" comes on
+    const said = words.map((w) => (w.w === "four" ? { ...w, e: 1.7 } : w));
+    const first = (l: string[]) => recorded(l, /^text "FIVE" /)[0].at;
+    const without = first(await run(settings, brand, said));
+    // on screen from 1.95 s (captionAt leads by 0.05 s): the first frame painted after it
+    expect(without).toBeGreaterThanOrEqual(1.95);
+    expect(without).toBeLessThan(1.95 + 1 / 30);
+    near(first(await run({ ...settings, introCard: true }, leoArt, said)), without + INTRO_CARD_SECONDS);
+  });
+
+  it("starts the sound after the card: the music begins at 1.5 s in the file, from its own start", async () => {
+    const out = await run({ ...settings, introCard: true }, leoArt);
+    const music = recorded(out, /^music /);
+    expect(music[0].line).toMatch(/^music from 0\.00\d looped$/);
+    near(music[0].at, INTRO_CARD_SECONDS);
   });
 });

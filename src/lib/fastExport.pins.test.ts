@@ -76,7 +76,8 @@ vi.mock("mp4-muxer", () => ({
 }));
 
 const { FrameReader, exportFast } = await import("./fastExport");
-const { defaultSettings } = await import("./videoEdit");
+const { INTRO_CARD_SECONDS, captionAt, defaultSettings } = await import("./videoEdit");
+const { planFor } = await import("./videoMedia");
 
 class Node {
   connect<T>(n: T) {
@@ -203,10 +204,10 @@ const brand: BrandArt = { name: "Leo Tan", handle: "@leo", role: "Adviser", colo
 const settings = { ...defaultSettings("bold"), wordsPerCaption: 2, endCard: true, music: { key: "mu", name: "Song", level: 0.3 } };
 
 /** One fast export, as the log of everything it drew, encoded and placed. */
-async function run(s: typeof settings, art: BrandArt | null = brand): Promise<string[]> {
+async function run(s: typeof settings, art: BrandArt | null = brand, said = words): Promise<string[]> {
   h.log.length = 0;
   gains = 0;
-  const made = await exportFast({ file: new Blob(["mp4"]), words, settings: s, brand: art, music: new Blob(["mp3"]) }, () => {}, new AbortController().signal);
+  const made = await exportFast({ file: new Blob(["mp4"]), words: said, settings: s, brand: art, music: new Blob(["mp3"]) }, () => {}, new AbortController().signal);
   if (!made || made === "stopped") throw new Error(`no export: ${made}`);
   h.log.push(`done ${made.seconds} s ${made.ext} ${made.label} cap ${made.cap}`);
   return [...h.log];
@@ -243,5 +244,76 @@ describe("the fast export without the intro card (pinned)", () => {
     expect(log.some((l) => /^(frame|end|intro|video) /.test(l))).toBe(false);
     expect(sha(log)).toBe(TODAY_SOUND);
     expect(await run({ ...sound, introCard: true }, { ...brand, intro: true } as BrandArt)).toEqual(log);
+  });
+});
+
+describe("the fast export with the intro card, on Leo's sign-in", () => {
+  const leoArt = { ...brand, intro: true };
+  /** Each picture drawn, with the time it is shown at in the file (its frame's timestamp, in seconds). */
+  const shown = (log: string[]) => {
+    const out: { drawn: string; at: number }[] = [];
+    let drawn = "";
+    for (const l of log) {
+      if (/^(frame|end|intro) /.test(l)) drawn = l;
+      const ts = /^video (\d+)\+/.exec(l);
+      if (ts) out.push({ drawn, at: Number(ts[1]) / 1e6 });
+    }
+    return out;
+  };
+
+  it("plays the card for 1.5 s first, then every frame of today's edit 1.5 s later, and the file runs 1.5 s longer", async () => {
+    const today = shown(await run(settings));
+    const log = await run({ ...settings, introCard: true }, leoArt);
+    const withIntro = shown(log);
+    const card = Math.round(INTRO_CARD_SECONDS * 30);
+    expect(withIntro).toHaveLength(card + today.length);
+    expect(withIntro.slice(0, card).map((f) => f.drawn)).toEqual(Array.from({ length: card }, (_, i) => `intro ${(i / 30).toFixed(4)}`));
+    // the cuts, captions, face crops and end card all follow the same source and edit times, each at +1.5 s
+    withIntro.slice(card).forEach((f, i) => {
+      expect(f.drawn).toBe(today[i].drawn);
+      expect(f.at).toBeCloseTo(today[i].at + INTRO_CARD_SECONDS, 5);
+    });
+    expect(log.at(-1)).toBe(`done ${INTRO_CARD_SECONDS + 8.669999999999998} s mp4 Instagram cap 0`);
+  });
+
+  it("shows the caption said at 2.0 s at 2.0 + 1.5 s in the file", async () => {
+    // "four" ends at 1.7 s, so "three four" is gone by 2.0 s (a caption lingers 0.25 s) and "five six" is on screen
+    const said = words.map((w) => (w.w === "four" ? { ...w, e: 1.7 } : w));
+    const caps = planFor(said, 12, settings).caps;
+    const at2 = captionAt(caps, 2)!;
+    expect(at2.words.map((w) => w.w)).toEqual(["five", "six"]);
+    const when = async (s: typeof settings, art: BrandArt) => {
+      const frames = shown(await run(s, art, said));
+      return {
+        // the frame showing source second 2.0, and the first one with the caption on (captionAt leads by 0.05 s)
+        two: frames.find((f) => f.drawn.startsWith("frame src=2.0000 "))!.at,
+        first: frames.find((f) => {
+          const src = /^frame src=([\d.]+)/.exec(f.drawn);
+          return src && captionAt(caps, Number(src[1])) === at2;
+        })!.at,
+      };
+    };
+    const without = await when(settings, brand);
+    expect(without.two).toBeCloseTo(2, 5);
+    expect(without.first).toBeCloseTo(59 / 30, 5);
+    const withIntro = await when({ ...settings, introCard: true }, leoArt);
+    expect(withIntro.two).toBeCloseTo(2 + INTRO_CARD_SECONDS, 5);
+    expect(withIntro.first).toBeCloseTo(59 / 30 + INTRO_CARD_SECONDS, 5);
+  });
+
+  it("moves the sound later by the card's length: silence under the card, the edit's first sample at 1.5 s", async () => {
+    const today = await run(settings);
+    const log = await run({ ...settings, introCard: true }, leoArt);
+    // the mix is made on the edit's clock as today, with the same parts and music in it
+    expect(log.filter((l) => /^(mix|play) /.test(l))).toEqual(today.filter((l) => /^(mix|play) /.test(l)));
+    const aac = log.filter((l) => l.startsWith("aac ")).slice(1);
+    expect(aac.slice(0, 45).every((l) => / L 0\.\.0 R 0\.\.0$/.test(l))).toBe(true);
+    expect(aac[44]).toBe("aac 1466667 n=1600 L 0..0 R 0..0");
+    expect(aac[45]).toBe("aac 1500000 n=1600 L 1..1600 R -1..-1600");
+    // and after it today's sound, sample for sample with none skipped or repeated (cut into chunks at other places)
+    const ranges = (l: string[]) => l.map((x) => /L (-?\d+)\.\.(-?\d+)/.exec(x)!).map((m) => [Number(m[1]), Number(m[2])]);
+    const after = ranges(aac.slice(45));
+    after.forEach(([from], i) => expect(from).toBe(i ? after[i - 1][1] + 1 : 1));
+    expect(after.at(-1)).toEqual(ranges(today.filter((l) => l.startsWith("aac "))).at(-1));
   });
 });

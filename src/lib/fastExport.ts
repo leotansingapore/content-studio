@@ -8,8 +8,8 @@
 
 import { Muxer, StreamTarget } from "mp4-muxer";
 import { demuxAudio, demuxVideo, keyBefore, type VideoTrack } from "@/lib/mp4Demux";
-import { END_CARD_SECONDS, PEAK_CEILING, aspectSize, brollAt, duckSpans, exportSize, levelFits, musicGainAt, srcAt, speedOf, truePeak, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
-import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLevel, peakLimiter, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
+import { END_CARD_SECONDS, PEAK_CEILING, aspectSize, brollAt, duckSpans, exportSize, introLength, levelFits, musicGainAt, srcAt, speedOf, truePeak, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
+import { audioPeaks, decodeSound, drawEndCard, drawFrame, drawIntroCard, loadVideo, measureLevel, peakLimiter, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
 import { dropGain, motionOf, playCue } from "@/lib/videoMotion";
 import { piecesOf } from "@/lib/fastPauses";
 import { denoiseBuffer } from "@/lib/denoise";
@@ -370,6 +370,15 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
   return out;
 }
 
+/** The sound `secs` later, with silence before it (under the intro card); the same buffer when there is nothing to add. */
+function later(buf: AudioBuffer, secs: number): AudioBuffer {
+  if (!secs) return buf;
+  const pad = Math.round(secs * buf.sampleRate);
+  const out = new AudioBuffer({ length: pad + buf.length, sampleRate: buf.sampleRate, numberOfChannels: buf.numberOfChannels });
+  for (let c = 0; c < buf.numberOfChannels; c++) out.copyToChannel(buf.getChannelData(c), c, pad);
+  return out;
+}
+
 // ---------- encoding ----------
 
 /**
@@ -501,7 +510,10 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     video = await loadVideo(a.file);
     const plan = planFor(a.words, video.duration, a.settings);
     if (plan.total < 0.5) return no("nothing left after the cuts");
-    const seconds = plan.total + (a.settings.endCard && a.brand && kind !== "audio" ? END_CARD_SECONDS : 0);
+    // the edit and its end card, on the edit's own clock; the intro card plays before it
+    const edit = plan.total + (a.settings.endCard && a.brand && kind !== "audio" ? END_CARD_SECONDS : 0);
+    const intro = introLength(a.settings, a.brand);
+    const seconds = intro + edit;
     const size = exportSize(a.settings, seconds, video.videoWidth, video.videoHeight);
     const audioCfg: AudioEncoderConfig = { codec: "mp4a.40.2", sampleRate: RATE, numberOfChannels: 2, bitrate: size.audioBps };
     if (!(await AudioEncoder.isConfigSupported(audioCfg).catch(() => null))?.supported) return no("no AAC encoder");
@@ -543,7 +555,7 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     const decoded = await voicePieces(a.file, parts, video.duration);
     const pieces = decoded && decoded !== "long" && a.settings.denoise ? await denoisePieces(decoded) : decoded;
     if (pieces === "long") return no("the sound of a long video can't be read in parts here");
-    const mix = await renderMix(a, plan, seconds, kind !== "audio", parts, pieces);
+    const mix = later(await renderMix(a, plan, edit, kind !== "audio", parts, pieces), intro);
     if (signal.aborted) return "stopped";
     onProgress(0.05);
 
@@ -586,13 +598,17 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
       canvas.height = H;
       const g = canvas.getContext("2d")!;
       const peaks = video.videoWidth ? null : await audioPeaks(a.file);
-      const n = Math.round(seconds * FPS);
+      // whole frames of intro card, then the edit's frames exactly as without it
+      const introFrames = Math.round(intro * FPS);
+      const n = introFrames + Math.round(edit * FPS);
       let shown = -1;
       for (let i = 0; i < n; i++) {
         if (signal.aborted) return "stopped";
         if (failed) throw failed;
-        const out = i / FPS;
-        if (out < plan.total) {
+        const at = i / FPS;
+        const out = (i - introFrames) / FPS;
+        if (i < introFrames) drawIntroCard(g, a.brand!, at);
+        else if (out < plan.total) {
           const src = srcAt(plan.segs, out, speedOf(a.settings));
           const pic = main ? asVideo(await main.at(src)) : video;
           const on = brollAt(a.settings.broll, out);
@@ -600,10 +616,10 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
           const behind = backdrop ? await backdrop.r.at(out % backdrop.length) : null;
           drawFrame(g, { video: pic, settings: a.settings, ...plan, src, out, subs: a.subs, brand: a.brand, broll: cut ? asVideo(await cut.at(on.t)) : null, fx: a.fx, peaks, backdrop: behind });
         } else drawEndCard(g, a.brand!, out - plan.total);
-        const frame = new VideoFrame(canvas, { timestamp: Math.round(out * 1e6), duration: Math.round(1e6 / FPS) });
+        const frame = new VideoFrame(canvas, { timestamp: Math.round(at * 1e6), duration: Math.round(1e6 / FPS) });
         venc.encode(frame, { keyFrame: i % (FPS * 2) === 0 });
         frame.close();
-        sendSound(out + 1 / FPS);
+        sendSound(at + 1 / FPS);
         // keep a few frames in hand, no more: drawing runs ahead of the encoder otherwise
         while (venc.encodeQueueSize > 2 && !failed) await new Promise((r) => venc!.addEventListener("dequeue", r, { once: true }));
         const pct = Math.floor(((i + 1) / n) * 95);

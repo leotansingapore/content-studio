@@ -161,10 +161,19 @@ export interface KeyWord {
 }
 
 export const END_CARD_SECONDS = 2.5;
+export const INTRO_CARD_SECONDS = 1.5;
 
-/** The edit's full length: what is left after the cuts, plus the end card when it is on and there is a brand to show. */
-export function fullLength(total: number, s: Pick<EditSettings, "endCard">, hasBrand: boolean): number {
-  return total + (s.endCard && hasBrand ? END_CARD_SECONDS : 0);
+/**
+ * How long the intro card (brand-kit) plays before the first part: when it is on, in a file with a picture, and the
+ * brand art was loaded on Leo's sign-in (BrandArt.intro). 0 for everyone else, whatever their settings say.
+ */
+export function introLength(s: Pick<EditSettings, "introCard" | "exportAs">, brand: { intro?: boolean } | null | undefined): number {
+  return s.introCard && brand?.intro && s.exportAs !== "audio" ? INTRO_CARD_SECONDS : 0;
+}
+
+/** The edit's full length: the intro card (introLength), what is left after the cuts, and the end card when it is on and there is a brand to show. */
+export function fullLength(total: number, s: Pick<EditSettings, "endCard">, hasBrand: boolean, intro = 0): number {
+  return intro + total + (s.endCard && hasBrand ? END_CARD_SECONDS : 0);
 }
 
 /**
