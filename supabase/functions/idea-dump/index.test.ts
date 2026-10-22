@@ -169,3 +169,99 @@ describe("idea-dump today (pinned: live for everyone, no gate, no refund)", () =
     expect(db.spent).toEqual([]);
   });
 });
+
+const PLAN_CONTEXT = {
+  positioning: { oneLiner: "I help young families in Singapore plan for the big costs.", audienceDetail: "Parents in their 30s", topics: ["CPF"], edge: "" },
+  goal: "Get more enquiries from parents",
+  platforms: ["instagram"],
+  speaker: "person",
+};
+const ANGLES = { mode: "angles", audience: "Parents in their 30s with a first child", avoid: ["Hospital bills shock"], context: PLAN_CONTEXT };
+const ANGLES_REPLY = {
+  angles: Array.from({ length: 8 }, (_, i) => ({ title: `Angle number ${i}`, line: `Why angle ${i} matters to new parents.` })),
+};
+const NOT_ENABLED = { status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } };
+
+describe("idea-dump angles (phase 5, Leo only)", () => {
+  it("is 403 not_enabled before any count for a caller not on NORTH_STAR_USERS, even with a bad body", async () => {
+    expect(await call(ANGLES)).toEqual(NOT_ENABLED);
+    expect(await call({ mode: "angles" })).toEqual(NOT_ENABLED);
+    expect(db.spent).toEqual([]);
+    expect(sent[OPENAI]).toBeUndefined();
+  });
+
+  it("refuses a bad body with 400 and a missing key with 503, before any count", async () => {
+    expect(await call({ mode: "angles", context: PLAN_CONTEXT }, "leo")).toEqual({ status: 400, body: { code: "bad_request", error: "Say who the campaign is for first." } });
+    delete env.OPENAI_API_KEY;
+    expect((await call(ANGLES, "leo")).body.code).toBe("not_configured");
+    expect(db.spent).toEqual([]);
+  });
+
+  it("keeps the 5 Jev rates highest of those that fit and are safe, on the campaign-angles cap", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(ANGLES_REPLY);
+    // fits rises with the angle's number; angle 7 is unsafe, angle 0 does not fit
+    jevReply = (_q, state) => {
+      const i = Number(String(state.angle).match(/number (\d)/)?.[1]);
+      return { fits: { type: "noul", noul: i === 0 ? 0.3 : 0.5 + i / 20 }, unsafe: { type: "noul", noul: i === 7 ? 0.8 : 0.1 } };
+    };
+    const r = await call(ANGLES, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.scored).toBe(true);
+    expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Angle number 6", "Angle number 5", "Angle number 4", "Angle number 3", "Angle number 2"]);
+    expect(r.body.angles[0]).toEqual({ title: "Angle number 6", line: "Why angle 6 matters to new parents.", fit: 0.8 });
+    expect(db.spent).toEqual(["campaign-angles"]);
+    expect(db.refunded).toEqual([]);
+    expect(sent[JEV]).toHaveLength(8);
+    expect(Object.keys((sent[JEV][0] as { questions: object }).questions)).toEqual(["fits", "unsafe"]);
+    const prompt = (sent[OPENAI][0] as { messages: { content: string }[] }).messages.map((m) => m.content).join("\n");
+    expect(prompt).toContain("- Hospital bills shock");
+  });
+
+  it("drops a suggested title that is already saved, before asking Jev", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply({ angles: [{ title: "HOSPITAL bills shock", line: "Saved already." }, ...ANGLES_REPLY.angles.slice(0, 2)] });
+    jevReply = () => ({ fits: { type: "noul", noul: 0.9 }, unsafe: { type: "noul", noul: 0 } });
+    const r = await call(ANGLES, "leo");
+    expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Angle number 0", "Angle number 1"]);
+    expect(sent[JEV]).toHaveLength(2);
+  });
+
+  it("falls back to the first 5 clean candidates, unscored, with no Jev key", async () => {
+    openai = () => reply(ANGLES_REPLY);
+    const r = await call(ANGLES, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ scored: false });
+    expect(r.body.angles.map((a: { fit: null }) => a.fit)).toEqual([null, null, null, null, null]);
+    expect(sent[JEV]).toBeUndefined();
+  });
+
+  it("gives the use back when OpenAI never answered (non-2xx, timeout, no connection): 502", async () => {
+    const timeout = () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError"));
+    for (const fail of [() => new Response("down", { status: 500 }), timeout, () => Promise.reject(new TypeError("connection refused"))]) {
+      openai = fail;
+      db.spent.length = 0;
+      db.refunded.length = 0;
+      expect(await call(ANGLES, "leo")).toEqual({ status: 502, body: { code: "failed", error: "Couldn't suggest angles right now. Try again in a minute." } });
+      expect(db.spent).toEqual(["campaign-angles"]);
+      expect(db.refunded).toEqual(["campaign-angles"]);
+    }
+  });
+
+  it("keeps the use when OpenAI answered with nothing usable: 422 no_angles", async () => {
+    const refusal = () => Response.json({ choices: [{ message: { content: null, refusal: "I can't help with that." } }] });
+    for (const bad of [() => reply("not json"), () => reply({ angles: [{ title: "One", line: "" }] }), refusal]) {
+      openai = bad;
+      const r = await call(ANGLES, "leo");
+      expect(r.status).toBe(422);
+      expect(r.body.code).toBe("no_angles");
+    }
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("answers the daily limit with 429 and calls nothing", async () => {
+    db.limit = true;
+    expect((await call(ANGLES, "leo")).body.code).toBe("daily_limit");
+    expect(sent[OPENAI]).toBeUndefined();
+  });
+});

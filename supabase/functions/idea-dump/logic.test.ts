@@ -457,3 +457,158 @@ describe("pinned prompts", () => {
     await expect(promptText(buildLongPrompt(r.request))).toMatchFileSnapshot("./fixtures/long-prompt.txt");
   });
 });
+
+// ---- Plan modes (phase 5): angles ----------------------------------------------
+
+import { BUSINESS_VOICE } from "../remix/logic.ts";
+import {
+  ANGLE_CANDIDATES,
+  PLAN_LINES,
+  angleAsk,
+  buildAnglesPrompt,
+  cutWords,
+  keepAngles,
+  parseAnglesRequest,
+  parsePlanContext,
+  validateAngles,
+} from "./logic.ts";
+
+const PLAN_CONTEXT = {
+  positioning: { oneLiner: "I help young families in Singapore plan for the big costs.", audienceDetail: "Parents in their 30s", topics: ["Hospital cover", "CPF"], edge: "Ex-engineer" },
+  goal: "Get more enquiries from parents",
+  platforms: ["instagram", "tiktok", "myspace"],
+  voice: "Short sentences. I say what I think.",
+  memory: "What the AI may say and has learned:\nFacts: Ten years in practice\nKeep: Never use emoji",
+  speaker: "person",
+  product: "Write a post about what I offer: a family protection review.\nWhat it is: a one-hour review of a family's cover.",
+  rules: "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use no hashtags.",
+  questions: ["How much hospital cover does a baby need?"],
+  examples: ["Nobody tells new parents this about hospital bills."],
+};
+const BUSINESS_CONTEXT = {
+  positioning: { oneLiner: "ActivityTracker keeps sales reps' clients, chats and targets in one app.", audienceDetail: "Sales reps and coaches", topics: ["Follow-ups"], edge: "" },
+  goal: "Get more sign-ups and enquiries",
+  platforms: ["instagram"],
+  speaker: "business",
+};
+const ANGLES_ASK = { mode: "angles", audience: "Parents in their 30s with a first child", avoid: ["Hospital bills shock"], context: PLAN_CONTEXT };
+const anglesRequest = (body: unknown = ANGLES_ASK) => {
+  const r = parseAnglesRequest(body);
+  if (!r.ok) throw new Error(r.error);
+  return r.request;
+};
+const fullPrompt = (p: { system: string; user: string }) => `${p.system}\n${p.user}`;
+
+describe("parsePlanContext", () => {
+  it("reads every field, clipped, with known platforms only and person by default", () => {
+    const c = parsePlanContext({ ...PLAN_CONTEXT, speaker: "robot", goal: "g".repeat(200), questions: Array(9).fill("Why?"), examples: ["x".repeat(400)] });
+    expect(c.speaker).toBe("person");
+    expect(c.platforms).toEqual(["instagram", "tiktok"]);
+    expect(c.goal).toHaveLength(120);
+    expect(c.questions).toHaveLength(5);
+    expect(c.examples[0]).toHaveLength(300);
+    expect(c.memory).toBe(PLAN_CONTEXT.memory);
+    expect(parsePlanContext(BUSINESS_CONTEXT).speaker).toBe("business");
+    expect(parsePlanContext(undefined)).toMatchObject({ positioning: null, goal: "", platforms: [], speaker: "person", questions: [] });
+  });
+});
+
+describe("cutWords", () => {
+  it("keeps short text, and cuts long text at a sentence end when that keeps over half, else at a word", () => {
+    expect(cutWords("One two three.", 5)).toBe("One two three.");
+    expect(cutWords("One two three four. Five six seven eight.", 6)).toBe("One two three four.");
+    expect(cutWords("One. Two three four five six seven, eight", 6)).toBe("One. Two three four five six");
+    expect(cutWords("Line one here.\n\nLine two is longer than that", 6)).toBe("Line one here.\n\nLine two is");
+  });
+});
+
+describe("mode angles", () => {
+  it("needs an audience and clamps what it is sent", () => {
+    expect(parseAnglesRequest({ mode: "angles", context: PLAN_CONTEXT })).toMatchObject({ ok: false });
+    const r = anglesRequest({ ...ANGLES_ASK, avoid: Array.from({ length: 40 }, (_, i) => `Saved angle ${i}`) });
+    expect(r.avoid).toHaveLength(30);
+    expect(r.context.goal).toBe("Get more enquiries from parents");
+  });
+
+  it("asks for 8 candidates under COMPLIANCE_LINES and PLAN_LINES, with the context and the saved titles", () => {
+    const { system, user } = buildAnglesPrompt(anglesRequest());
+    expect(system).toContain([...COMPLIANCE_LINES, ...PLAN_LINES].join("\n"));
+    expect(system).toContain(`exactly ${ANGLE_CANDIDATES} candidates`);
+    expect(system).toContain("licensed financial adviser in Singapore");
+    expect(user).toContain("Angles already saved (suggest different ones):\n- Hospital bills shock");
+    expect(user).toContain("The audience: Parents in their 30s with a first child");
+    expect(user).toContain("The goal of these posts: Get more enquiries from parents");
+    expect(user).toContain("Questions this audience asks:\n- How much hospital cover does a baby need?");
+    expect(user).toContain("structure only: never copy their words");
+    // brand rules first, then learnings and facts, then the voice
+    const at = (s: string) => user.indexOf(s);
+    expect(at("MY BRAND RULES")).toBe(0);
+    expect(at("MY BRAND RULES")).toBeLessThan(at("What the AI may say"));
+    expect(at("What the AI may say")).toBeLessThan(at("What the adviser sells"));
+    expect(at("What the adviser sells")).toBeLessThan(at("Voice summary"));
+  });
+
+  it("writes for a business as the business, and never says adviser", () => {
+    const p = fullPrompt(buildAnglesPrompt(anglesRequest({ ...ANGLES_ASK, context: BUSINESS_CONTEXT })));
+    expect(p).toContain(BUSINESS_VOICE);
+    expect(p).toContain("a business in Singapore");
+    expect(p).not.toMatch(/adviser/i);
+    expect(fullPrompt(buildAnglesPrompt(anglesRequest()))).not.toContain(BUSINESS_VOICE);
+  });
+
+  it("validateAngles drops empty, over-length, one-word, repeated and already saved titles", () => {
+    const got = validateAngles(
+      JSON.stringify({
+        angles: [
+          { title: "Follow-ups that stick", line: "Most deals die in the follow-up, not the pitch." },
+          { title: "", line: "No title." },
+          { title: "Follow ups that STICK", line: "The same title again." },
+          { title: "Six words is one too many", line: "Too long." },
+          { title: "A title far longer than forty characters", line: "Too long." },
+          { title: "Pipeline", line: "One word." },
+          { title: "hospital bills SHOCK", line: "Saved already." },
+          { title: "No line here", line: "" },
+          { title: "Clients first — always", line: "An em dash goes, and a long line is cut: " + "word ".repeat(30) },
+        ],
+      }),
+      ["Hospital bills shock"],
+    );
+    expect(got?.map((a) => a.title)).toEqual(["Follow-ups that stick", "Clients first, always"]);
+    expect(got?.[1].line.split(" ").length).toBeLessThanOrEqual(19);
+    expect(validateAngles("not json")).toBeNull();
+    const many = { angles: Array.from({ length: 12 }, (_, i) => ({ title: `Angle number ${i}`, line: "A line." })) };
+    expect(validateAngles(many)).toHaveLength(ANGLE_CANDIDATES);
+  });
+
+  it("asks Jev whether the audience would stop and whether it is unsafe, from the adviser or the business", () => {
+    const a = { title: "Follow-ups that stick", line: "Most deals die in the follow-up." };
+    const person = angleAsk(anglesRequest(), a);
+    expect(person.state).toEqual({ audience: "Parents in their 30s with a first child", adviser: PLAN_CONTEXT.positioning.oneLiner, goal: PLAN_CONTEXT.goal, country: "Singapore", angle: "Follow-ups that stick: Most deals die in the follow-up." });
+    expect(Object.keys(person.questions)).toEqual(["fits", "unsafe"]);
+    expect(person.questions.fits.instructions).toContain("from `adviser`");
+    const business = angleAsk(anglesRequest({ ...ANGLES_ASK, context: BUSINESS_CONTEXT }), a);
+    expect(business.state.business).toBe(BUSINESS_CONTEXT.positioning.oneLiner);
+    expect(JSON.stringify(business)).not.toMatch(/adviser/i);
+  });
+
+  const cands = (n: number) => Array.from({ length: n }, (_, i) => ({ title: `Angle ${i} here`, line: `Line ${i}.` }));
+  const ans = (fits: number | null, unsafe: number | null = 0.1) => ({ fits: { type: "noul" as const, noul: fits ?? undefined }, unsafe: { type: "noul" as const, noul: unsafe ?? undefined } });
+
+  it("keepAngles keeps at fits 0.5, drops at 0.49 and at unsafe 0.5, top 5 by fit", () => {
+    const r = keepAngles(cands(8), [ans(0.5), ans(0.49), ans(0.9, 0.5), ans(0.7), ans(0.8), ans(0.6), ans(0.95), ans(0.55)]);
+    expect(r.scored).toBe(true);
+    expect(r.angles.map((a) => a.fit)).toEqual([0.95, 0.8, 0.7, 0.6, 0.55]);
+    expect(keepAngles(cands(2), [ans(0.5), ans(0.49)]).angles.map((a) => a.title)).toEqual(["Angle 0 here"]);
+  });
+
+  it("keepAngles falls back to the first 5 pattern-clean candidates, unscored, when Jev gives nothing", () => {
+    const list = cands(8);
+    list[1] = { title: "Guaranteed returns here", line: "Risk-free growth." };
+    const r = keepAngles(list, Array(8).fill(null));
+    expect(r.scored).toBe(false);
+    expect(r.angles.map((a) => a.title)).toEqual(["Angle 0 here", "Angle 2 here", "Angle 3 here", "Angle 4 here", "Angle 5 here"]);
+    expect(r.angles.every((a) => a.fit === null)).toBe(true);
+    // fits answered but unsafe left out: the patterns decide
+    expect(keepAngles(list.slice(0, 2), [ans(0.9, null), ans(0.9, null)]).angles.map((a) => a.title)).toEqual(["Angle 0 here"]);
+  });
+});

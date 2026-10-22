@@ -9,20 +9,34 @@
 // standalone posts, each opening with one of the 5 hook formulas the app sent.
 // The app saves the posts the consultant keeps as drafts.
 //
-// Secrets: OPENAI_API_KEY. Deploy WITH JWT verification.
-// Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009).
+// mode "angles" (phase 5, Leo only while NORTH_STAR_USERS lists the caller, 403 not_enabled before anything is
+// counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit and are safe.
+// Cap "campaign-angles"; the use goes back only when OpenAI never answered (502), and a reply that keeps no angle
+// keeps it (422 no_angles).
+//
+// Secrets: OPENAI_API_KEY; TYPESAFE_API_KEY for Jev (the plan modes work without it). Deploy WITH JWT verification.
+// Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009), and the phase 5 caps.
 // Logic: ./logic.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, usageRefusal, type RpcClient } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "../_shared/usageCaps.ts";
+import { askJev, noulOf, JEV_TIMEOUT_MS } from "../_shared/jev.ts";
+import { pool } from "../_shared/pool.ts";
+import { isAllowed } from "../market/logic.ts";
 import {
+  ANGLES_SCHEMA,
   IDEA_BRIEF_SCHEMA,
   LONG_SCHEMA,
   NO_IDEAS_MESSAGE,
   buildIdeaDumpPrompt,
+  angleAsk,
+  buildAnglesPrompt,
   buildLongPrompt,
+  keepAngles,
+  parseAnglesRequest,
   parseIdeaDumpRequest,
   parseLongRequest,
+  validateAngles,
   validateBriefs,
   validateLong,
 } from "./logic.ts";
@@ -120,6 +134,39 @@ async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Prom
   return json({ ...result, truncated: request.truncated, usage: { used: usage.used, limit: usage.limit } });
 }
 
+/** Today's counter day (UTC), read before the counter moves so a refund lands on the same row. */
+const usageDay = () => new Date().toISOString().slice(0, 10);
+
+async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseAnglesRequest(body);
+  if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
+  const { request } = parsed;
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) return json({ code: "not_configured", error: "This isn't switched on yet." }, 503);
+  const day = usageDay();
+  const usage = await consumeUsage(admin, uid, "campaign-angles");
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+  const { system, user } = buildAnglesPrompt(request);
+  const reply = await developWithOpenAi(system, user, apiKey, { name: "campaign_angles", schema: ANGLES_SCHEMA, maxTokens: 1500 });
+  if (!reply.ok && !reply.answered) {
+    await refundUsage(admin, uid, "campaign-angles", day);
+    return json({ code: "failed", error: "Couldn't suggest angles right now. Try again in a minute." }, 502);
+  }
+  const candidates = (reply.ok && validateAngles(reply.text, request.avoid)) || [];
+  const answers = await pool(candidates, 6, (a) => {
+    const ask = angleAsk(request, a);
+    return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
+  });
+  const kept = keepAngles(candidates, answers);
+  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE
+  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])));
+  if (!kept.angles.length) return json({ code: "no_angles", error: "Couldn't find angles that fit this time. Try again, or write your own." }, 422);
+  return json(kept);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -134,8 +181,11 @@ Deno.serve(async (req) => {
     if (!uid) return json({ error: "Sign in to develop your ideas." }, 401);
 
     const body = await req.json().catch(() => null);
-    if (body && typeof body === "object" && (body as { mode?: unknown }).mode === "long") {
-      return await repurposeLong(admin, uid, body);
+    const mode = body && typeof body === "object" ? (body as { mode?: unknown }).mode : undefined;
+    if (mode === "long") return await repurposeLong(admin, uid, body);
+    if (mode === "angles") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      return await suggestAngles(admin, uid, body);
     }
     const parsed = parseIdeaDumpRequest(body);
     if (!parsed.ok) return json({ error: parsed.error, code: parsed.code }, parsed.status);
