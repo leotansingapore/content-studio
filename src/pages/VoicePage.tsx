@@ -19,6 +19,7 @@ import PriceChip from "@/components/PriceChip";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useGoneItem, useScrollToHash, useScrollToItem, useUrlItem } from "@/lib/urlState";
+import { links } from "@/lib/links";
 import { WRITE_PRICE } from "@/lib/prices";
 import { auditedHandles, captionsForVoice, loadAuditFor } from "@/lib/accountAudit";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -434,7 +435,7 @@ const dayMonth = (iso: string) => {
 };
 const SCOPE_LABEL: Record<LearningScope, string> = { posts: "Posts", videos: "Videos", pictures: "Pictures", all: "Everything" };
 const sourceLabel = (l: Learning) =>
-  `${l.source === "assistant" ? "You told the assistant" : l.source === "rewrite" && l.rewrite && isLoggedRewrite(l.rewrite) ? `You kept ${REWRITE_LEARNINGS[l.rewrite].label} on 3 posts` : "Typed here"}, ${dayMonth(l.createdAt)}`;
+  `${l.thread || l.source === "correction" ? "From a chat" : l.source === "assistant" ? "You told the assistant" : l.source === "rewrite" && l.rewrite && isLoggedRewrite(l.rewrite) ? `You kept ${REWRITE_LEARNINGS[l.rewrite].label} on 3 posts` : "Typed here"}, ${dayMonth(l.createdAt)}`;
 
 const H2 = "font-serif text-xl font-semibold leading-tight scroll-mt-20";
 const CHIP = "rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground";
@@ -724,9 +725,10 @@ function FactsSection({ userId }: { userId: string }) {
   );
 }
 
-type Row = { key: string; text: string; scope: LearningScope; from: string; remove: () => void; learning?: string };
+type Row = { key: string; text: string; scope: LearningScope; from: string; remove: () => void; learning?: string; to?: string };
 
-function LearnedSection({ userId }: { userId: string }) {
+/** Exported for its test. */
+export function LearnedSection({ userId }: { userId: string }) {
   const { toast } = useToast();
   const read = () => ({ learned: activeLearnings(loadLearnings(userId)), coach: loadCoachProfile(userId) });
   const [data, setData] = useState(read);
@@ -774,7 +776,8 @@ function LearnedSection({ userId }: { userId: string }) {
   };
 
   const rows: Row[] = [
-    ...data.learned.map((l) => ({ key: l.id, learning: l.id, text: l.text, scope: l.scope, from: sourceLabel(l), remove: () => removeLearning(l.id) })),
+    // links.agent encodes the stored ids, so a row's link never leaves /agent
+    ...data.learned.map((l) => ({ key: l.id, learning: l.id, text: l.text, scope: l.scope, from: sourceLabel(l), to: l.thread ? links.agent({ thread: l.thread, m: l.msg }) : undefined, remove: () => removeLearning(l.id) })),
     ...data.coach.likes.map((x) => ({ key: `like:${x}`, text: `Lean into: ${x}`, scope: "posts" as const, from: "From Coach", remove: () => removeCoach("like", x) })),
     ...data.coach.dislikes.map((x) => ({ key: `dislike:${x}`, text: `Steer clear of: ${x}`, scope: "posts" as const, from: "From Coach", remove: () => removeCoach("dislike", x) })),
   ];
@@ -807,7 +810,13 @@ function LearnedSection({ userId }: { userId: string }) {
               >
                 <span className="min-w-0 flex-1 basis-48 font-medium [overflow-wrap:anywhere]">{r.text}</span>
                 <span className={CHIP}>{SCOPE_LABEL[r.scope]}</span>
-                <span className="text-xs text-muted-foreground">{r.from}</span>
+                {r.to ? (
+                  <Link to={r.to} className="inline-flex items-center text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-primary [@media(pointer:coarse)]:min-h-11">
+                    {r.from}
+                  </Link>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{r.from}</span>
+                )}
                 <Button variant="ghost" size="sm" onClick={r.remove} className="px-2 text-muted-foreground hover:text-destructive">Remove</Button>
               </li>
             ))}

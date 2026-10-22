@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ExternalLink, Loader2, Shuffle, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import BreakdownRow from "@/components/remix/BreakdownRow";
@@ -51,7 +51,7 @@ import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } fro
 import { localTeardown, type Teardown } from "@/lib/remixTeardown";
 import { resolveSource } from "@/lib/resolveSource";
 import { useUrlFlag, useUrlItem, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
-import type { LeoUser } from "@/lib/useLeoOnly";
+import { useLeoUser, type LeoUser } from "@/lib/useLeoOnly";
 import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
 import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 
@@ -66,7 +66,9 @@ const SHEET_PARAMS = Object.fromEntries(["remix", "keep", "about", "close", "mor
 export default function RemixSheet({ user }: { user: LeoUser }) {
   const [key] = useUrlItem("remix");
   const update = useUrlUpdate();
-  return key ? <Sheet key={`${user.id}|${key}`} remixKey={key} userId={user.id} onClose={() => update(SHEET_PARAMS)} /> : null;
+  // /agent reads ?remix= into its composer (agent-chat), so the sheet never opens over it, even while it loads
+  const onAgent = /^\/agent(\/|$)/.test(useLocation().pathname);
+  return key && !onAgent ? <Sheet key={`${user.id}|${key}`} remixKey={key} userId={user.id} onClose={() => update(SHEET_PARAMS)} /> : null;
 }
 
 function useJob(): RemixJobState | null {
@@ -125,6 +127,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const aiBusy = useAiBusy();
   const [params] = useSearchParams();
   const update = useUrlUpdate();
+  // the sheet is mounted for Leo today; the agent link asks again, so the sheet stays as it is for anyone else
+  const leo = useLeoUser();
 
   const keeps = useMemo<Keep[]>(() => (source ? intentsFor(source) : ["structure"]), [source]);
   const [keep] = useUrlState<Keep>("keep", "structure", { allowed: keeps });
@@ -481,6 +485,14 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           </p>
         )}
         {otherRunning && <p className="text-center text-xs text-muted-foreground">Your other remix is still going. This one can start once it's done.</p>}
+        {leo && (
+          <Link
+            to={links.agent({ remix: remixKey })}
+            className="flex w-full items-center justify-center py-1 text-xs font-semibold text-muted-foreground hover:text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+          >
+            Ask the agent instead
+          </Link>
+        )}
       </div>
     );
   }
