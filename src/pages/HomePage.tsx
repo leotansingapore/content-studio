@@ -57,6 +57,7 @@ import { homeToday } from "@/lib/needsYou";
 import { marketShown } from "@/lib/market";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
 import WhatMovedCard from "@/components/WhatMovedCard";
+import GoalLine from "@/components/GoalLine";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -359,6 +360,7 @@ export default function HomePage() {
               <span className="capitalize">, {name}</span>
             ) : null}
           </h1>
+          <GoalLine />
         </header>
 
         {/* Your next move — the single most important thing to do now. Driven
