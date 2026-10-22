@@ -82,6 +82,11 @@ const IdeasPage = lazy(() => import("@/pages/IdeasPage"));
 const CampaignsPage = lazy(() => import("@/pages/CampaignsPage"));
 const CampaignWizardPage = lazy(() => import("@/pages/CampaignWizardPage"));
 const CampaignPage = lazy(() => import("@/pages/CampaignPage"));
+// North star phase 6 (Leo only): stubs that answer the not-found page until their builders replace them.
+const AgentPage = lazy(() => import("@/pages/AgentPage"));
+const SkillsPage = lazy(() => import("@/pages/SkillsPage"));
+const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
+const AutomationsPage = lazy(() => import("@/pages/AutomationsPage"));
 
 export default function App() {
   return (
@@ -132,6 +137,8 @@ export default function App() {
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/welcome" element={<WelcomePage />} />
+          <Route path="/agent" element={<AgentPage />} />
+          <Route path="/agent/:thread" element={<AgentPage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/generate/batch" element={<BatchPage />} />
           <Route path="/carousel" element={<CarouselPage />} />
@@ -173,6 +180,9 @@ export default function App() {
           <Route path="/links" element={<TrackedLinksPage />} />
           <Route path="/media" element={<MediaPage />} />
           <Route path="/connect" element={<ConnectPage />} />
+          <Route path="/skills" element={<SkillsPage />} />
+          <Route path="/activity" element={<ActivityPage />} />
+          <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/grid" element={<GridPage />} />
           <Route path="/drafts" element={<DraftsPage />} />

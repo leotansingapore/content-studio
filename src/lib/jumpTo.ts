@@ -66,6 +66,10 @@ const KEYWORDS: Record<string, string> = {
   "/audiences": "audience avatar persona who buys",
   "/campaigns": "campaign month angles plan posts",
   "/ideas": "ideas inbox shortlist daily ideas",
+  "/agent": "chat assistant ask make remix",
+  "/skills": "slash commands shortcuts check retro tasks",
+  "/activity": "log history what ran usage credits",
+  "/automations": "autopilot schedule limits what runs without you",
 };
 
 /** Every page this sign-in sees, labelled with its section. */

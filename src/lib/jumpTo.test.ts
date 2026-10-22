@@ -181,6 +181,25 @@ describe("Campaigns, Ideas and Audiences", () => {
   });
 });
 
+describe("Agent, Skills, Activity and Automations", () => {
+  it("finds them for Leo by the words people use, and for nobody else", () => {
+    const leo = [...CREATE_ITEMS, ...pageItems("tanjunsing@gmail.com")];
+    for (const q of ["agent", "chat", "assistant"]) expect(searchJump(leo, q)[0].to, q).toBe("/agent");
+    for (const q of ["skills", "slash", "shortcuts", "retro"]) expect(searchJump(leo, q)[0].to, q).toBe("/skills");
+    for (const q of ["activity", "log", "what ran", "usage", "credits"]) expect(searchJump(leo, q)[0].to, q).toBe("/activity");
+    for (const q of ["automations", "autopilot", "limits", "runs without you"]) expect(searchJump(leo, q)[0].to, q).toBe("/automations");
+    // the pages people already look for keep their place
+    expect(searchJump(leo, "schedule")[0].to).toBe("/calendar");
+    expect(searchJump(leo, "history")[0].to).toBe("/drafts");
+    expect(searchJump(leo, "make")[0].to).toBe("/make");
+    expect(searchJump(leo, "connect claude")[0].to).toBe("/connect");
+    const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
+    for (const to of ["/agent", "/skills", "/activity", "/automations"]) expect(other.map((i) => i.to)).not.toContain(to);
+    expect(searchJump(other, "agent").map((i) => i.to)).toEqual(["/recruit/agent"]);
+    expect(searchJump(other, "autopilot")).toEqual([]);
+  });
+});
+
 describe("recent pages", () => {
   it("keeps nav pages newest first, without repeats, up to the limit", () => {
     pushRecent("/calendar");

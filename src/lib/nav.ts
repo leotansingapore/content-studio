@@ -15,6 +15,7 @@ import {
   History,
   Home,
   Lightbulb,
+  MessageSquare,
   MessageSquarePlus,
   PenLine,
   CalendarClock,
@@ -72,6 +73,7 @@ export const SECTIONS: NavSection[] = [
     to: "/home",
     pages: [
       { to: "/home", label: "Overview", title: "Home" },
+      { to: "/agent", label: "Agent", icon: MessageSquare, owners: LEO_EMAILS },
       { to: "/welcome", label: "Getting started", icon: Sparkles },
       { to: "/north-star", label: "North star", icon: Star, owners: LEO_EMAILS },
     ],
@@ -180,6 +182,9 @@ export const SECTIONS: NavSection[] = [
       { to: "/accounts", label: "Social accounts", show: socialConnectShown },
       { to: "/fads", label: "F.A.D.S." },
       { to: "/connect", label: "Connect Claude" },
+      { to: "/skills", label: "Skills", owners: LEO_EMAILS },
+      { to: "/activity", label: "Activity", owners: LEO_EMAILS },
+      { to: "/automations", label: "Automations", owners: LEO_EMAILS },
     ],
   },
   {

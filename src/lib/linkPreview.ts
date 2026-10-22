@@ -24,6 +24,7 @@ export const SITE_CARD = "/og/site.jpg";
 /** Each page's name as the nav shows it (src/lib/nav.ts, a page's title else its label); the test keeps them equal. */
 export const PAGES: Record<string, string> = {
   "/home": "Home",
+  "/agent": "Agent",
   "/welcome": "Getting started",
   "/north-star": "North star",
   "/generate": "Write a post",
@@ -71,6 +72,9 @@ export const PAGES: Record<string, string> = {
   "/accounts": "Social accounts",
   "/fads": "F.A.D.S.",
   "/connect": "Connect Claude",
+  "/skills": "Skills",
+  "/activity": "Activity",
+  "/automations": "Automations",
   "/academy": "Academy",
   "/create-guide": "How to post",
   "/tutorial": "How the studio works",
