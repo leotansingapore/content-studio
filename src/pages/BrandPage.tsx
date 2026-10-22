@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { useScrollToHash } from "@/lib/urlState";
+import { useScrollToHash, useUrlState } from "@/lib/urlState";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { DM_PROBLEM, dmFields, dmLinks, fbPageName, igUsername, waDigits, type DmFields } from "@/lib/bioPage";
 import {
@@ -27,6 +27,8 @@ import {
   MAX_OFFERS,
   MAX_OFFER_NAME,
   MAX_OFFER_URL,
+  MAX_PALETTE,
+  MAX_PALETTE_NAME,
   MAX_ROLE_CHARS,
   MAX_SIGNOFF_CHARS,
   MAX_WA_TEXT,
@@ -50,6 +52,9 @@ import WebsiteSection from "@/components/brand/WebsiteSection";
 import ProductsSection from "@/components/brand/ProductsSection";
 import DemoVideosSection from "@/components/brand/DemoVideosSection";
 import LanguageSection from "@/components/brand/LanguageSection";
+import PeopleWhoSign from "@/components/brand/PeopleWhoSign";
+import BrandFontSection from "@/components/brand/BrandFontSection";
+import OnEveryPost from "@/components/brand/OnEveryPost";
 
 /** Reads an image file into a small data URL: a centred square for the photo, a fitted box for the logo. */
 async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> {
@@ -80,6 +85,51 @@ async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> 
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/** An extra colour's name: its preset's when it is one, else "Colour 2" to "Colour 4". */
+const colourName = (hex: string, i: number) => BRAND_PRESETS.find((p) => p.color === hex)?.name ?? `Colour ${i + 2}`;
+
+/** The kit's extra colours (brand-kit, Leo only): up to 3, named, beside the main colour. The first takes the carousel's accent and CTA slide. */
+function PaletteRows({ brand, setBrand }: { brand: CarouselBrand; setBrand: (patch: Partial<CarouselBrand>) => void }) {
+  const palette = brand.palette ?? [];
+  const set = (i: number, patch: Partial<{ name: string; hex: string }>) => setBrand({ palette: palette.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const add = () => {
+    const used = new Set([brand.color, ...palette.map((c) => c.hex)]);
+    const hex = (BRAND_PRESETS.find((p) => !used.has(p.color)) ?? BRAND_PRESETS[0]).color;
+    setBrand({ palette: [...palette, { name: colourName(hex, palette.length), hex }] });
+  };
+  return (
+    <div className="space-y-2 border-t border-border/60 pt-3">
+      {palette.map((c, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            type="color"
+            value={c.hex.toLowerCase()}
+            aria-label={`Colour ${i + 2}`}
+            onChange={(e) => {
+              const hex = normalizeHex(e.target.value);
+              // a name still at its default follows the colour
+              if (hex) set(i, { hex, ...(c.name === colourName(c.hex, i) ? { name: colourName(hex, i) } : {}) });
+            }}
+            className="h-9 w-9 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+          />
+          <Input value={c.name} maxLength={MAX_PALETTE_NAME} aria-label={`Colour ${i + 2}: name`} onChange={(e) => set(i, { name: e.target.value })} className="h-9 w-32 min-w-0 [@media(pointer:coarse)]:h-11" />
+          <span className="font-mono text-xs text-muted-foreground">{c.hex}</span>
+          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Remove ${c.name || `colour ${i + 2}`}`} onClick={() => setBrand({ palette: palette.filter((_, j) => j !== i) })}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      {palette.length < MAX_PALETTE ? (
+        <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11" onClick={add}>
+          <Plus className="h-3.5 w-3.5" /> Add a colour
+        </Button>
+      ) : (
+        <p className="text-xs text-muted-foreground">Up to {MAX_PALETTE} more colours.</p>
+      )}
+    </div>
+  );
 }
 
 const CHECK = { instagram: igUsername, facebook: fbPageName, whatsapp: waDigits } as const;
@@ -171,6 +221,9 @@ export default function BrandPage() {
   const measure = useMemo(() => createCanvasMeasure(), []);
   // north star phase 4: Leo's sections, each saving through setKit (phase4-build-brief.md, decision 14)
   const leo = useLeoUser();
+  // ?preview=end (Leo only): the aside shows the video end card instead of a slide
+  const [previewTab, setPreviewTab] = useUrlState("preview", "slide", { allowed: ["slide", "end"] as const });
+  const endCanvas = useRef<HTMLCanvasElement>(null);
   // /brand#logo (and the other section ids, docs/deep-links.md) lands on that section once the kit has loaded
   useScrollToHash(ready);
 
@@ -235,6 +288,26 @@ export default function BrandPage() {
     );
     return svgDataUrl(renderSvg(layout));
   }, [brand, measure]);
+
+  // the end card as a new video draws it, at 1 s, from the kit as it is now (the video code loads only for Leo's tab)
+  useEffect(() => {
+    if (!leo || previewTab !== "end") return;
+    let live = true;
+    void import("@/lib/videoMedia").then(async (m) => {
+      await m.ensureCaptionFonts();
+      const art = await m.loadBrandArt(brand);
+      const g = endCanvas.current?.getContext("2d");
+      if (!live || !g) return;
+      if (art) m.drawEndCard(g, art, 1);
+      else {
+        g.fillStyle = brand.color;
+        g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [leo, previewTab, brand]);
 
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
   const dm = useMemo(() => dmFields(brand, loadSocialAccounts(userId)), [brand, userId]);
@@ -307,6 +380,9 @@ export default function BrandPage() {
               </div>
             </div>
           </section>
+          {leo && userId && (
+            <PeopleWhoSign brand={brand} setBrand={setKit} photoOf={(f) => shrinkImage(f, "photo")} onError={(title, description) => toast({ title, description, variant: "destructive" })} />
+          )}
 
           <section id="dm-links" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="dm-links">
             <div className="flex items-center gap-1">
@@ -396,7 +472,7 @@ export default function BrandPage() {
           </section>
 
           <section id="colour" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
-            <h2 id="brand-colour-label" className="font-serif text-lg font-semibold">Colour</h2>
+            <h2 id="brand-colour-label" className="font-serif text-lg font-semibold">{leo ? "Colours" : "Colour"}</h2>
             <div role="group" aria-labelledby="brand-colour-label" className="flex flex-wrap items-center gap-2">
               {BRAND_PRESETS.map((p) => {
                 const active = brand.color === p.color;
@@ -440,7 +516,9 @@ export default function BrandPage() {
                 className="h-9 w-24 font-mono text-xs [@media(pointer:coarse)]:h-11"
               />
             </div>
+            {leo && <PaletteRows brand={brand} setBrand={setKit} />}
           </section>
+          {leo && userId && <BrandFontSection userId={userId} />}
 
           <section id="sign-off" className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
             <Label htmlFor="brand-signoff" className="font-serif text-lg font-semibold">Sign-off</Label>
@@ -581,12 +659,31 @@ export default function BrandPage() {
             </div>
             <p className="text-xs text-muted-foreground">A PNG with a see-through background works best.</p>
           </section>
+          {leo && userId && <OnEveryPost brand={brand} setBrand={setKit} />}
         </div>
 
-        <aside className="space-y-2 lg:sticky lg:top-4">
-          <p className="text-sm font-semibold">On your carousels</p>
-          <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[320px] rounded-xl border border-border/60 shadow-card" />
-        </aside>
+        {leo ? (
+          <aside className="space-y-2 lg:sticky lg:top-4">
+            <div role="group" aria-label="Preview" className="flex w-fit rounded-lg border border-border/60 bg-muted/30 p-1">
+              {([["slide", "Slide"], ["end", "End card"]] as const).map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={previewTab === v} onClick={() => setPreviewTab(v)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11 ${previewTab === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {previewTab === "end" ? (
+              <canvas ref={endCanvas} width={540} height={960} aria-label="The end card on your videos" className="block w-full max-w-[270px] rounded-xl border border-border/60 bg-muted shadow-card" />
+            ) : (
+              <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[320px] rounded-xl border border-border/60 shadow-card" />
+            )}
+          </aside>
+        ) : (
+          <aside className="space-y-2 lg:sticky lg:top-4">
+            <p className="text-sm font-semibold">On your carousels</p>
+            <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[320px] rounded-xl border border-border/60 shadow-card" />
+          </aside>
+        )}
       </div>
       )}
     </div>
