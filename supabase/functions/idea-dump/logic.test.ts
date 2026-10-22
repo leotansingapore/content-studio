@@ -412,3 +412,39 @@ describe("validateLong", () => {
     expect(validateLong({ extracts: {} }, FORMULAS)).toBeNull();
   });
 });
+
+// ---- Pins (phase 5): today's prompts, byte for byte ---------------------------
+// Never update these with vitest -u: the default and long modes are live for everyone, and every later change
+// to logic.ts (COMPLIANCE_LINES, the plan modes) must leave them exactly as they are.
+
+const PIN_BODY = {
+  positioning: {
+    oneLiner: "I help young families in Singapore plan for the big costs.",
+    audienceDetail: "Parents in their 30s with an HDB flat and a first child",
+    topics: ["Hospital cover", "CPF", "Saving for school"],
+    edge: "Ex-engineer who explains with numbers",
+  },
+  platforms: ["linkedin", "instagram"],
+  voice: "Short sentences. I say what I think. No jargon.",
+};
+const promptText = (p: { system: string; user: string }) => `${p.system}\n\n===== user =====\n\n${p.user}\n`;
+
+describe("pinned prompts", () => {
+  it("keeps the default prompt with a saved profile", async () => {
+    const r = parseIdeaDumpRequest({ ...PIN_BODY, notes: "- why young adults skip hospital plans\n- CPF top ups before December\n- the day I left engineering for this job" });
+    if (!r.ok) throw new Error("parse");
+    await expect(promptText(buildIdeaDumpPrompt(r.request))).toMatchFileSnapshot("./fixtures/default-prompt.txt");
+  });
+
+  it("keeps the default prompt with nothing saved", async () => {
+    const r = parseIdeaDumpRequest({ notes: "why young adults skip hospital plans" });
+    if (!r.ok) throw new Error("parse");
+    await expect(promptText(buildIdeaDumpPrompt(r.request))).toMatchFileSnapshot("./fixtures/default-prompt-empty.txt");
+  });
+
+  it("keeps the long prompt", async () => {
+    const r = parseLongRequest({ ...PIN_BODY, mode: "long", text: LONG_TEXT, formulas: FORMULAS });
+    if (!r.ok) throw new Error("parse");
+    await expect(promptText(buildLongPrompt(r.request))).toMatchFileSnapshot("./fixtures/long-prompt.txt");
+  });
+});
