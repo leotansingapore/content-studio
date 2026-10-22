@@ -602,7 +602,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
                 <Button variant="ghost" className={BIG} onClick={cancel}>Cancel</Button>
               </div>
             </div>
-          ) : cur.hook ? (
+          ) : cur.hook && cur.format !== "short-video" && cur.format !== "ai-video" ? (
+            // a script has no caption of its own: the stage shows it already (live-p5w4 N5)
             <div className="space-y-1">
               <p className={LABEL}>Caption | {platformName(c.platforms[0] ?? "linkedin")}</p>
               <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">

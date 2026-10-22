@@ -36,6 +36,13 @@ const CAMPAIGN: Campaign = {
   target: { posts: 7, winners: 1 },
   posts: [
     {
+      n: 1, day: "2026-10-26", time: "08:30", angleId: "an-mvjd9bjcxp6k", format: "text-post", stage: "attraction", pillar: "identity", formulaId: "contrarian", ctaType: "open-question", state: "ready",
+      hook: "Most people say more apps mean more control. We disagree.",
+      body: "We bring CRM, a shared WhatsApp inbox, tasks and goals together in one phone app. Sales activity can also be logged in one tap.",
+      cta: "What part of your sales workflow involves the most app switching?",
+      mas: null,
+    },
+    {
       n: 3, day: "2026-10-28", time: "08:30", angleId: "an-mvjd9bjcxp6k", format: "short-video", stage: "attraction", pillar: "topic", formulaId: "mistake", ctaType: "open-question", state: "ready",
       hook: "The cost of skipping one tap is missing activity context.",
       script: "HOOK: The cost of skipping one tap is missing activity context.\nBODY: When you move between client work, it can be easy to leave sales activity unlogged. Then the record may not show the work you just did. Logging activity in one tap keeps it part of the workflow. You can move on without setting aside a separate block just to update your activity.\nCTA: What helps you remember to log sales activity?",
@@ -83,5 +90,26 @@ describe("Make on an AI video post when today's AI videos are used (live-p5w4 N1
     fake.left = { "ai-video": 2, "ai-voice": 4 };
     fake.who = "presenter";
     expect(makeButton(html(4))).not.toContain('disabled=""');
+  });
+});
+
+describe("the side column on a script post (live-p5w4 N5: the caption repeated the script with its HOOK:, BODY: and CTA: labels)", () => {
+  const once = (out: string, text: string) => out.split(text).length - 1;
+
+  it("shows a short video's script once, in its labelled blocks, with no caption repeating it", () => {
+    const out = html(3);
+    expect(out).not.toContain("HOOK:");
+    expect(out).not.toContain("Caption | ");
+    expect(once(out, "Then the record may not show the work you just did.")).toBe(1);
+  });
+
+  it("shows an AI video's script once", () => {
+    const out = html(4);
+    expect(out).not.toContain("Caption | ");
+    expect(once(out, "Now, they can sit together in one app.")).toBe(1);
+  });
+
+  it("keeps a text post's caption", () => {
+    expect(html(1)).toContain("Caption | LinkedIn");
   });
 });
