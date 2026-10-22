@@ -31,6 +31,9 @@ describe("/voice for everyone else", () => {
     as.user = undefined;
     await expect(html()).toMatchFileSnapshot("./__pins__/voice-page-everyone.html");
   });
+  it("draws today's page at #learned, which has no learned list for them", async () => {
+    await expect(html("/voice#learned")).toMatchFileSnapshot("./__pins__/voice-page-everyone.html");
+  });
 });
 
 describe("/voice for Leo", () => {
