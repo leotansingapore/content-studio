@@ -46,9 +46,9 @@ Deno.serve(async (req) => {
     if (!mostlyEnglish(body.message)) return json(agent ? { pick: null, p: noP() } : { pick: null });
     if (agent && !Deno.env.get("TYPESAFE_API_KEY")) return json({ code: "not_configured", error: "The agent isn't set up yet." }, 503);
     const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before the count for a refund
-    const cap = (agent ? "agent-act" : "assistant-act") satisfies "agent-act" | "assistant-act";
-    // shortcut: the cast covers this branch before contracts adds "agent-act" to DAILY_LIMITS; drop it after the wave 1 merge.
-    const usage = await consumeUsage(admin, uid, cap as UsageFeature);
+    // shortcut: the cast type-checks this branch before contracts adds "agent-act" to DAILY_LIMITS; drop it after the wave 1 merge.
+    const cap = ((agent ? "agent-act" : "assistant-act") satisfies "agent-act" | "assistant-act") as UsageFeature;
+    const usage = await consumeUsage(admin, uid, cap);
     if (!usage.allowed) {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const answers = await askJev(ask.state, ask.questions, { who: agent ? "assistant-act agent" : "assistant-act" });
     if (!agent) return json({ pick: actPick(answers, body, leo) });
     // A Jev reply always parses, so null means Jev never answered: the use goes back.
-    if (!answers) await refundUsage(admin, uid, cap as UsageFeature, day);
+    if (!answers) await refundUsage(admin, uid, cap, day);
     return json(agentPick(answers, body));
   } catch (e) {
     console.error("assistant-act failed", e instanceof Error ? e.message : String(e));
