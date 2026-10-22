@@ -1,28 +1,22 @@
 // The agent screens' own logic (agent-page): the slash menu's rows, the run and meta lines, the thread list's groups,
-// the MADE block's warnings, and the dock's hidden pages. The engine (agentRun), the starters and the skills are other
+// the MADE block's words, and the dock's hidden pages. The engine (agentRun), the starters and the skills are other
 // tasks' modules: faked here, so these tests read only this code. A card's Approve words and blocked reason are the
 // engine's (agentPlans.test.ts).
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-const store = vi.hoisted(() => ({ drafts: [] as unknown[] }));
 vi.mock("@/lib/agentRun", () => ({ send: vi.fn(), stop: vi.fn(), turnOf: () => null, onAgent: () => () => undefined, press: vi.fn(), editCard: vi.fn(), undoReceipt: vi.fn(), resumeAgent: vi.fn() }));
 vi.mock("@/lib/agentStarters", () => ({ starterChips: () => [] }));
 vi.mock("@/lib/chatSkills", () => ({ BUILT_IN_SKILLS: [], loadMySkills: () => [] }));
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: { auth: {}, from: () => ({}) } }));
-vi.mock("@/lib/draftHistory", async (actual) => ({ ...(await actual<typeof import("@/lib/draftHistory")>()), loadDrafts: () => store.drafts }));
 
 import { ENGINE_CHIP, metaLine, runLabel } from "./AgentThread";
 import { isAppPath } from "./dockActions";
 import { ownComposer } from "./AgentDock";
-import { MAS_LINE, madeNoun, madeWarnings, tookWords } from "./MadeBlock";
+import { madeNoun, tookWords } from "./MadeBlock";
 import { slashItems } from "./SlashMenu";
 import { lastLine, whenGroup } from "./ThreadList";
 import type { AgentCard } from "@/lib/agentCards";
 import type { AgentThread } from "@/lib/agentThreads";
-
-afterEach(() => {
-  store.drafts = [];
-});
 
 const SKILLS = [
   { slash: "check", name: "Check before posting" },
@@ -103,22 +97,6 @@ describe("thread list", () => {
 });
 
 describe("MADE block", () => {
-  const draft = (flags: object | undefined, words = "Plan your CPF LIFE payouts.") => ({ id: "d1", hook: "CPF LIFE", draft: words, remix: { keep: "", as: "post", close: "", flags } });
-  it("shows the MAS line when Jev flagged the words, and nothing else", () => {
-    store.drafts = [draft({ copied: [], claim: false, invented: false, mas: true }, "guaranteed returns")];
-    expect(madeWarnings("u1", "d1")).toEqual([MAS_LINE]);
-  });
-  it("shows nothing when Jev cleared them", () => {
-    store.drafts = [draft({ copied: [], claim: false, invented: false, mas: false }, "guaranteed returns")];
-    expect(madeWarnings("u1", "d1")).toEqual([]);
-  });
-  it("falls back on the keyword check when Jev gave no answer", () => {
-    store.drafts = [draft({ copied: [], claim: false, invented: false, mas: null }, "These are guaranteed returns.")];
-    expect(madeWarnings("u1", "d1")[0]).toMatch(/^Check: ".+" is flagged\.$/);
-    store.drafts = [draft(undefined)];
-    expect(madeWarnings("u1", "d1")).toEqual([]);
-    expect(madeWarnings("u1", "gone")).toEqual([]);
-  });
   it("names the format and the time it took", () => {
     expect(madeNoun({ kind: "remix", state: "done", startedAt: "", open: "/carousel?draft=d1" })).toBe("carousel");
     expect(madeNoun({ kind: "remix", state: "done", startedAt: "", open: "/generate?draft=d1" })).toBe("post");

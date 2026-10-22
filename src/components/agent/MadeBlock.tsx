@@ -1,21 +1,18 @@
 // A finished make in the agent's thread (docs/north-star/items/agent-chat.md, "MADE block"): "MADE" and the time it
 // took, a thumbnail (a carousel's first slide, a play tile for a video, a picture tile, or the hook in a box), the
-// title, "Here it is." and the one button to open it. Warnings never block: Jev's MAS flag on the draft (remix's
-// flags.mas) as the amber line Write and /image show, and scanCompliance's matches when Jev gave no answer.
+// title, "Here it is." and the one button to open it. A make's warnings are the engine's (flagsFor, a person's brand
+// only), drawn once on its card just above.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Image as ImageIcon, Play } from "lucide-react";
+import { Image as ImageIcon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isAppPath } from "@/components/agent/dockActions";
 import type { AgentMsg } from "@/lib/agentThreads";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
-import { scanCompliance } from "@/lib/compliance";
-import { loadDrafts } from "@/lib/draftHistory";
 
-export const MAS_LINE = "These words may promise a result or point to a product. Check them before you post.";
 type Job = NonNullable<AgentMsg["job"]>;
 
 const VIDEO_KINDS = new Set<Job["kind"]>(["talk", "video"]);
@@ -33,17 +30,6 @@ export function tookWords(job: Pick<Job, "startedAt" | "endedAt">): string {
   const s = Math.max(0, Math.round((Date.parse(job.endedAt ?? "") - Date.parse(job.startedAt)) / 1000));
   if (!Number.isFinite(s)) return "";
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
-}
-
-/** The warnings for the draft a make saved: the MAS line when Jev said yes, else the keyword matches when it gave no answer. */
-export function madeWarnings(userId: string, draftId: string | undefined): string[] {
-  const d = draftId ? loadDrafts(userId).find((x) => x.id === draftId) : undefined;
-  if (!d) return [];
-  // shortcut: DraftRemix.flags gains `mas` on the integration branch (7ab9adcf); read structurally until it merges
-  const mas = (d.remix?.flags as { mas?: boolean | null } | undefined)?.mas;
-  if (mas === true) return [MAS_LINE];
-  if (mas === false) return [];
-  return scanCompliance(`${d.hook}\n${d.draft}`).map((f) => `Check: "${f.match}" is flagged.`);
 }
 
 let measure: ReturnType<typeof createCanvasMeasure> | null = null;
@@ -74,7 +60,6 @@ export default function MadeBlock({ userId, job }: { userId: string; job: Job })
   const video = VIDEO_KINDS.has(job.kind) || !!job.open?.startsWith("/edit");
   const draftId = job.drafts?.[0];
   const title = job.title ?? "";
-  const warnings = madeWarnings(userId, draftId);
   const open = job.open && isAppPath(job.open) ? job.open : null;
   return (
     <section aria-label={`Made: ${title}`} className="w-full max-w-xl rounded-xl border border-border bg-card shadow-card">
@@ -103,11 +88,6 @@ export default function MadeBlock({ userId, job }: { userId: string; job: Job })
             {title && <p className="line-clamp-2 break-words text-sm font-medium">{title}</p>}
             <p className="text-sm text-muted-foreground">Here it is.</p>
           </div>
-          {warnings.map((w) => (
-            <p key={w} className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
-              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> {w}
-            </p>
-          ))}
           {open && (
             <Button asChild size="sm" className="h-11 sm:h-9">
               <Link to={open}>{video ? "Open in the video editor" : "Open"}</Link>

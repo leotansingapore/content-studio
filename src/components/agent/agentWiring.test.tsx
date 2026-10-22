@@ -33,12 +33,15 @@ vi.stubGlobal("window", { localStorage: ls, sessionStorage: ls, dispatchEvent: (
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const { default: ActionCard, whoOption } = await import("./ActionCard");
-const { competitorCard, fieldsOf, makeCard } = await import("@/lib/agentPlans");
+const { competitorCard, fieldsOf, flagsFor, makeCard } = await import("@/lib/agentPlans");
+const { default: MadeBlock } = await import("./MadeBlock");
+const { saveDrafts } = await import("@/lib/draftHistory");
 const { press } = await import("@/lib/agentRun");
 const { loadThreads, newMsg, newThread } = await import("@/lib/agentThreads");
 const { utcDay } = await import("@/lib/aiUsage");
 import type { AgentCard } from "@/lib/agentCards";
 import type { AgentMsg } from "@/lib/agentThreads";
+import type { DraftEntry } from "@/lib/draftHistory";
 
 const AT = "2026-10-22T10:00:00.000Z";
 const draw = (card: AgentCard, o: { go?: AgentMsg["go"]; used?: Record<string, number> } = {}) =>
@@ -93,5 +96,23 @@ describe("a talking video's Who appears", () => {
     expect(fieldsOf(card).who).toBe("presenter");
     expect(whoOption(fieldsOf(card).who)).toBe("new");
     expect(["mine", "pr-1"].map(whoOption)).toEqual(["mine", "pr-1"]);
+  });
+});
+
+describe("a flagged make", () => {
+  it("shows its warning once: the engine's, on the card above the MADE block", () => {
+    const words = "Guaranteed returns are a red flag.";
+    // the draft as the remix saved it, with no answer from Jev's MAS question
+    saveDrafts(UID, [{ id: "d1", hook: words, draft: words, createdAt: AT, remix: { keep: "", as: "carousel", close: "", flags: { copied: [], claim: false, invented: false, mas: null } } } as unknown as DraftEntry]);
+    // the card as the engine's done() writes it
+    const card: AgentCard = { ...makeCard(UID, { plan: "carousel", format: "carousel", act: "make", p: {}, topic: "guaranteed returns" }), status: "approved", flags: flagsFor(UID, words, null) };
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ActionCard userId={UID} threadId="t1" msg={{ id: "m1", at: AT, role: "agent", card }} usage={null} onSend={() => undefined} />
+        <MadeBlock userId={UID} job={{ kind: "remix", state: "done", drafts: ["d1"], open: "/carousel?draft=d1", title: words, startedAt: AT, endedAt: AT }} />
+      </MemoryRouter>,
+    );
+    expect(card.flags).toHaveLength(1);
+    expect(html.match(/is flagged\./g)).toHaveLength(1);
   });
 });
