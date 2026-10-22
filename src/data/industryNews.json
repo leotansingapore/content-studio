@@ -1,5 +1,40 @@
 [
   {
+    "id": "560f95d9b01c",
+    "title": "At least $83,000 lost in phishing scams linked to fake Simba websites since March: Police",
+    "gist": "The police reported on Oct 21 that more than $83,000 has been lost in at least 62 cases since March to fake Simba websites. Victims clicked on sponsored search engine results to top up telco services and entered personal and bank card details. The police advised the public to check web addresses carefully or use saved bookmarks to avoid unauthorized card transactions.",
+    "talkingPoint": "Clients may be concerned about unauthorized card transactions happening through ordinary online searches. You can ask how they monitor their digital payment risks and offer to check their emergency fund plans together.",
+    "clientMessage": "Hi [Client name], the police warned that people lost money to phishing scams through fake telco websites in search engine ads. Victims keyed in card details and found unauthorized transactions on their accounts. This shows how quickly everyday online searches can lead to financial loss. If you want, we can review your financial plan together to see how your safety nets are set up for unexpected losses. Let me know if you would like to chat. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/at-least-83000-lost-in-phishing-scams-linked-to-fake-simba-websites-since-march-police",
+    "publishedAt": "2026-10-21T10:12:41+00:00",
+    "topic": "Scams",
+    "clipping": "/news/560f95d9b01c.jpg"
+  },
+  {
+    "id": "d3567d304e49",
+    "title": "At least $249,000 lost in 1½ months to impersonation scams involving compromised WhatsApp accounts",
+    "gist": "On Oct 21, the police reported that at least $249,000 was lost in about 1½ months to scammers who took over WhatsApp accounts to ask for loans. There have been at least 128 such cases since September, with scammers posing as family members, friends, colleagues, or acquaintances. The police urge the public to verify unusual money requests directly and secure their accounts with two-step verification.",
+    "talkingPoint": "Clients may be concerned about family members or friends falling prey to impersonators asking for urgent funds. You can ask how they verify unusual money requests from loved ones and offer to review their emergency cash reserves together.",
+    "clientMessage": "Hi [Client name], the police warned that at least $249,000 was lost recently to scammers taking over messaging app accounts to ask for loans. Scammers pose as family members, friends, or children asking for money transfers. Unexpected incidents can affect anyone's savings and financial peace of mind. If you want, we can look at your current cash reserves and financial plan together. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/at-least-249000-lost-in-11-2-months-to-impersonation-scams-involving-compromised-whatsapp-accounts",
+    "publishedAt": "2026-10-21T08:12:00+00:00",
+    "topic": "Scams",
+    "clipping": "/news/d3567d304e49.jpg"
+  },
+  {
+    "id": "e59ef9db7033",
+    "title": "OCBC to let customers hold Malaysian ringgit in Singapore savings accounts from Oct 23",
+    "gist": "From Oct 23, OCBC will let customers hold Malaysian ringgit and earn interest in Singapore-based multi-currency accounts. Customers with eligible accounts can hold up to RM50,000 (S$15,700) and earn 1% interest per annum till June 30, 2027. OCBC noted this will be useful for Singaporeans who make frequent cross-border trips to Malaysia for work, leisure and everyday spending.",
+    "talkingPoint": "Clients who travel to Malaysia for work, leisure or everyday spending may care about how they manage foreign currency balances. You can ask about their cross-border spending habits and review their overall cash management plan together.",
+    "clientMessage": "Hi [Client name], a major local bank will soon let customers hold Malaysian ringgit in multi-currency savings accounts and earn interest on balances up to RM50,000. If you travel across the Causeway for work, shopping or dining, foreign currency options can affect how you manage your cash. We can look at your current financial plan together if you would like to review how you manage your overseas spending and cash balances. Let me know if you would like to chat. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/business/ocbc-to-let-customers-hold-malaysian-ringgit-in-singapore-savings-accounts-from-oct-23",
+    "publishedAt": "2026-10-21T09:28:01+00:00",
+    "topic": "Rates and markets"
+  },
+  {
     "id": "244fdaf00720",
     "title": "Most Singapore households expect inflation to rise over next year: survey",
     "gist": "In a quarterly survey by DBS and Singapore Management University (SMU) released on Tuesday (Oct 20), 87.1 per cent of polled households expect economic developments to raise inflation over the next 12 months. One-year-ahead core inflation expectations rose to 3.6 per cent from 3.4 per cent, with transport inflation expectations climbing to 5 per cent from 3.8 per cent. Even as respondents anticipate a slight increase in expenses, most expect their household financial conditions to remain unchanged over the next year.",
@@ -404,16 +439,16 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "38d77cf6f8ef",
-    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
-    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
-    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "id": "146ce01a9327",
+    "title": "Budget 2026 Highlights",
+    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
+    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
     "clientMessage": null,
-    "source": "Mothership",
-    "url": "https://mothership.sg/2026/02/2026-budget-summary",
+    "source": "CPF Board",
+    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
     "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Cost of living",
-    "clipping": "/news/38d77cf6f8ef.jpg"
+    "topic": "CPF and retirement",
+    "clipping": "/news/146ce01a9327.jpg"
   },
   {
     "id": "6d46dc1c57d8",
@@ -428,16 +463,16 @@
     "clipping": "/news/6d46dc1c57d8.jpg"
   },
   {
-    "id": "146ce01a9327",
-    "title": "Budget 2026 Highlights",
-    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
-    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "id": "38d77cf6f8ef",
+    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
+    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
+    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
     "clientMessage": null,
-    "source": "CPF Board",
-    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/02/2026-budget-summary",
     "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "CPF and retirement",
-    "clipping": "/news/146ce01a9327.jpg"
+    "topic": "Cost of living",
+    "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
     "id": "e98550debf11",

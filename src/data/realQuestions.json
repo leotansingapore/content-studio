@@ -1,11 +1,144 @@
 {
-  "fetched": "2026-10-20",
+  "fetched": "2026-10-22",
   "questions": [
+    {
+      "question": "MARI invest",
+      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-21T22:24:59.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "CPF MRSS for grandparent",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbtsr8/cpf_mrss_for_grandparent/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T17:37:06.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Interactive Brokers - SGD now available for funding - Part 2",
+      "url": "https://forums.hardwarezone.com.sg/threads/interactive-brokers-sgd-now-available-for-funding-part-2.6411054/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-21T17:35:30.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Are BRS / FRS / ERS strict ‘inflexible’ sums with no other options in between?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbnet1/are_brs_frs_ers_strict_inflexible_sums_with_no/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T13:38:09.000Z",
+      "audience": "pre-retiree"
+    },
+    {
+      "question": "FRS or ERS at 55?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbhluf/frs_or_ers_at_55/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T08:31:28.000Z",
+      "audience": "pre-retiree"
+    },
+    {
+      "question": "Purchasing direct term insurance",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbhf4b/purchasing_direct_term_insurance/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T08:19:40.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Standchart eSaver",
+      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-21T05:41:47.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "VWRA or CSPX - Which is the better option",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbdnum/vwra_or_cspx_which_is_the_better_option/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T04:31:50.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Lump sum VWRA now wise?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbc5qv/lump_sum_vwra_now_wise/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T03:11:37.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Does it matter which s&p500 we buy?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbc17i/does_it_matter_which_sp500_we_buy/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T03:05:26.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Looking for advice (Compliance)",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbbhza/looking_for_advice_compliance/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T02:39:06.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Investment spread/ diversifying",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xbbf9x/investment_spread_diversifying/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T02:35:16.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Singles in their 50s, what’s your end game?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xba8ju/singles_in_their_50s_whats_your_end_game/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-21T01:36:51.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Stashaway allows SRS to VWRA",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xavipv/stashaway_allows_srs_to_vwra/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-20T15:41:16.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Does it matter which insurance provider?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xaqlww/does_it_matter_which_insurance_provider/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-20T12:18:07.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Balancing an $800k–$900k resale HDB with Barista FIRE — how much should we spend on our home?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xaq4t0/balancing_an_800k900k_resale_hdb_with_barista/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-20T11:55:53.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "IBKR automatically converting USD back to SGD?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xamxxy/ibkr_automatically_converting_usd_back_to_sgd/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-20T08:51:36.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Invest CPF-OA Poems Cash Management vs Cash Plus Vs Endowus",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xamhs6/invest_cpfoa_poems_cash_management_vs_cash_plus/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-20T08:21:51.000Z",
+      "audience": "working-adult"
+    },
     {
       "question": "31f advise for housing/retirement planning",
       "url": "https://www.reddit.com/r/singaporefi/comments/1x9yc87/31f_advise_for_housingretirement_planning/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-19T14:26:27.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "HSBC Step Up Promo - Part 2",
+      "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-19T13:41:22.000Z",
       "audience": "working-adult"
     },
     {
@@ -118,7 +251,7 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1x842j8/to_slow_down_or_nah/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-17T07:30:00.000Z",
-      "audience": "parent"
+      "audience": "pre-retiree"
     },
     {
       "question": "When is a good time to take a break from work",
@@ -160,20 +293,6 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1x78pg4/did_anyone_buy_the_new_sgx_sdrs/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-16T06:22:28.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "HSBC Step Up Promo - Part 2",
-      "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-16T02:21:58.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "MARI invest",
-      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-16T02:13:37.000Z",
       "audience": "general"
     },
     {
@@ -301,125 +420,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-14T06:36:00.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "How to buy Tbills? I asked Google AI , it taught me the steps but ..",
-      "url": "https://forums.hardwarezone.com.sg/threads/how-to-buy-tbills-i-asked-google-ai-it-taught-me-the-steps-but.7225922/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-14T06:27:27.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "sense check my budgeting please",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x5hi84/sense_check_my_budgeting_please/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-14T04:00:52.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Where to invest 500$ a month to let it compound for many years . Any other options than insurance agents ? Sorry new to this",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x5hb2d/where_to_invest_500_a_month_to_let_it_compound/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-14T03:49:55.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Go to insurer for term life?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x5h90g/go_to_insurer_for_term_life/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-14T03:46:47.000Z",
-      "audience": "parent"
-    },
-    {
-      "question": "How to invest as a covered person?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x5esfm/how_to_invest_as_a_covered_person/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-14T01:39:55.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "UOB Global Currency Account",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x58eso/uob_global_currency_account/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T20:52:23.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Building emergency fund",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x50z43/building_emergency_fund/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T16:15:35.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "Cash reserve for retirees",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4vzk6/cash_reserve_for_retirees/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T13:00:31.000Z",
-      "audience": "pre-retiree"
-    },
-    {
-      "question": "Just landed my first job, looking for some advice regarding ETFs",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4vv6f/just_landed_my_first_job_looking_for_some_advice/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T12:55:09.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Title: IBKR SG – Unable to Withdraw SGD with Negative Cash Balance",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4vaof/title_ibkr_sg_unable_to_withdraw_sgd_with/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T12:28:23.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "My parents don't have enough for retirement. Now what? | Money Talks",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4sojx/my_parents_dont_have_enough_for_retirement_now/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T10:06:50.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "25M, looking for some financial advice.",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4rk3q/25m_looking_for_some_financial_advice/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T08:55:37.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "ETFs with SRS",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4r5we/etfs_with_srs/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T08:29:08.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Advice on what to do",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4qnnm/advice_on_what_to_do/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T07:54:57.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "DCS diner club credit cards - Being asked for fee payment for a card I have no intention of using and not even activated",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4qltb/dcs_diner_club_credit_cards_being_asked_for_fee/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T07:51:21.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "20F, poly y3",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4q7kx/20f_poly_y3/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T07:24:43.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "BTO Key Collection: We already signed the lease and our loan is estimated at $400k. Can we still shield $100k CPF OA to push it to the 75% max?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x4ntap/bto_key_collection_we_already_signed_the_lease/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-13T04:58:31.000Z",
-      "audience": "parent"
     }
   ]
 }
