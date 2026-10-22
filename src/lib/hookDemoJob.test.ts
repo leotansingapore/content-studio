@@ -20,7 +20,11 @@ vi.mock("@/lib/videoMedia", async (orig) => ({
   deleteFile: media.del,
 }));
 
+const frame = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/crumpleCard", async (orig) => ({ ...(await orig<typeof import("./crumpleCard")>()), cardFrame: frame }));
+
 import { DEMO_GONE, pendingAvatar } from "./aiVideo";
+import { FRAME_FAILED } from "./crumpleCard";
 import { EdgeError } from "./edgeFn";
 import { formatJobs, onFormatJob, type FormatJob } from "./formatJob";
 import { hookFormulaSet } from "./hookFormulas";
@@ -28,6 +32,7 @@ import {
   HOOK_NAME,
   HOOK_REFUSED,
   HOOK_TOAST,
+  NO_CARD_FIT,
   NO_HOOK_CLIP,
   chooseHook,
   clearHookDemo,
@@ -351,6 +356,83 @@ describe("someone says it", () => {
     store.set("cs-ai-video-pending", JSON.stringify({ name: "Laksa", tokens: ["old"], seconds: [4], kind: "template" }));
     expect(await run({ ...SPOKEN, hook: "" })).toMatchObject({ state: "failed", error: VIDEO_LIMITS.waiting });
     expect(make).not.toHaveBeenCalled();
+    expect(called("ai-video", "template")).toHaveLength(0);
+  });
+});
+
+describe("a crumpled notification", () => {
+  const CRUMPLE: HookDemoAsk = { ...ASK, play: "crumple", hook: "Stop guessing why your pipeline is empty" };
+  const JPEG_B64 = "/9j/frame";
+  /** A browser for toJpeg: the drawn frame comes back as a JPEG, read as base64. */
+  const browser = () => {
+    vi.stubGlobal("createImageBitmap", async () => ({ width: 1080, height: 1920, close: () => {} }));
+    vi.stubGlobal("document", { createElement: () => ({ getContext: () => ({ drawImage: () => {} }), toBlob: (cb: (b: Blob) => void) => cb(new Blob(["jpeg"])) }) });
+    vi.stubGlobal("FileReader", class {
+      result = `data:image/jpeg;base64,${JPEG_B64}`;
+      onload: () => void = () => {};
+      readAsDataURL() { this.onload(); }
+    });
+  };
+  beforeEach(() => {
+    browser();
+    frame.mockReset().mockResolvedValue(new Blob(["frame"]));
+  });
+
+  it("draws the card on the demo's own frame, orders the 4 s 720p clip from it, and keeps the demo in its after", async () => {
+    store.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#0F766E", name: "Leo Tan", handle: "@leo" }));
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: () => {}, removeItem: () => {} }, location: { search: "" } });
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false })));
+    expect((await run(CRUMPLE)).state).toBe("failed");
+    expect(frame).toHaveBeenCalledWith(DEMO_FILE, 0.3, CRUMPLE.hook, expect.objectContaining({ name: "Leo Tan", color: "#0F766E" }));
+    const [start] = called("ai-video", "template");
+    expect(start[1]).toEqual({ mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", fields: {}, photos: [{ role: "person", jpeg: JPEG_B64 }] });
+    expect(pendingAvatar()).toMatchObject({ name: HOOK_NAME, kind: "template", after: [{ key: DEMO.key, end: 24 }] });
+    // the hook is on the card: no words sticker over the clip
+    expect(pendingAvatar()?.extra?.settings).toMatchObject({ captions: false, overlays: [] });
+
+    // a reload joins the paid clip and the demo at no cost
+    clearHookDemo();
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["hook"]) })));
+    resumeHookDemo(CRUMPLE);
+    await vi.runAllTimersAsync();
+    expect(hookDemoJob()?.state).toBe("done");
+    expect(called("ai-video", "template")).toHaveLength(1);
+    expect(media.start.mock.calls[0][1].map((t: { start: number; end: number }) => [t.start, t.end])).toEqual([[0, 4], [0, 24]]);
+  });
+
+  it("takes the frame 0.3 s into a saved demo's window", async () => {
+    media.get.mockImplementation(async (k: string) => (k === SAVED.key ? SAVED_FILE : undefined));
+    await run({ ...CRUMPLE, demo: SAVED });
+    expect(frame.mock.calls[0].slice(0, 2)).toEqual([SAVED_FILE, 20.3]);
+    expect(media.start.mock.calls[0][1].map((t: { start: number; end: number }) => [t.start, t.end])).toEqual([[0, 4], [20, 50]]);
+  });
+
+  it("writes hooks short enough for the card, and takes the first that fits it", async () => {
+    serve({ pick: 0 });
+    await run({ ...CRUMPLE, hook: "" });
+    expect(make.mock.calls[0][0]).toMatchObject({ as: "hooks", maxWords: 8 });
+    // Jev picked the 48-character hook: too long for the card, so the next one
+    expect(frame.mock.calls[0][2]).toBe(HOOKS[1].text);
+    expect(chooseHook({ hooks: [HOOKS[0]], pick: 0 }, "crumple")).toBeNull();
+  });
+
+  it("says none fits the card when every hook is too long, before anything is paid", async () => {
+    make.mockResolvedValue({ ...hooksResponse(), result: { as: "hooks", hooks: [HOOKS[0]] } });
+    expect(await run({ ...CRUMPLE, hook: "" })).toMatchObject({ state: "failed", error: NO_CARD_FIT });
+    expect(NO_CARD_FIT).toBe("None of these hooks fits on the card. Pick a shorter one or type your own.");
+    expect(frame).not.toHaveBeenCalled();
+    expect(called("ai-video", "template")).toHaveLength(0);
+  });
+
+  it("orders nothing when the frame can't be drawn, or while another paid clip waits", async () => {
+    frame.mockRejectedValue(new Error("no"));
+    expect(await run(CRUMPLE)).toMatchObject({ state: "failed", error: FRAME_FAILED });
+    expect(called("ai-video", "template")).toHaveLength(0);
+    expect(pendingAvatar()).toBeNull();
+
+    frame.mockResolvedValue(new Blob(["frame"]));
+    store.set("cs-ai-video-pending", JSON.stringify({ name: "Laksa", tokens: ["old"], seconds: [4], kind: "template" }));
+    expect(await run(CRUMPLE)).toMatchObject({ state: "failed", error: VIDEO_LIMITS.waiting });
     expect(called("ai-video", "template")).toHaveLength(0);
   });
 });

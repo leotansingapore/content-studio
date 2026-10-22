@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
 import { consentSecret, openSigned, signFor } from "../_shared/consent";
 import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, presenterBody } from "./logic";
+import { fixedPrompt, templateById } from "./templates";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -96,6 +97,9 @@ beforeAll(async () => {
       if (reply) return answer({ choices: [{ message: { content: JSON.stringify(reply) } }] });
       return answer({ choices: [{ message: { content: JSON.stringify({ prompt: "Vertical 9:16, 8 seconds, a phone propped on a kitchen counter in a bright HDB flat. ".repeat(2) }) } }] });
     }
+    // a photo put on Higgsfield's storage: the signed upload link, then the PUT of its bytes
+    if (String(u).endsWith("/files/generate-upload-url")) return answer({ upload_url: "https://upload.example/put", public_url: "https://cdn.example/frame.jpg" });
+    if (String(u) === "https://upload.example/put") return new Response(null, { status: 200 });
     hf.calls.push(String(u));
     if (init?.body) hf.bodies.push(JSON.parse(String(init.body)));
     if (String(u).endsWith("/cancel")) return answer({});
@@ -170,6 +174,7 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     for (const body of [
       scene,
       { mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing why your pipeline is empty" } },
+      { mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", fields: {}, photos: [{ role: "person", jpeg: "/9j/4AAQSkZJRgABAQAAAQABAAD" }] },
       { mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "How much of your pay do you save?" } },
       { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "car" },
     ]) {
@@ -186,6 +191,16 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     expect((await send(UID, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "office" })).status).toBe(200);
     expect([used(UID, "ai-clip"), used(UID, "ai-image")]).toEqual([1, 1]);
     expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
+  });
+
+  it("make the crumpled-notification hook for a listed account from its frame, with the tested prompt and no writer", async () => {
+    const res = await send(LEO, { mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", fields: {}, photos: [{ role: "person", jpeg: "/9j/4AAQSkZJRgABAQAAAQABAAD" }] });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ credits: 29.6, tokens: [expect.any(String)], refund: expect.any(String) });
+    expect(used(LEO, "ai-clip")).toBe(1);
+    expect(hf.openai).toEqual([]);
+    expect(hf.calls).toEqual(["https://api.higgsfield.ai/bytedance/seedance-2.5/image-to-video"]);
+    expect(hf.bodies[0]).toEqual({ prompt: fixedPrompt(templateById("crumple-hook")!, "person"), duration: 4, resolution: "720p", generate_audio: true, image_url: "https://cdn.example/frame.jpg" });
   });
 
   it("make a silent scene and a presenter in a parked car for a listed account", async () => {

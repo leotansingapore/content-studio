@@ -2,14 +2,19 @@
 // without a browser: which demo and hook clips are taken, and the order the hook and the demo are joined in. The run
 // is src/lib/hookDemoJob.ts; the page is src/components/make/HookDemo.tsx.
 
-import { priceOf, sumPrices, type Price } from "@/lib/prices";
+import { priceOf, sumPrices, type Price, type PriceOpts } from "@/lib/prices";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import { SPOKEN_HOOK_WORDS } from "../../supabase/functions/remix/logic.ts";
 
-export type HookPlay = "stock" | "mine" | "spoken";
-/** Words on a stock clip (no face, the default), the adviser's own clip, then an AI person: the faces rule's order. */
-export const HOOK_PLAYS: HookPlay[] = ["stock", "mine", "spoken"];
-export const PLAY_LABELS: Record<HookPlay, string> = { stock: "Words on a stock clip", mine: "I say it", spoken: "Someone says it" };
+export type HookPlay = "stock" | "mine" | "crumple" | "spoken";
+/**
+ * Words on a stock clip (no face, the default), the adviser's own clip, the adviser's own frame moved by AI (they
+ * crumple a notification card with the hook on it), then an AI person: the faces rule's order.
+ */
+export const HOOK_PLAYS: HookPlay[] = ["stock", "mine", "crumple", "spoken"];
+export const PLAY_LABELS: Record<HookPlay, string> = { stock: "Words on a stock clip", mine: "I say it", crumple: "I crumple a notification", spoken: "Someone says it" };
+/** The two that order a paid AI clip, with the demo joined after it from this device. */
+export const paidPlay = (p: HookPlay): boolean => p === "crumple" || p === "spoken";
 
 export const DEMO_MAX_MB = 100;
 export const DEMO_MAX_SECONDS = 30;
@@ -18,6 +23,14 @@ export const STOCK_HOOK_SECONDS = 3;
 /** ai-video's spoken-hook template is a 4 s clip (CLIP_SECONDS) and takes 8 words, the limit remix writes a spoken hook to. */
 export const SPOKEN_HOOK_SECONDS = 4;
 export { SPOKEN_HOOK_WORDS };
+/**
+ * ai-video's crumple-hook template: 4 s at 720p, the size Leo's 21 Oct test kept the card's words sharp at (the join
+ * takes its frame size from the hook, so 480p would also shrink the demo after it).
+ */
+export const CRUMPLE_SECONDS = 4;
+export const CRUMPLE_QUALITY = "720p" as const;
+/** Two lines on the card, read in the 2 s before the hand reaches it. */
+export const CARD_MAX = 45;
 /** The adviser's own hook clip: long enough to say a line, short enough to stay a hook. */
 export const MINE_MIN_SECONDS = 2;
 export const MINE_MAX_SECONDS = 5;
@@ -28,6 +41,7 @@ export const DEMO_BAD = "Use an MP4 or MOV under 100 MB and 30 seconds.";
 export const SIDEWAYS = "Use an upright clip for the hook, so the video stays vertical.";
 export const HOOK_CLIP_LENGTH = "Use a hook clip of 2 to 5 seconds.";
 export const SPOKEN_TOO_LONG = "Keep it to 8 words, so it fits in 4 seconds.";
+export const CARD_TOO_LONG = `Keep it to ${CARD_MAX} characters, so it reads before the crumple.`;
 
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 
@@ -47,9 +61,10 @@ export function hookClipIssue(w: number, h: number, seconds: number): string | n
   return null;
 }
 
-/** Why a hook can't be made as it stands: none picked or typed, or too long for someone to say in 4 s. */
+/** Why a hook can't be made as it stands: none picked or typed, too long for someone to say in 4 s, or for the card. */
 export function hookIssue(text: string, play: HookPlay): string | null {
   if (!text.trim()) return "Pick a hook or type your own.";
+  if (play === "crumple") return text.trim().length > CARD_MAX ? CARD_TOO_LONG : null;
   return play === "spoken" && words(text) > SPOKEN_HOOK_WORDS ? SPOKEN_TOO_LONG : null;
 }
 
@@ -60,13 +75,18 @@ export function hookIssue(text: string, play: HookPlay): string | null {
  */
 export function pressSpend(play: HookPlay, writes: boolean): { cap: UsageFeature | null; price: Price | "pick" | null; caps?: UsageFeature[] } {
   const remix = writes ? priceOf("remix-make") : null;
-  if (play === "spoken") return { cap: "ai-clip", price: sumPrices(remix, priceOf("ai-clip", { seconds: SPOKEN_HOOK_SECONDS, quality: "480p" })), ...(writes ? { caps: ["remix-make"] } : {}) };
+  const clip: PriceOpts | null = play === "spoken" ? { seconds: SPOKEN_HOOK_SECONDS, quality: "480p" } : play === "crumple" ? { seconds: CRUMPLE_SECONDS, quality: CRUMPLE_QUALITY } : null;
+  if (clip) return { cap: "ai-clip", price: sumPrices(remix, priceOf("ai-clip", clip)), ...(writes ? { caps: ["remix-make"] } : {}) };
   return writes ? { cap: "remix-make", price: remix } : { cap: null, price: null };
 }
 
-/** A stock or spoken hook is cut to its fixed length; the adviser's own runs whole. */
-export const hookEnd = (play: HookPlay, hookSeconds: number): number =>
-  Math.round(Math.min(play === "stock" ? STOCK_HOOK_SECONDS : play === "spoken" ? SPOKEN_HOOK_SECONDS : MINE_MAX_SECONDS + 0.2, hookSeconds) * 100) / 100;
+const FIXED_END: Record<HookPlay, number> = { stock: STOCK_HOOK_SECONDS, mine: MINE_MAX_SECONDS + 0.2, crumple: CRUMPLE_SECONDS, spoken: SPOKEN_HOOK_SECONDS };
+
+/** A stock, crumpled or spoken hook is cut to its fixed length; the adviser's own runs whole. */
+export const hookEnd = (play: HookPlay, hookSeconds: number): number => Math.round(Math.min(FIXED_END[play], hookSeconds) * 100) / 100;
+
+/** Where the crumpled card's frame is taken: 0.3 s into the demo's window (a video's very first frame can be blank). */
+export const cardFrameAt = (start: number, seconds: number): number => Math.round((Math.max(0, start) + Math.min(0.3, seconds / 2)) * 100) / 100;
 
 export interface JoinPlan {
   /** In order: the hook first, so the video takes its vertical frame; the demo after, shown whole inside it. */

@@ -48,6 +48,11 @@ export interface VideoTemplate {
   leoOnly?: true;
   /** One more rule for the prompt writer, after the spoken-lines rule. */
   rule?: string;
+  /**
+   * The structure IS the prompt: sent to Seedance as written, with the photo's lock, and no prompt writer. For a move
+   * tested as one exact prompt (crumple-hook, Leo's Higgsfield test 21 Oct), which a rewrite could only drift from.
+   */
+  fixed?: true;
 }
 
 const PERSON: TemplateField = { key: "person", label: "Who is on camera", placeholder: "A woman in her 30s in a navy blazer" };
@@ -151,6 +156,30 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
     guidance: ["They say the line exactly as given, once.", "Natural light and a real room, no studio polish."],
     avoid: ["A second line", "Other people in frame", "Text, captions or logos"],
     hidden: true,
+  },
+  {
+    // the hook card is drawn onto the adviser's own frame in the browser (src/lib/crumpleCard.ts): video models garble
+    // words, so this prompt only moves the card and never letters it
+    id: "crumple-hook",
+    title: "Crumpled notification",
+    blurb: "You grab a notification card with your hook, crumple it and toss it, before your video.",
+    fields: [],
+    photos: ["person"],
+    needsPhoto: "person",
+    warnings: ["The card is drawn on your own frame; the clip only moves it."],
+    structure: [
+      "Static camera, a locked-off vertical shot, soft even light, the same room, clothes and light as the first frame.",
+      "A white notification card floats in the air in front of the person, above their head.",
+      "For the first two seconds the person only glances up at it, and the card hangs perfectly still, flat and in sharp focus.",
+      "Then they reach up with one hand, grab the card, crumple it into a small paper ball in their fist and toss it away off screen to the side, then look back at the camera with a small smirk.",
+      "The card is a flat paper card: its words stay sharp and unchanged until the hand touches it.",
+      "Realistic hands with five fingers. Sound: the paper crumpling and quiet room tone; nobody speaks.",
+      "No new text, captions or logos appear.",
+    ],
+    guidance: [],
+    avoid: [],
+    hidden: true,
+    fixed: true,
   },
   {
     id: "street-interview",
@@ -511,6 +540,9 @@ export function referenceLock(photo: PhotoRole | null): string {
   }
   return "";
 }
+
+/** A fixed template's prompt: its structure as written, then the photo's lock. */
+export const fixedPrompt = (t: VideoTemplate, photo: PhotoRole | null): string => [t.structure.join(" "), referenceLock(photo)].filter(Boolean).join("\n\n");
 
 export const PROMPT_FORMAT = {
   type: "json_schema",
