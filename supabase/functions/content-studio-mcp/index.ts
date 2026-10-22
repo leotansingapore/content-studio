@@ -4,12 +4,15 @@
 //
 // No Supabase JWT arrives from Claude, so this deploys WITHOUT JWT verification
 // and uses the service key, but every read and write is pinned to the user id
-// in the link, and only after the link's hashed row is found for that user:
+// in the link, and only after the link's hashed row is found for that user.
+// A link whose user is on NORTH_STAR_USERS gets phase 6's tools, prompts and
+// daily cap (logic.ts Caller); every other link answers as it always has.
 //   supabase functions deploy content-studio-mcp --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
 
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
-import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, type Store } from "./logic.ts";
+import { isAllowed } from "../market/logic.ts";
+import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, type Caller, type Store } from "./logic.ts";
 
 const MAX_BODY = 64 * 1024;
 const headers = {
@@ -76,11 +79,20 @@ Deno.serve(async (req) => {
     // live only while its hashed row exists for this very user and it hasn't been turned off
     const hash = await sha256Hex(link.secret);
     const { data: found, error: linkError } = await table()
-      .select("key")
+      .select("key, data")
       .eq("user_id", link.userId)
       .in("key", [linkKey(hash, link.scope), revokedKey(hash, link.scope)]);
     if (linkError) throw linkError;
     if (!linkIsLive((found ?? []).map((r) => r.key), hash, link.scope)) return json(DEAD_LINK, 404);
+    // the name Leo gave the link on Connect Claude ({ createdAt, name? }), for the activity row add_draft writes
+    let name: string | undefined;
+    try {
+      const v = JSON.parse((found ?? []).find((r) => r.key === linkKey(hash, link.scope))?.data ?? "{}")?.name;
+      if (typeof v === "string" && v.trim()) name = v.trim().slice(0, 30);
+    } catch {
+      // an older or odd row: the link works without a name
+    }
+    const caller: Caller = { leo: isAllowed(Deno.env.get("NORTH_STAR_USERS"), link.userId), name, usage: admin };
 
     const store: Store = {
       async get(key) {
@@ -93,6 +105,12 @@ Deno.serve(async (req) => {
         if (error?.code === "23505") return false; // slot taken
         if (error) throw error;
         return true;
+      },
+      async all(prefix) {
+        // prefixes are logic.ts's fixed literals, which hold no LIKE wildcard
+        const { data, error } = await table().select("key, data").eq("user_id", link.userId).like("key", `${prefix}%`);
+        if (error) throw error;
+        return (data ?? []).map((r) => ({ key: r.key, data: r.data }));
       },
     };
 
@@ -107,7 +125,7 @@ Deno.serve(async (req) => {
     const messages = Array.isArray(body) ? body : [body];
     const replies = [];
     for (const m of messages.slice(0, 20)) {
-      const r = await handleRpc(m && typeof m === "object" ? m : {}, store, link);
+      const r = await handleRpc(m && typeof m === "object" ? m : {}, store, link, undefined, caller);
       if (r) replies.push(r);
     }
     if (!replies.length) return new Response(null, { status: 202, headers });

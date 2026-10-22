@@ -1,0 +1,421 @@
+{
+  "replies": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "serverInfo": {
+          "name": "content-studio",
+          "version": "1.0.0"
+        },
+        "instructions": "Content Studio is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns."
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "serverInfo": {
+          "name": "content-studio",
+          "version": "1.0.0"
+        },
+        "instructions": "Content Studio is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns."
+      }
+    },
+    null,
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {}
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "result": {
+        "tools": [
+          {
+            "name": "list_posts",
+            "description": "List the adviser's posts in Content Studio (newest first): drafts, scheduled and posted, with ids for get_post.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "draft",
+                    "scheduled",
+                    "posted"
+                  ],
+                  "description": "Default all."
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "1 to 50, default 20."
+                }
+              }
+            }
+          },
+          {
+            "name": "get_post",
+            "description": "The full text and details of one post, including its results when they were logged.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "get_calendar",
+            "description": "Posts scheduled from a date (YYYY-MM-DD, default today in Singapore) for a number of days (default 14, at most 90).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "days": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          {
+            "name": "get_results",
+            "description": "Results of posted posts the adviser logged: totals, engagement rate (reactions, comments and shares over impressions) and the best posts.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "name": "get_brand",
+            "description": "Who the adviser is and how they write: positioning (goal, audience, topics, edge, main platform, posts a week), brand kit (name, handle, role, sign-off) and voice summary. Read this before drafting.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "name": "add_draft",
+            "description": "Save a post to the adviser's My posts as a draft, or scheduled when scheduledFor is given. It appears the next time Content Studio opens, where MAS wording is checked before posting. Write only facts the adviser gave you.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "The post as it will be published."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Short title or hook, up to 160 characters."
+                },
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "linkedin",
+                    "instagram",
+                    "facebook",
+                    "tiktok"
+                  ]
+                },
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "text-post",
+                    "carousel",
+                    "short-video",
+                    "story"
+                  ]
+                },
+                "scheduledFor": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD, or YYYY-MM-DDTHH:MM in Singapore time."
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "error": {
+        "code": -32601,
+        "message": "Method not found: prompts/list"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 6,
+      "error": {
+        "code": -32601,
+        "message": "Method not found: prompts/get"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 7,
+      "error": {
+        "code": -32601,
+        "message": "Method not found: resources/list"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 8,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"count\": 5,\n  \"posts\": [\n    {\n      \"id\": \"a\",\n      \"title\": \"CPF in your 30s\",\n      \"platform\": \"linkedin\",\n      \"format\": \"text-post\",\n      \"status\": \"scheduled\",\n      \"scheduledFor\": \"2026-10-12T08:30\"\n    },\n    {\n      \"id\": \"b\",\n      \"title\": \"Insurance myths\",\n      \"platform\": \"instagram\",\n      \"status\": \"posted\",\n      \"postedAt\": \"2026-10-01T03:00:00Z\"\n    },\n    {\n      \"id\": \"c\",\n      \"title\": \"Retirement at 55\",\n      \"status\": \"posted\"\n    },\n    {\n      \"id\": \"d\",\n      \"title\": \"Idea only\",\n      \"status\": \"draft\"\n    },\n    {\n      \"id\": \"e\",\n      \"title\": \"Far future\",\n      \"status\": \"scheduled\",\n      \"scheduledFor\": \"2027-01-01\"\n    }\n  ]\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 9,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"count\": 2,\n  \"posts\": [\n    {\n      \"id\": \"b\",\n      \"title\": \"Insurance myths\",\n      \"platform\": \"instagram\",\n      \"status\": \"posted\",\n      \"postedAt\": \"2026-10-01T03:00:00Z\"\n    }\n  ]\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 10,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"id\": \"b\",\n  \"title\": \"Insurance myths\",\n  \"platform\": \"instagram\",\n  \"status\": \"posted\",\n  \"postedAt\": \"2026-10-01T03:00:00Z\",\n  \"text\": \"Myth one...\",\n  \"results\": {\n    \"impressions\": 1000,\n    \"reactions\": 40,\n    \"comments\": 8,\n    \"shares\": 2,\n    \"engagementRate\": 5\n  }\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 11,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "No post with that id. Use list_posts for ids."
+          }
+        ],
+        "isError": true
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 12,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"from\": \"2026-10-08\",\n  \"to\": \"2026-10-21\",\n  \"posts\": [\n    {\n      \"id\": \"a\",\n      \"title\": \"CPF in your 30s\",\n      \"platform\": \"linkedin\",\n      \"format\": \"text-post\",\n      \"status\": \"scheduled\",\n      \"scheduledFor\": \"2026-10-12T08:30\"\n    }\n  ]\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 13,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"from\": \"2026-12-30\",\n  \"to\": \"2027-01-03\",\n  \"posts\": [\n    {\n      \"id\": \"e\",\n      \"title\": \"Far future\",\n      \"status\": \"scheduled\",\n      \"scheduledFor\": \"2027-01-01\"\n    }\n  ]\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 14,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"postsWithResults\": 2,\n  \"impressions\": 1500,\n  \"engagement\": 100,\n  \"engagementRate\": 6.7,\n  \"best\": [\n    {\n      \"id\": \"c\",\n      \"title\": \"Retirement at 55\",\n      \"status\": \"posted\",\n      \"impressions\": 500,\n      \"engagement\": 50,\n      \"engagementRate\": 10\n    },\n    {\n      \"id\": \"b\",\n      \"title\": \"Insurance myths\",\n      \"platform\": \"instagram\",\n      \"status\": \"posted\",\n      \"postedAt\": \"2026-10-01T03:00:00Z\",\n      \"impressions\": 1000,\n      \"engagement\": 50,\n      \"engagementRate\": 5\n    }\n  ]\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 15,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"positioning\": {\n    \"goal\": \"More reviews booked\",\n    \"goalKind\": \"clients\",\n    \"audience\": \"parent\",\n    \"topics\": [\n      \"CPF\"\n    ],\n    \"platform\": \"instagram\",\n    \"cadence\": 3\n  },\n  \"brandKit\": {\n    \"name\": \"Jane\",\n    \"handle\": \"@jane\",\n    \"role\": \"Financial adviser\",\n    \"signOff\": \"DM me\"\n  },\n  \"voiceSummary\": \"Warm, plain\"\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 16,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"saved\": true,\n  \"id\": \"claude-muyw2m804fzzzx\",\n  \"status\": \"scheduled\",\n  \"note\": \"It shows in My posts the next time Content Studio opens.\"\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 17,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"saved\": true,\n  \"id\": \"claude-muyw2m804fzzzx\",\n  \"status\": \"draft\",\n  \"note\": \"It shows in My posts the next time Content Studio opens.\"\n}"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 18,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "text is required."
+          }
+        ],
+        "isError": true
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 19,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "platform must be one of linkedin, instagram, facebook, tiktok."
+          }
+        ],
+        "isError": true
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 20,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "scheduledFor must be YYYY-MM-DD or YYYY-MM-DDTHH:MM."
+          }
+        ],
+        "isError": true
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 21,
+      "error": {
+        "code": -32602,
+        "message": "Unknown tool check_post"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 22,
+      "error": {
+        "code": -32602,
+        "message": "Unknown tool get_week"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 23,
+      "error": {
+        "code": -32602,
+        "message": "Unknown tool list_following_posts"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 24,
+      "error": {
+        "code": -32602,
+        "message": "Unknown tool get_activity"
+      }
+    },
+    null,
+    {
+      "jsonrpc": "2.0",
+      "id": 25,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "20 drafts from Claude are waiting. Open Content Studio once to bring them into My posts, then try again."
+          }
+        ],
+        "isError": true
+      }
+    }
+  ],
+  "rows": {
+    "content-studio-carousel-brand-ff72c375-389e-4dd0-86c4-a166307b8751": "{\"name\":\"Jane\",\"handle\":\"@jane\",\"role\":\"Financial adviser\",\"signOff\":\"DM me\",\"photo\":\"data:image/jpeg;base64,xx\"}",
+    "content-studio-drafts-ff72c375-389e-4dd0-86c4-a166307b8751": "[{\"id\":\"a\",\"hook\":\"CPF in your 30s\",\"draft\":\"Top up early.\",\"platform\":\"linkedin\",\"format\":\"text-post\",\"status\":\"scheduled\",\"scheduledFor\":\"2026-10-12T08:30\"},{\"id\":\"b\",\"hook\":\"Insurance myths\",\"draft\":\"Myth one...\",\"platform\":\"instagram\",\"status\":\"posted\",\"postedAt\":\"2026-10-01T03:00:00Z\",\"metrics\":{\"impressions\":1000,\"reactions\":40,\"comments\":8,\"shares\":2}},{\"id\":\"c\",\"hook\":\"Retirement at 55\",\"draft\":\"Plan backwards.\",\"status\":\"posted\",\"metrics\":{\"impressions\":500,\"reactions\":50,\"comments\":0,\"shares\":0}},{\"id\":\"d\",\"hook\":\"Idea only\",\"draft\":\"\"},{\"id\":\"e\",\"hook\":\"Far future\",\"draft\":\"x\",\"status\":\"scheduled\",\"scheduledFor\":\"2027-01-01\"}]",
+    "content-studio-following-ff72c375-389e-4dd0-86c4-a166307b8751": "[{\"platform\":\"instagram\",\"handle\":\"rival\",\"history\":[],\"posts\":[{\"id\":\"x1\",\"url\":\"https://instagram.com/p/x1\",\"caption\":\"Hi\",\"postedAt\":\"2026-10-07T00:00:00Z\",\"views\":10,\"likes\":1,\"comments\":0}],\"fresh\":[\"x1\"]}]",
+    "content-studio-learnings-ff72c375-389e-4dd0-86c4-a166307b8751": "[{\"id\":\"l1\",\"text\":\"No emoji\",\"scope\":\"all\",\"source\":\"typed\",\"createdAt\":\"2026-10-01T00:00:00Z\"}]",
+    "content-studio-mcpdraft-claude-s00-ff72c375-389e-4dd0-86c4-a166307b8751": "{\"id\":\"claude-muyw2m804fzzzx\",\"createdAt\":\"2026-10-08T02:00:00.000Z\",\"hook\":\"Hook line\",\"draft\":\"Hook line\\n\\nBody\",\"pillar\":\"topic\",\"pillarDetail\":\"Hook line\",\"audience\":\"general\",\"format\":\"text-post\",\"platform\":\"instagram\",\"ctaType\":\"comment-keyword\",\"status\":\"scheduled\",\"scheduledFor\":\"2026-10-20T19:30\"}",
+    "content-studio-mcpdraft-claude-s01-ff72c375-389e-4dd0-86c4-a166307b8751": "{\"id\":\"claude-muyw2m804fzzzx\",\"createdAt\":\"2026-10-08T02:00:00.000Z\",\"hook\":\"A title\",\"draft\":\"Second\",\"pillar\":\"topic\",\"pillarDetail\":\"A title\",\"audience\":\"general\",\"format\":\"carousel\",\"platform\":\"tiktok\",\"ctaType\":\"comment-keyword\",\"status\":\"draft\"}",
+    "content-studio-mcpdraft-claude-s02-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s03-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s04-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s05-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s06-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s07-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s08-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s09-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s10-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s11-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s12-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s13-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s14-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s15-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s16-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s17-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s18-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-mcpdraft-claude-s19-ff72c375-389e-4dd0-86c4-a166307b8751": "{}",
+    "content-studio-positioning-ff72c375-389e-4dd0-86c4-a166307b8751": "{\"goal\":\"More reviews booked\",\"goalKind\":\"clients\",\"audience\":\"parent\",\"topics\":[\"CPF\"],\"platform\":\"instagram\",\"cadence\":3,\"edge\":\"\"}",
+    "content-studio-voice-ff72c375-389e-4dd0-86c4-a166307b8751": "{\"voiceSummary\":\"Warm, plain\"}"
+  }
+}
