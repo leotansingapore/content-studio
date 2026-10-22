@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DockAct, DockDone } from "@/components/feedback/AssistantDock";
-import { actFor, conflictFor, pastedPart, postsForJev, proposeAct } from "@/lib/assistantActs";
+import { actFor, askAgent, conflictFor, moveWhen, pastedPart, postsForJev, proposeAct } from "@/lib/assistantActs";
+import { EdgeError } from "@/lib/edgeFn";
 import { activeLearnings, addLearning, loadLearnings } from "@/lib/voiceMemory";
 import { loadDrafts, saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { loadRun, saveRun } from "@/lib/engageDrafts";
@@ -326,5 +327,36 @@ describe("proposeAct for everyone (pinned before the agent's call is added)", ()
     expect(await proposeAct(UID, "move my CPF myths post to Friday", go)).toBeNull();
     invoke.mockResolvedValue(refusal(503, "usage_unavailable"));
     expect(await proposeAct(UID, "move my CPF myths post to Friday", go)).toBeNull();
+  });
+});
+
+describe("askAgent (the agent's question, Leo only)", () => {
+  const refusal = (status: number, code: string) => ({ data: null, error: { context: new Response(JSON.stringify({ code, error: "You've used all 100 for today. It resets at 8am Singapore time." }), { status }) } });
+  it("sends today's body with agent: true and its fields, through the signal, and returns the pick with its probabilities", async () => {
+    saveDrafts(UID, [post({})]);
+    const answer = { pick: { act: "make", format: "carousel" }, p: { act: 0.9 } };
+    invoke.mockResolvedValue({ data: answer, error: null });
+    const signal = new AbortController().signal;
+    expect(await askAgent(UID, "make a carousel about CPF LIFE", { chip: "carousel", speaker: "person", pending: "" }, signal)).toEqual(answer);
+    expect(invoke).toHaveBeenCalledWith("assistant-act", {
+      body: { message: "make a carousel about CPF LIFE", today: TODAY, posts: [expect.objectContaining({ title: "Three CPF myths" })], agent: true, chip: "carousel", speaker: "person", pending: "" },
+      signal,
+    });
+  });
+  it("throws a refusal to the caller instead of answering in words (the agent's cap line)", async () => {
+    invoke.mockResolvedValue(refusal(429, "daily_limit"));
+    const e = await askAgent(UID, "make a carousel", {}).catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(EdgeError);
+    expect(e).toMatchObject({ status: 429, code: "daily_limit" });
+  });
+});
+
+describe("moveWhen", () => {
+  it("keeps a scheduled post's day and time unless the pick names them, and refuses a past day", () => {
+    const d = post({ status: "scheduled", scheduledFor: "2026-10-14T09:00" });
+    expect(moveWhen(d, { day: null, time: "18:30" }, TODAY)).toEqual({ when: "2026-10-14T18:30", label: `${day(14)}, 6:30pm` });
+    expect(moveWhen(d, { day: "2026-10-15", time: null }, TODAY)?.when).toBe("2026-10-15T09:00");
+    expect(moveWhen(post({}), { day: null, time: null }, TODAY)).toBeNull();
+    expect(moveWhen(d, { day: "2026-10-10", time: null }, TODAY)).toBeNull();
   });
 });
