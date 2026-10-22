@@ -5,6 +5,7 @@
 
 import { type JevAnswer, type JevQuestion, noulOf } from "../_shared/jev.ts";
 import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
+import { cutAtWord } from "../video-assist/captions.ts";
 
 export const PLATFORMS = ["instagram", "facebook", "linkedin", "tiktok"] as const;
 export type Platform = (typeof PLATFORMS)[number];
@@ -489,9 +490,14 @@ export interface ScannedProduct {
 }
 
 const noSlash = (u: string) => u.replace(/#.*$/, "").replace(/\/+$/, "");
+/** clip, but a cut ends at a word with "...": the scan's fields are shown as they come ("SGD 199 one-tim" was). */
+function clipWord(v: unknown, n: number): string {
+  const t = clip(v, n + 1);
+  return t.length <= n ? t : `${cutAtWord(t, n - 3).replace(/[\s,.;:-]+$/, "")}...`;
+}
 
 /**
- * The LLM's list, trimmed to the stored lengths, at most 24, one per name; a url is kept only when it is one of the
+ * The LLM's list, cut at a word to the stored lengths, at most 24, one per name; a url is kept only when it is one of the
  * pages read (returned as that page's own address) and a picture only when one of those pages listed it, so the model
  * cannot invent a link. null when the reply isn't the schema's JSON.
  */
@@ -509,19 +515,19 @@ export function parseProducts(raw: unknown, pages: { url: string; pictures: stri
   for (const it of items) {
     if (out.length === MAX_PRODUCTS || !it || typeof it !== "object") continue;
     const r = it as Record<string, unknown>;
-    const name = clip(r.name, 60);
+    const name = clipWord(r.name, 60);
     if (!name || out.some((p) => p.name.toLowerCase() === name.toLowerCase())) continue;
     const url = typeof r.url === "string" && r.url ? pages.find((p) => noSlash(p.url) === noSlash(r.url as string))?.url : undefined;
     const picture = typeof r.picture === "string" && pictures.has(r.picture) ? r.picture : undefined;
-    const price = clip(r.price, 40);
+    const price = clipWord(r.price, 40);
     out.push({
       name,
-      what: clip(r.what, 200),
-      forWho: clip(r.forWho, 120),
+      what: clipWord(r.what, 200),
+      forWho: clipWord(r.forWho, 120),
       ...(price ? { price } : {}),
       ...(url ? { url } : {}),
       ...(picture ? { picture } : {}),
-      generic: clip(r.generic, 120),
+      generic: clipWord(r.generic, 120),
       offerP: null,
       namedP: null,
     });

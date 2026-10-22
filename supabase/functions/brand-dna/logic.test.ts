@@ -260,11 +260,20 @@ ${Array.from({ length: 10 }, (_, i) => `<img src="/p${i}.png" alt="Plan ${i}">`)
     const many = Array.from({ length: 30 }, (_, i) => ({ name: `Item ${i} ${"n".repeat(80)}`, what: "w".repeat(300), forWho: "f".repeat(200), price: "p".repeat(60), url: "", picture: "", generic: "g".repeat(200) }));
     const items = parseProducts({ items: many }, PAGES)!;
     expect(items).toHaveLength(24);
-    expect(items[0].name).toHaveLength(60);
+    expect(items[0].name).toBe("Item 0...");
     expect([items[0].what.length, items[0].forWho.length, items[0].price!.length, items[0].generic.length]).toEqual([200, 120, 40, 120]);
     expect(parseProducts("not json", PAGES)).toBeNull();
     expect(parseProducts(JSON.stringify({ products: [] }), PAGES)).toBeNull();
     expect(parseProducts(JSON.stringify({ items: [] }), PAGES)).toEqual([]);
+  });
+
+  it("cuts a long field at a word with ..., never mid-word", () => {
+    const what = `Fees are fixed, and any commission is ${"passed on to you in full ".repeat(7)}and future`;
+    const [p] = parseProducts({ items: [{ name: "Setup", what, forWho: "", price: "SGD 34 a person a month; SGD 199 one-time setup", url: "", picture: "", generic: "" }] }, PAGES)!;
+    expect(p.price).toBe("SGD 34 a person a month; SGD 199...");
+    expect(p.what.length).toBeLessThanOrEqual(200);
+    expect(p.what).toMatch(/ (passed|on|to|you|in|full)\.\.\.$/);
+    expect(parseProducts({ items: [{ name: "Setup", what: "", forWho: "", price: "SGD 199 one-time", url: "", picture: "", generic: "" }] }, PAGES)![0].price).toBe("SGD 199 one-time");
   });
 
   const item = (name: string, url?: string): ScannedProduct => ({ name, what: `About ${name}`, forWho: "", generic: "a plan", offerP: null, namedP: null, ...(url ? { url } : {}) });
