@@ -8,6 +8,7 @@
 //   key: content-studio-positioning-${userId}
 
 import { scoped } from "@/lib/profiles";
+import type { FunnelStageId } from "@/data/funnelFramework";
 export type PlanPlatform = "linkedin" | "instagram" | "facebook" | "tiktok";
 export type PlanAudience =
   | "young-adult"
@@ -32,7 +33,40 @@ export interface Positioning {
   /** Posts per week you commit to. */
   cadence: number;
   updatedAt: string;
+  /** What posting is for, in the user's words (saveGoal). */
+  goal?: string;
+  goalKind?: GoalKind;
+  goalSetAt?: string;
 }
+
+export type GoalKind = "clients" | "audience" | "trust" | "recruit" | "time";
+export const GOAL_KINDS: GoalKind[] = ["clients", "audience", "trust", "recruit", "time"];
+
+/** The five goal chips, worded for a person or for a brand that speaks as a business. */
+export function goalChips(speaker: "person" | "business"): Record<GoalKind, string> {
+  return speaker === "business"
+    ? {
+        clients: "Get more sign-ups and enquiries",
+        audience: "Grow an audience that knows what we do",
+        trust: "Keep customers coming back and telling others",
+        recruit: "Find people to join the team",
+        time: "Post every week without it eating our time",
+      }
+    : {
+        clients: "Get more enquiries from people I can help",
+        audience: "Grow an audience that knows what I do",
+        trust: "Keep in touch with clients so they refer me",
+        recruit: "Find people to join my team",
+        time: "Post every week without it taking my evenings",
+      };
+}
+
+/** Funnel weights a goal steers the plan by; recruit and time keep the plan's own 4/4/2. */
+export const GOAL_WEIGHTS: Partial<Record<GoalKind, Record<FunnelStageId, number>>> = {
+  clients: { attraction: 2, trust: 4, conversion: 4 },
+  audience: { attraction: 6, trust: 3, conversion: 1 },
+  trust: { attraction: 3, trust: 6, conversion: 1 },
+};
 
 const KEY_PREFIX = "content-studio-positioning-";
 
@@ -80,6 +114,30 @@ export function savePositioning(userId: string, positioning: Positioning): void 
     `${KEY_PREFIX}${scoped(userId)}`,
     JSON.stringify({ ...positioning, updatedAt: new Date().toISOString() }),
   );
+}
+
+/**
+ * Sets the brand's goal and touches nothing else on its positioning (not even updatedAt).
+ * False when storage refused the write.
+ */
+export function saveGoal(userId: string, text: string, kind: GoalKind): boolean {
+  const storage = safeStorage();
+  if (!storage) return false;
+  const key = `${KEY_PREFIX}${scoped(userId)}`;
+  let row: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(storage.getItem(key) ?? "null");
+    if (parsed && typeof parsed === "object") row = parsed;
+  } catch {
+    // unreadable row: loadPositioning reads it as none, so the goal starts a new one
+  }
+  try {
+    storage.setItem(key, JSON.stringify({ ...row, goal: text.trim().slice(0, 120), goalKind: kind, goalSetAt: new Date().toISOString() }));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event("content-studio-positioning-changed"));
+  return true;
 }
 
 export function isPositioningUsable(p: Positioning | null): boolean {

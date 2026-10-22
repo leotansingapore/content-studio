@@ -13,11 +13,14 @@
 
 import inspirationData from "@/data/inspiration.json";
 import { FUNNEL_STAGES, type FunnelStageId } from "@/data/funnelFramework";
-import type { Positioning } from "@/lib/positioning";
+import { GOAL_WEIGHTS, loadPositioning, type Positioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
-import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, localDateKey, postedDay, scheduleAt } from "@/lib/dueDates";
+import { hasSavedLabels, loadLabels, pillarsFromLabels, type Label } from "@/lib/labels";
+import { getBreakdown, getDayOfWeekBreakdown, getTrackedPosts, MIN_GROUP_SAMPLE, postingTimeOn } from "@/lib/analytics";
+import { loadBrand } from "@/lib/carousel";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -48,6 +51,10 @@ export interface PlanItem {
   formulaId?: string;
   /** "HH:MM" local posting time for the slot's day. */
   time?: string;
+  /** The label (pillar) a topic or market slot was spread to. */
+  labelId?: string;
+  /** The campaign angle this slot takes. */
+  angleId?: string;
   posted: boolean;
 }
 
@@ -119,6 +126,39 @@ function dayPattern(cadence: number): string[] {
   const out: string[] = [];
   for (let i = 0; i < cadence; i++) out.push(base[i % base.length]);
   return out;
+}
+
+// Largest remainder: floor each share of `count`, then one more to the largest
+// fractions, ties to the earlier entry. A zero weight never gets one.
+function largestRemainder(weights: number[], count: number): number[] {
+  const total = weights.reduce((a, b) => a + b, 0);
+  const shares = weights.map((w) => (count * w) / total);
+  const counts = shares.map((x) => Math.floor(x));
+  const frac = (i: number) => shares[i] - counts[i];
+  const byFraction = weights.map((_, i) => i).sort((a, b) => (Math.abs(frac(b) - frac(a)) > 1e-9 ? frac(b) - frac(a) : a - b));
+  let left = count - counts.reduce((a, b) => a + b, 0);
+  for (const i of byFraction) {
+    if (left <= 0) break;
+    counts[i]++;
+    left--;
+  }
+  return counts;
+}
+
+/**
+ * A week's stages in funnel order. Without weights, today's split (4/4/2); with them
+ * (a goal's), the largest remainder, ties to the earlier stage, then at least one attraction.
+ */
+export function stageSplit(cadence: number, weights?: Record<FunnelStageId, number>): FunnelStageId[] {
+  const w = FUNNEL_STAGES.map((s) => Math.max(0, Number(weights?.[s.id]) || 0));
+  if (!weights || !(w.reduce((a, b) => a + b, 0) > 0)) return stageOrderForWeek(cadence);
+  const counts = largestRemainder(w, cadence);
+  const donor = counts.findIndex((n) => n > 1);
+  if (cadence >= 1 && counts[0] === 0 && donor >= 0) {
+    counts[donor]--;
+    counts[0]++;
+  }
+  return FUNNEL_STAGES.flatMap((s, i) => Array<FunnelStageId>(counts[i]).fill(s.id));
 }
 
 // Distribute `cadence` slots across stages by weight, ordered A -> B -> C so a
@@ -203,6 +243,36 @@ export interface GeneratePlanOptions {
   postingDays?: string[];
   /** The "HH:MM" to post on a weekday (0 = Mon). */
   postingTime?: (weekday: number) => string | null;
+  /** Funnel stage weights (a goal's): each week is split by stageSplit. */
+  weights?: Record<FunnelStageId, number>;
+  /** Slot i takes angles[i % n]. */
+  angles?: { id: string; title: string; line: string }[];
+  /** The format rotation uses only these. */
+  formats?: PlanFormat[];
+  /** Topic and market slots are spread over these by weight (weightedOrder) and carry the pillar's id. */
+  pillars?: { id: string; name: string; weight: number }[];
+}
+
+/**
+ * `count` pillar ids spread by weight (largest remainder), never the same pillar twice
+ * in a row while another is left. Every weight 0 gives none.
+ */
+export function weightedOrder(pillars: { id: string; weight: number }[], count: number): string[] {
+  const w = pillars.map((p) => Math.max(0, Number(p.weight) || 0));
+  if (count <= 0 || !(w.reduce((a, b) => a + b, 0) > 0)) return [];
+  const left = largestRemainder(w, count);
+  const out: string[] = [];
+  let prev = -1;
+  for (let k = 0; k < count; k++) {
+    // the most left of the others, ties to the earlier pillar; the last one may repeat
+    let pick = -1;
+    for (let i = 0; i < left.length; i++) if (left[i] > 0 && i !== prev && (pick < 0 || left[i] > left[pick])) pick = i;
+    if (pick < 0) pick = prev;
+    out.push(pillars[pick].id);
+    left[pick]--;
+    prev = pick;
+  }
+  return out;
 }
 
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -232,6 +302,61 @@ export function nextFormulaStart(plan: ContentPlan | null): number {
   return (HOOK_FORMULAS.findIndex((f) => f.id === last) + 1) % HOOK_FORMULAS.length;
 }
 
+/**
+ * Closes the loop with Analytics: once the user has tracked real numbers, the
+ * plan leans toward their proven format and best posting days.
+ */
+export function planPerformance(userId: string): GeneratePlanOptions["performance"] {
+  const formats = getBreakdown(userId, "format").filter(
+    (r) => r.count >= MIN_GROUP_SAMPLE && r.key !== "unspecified",
+  );
+  const bestFormat =
+    formats.length >= 2 &&
+    formats[0].avgEngagementRate > formats[1].avgEngagementRate
+      ? (formats[0].key as PlanFormat)
+      : null;
+  const days = getDayOfWeekBreakdown(userId)
+    .filter((r) => r.count >= MIN_GROUP_SAMPLE)
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+  const bestDays = days.length >= 2 ? days.slice(0, 2).map((r) => r.day) : [];
+  return bestFormat || bestDays.length ? { bestFormat, bestDays } : undefined;
+}
+
+/**
+ * The options /plan builds a plan with. Each slot: the next hook formula in the
+ * rotation, a posting time on its day, and a theme no post used in the last two weeks.
+ */
+export function planOptionsFor(
+  userId: string,
+  platform: string,
+  o: { competitors?: PlanCompetitorSeed[]; plan: ContentPlan | null },
+): GeneratePlanOptions {
+  const slots = loadBrand(userId)?.slots ?? [];
+  const posts = getTrackedPosts(userId);
+  return {
+    competitors: (o.competitors ?? []).map((c) => ({
+      name: c.name,
+      handle: c.handle,
+      styleNotes: c.styleNotes,
+    })),
+    performance: planPerformance(userId),
+    formulaStart: nextFormulaStart(o.plan),
+    recentThemes: recentThemes(loadDrafts(userId)),
+    postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
+    postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
+  };
+}
+
+/** What steers a plan: the goal's stage weights, and pillars once labels are saved. Callers pass it for Leo only. */
+export function steerFor(userId: string): Pick<GeneratePlanOptions, "weights" | "pillars"> {
+  const kind = loadPositioning(userId)?.goalKind;
+  const weights = kind ? GOAL_WEIGHTS[kind] : undefined;
+  return {
+    ...(weights ? { weights } : {}),
+    ...(hasSavedLabels(userId) ? { pillars: pillarsFromLabels(loadLabels(userId)) } : {}),
+  };
+}
+
 export function generatePlan(
   positioning: Positioning,
   opts: GeneratePlanOptions = {},
@@ -254,12 +379,15 @@ export function generatePlan(
   // Performance weighting: interleave the user's winning format into every
   // other rotation slot, and start the week on their best posting days.
   const bestFormat = opts.performance?.bestFormat ?? null;
-  const formatRotation: PlanFormat[] = bestFormat
+  const bestRotation: PlanFormat[] = bestFormat
     ? FORMAT_ROTATION.filter((f) => f !== bestFormat).flatMap((f) => [
         bestFormat,
         f,
       ])
     : FORMAT_ROTATION;
+  const allowed = opts.formats ?? [];
+  const kept = bestRotation.filter((f) => allowed.includes(f));
+  const formatRotation = !allowed.length ? bestRotation : kept.length ? kept : allowed;
   const bestDays = (opts.performance?.bestDays ?? []).filter((d) => WEEKDAYS.includes(d));
   const postingDays = (opts.postingDays ?? []).filter((d) => WEEKDAYS.includes(d));
   // The adviser's own posting days first, then their best days, then the default
@@ -269,13 +397,24 @@ export function generatePlan(
     .slice(0, pattern.length)
     .sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b));
 
+  // Pillars: the topic and market slots, counted first, are spread by weight.
+  const order = stageSplit(cadence, opts.weights);
+  let pillarSlots = 0;
+  for (let g = 0; g < weeks * order.length; g++) {
+    const stage = FUNNEL_STAGES.find((s) => s.id === order[g % order.length])!;
+    const p = stage.pillars[(g + salt) % stage.pillars.length];
+    if (p === "topic" || p === "market") pillarSlots++;
+  }
+  const pillarOrder = weightedOrder(opts.pillars ?? [], pillarSlots);
+  const pillarName = new Map((opts.pillars ?? []).map((p) => [p.id, p.name]));
+  const angles = opts.angles ?? [];
+
   const items: PlanItem[] = [];
   let globalIndex = 0;
   let authIndex = 0;
   let socialIndex = 0;
 
   for (let w = 1; w <= weeks; w++) {
-    const order = stageOrderForWeek(cadence);
     for (let slot = 0; slot < order.length; slot++) {
       const stageId = order[slot];
       const stage = FUNNEL_STAGES.find((s) => s.id === stageId)!;
@@ -286,10 +425,15 @@ export function generatePlan(
       const isSocial = pillar === "identity" || pillar === "interest";
 
       let pillarDetail: string;
+      let labelId: string | undefined;
       if (isSocial) {
         pillarDetail =
           socialSubjects[(socialIndex + salt) % socialSubjects.length];
         socialIndex++;
+      } else if (pillarOrder.length > 0) {
+        labelId = pillarOrder[authIndex];
+        pillarDetail = pillarName.get(labelId)!;
+        authIndex++;
       } else if (topics.length > 0) {
         pillarDetail = topics[(authIndex + salt) % topics.length];
         authIndex++;
@@ -308,7 +452,7 @@ export function generatePlan(
         angle = `${anchor} — ${ideaLabel}`;
       }
       // Borrow a concrete topical detail from the seed to keep it specific.
-      if (!isSocial && seed && seed.topic && topics.length > 0) {
+      if (!isSocial && seed && seed.topic && (topics.length > 0 || labelId)) {
         angle = `${titleCase(pillarDetail)} — ${ideaLabel} (angle: ${seed.topic})`;
       }
 
@@ -343,6 +487,8 @@ export function generatePlan(
         competitorHandle: competitor?.handle,
         formulaId: HOOK_FORMULAS[(formulaStart + globalIndex) % HOOK_FORMULAS.length].id,
         ...(time ? { time } : {}),
+        ...(labelId ? { labelId } : {}),
+        ...(angles.length ? { angleId: angles[globalIndex % angles.length].id } : {}),
         posted: false,
       });
       globalIndex++;
@@ -374,8 +520,80 @@ export function generatePlan(
     performanceNote: noteParts.length
       ? `Weighted by your analytics: ${noteParts.join("; ")}.`
       : undefined,
-    ...(topics.length < allTopics.length ? { restedThemes: allTopics.filter((t) => !topics.includes(t)) } : {}),
+    ...(!pillarOrder.length && topics.length < allTopics.length ? { restedThemes: allTopics.filter((t) => !topics.includes(t)) } : {}),
   };
+}
+
+/** A slot's angle for a new surface or a writer: the em dash in a topic slot's angle becomes ": ". */
+export function angleText(item: Pick<PlanItem, "angle">): string {
+  return item.angle.replace(/\s*\u2014\s*/g, ": ");
+}
+
+/**
+ * The plan again with new options (pillars, weights): same weeks, salt and hook
+ * formulas, posted ticks kept by slot id, and this week's story carried over.
+ */
+export function rebuildPlan(plan: ContentPlan, positioning: Positioning, options: GeneratePlanOptions): ContentPlan {
+  const first = HOOK_FORMULAS.findIndex((f) => f.id === plan.items[0]?.formulaId);
+  const next = generatePlan(positioning, { ...options, weeks: plan.weeks, salt: plan.salt, ...(first >= 0 ? { formulaStart: first } : {}) });
+  const ticked = new Set(plan.items.filter((i) => i.posted).map((i) => i.id));
+  return {
+    ...next,
+    id: plan.id,
+    createdAt: plan.createdAt,
+    items: next.items.map((i) => (ticked.has(i.id) ? { ...i, posted: true } : i)),
+    ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
+  };
+}
+
+/** A slot's label: its own when that label still exists, else the label named like its topic. */
+export function slotLabel(item: PlanItem, labels: Label[]): Label | null {
+  return labels.find((l) => l.id === item.labelId) ?? labels.find((l) => themeKey(l.name) === themeKey(item.pillarDetail)) ?? null;
+}
+
+/** Moves a slot to a label, or off any. A topic or market slot takes the label's name as its topic, at the head of its angle too. */
+export function relabelSlot(item: PlanItem, label: Label | null): PlanItem {
+  const { labelId: _old, ...rest } = item;
+  if (!label) return rest;
+  if (item.pillar !== "topic" && item.pillar !== "market") return { ...rest, labelId: label.id };
+  const head = titleCase(item.pillarDetail);
+  return {
+    ...rest,
+    labelId: label.id,
+    pillarDetail: label.name,
+    angle: item.angle.startsWith(head) ? titleCase(label.name) + item.angle.slice(head.length) : item.angle,
+  };
+}
+
+const GRID_FORMATS = ["text-post", "carousel", "short-video"] as const;
+type GridFormat = (typeof GRID_FORMATS)[number];
+type GridCells = Record<GridFormat, { posted: number; planned: number }>;
+
+/** Per label and format: posts that went out in the last 28 days, and this plan's slots (by slotLabel). */
+export function pillarGrid(labels: Label[], drafts: DraftEntry[], plan: ContentPlan | null, now: Date): { labelId: string; cells: GridCells }[] {
+  const rows = labels.map((l) => ({
+    labelId: l.id,
+    cells: Object.fromEntries(GRID_FORMATS.map((f) => [f, { posted: 0, planned: 0 }])) as GridCells,
+  }));
+  const cell = (labelId: string, format: string) =>
+    (GRID_FORMATS as readonly string[]).includes(format) ? rows.find((r) => r.labelId === labelId)?.cells[format as GridFormat] : undefined;
+  const to = now.getTime();
+  const from = to - 28 * 86_400_000;
+  for (const d of drafts) {
+    if (draftStatus(d) !== "posted" || !d.postedAt) continue;
+    const t = new Date(d.postedAt).getTime();
+    if (!(t > from && t <= to)) continue;
+    for (const id of new Set(d.labels ?? [])) {
+      const c = cell(id, d.format);
+      if (c) c.posted++;
+    }
+  }
+  for (const item of plan?.items ?? []) {
+    const label = slotLabel(item, labels);
+    const c = label && cell(label.id, item.format);
+    if (c) c.planned++;
+  }
+  return rows;
 }
 
 /** Build the /generate deep-link that prefills the studio for a plan item. */
@@ -395,6 +613,7 @@ export function planItemToGenerateUrl(item: PlanItem, thisWeek?: string): string
   if (ctx) params.set("ctx", ctx);
   if (item.formulaId) params.set("formula", item.formulaId);
   if (item.competitorHandle) params.set("ref", item.competitorHandle);
+  if (item.labelId) params.set("label", item.labelId);
   return `/generate?${params.toString()}`;
 }
 
@@ -461,6 +680,7 @@ export function planCalendarEntries(
       platform: item.platform,
       ctaType: item.ctaType,
       vibeSourceId: item.seedId,
+      ...(item.labelId ? { labels: [item.labelId] } : {}),
       status: "scheduled",
       scheduledFor: scheduleAt(localDateKey(date), item.time),
     });

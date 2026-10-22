@@ -146,6 +146,28 @@ export function setDraftLabels(userId: string, id: string, ids: string[]): Draft
   return drafts;
 }
 
+/** True once the brand has saved labels; seeded ones (from positioning topics) are not saved. */
+export function hasSavedLabels(userId: string | null | undefined): boolean {
+  return !!userId && (storage()?.getItem(KEY_PREFIX + scoped(userId)) ?? null) !== null;
+}
+
+/** Each label's weight: its target when set (0 or more), else an equal share of 100. */
+export function labelWeights(labels: Label[]): number[] {
+  return labels.map((l) => (l.target !== undefined && l.target >= 0 ? l.target : 100 / labels.length));
+}
+
+/** Labels as plan pillars, weighted as the Mix card weighs them. */
+export function pillarsFromLabels(labels: Label[]): { id: string; name: string; weight: number }[] {
+  const weights = labelWeights(labels);
+  return labels.map((l, i) => ({ id: l.id, name: l.name, weight: weights[i] }));
+}
+
+/** The labels a post saved from a `?label=` link gets: the link's label when it exists, and only on a new post. */
+export function labelsForNewDraft(param: string | null | undefined, labels: Label[], existing: DraftEntry | null | undefined): string[] | undefined {
+  if (existing) return existing.labels;
+  return param && labels.some((l) => l.id === param) ? [param] : undefined;
+}
+
 export interface MixRow {
   label: Label;
   count: number;
@@ -172,7 +194,7 @@ export function labelMix(posts: DraftEntry[], labels: Label[], days: number, now
     for (const id of ids) counts.set(id, counts.get(id)! + 1);
   }
   const uses = [...counts.values()].reduce((a, b) => a + b, 0);
-  const weights = labels.map((l) => (l.target !== undefined && l.target >= 0 ? l.target : 100 / labels.length));
+  const weights = labelWeights(labels);
   const weightSum = weights.reduce((a, b) => a + b, 0);
   const rows: MixRow[] = labels.map((label, i) => ({
     label,
