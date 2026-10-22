@@ -1900,11 +1900,13 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     setHistory((h) => [...h.slice(-19), cur]);
     setSettings({ ...cur, broll: [...(cur.broll ?? []), ...added.broll].slice(0, MAX_BROLL), overlays: [...(cur.overlays ?? []), ...added.overlays].slice(0, MAX_OVERLAYS) });
   }), [project.id]);
-  // edit-by-chat (Leo only): the agent changes this video through vibe edit, and only on its Use this
+  // edit-by-chat (Leo only): the agent changes this video through vibe edit, and only on its Use this; not while the
+  // video is on another device, where the editor and its Undo don't show
   const vibeIn = useRef({ transcript, name: project.name });
   vibeIn.current = { transcript, name: project.name };
+  const shown = file !== null;
   useEffect(() => {
-    if (!leo) return;
+    if (!leo || !shown) return;
     let live = true;
     const off = registerEditTarget(videoTarget({
       title: () => vibeIn.current.name,
@@ -1922,7 +1924,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       live = false;
       off();
     };
-  }, [leo, duration]);
+  }, [leo, shown, duration]);
   // ?ask= from a link (Leo only): fills the vibe box, read once; nothing runs until Change it
   const [params] = useSearchParams();
   const linkAsk = leo ? params.get("ask") : null;
