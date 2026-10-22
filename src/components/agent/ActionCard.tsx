@@ -1,7 +1,8 @@
 // A card in the agent's thread (docs/north-star/items/agent-approvals.md, "Screens and states"): the one place a
 // priced or saved change waits for a press. Its price sits on Approve (PriceChip), its uses left on the price line,
 // and Approve is disabled with the reason when today's uses are short or the maker is busy; the engine checks again
-// on the press, since a card can wait a day. A script or prompt being changed lives in sessionStorage
+// on the press, since a card can wait a day, and a press it refuses leaves the card proposed with its line in
+// card.error and the cheaper chips under the message. A script or prompt being changed lives in sessionStorage
 // (cs-agent-card-<card id>) until Save or Cancel, so leaving the page keeps it.
 
 import { useEffect, useState } from "react";
@@ -10,9 +11,9 @@ import { AlertTriangle, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-re
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
-import { cheaperFor, leftOf, limitOf, type Plan } from "@/lib/agentBudget";
+import { leftOf, limitOf } from "@/lib/agentBudget";
 import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
-import { fieldsOf, MAX_SCRIPT_WORDS } from "@/lib/agentPlans";
+import { fieldsOf, MAX_SCRIPT_WORDS, offerChips } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
@@ -36,14 +37,6 @@ const str = (v: unknown) => (typeof v === "string" ? v : undefined);
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 const stepIs = (c: AgentCard, s: AgentCard["step"]) => c.step === s;
 const isVideo = (c: AgentCard) => c.kind === "video" || c.kind === "explainer";
-
-/** The budget's plan for a card: the ladder cheaperFor offers from. */
-function planOf(c: AgentCard): Plan {
-  if (c.kind === "video") return "speaking";
-  if (c.kind === "make") return (str(c.plan.format) as Plan) ?? "post";
-  if (c.kind === "learning") return "learning";
-  return c.kind;
-}
 
 const typedKey = (cardId: string) => `cs-agent-card-${cardId}`;
 function readTyped(cardId: string): string | null {
@@ -142,7 +135,10 @@ export default function ActionCard({
   const who = str(card.plan.who);
   const s = card.kind === "video" && who !== undefined ? speakers(userId) : null;
   const rows = (card.details ?? []).filter((d) => !(voice !== undefined && d.label === "Voice") && !(s && d.label === "Who appears"));
-  const offers = reason && !reason.startsWith("Another") ? cheaperFor(planOf(card), usage) : [];
+  // the line under Approve: today's reason, else the one a refused press left (the engine read the uses again)
+  const shown = reason ?? (status === "proposed" ? (card.error ?? null) : null);
+  // the engine's cheaper chips, unless a refused press already put them under the message
+  const offers = shown && !shown.startsWith("Another") && !msg.go?.length ? offerChips(fieldsOf(card).plan, usage, fieldsOf(card).topic ?? "") : [];
   const quiet = "h-11 sm:h-9";
 
   return (
@@ -362,8 +358,8 @@ export default function ActionCard({
           </div>
         )}
 
-        {reason && <p className="text-xs text-muted-foreground" role="status">{reason}</p>}
-        {card.kind === "learning" && reason?.startsWith(`${MAX_LEARNINGS} is`) && (
+        {shown && <p className="text-xs text-muted-foreground" role="status">{shown}</p>}
+        {card.kind === "learning" && shown?.startsWith(`${MAX_LEARNINGS} is`) && (
           <Link to={links.voice({ section: "learned" })} className="inline-flex min-h-9 items-center text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
             Open Your voice
           </Link>
@@ -371,13 +367,13 @@ export default function ActionCard({
         {offers.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {offers.map((o) =>
-              o.plan === "write" ? (
-                <Button key={o.chip} asChild variant="outline" size="sm" className={quiet}>
-                  <Link to={links.generate({ detail: card.title, format: o.format })}>{o.chip}</Link>
+              o.path.startsWith("say:") ? (
+                <Button key={o.label} type="button" variant="outline" size="sm" onClick={() => onSend(o.path.slice(4))} className={quiet}>
+                  {o.label}
                 </Button>
               ) : (
-                <Button key={o.chip} type="button" variant="outline" size="sm" onClick={() => onSend(o.chip)} className={quiet}>
-                  {o.chip}
+                <Button key={o.label} asChild variant="outline" size="sm" className={quiet}>
+                  <Link to={o.path}>{o.label}</Link>
                 </Button>
               ),
             )}
