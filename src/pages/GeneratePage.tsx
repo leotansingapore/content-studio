@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import RealQuestions from "@/components/RealQuestions";
 import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
 import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences";
+import { labelsForNewDraft, loadLabels } from "@/lib/labels";
 import { loadPositioning } from "@/lib/positioning";
 import { withQuestion } from "@/lib/sgFeeds";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
@@ -734,9 +735,11 @@ export default function GeneratePage() {
   const remixSourceRef = useRef(remixSource);
   remixSourceRef.current = remixSource;
   const [pendingSourceKey, setPendingSourceKey] = useState<string | null>(null);
-  // Leo only (brand-audiences): a saved audience picked for this brief (?aud= once the session is read)
+  // Leo only (brand-audiences): a saved audience picked for this brief (?aud= once the session is read), and the
+  // plan slot's label (?label=) that the drafts saved from this brief wear
   const [pendingAud, setPendingAud] = useState<string | null>(null);
   const [audId, setAudId] = useState<string | null>(null);
+  const [labelId, setLabelId] = useState<string | null>(null);
   // Leo only (edit-translate): this make's language (undefined follows the brand's), a version to make once for a
   // post (just written in another language, or asked for on My posts), and the toast a version opens with.
   const [postLang, setPostLang] = useState<PostLang | null | undefined>(undefined);
@@ -942,6 +945,7 @@ export default function GeneratePage() {
             setPillarDetail(brief.pillarDetail);
             if (AUDIENCES.some((a) => a.value === brief.audience)) setAudience(brief.audience);
             if (typeof brief.aud === "string") setAudId(brief.aud);
+            if (typeof brief.label === "string") setLabelId(brief.label);
             setSinglish(brief.singlish === true);
             if (FUNNEL_STAGES.some((f) => f.id === brief.funnelStage)) setFunnelStage(brief.funnelStage);
             if (IDEA_SOURCES.some((i) => i.value === brief.ideaSource)) setIdeaSource(brief.ideaSource);
@@ -1150,7 +1154,7 @@ export default function GeneratePage() {
       searchParams.has("funnel") ||
       searchParams.has("idea") ||
       searchParams.has("ctx");
-    if (!filled && !["source", "lang", "aud"].some((k) => searchParams.has(k))) return;
+    if (!filled && !["source", "lang", "aud", "label"].some((k) => searchParams.has(k))) return;
     prefillAppliedRef.current = true;
 
     const pillarParam = searchParams.get("pillar");
@@ -1199,12 +1203,14 @@ export default function GeneratePage() {
     // only Leo's sessions read it (makeLang below)
     const langParam = asPostLang(searchParams.get("lang"));
     if (langParam) setPostLang(langParam);
-    // resolved below once the session is read: other sign-ins ignore it
+    // both resolved below once the session is read: other sign-ins ignore them
     const audParam = searchParams.get("aud");
     if (audParam) setPendingAud(audParam.slice(0, 60));
+    const labelParam = searchParams.get("label");
+    if (labelParam) setLabelId(labelParam.slice(0, 60));
 
     const next = new URLSearchParams(searchParams);
-    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang", "aud"].forEach(
+    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang", "aud", "label"].forEach(
       (k) => next.delete(k),
     );
     // Every step is filled in: open the one with Generate (in this same write, or the strip would undo it). The
@@ -1444,6 +1450,7 @@ export default function GeneratePage() {
             source: remixSource ?? undefined,
             ...(leo && postLang !== undefined ? { postLang } : {}),
             ...(leo && audPick ? { aud: audPick.id } : {}),
+            ...(leo && labelId ? { label: labelId } : {}),
           }),
         );
       }
@@ -1475,6 +1482,7 @@ export default function GeneratePage() {
     leo,
     postLang,
     audPick,
+    labelId,
   ]);
 
   // The variant rows mount once the stream starts, after an async session read.
@@ -1975,6 +1983,8 @@ export default function GeneratePage() {
       // Write always sets the key (no source clears it); dated on the first save and kept after that.
       const source = remixSource && !remixSource.remixedAt ? { ...remixSource, remixedAt: new Date().toISOString() } : (remixSource ?? undefined);
       if (source && source !== remixSource) setRemixSource(source);
+      // Leo only: a new draft from a labelled plan slot wears its label (one already saved keeps its own)
+      const labels = leo ? labelsForNewDraft(labelId, loadLabels(userId), existing) : undefined;
       const entry: DraftEntry = {
         id,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
@@ -1995,6 +2005,7 @@ export default function GeneratePage() {
         firstComment: comment ?? undefined,
         hookFormula: formulaOfHook(hookText, hookOptions)?.id,
         source,
+        ...(labels ? { labels } : {}),
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
@@ -2014,6 +2025,8 @@ export default function GeneratePage() {
       userId,
       vibeSourceId,
       remixSource,
+      leo,
+      labelId,
     ],
   );
 
@@ -2101,6 +2114,7 @@ export default function GeneratePage() {
   const saveVersion = (v: Pick<PlatformVersion, "draftId" | "platform" | "text">) => {
     if (!userId || !v.text.trim()) return;
     const existing = getDraftById(userId, v.draftId);
+    const labels = leo ? labelsForNewDraft(labelId, loadLabels(userId), existing) : undefined;
     upsertDraft(userId, {
       id: v.draftId,
       createdAt: existing?.createdAt ?? new Date().toISOString(),
@@ -2120,6 +2134,7 @@ export default function GeneratePage() {
       scheduledFor: existing?.scheduledFor,
       postedAt: existing?.postedAt,
       repeat: existing?.repeat,
+      ...(labels ? { labels } : {}),
     });
   };
 
