@@ -6,6 +6,8 @@
 // Turning a link off writes content-studio-mcprevoked-<hash>-<scope>, which is
 // never deleted by a turn-off: the sync has no tombstones, so a deleted link key
 // could come back from another device, but the revoked row keeps it dead.
+// A link made on Leo's account carries a name ({ createdAt, name }, agent-mcp-api);
+// everyone else's rows stay { createdAt }, and both load.
 
 import { scoped } from "@/lib/profiles";
 import { SUPABASE_URL } from "@/lib/supabase";
@@ -17,7 +19,11 @@ export const MCP_ENDPOINT = `${SUPABASE_URL}/functions/v1/content-studio-mcp`;
 export interface ClaudeLink {
   hash: string;
   createdAt: string;
+  /** Up to NAME_MAX characters; older links have none. */
+  name?: string;
 }
+export const NAME_MAX = 30;
+const cleanName = (v: unknown) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, NAME_MAX) : "");
 
 function store(): Storage | null {
   try {
@@ -49,27 +55,31 @@ export function loadLinks(userId: string | null | undefined): ClaudeLink[] {
     const hash = k.slice(PREFIX.length, -suffix.length);
     if (!/^[0-9a-f]{64}$/.test(hash) || s.getItem(`${REVOKED}${hash}${suffix}`) !== null) continue;
     let createdAt = "";
+    let name = "";
     try {
-      createdAt = String(JSON.parse(s.getItem(k) ?? "{}").createdAt ?? "");
+      const row = JSON.parse(s.getItem(k) ?? "{}");
+      createdAt = String(row.createdAt ?? "");
+      name = cleanName(row.name);
     } catch {
       // keep the link listed so it can still be removed
     }
-    out.push({ hash, createdAt });
+    out.push({ hash, createdAt, ...(name ? { name } : {}) });
   }
   return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Makes a link for the active profile and returns its URL (shown once) and record. */
-export async function createLink(userId: string, now = new Date()): Promise<{ url: string; link: ClaudeLink }> {
+/** Makes a link for the active profile and returns its URL (shown once) and record; a name is kept when given. */
+export async function createLink(userId: string, now = new Date(), name?: string): Promise<{ url: string; link: ClaudeLink }> {
   const scope = scoped(userId);
   const secret = newSecret();
-  const link = { hash: await sha256Hex(secret), createdAt: now.toISOString() };
+  const clean = cleanName(name);
+  const link: ClaudeLink = { hash: await sha256Hex(secret), createdAt: now.toISOString(), ...(clean ? { name: clean } : {}) };
   saveLink(userId, link);
   return { url: `${MCP_ENDPOINT}/${scope}.${secret}`, link };
 }
 
 function saveLink(userId: string, link: ClaudeLink): void {
-  store()?.setItem(`${PREFIX}${link.hash}-${scoped(userId)}`, JSON.stringify({ createdAt: link.createdAt }));
+  store()?.setItem(`${PREFIX}${link.hash}-${scoped(userId)}`, JSON.stringify({ createdAt: link.createdAt, ...(link.name ? { name: link.name } : {}) }));
 }
 
 /** Turns a link off for good on every device (see the note at the top). */

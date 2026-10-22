@@ -46,6 +46,23 @@ describe("Claude connection links", () => {
     expect([...map.entries()]).toEqual([[`content-studio-mcplink-${link.hash}-${UID}`, '{"createdAt":"2026-10-08T03:00:00.000Z"}']]);
   });
 
+  it("keeps a link's name, cut to 30 characters, through a turn-off and its Undo", async () => {
+    const { link } = await createLink(UID, new Date("2026-10-20T03:00:00Z"), "  Zapier   for the   weekly digest of posts  ");
+    expect(link.name).toBe("Zapier for the weekly digest o");
+    expect(JSON.parse(map.get(`content-studio-mcplink-${link.hash}-${UID}`)!)).toEqual({ createdAt: "2026-10-20T03:00:00.000Z", name: "Zapier for the weekly digest o" });
+    expect(loadLinks(UID)).toEqual([link]);
+    removeLink(UID, link.hash);
+    restoreLink(UID, link);
+    expect(loadLinks(UID)).toEqual([{ hash: link.hash, createdAt: "2026-10-20T03:00:00.000Z", name: "Zapier for the weekly digest o" }]);
+  });
+
+  it("stores no name when it is blank, and loads a row whose name is not text", async () => {
+    const { link } = await createLink(UID, new Date("2026-10-20T03:00:00Z"), "   ");
+    expect(map.get(`content-studio-mcplink-${link.hash}-${UID}`)).toBe('{"createdAt":"2026-10-20T03:00:00.000Z"}');
+    map.set(`content-studio-mcplink-${"b".repeat(64)}-${UID}`, '{"createdAt":"2026-10-19T03:00:00.000Z","name":42}');
+    expect(loadLinks(UID)).toEqual([link, { hash: "b".repeat(64), createdAt: "2026-10-19T03:00:00.000Z" }]);
+  });
+
   it("lists, turns off and puts back this profile's links", async () => {
     const { link } = await createLink(UID);
     map.set(`content-studio-mcplink-${"a".repeat(64)}-${UID}~p9`, "{}"); // another profile's
