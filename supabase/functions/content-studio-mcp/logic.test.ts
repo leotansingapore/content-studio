@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INBOX_PREFIX, MAX_INBOX, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
+import { INBOX_PREFIX, MAX_INBOX, TOOLS, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
 const SECRET = "a".repeat(40) + "b-_";
@@ -147,6 +147,16 @@ describe("tools", () => {
   },
   "voiceSummary": "Warm, plain, short sentences."
 }`);
+  });
+
+  it("gives Claude the brand's goal and its kind when one is set, first in positioning", async () => {
+    const s = memoryStore({
+      [`content-studio-positioning-${UID}`]: { goal: "More people booking a 15-minute review with me", goalKind: "clients", goalSetAt: "2026-10-22T02:00:00Z", audience: "parent", cadence: 3 },
+    });
+    const b = text(await callTool("get_brand", {}, s, link));
+    expect(b.positioning).toEqual({ goal: "More people booking a 15-minute review with me", goalKind: "clients", audience: "parent", cadence: 3 });
+    expect(Object.keys(b.positioning)).toEqual(["goal", "goalKind", "audience", "cadence"]);
+    expect(TOOLS.find((t) => t.name === "get_brand")?.description).toContain("positioning (goal, audience, topics");
   });
 
   it("adds a draft as its own inbox row under this scope, never a uuid id", async () => {
