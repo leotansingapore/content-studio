@@ -73,6 +73,7 @@ import {
   clearOfApp,
   fixFromEdit,
   END_CARD_SECONDS,
+  introLength,
   FONTS,
   FILTERS,
   animOf,
@@ -160,6 +161,7 @@ import {
   decodeSound,
   drawEndCard,
   drawFrame,
+  drawIntroCard,
   ensureCaptionFonts,
   loadBrandArt,
   measureExport,
@@ -697,6 +699,9 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const [managing, setManaging] = useState(false);
   const pendingSkill = useRef(project.pendingSkill);
   const endAt = useRef<number | null>(null);
+  // the same for the intro card (Leo only), and its time as state so the position slider follows it
+  const introAt = useRef<number | null>(null);
+  const [introT, setIntroT] = useState<number | null>(null);
   // voiceover: the take on this device, an <audio> kept in step with the preview, and a recording in progress
   const [voiceBlob, setVoiceBlob] = useState<Blob | null | undefined>(undefined);
   const voiceUrl = useMemo(() => (voiceBlob ? URL.createObjectURL(voiceBlob) : ""), [voiceBlob]);
@@ -896,6 +901,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   }, [settings.aspect, file]);
 
   const paintRef = useRef<(() => void) | null>(null);
+  const intro = introLength(settings, art);
   const paint = useCallback(() => {
     const v = video.current;
     const c = canvas.current;
@@ -903,6 +909,13 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     if (endAt.current !== null && art) {
       drawEndCard(c.getContext("2d")!, art, endAt.current);
       setOutT(plan.total + endAt.current);
+      setIntroT(null);
+      return;
+    }
+    if (introAt.current !== null && intro && art) {
+      drawIntroCard(c.getContext("2d")!, art, introAt.current);
+      setOutT(0);
+      setIntroT(introAt.current);
       return;
     }
     const out = outIn(plan.segs, segIdx.current, v.currentTime, speed) ?? outT;
@@ -910,8 +923,11 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     const backdrop = settings.backdrop?.kind === "video" ? syncBackdrop(backdropEl.current, out, playing) : undefined;
     drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx, peaks, backdrop });
     setOutT(out);
-  }, [plan, settings, outT, subs, art, playing, speed, fx, peaks]);
-  const total = fullLength(plan.total, settings, !!art);
+    setIntroT(null);
+  }, [plan, settings, outT, subs, art, playing, speed, fx, peaks, intro]);
+  // the timeline runs intro card, edit, end card; the edit and its end card keep their own clock (outT, editEnd)
+  const total = fullLength(plan.total, settings, !!art, intro);
+  const editEnd = total - intro;
   // what Export will make for the platform picked: its frame, and about how big the file comes out
   const size = useMemo(
     () => exportSize(settings, settings.exportAs === "audio" ? plan.total : total, video.current?.videoWidth || 1080, video.current?.videoHeight || 1920),
@@ -924,11 +940,12 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     if (!playing) return;
     let raf = 0;
     let endStart = 0;
+    let introStart = 0;
     const finish = () => {
       const v = video.current;
       v?.pause();
       // then the end card, if it is on, for its length in real time
-      if (total > plan.total) {
+      if (editEnd > plan.total) {
         endStart = performance.now() - (endAt.current ?? 0) * 1000;
         endAt.current = endAt.current ?? 0;
         raf = requestAnimationFrame(endLoop);
@@ -936,15 +953,36 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     };
     const endLoop = () => {
       const t = (performance.now() - endStart) / 1000;
-      if (t >= total - plan.total) { setPlaying(false); return; }
+      if (t >= editEnd - plan.total) { setPlaying(false); return; }
       endAt.current = t;
       paint();
       syncMusic(plan.total + t);
       raf = requestAnimationFrame(endLoop);
     };
+    // the intro card first, for its length in real time over silence, then the first part from its start
+    const introLoop = () => {
+      const t = (performance.now() - introStart) / 1000;
+      if (t >= intro) {
+        seekOut(0);
+        void video.current?.play().catch(() => {});
+        raf = requestAnimationFrame(loop);
+        return;
+      }
+      introAt.current = t;
+      paint();
+      raf = requestAnimationFrame(introLoop);
+    };
     const loop = () => {
       const v = video.current;
       if (!v) return;
+      if (introAt.current !== null && intro) {
+        // also when dragged back into the card while playing: the edit waits, silent, until the card ends
+        v.pause();
+        syncVoice(null);
+        musicOut.current?.track?.stop();
+        introStart = performance.now() - introAt.current * 1000;
+        return introLoop();
+      }
       if (endAt.current !== null) return finish();
       const seg = plan.segs[segIdx.current];
       if (!seg) return finish();
@@ -969,7 +1007,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [playing, plan, paint, total]);
+  }, [playing, plan, paint, total, intro, editEnd]);
   // (this effect re-runs every frame as the playhead moves, so the voiceover pauses only when playback stops)
   useEffect(() => {
     if (!playing) {
@@ -1012,7 +1050,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     }
     if (!o.track || out === null) return;
     o.track.sync(out);
-    o.gain.gain.setTargetAtTime(musicGainAt(duck, out, settings.music!.level, total) * dropGain(motionOf(settings, plan.segs, plan.caps, plan.total).drop, out), o.ctx.currentTime, 0.03);
+    o.gain.gain.setTargetAtTime(musicGainAt(duck, out, settings.music!.level, editEnd) * dropGain(motionOf(settings, plan.segs, plan.caps, plan.total).drop, out), o.ctx.currentTime, 0.03);
   };
 
   // `also` rides along in the same change (Swap sound turns the filmed sound off)
@@ -1254,8 +1292,9 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const seekOut = (t: number) => {
     const v = video.current;
     if (!v) return;
-    if (t > plan.total && total > plan.total) {
-      endAt.current = Math.min(t - plan.total, total - plan.total);
+    introAt.current = null;
+    if (t > plan.total && editEnd > plan.total) {
+      endAt.current = Math.min(t - plan.total, editEnd - plan.total);
       paint();
       return;
     }
@@ -1264,6 +1303,14 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     // by place in the edit, not source time: a cold open plays one part twice
     segIdx.current = segAt(plan.segs, t * speed);
     v.currentTime = src;
+  };
+
+  // a place on the whole timeline (the slider): inside the intro card shows it, anything after is the edit's own clock
+  const seekPos = (p: number) => {
+    if (p >= intro) return seekOut(p - intro);
+    seekOut(0);
+    introAt.current = p;
+    paint();
   };
 
   const toggle = async () => {
@@ -1279,9 +1326,10 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       musicOut.current = { ctx, gain };
     }
     void musicOut.current?.ctx.resume().catch(() => {});
-    if (outT >= total - 0.1) seekOut(0);
-    else seekOut(outT);
-    await v.play().catch(() => {});
+    if (intro + outT >= total - 0.1) seekPos(0);
+    else if (introAt.current === null) seekOut(outT);
+    // during the intro card the video waits; the play loop starts it when the card ends
+    if (introAt.current === null) await v.play().catch(() => {});
     setPlaying(true);
   };
 
@@ -1617,7 +1665,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     const want = { seconds: j.seconds ?? total, kind: j.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover || !!settings.music,
       size: j.bytes && j.cap ? { bytes: j.bytes, cap: j.cap, label: j.label ?? "" } : undefined };
     // the picture is looked at too, up to the end card; a sound-only source has none of its own
-    const looks = j.kind !== "audio" && !peaks ? lookAtFrames(j.url!, frameTimes(plan.total, settings.transition ? cutTimes(plan.segs, speed) : [])) : Promise.resolve(null);
+    const looks = j.kind !== "audio" && !peaks ? lookAtFrames(j.url!, frameTimes(plan.total, settings.transition ? cutTimes(plan.segs, speed) : []).map((t) => intro + t)) : Promise.resolve(null);
     return Promise.all([measureExport(j.url!), looks]).then(([m, l]) =>
       ({ issues: [...exportIssues(m ?? { seconds: null, level: null, gap: null }, want), ...pictureAndClipIssues(m?.clip ?? null, blackStretches(l ?? []))], read: !!m }));
   };
@@ -2091,9 +2139,9 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
             <Button size="sm" variant="outline" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="h-9 w-9 p-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
               {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <input type="range" min={0} max={total || 1} step={0.05} value={Math.min(outT, total)} aria-label="Position"
-              onChange={(e) => seekOut(Number(e.target.value))} className="flex-1 accent-primary" />
-            <span className="w-24 text-right font-mono text-[11px] text-muted-foreground">{fmtTime(outT)} / {fmtTime(total)}</span>
+            <input type="range" min={0} max={total || 1} step={0.05} value={Math.min(introT ?? intro + outT, total)} aria-label="Position"
+              onChange={(e) => seekPos(Number(e.target.value))} className="flex-1 accent-primary" />
+            <span className="w-24 text-right font-mono text-[11px] text-muted-foreground">{fmtTime(introT ?? intro + outT)} / {fmtTime(total)}</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
             {fmtTime(duration)} filmed, {fmtTime(plan.total)} after cuts{cutSeconds > 0.5 ? ` (${cutSeconds.toFixed(1)}s cut)` : ""}{speed > 1 ? ` at ${speed}x` : ""}.
