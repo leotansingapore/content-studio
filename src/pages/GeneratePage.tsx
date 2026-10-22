@@ -5,7 +5,9 @@ import { withQuestion } from "@/lib/sgFeeds";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { COMPARE_TABS, links, WRITE_STEPS } from "@/lib/links";
+import { COMPARE_TABS, links, WRITE_STEPS, type PostLang } from "@/lib/links";
+import { asPostLang, langOf } from "@/lib/translate";
+import { takeNavTranslate } from "@/lib/translateJob";
 import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import {
   Card,
@@ -678,6 +680,10 @@ const ThreadButton = lazy(() => import("@/components/ThreadPanel").then((m) => (
 // Insert (Leo only, edit-snippets): saved lines, hashtag sets, endings, hooks and post templates. Lazy, so nobody else loads it.
 const InsertPanel = lazy(() => import("@/components/InsertPanel"));
 const InsertButton = lazy(() => import("@/components/InsertPanel").then((m) => ({ default: m.InsertButton })));
+// Posts in Chinese, Malay or Tamil (Leo only, edit-translate): the Language row, the versions row and Make it in. Lazy, so nobody else loads it.
+const TranslateBar = lazy(() => import("@/components/TranslateBar"));
+const LanguageRow = lazy(() => import("@/components/TranslateBar").then((m) => ({ default: m.LanguageRow })));
+const VersionTabs = lazy(() => import("@/components/TranslateBar").then((m) => ({ default: m.VersionTabs })));
 
 export default function GeneratePage() {
   const { toast } = useToast();
@@ -726,6 +732,15 @@ export default function GeneratePage() {
   const remixSourceRef = useRef(remixSource);
   remixSourceRef.current = remixSource;
   const [pendingSourceKey, setPendingSourceKey] = useState<string | null>(null);
+  // Leo only (edit-translate): this make's language (undefined follows the brand's), a version to make once for a
+  // post (just written in another language, or asked for on My posts), and the toast a version opens with.
+  const [postLang, setPostLang] = useState<PostLang | null | undefined>(undefined);
+  const [autoTranslate, setAutoTranslate] = useState<{ id: string; lang: PostLang } | null>(null);
+  const openNote = useRef<Parameters<typeof toast>[0] | null | undefined>(undefined);
+  useEffect(() => {
+    const t = takeNavTranslate();
+    if (t) setAutoTranslate(t);
+  }, []);
   // "Remix it again" hides the repeat notice for that key
   const [repeatHidden, setRepeatHidden] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -922,6 +937,8 @@ export default function GeneratePage() {
             if (FORMATS.some((f) => f.value === brief.format)) setFormat(brief.format);
             if (isReelLength(brief.reelSeconds)) setReelSeconds(brief.reelSeconds);
             if (CTAS.some((c) => c.value === brief.ctaType)) setCtaType(brief.ctaType);
+            // a lang the link carried wins over the one this tab's brief had
+            if (brief.postLang === null || asPostLang(brief.postLang)) setPostLang((cur) => (cur === undefined ? brief.postLang : cur));
             if (Array.isArray(brief.disclosure)) {
               setDisclosure(brief.disclosure.filter((d: string) => d in DISCLOSURES));
             }
@@ -1021,6 +1038,9 @@ export default function GeneratePage() {
       }
     }
     const entry = getDraftById(userId, draftId);
+    // a version tab or a finished translation (Leo only) opens with its own toast, or none, and no scroll
+    const note = openNote.current;
+    openNote.current = undefined;
     if (!entry) {
       // Silently strip the param if the id is unknown.
       const next = new URLSearchParams(searchParams);
@@ -1044,6 +1064,8 @@ export default function GeneratePage() {
       setPlatform(PLATFORMS.some((x) => x.value === entry.platform) ? (entry.platform as Platform) : "linkedin");
       setCtaType(CTAS.some((x) => x.value === entry.ctaType) ? (entry.ctaType as CtaType) : "dm-keyword");
       if (entry.hook) setChosenHook(entry.hook);
+      // a version tab or its English opens with its own hook, so a save never writes the last post's hook onto it
+      else if (note !== undefined) setChosenHook(null);
     }
     setDraft(entry.draft);
     clearDraftExtras();
@@ -1063,6 +1085,10 @@ export default function GeneratePage() {
     setVibeSourceId(entry.vibeSourceId ?? null);
     setRemixSource(entry.source ?? null);
     setDisclosure((entry.disclosure ?? []).filter((d): d is DisclosureId => d in DISCLOSURES));
+    if (note !== undefined) {
+      if (note) toast(note);
+      return;
+    }
     toast({
       title: isBareIdea ? "Idea loaded" : "Draft restored",
       description: isBareIdea
@@ -1112,7 +1138,7 @@ export default function GeneratePage() {
       searchParams.has("funnel") ||
       searchParams.has("idea") ||
       searchParams.has("ctx");
-    if (!filled && !searchParams.has("source")) return;
+    if (!filled && !searchParams.has("source") && !searchParams.has("lang")) return;
     prefillAppliedRef.current = true;
 
     const pillarParam = searchParams.get("pillar");
@@ -1158,9 +1184,12 @@ export default function GeneratePage() {
     // resolved below once the session is read: other sign-ins ignore it
     const sourceParam = searchParams.get("source");
     if (sourceParam) setPendingSourceKey(sourceParam.slice(0, 300));
+    // only Leo's sessions read it (makeLang below)
+    const langParam = asPostLang(searchParams.get("lang"));
+    if (langParam) setPostLang(langParam);
 
     const next = new URLSearchParams(searchParams);
-    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source"].forEach(
+    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang"].forEach(
       (k) => next.delete(k),
     );
     // Every step is filled in: open the one with Generate (in this same write, or the strip would undo it). The
@@ -1268,16 +1297,20 @@ export default function GeneratePage() {
     [draft, format],
   );
 
+  // The open post's language (Leo only, edit-translate): a Chinese version counts characters, not words.
+  const draftLang = useMemo(() => (leo && userId && currentDraftId ? langOf(getDraftById(userId, currentDraftId) ?? {}) : null), [leo, userId, currentDraftId]);
   // Counter readout for the draft. Only the caption counts against platform limits.
   const counters: CounterReadout = useMemo(
-    () => readout(svSplit ? svSplit.caption : draft, platform),
-    [draft, platform, svSplit],
+    () => readout(svSplit ? svSplit.caption : draft, platform, draftLang),
+    [draft, platform, svSplit, draftLang],
   );
 
   // What a copy puts on the clipboard: plain text, the brand kit sign-off and
   // any disclosure line.
   const brandKit = useMemo(() => loadBrand(userId), [userId]);
   const brandSignOff = brandKit?.signOff?.trim() ?? "";
+  // Leo only: the Language row's pick, else the brand's post language; English (null) writes as today
+  const makeLang = leo ? (postLang !== undefined ? postLang : asPostLang(brandKit?.postLang)) : null;
   // links that aren't the kit's offers are flagged under the post
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
   // ...and so are the words the kit says never to use
@@ -1380,6 +1413,7 @@ export default function GeneratePage() {
             hookOptions,
             variants,
             source: remixSource ?? undefined,
+            ...(leo && postLang !== undefined ? { postLang } : {}),
           }),
         );
       }
@@ -1408,6 +1442,8 @@ export default function GeneratePage() {
     hookOptions,
     variants,
     remixSource,
+    leo,
+    postLang,
   ]);
 
   // The variant rows mount once the stream starts, after an async session read.
@@ -1967,7 +2003,9 @@ export default function GeneratePage() {
     // fresh entry, but when editing a scheduled/posted slot we keep updating
     // it so it stays put on the calendar.
     if (!preserveIdRef.current) setCurrentDraftId(null);
-    persistDraftEntry(v.text, chosenHook ?? "", null);
+    const id = persistDraftEntry(v.text, chosenHook ?? "", null);
+    // written in another language (Leo only): its version is made straight after, under the post
+    if (makeLang && id) setAutoTranslate({ id, lang: makeLang });
     // Fire hashtags + image-prompt in parallel; failures don't block. The
     // draft card's saved line confirms the pick, so no toast over the editor.
     void fetchAuxForDraft(v.text);
@@ -2322,6 +2360,12 @@ export default function GeneratePage() {
     document.addEventListener("visibilitychange", onHide);
     return () => document.removeEventListener("visibilitychange", onHide);
   }, []);
+  // Leo only (edit-translate): another language's version, or its English, opens in place once the typing is saved
+  const openDraft = (id: string, note: Parameters<typeof toast>[0] | null) => {
+    flushSave.current();
+    openNote.current = note;
+    navigate(links.generate({ draft: id }));
+  };
 
   // Pictures or one video attached in Write: kept on this device, shown in the preview and
   // loaded into Post it for me. Pictures are shrunk to 1080px JPEGs, so size and WebP never block them.
@@ -3227,6 +3271,11 @@ export default function GeneratePage() {
               {CTAS.find((c) => c.value === ctaType)!.sub}
             </p>
           </div>
+          {leo && userId && (
+            <Suspense fallback={null}>
+              <LanguageRow value={makeLang} onChange={setPostLang} />
+            </Suspense>
+          )}
         </CardContent>
       </Card>
 
@@ -3867,6 +3916,11 @@ export default function GeneratePage() {
             {leo && savedEntry?.remix?.flags && (
               <RemixFlags flags={savedEntry.remix.flags} text={draft} dismissed={dismissedFlagIds} onDismiss={dismissFlag} besideStrip={compareOn} />
             )}
+            {leo && userId && savedEntry && (
+              <Suspense fallback={null}>
+                <VersionTabs userId={userId} entry={savedEntry} onOpen={openDraft} />
+              </Suspense>
+            )}
 
             <div className={`grid gap-4 ${versions.length > 0 || compareOn ? "" : "lg:grid-cols-2"}`}>
               <div className="flex flex-col gap-1.5">
@@ -4083,9 +4137,11 @@ export default function GeneratePage() {
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
-                {svSplit?.script ? "Caption words" : "Words"}: {counters.words}
-              </span>
+              {draftLang !== "zh" ? (
+                <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
+                  {svSplit?.script ? "Caption words" : "Words"}: {counters.words}
+                </span>
+              ) : null}
               <span
                 className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
                   counters.status === "good"
@@ -4220,6 +4276,21 @@ export default function GeneratePage() {
                   samples={voiceSamples}
                   blockReason={mainCopyBlock}
                   onDrafts={() => setScheduleTick((n) => n + 1)}
+                />
+              </Suspense>
+            )}
+            {leo && userId && savedEntry && (
+              <Suspense fallback={null}>
+                <TranslateBar
+                  userId={userId}
+                  entry={savedEntry}
+                  text={draft}
+                  auto={autoTranslate}
+                  onOpen={openDraft}
+                  onReplaced={(text) => {
+                    setDraft(text);
+                    caretIn.current = null;
+                  }}
                 />
               </Suspense>
             )}
