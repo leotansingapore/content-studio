@@ -10,7 +10,7 @@ vi.mock("@/lib/mediaLibrary", () => ({
 
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
-import { fixImage, imageJob, logoBox, makeImage } from "./aiImage";
+import { fixImage, imageJob, logoBox, makeImage, onImageJob } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
 
 type Body = { mode: string };
@@ -90,6 +90,53 @@ describe("the prompt sent for everyone else", () => {
       (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
     await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
     expect(JSON.stringify(starts().map(([fn, body]) => [fn, body]))).toBe('[["ai-image",{"mode":"start","prompt":"A family picnic at East Coast Park"}]]');
+  });
+});
+
+// A make and a fix for everyone else, pinned before a reload could pick a make up again (D4, 22 Oct live check): the
+// calls, what the page is told at each step and what lands in Media.
+describe("a make and a fix for everyone else, pinned", () => {
+  it("asks, polls, saves to AI images and says so, the same way", async () => {
+    let polls = 0;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      const b = body as { mode: string; token?: string };
+      if (b.mode === "start") return { token: "t1", usage: { used: 1, limit: 3 } };
+      if (b.mode === "fix") return { token: "t2", usage: { used: 2, limit: 3 } };
+      return ++polls === 1 ? { state: "working" } : { state: "done", url: `https://cdn.higgsfield.ai/${b.token}.png` };
+    });
+    const seen: unknown[] = [];
+    const off = onImageJob((j) => seen.push(j));
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic at East Coast Park"));
+    await settle(fixImage("u1", "make the sky bluer"));
+    off();
+    expect(vi.mocked(callFn).mock.calls).toEqual([
+      ["ai-image", { mode: "start", prompt: "A family picnic at East Coast Park" }, "Couldn't make the image right now. Try again in a minute."],
+      ["ai-image", { mode: "status", token: "t1" }],
+      ["ai-image", { mode: "status", token: "t1" }],
+      ["ai-image", { mode: "fix", token: "t1", fix: "make the sky bluer" }, "Couldn't make the image right now. Try again in a minute."],
+      ["ai-image", { mode: "status", token: "t2" }],
+    ]);
+    expect(vi.mocked(fetch).mock.calls.map(([u]) => u)).toEqual(["https://cdn.higgsfield.ai/t1.png", "https://cdn.higgsfield.ai/t2.png"]);
+    const done = { prompt: "A family picnic at East Coast Park", state: "done", mediaKey: "pic-1", preview: "data:image/png;base64,x", name: "Picnic at East Coast Park" };
+    expect(seen).toEqual([
+      { prompt: "A family picnic at East Coast Park", state: "working", fix: undefined },
+      { prompt: "A family picnic at East Coast Park", state: "saving", fix: undefined },
+      { ...done, token: "t1" },
+      { prompt: "A family picnic at East Coast Park", state: "working", fix: "make the sky bluer" },
+      { prompt: "A family picnic at East Coast Park", state: "saving", fix: "make the sky bluer" },
+      { ...done, token: "t2" },
+    ]);
+    expect(vi.mocked(addMedia).mock.calls.map(([u, m]) => [u, { ...m, addedAt: typeof m.addedAt }])).toEqual([
+      ["u1", { key: "pic-1", name: "Picnic at East Coast Park", folder: "AI images", alt: "A family picnic at East Coast Park", width: 1080, height: 1440, addedAt: "string" }],
+      ["u1", { key: "pic-1", name: "Picnic at East Coast Park (fixed)", folder: "AI images", alt: "A family picnic at East Coast Park Fixed: make the sky bluer", width: 1080, height: 1440, addedAt: "string" }],
+    ]);
+  });
+
+  it("says why when Higgsfield fails, and keeps nothing", async () => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "status" ? { state: "failed", error: "The image couldn't be made. Try a different prompt." } : { token: "t1" }));
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
+    expect(imageJob()).toEqual({ prompt: "A family picnic at East Coast Park", state: "failed", error: "The image couldn't be made. Try a different prompt." });
+    expect(addMedia).not.toHaveBeenCalled();
   });
 });
 
