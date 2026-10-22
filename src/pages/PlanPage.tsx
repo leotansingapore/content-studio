@@ -28,6 +28,8 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { loadLabels, type Label as PlanLabel } from "@/lib/labels";
 import PillarsSection from "@/components/plan/PillarsSection";
 import SlotLabelMenu from "@/components/plan/SlotLabelMenu";
+import AutopilotCard from "@/components/plan/AutopilotCard";
+import { runAutopilot } from "@/lib/autopilotJob";
 import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import { scoped } from "@/lib/profiles";
@@ -205,6 +207,11 @@ export default function PlanPage() {
 
   useEffect(() => {
     if (leo && userId) setLabels(loadLabels(userId));
+  }, [leo, userId]);
+
+  // Leo's autopilot writes the week it is due when /plan opens; the run lives outside the page (autopilotJob.ts).
+  useEffect(() => {
+    if (leo && userId) void runAutopilot(userId);
   }, [leo, userId]);
 
   // Kept while the form is open; building the plan or going back to it clears it.
@@ -475,6 +482,8 @@ export default function PlanPage() {
             </h1>
           </div>
         </Card>
+
+        {leo && userId && !plan && <AutopilotCard userId={userId} onDraftsChange={setDrafts} />}
 
         <Card className="border-border/60 shadow-card">
           <CardHeader>
@@ -939,6 +948,8 @@ export default function PlanPage() {
           </div>
         </div>
       </Card>
+
+      {leo && userId && <AutopilotCard userId={userId} onDraftsChange={setDrafts} />}
 
       {leo && userId && (
         <PillarsSection
