@@ -18,8 +18,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
-  type Audience, AUDIENCE_LIMITS, FULL_LINE, loadAudiences, MAX_ACTIVE, onAudiencesChanged, removeAudience, saveAudience, setMain,
-} from "@/lib/audiences";
+  type Audience, AUDIENCE_LIMITS, FULL_LINE, loadAudiences, MAX_ACTIVE, onAudiencesChanged, removeAudience, saveAudience, setMain, whoRepeatsName } from "@/lib/audiences";
 import {
   hasProfile, keepAllSuggested, keepSuggested, loadWaiting, onSuggest, removeSuggested, siteFor, startSuggest, statusLine, suggestFailed,
   suggestingNow, type Waiting,
@@ -197,7 +196,7 @@ function Row({ a, open, onOpen }: { a: Audience; open: boolean; onOpen: () => vo
           <span className="break-words text-sm font-semibold">{a.name}</span>
           {a.main && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Main</span>}
         </span>
-        {a.who && <span className="line-clamp-2 block text-xs text-muted-foreground">{a.who}</span>}
+        {a.who && !whoRepeatsName(a) && <span className="line-clamp-2 block text-xs text-muted-foreground">{a.who}</span>}
         {a.cares.length > 0 && <span className="block text-xs">{a.cares.join(" | ")}</span>}
       </button>
       <Button size="sm" variant="outline" className={`h-9 shrink-0 ${TOUCH}`} asChild>
