@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
 import {
-  addToJoin, currentJoin, drawFrame, endJoin, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, onJoinJob, pickupPlan, planFor, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
+  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, onJoinJob, pickupPlan, planFor, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
   TAP_TO_FINISH, withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
 } from "./videoMedia";
 
+const kitFont = vi.hoisted(() => ({ font: undefined as string | undefined }));
+vi.mock("@/lib/brandFont", () => ({ leoBrandFont: async () => kitFont.font }));
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
 
 describe("export all", () => {
@@ -328,5 +330,79 @@ describe("startSound", () => {
     expect(ctx.resumes).toBe(2);
     expect(ctx.state).toBe("running");
     expect(seen.at(-1)).toBeUndefined();
+  });
+});
+
+// A 2D context that records what is painted: each font set, each text written, each picture drawn and each fill.
+function paintLog() {
+  const log = { fonts: [] as string[], texts: [] as string[], images: [] as unknown[], fills: [] as string[] };
+  const state: Record<string, unknown> = { canvas: { width: 1080, height: 1920 } };
+  const g = new Proxy(state, {
+    get: (t, k) => {
+      if (k in t) return t[k as string];
+      if (k === "measureText") return (x: string) => ({ width: x.length * 20 });
+      if (k === "fillText") return (x: string) => log.texts.push(x);
+      if (k === "drawImage") return (img: unknown) => log.images.push(img);
+      if (k === "fillRect") return () => log.fills.push(String(t.fillStyle));
+      return () => {};
+    },
+    set: (t, k, v) => {
+      if (k === "font") log.fonts.push(v);
+      t[k as string] = v;
+      return true;
+    },
+  });
+  return { g: g as unknown as CanvasRenderingContext2D, log };
+}
+
+describe("the brand kit's cards on video (brand-kit)", () => {
+  const LOGO = { naturalWidth: 400, naturalHeight: 200 } as HTMLImageElement;
+  const PHOTO = { naturalWidth: 256, naturalHeight: 256 } as HTMLImageElement;
+  const art: BrandArt = { name: "Activity Tracker", handle: "@activitytracker", role: "Adviser", color: "#1E3A8A", line: "DM me PLAN" };
+
+  it("writes the end card in DM Sans exactly as before when there is no brand font", () => {
+    const { g, log } = paintLog();
+    drawEndCard(g, art, 1);
+    expect(log.fonts).toEqual([
+      '800 76px "DM Sans", Inter, system-ui, sans-serif',
+      '600 44px "DM Sans", Inter, system-ui, sans-serif',
+      '500 38px "DM Sans", Inter, system-ui, sans-serif',
+      '700 40px "DM Sans", Inter, system-ui, sans-serif',
+    ]);
+  });
+
+  it("writes the end card in the brand font first, DM Sans behind it", () => {
+    const { g, log } = paintLog();
+    drawEndCard(g, { ...art, font: "BrandFont" }, 1);
+    expect(log.fonts).toHaveLength(4);
+    for (const f of log.fonts) expect(f).toMatch(/^\d00 \d+px "BrandFont", "DM Sans", Inter, system-ui, sans-serif$/);
+  });
+
+  it("opens on the brand colour with the logo over the name, in the brand font", () => {
+    const { g, log } = paintLog();
+    drawIntroCard(g, { ...art, logo: LOGO, photo: PHOTO, font: "BrandFont" }, 1);
+    expect(log.fills[0]).toBe("#1E3A8A");
+    expect(log.images).toEqual([LOGO]);
+    expect(log.texts).toEqual(["Activity Tracker"]);
+    expect(log.fonts).toEqual(['800 80px "BrandFont", "DM Sans", Inter, system-ui, sans-serif']);
+  });
+
+  it("shows the photo when there is no logo, and only the colour and name with neither", () => {
+    const withPhoto = paintLog();
+    drawIntroCard(withPhoto.g, { ...art, photo: PHOTO }, 0.5);
+    expect(withPhoto.log.images).toEqual([PHOTO]);
+    const bare = paintLog();
+    drawIntroCard(bare.g, art, 0.5);
+    expect(bare.log.images).toEqual([]);
+    expect(bare.log.texts).toEqual(["Activity Tracker"]);
+  });
+
+  it("carries Leo's brand font into the art, and nothing for everyone else", async () => {
+    const kit = { color: "#1E3A8A", name: "Activity Tracker", handle: "" };
+    kitFont.font = undefined;
+    expect(await loadBrandArt(kit)).not.toHaveProperty("font");
+    kitFont.font = "BrandFont";
+    expect(await loadBrandArt(kit)).toMatchObject({ font: "BrandFont" });
+    kitFont.font = undefined;
   });
 });

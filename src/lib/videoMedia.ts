@@ -475,6 +475,8 @@ export interface BrandArt {
   role: string;
   color: string;
   line: string;
+  /** Leo's brand font family once loaded (brand-kit): the end card's words. Unset for everyone else. */
+  font?: string;
 }
 
 function loadImg(src: string | undefined): Promise<HTMLImageElement | undefined> {
@@ -489,8 +491,60 @@ function loadImg(src: string | undefined): Promise<HTMLImageElement | undefined>
 
 export async function loadBrandArt(brand: CarouselBrand | null): Promise<BrandArt | null> {
   if (!brand || !(brand.name?.trim() || brand.handle?.trim() || brand.photo || brand.logo)) return null;
-  const [logo, photo] = await Promise.all([loadImg(brand.logo), loadImg(brand.photo)]);
-  return { logo, photo, name: brand.name.trim(), handle: brand.handle.trim(), role: (brand.role ?? "").trim(), color: brand.color, line: endCardLine(brand.signOff) };
+  const [logo, photo, font] = await Promise.all([
+    loadImg(brand.logo),
+    loadImg(brand.photo),
+    // loaded only for Leo's sign-ins, and imported here so this module never pulls in the session
+    import("@/lib/brandFont").then((m) => m.leoBrandFont()).catch(() => undefined),
+  ]);
+  return { logo, photo, name: brand.name.trim(), handle: brand.handle.trim(), role: (brand.role ?? "").trim(), color: brand.color, line: endCardLine(brand.signOff), ...(font ? { font } : {}) };
+}
+
+/** The card's words: the brand font first when there is one, else today's DM Sans. */
+const cardFont = (art: BrandArt) => `${art.font ? `"${art.font}", ` : ""}"DM Sans", Inter, system-ui, sans-serif`;
+
+export const INTRO_CARD_SECONDS = 1.5;
+
+/**
+ * The opening card (brand-kit): the brand colour with the logo, or the photo when there is no logo, over the brand
+ * name; the logo and name fade in over 0.3 s. Not drawn by the export yet.
+ */
+export function drawIntroCard(g: CanvasRenderingContext2D, art: BrandArt, t: number) {
+  const W = g.canvas.width;
+  const H = g.canvas.height;
+  const u = Math.min(W, H) / 1080;
+  g.save();
+  g.fillStyle = art.color;
+  g.fillRect(0, 0, W, H);
+  g.globalAlpha = Math.min(1, Math.max(0, t / 0.3));
+  const pic = art.logo ?? art.photo;
+  const nameH = art.name ? 110 * u : 0;
+  const box = { w: W * 0.6, h: pic ? (art.logo ? 300 * u : 340 * u) : 0 };
+  let y = (H - box.h - (pic && nameH ? 60 * u : 0) - nameH) / 2;
+  if (pic) {
+    const k = Math.min(box.w / pic.naturalWidth, box.h / pic.naturalHeight);
+    const [w, h] = art.logo ? [pic.naturalWidth * k, pic.naturalHeight * k] : [box.h, box.h];
+    const x = (W - w) / 2;
+    if (art.logo) g.drawImage(pic, x, y + (box.h - h) / 2, w, h);
+    else {
+      g.save();
+      g.beginPath();
+      g.arc(W / 2, y + h / 2, h / 2, 0, Math.PI * 2);
+      g.clip();
+      const side = Math.min(pic.naturalWidth, pic.naturalHeight);
+      g.drawImage(pic, (pic.naturalWidth - side) / 2, (pic.naturalHeight - side) / 2, side, side, x, y, w, h);
+      g.restore();
+    }
+    y += box.h + 60 * u;
+  }
+  if (art.name) {
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillStyle = readableOn(art.color);
+    g.font = `800 ${Math.round(80 * u)}px ${cardFont(art)}`;
+    g.fillText(art.name, W / 2, y + nameH / 2, W * 0.88);
+  }
+  g.restore();
 }
 
 /** The closing card: brand colour, round photo, name, handle, role and the sign-off line; fades in over 0.3 s. */
@@ -506,9 +560,9 @@ export function drawEndCard(g: CanvasRenderingContext2D, art: BrandArt, t: numbe
   g.fillRect(0, 0, W, H);
   const ink = readableOn(art.color);
   const rows: { text: string; font: string; alpha: number; gap: number }[] = [];
-  if (art.name) rows.push({ text: art.name, font: `800 ${Math.round(76 * u)}px "DM Sans", Inter, system-ui, sans-serif`, alpha: 1, gap: 92 * u });
-  if (art.handle) rows.push({ text: art.handle, font: `600 ${Math.round(44 * u)}px "DM Sans", Inter, system-ui, sans-serif`, alpha: 0.85, gap: 62 * u });
-  if (art.role) rows.push({ text: art.role, font: `500 ${Math.round(38 * u)}px "DM Sans", Inter, system-ui, sans-serif`, alpha: 0.75, gap: 56 * u });
+  if (art.name) rows.push({ text: art.name, font: `800 ${Math.round(76 * u)}px ${cardFont(art)}`, alpha: 1, gap: 92 * u });
+  if (art.handle) rows.push({ text: art.handle, font: `600 ${Math.round(44 * u)}px ${cardFont(art)}`, alpha: 0.85, gap: 62 * u });
+  if (art.role) rows.push({ text: art.role, font: `500 ${Math.round(38 * u)}px ${cardFont(art)}`, alpha: 0.75, gap: 56 * u });
   const r = art.photo ? 170 * u : 0;
   const lineH = art.line ? 120 * u : 0;
   const block = (r ? r * 2 + 60 * u : 0) + rows.reduce((a, b) => a + b.gap, 0) + lineH;
@@ -544,7 +598,7 @@ export function drawEndCard(g: CanvasRenderingContext2D, art: BrandArt, t: numbe
   }
   if (art.line) {
     g.globalAlpha = fade;
-    g.font = `700 ${Math.round(40 * u)}px "DM Sans", Inter, system-ui, sans-serif`;
+    g.font = `700 ${Math.round(40 * u)}px ${cardFont(art)}`;
     const tw = Math.min(W * 0.84, g.measureText(art.line).width);
     const bh = 84 * u;
     const by = y + 36 * u;
