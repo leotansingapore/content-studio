@@ -457,9 +457,6 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const [voBusy, setVoBusy] = useState(false);
   const [voError, setVoError] = useState("");
   const leo = useLeoOnly();
-  // Leo's chips say what is left after this run, so his counts are read again after a voiceover too
-  const mine = useUsesLeft(busy || voBusy || !leo);
-  const left = leo ? mine : panelLeft;
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
   useEffect(() => {
@@ -578,6 +575,9 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const topic = again ? scriptJob!.topic : script.trim();
   const canWrite = topic.length >= 5 && topic.length <= MAX_TOPIC;
   const writing = scriptJob?.state === "writing";
+  // Leo's chips say what is left after this run, so his counts are read again after a script or a voiceover too
+  const mine = useUsesLeft(busy || voBusy || writing || !leo);
+  const left = leo ? mine : panelLeft;
   const write = () => talk !== "plain" && void writeTalkScript({ talk, topic, offer: offerName });
   const flags = useMemo(() => {
     if (!user) return [];
