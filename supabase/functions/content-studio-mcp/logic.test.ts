@@ -105,6 +105,50 @@ describe("tools", () => {
     });
   });
 
+  // Pinned before the goal fields joined get_brand (phase 5): a brand that never set a goal answers byte for byte as
+  // it did on 0d23f6a6. Never update this literal to make a change pass.
+  it("answers a brand with no goal fields exactly as before (pinned)", async () => {
+    const s = memoryStore({
+      [`content-studio-positioning-${UID}`]: {
+        oneLiner: "I help young families in Tampines plan their cover.",
+        audience: "parent",
+        audienceDetail: "Parents in their 30s with kids under 10",
+        topics: ["Hospital plans", "CPF"],
+        edge: "Plain numbers, no jargon",
+        platform: "instagram",
+        cadence: 4,
+        updatedAt: "2026-10-01T00:00:00Z",
+      },
+      [`content-studio-carousel-brand-${UID}`]: { name: "Jane Lim", handle: "@janelim", role: "Financial adviser", signOff: "DM me", color: "#1f6feb", photo: "data:image/jpeg;base64,xx" },
+      [`content-studio-voice-${UID}`]: { voiceSummary: "Warm, plain, short sentences." },
+    });
+    const r = await callTool("get_brand", {}, s, link);
+    expect(r.isError).toBeUndefined();
+    expect(r.content).toHaveLength(1);
+    expect(r.content[0].text).toBe(`{
+  "positioning": {
+    "oneLiner": "I help young families in Tampines plan their cover.",
+    "audience": "parent",
+    "audienceDetail": "Parents in their 30s with kids under 10",
+    "topics": [
+      "Hospital plans",
+      "CPF"
+    ],
+    "edge": "Plain numbers, no jargon",
+    "platform": "instagram",
+    "cadence": 4
+  },
+  "brandKit": {
+    "name": "Jane Lim",
+    "handle": "@janelim",
+    "role": "Financial adviser",
+    "signOff": "DM me",
+    "color": "#1f6feb"
+  },
+  "voiceSummary": "Warm, plain, short sentences."
+}`);
+  });
+
   it("adds a draft as its own inbox row under this scope, never a uuid id", async () => {
     const s = memoryStore({ [`content-studio-positioning-${UID}`]: { platform: "instagram" } });
     const r = text(await callTool("add_draft", { text: "Hook line\n\nBody", scheduledFor: "2026-10-20T19:30" }, s, link, now));
