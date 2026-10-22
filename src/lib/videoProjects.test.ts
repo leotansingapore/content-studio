@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { aiOf, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
+import { EdgeError } from "@/lib/edgeFn";
 
 const deleted: string[] = [];
 vi.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: async () => ({ data: { session: null } }) } }, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
-vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
+vi.mock("@/lib/edgeFn", async (actual) => ({ ...(await actual<typeof import("@/lib/edgeFn")>()), callFn: vi.fn() }));
 const put: string[] = [];
 vi.mock("@/lib/videoMedia", () => ({
   deleteFile: (k: string) => (deleted.push(k), Promise.resolve()),
@@ -313,5 +314,21 @@ describe("transcribe", () => {
     await transcribe(new Blob(["wav"]));
     await transcribe(new Blob(["wav"]), "ms", []);
     expect(asked).toEqual(["/functions/v1/video-assist?mode=transcribe", "/functions/v1/video-assist?mode=transcribe&lang=ms"]);
+  });
+  // pinned on today's code (eaaa6379): the editor shows these words as they are
+  it("throws the server's own words, or names the status when there are none", async () => {
+    vi.stubGlobal("fetch", async () => Response.json({ error: "That video is too long to caption. Keep it under about 12 minutes." }, { status: 413 }));
+    await expect(transcribe(new Blob(["wav"]))).rejects.toHaveProperty("message", "That video is too long to caption. Keep it under about 12 minutes.");
+    vi.stubGlobal("fetch", async () => new Response("<html>gateway</html>", { status: 504 }));
+    await expect(transcribe(new Blob(["wav"]))).rejects.toHaveProperty("message", "The editor answered 504. Try again.");
+  });
+  it("throws an EdgeError carrying the status, the server's words and its code", async () => {
+    vi.stubGlobal("fetch", async () => Response.json({ code: "daily_limit", error: "You've used all 30 for today." }, { status: 429 }));
+    const e = await transcribe(new Blob(["wav"])).catch((x) => x);
+    expect(e).toBeInstanceOf(EdgeError);
+    expect(e).toBeInstanceOf(Error);
+    expect(e).toMatchObject({ status: 429, code: "daily_limit", message: "You've used all 30 for today." });
+    vi.stubGlobal("fetch", async () => new Response("", { status: 400 }));
+    expect(await transcribe(new Blob(["wav"])).catch((x) => x)).toMatchObject({ status: 400, code: "", message: "The editor answered 400. Try again." });
   });
 });

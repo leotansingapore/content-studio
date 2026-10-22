@@ -3,10 +3,16 @@
 // counts, and get 5 standalone posts, each opening with a different hook
 // formula. Keep the ones you want as drafts. Logic: src/lib/repurpose.ts and
 // supabase/functions/idea-dump (mode "long", cap "repurpose-long").
+//
+// Leo's sign-ins (plan-interview) also get a switch above the box: Answer questions (coach/Interview.tsx), Voice
+// note (coach/VoiceNote.tsx) or Paste text, all ending in the same Make 5 posts and results; ?piece= picks it.
+// Everyone else keeps today's paste box, byte for byte (LongPiece.pins.test.ts).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import FactFlags from "@/components/FactFlags";
-import { Link } from "react-router-dom";
+import Interview from "@/components/coach/Interview";
+import VoiceNote from "@/components/coach/VoiceNote";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +23,11 @@ import { supabase } from "@/lib/supabase";
 import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
-import { useLeoOnly } from "@/lib/useLeoOnly";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { useUrlState } from "@/lib/urlState";
+import { speakerFor } from "@/lib/remixBrand";
+import { clock } from "@/lib/micRecorder";
+import { clearNote, onVoiceJob, voiceJob } from "@/lib/voiceNote";
 import { scoped } from "@/lib/profiles";
 import { loadDrafts, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS, hookFormula } from "@/lib/hookFormulas";
@@ -31,6 +41,7 @@ import {
   weekFromLongPiece,
   type LongExtracts,
   type LongRun,
+  type LongSource,
 } from "@/lib/repurpose";
 import { AlertTriangle, Check, Clock, FileText, PenLine, RotateCcw, Save, Sparkles } from "lucide-react";
 
@@ -47,6 +58,11 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 // prefix: it is scratch.
 const textKey = (userId: string) => `cs-long-piece-${scoped(userId)}`;
 
+const PIECES = ["questions", "voice", "paste"] as const;
+type Piece = (typeof PIECES)[number];
+const PIECE_LABEL: Record<Piece, string> = { questions: "Answer questions", voice: "Voice note", paste: "Paste text" };
+const FROM: Partial<Record<LongSource, string>> = { interview: " from your interview", voice: " from your voice note" };
+
 export default function LongPiece() {
   const [userId, setUserId] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -55,7 +71,16 @@ export default function LongPiece() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ kind: "limit" | "error"; message: string } | null>(null);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
-  const leo = useLeoOnly();
+  const leo = Boolean(useLeoUser());
+  // Leo only from here: the switch, the voice note's seconds once its text is in the box, and the arrival scroll
+  const [piece, setPiece] = useUrlState<Piece>("piece", "questions", { allowed: PIECES });
+  const [fromVoice, setFromVoice] = useState<number | null>(null);
+  const voice = useSyncExternalStore(onVoiceJob, voiceJob, voiceJob);
+  const sectionRef = useRef<HTMLElement>(null);
+  const { hash } = useLocation();
+  const [params] = useSearchParams();
+  const arrivedWithPiece = useRef(params.has("piece"));
+  const lastAsk = useRef<{ piece: string; source?: LongSource }>({ piece: "" });
   // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
   const left = useUsesLeft(loading || !leo)("repurpose-long");
   const why = reasonText({ left, leo });
@@ -91,25 +116,47 @@ export default function LongPiece() {
     }
   }, [userId, text]);
 
+  // A finished voice note's text goes into the box (after anything typed there), and the switch moves to Paste text.
+  useEffect(() => {
+    if (!leo || !userId || voice?.state !== "done" || voice.userId !== userId) return;
+    setText((cur) => (cur.trim() ? `${cur.trimEnd()}\n\n${voice.text}` : voice.text).slice(0, MAX_LONG_CHARS));
+    setFromVoice(voice.seconds);
+    setPiece("paste");
+    clearNote();
+  }, [leo, userId, voice, setPiece]);
+
+  // Arriving on #long-piece or with ?piece= scrolls the section into view, as Idea Dump does for #idea-dump.
+  useEffect(() => {
+    if (!leo || (hash !== "#long-piece" && !arrivedWithPiece.current)) return;
+    const t = window.setTimeout(() => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    return () => window.clearTimeout(t);
+  }, [leo, hash]);
+
   const kept = (draftId?: string) => Boolean(draftId) && drafts.some((d) => d.id === draftId);
   const unkept = run ? run.posts.filter((p) => !kept(p.draftId)) : [];
 
-  const make = async () => {
-    if (!userId || loading || !text.trim() || left === 0) return;
-    if (unkept.length && !window.confirm(`Replace the ${plural(unkept.length, "post", "posts")} you haven't kept?`)) return;
+  /** `source` is Leo's only; without it the request is everyone's, as before. True once the posts are below. */
+  const make = async (piece = text, source?: LongSource): Promise<boolean> => {
+    if (!userId || loading || !piece.trim() || left === 0) return false;
+    if (unkept.length && !window.confirm(`Replace the ${plural(unkept.length, "post", "posts")} you haven't kept?`)) return false;
+    lastAsk.current = { piece, source };
     setNotice(null);
     setLoading(true);
     const formulas = longPieceFormulas(Math.floor(Math.random() * HOOK_FORMULAS.length));
-    const outcome = await weekFromLongPiece(text, buildIdeaDumpContext(userId), formulas);
+    const outcome = await weekFromLongPiece(piece, buildIdeaDumpContext(userId), formulas, source, source ? speakerFor(userId) : undefined);
     setLoading(false);
     if (outcome.kind !== "ok") {
       setNotice(outcome);
-      return;
+      return false;
     }
     // saved before anything else, so leaving the page mid-run keeps the posts
-    setRun(saveLongRun(userId, { createdAt: new Date().toISOString(), truncated: outcome.truncated, extracts: outcome.extracts, posts: outcome.posts }));
+    setRun(saveLongRun(userId, { createdAt: new Date().toISOString(), ...(source ? { source } : {}), truncated: outcome.truncated, extracts: outcome.extracts, posts: outcome.posts }));
     setUsage(outcome.usage);
+    return true;
   };
+  // Try again repeats the last ask: the interview's answers, else the box as it is now (as before)
+  const retry = () => void make(lastAsk.current.source === "interview" ? lastAsk.current.piece : text, lastAsk.current.source);
+  const pasteSource: LongSource | undefined = leo ? (fromVoice !== null ? "voice" : "text") : undefined;
 
   const keep = (indexes: number[]) => {
     if (!userId || !run) return;
@@ -130,7 +177,7 @@ export default function LongPiece() {
   const found = run ? GROUPS.reduce((n, g) => n + run.extracts[g.key].length, 0) : 0;
 
   return (
-    <section id="long-piece" className="scroll-mt-20 space-y-4" aria-labelledby="long-piece-title">
+    <section id="long-piece" ref={sectionRef} className="scroll-mt-20 space-y-4" aria-labelledby="long-piece-title">
       <div className="flex items-center gap-1">
         <h2 id="long-piece-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
           <FileText className="h-4 w-4 text-primary" /> One long piece, five posts
@@ -140,33 +187,73 @@ export default function LongPiece() {
         </InfoTip>
       </div>
 
-      <Card className="border-border/60 shadow-card">
-        <CardContent className="space-y-3 p-4 sm:p-5">
-          <Label htmlFor="long-piece-text">Paste a talk transcript, newsletter or webinar notes</Label>
-          <Textarea
-            id="long-piece-text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            readOnly={loading}
-            rows={8}
-            maxLength={MAX_LONG_CHARS}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => void make()}
-              disabled={loading || !text.trim() || !userId || left === 0}
-              className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10"
+      {leo && (
+        <div role="group" aria-label="How you give the piece" className="grid grid-cols-3 gap-1 rounded-lg border border-border/60 bg-muted/30 p-1">
+          {PIECES.map((p) => (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={piece === p}
+              onClick={() => setPiece(p)}
+              className={`min-h-11 rounded-md px-1.5 text-[13px] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                piece === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <Sparkles className="h-4 w-4" /> Make 5 posts
-            </Button>
-            {!loading && <PriceChip feature="repurpose-long" left={left} />}
-            <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-              {text.length.toLocaleString()}/{MAX_LONG_CHARS.toLocaleString()}
-            </span>
-          </div>
-          {why && <p className="text-xs text-destructive">{why}</p>}
-        </CardContent>
-      </Card>
+              {PIECE_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {leo && piece !== "paste" && userId && (
+        <Card className="border-border/60 shadow-card">
+          <CardContent className="p-4 sm:p-5">
+            {piece === "questions" ? (
+              <Interview userId={userId} busy={loading} left={left} why={why} postsBelow={run?.posts.length ?? 0} onMake={(t) => make(t, "interview")} />
+            ) : (
+              <VoiceNote userId={userId} />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {(!leo || piece === "paste") && (
+        <Card className="border-border/60 shadow-card">
+          <CardContent className="space-y-3 p-4 sm:p-5">
+            <Label htmlFor="long-piece-text">Paste a talk transcript, newsletter or webinar notes</Label>
+            {leo && fromVoice !== null && (
+              <p className="text-xs text-muted-foreground" data-testid="long-piece-from-voice">
+                From your voice note ({clock(fromVoice)}). Fix any words it heard wrong, then make the posts.
+              </p>
+            )}
+            <Textarea
+              id="long-piece-text"
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (!e.target.value.trim()) setFromVoice(null);
+              }}
+              readOnly={loading}
+              rows={8}
+              maxLength={MAX_LONG_CHARS}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                onClick={() => void make(text, pasteSource)}
+                disabled={loading || !text.trim() || !userId || left === 0}
+                className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10"
+              >
+                <Sparkles className="h-4 w-4" /> Make 5 posts
+              </Button>
+              {!loading && <PriceChip feature="repurpose-long" left={left} />}
+              <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+                {text.length.toLocaleString()}/{MAX_LONG_CHARS.toLocaleString()}
+              </span>
+            </div>
+            {why && <p className="text-xs text-destructive">{why}</p>}
+          </CardContent>
+        </Card>
+      )}
 
       <div aria-live="polite" className="space-y-3 empty:hidden">
         {loading && (
@@ -183,7 +270,7 @@ export default function LongPiece() {
             <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {notice.message}
             </p>
-            <Button size="sm" variant="outline" onClick={() => void make()} disabled={left === 0} className="h-11 gap-1.5 sm:h-9">
+            <Button size="sm" variant="outline" onClick={retry} disabled={left === 0} className="h-11 gap-1.5 sm:h-9">
               <RotateCcw className="h-4 w-4" /> Try again
             </Button>
           </div>
@@ -246,7 +333,10 @@ export default function LongPiece() {
           </Card>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-foreground">Your week: {plural(run.posts.length, "post", "posts")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              Your week: {plural(run.posts.length, "post", "posts")}
+              {leo && run.source && FROM[run.source]}
+            </p>
             {unkept.length > 1 && (
               <Button
                 variant="outline"

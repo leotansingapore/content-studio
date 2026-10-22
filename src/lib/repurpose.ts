@@ -102,9 +102,23 @@ export function longFailure(status: number, body: unknown): LongOutcome {
   return { kind: "error", message: message || LONG_ERROR };
 }
 
-export async function weekFromLongPiece(text: string, context: IdeaDumpContext, formulas: LongFormula[]): Promise<LongOutcome> {
+/** Where a long piece came from: Leo's interview, a voice note, or pasted text. */
+export type LongSource = "interview" | "voice" | "text";
+
+/**
+ * `source` and `speaker` go only on Leo's runs (the server reads them for NORTH_STAR_USERS only); without them the
+ * body is everyone's, unchanged. `speaker` sits beside the context's fields, as the server reads them.
+ */
+export async function weekFromLongPiece(
+  text: string,
+  context: IdeaDumpContext,
+  formulas: LongFormula[],
+  source?: LongSource,
+  speaker?: "person" | "business",
+): Promise<LongOutcome> {
   try {
-    const { data, error } = await supabase.functions.invoke("idea-dump", { body: { mode: "long", text, formulas, ...context } });
+    const body = { mode: "long", text, formulas, ...context, ...(source ? { source } : {}), ...(speaker ? { speaker } : {}) };
+    const { data, error } = await supabase.functions.invoke("idea-dump", { body });
     if (error) {
       const ctx = (error as { context?: unknown }).context as Response | undefined;
       const isResponse = Boolean(ctx) && typeof ctx.status === "number" && typeof ctx.json === "function";
@@ -138,6 +152,8 @@ export function longPostEntry(p: LongPost, platform: string, audience: string, n
 
 export interface LongRun {
   createdAt: string;
+  /** Unset on runs from before the interview: those read as "text". */
+  source?: LongSource;
   truncated: boolean;
   extracts: LongExtracts;
   /** draftId once kept. */
