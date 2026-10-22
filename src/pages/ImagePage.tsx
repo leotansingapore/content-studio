@@ -33,7 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { AI_FOLDER, imageBusy, imageJob, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
+import { AI_FOLDER, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { DEFAULT_BRAND, loadBrand, slugify } from "@/lib/carousel";
 import { SLIDE_FONTS, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
 import { createCanvasMeasure, downloadBlob, svgDataUrl } from "@/lib/carouselRender";
@@ -388,6 +388,12 @@ function ImageEditor({ userId }: { userId: string }) {
 
   // "Make one": the AI picture this design asked for drops in when it is ready, even after a reload of the job
   const askedFor = useRef<string | null>(null);
+  // a make this design started before a reload (or before leaving the page) is picked up and still drops in
+  useEffect(() => {
+    resumeImage(userId);
+    if (imageBusy() && imageJob()?.designId === img.id) askedFor.current = img.id;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
   useEffect(() => {
     if (pictureJob?.state !== "done" || !pictureJob.mediaKey || askedFor.current !== img.id) return;
     askedFor.current = null;
@@ -601,7 +607,7 @@ function ImageEditor({ userId }: { userId: string }) {
               onOpen={(p) => update({ pick: p === pick ? null : p })}
               onMake={(prompt) => {
                 askedFor.current = img.id;
-                void makeImage(userId, prompt, `Image: ${mainWords(layout, img.words) || topic}`.slice(0, 80));
+                void makeImage(userId, prompt, `Image: ${mainWords(layout, img.words) || topic}`.slice(0, 80), img.id);
               }}
             />
           )}

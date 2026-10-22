@@ -10,7 +10,7 @@ vi.mock("@/lib/mediaLibrary", () => ({
 
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
-import { fixImage, imageJob, logoBox, makeImage, onImageJob } from "./aiImage";
+import { fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
 
 type Body = { mode: string };
@@ -137,6 +137,68 @@ describe("a make and a fix for everyone else, pinned", () => {
     await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic"));
     expect(imageJob()).toEqual({ prompt: "A family picnic at East Coast Park", state: "failed", error: "The image couldn't be made. Try a different prompt." });
     expect(addMedia).not.toHaveBeenCalled();
+  });
+});
+
+describe("a reload while a picture is made (D4)", () => {
+  const KEY = "cs-ai-image-making-u1";
+  const store = new Map<string, string>();
+  const done = { state: "done", url: "https://cdn.higgsfield.ai/t9.png" };
+  beforeEach(() => {
+    store.clear();
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+  });
+
+  it("keeps the paid token on this device until the picture is in Media", async () => {
+    let waiting: unknown = null;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      if ((body as Body).mode !== "status") return { token: "t1" };
+      waiting = JSON.parse(store.get(KEY) ?? "null");
+      return done;
+    });
+    await settle(makeImage("u1", "A sales rep checking her follow-ups on her phone", "Follow-ups", "img-1"));
+    expect(waiting).toEqual({ prompt: "A sales rep checking her follow-ups on her phone", name: "Follow-ups", designId: "img-1", token: "t1" });
+    expect(store.has(KEY)).toBe(false);
+    expect(imageJob()).toMatchObject({ state: "done", designId: "img-1" });
+  });
+
+  it("picks the picture up after a reload at no cost, keeps it in AI images and leaves nothing to pick up", async () => {
+    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A sales rep checking her follow-ups on her phone", name: "Follow-ups", designId: "img-1" }));
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "status" ? done : { token: "never" }));
+    resumeImage("u1");
+    expect(imageJob()).toMatchObject({ state: "working", prompt: "A sales rep checking her follow-ups on her phone", designId: "img-1" });
+    await settle(Promise.resolve());
+    expect(starts()).toHaveLength(0);
+    expect(vi.mocked(callFn).mock.calls[0]).toEqual(["ai-image", { mode: "status", token: "t9" }]);
+    expect(addMedia).toHaveBeenCalledWith("u1", expect.objectContaining({ key: "pic-1", name: "Follow-ups", folder: "AI images" }));
+    expect(imageJob()).toMatchObject({ state: "done", token: "t9", mediaKey: "pic-1", designId: "img-1" });
+    expect(store.has(KEY)).toBe(false);
+    vi.mocked(callFn).mockClear();
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    expect(callFn).not.toHaveBeenCalled();
+  });
+
+  it("drops the token when the picture fails, and never picks one up while another is being made", async () => {
+    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A sales rep", name: "Rep" }));
+    vi.mocked(callFn).mockImplementation(async () => ({ state: "failed", error: "That image job isn't known." }));
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    expect(imageJob()).toEqual({ prompt: "A sales rep", state: "failed", error: "That image job isn't known." });
+    expect(store.has(KEY)).toBe(false);
+
+    let start: (v: unknown) => void = () => {};
+    vi.mocked(callFn).mockImplementation((_fn, body) => ((body as Body).mode === "status" ? Promise.resolve(done) : new Promise((r) => (start = r))));
+    const making = makeImage("u1", "A hawker centre at lunchtime", "Hawker");
+    await vi.advanceTimersByTimeAsync(0);
+    store.set(KEY, JSON.stringify({ token: "t8", prompt: "Another", name: "Another" }));
+    resumeImage("u1");
+    expect(imageJob()).toMatchObject({ prompt: "A hawker centre at lunchtime" });
+    start({ token: "t1" });
+    await settle(making);
+    expect(vi.mocked(callFn).mock.calls.filter(([, b]) => (b as { token?: string }).token === "t8")).toHaveLength(0);
   });
 });
 
