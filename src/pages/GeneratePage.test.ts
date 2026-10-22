@@ -29,6 +29,9 @@ const html = (at: string) => {
 
 const BRIEF = "f4c7d387ff40624b82cd9971eaed78892e7f7872437c7e078a8f436a2ea7f753";
 const FORMAT_STEP = "e9b58dc8ee417bd6745cff79053c701c40746a127b2bc5181461be25d41e199e";
+// a plan slot's link as planItemToGenerateUrl builds it, with no aud or label (checked on today's code at eaaa6379)
+const PLAN_LINK_AT =
+  "/generate?pillar=topic&detail=Hospital+co-pays&audience=parent&format=carousel&platform=instagram&cta=save-share&funnel=attraction&idea=common-mistake&ctx=Most+people+pay+twice";
 
 describe("Write for everyone else", () => {
   it("draws today's brief", () => {
@@ -39,5 +42,11 @@ describe("Write for everyone else", () => {
     expect(html(at)).toContain("Where and how to post");
     expect(sha(html(at))).toBe(FORMAT_STEP);
     expect(html(`${at}&lang=zh`)).toBe(html(at));
+  });
+  // the pre-fill is an effect, so it runs after this frame; what it sends is checked in the browser
+  it("draws today's brief, audience chips included, on a plan slot's link", () => {
+    expect(html(PLAN_LINK_AT)).toContain("Audience / life-stage");
+    expect(sha(html(PLAN_LINK_AT))).toBe(BRIEF);
+    expect(html(`${PLAN_LINK_AT}&aud=au-lq3k9z&label=lb-1`)).toBe(html(PLAN_LINK_AT));
   });
 });
