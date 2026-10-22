@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useUrlState, withParam } from "@/lib/urlState";
+import { useScrollToHash, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { draftStatus, loadDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
@@ -23,6 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { loadLabels, type Label as PlanLabel } from "@/lib/labels";
+import PillarsSection from "@/components/plan/PillarsSection";
+import SlotLabelMenu from "@/components/plan/SlotLabelMenu";
 import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import { scoped } from "@/lib/profiles";
@@ -60,6 +65,10 @@ import {
   planItemToGenerateUrl,
   planCalendarEntries,
   planOptionsFor,
+  rebuildPlan,
+  relabelSlot,
+  slotLabel,
+  steerFor,
   upcomingMonday,
   type ContentPlan,
   type PlanItem,
@@ -142,6 +151,11 @@ export default function PlanPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
   const [goals, setGoals] = useState<WeeklyGoals>({});
+  // Leo only (north star phase 5): pillars and the goal steer the plan, and each slot wears the label it counts toward.
+  const leo = useLeoUser();
+  const [labels, setLabels] = useState<PlanLabel[]>([]);
+  const [pillarsParam, openPillars, closePillars] = useUrlItem("pillars");
+  useScrollToHash(!!leo && !editing);
   // Slots count as posted when ticked here or when their calendar post is marked posted.
   const items = useMemo(
     () =>
@@ -188,6 +202,10 @@ export default function PlanPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (leo && userId) setLabels(loadLabels(userId));
+  }, [leo, userId]);
 
   // Kept while the form is open; building the plan or going back to it clears it.
   useEffect(() => {
@@ -245,10 +263,16 @@ export default function PlanPage() {
     });
   };
 
+  const steer = (uid: string) => (leo ? steerFor(uid) : {});
+  // Leo's slots carry the label they show (a seeded label matches by topic), into Write and onto the calendar.
+  const labelled = (item: PlanItem): PlanItem => (leo ? { ...item, labelId: slotLabel(item, labels)?.id } : item);
+
   const handleGenerate = () => {
     if (!userId) return;
     const topics = parseTopics(topicsRaw);
-    const merged: Positioning = { ...positioning, topics };
+    // The goal is set on Home: keep the stored one, never this page's older copy.
+    const stored = loadPositioning(userId);
+    const merged: Positioning = { ...positioning, topics, goal: stored?.goal, goalKind: stored?.goalKind, goalSetAt: stored?.goalSetAt };
     if (!isPositioningUsable(merged)) {
       toast({
         title: "Add a bit more positioning",
@@ -264,7 +288,7 @@ export default function PlanPage() {
     const salt = plan ? plan.salt : 0;
     const story = thisWeek.trim();
     const newPlan: ContentPlan = {
-      ...generatePlan(merged, { weeks, salt, ...planOptionsFor(userId, merged.platform, { competitors, plan }) }),
+      ...generatePlan(merged, { weeks, salt, ...planOptionsFor(userId, merged.platform, { competitors, plan }), ...steer(userId) }),
       ...(story ? { thisWeek: story } : {}),
     };
     savePlan(userId, newPlan);
@@ -281,7 +305,7 @@ export default function PlanPage() {
     const topics = parseTopics(topicsRaw);
     const merged: Positioning = { ...positioning, topics };
     const newPlan: ContentPlan = {
-      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptionsFor(userId, merged.platform, { competitors, plan }) }),
+      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptionsFor(userId, merged.platform, { competitors, plan }), ...steer(userId) }),
       ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
     };
     savePlan(userId, newPlan);
@@ -289,6 +313,56 @@ export default function PlanPage() {
     toast({
       title: "Fresh angles",
       description: "Same positioning, new ideas. Posted ticks were reset.",
+    });
+  };
+
+  const moveSlot = (itemId: string, label: PlanLabel | null) => {
+    const before = plan?.items.find((i) => i.id === itemId);
+    if (!userId || !plan || !before) return;
+    const next: ContentPlan = { ...plan, items: plan.items.map((i) => (i.id === itemId ? relabelSlot(i, label) : i)) };
+    savePlan(userId, next);
+    setPlan(next);
+    const undo = () => {
+      const cur = loadPlan(userId);
+      if (!cur) return;
+      const back: ContentPlan = { ...cur, items: cur.items.map((i) => (i.id === itemId ? { ...before, posted: i.posted } : i)) };
+      savePlan(userId, back);
+      setPlan(back);
+    };
+    toast({
+      title: label ? `Slot moved to ${label.name}.` : "Label taken off.",
+      action: (
+        <ToastAction altText="Undo" onClick={undo}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  // Save and rebuild plan: same weeks, salt and hook formulas, posted ticks kept, the slots spread by the new aims.
+  const rebuildAroundPillars = (next: PlanLabel[]) => {
+    setLabels(next);
+    closePillars();
+    if (!userId || !plan) return;
+    const prev = plan;
+    const pos: Positioning = { ...positioning, topics: parseTopics(topicsRaw), cadence: plan.cadence };
+    const rebuilt = rebuildPlan(plan, pos, { ...planOptionsFor(userId, pos.platform, { competitors, plan }), ...steerFor(userId) });
+    savePlan(userId, rebuilt);
+    setPlan(rebuilt);
+    const undo = () => {
+      // the plan as it was, with any tick made since kept
+      const ticks = new Map((loadPlan(userId)?.items ?? []).map((i) => [i.id, i.posted]));
+      const back: ContentPlan = { ...prev, items: prev.items.map((i) => ({ ...i, posted: ticks.get(i.id) ?? i.posted })) };
+      savePlan(userId, back);
+      setPlan(back);
+    };
+    toast({
+      title: "Plan rebuilt around your pillars.",
+      action: (
+        <ToastAction altText="Undo" onClick={undo}>
+          Undo
+        </ToastAction>
+      ),
     });
   };
 
@@ -325,7 +399,7 @@ export default function PlanPage() {
   // upcoming Monday). Re-running updates untouched slots and keeps written ones.
   const handleAddToCalendar = () => {
     if (!userId || !plan) return;
-    const { entries, kept } = planCalendarEntries(plan.items, upcomingMonday(new Date()), loadDrafts(userId));
+    const { entries, kept } = planCalendarEntries(plan.items.map(labelled), upcomingMonday(new Date()), loadDrafts(userId));
     for (const entry of entries) upsertDraft(userId, entry);
     toast({
       title: `${entries.length} post${entries.length === 1 ? "" : "s"} added to your calendar`,
@@ -866,6 +940,22 @@ export default function PlanPage() {
         </div>
       </Card>
 
+      {leo && userId && (
+        <PillarsSection
+          userId={userId}
+          labels={labels}
+          drafts={drafts}
+          plan={plan}
+          formatLabel={FORMAT_LABEL}
+          editing={pillarsParam === "edit"}
+          onEdit={() => openPillars("edit")}
+          onClose={closePillars}
+          onLabelsChange={setLabels}
+          onDraftsChange={setDrafts}
+          onSaved={rebuildAroundPillars}
+        />
+      )}
+
       <QuickTip context="plan" />
 
       {itemsByWeek.map(({ week, items }) => {
@@ -926,6 +1016,10 @@ export default function PlanPage() {
                           <span className="rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
                             {PILLAR_LABEL[item.pillar] ?? item.pillar}
                           </span>
+                          {/* personal slots (identity, interest) take no pillar unless one was picked by hand */}
+                          {leo && (item.labelId || item.pillar === "topic" || item.pillar === "market") && (
+                            <SlotLabelMenu label={slotLabel(item, labels)} labels={labels} onPick={(l) => moveSlot(item.id, l)} />
+                          )}
                         </div>
 
                         <p
@@ -975,7 +1069,7 @@ export default function PlanPage() {
                               : ""
                           }`}
                         >
-                          <Link to={planItemToGenerateUrl(item, plan.thisWeek)}>
+                          <Link to={planItemToGenerateUrl(labelled(item), plan.thisWeek)}>
                             Draft in Studio
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
