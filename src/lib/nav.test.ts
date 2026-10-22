@@ -6,6 +6,7 @@ const routes = [
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
+  "/agent", "/skills", "/activity", "/automations",
 ];
 
 describe("nav", () => {
@@ -180,6 +181,32 @@ describe("nav", () => {
       return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
     };
     for (const to of ["/campaigns", "/ideas", "/audiences"]) expect(tiles("someone@example.com")).not.toContain(to);
+  });
+
+  it("shows Agent after Overview and Skills, Activity and Automations after Connect Claude only to Leo's sign-ins, and leaves everyone else's nav as it was", () => {
+    const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
+    expect(pages("home", "someone@example.com")).toEqual(["/home", "/welcome"]);
+    expect(pages("playbook", "someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/bio", "/links", "/fads", "/connect"]);
+    for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) {
+      expect(pages("home", email), email).toEqual(["/home", "/agent", "/welcome", "/north-star"]);
+      expect(pages("playbook", email).slice(-4), email).toEqual(["/connect", "/skills", "/activity", "/automations"]);
+    }
+    expect(section("home").pages.find((p) => p.to === "/agent")?.icon?.displayName).toBe("MessageSquare");
+    for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/activity", "Activity"], ["/automations", "Automations"]]) {
+      expect(pageTitle(to), to).toBe(`${title} - Content Studio`);
+    }
+    // a thread sits under Agent, in Home, and lights the Home tab
+    expect(pageFor("/agent/t1")?.page.to).toBe("/agent");
+    expect(mobileTabs(false).filter((t) => t.active("/agent/t1")).map((t) => t.label)).toEqual(["Home"]);
+    expect(sectionFor("/automations")?.id).toBe("playbook");
+    const tiles = (email: string) => {
+      const sheet = moreSheet(email, false);
+      return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
+    };
+    for (const to of ["/agent", "/skills", "/activity", "/automations"]) expect(tiles("someone@example.com")).not.toContain(to);
+    // Leo's Home group gains the Agent tile; Playbook stays one tile
+    expect(moreSheet("tanjunsing@gmail.com", false).groups.find((g) => g.label === "Home")?.tiles.map((t) => t.to)).toEqual(["/agent", "/welcome", "/north-star"]);
+    expect(tiles("tanjunsing@gmail.com")).not.toContain("/skills");
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {

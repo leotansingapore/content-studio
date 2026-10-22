@@ -24,6 +24,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/make/:format": "a format's create page, opened from Remix buttons and the /make gallery",
   "/campaigns/new": "reached from /campaigns",
   "/campaigns/:id": "reached from /campaigns",
+  "/agent/:thread": "a thread of /agent",
 };
 
 const appSource = readFileSync(resolve(__dirname, "../App.tsx"), "utf8");
@@ -75,6 +76,16 @@ describe("routes and the nav", () => {
       expect(routes, r).toContain(r);
       expect(navPaths.has(r), r).toBe(false);
     }
+  });
+
+  it("serves Agent, Skills, Activity and Automations from the nav, and a thread as an exception", () => {
+    for (const r of ["/agent", "/skills", "/activity", "/automations"]) {
+      expect(routes, r).toContain(r);
+      expect(navPaths.has(r), r).toBe(true);
+      expect(r in EXCEPTIONS, r).toBe(false);
+    }
+    expect(routes).toContain("/agent/:thread");
+    expect(navPaths.has("/agent/:thread")).toBe(false);
   });
 
   it("lists no stale exceptions", () => {

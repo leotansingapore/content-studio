@@ -152,6 +152,17 @@ describe("north-star phase-5 caps", () => {
   });
 });
 
+describe("north-star phase-6 caps", () => {
+  // Declared up front so no later phase-6 task edits this file (phase6-build-brief.md, usage caps and prices).
+  it("holds the 3 limits the build brief set", () => {
+    const phase6 = { "agent-act": 100, "mcp-calls": 500, "skill-answer": 10 };
+    expect(Object.keys(phase6)).toHaveLength(3);
+    expect(DAILY_LIMITS).toMatchObject(phase6);
+    // the dock's own Jev cap for everyone stays where it was
+    expect(DAILY_LIMITS["assistant-act"]).toBe(30);
+  });
+});
+
 describe("the edge functions that spend", () => {
   // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
   // every call: the feature would say "You've used all undefined for today" from its first use.
