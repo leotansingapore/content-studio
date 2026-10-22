@@ -30,6 +30,8 @@ import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { callFn } from "@/lib/edgeFn";
+import { registerEditTarget, type EditTarget } from "@/lib/editTarget";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -69,6 +71,7 @@ import {
 } from "@/lib/slideshow";
 import { MissingPictureError, layoutBoxes, lookOf, pictureKey, screenMeasure, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
 import { PER_PAGE as STOCK_PER_PAGE } from "../../supabase/functions/stock-media/logic.ts";
+import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -88,6 +91,73 @@ async function coverWidth(file: Blob): Promise<number> {
   } catch {
     return 1080;
   }
+}
+
+const boxTexts = (s: ShowSlide) => (s.boxes.length ? s.boxes.map((b) => b.text) : [""]);
+/** Each named slide's boxes take the texts given, in order (changeBox keeps every limit). */
+function putTexts(show: Slideshow, words: Map<string, string[]>): Slideshow {
+  let next = show;
+  for (const s of show.slides) words.get(s.id)?.forEach((text, k) => s.boxes[k] && (next = changeBox(next, s.id, s.boxes[k].id, { text })));
+  return next;
+}
+
+/**
+ * The open slideshow for the agent to change (edit-by-chat). propose asks carousel-copy mode ask with each slide's
+ * box texts, for one slide or every slide with words, and changes nothing; apply writes them through commit, one
+ * Undo step, and its undo puts back only those slides' words, so edits made since stay.
+ */
+export function slideshowTarget(io: {
+  show: () => Slideshow;
+  /** The slide on screen, 1-based. */
+  onScreen: () => number;
+  commit: (next: (cur: Slideshow) => Slideshow) => void;
+  /** False once this slideshow is closed. */
+  open: () => boolean;
+}): EditTarget {
+  const gone = () => new Error("That slideshow is no longer open.");
+  return {
+    kind: "slideshow",
+    get title() {
+      return io.show().title;
+    },
+    get slides() {
+      return io.show().slides.map((s) => s.boxes.map((b) => b.text.trim()).filter(Boolean).join(" ").slice(0, 80));
+    },
+    get onScreen() {
+      return io.onScreen();
+    },
+    async propose(ask, slide) {
+      const all = io.show().slides;
+      // a named slide goes with every slide around it; the whole slideshow sends the slides that have words
+      const sent = slide ? all : all.filter((s) => s.boxes.some((b) => b.text.trim()));
+      const index = slide ? slide - 1 : undefined;
+      const r = await callFn<{ slides?: { texts?: unknown }[]; reply?: unknown }>("carousel-copy", {
+        mode: "ask", ask: ask.trim().slice(0, ASK_MAX_CHARS), ...(index === undefined ? {} : { index }), platform: "instagram",
+        slides: sent.map((s) => ({ texts: boxTexts(s) })),
+      }, ASK_FAILED);
+      const asked = index === undefined ? sent : [all[index]];
+      const got = r?.slides?.map((x) => x?.texts);
+      if (!got || got.length !== asked.length || !got.every((t, k) => Array.isArray(t) && t.length === asked[k].boxes.length && t.every((x) => typeof x === "string"))) throw new Error(ASK_FAILED);
+      const words = new Map(asked.map((s, k) => [s.id, got[k] as string[]]));
+      return {
+        reply: typeof r.reply === "string" ? r.reply : "",
+        preview: [...words.values()].map((t) => t.filter((x) => x.trim()).join("\n")).join("\n\n"),
+        flags: [],
+        apply() {
+          if (!io.open()) throw gone();
+          const before = new Map(io.show().slides.filter((s) => words.has(s.id)).map((s) => [s.id, s.boxes.map((b) => b.text)]));
+          io.commit((cur) => putTexts(cur, words));
+          return {
+            done: index === undefined ? `Done. "${io.show().title}" changed. Undo here or on the page.` : `Done. Slide ${slide} changed. Undo here or on the page.`,
+            undo: () => {
+              if (!io.open()) throw gone();
+              io.commit((cur) => putTexts(cur, before));
+            },
+          };
+        },
+      };
+    },
+  };
 }
 
 export default function SlideshowPage() {
@@ -322,6 +392,25 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
     setWork(work.draftId ? { ...r.show, draftId: work.draftId } : r.show);
     if (index >= r.show.slides.length) go(r.show.slides.length - 1);
   };
+
+  // edit-by-chat: the open slideshow is what the agent changes, and only on its Use this
+  const editIn = useRef({ index, commit });
+  editIn.current = { index, commit };
+  const editTarget = useRef<EditTarget | null>(null);
+  useEffect(() => {
+    let live = true;
+    const off = registerEditTarget(editTarget.current = slideshowTarget({
+      show: () => workRef.current,
+      onScreen: () => editIn.current.index + 1,
+      commit: (next) => editIn.current.commit(next(workRef.current)),
+      open: () => live,
+    }));
+    return () => {
+      live = false;
+      editTarget.current = null;
+      off();
+    };
+  }, []);
 
   const removeBox = (id: string) => {
     const slideId = slide.id;
