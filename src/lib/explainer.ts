@@ -15,7 +15,7 @@ import { chooseClips } from "@/lib/autoBroll";
 import { EdgeError, callFn } from "@/lib/edgeFn";
 import { loadDrafts } from "@/lib/draftHistory";
 import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
-import { rotateCandidates } from "@/lib/mediaSets";
+import { bestUnused, rotateCandidates } from "@/lib/mediaSets";
 import { describe as clipDesc } from "@/lib/montage";
 import { scoped } from "@/lib/profiles";
 import { splitScriptCaption } from "@/lib/scriptCaption";
@@ -320,36 +320,41 @@ export const dismissWrite = () => void (write && !writing() && setWrite(null));
 export const setPhotos = (userId: string, set: string): MediaItem[] => loadMedia(userId).filter((m) => m.folder === set);
 
 /**
- * Per scene, its photo: Jev's pick when it is still unused, else the next unused photo in set order (Jev gave no
- * answer, or said none fits, which also marks it `miss`). A set smaller than the scenes starts over once every photo
- * is used, so no scene is left without one.
+ * Per scene, its photo: with Jev's scores, the best one no other scene took (bestUnused); without them, Jev's pick when
+ * it is still unused, else the next unused photo in set order (Jev gave no answer). Jev saying none fits marks it
+ * `miss`. A set smaller than the scenes starts over once every photo is used, so no scene is left without one.
  */
-export function choosePhotos(items: MediaItem[], cands: MediaItem[][], picks: (number | null)[]): { photo: string; miss?: true }[] {
-  const used = new Set<string>();
+export function choosePhotos(items: MediaItem[], cands: MediaItem[][], picks: (number | null)[], scores: (number[] | null)[] = []): { photo: string; miss?: true }[] {
+  const best = bestUnused(cands, scores, (m) => m.key);
+  const used = new Set(best.flatMap((m) => (m ? [m.key] : [])));
   return cands.map((xs, i) => {
-    if (used.size >= items.length) used.clear();
     const p = picks[i];
-    const want = typeof p === "number" && p >= 0 ? xs[p] : undefined;
-    const it = want && !used.has(want.key) ? want : items.find((m) => !used.has(m.key))!;
-    used.add(it.key);
+    let it = best[i];
+    if (!it) {
+      if (used.size >= items.length) used.clear();
+      const want = typeof p === "number" && p >= 0 ? xs[p] : undefined;
+      it = want && !used.has(want.key) ? want : items.find((m) => !used.has(m.key))!;
+      used.add(it.key);
+    }
     return { photo: it.key, ...(p === -1 ? { miss: true as const } : {}) };
   });
 }
 
 /**
  * One montage-pick call with `set: true`: each scene offered up to 12 of the set's photos by their alt text (a set
- * over 12 rotated, so every photo is offered; photos with no words last, as "a photo"). No answer fills in set order.
+ * over 12 rotated, so every photo is offered; photos with no words last, as "a photo"). Jev's scores for every photo
+ * give each scene its best unused one; no answer fills in set order.
  */
 export async function pickPhotos(scenes: Pick<NarratedScene, "say">[], items: MediaItem[], theme: string): Promise<{ photo: string; miss?: true }[]> {
   const described = [...items].sort((a, b) => Number(!a.alt.trim()) - Number(!b.alt.trim()));
   const cands = rotateCandidates(described, scenes.length);
-  const r = await callFn<{ picks: (number | null)[] }>("video-assist", {
+  const r = await callFn<{ picks: (number | null)[]; scores?: (number[] | null)[] }>("video-assist", {
     mode: "montage-pick",
     theme,
     set: true,
     beats: scenes.map((s, i) => ({ say: s.say, candidates: cands[i].map((m) => ({ desc: m.alt.trim() || "a photo" })) })),
   }).catch(() => null);
-  return choosePhotos(items, cands, scenes.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null)));
+  return choosePhotos(items, cands, scenes.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null)), Array.isArray(r?.scores) ? r.scores : []);
 }
 
 /** A set picked with scenes on screen: a photo for each scene, kept in the draft. A set with no photos here does nothing. */

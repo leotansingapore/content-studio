@@ -13,7 +13,7 @@ import { callFn } from "@/lib/edgeFn";
 import { getFile, putFile } from "@/lib/deviceFiles";
 import { chooseClips } from "@/lib/autoBroll";
 import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
-import { ofKind, rotateCandidates } from "@/lib/mediaSets";
+import { bestUnused, ofKind, rotateCandidates } from "@/lib/mediaSets";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { MAX_OVERLAYS, MUSIC_LEVEL, newOverlay, type FilterId, type Overlay } from "@/lib/videoEdit";
 import { currentJoin, monoPcm, startJoin } from "@/lib/videoMedia";
@@ -142,11 +142,17 @@ export function setCandidates(clips: MediaItem[], lengths: number[]): MediaItem[
   return lengths.map((len, i) => rotateCandidates(described.filter((c) => (c.seconds ?? 0) >= len), lengths.length)[i]);
 }
 
-/** Per beat, the set clip Jev picked, or the first unused with no answer; null (none fits, none left) goes to stock. A clip goes in once. */
-export function chooseFromSet(cands: MediaItem[][], picks: (number | null)[]): (MediaItem | null)[] {
-  const used = new Set<string>();
+/**
+ * Per beat, the set clip for it: with Jev's scores the best one no other beat took (bestUnused), else the one Jev
+ * picked, or the first unused with no answer; null (none fits, none left) goes to stock. A clip goes in once.
+ */
+export function chooseFromSet(cands: MediaItem[][], picks: (number | null)[], scores: (number[] | null)[] = []): (MediaItem | null)[] {
+  // a beat Jev said nothing in the set shows goes to stock, so it takes no set clip
+  const best = bestUnused(cands, cands.map((_, i) => (picks[i] === -1 ? null : scores[i])), (m) => m.key);
+  const used = new Set(best.flatMap((m) => (m ? [m.key] : [])));
   return cands.map((xs, i) => {
     if (picks[i] === -1) return null;
+    if (best[i]) return best[i];
     const want = picks[i] === null ? undefined : xs[picks[i]!];
     const it = want && !used.has(want.key) ? want : xs.find((x) => !used.has(x.key));
     if (it) used.add(it.key);
@@ -213,32 +219,33 @@ export async function startMontage(a: MontageAsk): Promise<void> {
 
     // a clip for each beat: its search, then Jev's pick; the broader search where nothing fits
     set({ state: "finding", done: 0, of: beats.length });
-    const pick = async (asks: { say: string; descs: string[] }[], fromSet?: true): Promise<(number | null)[]> => {
-      if (!asks.some((x) => x.descs.length)) return asks.map(() => null);
-      const r = await callFn<{ picks: (number | null)[] }>("video-assist", {
+    const pick = async (asks: { say: string; descs: string[] }[], fromSet?: true): Promise<{ picks: (number | null)[]; scores: (number[] | null)[] }> => {
+      if (!asks.some((x) => x.descs.length)) return { picks: asks.map(() => null), scores: [] };
+      const r = await callFn<{ picks: (number | null)[]; scores?: (number[] | null)[] }>("video-assist", {
         mode: "montage-pick",
         theme: a.theme,
         beats: asks.map((x) => ({ say: x.say, candidates: x.descs.map((desc) => ({ desc })) })),
         ...(fromSet ? { set: fromSet } : {}),
       }).catch(() => null);
-      return asks.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null));
+      return { picks: asks.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null)), scores: Array.isArray(r?.scores) ? r.scores : [] };
     };
     const descs = (items: StockItem[]) => items.map(describe);
     // the clip set first: a beat stock fills only where nothing in the set is long enough or Jev says none fits
     const mine = a.set ? setCandidates(a.set.clips, lengths) : [];
-    const own = a.set ? chooseFromSet(mine, await pick(beats.map((b, i) => ({ say: b.say, descs: mine[i].map((m) => m.alt.trim() || "a clip") })), true)) : beats.map(() => null);
+    const fromSet = a.set ? await pick(beats.map((b, i) => ({ say: b.say, descs: mine[i].map((m) => m.alt.trim() || "a clip") })), true) : null;
+    const own = fromSet ? chooseFromSet(mine, fromSet.picks, fromSet.scores) : beats.map(() => null);
     const candidates = async (query: string, need: number) => chooseClips((await searchStock("video", query, 1, "portrait")).items, new Set(), need + 0.5, "portrait").slice(0, 5);
     const first: StockItem[][] = [];
     for (let i = 0; i < beats.length; i++) {
       first.push(own[i] ? [] : await candidates(beats[i].search, lengths[i]));
       set({ state: "finding", done: i + 1, of: beats.length });
     }
-    const p1 = await pick(beats.map((b, i) => ({ say: b.say, descs: descs(first[i]) })));
+    const p1 = (await pick(beats.map((b, i) => ({ say: b.say, descs: descs(first[i]) })))).picks;
     // the broader search, for a beat with nothing or where Jev said none fits
     const broad: StockItem[][] = beats.map(() => []);
     const again = beats.flatMap((b, i) => own[i] || (first[i].length && p1[i] !== -1) || b.fallback === b.search ? [] : [i]);
     for (const i of again) broad[i] = await candidates(beats[i].fallback, lengths[i]);
-    const p2 = await pick(beats.map((b, i) => ({ say: b.say, descs: descs(broad[i]) })));
+    const p2 = (await pick(beats.map((b, i) => ({ say: b.say, descs: descs(broad[i]) })))).picks;
     const chosen = chooseFor(beats.map((_, i) => [first[i], broad[i]]), beats.map((_, i) => [p1[i], p2[i]]));
 
     // keep them, and build the report of what had no good clip

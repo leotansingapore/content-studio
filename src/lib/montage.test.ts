@@ -179,6 +179,13 @@ suite("a montage from a clip set", () => {
     expect(chooseFromSet([a, a, a], [null, null, null]).map((c) => c?.key ?? null)).toEqual(["cvid-clip001", "cvid-clip002", null]);
   });
 
+  it("with Jev's scores gives a clip that tops two beats to the one it fits best, and a none still goes to stock", () => {
+    const a = [clip(1, 9), clip(2, 9), clip(3, 9)];
+    const keys = (xs: (MediaItem | null)[]) => xs.map((c) => c?.key ?? null);
+    // clip 1 tops beats 0 and 1, best for beat 1; beat 2 said none, though it rates clip 1 highest of all
+    expect(keys(chooseFromSet([a, a, a], [0, 0, -1], [[0.5, 0.1, 0.4], [0.7, 0.2, 0.1], [0.9, 0, 0]]))).toEqual(["cvid-clip003", "cvid-clip001", null]);
+  });
+
   it("says which beats came from stock", () => {
     expect(noteOf({ swapped: [], missed: [], stock: { set: "City clips", beats: [] } })).toBe("");
     expect(noteOf({ swapped: [], missed: [], stock: { set: "City clips", beats: ["Rain on the window", "Hawker lunch"] } })).toBe('From stock, as nothing in City clips fit: "Rain on the window", "Hawker lunch".');

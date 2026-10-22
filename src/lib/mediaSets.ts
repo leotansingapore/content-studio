@@ -169,6 +169,26 @@ export function rotateCandidates<T>(items: T[], scenes: number, per = 12): T[][]
   });
 }
 
+/**
+ * Per scene, its candidate with the highest of Jev's scores (montage-pick's `scores`) that no other scene took, the
+ * highest scores across all scenes placed first: a file that tops several scenes goes to the one it fits best and the
+ * others get their next best. null for a scene with no scores, or none left.
+ */
+export function bestUnused<T>(cands: T[][], scores: readonly (readonly number[] | null | undefined)[], key: (t: T) => string): (T | null)[] {
+  const pairs = cands
+    .flatMap((xs, i) => xs.map((x, j) => ({ i, x, p: scores[i]?.[j] })))
+    .filter((c): c is { i: number; x: T; p: number } => typeof c.p === "number" && Number.isFinite(c.p))
+    .sort((a, b) => b.p - a.p);
+  const out: (T | null)[] = cands.map(() => null);
+  const used = new Set<string>();
+  for (const { i, x } of pairs) {
+    if (out[i] !== null || used.has(key(x))) continue;
+    out[i] = x;
+    used.add(key(x));
+  }
+  return out;
+}
+
 // ---------- starter sets ----------
 
 const shares = (count: number, n: number) => Array.from({ length: n }, (_, i) => Math.floor(count / n) + (i < count % n ? 1 : 0));

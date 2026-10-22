@@ -177,6 +177,18 @@ describe("photos from a media set", () => {
     expect((await explainer.pickPhotos(scenes, set(5), "Work")).map((x) => [x.photo, x.miss])).toEqual([[k(1), true], [k(2), true], [k(3), true], [k(4), true]]);
   });
 
+  it("gives each scene the best unused photo by Jev's scores when one photo tops several (live 22 Oct: [-1, 10, 10, 10])", async () => {
+    const items = set(12);
+    // photo 11 (index 10) tops scenes 2 to 4; scene 1 is "none" yet still rates photos 9 and 11 highest
+    const row = (top: Record<number, number>) => items.map((_, j) => top[j] ?? 0.01);
+    const scores = [row({ 8: 0.2, 10: 0.15 }), row({ 10: 0.5, 6: 0.3 }), row({ 10: 0.7, 0: 0.2 }), row({ 10: 0.4, 7: 0.35 })];
+    vi.mocked(callFn).mockResolvedValue({ picks: [-1, 10, 10, 10], scores });
+    expect(await explainer.pickPhotos(scenes, items, "Work")).toEqual([{ photo: k(9), miss: true }, { photo: k(7) }, { photo: k(11) }, { photo: k(8) }]);
+    // a reply with no scores (an older function) keeps today's order
+    vi.mocked(callFn).mockResolvedValue({ picks: [-1, 10, 10, 10] });
+    expect((await explainer.pickPhotos(scenes, items, "Work")).map((x) => x.photo)).toEqual([k(1), k(11), k(2), k(3)]);
+  });
+
   it("starts the set over when it has fewer photos than scenes, so every scene has one", () => {
     expect(explainer.choosePhotos(set(3), scenes.map(() => set(3)), [null, null, null, 0]).map((x) => x.photo)).toEqual([k(1), k(2), k(3), k(1)]);
   });

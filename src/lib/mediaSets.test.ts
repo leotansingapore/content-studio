@@ -44,7 +44,7 @@ import { addMedia, loadMedia, MAX_MEDIA, type MediaItem } from "@/lib/mediaLibra
 import { FULL_LINE } from "@/lib/mediaUpload";
 import { describe as describeClip } from "@/lib/montage";
 import {
-  addable, addStarter, addToSet, loadSets, makeSet, nameLine, pickStarter, removeSet, renameSet, restoreSet, rotateCandidates, saveSets, setsWith,
+  addable, addStarter, addToSet, loadSets, makeSet, nameLine, pickStarter, removeSet, renameSet, restoreSet, rotateCandidates, saveSets, setsWith, bestUnused,
   starterAdded, starterJobs, usableSets, type MediaSet,
 } from "@/lib/mediaSets";
 
@@ -163,6 +163,16 @@ describe("rotation", () => {
     expect(scenes.every((c) => c.length === 12)).toBe(true);
     expect(new Set(scenes.flat()).size).toBe(20);
     expect(rotateCandidates([1, 2, 3], 3)).toEqual([[1, 2, 3], [1, 2, 3], [1, 2, 3]]);
+  });
+  it("gives a file that tops several scenes to the one it fits best, and the others their next best", () => {
+    const files = ["a", "b", "c", "d"];
+    const all = files.map(() => files);
+    // "c" tops scenes 1 to 3; scene 0's best is "a"
+    const scores = [[0.3, 0.1, 0.05, 0.05], [0.1, 0.2, 0.6, 0.1], [0.05, 0.1, 0.8, 0.3], [0.1, 0.25, 0.5, 0.15]];
+    expect(bestUnused(all, scores, (f) => f)).toEqual(["a", "d", "c", "b"]);
+    // no scores for a scene leaves it to the caller; a file is never given twice
+    expect(bestUnused(all, [scores[0], null, scores[2]], (f) => f)).toEqual(["a", null, "c", null]);
+    expect(bestUnused([["a"], ["a"]], [[0.9], [0.8]], (f) => f)).toEqual(["a", null]);
   });
 });
 
