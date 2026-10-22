@@ -13,8 +13,19 @@ afterEach(() => {
 
 describe("isAppPath", () => {
   it("opens same-origin paths only", () => {
-    expect(["/drafts", "/agent/t1?m=m2", "/generate?detail=a b"].every(isAppPath)).toBe(true);
-    expect(["//evil.com", "/\\evil.com", "https://evil.com", "javascript:alert(1)", "/a:b", "drafts", ""].some(isAppPath)).toBe(false);
+    expect(["/drafts", "/agent/t1?m=m2", "/campaigns/c-1?post=2", "/generate?detail=a%20b"].every(isAppPath)).toBe(true);
+    expect(["//evil.example", "/\\evil.example", "https://evil.example", "javascript:alert(1)", "drafts", ""].some(isAppPath)).toBe(false);
+  });
+  it.each(["/\t/evil.example", "/\n/evil.example", "/\r/evil.example", "/\x00/evil.example", "/\x7f/evil.example", " /home", "/home ", "/a b"])(
+    "refuses %j: a browser drops whitespace and control characters, so it could leave the app",
+    (p) => expect(isAppPath(p)).toBe(false),
+  );
+  it("never navigates to a path a browser would turn into another site", async () => {
+    const navigate = vi.fn();
+    for (const path of ["/\t/evil.example", "/\n/evil.example", "//evil.example", "/\\evil.example", "javascript:alert(1)", " /home"])
+      expect(await runAction({ type: "go", path, label: "Open" }, { navigate })).toBeNull();
+    await runAction({ type: "go", path: "/campaigns/c-1?post=2", label: "Open" }, { navigate });
+    expect(navigate.mock.calls).toEqual([["/campaigns/c-1?post=2"]]);
   });
 });
 

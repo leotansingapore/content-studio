@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 const RUNNING = new Set<Turn["state"]>(["starting", "thinking", "writing", "making"]);
 const NEAR = 200;
 type Go = { path: string; label: string };
+/** Chips that act here rather than open a page; any other path that isn't the app's own is never drawn. */
+export const ENGINE_CHIP = /^(say|format|forget|fb):/;
 
 /** "Thinking 3s" for a live turn; the stored state's word for one this tab isn't running. */
 export function runLabel(state: Turn["state"], seconds: number | null, line?: string): string {
@@ -300,11 +302,11 @@ export default function AgentThread({
                       <Button key={gi} asChild size="sm" variant="outline" className="h-11 sm:h-9">
                         <Link to={g.path}>{g.label}</Link>
                       </Button>
-                    ) : (
+                    ) : ENGINE_CHIP.test(g.path) ? (
                       <Button key={gi} type="button" size="sm" variant="outline" className="h-11 sm:h-9" disabled={live} onClick={() => void runChip(m, g)}>
                         {g.label}
                       </Button>
-                    ),
+                    ) : null,
                   )}
                 </div>
               )}

@@ -11,7 +11,8 @@ vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supa
 vi.mock("@/lib/draftHistory", async (actual) => ({ ...(await actual<typeof import("@/lib/draftHistory")>()), loadDrafts: () => store.drafts }));
 
 import { approveLabel, blockedReason } from "./ActionCard";
-import { metaLine, runLabel } from "./AgentThread";
+import { ENGINE_CHIP, metaLine, runLabel } from "./AgentThread";
+import { isAppPath } from "./dockActions";
 import { ownComposer } from "./AgentDock";
 import { MAS_LINE, madeNoun, madeWarnings, tookWords } from "./MadeBlock";
 import { slashItems } from "./SlashMenu";
@@ -112,6 +113,14 @@ describe("run and meta lines", () => {
     expect(metaLine(at, { steps: 2, ms: 14200 })).toBe("22:41 | 2 steps | 14.2s");
     expect(metaLine(at, { steps: 1, ms: 1400 })).toBe("22:41 | 1 step | 1.4s");
     expect(metaLine(at, { steps: 0, ms: 1200 })).toBe("22:41 | 1.2s");
+  });
+});
+
+describe("chips under a message", () => {
+  it("draws a chip only as an app link or one of the engine's own, never an outside path", () => {
+    const drawn = (p: string) => isAppPath(p) || ENGINE_CHIP.test(p);
+    expect(["/campaigns/c-1?post=2", "say:Write a script about CPF", "format:carousel", "forget:l2", 'fb:{"type":"support"}'].every(drawn)).toBe(true);
+    expect(["/\t/evil.example", "/\n/evil.example", "//evil.example", "/\\evil.example", "javascript:alert(1)", " /home", "https://evil.example"].some(drawn)).toBe(false);
   });
 });
 

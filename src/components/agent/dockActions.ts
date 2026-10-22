@@ -46,8 +46,12 @@ function voterId(identity?: DockIdentity) {
 
 const headers = (identity?: DockIdentity) => ({ "Content-Type": "application/json", "X-Board-Key": FEEDBACK_BOARD_KEY, "X-Voter": voterId(identity) });
 
-/** Belt and braces with the server: only a same-origin path ever navigates. */
-export const isAppPath = (path: string) => /^\/(?![\/\\])/.test(path) && !/[:\\]/.test(path);
+/**
+ * Only a same-origin path ever navigates or renders as a link: one leading "/" not followed by "/" or "\", and no
+ * whitespace or control character anywhere, since browsers drop a tab or newline and "/\t/x" would become "//x"
+ * (ideasInbox.ts safeLink's rule, plus DEL).
+ */
+export const isAppPath = (path: string) => /^\/(?![/\\])[^\s\x00-\x1f\x7f]*$/.test(path);
 
 /**
  * The feedback service's answer to the last 12 messages, as the dock's `send` asks it. Throws an Error holding the
