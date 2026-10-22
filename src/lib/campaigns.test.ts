@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  AI_VIDEO, angleCounts, type Campaign, CAMPAIGNS_CHANGED, campaignCost, campaignsKey, campaignStatus, type CampaignFormat, type CampaignPost,
-  deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
-  type PostState, REMIX_MAKE, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
+  addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
+  campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
+  planCampaign, type PostState, REMIX_MAKE, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
 import { MAX_DRAFTS, type DraftEntry } from "./draftHistory";
 import { priceOf, type Price } from "./prices";
 import { addProfile, setActiveProfile } from "./profiles";
 import { avatarCredits, creditsUsd } from "../../supabase/functions/ai-video/logic.ts";
+import { EMPTY_POSITIONING, saveGoal, type Positioning } from "./positioning";
 
 class MemStorage {
   s = new Map<string, string>();
@@ -243,5 +244,88 @@ describe("keyAction", () => {
   });
   it("ignores keys pressed with a modifier", () => {
     for (const m of ["altKey", "ctrlKey", "metaKey", "shiftKey"]) expect(key("1", { [m]: true })).toBeNull();
+  });
+});
+
+describe("laying a campaign out", () => {
+  const POS: Positioning = { ...EMPTY_POSITIONING, oneLiner: "I help parents", topics: ["CPF top-ups", "Hospital plans"], platform: "instagram" };
+  const ask = (o: Partial<CampaignAsk> = {}): CampaignAsk => ({
+    audience: "au-1", angles: ANGLES, platforms: ["linkedin", "instagram"], formats: ["text-post", "carousel"], weeks: 4, perWeek: 3,
+    pictures: "stock", name: "Young families | November", ...o,
+  });
+  // a Thursday: the campaign starts on Monday 26 October
+  const THU = new Date(2026, 9, 22, 15, 0);
+  const tally = <T,>(list: T[]) => list.reduce<Record<string, number>>((m, x) => ({ ...m, [String(x)]: (m[String(x)] ?? 0) + 1 }), {});
+
+  it("4 weeks at 3 a week with text posts and carousels: 12 posts, angles 3/3/2/2/2, only the picked formats", () => {
+    const posts = buildCampaignPosts(ask(), POS, {}, THU);
+    expect(posts.map((p) => p.n)).toEqual(Array.from({ length: 12 }, (_, i) => i + 1));
+    expect(Object.values(tally(posts.map((p) => p.angleId)))).toEqual([3, 3, 2, 2, 2]);
+    expect(posts.map((p) => p.angleId).slice(0, 6)).toEqual(["a1", "a2", "a3", "a4", "a5", "a1"]);
+    expect(new Set(posts.map((p) => p.format))).toEqual(new Set(["text-post", "carousel"]));
+    expect(posts.every((p) => p.state === "waiting" && p.ctaType && p.stage && p.pillar && p.formulaId)).toBe(true);
+  });
+
+  it("puts the posts on the brand's posting days inside the campaign's weeks, from the Monday after today", () => {
+    const posts = buildCampaignPosts(ask(), POS, { postingDays: ["Tue", "Thu", "Sat"], postingTime: (d) => (d === 1 ? "08:30" : null) }, THU);
+    const days = posts.map((p) => p.day);
+    expect(days[0]).toBe("2026-10-27");
+    expect(days.every((d) => d >= "2026-10-26" && d <= "2026-11-22")).toBe(true);
+    expect(new Set(days.map((d) => new Date(`${d}T12:00`).getDay()))).toEqual(new Set([2, 4, 6]));
+    expect(days).toEqual([...days].sort());
+    expect(posts.filter((p) => p.time).map((p) => p.day)).toEqual(["2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17"]);
+    expect(posts[0].time).toBe("08:30");
+  });
+
+  it("with AI video, exactly one post a week is one, at the middle index of its week", () => {
+    const posts = buildCampaignPosts(ask({ formats: ["text-post", "carousel", "ai-video"] }), POS, {}, THU);
+    expect(posts.filter((p) => p.format === "ai-video").map((p) => p.n)).toEqual([2, 5, 8, 11]);
+    expect(tally(posts.map((p) => p.format))).toEqual({ "text-post": 4, carousel: 4, "ai-video": 4 });
+    expect(campaignFormats(["text-post", "ai-video"], 2, 2)).toEqual(["text-post", "ai-video", "text-post", "ai-video"]);
+    expect(campaignFormats(["ai-video"], 3, 1)).toEqual(["text-post", "ai-video", "text-post"]);
+    expect(campaignFormats(["carousel"], 5, 1)).toEqual(Array(5).fill("carousel"));
+  });
+
+  it("28 posts at 1 a day over slideshow, wall and AI video give 12, 12 and 4, angles 6/6/6/5/5 in strict rotation", () => {
+    const posts = buildCampaignPosts(ask({ formats: ["slideshow", "wall", "ai-video"], perWeek: 7 }), POS, {}, THU);
+    expect(posts).toHaveLength(28);
+    expect(tally(posts.map((p) => p.format))).toEqual({ slideshow: 12, wall: 12, "ai-video": 4 });
+    expect(posts.filter((p) => p.format === "ai-video").map((p) => p.day)).toEqual(["2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19"]);
+    expect(Object.values(tally(posts.map((p) => p.angleId)))).toEqual([6, 6, 6, 5, 5]);
+    expect(posts.every((p, i) => p.angleId === ANGLES[i % 5].id)).toBe(true);
+    expect(new Set(posts.map((p) => p.day)).size).toBe(28);
+  });
+
+  it("weeks times pace at every pace", () => {
+    for (const perWeek of [2, 3, 5, 7] as const) {
+      for (const weeks of [1, 4, 8]) expect(buildCampaignPosts(ask({ perWeek, weeks }), POS, {}, THU)).toHaveLength(perWeek * weeks);
+    }
+  });
+
+  it("planCampaign copies the ask, the audience's name and the goal, and addCampaign keeps it first", () => {
+    storage.setItem(`content-studio-positioning-${UID}`, JSON.stringify({ ...POS, audienceDetail: "Young families" }));
+    storage.setItem(`content-studio-audiences-${UID}`, JSON.stringify([{ id: "au-1", name: "Young families", who: "", lifeStage: "parent", cares: [], source: "you", createdAt: "" }]));
+    saveGoal(UID, "Get more enquiries from people I can help", "clients");
+    const c = planCampaign(UID, ask({ accountIds: ["acc-1"] }), THU);
+    expect(c.id).toMatch(/^c-[a-z0-9]+$/);
+    expect(c).toMatchObject({
+      name: "Young families | November", audience: "au-1", audienceName: "Young families", platforms: ["linkedin", "instagram"], accountIds: ["acc-1"],
+      formats: ["text-post", "carousel"], weeks: 4, perWeek: 3, startDay: "2026-10-26", pictures: "stock", goal: "Get more enquiries from people I can help",
+      target: { posts: 12, winners: 1 }, createdAt: THU.toISOString(),
+    });
+    expect(c.angles).toEqual(ANGLES);
+    expect(c.angles).not.toBe(ANGLES);
+    expect(c.posts).toHaveLength(12);
+    // the goal's weights steer each week: clients is 2/4/4, so a week of 3 is 1/1/1 and never all attraction
+    expect(new Set(c.posts.slice(0, 3).map((p) => p.stage)).size).toBe(3);
+    expect(planCampaign(UID, ask({ accountIds: [] }), THU)).not.toHaveProperty("accountIds");
+
+    expect(addCampaign(UID, campaign({ id: "old" }))).toBeNull();
+    expect(addCampaign(UID, c)).toBeNull();
+    expect(loadCampaigns(UID).map((x) => x.id)).toEqual([c.id, "old"]);
+    const twelve = Array.from({ length: MAX_CAMPAIGNS }, (_, i) => campaign({ id: `c${i}` }));
+    saveCampaigns(UID, twelve);
+    expect(addCampaign(UID, c)).toBe(LIMIT_LINE);
+    expect(loadCampaigns(UID)).toHaveLength(MAX_CAMPAIGNS);
   });
 });
