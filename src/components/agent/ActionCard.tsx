@@ -38,6 +38,9 @@ const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 const stepIs = (c: AgentCard, s: AgentCard["step"]) => c.step === s;
 const isVideo = (c: AgentCard) => c.kind === "video" || c.kind === "explainer";
 
+/** The Who appears option for the engine's `who`: it stores a new AI presenter as "presenter", the select calls it "new". */
+export const whoOption = (who: string | undefined) => (who === "presenter" ? "new" : who);
+
 const typedKey = (cardId: string) => `cs-agent-card-${cardId}`;
 function readTyped(cardId: string): string | null {
   try {
@@ -244,7 +247,7 @@ export default function ActionCard({
                     <dt className="text-muted-foreground">Who appears</dt>
                     <dd className="min-w-0">
                       <select
-                        value={who}
+                        value={whoOption(who)}
                         disabled={!editable}
                         title={disabledTitle}
                         onChange={(e) => change({ who: e.target.value })}

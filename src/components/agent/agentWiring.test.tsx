@@ -32,8 +32,8 @@ vi.stubGlobal("sessionStorage", ls);
 vi.stubGlobal("window", { localStorage: ls, sessionStorage: ls, dispatchEvent: () => true, addEventListener() {}, removeEventListener() {}, location: new URL("http://localhost/") });
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
-const { default: ActionCard } = await import("./ActionCard");
-const { competitorCard, makeCard } = await import("@/lib/agentPlans");
+const { default: ActionCard, whoOption } = await import("./ActionCard");
+const { competitorCard, fieldsOf, makeCard } = await import("@/lib/agentPlans");
 const { press } = await import("@/lib/agentRun");
 const { loadThreads, newMsg, newThread } = await import("@/lib/agentThreads");
 const { utcDay } = await import("@/lib/aiUsage");
@@ -83,5 +83,15 @@ describe("a press the engine refuses", () => {
     expect(html).toContain(NO_VIDEOS);
     expect(html).toContain("Make the picture post");
     expect(html).toContain("Write the script");
+  });
+});
+
+describe("a talking video's Who appears", () => {
+  it("selects the new AI presenter option for the engine's new presenter, and a saved one by its id", () => {
+    // no face or presenter saved: the engine picks a new AI presenter
+    const card = makeCard(UID, { plan: "speaking", format: "speaking", act: "make", p: {}, topic: "CPF LIFE", speaker: null });
+    expect(fieldsOf(card).who).toBe("presenter");
+    expect(whoOption(fieldsOf(card).who)).toBe("new");
+    expect(["mine", "pr-1"].map(whoOption)).toEqual(["mine", "pr-1"]);
   });
 });
