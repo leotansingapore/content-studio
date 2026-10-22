@@ -1412,3 +1412,89 @@ describe("mode ideas", () => {
     expect(rankIdeas(list.slice(0, 2), [ans(0.9, null), ans(0.9, null)], 3).ideas.map((i) => i.title)).toEqual(["Idea number 0 for parents"]);
   });
 });
+
+// ---- live-p5w3 D2 (22 Oct): a business brand's plan copy hedged like an adviser ----------------------------------
+// calls/012 as sent (ActivityTracker, posts 8 to 12). Posts 2, 7 and 12 of the campaign closed on "not a promise about
+// results" lines and autopilot's post 3 on "avoid presenting an app as a source of tax advice": the business got the
+// adviser's MAS block, whose "never promise an outcome" reads as an instruction to disclaim.
+
+import { BUSINESS_RULE_LINES } from "./logic.ts";
+
+const LIVE_P5W3_CONTEXT = {
+  positioning: {
+    oneLiner: "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    audienceDetail: "Sales-oriented self-employed professionals and coaches",
+    topics: ["Sales follow-ups", "WhatsApp workflows", "Client management", "Activity tracking", "Sales goals"],
+    edge: "It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.",
+  },
+  goal: "",
+  platforms: ["linkedin"],
+  voice: "Use plain, direct language and describe practical actions. Keep the focus on what the app does in a sales rep’s day.",
+  memory: "",
+  speaker: "business",
+  product: "",
+  rules: "",
+  questions: [],
+  examples: ["Dangerous types of salespeople.\n\n#solar #pestcontrol #lifeinsurance #d2d #sales", "Agree?"],
+};
+const LIVE_P5W3_AUDIENCE =
+  "WRITE FOR THIS AUDIENCE: Sales representatives. Sales reps who track calls, deals, follow-ups and weekly goals, individually or with a team. How they talk about it: I want to see who I need to call and whether I am on pace for my targets";
+const LIVE_P5W3_012 = {
+  mode: "campaign",
+  posts: [
+    { n: 8, angle: { title: "Task reminders", line: "Put follow-up tasks beside client conversations to keep the next step visible during a busy day." }, format: "carousel", stage: "trust", formula: { name: "Real dilemma", template: "{A specific situation with a real cost}. What would you do?" }, ctaType: "save-share", platforms: ["linkedin"] },
+    { n: 9, angle: { title: "Calls to make", line: "We bring your call list and client details together so you can see who needs a call." }, format: "short-video", stage: "conversion", formula: { name: "Cold open", template: "\"{A line someone said}\" Then who said it, when, and why it stuck." }, ctaType: "dm-keyword", platforms: ["linkedin"] },
+    { n: 10, angle: { title: "Team deal visibility", line: "Bring deal updates into one view so you and your team can see what needs attention." }, format: "text-post", stage: "attraction", formula: { name: "The receipt", template: "{A hard number you can show}. {One line of context}." }, ctaType: "open-question", platforms: ["linkedin"] },
+    { n: 12, angle: { title: "Weekly target pace", line: "We show your tracked activity against your weekly goals, so you can check where you are in the week." }, format: "short-video", stage: "conversion", formula: null, ctaType: "dm-keyword", platforms: ["linkedin"] },
+  ],
+  context: { ...LIVE_P5W3_CONTEXT, audience: LIVE_P5W3_AUDIENCE },
+  avoid: ["Most people say follow up where you had the conversation. We disagree.", "One weekly check on activity"],
+};
+// calls/010 (angles) and calls/014 (ideas, two of its ten seeds) as sent
+const LIVE_P5W3_010 = { mode: "angles", audience: LIVE_P5W3_AUDIENCE, avoid: [], context: LIVE_P5W3_CONTEXT };
+const LIVE_P5W3_014 = {
+  mode: "ideas",
+  count: 6,
+  context: { ...LIVE_P5W3_CONTEXT, labels: LIVE_P5W3_CONTEXT.positioning.topics },
+  posted: ["Most say hustle. We disagree.", "A missed cap check can cost clarity."],
+  best: [],
+  seeds: [
+    { key: "news:560f95d9b01c", kind: "News", title: "At least $83,000 lost in phishing scams linked to fake Simba websites since March: Police" },
+    { key: "news:e59ef9db7033", kind: "News", title: "OCBC to let customers hold Malaysian ringgit in Singapore savings accounts from Oct 23" },
+  ],
+};
+/** Words only the adviser's compliance block brings into a plan prompt's rules. */
+const ADVISER_RULES = /\bMAS\b|Notice 307|FAA-N03|returns?\b|payouts?|guaranteed|interest rate|insurer|financial|\btax\b|general education|product advice|promise an outcome|promised return/i;
+const asPerson = <T extends { context: object }>(b: T): T => ({ ...b, context: { ...b.context, speaker: "person" } });
+
+describe("a business's plan prompts (live-p5w3 D2: calls/011 and 012 hedged like an adviser)", () => {
+  const prompts = (person: boolean) => {
+    const as = <T extends { context: object }>(b: T) => (person ? asPerson(b) : b);
+    const c = parseCampaignRequest(as(LIVE_P5W3_012));
+    const a = parseAnglesRequest(as(LIVE_P5W3_010));
+    const i = parseIdeasRequest(as(LIVE_P5W3_014));
+    if (!c.ok || !a.ok || !i.ok) throw new Error("parse");
+    return { campaign: buildCampaignPrompt(c.request).system, angles: buildAnglesPrompt(a.request).system, ideas: buildIdeasPrompt(i.request).system };
+  };
+
+  it("gives a business the honesty lines in place of the adviser's MAS block, in the campaign, angles and ideas prompts", () => {
+    for (const [mode, system] of Object.entries(prompts(false))) {
+      expect(system, mode).toContain(BUSINESS_RULE_LINES.join("\n"));
+      expect(system, mode).not.toMatch(ADVISER_RULES);
+      expect(system, mode).not.toContain(COMPLIANCE_LINES[0]);
+      expect(system, mode).not.toContain(PLAN_LINES[1]);
+    }
+    // the honesty a business keeps: nothing invented, no claim the message does not make, no pressure, no disclaimers
+    expect(BUSINESS_RULE_LINES.join("\n")).toMatch(/never invent a customer story, a statistic, a number or a testimonial/);
+    expect(BUSINESS_RULE_LINES.join("\n")).toMatch(/never claim the product does something the message does not say/);
+    expect(BUSINESS_RULE_LINES.join("\n")).toMatch(/no disclaimer/);
+    expect(BUSINESS_RULE_LINES.join("\n")).not.toMatch(/[^\x20-\x7e\n]/);
+  });
+
+  it("keeps the person's compliance block as it was, in the same place", () => {
+    for (const [mode, system] of Object.entries(prompts(true))) {
+      expect(system, mode).toContain([...COMPLIANCE_LINES, ...PLAN_LINES].join("\n"));
+      expect(system, mode).not.toContain(BUSINESS_RULE_LINES[0]);
+    }
+  });
+});
