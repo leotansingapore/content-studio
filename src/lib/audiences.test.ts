@@ -175,6 +175,17 @@ describe("audienceLine", () => {
   it("closes a who with no full stop, and leaves out cares a seed doesn't have yet", () => {
     expect(audienceLine({ name: "Parents", who: "Young parents in HDB flats", cares: [] })).toBe("WRITE FOR THIS AUDIENCE: Parents. Young parents in HDB flats.");
   });
+
+  it("says a seeded audience's name once (wave 2 live check: ActivityTracker's au-mvj95233mdet)", () => {
+    const now = new Date("2026-10-22T08:00:00Z");
+    const at = seedAudience({ audience: "working-adult", audienceDetail: "Sales-oriented self-employed professionals and coaches" }, now);
+    expect(audienceLine(at, "business")).toBe("WRITE FOR THIS AUDIENCE: Sales-oriented self-employed professionals and coaches.");
+    // a detail past 60 characters: the name is cut from it, so the full detail is the line
+    const me = seedAudience({ audience: "working-adult", audienceDetail: "Auditor / Accountant, aged 30-48, Middle to upper-middle income" }, now);
+    expect(audienceLine(me, "person")).toBe("WRITE FOR THIS AUDIENCE: Auditor / Accountant, aged 30-48, Middle to upper-middle income.");
+    // a name that only starts a word of who is not a repeat
+    expect(audienceLine({ name: "Par", who: "Parents in HDB flats", cares: [] })).toBe("WRITE FOR THIS AUDIENCE: Par. Parents in HDB flats.");
+  });
 });
 
 describe("audienceFromParams", () => {
