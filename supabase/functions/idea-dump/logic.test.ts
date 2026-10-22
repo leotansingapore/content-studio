@@ -1208,6 +1208,54 @@ describe("long piece source and speaker", () => {
   });
 });
 
+// ---- Wave 2 live check (22 Oct): calls/014's interview posts opened on the formula's blanks ------------------
+
+import LIVE_014_LONG from "./fixtures/live-p5w2-014-long.json";
+import { withoutBlanks } from "./logic.ts";
+
+describe("long piece blanks for a listed caller (wave 2 live check: calls/014)", () => {
+  const req = (source: string) => {
+    const r = parseLongRequest({ ...LIVE_014_LONG.body, source });
+    if (!r.ok) throw new Error("parse");
+    return r.request;
+  };
+  const FILL = "- Every blank in a hook formula, in {braces} or [brackets], is replaced with real words from the piece. A post that keeps a blank in brackets or braces, or asks the reader to fill anything in, cannot be used.";
+
+  it("asks a listed caller to fill every formula blank, whatever the source; everyone else's prompt keeps today's blanks", () => {
+    const [interview, text, voice] = ["interview", "text", "voice"].map((s) => buildLongPrompt(req(s), { listed: true }).system.split("\n"));
+    for (const lines of [interview, text, voice]) {
+      expect(lines).toContain(FILL);
+      expect(lines.join("\n")).not.toMatch(/write a short blank|put a blank such as/);
+    }
+    // the interview's prompt differs from pasted text's only in its first line: the blanks were never the interview's doing
+    expect(interview.slice(1)).toEqual(text.slice(1));
+    expect(interview[0]).not.toBe(text[0]);
+    const today = buildLongPrompt(req("text")).system;
+    expect(today).toContain("write a short blank in square brackets such as [your number]");
+    expect(today).not.toContain(FILL);
+  });
+
+  it("drops the four posts that kept the formula's blanks and keeps the filled one, naming each rule", () => {
+    const got = validateLong(LIVE_014_LONG.reply, req("interview").formulas)!;
+    expect(got.posts.map((p) => p.post.split("\n")[0])).toEqual([
+      "[What it cost] is what [one mistake] cost me.",
+      "[Some time ago] I [low point]. Now I [better point]. One change did it.",
+      "[N] things I wish I knew before [milestone].",
+      "After [N] years as [role], here is what nobody tells you about [topic].",
+      "If you still wait for the perfect time, stop.",
+    ]);
+    const dropped: [number, string][] = [];
+    expect(withoutBlanks(got.posts, dropped).map((p) => p.formulaId)).toEqual(["callout"]);
+    expect(dropped).toEqual([[1, "a blank left in"], [2, "a blank left in"], [3, "a blank left in"], [4, "a blank left in"]]);
+    // post 3's body told the reader to fill the blanks in; with its hook filled, that line still drops it
+    const filled = { ...got.posts[2], post: got.posts[2].post.replace("[N] things I wish I knew before [milestone].", "3 things I wish I knew before I started to plan.") };
+    const why: [number, string][] = [];
+    expect(withoutBlanks([filled, { ...got.posts[1], post: "A {low point} kept in braces." }], why)).toEqual([]);
+    expect(why).toEqual([[1, "asks the reader to fill in"], [2, "a blank left in"]]);
+    expect(withoutBlanks([got.posts[4], { ...got.posts[4], post: "Fill in the CPF nomination form this week." }])).toHaveLength(2);
+  });
+});
+
 // ---- Plan modes (phase 5): ideas -----------------------------------------------
 
 import { IDEAS_SCHEMA, IDEA_FITS, IDEA_SAFE, buildIdeasPrompt, ideaAsk, parseIdeasRequest, rankIdeas, validateIdeas } from "./logic.ts";

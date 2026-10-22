@@ -63,6 +63,7 @@ import {
   validateCampaign,
   validateIdeas,
   validateLong,
+  withoutBlanks,
   withMas,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
@@ -151,14 +152,18 @@ async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Prom
   }
   // source and speaker (plan-interview) are read for a listed caller only; everyone else gets today's prompt
   const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
-  const { system, user } = buildLongPrompt(listed ? request : { ...request, source: "text", speaker: "person" });
+  const { system, user } = listed ? buildLongPrompt(request, { listed: true }) : buildLongPrompt({ ...request, source: "text", speaker: "person" });
   const content = textOf(await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 }));
   const result = content === null ? null : validateLong(content, request.formulas);
-  if (!result || result.posts.length === 0) {
+  // a listed caller's post that kept a blank is dropped; the log gets its number and the rule, never its words
+  const dropped: [number, string][] = [];
+  const posts = result && listed ? withoutBlanks(result.posts, dropped) : result?.posts ?? [];
+  if (!result || posts.length === 0) {
+    if (dropped.length) console.log("idea-dump long", uid, "dropped", JSON.stringify(dropped));
     return json({ error: "Couldn't write posts from this piece right now. Try again in a minute.", code: "ai_failed" }, 502);
   }
-  console.log("idea-dump long", uid, "chars", request.text.length, "posts", result.posts.length);
-  return json({ ...result, truncated: request.truncated, usage: { used: usage.used, limit: usage.limit } });
+  console.log("idea-dump long", uid, "chars", request.text.length, "posts", posts.length, ...(listed ? ["dropped", JSON.stringify(dropped)] : []));
+  return json({ ...result, posts, truncated: request.truncated, usage: { used: usage.used, limit: usage.limit } });
 }
 
 /** Today's counter day (UTC), read before the counter moves so a refund lands on the same row. */
