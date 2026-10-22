@@ -68,11 +68,11 @@ function stores(o: Record<string, unknown> = {}) {
     trends: [], news: [], boards: [], savedTop: [], ...o,
   } as unknown as Parameters<typeof m.poolIdeas>[0];
 }
-const bySource = (list: { source: string }[], s: string) => list.filter((i) => i.source === s);
+const bySource = <T extends { source: string }>(list: T[], s: string) => list.filter((i) => i.source === s);
 
 describe("poolIdeas", () => {
   it("maps Idea Dump briefs, leaves out the ones on the board and keeps the 10 newest", () => {
-    const briefs = Array.from({ length: 12 }, (_, i) => brief(`b${i + 1}`));
+    const briefs: Record<string, unknown>[] = Array.from({ length: 12 }, (_, i) => brief(`b${i + 1}`));
     briefs[11] = { ...briefs[11], boardDraftId: "d1" };
     const out = m.poolIdeas(stores({ briefs, drafts: [{ id: "d1", hook: "" }] }), NOW);
     const dump = bySource(out, "dump");
