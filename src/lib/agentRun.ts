@@ -34,6 +34,7 @@ import { activeLearnings, addLearning, loadLearnings, setLearningOff } from "@/l
 import type { AgentP as ServerP, AgentPick as ServerPick } from "../../supabase/functions/assistant-act/logic.ts";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
 import { mostlyEnglish } from "../../supabase/functions/post-score/logic.ts";
+import * as chatSkills from "@/lib/chatSkills";
 
 export { approveLabel, blockedReason, setNavigate };
 
@@ -99,13 +100,11 @@ export interface SkillsApi {
   runSkill(userId: string, skill: string, input: { postId?: string; rest?: string }): Promise<SkillRunLike>;
   skillRunText(r: SkillRunLike): string;
 }
-// shortcut: chatSkills.ts lands with chat-skills in this same wave; the glob finds it once both are merged (and
-// nothing before). Swap for a static import after the merge if a test needs vi.mock on it.
-const SKILLS = import.meta.glob<SkillsApi>("./chatSkills.ts", { eager: true });
+const SKILLS: SkillsApi = chatSkills;
 let skillsOverride: SkillsApi | null | undefined;
-/** The skills module the engine runs: chatSkills.ts once merged, or the one passed here (tests). */
+/** The skills module the engine runs: chatSkills.ts, or the one passed here (tests). */
 export const setSkills = (api: SkillsApi | null | undefined) => void (skillsOverride = api);
-const skillsApi = (): SkillsApi | null => (skillsOverride !== undefined ? skillsOverride : (Object.values(SKILLS)[0] ?? null));
+const skillsApi = (): SkillsApi | null => (skillsOverride !== undefined ? skillsOverride : SKILLS);
 
 // ---------- the store ----------
 
