@@ -905,6 +905,70 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
   });
 });
 
+// calls/011, the business draft: posts 1 and 5 as asked and as they came back (the body ending on the cta)
+const LIVE_011_CONTEXT = {
+  positioning: {
+    oneLiner: "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    audienceDetail: "Sales-oriented self-employed professionals and coaches",
+    topics: ["Sales follow-ups", "WhatsApp workflows", "Client management", "Activity tracking", "Sales goals"],
+    edge: "It brings CRM, a shared WhatsApp inbox, tasks and goals together in one phone app, with activity logged in one tap.",
+  },
+  goal: "Get more sales team managers to book a demo",
+  platforms: ["linkedin", "instagram"],
+  speaker: "business",
+  product: "ActivityTracker: CRM, a shared WhatsApp inbox, tasks and goals in one phone app. SGD 34 a person a month.",
+  audience: "Sales team managers: People coordinating a sales team who want a shared WhatsApp inbox, team activity records and a view of progress toward targets.",
+};
+const LIVE_011_ASK_1 = {
+  n: 1,
+  angle: { title: "Shared Chat Visibility", line: "We bring team WhatsApp conversations into one shared inbox, so you can see where client chats stand." },
+  format: "text-post",
+  stage: "attraction",
+  formula: { name: "Contrarian", template: "Most [audience] think [belief]. Here is why that is wrong." },
+  ctaType: "open-question",
+  platforms: ["linkedin"],
+};
+const LIVE_011_ASK_5 = { n: 5, angle: { title: "Coaching From Activity", line: "Use recorded follow-ups and tasks as talking points for practical team coaching." }, format: "text-post", stage: "trust", formula: null, ctaType: "dm-keyword", platforms: ["linkedin"] };
+const LIVE_011_POST_1 = {
+  n: 1,
+  hook: "Most sales managers think visibility means reading every chat. Here is why that is wrong.",
+  body: "Visibility is not the same as watching every message come in. When conversations are spread across individual phones, managers can end up asking for updates just to understand what is happening. That takes time, and it can leave the team repeating information or missing who is handling the next step.\n\nA clearer view starts with knowing where a client conversation stands and who is following up. It does not mean monitoring every word or taking over the relationship. It means making it easier for the team to coordinate and for managers to spot where support may be useful.\n\nWhat helps you keep track of client chats without hovering over your team?",
+  script: "",
+  brief: "",
+  cta: "What helps you keep track of client chats without hovering over your team?",
+};
+const LIVE_011_POST_5 = {
+  n: 5,
+  hook: "Useful coaching can start with the next step.",
+  body: "A coaching conversation does not have to begin with a target that feels far away. Recorded follow-ups and tasks can help managers talk through the work in front of the team.\n\nStart by looking at what was agreed with a client. Is the next action clear? Does it have an owner and a due date? If a task is still open, ask what is getting in the way before deciding what support could help.\n\nThis keeps the conversation practical and focused on the workflow, rather than relying on memory or assumptions. It also gives the team a chance to clarify priorities and handovers.\n\nGood activity records are not a score by themselves. They are useful prompts for a thoughtful check-in.\n\nDM COACH if you would like to discuss ways to structure team coaching around follow-ups.",
+  script: "",
+  brief: "",
+  cta: "DM COACH if you would like to discuss ways to structure team coaching around follow-ups.",
+};
+
+describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 ended the body with the cta)", () => {
+  const live = campaignRequest({ mode: "campaign", posts: [LIVE_011_ASK_1, LIVE_011_ASK_5], context: LIVE_011_CONTEXT });
+
+  it("removes a last body line that repeats the cta and keeps the rest of the body as written", () => {
+    const [p1, p5] = validateCampaign({ posts: [LIVE_011_POST_1, LIVE_011_POST_5] }, live)!;
+    expect(p1.body).toBe(LIVE_011_POST_1.body.slice(0, LIVE_011_POST_1.body.lastIndexOf("\n\n")));
+    expect(p1.cta).toBe(LIVE_011_POST_1.cta);
+    expect(p5.body).toBe(LIVE_011_POST_5.body.slice(0, LIVE_011_POST_5.body.lastIndexOf("\n\n")));
+    expect(p5.body!.endsWith("They are useful prompts for a thoughtful check-in.")).toBe(true);
+    expect(p5.cta).toBe(LIVE_011_POST_5.cta);
+  });
+
+  it("matches in any case or punctuation, keeps a body whose last line only mentions the cta, and does the same for a carousel's last point", () => {
+    const loose = { ...LIVE_011_POST_1, body: LIVE_011_POST_1.body.replace("What helps you keep track of client chats without hovering over your team?", "what helps you keep track of client chats, without hovering over your team") };
+    expect(validateCampaign({ posts: [loose] }, live)![0].body!.endsWith("useful.")).toBe(true);
+    const kept = { ...LIVE_011_POST_1, body: `${LIVE_011_POST_1.body} Tell us below.` };
+    expect(validateCampaign({ posts: [kept] }, live)![0].body).toBe(kept.body);
+    const points = [1, 2, 3, 4].map((i) => `Point ${i}: ${words(10)}`);
+    const got = validateCampaign(written({ 2: { body: [...points, "Save this."].join("\n\n") } }), campaignRequest())!.find((p) => p.n === 2)!;
+    expect(got.body!.split("\n\n")).toEqual(points);
+  });
+});
+
 import { MAS_QUESTION } from "../_shared/mas.ts";
 import { masAsk, withMas } from "./logic.ts";
 

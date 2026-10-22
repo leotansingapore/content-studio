@@ -1073,6 +1073,12 @@ function fitScript(lines: string[], end: number, { low, high }: { low: number; h
   return words >= low && words <= high ? out : null;
 }
 
+/** A body without a last line that repeats its call to action, in any case or punctuation (live check 22 Oct: the CTA showed twice). */
+function withoutCta(body: string, cta: string): string {
+  const lines = body.split("\n");
+  return cta && wordsKey(lines[lines.length - 1]) === wordsKey(cta) ? lines.slice(0, -1).join("\n").trim() : body;
+}
+
 /** The first empty field, as the rule a post broke. */
 const lacks = (fields: Record<string, string>) => {
   const empty = Object.keys(fields).find((k) => !fields[k]);
@@ -1086,13 +1092,13 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
   switch (ask.format) {
     case "text-post": {
       const hook = oneLine(item.hook, 15);
-      const body = cutWords(cleanPost(item.body), 220);
+      const body = cutWords(withoutCta(cleanPost(item.body), cta), 220);
       const words = wordCount(body);
       return lacks({ hook, cta }) ?? (words >= 80 ? { ...base, hook, body, cta } : `body ${words} words, needs 80 to 220`);
     }
     case "carousel": {
       const hook = oneLine(item.hook, 6);
-      const points = cleanPost(item.body).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
+      const points = withoutCta(cleanPost(item.body), cta).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
       return lacks({ hook, cta }) ?? (points.length >= 4 ? { ...base, hook, body: points.join("\n\n"), cta } : `${points.length} points, needs 4 to 8`);
     }
     case "slideshow":
