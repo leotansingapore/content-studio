@@ -231,11 +231,12 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
     if (!p.hook || !(p.state === "ready" || p.state === "making")) return WRITING_LINE;
     if (p.format === "slideshow" && slideshowBusy()) return SHOW_BUSY;
     if (p.format === "wall" && wallBusy("wall")) return WALL_BUSY;
-    if (p.format === "ai-video") {
+    // with Ask each time Make only hands the script to the editor, which checks today's limits at its own Make
+    if (p.format === "ai-video" && savedWho(userId)) {
       if (left("ai-video") === 0) return NO_VIDEOS;
       if (left("ai-voice") === 0) return NO_VOICES;
-      if (savedWho(userId) && (aiBusy() || talkBusy())) return AI_BUSY;
-      if (savedWho(userId) && asTopic(p.script ?? "", 15)) return SHORT_SCRIPT;
+      if (aiBusy() || talkBusy()) return AI_BUSY;
+      if (asTopic(p.script ?? "", 15)) return SHORT_SCRIPT;
     }
     return null;
   }
