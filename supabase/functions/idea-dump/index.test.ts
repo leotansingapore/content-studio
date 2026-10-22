@@ -592,3 +592,98 @@ describe("idea-dump ideas (phase 5, Leo only)", () => {
     expect(sent[OPENAI]).toBeUndefined();
   });
 });
+
+const ANSWER_ADS = [
+  { id: "111", advertiser: "Finch Advisory", text: "Retire at 55 with our income plan.\nBook a review.", days: 3, format: "video" },
+  { id: "222", advertiser: "Owl Planners", text: "Your CPF is not enough.", days: 6, format: "image" },
+];
+const ANSWER = { mode: "answer", ads: ANSWER_ADS, context: PLAN_CONTEXT };
+const ANSWER_REPLY = {
+  angles: [
+    { title: "What 55 really means", line: "What changes for your CPF the year you turn 55." },
+    { title: "Questions before a review", line: "Three questions to ask before any retirement review." },
+    { title: "Start with your spending", line: "Your monthly spending decides more than any plan does." },
+    { title: "The fourth angle here", line: "This one is past the three kept." },
+  ],
+};
+const THREE = ANSWER_REPLY.angles.slice(0, 3);
+
+describe("idea-dump answer (phase 6 agent-skills, Leo only)", () => {
+  it("is 403 not_enabled before any count for a caller not on NORTH_STAR_USERS, even with a bad body", async () => {
+    expect(await call(ANSWER)).toEqual(NOT_ENABLED);
+    expect(await call({ mode: "answer" })).toEqual(NOT_ENABLED);
+    expect(db.spent).toEqual([]);
+    expect(sent[OPENAI]).toBeUndefined();
+    expect(sent[JEV]).toBeUndefined();
+  });
+
+  it("refuses no ads with 400 and a missing key with 503, before any count", async () => {
+    expect(await call({ mode: "answer", ads: [], context: PLAN_CONTEXT }, "leo")).toEqual({ status: 400, body: { code: "bad_request", error: "Send 1 to 10 competitor ads." } });
+    delete env.OPENAI_API_KEY;
+    expect(await call(ANSWER, "leo")).toEqual({ status: 503, body: { code: "not_configured", error: "This isn't switched on yet." } });
+    expect(db.spent).toEqual([]);
+  });
+
+  it("answers Jev's pick at 0.4 with 3 angles on the skill-answer cap", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(ANSWER_REPLY);
+    jevReply = () => ({ ad: { type: "choice", choice: "a1", probabilities: { a1: 0.4, a2: 0.35 } } });
+    const r = await call(ANSWER, "leo");
+    expect(r).toEqual({ status: 200, body: { ad: "111", angles: THREE, scored: true } });
+    expect(db.spent).toEqual(["skill-answer"]);
+    expect(db.refunded).toEqual([]);
+    expect(sent[JEV]).toHaveLength(1);
+    const req = sent[OPENAI][0] as { response_format: { json_schema: { name: string } }; messages: { content: string }[] };
+    expect(req.response_format.json_schema.name).toBe("answer_angles");
+    expect(req.messages[1].content).toContain('The competitor\'s video ad, running 3 days:\n"""Retire at 55 with our income plan.\nBook a review."""');
+  });
+
+  it("falls back to the longest-running ad under 0.4, with no Jev key, and asks nothing about a lone ad", async () => {
+    openai = () => reply(ANSWER_REPLY);
+    env.TYPESAFE_API_KEY = "t";
+    jevReply = () => ({ ad: { type: "choice", choice: "a1", probabilities: { a1: 0.39, a2: 0.3 } } });
+    expect((await call(ANSWER, "leo")).body).toEqual({ ad: "222", angles: THREE, scored: false });
+    delete env.TYPESAFE_API_KEY;
+    expect((await call(ANSWER, "leo")).body).toEqual({ ad: "222", angles: THREE, scored: false });
+    env.TYPESAFE_API_KEY = "t";
+    delete sent[JEV];
+    expect((await call({ ...ANSWER, ads: [ANSWER_ADS[0]] }, "leo")).body).toEqual({ ad: "111", angles: THREE, scored: false });
+    expect(sent[JEV]).toBeUndefined();
+  });
+
+  it("writes a business's angles with no adviser line", async () => {
+    openai = () => reply(ANSWER_REPLY);
+    await call({ ...ANSWER, context: { ...PLAN_CONTEXT, speaker: "business" } }, "leo");
+    const req = sent[OPENAI][0] as { messages: { content: string }[] };
+    expect(req.messages[0].content).toContain("a business in Singapore");
+    expect(JSON.stringify(req.messages)).not.toMatch(/adviser|\bMAS\b/i);
+  });
+
+  it("gives the use back when OpenAI never answered (non-2xx, timeout, no connection): 502", async () => {
+    const timeout = () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError"));
+    for (const fail of [() => new Response("down", { status: 500 }), timeout, () => Promise.reject(new TypeError("connection refused"))]) {
+      openai = fail;
+      db.spent.length = 0;
+      db.refunded.length = 0;
+      expect(await call(ANSWER, "leo")).toEqual({ status: 502, body: { code: "failed", error: "Couldn't write angles right now. Try again in a minute." } });
+      expect(db.spent).toEqual(["skill-answer"]);
+      expect(db.refunded).toEqual(["skill-answer"]);
+    }
+  });
+
+  it("keeps the use when OpenAI answered with fewer than 3 usable angles: 422 unusable", async () => {
+    const refusal = () => Response.json({ choices: [{ message: { content: null, refusal: "No." } }] });
+    for (const bad of [() => reply("not json"), () => reply({ angles: ANSWER_REPLY.angles.slice(0, 2) }), refusal]) {
+      openai = bad;
+      expect(await call(ANSWER, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The angles that came back couldn't be used. Try again." } });
+    }
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("answers the daily limit with 429 and calls nothing", async () => {
+    db.limit = true;
+    expect((await call(ANSWER, "leo")).body.code).toBe("daily_limit");
+    expect(sent[OPENAI]).toBeUndefined();
+    expect(sent[JEV]).toBeUndefined();
+  });
+});
