@@ -17,7 +17,9 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
 const { default: GeneratePage } = await import("./GeneratePage");
-const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+// React's generated ids (useId, behind the Radix selects) follow the number of children a parent has, so a Leo-only
+// slot renumbers them with nothing drawn differently: they are left out of the hash
+const sha = (s: string) => createHash("sha256").update(s.replace(/radix-:[A-Za-z0-9]+:/g, "radix-id")).digest("hex");
 // the page reads the address once on its first frame (arrivedWithBrief); node has no window
 const html = (at: string) => {
   vi.stubGlobal("window", { location: new URL(`http://localhost${at}`) });
@@ -26,7 +28,7 @@ const html = (at: string) => {
 };
 
 const BRIEF = "f4c7d387ff40624b82cd9971eaed78892e7f7872437c7e078a8f436a2ea7f753";
-const FORMAT_STEP = "4e74965a6dd469c3c0ab2a4128aa1f5cf2791767d22bc45aff07c2341545667f";
+const FORMAT_STEP = "e9b58dc8ee417bd6745cff79053c701c40746a127b2bc5181461be25d41e199e";
 
 describe("Write for everyone else", () => {
   it("draws today's brief", () => {
