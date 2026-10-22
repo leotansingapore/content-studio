@@ -23,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design", "conflict"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design", "conflict", "goal"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -48,6 +48,7 @@ export type JudgeRequest =
   | { mode: "thread"; post: string }
   | { mode: "design"; slides: { title: string; body: string }[] }
   | { mode: "conflict"; note: string; notes: string[] }
+  | { mode: "goal"; text: string }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -95,6 +96,13 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
     const notes = raw.map((x) => str(x, CONFLICT_NOTE));
     if (!notes.length || notes.length > MAX_CONFLICT_NOTES || notes.some((x) => !x)) return { ok: false, error: `Send 1 to ${MAX_CONFLICT_NOTES} notes.` };
     return { ok: true, request: { mode, note, notes } };
+  }
+  if (mode === "goal") {
+    // its own length check: MIN_TEXT's 40 characters would refuse most goals
+    const text = typeof b.text === "string" ? b.text.trim() : "";
+    if (text.length < GOAL_TEXT.min) return { ok: false, error: "Write a few more words." };
+    if (text.length > GOAL_TEXT.max) return { ok: false, error: `Keep the goal to ${GOAL_TEXT.max} characters.` };
+    return { ok: true, request: { mode, text } };
   }
   if (mode === "facts") {
     const text = str(b.text, MAX_TEXT);
@@ -692,4 +700,47 @@ export function readConflict(answers: Record<string, JevAnswer> | null, count: n
     }
   }
   return best;
+}
+
+// ---- Mode "goal" (plan-goal, Leo only) ----------------------------------------
+// Which of the five outcomes a typed goal is closest to, so plans and campaigns
+// can weight the funnel toward it. A picked chip never asks: only typed goals.
+
+export const GOAL_TEXT = { min: 4, max: 120 } as const;
+/** The same five kinds as src/lib/positioning.ts GoalKind. */
+export const GOAL_KINDS = ["clients", "audience", "trust", "recruit", "time"] as const;
+export type GoalKind = (typeof GOAL_KINDS)[number];
+// shortcut: proposed (phase 5 decision 12), not read off real goals; the integrator reads every logged { kind, p }
+// within 0.15 of it after the first 20 typed goals and sets it in one commit.
+/** Jev's pick is used at or above this; below it the app asks "Which of these is closest?". */
+export const JEV_GOAL_MIN = 0.6;
+
+export const goalState = (text: string) => ({ goal: text, country: "Singapore", who: "a financial adviser or a small business that posts on social media" });
+
+export const GOAL_QUESTIONS: Record<string, JevQuestion> = {
+  kind: {
+    type: "choice",
+    instructions: "Which outcome does `who` most want from posting, going by `goal`?",
+    criteria: {
+      clients: "new clients, enquiries, appointments, leads or sales",
+      audience: "more followers, reach, views or being known in a niche",
+      trust: "existing clients and followers trusting them more, staying in touch or sending referrals",
+      recruit: "recruiting people to join their team, agency or business",
+      time: "posting regularly with less effort, time or stress",
+    },
+  },
+};
+
+/** Jev's likeliest kind and its probability (two decimals) whatever the cut, for the log; nulls without an answer or an unknown kind. */
+export function goalTop(answers: Record<string, JevAnswer> | null): { kind: GoalKind | null; p: number | null } {
+  const kind = GOAL_KINDS.find((k) => k === answers?.kind?.choice) ?? null;
+  const p = kind ? answers?.kind?.probabilities?.[kind] : undefined;
+  if (!kind || typeof p !== "number" || !Number.isFinite(p)) return { kind: null, p: null };
+  return { kind, p: Math.round(Math.min(1, Math.max(0, p)) * 100) / 100 };
+}
+
+/** The answer the app gets: the kind only at JEV_GOAL_MIN or more, with its probability either way. */
+export function goalPick(answers: Record<string, JevAnswer> | null): { kind: GoalKind | null; p: number | null } {
+  const top = goalTop(answers);
+  return { kind: top.p !== null && top.p >= JEV_GOAL_MIN ? top.kind : null, p: top.p };
 }

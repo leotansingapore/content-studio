@@ -155,7 +155,7 @@ export const TOOLS = [
   },
   {
     name: "get_brand",
-    description: "Who the adviser is and how they write: positioning (audience, topics, edge, main platform, posts a week), brand kit (name, handle, role, sign-off) and voice summary. Read this before drafting.",
+    description: "Who the adviser is and how they write: positioning (goal, audience, topics, edge, main platform, posts a week), brand kit (name, handle, role, sign-off) and voice summary. Read this before drafting.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -243,7 +243,7 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
       const voice = parseJson<Record<string, unknown>>(await store.get(`content-studio-voice-${scope}`), {});
       const pick = (o: Record<string, unknown>, keys: string[]) => Object.fromEntries(keys.filter((k) => o[k] !== undefined && o[k] !== "").map((k) => [k, o[k]]));
       return ok({
-        positioning: pick(pos, ["oneLiner", "audience", "audienceDetail", "topics", "edge", "platform", "cadence"]),
+        positioning: pick(pos, ["goal", "goalKind", "oneLiner", "audience", "audienceDetail", "topics", "edge", "platform", "cadence"]),
         brandKit: pick(brand, ["name", "handle", "role", "signOff", "color"]),
         voiceSummary: typeof voice.voiceSummary === "string" ? voice.voiceSummary : null,
       });

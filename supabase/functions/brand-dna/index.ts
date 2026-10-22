@@ -14,7 +14,13 @@
 //   mode image      one picture from the brand's site (public address, PNG, JPEG or WebP by its bytes, at most 2 MB)
 //                   as a data URL. Cap "brand-image", given back when the site never answered.
 //
-// Daily caps "brand-dna", "brand-products", "brand-image". Deploy WITH JWT verification:
+// Phase 5 (brand-audiences), gated the same way:
+//   mode audiences  up to 4 groups of people the brand serves, from its home page and the pages Jev picks (url), or
+//                   from the profile it sends; one LLM call and one Jev request (a group of people, its life stage,
+//                   the same as a saved one). Cap "audience-suggest", given back when the home page or OpenAI never
+//                   answered; 422 none_new keeps the use.
+//
+// Daily caps "brand-dna", "brand-products", "brand-image", "audience-suggest". Deploy WITH JWT verification:
 //   supabase functions deploy brand-dna --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
@@ -25,8 +31,9 @@ import { consumeUsage, refundUsage, type UsageResult, usageRefusal } from "../_s
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { isAllowed } from "../market/logic.ts";
 import {
-  AUDIENCES, audienceAsk, clueLines, fencePages, KINDS, offerAsk, pageQuestions, parseProducts, parseWritten, pickPages, productClues, productMessages,
-  PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl, withOffers, WRITE_FORMAT, writeMessages,
+  AUDIENCES, audienceAsk, audienceMessages, audienceQuestions, AUDIENCES_FORMAT, clueLines, fencePages, keepAudiences, KINDS, offerAsk, pageQuestions,
+  parseAudienceAsk, parseAudiences, parseProducts, parseWritten, pickPages, productClues, productMessages, PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl,
+  withOffers, WRITE_FORMAT, writeMessages,
 } from "./logic.ts";
 
 const PAGE_BYTES = 300_000;
@@ -178,6 +185,67 @@ async function image(admin: Admin, uid: string, body: { url?: unknown }): Promis
   return json({ dataUrl: dataUrl(got.bytes, type) });
 }
 
+async function audiences(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseAudienceAsk(body);
+  if (!parsed.ok) return fail(400, "bad_request", parsed.error);
+  const { url, profile, saved } = parsed.ask;
+  if (!Deno.env.get("OPENAI_API_KEY")) return fail(503, "not_configured", "Suggestions aren't set up yet.");
+  const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
+  const usage = await consumeUsage(admin, uid, "audience-suggest");
+  if (!usage.allowed) return refusal(usage);
+  const giveBack = async (error: string) => (await refundUsage(admin, uid, "audience-suggest", day), fail(502, "failed", error));
+  const where = url ? `on ${url.host}` : "in your profile";
+
+  // a profile-only ask (parseAudienceAsk never hands it to siteUrl) skips the fetch
+  let source: Parameters<typeof audienceMessages>[0] = { profile: profile! };
+  let pagesRead: string[] = [];
+  let business = profile?.oneLiner ?? "";
+  if (url) {
+    let page: { bytes: Uint8Array; type: string; url: URL };
+    try {
+      page = await fetchCapped(url, PAGE_BYTES, HTML, AbortSignal.timeout(20_000));
+    } catch (e) {
+      console.warn("brand-dna: audiences page", url.host, msg(e));
+      return giveBack(`We couldn't read ${url.host}. Check the address, or suggest from your profile.`);
+    }
+    // the site answered: from here the use is kept
+    if (!/html|xml|text/.test(page.type)) return fail(422, "not_a_page", `${url.host} didn't send a web page. Check the address.`);
+    const html = new TextDecoder().decode(page.bytes);
+    let site: SiteFacts;
+    try {
+      site = readSite(html, page.url);
+    } catch (e) {
+      console.warn("brand-dna: audiences read", url.host, msg(e));
+      return fail(422, "unreadable", `We couldn't read ${url.host}. Check the address, or suggest from your profile.`);
+    }
+    const fenced = fencePages([{ url: page.url.href, text: site.text }, ...(await morePages(site, page.url)).map((p) => ({ url: p.url.href, text: p.text }))]);
+    source = { site, url: page.url.href, fenced: fenced.block };
+    pagesRead = fenced.read;
+    business = site.name;
+  }
+
+  let reply: Response;
+  try {
+    reply = await openaiChat({ model: OPENAI_MODEL, max_tokens: 900, response_format: AUDIENCES_FORMAT, messages: audienceMessages(source, saved) }, { signal: AbortSignal.timeout(40_000) });
+  } catch (e) {
+    console.warn("brand-dna: audiences openai", msg(e));
+    return giveBack("Couldn't suggest audiences right now. Try again in a few minutes.");
+  }
+  if (!reply.ok) {
+    console.warn("brand-dna: audiences openai", reply.status);
+    return giveBack("Couldn't suggest audiences right now. Try again in a few minutes.");
+  }
+  const cands = parseAudiences((await reply.json().catch(() => null))?.choices?.[0]?.message?.content);
+  if (!cands) return fail(422, "bad_reply", "The suggestions came back unreadable. Try again.");
+
+  const answers = cands.length
+    ? await askJev({ business, country: "Singapore" }, audienceQuestions(cands, saved), { who: "brand-dna audiences", timeoutMs: 15_000 })
+    : null;
+  const kept = keepAudiences(cands, saved.length, answers);
+  if (!kept.audiences.length) return fail(422, "none_new", `Nothing new ${where} about who you serve. Add one yourself.`);
+  return json({ audiences: kept.audiences, pagesRead, scored: kept.scored });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -190,11 +258,13 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
-  const mode = body?.mode === "products" || body?.mode === "image" ? body.mode : null;
+  const mode = body?.mode === "products" || body?.mode === "image" || body?.mode === "audiences" ? body.mode : null;
   const deep = body?.deep === true;
   if ((mode || deep) && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
   if (mode === "products") return await products(admin, uid, body);
   if (mode === "image") return await image(admin, uid, body);
+  // before the plain read's siteUrl check, which would answer 400 to a profile-only body
+  if (mode === "audiences") return await audiences(admin, uid, body);
 
   const url = siteUrl(body?.url);
   if (!url) return json({ error: "Type the brand's web address, like acme.sg." }, 400);

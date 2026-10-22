@@ -19,6 +19,12 @@ db.admin = {
   }),
 };
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => db.admin }));
+// every address index.ts hands to siteUrl (the plain read's check), so a profile-only audiences ask can be shown never to reach it
+const siteUrlGot = vi.hoisted(() => [] as unknown[]);
+vi.mock("./logic.ts", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./logic.ts")>();
+  return { ...real, siteUrl: (raw: unknown) => (siteUrlGot.push(raw), real.siteUrl(raw)) };
+});
 
 const PAGE = `<title>Acme Wealth | Plans</title><link rel="apple-touch-icon" href="/t.png"><style>.a{color:#1f6feb}</style>
 <p>We help young families save.</p><a href="https://instagram.com/acmewealth">ig</a>`;
@@ -71,6 +77,7 @@ beforeEach(() => {
   for (const k of Object.keys(sent)) delete sent[k];
   for (const k of Object.keys(routes)) delete routes[k];
   delete env.TYPESAFE_API_KEY;
+  siteUrlGot.length = 0;
 });
 const html = (body: string) => () => new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
 const OPENAI = "https://api.openai.com/v1/chat/completions";
@@ -314,5 +321,140 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(await call({ mode: "image", url: "https://acme.sg/huge.png" }, "leo")).toMatchObject({ status: 422, body: { code: "too_big" } });
     expect(db.refunded).toEqual(["brand-image"]);
     expect(db.spent.every((f) => f === "brand-image")).toBe(true);
+  });
+});
+
+describe("audience suggestions (phase 5, Leo only)", () => {
+  const HOME = `<html lang="en"><title>Acme Wealth | Plans</title><meta name="description" content="Plans for young families.">
+<p>We help young families and pre-retirees in Tampines.</p><a href="/about">About us</a><a href="/blog/tips">Tips</a>`;
+  const profile = { oneLiner: "I help young families plan their cover.", audienceDetail: "Parents in their 30s", topics: ["Hospital plans", "CPF"], edge: "", role: "Financial adviser", coachAudience: "New parents" };
+  const groups = [
+    { name: "Young parents in HDB flats", who: "Both working, kids under 10.", cares: ["childcare costs", "hospital bills"], says: "Can we afford a second kid?" },
+    { name: "Savings plans", who: "Plans that grow money.", cares: [], says: "" },
+    { name: "Pre-retirees in Tampines", who: "In their 50s, CPF questions.", cares: ["CPF payouts"], says: "" },
+  ];
+  // the about page is picked (0.9), the blog is not; the second group is a product and the third a saved group again
+  const answers = (q: Record<string, unknown>) =>
+    "p0" in q ? { p0: { type: "noul", noul: 0.9 }, p1: { type: "noul", noul: 0.1 } }
+    : {
+        real_0: { type: "noul", noul: 0.95 }, stage_0: { type: "choice", choice: "parent" }, same_0_0: { type: "noul", noul: 0.2 },
+        real_1: { type: "noul", noul: 0.1 }, stage_1: { type: "choice", choice: "general" }, same_1_0: { type: "noul", noul: 0.05 },
+        real_2: { type: "noul", noul: 0.9 }, stage_2: { type: "choice", choice: "pre-retiree" }, same_2_0: { type: "noul", noul: 0.8 },
+      };
+  const saved = [{ name: "Pre-retirees", who: "People in their 50s planning retirement" }];
+  const acme = () => {
+    routes["https://acme.sg/"] = html(HOME);
+    routes["https://acme.sg/about"] = html("<title>About</title><p>Two advisers who mostly see parents.</p>");
+    routes[OPENAI] = reply({ audiences: groups });
+    env.TYPESAFE_API_KEY = "t";
+    jevReply = answers;
+  };
+  const writer = () => sent[OPENAI] as { model: string; max_completion_tokens: number; response_format: { json_schema: { name: string; strict: boolean } }; messages: { content: string }[] };
+  const audienceAsk = () => jevAsked.find((a) => "real_0" in a.questions)!;
+
+  it("refuses a uid not on NORTH_STAR_USERS before any count, fetch or model", async () => {
+    acme();
+    for (const body of [{ mode: "audiences", url: "acme.sg" }, { mode: "audiences", profile }]) {
+      expect(await call(body, "u1")).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
+    }
+    expect(seen).toEqual([]);
+    expect(db.spent).toEqual([]);
+    expect(siteUrlGot).toEqual([]);
+  });
+
+  it("refuses a bad ask with 400 and an unset OpenAI key with 503 not_configured, before any count", async () => {
+    acme();
+    for (const body of [{ mode: "audiences" }, { mode: "audiences", url: "localhost" }, { mode: "audiences", profile: { oneLiner: " " } }, { mode: "audiences", profile, saved: Array.from({ length: 7 }, () => ({ name: "a", who: "b" })) }]) {
+      expect(await call(body, "leo")).toMatchObject({ status: 400, body: { code: "bad_request" } });
+    }
+    delete env.OPENAI_API_KEY;
+    try {
+      expect(await call({ mode: "audiences", profile }, "leo")).toMatchObject({ status: 503, body: { code: "not_configured" } });
+    } finally {
+      env.OPENAI_API_KEY = "k";
+    }
+    expect(seen).toEqual([]);
+    expect(db.spent).toEqual([]);
+  });
+
+  it("reads the home page and the pages Jev picks, and keeps the real, new groups with their life stages for one use", async () => {
+    acme();
+    const r = await call({ mode: "audiences", url: "acme.sg", saved }, "leo");
+    expect(r).toEqual({
+      status: 200,
+      body: {
+        audiences: [{ name: "Young parents in HDB flats", who: "Both working, kids under 10.", lifeStage: "parent", cares: ["childcare costs", "hospital bills"], says: "Can we afford a second kid?" }],
+        pagesRead: ["https://acme.sg/", "https://acme.sg/about"],
+        scored: true,
+      },
+    });
+    expect(seen).not.toContain("https://acme.sg/blog/tips");
+    expect(writer()).toMatchObject({ model: "gpt-6-luna", max_completion_tokens: 900 + 4000, response_format: { json_schema: { name: "brand_audiences", strict: true } } });
+    expect(writer().messages[1].content).toContain('<page url="https://acme.sg/about">\nAbout Two advisers who mostly see parents.\n</page>');
+    expect(writer().messages[1].content).toContain("Groups already saved, so write different ones:\n- Pre-retirees: People in their 50s planning retirement");
+    // one Jev request over every candidate, after the page pick
+    expect(jevAsked).toHaveLength(2);
+    expect(audienceAsk().state).toEqual({ business: "Acme Wealth", country: "Singapore" });
+    expect(Object.keys(audienceAsk().questions)).toEqual(["real_0", "stage_0", "same_0_0", "real_1", "stage_1", "same_1_0", "real_2", "stage_2", "same_2_0"]);
+    expect(db.spent).toEqual(["audience-suggest"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("writes from a profile alone: never sent to siteUrl, no page fetched, nothing read", async () => {
+    acme();
+    const r = await call({ mode: "audiences", profile: { ...profile, oneLiner: "acme.sg is my site" } }, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.pagesRead).toEqual([]);
+    expect(r.body.audiences.map((a: { name: string }) => a.name)).toEqual(["Young parents in HDB flats", "Pre-retirees in Tampines"]);
+    expect(siteUrlGot).toEqual([]);
+    expect([...new Set(seen)]).toEqual([OPENAI, JEV]);
+    expect(writer().messages[1].content).toContain("<profile>\nWhat they do: acme.sg is my site\nWho they serve: Parents in their 30s\nTopics: Hospital plans, CPF\nTheir role: Financial adviser\nWho they're for: New parents\n</profile>");
+    expect(audienceAsk().state).toEqual({ business: "acme.sg is my site", country: "Singapore" });
+    expect(db.spent).toEqual(["audience-suggest"]);
+  });
+
+  it("keeps every candidate as general with scored false when Jev is silent", async () => {
+    acme();
+    delete env.TYPESAFE_API_KEY;
+    const r = await call({ mode: "audiences", url: "acme.sg", saved }, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({
+      audiences: groups.map((g) => ({ name: g.name, who: g.who, lifeStage: "general", cares: g.cares, ...(g.says ? { says: g.says } : {}) })),
+      pagesRead: ["https://acme.sg/"],
+      scored: false,
+    });
+  });
+
+  it("answers 422 none_new and keeps the use when nothing real and new is left, or the writer found no one", async () => {
+    acme();
+    jevReply = (q) => ("p0" in q ? {} : { real_0: { type: "noul", noul: 0.2 }, real_1: { type: "noul", noul: 0.2 }, real_2: { type: "noul", noul: 0.2 } });
+    expect(await call({ mode: "audiences", url: "acme.sg" }, "leo")).toEqual({ status: 422, body: { code: "none_new", error: "Nothing new on acme.sg about who you serve. Add one yourself." } });
+    routes[OPENAI] = reply({ audiences: [] });
+    expect(await call({ mode: "audiences", profile }, "leo")).toEqual({ status: 422, body: { code: "none_new", error: "Nothing new in your profile about who you serve. Add one yourself." } });
+    routes[OPENAI] = reply({ groups: "not the schema" });
+    expect(await call({ mode: "audiences", profile }, "leo")).toMatchObject({ status: 422, body: { code: "bad_reply" } });
+    expect(db.spent).toEqual(["audience-suggest", "audience-suggest", "audience-suggest"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("gives the use back with 502 failed when the home page or OpenAI never answered", async () => {
+    acme();
+    expect(await call({ mode: "audiences", url: "down.sg" }, "leo")).toEqual({ status: 502, body: { code: "failed", error: "We couldn't read down.sg. Check the address, or suggest from your profile." } });
+    routes[OPENAI] = () => new Response("overloaded", { status: 503 });
+    expect(await call({ mode: "audiences", url: "acme.sg" }, "leo")).toMatchObject({ status: 502, body: { code: "failed" } });
+    routes[OPENAI] = () => {
+      throw new DOMException("The signal has been aborted", "TimeoutError");
+    };
+    expect(await call({ mode: "audiences", profile }, "leo")).toEqual({ status: 502, body: { code: "failed", error: "Couldn't suggest audiences right now. Try again in a few minutes." } });
+    expect(db.spent).toEqual(["audience-suggest", "audience-suggest", "audience-suggest"]);
+    expect(db.refunded).toEqual(["audience-suggest", "audience-suggest", "audience-suggest"]);
+  });
+
+  it("answers a spent day's cap with the 8am line before fetching anything", async () => {
+    acme();
+    db.limit = true;
+    expect(await call({ mode: "audiences", url: "acme.sg" }, "leo")).toMatchObject({ status: 429, body: { code: "daily_limit", error: expect.stringMatching(/It resets at 8am Singapore time\.$/) } });
+    expect(seen).toEqual([]);
+    expect(db.refunded).toEqual([]);
   });
 });

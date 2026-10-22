@@ -35,6 +35,11 @@
 //     assistant's "This replaces" line, at CONFLICT_MIN). Leo only like
 //     "thread", the use given back when Jev never answered. About 170 tokens
 //     a kept note, up to 30.
+//   mode "goal" {text} -> {kind: GoalKind | null, p}
+//     which of five outcomes a typed goal (4 to 120 characters) is closest
+//     to, the kind only at JEV_GOAL_MIN. Leo only like "thread"; the use goes
+//     back (502 failed) when Jev never answered. Logs {kind, p}, never the
+//     goal. About 300 tokens.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -78,6 +83,10 @@ import {
   readDesignPick,
   conflictQuestions,
   readConflict,
+  GOAL_QUESTIONS,
+  goalPick,
+  goalState,
+  goalTop,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -116,7 +125,7 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to check a post." }, 401);
-    if ((r.mode === "thread" || r.mode === "design" || r.mode === "conflict") && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+    if ((r.mode === "thread" || r.mode === "design" || r.mode === "conflict" || r.mode === "goal") && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
       return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
     }
 
@@ -157,6 +166,17 @@ Deno.serve(async (req) => {
         return json({ error: UNAVAILABLE }, 503);
       }
       return json({ replaces: readConflict(answers, r.notes.length) });
+    }
+    if (r.mode === "goal") {
+      const answers = await askJev(goalState(r.text), GOAL_QUESTIONS, { who: "writing-judge goal" });
+      if (!answers) {
+        // Jev never answered: the use goes back (phase 5 decision 3)
+        await refundUsage(admin, uid, "writing-judge", day);
+        return json({ code: "failed", error: UNAVAILABLE }, 502);
+      }
+      // for setting JEV_GOAL_MIN from real goals (decision 12): Jev's top kind whatever the cut, never the text
+      console.log("writing-judge goal", JSON.stringify(goalTop(answers)));
+      return json(goalPick(answers));
     }
     if (r.mode === "profile") {
       const answers = await askJev(profileState(r), profileQuestions(r), { who: "writing-judge profile" });

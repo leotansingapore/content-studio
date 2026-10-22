@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INBOX_PREFIX, MAX_INBOX, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
+import { INBOX_PREFIX, MAX_INBOX, TOOLS, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
 const SECRET = "a".repeat(40) + "b-_";
@@ -103,6 +103,60 @@ describe("tools", () => {
       brandKit: { name: "Jane", handle: "@jane", signOff: "DM me" },
       voiceSummary: "Warm, plain",
     });
+  });
+
+  // Pinned before the goal fields joined get_brand (phase 5): a brand that never set a goal answers byte for byte as
+  // it did on 0d23f6a6. Never update this literal to make a change pass.
+  it("answers a brand with no goal fields exactly as before (pinned)", async () => {
+    const s = memoryStore({
+      [`content-studio-positioning-${UID}`]: {
+        oneLiner: "I help young families in Tampines plan their cover.",
+        audience: "parent",
+        audienceDetail: "Parents in their 30s with kids under 10",
+        topics: ["Hospital plans", "CPF"],
+        edge: "Plain numbers, no jargon",
+        platform: "instagram",
+        cadence: 4,
+        updatedAt: "2026-10-01T00:00:00Z",
+      },
+      [`content-studio-carousel-brand-${UID}`]: { name: "Jane Lim", handle: "@janelim", role: "Financial adviser", signOff: "DM me", color: "#1f6feb", photo: "data:image/jpeg;base64,xx" },
+      [`content-studio-voice-${UID}`]: { voiceSummary: "Warm, plain, short sentences." },
+    });
+    const r = await callTool("get_brand", {}, s, link);
+    expect(r.isError).toBeUndefined();
+    expect(r.content).toHaveLength(1);
+    expect(r.content[0].text).toBe(`{
+  "positioning": {
+    "oneLiner": "I help young families in Tampines plan their cover.",
+    "audience": "parent",
+    "audienceDetail": "Parents in their 30s with kids under 10",
+    "topics": [
+      "Hospital plans",
+      "CPF"
+    ],
+    "edge": "Plain numbers, no jargon",
+    "platform": "instagram",
+    "cadence": 4
+  },
+  "brandKit": {
+    "name": "Jane Lim",
+    "handle": "@janelim",
+    "role": "Financial adviser",
+    "signOff": "DM me",
+    "color": "#1f6feb"
+  },
+  "voiceSummary": "Warm, plain, short sentences."
+}`);
+  });
+
+  it("gives Claude the brand's goal and its kind when one is set, first in positioning", async () => {
+    const s = memoryStore({
+      [`content-studio-positioning-${UID}`]: { goal: "More people booking a 15-minute review with me", goalKind: "clients", goalSetAt: "2026-10-22T02:00:00Z", audience: "parent", cadence: 3 },
+    });
+    const b = text(await callTool("get_brand", {}, s, link));
+    expect(b.positioning).toEqual({ goal: "More people booking a 15-minute review with me", goalKind: "clients", audience: "parent", cadence: 3 });
+    expect(Object.keys(b.positioning)).toEqual(["goal", "goalKind", "audience", "cadence"]);
+    expect(TOOLS.find((t) => t.name === "get_brand")?.description).toContain("positioning (goal, audience, topics");
   });
 
   it("adds a draft as its own inbox row under this scope, never a uuid id", async () => {
