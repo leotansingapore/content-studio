@@ -377,6 +377,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 |---|---|---|---|---|---|
 | /make | kind | Leo only. video, slides, text, image | all | replace | /make?kind=video |
 | /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
+| /make/notification-stack | bg | Leo only. mine (Background: My video; the video stays on the device and is picked again on each visit). The typed worries, closing word and label are kept on the device in cs-make-notify | stock | replace | /make/notification-stack?bg=mine |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
 | /make/talking-head | who | Leo only. presenter (a new AI presenter), mine (your saved face), or a saved presenter's id; a typed photo falls back to the default | the brand's "Who appears" | replace | /make/talking-head?who=mine |

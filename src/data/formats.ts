@@ -117,6 +117,18 @@ export const FORMATS: FormatDef[] = [
     ready: true,
   },
   {
+    slug: "notification-stack",
+    name: "Notification stack",
+    blurb: "A client's worries pop up one by one as phone notifications, then one big word.",
+    kind: "video",
+    group: 1,
+    // Jev picks the stock clip; nothing is written or generated
+    cap: "montage-pick",
+    price: () => priceOf("montage-pick"),
+    Component: lazy(() => import("@/components/make/NotificationStack")),
+    ready: true,
+  },
+  {
     slug: "static-ad",
     name: "Static ad",
     blurb: "One designed picture with your words: a headline, a quote, a stat or a client's words.",

@@ -7,6 +7,7 @@ import { drawSlides, drawStacked, lifted, offerBand, pairAt } from "@/lib/stacke
 import { getFile } from "@/lib/deviceFiles";
 import { keepTop } from "@/lib/burnedText";
 import { readableOn } from "@/lib/carouselLayout";
+import { drawNotify, notifyPose } from "@/lib/notifyStack";
 import type { CarouselBrand } from "@/lib/carousel";
 import {
   END_CARD_SECONDS,
@@ -887,7 +888,14 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     }
   }
 
-  for (const o of overlaysAt(s.overlays, f.out)) drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
+  for (const o of overlaysAt(s.overlays, f.out)) {
+    if (o.kind !== "notify") drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
+    else {
+      // a notification card stands where the newer cards in its stack have pushed it
+      const p = notifyPose(s.overlays ?? [], o, f.out);
+      if (p) drawNotify(g, o, p);
+    }
+  }
 
   // chart cards, number cards and pop-ups, one at a time, clear of the face and the captions
   if (motion.cards.length || motion.pops.length || motion.charts.length) drawMotion(g, motion, f, capBand);

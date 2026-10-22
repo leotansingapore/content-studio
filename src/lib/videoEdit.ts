@@ -1072,14 +1072,16 @@ export function brandFixes(name: string | null | undefined): CaptionFix[] {
 
 /**
  * block = several lines of words, wrapped and centred, for the whole video (words over a video). banner = a news
- * lower third across the frame (formats-presenter): a block saying BANNER_WORD, then the headline on white.
+ * lower third across the frame (formats-presenter): a block saying BANNER_WORD, then the headline on white. notify = a
+ * phone notification card in a stack (src/lib/notifyStack.ts): its x/y is the stack's top slot, newer cards push it down.
  */
-export type OverlayKind = "text" | "arrow" | "circle" | "underline" | "block" | "banner";
+export type OverlayKind = "text" | "arrow" | "circle" | "underline" | "block" | "banner" | "notify";
 /** The Stickers list's name for a sticker with no words of its own, so a new kind needs no change to the editor page. */
-export const OVERLAY_LABELS: Record<OverlayKind, string> = { text: "Text", arrow: "Arrow", circle: "Circle", underline: "Underline", block: "Words", banner: "News banner" };
+export const OVERLAY_LABELS: Record<OverlayKind, string> = { text: "Text", arrow: "Arrow", circle: "Circle", underline: "Underline", block: "Words", banner: "News banner", notify: "Notification" };
 /** Fixed, never BREAKING or NEWS, so a money video never passes for a real news report (MAS fair dealing). */
 export const BANNER_WORD = "EXPLAINER";
 export const BANNER_MAX = 50;
+export const NOTIFY_LABEL_MAX = 20;
 export type BlockBox = "none" | "white" | "bar";
 
 /** A sticker: centre x/y as shares of the frame, size 0.5-2.5, shown from/to on the edited timeline. */
@@ -1101,6 +1103,8 @@ export interface Overlay {
   font?: FontId;
   /** Behind a block's words: nothing (shadow and outline), a white box per line, or a dark bar (unset = none). */
   box?: BlockBox;
+  /** A notification card's label line, over its message (notify only). */
+  label?: string;
 }
 
 export const MAX_OVERLAYS = 20;
@@ -1152,6 +1156,7 @@ export function sanitizeOverlays(raw: unknown): Overlay[] {
         ...(typeof r.font === "string" && r.font in FONTS ? { font: r.font as FontId } : {}),
         ...(r.box === "none" || r.box === "white" || r.box === "bar" ? { box: r.box } : {}),
       } : {}),
+      ...(r.kind === "notify" && typeof r.label === "string" ? { label: r.label.slice(0, NOTIFY_LABEL_MAX) } : {}),
     }];
   });
 }
@@ -1176,6 +1181,8 @@ export function overlayHit(list: Overlay[] | undefined, out: number, x: number, 
   const shown = overlaysAt(list, out);
   for (let i = shown.length - 1; i >= 0; i--) {
     const o = shown[i];
+    // a notification card is drawn where its stack has pushed it, not at its x/y: picked from the Stickers list instead
+    if (o.kind === "notify") continue;
     const r = o.kind === "block" ? boxOf?.(o) : null;
     if (r) {
       if (Math.abs(x - r.x) <= r.w / 2 && Math.abs(y - r.y) <= r.h / 2) return o;

@@ -19,6 +19,7 @@ const talk = sumPrices(priceOf("ai-video", { seconds: 25 }), priceOf("ai-video-s
 const EXPECTED: Record<string, Price | "pick" | null> = {
   slideshow: priceOf("remix-make"),
   "wall-of-text": priceOf("remix-make"),
+  "notification-stack": null,
   "static-ad": priceOf("remix-make"),
   meme: priceOf("remix-make"),
   carousel: null,
