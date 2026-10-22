@@ -402,3 +402,108 @@ describe("idea-dump long source and speaker (phase 5, listed callers only)", () 
     await expect(JSON.stringify(sent[OPENAI], null, 2)).toMatchFileSnapshot("./fixtures/long-request.json");
   });
 });
+
+const IDEAS = {
+  mode: "ideas",
+  count: 3,
+  context: { ...PLAN_CONTEXT, labels: ["Money basics"] },
+  posted: ["Nobody tells new parents this about hospital bills"],
+  steer: "CPF top-ups",
+};
+const IDEAS_REPLY = {
+  ideas: Array.from({ length: 5 }, (_, i) => ({
+    title: `Idea number ${i} for parents`,
+    angle: `What idea ${i} means for a first child.`,
+    why: `Parents meet idea ${i} early.`,
+    format: "text-post",
+    stage: "attraction",
+    label: i === 0 ? "Money basics" : "",
+    seedKey: "",
+  })),
+};
+
+describe("idea-dump ideas (phase 5, Leo only)", () => {
+  it("is 403 not_enabled before any count for a caller not on NORTH_STAR_USERS, even with a bad body", async () => {
+    expect(await call(IDEAS)).toEqual(NOT_ENABLED);
+    expect(await call({ mode: "ideas" })).toEqual(NOT_ENABLED);
+    expect(db.spent).toEqual([]);
+    expect(sent[OPENAI]).toBeUndefined();
+  });
+
+  it("refuses no positioning with 400 and a missing key with 503, before any count", async () => {
+    expect(await call({ mode: "ideas", context: { goal: "More enquiries" } }, "leo")).toEqual({ status: 400, body: { code: "bad_request", error: "Say who you serve first, so ideas are about them." } });
+    delete env.OPENAI_API_KEY;
+    expect(await call(IDEAS, "leo")).toEqual({ status: 503, body: { code: "not_configured", error: "This isn't switched on yet." } });
+    expect(db.spent).toEqual([]);
+  });
+
+  it("keeps the ideas Jev says fit and are safe, best first, on the ideas-daily cap", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(IDEAS_REPLY);
+    // fits rises with the idea's number; idea 4 is not safe, idea 0 does not fit
+    jevReply = (_q, state) => {
+      const i = Number(String(state.idea).match(/number (\d)/)?.[1]);
+      return { fits: { type: "noul", noul: i === 0 ? 0.4 : 0.6 + i / 20 }, safe: { type: "noul", noul: i === 4 ? 0.2 : 0.9 } };
+    };
+    const r = await call(IDEAS, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.scored).toBe(true);
+    expect(r.body.ideas.map((i: { title: string }) => i.title)).toEqual(["Idea number 3 for parents", "Idea number 2 for parents", "Idea number 1 for parents"]);
+    expect(r.body.ideas[0]).toEqual({ title: "Idea number 3 for parents", angle: "What idea 3 means for a first child.", why: "Parents meet idea 3 early.", format: "text-post", stage: "attraction", fit: 0.75 });
+    expect(db.spent).toEqual(["ideas-daily"]);
+    expect(db.refunded).toEqual([]);
+    expect(sent[JEV]).toHaveLength(5);
+    expect(Object.keys((sent[JEV][0] as { questions: object }).questions)).toEqual(["fits", "safe"]);
+    const req = sent[OPENAI][0] as { response_format: { json_schema: { name: string } }; messages: { content: string }[] };
+    expect(req.response_format.json_schema.name).toBe("post_ideas");
+    expect(req.messages[0].content).toContain("Write exactly 5 candidates");
+    expect(req.messages[1].content).toContain("- Nobody tells new parents this about hospital bills");
+    expect(req.messages[1].content).toContain("Make the ideas about: CPF top-ups");
+  });
+
+  it("returns the first clean candidates unscored with no Jev key", async () => {
+    openai = () => reply(IDEAS_REPLY);
+    const r = await call(IDEAS, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body.scored).toBe(false);
+    expect(r.body.ideas.map((i: { title: string; fit: null }) => [i.title, i.fit])).toEqual([0, 1, 2].map((i) => [`Idea number ${i} for parents`, null]));
+    expect(r.body.ideas[0].label).toBe("Money basics");
+    expect(sent[JEV]).toBeUndefined();
+  });
+
+  it("gives the use back when OpenAI never answered (non-2xx, timeout, no connection): 502", async () => {
+    const timeout = () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError"));
+    for (const fail of [() => new Response("down", { status: 500 }), timeout, () => Promise.reject(new TypeError("connection refused"))]) {
+      openai = fail;
+      db.spent.length = 0;
+      db.refunded.length = 0;
+      expect(await call(IDEAS, "leo")).toEqual({ status: 502, body: { code: "failed", error: "Couldn't write today's ideas. Try again in a minute." } });
+      expect(db.spent).toEqual(["ideas-daily"]);
+      expect(db.refunded).toEqual(["ideas-daily"]);
+    }
+  });
+
+  it("keeps the use when OpenAI answered with nothing usable: 422 unusable", async () => {
+    const refusal = () => Response.json({ choices: [{ message: { content: null, refusal: "No." } }] });
+    for (const bad of [() => reply("not json"), () => reply({ ideas: [{ ...IDEAS_REPLY.ideas[0], format: "story" }] }), refusal]) {
+      openai = bad;
+      expect(await call(IDEAS, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The ideas that came back couldn't be used. Try again." } });
+    }
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("keeps the use when Jev keeps none: 422 none_safe", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(IDEAS_REPLY);
+    jevReply = () => ({ fits: { type: "noul", noul: 0.9 }, safe: { type: "noul", noul: 0.1 } });
+    expect(await call(IDEAS, "leo")).toEqual({ status: 422, body: { code: "none_safe", error: "None of today's ideas were safe to post as written. Try Refine with a narrower topic." } });
+    expect(db.spent).toEqual(["ideas-daily"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("answers the daily limit with 429 and calls nothing", async () => {
+    db.limit = true;
+    expect((await call(IDEAS, "leo")).body.code).toBe("daily_limit");
+    expect(sent[OPENAI]).toBeUndefined();
+  });
+});

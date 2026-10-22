@@ -21,6 +21,11 @@
 // use goes back only when OpenAI never answered (502), and a reply where no post survives keeps it (422 unusable).
 // A person's posts each get Jev's MAS question in one call (`mas`, a warning that never blocks); a business's get null.
 //
+// mode "ideas" (phase 5, Leo only, the same gate): a set of post ideas for the ideas inbox. The LLM writes count + 2,
+// Jev keeps the ones that fit and are safe (`scored: false` and the compliance patterns without Jev). Cap
+// "ideas-daily"; the use goes back only when OpenAI never answered (502). A reply with no usable idea is 422
+// unusable and one where Jev keeps none is 422 none_safe; both keep the use.
+//
 // Secrets: OPENAI_API_KEY; TYPESAFE_API_KEY for Jev (the plan modes work without it). Deploy WITH JWT verification.
 // Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009), and the phase 5 caps.
 // Logic: ./logic.ts (tested).
@@ -34,6 +39,7 @@ import {
   ANGLES_SCHEMA,
   CAMPAIGN_SCHEMA,
   IDEA_BRIEF_SCHEMA,
+  IDEAS_SCHEMA,
   LONG_SCHEMA,
   NO_IDEAS_MESSAGE,
   buildIdeaDumpPrompt,
@@ -41,16 +47,21 @@ import {
   buildAnglesPrompt,
   buildCampaignPrompt,
   campaignCap,
+  buildIdeasPrompt,
   buildLongPrompt,
+  ideaAsk,
   keepAngles,
   masAsk,
+  rankIdeas,
   parseAnglesRequest,
   parseCampaignRequest,
   parseIdeaDumpRequest,
+  parseIdeasRequest,
   parseLongRequest,
   validateAngles,
   validateBriefs,
   validateCampaign,
+  validateIdeas,
   validateLong,
   withMas,
 } from "./logic.ts";
@@ -216,6 +227,37 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
   return json({ posts });
 }
 
+async function writeIdeas(admin: UsageClient, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseIdeasRequest(body);
+  if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
+  const { request } = parsed;
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) return json({ code: "not_configured", error: "This isn't switched on yet." }, 503);
+  const day = usageDay();
+  const usage = await consumeUsage(admin, uid, "ideas-daily");
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+  const { system, user } = buildIdeasPrompt(request);
+  const reply = await developWithOpenAi(system, user, apiKey, { name: "post_ideas", schema: IDEAS_SCHEMA, maxTokens: 2500 });
+  if (!reply.ok && !reply.answered) {
+    await refundUsage(admin, uid, "ideas-daily", day);
+    return json({ code: "failed", error: "Couldn't write today's ideas. Try again in a minute." }, 502);
+  }
+  const candidates = (reply.ok && validateIdeas(reply.text, request)) || [];
+  if (!candidates.length) return json({ code: "unusable", error: "The ideas that came back couldn't be used. Try again." }, 422);
+  const answers = await pool(candidates, 6, (c) => {
+    const ask = ideaAsk(request, c);
+    return askJev(ask.state, ask.questions, { who: "idea-dump ideas", timeoutMs: JEV_TIMEOUT_MS });
+  });
+  const kept = rankIdeas(candidates, answers, request.count);
+  // decision 12: every candidate's scores from the first runs set IDEA_FITS and IDEA_SAFE
+  console.log("idea-dump ideas", uid, "asked", request.count, "kept", kept.ideas.length, "scored", kept.scored, JSON.stringify(candidates.map((c, k) => [c.title, noulOf(answers[k], "fits"), noulOf(answers[k], "safe")])));
+  if (!kept.ideas.length) return json({ code: "none_safe", error: "None of today's ideas were safe to post as written. Try Refine with a narrower topic." }, 422);
+  return json(kept);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -232,8 +274,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     const mode = body && typeof body === "object" ? (body as { mode?: unknown }).mode : undefined;
     if (mode === "long") return await repurposeLong(admin, uid, body);
-    if (mode === "angles" || mode === "campaign") {
+    if (mode === "angles" || mode === "campaign" || mode === "ideas") {
       if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      if (mode === "ideas") return await writeIdeas(admin, uid, body);
       return mode === "angles" ? await suggestAngles(admin, uid, body) : await writeCampaign(admin, uid, body);
     }
     const parsed = parseIdeaDumpRequest(body);

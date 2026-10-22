@@ -867,3 +867,160 @@ describe("long piece source and speaker", () => {
     expect(buildLongPrompt(longOf({ source: "interview" })).system).not.toContain(BUSINESS_VOICE);
   });
 });
+
+// ---- Plan modes (phase 5): ideas -----------------------------------------------
+
+import { IDEAS_SCHEMA, IDEA_FITS, IDEA_SAFE, buildIdeasPrompt, ideaAsk, parseIdeasRequest, rankIdeas, validateIdeas } from "./logic.ts";
+
+const IDEAS_ASK = {
+  mode: "ideas",
+  count: 6,
+  context: { ...PLAN_CONTEXT, labels: ["Money basics", "Family cover"] },
+  posted: ["Nobody tells new parents this about hospital bills"],
+  best: ["What a ward stay really costs"],
+  seeds: [{ key: "news:cpf-rate", kind: "news", title: "CPF interest rates reviewed for the next quarter" }],
+};
+const ideasRequest = (body: unknown = IDEAS_ASK) => {
+  const r = parseIdeasRequest(body);
+  if (!r.ok) throw new Error(r.error);
+  return r.request;
+};
+const idea = (k: number, extra: Record<string, unknown> = {}) => ({
+  title: `Idea number ${k} for parents`,
+  angle: `What idea ${k} looks like for a first child.`,
+  why: `New parents meet idea ${k} in their first year.`,
+  format: "carousel",
+  stage: "trust",
+  label: "",
+  seedKey: "",
+  ...extra,
+});
+
+describe("mode ideas", () => {
+  it("parseIdeasRequest clamps count to 3 to 8, posted to 15, seeds to 10, steer to 200 and labels to 12", () => {
+    expect(ideasRequest({ ...IDEAS_ASK, count: 1 }).count).toBe(3);
+    expect(ideasRequest({ ...IDEAS_ASK, count: 20 }).count).toBe(8);
+    expect(ideasRequest({ ...IDEAS_ASK, count: undefined }).count).toBe(6);
+    const r = ideasRequest({
+      ...IDEAS_ASK,
+      posted: Array.from({ length: 20 }, (_, i) => `Hook ${i}`),
+      best: Array.from({ length: 9 }, (_, i) => `Best ${i}`),
+      seeds: Array.from({ length: 14 }, (_, i) => ({ key: `news:${i}`, kind: "news", title: `Story ${i}` })),
+      steer: "s".repeat(300),
+      context: { ...PLAN_CONTEXT, labels: Array.from({ length: 15 }, (_, i) => `Label ${i}`) },
+    });
+    expect(r.posted).toHaveLength(15);
+    expect(r.best).toHaveLength(5);
+    expect(r.seeds).toHaveLength(10);
+    expect(r.steer).toHaveLength(200);
+    expect(r.context.labels).toHaveLength(12);
+    expect(r.context.goal).toBe(PLAN_CONTEXT.goal);
+    // a seed key is echoed back, so a bad one is dropped, never cut
+    expect(ideasRequest({ ...IDEAS_ASK, seeds: [{ key: "k".repeat(201), title: "x" }, { key: "has space", title: "x" }, { key: "ok", title: "" }] }).seeds).toEqual([]);
+    expect(ideasRequest({ ...IDEAS_ASK, like: { title: "Idea one", angle: "Its take." } }).like).toEqual({ title: "Idea one", angle: "Its take." });
+  });
+
+  it("needs a positioning to write ideas about", () => {
+    expect(parseIdeasRequest({ mode: "ideas", context: { goal: "More enquiries" } })).toEqual({ ok: false, error: "Say who you serve first, so ideas are about them." });
+  });
+
+  it("asks for count + 2 under COMPLIANCE_LINES and PLAN_LINES, with the posted hooks, the steer and the like idea", () => {
+    const { system, user } = buildIdeasPrompt(ideasRequest({ ...IDEAS_ASK, count: 4, steer: "CPF top-ups", like: { title: "Hospital cover for a newborn", angle: "What it covers in year one." } }));
+    expect(system).toContain([...COMPLIANCE_LINES, ...PLAN_LINES].join("\n"));
+    expect(system).toContain("Write exactly 6 candidates");
+    expect(system).toContain("general education for people in Singapore: no named insurer or product, and no promised return");
+    expect(user).toContain("Posted lately (never repeat these):\n- Nobody tells new parents this about hospital bills");
+    expect(user).toContain("Make the ideas about: CPF top-ups");
+    expect(user).toContain("Write ideas close to this one, each a different take: Hospital cover for a newborn: What it covers in year one.");
+    expect(user).toContain("Labels (pick one per idea when one fits):\n- Money basics\n- Family cover");
+    expect(user).toContain("- news:cpf-rate (news): CPF interest rates reviewed for the next quarter");
+    expect(user).toContain("Hooks of their best posts (build on what worked; never copy):\n- What a ward stay really costs");
+    expect(user.indexOf("MY BRAND RULES")).toBe(0);
+    const plain = buildIdeasPrompt(ideasRequest());
+    expect(plain.user).not.toContain("Make the ideas about");
+    expect(plain.user).not.toContain("close to this one");
+  });
+
+  it("writes a business's ideas as the business, and never says adviser", () => {
+    const req = ideasRequest({ ...IDEAS_ASK, context: { ...BUSINESS_CONTEXT, labels: [] } });
+    const p = fullPrompt(buildIdeasPrompt(req));
+    expect(p).toContain(BUSINESS_VOICE);
+    expect(p).toContain("a business in Singapore");
+    expect(p).not.toMatch(/adviser/i);
+    expect(JSON.stringify(ideaAsk(req, validateIdeas({ ideas: [idea(1)] }, req)![0]))).not.toMatch(/adviser/i);
+    expect(fullPrompt(buildIdeasPrompt(ideasRequest()))).not.toContain(BUSINESS_VOICE);
+  });
+
+  it("IDEAS_SCHEMA is strict: every property required, nothing extra", () => {
+    const item = IDEAS_SCHEMA.properties.ideas.items;
+    expect([...item.required].sort()).toEqual(Object.keys(item.properties).sort());
+    expect(item.additionalProperties).toBe(false);
+  });
+
+  it("validateIdeas drops unknown formats and stages, unknown labels and seed keys, and trims over-long fields", () => {
+    const req = ideasRequest({ ...IDEAS_ASK, count: 3 });
+    const got = validateIdeas(
+      JSON.stringify({
+        ideas: [
+          idea(1, { label: "money BASICS", seedKey: "news:cpf-rate" }),
+          idea(2, { format: "story" }),
+          idea(3, { stage: "awareness" }),
+          idea(4, { label: "Not a label", seedKey: "news:made-up" }),
+          idea(5, { title: "Idea number 1 for PARENTS" }),
+          idea(6, { title: "nobody tells new parents this about hospital bills" }),
+          idea(7, { why: "" }),
+          idea(8, { title: "One two three four five six seven eight nine ten eleven twelve thirteen", angle: `Angle — ${"word ".repeat(40)}`, why: "word ".repeat(30) }),
+          idea(9),
+          idea(10),
+          idea(11),
+        ],
+      }),
+      req,
+    )!;
+    expect(got.map((i) => i.title)).toEqual(["Idea number 1 for parents", "Idea number 4 for parents", "One two three four five six seven eight nine ten eleven twelve", "Idea number 9 for parents", "Idea number 10 for parents"]);
+    expect(got[0]).toMatchObject({ label: "Money basics", seedKey: "news:cpf-rate", format: "carousel", stage: "trust" });
+    expect(got[1]).not.toHaveProperty("label");
+    expect(got[1]).not.toHaveProperty("seedKey");
+    expect(countWords(got[2].angle)).toBe(25);
+    expect(got[2].angle).not.toMatch(/—/);
+    expect(countWords(got[2].why)).toBe(20);
+    expect(validateIdeas("not json", req)).toBeNull();
+  });
+
+  it("asks Jev whether the people served would stop and whether it is safe, from the brand's positioning", () => {
+    const req = ideasRequest();
+    const ask = ideaAsk(req, validateIdeas({ ideas: [idea(1)] }, req)![0]);
+    expect(ask.state).toEqual({
+      brand: PLAN_CONTEXT.positioning.oneLiner,
+      serves: "Parents in their 30s",
+      topics: "Hospital cover, CPF",
+      goal: PLAN_CONTEXT.goal,
+      country: "Singapore",
+      idea: "Idea number 1 for parents: What idea 1 looks like for a first child.",
+    });
+    expect(Object.keys(ask.questions)).toEqual(["fits", "safe"]);
+    expect(ask.questions.safe.instructions).toBe("Can a financial adviser in Singapore post about `idea` in general terms, without recommending a product, naming an insurer's plan or promising a return?");
+  });
+
+  const cands = (n: number) => Array.from({ length: n }, (_, k) => ({ ...idea(k), format: "carousel" as const, stage: "trust" as const }));
+  const ans = (fits: number | null, safe: number | null = 0.9) => ({ fits: { type: "noul" as const, noul: fits ?? undefined }, safe: { type: "noul" as const, noul: safe ?? undefined } });
+
+  it("rankIdeas keeps fits and safe at 0.6, drops at 0.59, sorts by fits and returns count", () => {
+    expect([IDEA_FITS, IDEA_SAFE]).toEqual([0.6, 0.6]);
+    const r = rankIdeas(cands(8), [ans(0.6), ans(0.59), ans(0.95, 0.59), ans(0.7), ans(0.8, 0.6), ans(0.65), ans(0.9), ans(0.75)], 4);
+    expect(r.scored).toBe(true);
+    expect(r.ideas.map((i) => i.fit)).toEqual([0.9, 0.8, 0.75, 0.7]);
+    expect(rankIdeas(cands(3), [ans(0.6), ans(0.59), ans(0.95, 0.59)], 3).ideas.map((i) => i.title)).toEqual(["Idea number 0 for parents"]);
+  });
+
+  it("rankIdeas falls back to the first count pattern-clean candidates, unscored, when Jev gives nothing", () => {
+    const list = cands(6);
+    list[1] = { ...list[1], title: "Guaranteed returns for parents" };
+    const r = rankIdeas(list, Array(6).fill(null), 3);
+    expect(r.scored).toBe(false);
+    expect(r.ideas.map((i) => i.title)).toEqual(["Idea number 0 for parents", "Idea number 2 for parents", "Idea number 3 for parents"]);
+    expect(r.ideas.every((i) => i.fit === null)).toBe(true);
+    // fits answered but safe left out: the patterns decide
+    expect(rankIdeas(list.slice(0, 2), [ans(0.9, null), ans(0.9, null)], 3).ideas.map((i) => i.title)).toEqual(["Idea number 0 for parents"]);
+  });
+});
