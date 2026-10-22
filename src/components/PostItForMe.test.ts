@@ -6,7 +6,7 @@
 // whose deps changed, the test runs them, and a button is pressed by calling the onClick it has in the element tree
 // the component returns.
 import { isValidElement } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const shim = vi.hoisted(() => ({ i: 0, e: 0, slots: [] as unknown[], deps: [] as (unknown[] | undefined)[], effects: [] as (() => unknown)[] }));
@@ -71,6 +71,8 @@ vi.stubGlobal("window", { localStorage: local, location: new URL("http://localho
 
 const { PostItForMePanel, ZernioStatus } = await import("./PostItForMe");
 const { whenLabel } = await import("@/lib/autoPost");
+const { activityMonths, loadActivity, setActivityOn } = await import("@/lib/activity");
+const { EdgeError } = await import("@/lib/edgeFn");
 import type { DraftEntry } from "@/lib/draftHistory";
 
 const DRAFTS = `content-studio-drafts-${UID}`;
@@ -243,5 +245,79 @@ describe("Post it for me for everyone else", () => {
     expect(zernioOf(onDrafts.mock.calls)).toEqual([{ key: "k1", postId: "zp1", status: "scheduled", at: "2030-01-15T01:00:00.000Z" }, null]);
     expect(toasts).toEqual([{ title: "Cancelled", description: "Zernio won't post it. It stays in My posts." }]);
     expect(activityRows()).toEqual([]);
+  });
+});
+
+describe("Post it for me in Leo's Activity", () => {
+  /** Oldest first, without the ids and times. */
+  const rows = () => loadActivity(UID, activityMonths(UID)).reverse().map(({ who, kind, title, detail, link }) => ({ who, kind, title, detail, link }));
+  const LINK = "/calendar?post=d1";
+  beforeEach(() => {
+    local.setItem("cs-device-tag", "dev001");
+    setActivityOn(true);
+  });
+  afterEach(() => setActivityOn(false));
+
+  /** A fresh mount each time. */
+  const mount = () => {
+    shim.slots = [];
+    shim.deps = [];
+    shim.effects = [];
+  };
+  async function schedule() {
+    mount();
+    local.setItem(DRAFTS, JSON.stringify([dated]));
+    const props = { userId: UID, draft: dated, blockReason: null, onDrafts: vi.fn(), onClose: vi.fn() };
+    await draw(PostItForMePanel, props);
+    button(await draw(PostItForMePanel, props), (w) => w.startsWith("Schedule for")).props.onClick!();
+    await settle();
+  }
+  async function press(status: string, chip: string, ...words: string[]) {
+    mount();
+    const linked = { ...dated, zernio: { key: "k1", postId: "zp1", status } };
+    local.setItem(DRAFTS, JSON.stringify([linked]));
+    const props = { userId: UID, draft: linked, onDrafts: vi.fn() };
+    button(await draw(ZernioStatus, props), (w) => w === chip).props.onClick!();
+    await settle();
+    for (const w of words) {
+      button(await draw(ZernioStatus, props), (x) => x === w).props.onClick!();
+      await settle();
+    }
+  }
+
+  it("a scheduled post, then one that could not be posted", async () => {
+    fn.answers.schedule = () => ({ post: view("scheduled") });
+    await schedule();
+    fn.answers.schedule = () => {
+      throw new Error("Zernio is down. Try again in a minute.");
+    };
+    await schedule();
+    expect(rows()).toEqual([
+      { who: "you", kind: "post", title: 'Set "3 CPF myths at 55" to post on LinkedIn', detail: `Goes out ${whenLabel("2030-01-15", "09:00")}.`, link: LINK },
+      { who: "you", kind: "post", title: '"3 CPF myths at 55" could not be posted', detail: "Zernio is down. Try again in a minute.", link: LINK },
+    ]);
+  });
+
+  it("a retry, a retry that fails, a cancel, and a post gone from Zernio; opening the chip logs nothing", async () => {
+    fn.answers.post = () => ({ post: view("failed") });
+    fn.answers.retry = () => ({ post: view("publishing") });
+    await press("failed", "Failed", "Retry");
+    fn.answers.retry = () => {
+      throw new Error("Couldn't try it again. Try again in a minute.");
+    };
+    await press("failed", "Failed", "Retry");
+    fn.answers.post = () => ({ post: view("scheduled") });
+    fn.answers.cancel = () => ({ cancelled: true });
+    await press("scheduled", "Scheduled", "Cancel post", "Confirm cancel");
+    fn.answers.cancel = () => {
+      throw new EdgeError("Not found", 404);
+    };
+    await press("scheduled", "Scheduled", "Cancel post", "Confirm cancel");
+    expect(rows()).toEqual([
+      { who: "you", kind: "post", title: 'Tried posting "3 CPF myths at 55" again', detail: "Zernio is posting it again.", link: LINK },
+      { who: "you", kind: "post", title: '"3 CPF myths at 55" could not be posted', detail: "Couldn't try it again. Try again in a minute.", link: LINK },
+      { who: "you", kind: "post", title: 'Cancelled posting "3 CPF myths at 55"', detail: undefined, link: LINK },
+      { who: "you", kind: "post", title: '"3 CPF myths at 55" is gone from Zernio', detail: "It stays in My posts.", link: LINK },
+    ]);
   });
 });
