@@ -243,6 +243,16 @@ describe("the job", () => {
     expect(stock.search).not.toHaveBeenCalled();
   });
 
+  it("asks Jev, per slide, about the 6 media items from its place in media order (the /make/slideshow pin)", async () => {
+    const media = Array.from({ length: 12 }, (_, i) => ({ key: `cimg-m${String(i).padStart(5, "0")}`, name: `Screen ${i}`, folder: "", alt: "", width: 1, height: 1, addedAt: "" }));
+    local.setItem(`cs-media-${UID}`, JSON.stringify(media));
+    answer({}, [0, 0, 0]);
+    const j = await run({ ...ASK, pictures: "mine" });
+    const beats = fn.mock.calls[0][1].beats as { candidates: { desc: string }[] }[];
+    expect(beats.map((b) => b.candidates.map((c) => Number(c.desc.split(" ")[1])))).toEqual([[0, 1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7]]);
+    expect(madeShow(j).slides.map((s) => s.image)).toEqual(["cimg-m00000", "cimg-m00001", "cimg-m00002"]);
+  });
+
   it("ends in failed with the server's words, refused when the writer said no, and starts again", async () => {
     make.mockRejectedValueOnce(new EdgeError("You've used all 30 for today. It resets at 8am Singapore time.", 429, "daily_limit"));
     // capped, so no page offers a Try again that can only hit the cap again
