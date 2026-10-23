@@ -535,7 +535,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   };
 
   const action = (k: keyof typeof KEYS, label: ReactNode, onClick: () => void, off: boolean, primary = false) => (
-    <Button variant={primary ? "default" : "outline"} className={`${BIG} min-w-[4.5rem] flex-1 sm:flex-none`} aria-keyshortcuts={KEYS[k]} disabled={off} onClick={onClick}>
+    // Check again is too long for a quarter of a phone's row, so it takes the row (390 px)
+    <Button variant={primary ? "default" : "outline"} className={`${BIG} min-w-[4.5rem] flex-1 sm:flex-none ${primary && waiting ? "basis-full sm:basis-auto" : ""}`} aria-keyshortcuts={KEYS[k]} disabled={off} onClick={onClick}>
       {label}
       <Key k={KEYS[k]} />
     </Button>
