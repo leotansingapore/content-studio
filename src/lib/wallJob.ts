@@ -41,6 +41,8 @@ export interface WallAsk {
   source: RemixSource | null;
   /** What it's about: the topic with no source, else the adviser's steer (the note). */
   about: string;
+  /** The steer beside a topic (a campaign post's brief): the topic is held to 200 characters, the note to 300. */
+  note?: string;
   mention: boolean;
   bg: WallBg;
   /** The adviser's own clip with bg mine; it stays on this device. */
@@ -214,7 +216,7 @@ export async function startWall(userId: string, ask: WallAsk): Promise<void> {
   try {
     const about = ask.about.trim();
     const more: Parameters<typeof makeBody>[3] = ask.scene ? { scene: ask.scene.id, maxWords: MADE_SCENE_WORDS } : {};
-    const res = await requestMake(makeBody(userId, { source: ask.source, topic: ask.source ? "" : about, note: ask.source ? about : "", mention: ask.mention, size: "9x16" }, "wall", more));
+    const res = await requestMake(makeBody(userId, { source: ask.source, topic: ask.source ? "" : about, note: ask.source ? about : (ask.note?.trim() ?? ""), mention: ask.mention, size: "9x16" }, "wall", more));
     if (res?.result?.as !== "wall") throw new Error(WRITE_FAILED);
     const r = res.result;
     written = { text: stripDashes(r.text).trim(), caption: stripDashes(applyBrandRules(r.caption, loadBrand(userId), "tiktok")).trim(), scene: r.scene, search: r.search, flags: res.flags };

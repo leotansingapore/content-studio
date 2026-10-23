@@ -220,6 +220,13 @@ describe("the wall job", () => {
     expect(simpleQuery("POV: waking up & seeing a $6847 payment")).toBe("pov waking up seeing");
   });
 
+  it("sends a topic's steer as the note, so a campaign hook and brief never pass the topic's 200 characters", async () => {
+    answer({ "desk night tea": [clip("a")] });
+    const brief = "Show the follow-up written the same day. ".repeat(5).trim();
+    await run({ ...ASK, source: null, about: "Nobody reads your follow-up", note: brief });
+    expect(make.mock.calls[0][0]).toMatchObject({ as: "wall", topic: "Nobody reads your follow-up", note: brief });
+  });
+
   it("finishes with the adviser's own video after no clip fit, with the same words and no second write", async () => {
     answer({}, () => -1);
     expect((await run()).noClip).toBe(true);

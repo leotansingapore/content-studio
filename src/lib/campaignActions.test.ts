@@ -251,7 +251,7 @@ describe("makePost, a wall of text", () => {
     });
     const made = act.makePost(UID, "c-1", 5, NOW);
     await tick();
-    expect(startWall.mock.calls[0][1]).toEqual({ source: null, about: "Nobody reads your follow-up\nWrite it the same day", mention: true, bg: "stock", draftId: "cmp_c-1_5" });
+    expect(startWall.mock.calls[0][1]).toEqual({ source: null, about: "Nobody reads your follow-up", note: "Write it the same day", mention: true, bg: "stock", draftId: "cmp_c-1_5" });
     expect(the(5)).toMatchObject({ state: "making", draftId: "cmp_c-1_5" });
     expect(act.makerOf("c-1", 5)).toBe("wall");
     fake.wall.patch({ state: "finding" });

@@ -232,7 +232,7 @@ async function makeWall(userId: string, c: Campaign, p: CampaignPost, now: Date)
       const done = !!j && j.id === id && (j.state === "joining" || j.state === "done");
       resolve(settle(userId, c, p, d.id, done, (j?.id === id && j.error) || WALL_FAILED, "wall of text"));
     }, "wall");
-    void startWall(userId, { source: null, about: [p.hook, p.brief].filter(Boolean).join("\n"), mention: true, bg: "stock", draftId: d.id });
+    void startWall(userId, { source: null, about: p.hook ?? "", note: p.brief ?? "", mention: true, bg: "stock", draftId: d.id });
     const j = wallJob("wall");
     if (j?.ask.draftId === d.id) id = j.id;
     else {
