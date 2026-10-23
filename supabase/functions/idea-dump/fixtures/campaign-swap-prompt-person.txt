@@ -12,7 +12,7 @@ Formats:
 - text-post: hook is the first line, at most 15 words. body is the rest of the post, 80 to 220 words in short paragraphs. cta is one line.
 - carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. cta is one line.
 - short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most 15 words. hook is the HOOK line's words and cta the CTA line's.
-- ai-video: script is what an AI presenter says word for word, 36 to 48 words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.
+- ai-video: script is what an AI presenter says word for word, 36 to 48 words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last. body is the post's caption: one to three sentences, at most 40 words, on what the video is about, without the call to action.
 - slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. cta is one line.
 - wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.
 

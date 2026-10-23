@@ -1256,7 +1256,8 @@ describe("campaign MAS question", () => {
     expect(Object.keys(questions)).toEqual(["mas_1", "mas_2", "mas_3", "mas_4", "mas_5", "mas_6"]);
     expect(questions.mas_4).toEqual({ type: "noul", instructions: `Read only \`post_4\`. ${MAS_QUESTION}` });
     expect(state.post_1).toBe(`Most reps lose the deal after the first call\n\n${words(100)}\n\nSave this for your next follow-up.`);
-    expect(state.post_4).toBe(posts[3].script);
+    // an AI video's caption is read with its script (live-p5dog day 2: the caption is new words a person posts)
+    expect(state.post_4).toBe(`${posts[3].script}\n\nMost deals die in the follow-up, not the pitch.`);
     expect(state.post_5).toBe("Three messages that bring a lead back\n\nThe check-in\nThe useful link\nThe honest close\n\nFollow for more.");
   });
 
@@ -1931,7 +1932,7 @@ describe("a business's AI video names the business (live-p5dog day 2: neither Ac
     expect(user).toContain("About the business:\nName: ActivityTracker\nWhat they do: ActivityTracker keeps");
     expect(system).toContain("and the last line is the call to action. hook is the first line and cta the last. The script says the business's name once, plainly, after the first line and never in it.");
     expect(user).toContain("Post 4: ai-video, conversion stage");
-    expect(user).toContain("Words: script about 42 spoken words in all (36 to 48), counted across every line; ActivityTracker said once");
+    expect(user).toContain("Words: script about 42 spoken words in all (36 to 48), counted across every line; caption at most 40 words; ActivityTracker said once");
     // only the AI video's Words line names it
     expect(user.match(/said once/g)).toHaveLength(1);
   });
@@ -1948,5 +1949,38 @@ describe("a business's AI video names the business (live-p5dog day 2: neither Ac
 
   it("gives the name in the angles prompt's About too", () => {
     expect(buildAnglesPrompt(anglesRequest({ ...ANGLES_ASK, context: NAMED })).user).toContain("About the business:\nName: ActivityTracker");
+  });
+});
+
+// ---- live-p5dog day 2 (23 Oct): posts 4 and 11 reached the editor with an empty caption -----------------------------
+// calls/day2/AV-04 and AV-11: the writer gave an AI video a hook, a script and a cta, and nothing to post under it
+
+describe("an AI video's caption (live-p5dog day 2: both AI video posts had no caption or call to action)", () => {
+  // calls/day2/AV-04's script as it came back, with a caption the writer would now send
+  const AV_04 = "Before, follow-ups can sit apart from client chats.\nNow, keep them as tasks in the app you use to manage clients and chats.\nYour next action stays with the client work.\nSave this to revisit your follow-up workflow.";
+  const req = campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(4, "ai-video")] });
+  const video = (body: string) => validateCampaign({ posts: [{ n: 4, hook: "", body, script: AV_04, brief: "", cta: "" }] }, req)![0];
+
+  it("asks for a caption in body, without the call to action, on the format and on the post's Words line", () => {
+    const { system, user } = buildCampaignPrompt(req);
+    expect(system).toContain("hook is the first line and cta the last. body is the post's caption: one to three sentences, at most 40 words, on what the video is about, without the call to action.");
+    expect(user).toContain("Words: script about 42 spoken words in all (36 to 48), counted across every line; caption at most 40 words");
+  });
+
+  it("keeps the caption in body beside the spoken cta, so caption and cta make the post's words", () => {
+    const got = video("Follow-ups get lost when they sit apart from the chat. Keep each one as a task beside the client.");
+    expect(got).toMatchObject({ body: "Follow-ups get lost when they sit apart from the chat. Keep each one as a task beside the client.", cta: "Save this to revisit your follow-up workflow." });
+    expect(got.script).toBe(AV_04);
+  });
+
+  it("takes the angle's line when the caption is missing, and drops a caption line that repeats the cta", () => {
+    expect(video("").body).toBe("Most deals die in the follow-up, not the pitch.");
+    expect(video("Keep each follow-up beside the client. Save this to revisit your follow-up workflow.").body).toBe("Keep each follow-up beside the client.");
+    expect(video(words(60)).body!.split(" ")).toHaveLength(40);
+  });
+
+  it("lets a person's MAS question read the caption as well as the script", () => {
+    const got = video("Follow-ups get lost when they sit apart from the chat.");
+    expect(masAsk([got]).state.post_4).toBe(`${AV_04}\n\nFollow-ups get lost when they sit apart from the chat.`);
   });
 });

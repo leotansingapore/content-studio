@@ -972,6 +972,8 @@ export const MAX_CAMPAIGN_POSTS = 7;
 export const AI_VIDEO_WORDS = speakingWords(15);
 /** A short video you film: about 30 seconds. */
 export const SHORT_VIDEO_WORDS = { low: 60, high: 90 };
+/** An AI video post's caption, its body (live-p5dog day 2: posts 4 and 11 reached the editor with none). */
+export const AI_VIDEO_CAPTION_WORDS = 40;
 /** A short video's HOOK line, the first thing said (live-p5w3 D4: post 9 opened on 32 words). */
 export const SHORT_VIDEO_HOOK_WORDS = 15;
 /** A script's words as a count to aim at, the middle of its range ("about 42 spoken words in all (36 to 48)"). */
@@ -987,7 +989,7 @@ const POST_WORDS: Record<CampaignFormat, string> = {
   "short-video": `script ${spoken(SHORT_VIDEO_WORDS)} across its HOOK, BODY and CTA lines, the labels not counted; HOOK line at most ${SHORT_VIDEO_HOOK_WORDS} words`,
   slideshow: "hook at most 12 words; brief at most 40 words",
   wall: "hook at most 12 words; brief at most 40 words",
-  "ai-video": `script ${spoken(AI_VIDEO_WORDS)}, counted across every line`,
+  "ai-video": `script ${spoken(AI_VIDEO_WORDS)}, counted across every line; caption at most ${AI_VIDEO_CAPTION_WORDS} words`,
 };
 
 export interface PostAsk {
@@ -1085,7 +1087,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "- text-post: hook is the first line, at most 15 words. body is the rest of the post, 80 to 220 words in short paragraphs. cta is one line.",
     "- carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. cta is one line.",
     `- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most ${SHORT_VIDEO_HOOK_WORDS} words. hook is the HOOK line's words and cta the CTA line's.`,
-    `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.${named ? " The script says the business's name once, plainly, after the first line and never in it." : ""}`,
+    `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.${named ? " The script says the business's name once, plainly, after the first line and never in it." : ""} body is the post's caption: one to three sentences, at most ${AI_VIDEO_CAPTION_WORDS} words, on what the video is about, without the call to action.`,
     "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. cta is one line.",
     "- wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.",
     "",
@@ -1318,7 +1320,12 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
         .replace(/([.!?]["')\]]?)[ \t]+(?=\S)/g, "$1\n")
         .split("\n");
       const fit = lines.length > 1 ? fitScript(lines, lines.length - 1, AI_VIDEO_WORDS) : null;
-      if (fit) return { ...base, hook: fit[0], script: fit.join("\n"), cta: fit[fit.length - 1] };
+      if (fit) {
+        const close = fit[fit.length - 1];
+        // the caption posted under the video (the spoken cta follows it), else the angle's line, as a wall's brief
+        const body = cutWords(withoutCta(cleanPost(item.body), close), AI_VIDEO_CAPTION_WORDS) || ask.angle.line;
+        return { ...base, hook: fit[0], script: fit.join("\n"), cta: close, ...(body ? { body } : {}) };
+      }
       const words = scriptWords(lines);
       return !words ? "no script" : lines.length < 2 ? "one line" : `script ${words} words, needs ${AI_VIDEO_WORDS.low} to ${AI_VIDEO_WORDS.high}`;
     }
@@ -1383,8 +1390,8 @@ export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts
   return out;
 }
 
-/** The words Jev reads for one post: a script holds its own hook and call to action. */
-const postText = (p: WrittenPost) => p.script ?? [p.hook, p.body ?? p.brief ?? "", p.cta].filter(Boolean).join("\n\n");
+/** The words Jev reads for one post: a script holds its own hook and call to action, and an AI video's caption follows it. */
+const postText = (p: WrittenPost) => (p.script ? [p.script, p.body] : [p.hook, p.body ?? p.brief ?? "", p.cta]).filter(Boolean).join("\n\n");
 
 /** One Jev request for a person's posts: `mas_<n>` on MAS_QUESTION, each reading its own `post_<n>`. */
 export function masAsk(posts: WrittenPost[]): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
