@@ -34,6 +34,7 @@ import { links } from "@/lib/links";
 import { MAS_FLAG } from "@/lib/presenter";
 import { priceText } from "@/lib/prices";
 import { loadSlideshows } from "@/lib/slideshow";
+import { loadProjects } from "@/lib/videoProjects";
 import { lookOf } from "@/lib/slideshowDraw";
 import { onSlideshowJob, slideshowBusy, slideshowJob, stepText as showStep } from "@/lib/slideshowJob";
 import { platformName } from "@/lib/socialConnect";
@@ -106,6 +107,13 @@ function useFontsReady(want: boolean) {
 /** What a made slideshow or wall says: the slideshow's cover, else the wall's words; null before Make (the hook and brief show). */
 const madeWords = (p: CampaignPost, show: { title: string } | undefined) =>
   p.state !== "made" ? null : p.made?.kind === "slideshow" ? (show?.title ?? null) : (p.made?.text ?? null);
+
+/**
+ * A made slideshow's or wall's caption: the slideshow's, the wall's as its maker wrote it, else the editor's (a wall
+ * made before captions were kept with the post); "" before Make.
+ */
+const madeCaption = (userId: string, p: CampaignPost, show: { caption?: string } | undefined) =>
+  p.state !== "made" ? "" : show?.caption || p.made?.caption || (p.made?.kind === "video" && p.draftId ? loadProjects(userId).find((x) => x.draftId === p.draftId)?.caption : "") || "";
 
 /** A carousel's slides drawn the way /carousel draws them from the same words, with the brand kit; nothing is stored. */
 function CarouselSlides({ userId, p, all }: { userId: string; p: CampaignPost; all: boolean }) {
@@ -618,13 +626,16 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
                 <Button variant="ghost" className={BIG} onClick={cancel}>Cancel</Button>
               </div>
             </div>
-          ) : cur.hook && cur.format !== "short-video" && (cur.format !== "ai-video" || videoCaption(cur)) ? (
+          ) : cur.hook && cur.format !== "short-video" && (cur.format !== "ai-video" || cur.body?.trim()) ? (
             // a short video script has no caption of its own: the stage shows it already (live-p5w4 N5); an AI video
-            // post's caption is the writer's body and its call to action, which the editor opens with (live-p5dog D3)
+            // post with the writer's caption (body) shows it with its call to action, as the editor opens with it (live-p5dog D3)
             <div className="space-y-1">
               <p className={LABEL}>Caption | {platformName(c.platforms[0] ?? "linkedin")}</p>
               <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {cur.format === "ai-video" ? videoCaption(cur) : cur.format === "slideshow" || cur.format === "wall" ? (show?.caption || "The caption is written when you press Make.") : text}
+                {cur.format === "ai-video" ? videoCaption(cur)
+                  : cur.format === "slideshow" || cur.format === "wall"
+                    ? madeCaption(userId, cur, show) || (cur.state === "made" ? "Open it in the editor to see the caption." : "The caption is written when you press Make.")
+                    : text}
               </p>
             </div>
           ) : null}
