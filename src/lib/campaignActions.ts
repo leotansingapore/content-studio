@@ -203,9 +203,9 @@ async function makeShow(userId: string, c: Campaign, p: CampaignPost, now: Date)
 }
 
 /** Marks the post made once the editor has its video; else back to ready (the draft goes unless a paid video still waits for it). */
-function settle(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n">, draftId: string, done: boolean, error: string, what: string): MakeOutcome {
+function settle(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n">, draftId: string, done: boolean, error: string, what: string, text?: string): MakeOutcome {
   if (done) {
-    updatePost(userId, c.id, p.n, { state: "made", draftId, made: { kind: "video", id: draftId }, error: undefined });
+    updatePost(userId, c.id, p.n, { state: "made", draftId, made: { kind: "video", id: draftId, ...(text ? { text } : {}) }, error: undefined });
     return { ok: true, toast: `Post ${p.n}'s ${what} is in the editor. Check it and export it there.`, undo: undoOf(userId, c.id, p.n) };
   }
   if (pendingAvatar()?.extra?.draftId === draftId) updatePost(userId, c.id, p.n, { error });
@@ -233,7 +233,8 @@ async function makeWall(userId: string, c: Campaign, p: CampaignPost, now: Date)
       off();
       busy(k, null);
       const done = !!j && j.id === id && (j.state === "joining" || j.state === "done");
-      resolve(settle(userId, c, p, d.id, done, (j?.id === id && j.error) || WALL_FAILED, "wall of text"));
+      // the words the wall maker wrote, which the queue shows in place of the hook and brief (live-p5dog D8)
+      resolve(settle(userId, c, p, d.id, done, (j?.id === id && j.error) || WALL_FAILED, "wall of text", done ? j?.written?.text : undefined));
     }, "wall");
     void startWall(userId, { source: null, about: p.hook ?? "", note: p.brief ?? "", mention: true, bg: "stock", draftId: d.id });
     const j = wallJob("wall");

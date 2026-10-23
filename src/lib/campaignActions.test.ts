@@ -270,9 +270,10 @@ describe("makePost, a wall of text", () => {
     expect(act.makerOf("c-1", 5)).toBe("wall");
     fake.wall.patch({ state: "finding" });
     expect(the(5).state).toBe("making");
-    fake.wall.patch({ state: "joining" });
+    fake.wall.patch({ state: "joining", written: { text: "You finish a client chat. Then the next one starts.", caption: "", scene: "", search: "" } });
     expect(await made).toMatchObject({ ok: true, toast: "Post 5's wall of text is in the editor. Check it and export it there." });
-    expect(the(5)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_5" } });
+    // the words the maker wrote stay with the post for the queue (live-p5dog D8)
+    expect(the(5)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_5", text: "You finish a client chat. Then the next one starts." } });
     expect(act.makerOf("c-1", 5)).toBeNull();
   });
 

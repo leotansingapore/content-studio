@@ -103,6 +103,10 @@ function useFontsReady(want: boolean) {
   return ready;
 }
 
+/** What a made slideshow or wall says: the slideshow's cover, else the wall's words; null before Make (the hook and brief show). */
+const madeWords = (p: CampaignPost, show: { title: string } | undefined) =>
+  p.state !== "made" ? null : p.made?.kind === "slideshow" ? (show?.title ?? null) : (p.made?.text ?? null);
+
 /** A carousel's slides drawn the way /carousel draws them from the same words, with the brand kit; nothing is stored. */
 function CarouselSlides({ userId, p, all }: { userId: string; p: CampaignPost; all: boolean }) {
   const slides = useMemo(() => postSlides(p), [p]);
@@ -342,6 +346,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   // ---- grid ----
 
   if (view === "grid") {
+    const shows = loadSlideshows(userId);
     return (
       <div className="space-y-4">
         {toolbar}
@@ -350,7 +355,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             <li key={p.n}>
               <button type="button" onClick={() => update({ view: null, post: String(p.n) })}
                 className={`flex h-full w-full flex-col gap-1.5 rounded-xl border border-border/60 bg-card p-3 text-left shadow-card hover:border-primary/40 ${p.state === "skipped" ? "opacity-50" : ""}`}>
-                <span className="line-clamp-3 min-h-[3.75rem] text-sm font-medium [overflow-wrap:anywhere]">{p.hook || (p.state === "failed" ? FAILED_POST : "Waiting to be written.")}</span>
+                <span className="line-clamp-3 min-h-[3.75rem] text-sm font-medium [overflow-wrap:anywhere]">{madeWords(p, shows.find((s) => s.id === p.made?.id)) || p.hook || (p.state === "failed" ? FAILED_POST : "Waiting to be written.")}</span>
                 <span className="text-xs text-muted-foreground">Day {dayIndex(c, p)} | {FORMAT_NAME[p.format]}</span>
                 <span className="line-clamp-1 text-xs text-muted-foreground">{c.angles.find((a) => a.id === p.angleId)?.title}</span>
                 <span className="mt-auto w-fit rounded-full border border-border/70 px-2 py-0.5 text-[11px]">{STATE_WORD[p.state]}</span>
@@ -442,12 +447,18 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         </div>
       );
     }
-    // slideshow and wall: the hook and brief until Make, then what the maker made
+    // slideshow and wall: the hook and brief until Make, then what the maker made (live-p5dog D8: a made slideshow's
+    // cover said "4 ways to close out a sales day" under the campaign's hook)
+    const made = madeWords(p, show);
     return (
       <div className="space-y-3">
         <div className="rounded-lg border border-border/60 bg-card p-3">
-          <p className="font-semibold [overflow-wrap:anywhere]">{p.hook}</p>
-          {p.brief && <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">{p.brief.split("\n").filter(Boolean).map((l, i) => <li key={i}>{l}</li>)}</ul>}
+          {made ? <p className={`whitespace-pre-wrap [overflow-wrap:anywhere] ${show ? "font-semibold" : "text-sm"}`}>{made}</p> : (
+            <>
+              <p className="font-semibold [overflow-wrap:anywhere]">{p.hook}</p>
+              {p.brief && <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">{p.brief.split("\n").filter(Boolean).map((l, i) => <li key={i}>{l}</li>)}</ul>}
+            </>
+          )}
         </div>
         {p.state === "made" && p.made?.kind === "slideshow" ? <MadeShow userId={userId} id={p.made.id} />
           : p.state !== "made" && making(
