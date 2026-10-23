@@ -167,19 +167,22 @@ function makeNow(userId: string, c: Campaign, p: CampaignPost, now: Date): MakeO
   return { ok: true, toast: `Post ${p.n} is on your calendar for ${whenText(p)}.`, undo: undoOf(userId, c.id, p.n) };
 }
 
+/** Every picture this campaign's made slideshows show, once per slide: the next one leans on the Media screens used least. */
+function campaignPictures(userId: string, c: Pick<Campaign, "posts">): string[] {
+  const shows = loadSlideshows(userId);
+  return c.posts.flatMap((x) => (x.made?.kind === "slideshow" ? (shows.find((s) => s.id === x.made?.id)?.slides ?? []).flatMap((s) => (s.image ? [s.image] : [])) : []));
+}
+
 async function makeShow(userId: string, c: Campaign, p: CampaignPost, now: Date): Promise<MakeOutcome> {
   if (slideshowBusy()) return { ok: false, error: SHOW_BUSY };
   const k = keyOf(c.id, p.n);
   if (!updatePost(userId, c.id, p.n, { state: "making", error: undefined })) return { ok: false, error: SAVE_LINE };
   busy(k, "slideshow");
-  const run = startSlideshow(userId, {
-    source: null,
-    topic: p.hook ?? "",
-    note: p.brief ?? "",
-    mention: true,
-    size: c.platforms[0] === "tiktok" ? "9x16" : "4x5",
-    pictures: c.pictures,
-  });
+  const run = startSlideshow(
+    userId,
+    { source: null, topic: p.hook ?? "", note: p.brief ?? "", mention: true, size: c.platforms[0] === "tiktok" ? "9x16" : "4x5", pictures: c.pictures },
+    { used: campaignPictures(userId, c), start: p.n },
+  );
   const id = slideshowJob()?.id;
   await run;
   busy(k, null);

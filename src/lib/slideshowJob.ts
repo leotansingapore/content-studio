@@ -137,7 +137,13 @@ export function makeBody(
   };
 }
 
-export async function startSlideshow(userId: string, ask: SlideshowAsk): Promise<void> {
+/** A campaign's own media so far: every picture key its made slideshows used (repeats count), and where to start in media order. */
+export interface MediaSpread {
+  used: string[];
+  start: number;
+}
+
+export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?: MediaSpread): Promise<void> {
   if (slideshowBusy()) return;
   const id = ++seq;
   const mine = (patch: Partial<SlideshowJob>) => job?.id === id && set({ ...job, ...patch });
@@ -150,7 +156,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk): Promise
     const slides = res.result.slides.map((s) => ({ ...s, title: stripDashes(s.title).trim(), sub: stripDashes(s.sub).trim() }));
     mine({ state: "finding", done: 0, of: slides.length });
     const progress = (n: number) => mine({ done: n });
-    const pictures = ask.pictures === "mine" ? await minePictures(loadMedia(userId), slides) : await stockPictures(userId, slides, progress);
+    const pictures = ask.pictures === "mine" ? await minePictures(loadMedia(userId), slides, spread) : await stockPictures(userId, slides, progress);
     progress(slides.length);
     mine({ state: "drawing" });
     await ensureCaptionFonts();
@@ -266,9 +272,21 @@ async function stockPictures(userId: string, slides: SlideCopy[], progress: (n: 
   return out;
 }
 
-/** The brand's own media: each slide asks about the 6 items from its place in media order, which is also the fallback. */
-async function minePictures(media: MediaItem[], slides: SlideCopy[]): Promise<(Picture | null)[]> {
-  const windows = slides.map((_, i) => Array.from({ length: Math.min(MAX_CANDIDATES, media.length) }, (_, k) => media[(i + k) % media.length]));
+/**
+ * Each slide's candidates: the 6 items from its place in an order, which is also the fallback. With no spread that is
+ * media order. A campaign's spread starts media order at `start` and puts the items its slideshows used least first, so
+ * the first screens no longer win every slideshow (live-p5dog D7: one screen in 12 of 12, two never used).
+ */
+export function mediaWindows<T extends { key: string }>(media: T[], slides: number, spread: MediaSpread = { used: [], start: 0 }): T[][] {
+  const uses = (m: T) => spread.used.filter((k) => k === m.key).length;
+  // a stable sort, so equal uses keep the rotated media order
+  const order = media.map((_, k) => media[(spread.start + k) % media.length]).sort((a, b) => uses(a) - uses(b));
+  return Array.from({ length: slides }, (_, i) => Array.from({ length: Math.min(MAX_CANDIDATES, order.length) }, (_, k) => order[(i + k) % order.length]));
+}
+
+/** The brand's own media: Jev picks per slide from its window (mediaWindows). */
+async function minePictures(media: MediaItem[], slides: SlideCopy[], spread?: MediaSpread): Promise<(Picture | null)[]> {
+  const windows = mediaWindows(media, slides.length, spread);
   const picks = await askJev(slides, windows.map((w) => w.map((m) => m.alt || m.name)));
   return resolvePicks(windows, picks, (m) => m.key, new Set(), true).map((m) => (m ? { image: m.key } : null));
 }
