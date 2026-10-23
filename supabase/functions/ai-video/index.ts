@@ -10,6 +10,7 @@
 //        (crumple-hook) skips the writer: its structure is the prompt (templates.ts fixedPrompt).
 //        Counts against "ai-clip" (2 a day) and "ai-clip-global" (8 a day across everyone).
 //   POST {mode:"status", tokens, refund?} -> {jobs:[{state, url?, error?}]}
+//        a request Higgsfield failed is logged with its own answer, links cut ("ai-video status failed <id> <answer>")
 //   POST {mode:"talk-script", talk, topic, offer?, source?} -> {say, headline?, mas}  a presenter format's script
 //        (formats-presenter: news, stage or spokesperson), OpenAI writes it and Jev asks the MAS question
 //        ("ai-video-script" cap; the use comes back only when OpenAI never answered)
@@ -66,7 +67,7 @@ import { consentSecret, heardCode, newCode, openSigned, signFor } from "../_shar
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
   CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex, LOOK_REFUSED, lookQuestions, presenterLooks, readLookCheck,
-  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
+  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, failureLine, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
   TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
   northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
   speakBody, talkSystem, talkUser, validateScript, validateTalk, type Refundable,
@@ -297,7 +298,12 @@ Deno.serve(async (req) => {
         try {
           const res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
           if (res.status === 404) return { state: "failed", error: "That video job isn't known." };
-          return res.ok ? readMedia(await res.json().catch(() => null)) : { state: "working" };
+          if (!res.ok) return { state: "working" };
+          const data = await res.json().catch(() => null);
+          const m = readMedia(data);
+          // Higgsfield's own status and reason, so a failure can be read later (no keys, links cut)
+          if (m.state === "failed") console.error("ai-video status failed", id, failureLine(data));
+          return m;
         } catch {
           return { state: "working" }; // a blip: the browser asks again
         }

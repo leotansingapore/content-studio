@@ -595,6 +595,9 @@ export function readMedia(data: unknown): MediaState {
   return { state: "failed", error: "It didn't come through. Try again." };
 }
 
+/** Higgsfield's whole answer on a failed request, for the log: its status and reason, every link cut (a signed link is a key). */
+export const failureLine = (data: unknown) => (JSON.stringify(data) ?? "null").replace(/https?:\/\/[^"\s]*/g, "<link>").slice(0, 500);
+
 // ---------- the explainer script (OpenAI writes it) ----------
 
 export const SCRIPT_SYSTEM = [

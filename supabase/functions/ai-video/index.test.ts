@@ -837,4 +837,18 @@ describe("a talking video's status checks", () => {
     await send(UID, { mode: "status", tokens, refund });
     expect([mine(), studio()]).toEqual([1, 1]);
   });
+
+  it("log Higgsfield's own answer on a failed part, with its links cut and no key, so the next failure can be read", async () => {
+    const { tokens, refund } = await start();
+    const errors = vi.mocked(console.error);
+    errors.mockClear();
+    hf.status = {
+      [P1]: { status: "in_progress" },
+      [P2]: { status: "failed", request_id: P2, error: "Generation failed", input: { image_url: "https://cdn.example/raj.png?X-Amz-Signature=abc" } },
+    };
+    await send(UID, { mode: "status", tokens, refund });
+    const lines = errors.mock.calls.filter((c) => c[0] === "ai-video status failed");
+    expect(lines).toEqual([["ai-video status failed", P2, `{"status":"failed","request_id":"${P2}","error":"Generation failed","input":{"image_url":"<link>"}}`]]);
+    expect(JSON.stringify(errors.mock.calls)).not.toMatch(/Key k:s|X-Amz-Signature|cdn\.example/);
+  });
 });
