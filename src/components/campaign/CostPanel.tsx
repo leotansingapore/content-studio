@@ -46,10 +46,13 @@ export function costLines(c: Pick<Campaign, "posts">, cost: CampaignCost): { big
       else if (cv === 0) lines.push(`No AI videos left today. ${later(videos)}`);
       else lines.push(`Today's limit covers ${cv} of the ${videos} AI videos. The other ${videos - cv} can be made after 8am Singapore time.`);
     }
+    const name = slideshows && walls ? "slideshows and walls" : slideshows ? "slideshows" : "walls of text";
     if (remix && cr !== null && cr < remix) {
-      const name = slideshows && walls ? "slideshows and walls" : slideshows ? "slideshows" : "walls of text";
       lines.push(cr === 0 ? `Today's remix limit is used. ${later(remix)}` : `Today's remix limit covers ${cr} of the ${remix} ${name}. The other ${remix - cr} can be made after 8am Singapore time.`);
     }
+    // a make past montage-pick's limit still goes, with the first picture or clip found (live-p5dog D12)
+    const cp = cost.covers.picks;
+    if (remix && cr !== null && cp !== null && cp < cr) lines.push(`Today's limit for picking pictures covers ${cp} of the ${remix} ${name}. The rest get the first picture or clip found.`);
   }
   return { big: `US$${cost.usd.toFixed(2)}`, sub: "to make what's left", lines };
 }
@@ -115,7 +118,7 @@ export default function CostPanel({ userId, campaign: c }: { userId: string; cam
   const run = useFreeRun(c.id);
   // read again when an AI video Make in the queue ends
   const usesLeft = useUsesLeft(c.posts.some((p) => p.state === "making"));
-  const cost = campaignCost(c, { video: videosLeft(usesLeft("ai-video"), usesLeft("ai-voice")), remix: usesLeft("remix-make") });
+  const cost = campaignCost(c, { video: videosLeft(usesLeft("ai-video"), usesLeft("ai-voice")), remix: usesLeft("remix-make"), pick: usesLeft("montage-pick") });
   const { big, sub, lines } = costLines(c, cost);
 
   const drafting = draftingOf(c.id);

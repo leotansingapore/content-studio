@@ -100,7 +100,7 @@ describe("the answers", () => {
 });
 
 describe("the lines", () => {
-  const cost = (formats: Parameters<typeof previewPosts>[0], perWeek: number, weeks: number, left = { video: null as number | null, remix: null as number | null }) =>
+  const cost = (formats: Parameters<typeof previewPosts>[0], perWeek: number, weeks: number, left: Parameters<typeof campaignCost>[1] = { video: null, remix: null }) =>
     campaignCost({ posts: previewPosts(formats, perWeek, weeks) }, left);
 
   it("the live summary counts the posts and prices what is made at Make", () => {
@@ -125,6 +125,13 @@ describe("the lines", () => {
     expect(costLine(cost(["text-post", "carousel"], 3, 4))).toBe("12 posts cost nothing to make.");
     expect(costLine(cost(["slideshow"], 2, 1, { video: null, remix: null }))).toBe("2 slideshows come to about US$0.04.");
     expect(costLine(cost(["text-post", "ai-video"], 2, 1, { video: 0, remix: 0 }))).toBe("1 post costs nothing to make. 1 AI video comes to about US$2.77, and today's limit covers 0.");
+  });
+
+  it("counts the picture picks beside the remixes and names the tighter limit (live-p5dog D12: 20 picks for 24 makes)", () => {
+    const line = (remix: number, pick: number) => costLine(cost(["slideshow", "wall", "ai-video"], 7, 4, { video: 2, remix, pick })).split(". 4 AI")[0];
+    expect(line(30, 20)).toBe("12 slideshows and 12 walls of text come to about US$0.48, and today's limit for picking pictures covers 20");
+    expect(line(18, 20)).toBe("12 slideshows and 12 walls of text come to about US$0.48, and today's remix limit covers 18");
+    expect(line(30, 30)).toBe("12 slideshows and 12 walls of text come to about US$0.48, and today's limits cover all 24");
   });
 
   it("Add's limit line when today's uses write only some of the posts", () => {

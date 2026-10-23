@@ -111,7 +111,7 @@ function Wizard({ userId }: { userId: string }) {
   const pictures = hasMedia && work.formats.includes("slideshow") ? work.pictures : "stock";
   const posts = work.weeks * perWeek;
   const name = work.name ?? (audience ? defaultName(audience.name, start) : "");
-  const left = { video: videosLeft(usesLeft("ai-video"), usesLeft("ai-voice")), remix: usesLeft("remix-make") };
+  const left = { video: videosLeft(usesLeft("ai-video"), usesLeft("ai-voice")), remix: usesLeft("remix-make"), pick: usesLeft("montage-pick") };
   const cost = campaignCost({ posts: previewPosts(work.formats, perWeek, work.weeks) }, left);
   const formatsValue = work.formats.map((f) => FORMAT_NAME[f]).join(", ");
   const full = loadCampaigns(userId).length >= MAX_CAMPAIGNS;
