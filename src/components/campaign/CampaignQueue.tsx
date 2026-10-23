@@ -238,7 +238,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const who = cur.format === "ai-video" ? savedWho(userId) : null;
   const written = !!cur.hook && (cur.state === "ready" || (cur.state === "making" && !maker));
   // its paid video is still waiting on this device: Make picks it up at no cost, with no price and no ask
-  const waiting = cur.format === "ai-video" && !maker && !!waitingFor(c, cur);
+  // (a made post's job stays pending until the editor's join is done, which is not this)
+  const waiting = cur.format === "ai-video" && cur.state === "making" && !maker && !!waitingFor(c, cur);
 
   /** Why Make can't run on this post now; null when it can. */
   function makeReason(p: CampaignPost): string | null {

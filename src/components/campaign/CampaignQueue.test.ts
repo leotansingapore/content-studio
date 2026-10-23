@@ -144,6 +144,16 @@ describe("an AI video post whose paid video is still being made after 20 minutes
     expect(out).not.toContain("About US$2.77");
   });
 
+  it("reads Made, not Check again, once the post is made while its video is still being joined", () => {
+    const pending = JSON.stringify({ name: "x", tokens: ["t1", "t2"], seconds: [9.5, 6], extra: { draftId: `cmp_${CAMPAIGN.id}_4` } });
+    const m = new Map([["cs-ai-video-pending", pending]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => m.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+    const campaign: Campaign = { ...CAMPAIGN, posts: [{ ...post4, state: "made", draftId: `cmp_${CAMPAIGN.id}_4`, made: { kind: "video", id: `cmp_${CAMPAIGN.id}_4` } }] };
+    const out = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
+    expect(out).not.toContain("Check again");
+    expect(out).toContain("Made. Open it in the editor");
+  });
+
   it("keeps a paid Make off while another post's paid video waits on this device", () => {
     fake.left = { "ai-video": 2, "ai-voice": 4 };
     fake.who = "presenter";
