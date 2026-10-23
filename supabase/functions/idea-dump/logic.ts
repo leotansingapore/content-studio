@@ -1259,6 +1259,9 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
   }
 }
 
+/** Curly quotes and apostrophes as straight ones (live-p5dog D14: hooks 6, 9, 21, 23, 26 and cta 27 came back curly). */
+const straight = (v: unknown) => (typeof v === "string" ? v.replace(/[‘’‚‛]/g, "'").replace(/[“”„‟]/g, '"') : v);
+
 /** The speaker saying I ("5 things I wish I knew", "I'd do it again"), not someone quoted (live-p5w3: "Who do I need to call today?"). */
 const saysI = (hook: string) => /(?:^|\s)I(?:['\u2019](?:m|ve|d|ll))?(?=[\s,.!?;:]|$)/.test(hook.replace(/["\u201c][^"\u201d]*(?:["\u201d]|$)/g, " "));
 
@@ -1285,8 +1288,8 @@ function echoesUsed(hook: string, used: string[], formula: PostAsk["formula"]): 
  * The model's posts, each shaped to its format's limits: posts whose n was not asked go, as do posts that can't
  * meet their format, a later post that opens with the same three words as an earlier one, a hook that repeats
  * one in `avoid`, a swap's hook that shares 4 words in a row with one in `avoid` (echoesUsed), and a business's hook
- * where the speaker says I. In the order asked; each dropped post's number and the rule it broke go into `dropped`, for
- * the log. Null when it isn't the expected JSON.
+ * where the speaker says I. Quotes and apostrophes come back straight. In the order asked; each dropped post's number and
+ * the rule it broke go into `dropped`, for the log. Null when it isn't the expected JSON.
  */
 export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts" | "avoid" | "swap" | "context">, dropped: [number, string][] = []): WrittenPost[] | null {
   const obj = typeof raw === "string" ? parseJsonObject(raw) : isRecord(raw) ? raw : null;
@@ -1296,7 +1299,7 @@ export function validateCampaign(raw: unknown, req: Pick<CampaignRequest, "posts
   const out: WrittenPost[] = [];
   for (const ask of req.posts) {
     const item = obj.posts.find((p): p is Record<string, unknown> => isRecord(p) && p.n === ask.n);
-    const post = item ? writtenFor(ask, item) : "not written";
+    const post = item ? writtenFor(ask, Object.fromEntries(Object.entries(item).map(([k, v]) => [k, straight(v)]))) : "not written";
     const why =
       typeof post === "string" ? post
       : used.has(wordsKey(post.hook)) ? "repeats a hook to avoid"

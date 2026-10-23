@@ -1653,11 +1653,12 @@ describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32
     const got = validateCampaign({ posts: [LIVE_P5W3_POST_9, LIVE_P5W3_POST_12] }, scripts, dropped)!;
     expect(dropped).toEqual([]);
     const [p9, p12] = got;
-    expect(p9.hook).toBe("\u201cWho do I need to call today?\u201d");
+    // quotes come back straight since live-p5dog D14
+    expect(p9.hook).toBe('"Who do I need to call today?"');
     expect(p9.script!.split("\n")).toEqual([
-      "HOOK: \u201cWho do I need to call today?\u201d",
-      "BODY: It\u2019s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
-      "CTA: DM us \u201cCALLS\u201d to see how it works.",
+      'HOOK: "Who do I need to call today?"',
+      "BODY: It's a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
+      'CTA: DM us "CALLS" to see how it works.',
     ]);
     expect(spoken(p9.script!)).toBe(spoken(LIVE_P5W3_POST_9.script));
     expect(p12.hook).toBe("Weekly goals beside tracked activity, or activity without a pace check?");
@@ -1754,5 +1755,24 @@ describe("mode answer (phase 6 agent-skills)", () => {
     ];
     expect(validateAnswer(JSON.stringify({ angles }), AD)).toEqual(angles.slice(3, 6));
     expect(validateAnswer("not json", AD)).toBeNull();
+  });
+});
+
+// ---- Phase 5 dogfood (23 Oct, live-p5dog): the campaign writer's defects ------------------------------------
+
+describe("curly quotes (live-p5dog D14: hooks 6, 9, 21, 23, 26 and cta 27 came back curly)", () => {
+  it("comes back with straight quotes and apostrophes in every field", () => {
+    const got = validateCampaign(
+      written({
+        1: { hook: "“I’ll follow up later.” Then it’s gone", body: `It’s ${words(100)}` },
+        3: { script: `HOOK: Here’s the setup.\nBODY: ${words(60)}\nCTA: DM us “APP”.` },
+        5: { brief: "We’d keep it ‘simple’.", cta: "DM us “FOLLOW-UP” to learn more." },
+      }),
+      campaignRequest(),
+    )!;
+    expect(JSON.stringify(got)).not.toMatch(/[‘’“”]/);
+    expect(got[0].hook).toBe("\"I'll follow up later.\" Then it's gone");
+    expect(got[2].hook).toBe("Here's the setup.");
+    expect(got[4]).toMatchObject({ brief: "We'd keep it 'simple'.", cta: 'DM us "FOLLOW-UP" to learn more.' });
   });
 });
