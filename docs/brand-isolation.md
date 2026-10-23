@@ -28,7 +28,7 @@ Saved items move to `scoped(uid)`. The default brand's storage name doesn't chan
 
 Migration 024 adds `profile_id text not null default 'me'` to tracked links and their campaigns; lists filter on it, new rows carry it, and a campaign name is unique per brand. Preview links needed no change: each one belongs to a post, and My posts only lists the open brand's posts.
 
-/board shows the open brand only. So does the Calendar since 23 Oct 2026 (Leo: "each business should be isolated"): no All brands view, a ?business= link opens that brand, AdvisorOS team posts sit on ActivityTracker and FASTRACK ones on the default brand.
+/board shows the open brand only. So does the Calendar since 23 Oct 2026 (Leo: "each business should be isolated"): no All brands view, a ?business= link opens that brand, team posts (AdvisorOS and FASTRACK) sit on ActivityTracker.
 
 Removing a brand takes everything with it: after its social accounts are disconnected as today, its bio page and tracked links are deleted on the server, and only then its synced data and this device's `cs-*` data. If the server part fails, nothing is removed.
 

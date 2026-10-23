@@ -243,15 +243,14 @@ describe("review queue", () => {
 });
 
 describe("teamHome", () => {
-  it("puts AdvisorOS posts on ActivityTracker and FASTRACK posts on the default brand", () => {
+  it("puts every team post, both groups, on ActivityTracker, and on the default brand until it exists", () => {
     const fast = post({ id: "f" }), adv = post({ id: "a", channel: "advisoros" });
-    expect(teamHome(UID, adv)).toBe("me"); // no ActivityTracker brand yet: everything stays on the default one
+    expect(teamHome(UID)).toBe("me");
+    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["f", "a"]);
     const at = addProfile(UID, "ActivityTracker");
-    expect(teamHome(UID, adv)).toBe(at.id);
-    expect(teamHome(UID, fast)).toBe("me");
-    expect(teamHome(UID, post({ channel: "fastrack" }))).toBe("me");
-    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["f"]);
+    expect(teamHome(UID)).toBe(at.id);
+    expect(teamPostsHere(UID, [fast, adv])).toEqual([]);
     setActiveProfile(UID, at.id);
-    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["a"]);
+    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["f", "a"]);
   });
 });

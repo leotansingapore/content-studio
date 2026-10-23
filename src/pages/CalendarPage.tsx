@@ -317,14 +317,16 @@ export default function CalendarPage() {
   };
   const closeTeam = () => setParams((prev) => withParam(prev, "teampost", null), { replace: true });
   const teamOpen = teamPosts.find((p) => p.id === teamOpenId) ?? null;
-  const teamMine = useCallback((p: TeamPost) => Boolean(userId && profile && teamHome(userId, p) === profile.id), [userId, profile]);
+  // Team posts sit on ActivityTracker (teamHome); every other brand's calendar has none.
+  const teamHere = Boolean(userId && profile && teamHome(userId) === profile.id);
+  const myTeam = useMemo(() => (teamHere ? teamPosts : []), [teamHere, teamPosts]);
   // A ?teampost= link (Telegram) to another brand's post opens on that brand, so the queue and calendar behind it are its own.
   useEffect(() => {
-    if (userId && teamOpen && applyBrandLink(userId, teamHome(userId, teamOpen)) === "reload") window.location.reload();
+    if (userId && teamOpen && applyBrandLink(userId, teamHome(userId)) === "reload") window.location.reload();
   }, [userId, teamOpen]);
   // The review queue: arrows step through this brand's posts still to go out; Approve, Skip or a comment moves on to
   // the next one waiting, so reviewing a batch never means closing and reopening the panel.
-  const teamOrder = useMemo(() => reviewOrder(teamPosts.filter(teamMine)), [teamPosts, teamMine]);
+  const teamOrder = useMemo(() => reviewOrder(myTeam), [myTeam]);
   const teamAt = teamOpen ? teamOrder.findIndex((p) => p.id === teamOpen.id) : -1;
   const moveTeam = (id: string) => setParams((prev) => withParam(prev, "teampost", id), { replace: true });
   const decidedTeam = (next: TeamReviews) => {
@@ -378,10 +380,10 @@ export default function CalendarPage() {
   const teamByDate = useMemo(() => {
     const map = new Map<string, TeamPost[]>();
     if (platform !== "all") return map;
-    for (const p of teamPosts.filter(teamMine))
+    for (const p of myTeam)
       if (status === "all" || (status === "posted") === Boolean(p.postedAt)) map.set(p.day, [...(map.get(p.day) ?? []), p]);
     return map;
-  }, [teamPosts, teamMine, platform, status]);
+  }, [myTeam, platform, status]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, DraftEntry[]>();
@@ -477,8 +479,8 @@ export default function CalendarPage() {
   // Needs you: team posts waiting for approval and reels nobody posts unless Leo does.
   const teamToApprove = useMemo(
     () =>
-      teamPosts.filter((p) => teamMine(p) && statusOf(p, teamReviews[p.id]) === "waiting").sort((a, b) => (a.day < b.day ? -1 : 1)),
-    [teamPosts, teamReviews, teamMine],
+      myTeam.filter((p) => statusOf(p, teamReviews[p.id]) === "waiting").sort((a, b) => (a.day < b.day ? -1 : 1)),
+    [myTeam, teamReviews],
   );
   const handDue = useMemo(() => dueByHand(reels.filter((r) => showsBiz(r.business)), todayKey), [reels, bizOn, todayKey]);
 
