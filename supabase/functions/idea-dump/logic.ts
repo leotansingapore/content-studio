@@ -1040,7 +1040,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "",
     "Every post:",
     "- n: the post's number from the message.",
-    "- Count the words: a post outside the word range on its Words line cannot be used.",
+    "- Count the words: a post outside the word range on its Words line cannot be used, and a hook ends on a whole sentence inside its limit.",
     "- No two posts in your reply open with the same three words, and no hook repeats one listed under 'Hooks already used'.",
     ...(sp === "business" ? [BUSINESS_HOOK_LINE] : []),
     "- Never mention the campaign, the angle's title, the funnel stage or the hook formula's name.",
@@ -1201,6 +1201,20 @@ function withoutCta(body: string, cta: string): string {
   return lines.join("\n").trim();
 }
 
+/** The hook limits on POST_WORDS for the formats whose hook is its own field (a script's is its first line). */
+const HOOK_WORDS: Partial<Record<CampaignFormat, number>> = { "text-post": 15, carousel: 6, slideshow: 12, wall: 12 };
+
+/**
+ * A hook held to `max` words by whole sentences: an over-long one keeps its first sentences that fit, never a cut
+ * sentence (live-p5dog D5: "Here is what comes out of"), and is empty when its first sentence alone is over.
+ */
+function hookOf(text: string, max: number): string {
+  const parts = text.split(SENTENCE_GAP);
+  let keep = 0;
+  while (keep < parts.length && wordCount(parts.slice(0, keep + 1).join(" ")) <= max) keep++;
+  return parts.slice(0, keep).join(" ");
+}
+
 /** The first empty field, as the rule a post broke. */
 const lacks = (fields: Record<string, string>) => {
   const empty = Object.keys(fields).find((k) => !fields[k]);
@@ -1211,21 +1225,22 @@ const lacks = (fields: Record<string, string>) => {
 function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | string {
   const base = { n: ask.n, ctaType: ask.ctaType, mas: null };
   const cta = oneLine(item.cta, 40);
+  const max = HOOK_WORDS[ask.format] ?? 0;
+  const said = cleanText(item.hook, 1000);
+  const hook = hookOf(said, max);
+  if (max && !hook && said) return `hook ${wordCount(said)} words, needs at most ${max}`;
   switch (ask.format) {
     case "text-post": {
-      const hook = oneLine(item.hook, 15);
       const body = cutWords(withoutCta(cleanPost(item.body), cta), 220);
       const words = wordCount(body);
       return lacks({ hook, cta }) ?? (words >= 80 ? { ...base, hook, body, cta } : `body ${words} words, needs 80 to 220`);
     }
     case "carousel": {
-      const hook = oneLine(item.hook, 6);
       const points = withoutCta(cleanPost(item.body), cta).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
       return lacks({ hook, cta }) ?? (points.length >= 4 ? { ...base, hook, body: points.join("\n\n"), cta } : `${points.length} points, needs 4 to 8`);
     }
     case "slideshow":
     case "wall": {
-      const hook = oneLine(item.hook, 12);
       // an empty brief comes from body, where the writer put a wall's words, else from the angle's line (live-p5dog D3:
       // 4 of 12 walls and 3 of 5 wall swaps were dropped for "no brief"); the maker writes the post from it either way
       const brief = cutWords(cleanPost(item.brief) || cleanPost(item.body), 40) || ask.angle.line;

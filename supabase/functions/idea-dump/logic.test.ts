@@ -821,25 +821,24 @@ describe("mode campaign", () => {
     expect(got[5].brief).toBe("One bold line on why checking in fails.");
   });
 
-  it("cuts over-length fields at a word and removes em dashes", () => {
+  it("cuts over-length bodies and briefs at a word, keeps a hook's whole sentences (live-p5dog D5), and removes em dashes", () => {
     const got = validateCampaign(
       written({
-        1: { hook: `Follow-ups — the part ${words(20, "nobody")}`, body: words(240) },
-        2: { hook: "Seven words is too long for a cover", body: Array.from({ length: 9 }, (_, i) => `Point ${i} ${words(50)}`).join("\n\n") },
-        5: { hook: words(14, "slide"), brief: words(50, "point") },
+        1: { hook: `Follow-ups \u2014 the part nobody plans for. ${words(10, "nobody")}`, body: words(240) },
+        2: { hook: "Seven words. Is too long for a cover", body: Array.from({ length: 9 }, (_, i) => `Point ${i} ${words(50)}`).join("\n\n") },
+        5: { hook: `Short cover here. ${words(14, "slide")}`, brief: words(50, "point") },
       }),
       campaignRequest(),
     )!;
     const [text, carousel] = got;
-    expect(text.hook).toMatch(/^Follow-ups, the part nobody/);
-    expect(countWords(text.hook)).toBe(15);
+    expect(text.hook).toBe("Follow-ups, the part nobody plans for.");
     expect(countWords(text.body!)).toBe(220);
-    expect(carousel.hook).toBe("Seven words is too long for");
+    expect(carousel.hook).toBe("Seven words.");
     expect(carousel.body!.split("\n\n")).toHaveLength(8);
     expect(carousel.body!.split("\n\n").every((p) => countWords(p) <= 40)).toBe(true);
-    expect(countWords(got.find((p) => p.n === 5)!.hook)).toBe(12);
+    expect(got.find((p) => p.n === 5)!.hook).toBe("Short cover here.");
     expect(countWords(got.find((p) => p.n === 5)!.brief!)).toBe(40);
-    expect(JSON.stringify(got)).not.toMatch(/[–—]/);
+    expect(JSON.stringify(got)).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("drops a post that can't meet its format: short bodies, too few points, scripts outside their length", () => {
@@ -929,7 +928,7 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
 
   it("states each post's word range on the post itself", () => {
     const { system, user } = buildCampaignPrompt(live);
-    expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used.");
+    expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used, and a hook ends on a whole sentence inside its limit.");
     expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
     expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
     expect(user).toContain("instead of daily.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
@@ -1794,5 +1793,30 @@ describe("a wall or slideshow with no brief (live-p5dog D3: 4 of 12 walls and 3 
     expect(got.find((p) => p.n === 5)!.brief).toBe(`Checking in tells them nothing new. ${words(20)}`);
     expect(got.find((p) => p.n === 6)!.brief).toBe("Most deals die in the follow-up, not the pitch.");
     expect(got.find((p) => p.n === 6)!.body).toBeUndefined();
+  });
+});
+
+describe("hooks end on a whole sentence (live-p5dog D5: wall 2 ended 'Here is what comes out of', wall 9 'after a sales')", () => {
+  // walls 2 and 9 as the writer most likely sent them, one word over 12
+  const WALL_2 = "One sales chat, one follow-up task. Here is what comes out of it.";
+  const WALL_9 = "“I’ll follow up later.” A familiar note to yourself after a sales chat.";
+
+  it("tells the writer a hook is whole sentences inside its limit", () => {
+    expect(buildCampaignPrompt(campaignRequest()).system).toContain("- Count the words: a post outside the word range on its Words line cannot be used, and a hook ends on a whole sentence inside its limit.");
+  });
+
+  it("keeps an over-long hook's first sentences that fit, never cutting one", () => {
+    const got = validateCampaign(written({ 5: { hook: WALL_2 }, 6: { hook: WALL_9 } }), campaignRequest())!;
+    expect(got.find((p) => p.n === 5)!.hook).toBe("One sales chat, one follow-up task.");
+    expect(got.find((p) => p.n === 6)!.hook).toBe("\"I'll follow up later.\"");
+    const text = validateCampaign(written({ 1: { hook: `Most reps lose the deal. ${words(12, "after")}` } }), campaignRequest())!;
+    expect(text[0].hook).toBe("Most reps lose the deal.");
+  });
+
+  it("drops a post whose first sentence alone is over the limit, with the rule for the log, so the job writes it again", () => {
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(written({ 1: { hook: words(16) }, 2: { hook: "Seven words is too long for a cover" }, 5: { hook: words(13, "slide") } }), campaignRequest(), dropped)!;
+    expect(got.map((p) => p.n)).toEqual([3, 4, 6]);
+    expect(dropped).toEqual([[1, "hook 16 words, needs at most 15"], [2, "hook 8 words, needs at most 6"], [5, "hook 13 words, needs at most 12"]]);
   });
 });
