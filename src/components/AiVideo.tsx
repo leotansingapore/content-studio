@@ -152,7 +152,7 @@ function Montage({ busy, left: panelLeft, fill }: { busy: boolean; left: Left; f
   const running = montageBusy();
   const off = busy || running;
   const makeRef = useRef<HTMLButtonElement>(null);
-  useFill(fill, off, (f) => {
+  useFill(fill, (f) => {
     setTheme(f?.theme ?? "");
     if (f) focusSoon(makeRef);
   });
@@ -225,7 +225,7 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
   // kept across templates, so a product typed once carries over
   const [fields, setFields] = useState<Partial<Record<FieldKey, string>>>({});
   // a post's first spoken sentence is "What they say" on every template that has that field
-  useFill(fill, busy, (f) => setFields((x) => ({ ...x, line: f?.line ?? "" })));
+  useFill(fill, (f) => setFields((x) => ({ ...x, line: f?.line ?? "" })));
   const [photos, setPhotos] = useState<Partial<Record<PhotoRole, { file: File; url: string }>>>({});
   const [seconds, setSeconds] = useState<ClipSeconds>(8);
   const [quality, setQuality] = useState<ClipQuality>("720p");
@@ -453,7 +453,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const [photoUrl, setPhotoUrl] = useState("");
   const [look, setLook] = useState(() => LOOKS[Math.floor(Math.random() * LOOKS.length)]);
   const [presenter, setPresenter] = useState(job?.kind === "presenter" && job.state === "done" ? job.url ?? "" : "");
-  const [script, setScript] = useState("");
+  // a post's script from the first paint, even while another video is being made (live-p5dog D7)
+  const [script, setScript] = useState(() => fill?.say.text ?? "");
   const [localVoice, setVoice] = useState<VoiceId>("alice");
   const [vo, setVo] = useState<(Voiceover & { url: string }) | null>(null);
   const [voBusy, setVoBusy] = useState(false);
@@ -534,7 +535,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   }, []);
   // a post's script (edit-video): filled once, then the voiceover is the next press
   const voiceRef = useRef<HTMLButtonElement>(null);
-  useFill(fill, busy, (f) => {
+  useFill(fill, (f) => {
     setScript(f?.say.text ?? "");
     setVo(null);
     setUndo(null);
@@ -1337,15 +1338,19 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
 }
 
 /** Runs `apply` once per post a ?draft= link brings, and with null once it is cleared; never while a video is being made. */
-function useFill(fill: PostFill | null, off: boolean, apply: (f: PostFill | null) => void) {
+/**
+ * Fills a form from the post once per post, at once: a video being made meanwhile (another post's, picked up at no
+ * cost) only keeps Make off, and never holds the post's words back (live-p5dog D7: the box opened empty).
+ */
+function useFill(fill: PostFill | null, apply: (f: PostFill | null) => void) {
   const done = useRef<string | null>(null);
   useEffect(() => {
     const id = fill?.id ?? null;
-    if (off || id === done.current) return;
+    if (id === done.current) return;
     done.current = id;
     apply(fill);
     // apply only sets state, so a new one each render changes nothing
-  }, [fill, off]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fill]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /** The next press, focused once the filled form has drawn; the page doesn't jump, so the strip above stays in view. */
