@@ -50,11 +50,12 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 // `whisper` answers Whisper in turn: the words heard, a status for a failure, or "drop" for no connection; each form is kept.
 // `answers` (when set) is Jev's whole reply instead. `status` answers a Higgsfield status read by job id (done by default),
 // and `pages` a page read by its link (a status number for a failure); `dns` resolves a host (public by default).
+// `ids` (when set) are the request ids submits answer in turn, for a status read (which opens only uuid tokens).
 const hf: {
   calls: string[]; submits: number[]; bodies: Record<string, unknown>[]; openai: { messages: { content: string }[] }[]; replies: (object | number)[]; jev: number | null; asked: unknown[];
   answers: Record<string, unknown> | null; status: Record<string, unknown>; pages: Record<string, { html: string; type?: string } | number>; dns: Record<string, string[]>;
-  whisper: (string | number)[]; heard: FormData[];
-} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {}, whisper: [], heard: [] };
+  whisper: (string | number)[]; heard: FormData[]; ids: string[];
+} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {}, whisper: [], heard: [], ids: [] };
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
@@ -104,7 +105,7 @@ beforeAll(async () => {
     if (init?.body) hf.bodies.push(JSON.parse(String(init.body)));
     if (String(u).endsWith("/cancel")) return answer({});
     const status = hf.submits.shift() ?? 200;
-    return status === 200 ? answer({ request_id: `r${hf.calls.length}` }) : answer({ detail: "no" }, status);
+    return status === 200 ? answer({ request_id: hf.ids.shift() ?? `r${hf.calls.length}` }) : answer({ detail: "no" }, status);
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "log").mockImplementation(() => {});
@@ -130,6 +131,7 @@ beforeEach(() => {
   hf.dns = {};
   hf.whisper.length = 0;
   hf.heard.length = 0;
+  hf.ids.length = 0;
 });
 
 const PICTURES = ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"];
@@ -792,5 +794,47 @@ describe("the script writers' prompts", () => {
     expect(notes.length).toBeLessThanOrEqual(600);
     expect(notes.length).toBeGreaterThan(590);
     expect(notes.endsWith("note\u2026")).toBe(true);
+  });
+});
+
+// A talking video's parts as status reads them (D2 of the phase 5 dogfood, 23 Oct: Higgsfield failed one of two Speak parts).
+describe("a talking video's status checks", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const WAV = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(60)]).toString("base64");
+  // the 23 Oct voiceover: two slices, 8.19 s and 6.3 s, over a kept presenter's picture
+  const AVATAR = { mode: "avatar", photo: { url: "https://cdn.example/raj.png" }, slices: [{ wav: WAV, seconds: 8.19 }, { wav: WAV, seconds: 6.299 }] };
+  const [P1, P2] = ["11111111-2222-4333-8444-555555555555", "66666666-7777-4888-9999-aaaaaaaaaaaa"];
+  const cancels = () => hf.calls.filter((u) => u.endsWith("/cancel"));
+  const start = async () => {
+    hf.ids.push(P1, P2);
+    const res = await send(UID, AVATAR);
+    expect(res.status).toBe(200);
+    const out = (await res.json()) as { tokens: string[]; refund: string; credits: number };
+    expect(out.credits).toBe(44);
+    hf.calls.length = 0;
+    return out;
+  };
+
+  it("leave every part alone while none has failed, and never cancel on a read with no refund ticket (presenters, moves)", async () => {
+    const { tokens, refund } = await start();
+    hf.status = { [P1]: { status: "in_progress" }, [P2]: { status: "queued" } };
+    expect(await (await send(UID, { mode: "status", tokens, refund })).json()).toEqual({ jobs: [{ state: "working" }, { state: "working" }] });
+    hf.status = { [P1]: { status: "failed", error: "Generation failed" }, [P2]: { status: "in_progress" } };
+    expect(await (await send(UID, { mode: "status", tokens })).json()).toEqual({ jobs: [{ state: "failed", error: "It didn't come through. Try again." }, { state: "working" }] });
+    expect(cancels()).toEqual([]);
+    expect([mine(), studio()]).toEqual([1, 1]);
+  });
+
+  it("give both uses back, once, when Higgsfield fails a part", async () => {
+    const { tokens, refund } = await start();
+    hf.status = { [P1]: { status: "in_progress" }, [P2]: { status: "failed", error: "Generation failed" } };
+    const res = await send(UID, { mode: "status", tokens, refund });
+    expect((await res.json()).jobs[1]).toMatchObject({ state: "failed" });
+    expect([mine(), studio()]).toEqual([0, 0]);
+    // the next video takes them again; a second read of the failed one gives nothing more back
+    await start();
+    await send(UID, { mode: "status", tokens, refund });
+    expect([mine(), studio()]).toEqual([1, 1]);
   });
 });
