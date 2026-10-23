@@ -556,7 +556,7 @@ describe("budget before the card and again on the press", () => {
   it("refuses a talking video with no videos left, before any script, with two cheaper chips", async () => {
     fake.usage = { day: today(), used: { "ai-video": 2 } };
     const id = await say("make a video of me explaining CPF LIFE", { act: "make", format: "speaking" });
-    expect(last(id).text).toBe("A talking video needs 1 AI video, and you have none left today. They come back at 8am Singapore time.\nA picture post is under US$0.01 (5 of 5 pictures left), or a script you film yourself is about US$0.02.");
+    expect(last(id).text).toBe("A talking video needs 1 AI video, and you have none left today. They come back at 8am Singapore time.\nA picture post is under US$0.01 (5 of 5 pictures left), or a script you film yourself is under US$0.01.");
     expect(last(id).go?.map((g) => g.label)).toEqual(["Make the picture post", "Write the script"]);
     expect(last(id).card).toBeUndefined();
     expect(priced()).toEqual([]);

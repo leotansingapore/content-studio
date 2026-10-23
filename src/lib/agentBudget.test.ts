@@ -100,7 +100,7 @@ describe("refusal", () => {
         `A picture post is ${p(priceOf("ai-image"))} (4 of 5 pictures left), or a script you film yourself is ${p(priceOf("remix-make"))}.`,
     );
     expect(p(priceOf("ai-image"))).toBe("under US$0.01");
-    expect(p(priceOf("remix-make"))).toBe("about US$0.02");
+    expect(p(priceOf("remix-make"))).toBe("under US$0.01");
   });
   it("says unit words in the singular and plural, and what is left when it is not none", () => {
     const short = [{ feature: "campaign-draft" as const, needs: 4, left: 3 }];
@@ -121,9 +121,9 @@ describe("budgetAnswer and meterLine", () => {
     const talk = sumPrices(priceOf("remix-make"), AVATAR_MAX, priceOf("ai-voice"), priceOf("ai-image")) as Price;
     expect(budgetAnswer(today({ "remix-make": 2, "agent-act": 3 }), NOW)).toBe(
       "Left today: 2 of 2 AI videos, 10 of 10 voiceovers, 5 of 5 AI pictures, 28 of 30 remixes, 97 of 100 agent messages. They come back at 8am Singapore time.\n" +
-        "A talking video is up to US$5.55, an explainer about US$0.06 and a picture under US$0.01. Posts, carousels and scripts are about US$0.02 each.",
+        "A talking video is up to US$5.53, an explainer about US$0.06 and a picture under US$0.01. Posts, carousels and scripts are under US$0.01 each.",
     );
-    expect([priceText(talk), priceText(explainerPrice() as Price)]).toEqual(["Up to US$5.55", "About US$0.06"]);
+    expect([priceText(talk), priceText(explainerPrice() as Price)]).toEqual(["Up to US$5.53", "About US$0.06"]);
   });
   it("says so when today's counts can't be read", () => {
     expect(budgetAnswer(null, NOW)).toBe(UNREAD_LINE);

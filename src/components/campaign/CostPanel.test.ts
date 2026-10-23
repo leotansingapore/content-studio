@@ -65,10 +65,10 @@ describe("what it costs", () => {
   it("slideshows and walls are priced from today's remix limit, with a line when it runs short", () => {
     const posts = Array.from({ length: 12 }, (_, i) => post(i + 1, i % 2 ? "wall" : "slideshow"));
     expect(lines(posts, 2, 10)).toEqual({
-      big: "US$0.24",
+      big: "US$0.01",
       sub: "to make what's left",
       lines: [
-        "6 slideshows and 6 walls of text at about US$0.02 each, from today's remix limit.",
+        "6 slideshows and 6 walls of text at under US$0.01 each, from today's remix limit.",
         "Today's remix limit covers 10 of the 12 slideshows and walls. The other 2 can be made after 8am Singapore time.",
       ],
     });

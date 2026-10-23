@@ -96,7 +96,10 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // gpt-6-luna (OPENAI_MODEL's default) at US$0.10 in / US$0.50 out per million (OpenAI pricing page, read 2026-10-21):
   // about 5,500 in and 700 out for up to 5 pages, plus two Jev calls under US$0.001 at US$0.042 per million
   "brand-dna": about(0.001),
-  "remix-make": about(0.02), // unverified
+  // gpt-6-luna as above: 21 slideshow and wall makes on 23 Oct (live-p5dog function-logs.json) averaged 1,150 in and 470
+  // out, US$0.00035, the dearest US$0.00043; Jev's reads beside them (montage-pick, the make's checks) under US$0.0001.
+  // A fix or rewrite pass is one more call.
+  "remix-make": about(0.0005),
   "remix-teardown": about(0.01), // unverified
   "remix-link": about(0.01), // unverified
   "remix-image": about(0.02), // unverified

@@ -50,8 +50,8 @@ const crumple = priceText(priceOf("ai-clip", { seconds: 4, quality: "720p" }) as
 
 describe("Hook plus demo's footer chip", () => {
   it("prices the remix write while no hook is written, picked or typed", () => {
-    expect(chip(page())).toBe("About US$0.02");
-    expect(chip(page("mine"))).toBe("About US$0.02");
+    expect(chip(page())).toBe("Under US$0.01");
+    expect(chip(page("mine"))).toBe("Under US$0.01");
     expect(chip(page("spoken"))).toBe(priceText(sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 4, quality: "480p" })) as Price));
     expect(chip(page("crumple"))).toBe(priceText(sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 4, quality: "720p" })) as Price));
   });

@@ -96,7 +96,7 @@ describe("estimateScript and priceLine", () => {
   });
   it("cheap cards show their price and uses left, and a card with nothing to show has no line", () => {
     expect(priceLine({ price: priceOf("ai-image") as Price, needs: needsOf("image") }, 4)).toBe("Under US$0.01 | 4 of 5 pictures left today");
-    expect(priceLine({ price: priceOf("remix-make") as Price, needs: needsOf("post") }, 28)).toBe("About US$0.02 | 28 of 30 remixes left today");
+    expect(priceLine({ price: priceOf("remix-make") as Price, needs: needsOf("post") }, 28)).toBe("Under US$0.01 | 28 of 30 remixes left today");
     expect(priceLine({ needs: [] }, null)).toBeNull();
   });
 });

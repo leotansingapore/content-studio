@@ -14,7 +14,7 @@ describe("the price table", () => {
   });
 
   it("prices the phase-1 remix caps up front and keeps the fit check free", () => {
-    expect(priceOf("remix-make")).toEqual({ usd: 0.02, kind: "about" });
+    expect(priceOf("remix-make")).toEqual({ usd: 0.0005, kind: "about" });
     expect(priceOf("remix-teardown")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("remix-link")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("remix-image")).toEqual({ usd: 0.02, kind: "about" });
