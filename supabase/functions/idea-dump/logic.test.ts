@@ -821,25 +821,24 @@ describe("mode campaign", () => {
     expect(got[5].brief).toBe("One bold line on why checking in fails.");
   });
 
-  it("cuts over-length fields at a word and removes em dashes", () => {
+  it("cuts over-length bodies and briefs at a word, keeps a hook's whole sentences (live-p5dog D5), and removes em dashes", () => {
     const got = validateCampaign(
       written({
-        1: { hook: `Follow-ups — the part ${words(20, "nobody")}`, body: words(240) },
-        2: { hook: "Seven words is too long for a cover", body: Array.from({ length: 9 }, (_, i) => `Point ${i} ${words(50)}`).join("\n\n") },
-        5: { hook: words(14, "slide"), brief: words(50, "point") },
+        1: { hook: `Follow-ups \u2014 the part nobody plans for. ${words(10, "nobody")}`, body: words(240) },
+        2: { hook: "Seven words. Is too long for a cover", body: Array.from({ length: 9 }, (_, i) => `Point ${i} ${words(50)}`).join("\n\n") },
+        5: { hook: `Short cover here. ${words(14, "slide")}`, brief: words(50, "point") },
       }),
       campaignRequest(),
     )!;
     const [text, carousel] = got;
-    expect(text.hook).toMatch(/^Follow-ups, the part nobody/);
-    expect(countWords(text.hook)).toBe(15);
+    expect(text.hook).toBe("Follow-ups, the part nobody plans for.");
     expect(countWords(text.body!)).toBe(220);
-    expect(carousel.hook).toBe("Seven words is too long for");
+    expect(carousel.hook).toBe("Seven words.");
     expect(carousel.body!.split("\n\n")).toHaveLength(8);
     expect(carousel.body!.split("\n\n").every((p) => countWords(p) <= 40)).toBe(true);
-    expect(countWords(got.find((p) => p.n === 5)!.hook)).toBe(12);
+    expect(got.find((p) => p.n === 5)!.hook).toBe("Short cover here.");
     expect(countWords(got.find((p) => p.n === 5)!.brief!)).toBe(40);
-    expect(JSON.stringify(got)).not.toMatch(/[–—]/);
+    expect(JSON.stringify(got)).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("drops a post that can't meet its format: short bodies, too few points, scripts outside their length", () => {
@@ -849,7 +848,7 @@ describe("mode campaign", () => {
     expect(keptOf({ 2: { body: "One.\n\nTwo.\n\nThree." } })).not.toContain(2);
     expect(keptOf({ 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` } })).not.toContain(3);
     expect(keptOf({ 3: { script: `HOOK: Long.\nBODY: ${words(95)}\nCTA: Save it.` } })).not.toContain(3);
-    expect(keptOf({ 5: { brief: "" } })).not.toContain(5);
+    expect(keptOf({ 5: { hook: "" } })).not.toContain(5);
   });
 
   it("holds an AI video script to 36 to 48 spoken words, labels and all", () => {
@@ -929,7 +928,7 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
 
   it("states each post's word range on the post itself", () => {
     const { system, user } = buildCampaignPrompt(live);
-    expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used.");
+    expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used, and a hook ends on a whole sentence inside its limit.");
     expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
     expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
     expect(user).toContain("instead of daily.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
@@ -976,11 +975,11 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
   it("names the rule each dropped post broke, for every format", () => {
     const dropped: [number, string][] = [];
     validateCampaign(
-      written({ 1: { body: words(79) }, 2: { body: "One.\n\nTwo.\n\nThree." }, 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` }, 4: { script: "One line only" }, 5: { brief: "" }, 6: { cta: "" } }),
+      written({ 1: { body: words(79) }, 2: { body: "One.\n\nTwo.\n\nThree." }, 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` }, 4: { script: "One line only" }, 5: { hook: "" }, 6: { cta: "" } }),
       campaignRequest(),
       dropped,
     );
-    expect(dropped).toEqual([[1, "body 79 words, needs 80 to 220"], [2, "3 points, needs 4 to 8"], [3, "script 43 words, needs 60 to 90"], [4, "one line"], [5, "no brief"], [6, "no cta"]]);
+    expect(dropped).toEqual([[1, "body 79 words, needs 80 to 220"], [2, "3 points, needs 4 to 8"], [3, "script 43 words, needs 60 to 90"], [4, "one line"], [5, "no hook"], [6, "no cta"]]);
     const missing: [number, string][] = [];
     const reply2 = written({ 5: { hook: "Most reps lose sleep over follow-ups" }, 6: { hook: "your FOLLOW-UP is the real pitch" } });
     reply2.posts.splice(1, 1);
@@ -1653,11 +1652,12 @@ describe("a short video's HOOK line (live-p5w3 D4: calls/012 post 9 opened on 32
     const got = validateCampaign({ posts: [LIVE_P5W3_POST_9, LIVE_P5W3_POST_12] }, scripts, dropped)!;
     expect(dropped).toEqual([]);
     const [p9, p12] = got;
-    expect(p9.hook).toBe("\u201cWho do I need to call today?\u201d");
+    // quotes come back straight since live-p5dog D14
+    expect(p9.hook).toBe('"Who do I need to call today?"');
     expect(p9.script!.split("\n")).toEqual([
-      "HOOK: \u201cWho do I need to call today?\u201d",
-      "BODY: It\u2019s a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
-      "CTA: DM us \u201cCALLS\u201d to see how it works.",
+      'HOOK: "Who do I need to call today?"',
+      "BODY: It's a question sales reps can ask at the start of a busy day, and it sticks because the answer should be easy to find. When the call list and client details sit together, you can check who needs a call and see the context before reaching out. Our app brings those details into one phone view, alongside follow-ups and tasks.",
+      'CTA: DM us "CALLS" to see how it works.',
     ]);
     expect(spoken(p9.script!)).toBe(spoken(LIVE_P5W3_POST_9.script));
     expect(p12.hook).toBe("Weekly goals beside tracked activity, or activity without a pace check?");
@@ -1754,5 +1754,161 @@ describe("mode answer (phase 6 agent-skills)", () => {
     ];
     expect(validateAnswer(JSON.stringify({ angles }), AD)).toEqual(angles.slice(3, 6));
     expect(validateAnswer("not json", AD)).toBeNull();
+  });
+});
+
+// ---- Phase 5 dogfood (23 Oct, live-p5dog): the campaign writer's defects ------------------------------------
+
+describe("curly quotes (live-p5dog D14: hooks 6, 9, 21, 23, 26 and cta 27 came back curly)", () => {
+  it("comes back with straight quotes and apostrophes in every field", () => {
+    const got = validateCampaign(
+      written({
+        1: { hook: "“I’ll follow up later.” Then it’s gone", body: `It’s ${words(100)}` },
+        3: { script: `HOOK: Here’s the setup.\nBODY: ${words(60)}\nCTA: DM us “APP”.` },
+        5: { brief: "We’d keep it ‘simple’.", cta: "DM us “FOLLOW-UP” to learn more." },
+      }),
+      campaignRequest(),
+    )!;
+    expect(JSON.stringify(got)).not.toMatch(/[‘’“”]/);
+    expect(got[0].hook).toBe("\"I'll follow up later.\" Then it's gone");
+    expect(got[2].hook).toBe("Here's the setup.");
+    expect(got[4]).toMatchObject({ brief: "We'd keep it 'simple'.", cta: 'DM us "FOLLOW-UP" to learn more.' });
+  });
+});
+
+describe("a wall or slideshow with no brief (live-p5dog D3: 4 of 12 walls and 3 of 5 wall swaps dropped for 'no brief')", () => {
+  it("tells the writer a wall's words go in brief, never body", () => {
+    const { system } = buildCampaignPrompt(campaignRequest());
+    expect(system).toContain("- wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.");
+  });
+
+  it("takes the brief from body when the writer put it there, else from the angle's line, so the post is kept", () => {
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(
+      written({ 5: { brief: "", body: `Checking in tells them nothing new. ${words(20)}` }, 6: { brief: "  ", body: "" } }),
+      campaignRequest(),
+      dropped,
+    )!;
+    expect(dropped).toEqual([]);
+    expect(got.find((p) => p.n === 5)!.brief).toBe(`Checking in tells them nothing new. ${words(20)}`);
+    expect(got.find((p) => p.n === 6)!.brief).toBe("Most deals die in the follow-up, not the pitch.");
+    expect(got.find((p) => p.n === 6)!.body).toBeUndefined();
+  });
+});
+
+describe("hooks end on a whole sentence (live-p5dog D5: wall 2 ended 'Here is what comes out of', wall 9 'after a sales')", () => {
+  // walls 2 and 9 as the writer most likely sent them, one word over 12
+  const WALL_2 = "One sales chat, one follow-up task. Here is what comes out of it.";
+  const WALL_9 = "“I’ll follow up later.” A familiar note to yourself after a sales chat.";
+
+  it("tells the writer a hook is whole sentences inside its limit", () => {
+    expect(buildCampaignPrompt(campaignRequest()).system).toContain("- Count the words: a post outside the word range on its Words line cannot be used, and a hook ends on a whole sentence inside its limit.");
+  });
+
+  it("keeps an over-long hook's first sentences that fit, never cutting one", () => {
+    const got = validateCampaign(written({ 5: { hook: WALL_2 }, 6: { hook: WALL_9 } }), campaignRequest())!;
+    expect(got.find((p) => p.n === 5)!.hook).toBe("One sales chat, one follow-up task.");
+    expect(got.find((p) => p.n === 6)!.hook).toBe("\"I'll follow up later.\"");
+    const text = validateCampaign(written({ 1: { hook: `Most reps lose the deal. ${words(12, "after")}` } }), campaignRequest())!;
+    expect(text[0].hook).toBe("Most reps lose the deal.");
+  });
+
+  it("drops a post whose first sentence alone is over the limit, with the rule for the log, so the job writes it again", () => {
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(written({ 1: { hook: words(16) }, 2: { hook: "Seven words is too long for a cover" }, 5: { hook: words(13, "slide") } }), campaignRequest(), dropped)!;
+    expect(got.map((p) => p.n)).toEqual([3, 4, 6]);
+    expect(dropped).toEqual([[1, "hook 16 words, needs at most 15"], [2, "hook 8 words, needs at most 6"], [5, "hook 13 words, needs at most 12"]]);
+  });
+});
+
+describe("a body that ends on the cta's keyword ask (live-p5dog D6: 'message me PLAN' over 'Message me PLAN if...')", () => {
+  // calls/209 post 3 (a person's text post) and calls/198 post 3 (a business's short video), as they came back
+  const BODY_209 =
+    "When a parent puts off reviewing family protection, it can become harder to see what needs attention and what can wait. That does not mean buying a bundle is automatically the answer.\n\nI start by mapping the family’s responsibilities, existing cover and questions. For a parent and child, those needs may differ. I explain the trade-offs in plain language and help organise the next steps, without assuming one solution fits every family.\n\nWe can document priorities in a one-page plan and record the reasons behind decisions. I also check in after major life events, when circumstances or responsibilities may have changed. There is no need to decide everything in one meeting.\n\nIf you want to understand what a review could involve, message me “PLAN”.";
+  const CTA_209 = "Message me “PLAN” if you’d like to discuss what a review could involve.";
+  const SCRIPT_198 =
+    "HOOK: Scattered sales work costs focus. Separate tools are one mistake.\nBODY: When your client records, WhatsApp conversations, tasks and goals live in different places, keeping track of the next step can mean switching between apps. We bring CRM, a shared WhatsApp inbox, tasks and goals together in one phone app. You can log activity in one tap and manage sales work alongside client conversations. If you want to see how it fits your workflow, message us the word APP.\nCTA: DM us APP to enquire about signing up.";
+  const ask = (n: number, format: CampaignFormat) => postAskOf(n, format, { stage: "conversion", ctaType: "dm-keyword" });
+
+  it("removes the text post's last sentence that asks for the same keyword (calls/209)", () => {
+    const req = campaignRequest({ ...CAMPAIGN_ASK, posts: [ask(3, "text-post")] });
+    const [got] = validateCampaign({ posts: [{ n: 3, hook: "What delay can cost is clarity about family cover.", body: BODY_209, script: "", brief: "", cta: CTA_209 }] }, req)!;
+    expect(got.body!.endsWith("There is no need to decide everything in one meeting.")).toBe(true);
+    expect(got.cta).toBe("Message me \"PLAN\" if you'd like to discuss what a review could involve.");
+  });
+
+  it("says a short video's keyword once, in its CTA line (calls/198)", () => {
+    const req = campaignRequest({ ...CAMPAIGN_ASK, context: { ...BUSINESS_CONTEXT, audience: "Sales reps" }, posts: [ask(3, "short-video")] });
+    const [got] = validateCampaign({ posts: [{ n: 3, hook: "", body: "", script: SCRIPT_198, brief: "", cta: "" }] }, req)!;
+    const lines = got.script!.split("\n");
+    expect(lines[1].endsWith("alongside client conversations.")).toBe(true);
+    expect(lines[2]).toBe("CTA: DM us APP to enquire about signing up.");
+  });
+
+  it("removes a brief's last sentence that asks for the keyword, and keeps one that only names a word in capitals", () => {
+    const got = validateCampaign(
+      written({
+        5: { brief: "Log sales activity in one tap as you work. DM us ACTIVITY to learn how the app fits your day.", cta: "DM us ACTIVITY to learn more." },
+        6: { brief: "Keep chats beside your CRM.", cta: "DM us CRM to learn more." },
+      }),
+      campaignRequest(),
+    )!;
+    expect(got.find((p) => p.n === 5)!.brief).toBe("Log sales activity in one tap as you work.");
+    expect(got.find((p) => p.n === 6)!.brief).toBe("Keep chats beside your CRM.");
+  });
+});
+
+import { ANGLE_SAME, sameAsk } from "./logic.ts";
+
+describe("distinct angles (live-p5dog D9: two follow-up angles and two one-app angles kept, 'Sales goals' left 6th)", () => {
+  // the run's 8 candidates (function-logs 00:47:21) with their fits; lines not logged, so these stand in
+  const LIVE = [
+    ["Client details together", 0.63],
+    ["WhatsApp workflow", 0.68],
+    ["Follow-up tasks", 0.68],
+    ["One-tap activity log", 0.68],
+    ["Sales goals", 0.66],
+    ["Work in one app", 0.7],
+    ["Chat to follow-up", 0.69],
+    ["Track daily activity", 0.62],
+  ] as const;
+  const cands = LIVE.map(([title]) => ({ title, line: `Why ${title.toLowerCase()} matters.` }));
+  const fitsOf = LIVE.map(([, fit]) => ({ fits: { type: "noul" as const, noul: fit }, unsafe: { type: "noul" as const, noul: 0.1 } }));
+  const sameOf = (pairs: [number, number, number][]) => Object.fromEntries(pairs.map(([i, j, p]) => [`same_${i}_${j}`, { type: "noul" as const, noul: p }]));
+
+  it("asks Jev once whether each pair of candidates is the same reason to care", () => {
+    const ask = sameAsk(cands.slice(0, 3))!;
+    expect(ask.state).toEqual({ angle_0: "Client details together: Why client details together matters.", angle_1: "WhatsApp workflow: Why whatsapp workflow matters.", angle_2: "Follow-up tasks: Why follow-up tasks matters." });
+    expect(Object.keys(ask.questions)).toEqual(["same_0_1", "same_0_2", "same_1_2"]);
+    expect(ask.questions.same_0_2).toMatchObject({ type: "noul" });
+    expect(String(ask.questions.same_0_2.instructions)).toContain("`angle_0` and `angle_2`");
+    expect(sameAsk(cands.slice(0, 1))).toBeNull();
+    expect(Object.keys(sameAsk(cands)!.questions)).toHaveLength(28);
+  });
+
+  it("keeps the best fit of each reason: the live run gives Sales goals in place of a second follow-up angle", () => {
+    // follow-up tasks ~ chat to follow-up, client details ~ work in one app, track daily activity ~ one-tap log
+    const same = sameOf([[2, 6, 0.9], [0, 5, 0.8], [3, 7, 0.85], [1, 2, 0.2]]);
+    expect(keepAngles(cands, fitsOf).angles.map((a) => a.title)).toEqual(["Work in one app", "Chat to follow-up", "WhatsApp workflow", "Follow-up tasks", "One-tap activity log"]);
+    expect(keepAngles(cands, fitsOf, same).angles.map((a) => a.title)).toEqual(["Work in one app", "Chat to follow-up", "WhatsApp workflow", "One-tap activity log", "Sales goals"]);
+  });
+
+  it(`counts a pair as one at ${ANGLE_SAME}, two at 0.49 or with no answer, and applies to the unscored fallback too`, () => {
+    expect(ANGLE_SAME).toBe(0.5);
+    expect(keepAngles(cands, fitsOf, sameOf([[2, 6, 0.5]])).angles.map((a) => a.title)).not.toContain("Follow-up tasks");
+    expect(keepAngles(cands, fitsOf, sameOf([[2, 6, 0.49]])).angles.map((a) => a.title)).toContain("Follow-up tasks");
+    expect(keepAngles(cands, Array(8).fill(null), sameOf([[0, 1, 0.9]])).angles.map((a) => a.title)).toEqual(["Client details together", "Follow-up tasks", "One-tap activity log", "Sales goals", "Work in one app"]);
+  });
+
+  it("asks the writer for candidates that differ in feature, problem or moment", () => {
+    expect(buildAnglesPrompt(anglesRequest()).system).toContain("- Each candidate is a different reason to care, with no two on the same feature, problem or moment.");
+  });
+});
+
+describe("openings across a campaign's batches (live-p5dog D9)", () => {
+  it("tells the writer no hook opens like one already used in earlier batches", () => {
+    const { system, user } = buildCampaignPrompt(campaignRequest());
+    expect(system).toContain("- No two posts in your reply open with the same three words, and no hook opens with the same three words as one listed under 'Hooks already used' or repeats one.");
+    expect(user).toContain("Hooks already used (open differently):\n- Your follow-up is the real pitch");
   });
 });

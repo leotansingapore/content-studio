@@ -12,13 +12,13 @@
 // everyone else's are ignored, so today's prompt is unchanged.
 //
 // mode "angles" (phase 5, Leo only while NORTH_STAR_USERS lists the caller, 403 not_enabled before anything is
-// counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit and are safe.
+// counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit, are safe and differ.
 // Cap "campaign-angles"; the use goes back only when OpenAI never answered (502), and a reply that keeps no angle
 // keeps it (422 no_angles).
 //
 // mode "campaign" (phase 5, Leo only, the same gate): up to 7 of a campaign's posts in one call, each in its
 // format's shape, or one post written again with `swap`. Cap "campaign-swap" for a swap, else "campaign-draft"; the
-// use goes back only when OpenAI never answered (502), and a reply where no post survives keeps it (422 unusable).
+// use goes back when OpenAI never answered (502); a draft where no post survives keeps it and a swap's goes back (422 unusable).
 // A person's posts each get Jev's MAS question in one call (`mas`, a warning that never blocks); a business's get null.
 //
 // mode "ideas" (phase 5, Leo only, the same gate): a set of post ideas for the ideas inbox. The LLM writes count + 2,
@@ -59,6 +59,7 @@ import {
   buildLongPrompt,
   ideaAsk,
   keepAngles,
+  sameAsk,
   masAsk,
   rankIdeas,
   parseAnglesRequest,
@@ -202,13 +203,20 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
   const pos = request.context.positioning;
   const names = [request.audience, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
   const candidates = (reply.ok && validateAngles(reply.text, request.avoid, names)) || [];
-  const answers = await pool(candidates, 6, (a) => {
-    const ask = angleAsk(request, a);
-    return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
-  });
-  const kept = keepAngles(candidates, answers);
-  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE
-  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])));
+  // the pairs request runs beside the per-candidate ones, so the angles take no longer to arrive
+  const pairs = sameAsk(candidates);
+  const [answers, same] = await Promise.all([
+    pool(candidates, 6, (a) => {
+      const ask = angleAsk(request, a);
+      return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
+    }),
+    pairs ? askJev(pairs.state, pairs.questions, { who: "idea-dump angles same", timeoutMs: JEV_TIMEOUT_MS }) : null,
+  ]);
+  const kept = keepAngles(candidates, answers, same);
+  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE, and the pairs at 0.3 or
+  // more ANGLE_SAME
+  const close = Object.keys(pairs?.questions ?? {}).map((id) => [...id.split("_").slice(1).map(Number), noulOf(same, id)]).filter((x) => (x[2] ?? 0) >= 0.3);
+  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])), "same", JSON.stringify(close));
   if (!kept.angles.length) return json({ code: "no_angles", error: "Couldn't find angles that fit this time. Try again, or write your own." }, 422);
   return json(kept);
 }
@@ -237,7 +245,9 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
   const written = (reply.ok && validateCampaign(reply.text, request, dropped)) || [];
   if (!written.length) {
     console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written 0", "dropped", JSON.stringify(dropped));
-    return json({ code: "unusable", error: "The words that came back couldn't be used. Try again." }, 422);
+    // a swap with nothing to show gives its use back (live-p5dog D3: 3 of 5 wall swaps kept the use with no new words)
+    if (request.swap) await refundUsage(admin, uid, cap, day);
+    return json({ code: "unusable", error: request.swap ? "The new words couldn't be used, so this swap wasn't counted. Try again." : "The words that came back couldn't be used. Try again." }, 422);
   }
   const speaker = request.context.speaker;
   const mas = speaker === "person" ? masAsk(written) : null;

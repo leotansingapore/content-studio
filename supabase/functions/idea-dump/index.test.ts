@@ -212,10 +212,36 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
     expect(r.body.angles[0]).toEqual({ title: "Angle number 6", line: "Why angle 6 matters to new parents.", fit: 0.8 });
     expect(db.spent).toEqual(["campaign-angles"]);
     expect(db.refunded).toEqual([]);
-    expect(sent[JEV]).toHaveLength(8);
+    // one per candidate and one on every pair (live-p5dog D9)
+    expect(sent[JEV]).toHaveLength(9);
     expect(Object.keys((sent[JEV][0] as { questions: object }).questions)).toEqual(["fits", "unsafe"]);
     const prompt = (sent[OPENAI][0] as { messages: { content: string }[] }).messages.map((m) => m.content).join("\n");
     expect(prompt).toContain("- Hospital bills shock");
+  });
+
+  it("asks Jev once alongside whether each pair is the same reason to care, and keeps the better of a pair (live-p5dog D9)", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(ANGLES_REPLY);
+    jevReply = (q, state) => {
+      if ("same_0_1" in q) return { same_5_6: { type: "noul", noul: 0.9 }, same_1_2: { type: "noul", noul: 0.2 } };
+      const i = Number(String(state.angle).match(/number (\d)/)?.[1]);
+      return { fits: { type: "noul", noul: i === 0 ? 0.3 : 0.5 + i / 20 }, unsafe: { type: "noul", noul: i === 7 ? 0.8 : 0.1 } };
+    };
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const r = await call(ANGLES, "leo");
+      expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Angle number 6", "Angle number 4", "Angle number 3", "Angle number 2", "Angle number 1"]);
+      const asks = sent[JEV] as { questions: Record<string, unknown>; state: Record<string, string> }[];
+      expect(asks).toHaveLength(9);
+      const pairs = asks.find((a) => "same_0_1" in a.questions)!;
+      expect(Object.keys(pairs.questions)).toHaveLength(28);
+      expect(pairs.state.angle_5).toBe("Angle number 5: Why angle 5 matters to new parents.");
+      expect(db.spent).toEqual(["campaign-angles"]);
+      // decision 12: the pairs at 0.3 or more are logged for setting ANGLE_SAME
+      expect(log.mock.calls.map((c) => c.join(" ")).find((l) => l.startsWith("idea-dump angles"))).toMatch(/ same \[\[5,6,0\.9\]\]$/);
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it("sends Title Case titles back in sentence case, keeping names the brand's words use mid-sentence (live check, calls/010)", async () => {
@@ -255,7 +281,7 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
     jevReply = () => ({ fits: { type: "noul", noul: 0.9 }, unsafe: { type: "noul", noul: 0 } });
     const r = await call(ANGLES, "leo");
     expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Angle number 0", "Angle number 1"]);
-    expect(sent[JEV]).toHaveLength(2);
+    expect(sent[JEV]).toHaveLength(3);
   });
 
   it("falls back to the first 5 clean candidates, unscored, with no Jev key", async () => {
@@ -374,12 +400,12 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
   it("logs each dropped post's number and the rule it broke, never its words (live check: only 'asked 4 written 2')", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     try {
-      openai = () => reply({ posts: [CAMPAIGN_REPLY.posts[0], { ...CAMPAIGN_REPLY.posts[1], brief: "" }] });
+      openai = () => reply({ posts: [CAMPAIGN_REPLY.posts[0], { ...CAMPAIGN_REPLY.posts[1], cta: "" }] });
       expect((await call(CAMPAIGN, "leo")).body.posts.map((p: { n: number }) => p.n)).toEqual([1]);
       openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], body: "Too short to post." }] });
       expect((await call(CAMPAIGN, "leo")).body.code).toBe("unusable");
       const lines = log.mock.calls.map((c) => c.join(" ")).filter((l) => l.startsWith("idea-dump campaign"));
-      expect(lines[0]).toBe('idea-dump campaign leo campaign-draft asked 2 written 1 dropped [[2,"no brief"]] mas [[1,null]]');
+      expect(lines[0]).toBe('idea-dump campaign leo campaign-draft asked 2 written 1 dropped [[2,"no cta"]] mas [[1,null]]');
       expect(lines[1]).toBe('idea-dump campaign leo campaign-draft asked 2 written 0 dropped [[1,"body 4 words, needs 80 to 220"],[2,"not written"]]');
       expect(lines).toHaveLength(2);
       expect(log.mock.calls.flat().join("\n")).not.toMatch(/Too short|checking in|Most reps/);
@@ -388,15 +414,22 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
     }
   });
 
-  it("refuses a swap whose hook shares 4 words in a row with a used one: 422 unusable, use kept (live check, calls/013)", async () => {
+  it("refuses a swap whose hook shares 4 words in a row with a used one: 422 unusable, use given back (live check, calls/013)", async () => {
     const formula = { name: "Contrarian", template: "Most [audience] think [belief]. Here is why that is wrong." };
     const swap = { ...CAMPAIGN, swap: true, posts: [{ ...askOf(1, "text-post"), formula }], avoid: ["Most sales managers think visibility means reading every chat. Here is why that is wrong."] };
     openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think visibility means checking every chat. Here is why that is wrong." }] });
-    expect(await call(swap, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
+    expect(await call(swap, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The new words couldn't be used, so this swap wasn't counted. Try again." } });
     expect(db.spent).toEqual(["campaign-swap"]);
-    expect(db.refunded).toEqual([]);
+    expect(db.refunded).toEqual(["campaign-swap"]);
     openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think more chats mean more sales. Here is why that is wrong." }] });
     expect((await call(swap, "leo")).status).toBe(200);
+  });
+
+  it("gives a swap's use back when no post survives, and says so: 422 unusable (live-p5dog D3: 3 of 5 swaps kept the use)", async () => {
+    openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[1], hook: "", cta: "" }] });
+    expect(await call(SWAP, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The new words couldn't be used, so this swap wasn't counted. Try again." } });
+    expect(db.spent).toEqual(["campaign-swap"]);
+    expect(db.refunded).toEqual(["campaign-swap"]);
   });
 
   it("answers the daily limit with 429 and calls nothing", async () => {
