@@ -443,22 +443,23 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
     }
   });
 
-  it("refuses a swap whose hook shares 4 words in a row with a used one: 422 unusable, use given back (live check, calls/013)", async () => {
+  it("refuses a swap whose hook shares 4 words in a row with a used one: 422 unusable, use kept (live check, calls/013)", async () => {
     const formula = { name: "Contrarian", template: "Most [audience] think [belief]. Here is why that is wrong." };
     const swap = { ...CAMPAIGN, swap: true, posts: [{ ...askOf(1, "text-post"), formula }], avoid: ["Most sales managers think visibility means reading every chat. Here is why that is wrong."] };
     openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think visibility means checking every chat. Here is why that is wrong." }] });
-    expect(await call(swap, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The new words couldn't be used, so this swap wasn't counted. Try again." } });
+    expect(await call(swap, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
     expect(db.spent).toEqual(["campaign-swap"]);
-    expect(db.refunded).toEqual(["campaign-swap"]);
+    expect(db.refunded).toEqual([]);
     openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[0], hook: "Most sales teams think more chats mean more sales. Here is why that is wrong." }] });
     expect((await call(swap, "leo")).status).toBe(200);
   });
 
-  it("gives a swap's use back when no post survives, and says so: 422 unusable (live-p5dog D3: 3 of 5 swaps kept the use)", async () => {
+  // decision 3: a use comes back only when OpenAI never answered; a refund here would let a caller loop failing swaps for free
+  it("keeps a swap's use when no post survives: 422 unusable", async () => {
     openai = () => reply({ posts: [{ ...CAMPAIGN_REPLY.posts[1], hook: "", cta: "" }] });
-    expect(await call(SWAP, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The new words couldn't be used, so this swap wasn't counted. Try again." } });
+    expect(await call(SWAP, "leo")).toEqual({ status: 422, body: { code: "unusable", error: "The words that came back couldn't be used. Try again." } });
     expect(db.spent).toEqual(["campaign-swap"]);
-    expect(db.refunded).toEqual(["campaign-swap"]);
+    expect(db.refunded).toEqual([]);
   });
 
   it("answers the daily limit with 429 and calls nothing", async () => {
