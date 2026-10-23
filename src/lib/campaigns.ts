@@ -24,8 +24,8 @@ export interface CampaignPost {
   state: PostState; error?: string; draftId?: string;
   /** The writing call this post's batch went out under (campaignJob): a reload mid-call asks again under the same id. */
   ask?: string;
-  /** `text`: the words a wall's maker wrote, which the queue shows once it is made. */
-  made?: { kind: "draft" | "slideshow" | "video"; id: string; text?: string };
+  /** `text` and `caption`: the words and caption a wall's maker wrote, which the queue shows once it is made. */
+  made?: { kind: "draft" | "slideshow" | "video"; id: string; text?: string; caption?: string };
   prev?: { hook?: string; body?: string; script?: string; brief?: string; cta?: string };
 }
 

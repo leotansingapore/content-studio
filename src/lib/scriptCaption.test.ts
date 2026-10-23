@@ -132,6 +132,11 @@ describe("postFill", () => {
     expect(f.say.text.endsWith("out loud.")).toBe(true);
   });
 
+  it("carries the caption under the script's heading, and none for a post with no heading (live-p5dog D3)", () => {
+    expect(postFill(entry, limits)!.caption).toBe("Save this. #cpf");
+    expect(postFill({ ...entry, draft: script }, limits)!.caption).toBe("");
+  });
+
   it("is null for a post with nothing to say yet", () => {
     expect(postFill({ ...entry, draft: "" }, limits)).toBeNull();
     expect(postFill({ ...entry, draft: "HOOK: Idea only\n[B-roll]" }, limits)).toBeNull();

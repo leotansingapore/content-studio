@@ -7,10 +7,12 @@
 // it; they count as made once the editor has the video. An AI video with no saved "Who appears" opens the AI video
 // maker on that draft instead. Swap writes one post again (idea-dump mode campaign, swap, cap campaign-swap) and
 // keeps the old words for Undo. A make in this tab is in memory: a reload leaves the post "making", and the queue
-// picks it up (a paid AI video waiting on this device, at no cost) or puts it back to ready (resumeMakes).
+// picks it up (a paid AI video waiting on this device, at no cost) or puts it back to ready (resumeMakes). Make on a
+// post whose paid video still waits (over 20 minutes at Higgsfield) picks it up the same way and never pays again.
 
 import { aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import { loadAudiences } from "@/lib/audiences";
+import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
 import { dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignPost } from "@/lib/campaigns";
@@ -45,6 +47,7 @@ export const SWAP_CAP_LINE = `You've used all ${DAILY_LIMITS["campaign-swap"]} s
 export const SHOW_BUSY = "Another slideshow is being made. Wait for it to finish.";
 export const WALL_BUSY = "Another wall of text is being made. Wait for it to finish.";
 export const AI_BUSY = "Another AI video is being made. Wait for it to finish.";
+export const AI_WAITING = "Another AI video is still being made. Make this one once it's in the editor.";
 export const VIDEO_FAILED = "The AI video could not be made.";
 export const STOPPED_LINE = "This make stopped before it finished. Press Make to try again.";
 export const SHORT_SCRIPT = `This script is under ${speakingWords(15).low} words, too short to speak as written. Edit or swap it first.`;
@@ -65,16 +68,23 @@ export function postText(p: Pick<CampaignPost, "format" | (typeof FIELDS)[number
   return [p.hook, middle, p.cta].map((t) => t?.trim()).filter(Boolean).join("\n\n");
 }
 
+/** An AI video post's caption: the writer's caption (body) and the call to action, or the call to action alone. */
+export const videoCaption = (p: Pick<CampaignPost, "body" | "cta">) => [p.body, p.cta].map((t) => t?.trim()).filter(Boolean).join("\n\n");
+
 /** A carousel's slides as the queue shows them and as /carousel?draft= rebuilds them from the made draft. */
 export const postSlides = (p: Pick<CampaignPost, "format" | (typeof FIELDS)[number]>) => splitDraftIntoSlides(postText(p), { hook: p.hook ?? "" }).slides;
 
-/** The scheduled My posts entry for a post: a wall and an AI video wait in it as a short video script. */
+/**
+ * The scheduled My posts entry for a post: a wall and an AI video wait in it as a short video script, an AI video's
+ * with its caption under it in Clone a reel's shape (script, a --- line, CAPTION:), which the AI panel carries to the editor.
+ */
 export function postDraft(userId: string, c: Pick<Campaign, "id" | "audience" | "angles" | "platforms">, p: CampaignPost, now: Date): DraftEntry {
+  const caption = p.format === "ai-video" ? videoCaption(p) : "";
   return {
     id: draftIdOf(c.id, p.n),
     createdAt: now.toISOString(),
     hook: p.hook ?? "",
-    draft: postText(p),
+    draft: caption ? `${postText(p)}\n\n---\n\nCAPTION:\n${caption}` : postText(p),
     pillar: p.pillar,
     pillarDetail: c.angles.find((a) => a.id === p.angleId)?.title ?? "",
     audience: loadAudiences(userId).find((a) => a.id === c.audience)?.lifeStage ?? "general",
@@ -203,9 +213,10 @@ async function makeShow(userId: string, c: Campaign, p: CampaignPost, now: Date)
 }
 
 /** Marks the post made once the editor has its video; else back to ready (the draft goes unless a paid video still waits for it). */
-function settle(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n">, draftId: string, done: boolean, error: string, what: string, text?: string): MakeOutcome {
+function settle(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n">, draftId: string, done: boolean, error: string, what: string, wrote?: { text?: string; caption?: string }): MakeOutcome {
   if (done) {
-    updatePost(userId, c.id, p.n, { state: "made", draftId, made: { kind: "video", id: draftId, ...(text ? { text } : {}) }, error: undefined });
+    const { text, caption } = wrote ?? {};
+    updatePost(userId, c.id, p.n, { state: "made", draftId, made: { kind: "video", id: draftId, ...(text ? { text } : {}), ...(caption ? { caption } : {}) }, error: undefined });
     return { ok: true, toast: `Post ${p.n}'s ${what} is in the editor. Check it and export it there.`, undo: undoOf(userId, c.id, p.n) };
   }
   if (pendingAvatar()?.extra?.draftId === draftId) updatePost(userId, c.id, p.n, { error });
@@ -233,8 +244,8 @@ async function makeWall(userId: string, c: Campaign, p: CampaignPost, now: Date)
       off();
       busy(k, null);
       const done = !!j && j.id === id && (j.state === "joining" || j.state === "done");
-      // the words the wall maker wrote, which the queue shows in place of the hook and brief (live-p5dog D8)
-      resolve(settle(userId, c, p, d.id, done, (j?.id === id && j.error) || WALL_FAILED, "wall of text", done ? j?.written?.text : undefined));
+      // the words and caption the wall maker wrote, which the queue shows in place of the hook and brief (live-p5dog D8)
+      resolve(settle(userId, c, p, d.id, done, (j?.id === id && j.error) || WALL_FAILED, "wall of text", done ? j?.written : undefined));
     }, "wall");
     void startWall(userId, { source: null, about: p.hook ?? "", note: p.brief ?? "", mention: true, bg: "stock", draftId: d.id });
     const j = wallJob("wall");
@@ -252,6 +263,13 @@ export function savedWho(userId: string): TalkWho | null {
   const s = speakers(userId);
   const who = defaultWho(s);
   return who && speakerOf(s, who) ? (who as TalkWho) : null;
+}
+
+/** The voice for who appears: a presenter's own (one that fits their look), else the remix voice remembered. */
+function voiceFor(userId: string, who: TalkWho) {
+  const remembered = loadRemixPrefs(userId).voice;
+  const sp = speakerOf(speakers(userId), who);
+  return sp?.person === "presenter" ? presenterVoice(sp.p, remembered) : remembered;
 }
 
 /** Follows the talking head run `start` begins or picks up (true when it did) until the editor has the video, or it stops. */
@@ -277,7 +295,20 @@ function followTalk(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPos
   });
 }
 
+/** The paid video waiting on this device for this post (one that took over 20 minutes), else null. */
+export const waitingFor = (c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n" | "draftId">) => {
+  const w = pendingAvatar();
+  return w?.extra?.draftId && w.extra.draftId === (p.draftId ?? draftIdOf(c.id, p.n)) ? w : null;
+};
+
 async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date): Promise<MakeOutcome> {
+  // its paid video is still waiting here: Make picks it up at no cost and never pays again (live-p5dog D4)
+  if (waitingFor(c, p)) {
+    if (aiBusy() || talkBusy()) return { ok: false, error: AI_BUSY };
+    const draftId = p.draftId ?? draftIdOf(c.id, p.n);
+    if (!updatePost(userId, c.id, p.n, { state: "making", draftId, error: undefined })) return { ok: false, error: SAVE_LINE };
+    return followTalk(userId, c, p, draftId, () => resumeTalk(userId));
+  }
   const who = savedWho(userId);
   const d = postDraft(userId, c, p, now);
   if (!who) {
@@ -286,6 +317,8 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     return made.ok ? { ...made, toast: `Post ${p.n} is on your calendar for ${whenText(p)}. Pick who appears to make the video.`, open: links.edit({ panel: ["ai"], kind: "avatar", draft: d.id }) } : made;
   }
   if (aiBusy() || talkBusy()) return { ok: false, error: AI_BUSY };
+  // another post's paid video waits on this device, and a new one would take its place
+  if (pendingAvatar()) return { ok: false, error: AI_WAITING };
   const script = (p.script ?? "").trim();
   // the talking head writes a fresh script from anything shorter, which would spend a remix and change the words
   if (asTopic(script, 15)) return { ok: false, error: SHORT_SCRIPT };
@@ -295,7 +328,8 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     return { ok: false, error: SAVE_LINE };
   }
   return followTalk(userId, c, p, d.id, () => {
-    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: loadRemixPrefs(userId).voice, length: 15, mention: true, draftId: d.id });
+    // the post's own caption and call to action go to the editor with it (live-p5dog D3)
+    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: voiceFor(userId, who), length: 15, mention: true, caption: videoCaption(p), draftId: d.id });
     return talkJob()?.ask?.draftId === d.id;
   });
 }
@@ -312,7 +346,7 @@ export function resumeMakes(userId: string, campaignId: string): Promise<MakeOut
   for (const p of c.posts) {
     if (p.state !== "making" || makerOf(c.id, p.n)) continue;
     const draftId = p.draftId ?? draftIdOf(c.id, p.n);
-    if (p.format === "ai-video" && pendingAvatar()?.extra?.draftId === draftId) {
+    if (p.format === "ai-video" && waitingFor(c, { ...p, draftId })) {
       if (!aiBusy() && !talkBusy()) out.push(followTalk(userId, c, p, draftId, () => resumeTalk(userId)));
     } else updatePost(userId, c.id, p.n, { state: "ready", error: STOPPED_LINE });
   }

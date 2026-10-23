@@ -204,7 +204,7 @@ import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "
 import { FAST, isFast } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { MAX_WATCH_SECONDS, WATCH_LABELS, onWatchJob, startWatch, watchJob, type WatchJob } from "@/lib/watchCut";
-import { fileKey, suggestCutaways, loadFixes, loadProjects, pickKeyWords, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { aiChips, fileKey, suggestCutaways, loadFixes, loadProjects, pickKeyWords, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
@@ -213,6 +213,7 @@ import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestNa
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
 import { onCaptionJob, startCaptions } from "@/lib/captionJob";
+import { scriptWords } from "@/lib/subtitleImport";
 import { onClipFind, runClipAsk, setClipAsk, startLook, type ClipAsk } from "@/lib/clipAsk";
 import { FEW_WORDS, LEO_PANELS, NO_SOUND, START_PANELS, footageWords, readsLonger, withPanel, type StartPanel } from "@/lib/ownMedia";
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
@@ -364,18 +365,26 @@ export default function VideoEditPage() {
         open("no-captions");
         return;
       }
-      setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
+      // an AI video says its script word for word: its captions are timed from it and nothing is transcribed (live-p5dog D8)
+      const said = pickupPlan(extra, "captions").said;
+      if (!said) setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       let landed = false;
       let silent = false;
       try {
-        // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker"), and ask Whisper to spell their fixed words
-        const mine = [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])];
-        const t = await transcribe(heard.wav, undefined, leo ? captionTerms(mine) : undefined);
-        const fixed = applyFixes(t.words, mine);
-        p = { ...p, words: fixed.words };
-        setProjects(saveProject(uid, p));
-        landed = true;
-        if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
+        if (said) {
+          p = { ...p, words: scriptWords(said, duration) };
+          setProjects(saveProject(uid, p));
+          landed = true;
+        } else {
+          // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker"), and ask Whisper to spell their fixed words
+          const mine = [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])];
+          const t = await transcribe(heard.wav, undefined, leo ? captionTerms(mine) : undefined);
+          const fixed = applyFixes(t.words, mine);
+          p = { ...p, words: fixed.words };
+          setProjects(saveProject(uid, p));
+          landed = true;
+          if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
+        }
       } catch (e) {
         silent = (e as Error).message === NO_SOUND;
         // footage from the own panel with no sound gets words on screen below instead
@@ -2012,6 +2021,8 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const zone = coverApp && settings.aspect === "9:16" ? APP_COVER[coverApp] : null;
   const covered = coverApp ? appCover(settings, coverApp) : null;
 
+  const chips = leo ? aiChips(project.ai) : [];
+
   if (file === null) {
     return (
       <div className="space-y-3">
@@ -2027,7 +2038,14 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onBack} className="[@media(pointer:coarse)]:min-h-11">All videos</Button>
-        <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
+        <h1 className={`${chips.length ? "" : "mr-auto "}truncate font-serif text-xl font-semibold`}>{project.name}</h1>
+        {chips.length > 0 && (
+          // people-ai-labels, Leo only: what the studio's AI made in this video (live-p5dog D2)
+          <span className="mr-auto flex items-center gap-1">
+            {chips.map((chip) => <span key={chip} className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary">{chip}</span>)}
+            <InfoTip label="About the AI label">{"Made by Content Studio's AI. Posts from it get the AI label."}</InfoTip>
+          </span>
+        )}
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
         <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         {settings.exportAs !== "audio" && settings.exportAs !== "small" && (

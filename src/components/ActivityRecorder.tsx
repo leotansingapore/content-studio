@@ -8,7 +8,7 @@
 import { useEffect } from "react";
 import { logActivity, type NewActivity } from "@/lib/activity";
 import { AI_FOLDER, imageJob, onImageJob, type ImageJob } from "@/lib/aiImage";
-import { aiJob, onAiJob, type AiJob } from "@/lib/aiVideo";
+import { STILL_MAKING, aiJob, onAiJob, type AiJob } from "@/lib/aiVideo";
 import { loadDrafts } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
 import { AS_NOUN, type RemixAs } from "@/lib/remix";
@@ -69,7 +69,8 @@ const AI_NOUN: Record<AiJob["kind"], string> = { presenter: "presenter picture",
 const aiEnded: Ended<AiJob> = (b, j) => {
   if (b.kind !== j.kind || b.state !== "working" || j.state === "working") return null;
   if (j.state === "done") return { who: "you", kind: "make", title: `Made ${a(AI_NOUN[j.kind])}`, link: links.edit() };
-  return { who: "you", kind: "make", title: `The ${AI_NOUN[j.kind]} could not be made`, detail: j.error, link: links.edit() };
+  // over 20 minutes at Higgsfield is not a failure: the paid video is kept and picked up later
+  return { who: "you", kind: "make", title: `The ${AI_NOUN[j.kind]} ${j.error === STILL_MAKING ? "is still being made" : "could not be made"}`, detail: j.error, link: links.edit() };
 };
 
 const imageBusy = (j: ImageJob) => j.state === "working" || j.state === "saving";

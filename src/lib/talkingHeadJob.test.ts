@@ -127,7 +127,8 @@ describe("one press", () => {
     const [name, face, , extra] = ai.makeAvatar.mock.calls[0];
     expect(name).toBe(SCRIPT.slice(0, 40));
     expect(face).toBe("https://cdn.example/car.png");
-    expect(extra).toEqual({ toast: TALK_TOAST, caption: "Three calls before nine. #sales", ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
+    // the script the voice says rides along, so the editor captions it from the script and transcribes nothing (live-p5dog D8)
+    expect(extra).toEqual({ toast: TALK_TOAST, caption: "Three calls before nine. #sales", said: SCRIPT, ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
     expect(talkJob()).toMatchObject({ state: "done", script: SCRIPT });
     // the script is cleared after a make; the presenter is kept for the next press
     expect(loadTyped("u1").script).toBe("");
@@ -154,7 +155,7 @@ describe("one press", () => {
     expect(order).toEqual(["speak george", "avatar"]);
     expect(steps[0]).toBe("voice:Making the voiceover...");
     expect(ai.makeAvatar.mock.calls[0][1]).toBe(photo);
-    expect(ai.makeAvatar.mock.calls[0][3]).toEqual({ toast: TALK_TOAST, ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
+    expect(ai.makeAvatar.mock.calls[0][3]).toEqual({ toast: TALK_TOAST, said: SCRIPT, ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
   });
 
   it("keeps a Clone a reel result's own script and caption, writing nothing, and names the source in the editor", async () => {
@@ -331,12 +332,14 @@ describe("a paid video", () => {
 describe("the editor's extra without a draftId", () => {
   it("makes the video with today's keys, straight through and after the price check", async () => {
     await startTalk("u1", ASK);
-    expect(Object.keys(ai.makeAvatar.mock.calls[0][3]).sort()).toEqual(["ai", "caption", "toast"]);
+    // plus the script said (live-p5dog D8), which the editor captions from instead of transcribing
+    expect(Object.keys(ai.makeAvatar.mock.calls[0][3]).sort()).toEqual(["ai", "caption", "said", "toast"]);
     ai.slice.mockResolvedValue(voiceOf(21, [9.5, 9.5, 2]));
     await startTalk("u1", ASK);
     expect(talkJob()?.state).toBe("priced");
     await goOnAtPrice("u1");
-    expect(Object.keys(ai.makeAvatar.mock.calls[1][3]).sort()).toEqual(["ai", "caption", "toast"]);
+    expect(Object.keys(ai.makeAvatar.mock.calls[1][3]).sort()).toEqual(["ai", "caption", "said", "toast"]);
+    expect(ai.makeAvatar.mock.calls[1][3].said).toBe(SCRIPT);
   });
 
   it("carries a campaign post's draftId to the editor, straight through and after the price check", async () => {

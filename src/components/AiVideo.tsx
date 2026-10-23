@@ -53,6 +53,8 @@ const cost = (credits: number) => `${credits} Higgsfield credits (about US$${cre
 const KINDS = ["template", "montage", "avatar", "explainer"] as const;
 type Kind = (typeof KINDS)[number];
 
+const WAITING = "Your last video is paid for and still being made. Pick it up with Try again at no cost first.";
+
 /** "What you say" holds 600 characters; a post fills it with whole sentences that also fit 30 s at 2.5 words a second. */
 const SAY_MAX = 600;
 const FILL = { say: SAY_MAX, sayWords: MAX_AVATAR_SECONDS * 2.5, theme: MAX_THEME, line: MAX_FIELD };
@@ -150,7 +152,7 @@ function Montage({ busy, left: panelLeft, fill }: { busy: boolean; left: Left; f
   const running = montageBusy();
   const off = busy || running;
   const makeRef = useRef<HTMLButtonElement>(null);
-  useFill(fill, off, (f) => {
+  useFill(fill, (f) => {
     setTheme(f?.theme ?? "");
     if (f) focusSoon(makeRef);
   });
@@ -223,7 +225,7 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
   // kept across templates, so a product typed once carries over
   const [fields, setFields] = useState<Partial<Record<FieldKey, string>>>({});
   // a post's first spoken sentence is "What they say" on every template that has that field
-  useFill(fill, busy, (f) => setFields((x) => ({ ...x, line: f?.line ?? "" })));
+  useFill(fill, (f) => setFields((x) => ({ ...x, line: f?.line ?? "" })));
   const [photos, setPhotos] = useState<Partial<Record<PhotoRole, { file: File; url: string }>>>({});
   const [seconds, setSeconds] = useState<ClipSeconds>(8);
   const [quality, setQuality] = useState<ClipQuality>("720p");
@@ -451,7 +453,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const [photoUrl, setPhotoUrl] = useState("");
   const [look, setLook] = useState(() => LOOKS[Math.floor(Math.random() * LOOKS.length)]);
   const [presenter, setPresenter] = useState(job?.kind === "presenter" && job.state === "done" ? job.url ?? "" : "");
-  const [script, setScript] = useState("");
+  // a post's script from the first paint, even while another video is being made (live-p5dog D7)
+  const [script, setScript] = useState(() => fill?.say.text ?? "");
   const [localVoice, setVoice] = useState<VoiceId>("alice");
   const [vo, setVo] = useState<(Voiceover & { url: string }) | null>(null);
   const [voBusy, setVoBusy] = useState(false);
@@ -532,7 +535,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   }, []);
   // a post's script (edit-video): filled once, then the voiceover is the next press
   const voiceRef = useRef<HTMLButtonElement>(null);
-  useFill(fill, busy, (f) => {
+  useFill(fill, (f) => {
     setScript(f?.say.text ?? "");
     setVo(null);
     setUndo(null);
@@ -648,6 +651,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const price = vo ? priceOf("ai-video", { slices: vo.slices.map((s) => s.end - s.start) }) : null;
   // Leo's dearer presses ask first (phase 1: anything over about a dollar)
   const askFirst = !!user && !!price && price !== "pick" && price.usd >= 1;
+  // Leo: a paid video still waiting on this device would be replaced by a new one, so it is picked up first (live-p5dog D4)
+  const waiting = !!user && !busy && !!pendingAvatar();
   const make = async () => {
     setAsking(false);
     let topKey: string | undefined;
@@ -659,8 +664,9 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
     const talked = user
       ? talkExtra({ talk, headline, setKey: (people ? !!speaker : face === "photo") && behind === "set" && setUrl ? setKey : null, offer: offerName, brand: loadBrand(user.id)?.name, topKey })
       : undefined;
-    // made from a post: the editor saves its caption back there, even after a reload mid-make (Pending keeps extra)
-    const extra = fill ? { ...talked, draftId: fill.id } : talked;
+    // made from a post: the editor saves its caption back there, even after a reload mid-make (Pending keeps extra), and
+    // opens with the post's own caption when it has one (a campaign's AI video post, live-p5dog D3)
+    const extra = fill ? { ...talked, draftId: fill.id, ...(fill.caption ? { caption: fill.caption } : {}) } : talked;
     const name = script.trim().slice(0, 40) || "AI video";
     if (!people) return void makeAvatar(name, image as File | string, vo!, extra);
     // Leo: your face, or a saved presenter's link while it answers and its copy after; the mark says who and which voice
@@ -669,7 +675,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
     setStarting(false);
     // a saved picture that no longer reads: nothing is sent or spent
     if (!sent) return setVoError(speaker?.person === "mine" ? "Your saved face didn't open. Record it again on Faces and voices." : "That presenter's picture didn't open. Pick who speaks again.");
-    void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice) });
+    // a premade voice says the box word for word, so the editor captions it from the script with no transcribe
+    void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice), ...(own ? {} : { said: script.trim() }) });
   };
   // New presenter (AI presenter for everyone else): today's look box
   const presenterBox = (
@@ -903,9 +910,10 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0 || starting || !!rec}
+              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0 || starting || !!rec || waiting}
                 onClick={() => (askFirst ? setAsking(true) : void make())}>{starting ? "Sending..." : "Make the video"}</Button>
-              {!image && (
+              {waiting && <span className="text-xs text-muted-foreground">{WAITING}</span>}
+              {!image && !waiting && (
                 <span className="text-xs text-muted-foreground">
                   {people ? (who === "presenter" ? "Make the presenter first." : who === "mine" ? "Save your face first." : "Pick who speaks first.")
                     : face === "photo" ? "Pick a photo first." : "Make the presenter first."}
@@ -1330,15 +1338,19 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
 }
 
 /** Runs `apply` once per post a ?draft= link brings, and with null once it is cleared; never while a video is being made. */
-function useFill(fill: PostFill | null, off: boolean, apply: (f: PostFill | null) => void) {
+/**
+ * Fills a form from the post once per post, at once: a video being made meanwhile (another post's, picked up at no
+ * cost) only keeps Make off, and never holds the post's words back (live-p5dog D7: the box opened empty).
+ */
+function useFill(fill: PostFill | null, apply: (f: PostFill | null) => void) {
   const done = useRef<string | null>(null);
   useEffect(() => {
     const id = fill?.id ?? null;
-    if (off || id === done.current) return;
+    if (id === done.current) return;
     done.current = id;
     apply(fill);
     // apply only sets state, so a new one each render changes nothing
-  }, [fill, off]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fill]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /** The next press, focused once the filled form has drawn; the page doesn't jump, so the strip above stays in view. */

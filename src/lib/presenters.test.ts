@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  FULL, MAX_ON, MAX_PHOTO, PRESENTERS_CHANGED, keepPresenter, loadPresenters, nameFor, onPresenters, removePresenter, renamePresenter, savePrefs, setWho,
+  FULL, MAX_ON, MAX_PHOTO, PRESENTERS_CHANGED, keepPresenter, loadPresenters, nameFor, onPresenters, presenterVoice, removePresenter, renamePresenter, savePrefs, setWho,
 } from "./presenters";
 import { addProfile, setActiveProfile } from "./profiles";
 
@@ -127,5 +127,23 @@ describe("saved presenters", () => {
     expect(nameFor("An Indian Singaporean man in his 40s, short neat hair", [])).toBe("Raj");
     expect(nameFor("A Eurasian Singaporean woman in her 50s, cream blouse", [])).toBe("Sarah");
     expect(nameFor("Someone typed by hand", [])).toBe("Mei");
+  });
+});
+
+describe("a presenter's voice (live-p5dog D1: Raj spoke in Alice's voice)", () => {
+  const RAJ = { look: "An Indian Singaporean man in his mid 30s, a side-parted crop, dark suit and a plain tie" };
+  const AISHA = { look: "A Malay Singaporean woman in her 30s, light grey hijab, cream blouse, warm smile" };
+
+  it("gives a man a male voice and a woman a female one over the remembered voice", () => {
+    expect(presenterVoice(RAJ, "alice")).toBe("eric");
+    expect(presenterVoice(RAJ, "matilda")).toBe("eric");
+    expect(presenterVoice(AISHA, "george")).toBe("alice");
+  });
+
+  it("keeps the remembered voice when it already fits, or when the look names neither", () => {
+    expect(presenterVoice(RAJ, "george")).toBe("george");
+    expect(presenterVoice(RAJ, "liam")).toBe("liam");
+    expect(presenterVoice(AISHA, "sarah")).toBe("sarah");
+    expect(presenterVoice({ look: "Someone typed by hand" }, "lily")).toBe("lily");
   });
 });

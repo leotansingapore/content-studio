@@ -113,6 +113,54 @@ describe("the side column on a script post (live-p5w4 N5: the caption repeated t
   it("keeps a text post's caption", () => {
     expect(html(1)).toContain("Caption | LinkedIn");
   });
+
+  it("shows an AI video post's own caption, the writer's body and its call to action (live-p5dog D3)", () => {
+    const post4 = CAMPAIGN.posts.find((p) => p.n === 4)!;
+    const withBody: Campaign = { ...CAMPAIGN, posts: [{ ...post4, body: "Client details and chats can live in one place." }] };
+    const out = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign: withBody, angle: null })));
+    expect(out).toContain("Caption | LinkedIn");
+    expect(out).toContain("Client details and chats can live in one place.\n\nSave this for your workflow, or share it with someone managing client conversations.</p>");
+  });
+});
+
+describe("an AI video post whose paid video is still being made after 20 minutes (live-p5dog D4)", () => {
+  const STILL = "Your video is still being made. It&#x27;s picked up at no cost when you come back.";
+  const post4 = CAMPAIGN.posts.find((p) => p.n === 4)!;
+  const render = (pending: string) => {
+    const m = new Map([["cs-ai-video-pending", pending]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => m.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+    const campaign: Campaign = { ...CAMPAIGN, posts: [{ ...post4, state: "making", draftId: `cmp_${CAMPAIGN.id}_4`, error: STILL.replace("&#x27;", "'") }] };
+    return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("says so, and Make becomes Check again with no price, even with no AI videos left today", () => {
+    fake.left = { "ai-video": 0, "ai-voice": 0 };
+    fake.who = "presenter";
+    const out = render(JSON.stringify({ name: "x", tokens: ["t1", "t2"], seconds: [9.5, 6], extra: { draftId: `cmp_${CAMPAIGN.id}_4` } }));
+    expect(out).toContain(STILL);
+    expect(makeButton(out)).not.toContain('disabled=""');
+    expect(out).toContain('aria-keyshortcuts="1">Check again<');
+    expect(out).not.toContain("About US$2.77");
+  });
+
+  it("reads Made, not Check again, once the post is made while its video is still being joined", () => {
+    const pending = JSON.stringify({ name: "x", tokens: ["t1", "t2"], seconds: [9.5, 6], extra: { draftId: `cmp_${CAMPAIGN.id}_4` } });
+    const m = new Map([["cs-ai-video-pending", pending]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => m.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+    const campaign: Campaign = { ...CAMPAIGN, posts: [{ ...post4, state: "made", draftId: `cmp_${CAMPAIGN.id}_4`, made: { kind: "video", id: `cmp_${CAMPAIGN.id}_4` } }] };
+    const out = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
+    expect(out).not.toContain("Check again");
+    expect(out).toContain("Made. Open it in the editor");
+  });
+
+  it("keeps a paid Make off while another post's paid video waits on this device", () => {
+    fake.left = { "ai-video": 2, "ai-voice": 4 };
+    fake.who = "presenter";
+    const out = render(JSON.stringify({ name: "x", tokens: ["t1"], seconds: [9.5], extra: { draftId: "cmp_c-other_2" } }));
+    expect(makeButton(out)).toContain('disabled=""');
+    expect(out).toContain("Another AI video is still being made. Make this one once it&#x27;s in the editor.");
+  });
 });
 
 describe("a made slideshow or wall shows what was made (live-p5dog D8: post 6's cover said something else than the hook above it)", () => {
@@ -145,6 +193,20 @@ describe("a made slideshow or wall shows what was made (live-p5dog D8: post 6's 
     const out = render(7);
     expect(out).toContain("You finish a client chat, then the next one starts.");
     expect(out).not.toContain(BRIEF);
+  });
+
+  it("shows a made wall's own caption, not the line for before Make (live-p5dog day 2)", () => {
+    const wall = made(8, "wall", { kind: "video", id: "cmp_c-mvjda76zrjdr_8", text: "Words.", caption: "Keep the next step close.\n\nSave this." });
+    const out = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${campaign.id}?post=8`] }, createElement(CampaignQueue, { userId: "u-1", campaign: { ...campaign, posts: [wall] }, angle: null })));
+    expect(out).toContain("Keep the next step close.\n\nSave this.");
+    expect(out).not.toContain("The caption is written when you press Make.");
+  });
+
+  it("reads a wall made before its caption was kept from the editor's project", () => {
+    window.localStorage.setItem("content-studio-videoprojects-u-1", JSON.stringify([{ id: "v1", draftId: "cmp_c-mvjda76zrjdr_7", caption: "The editor's caption." }]));
+    const out = render(7);
+    expect(out).toContain("The editor&#x27;s caption.");
+    expect(out).not.toContain("The caption is written when you press Make.");
   });
 
   it("shows the made words on the grid's cards too", () => {

@@ -16,10 +16,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { aiBusy } from "@/lib/aiVideo";
+import { STILL_MAKING, aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import {
-  AI_BUSY, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
-  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, whenText, type MakeOutcome,
+  AI_BUSY, AI_WAITING, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
+  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, videoCaption, waitingFor, whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
 import { AI_VIDEO, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
@@ -34,6 +34,7 @@ import { links } from "@/lib/links";
 import { MAS_FLAG } from "@/lib/presenter";
 import { priceText } from "@/lib/prices";
 import { loadSlideshows } from "@/lib/slideshow";
+import { loadProjects } from "@/lib/videoProjects";
 import { lookOf } from "@/lib/slideshowDraw";
 import { onSlideshowJob, slideshowBusy, slideshowJob, stepText as showStep } from "@/lib/slideshowJob";
 import { platformName } from "@/lib/socialConnect";
@@ -106,6 +107,13 @@ function useFontsReady(want: boolean) {
 /** What a made slideshow or wall says: the slideshow's cover, else the wall's words; null before Make (the hook and brief show). */
 const madeWords = (p: CampaignPost, show: { title: string } | undefined) =>
   p.state !== "made" ? null : p.made?.kind === "slideshow" ? (show?.title ?? null) : (p.made?.text ?? null);
+
+/**
+ * A made slideshow's or wall's caption: the slideshow's, the wall's as its maker wrote it, else the editor's (a wall
+ * made before captions were kept with the post); "" before Make.
+ */
+const madeCaption = (userId: string, p: CampaignPost, show: { caption?: string } | undefined) =>
+  p.state !== "made" ? "" : show?.caption || p.made?.caption || (p.made?.kind === "video" && p.draftId ? loadProjects(userId).find((x) => x.draftId === p.draftId)?.caption : "") || "";
 
 /** A carousel's slides drawn the way /carousel draws them from the same words, with the brand kit; nothing is stored. */
 function CarouselSlides({ userId, p, all }: { userId: string; p: CampaignPost; all: boolean }) {
@@ -207,7 +215,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   // ---- after the hooks ----
 
   const report = (r: MakeOutcome) => {
-    if (r.ok === false) return void toast({ title: r.error, variant: "destructive" });
+    // a video still being made after 20 minutes hasn't failed: it is picked up later at no cost (live-p5dog D4)
+    if (r.ok === false) return void toast({ title: r.error, ...(r.error === STILL_MAKING ? {} : { variant: "destructive" as const }) });
     if (r.toast) toast({ title: r.toast, duration: 5000, action: <ToastAction altText="Undo" onClick={r.undo}>Undo</ToastAction> });
   };
   const goTo = (n: number) => setPostParam(String(n));
@@ -228,6 +237,9 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const swapping = isSwapping(c.id, cur.n);
   const who = cur.format === "ai-video" ? savedWho(userId) : null;
   const written = !!cur.hook && (cur.state === "ready" || (cur.state === "making" && !maker));
+  // its paid video is still waiting on this device: Make picks it up at no cost, with no price and no ask
+  // (a made post's job stays pending until the editor's join is done, which is not this)
+  const waiting = cur.format === "ai-video" && cur.state === "making" && !maker && !!waitingFor(c, cur);
 
   /** Why Make can't run on this post now; null when it can. */
   function makeReason(p: CampaignPost): string | null {
@@ -235,11 +247,13 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
     if (!p.hook || !(p.state === "ready" || p.state === "making")) return WRITING_LINE;
     if (p.format === "slideshow" && slideshowBusy()) return SHOW_BUSY;
     if (p.format === "wall" && wallBusy("wall")) return WALL_BUSY;
+    if (p.format === "ai-video" && waitingFor(c, p)) return aiBusy() || talkBusy() ? AI_BUSY : null;
     // with Ask each time Make only hands the script to the editor, which checks today's limits at its own Make
     if (p.format === "ai-video" && savedWho(userId)) {
       if (left("ai-video") === 0) return NO_VIDEOS;
       if (left("ai-voice") === 0) return NO_VOICES;
       if (aiBusy() || talkBusy()) return AI_BUSY;
+      if (pendingAvatar()) return AI_WAITING;
       if (asTopic(p.script ?? "", 15)) return SHORT_SCRIPT;
     }
     return null;
@@ -259,7 +273,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const make = (p: CampaignPost, asked: "full" | null = null) => {
     if (makeOff) return void (makeReason(p) && toast({ title: makeReason(p)! }));
     if (asked !== "full" && droppedHook(loadDrafts(userId))) return setConfirm("full");
-    if (p.format === "ai-video" && savedWho(userId)) return setConfirm("video");
+    if (p.format === "ai-video" && savedWho(userId) && !waitingFor(c, p)) return setConfirm("video");
     void run(p);
   };
   const swap = async (p: CampaignPost) => {
@@ -437,7 +451,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
       return (
         <div className="space-y-3">
           <p className="whitespace-pre-wrap rounded-lg border border-border/60 bg-card p-3 text-sm">{p.script}</p>
-          {p.state !== "made" &&
+          {p.state !== "made" && !waiting &&
             making(
               <>
                 {who ? `A 15-second AI video of ${who === "mine" ? "you" : "your presenter"} saying this script, made when you press Make.` : "A 15-second AI video of this script. You pick who appears when you press Make."}{" "}
@@ -515,14 +529,15 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
           ? band(p.format === "wall" ? "Made. Open it in the editor to check the words and export." : "Made. Open it in the editor to add captions and export.", links.edit(), "Open in editor")
           : band(`On your calendar for ${whenText(p)}.`, links.calendar({ post: p.draftId }), "Open in My posts"))}
         {p.state === "skipped" && <p role="status" className="text-sm">Skipped. Press Skip again to bring it back.</p>}
-        {p.error && p.state === "ready" && <p role="status" className="text-sm text-warning">{p.error}</p>}
+        {p.error && (p.state === "ready" || (p.state === "making" && !maker)) && <p role="status" className={`text-sm ${p.error === STILL_MAKING ? "text-muted-foreground" : "text-warning"}`}>{p.error}</p>}
         <div className={p.state === "skipped" ? "opacity-40" : ""}>{preview()}</div>
       </div>
     );
   };
 
   const action = (k: keyof typeof KEYS, label: ReactNode, onClick: () => void, off: boolean, primary = false) => (
-    <Button variant={primary ? "default" : "outline"} className={`${BIG} min-w-[4.5rem] flex-1 sm:flex-none`} aria-keyshortcuts={KEYS[k]} disabled={off} onClick={onClick}>
+    // Check again is too long for a quarter of a phone's row, so it takes the row (390 px)
+    <Button variant={primary ? "default" : "outline"} className={`${BIG} min-w-[4.5rem] flex-1 sm:flex-none ${primary && waiting ? "basis-full sm:basis-auto" : ""}`} aria-keyshortcuts={KEYS[k]} disabled={off} onClick={onClick}>
       {label}
       <Key k={KEYS[k]} />
     </Button>
@@ -554,7 +569,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <div className="min-w-0 space-y-4">
           {stage()}
           <div className="flex flex-wrap gap-2">
-            {action("make", maker || cur.state === "making" && !written ? "Making..." : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(AI_VIDEO)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
+            {action("make", maker || cur.state === "making" && !written ? "Making..." : waiting ? "Check again" : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(AI_VIDEO)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
             {action("swap", swapping ? "Swapping..." : "Swap", () => void swap(cur), swapOff || !!work)}
             {action("edit", "Edit", () => edit(cur), !!work || !!maker || swapping || !(cur.state === "made" || written))}
             {action("skip", "Skip", () => skip(cur), cur.state === "made" || cur.state === "drafting" || !!maker || swapping || !!work)}
@@ -613,12 +628,16 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
                 <Button variant="ghost" className={BIG} onClick={cancel}>Cancel</Button>
               </div>
             </div>
-          ) : cur.hook && cur.format !== "short-video" && cur.format !== "ai-video" ? (
-            // a script has no caption of its own: the stage shows it already (live-p5w4 N5)
+          ) : cur.hook && cur.format !== "short-video" && (cur.format !== "ai-video" || cur.body?.trim()) ? (
+            // a short video script has no caption of its own: the stage shows it already (live-p5w4 N5); an AI video
+            // post with the writer's caption (body) shows it with its call to action, as the editor opens with it (live-p5dog D3)
             <div className="space-y-1">
               <p className={LABEL}>Caption | {platformName(c.platforms[0] ?? "linkedin")}</p>
               <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {cur.format === "slideshow" || cur.format === "wall" ? (show?.caption || "The caption is written when you press Make.") : text}
+                {cur.format === "ai-video" ? videoCaption(cur)
+                  : cur.format === "slideshow" || cur.format === "wall"
+                    ? madeCaption(userId, cur, show) || (cur.state === "made" ? "Open it in the editor to see the caption." : "The caption is written when you press Make.")
+                    : text}
               </p>
             </div>
           ) : null}

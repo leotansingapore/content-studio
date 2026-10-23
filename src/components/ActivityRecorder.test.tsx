@@ -122,6 +122,13 @@ describe("the recorder", () => {
     ]);
   });
 
+  it("logs a kept avatar video still working after 20 minutes as still being made, not as failed (live-p5dog D4)", () => {
+    const still = "Your video is still being made. It's picked up at no cost when you come back.";
+    stores.ai.emit({ kind: "avatar", state: "working", step: "Making your video" });
+    stores.ai.emit({ kind: "avatar", state: "failed", step: "", error: still });
+    expect(rows()).toEqual([{ who: "you", kind: "make", title: "The avatar video is still being made", detail: still, link: "/edit" }]);
+  });
+
   it("logs a remix run once when it ends: its formats, hooks and first link, as the agent's when its draft says so", () => {
     store.set(`content-studio-drafts-${UID}`, JSON.stringify([{ id: "d1", agent: { thread: "t1", msg: "m1" } }]));
     const run = { id: 1, key: "", state: "working", step: "Writing your text post", run: {}, rows: [{ as: "post", state: "working" }, { as: "carousel", state: "waiting" }, { as: "script", state: "waiting" }] };

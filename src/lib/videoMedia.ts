@@ -75,7 +75,7 @@ import { withColdOpen } from "@/lib/coldOpen";
 import { gridWindow, placeCoverText, type Band } from "@/lib/igGrid";
 import type { RemixSource } from "@/lib/remixSource";
 import { EDIT_TABS, type EditTab } from "@/lib/links";
-import { aiOf, type AiMark } from "@/lib/videoProjects";
+import { aiOf, withAiLine, type AiMark } from "@/lib/videoProjects";
 
 // ---------- sound for captions ----------
 
@@ -1668,6 +1668,8 @@ export interface JoinExtra {
   topKey?: string;
   /** Written to project.ai: what the studio's AI made in the video. */
   ai?: AiMark;
+  /** What a premade voice says in it, word for word (an AI video's script): the editor times its captions from it, with no transcribe. */
+  said?: string;
 }
 
 /** The editor's paths for an upload: words over a video, a long recording, a video with no speech to caption, or one captioned now. */
@@ -1679,6 +1681,8 @@ export interface PickupPlan {
   toast: { title: string; description?: string } | null;
   /** Set beside ?p=; the default tab is left out. */
   tab?: EditTab;
+  /** The script the video says (JoinExtra.said): its captions are timed from it instead of transcribed. */
+  said?: string;
 }
 
 /**
@@ -1693,15 +1697,19 @@ export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): Pick
   const title = text(e.toast) ?? (path === "no-captions" && note ? "Your montage is ready" : undefined);
   const tab = EDIT_TABS.find((t) => t === e.tab && t !== "style");
   const ai = aiOf(e.ai);
+  const said = typeof e.said === "string" ? e.said.trim() : "";
+  // a video with an AI person or voice ends its caption with the AI line, which the person can edit (live-p5dog D2)
+  const caption = withAiLine(text(e.caption) ?? "", ai);
   return {
     keep: {
-      ...(text(e.caption) ? { caption: e.caption } : {}),
+      ...(caption ? { caption } : {}),
       ...(e.source && typeof e.source === "object" ? { source: e.source } : {}),
       ...(text(e.draftId) ? { draftId: e.draftId } : {}),
       ...(ai ? { ai } : {}),
     },
     toast: title ? { title, ...(note ? { description: note } : {}) } : null,
     ...(tab ? { tab } : {}),
+    ...(said ? { said } : {}),
   };
 }
 let joinJob: JoinJob | null = null;

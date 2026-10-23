@@ -126,6 +126,8 @@ export interface PostFill {
   theme: string;
   /** A template's "What they say": the first spoken sentence cut at a word. */
   line: string;
+  /** The caption under the script's caption heading, "" when it has none; the made video takes it to the editor. */
+  caption: string;
 }
 
 /**
@@ -139,7 +141,11 @@ export function postFill(entry: Pick<DraftEntry, "id" | "hook" | "draft" | "stor
   const said = beats.map((b) => String(b.say ?? "").trim()).filter(Boolean).join(" ");
   const first = sentencesOf(script)[0];
   const title = spokenScript(entry.hook ?? "") || first;
-  return { id: entry.id, title, say: fitScript(said || script, max.say, max.sayWords), theme: cutAtWord(title, max.theme), line: cutAtWord(first, max.line) };
+  const split = splitScriptCaption(entry.draft);
+  return {
+    id: entry.id, title, say: fitScript(said || script, max.say, max.sayWords), theme: cutAtWord(title, max.theme), line: cutAtWord(first, max.line),
+    caption: split.script ? split.caption : "",
+  };
 }
 
 export type MakeVideoKind = "avatar" | "explainer" | "montage" | "film";

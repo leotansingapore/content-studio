@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { aiOf, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
+import { AI_LINE, aiChips, aiOf, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { EdgeError } from "@/lib/edgeFn";
 
@@ -330,5 +330,16 @@ describe("transcribe", () => {
     expect(e).toMatchObject({ status: 429, code: "daily_limit", message: "You've used all 30 for today." });
     vi.stubGlobal("fetch", async () => new Response("", { status: 400 }));
     expect(await transcribe(new Blob(["wav"])).catch((x) => x)).toMatchObject({ status: 400, code: "", message: "The editor answered 400. Try again." });
+  });
+});
+
+describe("the AI label (people-ai-labels, live-p5dog D2)", () => {
+  const MADE = "2026-10-23T02:29:20.135Z";
+  it("names an AI person and an AI voice, and nothing for a video with neither", () => {
+    expect(aiChips({ kind: "avatar", person: "presenter", who: "pr-1", voice: "premade", voiceId: "alice", madeAt: MADE })).toEqual(["AI person", "AI voice"]);
+    expect(aiChips({ kind: "avatar", person: "mine", madeAt: MADE })).toEqual(["AI person"]);
+    expect(aiChips({ kind: "template", madeAt: MADE })).toEqual([]);
+    expect(aiChips(undefined)).toEqual([]);
+    expect(AI_LINE).toBe("This video uses an AI-made person or voice.");
   });
 });

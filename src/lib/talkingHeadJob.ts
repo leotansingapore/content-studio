@@ -42,7 +42,7 @@ export interface TalkAsk {
   voice: VoiceId;
   length: TalkLength;
   mention: boolean;
-  /** A Clone a reel result's own caption, carried to the editor with its script. */
+  /** A Clone a reel result's or a campaign post's own caption, carried to the editor with its script. */
   caption?: string;
   /** The My posts entry this video is made for (a campaign post): the editor's Save to your post updates it. */
   draftId?: string;
@@ -225,14 +225,18 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
 export function goOnAtPrice(userId: string): Promise<void> {
   const j = job;
   if (j?.state !== "priced" || !j.face || !j.voice || aiBusy()) return Promise.resolve();
-  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags }, j.ai, j.ask?.draftId));
+  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags, script: j.script }, j.ai, j.ask?.draftId));
 }
 
-/** The editor's hand-off: the toast, caption, note and source, the AI mark (who speaks and in which voice) and the post it is for. */
-function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags }, ai?: AiMark, draftId?: string): JoinExtra {
+/**
+ * The editor's hand-off: the toast, caption, note and source, the AI mark (who speaks and in which voice), the post it
+ * is for, and the script the premade voice says, so the editor captions it from the script with no transcribe.
+ */
+function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags; script?: string }, ai?: AiMark, draftId?: string): JoinExtra {
   return {
     toast: TALK_TOAST,
     ...(w.caption ? { caption: w.caption } : {}),
+    ...(w.script?.trim() ? { said: w.script.trim() } : {}),
     ...(noteOf(source, w.flags) ? { note: noteOf(source, w.flags) } : {}),
     ...(source ? { source: { ...source, remixedAt: new Date().toISOString() } } : {}),
     ...(ai ? { ai } : {}),
