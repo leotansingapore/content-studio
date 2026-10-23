@@ -156,6 +156,13 @@ export function applyBrandLink(userId: string, wanted: string | null): "reload" 
   return activeProfileId(userId) === wanted ? "reload" : "drop";
 }
 
+/** The brand a business is (a ?business= link, a team post's group): by its name or the posts-board brand it owns. */
+export function profileForBusiness(userId: string, business: string | null): string | null {
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, ""); // channelFeeds' businessKey; importing it would loop
+  if (!business || !key(business)) return null;
+  return loadProfiles(userId).find((p) => key(p.name) === key(business) || (p.boardBrand && key(p.boardBrand) === key(business)))?.id ?? null;
+}
+
 /** The id per-profile stores key their data on. */
 export function scoped<T extends string | null | undefined>(userId: T): T {
   if (!userId) return userId;

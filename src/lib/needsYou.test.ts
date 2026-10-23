@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
+import { badgeText, boardWaitingHere, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
 import { links } from "./links";
 import type { CampaignPost, PostState } from "./campaigns";
 import type { DraftEntry } from "./draftHistory";
@@ -67,6 +67,17 @@ describe("countBoardWaiting", () => {
     const stages: StageId[] = ["review", "review", "changes", "approved", "scheduled", "posted", "archived"];
     expect(countBoardWaiting(stages.map(card))).toBe(3);
     expect(countBoardWaiting([])).toBe(0);
+  });
+});
+
+describe("boardWaitingHere", () => {
+  it("counts Leo's open brand only, and every brand for a teammate", () => {
+    const card = (id: string, brand: string, stage: StageId) => ({ id, title: id, brand, stage, version: "v1", versions: [], comments: [], history: [] }) as ReelCard;
+    const cards = [card("a", "activitytracker", "review"), card("b", "moneybees", "review"), card("c", "moneybees", "changes"), card("d", "activitytracker", "posted")];
+    expect(boardWaitingHere(cards, true, "activitytracker")).toBe(1);
+    expect(boardWaitingHere(cards, true, "moneybees")).toBe(2);
+    expect(boardWaitingHere(cards, true, undefined)).toBe(0);
+    expect(boardWaitingHere(cards, false, "activitytracker")).toBe(3);
   });
 });
 

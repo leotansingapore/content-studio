@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addProfile, activeProfileId, applyBrandLink, rememberUser, setActiveProfile, withBrand } from "./profiles";
+import { addProfile, activeProfileId, applyBrandLink, linkBoardBrand, profileForBusiness, rememberUser, setActiveProfile, withBrand } from "./profiles";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -28,5 +28,16 @@ describe("brand links", () => {
     setActiveProfile("u1", p.id);
     expect(withBrand("https://x.test/plan#goal")).toBe(`https://x.test/plan?profile=${p.id}#goal`);
     expect(withBrand("not a url")).toBe("not a url");
+  });
+  it("find the brand a ?business= link names, by name or by the board brand it owns", () => {
+    const at = addProfile("u1", "ActivityTracker");
+    linkBoardBrand("u1", "me", "leo");
+    expect(profileForBusiness("u1", "activitytracker")).toBe(at.id);
+    expect(profileForBusiness("u1", "Activity Tracker")).toBe(at.id);
+    expect(profileForBusiness("u1", "leo")).toBe("me");
+    expect(profileForBusiness("u1", "team-posts")).toBeNull();
+    expect(profileForBusiness("u1", "all")).toBeNull();
+    expect(profileForBusiness("u1", "--")).toBeNull();
+    expect(profileForBusiness("u1", null)).toBeNull();
   });
 });

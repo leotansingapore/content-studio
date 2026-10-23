@@ -10,6 +10,8 @@ import {
   skip,
   skippedBy,
   statusOf,
+  teamHome,
+  teamPostsHere,
   teamPostsKey,
   teamReviewsKey,
   threadOf,
@@ -17,6 +19,7 @@ import {
   unskip,
   type TeamPost,
 } from "./teamPosts";
+import { addProfile, setActiveProfile } from "./profiles";
 
 const UID = "40f07a18-b087-4c95-ba1f-d5444222968a";
 
@@ -236,5 +239,19 @@ describe("review queue", () => {
   it("is null when nothing else waits", () => {
     const order = reviewOrder([p("tp1", "2026-10-28"), p("tp2", "2026-10-30")]);
     expect(nextToReview(order, { tp2: { approvedRev: 1, comments: [] } }, "tp1")).toBeNull();
+  });
+});
+
+describe("teamHome", () => {
+  it("puts AdvisorOS posts on ActivityTracker and FASTRACK posts on the default brand", () => {
+    const fast = post({ id: "f" }), adv = post({ id: "a", channel: "advisoros" });
+    expect(teamHome(UID, adv)).toBe("me"); // no ActivityTracker brand yet: everything stays on the default one
+    const at = addProfile(UID, "ActivityTracker");
+    expect(teamHome(UID, adv)).toBe(at.id);
+    expect(teamHome(UID, fast)).toBe("me");
+    expect(teamHome(UID, post({ channel: "fastrack" }))).toBe("me");
+    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["f"]);
+    setActiveProfile(UID, at.id);
+    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["a"]);
   });
 });

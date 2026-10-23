@@ -19,6 +19,10 @@ export function countNeedsYou(drafts: DraftEntry[], teamPosts: TeamPost[], revie
 /** Posts on the posts board waiting on a decision (Review or Needs changes), for the count on its nav item. */
 export const countBoardWaiting = (cards: ReelCard[]) => cards.filter((c) => c.stage === "review" || c.stage === "changes").length;
 
+/** The badge on the posts board: Leo's open brand only (docs/brand-isolation.md); a teammate's covers every brand they have. */
+export const boardWaitingHere = (cards: ReelCard[], owner: boolean, boardBrand: string | undefined) =>
+  countBoardWaiting(owner ? cards.filter((c) => brandOf(c) === boardBrand) : cards);
+
 /** Board brands other than the open one with posts waiting, for links to them; changes: one of them needs changes. */
 export const waitingByBrand = (board: Board, open: string) =>
   board.brands

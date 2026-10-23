@@ -2,7 +2,9 @@
 // Data contract: ~/.local/share/team-posts/CONTRACT.md. Two synced keys, one writer each:
 //   content-studio-teamposts-<uid>    written by the jobs; the app only reads it
 //   content-studio-teamreviews-<uid>  written by the app (approvals, comments, skips); the jobs only read it
-// Bare user id, not scoped(): team posts belong to the account whatever profile is open.
+// Bare user id, not scoped(): team posts belong to the account whatever profile is open; each shows on its home brand.
+
+import { DEFAULT_PROFILE_ID, activeProfileId, profileForBusiness } from "@/lib/profiles";
 
 export interface TeamComment {
   id: string;
@@ -44,6 +46,12 @@ export type TeamReviews = Record<string, TeamReview>;
 
 export type TeamStatus = "posted" | "skipped" | "approved" | "revising" | "waiting";
 export type ThreadComment = TeamComment & { source: "calendar" | "telegram" };
+
+/** The brand a team post sits on: AdvisorOS posts on ActivityTracker, FASTRACK posts on the owner's own (default) brand. */
+export const teamHome = (uid: string, p: Pick<TeamPost, "channel">) =>
+  (p.channel === "advisoros" && profileForBusiness(uid, "ActivityTracker")) || DEFAULT_PROFILE_ID;
+/** The team posts on the open brand (docs/brand-isolation.md). */
+export const teamPostsHere = (uid: string, posts: TeamPost[]) => posts.filter((p) => teamHome(uid, p) === activeProfileId(uid));
 
 export const teamPostsKey = (uid: string) => `content-studio-teamposts-${uid}`;
 export const teamReviewsKey = (uid: string) => `content-studio-teamreviews-${uid}`;

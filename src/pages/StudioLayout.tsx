@@ -8,8 +8,8 @@ import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
-import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard, sharedBoard, waitsOnMe } from "@/lib/reelsBoard";
-import { applyBrandLink, rememberUser } from "@/lib/profiles";
+import { checkMe, fetchBoard, forgetMe, ownerShown, reelsShown, seesBoard, sharedBoard, waitsOnMe } from "@/lib/reelsBoard";
+import { activeProfile, applyBrandLink, profileForBusiness, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { setActivityOn } from "@/lib/activity";
@@ -17,9 +17,9 @@ import { AssistantMount } from "@/components/feedback/AssistantMount";
 import TourPopover from "@/components/TourPopover";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
-import { badgeText, countBoardWaiting, countNeedsYou, onBoardWaiting } from "@/lib/needsYou";
+import { badgeText, boardWaitingHere, countNeedsYou, onBoardWaiting } from "@/lib/needsYou";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
-import { readTeamPosts, readTeamReviews } from "@/lib/teamPosts";
+import { readTeamPosts, readTeamReviews, teamPostsHere } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
 import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
@@ -281,8 +281,9 @@ export default function StudioLayout() {
       if (active) setUid(data.user?.id ?? null);
       if (active && data.user) {
         rememberUser(data.user.id);
-        // a link that names a brand (?profile=) opens on it (docs/brand-isolation.md)
-        const brandLink = applyBrandLink(data.user.id, new URLSearchParams(window.location.search).get("profile"));
+        // a link that names a brand (?profile=, or ?business= by name) opens on it (docs/brand-isolation.md)
+        const sp = new URLSearchParams(window.location.search);
+        const brandLink = applyBrandLink(data.user.id, sp.get("profile") ?? profileForBusiness(data.user.id, sp.get("business")));
         if (brandLink === "reload") return window.location.reload();
         if (brandLink === "drop") {
           const u = new URL(window.location.href);
@@ -316,7 +317,7 @@ export default function StudioLayout() {
   useEffect(() => {
     if (!uid) return;
     const recount = () =>
-      setNeedsYou(countNeedsYou(loadDrafts(uid), readTeamPosts(uid), readTeamReviews(uid), localDateKey(), autopilot?.waiting(uid)));
+      setNeedsYou(countNeedsYou(loadDrafts(uid), teamPostsHere(uid, readTeamPosts(uid)), readTeamReviews(uid), localDateKey(), autopilot?.waiting(uid)));
     recount();
     const timer = window.setInterval(recount, 30_000);
     const onVisible = () => document.visibilityState === "visible" && recount();
@@ -334,10 +335,10 @@ export default function StudioLayout() {
   // One team-board call on load (shared with Home) and on tab return (not on the timer), for board users only;
   // the board page sends its own count after every change.
   useEffect(() => {
-    if (!board || !waitsOnMe()) return setBoardWaiting(0);
+    if (!board || !uid || !waitsOnMe()) return setBoardWaiting(0);
     let active = true;
     const refresh = (fresh = false) =>
-      void (fresh ? fetchBoard() : sharedBoard()).then((b) => active && setBoardWaiting(countBoardWaiting(b.cards)), () => {});
+      void (fresh ? fetchBoard() : sharedBoard()).then((b) => active && setBoardWaiting(boardWaitingHere(b.cards, ownerShown(), activeProfile(uid).boardBrand)), () => {});
     refresh();
     const onVisible = () => document.visibilityState === "visible" && refresh(true);
     document.addEventListener("visibilitychange", onVisible);
@@ -347,7 +348,7 @@ export default function StudioLayout() {
       document.removeEventListener("visibilitychange", onVisible);
       off();
     };
-  }, [board]);
+  }, [board, uid]);
 
   // Jump to lists the pages opened lately on this device.
   useEffect(() => {

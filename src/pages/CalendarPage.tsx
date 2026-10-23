@@ -26,11 +26,10 @@ import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { loadGoals, saveGoals, setPlatformGoal, weekProgress } from "@/lib/goals";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
 import { loadPositioning } from "@/lib/positioning";
-import { activeProfile, activeProfileId, loadProfiles, profileForBoardBrand } from "@/lib/profiles";
-import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
+import { activeProfile, applyBrandLink, profileForBoardBrand, type Profile } from "@/lib/profiles";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { links, slug } from "@/lib/links";
+import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
@@ -48,7 +47,6 @@ import {
   weekOf,
 } from "@/lib/dueDates";
 import {
-  draftsOfBrand,
   loadDrafts,
   setDraftStatus,
   duplicateDraft,
@@ -81,6 +79,7 @@ import {
   readTeamReviews,
   reviewOrder,
   statusOf,
+  teamHome,
   teamPostsKey,
   teamReviewsKey,
   type TeamPost,
@@ -139,10 +138,6 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
   "2weeks": "every 2 weeks",
   month: "monthly",
 };
-// Team posts' own entry in the business filter. Its slug "team-posts" is the ?business= value and the remembered pick,
-// so it stays; the chip says where they go instead.
-const TEAM_BUSINESS = "Team posts";
-const bizName = (name: string) => (businessKey(name) === businessKey(TEAM_BUSINESS) ? "Telegram posts" : name);
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 const STATUSES = ["all", "scheduled", "posted"] as const;
 type StatusFilter = (typeof STATUSES)[number];
@@ -216,9 +211,6 @@ export default function CalendarPage() {
   const [reels, setReels] = useState<
     { id: string; title: string; date: string; time: string | null; posted: boolean; business: string; auto: boolean; handle: string | null; href: string }[]
   >([]);
-  // Every other brand's dated posts (docs/brand-isolation.md: the Calendar is the one page that shows all brands).
-  // Read-only here; tapping one opens it in its own brand.
-  const [otherBrands, setOtherBrands] = useState<typeof reels>([]);
   // Reels still in review or needing changes on the board: content waiting on Leo, with no date yet.
   const [waiting, setWaiting] = useState<{ id: string; title: string; business: string; brand: string; changes: boolean; carousel: boolean }[]>([]);
   // The day whose panel is open (tap a day number or an empty part of a day).
@@ -239,7 +231,8 @@ export default function CalendarPage() {
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
   const [feedId, openFeedItem, closeFeed] = useUrlItem("feed");
   const openFeed = feed.find((f) => f.id === feedId) ?? null;
-  const [profileName, setProfileName] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const profileName = profile?.name ?? "";
   // Team posts Leo reviews before a job sends them to Telegram; empty for every other account.
   const [teamPosts, setTeamPosts] = useState<TeamPost[]>([]);
   const [teamReviews, setTeamReviews] = useState<TeamReviews>({});
@@ -256,23 +249,7 @@ export default function CalendarPage() {
       setUserId(id);
       setDrafts(loadDrafts(id));
       setNotes(loadNotes(id));
-      setProfileName(activeProfile(id).name);
-      if (id) {
-        const open = activeProfileId(id);
-        setOtherBrands(
-          loadProfiles(id)
-            .filter((p) => p.id !== open)
-            .flatMap((p) =>
-              draftsOfBrand(id, p.id).flatMap((d) => {
-                const date = eventDate(d);
-                return date
-                  ? [{ id: `${p.id}:${d.id}`, title: titleOf(d), date, time: scheduleTime(d.scheduledFor), posted: draftStatus(d) === "posted",
-                      business: p.name, auto: false, handle: null, href: `/generate?draft=${encodeURIComponent(d.id)}&profile=${encodeURIComponent(p.id)}` }]
-                  : [];
-              }),
-            ),
-        );
-      }
+      setProfile(activeProfile(id));
       setSlots(loadBrand(id)?.slots ?? []);
       setTeamPosts(readTeamPosts(id));
       setTeamReviews(readTeamReviews(id));
@@ -282,7 +259,7 @@ export default function CalendarPage() {
         Promise.all([sharedBoard(), loadConnectedIg(id ?? "").catch(() => ({}))])
           .then(([b]) => {
             if (!active) return;
-            // Every brand's reels: the business filter picks, not the open profile.
+            // Every brand's reels; the calendar keeps the open brand's (showsBiz).
             // a board brand linked to one of the brands goes under that brand's name, so it shares its chip
             const label = (brand: string) => (id && profileForBoardBrand(id, brand)?.name) || b.brands.find((x) => x.id === brand)?.name || brand;
             setReels(
@@ -334,29 +311,20 @@ export default function CalendarPage() {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refreshTeam]);
-  // A link with ?teampost= and no ?business= shows the team posts behind the panel. Opening one here names the
-  // business on screen instead, so the calendar behind it stays as it was; closing keeps a link's team view.
   const openTeam = (id: string) => {
-    setParams((prev) => {
-      const p = withParam(prev, "teampost", id);
-      if (!p.get("business")) p.set("business", bizFilter.bizSlug);
-      return p;
-    });
+    setParams((prev) => withParam(prev, "teampost", id));
     refreshTeam();
   };
-  const closeTeam = () =>
-    setParams(
-      (prev) => {
-        const p = withParam(prev, "teampost", null);
-        if (!p.get("business")) p.set("business", slug(TEAM_BUSINESS));
-        return p;
-      },
-      { replace: true },
-    );
+  const closeTeam = () => setParams((prev) => withParam(prev, "teampost", null), { replace: true });
   const teamOpen = teamPosts.find((p) => p.id === teamOpenId) ?? null;
-  // The review queue: arrows step through the posts still to go out; Approve, Skip or a comment moves on to the
-  // next one waiting, so reviewing a batch never means closing and reopening the panel.
-  const teamOrder = useMemo(() => reviewOrder(teamPosts), [teamPosts]);
+  const teamMine = useCallback((p: TeamPost) => Boolean(userId && profile && teamHome(userId, p) === profile.id), [userId, profile]);
+  // A ?teampost= link (Telegram) to another brand's post opens on that brand, so the queue and calendar behind it are its own.
+  useEffect(() => {
+    if (userId && teamOpen && applyBrandLink(userId, teamHome(userId, teamOpen)) === "reload") window.location.reload();
+  }, [userId, teamOpen]);
+  // The review queue: arrows step through this brand's posts still to go out; Approve, Skip or a comment moves on to
+  // the next one waiting, so reviewing a batch never means closing and reopening the panel.
+  const teamOrder = useMemo(() => reviewOrder(teamPosts.filter(teamMine)), [teamPosts, teamMine]);
   const teamAt = teamOpen ? teamOrder.findIndex((p) => p.id === teamOpen.id) : -1;
   const moveTeam = (id: string) => setParams((prev) => withParam(prev, "teampost", id), { replace: true });
   const decidedTeam = (next: TeamReviews) => {
@@ -367,39 +335,33 @@ export default function CalendarPage() {
 
   const todayKey = localDateKey();
 
-  // The businesses on this calendar: the open profile (its drafts), each reels brand, each channel feed, the team.
-  // Shared with the board (BusinessFilter.tsx), so the pick carries between the two.
-  const bizFilter = useBusinessFilter([
-    profileName,
-    ...reels.map((r) => r.business),
-    ...otherBrands.map((r) => r.business),
-    ...waiting.map((w) => w.business),
-    ...feed.map((f) => f.business),
-    ...(teamPosts.length ? [TEAM_BUSINESS] : []),
-  ], teamOpenId ? slug(TEAM_BUSINESS) : undefined);
-  const { bizOn, shows: showsBiz } = bizFilter;
+  // Each business is its own calendar (Leo 2026-10-23: "each business should be isolated"): the open brand's posts,
+  // its posts-board reels and its channel feeds, matched like /board ("Me" owns the "leo" board brand).
+  const bizOn = useMemo(
+    () => new Set([businessKey(profileName), businessKey(profile?.boardBrand ?? "")].filter(Boolean)),
+    [profileName, profile],
+  );
+  const showsBiz = useCallback((name: string) => bizOn.has(businessKey(name)), [bizOn]);
 
   const visible = useMemo(
     () =>
-      showsBiz(profileName)
-        ? drafts.filter(
-            (d) =>
-              (platform === "all" || d.platform === platform) &&
-              (status === "all" || draftStatus(d) === status),
-          )
-        : [],
-    [drafts, platform, status, bizOn, profileName],
+      drafts.filter(
+        (d) =>
+          (platform === "all" || d.platform === platform) &&
+          (status === "all" || draftStatus(d) === status),
+      ),
+    [drafts, platform, status],
   );
   // Reels post to Instagram.
   const visibleReels = useMemo(
     () =>
-      [...reels, ...otherBrands].filter(
+      reels.filter(
         (r) =>
           showsBiz(r.business) &&
           (platform === "all" || platform === "instagram") &&
           (status === "all" || (status === "posted") === r.posted),
       ),
-    [reels, otherBrands, platform, status, bizOn],
+    [reels, platform, status, bizOn],
   );
   // Channel posts (Telegram first): "Scheduled" covers locked previews and planned posts.
   const visibleFeed = useMemo(
@@ -415,11 +377,11 @@ export default function CalendarPage() {
   // Team posts go to Telegram, not a social platform: shown only under "All platforms".
   const teamByDate = useMemo(() => {
     const map = new Map<string, TeamPost[]>();
-    if (platform !== "all" || !showsBiz(TEAM_BUSINESS)) return map;
-    for (const p of teamPosts)
+    if (platform !== "all") return map;
+    for (const p of teamPosts.filter(teamMine))
       if (status === "all" || (status === "posted") === Boolean(p.postedAt)) map.set(p.day, [...(map.get(p.day) ?? []), p]);
     return map;
-  }, [teamPosts, platform, status, bizOn]);
+  }, [teamPosts, teamMine, platform, status]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, DraftEntry[]>();
@@ -494,7 +456,7 @@ export default function CalendarPage() {
   // A brand's waiting posts on the board: All when one needs changes, since the default Review chip hides those.
   const groupHref = (g: (typeof waitingGroups)[number]) => links.reels({ brand: g.brand, stage: g.items.some((w) => w.changes) ? "all" : undefined });
 
-  // Coverage: everything dated under the current filters, reduced to business, day and posted or not.
+  // Coverage: everything dated under the current filters, reduced to day and posted or not.
   // Repeats count as planned; skipped team posts don't.
   const coverItems = useMemo<DatedItem[]>(() => {
     const items: DatedItem[] = [];
@@ -503,30 +465,20 @@ export default function CalendarPage() {
       if (date) items.push({ business: profileName, date, done: draftStatus(d) === "posted" });
     }
     for (const [date, gs] of ghostsByDate) for (let i = 0; i < gs.length; i++) items.push({ business: profileName, date, done: false });
-    for (const r of visibleReels) items.push({ business: r.business, date: r.date, done: r.posted });
-    for (const f of visibleFeed) items.push({ business: f.business, date: f.date, done: f.status === "posted" });
+    for (const r of visibleReels) items.push({ business: profileName, date: r.date, done: r.posted });
+    for (const f of visibleFeed) items.push({ business: profileName, date: f.date, done: f.status === "posted" });
     for (const [date, ps] of teamByDate)
-      for (const p of ps) if (statusOf(p, teamReviews[p.id]) !== "skipped") items.push({ business: TEAM_BUSINESS, date, done: Boolean(p.postedAt) });
+      for (const p of ps) if (statusOf(p, teamReviews[p.id]) !== "skipped") items.push({ business: profileName, date, done: Boolean(p.postedAt) });
     return items;
   }, [visible, ghostsByDate, visibleReels, visibleFeed, teamByDate, teamReviews, profileName]);
   const thisWeek = useMemo(() => weekOf(todayKey), [todayKey]);
   const glance = useMemo(() => weekGlance(coverItems, thisWeek, todayKey), [coverItems, thisWeek, todayKey]);
-  // Matched on the filter's business key, so "MoneyBees" the profile and "Moneybees" the feed are one business.
-  const runningOut = useMemo(() => {
-    const shown = bizFilter.businesses.filter((b) => showsBiz(b.label));
-    const keyed = coverItems.map((i) => ({ ...i, business: businessKey(i.business) }));
-    return runsOut(keyed, shown.map((b) => b.key), todayKey).map((r) => ({
-      ...r,
-      business: shown.find((b) => b.key === r.business)?.label ?? r.business,
-    }));
-  }, [coverItems, bizFilter.businesses, bizOn, todayKey]);
+  const runningOut = useMemo(() => (profileName ? runsOut(coverItems, [profileName], todayKey) : []), [coverItems, profileName, todayKey]);
   // Needs you: team posts waiting for approval and reels nobody posts unless Leo does.
   const teamToApprove = useMemo(
     () =>
-      showsBiz(TEAM_BUSINESS)
-        ? teamPosts.filter((p) => statusOf(p, teamReviews[p.id]) === "waiting").sort((a, b) => (a.day < b.day ? -1 : 1))
-        : [],
-    [teamPosts, teamReviews, bizOn],
+      teamPosts.filter((p) => teamMine(p) && statusOf(p, teamReviews[p.id]) === "waiting").sort((a, b) => (a.day < b.day ? -1 : 1)),
+    [teamPosts, teamReviews, teamMine],
   );
   const handDue = useMemo(() => dueByHand(reels.filter((r) => showsBiz(r.business)), todayKey), [reels, bizOn, todayKey]);
 
@@ -541,7 +493,7 @@ export default function CalendarPage() {
     return map;
   }, [slots, taken]);
   // Slots are the open profile's own posting times: shown with its posts, never under Posted.
-  const slotsOn = showSlots && slots.length > 0 && showsBiz(profileName) && platform === "all" && status !== "posted";
+  const slotsOn = showSlots && slots.length > 0 && platform === "all" && status !== "posted";
   const nextSlotThisWeek = useMemo(() => {
     for (const d of thisWeek) for (const t of slotsByDate.get(d) ?? []) return { date: d, time: t };
     return null;
@@ -1533,8 +1485,6 @@ export default function CalendarPage() {
         )}
       </div>
 
-      <BusinessChips filter={bizFilter} label={bizName} />
-
       {(teamToApprove.length > 0 || handDue.length > 0 || waitingGroups.length > 0) && (
         <section aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
           <p className="text-sm font-semibold text-foreground">Needs you</p>
@@ -1601,7 +1551,7 @@ export default function CalendarPage() {
               </span>
             )}
           </p>
-          {showsBiz(profileName) && progress.goal > 0 && (
+          {progress.goal > 0 && (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span className="font-medium text-foreground">
                 {profileName}: {Math.min(progress.goal, progress.posted + progress.scheduled)} of {progress.goal} planned
@@ -1634,7 +1584,7 @@ export default function CalendarPage() {
               )}
             </div>
           )}
-          {showsBiz(profileName) && slots.length === 0 && userId && (
+          {slots.length === 0 && userId && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>No posting times yet. Make them:</span>
               {[3, 5, 7].map((n) => (
@@ -1651,20 +1601,15 @@ export default function CalendarPage() {
           )}
           {runningOut.length > 0 && (
             <ul className="space-y-1" aria-label={`Running out in the next ${COVER_DAYS / 7} weeks`}>
-              {runningOut.map((r) => {
-                const mine = businessKey(r.business) === businessKey(profileName);
-                return (
-                  <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{bizName(r.business)}</span>
-                    <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
-                    {mine && (
-                      <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                        Write a post
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
+              {runningOut.map((r) => (
+                <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{r.business}</span>
+                  <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
+                  <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
+                    Write a post
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </section>

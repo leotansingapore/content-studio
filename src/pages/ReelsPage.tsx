@@ -12,7 +12,7 @@ import { useGoneItem, useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
-import { boardWaitingChanged, countBoardWaiting, waitingByBrand } from "@/lib/needsYou";
+import { boardWaitingChanged, boardWaitingHere, waitingByBrand } from "@/lib/needsYou";
 import {
   NEXT,
   accessChanged,
@@ -134,8 +134,8 @@ export default function ReelsPage() {
 
   // The nav badge follows every load, move and undo here at once.
   useEffect(() => {
-    if (board) boardWaitingChanged(countBoardWaiting(board.cards));
-  }, [board]);
+    if (board) boardWaitingChanged(boardWaitingHere(board.cards, !!me?.owner, ownBrand));
+  }, [board, me, ownBrand]);
 
   const replace = useCallback((c: ReelCard) => setBoard((b) => b && { ...b, cards: b.cards.map((x) => (x.id === c.id ? c : x)) }), []);
   // a move touches the stage only, so a note added a moment before (the drawer's move to Needs changes) is never undone
@@ -294,19 +294,6 @@ export default function ReelsPage() {
           <Button variant="ghost" size="sm" className="ml-auto h-9" onClick={reload} disabled={loading} aria-label="Refresh the board">
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          {brand && elsewhere.length > 0 && (
-            <p className="basis-full text-xs text-muted-foreground">
-              Also waiting:{" "}
-              {elsewhere.map((w, i) => (
-                <span key={w.id}>
-                  {i > 0 && ", "}
-                  <a href={hrefFor(w)} onClick={(e) => openBrand(e, w.id)} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                    {w.name} {w.n}
-                  </a>
-                </span>
-              ))}
-            </p>
-          )}
         </div>
       )}
 
