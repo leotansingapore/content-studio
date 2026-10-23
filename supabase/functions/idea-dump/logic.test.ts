@@ -1904,3 +1904,11 @@ describe("distinct angles (live-p5dog D9: two follow-up angles and two one-app a
     expect(buildAnglesPrompt(anglesRequest()).system).toContain("- Each candidate is a different reason to care, with no two on the same feature, problem or moment.");
   });
 });
+
+describe("openings across a campaign's batches (live-p5dog D9)", () => {
+  it("tells the writer no hook opens like one already used in earlier batches", () => {
+    const { system, user } = buildCampaignPrompt(campaignRequest());
+    expect(system).toContain("- No two posts in your reply open with the same three words, and no hook opens with the same three words as one listed under 'Hooks already used' or repeats one.");
+    expect(user).toContain("Hooks already used (open differently):\n- Your follow-up is the real pitch");
+  });
+});
