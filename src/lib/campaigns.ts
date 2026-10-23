@@ -22,6 +22,8 @@ export interface CampaignPost {
   stage: FunnelStageId; pillar: PlanPillar; formulaId?: string; ctaType: string;
   hook?: string; body?: string; script?: string; brief?: string; cta?: string; mas?: boolean | null;
   state: PostState; error?: string; draftId?: string;
+  /** The writing call this post's batch went out under (campaignJob): a reload mid-call asks again under the same id. */
+  ask?: string;
   made?: { kind: "draft" | "slideshow" | "video"; id: string };
   prev?: { hook?: string; body?: string; script?: string; brief?: string; cta?: string };
 }
