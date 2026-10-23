@@ -11,7 +11,7 @@
 import { complianceIssues } from "../_shared/socialAudit.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { BUSINESS_VOICE, sentenceCase, speakingWords, type Speaker } from "../remix/logic.ts";
+import { BUSINESS_VOICE, hookCount, sentenceCase, speakingWords, type Speaker } from "../remix/logic.ts";
 
 export const MAX_NOTES_CHARS = 4000;
 export const MAX_IDEAS = 10;
@@ -1085,10 +1085,10 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "",
     "Formats:",
     "- text-post: hook is the first line, at most 15 words. body is the rest of the post, 80 to 220 words in short paragraphs. cta is one line.",
-    "- carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. cta is one line.",
+    "- carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. A hook that names a number of points has exactly that many. cta is one line.",
     `- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most ${SHORT_VIDEO_HOOK_WORDS} words. hook is the HOOK line's words and cta the CTA line's.`,
     `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.${named ? " The script says the business's name once, plainly, after the first line and never in it." : ""} body is the post's caption: one to three sentences, at most ${AI_VIDEO_CAPTION_WORDS} words, on what the video is about, without the call to action.`,
-    "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. cta is one line.",
+    "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. A hook that names a number has exactly that many lines. cta is one line.",
     "- wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.",
     "",
     "Funnel stages:",
@@ -1262,6 +1262,25 @@ function hookOf(text: string, max: number): string {
   return parts.slice(0, keep).join(" ");
 }
 
+const COUNT_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+/**
+ * The hook with the count it promises ("3 things", "Five ways", "Top 10") set to the `n` points its list has, in its own
+ * form (a digit, or a word keeping its capital): unchanged when it promises none or n already; null when that number
+ * shows more than once or n has no word to write (live-p5dog day 2 N6: "3 things we wish we knew" over 5 points, the
+ * mismatch Fastlane made on its post 13). Setting the number keeps every point the writer made, with no paid call.
+ */
+function countedHook(hook: string, n: number): string | null {
+  const said = hookCount(hook);
+  if (said === null || said === n) return hook;
+  const at = [...hook.matchAll(new RegExp(String.raw`\b(?:${said}|${COUNT_WORDS[said] ?? said})\b`, "gi"))];
+  if (at.length !== 1) return null;
+  const was = at[0][0];
+  const word = COUNT_WORDS[n];
+  const now = /\d/.test(was) ? String(n) : word && (/^[A-Z]/.test(was) ? word[0].toUpperCase() + word.slice(1) : word);
+  return now ? hook.slice(0, at[0].index) + now + hook.slice((at[0].index ?? 0) + was.length) : null;
+}
+
 /** The first empty field, as the rule a post broke. */
 const lacks = (fields: Record<string, string>) => {
   const empty = Object.keys(fields).find((k) => !fields[k]);
@@ -1284,14 +1303,22 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
     }
     case "carousel": {
       const points = withoutCta(cleanPost(item.body), cta).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
-      return lacks({ hook, cta }) ?? (points.length >= 4 ? { ...base, hook, body: points.join("\n\n"), cta } : `${points.length} points, needs 4 to 8`);
+      const why = lacks({ hook, cta }) ?? (points.length >= 4 ? null : `${points.length} points, needs 4 to 8`);
+      if (why) return why;
+      const cover = countedHook(hook, points.length);
+      return cover ? { ...base, hook: cover, body: points.join("\n\n"), cta } : `hook promises ${hookCount(hook)}, body has ${points.length} points`;
     }
     case "slideshow":
     case "wall": {
       // an empty brief comes from body, where the writer put a wall's words, else from the angle's line (live-p5dog D3:
       // 4 of 12 walls and 3 of 5 wall swaps were dropped for "no brief"); the maker writes the post from it either way
       const brief = cutWords(withoutCta(cleanPost(item.brief) || cleanPost(item.body), cta), 40) || ask.angle.line;
-      return lacks({ hook, brief, cta }) ?? { ...base, hook, brief, cta };
+      const why = lacks({ hook, brief, cta });
+      if (why) return why;
+      // a slideshow's brief is one point per line: with two or more, a hook's count is set to them (a wall's is prose)
+      const lines = brief.split("\n").filter((l) => l.trim()).length;
+      const cover = ask.format === "slideshow" && lines > 1 ? countedHook(hook, lines) : hook;
+      return cover ? { ...base, hook: cover, brief, cta } : `hook promises ${hookCount(hook)}, brief has ${lines} lines`;
     }
     case "short-video": {
       // HOOK, BODY and CTA lines: a long HOOK line hands its later sentences to the body (holdHook), and an over-long

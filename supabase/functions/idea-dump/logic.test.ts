@@ -833,7 +833,8 @@ describe("mode campaign", () => {
     const [text, carousel] = got;
     expect(text.hook).toBe("Follow-ups, the part nobody plans for.");
     expect(countWords(text.body!)).toBe(220);
-    expect(carousel.hook).toBe("Seven words.");
+    // its whole first sentence, its count then set to the 8 points kept (live-p5dog day 2 N6)
+    expect(carousel.hook).toBe("Eight words.");
     expect(carousel.body!.split("\n\n")).toHaveLength(8);
     expect(carousel.body!.split("\n\n").every((p) => countWords(p) <= 40)).toBe(true);
     expect(got.find((p) => p.n === 5)!.hook).toBe("Short cover here.");
@@ -1982,5 +1983,54 @@ describe("an AI video's caption (live-p5dog day 2: both AI video posts had no ca
   it("lets a person's MAS question read the caption as well as the script", () => {
     const got = video("Follow-ups get lost when they sit apart from the chat.");
     expect(masAsk([got]).state.post_4).toBe(`${AV_04}\n\nFollow-ups get lost when they sit apart from the chat.`);
+  });
+});
+
+// ---- live-p5dog day 2 (23 Oct): check campaign post 5, a carousel, promised 3 and listed 5 --------------------------
+// calls/day2/CK-campaign-store.json post 5 as it came back; Fastlane's post 13 made the same mismatch
+
+describe("a hook's count matches its list (live-p5dog day 2 N6: '3 things we wish we knew' over 5 points)", () => {
+  const POST_5 = {
+    n: 2,
+    hook: "3 things we wish we knew",
+    body: "Keep client tasks beside client details.\n\nSee follow-ups and sales activity in one phone app.\n\nUse the shared WhatsApp inbox alongside your client work.\n\nLog activity in one tap and keep goals in view.\n\nBring CRM, chats, tasks and goals together in your sales routine.",
+    script: "",
+    brief: "",
+    cta: 'DM us "TASKS" to learn how the app can fit into your sales routine.',
+  };
+  const one = (over: Record<string, string>, dropped: [number, string][] = []) => validateCampaign(written({ ...over }), campaignRequest(), dropped)!;
+  const carousel = (hook: string, dropped: [number, string][] = []) => validateCampaign({ posts: [{ ...POST_5, hook }] }, campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(2, "carousel")] }), dropped)!.find((p) => p.n === 2);
+
+  it("tells the writer a carousel's and a slideshow's count matches the hook's", () => {
+    const { system } = buildCampaignPrompt(campaignRequest());
+    expect(system).toContain("each point becomes one slide. A hook that names a number of points has exactly that many. cta is one line.");
+    expect(system).toContain("one point per line, for the slides made from it later. A hook that names a number has exactly that many lines. cta is one line.");
+  });
+
+  it("sets a carousel cover's number to its points, as a digit or a word, and keeps one that matches", () => {
+    expect(carousel("3 things we wish we knew")).toMatchObject({ hook: "5 things we wish we knew", body: POST_5.body });
+    expect(carousel("Three ways to log calls")!.hook).toBe("Five ways to log calls");
+    expect(carousel("our top 7 sales habits")!.hook).toBe("our top 5 sales habits");
+    expect(carousel("Five follow-up habits")!.hook).toBe("Five follow-up habits");
+    expect(carousel("One tap logs sales activity")!.hook).toBe("One tap logs sales activity");
+  });
+
+  it("drops a cover whose number can't be set safely, with the rule for the log, so the job writes it again", () => {
+    const dropped: [number, string][] = [];
+    expect(carousel("3 things in 3 taps", dropped)).toBeUndefined();
+    expect(dropped).toEqual([[2, "hook promises 3, body has 5 points"]]);
+  });
+
+  it("sets a slideshow hook's number to its brief's lines, and leaves a one-line brief and a wall alone", () => {
+    const got = one({});
+    expect(got.find((p) => p.n === 5)!.hook).toBe("Three messages that bring a lead back");
+    const set = validateCampaign(
+      written({ 5: { hook: "5 signs a lead has gone cold", brief: "No reply in a week\nRead, not answered\nA meeting moved twice" }, 6: { hook: "3 mistakes we see", brief: "One bold line on why checking in fails." } }),
+      campaignRequest(),
+    )!;
+    expect(set.find((p) => p.n === 5)!.hook).toBe("3 signs a lead has gone cold");
+    expect(set.find((p) => p.n === 6)!.hook).toBe("3 mistakes we see");
+    const prose = validateCampaign(written({ 5: { hook: "5 signs a lead has gone cold", brief: "Why silence after a demo means the timing is off." } }), campaignRequest())!;
+    expect(prose.find((p) => p.n === 5)!.hook).toBe("5 signs a lead has gone cold");
   });
 });
