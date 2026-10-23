@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 // The handler with OpenAI and Jev faked: which counters move, which come back, and what each mode answers.
 const db = vi.hoisted(() => ({
   spent: [] as string[],
+  counts: {} as Record<string, number>,
   refunded: [] as string[],
   /** every counter refuses, as when the day's uses are spent */
   limit: false,
@@ -11,7 +12,13 @@ const db = vi.hoisted(() => ({
 }));
 db.admin = {
   auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
-  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: db.limit ? null : 1, error: null }),
+  // each counter's count today, so claimOnce is true only the first time
+  rpc: async (_fn: string, a: Record<string, unknown>) => {
+    const f = String(a.p_feature);
+    db.spent.push(f);
+    db.counts[f] = (db.counts[f] ?? 0) + 1;
+    return { data: db.limit ? null : db.counts[f], error: null };
+  },
   from: () => ({
     select: () => ({ match: async () => ({ data: [{ count: 1 }], error: null }) }),
     update: () => ({ match: (q: { feature: string }) => ({ select: async () => (db.refunded.push(q.feature), { data: [{ count: 0 }], error: null }) }) }),
@@ -44,6 +51,7 @@ beforeAll(async () => {
 beforeEach(() => {
   db.spent.length = 0;
   db.refunded.length = 0;
+  db.counts = {};
   db.limit = false;
   for (const k of Object.keys(sent)) delete sent[k];
   openai = () => reply({});
@@ -361,6 +369,27 @@ describe("idea-dump campaign (phase 5, Leo only)", () => {
     const req = sent[OPENAI][0] as { max_completion_tokens: number; response_format: { json_schema: { name: string } }; messages: { content: string }[] };
     expect(req.response_format.json_schema.name).toBe("campaign_posts");
     expect(req.messages[1].content).toContain("- Your follow-up is the real pitch");
+  });
+
+  it("writes a batch asked again under the same id (a reload mid-batch) once more without a second use (live-p5dog D4)", async () => {
+    openai = () => reply(CAMPAIGN_REPLY);
+    const ask = { ...CAMPAIGN, ask: "c-1-1-mx" };
+    expect((await call(ask, "leo")).status).toBe(200);
+    expect(db.refunded).toEqual([]);
+    expect((await call(ask, "leo")).status).toBe(200);
+    expect(db.refunded).toEqual(["campaign-draft"]);
+    // a third ask of the same batch pays again
+    expect((await call(ask, "leo")).status).toBe(200);
+    expect(db.refunded).toEqual(["campaign-draft"]);
+    expect(db.spent.filter((f) => f === "campaign-draft")).toHaveLength(3);
+    // a free ask again that fails gives nothing back a second time
+    openai = () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError"));
+    const other = { ...CAMPAIGN, ask: "c-1-8-mx" };
+    await call(other, "leo");
+    db.refunded.length = 0;
+    expect((await call(other, "leo")).status).toBe(502);
+    expect(db.refunded).toEqual(["campaign-draft"]);
+    expect((await call({ ...CAMPAIGN, ask: "Bad id!" }, "leo")).body.code).toBe("bad_request");
   });
 
   it("writes one post again on campaign-swap", async () => {

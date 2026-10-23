@@ -1002,6 +1002,8 @@ export interface CampaignRequest {
   swap: boolean;
   /** Hooks already written in this campaign: no new hook repeats one. */
   avoid: string[];
+  /** The batch's id: the same batch asked again (a reload mid-call) is written once more without a second use. */
+  ask?: string;
 }
 
 export interface WrittenPost {
@@ -1045,8 +1047,9 @@ export function parseCampaignRequest(body: unknown): { ok: true; request: Campai
     if (!ask || posts.some((p) => p.n === ask.n)) return { ok: false, error: "Couldn't read the posts to write. Reload the page and try again." };
     posts.push(ask);
   }
+  if (b.ask !== undefined && (typeof b.ask !== "string" || !/^[a-z0-9-]{1,64}$/.test(b.ask))) return { ok: false, error: "Couldn't read the posts to write. Reload the page and try again." };
   const context = isRecord(b.context) ? b.context : {};
-  return { ok: true, request: { posts, context: parsePlanContext(context), audience: plain(context.audience, 300), swap, avoid: textList(b.avoid, 20, 160) } };
+  return { ok: true, request: { posts, context: parsePlanContext(context), audience: plain(context.audience, 300), swap, avoid: textList(b.avoid, 20, 160), ...(typeof b.ask === "string" ? { ask: b.ask } : {}) } };
 }
 
 /** The cap a request spends: a swap is one post written again. */

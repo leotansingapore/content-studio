@@ -36,7 +36,7 @@
 // Logic: ./logic.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "../_shared/usageCaps.ts";
+import { claimOnce, consumeUsage, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "../_shared/usageCaps.ts";
 import { askJev, noulOf, JEV_TIMEOUT_MS } from "../_shared/jev.ts";
 import { pool } from "../_shared/pool.ts";
 import { isAllowed } from "../market/logic.ts";
@@ -234,10 +234,17 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
     const refusal = usageRefusal(usage);
     return json(refusal.body, refusal.status);
   }
+  // a batch asked again under its id (the page reloaded mid-call, its answer lost) is written once more for free; the
+  // claim follows the charge, so a batch refused at the limit never earns a free one
+  let charged = true;
+  if (request.ask && !(await claimOnce(admin, uid, `campaign-ask:${request.ask}`)) && (await claimOnce(admin, uid, `campaign-ask-again:${request.ask}`))) {
+    await refundUsage(admin, uid, cap, day);
+    charged = false;
+  }
   const { system, user } = buildCampaignPrompt(request);
   const reply = await developWithOpenAi(system, user, apiKey, { name: "campaign_posts", schema: CAMPAIGN_SCHEMA, maxTokens: 6000 });
   if (!reply.ok && !reply.answered) {
-    await refundUsage(admin, uid, cap, day);
+    if (charged) await refundUsage(admin, uid, cap, day);
     return json({ code: "failed", error: request.swap ? "Couldn't write new words right now. Try again in a minute." : "Couldn't write these posts right now. Try again in a minute." }, 502);
   }
   // each dropped post's number and the rule it broke (never its words): live check 22 Oct logged only "asked 4 written 2"
@@ -246,7 +253,7 @@ async function writeCampaign(admin: UsageClient, uid: string, body: unknown): Pr
   if (!written.length) {
     console.log("idea-dump campaign", uid, cap, "asked", request.posts.length, "written 0", "dropped", JSON.stringify(dropped));
     // a swap with nothing to show gives its use back (live-p5dog D3: 3 of 5 wall swaps kept the use with no new words)
-    if (request.swap) await refundUsage(admin, uid, cap, day);
+    if (request.swap && charged) await refundUsage(admin, uid, cap, day);
     return json({ code: "unusable", error: request.swap ? "The new words couldn't be used, so this swap wasn't counted. Try again." : "The words that came back couldn't be used. Try again." }, 422);
   }
   const speaker = request.context.speaker;
