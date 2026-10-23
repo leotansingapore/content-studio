@@ -13,7 +13,7 @@ import { callFn } from "@/lib/edgeFn";
 import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, type JoinExtra, type JoinJob } from "@/lib/videoMedia";
 import { speak, speakDub } from "@/lib/textVoice";
 import {
-  DEMO_GONE, PHOTO_GONE, REMAKE_FAILED, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
+  DEMO_GONE, PHOTO_GONE, REMAKE_FAILED, STILL_MAKING, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
   pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake,
 } from "./aiVideo";
 
@@ -53,13 +53,22 @@ afterEach(() => {
 });
 
 describe("a template clip that has been paid for", () => {
-  it("is kept on the device when it is only slow, so Try again at no cost picks it up after 20 minutes", async () => {
+  it("is kept on the device when it is only slow, and says after 20 minutes that it is still being made, not to try again (live-p5dog D4)", async () => {
     higgsfield(() => ({ jobs: [{ state: "working" }] }));
     const run = makeTemplateClip("Laksa", ASK);
     await vi.advanceTimersByTimeAsync(21 * 60_000);
     await run;
-    expect(aiJob()).toMatchObject({ kind: "template", state: "failed", error: "It's taking too long. Try again later." });
+    expect(STILL_MAKING).toBe("Your video is still being made. It's picked up at no cost when you come back.");
+    expect(aiJob()).toMatchObject({ kind: "template", state: "failed", error: STILL_MAKING });
     expect(pendingAvatar()).toMatchObject({ name: "Laksa", tokens: ["t1"], kind: "template", refund: "ticket" });
+  });
+
+  it("a presenter picture still working after 20 minutes is not kept, so it still says to try again later", async () => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "presenter" ? { token: "p1" } : { jobs: [{ state: "working" }] }));
+    const run = makePresenter("A Malay Singaporean man in his late 30s");
+    await vi.advanceTimersByTimeAsync(21 * 60_000);
+    await run;
+    expect(aiJob()).toMatchObject({ kind: "presenter", state: "failed", error: "It's taking too long. Try again later." });
   });
 
   it("is dropped when Higgsfield fails it, with the refund ticket on every status check", async () => {

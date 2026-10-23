@@ -52,6 +52,9 @@ const GIVE_UP_MS = 20 * 60_000;
 const PENDING = "cs-ai-video-pending"; // this device only, on purpose: the tokens are no use elsewhere
 const RETRY = "Couldn't start the video right now. Try again in a minute.";
 export const DEMO_GONE = "Your demo isn't on this device any more. Pick it again.";
+/** A kept avatar video or template clip still not done after 20 minutes: nothing failed, and nothing is paid again. */
+export const STILL_MAKING = "Your video is still being made. It's picked up at no cost when you come back.";
+const SLOW = "It's taking too long. Try again later.";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let job: AiJob | null = null;
@@ -69,8 +72,11 @@ export const aiBusy = () => job?.state === "working";
 
 class JobFailed extends Error {}
 
-/** Polls until every job is done; the links in order. With the start's refund ticket, a failed job gives the use back. */
-async function waitFor(tokens: string[], progress: (done: number) => void, refund?: string): Promise<string[]> {
+/**
+ * Polls until every job is done; the links in order. With the start's refund ticket, a failed job gives the use back.
+ * After 20 minutes it stops with `slow`: a job kept on this device says it is picked up later, one that isn't to try again.
+ */
+async function waitFor(tokens: string[], progress: (done: number) => void, refund?: string, slow = SLOW): Promise<string[]> {
   // the most parts seen done: one status check can answer behind the last, and the count never steps back
   let most = 0;
   for (const until = Date.now() + GIVE_UP_MS; Date.now() < until; ) {
@@ -84,8 +90,8 @@ async function waitFor(tokens: string[], progress: (done: number) => void, refun
     if (urls.length === tokens.length) return urls;
     progress((most = Math.max(most, urls.length)));
   }
-  // not a JobFailed: Higgsfield hasn't failed it, so the paid job is kept for Try again at no cost
-  throw new Error("It's taking too long. Try again later.");
+  // not a JobFailed: Higgsfield hasn't failed it, so a kept job is picked up again at no cost
+  throw new Error(slow);
 }
 
 /**
@@ -240,7 +246,7 @@ async function finishAvatar(p: Pending): Promise<void> {
   set({ kind, state: "working", step: `Making your video, 0 of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` });
   try {
     const urls = await waitFor(p.tokens, (d) =>
-      set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }), p.refund);
+      set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }), p.refund, STILL_MAKING);
     set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
     const extra = await keepParts(p, clips);

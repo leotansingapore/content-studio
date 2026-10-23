@@ -16,10 +16,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { aiBusy } from "@/lib/aiVideo";
+import { STILL_MAKING, aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import {
-  AI_BUSY, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
-  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, whenText, type MakeOutcome,
+  AI_BUSY, AI_WAITING, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
+  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, waitingFor, whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
 import { AI_VIDEO, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
@@ -207,7 +207,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   // ---- after the hooks ----
 
   const report = (r: MakeOutcome) => {
-    if (r.ok === false) return void toast({ title: r.error, variant: "destructive" });
+    // a video still being made after 20 minutes hasn't failed: it is picked up later at no cost (live-p5dog D4)
+    if (r.ok === false) return void toast({ title: r.error, ...(r.error === STILL_MAKING ? {} : { variant: "destructive" as const }) });
     if (r.toast) toast({ title: r.toast, duration: 5000, action: <ToastAction altText="Undo" onClick={r.undo}>Undo</ToastAction> });
   };
   const goTo = (n: number) => setPostParam(String(n));
@@ -228,6 +229,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const swapping = isSwapping(c.id, cur.n);
   const who = cur.format === "ai-video" ? savedWho(userId) : null;
   const written = !!cur.hook && (cur.state === "ready" || (cur.state === "making" && !maker));
+  // its paid video is still waiting on this device: Make picks it up at no cost, with no price and no ask
+  const waiting = cur.format === "ai-video" && !maker && !!waitingFor(c, cur);
 
   /** Why Make can't run on this post now; null when it can. */
   function makeReason(p: CampaignPost): string | null {
@@ -235,11 +238,13 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
     if (!p.hook || !(p.state === "ready" || p.state === "making")) return WRITING_LINE;
     if (p.format === "slideshow" && slideshowBusy()) return SHOW_BUSY;
     if (p.format === "wall" && wallBusy("wall")) return WALL_BUSY;
+    if (p.format === "ai-video" && waitingFor(c, p)) return aiBusy() || talkBusy() ? AI_BUSY : null;
     // with Ask each time Make only hands the script to the editor, which checks today's limits at its own Make
     if (p.format === "ai-video" && savedWho(userId)) {
       if (left("ai-video") === 0) return NO_VIDEOS;
       if (left("ai-voice") === 0) return NO_VOICES;
       if (aiBusy() || talkBusy()) return AI_BUSY;
+      if (pendingAvatar()) return AI_WAITING;
       if (asTopic(p.script ?? "", 15)) return SHORT_SCRIPT;
     }
     return null;
@@ -259,7 +264,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const make = (p: CampaignPost, asked: "full" | null = null) => {
     if (makeOff) return void (makeReason(p) && toast({ title: makeReason(p)! }));
     if (asked !== "full" && droppedHook(loadDrafts(userId))) return setConfirm("full");
-    if (p.format === "ai-video" && savedWho(userId)) return setConfirm("video");
+    if (p.format === "ai-video" && savedWho(userId) && !waitingFor(c, p)) return setConfirm("video");
     void run(p);
   };
   const swap = async (p: CampaignPost) => {
@@ -437,7 +442,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
       return (
         <div className="space-y-3">
           <p className="whitespace-pre-wrap rounded-lg border border-border/60 bg-card p-3 text-sm">{p.script}</p>
-          {p.state !== "made" &&
+          {p.state !== "made" && !waiting &&
             making(
               <>
                 {who ? `A 15-second AI video of ${who === "mine" ? "you" : "your presenter"} saying this script, made when you press Make.` : "A 15-second AI video of this script. You pick who appears when you press Make."}{" "}
@@ -515,7 +520,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
           ? band(p.format === "wall" ? "Made. Open it in the editor to check the words and export." : "Made. Open it in the editor to add captions and export.", links.edit(), "Open in editor")
           : band(`On your calendar for ${whenText(p)}.`, links.calendar({ post: p.draftId }), "Open in My posts"))}
         {p.state === "skipped" && <p role="status" className="text-sm">Skipped. Press Skip again to bring it back.</p>}
-        {p.error && p.state === "ready" && <p role="status" className="text-sm text-warning">{p.error}</p>}
+        {p.error && (p.state === "ready" || (p.state === "making" && !maker)) && <p role="status" className={`text-sm ${p.error === STILL_MAKING ? "text-muted-foreground" : "text-warning"}`}>{p.error}</p>}
         <div className={p.state === "skipped" ? "opacity-40" : ""}>{preview()}</div>
       </div>
     );
@@ -554,7 +559,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <div className="min-w-0 space-y-4">
           {stage()}
           <div className="flex flex-wrap gap-2">
-            {action("make", maker || cur.state === "making" && !written ? "Making..." : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(AI_VIDEO)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
+            {action("make", maker || cur.state === "making" && !written ? "Making..." : waiting ? "Check again" : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(AI_VIDEO)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
             {action("swap", swapping ? "Swapping..." : "Swap", () => void swap(cur), swapOff || !!work)}
             {action("edit", "Edit", () => edit(cur), !!work || !!maker || swapping || !(cur.state === "made" || written))}
             {action("skip", "Skip", () => skip(cur), cur.state === "made" || cur.state === "drafting" || !!maker || swapping || !!work)}

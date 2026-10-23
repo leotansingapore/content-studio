@@ -366,6 +366,38 @@ describe("makePost, an AI video", () => {
     // a second visit while it runs picks up nothing twice
     expect(act.resumeMakes(UID, "c-1")).toHaveLength(0);
   });
+
+  it("past 20 minutes keeps the post making with its paid video, and Make then picks it up at no cost, never paying again (live-p5dog D4)", async () => {
+    const STILL = "Your video is still being made. It's picked up at no cost when you come back.";
+    seed([post(6, { format: "ai-video", script: SCRIPT })]);
+    const made = act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(startTalk).toHaveBeenCalledTimes(1);
+    // Higgsfield took the job (it waits on this device), then it was still working at 20 minutes
+    fake.ai.pending = { name: "x", tokens: ["t1", "t2"], seconds: [9.5, 6], extra: { draftId: "cmp_c-1_6" } };
+    fake.talk.patch({ state: "failed", step: "", error: STILL, waiting: true });
+    expect(await made).toEqual({ ok: false, error: STILL });
+    expect(the(6)).toMatchObject({ state: "making", draftId: "cmp_c-1_6", error: STILL });
+    expect(getDraftById(UID, "cmp_c-1_6")).not.toBeNull();
+    // Make again: the waiting video is picked up, and nothing new is paid for
+    const again = act.makePost(UID, "c-1", 6, NOW);
+    expect(resumeTalk).toHaveBeenCalledTimes(1);
+    expect(startTalk).toHaveBeenCalledTimes(1);
+    expect(the(6).state).toBe("making");
+    expect(the(6).error).toBeUndefined();
+    fake.talk.patch({ state: "joining" });
+    expect(await again).toMatchObject({ ok: true });
+    expect(the(6)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_6" } });
+  });
+
+  it("refuses to pay for another post's video while a paid one waits on this device, which a new one would replace", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT })]);
+    fake.ai.pending = { name: "x", tokens: ["t1"], seconds: [9.5], extra: { draftId: "cmp_c-9_4" } };
+    expect(await act.makePost(UID, "c-1", 6, NOW)).toEqual({ ok: false, error: act.AI_WAITING });
+    expect(startTalk).not.toHaveBeenCalled();
+    expect(resumeTalk).not.toHaveBeenCalled();
+    expect(the(6).state).toBe("ready");
+  });
 });
 
 describe("swapPost", () => {

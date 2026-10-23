@@ -7,7 +7,8 @@
 // it; they count as made once the editor has the video. An AI video with no saved "Who appears" opens the AI video
 // maker on that draft instead. Swap writes one post again (idea-dump mode campaign, swap, cap campaign-swap) and
 // keeps the old words for Undo. A make in this tab is in memory: a reload leaves the post "making", and the queue
-// picks it up (a paid AI video waiting on this device, at no cost) or puts it back to ready (resumeMakes).
+// picks it up (a paid AI video waiting on this device, at no cost) or puts it back to ready (resumeMakes). Make on a
+// post whose paid video still waits (over 20 minutes at Higgsfield) picks it up the same way and never pays again.
 
 import { aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import { loadAudiences } from "@/lib/audiences";
@@ -45,6 +46,7 @@ export const SWAP_CAP_LINE = `You've used all ${DAILY_LIMITS["campaign-swap"]} s
 export const SHOW_BUSY = "Another slideshow is being made. Wait for it to finish.";
 export const WALL_BUSY = "Another wall of text is being made. Wait for it to finish.";
 export const AI_BUSY = "Another AI video is being made. Wait for it to finish.";
+export const AI_WAITING = "Another AI video is still being made. Make this one once it's in the editor.";
 export const VIDEO_FAILED = "The AI video could not be made.";
 export const STOPPED_LINE = "This make stopped before it finished. Press Make to try again.";
 export const SHORT_SCRIPT = `This script is under ${speakingWords(15).low} words, too short to speak as written. Edit or swap it first.`;
@@ -277,7 +279,20 @@ function followTalk(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPos
   });
 }
 
+/** The paid video waiting on this device for this post (one that took over 20 minutes), else null. */
+export const waitingFor = (c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n" | "draftId">) => {
+  const w = pendingAvatar();
+  return w?.extra?.draftId && w.extra.draftId === (p.draftId ?? draftIdOf(c.id, p.n)) ? w : null;
+};
+
 async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date): Promise<MakeOutcome> {
+  // its paid video is still waiting here: Make picks it up at no cost and never pays again (live-p5dog D4)
+  if (waitingFor(c, p)) {
+    if (aiBusy() || talkBusy()) return { ok: false, error: AI_BUSY };
+    const draftId = p.draftId ?? draftIdOf(c.id, p.n);
+    if (!updatePost(userId, c.id, p.n, { state: "making", draftId, error: undefined })) return { ok: false, error: SAVE_LINE };
+    return followTalk(userId, c, p, draftId, () => resumeTalk(userId));
+  }
   const who = savedWho(userId);
   const d = postDraft(userId, c, p, now);
   if (!who) {
@@ -286,6 +301,8 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     return made.ok ? { ...made, toast: `Post ${p.n} is on your calendar for ${whenText(p)}. Pick who appears to make the video.`, open: links.edit({ panel: ["ai"], kind: "avatar", draft: d.id }) } : made;
   }
   if (aiBusy() || talkBusy()) return { ok: false, error: AI_BUSY };
+  // another post's paid video waits on this device, and a new one would take its place
+  if (pendingAvatar()) return { ok: false, error: AI_WAITING };
   const script = (p.script ?? "").trim();
   // the talking head writes a fresh script from anything shorter, which would spend a remix and change the words
   if (asTopic(script, 15)) return { ok: false, error: SHORT_SCRIPT };
@@ -312,7 +329,7 @@ export function resumeMakes(userId: string, campaignId: string): Promise<MakeOut
   for (const p of c.posts) {
     if (p.state !== "making" || makerOf(c.id, p.n)) continue;
     const draftId = p.draftId ?? draftIdOf(c.id, p.n);
-    if (p.format === "ai-video" && pendingAvatar()?.extra?.draftId === draftId) {
+    if (p.format === "ai-video" && waitingFor(c, { ...p, draftId })) {
       if (!aiBusy() && !talkBusy()) out.push(followTalk(userId, c, p, draftId, () => resumeTalk(userId)));
     } else updatePost(userId, c.id, p.n, { state: "ready", error: STOPPED_LINE });
   }

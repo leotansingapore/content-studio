@@ -53,6 +53,8 @@ const cost = (credits: number) => `${credits} Higgsfield credits (about US$${cre
 const KINDS = ["template", "montage", "avatar", "explainer"] as const;
 type Kind = (typeof KINDS)[number];
 
+const WAITING = "Your last video is paid for and still being made. Pick it up with Try again at no cost first.";
+
 /** "What you say" holds 600 characters; a post fills it with whole sentences that also fit 30 s at 2.5 words a second. */
 const SAY_MAX = 600;
 const FILL = { say: SAY_MAX, sayWords: MAX_AVATAR_SECONDS * 2.5, theme: MAX_THEME, line: MAX_FIELD };
@@ -648,6 +650,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const price = vo ? priceOf("ai-video", { slices: vo.slices.map((s) => s.end - s.start) }) : null;
   // Leo's dearer presses ask first (phase 1: anything over about a dollar)
   const askFirst = !!user && !!price && price !== "pick" && price.usd >= 1;
+  // Leo: a paid video still waiting on this device would be replaced by a new one, so it is picked up first (live-p5dog D4)
+  const waiting = !!user && !busy && !!pendingAvatar();
   const make = async () => {
     setAsking(false);
     let topKey: string | undefined;
@@ -904,9 +908,10 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0 || starting || !!rec}
+              <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0 || starting || !!rec || waiting}
                 onClick={() => (askFirst ? setAsking(true) : void make())}>{starting ? "Sending..." : "Make the video"}</Button>
-              {!image && (
+              {waiting && <span className="text-xs text-muted-foreground">{WAITING}</span>}
+              {!image && !waiting && (
                 <span className="text-xs text-muted-foreground">
                   {people ? (who === "presenter" ? "Make the presenter first." : who === "mine" ? "Save your face first." : "Pick who speaks first.")
                     : face === "photo" ? "Pick a photo first." : "Make the presenter first."}
