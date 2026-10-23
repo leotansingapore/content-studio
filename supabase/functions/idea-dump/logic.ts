@@ -922,10 +922,11 @@ export function angleAsk(req: AnglesRequest, a: AngleCandidate): { state: Record
 
 /**
  * One Jev request on every pair of candidates, `same_<i>_<j>` with i < j (live-p5dog D9: the 5 kept held two follow-up
- * angles and two one-app angles while a distinct "Sales goals" came 6th). Null with fewer than two.
+ * angles and two one-app angles while a distinct "Sales goals" came 6th), and on each candidate against the titles
+ * already used, `used_<i>` (live-p5dog day 2: "Log activity quickly" was the used "One-tap activity log" again). Null
+ * when there is nothing to ask.
  */
-export function sameAsk(cands: AngleCandidate[]): { state: Record<string, string>; questions: Record<string, JevQuestion> } | null {
-  if (cands.length < 2) return null;
+export function sameAsk(cands: AngleCandidate[], used: string[] = []): { state: Record<string, string>; questions: Record<string, JevQuestion> } | null {
   const questions: Record<string, JevQuestion> = {};
   for (let i = 0; i < cands.length; i++) {
     for (let j = i + 1; j < cands.length; j++) {
@@ -935,13 +936,24 @@ export function sameAsk(cands: AngleCandidate[]): { state: Record<string, string
       };
     }
   }
-  return { state: Object.fromEntries(cands.map((a, i) => [`angle_${i}`, `${a.title}: ${a.line}`])), questions };
+  if (used.length) {
+    cands.forEach((_, i) => {
+      questions[`used_${i}`] = {
+        type: "noul",
+        instructions: `Does \`angle_${i}\` give the reader the same reason to care (the same feature, problem or moment) as any angle listed in \`used\`, only worded differently?`,
+      };
+    });
+  }
+  if (!Object.keys(questions).length) return null;
+  const state = Object.fromEntries(cands.map((a, i) => [`angle_${i}`, `${a.title}: ${a.line}`]));
+  return { state: used.length ? { ...state, used: used.map((t) => `- ${t}`).join("\n") } : state, questions };
 }
 
 /**
  * The top 5 by `fits` that fit (ANGLE_FITS or more) and are safe (`unsafe` under ANGLE_UNSAFE; the compliance
- * patterns when Jev left `unsafe` out), skipping one that `same` (sameAsk's answers) reads as a better one's reason at
- * ANGLE_SAME or more. With no `fits` answer at all, the first 5 pattern-clean distinct candidates, unscored.
+ * patterns when Jev left `unsafe` out), skipping one that `same` (sameAsk's answers) reads as a better one's reason, or
+ * as a used angle again, at ANGLE_SAME or more. With no `fits` answer at all, the first 5 pattern-clean distinct
+ * candidates that are not a used angle again, unscored.
  */
 export function keepAngles(
   candidates: AngleCandidate[],
@@ -949,13 +961,14 @@ export function keepAngles(
   same: Record<string, JevAnswer> | null = null,
 ): { angles: (AngleCandidate & { fit: number | null })[]; scored: boolean } {
   const clean = (a: AngleCandidate) => complianceIssues(`${a.title}. ${a.line}`).length === 0;
+  const fresh = (k: number) => (noulOf(same, `used_${k}`) ?? 0) < ANGLE_SAME;
   const isSame = (i: number, j: number) => (noulOf(same, `same_${Math.min(i, j)}_${Math.max(i, j)}`) ?? 0) >= ANGLE_SAME;
   const distinct = <T extends { k: number }>(list: T[]) => list.reduce<T[]>((out, r) => (out.length < MAX_ANGLES && !out.some((o) => isSame(o.k, r.k)) ? [...out, r] : out), []);
   const read = candidates.map((a, k) => ({ a, k, fits: noulOf(answers[k] ?? null, "fits"), unsafe: noulOf(answers[k] ?? null, "unsafe") }));
   if (read.every((r) => r.fits === null)) {
-    return { angles: distinct(read.filter((r) => clean(r.a))).map((r) => ({ ...r.a, fit: null })), scored: false };
+    return { angles: distinct(read.filter((r) => clean(r.a) && fresh(r.k))).map((r) => ({ ...r.a, fit: null })), scored: false };
   }
-  const kept = read.filter((r) => r.fits !== null && r.fits >= ANGLE_FITS && (r.unsafe === null ? clean(r.a) : r.unsafe < ANGLE_UNSAFE));
+  const kept = read.filter((r) => r.fits !== null && r.fits >= ANGLE_FITS && (r.unsafe === null ? clean(r.a) : r.unsafe < ANGLE_UNSAFE) && fresh(r.k));
   kept.sort((x, y) => (y.fits ?? 0) - (x.fits ?? 0));
   return { angles: distinct(kept).map((r) => ({ ...r.a, fit: r.fits })), scored: true };
 }

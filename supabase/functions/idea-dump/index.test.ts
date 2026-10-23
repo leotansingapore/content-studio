@@ -242,11 +242,36 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
       const asks = sent[JEV] as { questions: Record<string, unknown>; state: Record<string, string> }[];
       expect(asks).toHaveLength(9);
       const pairs = asks.find((a) => "same_0_1" in a.questions)!;
-      expect(Object.keys(pairs.questions)).toHaveLength(28);
+      expect(Object.keys(pairs.questions).filter((k) => k.startsWith("same_"))).toHaveLength(28);
       expect(pairs.state.angle_5).toBe("Angle number 5: Why angle 5 matters to new parents.");
       expect(db.spent).toEqual(["campaign-angles"]);
       // decision 12: the pairs at 0.3 or more are logged for setting ANGLE_SAME
-      expect(log.mock.calls.map((c) => c.join(" ")).find((l) => l.startsWith("idea-dump angles"))).toMatch(/ same \[\[5,6,0\.9\]\]$/);
+      expect(log.mock.calls.map((c) => c.join(" ")).find((l) => l.startsWith("idea-dump angles"))).toMatch(/ same \[\[5,6,0\.9\]\] used \[\]$/);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("asks in that one request whether a candidate is a used angle again, and leaves it out (live-p5dog day 2 D9)", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    openai = () => reply(ANGLES_REPLY);
+    jevReply = (q, state) => {
+      if ("used_0" in q) return { used_6: { type: "noul", noul: 0.9 }, used_5: { type: "noul", noul: 0.3 } };
+      const i = Number(String(state.angle).match(/number (\d)/)?.[1]);
+      return { fits: { type: "noul", noul: i === 0 ? 0.3 : 0.5 + i / 20 }, unsafe: { type: "noul", noul: i === 7 ? 0.8 : 0.1 } };
+    };
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const r = await call(ANGLES, "leo");
+      expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Angle number 5", "Angle number 4", "Angle number 3", "Angle number 2", "Angle number 1"]);
+      const asks = sent[JEV] as { questions: Record<string, unknown>; state: Record<string, string> }[];
+      expect(asks).toHaveLength(9);
+      const pairs = asks.find((a) => "used_0" in a.questions)!;
+      expect("same_0_1" in pairs.questions).toBe(true);
+      expect(pairs.state.used).toBe("- Hospital bills shock");
+      expect(db.spent).toEqual(["campaign-angles"]);
+      // decision 12: the used reads at 0.3 or more are logged beside the pairs
+      expect(log.mock.calls.map((c) => c.join(" ")).find((l) => l.startsWith("idea-dump angles"))).toMatch(/ same \[\] used \[\[5,0\.3\],\[6,0\.9\]\]$/);
     } finally {
       log.mockRestore();
     }

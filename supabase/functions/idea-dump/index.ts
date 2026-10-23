@@ -203,8 +203,9 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
   // the brand's name goes mid-sentence, where sentenceCase reads a capital as a name
   const names = [request.audience, request.context.name && `the brand ${request.context.name}`, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
   const candidates = (reply.ok && validateAngles(reply.text, request.avoid, names)) || [];
-  // the pairs request runs beside the per-candidate ones, so the angles take no longer to arrive
-  const pairs = sameAsk(candidates);
+  // the pairs request (each pair, and each candidate against the used titles) runs beside the per-candidate ones, so
+  // the angles take no longer to arrive
+  const pairs = sameAsk(candidates, request.avoid);
   const [answers, same] = await Promise.all([
     pool(candidates, 6, (a) => {
       const ask = angleAsk(request, a);
@@ -213,10 +214,11 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
     pairs ? askJev(pairs.state, pairs.questions, { who: "idea-dump angles same", timeoutMs: JEV_TIMEOUT_MS }) : null,
   ]);
   const kept = keepAngles(candidates, answers, same);
-  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE, and the pairs at 0.3 or
-  // more ANGLE_SAME
-  const close = Object.keys(pairs?.questions ?? {}).map((id) => [...id.split("_").slice(1).map(Number), noulOf(same, id)]).filter((x) => (x[2] ?? 0) >= 0.3);
-  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])), "same", JSON.stringify(close));
+  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE, and the pairs and used
+  // reads at 0.3 or more ANGLE_SAME
+  const close = (kind: string) =>
+    Object.keys(pairs?.questions ?? {}).filter((id) => id.startsWith(`${kind}_`)).map((id) => [...id.split("_").slice(1).map(Number), noulOf(same, id)]).filter((x) => (x[x.length - 1] ?? 0) >= 0.3);
+  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])), "same", JSON.stringify(close("same")), "used", JSON.stringify(close("used")));
   if (!kept.angles.length) return json({ code: "no_angles", error: "Couldn't find angles that fit this time. Try again, or write your own." }, 422);
   return json(kept);
 }

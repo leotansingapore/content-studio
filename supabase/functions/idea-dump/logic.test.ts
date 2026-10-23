@@ -2034,3 +2034,47 @@ describe("a hook's count matches its list (live-p5dog day 2 N6: '3 things we wis
     expect(prose.find((p) => p.n === 5)!.hook).toBe("5 signs a lead has gone cold");
   });
 });
+
+// ---- live-p5dog day 2 (23 Oct): the D9 round kept "Log activity quickly", the used "One-tap activity log" again --------
+// function-logs-day2 02:59:15: the 8 candidates with their fits; calls/day2/292 sent the 5 used titles as avoid
+
+describe("new angles against used ones (live-p5dog day 2 D9: 'Log activity quickly' was 'One-tap activity log' again)", () => {
+  const LIVE = [
+    ["Client details in reach", 0.68],
+    ["Targets on your phone", 0.68],
+    ["A shared inbox", 0.65],
+    ["Log activity quickly", 0.69],
+    ["Tasks beside client work", 0.67],
+    ["A clearer sales routine", 0.71],
+    ["For independent sales", 0.68],
+    ["For coaching sales", 0.67],
+  ] as const;
+  const USED = ["One-tap activity log", "Follow-up tasks", "WhatsApp workflow", "Chat to follow-up", "Work in one app"];
+  const cands = LIVE.map(([title]) => ({ title, line: `Why ${title.toLowerCase()} matters.` }));
+  const fitsOf = LIVE.map(([, fit]) => ({ fits: { type: "noul" as const, noul: fit }, unsafe: { type: "noul" as const, noul: 0.1 } }));
+  const noul = (noul: number) => ({ type: "noul" as const, noul });
+  // the live run's one close pair, and the used reads this adds
+  const SAME = { same_0_5: noul(0.8) };
+
+  it("asks in the same request whether each candidate is a used angle again, and only the pairs with nothing used", () => {
+    const ask = sameAsk(cands, USED)!;
+    expect(Object.keys(ask.questions)).toHaveLength(28 + 8);
+    expect(Object.keys(ask.questions).slice(-8)).toEqual(["used_0", "used_1", "used_2", "used_3", "used_4", "used_5", "used_6", "used_7"]);
+    expect(String(ask.questions.used_3.instructions)).toContain("`angle_3`");
+    expect(String(ask.questions.used_3.instructions)).toContain("any angle listed in `used`");
+    expect(ask.state.used).toBe("- One-tap activity log\n- Follow-up tasks\n- WhatsApp workflow\n- Chat to follow-up\n- Work in one app");
+    expect(ask.state.angle_3).toBe("Log activity quickly: Why log activity quickly matters.");
+    expect(Object.keys(sameAsk(cands.slice(0, 1), USED)!.questions)).toEqual(["used_0"]);
+    expect(sameAsk(cands)).toEqual({ state: Object.fromEntries(cands.map((a, i) => [`angle_${i}`, `${a.title}: ${a.line}`])), questions: sameAsk(cands)!.questions });
+    expect(Object.keys(sameAsk(cands)!.questions)).toHaveLength(28);
+    expect(sameAsk(cands.slice(0, 1), [])).toBeNull();
+  });
+
+  it("drops a candidate Jev reads as a used angle at ANGLE_SAME, so the live round keeps two others in place of the near-copies", () => {
+    expect(keepAngles(cands, fitsOf, SAME).angles.map((a) => a.title)).toEqual(["A clearer sales routine", "Log activity quickly", "Targets on your phone", "For independent sales", "Tasks beside client work"]);
+    const same = { ...SAME, used_3: noul(0.9), used_4: noul(0.5), used_2: noul(0.49) };
+    expect(keepAngles(cands, fitsOf, same).angles.map((a) => a.title)).toEqual(["A clearer sales routine", "Targets on your phone", "For independent sales", "For coaching sales", "A shared inbox"]);
+    // the unscored fallback leaves them out too
+    expect(keepAngles(cands, Array(8).fill(null), { used_0: noul(0.7) }).angles.map((a) => a.title)).toEqual(["Targets on your phone", "A shared inbox", "Log activity quickly", "Tasks beside client work", "A clearer sales routine"]);
+  });
+});
