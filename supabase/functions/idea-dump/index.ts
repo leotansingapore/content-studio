@@ -12,7 +12,7 @@
 // everyone else's are ignored, so today's prompt is unchanged.
 //
 // mode "angles" (phase 5, Leo only while NORTH_STAR_USERS lists the caller, 403 not_enabled before anything is
-// counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit and are safe.
+// counted): up to 5 angles for a campaign's audience. The LLM writes 8, Jev keeps the ones that fit, are safe and differ.
 // Cap "campaign-angles"; the use goes back only when OpenAI never answered (502), and a reply that keeps no angle
 // keeps it (422 no_angles).
 //
@@ -59,6 +59,7 @@ import {
   buildLongPrompt,
   ideaAsk,
   keepAngles,
+  sameAsk,
   masAsk,
   rankIdeas,
   parseAnglesRequest,
@@ -202,13 +203,20 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
   const pos = request.context.positioning;
   const names = [request.audience, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
   const candidates = (reply.ok && validateAngles(reply.text, request.avoid, names)) || [];
-  const answers = await pool(candidates, 6, (a) => {
-    const ask = angleAsk(request, a);
-    return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
-  });
-  const kept = keepAngles(candidates, answers);
-  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE
-  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])));
+  // the pairs request runs beside the per-candidate ones, so the angles take no longer to arrive
+  const pairs = sameAsk(candidates);
+  const [answers, same] = await Promise.all([
+    pool(candidates, 6, (a) => {
+      const ask = angleAsk(request, a);
+      return askJev(ask.state, ask.questions, { who: "idea-dump angles", timeoutMs: JEV_TIMEOUT_MS });
+    }),
+    pairs ? askJev(pairs.state, pairs.questions, { who: "idea-dump angles same", timeoutMs: JEV_TIMEOUT_MS }) : null,
+  ]);
+  const kept = keepAngles(candidates, answers, same);
+  // decision 12: every candidate's scores from the first runs set ANGLE_FITS and ANGLE_UNSAFE, and the pairs at 0.3 or
+  // more ANGLE_SAME
+  const close = Object.keys(pairs?.questions ?? {}).map((id) => [...id.split("_").slice(1).map(Number), noulOf(same, id)]).filter((x) => (x[2] ?? 0) >= 0.3);
+  console.log("idea-dump angles", uid, "kept", kept.angles.length, "scored", kept.scored, JSON.stringify(candidates.map((a, k) => [a.title, noulOf(answers[k], "fits"), noulOf(answers[k], "unsafe")])), "same", JSON.stringify(close));
   if (!kept.angles.length) return json({ code: "no_angles", error: "Couldn't find angles that fit this time. Try again, or write your own." }, 422);
   return json(kept);
 }

@@ -1857,3 +1857,50 @@ describe("a body that ends on the cta's keyword ask (live-p5dog D6: 'message me 
     expect(got.find((p) => p.n === 6)!.brief).toBe("Keep chats beside your CRM.");
   });
 });
+
+import { ANGLE_SAME, sameAsk } from "./logic.ts";
+
+describe("distinct angles (live-p5dog D9: two follow-up angles and two one-app angles kept, 'Sales goals' left 6th)", () => {
+  // the run's 8 candidates (function-logs 00:47:21) with their fits; lines not logged, so these stand in
+  const LIVE = [
+    ["Client details together", 0.63],
+    ["WhatsApp workflow", 0.68],
+    ["Follow-up tasks", 0.68],
+    ["One-tap activity log", 0.68],
+    ["Sales goals", 0.66],
+    ["Work in one app", 0.7],
+    ["Chat to follow-up", 0.69],
+    ["Track daily activity", 0.62],
+  ] as const;
+  const cands = LIVE.map(([title]) => ({ title, line: `Why ${title.toLowerCase()} matters.` }));
+  const fitsOf = LIVE.map(([, fit]) => ({ fits: { type: "noul" as const, noul: fit }, unsafe: { type: "noul" as const, noul: 0.1 } }));
+  const sameOf = (pairs: [number, number, number][]) => Object.fromEntries(pairs.map(([i, j, p]) => [`same_${i}_${j}`, { type: "noul" as const, noul: p }]));
+
+  it("asks Jev once whether each pair of candidates is the same reason to care", () => {
+    const ask = sameAsk(cands.slice(0, 3))!;
+    expect(ask.state).toEqual({ angle_0: "Client details together: Why client details together matters.", angle_1: "WhatsApp workflow: Why whatsapp workflow matters.", angle_2: "Follow-up tasks: Why follow-up tasks matters." });
+    expect(Object.keys(ask.questions)).toEqual(["same_0_1", "same_0_2", "same_1_2"]);
+    expect(ask.questions.same_0_2).toMatchObject({ type: "noul" });
+    expect(String(ask.questions.same_0_2.instructions)).toContain("`angle_0` and `angle_2`");
+    expect(sameAsk(cands.slice(0, 1))).toBeNull();
+    expect(Object.keys(sameAsk(cands)!.questions)).toHaveLength(28);
+  });
+
+  it("keeps the best fit of each reason: the live run gives Sales goals in place of a second follow-up angle", () => {
+    // follow-up tasks ~ chat to follow-up, client details ~ work in one app, track daily activity ~ one-tap log
+    const same = sameOf([[2, 6, 0.9], [0, 5, 0.8], [3, 7, 0.85], [1, 2, 0.2]]);
+    expect(keepAngles(cands, fitsOf).angles.map((a) => a.title)).toEqual(["Work in one app", "Chat to follow-up", "WhatsApp workflow", "Follow-up tasks", "One-tap activity log"]);
+    expect(keepAngles(cands, fitsOf, same).angles.map((a) => a.title)).toEqual(["Work in one app", "Chat to follow-up", "WhatsApp workflow", "One-tap activity log", "Sales goals"]);
+  });
+
+  it(`counts a pair as one at ${ANGLE_SAME}, two at 0.49 or with no answer, and applies to the unscored fallback too`, () => {
+    expect(ANGLE_SAME).toBe(0.5);
+    expect(keepAngles(cands, fitsOf, sameOf([[2, 6, 0.5]])).angles.map((a) => a.title)).not.toContain("Follow-up tasks");
+    expect(keepAngles(cands, fitsOf, sameOf([[2, 6, 0.49]])).angles.map((a) => a.title)).toContain("Follow-up tasks");
+    expect(keepAngles(cands, Array(8).fill(null), sameOf([[0, 1, 0.9]])).angles.map((a) => a.title)).toEqual(["Client details together", "Follow-up tasks", "One-tap activity log", "Sales goals", "Work in one app"]);
+  });
+
+  it("asks the writer for candidates that differ in feature, problem or moment", () => {
+    expect(buildAnglesPrompt(anglesRequest()).system).toContain("- Each candidate is a different reason to care, with no two on the same feature, problem or moment.");
+  });
+});
