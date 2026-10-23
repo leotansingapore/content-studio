@@ -1177,18 +1177,29 @@ function holdHook(lines: string[], end: number): number {
 const MINOR_WORDS = new Set("a an the and or of to for in on at with your you do does is are can what how which currently really actually just".split(" "));
 const keyWords = (s: string) => wordsKey(s).split(" ").filter((w) => w && !MINOR_WORDS.has(w));
 const asks = (s: string) => /\?\W*$/.test(s.trim());
+/** A word the reader is asked to send, in capitals ("APP", "FOLLOW-UP"); DM is the asking, not the word. */
+const keywordsOf = (s: string) => (s.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})*\b/g) ?? []).filter((w) => w !== "DM");
+const ASKS_TO_SEND = /\b(?:dm|message|comment|send|text|type|reply|drop)\b/i;
+/** Both ask the reader to send the same keyword (live-p5dog D6: "message me PLAN." over "Message me PLAN if you'd like..."). */
+const sameKeywordAsk = (s: string, cta: string) =>
+  ASKS_TO_SEND.test(s) && ASKS_TO_SEND.test(cta) && keywordsOf(cta).some((k) => keywordsOf(s).includes(k));
 
 /**
  * A sentence that repeats the call to action: the same key words in any case or punctuation, or, when both ask or both
  * don't, at least 80% of a 4-or-more-word cta's key words (live-p5w4 F1: "For self-employed professionals and coaches,
  * what part of your sales workflow currently involves the most app switching?" over the cta "What part of your sales
- * workflow involves the most app switching?"). A line that only shares the topic keeps too few of them.
+ * workflow involves the most app switching?"), or one that asks for the same keyword (sameKeywordAsk). A line that only
+ * shares the topic keeps too few of them.
  */
 function repeatsCta(sentence: string, cta: string): boolean {
   const c = keyWords(cta);
   const s = keyWords(sentence);
   if (!c.length) return false;
-  return s.join(" ") === c.join(" ") || (c.length >= 4 && asks(sentence) === asks(cta) && c.filter((w) => s.includes(w)).length >= 0.8 * c.length);
+  return (
+    s.join(" ") === c.join(" ") ||
+    (c.length >= 4 && asks(sentence) === asks(cta) && c.filter((w) => s.includes(w)).length >= 0.8 * c.length) ||
+    sameKeywordAsk(sentence, cta)
+  );
 }
 
 /** A body without the last sentences (as many as the cta has) when they repeat its call to action (live checks 22 Oct: the CTA showed twice). */
@@ -1243,7 +1254,7 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
     case "wall": {
       // an empty brief comes from body, where the writer put a wall's words, else from the angle's line (live-p5dog D3:
       // 4 of 12 walls and 3 of 5 wall swaps were dropped for "no brief"); the maker writes the post from it either way
-      const brief = cutWords(cleanPost(item.brief) || cleanPost(item.body), 40) || ask.angle.line;
+      const brief = cutWords(withoutCta(cleanPost(item.brief) || cleanPost(item.body), cta), 40) || ask.angle.line;
       return lacks({ hook, brief, cta }) ?? { ...base, hook, brief, cta };
     }
     case "short-video": {
@@ -1255,7 +1266,11 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
       const end = last > 0 ? holdHook(lines, last) : last;
       const hook = (lines[0] ?? "").replace(LABEL_RE, "");
       const close = (lines[end] ?? "").replace(LABEL_RE, "");
-      const fit = fitScript(lines, end, SHORT_VIDEO_WORDS);
+      // the last body line said without a closing ask for the CTA's keyword, unless that takes the script under its range
+      const label = end > 1 ? (lines[end - 1].match(LABEL_RE)?.[0] ?? "") : "";
+      const said = end > 1 ? withoutCta(lines[end - 1].slice(label.length), close) : "";
+      const once = said ? [...lines.slice(0, end - 1), label + said, ...lines.slice(end)] : lines;
+      const fit = fitScript(once, end, SHORT_VIDEO_WORDS) ?? fitScript(lines, end, SHORT_VIDEO_WORDS);
       const { low, high } = SHORT_VIDEO_WORDS;
       return lacks({ script: lines.join(" "), hook, cta: close }) ?? (fit ? { ...base, hook, script: fit.join("\n"), cta: close } : `script ${scriptWords(lines)} words, needs ${low} to ${high}`);
     }

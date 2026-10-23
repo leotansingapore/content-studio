@@ -1820,3 +1820,40 @@ describe("hooks end on a whole sentence (live-p5dog D5: wall 2 ended 'Here is wh
     expect(dropped).toEqual([[1, "hook 16 words, needs at most 15"], [2, "hook 8 words, needs at most 6"], [5, "hook 13 words, needs at most 12"]]);
   });
 });
+
+describe("a body that ends on the cta's keyword ask (live-p5dog D6: 'message me PLAN' over 'Message me PLAN if...')", () => {
+  // calls/209 post 3 (a person's text post) and calls/198 post 3 (a business's short video), as they came back
+  const BODY_209 =
+    "When a parent puts off reviewing family protection, it can become harder to see what needs attention and what can wait. That does not mean buying a bundle is automatically the answer.\n\nI start by mapping the family’s responsibilities, existing cover and questions. For a parent and child, those needs may differ. I explain the trade-offs in plain language and help organise the next steps, without assuming one solution fits every family.\n\nWe can document priorities in a one-page plan and record the reasons behind decisions. I also check in after major life events, when circumstances or responsibilities may have changed. There is no need to decide everything in one meeting.\n\nIf you want to understand what a review could involve, message me “PLAN”.";
+  const CTA_209 = "Message me “PLAN” if you’d like to discuss what a review could involve.";
+  const SCRIPT_198 =
+    "HOOK: Scattered sales work costs focus. Separate tools are one mistake.\nBODY: When your client records, WhatsApp conversations, tasks and goals live in different places, keeping track of the next step can mean switching between apps. We bring CRM, a shared WhatsApp inbox, tasks and goals together in one phone app. You can log activity in one tap and manage sales work alongside client conversations. If you want to see how it fits your workflow, message us the word APP.\nCTA: DM us APP to enquire about signing up.";
+  const ask = (n: number, format: CampaignFormat) => postAskOf(n, format, { stage: "conversion", ctaType: "dm-keyword" });
+
+  it("removes the text post's last sentence that asks for the same keyword (calls/209)", () => {
+    const req = campaignRequest({ ...CAMPAIGN_ASK, posts: [ask(3, "text-post")] });
+    const [got] = validateCampaign({ posts: [{ n: 3, hook: "What delay can cost is clarity about family cover.", body: BODY_209, script: "", brief: "", cta: CTA_209 }] }, req)!;
+    expect(got.body!.endsWith("There is no need to decide everything in one meeting.")).toBe(true);
+    expect(got.cta).toBe("Message me \"PLAN\" if you'd like to discuss what a review could involve.");
+  });
+
+  it("says a short video's keyword once, in its CTA line (calls/198)", () => {
+    const req = campaignRequest({ ...CAMPAIGN_ASK, context: { ...BUSINESS_CONTEXT, audience: "Sales reps" }, posts: [ask(3, "short-video")] });
+    const [got] = validateCampaign({ posts: [{ n: 3, hook: "", body: "", script: SCRIPT_198, brief: "", cta: "" }] }, req)!;
+    const lines = got.script!.split("\n");
+    expect(lines[1].endsWith("alongside client conversations.")).toBe(true);
+    expect(lines[2]).toBe("CTA: DM us APP to enquire about signing up.");
+  });
+
+  it("removes a brief's last sentence that asks for the keyword, and keeps one that only names a word in capitals", () => {
+    const got = validateCampaign(
+      written({
+        5: { brief: "Log sales activity in one tap as you work. DM us ACTIVITY to learn how the app fits your day.", cta: "DM us ACTIVITY to learn more." },
+        6: { brief: "Keep chats beside your CRM.", cta: "DM us CRM to learn more." },
+      }),
+      campaignRequest(),
+    )!;
+    expect(got.find((p) => p.n === 5)!.brief).toBe("Log sales activity in one tap as you work.");
+    expect(got.find((p) => p.n === 6)!.brief).toBe("Keep chats beside your CRM.");
+  });
+});
