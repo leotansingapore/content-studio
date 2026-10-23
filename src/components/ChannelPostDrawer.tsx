@@ -1,20 +1,32 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExternalLink, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { STATUS_LABEL, parseCaption, type CalendarFeedItem } from "@/lib/channelFeeds";
+import type { ChannelReview } from "@/lib/channelReviews";
 
 const STATUS_NOTE: Record<CalendarFeedItem["status"], string> = {
   posted: "This went out to the channel.",
-  locked: "You were sent this preview. It goes out exactly as shown.",
+  locked: "You were sent this preview. It goes out at 8pm as shown, unless you skip it or ask for a change.",
   planned: "The words and pictures are made at 22:30 the night before, when you get the preview. Fresh news that comes in first can move it.",
+  skipped: "Skipped. The 8pm run sends the next post instead.",
 };
+
+// What a comment does, by status: a previewed post is made again now, a planned one when its preview is made.
+const COMMENT_NOTE: Partial<Record<CalendarFeedItem["status"], string>> = {
+  locked: "Made again within about 15 minutes; the new version comes to your Telegram.",
+  planned: "Used when this post is made, at 22:30 the night before.",
+};
+
+// Typed comments per post, kept while the tab is open, so closing the drawer never loses them.
+const typed = new Map<string, string>();
 
 const STATUS_STYLE: Record<CalendarFeedItem["status"], string> = {
   posted: "bg-success/15 text-success",
   locked: "bg-primary/15 text-primary",
   planned: "bg-muted text-muted-foreground",
+  skipped: "bg-warning/15 text-warning",
 };
 
 function Caption({ html }: { html: string }) {
@@ -37,9 +49,30 @@ function Caption({ html }: { html: string }) {
   );
 }
 
-/** One scheduled channel post, whole: every picture in order, the caption as it posts, or the quiz. */
-export default function ChannelPostDrawer({ item, onClose }: { item: CalendarFeedItem | null; onClose: () => void }) {
+/**
+ * One scheduled channel post, whole: every picture in order, the caption as it posts, or the quiz. With `onSkip` and
+ * `onComment`, a post still to go out can be skipped or sent back with a change (channelReviews.ts).
+ */
+export default function ChannelPostDrawer({
+  item,
+  onClose,
+  review,
+  onSkip,
+  onComment,
+}: {
+  item: CalendarFeedItem | null;
+  onClose: () => void;
+  review?: ChannelReview;
+  onSkip?: (on: boolean) => void;
+  onComment?: (text: string) => void;
+}) {
   const open = item !== null;
+  const [text, setText] = useState("");
+  useEffect(() => setText(item ? typed.get(item.id) ?? "" : ""), [item?.id]);
+  const type = (v: string) => {
+    setText(v);
+    if (item) typed.set(item.id, v);
+  };
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -59,6 +92,13 @@ export default function ChannelPostDrawer({ item, onClose }: { item: CalendarFee
   }, [open]);
 
   if (!item) return null;
+  const acts = !!onSkip && !!onComment && item.status !== "posted";
+  const send = () => {
+    if (!text.trim() || !onComment) return;
+    onComment(text.trim());
+    type("");
+  };
+  const handled = new Set(item.handled ?? []);
   const when = new Date(`${item.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
 
   // Portalled to <body> like PostDetailDrawer: inside the page the sidebar's stacking context sits over the backdrop.
@@ -145,7 +185,59 @@ export default function ChannelPostDrawer({ item, onClose }: { item: CalendarFee
               </a>
             </Button>
           )}
+
+          {(review?.comments.length ?? 0) > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Your changes</p>
+              <ul className="space-y-1.5">
+                {review!.comments.map((c) => (
+                  <li key={c.id} className="rounded-lg border border-border/60 bg-card p-2.5 text-sm text-foreground">
+                    <p>{c.text}</p>
+                    <p className={`mt-1 text-[11px] font-semibold ${handled.has(c.id) || item.status === "posted" ? "text-success" : "text-muted-foreground"}`}>
+                      {handled.has(c.id) || item.status === "posted" ? "Done" : item.status === "skipped" ? "Waiting: the post is skipped" : "Being made again"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
+
+        {acts && (
+          <div className="space-y-2 border-t border-border/60 bg-background p-4">
+            {item.status !== "skipped" && (
+              <>
+                <label htmlFor="channel-change" className="text-xs font-semibold text-foreground">
+                  What should change?
+                </label>
+                <textarea
+                  id="channel-change"
+                  value={text}
+                  onChange={(e) => type(e.target.value)}
+                  onKeyDown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && send()}
+                  rows={2}
+                  placeholder="Shorter, a different picture, lead with the deadline..."
+                  className="w-full resize-none rounded-lg border border-border/70 bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                {COMMENT_NOTE[item.status] && <p className="text-[11px] text-muted-foreground">{COMMENT_NOTE[item.status]}</p>}
+              </>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {item.status !== "skipped" && (
+                <Button onClick={send} disabled={!text.trim()} className="min-h-11 flex-1 sm:min-h-10">
+                  Ask for a change
+                </Button>
+              )}
+              <Button
+                variant={item.status === "skipped" ? "default" : "outline"}
+                onClick={() => onSkip!(item.status !== "skipped")}
+                className="min-h-11 flex-1 sm:min-h-10"
+              >
+                {item.status === "skipped" ? "Undo skip" : "Skip this post"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body,

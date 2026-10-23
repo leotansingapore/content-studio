@@ -28,6 +28,7 @@ import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analyt
 import { loadPositioning } from "@/lib/positioning";
 import { activeProfile, applyBrandLink, profileForBoardBrand, type Profile } from "@/lib/profiles";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
+import { commentChannelPost, readChannelReviews, shownStatus, skipChannelPost, type ChannelReviews } from "@/lib/channelReviews";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
@@ -230,7 +231,10 @@ export default function CalendarPage() {
   // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
   const [feedId, openFeedItem, closeFeed] = useUrlItem("feed");
-  const openFeed = feed.find((f) => f.id === feedId) ?? null;
+  // Leo's Skip and comments on those posts; a skip shows at once, before the job's next feed says so.
+  const [channelReviews, setChannelReviews] = useState<ChannelReviews>({});
+  const shownFeed = useMemo(() => feed.map((f) => ({ ...f, status: shownStatus(f.status, channelReviews[f.id]) })), [feed, channelReviews]);
+  const openFeed = shownFeed.find((f) => f.id === feedId) ?? null;
   const [profile, setProfile] = useState<Profile | null>(null);
   const profileName = profile?.name ?? "";
   // Team posts Leo reviews before a job sends them to Telegram; empty for every other account.
@@ -287,7 +291,11 @@ export default function CalendarPage() {
       }
       if (canSeeChannelFeeds(data.user?.email)) {
         fetchChannelFeeds()
-          .then((items) => active && setFeed(items))
+          .then((items) => {
+            if (!active) return;
+            setFeed(items);
+            setChannelReviews(readChannelReviews(id));
+          })
           .catch(() => {}); // the calendar works without the feeds
       }
     })();
@@ -368,13 +376,13 @@ export default function CalendarPage() {
   // Channel posts (Telegram first): "Scheduled" covers locked previews and planned posts.
   const visibleFeed = useMemo(
     () =>
-      feed.filter(
+      shownFeed.filter(
         (f) =>
           showsBiz(f.business) &&
           (platform === "all" || platform === f.channel.toLowerCase()) &&
           (status === "all" || (status === "posted") === (f.status === "posted")),
       ),
-    [feed, platform, status, bizOn],
+    [shownFeed, platform, status, bizOn],
   );
   // Team posts go to Telegram, not a social platform: shown only under "All platforms".
   const teamByDate = useMemo(() => {
@@ -468,7 +476,7 @@ export default function CalendarPage() {
     }
     for (const [date, gs] of ghostsByDate) for (let i = 0; i < gs.length; i++) items.push({ business: profileName, date, done: false });
     for (const r of visibleReels) items.push({ business: profileName, date: r.date, done: r.posted });
-    for (const f of visibleFeed) items.push({ business: profileName, date: f.date, done: f.status === "posted" });
+    for (const f of visibleFeed) if (f.status !== "skipped") items.push({ business: profileName, date: f.date, done: f.status === "posted" });
     for (const [date, ps] of teamByDate)
       for (const p of ps) if (statusOf(p, teamReviews[p.id]) !== "skipped") items.push({ business: profileName, date, done: Boolean(p.postedAt) });
     return items;
@@ -995,7 +1003,7 @@ export default function CalendarPage() {
       title={`${f.business} ${f.channel}: ${f.title}`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
         roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
-      } ${f.status === "posted" ? "bg-success/15 text-success" : "bg-sky-500/15 text-sky-700 dark:text-sky-300"}`}
+      } ${f.status === "posted" ? "bg-success/15 text-success" : f.status === "skipped" ? "bg-muted text-muted-foreground line-through" : "bg-sky-500/15 text-sky-700 dark:text-sky-300"}`}
     >
       {roomy ? (
         <>
@@ -1162,7 +1170,7 @@ export default function CalendarPage() {
       })),
       ...t.ghosts.map((g) => ({ id: `${g.id}@`, tone: "border border-primary" })),
       ...t.reels.map((r) => ({ id: r.id, tone: r.posted ? "bg-success" : !r.auto && r.date <= todayKey ? "bg-warning" : "bg-brand" })),
-      ...t.feed.map((f) => ({ id: f.id, tone: f.status === "posted" ? "bg-success" : "bg-sky-500" })),
+      ...t.feed.map((f) => ({ id: f.id, tone: f.status === "posted" ? "bg-success" : f.status === "skipped" ? "border border-muted-foreground" : "bg-sky-500" })),
       ...t.team.map((p) => {
         const st = statusOf(p, teamReviews[p.id]);
         return { id: p.id, tone: st === "waiting" ? "bg-warning" : st === "posted" ? "bg-success" : "bg-muted-foreground/60" };
@@ -2115,7 +2123,32 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
-      <ChannelPostDrawer item={openFeed} onClose={closeFeed} />
+      <ChannelPostDrawer
+        item={openFeed}
+        onClose={closeFeed}
+        review={openFeed ? channelReviews[openFeed.id] : undefined}
+        onSkip={
+          userId && openFeed
+            ? (on) => {
+                setChannelReviews(skipChannelPost(userId, openFeed.id, on));
+                toast({ title: on ? "Skipped. The 8pm run sends the next post instead." : "Back in the queue." });
+              }
+            : undefined
+        }
+        onComment={
+          userId && openFeed
+            ? (text) => {
+                setChannelReviews(commentChannelPost(userId, openFeed.id, text));
+                toast({
+                  title:
+                    openFeed.status === "locked"
+                      ? "Sent. The new version comes to your Telegram in about 15 minutes."
+                      : "Saved. It is used when this post is made.",
+                });
+              }
+            : undefined
+        }
+      />
       {teamOpen && userId && (
         <TeamPostPanel
           key={teamOpen.id}

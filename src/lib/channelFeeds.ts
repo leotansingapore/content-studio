@@ -10,7 +10,7 @@ import { REELS_BOARD_OWNERS } from "@/lib/reelsBoard";
 export const FEED_BASE = "https://hgdbflprrficdoyxmdxe.supabase.co/storage/v1/object/public/channel-feeds/";
 export const FEED_INDEX_URL = `${FEED_BASE}index.json`;
 
-export type FeedStatus = "posted" | "locked" | "planned";
+export type FeedStatus = "posted" | "locked" | "planned" | "skipped";
 
 export interface FeedQuiz {
   question: string;
@@ -31,6 +31,8 @@ export interface FeedItem {
   caption: string; // Telegram HTML: <b> and <a href> only
   media: string[];
   quiz?: FeedQuiz;
+  /** Ids of Leo's comments (channelReviews.ts) the job has made the post again with. */
+  handled?: string[];
 }
 
 export interface CalendarFeedItem extends FeedItem {
@@ -39,7 +41,7 @@ export interface CalendarFeedItem extends FeedItem {
   handle: string;
 }
 
-const STATUSES: FeedStatus[] = ["posted", "locked", "planned"];
+const STATUSES: FeedStatus[] = ["posted", "locked", "planned", "skipped"];
 
 /** Lowercase letters and digits only, so "MoneyBees", "moneybees" and a reels brand id "moneybees" match. */
 export function businessKey(name: string): string {
@@ -79,6 +81,7 @@ export function normalizeFeed(raw: unknown): CalendarFeedItem[] {
       caption: typeof r.caption === "string" ? r.caption : "",
       media: Array.isArray(r.media) ? r.media.filter((m): m is string => typeof m === "string" && m.startsWith(FEED_BASE)) : [],
       quiz,
+      handled: Array.isArray(r.handled) ? r.handled.filter((x): x is string => typeof x === "string") : [],
       business,
       channel,
       handle,
@@ -168,4 +171,5 @@ export const STATUS_LABEL: Record<FeedStatus, string> = {
   posted: "Posted",
   locked: "Previewed and locked",
   planned: "Planned",
+  skipped: "Skipped",
 };
