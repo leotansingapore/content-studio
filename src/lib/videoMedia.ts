@@ -75,7 +75,7 @@ import { withColdOpen } from "@/lib/coldOpen";
 import { gridWindow, placeCoverText, type Band } from "@/lib/igGrid";
 import type { RemixSource } from "@/lib/remixSource";
 import { EDIT_TABS, type EditTab } from "@/lib/links";
-import { aiOf, type AiMark } from "@/lib/videoProjects";
+import { aiOf, withAiLine, type AiMark } from "@/lib/videoProjects";
 
 // ---------- sound for captions ----------
 
@@ -1698,9 +1698,11 @@ export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): Pick
   const tab = EDIT_TABS.find((t) => t === e.tab && t !== "style");
   const ai = aiOf(e.ai);
   const said = typeof e.said === "string" ? e.said.trim() : "";
+  // a video with an AI person or voice ends its caption with the AI line, which the person can edit (live-p5dog D2)
+  const caption = withAiLine(text(e.caption) ?? "", ai);
   return {
     keep: {
-      ...(text(e.caption) ? { caption: e.caption } : {}),
+      ...(caption ? { caption } : {}),
       ...(e.source && typeof e.source === "object" ? { source: e.source } : {}),
       ...(text(e.draftId) ? { draftId: e.draftId } : {}),
       ...(ai ? { ai } : {}),

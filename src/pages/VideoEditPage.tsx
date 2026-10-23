@@ -204,7 +204,7 @@ import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "
 import { FAST, isFast } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { MAX_WATCH_SECONDS, WATCH_LABELS, onWatchJob, startWatch, watchJob, type WatchJob } from "@/lib/watchCut";
-import { fileKey, suggestCutaways, loadFixes, loadProjects, pickKeyWords, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { aiChips, fileKey, suggestCutaways, loadFixes, loadProjects, pickKeyWords, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
@@ -2021,6 +2021,8 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
   const zone = coverApp && settings.aspect === "9:16" ? APP_COVER[coverApp] : null;
   const covered = coverApp ? appCover(settings, coverApp) : null;
 
+  const chips = leo ? aiChips(project.ai) : [];
+
   if (file === null) {
     return (
       <div className="space-y-3">
@@ -2036,7 +2038,14 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onBack} className="[@media(pointer:coarse)]:min-h-11">All videos</Button>
-        <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
+        <h1 className={`${chips.length ? "" : "mr-auto "}truncate font-serif text-xl font-semibold`}>{project.name}</h1>
+        {chips.length > 0 && (
+          // people-ai-labels, Leo only: what the studio's AI made in this video (live-p5dog D2)
+          <span className="mr-auto flex items-center gap-1">
+            {chips.map((chip) => <span key={chip} className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary">{chip}</span>)}
+            <InfoTip label="About the AI label">{"Made by Content Studio's AI. Posts from it get the AI label."}</InfoTip>
+          </span>
+        )}
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
         <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         {settings.exportAs !== "audio" && settings.exportAs !== "small" && (

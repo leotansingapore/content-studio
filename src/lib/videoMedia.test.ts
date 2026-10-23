@@ -142,9 +142,14 @@ describe("pickupPlan", () => {
 
   it("keeps the AI mark on every path, and nothing for a junk one", () => {
     const ai = { kind: "avatar", person: "presenter", who: "p-1", voice: "premade", voiceId: "alice", madeAt: "2026-10-21T09:15:00.000Z" } as const;
+    const LINE = "This video uses an AI-made person or voice.";
     for (const path of PATHS) {
-      expect(pickupPlan({ ...full, ai }, path).keep).toStrictEqual({ caption: "Cap.", source, draftId: "d1", ai });
-      expect(pickupPlan({ ai }, path)).toStrictEqual({ keep: { ai }, toast: null });
+      // an AI person or voice ends the caption with the AI line, once (people-ai-labels, live-p5dog D2)
+      expect(pickupPlan({ ...full, ai }, path).keep).toStrictEqual({ caption: `Cap.\n\n${LINE}`, source, draftId: "d1", ai });
+      expect(pickupPlan({ ...full, caption: `Cap.\n\n${LINE}`, ai }, path).keep.caption).toBe(`Cap.\n\n${LINE}`);
+      expect(pickupPlan({ ai }, path)).toStrictEqual({ keep: { caption: LINE, ai }, toast: null });
+      // a mark with no person and no voice (a template clip of a product) adds no line
+      expect(pickupPlan({ ...full, ai: { kind: "template", madeAt: ai.madeAt } }, path).keep.caption).toBe("Cap.");
       for (const junk of [{ kind: "avatar" }, { kind: "swap", madeAt: ai.madeAt }, "avatar", 5, null])
         expect(pickupPlan({ ...full, ai: junk } as unknown as JoinExtra, path).keep).toStrictEqual({ caption: "Cap.", source, draftId: "d1" });
     }
