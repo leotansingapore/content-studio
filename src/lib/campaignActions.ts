@@ -12,6 +12,7 @@
 
 import { aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import { loadAudiences } from "@/lib/audiences";
+import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
 import { dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignPost } from "@/lib/campaigns";
@@ -256,6 +257,13 @@ export function savedWho(userId: string): TalkWho | null {
   return who && speakerOf(s, who) ? (who as TalkWho) : null;
 }
 
+/** The voice for who appears: a presenter's own (one that fits their look), else the remix voice remembered. */
+function voiceFor(userId: string, who: TalkWho) {
+  const remembered = loadRemixPrefs(userId).voice;
+  const sp = speakerOf(speakers(userId), who);
+  return sp?.person === "presenter" ? presenterVoice(sp.p, remembered) : remembered;
+}
+
 /** Follows the talking head run `start` begins or picks up (true when it did) until the editor has the video, or it stops. */
 function followTalk(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n">, draftId: string, start: () => boolean): Promise<MakeOutcome> {
   const k = keyOf(c.id, p.n);
@@ -312,7 +320,7 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     return { ok: false, error: SAVE_LINE };
   }
   return followTalk(userId, c, p, d.id, () => {
-    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: loadRemixPrefs(userId).voice, length: 15, mention: true, draftId: d.id });
+    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: voiceFor(userId, who), length: 15, mention: true, draftId: d.id });
     return talkJob()?.ask?.draftId === d.id;
   });
 }

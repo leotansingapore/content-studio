@@ -26,7 +26,7 @@ const fake = vi.hoisted(() => {
       },
     };
   };
-  return { show: store(), wall: store(), talk: store(), seq: 0, ai: { busy: false, pending: null as unknown }, who: "me", fn: null as unknown as ReturnType<typeof vi.fn> };
+  return { show: store(), wall: store(), talk: store(), seq: 0, ai: { busy: false, pending: null as unknown }, who: "me", presenters: [] as unknown[], fn: null as unknown as ReturnType<typeof vi.fn> };
 });
 const busyIn = (j: { state: string } | null, states: string[]) => !!j && states.includes(j.state);
 const startSlideshow = vi.hoisted(() => vi.fn());
@@ -60,7 +60,7 @@ vi.mock("@/lib/talkingHeadJob", async (orig) => ({
 }));
 vi.mock("@/lib/aiVideo", async (orig) => ({ ...(await orig<typeof import("./aiVideo")>()), aiBusy: () => fake.ai.busy, pendingAvatar: () => fake.ai.pending }));
 // the brand's "Who appears": "me" with a face saved and on, or "ask" (Ask each time)
-vi.mock("@/lib/talkingHead", async (orig) => ({ ...(await orig<typeof import("./talkingHead")>()), speakers: () => ({ face: { id: "f1" }, presenters: [], who: fake.who }) }));
+vi.mock("@/lib/talkingHead", async (orig) => ({ ...(await orig<typeof import("./talkingHead")>()), speakers: () => ({ face: { id: "f1" }, presenters: fake.presenters, who: fake.who }) }));
 vi.mock("@/lib/campaignJob", async (orig) => ({ ...(await orig<typeof import("./campaignJob")>()), startDrafting }));
 
 import { saveAudience } from "./audiences";
@@ -117,6 +117,7 @@ beforeEach(async () => {
   fake.talk.reset();
   fake.ai = { busy: false, pending: null };
   fake.who = "me";
+  fake.presenters = [];
   fn.mockReset();
   startDrafting.mockReset();
   startSlideshow.mockReset().mockImplementation(async (userId: string, ask: { topic: string }) => {
@@ -315,6 +316,15 @@ describe("makePost, an AI video", () => {
     void act.makePost(UID, "c-1", 6, NOW);
     await tick();
     expect(startTalk.mock.calls[0][1].voice).toBe("alice");
+  });
+
+  it("a saved presenter speaks in a voice that fits them, over the remembered voice (live-p5dog D1)", async () => {
+    fake.who = "pr-raj";
+    fake.presenters = [{ id: "pr-raj", name: "Raj", look: "An Indian Singaporean man in his mid 30s, a side-parted crop, dark suit and a plain tie", url: "https://x/raj.png", photo: "", createdAt: NOW.toISOString(), status: "on" }];
+    seed([post(6, { format: "ai-video", script: SCRIPT })]);
+    void act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(startTalk.mock.calls[0][1]).toMatchObject({ who: "pr-raj", voice: "eric" });
   });
 
   it("with Ask each time, leaves a scheduled short-video draft and opens the AI video maker on it", async () => {

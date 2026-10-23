@@ -6,6 +6,7 @@
 
 import { scoped } from "@/lib/profiles";
 import { MAX_EXTRA, PRESENTER_PREFS, type PresenterPrefs } from "../../supabase/functions/ai-video/logic.ts";
+import { VOICES, type VoiceId } from "../../supabase/functions/text-voice/logic.ts";
 
 export { MAX_EXTRA, PRESENTER_PREFS, type PresenterPrefs } from "../../supabase/functions/ai-video/logic.ts";
 
@@ -173,4 +174,18 @@ export function nameFor(look: string, taken: string[]): string {
   const m = /^An? (Chinese|Malay|Indian|Eurasian) Singaporean (woman|man)\b/.exec(look);
   const list = m ? NAMES[m[1]][m[2] as "woman" | "man"] : ["Mei", "Raj", "Aisha", "Daniel"];
   return list.find((n) => !taken.includes(n)) ?? list[0];
+}
+
+// ---------- a voice that fits ----------
+
+const female = (v: VoiceId) => /\bfemale\b/.test(VOICES[v].note);
+
+/**
+ * The voice a presenter speaks in, from the woman or man their look names (live-p5dog D1: Raj spoke in Alice's voice):
+ * the remembered voice when it fits, else Alice for a woman and Eric for a man. A look that names neither keeps it.
+ */
+export function presenterVoice(p: Pick<Presenter, "look">, remembered: VoiceId): VoiceId {
+  const g = /\b(woman|man)\b/i.exec(p.look)?.[1].toLowerCase();
+  if (!g) return remembered;
+  return female(remembered) === (g === "woman") ? remembered : g === "woman" ? "alice" : "eric";
 }
