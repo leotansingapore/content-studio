@@ -1045,8 +1045,9 @@ describe("campaign call to action (wave 1 live check: calls/011 posts 1 and 5 en
   it("matches in any case or punctuation, keeps a body whose last line only mentions the cta, and does the same for a carousel's last point", () => {
     const loose = { ...LIVE_011_POST_1, body: LIVE_011_POST_1.body.replace("What helps you keep track of client chats without hovering over your team?", "what helps you keep track of client chats, without hovering over your team") };
     expect(validateCampaign({ posts: [loose] }, live)![0].body!.endsWith("useful.")).toBe(true);
+    // a request of its own after the cta's question is a second ask too: both go (live-p5dog day 2 D6)
     const kept = { ...LIVE_011_POST_1, body: `${LIVE_011_POST_1.body} Tell us below.` };
-    expect(validateCampaign({ posts: [kept] }, live)![0].body).toBe(kept.body);
+    expect(validateCampaign({ posts: [kept] }, live)![0].body!.endsWith("useful.")).toBe(true);
     const points = [1, 2, 3, 4].map((i) => `Point ${i}: ${words(10)}`);
     const got = validateCampaign(written({ 2: { body: [...points, "Save this."].join("\n\n") } }), campaignRequest())!.find((p) => p.n === 2)!;
     expect(got.body!.split("\n\n")).toEqual(points);
@@ -1107,11 +1108,12 @@ describe("a body that ends on a near copy of its cta (wave 4 live check: calls/0
 
   it("removes only the repeating sentence of a last line, a two-sentence cta's both, and never a statement on the cta's words", () => {
     const post1 = (end: string, cta = P5W4_003_POSTS[0].cta) => validateCampaign({ posts: [{ ...P5W4_003_POSTS[0], body: `${cut(P5W4_003_POSTS[0].body)}\n\n${end}`, cta }] }, live)![0].body!;
-    expect(post1("Tell us. What part of your sales workflow really involves the most app switching?").endsWith("\n\nTell us.")).toBe(true);
+    expect(post1("Most reps feel it. What part of your sales workflow really involves the most app switching?").endsWith("\n\nMost reps feel it.")).toBe(true);
     expect(post1("Save this. Then share it with a coach who switches apps all day.", "Save this. Share it with a coach who switches apps all day.")).toBe(cut(P5W4_003_POSTS[0].body));
     const statement = "The part of your sales workflow that involves the most app switching is where follow-ups slip.";
     expect(post1(statement).endsWith(statement)).toBe(true);
-    expect(post1("What part of your week goes to admin?").endsWith("What part of your week goes to admin?")).toBe(true);
+    // a question of its own above the cta is a second ask (live-p5dog day 2 D6)
+    expect(post1("What part of your week goes to admin?")).toBe(cut(P5W4_003_POSTS[0].body));
   });
 });
 
@@ -2076,5 +2078,64 @@ describe("new angles against used ones (live-p5dog day 2 D9: 'Log activity quick
     expect(keepAngles(cands, fitsOf, same).angles.map((a) => a.title)).toEqual(["A clearer sales routine", "Targets on your phone", "For independent sales", "For coaching sales", "A shared inbox"]);
     // the unscored fallback leaves them out too
     expect(keepAngles(cands, Array(8).fill(null), { used_0: noul(0.7) }).angles.map((a) => a.title)).toEqual(["Targets on your phone", "A shared inbox", "Log activity quickly", "Tasks beside client work", "A clearer sales routine"]);
+  });
+});
+
+// ---- live-p5dog day 2 (23 Oct): check campaign posts 4 and 7 ended the body on an ask of their own above the cta -----
+// calls/day2/CK-campaign-store.json posts 4 and 7 as they came back
+
+describe("one ask per post (live-p5dog day 2 D6: posts 4 and 7 asked in the body and again in the cta)", () => {
+  const POST_4 =
+    "Independent sales work can mean switching between client details, chats, follow-ups and targets. When each part lives somewhere different, it is harder to see the day's work in one view.\n\nA simpler setup brings those parts together. Our app combines CRM, a shared WhatsApp inbox, tasks and goals in one phone app. You can manage clients, chats and targets alongside your sales activity.\n\nFor self-employed sales professionals and coaches, that means one place to return to as the day moves from client conversations to follow-ups and tasks. Activity can also be logged in one tap, right from your phone.\n\nThe aim is a more connected way to manage sales work, not another separate place to check.\n\nWhich part of your sales work do you currently manage across different tools?";
+  const POST_7 =
+    "Sales activity is part of the work, but logging it can become another separate step in the day. When you are moving between client conversations, chats and follow-ups, it helps to keep activity logging close at hand.\n\nOur app lets you log sales activity in one tap, right from your phone. It also brings CRM, a shared WhatsApp inbox, tasks and goals together in one app.\n\nThat gives self-employed sales professionals and coaches one place to manage clients, conversations and targets alongside their activity. You can keep the routine practical and connected to the client work already on your phone.\n\nIf you want to see how it fits your sales day, send us a message.";
+  const biz = (...posts: ReturnType<typeof postAskOf>[]) => campaignRequest({ ...CAMPAIGN_ASK, context: { ...BUSINESS_CONTEXT, audience: "Sales reps" }, posts });
+  const text = (n: number, body: string, cta: string) =>
+    validateCampaign({ posts: [{ n, hook: "Before, client work sat across tools. Now it sits in one app.", body, script: "", brief: "", cta }] }, biz(postAskOf(n, "text-post")))![0];
+
+  it("tells the writer the cta is the post's only ask", () => {
+    expect(buildCampaignPrompt(campaignRequest()).system).toContain("- The cta is the post's only ask: nothing before it (the body, a caption, a script's other lines) ends on a question or a request of its own.");
+  });
+
+  it("removes the body's closing question or request above the cta (posts 4 and 7)", () => {
+    const four = text(4, POST_4, "Save this for your next review of how you manage independent sales work.");
+    expect(four.body!.endsWith("not another separate place to check.")).toBe(true);
+    expect(four.body).not.toContain("?");
+    const seven = text(7, POST_7, 'DM us "ACTIVITY" to enquire about logging sales activity from your phone.');
+    expect(seven.body!.endsWith("connected to the client work already on your phone.")).toBe(true);
+    expect(seven.body).not.toMatch(/send us a message/);
+  });
+
+  it("keeps a closing statement, a question mid-body, and a body the cut would take under 80 words", () => {
+    const statement = `${POST_7.split("\n\n").slice(0, 3).join("\n\n")}\n\nClients can text us any time through the shared inbox.`;
+    expect(text(7, statement, "DM us APP.").body).toBe(statement);
+    const mid = `Which follow-up slipped this week? ${words(90)}`;
+    expect(text(1, mid, "Save this.").body).toBe(mid);
+    const short = `${words(76)}\n\nWhich part do you juggle?`;
+    expect(text(1, short, "Save this.").body).toBe(short);
+  });
+
+  it("drops a carousel's last point that asks, while 4 points stay, and a script line that asks before the cta while it stays in range", () => {
+    const points = (k: number) => Array.from({ length: k }, (_, i) => `Point ${i + 1}: ${words(8)}`);
+    const req = campaignRequest();
+    const got = validateCampaign(
+      written({
+        2: { hook: "Five follow-up habits", body: [...points(5), "Which one do you skip?"].join("\n\n") },
+        3: { script: `HOOK: Nobody remembers your first call.\nBODY: ${words(60)} Which follow-up slipped this week?\nCTA: Save this for later.` },
+        4: { script: `${[1, 2, 3, 4].map(tenWords).join("\n")}\nWant the checklist?\nComment PLAN below.` },
+      }),
+      req,
+    )!;
+    expect(got.find((p) => p.n === 2)!.body!.split("\n\n")).toEqual(points(5));
+    expect(got.find((p) => p.n === 3)!.script).toBe(`HOOK: Nobody remembers your first call.\nBODY: ${words(60)}\nCTA: Save this for later.`);
+    expect(got.find((p) => p.n === 4)!.script).toBe(`${[1, 2, 3, 4].map(tenWords).join("\n")}\nComment PLAN below.`);
+    const four = validateCampaign(written({ 2: { hook: "Four follow-up habits", body: [...points(3), "Which one do you skip?"].join("\n\n") } }), req)!;
+    expect(four.find((p) => p.n === 2)!.body!.split("\n\n")).toHaveLength(4);
+  });
+
+  it("removes an AI video caption's closing question", () => {
+    const req = campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(4, "ai-video")] });
+    const [got] = validateCampaign({ posts: [{ n: 4, hook: "", body: "Follow-ups get lost between apps. Which ones slipped this week?", script: [1, 2, 3, 4].map(tenWords).join("\n"), brief: "", cta: "" }] }, req)!;
+    expect(got.body).toBe("Follow-ups get lost between apps.");
   });
 });
