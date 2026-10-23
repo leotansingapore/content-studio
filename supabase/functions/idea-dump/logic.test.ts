@@ -2139,3 +2139,15 @@ describe("one ask per post (live-p5dog day 2 D6: posts 4 and 7 asked in the body
     expect(got.body).toBe("Follow-ups get lost between apps.");
   });
 });
+
+// ---- live-p5dog day 2 (23 Oct) D14: calls/day2/292's first angle line came back "the day\u2019s sales work" -------------
+
+describe("straight quotes in angles (live-p5dog day 2 D14: 'day\u2019s' in an angle line)", () => {
+  it("comes back with straight quotes and apostrophes in titles and lines", () => {
+    const got = validateAngles({ angles: [{ title: "A clearer sales routine", line: "Bring CRM, chats, tasks and goals together to manage the day\u2019s sales work." }, { title: "The \u201cone app\u201d day", line: "It\u2019s all in one place." }] })!;
+    expect(got).toEqual([
+      { title: "A clearer sales routine", line: "Bring CRM, chats, tasks and goals together to manage the day's sales work." },
+      { title: "The \"one app\" day", line: "It's all in one place." },
+    ]);
+  });
+});

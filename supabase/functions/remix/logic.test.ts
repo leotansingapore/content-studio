@@ -751,6 +751,18 @@ describe("the wall of text (formats-wall-of-text)", () => {
     expect(wall({ caption: "your calls, follow-ups and meetings are all there." })).toBeNull();
   });
 
+  it("comes back with straight quotes and apostrophes in the text and caption (live-p5dog day 2 D14: wall 26's \"it\u2019s\")", () => {
+    // calls/day2/MK-26's text as it came back
+    const r = wall({
+      text: "When sales work is spread across chats, notes and reminders, it\u2019s easy to lose track. Four things help keep it moving: client records, a shared WhatsApp inbox, follow-up tasks and goals for targets. ActivityTracker brings all four together in one phone app.",
+      caption: "A simple setup can make it easier to see what\u2019s next. Keep the day\u2019s \u201cfollow-ups\u201d connected.",
+      cta: "DM us \u201cAPP\u201d to ask how to get started.",
+    });
+    expect(r?.as === "wall" && r.text).toContain("it's easy to lose track.");
+    expect(r?.as === "wall" && r.caption).toBe("A simple setup can make it easier to see what's next. Keep the day's \"follow-ups\" connected.\n\nDM us \"APP\" to ask how to get started.\n\n#sales");
+    expect(JSON.stringify(r)).not.toMatch(/[\u2018\u2019\u201c\u201d]/);
+  });
+
   it("passes the model's refusal through as its reason, never as a wall", () => {
     const refused = { ...RAW, refuse: true, reason: "It promises returns." };
     expect(refusalOf("wall", JSON.stringify(refused))).toBe("It promises returns.");

@@ -961,6 +961,8 @@ const chars = (t: string, n: number) => (t.length > n ? t.slice(0, n + 1).replac
 /** Ends a sentence, allowing a closing quote or bracket after the stop; an emoji ends one too, as IG captions do. */
 const ENDS_SENTENCE = /(?:[.!?]["')\]]?|\p{Extended_Pictographic})[\p{Emoji_Modifier}️‍\s]*$/u;
 const squash = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+/** Curly quotes and apostrophes as straight ones (live-p5dog D14; idea-dump's campaign words and angles use it too). */
+export const straightQuotes = (t: string) => t.replace(/[\u2018\u2019\u201a\u201b]/g, "'").replace(/[\u201c\u201d\u201e\u201f]/g, '"');
 
 /** The formats whose schema lets the model refuse (a speaking script only with seconds). */
 const REFUSES: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
@@ -1024,7 +1026,8 @@ export function validateMake(as: RemixAs, raw: unknown, req: MakeOpts = {}): Mak
     const search = words(String(r.search ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " "), 4);
     // the wall's words, whole or cut, are not a caption: checked as one slide holding the text
     const caption = scene && search ? slideshowCaption(r, [{ title: text, sub: "" }]) : null;
-    return caption ? { as, text, scene, search, caption } : null;
+    // live-p5dog day 2 D14: wall 26 said "it\u2019s"
+    return caption ? { as, text: straightQuotes(text), scene, search, caption: straightQuotes(caption) } : null;
   }
   if (as === "speaking") {
     if (r.refuse === true) return null;

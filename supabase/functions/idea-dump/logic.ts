@@ -11,7 +11,7 @@
 import { complianceIssues } from "../_shared/socialAudit.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { BUSINESS_VOICE, hookCount, sentenceCase, speakingWords, type Speaker } from "../remix/logic.ts";
+import { BUSINESS_VOICE, hookCount, sentenceCase, speakingWords, straightQuotes, type Speaker } from "../remix/logic.ts";
 
 export const MAX_NOTES_CHARS = 4000;
 export const MAX_IDEAS = 10;
@@ -891,8 +891,9 @@ export function validateAngles(raw: unknown, avoid: string[] = [], names = ""): 
   const out: AngleCandidate[] = [];
   for (const a of obj.angles) {
     if (!isRecord(a)) continue;
-    const line = clip(cutWords(cleanText(a.line, 600), 19), 140);
-    const title = sentenceCase(cleanText(a.title, 200), `${line}. ${names}`, { short: true });
+    // straight quotes (live-p5dog day 2 D14: "day\u2019s" in an angle line)
+    const line = clip(cutWords(cleanText(straight(a.line), 600), 19), 140);
+    const title = sentenceCase(cleanText(straight(a.title), 200), `${line}. ${names}`, { short: true });
     const n = wordCount(title);
     if (n < 2 || n > 5 || title.length > 40 || !line || seen.has(wordsKey(title))) continue;
     seen.add(wordsKey(title));
@@ -1401,7 +1402,7 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
 }
 
 /** Curly quotes and apostrophes as straight ones (live-p5dog D14: hooks 6, 9, 21, 23, 26 and cta 27 came back curly). */
-const straight = (v: unknown) => (typeof v === "string" ? v.replace(/[‘’‚‛]/g, "'").replace(/[“”„‟]/g, '"') : v);
+const straight = (v: unknown) => (typeof v === "string" ? straightQuotes(v) : v);
 
 /** The speaker saying I ("5 things I wish I knew", "I'd do it again"), not someone quoted (live-p5w3: "Who do I need to call today?"). */
 const saysI = (hook: string) => /(?:^|\s)I(?:['\u2019](?:m|ve|d|ll))?(?=[\s,.!?;:]|$)/.test(hook.replace(/["\u201c][^"\u201d]*(?:["\u201d]|$)/g, " "));
