@@ -66,6 +66,12 @@ function spread(text: string, s: number, e: number): Word[] {
   });
 }
 
+/**
+ * A script spoken word for word (an AI video's premade voice) as the editor's transcript: its words spread over the
+ * video by their length, like one long subtitle line, so the video is captioned with no transcribe (live-p5dog D8).
+ */
+export const scriptWords = (script: string, duration: number): Word[] => (duration > 0 ? spread(plain(script), 0, duration) : []);
+
 /** One line's words: at YouTube's word times (<00:00:01.500>) when the line has them, else spread over [s, e). */
 function lineWords(line: string, s: number, e: number): Word[] {
   const parts = line.split(/<((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})>/);

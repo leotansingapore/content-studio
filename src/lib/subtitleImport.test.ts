@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subtitleWords } from "@/lib/subtitleImport";
+import { scriptWords, subtitleWords } from "@/lib/subtitleImport";
 
 describe("subtitleWords", () => {
   it("reads an SRT: each line's words spread over its time by their length", () => {
@@ -39,5 +39,22 @@ describe("subtitleWords", () => {
     expect(subtitleWords(srt, 5).map((w) => w.w)).toEqual(["In", "the", "video"]);
     expect(subtitleWords("Just some notes\nwith no times")).toEqual([]);
     expect(subtitleWords("1\n00:00:05,000 --> 00:00:04,000\nBackwards\n")).toEqual([]);
+  });
+});
+
+describe("scriptWords (live-p5dog D8: an AI video is captioned from its script, never transcribed on its own)", () => {
+  it("spreads the script's words over the whole video by their length, in order and inside it", () => {
+    const ws = scriptWords("Before, follow-ups sit apart.\nNow they stay with the client.", 6);
+    expect(ws.map((w) => w.w)).toEqual(["Before,", "follow-ups", "sit", "apart.", "Now", "they", "stay", "with", "the", "client."]);
+    expect(ws[0].s).toBe(0);
+    expect(ws[ws.length - 1].e).toBeLessThanOrEqual(6);
+    expect(ws[ws.length - 1].e).toBeGreaterThan(5.5);
+    expect(ws.every((w, i) => w.e > w.s && (i === 0 || w.s >= ws[i - 1].e))).toBe(true);
+  });
+
+  it("gives nothing for no words or no length", () => {
+    expect(scriptWords("   ", 10)).toEqual([]);
+    expect(scriptWords("Some words.", 0)).toEqual([]);
+    expect(scriptWords("Some words.", Number.NaN)).toEqual([]);
   });
 });

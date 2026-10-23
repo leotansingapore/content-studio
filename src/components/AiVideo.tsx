@@ -669,7 +669,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
     setStarting(false);
     // a saved picture that no longer reads: nothing is sent or spent
     if (!sent) return setVoError(speaker?.person === "mine" ? "Your saved face didn't open. Record it again on Faces and voices." : "That presenter's picture didn't open. Pick who speaks again.");
-    void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice) });
+    // a premade voice says the box word for word, so the editor captions it from the script with no transcribe
+    void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice), ...(own ? {} : { said: script.trim() }) });
   };
   // New presenter (AI presenter for everyone else): today's look box
   const presenterBox = (

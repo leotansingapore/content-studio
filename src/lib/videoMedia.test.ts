@@ -152,6 +152,13 @@ describe("pickupPlan", () => {
     expect(pickupPlan({ ai: { ...ai, voiceId: "rachel" } } as unknown as JoinExtra, "captions").keep.ai).not.toHaveProperty("voiceId");
   });
 
+  it("hands the editor an AI video's script, so it is captioned from it with no transcribe (live-p5dog D8)", () => {
+    const said = "Before, follow-ups sit apart.\nNow they stay with the client.";
+    expect(pickupPlan({ toast: "Ready", said: `  ${said} ` }, "captions")).toStrictEqual({ keep: {}, toast: { title: "Ready" }, said });
+    // a hand-off with no script, or junk read back from JSON, is transcribed as before
+    for (const junk of [undefined, "", "   ", 5, null, ["a"]]) expect(pickupPlan({ toast: "Ready", said: junk } as unknown as JoinExtra, "captions")).toStrictEqual({ keep: {}, toast: { title: "Ready" } });
+  });
+
   it("drops junk read back from a pending clip's JSON, and leaves the default tab out of the URL", () => {
     const junk = { toast: 5, note: "", caption: "", source: "ad:1", draftId: 7, tab: "nope" } as unknown as JoinExtra;
     expect(pickupPlan(junk, "captions")).toEqual({ keep: {}, toast: null });

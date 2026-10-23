@@ -213,6 +213,7 @@ import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestNa
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
 import { onCaptionJob, startCaptions } from "@/lib/captionJob";
+import { scriptWords } from "@/lib/subtitleImport";
 import { onClipFind, runClipAsk, setClipAsk, startLook, type ClipAsk } from "@/lib/clipAsk";
 import { FEW_WORDS, LEO_PANELS, NO_SOUND, START_PANELS, footageWords, readsLonger, withPanel, type StartPanel } from "@/lib/ownMedia";
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
@@ -364,18 +365,26 @@ export default function VideoEditPage() {
         open("no-captions");
         return;
       }
-      setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
+      // an AI video says its script word for word: its captions are timed from it and nothing is transcribed (live-p5dog D8)
+      const said = pickupPlan(extra, "captions").said;
+      if (!said) setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       let landed = false;
       let silent = false;
       try {
-        // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker"), and ask Whisper to spell their fixed words
-        const mine = [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])];
-        const t = await transcribe(heard.wav, undefined, leo ? captionTerms(mine) : undefined);
-        const fixed = applyFixes(t.words, mine);
-        p = { ...p, words: fixed.words };
-        setProjects(saveProject(uid, p));
-        landed = true;
-        if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
+        if (said) {
+          p = { ...p, words: scriptWords(said, duration) };
+          setProjects(saveProject(uid, p));
+          landed = true;
+        } else {
+          // Leo's sign-ins also fix the brand kit's name as the captions mishear it ("Activity Tracker"), and ask Whisper to spell their fixed words
+          const mine = [...loadFixes(uid), ...(leo ? brandFixes(loadBrand(uid)?.name) : [])];
+          const t = await transcribe(heard.wav, undefined, leo ? captionTerms(mine) : undefined);
+          const fixed = applyFixes(t.words, mine);
+          p = { ...p, words: fixed.words };
+          setProjects(saveProject(uid, p));
+          landed = true;
+          if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
+        }
       } catch (e) {
         silent = (e as Error).message === NO_SOUND;
         // footage from the own panel with no sound gets words on screen below instead
