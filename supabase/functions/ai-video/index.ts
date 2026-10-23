@@ -36,7 +36,9 @@
 // started them (ai-image's jobToken), so nobody else can read a job.
 // A video or clip that Higgsfield refused, failed or blocked gives both uses back: at once when the submit
 // fails, or on the status check that first sees the failure, by the signed refund ticket handed back at the
-// start (logic.ts refundFailed: once per video, only on the day the uses were taken).
+// start (logic.ts refundFailed: once per video, only on the day the uses were taken). That status check also cancels the
+// video's other parts at Higgsfield, which only a queued part allows; when a part was already being made or made, the
+// failed part's error says its credits may already be spent (D2, phase 5 dogfood, 23 Oct).
 // A saved face (people-my-face), NORTH_STAR_USERS only:
 //   POST {mode:"consent-code", kind:"face"} -> {code, ticket}  4 digits to read aloud, signed for this uid and UTC day; free
 //   POST {mode:"consent", kind:"face", wav, code, ticket, photo} -> {heard, photoHash, token, at}  Whisper hears the 16 kHz
@@ -67,10 +69,10 @@ import { consentSecret, heardCode, newCode, openSigned, signFor } from "../_shar
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
   CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex, LOOK_REFUSED, lookQuestions, presenterLooks, readLookCheck,
-  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, failureLine, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
+  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, failureLine, partsSpent, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
   TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
   northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
-  speakBody, talkSystem, talkUser, validateScript, validateTalk, type Refundable,
+  speakBody, talkSystem, talkUser, validateScript, validateTalk, type MediaState, type Refundable,
 } from "./logic.ts";
 import { PROMPT_FORMAT, clipPrompt, fixedPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
 
@@ -293,7 +295,7 @@ Deno.serve(async (req) => {
 
     if (r.mode === "status") {
       const ids = await Promise.all(r.tokens.map((token) => openJobToken(signing, uid, token)));
-      const jobs = await Promise.all(ids.map(async (id) => {
+      const jobs = await Promise.all(ids.map(async (id): Promise<MediaState> => {
         if (!id) return { state: "failed", error: "That video job isn't known." };
         try {
           const res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
@@ -309,6 +311,21 @@ Deno.serve(async (req) => {
         }
       }));
       if (ids.every(Boolean)) await refundFailed(admin, signing, uid, ids as string[], jobs.some((j) => j.state === "failed"), r.refund, day);
+      // a video's poll (it carries the refund ticket) drops every part at the first failure, so the others are cancelled:
+      // Higgsfield cancels and refunds only a queued request; one it is making or has made is charged, and the error says so
+      const first = jobs.findIndex((j) => j.state === "failed");
+      const failed = jobs[first];
+      if (r.refund && failed?.state === "failed") {
+        const charged = await Promise.all(ids.map(async (id, i) => {
+          if (!id || jobs[i].state === "failed") return false;
+          if (jobs[i].state === "done") return true;
+          const res = await fetch(`${HF_BASE}/requests/${id}/cancel`, { method: "POST", headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+          console.log("ai-video cancel", id, res?.status ?? "no answer");
+          return !res?.ok;
+        }));
+        const n = charged.filter(Boolean).length;
+        if (n) jobs[first] = { state: "failed", error: `${failed.error} ${partsSpent(n)}` };
+      }
       return json({ jobs });
     }
 

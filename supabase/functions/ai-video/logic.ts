@@ -595,6 +595,10 @@ export function readMedia(data: unknown): MediaState {
   return { state: "failed", error: "It didn't come through. Try again." };
 }
 
+/** Said on a failed video when its other parts were already being made or made: Higgsfield charges those as usual. */
+export const partsSpent = (n: number) =>
+  n === 1 ? "Another part had already started, so its credits may already be spent." : `${n} other parts had already started, so their credits may already be spent.`;
+
 /** Higgsfield's whole answer on a failed request, for the log: its status and reason, every link cut (a signed link is a key). */
 export const failureLine = (data: unknown) => (JSON.stringify(data) ?? "null").replace(/https?:\/\/[^"\s]*/g, "<link>").slice(0, 500);
 

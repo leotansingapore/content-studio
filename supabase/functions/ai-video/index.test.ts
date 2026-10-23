@@ -3,7 +3,7 @@ import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
 import { createHash } from "node:crypto";
 import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
 import { consentSecret, openSigned, signFor } from "../_shared/consent";
-import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, presenterBody } from "./logic";
+import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, partsSpent, presenterBody } from "./logic";
 import { fixedPrompt, templateById } from "./templates";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
@@ -51,11 +51,12 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 // `answers` (when set) is Jev's whole reply instead. `status` answers a Higgsfield status read by job id (done by default),
 // and `pages` a page read by its link (a status number for a failure); `dns` resolves a host (public by default).
 // `ids` (when set) are the request ids submits answer in turn, for a status read (which opens only uuid tokens).
+// `cancels` answers a cancel by request id (202 by default; 400 once Higgsfield has started making it).
 const hf: {
   calls: string[]; submits: number[]; bodies: Record<string, unknown>[]; openai: { messages: { content: string }[] }[]; replies: (object | number)[]; jev: number | null; asked: unknown[];
   answers: Record<string, unknown> | null; status: Record<string, unknown>; pages: Record<string, { html: string; type?: string } | number>; dns: Record<string, string[]>;
-  whisper: (string | number)[]; heard: FormData[]; ids: string[];
-} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {}, whisper: [], heard: [], ids: [] };
+  whisper: (string | number)[]; heard: FormData[]; ids: string[]; cancels: Record<string, number>;
+} = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {}, whisper: [], heard: [], ids: [], cancels: {} };
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
@@ -103,7 +104,7 @@ beforeAll(async () => {
     if (String(u) === "https://upload.example/put") return new Response(null, { status: 200 });
     hf.calls.push(String(u));
     if (init?.body) hf.bodies.push(JSON.parse(String(init.body)));
-    if (String(u).endsWith("/cancel")) return answer({});
+    if (String(u).endsWith("/cancel")) return new Response(null, { status: hf.cancels[String(u).split("/").at(-2)!] ?? 202 });
     const status = hf.submits.shift() ?? 200;
     return status === 200 ? answer({ request_id: hf.ids.shift() ?? `r${hf.calls.length}` }) : answer({ detail: "no" }, status);
   });
@@ -132,6 +133,7 @@ beforeEach(() => {
   hf.whisper.length = 0;
   hf.heard.length = 0;
   hf.ids.length = 0;
+  hf.cancels = {};
 });
 
 const PICTURES = ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"];
@@ -850,5 +852,42 @@ describe("a talking video's status checks", () => {
     const lines = errors.mock.calls.filter((c) => c[0] === "ai-video status failed");
     expect(lines).toEqual([["ai-video status failed", P2, `{"status":"failed","request_id":"${P2}","error":"Generation failed","input":{"image_url":"<link>"}}`]]);
     expect(JSON.stringify(errors.mock.calls)).not.toMatch(/Key k:s|X-Amz-Signature|cdn\.example/);
+  });
+
+  it("cancel the other parts when one fails, and say a part already started or made may still be charged", async () => {
+    const DIDNT = "It didn't come through. Try again.";
+    const logs = vi.mocked(console.log);
+    // try 2 on 23 Oct: part 2 failed while part 1 was still being made, which Higgsfield no longer cancels
+    const one = await start();
+    logs.mockClear();
+    hf.status = { [P1]: { status: "in_progress" }, [P2]: { status: "failed", error: "Generation failed" } };
+    hf.cancels[P1] = 400;
+    expect(await (await send(UID, { mode: "status", tokens: one.tokens, refund: one.refund })).json()).toEqual({ jobs: [{ state: "working" }, { state: "failed", error: `${DIDNT} ${partsSpent(1)}` }] });
+    expect(cancels()).toEqual([`https://api.higgsfield.ai/requests/${P1}/cancel`]);
+    expect(logs.mock.calls).toContainEqual(["ai-video cancel", P1, 400]);
+    // the use rule as before: a failed part gives both back
+    expect([mine(), studio()]).toEqual([0, 0]);
+
+    // a part still queued is cancelled, and Higgsfield refunds a cancelled request: nothing to warn about
+    const two = await start();
+    delete hf.cancels[P1];
+    hf.status = { [P1]: { status: "failed", error: "Generation failed" }, [P2]: { status: "queued" } };
+    expect(await (await send(UID, { mode: "status", tokens: two.tokens, refund: two.refund })).json()).toEqual({ jobs: [{ state: "failed", error: DIDNT }, { state: "working" }] });
+    expect(cancels()).toEqual([`https://api.higgsfield.ai/requests/${P2}/cancel`]);
+
+    // a part already made is charged and can't be cancelled; one with no answer to its cancel may still be made
+    const three = await start();
+    db.rows.clear(); // two a day: the fourth video is a new day's
+    hf.ids.push("77777777-7777-4888-9999-bbbbbbbbbbbb", "88888888-7777-4888-9999-cccccccccccc", "99999999-7777-4888-9999-dddddddddddd");
+    const four = await (await send(UID, { ...AVATAR, slices: [...AVATAR.slices, ...AVATAR.slices.slice(0, 1)] })).json();
+    hf.calls.length = 0;
+    hf.status = { [P1]: { status: "completed", video: { url: "https://cdn.example/p1.mp4" } }, [P2]: { status: "failed" } };
+    expect((await (await send(UID, { mode: "status", tokens: three.tokens, refund: three.refund })).json()).jobs[1]).toEqual({ state: "failed", error: `${DIDNT} ${partsSpent(1)}` });
+    expect(cancels()).toEqual([]);
+    hf.status = { "77777777-7777-4888-9999-bbbbbbbbbbbb": { status: "nsfw" }, "88888888-7777-4888-9999-cccccccccccc": { status: "in_progress" }, "99999999-7777-4888-9999-dddddddddddd": { status: "in_progress" } };
+    hf.cancels["88888888-7777-4888-9999-cccccccccccc"] = 500;
+    expect((await (await send(UID, { mode: "status", tokens: four.tokens, refund: four.refund })).json()).jobs[0]).toEqual({ state: "failed", error: `The safety filter blocked it. Try another photo or wording. ${partsSpent(1)}` });
+    expect(cancels()).toHaveLength(2);
+    expect(partsSpent(2)).toBe("2 other parts had already started, so their credits may already be spent.");
   });
 });
