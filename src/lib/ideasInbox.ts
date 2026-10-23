@@ -19,6 +19,7 @@ import { links } from "@/lib/links";
 import { loadMarket, newsKey, newsWriteUrl, saveMarket, visibleNews, withKey, type MarketState } from "@/lib/market";
 import { CHIPS, loadFeed, loadNiche, type FeedItem, type NicheState } from "@/lib/nicheFeed";
 import { scoped } from "@/lib/profiles";
+import { speakerFor } from "@/lib/remixBrand";
 import { sourceKey } from "@/lib/remixSource";
 import { loadSaved } from "@/lib/savedItems";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -374,6 +375,8 @@ export function poolIdeas(s: PoolStores, now: Date): InboxIdea[] {
 /** The pooled sources this device holds (the audits load apart, from their table). */
 export function loadPoolStores(userId: string, audits: AuditIdeas[] = []): PoolStores {
   const saved = new Set(loadSaved(userId).topPosts);
+  // the trends and news feeds are Singapore personal finance: a business brand gets neither
+  const finance = speakerFor(userId) === "person";
   return {
     briefs: loadBriefs(userId),
     drafts: loadDrafts(userId),
@@ -382,8 +385,8 @@ export function loadPoolStores(userId: string, audits: AuditIdeas[] = []): PoolS
     market: loadMarket(userId),
     feed: loadFeed(userId),
     niche: loadNiche(userId),
-    trends: getTrends(),
-    news: NEWS,
+    trends: finance ? getTrends() : [],
+    news: finance ? NEWS : [],
     boards: loadBoards(userId).items,
     savedTop: saved.size ? getAllTopPosts().filter((p) => saved.has(`${p.advisorId}-${p.shortCode}`)) : [],
   };

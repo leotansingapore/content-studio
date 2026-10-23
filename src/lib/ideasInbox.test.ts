@@ -10,6 +10,8 @@ const setIdeaStatus = vi.fn(async () => undefined);
 vi.mock("@/lib/accountAudit", async (orig) => ({ ...(await orig<typeof import("@/lib/accountAudit")>()), setIdeaStatus: (...a: unknown[]) => setIdeaStatus(...(a as [])) }));
 
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoOnly: () => true }));
+const who = vi.hoisted(() => ({ speaker: "person" as "person" | "business" }));
+vi.mock("@/lib/remixBrand", async (orig) => ({ ...(await orig<typeof import("./remixBrand")>()), speakerFor: () => who.speaker }));
 
 class MemStorage {
   s = new Map<string, string>();
@@ -74,6 +76,16 @@ function stores(o: Record<string, unknown> = {}) {
   } as unknown as Parameters<typeof m.poolIdeas>[0];
 }
 const bySource = <T extends { source: string }>(list: T[], s: string) => list.filter((i) => i.source === s);
+
+describe("loadPoolStores", () => {
+  afterEach(() => void (who.speaker = "person"));
+  it("gives a business brand no finance trends or news (live-p5dog D13), and a person's brand both", () => {
+    expect(m.loadPoolStores(UID).trends.length).toBeGreaterThan(0);
+    expect(m.loadPoolStores(UID).news.length).toBeGreaterThan(0);
+    who.speaker = "business";
+    expect(m.loadPoolStores(UID)).toMatchObject({ trends: [], news: [] });
+  });
+});
 
 describe("poolIdeas", () => {
   it("maps Idea Dump briefs, leaves out the ones on the board and keeps the 10 newest", () => {
