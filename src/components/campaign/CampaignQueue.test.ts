@@ -3,7 +3,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
@@ -15,6 +15,7 @@ vi.mock("@/lib/aiUsage", async (actual) => ({ ...(await actual<typeof import("@/
 vi.mock("@/lib/campaignActions", async (actual) => ({ ...(await actual<typeof import("@/lib/campaignActions")>()), savedWho: () => fake.who }));
 
 import type { Campaign } from "@/lib/campaigns";
+import { blankSlideshow, saveSlideshow } from "@/lib/slideshow";
 import CampaignQueue from "./CampaignQueue";
 
 const CAMPAIGN: Campaign = {
@@ -111,5 +112,45 @@ describe("the side column on a script post (live-p5w4 N5: the caption repeated t
 
   it("keeps a text post's caption", () => {
     expect(html(1)).toContain("Caption | LinkedIn");
+  });
+});
+
+describe("a made slideshow or wall shows what was made (live-p5dog D8: post 6's cover said something else than the hook above it)", () => {
+  const HOOK = "After a day of sales work, here's what helps.";
+  const BRIEF = "Log the day's calls";
+  const made = (n: number, format: "slideshow" | "wall", m: NonNullable<Campaign["posts"][number]["made"]>) => ({
+    n, day: "2026-10-31", time: "19:30", angleId: "an-mvjd9bjcxp6k", format, stage: "trust" as const, pillar: "topic" as const, ctaType: "save-share", state: "made" as const,
+    hook: HOOK, brief: BRIEF, cta: "Save this.", draftId: `cmp_c-mvjda76zrjdr_${n}`, made: m,
+  });
+  const campaign: Campaign = { ...CAMPAIGN, posts: [made(6, "slideshow", { kind: "slideshow", id: "ss-cover1" }), made(7, "wall", { kind: "video", id: "cmp_c-mvjda76zrjdr_7", text: "You finish a client chat, then the next one starts." })] };
+  const render = (post: number, view = "") =>
+    renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${campaign.id}?post=${post}${view}`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
+
+  beforeEach(() => {
+    const m = new Map<string, string>();
+    const local = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
+    vi.stubGlobal("window", { localStorage: local, dispatchEvent: () => true, addEventListener: () => {}, removeEventListener: () => {} });
+    saveSlideshow("u-1", { ...blankSlideshow({}, new Date("2026-10-23T01:00:00.000Z")), id: "ss-cover1", title: "4 ways to close out a sales day", caption: "Made caption." });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("puts the slideshow's own cover where the hook and brief were", () => {
+    const out = render(6);
+    expect(out).toContain("4 ways to close out a sales day");
+    expect(out).not.toContain(HOOK.replace("'", "&#x27;"));
+    expect(out).not.toContain(BRIEF);
+  });
+
+  it("puts the wall's own words where the hook and brief were", () => {
+    const out = render(7);
+    expect(out).toContain("You finish a client chat, then the next one starts.");
+    expect(out).not.toContain(BRIEF);
+  });
+
+  it("shows the made words on the grid's cards too", () => {
+    const out = render(6, "&view=grid");
+    expect(out).toContain("4 ways to close out a sales day");
+    expect(out).toContain("You finish a client chat, then the next one starts.");
+    expect(out).not.toContain(HOOK.replace("'", "&#x27;"));
   });
 });

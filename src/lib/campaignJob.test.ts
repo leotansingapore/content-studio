@@ -213,6 +213,25 @@ describe("startDrafting", () => {
     expect(states()).toEqual(["ready", "ready", "ready"]);
   });
 
+  it("stores each batch's ask id before its call, and a batch a reload left mid-call goes again alone under that id (live-p5dog D4)", async () => {
+    // posts 1 to 3 went out under c1-1-mh0 when the page reloaded; 4 to 12 never went
+    seed(campaign({ posts: [...range(1, 3).map((n) => post(n, { state: "drafting", ask: "c1-1-mh0" })), ...range(4, 12).map((n) => post(n))] }));
+    let answer!: (v: unknown) => void;
+    fn.answers.push(wrote([1, 2, 3]), new Promise((r) => (answer = r)));
+    job.startDrafting(UID, "c1");
+    await vi.waitFor(() => expect(fn.calls).toHaveLength(2));
+    expect([askedNs(0), fn.calls[0].ask]).toEqual([[1, 2, 3], "c1-1-mh0"]);
+    // the next batch has its own id, already on its posts while the call is out, so a reload now would send it again
+    expect(askedNs(1)).toEqual(range(4, 10));
+    expect(fn.calls[1].ask).toMatch(/^c1-4-[a-z0-9]+$/);
+    expect(posts().filter((p) => p.ask).map((p) => [p.n, p.ask])).toEqual(range(4, 10).map((n) => [n, fn.calls[1].ask]));
+    answer(wrote(range(4, 10)));
+    fn.answers.push(wrote(range(11, 12)));
+    await vi.waitFor(() => expect(states()).toEqual(Array(12).fill("ready")));
+    expect(fn.calls[2].ask).toMatch(/^c1-11-/);
+    expect(posts().some((p) => p.ask)).toBe(false);
+  });
+
   it("a delete mid-run drops the batch that lands after it, and no next batch is asked", async () => {
     seed();
     let answer!: (v: unknown) => void;

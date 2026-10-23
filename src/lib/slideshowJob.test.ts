@@ -30,6 +30,7 @@ import {
   fitSlide,
   freshPhotos,
   loadUsed,
+  mediaWindows,
   makeBody,
   onSlideshowJob,
   resolvePicks,
@@ -241,6 +242,41 @@ describe("the job", () => {
     const j = await run({ ...ASK, pictures: "mine" });
     expect(madeShow(j).slides.map((s) => s.image ?? null)).toEqual(["cimg-aaaaaa1", "cimg-bbbbbb2", null]);
     expect(stock.search).not.toHaveBeenCalled();
+  });
+
+  it("asks Jev, per slide, about the 6 media items from its place in media order (the /make/slideshow pin)", async () => {
+    const media = Array.from({ length: 12 }, (_, i) => ({ key: `cimg-m${String(i).padStart(5, "0")}`, name: `Screen ${i}`, folder: "", alt: "", width: 1, height: 1, addedAt: "" }));
+    local.setItem(`cs-media-${UID}`, JSON.stringify(media));
+    answer({}, [0, 0, 0]);
+    const j = await run({ ...ASK, pictures: "mine" });
+    const beats = fn.mock.calls[0][1].beats as { candidates: { desc: string }[] }[];
+    expect(beats.map((b) => b.candidates.map((c) => Number(c.desc.split(" ")[1])))).toEqual([[0, 1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7]]);
+    expect(madeShow(j).slides.map((s) => s.image)).toEqual(["cimg-m00000", "cimg-m00001", "cimg-m00002"]);
+  });
+
+  it("a campaign's spread offers the screens its slideshows used least, from its start (live-p5dog D7)", async () => {
+    const media = Array.from({ length: 12 }, (_, i) => ({ key: `cimg-m${String(i).padStart(5, "0")}`, name: `Screen ${i}`, folder: "", alt: "", width: 1, height: 1, addedAt: "" }));
+    local.setItem(`cs-media-${UID}`, JSON.stringify(media));
+    answer({}, [0, 0, 0]);
+    // screens 0 to 5 were used once each, screen 6 twice
+    const used = [0, 1, 2, 3, 4, 5, 6, 6].map((i) => media[i].key);
+    const j = await startSlideshow(UID, { ...ASK, pictures: "mine" }, { used, start: 9 }).then(() => slideshowJob()!);
+    const beats = fn.mock.calls[0][1].beats as { candidates: { desc: string }[] }[];
+    // unused first from screen 9 round (9, 10, 11, 7, 8), then the used once, then screen 6
+    expect(beats[0].candidates.map((c) => Number(c.desc.split(" ")[1]))).toEqual([9, 10, 11, 7, 8, 0]);
+    expect(madeShow(j).slides.map((s) => s.image)).toEqual(["cimg-m00009", "cimg-m00010", "cimg-m00011"]);
+  });
+
+  it("spreads 12 screens evenly over a campaign's 12 slideshows even when Jev always takes the first", () => {
+    const media = Array.from({ length: 12 }, (_, i) => ({ key: `m${i}` }));
+    const used: string[] = [];
+    for (let s = 0; s < 12; s++) {
+      const picks = resolvePicks(mediaWindows(media, 6, { used, start: s * 2 + 1 }), [0, 0, 0, 0, 0, 0], (m) => m.key, new Set(), true);
+      used.push(...picks.map((m) => m!.key));
+    }
+    const counts = media.map((m) => used.filter((k) => k === m.key).length);
+    expect(Math.min(...counts)).toBe(6);
+    expect(Math.max(...counts)).toBe(6);
   });
 
   it("ends in failed with the server's words, refused when the writer said no, and starts again", async () => {

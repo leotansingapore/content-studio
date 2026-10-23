@@ -117,7 +117,7 @@ describe("campaignCost", () => {
   });
 
   it("covers 2 of 4 with 2 uses left, 0 with none, and null gives no coverage line", () => {
-    expect(campaignCost(withVideos(), { video: 2, remix: null }).covers).toEqual({ videos: 2, remix: null });
+    expect(campaignCost(withVideos(), { video: 2, remix: null }).covers).toEqual({ videos: 2, remix: null, picks: null });
     expect(campaignCost(withVideos(), { video: 0, remix: 5 }).covers.videos).toBe(0);
     expect(campaignCost(withVideos(), { video: 9, remix: 5 }).covers.videos).toBe(4);
     expect(campaignCost(withVideos(), { video: null, remix: 5 }).covers.videos).toBeNull();
@@ -130,8 +130,11 @@ describe("campaignCost", () => {
     expect(cost.made).toEqual({ slideshows: 2, walls: 1, videos: 1 });
     expect(cost.free).toBe(0);
     expect(cost.usd).toBe(Math.round((3 * REMIX_MAKE.usd + AI_VIDEO.usd) * 100) / 100);
-    expect(cost.covers).toEqual({ remix: 1, videos: 1 });
+    expect(cost.covers).toEqual({ remix: 1, videos: 1, picks: null });
     expect(campaignCost(c, { video: 1, remix: 30 }).covers.remix).toBe(3);
+    // each slideshow or wall also spends a picture pick (montage-pick, live-p5dog D12)
+    expect(campaignCost(c, { video: 1, remix: 30, pick: 2 }).covers).toEqual({ remix: 3, videos: 1, picks: 2 });
+    expect(campaignCost(c, { video: 1, remix: 30, pick: 20 }).covers.picks).toBe(3);
     expect(campaignCost(c, { video: 1, remix: null }).covers.remix).toBeNull();
     expect(campaignCost(campaign(), { video: 2, remix: 30 })).toMatchObject({ free: 12, usd: 0 });
   });

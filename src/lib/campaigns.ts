@@ -22,7 +22,10 @@ export interface CampaignPost {
   stage: FunnelStageId; pillar: PlanPillar; formulaId?: string; ctaType: string;
   hook?: string; body?: string; script?: string; brief?: string; cta?: string; mas?: boolean | null;
   state: PostState; error?: string; draftId?: string;
-  made?: { kind: "draft" | "slideshow" | "video"; id: string };
+  /** The writing call this post's batch went out under (campaignJob): a reload mid-call asks again under the same id. */
+  ask?: string;
+  /** `text`: the words a wall's maker wrote, which the queue shows once it is made. */
+  made?: { kind: "draft" | "slideshow" | "video"; id: string; text?: string };
   prev?: { hook?: string; body?: string; script?: string; brief?: string; cta?: string };
 }
 
@@ -199,15 +202,18 @@ export interface CampaignCost {
   made: { slideshows: number; walls: number; videos: number };
   /** What those makes come to, in US$ to the cent: REMIX_MAKE per slideshow or wall, AI_VIDEO per video. */
   usd: number;
-  /** How many of them today's limits cover; null when a limit couldn't be read (no coverage line). */
-  covers: { remix: number | null; videos: number | null };
+  /**
+   * How many of them today's limits cover; null when a limit couldn't be read (no coverage line). `picks`: how many
+   * slideshows and walls get a picture Jev picked (montage-pick), null when not read; past it they take the first found.
+   */
+  covers: { remix: number | null; videos: number | null; picks: number | null };
 }
 
 /** AI videos left today: the smaller of `ai-video` and `ai-voice` uses left, null when either is unread. */
 export const videosLeft = (aiVideo: number | null, aiVoice: number | null): number | null =>
   aiVideo === null || aiVoice === null ? null : Math.min(aiVideo, aiVoice);
 
-export function campaignCost(c: Pick<Campaign, "posts">, left: { video: number | null; remix: number | null }): CampaignCost {
+export function campaignCost(c: Pick<Campaign, "posts">, left: { video: number | null; remix: number | null; pick?: number | null }): CampaignCost {
   const open = c.posts.filter((p) => p.state !== "made" && p.state !== "skipped");
   const count = (f: CampaignFormat) => open.filter((p) => p.format === f).length;
   const made = { slideshows: count("slideshow"), walls: count("wall"), videos: count("ai-video") };
@@ -216,7 +222,12 @@ export function campaignCost(c: Pick<Campaign, "posts">, left: { video: number |
     free: open.filter((p) => FREE_FORMATS.includes(p.format)).length,
     made,
     usd: Math.round((remix * REMIX_MAKE.usd + made.videos * AI_VIDEO.usd) * 100) / 100,
-    covers: { remix: left.remix === null ? null : Math.min(left.remix, remix), videos: left.video === null ? null : Math.min(left.video, made.videos) },
+    covers: {
+      remix: left.remix === null ? null : Math.min(left.remix, remix),
+      videos: left.video === null ? null : Math.min(left.video, made.videos),
+      // shortcut: one pick per make, though a stock slideshow asks again when Jev says none to page 1; count 2 if the cap bites early
+      picks: left.pick == null ? null : Math.min(left.pick, remix),
+    },
   };
 }
 

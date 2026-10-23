@@ -68,6 +68,14 @@ describe("what it costs", () => {
     expect(lines(posts, 2, 0).lines[1]).toBe("Today's remix limit is used. The 12 can be made after 8am Singapore time.");
     expect(lines(posts, 2, null).lines[1]).toBe(UNREAD_LINE);
   });
+
+  it("says when today's picture picks run out before the remixes (live-p5dog D12)", () => {
+    const posts = Array.from({ length: 12 }, (_, i) => post(i + 1, i % 2 ? "wall" : "slideshow"));
+    const withPicks = (pick: number | null) => costLines({ posts }, campaignCost({ posts }, { video: 2, remix: 30, pick })).lines;
+    expect(withPicks(8)[1]).toBe("Today's limit for picking pictures covers 8 of the 12 slideshows and walls. The rest get the first picture or clip found.");
+    expect(withPicks(12)).toHaveLength(1);
+    expect(withPicks(null)).toHaveLength(1);
+  });
 });
 
 describe("the free posts button", () => {

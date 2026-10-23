@@ -152,13 +152,19 @@ export function summaryLines(posts: number, weeks: number, where: string[], cost
 /** The review's and the result card's cost line: "8 posts cost nothing to make. 4 AI videos come to about US$11.08, and today's limit covers 2." */
 export function costLine(cost: CampaignCost): string {
   const covers = (n: number, c: number | null) => (c === null ? "." : `, and today's limit covers ${c >= n ? (n === 1 ? "it" : `all ${n}`) : c}.`);
+  // a slideshow or wall spends a remix and a picture pick: the tighter limit is the one named (live-p5dog D12)
+  const remixCovers = (n: number, { remix: r, picks: p }: CampaignCost["covers"]) => {
+    if (r === null || p === null) return covers(n, r);
+    if (Math.min(r, p) >= n) return `, and today's limits cover ${n === 1 ? "it" : `all ${n}`}.`;
+    return p < r ? `, and today's limit for picking pictures covers ${p}.` : `, and today's remix limit covers ${r}.`;
+  };
   const { slideshows, walls, videos } = cost.made;
   const out: string[] = [];
   if (cost.free) out.push(`${plural(cost.free, "post")} ${cost.free === 1 ? "costs" : "cost"} nothing to make.`);
   const remix = slideshows + walls;
   if (remix) {
     const what = listJoin([...(slideshows ? [plural(slideshows, "slideshow")] : []), ...(walls ? [plural(walls, "wall of text", "walls of text")] : [])]);
-    out.push(`${what} ${remix === 1 ? "comes" : "come"} to ${lower(priceText(times(REMIX_MAKE, remix)))}${covers(remix, cost.covers.remix)}`);
+    out.push(`${what} ${remix === 1 ? "comes" : "come"} to ${lower(priceText(times(REMIX_MAKE, remix)))}${remixCovers(remix, cost.covers)}`);
   }
   if (videos) out.push(`${plural(videos, "AI video")} ${videos === 1 ? "comes" : "come"} to ${lower(priceText(times(AI_VIDEO, videos)))}${covers(videos, cost.covers.videos)}`);
   return out.join(" ");

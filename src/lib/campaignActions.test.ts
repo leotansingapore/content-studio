@@ -213,6 +213,20 @@ describe("makePost, a slideshow", () => {
     expect(the(4)).toMatchObject({ state: "made", draftId: "cmp_c-1_4", made: { kind: "slideshow", id: "ss-made" } });
   });
 
+  it("tells the maker which Media screens this campaign's made slideshows show, starting at its post number (live-p5dog D7)", async () => {
+    const show = (id: string, images: (string | undefined)[]) => saveSlideshow(UID, { ...blankSlideshow({}, NOW), id, slides: images.map((image, i) => ({ id: `${id}-${i}`, boxes: [], ...(image ? { image } : {}) })) }, NOW);
+    show("ss-a", ["cimg-one111", "cimg-two222", undefined]);
+    show("ss-b", ["cimg-two222"]);
+    show("ss-other", ["cimg-nine99"]);
+    seed([
+      post(1, { format: "slideshow", state: "made", made: { kind: "slideshow", id: "ss-a" } }),
+      post(2, { format: "slideshow", state: "made", made: { kind: "slideshow", id: "ss-b" } }),
+      post(6, { format: "slideshow", brief: "x" }),
+    ], { pictures: "mine" });
+    await act.makePost(UID, "c-1", 6, NOW);
+    expect(startSlideshow.mock.calls[0][2]).toEqual({ used: ["cimg-one111", "cimg-two222", "cimg-two222"], start: 6 });
+  });
+
   it("is 4:5 for every network but TikTok, and waits while another slideshow is being made", async () => {
     seed([post(4, { format: "slideshow", brief: "x" })]);
     fake.show.set({ id: 99, state: "finding", done: 1, of: 4, ask: {} });
@@ -256,9 +270,10 @@ describe("makePost, a wall of text", () => {
     expect(act.makerOf("c-1", 5)).toBe("wall");
     fake.wall.patch({ state: "finding" });
     expect(the(5).state).toBe("making");
-    fake.wall.patch({ state: "joining" });
+    fake.wall.patch({ state: "joining", written: { text: "You finish a client chat. Then the next one starts.", caption: "", scene: "", search: "" } });
     expect(await made).toMatchObject({ ok: true, toast: "Post 5's wall of text is in the editor. Check it and export it there." });
-    expect(the(5)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_5" } });
+    // the words the maker wrote stay with the post for the queue (live-p5dog D8)
+    expect(the(5)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_5", text: "You finish a client chat. Then the next one starts." } });
     expect(act.makerOf("c-1", 5)).toBeNull();
   });
 

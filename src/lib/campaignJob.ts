@@ -112,16 +112,21 @@ async function run(userId: string, id: string): Promise<void> {
     const c = getCampaign(userId, id);
     if (!c) return stop();
     if (c.waitUntil && Date.now() < Date.parse(c.waitUntil)) return stop(PAUSED_LINE);
-    const batch = c.posts.filter(toWrite).sort((a, b) => a.n - b.n).slice(0, BATCH);
+    const open = c.posts.filter(toWrite).sort((a, b) => a.n - b.n);
+    // a batch already asked (a reload or a lost connection mid-call) goes again alone under its own id, so idea-dump
+    // can tell it was paid for (live-p5dog D4); else the next 7 under a new id, stored before the call
+    const left = open.find((p) => p.ask)?.ask;
+    const batch = left ? open.filter((p) => p.ask === left) : open.slice(0, BATCH);
     if (!batch.length) return stop();
-    const marked = edit(userId, id, (x) => ({ ...withPosts(x, each(batch, { state: "drafting" })), waitUntil: undefined }));
+    const ask = left ?? `${id}-${batch[0].n}-${Date.now().toString(36)}`;
+    const marked = edit(userId, id, (x) => ({ ...withPosts(x, each(batch, { state: "drafting", ask })), waitUntil: undefined }));
     if (marked) return stop(marked === GONE ? undefined : marked);
     jobs.set(id, { done: written(c), of: c.posts.length });
     notify();
 
     let reply: WrittenPost[];
     try {
-      const r = await callFn<{ posts?: WrittenPost[] }>("idea-dump", campaignRequest(userId, c, batch), FAILED_POST);
+      const r = await callFn<{ posts?: WrittenPost[] }>("idea-dump", { ...campaignRequest(userId, c, batch), ask }, FAILED_POST);
       reply = Array.isArray(r?.posts) ? r.posts : [];
     } catch (e) {
       const err = e instanceof EdgeError ? e : null;
@@ -135,7 +140,7 @@ async function run(userId: string, id: string): Promise<void> {
         return stop(err?.message || OFFLINE_LINE);
       }
       // 502 (the use came back), 422 (the use is kept) and anything else: this batch failed, the next one goes on
-      const line = edit(userId, id, (x) => withPosts(x, each(batch, { state: "failed", error: FAILED_POST })));
+      const line = edit(userId, id, (x) => withPosts(x, each(batch, { state: "failed", error: FAILED_POST, ask: undefined })));
       if (line) return stop(line === GONE ? undefined : line);
       continue;
     }
@@ -145,11 +150,12 @@ async function run(userId: string, id: string): Promise<void> {
     const patches: Record<number, Partial<CampaignPost>> = {};
     for (const p of batch) {
       const words = wordsOf(reply.find((w) => w?.n === p.n), brand, c.platforms[0], avoid);
-      if (words) patches[p.n] = words;
-      else if (retried.has(p.n)) patches[p.n] = { state: "failed", error: FAILED_POST };
+      if (words) patches[p.n] = { ...words, ask: undefined };
+      else if (retried.has(p.n)) patches[p.n] = { state: "failed", error: FAILED_POST, ask: undefined };
       else {
         retried.add(p.n);
-        patches[p.n] = { state: "waiting" };
+        // answered but left out: written again under a new id
+        patches[p.n] = { state: "waiting", ask: undefined };
       }
     }
     const line = edit(userId, id, (x) => withPosts(x, patches));
