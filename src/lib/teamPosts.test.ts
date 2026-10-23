@@ -3,6 +3,8 @@ import {
   addComment,
   approve,
   groupOf,
+  nextToReview,
+  reviewOrder,
   readTeamPosts,
   readTeamReviews,
   skip,
@@ -209,5 +211,30 @@ describe("groupOf", () => {
     expect(groupOf({ channel: "fastrack" })).toBe("FINTERNSHIP FASTRACK");
     expect(groupOf({})).toBe("FINTERNSHIP FASTRACK");
     expect(groupOf({ channel: "nope" as never })).toBe("FINTERNSHIP FASTRACK");
+  });
+});
+
+describe("review queue", () => {
+  const p = (id: string, day: string, extra: Partial<TeamPost> = {}): TeamPost => ({
+    id, title: id, product: "at", day, time: "10:00", image: "", message: "", rev: 1, revisedAt: null, postedAt: null,
+    postLink: null, skipped: false, telegram: { approvedRev: null, comments: [] }, handled: [], ...extra,
+  });
+  const posts = [p("tp9", "2026-11-04"), p("tp2", "2026-10-23", { postedAt: "x" }), p("tp30", "2026-10-28"), p("tp10", "2026-10-28"), p("tp5", "2026-10-30")];
+
+  it("orders the posts still to go out by when they go out", () => {
+    expect(reviewOrder(posts).map((x) => x.id)).toEqual(["tp10", "tp30", "tp5", "tp9"]);
+  });
+
+  it("moves to the next waiting post, past approved ones, wrapping round", () => {
+    const order = reviewOrder(posts);
+    const reviews = { tp5: { approvedRev: 1, comments: [] } };
+    expect(nextToReview(order, reviews, "tp30")?.id).toBe("tp9");
+    expect(nextToReview(order, reviews, "tp9")?.id).toBe("tp10");
+    expect(nextToReview(order, reviews, "tp2")?.id).toBe("tp10"); // a posted post is not in the queue: start at the top
+  });
+
+  it("is null when nothing else waits", () => {
+    const order = reviewOrder([p("tp1", "2026-10-28"), p("tp2", "2026-10-30")]);
+    expect(nextToReview(order, { tp2: { approvedRev: 1, comments: [] } }, "tp1")).toBeNull();
   });
 });

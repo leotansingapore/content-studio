@@ -76,8 +76,10 @@ import {
 import { sgDateLabel, sgDatesBetween, type SgDate } from "@/data/sgDates";
 import { refreshCloudKeys } from "@/lib/cloudSync";
 import {
+  nextToReview,
   readTeamPosts,
   readTeamReviews,
+  reviewOrder,
   statusOf,
   teamPostsKey,
   teamReviewsKey,
@@ -352,6 +354,16 @@ export default function CalendarPage() {
       { replace: true },
     );
   const teamOpen = teamPosts.find((p) => p.id === teamOpenId) ?? null;
+  // The review queue: arrows step through the posts still to go out; Approve, Skip or a comment moves on to the
+  // next one waiting, so reviewing a batch never means closing and reopening the panel.
+  const teamOrder = useMemo(() => reviewOrder(teamPosts), [teamPosts]);
+  const teamAt = teamOpen ? teamOrder.findIndex((p) => p.id === teamOpen.id) : -1;
+  const moveTeam = (id: string) => setParams((prev) => withParam(prev, "teampost", id), { replace: true });
+  const decidedTeam = (next: TeamReviews) => {
+    setTeamReviews(next);
+    const after = teamOpen && nextToReview(teamOrder, next, teamOpen.id);
+    if (after) moveTeam(after.id);
+  };
 
   const todayKey = localDateKey();
 
@@ -2165,6 +2177,10 @@ export default function CalendarPage() {
           reviews={teamReviews}
           onReviews={setTeamReviews}
           onClose={closeTeam}
+          onPrev={teamAt > 0 ? () => moveTeam(teamOrder[teamAt - 1].id) : undefined}
+          onNext={teamAt >= 0 && teamAt < teamOrder.length - 1 ? () => moveTeam(teamOrder[teamAt + 1].id) : undefined}
+          onDecided={decidedTeam}
+          waiting={teamOrder.filter((p) => statusOf(p, teamReviews[p.id]) === "waiting").length}
         />
       )}
     </div>

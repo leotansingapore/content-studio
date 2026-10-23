@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Ban, Check, Copy, ExternalLink, X } from "lucide-react";
+import { Ban, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Textarea } from "@/components/ui/textarea";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { keyToDate } from "@/lib/dueDates";
 import { safeExternalUrl } from "@/lib/embed";
@@ -72,30 +73,49 @@ export function TeamPostChip({
 // Typed, unsent comments per post: they outlive the panel closing.
 const unsent = new Map<string, string>();
 
-/** Review panel: the picture and text as they will post, Approve or Skip, and the comment thread. */
+/** Review panel: the picture and text as they will post, Approve or Skip, and the comment thread.
+ *  With onDecided it is a review queue (Leo 2026-10-23, "a bit hard to review the posts"): Approve, Skip or a
+ *  comment hands over to the next post waiting, arrows and the arrow keys step through, the actions stay on screen. */
 export function TeamPostPanel({
   uid,
   post,
   reviews,
   onReviews,
   onClose,
+  onPrev,
+  onNext,
+  onDecided,
+  waiting,
 }: {
   uid: string;
   post: TeamPost;
   reviews: TeamReviews;
   onReviews: (next: TeamReviews) => void;
   onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  /** After Approve, Skip or a comment: the new reviews, so the caller can move on. */
+  onDecided?: (next: TeamReviews) => void;
+  /** Posts still waiting for Leo, this one included. */
+  waiting?: number;
 }) {
   const { toast } = useToast();
   const [text, setText] = useState(() => unsent.get(post.id) ?? "");
   const closeRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const keys = useRef({ onClose, onPrev, onNext });
+  keys.current = { onClose, onPrev, onNext };
 
   // Same modal behaviour as PostDetailDrawer: Escape closes, the page stops scrolling, focus returns.
+  // Left and right step through the queue, except while typing a comment.
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return keys.current.onClose();
+      const typing = e.target instanceof HTMLElement && e.target.closest("textarea, input, [contenteditable='true']");
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "ArrowLeft") keys.current.onPrev?.();
+      if (e.key === "ArrowRight") keys.current.onNext?.();
+    };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -119,10 +139,23 @@ export function TeamPostPanel({
     setText(v);
     unsent.set(post.id, v);
   };
+  // Every decision says what happened and can be undone from the toast, since the panel may already show the next post.
+  const decide = (next: TeamReviews, title: string, undo?: () => TeamReviews) => {
+    toast({
+      title,
+      action: undo && (
+        <ToastAction altText="Undo" onClick={() => onReviews(undo())}>
+          Undo
+        </ToastAction>
+      ),
+    });
+    (onDecided ?? onReviews)(next);
+  };
   const send = () => {
     if (!text.trim() || done) return;
-    onReviews(addComment(uid, post, text));
+    const next = addComment(uid, post, text);
     type("");
+    decide(next, `Sent to Claude: ${post.title}. It comes back here reworked.`);
   };
   const copy = async () => {
     try {
@@ -132,6 +165,7 @@ export function TeamPostPanel({
       toast({ title: "Copy failed", variant: "destructive" });
     }
   };
+  const step = "h-11 w-11 shrink-0 px-0";
 
   return createPortal(
     <div
@@ -141,11 +175,12 @@ export function TeamPostPanel({
       aria-label={`Team post: ${post.title}`}
     >
       <button type="button" tabIndex={-1} aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-      <div className="relative flex h-full w-full flex-col overflow-hidden bg-background shadow-xl sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-2xl sm:border sm:border-border/70">
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-background shadow-xl sm:h-auto sm:max-h-[94vh] sm:max-w-4xl sm:rounded-2xl sm:border sm:border-border/70">
         <div className="flex items-start gap-2 border-b border-border/60 p-4">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-muted-foreground">
               Team post · {PRODUCT[post.product] ?? post.product} · version {post.rev}
+              {!!waiting && ` · ${waiting} waiting for you`}
             </p>
             <h2 className="text-base font-semibold leading-snug text-foreground">{post.title}</h2>
           </div>
@@ -164,122 +199,147 @@ export function TeamPostPanel({
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:grid sm:grid-cols-2 sm:gap-5">
           {img && (
-            <a href={img} target="_blank" rel="noopener noreferrer" title="Open full size" className="block">
-              <img src={img} alt={post.title} className="w-full rounded-lg border border-border/60 bg-muted" />
+            <a href={img} target="_blank" rel="noopener noreferrer" title="Open full size" className="mb-4 block sm:sticky sm:top-0 sm:mb-0 sm:self-start">
+              <img src={img} alt={post.title} className="mx-auto w-full rounded-lg border border-border/60 bg-muted object-contain sm:max-h-[72vh] sm:w-auto" />
             </a>
           )}
 
-          <p className="text-sm text-foreground">
-            {post.postedAt ? (
-              <>
-                Posted {whenLabel(post.postedAt)} to {groupOf(post)}
-                {link && (
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-                    Open in Telegram <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-              </>
-            ) : status === "skipped" ? (
-              "Skipped, it will not go out"
-            ) : (
-              `Goes out ${dayLabel(post.day)} at ${post.time} to ${groupOf(post)}`
+          <div className="min-w-0 space-y-4">
+            {waiting === 0 && (
+              <p role="status" className="rounded-lg bg-success/10 p-3 text-sm font-medium text-success">
+                All caught up: every team post is approved, skipped or with Claude.
+              </p>
             )}
-          </p>
-
-          <div className="space-y-2">
-            <p className="whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
-              {post.message}
+            <p className="text-sm text-foreground">
+              {post.postedAt ? (
+                <>
+                  Posted {whenLabel(post.postedAt)} to {groupOf(post)}
+                  {link && (
+                    <a href={link} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                      Open in Telegram <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </>
+              ) : status === "skipped" ? (
+                "Skipped, it will not go out"
+              ) : (
+                `Goes out ${dayLabel(post.day)} at ${post.time} to ${groupOf(post)}`
+              )}
             </p>
-            <Button variant="outline" size="sm" onClick={copy} className="gap-1.5">
-              <Copy className="h-3.5 w-3.5" /> Copy
-            </Button>
-          </div>
 
-          {status === "skipped" ? (
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                <Ban className="h-4 w-4" /> {skippedBy(post, review) === "telegram" ? "Skipped on Telegram" : "Skipped"}
-              </span>
-              <Button variant="ghost" size="sm" onClick={() => onReviews(unskip(uid, post))} className="text-muted-foreground">
-                Undo
+            <div className="space-y-2">
+              <p className="whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
+                {post.message}
+              </p>
+              <Button variant="outline" size="sm" onClick={copy} className="gap-1.5">
+                <Copy className="h-3.5 w-3.5" /> Copy
               </Button>
             </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              {approvedHere ? (
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-success">
-                    <Check className="h-4 w-4" /> Approved
-                  </span>
-                  {!done && (
-                    <Button variant="ghost" size="sm" onClick={() => onReviews(unapprove(uid, post))} className="text-muted-foreground">
-                      Undo
-                    </Button>
-                  )}
-                </div>
-              ) : status === "approved" ? (
-                <p className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-success">
-                  <Check className="h-4 w-4" /> Approved on Telegram
-                </p>
-              ) : (
-                <Button onClick={() => onReviews(approve(uid, post))} disabled={done} className="flex-1 sm:flex-none">
-                  <Check className="h-4 w-4" /> Approve
-                </Button>
-              )}
-              {!post.postedAt && (
-                <Button variant="outline" onClick={() => onReviews(skip(uid, post))}>
-                  Skip
-                </Button>
-              )}
-            </div>
-          )}
 
-          <section aria-label="Comments" className="space-y-2 border-t border-border/60 pt-4">
-            {thread.map((c) => (
-              <div key={c.id} className="rounded-lg bg-muted/40 p-2.5">
-                <p className="whitespace-pre-wrap break-words text-sm text-foreground">{c.text}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {whenLabel(c.at)} · about version {c.rev}
-                  {c.source === "telegram" && " · Telegram"}
-                </p>
-              </div>
-            ))}
-            {!done && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  send();
-                }}
-                className="space-y-2"
-              >
-                <Textarea
-                  value={text}
-                  onChange={(e) => type(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      send();
-                    }
-                  }}
-                  autoResize
-                  rows={2}
-                  placeholder="What should change?"
-                  aria-label="Comment"
-                  className="min-h-[64px]"
-                />
-                <div className="flex items-start gap-3">
-                  <p className="flex-1 text-xs text-muted-foreground">
-                    Claude reworks the post from your comment and it comes back here for approval.
+            <section aria-label="Comments" className="space-y-2 border-t border-border/60 pt-4">
+              {thread.map((c) => (
+                <div key={c.id} className="rounded-lg bg-muted/40 p-2.5">
+                  <p className="whitespace-pre-wrap break-words text-sm text-foreground">{c.text}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {whenLabel(c.at)} · about version {c.rev}
+                    {c.source === "telegram" && " · Telegram"}
                   </p>
-                  <Button type="submit" variant="outline" size="sm" disabled={!text.trim()}>
-                    Send
-                  </Button>
                 </div>
-              </form>
+              ))}
+              {!done && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    send();
+                  }}
+                  className="space-y-2"
+                >
+                  <Textarea
+                    value={text}
+                    onChange={(e) => type(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        send();
+                      }
+                    }}
+                    autoResize
+                    rows={2}
+                    placeholder="What should change?"
+                    aria-label="Comment"
+                    className="min-h-[64px]"
+                  />
+                  <div className="flex items-start gap-3">
+                    <p className="flex-1 text-xs text-muted-foreground">
+                      Claude reworks the post from your comment and it comes back here for approval.
+                    </p>
+                    <Button type="submit" variant="outline" size="sm" disabled={!text.trim()}>
+                      Send
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </section>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-border/60 p-3">
+          {(onPrev || onNext) && (
+            <Button variant="ghost" onClick={onPrev} disabled={!onPrev} aria-label="Previous team post" title="Previous (left arrow)" className={step}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
+            {status === "skipped" ? (
+              <>
+                <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                  <Ban className="h-4 w-4" /> {skippedBy(post, review) === "telegram" ? "Skipped on Telegram" : "Skipped"}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => onReviews(unskip(uid, post))} className="text-muted-foreground">
+                  Undo
+                </Button>
+              </>
+            ) : (
+              <>
+                {approvedHere ? (
+                  <>
+                    <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-success">
+                      <Check className="h-4 w-4" /> Approved
+                    </span>
+                    {!done && (
+                      <Button variant="ghost" size="sm" onClick={() => onReviews(unapprove(uid, post))} className="text-muted-foreground">
+                        Undo
+                      </Button>
+                    )}
+                  </>
+                ) : status === "approved" ? (
+                  <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-success">
+                    <Check className="h-4 w-4" /> Approved on Telegram
+                  </span>
+                ) : (
+                  <Button
+                    onClick={() => decide(approve(uid, post), `Approved: ${post.title}`, () => unapprove(uid, post))}
+                    disabled={done}
+                    className="h-11 flex-1 sm:max-w-[200px]"
+                  >
+                    <Check className="h-4 w-4" /> Approve
+                  </Button>
+                )}
+                {!post.postedAt && (
+                  <Button variant="outline" onClick={() => decide(skip(uid, post), `Skipped: ${post.title}`, () => unskip(uid, post))} className="h-11">
+                    Skip
+                  </Button>
+                )}
+              </>
             )}
-          </section>
+          </div>
+          {(onPrev || onNext) && (
+            <Button variant="ghost" onClick={onNext} disabled={!onNext} aria-label="Next team post" title="Next (right arrow)" className={step}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       </div>
     </div>,

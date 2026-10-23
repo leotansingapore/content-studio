@@ -109,6 +109,22 @@ export function statusOf(post: TeamPost, review?: TeamReview): TeamStatus {
   return "waiting";
 }
 
+const when = (p: TeamPost) => `${p.day}T${p.time}`;
+
+/** The review queue's order: posts still to go out, in the order they go out. */
+export function reviewOrder(posts: TeamPost[]): TeamPost[] {
+  return posts
+    .filter((p) => !p.postedAt)
+    .sort((a, b) => (when(a) < when(b) ? -1 : when(a) > when(b) ? 1 : a.id.localeCompare(b.id, undefined, { numeric: true })));
+}
+
+/** The next post waiting for Leo after this one in the queue, wrapping round; null when none is left. */
+export function nextToReview(order: TeamPost[], reviews: TeamReviews, afterId: string): TeamPost | null {
+  const i = order.findIndex((p) => p.id === afterId);
+  const rest = [...order.slice(i + 1), ...order.slice(0, Math.max(i, 0))];
+  return rest.find((p) => p.id !== afterId && statusOf(p, reviews[p.id]) === "waiting") ?? null;
+}
+
 /** Calendar and Telegram comments in one thread, oldest first. */
 export function threadOf(post: TeamPost, review?: TeamReview): ThreadComment[] {
   return [
