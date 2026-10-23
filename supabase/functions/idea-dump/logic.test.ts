@@ -849,7 +849,7 @@ describe("mode campaign", () => {
     expect(keptOf({ 2: { body: "One.\n\nTwo.\n\nThree." } })).not.toContain(2);
     expect(keptOf({ 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` } })).not.toContain(3);
     expect(keptOf({ 3: { script: `HOOK: Long.\nBODY: ${words(95)}\nCTA: Save it.` } })).not.toContain(3);
-    expect(keptOf({ 5: { brief: "" } })).not.toContain(5);
+    expect(keptOf({ 5: { hook: "" } })).not.toContain(5);
   });
 
   it("holds an AI video script to 36 to 48 spoken words, labels and all", () => {
@@ -976,11 +976,11 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
   it("names the rule each dropped post broke, for every format", () => {
     const dropped: [number, string][] = [];
     validateCampaign(
-      written({ 1: { body: words(79) }, 2: { body: "One.\n\nTwo.\n\nThree." }, 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` }, 4: { script: "One line only" }, 5: { brief: "" }, 6: { cta: "" } }),
+      written({ 1: { body: words(79) }, 2: { body: "One.\n\nTwo.\n\nThree." }, 3: { script: `HOOK: Short.\nBODY: ${words(40)}\nCTA: Save it.` }, 4: { script: "One line only" }, 5: { hook: "" }, 6: { cta: "" } }),
       campaignRequest(),
       dropped,
     );
-    expect(dropped).toEqual([[1, "body 79 words, needs 80 to 220"], [2, "3 points, needs 4 to 8"], [3, "script 43 words, needs 60 to 90"], [4, "one line"], [5, "no brief"], [6, "no cta"]]);
+    expect(dropped).toEqual([[1, "body 79 words, needs 80 to 220"], [2, "3 points, needs 4 to 8"], [3, "script 43 words, needs 60 to 90"], [4, "one line"], [5, "no hook"], [6, "no cta"]]);
     const missing: [number, string][] = [];
     const reply2 = written({ 5: { hook: "Most reps lose sleep over follow-ups" }, 6: { hook: "your FOLLOW-UP is the real pitch" } });
     reply2.posts.splice(1, 1);
@@ -1774,5 +1774,25 @@ describe("curly quotes (live-p5dog D14: hooks 6, 9, 21, 23, 26 and cta 27 came b
     expect(got[0].hook).toBe("\"I'll follow up later.\" Then it's gone");
     expect(got[2].hook).toBe("Here's the setup.");
     expect(got[4]).toMatchObject({ brief: "We'd keep it 'simple'.", cta: 'DM us "FOLLOW-UP" to learn more.' });
+  });
+});
+
+describe("a wall or slideshow with no brief (live-p5dog D3: 4 of 12 walls and 3 of 5 wall swaps dropped for 'no brief')", () => {
+  it("tells the writer a wall's words go in brief, never body", () => {
+    const { system } = buildCampaignPrompt(campaignRequest());
+    expect(system).toContain("- wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.");
+  });
+
+  it("takes the brief from body when the writer put it there, else from the angle's line, so the post is kept", () => {
+    const dropped: [number, string][] = [];
+    const got = validateCampaign(
+      written({ 5: { brief: "", body: `Checking in tells them nothing new. ${words(20)}` }, 6: { brief: "  ", body: "" } }),
+      campaignRequest(),
+      dropped,
+    )!;
+    expect(dropped).toEqual([]);
+    expect(got.find((p) => p.n === 5)!.brief).toBe(`Checking in tells them nothing new. ${words(20)}`);
+    expect(got.find((p) => p.n === 6)!.brief).toBe("Most deals die in the follow-up, not the pitch.");
+    expect(got.find((p) => p.n === 6)!.body).toBeUndefined();
   });
 });

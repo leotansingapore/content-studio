@@ -1053,7 +1053,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     `- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most ${SHORT_VIDEO_HOOK_WORDS} words. hook is the HOOK line's words and cta the CTA line's.`,
     `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.`,
     "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. cta is one line.",
-    "- wall: hook is at most 12 words. brief is at most 40 words on what the wall of text says. cta is one line.",
+    "- wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.",
     "",
     "Funnel stages:",
     "- attraction: get attention and be relatable: a point of view, a myth, a moment the audience knows. No selling.",
@@ -1226,7 +1226,9 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
     case "slideshow":
     case "wall": {
       const hook = oneLine(item.hook, 12);
-      const brief = cutWords(cleanPost(item.brief), 40);
+      // an empty brief comes from body, where the writer put a wall's words, else from the angle's line (live-p5dog D3:
+      // 4 of 12 walls and 3 of 5 wall swaps were dropped for "no brief"); the maker writes the post from it either way
+      const brief = cutWords(cleanPost(item.brief) || cleanPost(item.body), 40) || ask.angle.line;
       return lacks({ hook, brief, cta }) ?? { ...base, hook, brief, cta };
     }
     case "short-video": {
