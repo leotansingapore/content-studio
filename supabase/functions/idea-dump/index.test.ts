@@ -283,6 +283,13 @@ describe("idea-dump angles (phase 5, Leo only)", () => {
     expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Shared chat visibility", "Clear follow-up ownership", "Chats beside Lark too"]);
   });
 
+  it("keeps the brand's own name in capitals in a title, from the name the app sends (live-p5dog day 2)", async () => {
+    const named = { mode: "angles", audience: "Sales reps", avoid: [], context: { positioning: { oneLiner: "We help sales reps keep their work moving.", audienceDetail: "", topics: [], edge: "" }, speaker: "business", name: "Fastlane" } };
+    openai = () => reply({ angles: [{ title: "Why Fastlane Works", line: "One inbox for the whole team." }, { title: "Shared Chat Visibility", line: "See where client chats stand." }] });
+    const r = await call(named, "leo");
+    expect(r.body.angles.map((a: { title: string }) => a.title)).toEqual(["Why Fastlane works", "Shared chat visibility"]);
+  });
+
   it("drops a suggested title that is already saved, before asking Jev", async () => {
     env.TYPESAFE_API_KEY = "t";
     openai = () => reply({ angles: [{ title: "HOSPITAL bills shock", line: "Saved already." }, ...ANGLES_REPLY.angles.slice(0, 2)] });

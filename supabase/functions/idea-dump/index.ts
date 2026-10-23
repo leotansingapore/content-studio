@@ -199,9 +199,9 @@ async function suggestAngles(admin: UsageClient, uid: string, body: unknown): Pr
     await refundUsage(admin, uid, "campaign-angles", day);
     return json({ code: "failed", error: "Couldn't suggest angles right now. Try again in a minute." }, 502);
   }
-  // shortcut: a one-word brand name (Fastlane) keeps its capital only when these words use it mid-sentence; send the brand's name in PlanContext if that bites
   const pos = request.context.positioning;
-  const names = [request.audience, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
+  // the brand's name goes mid-sentence, where sentenceCase reads a capital as a name
+  const names = [request.audience, request.context.name && `the brand ${request.context.name}`, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
   const candidates = (reply.ok && validateAngles(reply.text, request.avoid, names)) || [];
   // the pairs request runs beside the per-candidate ones, so the angles take no longer to arrive
   const pairs = sameAsk(candidates);
@@ -316,7 +316,7 @@ async function answerAd(admin: UsageClient, uid: string, body: unknown): Promise
     return json({ code: "failed", error: "Couldn't write angles right now. Try again in a minute." }, 502);
   }
   const pos = request.context.positioning;
-  const names = [request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
+  const names = [request.context.name && `the brand ${request.context.name}`, request.context.product, pos?.oneLiner, pos?.edge].filter(Boolean).join(". ");
   const angles = (reply.ok && validateAnswer(reply.text, pick.ad, names)) || [];
   // decision 12: Jev's probability per ad (a1 to aN, never the words) sets ANSWER_PICK_MIN
   console.log("idea-dump answer", uid, "ads", request.ads.length, "pick", pick.ad.id, "p", pick.p, "scored", pick.scored, "angles", angles.length, JSON.stringify(answers?.ad?.probabilities ?? null));

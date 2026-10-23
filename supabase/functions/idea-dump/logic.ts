@@ -719,6 +719,8 @@ export interface PlanContext {
   voice: string;
   memory: string;
   speaker: Speaker;
+  /** The brand's own name (a business names itself in an AI video; live-p5dog day 2); empty when not sent. */
+  name: string;
   product: string;
   rules: string;
   questions: string[];
@@ -745,6 +747,7 @@ export function parsePlanContext(v: unknown): PlanContext {
     voice,
     memory: block(c.memory, 1500),
     speaker: c.speaker === "business" ? "business" : "person",
+    name: plain(c.name, 60),
     product: block(c.product, 300),
     rules: block(c.rules, 600),
     questions: textList(c.questions, 5, 200),
@@ -756,7 +759,9 @@ export function parsePlanContext(v: unknown): PlanContext {
 function contextBlocks(ctx: PlanContext, audience: string): string[] {
   const who = WHO[ctx.speaker];
   const pos = ctx.positioning;
+  // a person's name stays out, so an adviser's prompts are as they were (and a kit name never puts an insurer in them)
   const about = [
+    ctx.speaker === "business" && ctx.name && `Name: ${ctx.name}`,
     pos?.oneLiner && `What they do: ${pos.oneLiner}`,
     pos?.audienceDetail && `Who they serve: ${pos.audienceDetail}`,
     pos?.topics.length && `Their topics: ${pos.topics.join(", ")}`,
@@ -1062,6 +1067,8 @@ const BUSINESS_HOOK_LINE =
 export function buildCampaignPrompt(req: CampaignRequest): { system: string; user: string } {
   const sp = req.context.speaker;
   const { low, high } = AI_VIDEO_WORDS;
+  // live-p5dog day 2: both of ActivityTracker's AI videos described the app and never said its name
+  const named = sp === "business" ? req.context.name : "";
   const system = [
     `You write social media posts for ${ROLE[sp]}. Each post is one slot of a campaign: it is built on its angle, serves its funnel stage, opens in the shape of its hook formula when one is given, and ends on its kind of call to action.`,
     "",
@@ -1078,7 +1085,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "- text-post: hook is the first line, at most 15 words. body is the rest of the post, 80 to 220 words in short paragraphs. cta is one line.",
     "- carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. cta is one line.",
     `- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most ${SHORT_VIDEO_HOOK_WORDS} words. hook is the HOOK line's words and cta the CTA line's.`,
-    `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.`,
+    `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.${named ? " The script says the business's name once, plainly, after the first line and never in it." : ""}`,
     "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. cta is one line.",
     "- wall: hook is at most 12 words. brief, not body, is at most 40 words on what the wall of text says; the wall is written from it later. body and script stay empty. cta is one line.",
     "",
@@ -1099,7 +1106,7 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
       `Post ${p.n}: ${p.format}, ${p.stage} stage, call to action ${p.ctaType}${p.platforms.length ? `, for ${p.platforms.join(", ")}` : ""}`,
       `Angle: ${p.angle.title}${p.angle.line ? `: ${p.angle.line}` : ""}`,
       p.formula ? `Hook formula: ${p.formula.name}: ${p.formula.template}` : "",
-      `Words: ${POST_WORDS[p.format]}`,
+      `Words: ${POST_WORDS[p.format]}${named && p.format === "ai-video" ? `; ${named} said once` : ""}`,
     ].filter(Boolean).join("\n");
   const user = [
     ...contextBlocks(req.context, req.audience),

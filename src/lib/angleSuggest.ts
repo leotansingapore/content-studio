@@ -16,7 +16,7 @@ import { loadMarket } from "@/lib/market";
 import { loadPositioning } from "@/lib/positioning";
 import { loadProducts, mainProduct, productBrief } from "@/lib/products";
 import { scoped } from "@/lib/profiles";
-import { speakerFor } from "@/lib/remixBrand";
+import { ownBrandName, speakerFor } from "@/lib/remixBrand";
 import { memoryLine } from "@/lib/voiceMemory";
 import { loadVoiceProfile, voiceSummaryOf } from "@/lib/voiceProfile";
 import type { PlanContext } from "../../supabase/functions/idea-dump/logic.ts";
@@ -166,7 +166,7 @@ export const usedInPosts = (userId: string, angleId: string): boolean =>
 
 // ---- The writer's context (phase 5 decision 13) ------------------------------------
 
-/** What every plan writer gets: positioning, goal, voice, memory, speaker, product, brand rules, questions and examples. */
+/** What every plan writer gets: positioning, goal, voice, memory, speaker, the brand's name, product, brand rules, questions and examples. */
 export function planContextFor(userId: string, platform?: string): PlanContext {
   const base = buildIdeaDumpContext(userId);
   const product = mainProduct(loadProducts(userId).items);
@@ -177,6 +177,7 @@ export function planContextFor(userId: string, platform?: string): PlanContext {
     voice: voiceSummaryOf(loadVoiceProfile(userId)),
     memory: memoryLine(userId, "posts"),
     speaker: speakerFor(userId),
+    name: ownBrandName(userId),
     product: product ? productBrief(product) : "",
     rules: brandRulesLine(loadBrand(userId), platform),
     questions: loadMarket(userId).questions,

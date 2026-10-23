@@ -1912,3 +1912,41 @@ describe("openings across a campaign's batches (live-p5dog D9)", () => {
     expect(user).toContain("Hooks already used (open differently):\n- Your follow-up is the real pitch");
   });
 });
+
+// ---- live-p5dog day 2 (23 Oct): posts 4 and 11's AI video scripts described ActivityTracker but never named it ------
+// calls/day2/294: context.product was "" and no field carried the brand's name
+
+describe("a business's AI video names the business (live-p5dog day 2: neither ActivityTracker script said its name)", () => {
+  const NAMED = { ...BUSINESS_CONTEXT, name: "ActivityTracker", audience: "Sales reps" };
+  const ask = (context: Record<string, unknown>) => campaignRequest({ ...CAMPAIGN_ASK, context });
+
+  it("reads the brand's name, clipped", () => {
+    expect(parsePlanContext(NAMED).name).toBe("ActivityTracker");
+    expect(parsePlanContext({ ...NAMED, name: "x".repeat(90) }).name).toHaveLength(60);
+    expect(parsePlanContext(undefined).name).toBe("");
+  });
+
+  it("gives a business's name under About, and asks its AI video script to say it once, after the first line", () => {
+    const { system, user } = buildCampaignPrompt(ask(NAMED));
+    expect(user).toContain("About the business:\nName: ActivityTracker\nWhat they do: ActivityTracker keeps");
+    expect(system).toContain("and the last line is the call to action. hook is the first line and cta the last. The script says the business's name once, plainly, after the first line and never in it.");
+    expect(user).toContain("Post 4: ai-video, conversion stage");
+    expect(user).toContain("Words: script about 42 spoken words in all (36 to 48), counted across every line; ActivityTracker said once");
+    // only the AI video's Words line names it
+    expect(user.match(/said once/g)).toHaveLength(1);
+  });
+
+  it("leaves a business with no name, and a person with one, as they were", () => {
+    const none = buildCampaignPrompt(ask({ ...NAMED, name: "" }));
+    expect(none.system).not.toContain("says the business's name");
+    expect(none.user).not.toContain("Name:");
+    expect(none.user).not.toContain("said once");
+    const person = buildCampaignPrompt(ask({ ...PLAN_CONTEXT, name: "Leo Tan", audience: "Parents in their 30s with a first child" }));
+    expect(person).toEqual(buildCampaignPrompt(campaignRequest()));
+    expect(person.system).toContain([...COMPLIANCE_LINES, ...PLAN_LINES].join("\n"));
+  });
+
+  it("gives the name in the angles prompt's About too", () => {
+    expect(buildAnglesPrompt(anglesRequest({ ...ANGLES_ASK, context: NAMED })).user).toContain("About the business:\nName: ActivityTracker");
+  });
+});

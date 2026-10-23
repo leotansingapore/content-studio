@@ -200,3 +200,14 @@ describe("the step's rows", () => {
     expect([s.usedInPosts(UID, "an-1"), s.usedInPosts(UID, "an-2")]).toEqual([true, false]);
   });
 });
+
+describe("the writer's context (planContextFor)", () => {
+  it("sends every field the plan modes read, the speaker and the brand's name from the brand (live-p5dog day 2: no AI video named ActivityTracker)", async () => {
+    const ctx = s.planContextFor(UID);
+    expect(Object.keys(ctx).sort()).toEqual(["examples", "goal", "memory", "name", "platforms", "positioning", "product", "questions", "rules", "speaker", "voice"]);
+    expect(ctx).toMatchObject({ speaker: "person", name: "" });
+    const { addProfile, setActiveProfile } = await import("./profiles");
+    setActiveProfile(UID, addProfile(UID, "ActivityTracker").id);
+    expect(s.planContextFor(UID)).toMatchObject({ speaker: "business", name: "ActivityTracker" });
+  });
+});
