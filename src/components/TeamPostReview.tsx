@@ -16,6 +16,7 @@ import {
   threadOf,
   unapprove,
   unskip,
+  groupOf,
   type TeamPost,
   type TeamReviews,
   type TeamStatus,
@@ -173,7 +174,7 @@ export function TeamPostPanel({
           <p className="text-sm text-foreground">
             {post.postedAt ? (
               <>
-                Posted {whenLabel(post.postedAt)}
+                Posted {whenLabel(post.postedAt)} to {groupOf(post)}
                 {link && (
                   <a href={link} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
                     Open in Telegram <ExternalLink className="h-3.5 w-3.5" />
@@ -183,7 +184,7 @@ export function TeamPostPanel({
             ) : status === "skipped" ? (
               "Skipped, it will not go out"
             ) : (
-              `Goes out ${dayLabel(post.day)} at ${post.time}`
+              `Goes out ${dayLabel(post.day)} at ${post.time} to ${groupOf(post)}`
             )}
           </p>
 

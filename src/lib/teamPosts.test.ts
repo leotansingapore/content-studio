@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   addComment,
   approve,
+  groupOf,
   readTeamPosts,
   readTeamReviews,
   skip,
@@ -199,5 +200,14 @@ describe("storage", () => {
     expect(all.tp1.approvedRev).toBe(1);
     expect(all.tp2.comments).toHaveLength(1);
     expect(all.tp2.approvedRev).toBeNull();
+  });
+});
+
+describe("groupOf", () => {
+  it("names the group a post goes to, FASTRACK when the post predates channels", () => {
+    expect(groupOf({ channel: "advisoros" })).toBe("AdvisorOS");
+    expect(groupOf({ channel: "fastrack" })).toBe("FINTERNSHIP FASTRACK");
+    expect(groupOf({})).toBe("FINTERNSHIP FASTRACK");
+    expect(groupOf({ channel: "nope" as never })).toBe("FINTERNSHIP FASTRACK");
   });
 });

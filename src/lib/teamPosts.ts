@@ -11,10 +11,16 @@ export interface TeamComment {
   rev: number;
 }
 
+export type TeamChannel = "fastrack" | "advisoros";
+export const TEAM_GROUP: Record<TeamChannel, string> = { fastrack: "FINTERNSHIP FASTRACK", advisoros: "AdvisorOS" };
+/** The group's name, as the job's CHANNELS spell it. */
+export const groupOf = (post: Pick<TeamPost, "channel">) => TEAM_GROUP[post.channel ?? "fastrack"] ?? TEAM_GROUP.fastrack;
+
 export interface TeamPost {
   id: string;
   title: string;
   product: "gac" | "at";
+  channel?: TeamChannel; // the Telegram group it goes to; missing = FINTERNSHIP FASTRACK (posts from before 23 Oct 2026)
   day: string; // YYYY-MM-DD, Singapore date it goes out
   time: string; // Singapore time, "10:00"
   image: string;
