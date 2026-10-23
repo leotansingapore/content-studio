@@ -91,6 +91,8 @@ await import("@/lib/remixJob");
 await import("@/lib/autopilot");
 await import("@/lib/autopilotJob");
 await import("@/lib/ideasInbox");
+// the same for the real RemixSheet: its chain (BreakdownRow and the rest) is cached before any late hand-over
+await vi.importActual("@/components/remix/RemixSheet");
 const { default: StudioLayout } = await import("./StudioLayout");
 const { logActivity } = await import("@/lib/activity");
 
