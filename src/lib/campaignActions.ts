@@ -68,16 +68,23 @@ export function postText(p: Pick<CampaignPost, "format" | (typeof FIELDS)[number
   return [p.hook, middle, p.cta].map((t) => t?.trim()).filter(Boolean).join("\n\n");
 }
 
+/** An AI video post's caption: the writer's caption (body) and the call to action, or the call to action alone. */
+export const videoCaption = (p: Pick<CampaignPost, "body" | "cta">) => [p.body, p.cta].map((t) => t?.trim()).filter(Boolean).join("\n\n");
+
 /** A carousel's slides as the queue shows them and as /carousel?draft= rebuilds them from the made draft. */
 export const postSlides = (p: Pick<CampaignPost, "format" | (typeof FIELDS)[number]>) => splitDraftIntoSlides(postText(p), { hook: p.hook ?? "" }).slides;
 
-/** The scheduled My posts entry for a post: a wall and an AI video wait in it as a short video script. */
+/**
+ * The scheduled My posts entry for a post: a wall and an AI video wait in it as a short video script, an AI video's
+ * with its caption under it in Clone a reel's shape (script, a --- line, CAPTION:), which the AI panel carries to the editor.
+ */
 export function postDraft(userId: string, c: Pick<Campaign, "id" | "audience" | "angles" | "platforms">, p: CampaignPost, now: Date): DraftEntry {
+  const caption = p.format === "ai-video" ? videoCaption(p) : "";
   return {
     id: draftIdOf(c.id, p.n),
     createdAt: now.toISOString(),
     hook: p.hook ?? "",
-    draft: postText(p),
+    draft: caption ? `${postText(p)}\n\n---\n\nCAPTION:\n${caption}` : postText(p),
     pillar: p.pillar,
     pillarDetail: c.angles.find((a) => a.id === p.angleId)?.title ?? "",
     audience: loadAudiences(userId).find((a) => a.id === c.audience)?.lifeStage ?? "general",
@@ -320,7 +327,8 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     return { ok: false, error: SAVE_LINE };
   }
   return followTalk(userId, c, p, d.id, () => {
-    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: voiceFor(userId, who), length: 15, mention: true, draftId: d.id });
+    // the post's own caption and call to action go to the editor with it (live-p5dog D3)
+    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: voiceFor(userId, who), length: 15, mention: true, caption: videoCaption(p), draftId: d.id });
     return talkJob()?.ask?.draftId === d.id;
   });
 }

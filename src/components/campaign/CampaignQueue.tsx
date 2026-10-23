@@ -19,7 +19,7 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { STILL_MAKING, aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import {
   AI_BUSY, AI_WAITING, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
-  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, waitingFor, whenText, type MakeOutcome,
+  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, videoCaption, waitingFor, whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
 import { AI_VIDEO, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
@@ -618,12 +618,13 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
                 <Button variant="ghost" className={BIG} onClick={cancel}>Cancel</Button>
               </div>
             </div>
-          ) : cur.hook && cur.format !== "short-video" && cur.format !== "ai-video" ? (
-            // a script has no caption of its own: the stage shows it already (live-p5w4 N5)
+          ) : cur.hook && cur.format !== "short-video" && (cur.format !== "ai-video" || videoCaption(cur)) ? (
+            // a short video script has no caption of its own: the stage shows it already (live-p5w4 N5); an AI video
+            // post's caption is the writer's body and its call to action, which the editor opens with (live-p5dog D3)
             <div className="space-y-1">
               <p className={LABEL}>Caption | {platformName(c.platforms[0] ?? "linkedin")}</p>
               <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {cur.format === "slideshow" || cur.format === "wall" ? (show?.caption || "The caption is written when you press Make.") : text}
+                {cur.format === "ai-video" ? videoCaption(cur) : cur.format === "slideshow" || cur.format === "wall" ? (show?.caption || "The caption is written when you press Make.") : text}
               </p>
             </div>
           ) : null}

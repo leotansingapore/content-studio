@@ -663,8 +663,9 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
     const talked = user
       ? talkExtra({ talk, headline, setKey: (people ? !!speaker : face === "photo") && behind === "set" && setUrl ? setKey : null, offer: offerName, brand: loadBrand(user.id)?.name, topKey })
       : undefined;
-    // made from a post: the editor saves its caption back there, even after a reload mid-make (Pending keeps extra)
-    const extra = fill ? { ...talked, draftId: fill.id } : talked;
+    // made from a post: the editor saves its caption back there, even after a reload mid-make (Pending keeps extra), and
+    // opens with the post's own caption when it has one (a campaign's AI video post, live-p5dog D3)
+    const extra = fill ? { ...talked, draftId: fill.id, ...(fill.caption ? { caption: fill.caption } : {}) } : talked;
     const name = script.trim().slice(0, 40) || "AI video";
     if (!people) return void makeAvatar(name, image as File | string, vo!, extra);
     // Leo: your face, or a saved presenter's link while it answers and its copy after; the mark says who and which voice

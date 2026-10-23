@@ -42,7 +42,7 @@ export interface TalkAsk {
   voice: VoiceId;
   length: TalkLength;
   mention: boolean;
-  /** A Clone a reel result's own caption, carried to the editor with its script. */
+  /** A Clone a reel result's or a campaign post's own caption, carried to the editor with its script. */
   caption?: string;
   /** The My posts entry this video is made for (a campaign post): the editor's Save to your post updates it. */
   draftId?: string;

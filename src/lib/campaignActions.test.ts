@@ -85,6 +85,7 @@ const ANGLES = [
   { id: "a2", title: "Busy weeks", line: "Why follow-ups slip" },
 ];
 const SCRIPT = Array.from({ length: 40 }, (_, i) => `word${i}`).join(" ");
+const CAPTION = "First point here.\n\nSecond point here.\n\nThird point here.\n\nWhat would you add?";
 const post = (n: number, o: Partial<CampaignPost> = {}): CampaignPost => ({
   n, day: `2026-11-0${n}`, time: "20:00", angleId: ANGLES[(n - 1) % 2].id, format: "text-post", stage: "trust", pillar: "topic", ctaType: "open-question",
   formulaId: "contrarian", state: "ready", hook: `Most people get post ${n} wrong`, body: "First point here.\n\nSecond point here.\n\nThird point here.", cta: "What would you add?",
@@ -295,8 +296,9 @@ describe("makePost, an AI video", () => {
     seed([post(6, { format: "ai-video", script: SCRIPT, body: undefined })]);
     const made = act.makePost(UID, "c-1", 6, NOW);
     await tick();
-    expect(startTalk.mock.calls[0][1]).toMatchObject({ source: null, text: SCRIPT, who: "mine", photo: null, look: "", setting: "office", voice: "george", length: 15, mention: true, draftId: "cmp_c-1_6" });
-    expect(getDraftById(UID, "cmp_c-1_6")).toMatchObject({ status: "scheduled", format: "short-video", draft: SCRIPT });
+    // with no body from the writer, the caption is the call to action alone (live-p5dog D3)
+    expect(startTalk.mock.calls[0][1]).toMatchObject({ source: null, text: SCRIPT, who: "mine", photo: null, look: "", setting: "office", voice: "george", length: 15, mention: true, caption: "What would you add?", draftId: "cmp_c-1_6" });
+    expect(getDraftById(UID, "cmp_c-1_6")).toMatchObject({ status: "scheduled", format: "short-video", draft: `${SCRIPT}\n\n---\n\nCAPTION:\nWhat would you add?` });
     // the price check waits for a press: still making, nothing settled
     fake.talk.patch({ state: "priced", step: "" });
     await tick();
@@ -309,6 +311,15 @@ describe("makePost, an AI video", () => {
     fake.talk.patch({ state: "joining", step: "Putting your video together..." });
     expect(await made).toMatchObject({ ok: true });
     expect(the(6)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_6" } });
+  });
+
+  it("hands the editor the post's caption: the writer's body and the call to action (live-p5dog D3)", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT, body: "Follow-ups sit with the client.", cta: "Save this for later." })]);
+    void act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(startTalk.mock.calls[0][1].caption).toBe("Follow-ups sit with the client.\n\nSave this for later.");
+    expect(act.videoCaption({ body: " ", cta: " Save this. " })).toBe("Save this.");
+    expect(act.videoCaption({})).toBe("");
   });
 
   it("uses the remembered voice, Alice when none was picked", async () => {
@@ -333,7 +344,8 @@ describe("makePost, an AI video", () => {
     const r = await act.makePost(UID, "c-1", 6, NOW);
     expect(r).toMatchObject({ ok: true, open: "/edit?panel=ai&kind=avatar&draft=cmp_c-1_6" });
     expect(startTalk).not.toHaveBeenCalled();
-    expect(getDraftById(UID, "cmp_c-1_6")).toMatchObject({ status: "scheduled", format: "short-video", draft: SCRIPT });
+    // the caption waits under the script, so the AI panel takes it to the editor (live-p5dog D3)
+    expect(getDraftById(UID, "cmp_c-1_6")).toMatchObject({ status: "scheduled", format: "short-video", draft: `${SCRIPT}\n\n---\n\nCAPTION:\n${CAPTION}` });
     expect(the(6)).toMatchObject({ state: "made", made: { kind: "draft", id: "cmp_c-1_6" } });
   });
 
