@@ -99,7 +99,7 @@ export const COACH_FIELDS: CoachField[] = [
   {
     key: "toneNotes",
     label: "Your tone",
-    question: "How do you want to come across — and how do you not?",
+    question: "How do you want to come across, and how do you not?",
     placeholder: "e.g. warm and plain-spoken, a bit funny; not salesy or preachy…",
   },
 ];

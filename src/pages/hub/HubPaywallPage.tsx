@@ -22,7 +22,7 @@ const PERKS = [
   {
     icon: Sparkles,
     title: "Tips for YOUR industry",
-    desc: "Members pick their industry and see hooks, formats, and content plays tailored to it — not generic advice.",
+    desc: "Members pick their industry and see hooks, formats, and content plays tailored to it, not generic advice.",
   },
 ];
 
@@ -80,7 +80,7 @@ export default function HubPaywallPage() {
           Fresh trends, real guides, angles made for you
         </h1>
         <p className="mx-auto max-w-xl text-sm text-muted-foreground">
-          Everything I use to make client content perform — trend research refreshed every 5
+          Everything I use to make client content perform: trend research refreshed every 5
           hours, step-by-step editing and videography guides, and tips scoped to your industry.
         </p>
       </div>
@@ -123,7 +123,7 @@ export default function HubPaywallPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Already working with Leo? Client access is free — tap "I'm a client" and we'll
+            Already working with Leo? Client access is free. Tap "I'm a client" and we'll
             match your login email.
           </p>
         </CardContent>

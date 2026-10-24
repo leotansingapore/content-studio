@@ -644,7 +644,7 @@ export default function CoachPage() {
                     </ul>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Work the fixes on the right first — strengths will follow.
+                      Work the fixes on the right first. Strengths will follow.
                     </p>
                   )}
                 </div>
@@ -693,7 +693,7 @@ export default function CoachPage() {
                                 {p.snippet || `Post ${p.index + 1}`}
                               </p>
                               <p className="truncate text-[11px] text-muted-foreground">
-                                {p.issue || "Solid — no obvious fix."}
+                                {p.issue || "Solid, no obvious fix."}
                               </p>
                             </div>
                           </div>
@@ -736,7 +736,7 @@ export default function CoachPage() {
                         ? "transition-colors hover:border-primary/40 hover:bg-primary/5"
                         : "cursor-default"
                     }`}
-                    title={openable ? "Reopen this report" : "Older run — details not saved"}
+                    title={openable ? "Reopen this report" : "Older run, details not saved"}
                   >
                     <span
                       className={`w-8 shrink-0 text-center font-serif text-lg font-semibold ${tone.text}`}

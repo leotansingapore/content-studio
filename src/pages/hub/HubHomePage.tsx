@@ -132,7 +132,7 @@ export default function HubHomePage() {
         ) : trends.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              The trend scout hasn't dropped anything for your niche yet — check back in a few
+              The trend scout hasn't dropped anything for your niche yet. Check back in a few
               hours.
             </CardContent>
           </Card>
@@ -159,7 +159,7 @@ export default function HubHomePage() {
         {posts.length === 0 && !loading ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Guides are being written — the library opens soon.
+              Guides are being written. The library opens soon.
             </CardContent>
           </Card>
         ) : (

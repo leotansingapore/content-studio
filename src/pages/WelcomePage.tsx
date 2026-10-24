@@ -152,7 +152,7 @@ export default function WelcomePage() {
           onClick={() => go("/home")}
           className="text-sm font-medium text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11"
         >
-          Skip — take me to my dashboard
+          Skip, take me to my dashboard
         </button>
       </div>
     </div>

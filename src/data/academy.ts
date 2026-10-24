@@ -53,7 +53,7 @@ export const ACADEMY: AcademyModule[] = [
     lessons: [
       {
         youtubeId: "zOUwx0JZ8jQ",
-        title: "How to Create a Carousel for LinkedIn — Canva + ChatGPT",
+        title: "How to Create a Carousel for LinkedIn: Canva + ChatGPT",
         channel: "Imran Siddiq - Web Squadron",
         why: "End-to-end: write carousel copy in ChatGPT and design it free in Canva.",
       },

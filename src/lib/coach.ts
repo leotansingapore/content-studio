@@ -124,13 +124,13 @@ export function analyzePosts(posts: CoachInput[]): CoachReport | null {
         (compliant ? 20 : 0),
     );
     const issue = !strong
-      ? "Weak hook — open with a question, number, or bold claim."
+      ? "Weak hook. Open with a question, number, or bold claim."
       : !hasCta
-        ? "No clear ask — tell the reader what to do next."
+        ? "No clear ask. Tell the reader what to do next."
         : !lengthOk
           ? "Length is off for the platform."
           : !compliant
-            ? "Uses a regulated phrase — reword it."
+            ? "Uses a regulated phrase. Reword it."
             : "";
     perPost.push({
       index: i,
@@ -223,7 +223,7 @@ export function analyzePosts(posts: CoachInput[]): CoachReport | null {
     .map((d) => `${d.label}: ${d.note}`);
 
   if (fixes.length === 0) {
-    fixes.push("Strong across the board — keep the cadence going.");
+    fixes.push("Strong across the board. Keep the cadence going.");
   }
 
   return {

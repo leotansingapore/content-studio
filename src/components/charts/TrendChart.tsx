@@ -86,7 +86,7 @@ export function TrendChart({
   if (points.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-muted-foreground">
-        No dated, tracked posts yet — mark posts as posted with impressions
+        No dated, tracked posts yet. Mark posts as posted with impressions
         entered to see a trend line.
       </p>
     );

@@ -25,7 +25,7 @@ export default function DiagnosisQuiz({
   onComplete,
   progressKey,
   title = "First, a quick diagnosis",
-  intro = "So the Coach knows exactly where to focus. 14 quick questions across ideas, storytelling, camera confidence, consistency, strategy, conversion and compliance — about two minutes.",
+  intro = "So the Coach knows exactly where to focus. 14 quick questions across ideas, storytelling, camera confidence, consistency, strategy, conversion and compliance. About two minutes.",
 }: {
   onComplete: (record: DiagnosisRecord) => void;
   /** Where answers so far are kept for this tab, so leaving mid-way resumes at the same question. */

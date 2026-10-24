@@ -37,7 +37,7 @@ export default function HubGuideDetailPage() {
     return (
       <div className="space-y-4 py-10 text-center">
         <p className="text-sm text-muted-foreground">
-          Guide not found — it may have been unpublished or isn't available to your plan.
+          Guide not found. It may have been unpublished or isn't available to your plan.
         </p>
         <Button asChild variant="outline" size="sm">
           <Link to="/hub/guides">

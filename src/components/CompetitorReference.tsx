@@ -49,7 +49,7 @@ export function buildCompetitorStyleReference(ref: CompetitorRef): string {
   const style = ref.styleNotes.trim()
     ? ref.styleNotes
     : "Study the angles, hooks, and formats this creator is known for.";
-  return `Match the ANGLE and structure of ${ref.name} (${ref.handle}): ${style} Do not copy verbatim — adapt it to my own voice, niche, and audience.`;
+  return `Match the ANGLE and structure of ${ref.name} (${ref.handle}): ${style} Do not copy verbatim. Adapt it to my own voice, niche, and audience.`;
 }
 
 /**
@@ -155,7 +155,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
               </span>
             </p>
             <p className="text-muted-foreground">
-              Drafts will borrow their angle and structure — written in your own
+              Drafts will borrow their angle and structure, written in your own
               voice.
             </p>
           </div>
@@ -209,7 +209,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search names, niches — or paste an Instagram handle / URL"
+              placeholder="Search names, niches, or paste an Instagram handle / URL"
               className="w-full rounded-lg border border-border/70 bg-background py-1.5 pl-8 pr-2 text-xs outline-none focus:border-primary/40"
             />
           </div>
@@ -238,7 +238,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") addCustom();
                       }}
-                      placeholder="What do you like about their content? (optional — sharpens the plan)"
+                      placeholder="What do you like about their content? (optional, sharpens the plan)"
                       className="w-full rounded-md border border-border/70 bg-background px-2 py-1.5 text-xs outline-none focus:border-primary/40"
                       autoFocus
                     />
@@ -276,7 +276,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
                       Use {ig.handle} from Instagram
                     </span>
                     <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                      Not in our curated list — the plan will reference this
+                      Not in our curated list. The plan will reference this
                       page's angle by handle.
                     </p>
                   </div>

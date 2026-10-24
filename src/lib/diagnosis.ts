@@ -125,7 +125,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "storytelling",
     prompt: "Are you comfortable sharing personal or client stories?",
     options: [
-      { label: "Yes — I share them often", value: 1 },
+      { label: "Yes, I share them often", value: 1 },
       { label: "Occasionally", value: 0.5 },
       { label: "I stick to facts and tips", value: 0.2 },
     ],
@@ -135,7 +135,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "storytelling",
     prompt: "When you explain something, do people say it finally 'clicked'?",
     options: [
-      { label: "Often — I lean on examples and stories", value: 1 },
+      { label: "Often, I lean on examples and stories", value: 1 },
       { label: "Sometimes", value: 0.5 },
       { label: "I tend to sound like a textbook", value: 0.2 },
     ],
@@ -145,7 +145,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "camera",
     prompt: "How does talking to camera feel?",
     options: [
-      { label: "Natural — I barely think about it", value: 1 },
+      { label: "Natural, I barely think about it", value: 1 },
       { label: "A bit stiff, but I manage", value: 0.5 },
       { label: "I freeze, or I hate how I come across", value: 0.15 },
     ],
@@ -157,7 +157,7 @@ export const QUESTIONS: DiagQuestion[] = [
     options: [
       { label: "Not really", value: 1 },
       { label: "A little", value: 0.5 },
-      { label: "A lot — it holds me back", value: 0.15 },
+      { label: "A lot, it holds me back", value: 0.15 },
     ],
   },
   {
@@ -175,7 +175,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "consistency",
     prompt: "Do you have a routine for creating content?",
     options: [
-      { label: "Yes — I batch and/or schedule it", value: 1 },
+      { label: "Yes, I batch and/or schedule it", value: 1 },
       { label: "Loosely", value: 0.5 },
       { label: "No routine at all", value: 0.15 },
     ],
@@ -185,9 +185,9 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "strategy",
     prompt: "Do you know exactly who your content is for?",
     options: [
-      { label: "Yes — a specific audience", value: 1 },
+      { label: "Yes, a specific audience", value: 1 },
       { label: "Roughly", value: 0.5 },
-      { label: "Not really — I post for everyone", value: 0.2 },
+      { label: "Not really, I post for everyone", value: 0.2 },
     ],
   },
   {
@@ -195,7 +195,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "strategy",
     prompt: "Do you have clear content themes or pillars you stick to?",
     options: [
-      { label: "Yes — a few I return to", value: 1 },
+      { label: "Yes, a few I return to", value: 1 },
       { label: "Sort of", value: 0.5 },
       { label: "I post whatever comes to mind", value: 0.2 },
     ],
@@ -205,7 +205,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "conversion",
     prompt: "Do you know which of your posts actually generate leads or DMs?",
     options: [
-      { label: "Yes — I track what converts", value: 1 },
+      { label: "Yes, I track what converts", value: 1 },
       { label: "I have a rough idea", value: 0.5 },
       { label: "No idea", value: 0.15 },
     ],
@@ -225,7 +225,7 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "compliance",
     prompt: "Are you confident your posts stay inside MAS/AIA compliance rules?",
     options: [
-      { label: "Yes — I know where the lines are", value: 1 },
+      { label: "Yes, I know where the lines are", value: 1 },
       { label: "Mostly, but I second-guess myself", value: 0.5 },
       { label: "Honestly, I'm not sure", value: 0.2 },
     ],
@@ -235,9 +235,9 @@ export const QUESTIONS: DiagQuestion[] = [
     area: "compliance",
     prompt: "Do you ever avoid posting because you're unsure what's allowed?",
     options: [
-      { label: "Never — I know what's safe", value: 1 },
+      { label: "Never, I know what's safe", value: 1 },
       { label: "Occasionally", value: 0.55 },
-      { label: "Often — it stops me posting", value: 0.2 },
+      { label: "Often, it stops me posting", value: 0.2 },
     ],
   },
 ];
@@ -347,7 +347,7 @@ export const MISSIONS: Record<AreaId, Mission> = {
   camera: {
     area: "camera",
     title: "Get comfortable on camera",
-    objective: "Film one 30-second take talking to the lens — no script, just talk.",
+    objective: "Film one 30-second take talking to the lens. No script, just talk.",
     effortMins: 5,
     cta: "Open Learn",
     to: "/academy",
@@ -411,7 +411,7 @@ export function nextAction(result: DiagnosisResult | null): NextAction {
   if (weakest.score >= STRONG_SCORE) {
     return {
       kind: "maintain",
-      headline: "You're in flow — keep the streak",
+      headline: "You're in flow, keep the streak",
       detail:
         "No weak spots left to shore up. The best move now is simply to keep posting on your rhythm.",
       area: weakest,
@@ -420,7 +420,7 @@ export function nextAction(result: DiagnosisResult | null): NextAction {
   return {
     kind: "mission",
     headline: `Your biggest focus: ${weakest.label}`,
-    detail: `Scoring ${weakest.score}% here. Fix this before anything else — it's what's holding the rest back.`,
+    detail: `Scoring ${weakest.score}% here. Fix this before anything else. It's what's holding the rest back.`,
     mission: MISSIONS[weakest.id],
     area: weakest,
   };

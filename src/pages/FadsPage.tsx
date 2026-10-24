@@ -651,7 +651,7 @@ export default function FadsPage() {
       return;
     setFormData(INITIAL_FORM);
     setAiPolish({});
-    toast.success("Worksheet cleared — fresh start.");
+    toast.success("Worksheet cleared. Fresh start.");
   };
 
   // Fill random for demo
@@ -856,7 +856,7 @@ export default function FadsPage() {
         truncate(`${endResult}.\n${style?.label ? style.label + ". " : ""}DM "${fw ? fw.name.split(".")[0].toLowerCase() : "start"}" to begin.`, 220),
         ``,
         `--- ~500 chars (LinkedIn About hook) ---`,
-        `${originFirst} I believed ${beliefs}.\n\nToday I work with ${aud1}. ${aud1Pain}. ${fw ? `Through my ${fw.name} — ${fw.description} — ` : ""}I help them ${aud1Want}.\n\nIf this is you, message me. No pitch, just a conversation.`,
+        `${originFirst} I believed ${beliefs}.\n\nToday I work with ${aud1}. ${aud1Pain}. ${fw ? `Through my ${fw.name} (${fw.description}), ` : ""}I help them ${aud1Want}.\n\nIf this is you, message me. No pitch, just a conversation.`,
       ].join("\n"),
     });
 
@@ -890,7 +890,7 @@ export default function FadsPage() {
         ``,
         `So now I do this work because ${fb(purpose, "[your purpose in one line]").toLowerCase().replace(/\.$/, "")}.`,
         ``,
-        `If you're a ${aud1.toLowerCase()} and any of this resonates — comment or DM. I'm not selling anything in the inbox.`,
+        `If you're a ${aud1.toLowerCase()} and any of this resonates, comment or DM. I'm not selling anything in the inbox.`,
       ].join("\n"),
     });
 
@@ -904,22 +904,22 @@ export default function FadsPage() {
       requiredFields: ["audience1Occupation", "audience1Problems", "audience1TangibleSolutions"],
       missing: fieldsMissing(["audience1Occupation", "audience1Problems", "audience1TangibleSolutions"]),
       body: [
-        `[SLIDE 1 — HOOK]`,
+        `[SLIDE 1: HOOK]`,
         `If you're a ${aud1.toLowerCase()}, this is for you.`,
         ``,
-        `[SLIDE 2 — THE PROBLEM YOU SEE]`,
+        `[SLIDE 2: THE PROBLEM YOU SEE]`,
         `Most ${aud1.toLowerCase()}s I meet: ${aud1Pain}.`,
         ``,
-        `[SLIDE 3 — THE DEEPER PROBLEM]`,
-        `But the bigger weight underneath is — ${aud1IntPain}.`,
+        `[SLIDE 3: THE DEEPER PROBLEM]`,
+        `But the bigger weight underneath is ${aud1IntPain}.`,
         ``,
-        `[SLIDE 4 — WHAT'S POSSIBLE]`,
+        `[SLIDE 4: WHAT'S POSSIBLE]`,
         `Imagine instead: ${aud1Want}.`,
         ``,
-        `[SLIDE 5 — HOW]`,
+        `[SLIDE 5: HOW]`,
         `${fw ? `My ${fw.name}: ${fw.steps.map((s, i) => `(${i + 1}) ${s.split(":")[0]}`).join("  ")}` : "My approach: 3 steps from where you are to where you want to be."}`,
         ``,
-        `[SLIDE 6 — CTA]`,
+        `[SLIDE 6: CTA]`,
         `Comment "${(fw?.name || "start").toLowerCase().replace(/\./g, "")}" and I'll send you the breakdown.`,
       ].join("\n"),
     });
@@ -935,14 +935,14 @@ export default function FadsPage() {
       missing: fieldsMissing(["audience1Occupation", "audience1Problems"]),
       body: [
         `TITLE: The ${aud1}'s 5-Step ${fw ? fw.name.split(".")[0] : "Foundation"} Plan`,
-        `SUBTITLE: A one-page roadmap to ${aud1Want} — no jargon, no sales call required.`,
+        `SUBTITLE: A one-page roadmap to ${aud1Want}, no jargon, no sales call required.`,
         ``,
         `OUTLINE (5 sections, ~1 page each):`,
-        `1. Where you are now — quick self-audit (the gaps most ${aud1.toLowerCase()}s miss)`,
+        `1. Where you are now: quick self-audit (the gaps most ${aud1.toLowerCase()}s miss)`,
         `2. The cashflow / protection floor (the non-negotiable base)`,
         `3. The growth engine (how to make money work without micro-managing it)`,
-        `4. The blind spots — top 3 mistakes ${aud1.toLowerCase()}s make: ${fb(formData.audience1Mistakes, "[their top 3 mistakes]")}`,
-        `5. Your 30-day starter plan — 3 actions to take this week`,
+        `4. The blind spots: top 3 mistakes ${aud1.toLowerCase()}s make: ${fb(formData.audience1Mistakes, "[their top 3 mistakes]")}`,
+        `5. Your 30-day starter plan: 3 actions to take this week`,
         ``,
         `CTA inside: "Want a 30-min walkthrough of your own version? Reply to this email."`,
       ].join("\n"),
@@ -958,19 +958,19 @@ export default function FadsPage() {
       requiredFields: ["personalityStyle", "mission", "audience1Occupation"],
       missing: fieldsMissing(["personalityStyle", "mission", "audience1Occupation"]),
       body: [
-        `[0–3s — HOOK]`,
+        `[0–3s: HOOK]`,
         `"If you're a ${aud1.toLowerCase()} and you've been told to 'just invest more', this is for you."`,
         ``,
-        `[3–15s — WHO I AM + WHY]`,
+        `[3–15s: WHO I AM + WHY]`,
         `"I'm [your name]. ${certs}${years ? `, ${years} years` : ""}. ${fb(originFirst, "I joined this industry because of something specific I saw growing up.")}"`,
         ``,
-        `[15–40s — WHAT I'VE SEEN]`,
-        `"Most ${aud1.toLowerCase()}s I meet — they're working hard, but underneath: ${aud1IntPain}. The standard advice doesn't fit their reality."`,
+        `[15–40s: WHAT I'VE SEEN]`,
+        `"Most ${aud1.toLowerCase()}s I meet are working hard. But underneath: ${aud1IntPain}. The standard advice doesn't fit their reality."`,
         ``,
-        `[40–55s — WHAT I DO DIFFERENTLY]`,
-        `"${fw ? `My ${fw.name} works in ${fw.steps.length} steps. ${fw.steps[0].split(":")[0]} first, before anything else.` : "My approach starts with what's actually true for you — not a generic plan."}"`,
+        `[40–55s: WHAT I DO DIFFERENTLY]`,
+        `"${fw ? `My ${fw.name} works in ${fw.steps.length} steps. ${fw.steps[0].split(":")[0]} first, before anything else.` : "My approach starts with what's actually true for you, not a generic plan."}"`,
         ``,
-        `[55–60s — CTA]`,
+        `[55–60s: CTA]`,
         `"If that sounds like you, DM me '${(fw?.name || "start").toLowerCase().replace(/\./g, "")}'. No pitch."`,
       ].join("\n"),
     });
@@ -989,7 +989,7 @@ export default function FadsPage() {
         `SITUATION: ${m}`,
         `WHAT I DID / SAW: [1–2 lines]`,
         `LESSON / PUNCHLINE: [the one thing this story teaches your audience]`,
-        `USE WHEN: ${i === 0 ? "opening an appointment" : i === 1 ? "addressing trust / 'why you'" : "closing — what's possible"}`,
+        `USE WHEN: ${i === 0 ? "opening an appointment" : i === 1 ? "addressing trust / 'why you'" : "closing, what's possible"}`,
         ``,
       ].join("\n")).join("\n"),
     });
@@ -1007,7 +1007,7 @@ export default function FadsPage() {
       body: objSource.slice(0, 5).map((o, i) => [
         `${i + 1}. "${o}"`,
         `   → ACKNOWLEDGE: That's a fair concern, and most ${aud1.toLowerCase()}s I meet say the same.`,
-        `   → REFRAME: Here's what I usually find under that — [reframe in their terms]`,
+        `   → REFRAME: Here's what I usually find under that: [reframe in their terms]`,
         `   → OFFER: What if we [smallest next step that doesn't require commitment]?`,
         ``,
       ].join("\n")).join("\n"),
@@ -1019,15 +1019,15 @@ export default function FadsPage() {
       name: "Referral Ask Script",
       channel: "WhatsApp + face-to-face",
       icon: Share2,
-      description: "Two versions of the referral ask — text and spoken.",
+      description: "Two versions of the referral ask: text and spoken.",
       requiredFields: ["mission", "endResultStatement"],
       missing: fieldsMissing(["mission", "endResultStatement"]),
       body: [
         `--- WHATSAPP VERSION ---`,
-        `"Hey [name], one quick thing — I'm currently growing my practice in a specific direction: ${aud1.toLowerCase()}s who want ${aud1Want}. If anyone in your circle comes to mind, would you mind making a quick intro? No pressure if no one fits — I'll always handle it the same way I've handled yours."`,
+        `"Hey [name], one quick thing. I'm currently growing my practice in a specific direction: ${aud1.toLowerCase()}s who want ${aud1Want}. If anyone in your circle comes to mind, would you mind making a quick intro? No pressure if no one fits, I'll always handle it the same way I've handled yours."`,
         ``,
         `--- FACE-TO-FACE VERSION ---`,
-        `"Before we wrap up — can I share who I'm really trying to help right now? ${aud1.toLowerCase()}s dealing with ${aud1Pain.toLowerCase()}. If anyone you know fits that description, I'd love an intro. And I want you to know: I'd handle them the same way I've handled you."`,
+        `"Before we wrap up, can I share who I'm really trying to help right now? ${aud1.toLowerCase()}s dealing with ${aud1Pain.toLowerCase()}. If anyone you know fits that description, I'd love an intro. And I want you to know: I'd handle them the same way I've handled you."`,
       ].join("\n"),
     });
 
@@ -1046,7 +1046,7 @@ export default function FadsPage() {
         `  <tr><td style="padding-bottom: 4px; color: #666;">${certs}</td></tr>`,
         `  <tr><td style="padding-bottom: 8px; font-style: italic;">${truncate(endResult, 140)}</td></tr>`,
         `  <tr><td style="padding-bottom: 4px;">+65 [your number] • [your.email]</td></tr>`,
-        `  <tr><td style="font-size: 11px; color: #999; padding-top: 6px;">This message and any attachments are confidential. Information is for general guidance only — not financial advice; suitability depends on your circumstances.</td></tr>`,
+        `  <tr><td style="font-size: 11px; color: #999; padding-top: 6px;">This message and any attachments are confidential. Information is for general guidance only, not financial advice; suitability depends on your circumstances.</td></tr>`,
         `</table>`,
       ].join("\n"),
     });
@@ -1080,7 +1080,7 @@ export default function FadsPage() {
         number: 1,
         title: "Why I'm here",
         icon: Heart,
-        purpose: "Open with your origin — shift the room from 'sales meeting' to 'real conversation'.",
+        purpose: "Open with your origin. Shift the room from 'sales meeting' to 'real conversation'.",
         body: `${fb(formData.originStory, "[your origin in 2–3 lines]")}\n\nThat shaped me into someone who: ${fb(formData.momentsImpact, "[the way those moments changed your approach]")}`,
         speakerNote: "Tell, don't read. 60-90 seconds. Look up after.",
       },
@@ -1098,8 +1098,8 @@ export default function FadsPage() {
         number: 3,
         title: "What I've seen people struggle with",
         icon: AlertCircle,
-        purpose: "Show you understand their world — name the problem before they have to.",
-        body: `On the surface: ${aud1Pain}.\n\nBut underneath, almost always: ${aud1IntPain}.\n\nMost ${aud1.toLowerCase()}s have been told to 'just save more' or 'invest in this product' — that doesn't address either layer.`,
+        purpose: "Show you understand their world. Name the problem before they have to.",
+        body: `On the surface: ${aud1Pain}.\n\nBut underneath, almost always: ${aud1IntPain}.\n\nMost ${aud1.toLowerCase()}s have been told to 'just save more' or 'invest in this product'. That doesn't address either layer.`,
         speakerNote: "Eye contact. Slow down. They should feel seen here.",
       },
       {
@@ -1107,11 +1107,11 @@ export default function FadsPage() {
         number: 4,
         title: "How we'll work together",
         icon: ListChecks,
-        purpose: "Show the framework — not as a sales pitch, as a how-this-will-go.",
+        purpose: "Show the framework: not as a sales pitch, as a how-this-will-go.",
         body: fw
-          ? `My ${fw.name} — ${fw.description}\n\n${fw.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
+          ? `My ${fw.name}: ${fw.description}\n\n${fw.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
           : "[Walk through your 3–5 step process here]",
-        speakerNote: `Style cue: ${fb(style?.desc, "warm + clear")}. Don't speed through this — it's the spine of your value.`,
+        speakerNote: `Style cue: ${fb(style?.desc, "warm + clear")}. Don't speed through this. It's the spine of your value.`,
       },
       {
         id: "what-done-looks-like",
@@ -1119,25 +1119,25 @@ export default function FadsPage() {
         title: "What 'done' looks like for you",
         icon: Target,
         purpose: "Paint the destination in their words. Future-pace.",
-        body: `${aud1Want}.\n\nMore specifically: ${fb(formData.audience1SecretDesires, "[their secret wants — the unspoken version]")}.\n\nThat's what success looks like 12–24 months from now.`,
+        body: `${aud1Want}.\n\nMore specifically: ${fb(formData.audience1SecretDesires, "[their secret wants, the unspoken version]")}.\n\nThat's what success looks like 12–24 months from now.`,
         speakerNote: "Ask: 'When you picture that, what's the first thing that changes day-to-day?'",
       },
       {
         id: "how-i-work",
         number: 6,
-        title: "How I work — cadence + expectations",
+        title: "How I work: cadence + expectations",
         icon: Briefcase,
         purpose: "Pre-empt 'will this advisor disappear after the sale?' fears.",
-        body: `${fb(formData.processStatement, "[your process statement — your service cadence, review frequency, what they can expect from you]")}\n\nMy differentiator: ${fb(formData.audience1Differentiators, "[what you uniquely do that other advisors don't]")}`,
-        speakerNote: `Address the fear directly if relevant: "${fb(formData.audience1AdvisorFear1, "[their advisor fear]")}" — name it, then explain how you handle it.`,
+        body: `${fb(formData.processStatement, "[your process statement, your service cadence, review frequency, what they can expect from you]")}\n\nMy differentiator: ${fb(formData.audience1Differentiators, "[what you uniquely do that other advisors don't]")}`,
+        speakerNote: `Address the fear directly if relevant: "${fb(formData.audience1AdvisorFear1, "[their advisor fear]")}", name it, then explain how you handle it.`,
       },
       {
         id: "next-step",
         number: 7,
         title: "Today's next step",
         icon: ChevronRight,
-        purpose: "Soft close into the next action — no pressure, clear path.",
-        body: `Two options from here:\n\n1. Full fact-find — we go deeper on your numbers, goals, and gaps. ~45 min. You walk away with a one-page summary either way.\n\n2. Take a week. Sit with what we covered. Message me with any questions, and we book the fact-find when you're ready.\n\nEither is fine with me — what feels right?`,
+        purpose: "Soft close into the next action: no pressure, clear path.",
+        body: `Two options from here:\n\n1. Full fact-find: we go deeper on your numbers, goals, and gaps. ~45 min. You walk away with a one-page summary either way.\n\n2. Take a week. Sit with what we covered. Message me with any questions, and we book the fact-find when you're ready.\n\nEither is fine with me, what feels right?`,
         speakerNote: "Genuinely give them the choice. Don't push option 1. Trust the framework.",
       },
     ];
@@ -1166,12 +1166,12 @@ export default function FadsPage() {
       console.warn("FADS tool: AI generation failed, falling back to local JSON brief", err);
       try {
         const brief = buildBrandBrief();
-        const md = `# Your Brand — Brand Brief (offline fallback)\n\n` +
+        const md = `# Your Brand: Brand Brief (offline fallback)\n\n` +
           `AI polish is unavailable right now. Below is the structured brief you built. Paste it into any LLM with the prompt: "Polish this into 3 LinkedIn posts and 1 LinkedIn About section."\n\n` +
           "```json\n" + JSON.stringify(brief, null, 2) + "\n```\n";
         setGeneratedTemplate(md);
         setShowTemplateModal(true);
-        toast.message("Showing offline brief — AI polish failed.");
+        toast.message("AI polish failed. Showing the offline brief.");
       } catch (e) {
         console.warn("FADS tool: buildBrandBrief failed", e);
         toast.error("Failed to build brand brief.");
@@ -1210,7 +1210,7 @@ export default function FadsPage() {
       toast.success("AI-polished version ready.");
     } catch (err) {
       console.warn("polishCollateral failed", err);
-      toast.error("AI polish failed — the template draft is still available.");
+      toast.error("AI polish failed. The template draft is still available.");
     } finally {
       setPolishingId(null);
     }
@@ -1265,7 +1265,7 @@ export default function FadsPage() {
       updatedAt: existing.updatedAt,
     };
     savePositioning(userId, next);
-    toast.success("Positioning saved — opening your content plan.");
+    toast.success("Positioning saved, opening your content plan.");
     navigate("/plan");
   };
 
@@ -1277,7 +1277,7 @@ export default function FadsPage() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Insecure context or permission denied — surface, don't show fake success.
-      toast.error("Couldn't copy — your browser blocked clipboard access");
+      toast.error("Couldn't copy. Your browser blocked clipboard access");
     }
   };
 
@@ -1884,7 +1884,7 @@ export default function FadsPage() {
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Saves your audience, edge, and positioning line straight into
-                          Plan a week — no copy-paste needed.
+                          Plan a week, no copy-paste needed.
                         </p>
                       </div>
                       <Button onClick={sendToPlan} className="shrink-0 gap-2">
@@ -2017,7 +2017,7 @@ export default function FadsPage() {
                     </div>
                     <Button size="sm" variant="outline" onClick={() => {
                       const md = buildFirstApptDeck().map(s => [
-                        `# Slide ${s.number} — ${s.title}`,
+                        `# Slide ${s.number}: ${s.title}`,
                         `> ${s.purpose}`,
                         ``,
                         aiPolish[`slide:${s.id}`] ?? s.body,

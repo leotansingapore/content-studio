@@ -61,7 +61,7 @@ export default function HubGuidesPage() {
       ) : shown.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No guides here yet — the library is being written.
+            No guides here yet. The library is being written.
           </CardContent>
         </Card>
       ) : (

@@ -321,7 +321,7 @@ export function liveCreatorAnalysis(
       insights.push({
         tone: "positive",
         title: `Since ${new Date(prev.takenAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}: ${parts[0]}`,
-        body: `What changed since the last refresh: ${parts.join(", ")}. When a competitor's numbers move like this, look at what they changed — that's your cheapest experiment data.`,
+        body: `What changed since the last refresh: ${parts.join(", ")}. When a competitor's numbers move like this, look at what they changed. That's your cheapest experiment data.`,
       });
     }
   }
@@ -334,7 +334,7 @@ export function liveCreatorAnalysis(
     insights.push({
       tone: "neutral",
       title: `${avgViews.toLocaleString()} avg views on video`,
-      body: `Across ${videoPosts.length} recent videos. Views show real reach that likes under-count — if their view-to-like ratio is high, the hook is carrying weaker content.`,
+      body: `Across ${videoPosts.length} recent videos. Views show real reach that likes under-count. If their view-to-like ratio is high, the hook is carrying weaker content.`,
     });
   }
   insights.push({

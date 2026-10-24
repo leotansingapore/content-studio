@@ -171,8 +171,8 @@ export default function PlaybookPage() {
             edge in{" "}
             <Link to="/plan" className="font-semibold text-primary hover:underline">
               Plan
-            </Link>{" "}
-            — it makes every draft sharper.
+            </Link>
+            . It makes every draft sharper.
           </p>
         )}
       </SectionCard>

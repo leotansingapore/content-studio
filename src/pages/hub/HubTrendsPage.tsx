@@ -116,7 +116,7 @@ export default function HubTrendsPage() {
       ) : shown.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            The trend scout hasn't dropped anything for your niche yet — check back in a few
+            The trend scout hasn't dropped anything for your niche yet. Check back in a few
             hours.
           </CardContent>
         </Card>

@@ -59,7 +59,7 @@ export const FUNNEL_STAGES: FunnelStage[] = [
     letter: "A",
     label: "Attraction",
     tagline: "Get attention. Be relatable.",
-    goal: "Stop the scroll and become known — not sell.",
+    goal: "Stop the scroll and become known, not sell.",
     description:
       "Top of funnel. Strangers meet you here. Lead with who you are, a relatable POV, a story, or a sharp who/what. Earn the attention before you earn anything else.",
     contentTypes: [
@@ -90,7 +90,7 @@ export const FUNNEL_STAGES: FunnelStage[] = [
     tagline: "Name the pain. Show how you solve it.",
     goal: "Earn credibility by being genuinely useful.",
     description:
-      "Middle of funnel. They know you exist — now prove you can help. Name a real pain-point or aspiration, teach something concrete, and show how you think. Give before you ask.",
+      "Middle of funnel. They know you exist. Now prove you can help. Name a real pain-point or aspiration, teach something concrete, and show how you think. Give before you ask.",
     contentTypes: [
       "Pain-point breakdown",
       "How you solve a specific problem",
@@ -110,14 +110,14 @@ export const FUNNEL_STAGES: FunnelStage[] = [
       text: "text-sky-600 dark:text-sky-300",
     },
     directive:
-      "Funnel stage: BUILDING TRUST (middle of funnel). Goal is credibility. Name a real pain-point or aspiration, then teach something concrete and show how you think about solving it. Offer a free resource or invite a save. No hard sell — give first.",
+      "Funnel stage: BUILDING TRUST (middle of funnel). Goal is credibility. Name a real pain-point or aspiration, then teach something concrete and show how you think about solving it. Offer a free resource or invite a save. No hard sell, give first.",
   },
   {
     id: "conversion",
     letter: "C",
     label: "Conversion",
     tagline: "Make the offer. Why me, why now.",
-    goal: "Invite the next step — clearly, without pressure.",
+    goal: "Invite the next step, clearly, without pressure.",
     description:
       "Bottom of funnel. They trust you; now make it easy to act. Be clear about what problem you solve, why now, and why you. Lead with value, then a direct but low-pressure CTA.",
     contentTypes: [
@@ -169,7 +169,7 @@ export const TRUST_DIMENSIONS: TrustDimension[] = [
     blocks: ["Beliefs", "Character", "Interests", "Values", "POVs"],
     prompts: [
       "A belief about money you hold that most advisors won't say out loud",
-      "Something outside work — sport, skill, hobby — and what it taught you",
+      "Something outside work (sport, skill, hobby) and what it taught you",
       "A challenge you went through and what changed",
       "A value you refuse to compromise on with clients",
     ],
@@ -183,9 +183,9 @@ export const TRUST_DIMENSIONS: TrustDimension[] = [
     blocks: ["Education", "Competency", "Credibility", "Demonstration"],
     prompts: [
       "What problem do you solve better than anyone? Show it.",
-      "How does your approach actually solve it — walk through the steps",
-      "Why now — what's the cost of a client waiting another year?",
-      "Why you — a result, a framework, or proof only you can show",
+      "How does your approach actually solve it? Walk through the steps",
+      "Why now: what's the cost of a client waiting another year?",
+      "Why you: a result, a framework, or proof only you can show",
     ],
     accent: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
   },

@@ -12,7 +12,7 @@ export const QUICK_TIPS: QuickTip[] = [
   // Funnel thinking
   {
     id: "t-funnel-balance",
-    text: "Trust = Personal + Professional. Alternate posts that show WHO you are with posts that show WHAT you know — both, not just one.",
+    text: "Trust = Personal + Professional. Alternate posts that show WHO you are with posts that show WHAT you know. Both, not just one.",
     context: "funnel",
   },
   {
@@ -22,7 +22,7 @@ export const QUICK_TIPS: QuickTip[] = [
   },
   {
     id: "t-trust-give",
-    text: "Building trust means giving first. Teach one concrete thing — a number, a step, a worksheet — before you ever ask.",
+    text: "Building trust means giving first. Teach one concrete thing (a number, a step, a worksheet) before you ever ask.",
     context: "funnel",
   },
   {
@@ -38,7 +38,7 @@ export const QUICK_TIPS: QuickTip[] = [
   },
   {
     id: "t-one-idea",
-    text: "One idea per post. If you're teaching 3 things, that's 3 posts — not one crowded carousel.",
+    text: "One idea per post. If you're teaching 3 things, that's 3 posts, not one crowded carousel.",
     context: "generate",
   },
   {
