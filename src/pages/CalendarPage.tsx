@@ -1635,8 +1635,8 @@ export default function CalendarPage() {
             <ul className="space-y-1" aria-label={`Running out in the next ${COVER_DAYS / 7} weeks`}>
               {runningOut.map((r) => (
                 <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{r.business}</span>
-                  <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
+                  {/* the calendar is one business, so the line needs no name ("Me nothing planned" read as broken) */}
+                  <span>{r.last ? `Planned to ${dayLabel(r.last)}, then nothing` : `Nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
                   <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                     Write a post
                   </Link>
