@@ -278,6 +278,19 @@ function MetricInput({
   );
 }
 
+/** "Add your numbers" in a sentence: takes you to that section, which shows whenever a post is marked posted. */
+function NumbersLink() {
+  return (
+    <button
+      type="button"
+      onClick={() => document.getElementById("add-your-numbers")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      className="font-medium text-primary underline-offset-2 hover:underline"
+    >
+      Add your numbers
+    </button>
+  );
+}
+
 function WeekStat({ value, label, change }: { value: number; label: string; change: string | null }) {
   return (
     <div className="min-w-0 rounded-lg bg-muted/40 px-2.5 py-2">
@@ -400,7 +413,7 @@ function ThisWeekCard({ userId, version }: { userId: string; version: number }) 
             {report.worst.length > 0 && <WeekPosts title="Weakest" posts={report.worst} />}
           </div>
         ) : (
-          report.posts > 0 && <p className="text-sm text-muted-foreground">Add the numbers for these posts in Add your numbers to see what worked.</p>
+          report.posts > 0 && <p className="text-sm text-muted-foreground">To see what worked, fill in these posts' numbers under <NumbersLink />.</p>
         )}
         {report.shared.length > 0 && (
           <p className="text-sm text-muted-foreground">
@@ -745,7 +758,7 @@ export default function AnalyticsPage() {
 
       {/* Bulk metrics entry — add real numbers for every posted post in one place */}
       {postedDrafts.length > 0 && (
-        <Card className="border-border/60 shadow-card">
+        <Card id="add-your-numbers" className="scroll-mt-4 border-border/60 shadow-card">
           <CardHeader>
             <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
           </CardHeader>
@@ -1070,7 +1083,7 @@ export default function AnalyticsPage() {
               {ranked.length === 0 && (
                 <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
                   {rankBy === "reachMultiple" && !followerPlatforms.some((p) => followers[p])
-                    ? "Add your follower count in Add your numbers to see reach."
+                    ? <>Add your follower count under <NumbersLink /> to see reach.</>
                     : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} ${period ? `in the last ${period} days` : "yet"}.`}
                 </p>
               )}
@@ -1117,7 +1130,7 @@ export default function AnalyticsPage() {
             </span>
             <p className="max-w-sm text-sm text-muted-foreground">
               {postedCount > 0
-                ? "Add the numbers for a posted post in Add your numbers above to see what's working."
+                ? <>Fill in a posted post's numbers under <NumbersLink /> to see what's working.</>
                 : "Once you publish and mark posts as posted, add their real numbers to track what lands."}
             </p>
             {postedCount === 0 && (
