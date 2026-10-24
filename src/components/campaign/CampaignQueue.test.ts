@@ -65,6 +65,9 @@ const html = (post: number) =>
   renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=${post}`] }, createElement(CampaignQueue, { userId: "u-1", campaign: CAMPAIGN, angle: null })));
 /** The Make button's opening tag. */
 const makeButton = (out: string) => out.match(/<button[^>]*aria-keyshortcuts="1"[^>]*>/)![0];
+/** An action button's opening tag by its key: 2 Swap, 3 Edit. */
+const button = (out: string, key: string) => out.match(new RegExp(`<button[^>]*aria-keyshortcuts="${key}"[^>]*>`))![0];
+const WORDS_LINE = "The video speaks these words, so Swap and Edit are off until it&#x27;s made.";
 
 afterEach(() => {
   fake.left = {};
@@ -173,6 +176,27 @@ describe("an AI video post whose paid video is still being made after 20 minutes
     const out = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
     expect(out).not.toContain("Check again");
     expect(out).toContain("Made. Open it in the editor");
+  });
+
+  it("keeps Swap and Edit off with the reason, since new words would not be the ones the paid video speaks (live-p5dog day 3)", () => {
+    fake.left = { "ai-video": 0, "ai-voice": 0 };
+    fake.who = "presenter";
+    const out = render(JSON.stringify({ name: "x", tokens: ["t1", "t2"], seconds: [9.5, 6], extra: { draftId: `cmp_${CAMPAIGN.id}_4` } }));
+    expect(button(out, "2")).toContain('disabled=""');
+    expect(button(out, "3")).toContain('disabled=""');
+    expect(out).toContain(WORDS_LINE);
+  });
+
+  it("keeps them off when another tab put the post back to ready while its video waits here", () => {
+    fake.left = { "ai-video": 2, "ai-voice": 4 };
+    fake.who = "presenter";
+    const m = new Map([["cs-ai-video-pending", JSON.stringify({ name: "x", tokens: ["t1"], seconds: [9.5], extra: { draftId: `cmp_${CAMPAIGN.id}_4` } })]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => m.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+    const campaign: Campaign = { ...CAMPAIGN, posts: [{ ...post4, draftId: `cmp_${CAMPAIGN.id}_4` }] };
+    const out = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
+    expect(button(out, "2")).toContain('disabled=""');
+    expect(button(out, "3")).toContain('disabled=""');
+    expect(out).toContain(WORDS_LINE);
   });
 
   it("keeps a paid Make off while another post's paid video waits on this device", () => {

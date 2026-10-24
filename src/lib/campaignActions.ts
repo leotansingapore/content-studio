@@ -51,6 +51,8 @@ export const AI_BUSY = "Another AI video is being made. Wait for it to finish.";
 export const AI_WAITING = "Another AI video is still being made. Make this one once it's in the editor.";
 export const VIDEO_FAILED = "The AI video could not be made.";
 export const STOPPED_LINE = "This make stopped before it finished. Press Make to try again.";
+/** Swap and Edit on a post whose paid AI video is being made: new words would not be the ones it speaks (live-p5dog day 3). */
+export const VIDEO_WORDS_LINE = "The video speaks these words, so Swap and Edit are off until it's made.";
 export const SHORT_SCRIPT = `This script is under ${speakingWords(15).low} words, too short to speak as written. Edit or swap it first.`;
 
 const FIELDS = ["hook", "body", "script", "brief", "cta"] as const;
@@ -317,6 +319,10 @@ export const waitingFor = (c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n" | 
   return w?.extra?.draftId && w.extra.draftId === (p.draftId ?? draftIdOf(c.id, p.n)) ? w : null;
 };
 
+/** This post's AI video is being made in this tab or its paid video waits at Higgsfield on this device, whatever its state says. */
+export const videoUnderway = (c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n" | "format" | "draftId">) =>
+  p.format === "ai-video" && (makerOf(c.id, p.n) === "talk" || !!waitingFor(c, p));
+
 async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date): Promise<MakeOutcome> {
   // its paid video is still waiting here: Make picks it up at no cost and never pays again (live-p5dog D4)
   if (waitingFor(c, p)) {
@@ -416,6 +422,7 @@ export async function swapPost(userId: string, campaignId: string, n: number): P
   const { c, p } = find(userId, campaignId, n);
   if (!c || !p) return { ok: false, error: GONE_LINE };
   if (p.state === "made") return { ok: false, error: SWAP_MADE_LINE };
+  if (videoUnderway(c, p)) return { ok: false, error: VIDEO_WORDS_LINE };
   const no = notMakeable(campaignId, p);
   if (no || p.state !== "ready" || !p.hook) return { ok: false, error: no ?? WRITING_LINE };
   const k = keyOf(c.id, n);
@@ -452,9 +459,10 @@ export function undoSwap(userId: string, campaignId: string, n: number): string 
 
 /** Saves typed words over an unmade post. Jev's answer was for the old words, so the pattern check stands in. Null when saved. */
 export function editPost(userId: string, campaignId: string, n: number, patch: Words): string | null {
-  const { p } = find(userId, campaignId, n);
-  if (!p) return GONE_LINE;
+  const { c, p } = find(userId, campaignId, n);
+  if (!c || !p) return GONE_LINE;
   if (p.state === "made") return SWAP_MADE_LINE;
+  if (videoUnderway(c, p)) return VIDEO_WORDS_LINE;
   const words = Object.fromEntries(FIELDS.filter((f) => f in patch).map((f) => [f, patch[f]?.trim() || undefined]));
   return updatePost(userId, campaignId, n, { ...words, mas: null }) ? null : SAVE_LINE;
 }

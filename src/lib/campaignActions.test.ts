@@ -495,6 +495,31 @@ describe("swapPost", () => {
   });
 });
 
+describe("the words of a post whose paid AI video is being made (live-p5dog day 3: Swap on post 25 at 20 minutes)", () => {
+  const WAITING = { name: "x", tokens: ["t1", "t2"], seconds: [9.5, 6], extra: { draftId: "cmp_c-1_6" } };
+
+  it("refuses Swap and Edit while its paid video waits on this device, even when another tab put the post back to ready", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT, state: "ready", draftId: "cmp_c-1_6" })]);
+    fake.ai.pending = WAITING;
+    expect(act.videoUnderway({ id: "c-1" }, the(6))).toBe(true);
+    expect(await act.swapPost(UID, "c-1", 6)).toEqual({ ok: false, error: act.VIDEO_WORDS_LINE });
+    expect(fn).not.toHaveBeenCalled();
+    expect(act.editPost(UID, "c-1", 6, { script: "New words to say" })).toBe(act.VIDEO_WORDS_LINE);
+    expect(the(6).script).toBe(SCRIPT);
+  });
+
+  it("refuses Edit while this tab makes its video, and lets another post's words change", async () => {
+    seed([post(6, { format: "ai-video", script: SCRIPT }), post(1)]);
+    void act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(act.editPost(UID, "c-1", 6, { script: "New words to say" })).toBe(act.VIDEO_WORDS_LINE);
+    expect(the(6).script).toBe(SCRIPT);
+    expect(act.editPost(UID, "c-1", 1, { hook: "Typed hook" })).toBeNull();
+    fake.ai.pending = WAITING;
+    expect(act.videoUnderway({ id: "c-1" }, the(1))).toBe(false);
+  });
+});
+
 describe("editPost and skipPost", () => {
   it("saves typed words, and Jev's old answer gives way to the pattern check", () => {
     seed([post(1, { mas: true })]);

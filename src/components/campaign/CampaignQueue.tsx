@@ -19,7 +19,8 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { STILL_MAKING, aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import {
   AI_BUSY, AI_WAITING, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
-  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, videoCaption, videoPriceOf, waitingFor, whenText, type MakeOutcome,
+  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, VIDEO_WORDS_LINE, videoCaption, videoPriceOf, videoUnderway, waitingFor,
+  whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
 import { FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
@@ -242,6 +243,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const waiting = cur.format === "ai-video" && cur.state === "making" && !maker && !!waitingFor(c, cur);
   // the video's price from its own script and voice, never under what Make charges (live-p5dog day 3)
   const videoPrice = videoPriceOf(userId, cur);
+  // its AI video is being made here or its paid video waits at Higgsfield: new words wouldn't be the ones it speaks
+  const underway = videoUnderway(c, cur);
 
   /** Why Make can't run on this post now; null when it can. */
   function makeReason(p: CampaignPost): string | null {
@@ -262,7 +265,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   }
   const makeOff = cur.state === "made" || cur.state === "skipped" || !!maker || swapping || !!makeReason(cur);
   const swapReason =
-    cur.state === "made" ? SWAP_MADE_LINE : !written || cur.state !== "ready" ? (cur.state === "skipped" || maker ? null : WRITING_LINE) : left("campaign-swap") === 0 ? SWAP_CAP_LINE : null;
+    cur.state === "made" ? SWAP_MADE_LINE : underway ? VIDEO_WORDS_LINE : !written || cur.state !== "ready" ? (cur.state === "skipped" || maker ? null : WRITING_LINE) : left("campaign-swap") === 0 ? SWAP_CAP_LINE : null;
   const swapOff = !!swapReason || swapping || !!maker || cur.state !== "ready";
 
   const run = async (p: CampaignPost) => {
@@ -290,6 +293,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   };
   const edit = (p: CampaignPost) => {
     if (p.state === "made") return navigate(madeLink(p));
+    if (underway) return void toast({ title: VIDEO_WORDS_LINE });
     if (!p.hook || p.state !== "ready" || swapping) return void toast({ title: p.state === "skipped" ? "Skipped. Press Skip again to bring it back." : WRITING_LINE });
     const w = Object.fromEntries(editFields(p.format).map((f) => [f, p[f] ?? ""])) as Words;
     keepEdit(c.id, p.n, w);
@@ -544,7 +548,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
       <Key k={KEYS[k]} />
     </Button>
   );
-  const reason = makeReason(cur) ?? (cur.state === "ready" && swapReason === SWAP_CAP_LINE ? SWAP_CAP_LINE : null);
+  // while this tab makes it, the progress on the stage says why; once it only waits at Higgsfield, this line does
+  const reason = makeReason(cur) ?? (underway && !maker ? VIDEO_WORDS_LINE : cur.state === "ready" && swapReason === SWAP_CAP_LINE ? SWAP_CAP_LINE : null);
   const fieldLabel = (f: keyof Words) => (f === "hook" ? "Hook" : f === "script" ? "Script" : f === "brief" ? "Brief" : "Words");
 
   return (
@@ -573,7 +578,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
           <div className="flex flex-wrap gap-2">
             {action("make", maker || cur.state === "making" && !written ? "Making..." : waiting ? "Check again" : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(videoPrice)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
             {action("swap", swapping ? "Swapping..." : "Swap", () => void swap(cur), swapOff || !!work)}
-            {action("edit", "Edit", () => edit(cur), !!work || !!maker || swapping || !(cur.state === "made" || written))}
+            {action("edit", "Edit", () => edit(cur), !!work || !!maker || swapping || underway || !(cur.state === "made" || written))}
             {action("skip", "Skip", () => skip(cur), cur.state === "made" || cur.state === "drafting" || !!maker || swapping || !!work)}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
