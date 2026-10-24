@@ -71,7 +71,13 @@ export default function GridPage() {
               <span className="h-12 w-12 rounded-full bg-muted" aria-hidden />
             )}
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{brand.handle?.replace(/^@/, "") || "your_handle"}</p>
+              {brand.handle ? (
+                <p className="truncate text-sm font-semibold">{brand.handle.replace(/^@/, "")}</p>
+              ) : (
+                <Link to="/brand" className="text-sm font-semibold text-primary hover:underline">
+                  Add your handle
+                </Link>
+              )}
               {brand.name && <p className="truncate text-xs text-muted-foreground">{brand.name}</p>}
             </div>
           </div>
