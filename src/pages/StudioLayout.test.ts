@@ -151,7 +151,7 @@ describe("StudioLayout for everyone else", () => {
     await expect((await load()).first).toMatchFileSnapshot("./__pins__/studio-layout-everyone.html");
   });
 
-  it("counts overdue posts on Pipeline and the phone Calendar tab, and nothing else, once signed in", async () => {
+  it("counts overdue posts on Publish and the phone Publish tab, and nothing else, once signed in", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 9, 22, 9, 0));
     auth.user = { id: UID, email: "someone@example.com" };
@@ -195,7 +195,7 @@ describe("StudioLayout for Leo", () => {
   const LEO = { id: UID, email: "tanjunsing@gmail.com" };
   const overdue = (id: string, day: string) => ({ id, createdAt: "2026-10-01T00:00:00Z", draft: "x", hook: "x", platform: "linkedin", status: "scheduled", scheduledFor: day });
 
-  it("adds his autopilot posts waiting for an OK to the Pipeline count, read for today in Singapore", async () => {
+  it("adds his autopilot posts waiting for an OK to the Publish count, read for today in Singapore", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-22T17:00:00Z")); // 01:00 on the 23rd in Singapore
     as.user = LEO;

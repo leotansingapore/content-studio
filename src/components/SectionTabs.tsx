@@ -2,16 +2,15 @@
 // (deep links, query params keep working). From lg up, rail 2 of the shell
 // lists the same pages, so these tabs step aside there.
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { section, visiblePages, type NavPage } from "@/lib/nav";
+import { section, sectionFor, visiblePages, type NavPage } from "@/lib/nav";
 
 export type SectionTab = NavPage;
 
 export const WRITE_TABS = section("write").pages;
 export const PLAYBOOK_TABS = section("playbook").pages;
 export const PIPELINE_TABS = section("pipeline").pages;
-export const BOARD_TABS = section("board").pages;
 export const RECRUIT_TABS = section("recruit").pages;
 export const LEARN_TABS = section("learn").pages;
 
@@ -24,7 +23,11 @@ const onRailsChange = (cb: () => void) => {
 };
 const railsShown = () => window.matchMedia(RAILS).matches;
 
-export default function SectionTabs({ tabs, className = "" }: { tabs: SectionTab[]; className?: string }) {
+export default function SectionTabs({ tabs: given, className = "" }: { tabs: SectionTab[]; className?: string }) {
+  const { pathname } = useLocation();
+  // the tabs of the section this page sits in, so a page moved to another section shows that section's tabs
+  const here = sectionFor(pathname);
+  const tabs = here ? (here.tabbed ? here.pages : []) : given;
   const [email, setEmail] = useState("");
   const rails = useSyncExternalStore(onRailsChange, railsShown);
   const gated = tabs.some((t) => t.owners);

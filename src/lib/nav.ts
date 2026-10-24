@@ -7,8 +7,6 @@ import {
   BookMarked,
   Bookmark,
   Clapperboard,
-  Columns3,
-  Compass,
   Flame,
   Gauge,
   GraduationCap,
@@ -20,6 +18,8 @@ import {
   PenLine,
   CalendarClock,
   ClipboardCheck,
+  Columns3,
+  Settings,
   Radar,
   ShieldCheck,
   Sparkles,
@@ -50,6 +50,8 @@ export type NavPage = {
   title?: string;
   /** Phone More-sheet tile icon; falls back to the section's. */
   icon?: LucideIcon;
+  /** Rail 2 heading this page starts; the pages after it sit under it until the next one. */
+  group?: string;
 };
 
 export type NavSection = {
@@ -65,6 +67,9 @@ export type NavSection = {
   foot?: boolean;
 };
 
+// Leo 2026-10-24 picked three rails (proposal E of six he compared): rail 1 is the work in order (decide what to post,
+// make it, approve it, put it out, grow), rail 2 the open section's pages under group headings, and a context rail
+// (ContextRail.tsx) holds the open page's own views, filters and counts. Each business is its own (2026-10-23).
 export const SECTIONS: NavSection[] = [
   {
     id: "home",
@@ -79,53 +84,72 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "board",
-    label: "Posts board",
-    icon: ClipboardCheck,
-    to: "/reels",
-    tabbed: true,
+    id: "plan",
+    label: "Plan",
+    icon: Lightbulb,
+    to: "/plan",
     pages: [
-      { to: "/reels", label: "Posts board", end: true, show: reelsShown },
-      { to: "/reels/team", label: "Team", show: ownerShown },
+      { to: "/plan", label: "Plan", icon: Target, group: "Your plan" },
+      { to: "/ideas", label: "Ideas", icon: Lightbulb, owners: LEO_EMAILS },
+      { to: "/campaigns", label: "Campaigns", icon: Columns3, owners: LEO_EMAILS },
+      { to: "/swipe", label: "Top posts", icon: TrendingUp, group: "Find ideas" },
+      { to: "/trends", label: "Trends", icon: Flame },
+      { to: "/clone", label: "Clone a reel", icon: Clapperboard },
+      { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
+      { to: "/profiles", label: "Creators", icon: Users },
+      { to: "/following", label: "Following", icon: UserCheck },
+      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
+      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS },
+      { to: "/market", label: "Your market", icon: Radar, show: marketShown },
     ],
   },
   {
     id: "write",
-    label: "Write",
+    label: "Create",
     icon: PenLine,
     to: "/generate",
     tabbed: true,
     pages: [
-      { to: "/generate", label: "Post", end: true, title: "Write a post" },
+      { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Make" },
       { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },
       { to: "/edit", label: "Video" },
-      { to: "/media", label: "Media" },
+      { to: "/media", label: "Media", group: "Your files" },
+      { to: "/library", label: "Library", owners: LEO_EMAILS },
+    ],
+  },
+  {
+    id: "review",
+    label: "Review",
+    icon: ClipboardCheck,
+    to: "/reels",
+    tabbed: true,
+    pages: [
+      { to: "/reels", label: "Posts board", end: true, show: reelsShown },
+      { to: "/team", label: "Leader approvals" },
     ],
   },
   {
     id: "pipeline",
-    label: "Pipeline",
-    icon: Columns3,
+    label: "Publish",
+    icon: CalendarClock,
     to: "/calendar",
     tabbed: true,
     pages: [
-      { to: "/plan", label: "Plan" },
-      { to: "/campaigns", label: "Campaigns", owners: LEO_EMAILS },
-      { to: "/ideas", label: "Ideas", owners: LEO_EMAILS },
-      { to: "/calendar", label: "Calendar" },
+      { to: "/calendar", label: "Calendar", group: "Your posts" },
       { to: "/board", label: "Board" },
-      { to: "/drafts", label: "My posts" },
-      { to: "/library", label: "Library", owners: LEO_EMAILS },
+      { to: "/drafts", label: "All posts" },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
+      { to: "/analytics", label: "Analytics", group: "Results" },
+      { to: "/coach", label: "Coach" },
     ],
   },
   {
     id: "recruit",
-    label: "Recruit",
+    label: "Grow",
     icon: UserPlus,
     to: "/recruit",
     tabbed: true,
@@ -138,53 +162,36 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "improve",
-    label: "Improve",
-    icon: Gauge,
-    to: "/coach",
-    pages: [
-      { to: "/coach", label: "Coach", icon: Target },
-      { to: "/analytics", label: "Analytics", icon: BarChart3 },
-      { to: "/team", label: "Leader approvals", icon: ShieldCheck },
-    ],
-  },
-  {
-    id: "discover",
-    label: "Discover",
-    icon: Compass,
-    to: "/swipe",
-    pages: [
-      { to: "/swipe", label: "Top posts", icon: TrendingUp },
-      { to: "/trends", label: "Trends", icon: Flame },
-      { to: "/clone", label: "Clone a reel", icon: Clapperboard },
-      { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
-      { to: "/profiles", label: "Creators", icon: Users },
-      { to: "/following", label: "Following", icon: UserCheck },
-      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
-      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS },
-      { to: "/market", label: "Your market", icon: Radar, show: marketShown },
-    ],
-  },
-  {
     id: "playbook",
-    label: "Playbook",
+    label: "Brand",
     icon: BookMarked,
     to: "/playbook",
     tabbed: true,
     pages: [
-      { to: "/playbook", label: "My Playbook" },
+      { to: "/playbook", label: "My Playbook", group: "Who you are" },
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
       { to: "/people", label: "Faces and voices", owners: LEO_EMAILS },
+      { to: "/fads", label: "F.A.D.S." },
+      { to: "/accounts", label: "Social accounts", show: socialConnectShown, group: "Channels" },
       { to: "/bio", label: "Link in bio" },
       { to: "/links", label: "Tracked links" },
-      { to: "/accounts", label: "Social accounts", show: socialConnectShown },
-      { to: "/fads", label: "F.A.D.S." },
+    ],
+  },
+  {
+    // Set-up pages: who reviews, Claude, skills, automations, logs.
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    to: "/connect",
+    foot: true,
+    pages: [
+      { to: "/reels/team", label: "Reviewers", show: ownerShown },
       { to: "/connect", label: "Connect Claude" },
       { to: "/skills", label: "Skills", owners: LEO_EMAILS },
-      { to: "/activity", label: "Activity", owners: LEO_EMAILS },
       { to: "/automations", label: "Automations", owners: LEO_EMAILS },
+      { to: "/activity", label: "Activity", owners: LEO_EMAILS },
     ],
   },
   {
@@ -218,6 +225,12 @@ export const pathMatches = (pathname: string, to: string, end = false) =>
 export const visiblePages = (pages: NavPage[], email: string) =>
   pages.filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()));
 
+/** Each page carries the rail 2 heading it sits under, so a heading survives its first page being hidden. */
+export function groupedPages(pages: NavPage[]): NavPage[] {
+  let group: string | undefined;
+  return pages.map((p) => ({ ...p, group: (group = p.group ?? group) }));
+}
+
 /** The page a path belongs to: the longest matching route, so /generate/batch is Batch, not Post. */
 export function pageFor(pathname: string): { section: NavSection; page: NavPage } | null {
   let best: { section: NavSection; page: NavPage } | null = null;
@@ -234,20 +247,20 @@ export const pageTitle = (pathname: string) => {
   return hit ? `${hit.page.title ?? hit.page.label} - Content Studio` : "Content Studio";
 };
 
-// Phone bottom bar: the four daily destinations. Calendar stands for the whole
-// Pipeline; the fourth tab is the posts board for those who see it, else My posts.
+// Phone bottom bar: the four daily destinations. Publish opens on the Calendar and stands for its whole section;
+// the fourth tab is Review for those who see the posts board, else All posts.
 export const mobileTabs = (board: boolean): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] => [
   { to: "/home", label: "Home", icon: Home, active: (p) => sectionFor(p)?.id === "home" },
-  { to: "/generate", label: "Write", icon: PenLine, active: (p) => sectionFor(p)?.id === "write" },
+  { to: "/generate", label: "Create", icon: PenLine, active: (p) => sectionFor(p)?.id === "write" },
   {
     to: "/calendar",
-    label: "Calendar",
+    label: "Publish",
     icon: CalendarClock,
     active: (p) => sectionFor(p)?.id === "pipeline" && (board || !pathMatches(p, "/drafts")),
   },
   board
-    ? { to: "/reels", label: "Posts board", icon: ClipboardCheck, active: (p) => sectionFor(p)?.id === "board" }
-    : { to: "/drafts", label: "Posts", icon: History, active: (p) => pathMatches(p, "/drafts") },
+    ? { to: "/reels", label: "Review", icon: ClipboardCheck, active: (p) => sectionFor(p)?.id === "review" }
+    : { to: "/drafts", label: "All posts", icon: History, active: (p) => pathMatches(p, "/drafts") },
 ];
 
 /** `whole`: the tile stands for its entire section, not one page. */
@@ -263,7 +276,7 @@ export function moreSheet(email: string, board: boolean): { singles: MoreTile[];
   const all = SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => ({
     label: s.label,
     tiles: (s.tabbed || s.pages.length === 1
-      ? [{ to: s.to, label: s.label, icon: s.icon, sectionId: s.id, whole: true }]
+      ? [{ to: visiblePages(s.pages, email)[0]?.to ?? s.to, label: s.label, icon: s.icon, sectionId: s.id, whole: true }] // the first page this sign-in sees
       : visiblePages(s.pages, email).map((p) => ({ to: p.to, label: p.label, icon: p.icon ?? s.icon, sectionId: s.id, whole: false }))
     ).filter((t) => !barPaths.has(t.to)),
   })).filter((g) => g.tiles.length > 0);

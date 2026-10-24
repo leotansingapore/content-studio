@@ -103,7 +103,7 @@ describe("searchJump", () => {
     for (const q of ["posts", "posts board", "review", "pending", "notes", "comments", "approve"]) expect(searchJump(board, q)[0].to, q).toBe("/reels");
     expect(searchJump(board, "carousel").map((i) => i.to)).toContain("/reels");
     expect(searchJump(board, "account")[0].to).toBe("/accounts");
-    expect(searchJump(board, "settings")[0].to).toBe("/accounts");
+    expect(searchJump(board, "settings")[0].group).toBe("Settings"); // the Settings section first, since 24 Oct 2026 it is one
     expect(searchJump(board, "connections")[0].to).toBe("/accounts");
     expect(searchJump(items, "account").map((i) => i.to)).not.toContain("/profiles");
     expect(searchJump(items, "today")[0].to).toBe("/calendar");

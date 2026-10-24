@@ -377,7 +377,7 @@ export default function BoardPage() {
       <SectionTabs tabs={PIPELINE_TABS} />
       <div className="flex items-center gap-1">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          <Columns3 className="h-5 w-5" /> Content board
+          <Columns3 className="h-5 w-5" /> Board
         </h1>
         <InfoTip label="About moving cards">
           Drag a card between columns, or use its quick-move button.

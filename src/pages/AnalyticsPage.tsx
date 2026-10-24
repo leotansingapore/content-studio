@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useContextNav, useContextRailShown, type ContextGroup } from "@/components/ContextRail";
 import { Link } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { type AnalyticsPeriod } from "@/lib/links";
@@ -572,6 +573,16 @@ export default function AnalyticsPage() {
   const mix = useMemo(() => labelMix(loadDrafts(userId), labels, period), [userId, labels, period, metricsVersion]);
   // Shown once there are labels and anything posted, whether or not numbers were logged.
   const showMix = labels.length > 0 && postedCount > 0;
+  // The period sits in the context rail (above On this page); the page drops its own period chips meanwhile.
+  const railShown = useContextRailShown();
+  const ctxGroups = useMemo<ContextGroup[] | null>(
+    () =>
+      hasData || showMix
+        ? [{ title: "Period", items: ([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => ({ id: String(d), label, active: period === d, onSelect: () => setPeriod(d) })) }]
+        : null,
+    [hasData, showMix, period],
+  );
+  useContextNav(ctxGroups);
   const exportCsv = () => {
     const blob = new Blob([postsCsv(tracked)], { type: "text/csv" });
     const a = document.createElement("a");
@@ -826,7 +837,7 @@ export default function AnalyticsPage() {
       {(hasData || showMix) && (
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
-            {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
+            {!railShown && ([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
               <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
                 className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
                 {label}

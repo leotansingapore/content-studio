@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, visiblePages } from "./nav";
+import { groupedPages, mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, visiblePages } from "./nav";
 
 const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
@@ -19,7 +19,7 @@ describe("nav", () => {
   it("picks the most specific page and keeps detail routes in their section", () => {
     expect(pageFor("/generate/batch")?.page.label).toBe("Batch");
     expect(pageFor("/recruit/agent")?.page.label).toBe("AI agent");
-    expect(sectionFor("/profiles/abc")?.id).toBe("discover");
+    expect(sectionFor("/profiles/abc")?.id).toBe("plan");
     expect(sectionFor("/fads/positioning")?.id).toBe("playbook");
     expect(sectionFor("/links")?.id).toBe("playbook");
     expect(sectionFor("/t/report/abc")).toBeNull();
@@ -33,25 +33,42 @@ describe("nav", () => {
     expect(pageTitle("/nope")).toBe("Content Studio");
   });
 
-  it("lights one phone tab per Pipeline page", () => {
+  it("lights one phone tab per Publish page", () => {
     const lit = (p: string) => mobileTabs(false).filter((t) => t.active(p)).map((t) => t.label);
-    expect(lit("/board")).toEqual(["Calendar"]);
-    expect(lit("/grid")).toEqual(["Calendar"]);
-    expect(lit("/drafts")).toEqual(["Posts"]);
-    expect(lit("/carousel")).toEqual(["Write"]);
+    expect(mobileTabs(false).map((t) => t.label)).toEqual(["Home", "Create", "Publish", "All posts"]);
+    expect(lit("/board")).toEqual(["Publish"]);
+    expect(lit("/grid")).toEqual(["Publish"]);
+    expect(lit("/analytics")).toEqual(["Publish"]);
+    expect(lit("/drafts")).toEqual(["All posts"]);
+    expect(lit("/carousel")).toEqual(["Create"]);
     expect(lit("/welcome")).toEqual(["Home"]);
     expect(lit("/swipe")).toEqual([]);
   });
 
-  it("gives posts board users a board tab, with My posts under Calendar", () => {
+  it("gives posts board users a Review tab, with All posts under Publish", () => {
     const tabs = mobileTabs(true);
     const lit = (p: string) => tabs.filter((t) => t.active(p)).map((t) => t.label);
     expect(tabs.map((t) => t.to)).toEqual(["/home", "/generate", "/calendar", "/reels"]);
-    expect(lit("/reels")).toEqual(["Posts board"]);
-    expect(lit("/reels/team")).toEqual(["Posts board"]);
-    expect(lit("/drafts")).toEqual(["Calendar"]);
-    expect(lit("/board")).toEqual(["Calendar"]);
-    expect(sectionFor("/reels/team")?.id).toBe("board");
+    expect(lit("/reels")).toEqual(["Review"]);
+    expect(lit("/team")).toEqual(["Review"]);
+    expect(lit("/reels/team")).toEqual([]);
+    expect(lit("/drafts")).toEqual(["Publish"]);
+    expect(lit("/board")).toEqual(["Publish"]);
+    expect(sectionFor("/reels")?.id).toBe("review");
+    expect(sectionFor("/reels/team")?.id).toBe("settings");
+  });
+
+  it("orders the rail as the work goes and keeps set-up pages at its foot", () => {
+    expect(SECTIONS.filter((s) => !s.foot).map((s) => s.label)).toEqual(["Home", "Plan", "Create", "Review", "Publish", "Grow", "Brand"]);
+    expect(SECTIONS.filter((s) => s.foot).map((s) => s.label)).toEqual(["Settings", "Learn", "Feedback"]);
+  });
+
+  it("keeps a group heading over its pages even when the first one is hidden", () => {
+    const shown = (email: string) => visiblePages(groupedPages(section("playbook").pages), email).map((p) => `${p.group}:${p.to}`);
+    // Social accounts starts Channels and shows only once the server says so; Link in bio still sits under Channels
+    expect(shown("someone@example.com")).toEqual([
+      "Who you are:/playbook", "Who you are:/voice", "Who you are:/brand", "Who you are:/fads", "Channels:/bio", "Channels:/links",
+    ]);
   });
 
   it("keeps bottom-bar pages and owner-only pages out of the More sheet", () => {
@@ -59,8 +76,10 @@ describe("nav", () => {
     const tos = [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
     for (const t of mobileTabs(false)) expect(tos).not.toContain(t.to);
     expect(tos).not.toContain("/reels");
-    expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Recruit", "Playbook", "Learn", "Feedback"]);
-    expect(sheet.groups.map((g) => g.label)).toEqual(["Improve", "Discover"]);
+    expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Review", "Grow", "Brand", "Connect Claude", "Learn", "Feedback"]);
+    // without a posts board, Review is Leader approvals: its tile opens that, not an empty board
+    expect(sheet.singles.find((t) => t.label === "Review")?.to).toBe("/team");
+    expect(sheet.groups.map((g) => g.label)).toEqual(["Plan"]);
   });
 
   it("keeps the posts board, which the bar now holds, out of a board user's More sheet", () => {
@@ -70,12 +89,12 @@ describe("nav", () => {
     const tos = [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
     for (const t of mobileTabs(true)) expect(tos).not.toContain(t.to);
     expect(tos).not.toContain("/reels/team");
-    expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Recruit", "Playbook", "Learn", "Feedback"]);
-    expect(visiblePages(section("board").pages, "someone@example.com").map((p) => p.to)).toEqual(["/reels"]);
-    // Team follows the server's owner answer, not an email
-    expect(visiblePages(section("board").pages, "tanjunsing@gmail.com").map((p) => p.to)).toEqual(["/reels"]);
+    expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Grow", "Brand", "Connect Claude", "Learn", "Feedback"]);
+    expect(visiblePages(section("review").pages, "someone@example.com").map((p) => p.to)).toEqual(["/reels", "/team"]);
+    // Reviewers follows the server's owner answer, not an email
+    expect(visiblePages(section("settings").pages, "tanjunsing@gmail.com").map((p) => p.to)).toEqual(["/connect", "/skills", "/automations", "/activity"]);
     store.set("cs-team-me", JSON.stringify({ owner: true, member: false, at: Date.now() }));
-    expect(visiblePages(section("board").pages, "someone@example.com").map((p) => p.to)).toEqual(["/reels", "/reels/team"]);
+    expect(visiblePages(section("settings").pages, "someone@example.com").map((p) => p.to)).toEqual(["/reels/team", "/connect"]);
     vi.unstubAllGlobals();
   });
 
@@ -85,7 +104,7 @@ describe("nav", () => {
     expect(write("tanjunsing@gmail.com")).toContain("/slideshow");
   });
 
-  it("shows Formats only to Leo's sign-ins, second in Write, and leaves everyone else's nav as it was", () => {
+  it("shows Formats only to Leo's sign-ins, second in Create, and leaves everyone else's nav as it was", () => {
     const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
     expect(write("someone@example.com")).toEqual(["/generate", "/generate/batch", "/carousel", "/edit", "/media"]);
     expect(write("tanjunsing@gmail.com").slice(0, 2)).toEqual(["/generate", "/make"]);
@@ -97,15 +116,15 @@ describe("nav", () => {
     expect(tiles("someone@example.com")).not.toContain("/make");
     expect(pageFor("/make")?.page.label).toBe("Formats");
     expect(pageTitle("/make")).toBe("Formats - Content Studio");
-    // a format's own page sits under the gallery, in Write
+    // a format's own page sits under the gallery, in Create
     expect(pageFor("/make/slideshow")?.page.to).toBe("/make");
-    expect(mobileTabs(false).filter((t) => t.active("/make")).map((t) => t.label)).toEqual(["Write"]);
+    expect(mobileTabs(false).filter((t) => t.active("/make")).map((t) => t.label)).toEqual(["Create"]);
   });
 
   it("shows Image only to Leo's sign-ins, after Carousel, and leaves everyone else's nav and More sheet as they were", () => {
     const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
     expect(write("someone@example.com")).toEqual(["/generate", "/generate/batch", "/carousel", "/edit", "/media"]);
-    expect(write("tanjunsing@gmail.com")).toEqual(["/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit", "/media"]);
+    expect(write("tanjunsing@gmail.com")).toEqual(["/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit", "/media", "/library"]);
     const tiles = (email: string) => {
       const sheet = moreSheet(email, false);
       return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
@@ -113,19 +132,18 @@ describe("nav", () => {
     expect(tiles("someone@example.com")).not.toContain("/image");
     expect(pageFor("/image")?.page.label).toBe("Image");
     expect(pageTitle("/image")).toBe("Image - Content Studio");
-    expect(mobileTabs(false).filter((t) => t.active("/image")).map((t) => t.label)).toEqual(["Write"]);
+    expect(mobileTabs(false).filter((t) => t.active("/image")).map((t) => t.label)).toEqual(["Create"]);
   });
 
-  it("shows Library only to Leo's sign-ins, after My posts", () => {
-    const pipeline = (email: string) => visiblePages(section("pipeline").pages, email).map((p) => p.to);
-    expect(pipeline("someone@example.com")).not.toContain("/library");
-    expect(pipeline("leotanjs95@gmail.com")).toEqual(expect.arrayContaining(["/drafts", "/library"]));
-    expect(pipeline("leotanjs95@gmail.com").indexOf("/library")).toBe(pipeline("leotanjs95@gmail.com").indexOf("/drafts") + 1);
+  it("shows Library only to Leo's sign-ins, after Media in Create", () => {
+    const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
+    expect(write("someone@example.com")).not.toContain("/library");
+    expect(write("leotanjs95@gmail.com").indexOf("/library")).toBe(write("leotanjs95@gmail.com").indexOf("/media") + 1);
     expect(pageFor("/library")?.page.label).toBe("Library");
   });
 
-  it("shows Competitors only to Leo's sign-ins, in Discover after Following", () => {
-    const discover = (email: string) => visiblePages(section("discover").pages, email).map((p) => p.to);
+  it("shows Competitors only to Leo's sign-ins, in Plan after Following", () => {
+    const discover = (email: string) => visiblePages(section("plan").pages, email).map((p) => p.to);
     expect(discover("someone@example.com")).not.toContain("/competitors");
     expect(discover("tanjunsing@gmail.com").indexOf("/competitors")).toBe(discover("tanjunsing@gmail.com").indexOf("/following") + 1);
     expect(pageFor("/competitors")?.page.label).toBe("Competitors");
@@ -135,8 +153,8 @@ describe("nav", () => {
     expect(tiles("leotanjs95@gmail.com")).toContain("/competitors");
   });
 
-  it("shows Saved only to Leo's sign-ins, in Discover after Competitors", () => {
-    const discover = (email: string) => visiblePages(section("discover").pages, email).map((p) => p.to);
+  it("shows Saved only to Leo's sign-ins, in Plan after Competitors", () => {
+    const discover = (email: string) => visiblePages(section("plan").pages, email).map((p) => p.to);
     expect(discover("someone@example.com")).not.toContain("/saved");
     expect(discover("leotanjs95@gmail.com").indexOf("/saved")).toBe(discover("leotanjs95@gmail.com").indexOf("/competitors") + 1);
     expect(pageTitle("/saved")).toBe("Saved - Content Studio");
@@ -145,36 +163,38 @@ describe("nav", () => {
     expect(tiles("tanjunsing@gmail.com")).toContain("/saved");
   });
 
-  it("shows Faces and voices only to Leo's sign-ins, in Playbook after Brand kit and Audiences, and leaves everyone else's More sheet as it was", () => {
+  it("shows Faces and voices only to Leo's sign-ins, in Brand after Brand kit and Audiences, and leaves everyone else's More sheet as it was", () => {
     const playbook = (email: string) => visiblePages(section("playbook").pages, email).map((p) => p.to);
-    expect(playbook("someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/bio", "/links", "/fads", "/connect"]);
+    expect(playbook("someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/fads", "/bio", "/links"]);
     // phase 5 puts Audiences between Brand kit and Faces and voices
     for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) expect(playbook(email).indexOf("/people"), email).toBe(playbook(email).indexOf("/audiences") + 1);
     expect(pageFor("/people")?.page.label).toBe("Faces and voices");
     expect(pageTitle("/people")).toBe("Faces and voices - Content Studio");
-    // pinned from main before /people: Playbook is one tile, its tabs carry the page
+    // Brand is one tile, its tabs carry the page
     const s = moreSheet("someone@example.com", false);
     expect({ singles: s.singles.map((t) => t.to), groups: s.groups.map((g) => [g.label, g.tiles.map((t) => t.to)]) }).toEqual({
-      singles: ["/welcome", "/recruit", "/playbook", "/academy", "/feedback"],
-      groups: [["Improve", ["/coach", "/analytics", "/team"]], ["Discover", ["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]]],
+      singles: ["/welcome", "/team", "/recruit", "/playbook", "/connect", "/academy", "/feedback"],
+      groups: [["Plan", ["/plan", "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]]],
     });
   });
 
   it("shows Campaigns, Ideas and Audiences only to Leo's sign-ins, after Plan and Brand kit, and leaves everyone else's nav as it was", () => {
     const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
-    expect(pages("pipeline", "someone@example.com")).toEqual(["/plan", "/calendar", "/board", "/drafts", "/grid"]);
-    expect(pages("playbook", "someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/bio", "/links", "/fads", "/connect"]);
+    expect(pages("plan", "someone@example.com")).toEqual(["/plan", "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
+    expect(pages("pipeline", "someone@example.com")).toEqual(["/calendar", "/board", "/drafts", "/grid", "/analytics", "/coach"]);
+    expect(pages("playbook", "someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/fads", "/bio", "/links"]);
     for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) {
-      expect(pages("pipeline", email).slice(0, 3), email).toEqual(["/plan", "/campaigns", "/ideas"]);
+      expect(pages("plan", email).slice(0, 3), email).toEqual(["/plan", "/ideas", "/campaigns"]);
       expect(pages("playbook", email).indexOf("/audiences"), email).toBe(pages("playbook", email).indexOf("/brand") + 1);
     }
     expect(pageTitle("/campaigns")).toBe("Campaigns - Content Studio");
     expect(pageTitle("/ideas")).toBe("Ideas - Content Studio");
     expect(pageTitle("/audiences")).toBe("Audiences - Content Studio");
-    // the wizard and a campaign sit under Campaigns, in Pipeline
+    // the wizard and a campaign sit under Campaigns, in Plan (on phones, through More)
     expect(pageFor("/campaigns/new")?.page.to).toBe("/campaigns");
     expect(pageFor("/campaigns/c-lq3k9z")?.page.to).toBe("/campaigns");
-    expect(mobileTabs(false).filter((t) => t.active("/campaigns/new")).map((t) => t.label)).toEqual(["Calendar"]);
+    expect(sectionFor("/campaigns/new")?.id).toBe("plan");
+    expect(mobileTabs(false).filter((t) => t.active("/campaigns/new")).map((t) => t.label)).toEqual([]);
     expect(sectionFor("/audiences")?.id).toBe("playbook");
     const tiles = (email: string) => {
       const sheet = moreSheet(email, false);
@@ -183,13 +203,13 @@ describe("nav", () => {
     for (const to of ["/campaigns", "/ideas", "/audiences"]) expect(tiles("someone@example.com")).not.toContain(to);
   });
 
-  it("shows Agent after Overview and Skills, Activity and Automations after Connect Claude only to Leo's sign-ins, and leaves everyone else's nav as it was", () => {
+  it("shows Agent after Overview and Skills, Automations and Activity after Connect Claude only to Leo's sign-ins, and leaves everyone else's nav as it was", () => {
     const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
     expect(pages("home", "someone@example.com")).toEqual(["/home", "/welcome"]);
-    expect(pages("playbook", "someone@example.com")).toEqual(["/playbook", "/voice", "/brand", "/bio", "/links", "/fads", "/connect"]);
+    expect(pages("settings", "someone@example.com")).toEqual(["/connect"]);
     for (const email of ["tanjunsing@gmail.com", "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/welcome", "/north-star"]);
-      expect(pages("playbook", email).slice(-4), email).toEqual(["/connect", "/skills", "/activity", "/automations"]);
+      expect(pages("settings", email), email).toEqual(["/connect", "/skills", "/automations", "/activity"]);
     }
     expect(section("home").pages.find((p) => p.to === "/agent")?.icon?.displayName).toBe("MessageSquare");
     for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/activity", "Activity"], ["/automations", "Automations"]]) {
@@ -198,15 +218,15 @@ describe("nav", () => {
     // a thread sits under Agent, in Home, and lights the Home tab
     expect(pageFor("/agent/t1")?.page.to).toBe("/agent");
     expect(mobileTabs(false).filter((t) => t.active("/agent/t1")).map((t) => t.label)).toEqual(["Home"]);
-    expect(sectionFor("/automations")?.id).toBe("playbook");
+    expect(sectionFor("/automations")?.id).toBe("settings");
     const tiles = (email: string) => {
       const sheet = moreSheet(email, false);
       return [...sheet.singles, ...sheet.groups.flatMap((g) => g.tiles)].map((t) => t.to);
     };
     for (const to of ["/agent", "/skills", "/activity", "/automations"]) expect(tiles("someone@example.com")).not.toContain(to);
-    // Leo's Home group gains the Agent tile; Playbook stays one tile
+    // Leo's Home group gains the Agent tile; his Settings group lists its pages
     expect(moreSheet("tanjunsing@gmail.com", false).groups.find((g) => g.label === "Home")?.tiles.map((t) => t.to)).toEqual(["/agent", "/welcome", "/north-star"]);
-    expect(tiles("tanjunsing@gmail.com")).not.toContain("/skills");
+    expect(moreSheet("tanjunsing@gmail.com", false).groups.find((g) => g.label === "Settings")?.tiles.map((t) => t.to)).toEqual(["/connect", "/skills", "/automations", "/activity"]);
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {

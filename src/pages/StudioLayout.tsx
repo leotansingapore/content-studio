@@ -24,6 +24,7 @@ import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
 import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
+import ContextRail, { useContextRailContent, useContextRailShown } from "@/components/ContextRail";
 import {
   SECTIONS,
   mobileTabs,
@@ -33,6 +34,7 @@ import {
   section,
   sectionFor,
   visiblePages,
+  groupedPages,
   type MoreTile,
   type NavSection,
 } from "@/lib/nav";
@@ -223,6 +225,9 @@ export default function StudioLayout() {
 
   const here = sectionFor(pathname);
   if (here) lastInSection.current[here.id] = pathname + search;
+  // Rail 3: the open page's own navigation, when it has any (ContextRail.tsx); the content moves over to make room.
+  const ctx = useContextRailContent();
+  const ctxShown = useContextRailShown() && (!!ctx.groups?.length || ctx.headings.length > 0);
   const open = here && visiblePages(here.pages, email).length > 0 ? here : section("home");
 
   useScrollMemory();
@@ -397,6 +402,8 @@ export default function StudioLayout() {
     window.location.replace("/auth");
   };
 
+  const railCount = (id: string) => (id === "review" ? boardWaiting : id === "pipeline" ? needsYou : 0);
+
   const tabs = mobileTabs(board);
   const moreActive = !tabs.some((t) => t.active(pathname));
   const sheet = moreSheet(email, board);
@@ -404,7 +411,7 @@ export default function StudioLayout() {
   const tileActive = (t: MoreTile) => (t.whole ? here?.id === t.sectionId : pathMatches(pathname, t.to));
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas" style={ctxShown ? ({ "--nav-w": "488px" } as React.CSSProperties) : undefined}>
       <a
         href="#main-content"
         className="sr-only z-50 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
@@ -412,7 +419,7 @@ export default function StudioLayout() {
         Skip to content
       </a>
 
-      {/* Desktop: rail 1 (sections) + rail 2 (the open section's pages) */}
+      {/* Desktop: rail 1 (sections) + rail 2 (the open section's pages) + rail 3 (the page's own navigation) */}
       <aside data-nav className="fixed inset-y-0 left-0 z-30 hidden lg:flex">
         <nav
           aria-label="Sections"
@@ -430,9 +437,9 @@ export default function StudioLayout() {
             <RailLink
               key={s.id}
               s={s}
-              to={lastInSection.current[s.id] ?? s.to}
+              to={lastInSection.current[s.id] ?? visiblePages(s.pages, email)[0]?.to ?? s.to}
               active={here?.id === s.id}
-              count={s.id === "pipeline" ? needsYou : s.id === "board" ? boardWaiting : 0}
+              count={railCount(s.id)}
             />
           ))}
           <div className="mt-auto flex flex-col items-center gap-1 pt-3">
@@ -442,7 +449,7 @@ export default function StudioLayout() {
           </div>
         </nav>
 
-        <div className="flex w-52 flex-col border-r border-border/70 bg-sidebar xl:w-56">
+        <div className={`flex flex-col border-r border-border/70 bg-sidebar ${ctxShown ? "w-52" : "w-52 xl:w-56"}`}>
           <div className="space-y-2 px-3 pb-2 pt-3.5">
             <ProfileSwitcher />
             <Button
@@ -470,8 +477,11 @@ export default function StudioLayout() {
               {open.label}
             </p>
             <ul className="space-y-0.5">
-              {visiblePages(open.pages, email).map((p) => (
+              {visiblePages(groupedPages(open.pages), email).map((p, i, shown) => (
                 <li key={p.to}>
+                  {p.group && p.group !== shown[i - 1]?.group && (
+                    <p className={`px-3 pb-1 text-[11px] font-semibold text-muted-foreground/80 ${i ? "pt-4" : ""}`}>{p.group}</p>
+                  )}
                   <NavLink
                     to={p.to}
                     end={p.end}
@@ -504,6 +514,7 @@ export default function StudioLayout() {
             )}
           </div>
         </div>
+        {ctxShown && <ContextRail groups={ctx.groups} headings={ctx.headings} />}
       </aside>
 
       {/* Mobile top bar */}

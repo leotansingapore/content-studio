@@ -72,12 +72,15 @@
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will
   not sync.
-- Nav: every page is listed once, in `src/lib/nav.ts` (SECTIONS). Desktop
-  has two rails (rail 1 = sections, rail 2 = the open section's pages);
-  phones get the bottom bar, the More sheet and, for `tabbed` sections,
-  `SectionTabs` on the page (hidden from lg up, where rail 2 does that job).
-  When adding a page, add it to a section there and keep `src/lib/nav.test.ts`
-  green; do not add a new section without checking the grouping.
+- Nav: every page is listed once, in `src/lib/nav.ts` (SECTIONS), in the order the work goes: Home, Plan, Create,
+  Review, Publish, Grow, Brand, then Settings, Learn and Feedback at the foot (Leo picked this on 2026-10-24).
+  Desktop has three rails: rail 1 = sections, rail 2 = the open section's pages under `group` headings, rail 3 =
+  the open page's own views, filters and counts (`src/components/ContextRail.tsx`, from 1280px). A page with
+  filters hands them over with `useContextNav` and hides its own copies while `useContextRailShown()` is true;
+  other pages get "On this page" from their h2s, or no rail. Phones get the bottom bar, the More sheet and, for
+  `tabbed` sections, `SectionTabs` (it shows the tabs of the section the page sits in, hidden from lg up). When
+  adding a page, add it to a section there and keep `src/lib/nav.test.ts` green; do not add a new section
+  without checking the grouping.
 - Heavy pages are route-level `lazy()` in `src/App.tsx`; the `<Suspense>`
   lives around `<Outlet/>` in StudioLayout. Do NOT add a vite `manualChunks`
   object — the object form force-preloads lazy chunks.

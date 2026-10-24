@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Clapperboard, Columns3, Images, LayoutGrid, RefreshCw, Rows3, Users } from "lucide-react";
-import SectionTabs, { BOARD_TABS } from "@/components/SectionTabs";
+import { Clapperboard, Images, RefreshCw } from "lucide-react";
+import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import ReelDrawer from "@/components/reels/ReelDrawer";
 import ReelFeed from "@/components/reels/ReelFeed";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useGoneItem, useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
+import { useContextNav, useContextRailShown, type ContextGroup } from "@/components/ContextRail";
 import { boardWaitingChanged, boardWaitingHere, waitingByBrand } from "@/lib/needsYou";
 import {
   NEXT,
@@ -69,8 +70,6 @@ export default function ReelsPage() {
   const known = (b: string) => !board || board.brands.some((x) => x.id === b);
   const brand = me?.owner ? unlinked || ownBrand : brandParam === "all" ? "" : brandParam && known(brandParam) ? brandParam : "";
   const setBrand = (b: string) => setParams((prev) => withParam(prev, "brand", b || "all"), { replace: true });
-  const [archived, setArchived] = useUrlState("archived", "hide", { allowed: ["hide", "show"] });
-  const showArchived = archived === "show";
   // Posts (every post at its real shape, full caption, decide beside it) is the default; Board (kanban, drag between
   // stages) and Grid stay one tap away. Remembered per device under a new key so the Posts default reaches everyone once.
   const [view, pickView] = useUrlState<"feed" | "board" | "grid">("view", "feed", { allowed: ["feed", "board", "grid"], remember: "cs-reels-view-2" });
@@ -87,6 +86,16 @@ export default function ReelsPage() {
       .catch((e) => setError(errorText(e, "check your connection")))
       .finally(() => setLoading(false));
   };
+  // Back on the tab: the board again, since the team and the jobs move posts while you are away.
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
+  const allowedRef = useRef(allowed);
+  allowedRef.current = allowed;
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && allowedRef.current && reloadRef.current();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   useEffect(() => {
     document.title = "Posts board - Content Studio";
@@ -188,10 +197,24 @@ export default function ReelsPage() {
     return m;
   }, [board]);
 
+  // Stages (with counts) and the view sit in the context rail; the page drops its chips and menu meanwhile.
+  const railShown = useContextRailShown();
+  const ctxGroups = useMemo<ContextGroup[] | null>(() => {
+    if (!board) return null;
+    const ids = [...board.stages.filter((s) => s.id !== "archived").map((s) => [s.id, s.name]), ["all", "All"],
+      ...board.stages.filter((s) => s.id === "archived").map((s) => [s.id, s.name]), ["notes", "Notes"]] as [StageId | "all" | "notes", string][];
+    const stageItems = ids
+      .map(([id, name]) => ({ id, label: name, count: feedCards(board.cards, id, brand ?? "", me).length, active: stage === id, onSelect: () => pickStage(id) }))
+      .filter((it) => it.id !== "notes" || it.count > 0 || it.active);
+    const views = ([["feed", "One by one"], ["board", "By stage"], ["grid", "Grid"]] as const).map(([id, label]) => ({ id, label, active: view === id, onSelect: () => pickView(id) }));
+    return [...(view === "feed" ? [{ title: "Stage", items: stageItems }] : []), { title: "View", items: views }];
+  }, [board, brand, me, stage, view]);
+  useContextNav(ctxGroups);
+
   if (allowed === false) {
     return (
       <div className="space-y-5">
-        <SectionTabs tabs={BOARD_TABS} />
+        <SectionTabs tabs={PIPELINE_TABS} />
         <p className="text-sm text-muted-foreground">
           No posts board is connected to this account. <Link to="/calendar" className="font-semibold text-primary">Back to your calendar</Link>
         </p>
@@ -224,7 +247,9 @@ export default function ReelsPage() {
     setActiveProfile(uid, p.id);
     window.location.reload();
   };
-  const stages = (board?.stages ?? []).filter((s) => showArchived || s.id !== "archived");
+  // Archived is the last chip (after All), never a column: it is where finished posts go, not a step.
+  const stages = (board?.stages ?? []).filter((s) => s.id !== "archived");
+  const archivedStage = board?.stages.find((s) => s.id === "archived");
   const connectIg = () => {
     if (!igConn) return;
     setConnecting(true);
@@ -240,14 +265,9 @@ export default function ReelsPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={BOARD_TABS} />
+      <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Posts board</h1>
-        {me?.owner && (
-          <Button asChild variant="outline" size="sm" className="h-9">
-            <Link to="/reels/team"><Users className="mr-1.5 h-3.5 w-3.5" /> Team</Link>
-          </Button>
-        )}
         {board && (
           <>
             {!me?.owner && board.brands.length > 1 && (
@@ -263,25 +283,31 @@ export default function ReelsPage() {
                 ))}
               </select>
             )}
+            {!railShown && (
             <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <input type="checkbox" className="h-4 w-4 accent-primary" checked={showArchived} onChange={(e) => setArchived(e.target.checked ? "show" : "hide")} />
-              Archived
+              View
+              <select
+                aria-label="View"
+                value={view}
+                onChange={(e) => pickView(e.target.value as "feed" | "board" | "grid")}
+                className="h-9 rounded-lg border border-border/60 bg-background px-2 text-sm font-medium text-foreground [@media(pointer:coarse)]:h-11"
+              >
+                <option value="feed">One by one</option>
+                <option value="board">By stage</option>
+                <option value="grid">Grid</option>
+              </select>
             </label>
-            <div className="flex rounded-lg border border-border/60 bg-muted/30 p-0.5" role="group" aria-label="Layout">
-              {([["feed", "Posts", Rows3], ["board", "Board", Columns3], ["grid", "Grid", LayoutGrid]] as const).map(([id, label, Icon]) => (
-                <button key={id} type="button" onClick={() => pickView(id)} aria-pressed={view === id}
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold ${view === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>
-                  <Icon className="h-3.5 w-3.5" /> {label}
-                </button>
-              ))}
-            </div>
+            )}
+            <Button variant="ghost" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={reload} disabled={loading} aria-label="Refresh the board" title="Refresh (also happens when you come back to this tab)">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </>
         )}
       </header>
 
-      {board && !needsLink && view === "feed" && (
+      {board && !needsLink && view === "feed" && !railShown && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show">
-          {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const, ["notes", "Notes"] as const].map(([id, name]) => {
+          {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const, ...(archivedStage ? [[archivedStage.id, archivedStage.name] as const] : []), ["notes", "Notes"] as const].map(([id, name]) => {
             const n = feedCards(board.cards, id as StageId | "all" | "notes", brand ?? "", me).length;
             if (id === "notes" && !n && stage !== "notes") return null;
             return (
@@ -291,9 +317,6 @@ export default function ReelsPage() {
               </button>
             );
           })}
-          <Button variant="ghost" size="sm" className="ml-auto h-9" onClick={reload} disabled={loading} aria-label="Refresh the board">
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
         </div>
       )}
 
