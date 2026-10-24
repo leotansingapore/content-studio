@@ -1,5 +1,40 @@
 [
   {
+    "id": "8ab982e0befd",
+    "title": "Singapore’s core inflation eases to 2% in September on lower services, retail prices",
+    "gist": "Singapore's core inflation eased to 2 per cent year-on-year in September from 2.2 per cent in August, according to figures released on Friday (Oct 23) by MAS and METI. Overall inflation fell to 2.2 per cent, even as food inflation rose to 2.4 per cent and accommodation inflation edged up to 0.9 per cent. MAS and METI expect inflation to remain slightly elevated in the immediate quarters ahead before easing more discernibly from mid-2027.",
+    "talkingPoint": "Clients may care because everyday costs like food and accommodation are still rising even as overall inflation eases. You can ask clients how these price shifts affect their monthly budget and review whether their cashflow plans account for inflation staying elevated in the near term.",
+    "clientMessage": "Hi [Client name], official data shows Singapore's core inflation eased to 2 per cent in September, while food prices rose and accommodation costs edged up. The authorities expect inflation to remain slightly elevated in the immediate quarters ahead before easing later. These price changes can still affect everyday household spending. If you like, we can review your current financial plan together to see how your cashflow is tracking. [Your name]",
+    "source": "CNA",
+    "url": "https://channelnewsasia.com/singapore/singapore-inflation-september-2026-mas-mti-6485326",
+    "publishedAt": "2026-10-23T05:01:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/8ab982e0befd.jpg"
+  },
+  {
+    "id": "34aea5cb1342",
+    "title": "HDB resale prices down by 0.1% in Q3, more units sold after lifting of cooling measure",
+    "gist": "HDB resale prices fell by 0.1% in the third quarter of 2026, while 7,645 units were sold after the 15-month wait-out period was lifted on July 28. In the private home market, prices rose 1.4% in the third quarter. HDB and URA advised households to exercise prudence when purchasing property and taking out mortgage loans.",
+    "talkingPoint": "Clients may wonder how these property price trends affect their cash flow and long-term budget. You can ask how their property timeline looks and offer to review their existing savings and mortgage plans together.",
+    "clientMessage": "Hi [Client name], Housing Board resale prices fell by 0.1% in the third quarter of 2026, but more units were sold after the 15-month wait-out period was lifted. Private home prices rose 1.4% in the same quarter. The authorities have advised households to exercise prudence when taking out mortgage loans. If you would like to look over your financial plan together to see how this fits your situation, let me know. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/housing/hdb-resale-prices-down-by-0-1-in-q3-more-units-sold-after-lifting-of-cooling-measure",
+    "publishedAt": "2026-10-23T01:08:43+00:00",
+    "topic": "Property"
+  },
+  {
+    "id": "73868b3aab77",
+    "title": "Man arrested for allegedly cheating friend of at least $186,000",
+    "gist": "A 43-year-old man was arrested on Oct 21 for allegedly cheating a 69-year-old friend of at least $186,000 over 15 months. The victim had lost money in a cryptocurrency scam, and the friend claimed he could recover the losses in exchange for fees. Police warned the public to exercise caution when dealing with people who ask for upfront payments to recover scam losses.",
+    "talkingPoint": "Clients may worry about scams targeting their savings after hearing about schemes that claim to recover lost funds. You can ask clients about their current safeguards and offer to review their existing financial plans together.",
+    "clientMessage": "Hi [Client name], a man was recently arrested after allegedly taking at least $186,000 from a friend by promising to recover money lost to an earlier scam. Police warned against paying upfront fees to anyone claiming they can retrieve lost money. Scams can put personal savings at risk. If you want, we can look at your current financial plan together to check how your funds are set up. Let me know if you wish to talk. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/man-arrested-for-allegedly-cheating-friend-of-at-least-186000",
+    "publishedAt": "2026-10-22T14:35:00+00:00",
+    "topic": "Scams",
+    "clipping": "/news/73868b3aab77.jpg"
+  },
+  {
     "id": "560f95d9b01c",
     "title": "At least $83,000 lost in phishing scams linked to fake Simba websites since March: Police",
     "gist": "The police reported on Oct 21 that more than $83,000 has been lost in at least 62 cases since March to fake Simba websites. Victims clicked on sponsored search engine results to top up telco services and entered personal and bank card details. The police advised the public to check web addresses carefully or use saved bookmarks to avoid unauthorized card transactions.",
@@ -355,18 +390,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "5e4ceccda4ff",
-    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
-    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
-    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
-    "clientMessage": null,
-    "source": "CNBC",
-    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/5e4ceccda4ff.jpg"
-  },
-  {
     "id": "eab7f642835b",
     "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
     "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
@@ -377,6 +400,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/eab7f642835b.jpg"
+  },
+  {
+    "id": "5e4ceccda4ff",
+    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
+    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
+    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
+    "clientMessage": null,
+    "source": "CNBC",
+    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/5e4ceccda4ff.jpg"
   },
   {
     "id": "cc5c9a27e256",
