@@ -35,9 +35,13 @@ export default function RecruitPage() {
       <SectionTabs tabs={RECRUIT_TABS} />
       <header className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-            From chasing to chosen
-          </h1>
+          <div>
+            {/* the kit's name over the page's own, so the title matches the nav item you tapped */}
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">From chasing to chosen</p>
+            <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+              {tab === "conversations" ? "Conversations" : tab === "agent" ? "AI agent" : "Brand Brain"}
+            </h1>
+          </div>
           {savedAt && (
             <span className="text-[11px] text-muted-foreground">
               Saved {new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
