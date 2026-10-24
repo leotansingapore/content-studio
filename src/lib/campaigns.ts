@@ -196,9 +196,9 @@ export function campaignStatus(c: Pick<Campaign, "posts">, today: string): Campa
 }
 
 export interface CampaignCost {
-  /** Free-format posts not yet made or skipped. */
+  /** Free-format posts not yet made, being made or skipped. */
   free: number;
-  /** Posts a maker makes at Make, not yet made or skipped. */
+  /** Posts a maker makes at Make, not yet made, being made or skipped. */
   made: { slideshows: number; walls: number; videos: number };
   /** What those makes come to, in US$ to the cent: REMIX_MAKE per slideshow or wall, each video's own estimate. */
   usd: number;
@@ -220,7 +220,8 @@ export function campaignCost(
   left: { video: number | null; remix: number | null; pick?: number | null },
   videoPrice: (p: CampaignPost) => Price = () => AI_VIDEO,
 ): CampaignCost {
-  const open = c.posts.filter((p) => p.state !== "made" && p.state !== "skipped");
+  // a post being made has spent its uses (a paid AI video still at Higgsfield) or shows its own price check
+  const open = c.posts.filter((p) => p.state !== "made" && p.state !== "skipped" && p.state !== "making");
   const count = (f: CampaignFormat) => open.filter((p) => p.format === f).length;
   const made = { slideshows: count("slideshow"), walls: count("wall"), videos: count("ai-video") };
   const remix = made.slideshows + made.walls;

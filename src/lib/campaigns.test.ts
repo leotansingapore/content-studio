@@ -117,11 +117,13 @@ describe("campaignCost", () => {
     expect(campaignCost(c, { video: 2, remix: 30 }).videoUsd).toEqual([AI_VIDEO.usd, AI_VIDEO.usd, AI_VIDEO.usd, AI_VIDEO.usd]);
   });
 
-  it("leaves made and skipped posts out", () => {
-    const cost = campaignCost(withVideos({ 1: "made", 2: "skipped", 3: "made", 6: "skipped", 4: "making", 9: "making" }), { video: 2, remix: null });
-    expect(cost.free).toBe(6);
-    expect(cost.made.videos).toBe(2);
-    expect(cost.usd).toBe(5.54);
+  it("leaves made, skipped and being-made posts out: a video being made is paid or at its own price check (live-p5dog day 3)", () => {
+    const cost = campaignCost(withVideos({ 1: "made", 2: "skipped", 3: "made", 6: "skipped", 4: "making", 9: "making" }), { video: 1, remix: null });
+    expect(cost.free).toBe(5);
+    expect(cost.made.videos).toBe(1);
+    expect(cost.usd).toBe(2.77);
+    // today's one video left covers the one still to make, not the one already spent
+    expect(cost.covers.videos).toBe(1);
   });
 
   it("covers 2 of 4 with 2 uses left, 0 with none, and null gives no coverage line", () => {
