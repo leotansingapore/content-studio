@@ -1,9 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
-import { useContextNav, useContextRailShown, type ContextGroup } from "@/components/ContextRail";
 import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
 import {
@@ -271,23 +269,6 @@ export default function DraftsPage() {
     for (const d of drafts) c[draftStatus(d)]++;
     return c;
   }, [drafts]);
-  // Status, platform, pillar and label sit in the context rail; the page keeps search and drops its own copies meanwhile.
-  const railShown = useContextRailShown();
-  const ctxGroups = useMemo<ContextGroup[] | null>(() => {
-    if (!drafts.length) return null;
-    const pick = <T extends string>(title: string, list: [T, string][], on: T, set: (v: T) => void, count?: (v: T) => number) => ({
-      title,
-      items: list.map(([id, label]) => ({ id, label, active: on === id, onSelect: () => set(id), count: count?.(id) })),
-    });
-    return [
-      pick("Status", [["all", "All"], ["draft", "Drafts"], ["scheduled", "Scheduled"], ["posted", "Posted"]], statusFilter, setStatusFilter,
-        (v) => (v === "all" ? drafts.length : counts[v as DraftStatus])),
-      pick("Platform", [["all", "All platforms"], ["linkedin", "LinkedIn"], ["instagram", "Instagram"], ["facebook", "Facebook"], ["tiktok", "TikTok"]], platformFilter, setPlatformFilter),
-      pick("Pillar", [["all", "All pillars"], ["interest", "Interest"], ["identity", "Identity"], ["topic", "Topic"], ["market", "Market"]], pillarFilter, setPillarFilter),
-      ...(labels.length ? [pick("Label", [["all", "All labels"], ...labels.map((l) => [l.id, l.name] as [string, string]), ["none", "No label"]], labelFilter, setLabelFilter)] : []),
-    ];
-  }, [drafts, counts, statusFilter, platformFilter, pillarFilter, labelFilter, labels]);
-  useContextNav(ctxGroups);
   const visible = useMemo(() => {
     const q = query.toLowerCase();
     return drafts.filter((d) => {
@@ -419,7 +400,6 @@ export default function DraftsPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           All posts
@@ -441,7 +421,6 @@ export default function DraftsPage() {
 
       {drafts.length > 0 && (
         <>
-      {!railShown && (
       <div className="scrollbar-none flex gap-1.5 overflow-x-auto">
         {(
           [
@@ -466,11 +445,10 @@ export default function DraftsPage() {
           </button>
         ))}
       </div>
-      )}
       <Card className="border-border/60 shadow-card">
         <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle className="font-serif text-xl">
-            {railShown ? "Search your drafts" : "Filter your drafts"}
+            Filter your drafts
           </CardTitle>
           {!manageLabels && (
             <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
@@ -478,9 +456,7 @@ export default function DraftsPage() {
             </Button>
           )}
         </CardHeader>
-        <CardContent className={`grid gap-3 ${railShown ? "" : labels.length ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
-          {!railShown && (
-          <>
+        <CardContent className={`grid gap-3 ${labels.length ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
           <div className="space-y-1.5">
             <Label>Platform</Label>
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
@@ -529,8 +505,6 @@ export default function DraftsPage() {
                 </SelectContent>
               </Select>
             </div>
-          )}
-          </>
           )}
           <div className="space-y-1.5">
             <Label>Search</Label>

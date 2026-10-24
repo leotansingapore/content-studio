@@ -1,4 +1,4 @@
-// How many things wait on the user, for the count on the Pipeline rail icon and the phone Calendar tab:
+// How many things wait on the user, for the count on Home in the sidebar and the phone bar:
 // scheduled posts whose day has passed, and team posts waiting for approval. The calendar's Needs you
 // strip and Overdue block list them; this only counts, from what the device already holds (no network). Leo's
 // autopilot posts waiting for an OK are added by the caller (north star phase 5). needsYouItems ranks the same things,

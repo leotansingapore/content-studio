@@ -1,5 +1,5 @@
 // /agent and /agent/:thread (agent-chat, Leo only; docs/north-star/items/agent-chat.md): the agent's chats. The
-// thread list sits on the left from lg up and behind "Chats" (?panel=chats) on phones; the open chat fills the rest,
+// thread list sits in the sidebar from lg up (SidebarThreads) and behind "Chats" (?panel=chats) on phones; the open chat fills the rest,
 // with its composer pinned at the bottom. ?m= rings one message, and ?ask= and ?remix= hand a new chat its words or
 // its post once, then leave the address (so the Remix sheet never opens over the page). Everyone else gets the 404.
 
@@ -44,7 +44,7 @@ function useFillHeight() {
       const el = ref.current;
       if (!el) return;
       const top = el.getBoundingClientRect().top + window.scrollY;
-      const nav = (document.querySelector("nav[data-nav]") as HTMLElement | null)?.offsetHeight ?? 0;
+      const nav = (document.querySelector("nav[data-bottom-nav]") as HTMLElement | null)?.offsetHeight ?? 0;
       setH(Math.max(360, window.innerHeight - top - nav - 12));
     };
     fit();
@@ -99,9 +99,6 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
 
   return (
     <div ref={ref} style={height ? { height } : undefined} className="-mb-40 flex min-h-[360px] gap-6 lg:-mb-24">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border/60 pr-4 lg:flex">
-        <ThreadList userId={userId} threads={threads} current={threadId} />
-      </aside>
       <section className="flex min-w-0 flex-1 flex-col" aria-label="Chat">
         <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/60 pb-3">
           <Button type="button" variant="outline" onClick={() => openPanel("chats")} className="h-11 shrink-0 gap-1.5 lg:hidden">

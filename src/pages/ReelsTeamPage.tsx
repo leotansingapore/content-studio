@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Copy, Link2, Loader2, MessageCircle } from "lucide-react";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -127,7 +126,6 @@ export default function ReelsTeamPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Team</h1>
       </header>

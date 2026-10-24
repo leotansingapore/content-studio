@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useScrollToHash, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { draftStatus, loadDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
@@ -471,7 +470,6 @@ export default function PlanPage() {
   if (editing || !plan) {
     return (
       <div className="space-y-6">
-        <SectionTabs tabs={PIPELINE_TABS} />
         <Card className="overflow-hidden border-border/60 shadow-card">
           <div className="bg-gradient-hero px-5 py-5 text-primary-foreground sm:px-6">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
@@ -843,7 +841,6 @@ export default function PlanPage() {
   // ---------- Plan view ----------
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PIPELINE_TABS} />
       {/* Accountability header */}
       <Card className="overflow-hidden border-border/60 shadow-card">
         <div className="bg-gradient-hero px-5 py-5 text-primary-foreground sm:px-6">

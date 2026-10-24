@@ -9,7 +9,6 @@ import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MoreHorizontal, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
@@ -112,7 +111,6 @@ function Skills({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-8">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Skills</h1>
 
       <section className="space-y-3" aria-labelledby="ready-made">

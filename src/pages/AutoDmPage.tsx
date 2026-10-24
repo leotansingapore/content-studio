@@ -6,7 +6,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
-import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -239,7 +238,6 @@ export default function AutoDmPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={RECRUIT_TABS} />
       {state === "ready" && !form && logOf && (
         <WhoGotIt
           key={logOf.id}

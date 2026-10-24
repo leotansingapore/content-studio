@@ -15,7 +15,6 @@ import { FlagList } from "@/components/carousel/SlideFields";
 import { Input } from "@/components/ui/input";
 import { OriginalPane } from "@/components/OriginalPane";
 import { FilterChip } from "@/components/ui/filter-chip";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import SlideCanvas, { SlideThumb, type PictureState } from "@/components/slideshow/SlideCanvas";
 import SlideInspector, { PANELS, type InspectorActs, type Panel } from "@/components/slideshow/SlideInspector";
 import { Button } from "@/components/ui/button";
@@ -286,7 +285,6 @@ function Slideshows({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={WRITE_TABS} />
       {show ? (
         <Editor key={show.id} userId={userId} show={show} ready={ready} onSaved={setShows} onBack={close} />
       ) : (

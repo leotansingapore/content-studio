@@ -1,65 +1,40 @@
-// Sub-navigation for tabbed sections on phones and tablets. Routes stay intact
-// (deep links, query params keep working). From lg up, rail 2 of the shell
-// lists the same pages, so these tabs step aside there.
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import { section, sectionFor, visiblePages, type NavPage } from "@/lib/nav";
+// The open section's pages as a tab row at the top of every page, after Fastlane (docs/fastlane-nav-gap.md), with the
+// open group's pages as chips under it. The shell renders it once, above the page. Routes stay intact (deep links,
+// query params keep working).
+import { Link, useLocation } from "react-router-dom";
+import { sectionTabs, type Tab } from "@/lib/nav";
 
-export type SectionTab = NavPage;
+const tabClass = (active: boolean) =>
+  `flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-lg border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
+    active ? "border-border bg-background text-foreground shadow-sm" : "border-transparent text-muted-foreground hover:text-foreground"
+  }`;
 
-export const WRITE_TABS = section("write").pages;
-export const PLAYBOOK_TABS = section("playbook").pages;
-export const PIPELINE_TABS = section("pipeline").pages;
-export const RECRUIT_TABS = section("recruit").pages;
-export const LEARN_TABS = section("learn").pages;
+// The open tab's pages: a quieter row than the page's own filter chips, so moving to a page never reads as filtering it.
+const chipClass = (active: boolean) =>
+  `inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md px-2.5 text-xs font-medium transition-colors sm:h-7 [@media(pointer:coarse)]:min-h-11 ${
+    active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+  }`;
 
-// Matches the shell's lg breakpoint, where the two rails appear.
-const RAILS = "(min-width: 1024px)";
-const onRailsChange = (cb: () => void) => {
-  const m = window.matchMedia(RAILS);
-  m.addEventListener("change", cb);
-  return () => m.removeEventListener("change", cb);
-};
-const railsShown = () => window.matchMedia(RAILS).matches;
-
-export default function SectionTabs({ tabs: given, className = "" }: { tabs: SectionTab[]; className?: string }) {
-  const { pathname } = useLocation();
-  // the tabs of the section this page sits in, so a page moved to another section shows that section's tabs
-  const here = sectionFor(pathname);
-  const tabs = here ? (here.tabbed ? here.pages : []) : given;
-  const [email, setEmail] = useState("");
-  const rails = useSyncExternalStore(onRailsChange, railsShown);
-  const gated = tabs.some((t) => t.owners);
-  useEffect(() => {
-    // getSession reads the stored session: no Auth round trip under the client lock on every Write tab mount.
-    if (gated) supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
-  }, [gated]);
-  const shown = visiblePages(tabs, email);
-  // one tab or none (a teammate on the board, or a page this sign-in can't use) is not a choice
-  if (rails || shown.length < 2) return null;
+function Row({ tabs, cls }: { tabs: Tab[]; cls: (active: boolean) => string }) {
   return (
-    <nav
-      aria-label="Section"
-      data-nav
-      className={`flex w-fit max-w-full flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 ${className}`}
-    >
-      {shown.map((t) => (
-        <NavLink
-          key={t.to}
-          to={t.to}
-          end={t.end}
-          className={({ isActive }) =>
-            `flex min-h-10 items-center whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:min-h-0 [@media(pointer:coarse)]:min-h-11 ${
-              isActive
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`
-          }
-        >
+    <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+      {tabs.map((t) => (
+        <Link key={t.to} to={t.to} aria-current={t.active ? "page" : undefined} className={cls(t.active)}>
           {t.label}
-        </NavLink>
+        </Link>
       ))}
+    </div>
+  );
+}
+
+export default function SectionTabs({ email }: { email: string }) {
+  const { pathname } = useLocation();
+  const { tabs, chips } = sectionTabs(pathname, email);
+  if (!tabs.length && !chips.length) return null;
+  return (
+    <nav aria-label="Section" data-nav className="mb-6 space-y-3">
+      {tabs.length > 0 && <Row tabs={tabs} cls={tabClass} />}
+      {chips.length > 0 && <Row tabs={chips} cls={chipClass} />}
     </nav>
   );
 }

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Clapperboard, Images, RefreshCw } from "lucide-react";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import ReelDrawer from "@/components/reels/ReelDrawer";
 import ReelFeed from "@/components/reels/ReelFeed";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import { useGoneItem, useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
-import { useContextNav, useContextRailShown, type ContextGroup } from "@/components/ContextRail";
 import { boardWaitingChanged, boardWaitingHere, waitingByBrand } from "@/lib/needsYou";
 import {
   NEXT,
@@ -197,24 +195,9 @@ export default function ReelsPage() {
     return m;
   }, [board]);
 
-  // Stages (with counts) and the view sit in the context rail; the page drops its chips and menu meanwhile.
-  const railShown = useContextRailShown();
-  const ctxGroups = useMemo<ContextGroup[] | null>(() => {
-    if (!board) return null;
-    const ids = [...board.stages.filter((s) => s.id !== "archived").map((s) => [s.id, s.name]), ["all", "All"],
-      ...board.stages.filter((s) => s.id === "archived").map((s) => [s.id, s.name]), ["notes", "Notes"]] as [StageId | "all" | "notes", string][];
-    const stageItems = ids
-      .map(([id, name]) => ({ id, label: name, count: feedCards(board.cards, id, brand ?? "", me).length, active: stage === id, onSelect: () => pickStage(id) }))
-      .filter((it) => it.id !== "notes" || it.count > 0 || it.active);
-    const views = ([["feed", "One by one"], ["board", "By stage"], ["grid", "Grid"]] as const).map(([id, label]) => ({ id, label, active: view === id, onSelect: () => pickView(id) }));
-    return [...(view === "feed" ? [{ title: "Stage", items: stageItems }] : []), { title: "View", items: views }];
-  }, [board, brand, me, stage, view]);
-  useContextNav(ctxGroups);
-
   if (allowed === false) {
     return (
       <div className="space-y-5">
-        <SectionTabs tabs={PIPELINE_TABS} />
         <p className="text-sm text-muted-foreground">
           No posts board is connected to this account. <Link to="/calendar" className="font-semibold text-primary">Back to your calendar</Link>
         </p>
@@ -265,7 +248,6 @@ export default function ReelsPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Posts board</h1>
         {board && (
@@ -283,7 +265,6 @@ export default function ReelsPage() {
                 ))}
               </select>
             )}
-            {!railShown && (
             <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               View
               <select
@@ -297,7 +278,6 @@ export default function ReelsPage() {
                 <option value="grid">Grid</option>
               </select>
             </label>
-            )}
             <Button variant="ghost" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={reload} disabled={loading} aria-label="Refresh the board" title="Refresh (also happens when you come back to this tab)">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
@@ -305,7 +285,7 @@ export default function ReelsPage() {
         )}
       </header>
 
-      {board && !needsLink && view === "feed" && !railShown && (
+      {board && !needsLink && view === "feed" && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show">
           {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const, ...(archivedStage ? [[archivedStage.id, archivedStage.name] as const] : []), ["notes", "Notes"] as const].map(([id, name]) => {
             const n = feedCards(board.cards, id as StageId | "all" | "notes", brand ?? "", me).length;

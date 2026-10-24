@@ -8,7 +8,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Clapperboard, Diamond, Image as ImageIcon, Layers, Type, VolumeX, type LucideIcon } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FORMATS, NEED_LINES, filterFormats, formatHref, type FormatDef, type FormatKind } from "@/data/formats";
@@ -48,7 +47,6 @@ function Gallery({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={WRITE_TABS} />
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
         <div className="space-y-1">
           <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">

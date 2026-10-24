@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { useSearchParams } from "react-router-dom";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import {
@@ -306,7 +305,6 @@ export default function BatchPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={WRITE_TABS} />
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Layers className="h-6 w-6 text-primary" /> Weekly batch

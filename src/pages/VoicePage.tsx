@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -241,7 +240,6 @@ export default function VoicePage() {
   if (leo) {
     return (
       <div className="space-y-6">
-        <SectionTabs tabs={PLAYBOOK_TABS} />
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Your voice</h1>
           <Link to="/generate" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary [@media(pointer:coarse)]:min-h-11">
@@ -279,7 +277,6 @@ export default function VoicePage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">

@@ -8,7 +8,6 @@ import { useEffect, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Plus } from "lucide-react";
 import GoalLine from "@/components/GoalLine";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { NoAudience } from "@/components/campaign/WhoStep";
 import { Button } from "@/components/ui/button";
 import { loadAudiences, onAudiencesChanged } from "@/lib/audiences";
@@ -115,7 +114,6 @@ function Campaigns({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <header>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Campaigns</h1>

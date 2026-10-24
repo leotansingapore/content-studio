@@ -5,7 +5,6 @@ import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences
 import { labelsForNewDraft, loadLabels } from "@/lib/labels";
 import { loadPositioning } from "@/lib/positioning";
 import { withQuestion } from "@/lib/sgFeeds";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { COMPARE_TABS, links, WRITE_STEPS, type PostLang } from "@/lib/links";
@@ -2782,7 +2781,6 @@ export default function GeneratePage() {
 
   return (
     <div ref={formAnchorRef} className="space-y-6">
-      <SectionTabs tabs={WRITE_TABS} />
       <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Write a post

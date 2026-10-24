@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Check } from "lucide-react";
-import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import BrandBrain from "@/components/recruit/BrandBrain";
 import Conversations from "@/components/recruit/Conversations";
 import Agent from "@/components/recruit/Agent";
@@ -32,7 +31,6 @@ export default function RecruitPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={RECRUIT_TABS} />
       <header className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>

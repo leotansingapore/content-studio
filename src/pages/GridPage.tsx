@@ -4,7 +4,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { supabase } from "@/lib/supabase";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { gridTiles } from "@/lib/igGrid";
@@ -51,7 +50,6 @@ export default function GridPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Instagram grid</h1>
         {userId && <span className="text-sm text-muted-foreground">{planned} planned{tiles.length > planned ? `, ${tiles.length - planned} posted` : ""}</span>}

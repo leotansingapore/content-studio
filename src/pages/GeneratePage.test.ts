@@ -27,8 +27,8 @@ const html = (at: string) => {
   return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(GeneratePage)));
 };
 
-const BRIEF = "f4c7d387ff40624b82cd9971eaed78892e7f7872437c7e078a8f436a2ea7f753";
-const FORMAT_STEP = "e9b58dc8ee417bd6745cff79053c701c40746a127b2bc5181461be25d41e199e";
+const BRIEF = "2b5385fa33a39558012cb2ddc9a65c1ed00f163521315362f095a2e2fd212333";
+const FORMAT_STEP = "522687636720d52f30194643103c272852071054ea2c02a15d7d8c4fc2c62ccc";
 // a plan slot's link as planItemToGenerateUrl builds it, with no aud or label (checked on today's code at eaaa6379)
 const PLAN_LINK_AT =
   "/generate?pillar=topic&detail=Hospital+co-pays&audience=parent&format=carousel&platform=instagram&cta=save-share&funnel=attraction&idea=common-mistake&ctx=Most+people+pay+twice";

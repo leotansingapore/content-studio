@@ -6,7 +6,6 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ImagePlus, Loader2, Search, Trash2 } from "lucide-react";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import MediaDropzone from "@/components/media/MediaDropzone";
 import SetsView, { SetBar } from "@/components/media/SetsView";
@@ -179,7 +178,6 @@ export default function MediaPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={WRITE_TABS} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Media</h1>
         {!leo && (

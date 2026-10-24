@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
@@ -22,27 +22,28 @@ import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { readTeamPosts, readTeamReviews, teamPostsHere } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
-import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
+import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Plus, Search, Settings, Sparkles, Star, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
-import ContextRail, { useContextRailContent, useContextRailShown } from "@/components/ContextRail";
+import SectionTabs from "@/components/SectionTabs";
+import { links } from "@/lib/links";
 import {
   SECTIONS,
   mobileTabs,
   moreSheet,
   pageTitle,
-  pathMatches,
   section,
   sectionFor,
   visiblePages,
-  groupedPages,
   type MoreTile,
   type NavSection,
 } from "@/lib/nav";
 
-// Two rails on desktop, after Slack and Supabase: rail 1 holds the sections,
-// rail 2 the open section's pages. Phones keep a bottom bar and a More sheet.
-// Every page is listed once, in src/lib/nav.ts.
+// One sidebar on desktop, after Fastlane (docs/fastlane-nav-gap.md): the sections, the agent's chat button and chats,
+// then Brand, Learn, Feedback and the account at the foot. The open section's pages are tabs at the top of the page
+// (SectionTabs). Phones keep a bottom bar and a More sheet. Every page is listed once, in src/lib/nav.ts.
 const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
+// The agent's chats (Leo only) load in their own chunk, like the agent page.
+const SidebarThreads = lazy(() => import("@/components/agent/SidebarThreads"));
 
 // The Remix sheet and its pill (north star, Leo only) read the data drops, so they load in their own chunk,
 // fetched as soon as the session says Leo so the sheet still opens within 400ms.
@@ -52,7 +53,6 @@ const RemixSheet = lazy(loadRemixSheet);
 const RemixPill = lazy(loadRemixPill);
 // Activity's recorder (Leo only) listens to every job store, so it loads in its own chunk too.
 const ActivityRecorder = lazy(() => import("@/components/ActivityRecorder"));
-const FOOT_SECTIONS = SECTIONS.filter((s) => s.foot);
 
 function Logo() {
   return (
@@ -138,43 +138,112 @@ function useScrollMemory() {
   }, [key, pathname, navType]);
 }
 
-function RailLink({ s, to, active, count = 0 }: { s: NavSection; to: string; active: boolean; count?: number }) {
+function SideLink({ s, to, active, count = 0 }: { s: NavSection; to: string; active: boolean; count?: number }) {
   const Icon = s.icon;
-  const isNew = s.id === "feedback" && feedbackIsNew();
   return (
     <Link
       to={to}
-      aria-current={active ? "true" : undefined}
-      className={`group relative flex w-16 flex-col items-center gap-1 rounded-xl py-1.5 text-center text-[11px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      aria-current={active ? "page" : undefined}
+      className={`flex min-h-9 items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:min-h-11 ${
+        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
       }`}
     >
-      <span
-        className={`flex h-8 w-11 items-center justify-center rounded-lg transition-colors ${
-          active ? "bg-primary/10 text-primary" : "group-hover:bg-accent"
-        }`}
-      >
-        <Icon className="h-[18px] w-[18px]" />
-      </span>
-      {s.label}
+      <Icon className="h-4 w-4 shrink-0" />
+      <span className="flex-1 truncate">{s.label}</span>
       {count > 0 && (
         <>
-          <span
-            aria-hidden
-            className="absolute right-1.5 top-0 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-warning px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-rail"
-          >
+          <span aria-hidden className="flex items-center gap-1 text-xs font-semibold tabular-nums text-warning">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning" />
             {badgeText(count)}
           </span>
           <span className="sr-only">, {count} need you</span>
         </>
       )}
+    </Link>
+  );
+}
+
+/** Brand, Learn and Feedback: the sidebar's foot buttons. */
+function FootLink({ s, to, active, wide = false }: { s: NavSection; to: string; active: boolean; wide?: boolean }) {
+  const isNew = s.id === "feedback" && feedbackIsNew();
+  return (
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex min-h-9 items-center rounded-lg border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
+        wide ? "justify-start" : "justify-center"
+      } ${active ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
+    >
+      {s.label}
       {isNew && (
         <>
-          <span aria-hidden className="absolute right-2.5 top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-rail" />
+          <span aria-hidden className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
           <span className="sr-only">, new</span>
         </>
       )}
     </Link>
+  );
+}
+
+/** The account card at the foot: who is signed in, with Settings and Sign out in its menu. */
+function AccountMenu({ email, settingsTo, northStar, active, onSignOut }: { email: string; settingsTo: string; northStar: boolean; active: boolean; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const { pathname } = useLocation();
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const item = "flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-sm text-foreground hover:bg-accent [@media(pointer:coarse)]:min-h-11";
+  return (
+    <div ref={ref} className="relative">
+      {open && (
+        <div role="menu" aria-label="Account" onClick={() => setOpen(false)} className="absolute inset-x-0 bottom-full z-40 mb-2 rounded-xl border border-border bg-popover p-1 shadow-lg">
+          {northStar && (
+            <Link role="menuitem" to="/north-star" className={item}>
+              <Star className="h-4 w-4 text-muted-foreground" /> North star
+            </Link>
+          )}
+          <Link role="menuitem" to={settingsTo} className={item}>
+            <Settings className="h-4 w-4 text-muted-foreground" /> Settings
+          </Link>
+          <button role="menuitem" type="button" onClick={onSignOut} className={item}>
+            <LogOut className="h-4 w-4 text-muted-foreground" /> Sign out
+          </button>
+        </div>
+      )}
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
+          active ? "border-primary/40 bg-primary/10" : "border-border/70 bg-background hover:border-primary/40"
+        }`}
+      >
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">
+          {email.charAt(0) || "?"}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={email}>
+          {email || "Account"}
+        </span>
+        <ChevronUp className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
+      </button>
+    </div>
   );
 }
 
@@ -207,9 +276,9 @@ export default function StudioLayout() {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [uid, setUid] = useState<string | null>(null);
-  // Overdue posts and team posts waiting for approval: a count on Pipeline and the phone Calendar tab.
+  // Overdue posts and team posts waiting for approval: part of the count on Home and the phone Home tab.
   const [needsYou, setNeedsYou] = useState(0);
-  // Posts in Review or Needs changes on the posts board: a count on its rail icon and phone tab.
+  // Posts in Review or Needs changes on the posts board: the rest of Home's count.
   const [boardWaiting, setBoardWaiting] = useState(0);
   // Social accounts sits in the nav only once the server has said it is on for this sign-in.
   const [, setSocialOn] = useState(socialConnectShown);
@@ -220,15 +289,12 @@ export default function StudioLayout() {
   const prevPath = useRef(pathname);
   // Read on every render: setReelsOn rerenders once checkMe has stored the answer.
   const board = reelsShown();
-  // Each section's rail icon reopens the page you last had open there.
+  // Each sidebar item reopens the page you last had open in its section.
   const lastInSection = useRef<Record<string, string>>({});
 
   const here = sectionFor(pathname);
-  if (here) lastInSection.current[here.id] = pathname + search;
-  // Rail 3: the open page's own navigation, when it has any (ContextRail.tsx); the content moves over to make room.
-  const ctx = useContextRailContent();
-  const ctxShown = useContextRailShown() && (!!ctx.groups?.length || ctx.headings.length > 0);
-  const open = here && visiblePages(here.pages, email).length > 0 ? here : section("home");
+  // only a page this sign-in can open, so a typed owner-only address never becomes where the item lands
+  if (here && visiblePages(here.pages, email).some((p) => pathname === p.to || pathname.startsWith(p.to + "/"))) lastInSection.current[here.id] = pathname + search;
 
   useScrollMemory();
 
@@ -402,16 +468,17 @@ export default function StudioLayout() {
     window.location.replace("/auth");
   };
 
-  const railCount = (id: string) => (id === "review" ? boardWaiting : id === "pipeline" ? needsYou : 0);
+  // Home lists everything that needs you (overdue posts, team posts, the posts board), so Home carries the count.
+  const homeCount = needsYou + boardWaiting;
+  const sectionTo = (s: NavSection) => lastInSection.current[s.id] ?? visiblePages(s.pages, email)[0]?.to ?? s.to;
 
-  const tabs = mobileTabs(board);
+  const tabs = mobileTabs();
   const moreActive = !tabs.some((t) => t.active(pathname));
-  const sheet = moreSheet(email, board);
-  const tabCount = (to: string) => (to === "/calendar" ? needsYou : to === "/reels" ? boardWaiting : 0);
-  const tileActive = (t: MoreTile) => (t.whole ? here?.id === t.sectionId : pathMatches(pathname, t.to));
+  const sheet = moreSheet(email);
+  const tileActive = (t: MoreTile) => here?.id === t.sectionId;
 
   return (
-    <div className="min-h-screen bg-canvas" style={ctxShown ? ({ "--nav-w": "488px" } as React.CSSProperties) : undefined}>
+    <div className="min-h-screen bg-canvas lg:bg-rail">
       <a
         href="#main-content"
         className="sr-only z-50 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
@@ -419,46 +486,36 @@ export default function StudioLayout() {
         Skip to content
       </a>
 
-      {/* Desktop: rail 1 (sections) + rail 2 (the open section's pages) + rail 3 (the page's own navigation) */}
-      <aside data-nav className="fixed inset-y-0 left-0 z-30 hidden lg:flex">
-        <nav
-          aria-label="Sections"
-          className="flex w-[72px] flex-col items-center gap-1 overflow-y-auto border-r border-border/70 bg-rail pb-3 pt-[18px]"
-        >
-          <Link
-            to="/home"
-            aria-label="Content Studio home"
-            title="Content Studio"
-            className="mb-3 rounded-xl [@media(pointer:coarse)]:mb-2 [@media(pointer:coarse)]:p-1"
-          >
-            <Logo />
-          </Link>
-          {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
-            <RailLink
-              key={s.id}
-              s={s}
-              to={lastInSection.current[s.id] ?? visiblePages(s.pages, email)[0]?.to ?? s.to}
-              active={here?.id === s.id}
-              count={railCount(s.id)}
-            />
-          ))}
-          <div className="mt-auto flex flex-col items-center gap-1 pt-3">
-            {FOOT_SECTIONS.map((s) => (
-              <RailLink key={s.id} s={s} to={lastInSection.current[s.id] ?? s.to} active={here?.id === s.id} />
-            ))}
+      {/* Desktop: one sidebar, its own panel beside the page's */}
+      <aside data-nav className="fixed inset-y-0 left-0 z-30 hidden w-[var(--nav-w)] p-2.5 pr-0 lg:flex">
+        <div className="flex min-h-0 w-full flex-col rounded-2xl border border-border/70 bg-sidebar">
+          <div className="flex items-center gap-2 px-3 pt-3">
+            <Link to="/home" aria-label="Content Studio home" title="Content Studio" className="shrink-0 rounded-xl">
+              <Logo />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <ProfileSwitcher />
+            </div>
           </div>
-        </nav>
-
-        <div className={`flex flex-col border-r border-border/70 bg-sidebar ${ctxShown ? "w-52" : "w-52 xl:w-56"}`}>
-          <div className="space-y-2 px-3 pb-2 pt-3.5">
-            <ProfileSwitcher />
+          <nav aria-label="Sections" className="space-y-0.5 px-3 pt-4">
+            {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
+              <SideLink key={s.id} s={s} to={sectionTo(s)} active={here?.id === s.id} count={s.id === "home" ? homeCount : 0} />
+            ))}
+          </nav>
+          <div className="space-y-2 px-3 pt-4">
             <Button
               asChild
-              className="w-full justify-start gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
+              className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal py-2 text-left bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
             >
-              <Link to="/generate">
-                <Plus className="h-4 w-4" /> New post
-              </Link>
+              {leo ? (
+                <Link to={links.agent()}>
+                  <MessageSquarePlus className="h-4 w-4" /> Start a chat with the agent
+                </Link>
+              ) : (
+                <Link to="/generate">
+                  <Plus className="h-4 w-4" /> New post
+                </Link>
+              )}
             </Button>
             <button
               type="button"
@@ -472,49 +529,30 @@ export default function StudioLayout() {
               <kbd className="rounded border border-border/70 px-1.5 font-sans text-[10px] font-semibold">{jumpShortcut()}</kbd>
             </button>
           </div>
-          <nav aria-label={open.label} className="flex-1 overflow-y-auto px-3 pb-3 pt-3">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {open.label}
-            </p>
-            <ul className="space-y-0.5">
-              {visiblePages(groupedPages(open.pages), email).map((p, i, shown) => (
-                <li key={p.to}>
-                  {p.group && p.group !== shown[i - 1]?.group && (
-                    <p className={`px-3 pb-1 text-[11px] font-semibold text-muted-foreground/80 ${i ? "pt-4" : ""}`}>{p.group}</p>
-                  )}
-                  <NavLink
-                    to={p.to}
-                    end={p.end}
-                    className={({ isActive }) =>
-                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors [@media(pointer:coarse)]:py-3 ${
-                        isActive
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      }`
-                    }
-                  >
-                    {p.label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="border-t border-border/70 px-3 py-3">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:py-3"
-            >
-              <LogOut className="h-4 w-4 shrink-0" /> Sign out
-            </button>
-            {email && (
-              <p className="truncate px-3 pt-1 text-[11px] text-muted-foreground" title={email}>
-                {email}
-              </p>
+          <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
+            {leo && (
+              <ErrorBoundary>
+                <Suspense fallback={null}>
+                  <SidebarThreads userId={leo.id} />
+                </Suspense>
+              </ErrorBoundary>
             )}
           </div>
+          <div className="space-y-2 border-t border-border/70 p-3">
+            <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} wide />
+            <div className="grid grid-cols-2 gap-2">
+              <FootLink s={section("learn")} to={sectionTo(section("learn"))} active={here?.id === "learn"} />
+              <FootLink s={section("feedback")} to={sectionTo(section("feedback"))} active={here?.id === "feedback"} />
+            </div>
+            <AccountMenu
+              email={email}
+              settingsTo={sectionTo(section("settings"))}
+              northStar={!!leo}
+              active={here?.id === "settings" || pathname === "/north-star"}
+              onSignOut={handleSignOut}
+            />
+          </div>
         </div>
-        {ctxShown && <ContextRail groups={ctx.groups} headings={ctx.headings} />}
       </aside>
 
       {/* Mobile top bar */}
@@ -559,23 +597,9 @@ export default function StudioLayout() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              {sheet.singles.map((t) => (
-                <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
-              ))}
-            </div>
-            {sheet.groups.map((g) => (
-              <div key={g.label} className="space-y-1">
-                <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {g.label}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {g.tiles.map((t) => (
-                    <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
-                  ))}
-                </div>
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            {sheet.map((t) => (
+              <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
             ))}
           </div>
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-3">
@@ -593,6 +617,7 @@ export default function StudioLayout() {
       <nav
         aria-label="Primary"
         data-nav
+        data-bottom-nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
         <div className="grid grid-cols-5">
@@ -607,17 +632,17 @@ export default function StudioLayout() {
             >
               <span className="relative">
                 <Icon className="h-5 w-5" />
-                {tabCount(to) > 0 && (
+                {to === "/home" && homeCount > 0 && (
                   <span
                     aria-hidden
                     className="absolute -right-2.5 -top-1.5 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background"
                   >
-                    {badgeText(tabCount(to))}
+                    {badgeText(homeCount)}
                   </span>
                 )}
               </span>
               {label}
-              {tabCount(to) > 0 && <span className="sr-only">, {tabCount(to)} need you</span>}
+              {to === "/home" && homeCount > 0 && <span className="sr-only">, {homeCount} need you</span>}
             </Link>
           ))}
           <button
@@ -635,13 +660,15 @@ export default function StudioLayout() {
         </div>
       </nav>
 
-      <div className="lg:pl-[var(--nav-w)]">
+      <div className="lg:py-2.5 lg:pl-[var(--nav-w)] lg:pr-2.5">
+        <div className="lg:min-h-[calc(100vh-1.25rem)] lg:rounded-2xl lg:border lg:border-border/70 lg:bg-canvas">
         <main
           id="main-content"
           ref={mainRef}
           tabIndex={-1}
           className="mx-auto max-w-5xl px-4 pb-40 pt-6 focus:outline-none sm:px-6 sm:pt-8 lg:px-6 lg:pb-24 xl:px-10"
         >
+          <SectionTabs email={email} />
           {/* Lazy route chunks resolve here so the rails/bottom nav never flicker.
               A crash or a chunk missing after a deploy stays inside this area. */}
           <ErrorBoundary resetKey={pathname}>
@@ -652,6 +679,7 @@ export default function StudioLayout() {
             </Suspense>
           </ErrorBoundary>
         </main>
+        </div>
       </div>
       <JumpTo open={jumpOpen} onClose={() => setJumpOpen(false)} email={email} />
       <ExportPill />

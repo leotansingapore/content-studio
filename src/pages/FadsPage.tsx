@@ -11,7 +11,6 @@ import { ArrowLeft, ArrowRight, Download, User, Briefcase, Users, Target, Messag
 import { ThinkingOrb } from "thinking-orbs";
 import { toast as baseToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import {
   loadPositioning,
   savePositioning,
@@ -1365,7 +1364,6 @@ export default function FadsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <div className="max-w-6xl mx-auto">
-        <SectionTabs tabs={PLAYBOOK_TABS} className="mb-6" />
 
         {/* Header */}
         <div className="text-center mb-8">

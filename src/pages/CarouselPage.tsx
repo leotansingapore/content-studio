@@ -30,7 +30,6 @@ import {
   TriangleAlert,
   Undo2,
 } from "lucide-react";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -1172,7 +1171,6 @@ export default function CarouselPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={WRITE_TABS} />
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <GalleryHorizontalEnd className="h-6 w-6 shrink-0 text-primary" /> Carousel maker

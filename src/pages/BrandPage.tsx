@@ -5,7 +5,6 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Copy, ImagePlus, Plus, Trash2, X } from "lucide-react";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -349,7 +348,6 @@ export default function BrandPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <header className="flex items-center gap-3">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Brand kit</h1>
         <span aria-live="polite" className={`flex items-center gap-1 text-xs font-medium text-success transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}>

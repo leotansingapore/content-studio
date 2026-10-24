@@ -23,7 +23,6 @@ import PriceChip from "@/components/PriceChip";
 import { PostItForMePanel } from "@/components/PostItForMe";
 import { MemeOptions, MemePicture, MediaThumb, memePictures, memeSetFor, memeWriteBusy, MEME_STEP, startMemeWrite, useMemePictures, useMemeWrite } from "@/components/image/MemeOptions";
 import FlagChips from "@/components/remix/FlagChips";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -728,7 +727,6 @@ function ImageEditor({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={WRITE_TABS} />
       <FormatShell
         title="Image"
         blurb={`One designed picture for ${brandLabel}, in the sizes you need.`}

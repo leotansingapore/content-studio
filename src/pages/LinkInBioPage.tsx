@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
 
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import BioView from "@/components/bio/BioView";
 import TrackClicks from "@/components/TrackClicks";
 import { Button } from "@/components/ui/button";
@@ -221,7 +220,6 @@ export default function LinkInBioPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Link in bio</h1>
 
       {state === "loading" ? (

@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { useUrlState } from "@/lib/urlState";
 import { Check, Copy, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
 
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -217,7 +216,6 @@ export default function TrackedLinksPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Tracked links</h1>
 
       {state === "loading" ? (

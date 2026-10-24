@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,7 +101,6 @@ export default function PlaybookPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           My Playbook

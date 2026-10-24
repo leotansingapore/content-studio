@@ -33,10 +33,10 @@ describe("/tutorial for everyone else", () => {
 });
 
 describe("/tutorial for Leo", () => {
-  it("puts Replay the tour at the top, above the section tabs", () => {
+  it("puts Replay the tour at the top, above the first card", () => {
     as.user = { id: "u1", email: "leo@example.com" };
     const out = html();
     expect(out).toContain("Replay the tour");
-    expect(out.indexOf("Replay the tour")).toBeLessThan(out.indexOf('data-pin="section-tabs"'));
+    expect(out.indexOf("Replay the tour")).toBeLessThan(out.indexOf('id="why"'));
   });
 });

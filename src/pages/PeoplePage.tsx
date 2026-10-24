@@ -3,7 +3,6 @@
 // gets the not-found page.
 import FaceTab from "@/components/people/FaceTab";
 import PresentersTab from "@/components/people/PresentersTab";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -25,7 +24,6 @@ function People({ userId }: { userId: string }) {
   const setTab = (id: Tab) => update({ tab: id === "face" ? null : id, record: null, make: null, presenter: null });
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Faces and voices</h1>
       {TABS.length > 1 && (
         <div role="tablist" aria-label="Faces and voices" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">

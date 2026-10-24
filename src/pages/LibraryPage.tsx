@@ -8,7 +8,6 @@ import { Search, X } from "lucide-react";
 import LibraryCard from "@/components/library/LibraryCard";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
@@ -108,7 +107,6 @@ function Library({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-8">
         <div className="min-w-0 space-y-4">
           <header className="flex flex-wrap items-center justify-between gap-2">
@@ -194,7 +192,7 @@ function Library({ userId }: { userId: string }) {
   );
 }
 
-// The shell's lg breakpoint (as SectionTabs reads it), where Making now is a column beside the grid.
+// The shell's lg breakpoint, where Making now is a column beside the grid.
 const WIDE = "(min-width: 1024px)";
 const onWideChange = (cb: () => void) => {
   const m = window.matchMedia(WIDE);

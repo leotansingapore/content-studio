@@ -39,12 +39,15 @@ export default function ThreadList({
   threads,
   current,
   replace,
+  newChat = true,
 }: {
   userId: string;
   threads: AgentThread[];
   current: string | null;
   /** Inside the phone sheet: a pick replaces the sheet's history entry, so Back doesn't reopen it. */
   replace?: boolean;
+  /** The sidebar has its own Start a chat button above the list. */
+  newChat?: boolean;
 }) {
   const [menu, setMenu] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; text: string; error?: string } | null>(null);
@@ -64,11 +67,13 @@ export default function ThreadList({
 
   return (
     <nav aria-label="Chats" className="flex min-h-0 flex-col">
-      <Button asChild variant="outline" className="h-11 w-full justify-start gap-2">
-        <Link to={links.agent()} replace={replace}>
-          <Plus /> New chat
-        </Link>
-      </Button>
+      {newChat && (
+        <Button asChild variant="outline" className="h-11 w-full justify-start gap-2">
+          <Link to={links.agent()} replace={replace}>
+            <Plus /> New chat
+          </Link>
+        </Button>
+      )}
       {failed && <p className="mt-2 px-2 text-xs text-destructive" role="alert">{failed}</p>}
       <div className="mt-1 min-h-0 flex-1 overflow-y-auto">
         {groups.map(({ g, items }) => (

@@ -4,7 +4,6 @@ import { EDIT_TABS, links, type EditTab } from "@/lib/links";
 import { useScrollToHash, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
-import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
@@ -417,7 +416,6 @@ export default function VideoEditPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={WRITE_TABS} />
       {project && userId ? (
         <Editor
           key={project.id}

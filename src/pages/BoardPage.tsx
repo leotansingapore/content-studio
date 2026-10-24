@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
 import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil, Send } from "lucide-react";
 
@@ -374,7 +373,6 @@ export default function BoardPage() {
 
   return (
     <div className="space-y-4">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <div className="flex items-center gap-1">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
           <Columns3 className="h-5 w-5" /> Board

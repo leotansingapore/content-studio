@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from "react";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analyt
 import { loadPositioning } from "@/lib/positioning";
 import { activeProfile, applyBrandLink, profileForBoardBrand, type Profile } from "@/lib/profiles";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
-import { useContextNav, useContextRailShown, type ContextGroup } from "@/components/ContextRail";
 import { commentChannelPost, readChannelReviews, shownStatus, skipChannelPost, type ChannelReviews } from "@/lib/channelReviews";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
@@ -193,23 +191,6 @@ export default function CalendarPage() {
   const [view, setView] = useUrlState<View>("view", "month", { allowed: VIEWS, remember: "cs-calendar-view" });
   const [platform, setPlatform] = useUrlState("platform", "all", { allowed: PLATFORMS });
   const [status, setStatus] = useUrlState<StatusFilter>("status", "all", { allowed: STATUSES });
-  // View, channel and status sit in the context rail; the toolbar drops its copies while the rail is up.
-  const railShown = useContextRailShown();
-  const ctxGroups = useMemo<ContextGroup[]>(
-    () => [
-      { title: "View", items: VIEWS.map((v) => ({ id: v, label: v[0].toUpperCase() + v.slice(1), active: view === v, onSelect: () => setView(v) })) },
-      {
-        title: "Channel",
-        items: [["all", "All channels"], ...Object.entries(PLATFORM_LABEL)].map(([k, l]) => ({ id: k, label: l, active: platform === k, onSelect: () => setPlatform(k) })),
-      },
-      {
-        title: "Status",
-        items: STATUSES.map((st) => ({ id: st, label: st === "all" ? "Any status" : st[0].toUpperCase() + st.slice(1), active: status === st, onSelect: () => setStatus(st) })),
-      },
-    ],
-    [view, platform, status],
-  );
-  useContextNav(ctxGroups);
   const [selectedId, openPost, closePost] = useUrlItem("post");
   // deleted since the link was made; an empty list may still be syncing, so it decides nothing
   useGoneItem("post", drafts.length ? drafts.some((d) => d.id === selectedId) : undefined);
@@ -1417,7 +1398,6 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Calendar
@@ -1426,14 +1406,11 @@ export default function CalendarPage() {
 
       {/* View, filters, navigation */}
       <div className="flex flex-wrap items-center gap-2">
-        {!railShown && (
         <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
           {viewButton("month", "Month", CalendarDays)}
           {viewButton("week", "Week", CalendarRange)}
           {viewButton("upcoming", "Upcoming", List)}
         </div>
-        )}
-        {!railShown && (
         <div className="flex gap-2">
           <Select value={platform} onValueChange={setPlatform}>
             <SelectTrigger aria-label="Platform" className="h-9 w-[8rem] text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
@@ -1459,7 +1436,6 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
         </div>
-        )}
         <button
           type="button"
           onClick={() => openNote(null)}

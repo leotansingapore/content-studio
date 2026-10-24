@@ -1,7 +1,7 @@
-// The studio's whole navigation in one place. The desktop shell has two rails:
-// rail 1 lists these sections, rail 2 lists the open section's pages. Phones
-// get a bottom bar plus a More sheet, and SectionTabs on the page itself for
-// tabbed sections. Adding a page = adding it to one section here.
+// The studio's whole navigation in one place, shaped after Fastlane (docs/fastlane-nav-gap.md): one sidebar lists
+// the sections, and the open section's pages are tabs at the top of the page (SectionTabs, in the shell). A section
+// whose pages carry `group`s shows the groups as tabs and the open group's pages as chips under them. Phones get a
+// bottom bar plus a More sheet. Adding a page = adding it to one section here.
 import {
   BarChart3,
   BookMarked,
@@ -15,13 +15,11 @@ import {
   Lightbulb,
   MessageSquare,
   MessageSquarePlus,
-  PenLine,
   CalendarClock,
   ClipboardCheck,
   Columns3,
   Settings,
   Radar,
-  ShieldCheck,
   Sparkles,
   Star,
   Swords,
@@ -30,6 +28,7 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 import { ownerShown, reelsShown } from "@/lib/reelsBoard";
@@ -50,26 +49,26 @@ export type NavPage = {
   title?: string;
   /** Phone More-sheet tile icon; falls back to the section's. */
   icon?: LucideIcon;
-  /** Rail 2 heading this page starts; the pages after it sit under it until the next one. */
+  /** The tab this page sits under; pages after it share it until the next one. */
   group?: string;
+  /** No section tabs on this page. */
+  bare?: boolean;
 };
 
 export type NavSection = {
   id: string;
   label: string;
   icon: LucideIcon;
-  /** Where the rail icon lands on the first visit. */
+  /** Where the sidebar item lands on the first visit. */
   to: string;
   pages: NavPage[];
-  /** The pages are tabs of one screen: phones show one tile and SectionTabs. */
-  tabbed?: boolean;
-  /** Pinned to the bottom of rail 1. */
+  /** Pinned to the foot of the sidebar. */
   foot?: boolean;
 };
 
-// Leo 2026-10-24 picked three rails (proposal E of six he compared): rail 1 is the work in order (decide what to post,
-// make it, approve it, put it out, grow), rail 2 the open section's pages under group headings, and a context rail
-// (ContextRail.tsx) holds the open page's own views, filters and counts. Each business is its own (2026-10-23).
+// Leo 2026-10-24: "matches the fastlane". Fastlane's five (Home, Strategy, Studio, Radar, Analytics) plus Grow, which
+// Fastlane has no twin for; Brand, Learn, Feedback and Settings sit at the foot. Section ids are kept from the old nav
+// (plan = Strategy, write = Studio, recruit = Grow, playbook = Brand); find and analytics are new.
 export const SECTIONS: NavSection[] = [
   {
     id: "home",
@@ -77,22 +76,54 @@ export const SECTIONS: NavSection[] = [
     icon: Home,
     to: "/home",
     pages: [
-      { to: "/home", label: "Overview", title: "Home" },
-      { to: "/agent", label: "Agent", icon: MessageSquare, owners: LEO_EMAILS },
-      { to: "/welcome", label: "Getting started", icon: Sparkles },
-      { to: "/north-star", label: "North star", icon: Star, owners: LEO_EMAILS },
+      // Fastlane's Home has no tabs: the agent's chats are in the sidebar and North star in the account menu.
+      { to: "/home", label: "Overview", title: "Home", bare: true },
+      { to: "/agent", label: "Agent", icon: MessageSquare, owners: LEO_EMAILS, bare: true },
+      { to: "/north-star", label: "North star", icon: Star, owners: LEO_EMAILS, bare: true },
     ],
   },
   {
     id: "plan",
-    label: "Plan",
-    icon: Lightbulb,
+    label: "Strategy",
+    icon: Target,
     to: "/plan",
     pages: [
-      { to: "/plan", label: "Plan", icon: Target, group: "Your plan" },
+      { to: "/plan", label: "Plan", icon: Target },
       { to: "/ideas", label: "Ideas", icon: Lightbulb, owners: LEO_EMAILS },
       { to: "/campaigns", label: "Campaigns", icon: Columns3, owners: LEO_EMAILS },
-      { to: "/swipe", label: "Top posts", icon: TrendingUp, group: "Find ideas" },
+      { to: "/calendar", label: "Calendar", icon: CalendarClock },
+    ],
+  },
+  {
+    id: "write",
+    label: "Studio",
+    icon: Wand2,
+    to: "/generate",
+    pages: [
+      { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Create" },
+      { to: "/make", label: "Formats", owners: LEO_EMAILS },
+      { to: "/generate/batch", label: "Batch" },
+      { to: "/carousel", label: "Carousel" },
+      { to: "/image", label: "Image", owners: LEO_EMAILS },
+      { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },
+      { to: "/edit", label: "Video" },
+      { to: "/library", label: "Everything", title: "Library", owners: LEO_EMAILS, group: "Library" },
+      { to: "/drafts", label: "All posts", icon: History },
+      { to: "/board", label: "Board", icon: Columns3 },
+      { to: "/grid", label: "Grid", title: "Instagram grid" },
+      { to: "/media", label: "Media" },
+      { to: "/reels", label: "Posts board", end: true, show: reelsShown, icon: ClipboardCheck, group: "Review" },
+      { to: "/team", label: "Leader approvals", icon: ClipboardCheck },
+      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Influencers" },
+    ],
+  },
+  {
+    id: "find",
+    label: "Radar",
+    icon: Radar,
+    to: "/swipe",
+    pages: [
+      { to: "/swipe", label: "Top posts", icon: TrendingUp },
       { to: "/trends", label: "Trends", icon: Flame },
       { to: "/clone", label: "Clone a reel", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
@@ -104,55 +135,10 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "write",
-    label: "Create",
-    icon: PenLine,
-    to: "/generate",
-    tabbed: true,
-    pages: [
-      { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Make" },
-      { to: "/make", label: "Formats", owners: LEO_EMAILS },
-      { to: "/generate/batch", label: "Batch" },
-      { to: "/carousel", label: "Carousel" },
-      { to: "/image", label: "Image", owners: LEO_EMAILS },
-      { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },
-      { to: "/edit", label: "Video" },
-      { to: "/media", label: "Media", group: "Your files" },
-      { to: "/library", label: "Library", owners: LEO_EMAILS },
-    ],
-  },
-  {
-    id: "review",
-    label: "Review",
-    icon: ClipboardCheck,
-    to: "/reels",
-    tabbed: true,
-    pages: [
-      { to: "/reels", label: "Posts board", end: true, show: reelsShown },
-      { to: "/team", label: "Leader approvals" },
-    ],
-  },
-  {
-    id: "pipeline",
-    label: "Publish",
-    icon: CalendarClock,
-    to: "/calendar",
-    tabbed: true,
-    pages: [
-      { to: "/calendar", label: "Calendar", group: "Your posts" },
-      { to: "/board", label: "Board" },
-      { to: "/drafts", label: "All posts" },
-      { to: "/grid", label: "Grid", title: "Instagram grid" },
-      { to: "/analytics", label: "Analytics", group: "Results" },
-      { to: "/coach", label: "Coach" },
-    ],
-  },
-  {
     id: "recruit",
     label: "Grow",
     icon: UserPlus,
     to: "/recruit",
-    tabbed: true,
     pages: [
       { to: "/recruit", label: "Brand Brain", end: true },
       { to: "/recruit/conversations", label: "Conversations" },
@@ -162,46 +148,40 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    to: "/analytics",
+    pages: [
+      { to: "/analytics", label: "Analytics" },
+      { to: "/coach", label: "Coach", icon: Gauge },
+    ],
+  },
+  {
     id: "playbook",
     label: "Brand",
     icon: BookMarked,
     to: "/playbook",
-    tabbed: true,
+    foot: true,
     pages: [
-      { to: "/playbook", label: "My Playbook", group: "Who you are" },
+      { to: "/playbook", label: "My Playbook" },
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
-      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS },
       { to: "/fads", label: "F.A.D.S." },
-      { to: "/accounts", label: "Social accounts", show: socialConnectShown, group: "Channels" },
+      { to: "/accounts", label: "Social accounts", show: socialConnectShown },
       { to: "/bio", label: "Link in bio" },
       { to: "/links", label: "Tracked links" },
-    ],
-  },
-  {
-    // Set-up pages: who reviews, Claude, skills, automations, logs.
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-    to: "/connect",
-    foot: true,
-    pages: [
-      { to: "/reels/team", label: "Reviewers", show: ownerShown },
-      { to: "/connect", label: "Connect Claude" },
-      { to: "/skills", label: "Skills", owners: LEO_EMAILS },
-      { to: "/automations", label: "Automations", owners: LEO_EMAILS },
-      { to: "/activity", label: "Activity", owners: LEO_EMAILS },
     ],
   },
   {
     id: "learn",
     label: "Learn",
     icon: GraduationCap,
-    to: "/academy",
-    tabbed: true,
+    to: "/welcome",
     foot: true,
     pages: [
+      { to: "/welcome", label: "Getting started", icon: Sparkles },
       { to: "/academy", label: "Academy" },
       { to: "/create-guide", label: "How to post" },
       { to: "/tutorial", label: "How the studio works" },
@@ -215,6 +195,21 @@ export const SECTIONS: NavSection[] = [
     foot: true,
     pages: [{ to: "/feedback", label: "Requests and roadmap", title: "Feedback" }],
   },
+  {
+    // Set-up pages: who reviews, Claude, skills, automations, logs. Opened from the account menu.
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    to: "/connect",
+    foot: true,
+    pages: [
+      { to: "/reels/team", label: "Reviewers", show: ownerShown },
+      { to: "/connect", label: "Connect Claude" },
+      { to: "/skills", label: "Skills", owners: LEO_EMAILS },
+      { to: "/automations", label: "Automations", owners: LEO_EMAILS },
+      { to: "/activity", label: "Activity", owners: LEO_EMAILS },
+    ],
+  },
 ];
 
 export const section = (id: string) => SECTIONS.find((s) => s.id === id)!;
@@ -225,7 +220,7 @@ export const pathMatches = (pathname: string, to: string, end = false) =>
 export const visiblePages = (pages: NavPage[], email: string) =>
   pages.filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()));
 
-/** Each page carries the rail 2 heading it sits under, so a heading survives its first page being hidden. */
+/** Each page carries the group (tab) it sits under, so a group survives its first page being hidden. */
 export function groupedPages(pages: NavPage[]): NavPage[] {
   let group: string | undefined;
   return pages.map((p) => ({ ...p, group: (group = p.group ?? group) }));
@@ -247,41 +242,43 @@ export const pageTitle = (pathname: string) => {
   return hit ? `${hit.page.title ?? hit.page.label} - Content Studio` : "Content Studio";
 };
 
-// Phone bottom bar: the four daily destinations. Publish opens on the Calendar and stands for its whole section;
-// the fourth tab is Review for those who see the posts board, else All posts.
-export const mobileTabs = (board: boolean): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] => [
-  { to: "/home", label: "Home", icon: Home, active: (p) => sectionFor(p)?.id === "home" },
-  { to: "/generate", label: "Create", icon: PenLine, active: (p) => sectionFor(p)?.id === "write" },
-  {
-    to: "/calendar",
-    label: "Publish",
-    icon: CalendarClock,
-    active: (p) => sectionFor(p)?.id === "pipeline" && (board || !pathMatches(p, "/drafts")),
-  },
-  board
-    ? { to: "/reels", label: "Review", icon: ClipboardCheck, active: (p) => sectionFor(p)?.id === "review" }
-    : { to: "/drafts", label: "All posts", icon: History, active: (p) => pathMatches(p, "/drafts") },
-];
-
-/** `whole`: the tile stands for its entire section, not one page. */
-export type MoreTile = { to: string; label: string; icon: LucideIcon; sectionId: string; whole: boolean };
+export type Tab = { to: string; label: string; end?: boolean; active: boolean };
 
 /**
- * The phone More sheet: everything the bottom bar does not reach. A tabbed or
- * one-page section is one tile (page tabs do the rest); others list each page.
- * Sections left with one tile share a heading-less grid at the top.
+ * The tab row at the top of a page: its section's pages, or, when they carry groups, one tab per group (opening the
+ * group's first page this sign-in sees) with the open group's pages as chips under it. One of a kind is not a choice,
+ * so a row of one is left out; a `bare` page gets none.
  */
-export function moreSheet(email: string, board: boolean): { singles: MoreTile[]; groups: { label: string; tiles: MoreTile[] }[] } {
-  const barPaths = new Set(mobileTabs(board).map((t) => t.to));
-  const all = SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => ({
-    label: s.label,
-    tiles: (s.tabbed || s.pages.length === 1
-      ? [{ to: visiblePages(s.pages, email)[0]?.to ?? s.to, label: s.label, icon: s.icon, sectionId: s.id, whole: true }] // the first page this sign-in sees
-      : visiblePages(s.pages, email).map((p) => ({ to: p.to, label: p.label, icon: p.icon ?? s.icon, sectionId: s.id, whole: false }))
-    ).filter((t) => !barPaths.has(t.to)),
-  })).filter((g) => g.tiles.length > 0);
+export function sectionTabs(pathname: string, email: string): { tabs: Tab[]; chips: Tab[] } {
+  const hit = pageFor(pathname);
+  if (!hit || hit.page.bare) return { tabs: [], chips: [] };
+  const all = groupedPages(hit.section.pages);
+  const pages = visiblePages(all, email);
+  const tab = (p: NavPage, label = p.label, active = p.to === hit.page.to): Tab => ({ to: p.to, label, end: p.end, active });
+  const atLeastTwo = (t: Tab[]) => (t.length > 1 ? t : []);
+  if (!all.some((p) => p.group)) return { tabs: atLeastTwo(pages.map((p) => tab(p))), chips: [] };
+  const open = all.find((p) => p.to === hit.page.to)?.group;
+  const groups = [...new Set(pages.map((p) => p.group))];
   return {
-    singles: all.filter((g) => g.tiles.length === 1).flatMap((g) => g.tiles),
-    groups: all.filter((g) => g.tiles.length > 1),
+    tabs: atLeastTwo(groups.map((g) => tab(pages.find((p) => p.group === g)!, g, g === open))),
+    chips: atLeastTwo(pages.filter((p) => p.group === open).map((p) => tab(p))),
   };
+}
+
+// Phone bottom bar: Fastlane's first four destinations; the rest are in More.
+export const mobileTabs = (): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] =>
+  ["home", "plan", "write", "find"].map((id) => {
+    const s = section(id);
+    return { to: s.to, label: s.label, icon: s.icon, active: (p: string) => sectionFor(p)?.id === id };
+  });
+
+export type MoreTile = { to: string; label: string; icon: LucideIcon; sectionId: string };
+
+/** The phone More sheet: one tile per section the bottom bar does not reach, opening the first page this sign-in sees. */
+export function moreSheet(email: string): MoreTile[] {
+  const bar = new Set(mobileTabs().map((t) => sectionFor(t.to)?.id));
+  return SECTIONS.filter((s) => !bar.has(s.id))
+    .map((s) => ({ s, first: visiblePages(s.pages, email)[0] }))
+    .filter(({ first }) => first)
+    .map(({ s, first }) => ({ to: first.to, label: s.label, icon: s.icon, sectionId: s.id }));
 }

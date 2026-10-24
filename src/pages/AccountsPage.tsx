@@ -5,7 +5,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { RotateCw, Unplug } from "lucide-react";
-import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
@@ -121,7 +120,6 @@ export default function AccountsPage() {
 
   return (
     <div className="space-y-6">
-      <SectionTabs tabs={PLAYBOOK_TABS} />
       <header className="flex items-center gap-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Social accounts</h1>
         <InfoTip label="About social accounts">Each brand profile connects its own accounts, through Zernio.</InfoTip>

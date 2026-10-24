@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { startTour } from "@/lib/tour";
 import { useScrollToHash } from "@/lib/urlState";
-import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import {
   Card,
   CardContent,
@@ -51,7 +50,6 @@ export default function TutorialPage() {
           <Compass className="h-4 w-4" /> Replay the tour
         </Button>
       )}
-      <SectionTabs tabs={LEARN_TABS} />
       {/* Why */}
       <Card id="why" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>

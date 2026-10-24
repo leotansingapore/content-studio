@@ -146,7 +146,7 @@ describe("/plan for everyone else", () => {
     seed({ labels: true });
     const { first } = await frames();
     expect(first).toContain("Build my content plan");
-    expect(sha(first)).toBe("cd60e395638d9df71d4d608765389d8063d279b087af681cbbda06d621dd4b69");
+    expect(sha(first)).toBe("2a421f068d966360ac5900abb2bdb4873d66fc482032b49a5faaa58ac992918b");
   });
 });
 

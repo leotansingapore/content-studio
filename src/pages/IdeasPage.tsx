@@ -12,10 +12,8 @@ import { Loader2, X } from "lucide-react";
 import IdeaList from "@/components/ideas/IdeaList";
 import IdeaView from "@/components/ideas/IdeaView";
 import PriceChip from "@/components/PriceChip";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
-import { useContextNav, useContextRailShown, type ContextGroup } from "@/components/ContextRail";
 import { InfoTip } from "@/components/ui/info-tip";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
@@ -188,25 +186,6 @@ function Ideas({ userId }: { userId: string }) {
 
   const tabCount = (t: IdeasTab) => arrange(all, state.status, { tab: t, source, label }).length;
   const sourceCount = (s: IdeaSource | "all") => all.filter((i) => inTab(i.key, state.status, tab) && (s === "all" || i.source === s) && (!label || i.labelId === label)).length;
-  // Inbox / shortlist / discarded and the sources sit in the context rail, with counts; the page drops its tabs and chips.
-  const railShown = useContextRailShown();
-  const ctxGroups = useMemo<ContextGroup[]>(
-    () => [
-      { title: "Ideas", items: TABS.map((t) => ({ id: t, label: TAB_NAME[t], count: tabCount(t), active: tab === t, onSelect: () => setTab(t) })) },
-      {
-        title: "From",
-        items: (["all", ...SOURCES] as const).map((src) => ({
-          id: src,
-          label: src === "all" ? "All" : SOURCE_NAME[src],
-          count: src === "posts" && audits === null ? undefined : sourceCount(src),
-          active: source === src,
-          onSelect: () => setSource(src),
-        })),
-      },
-    ],
-    [all, state.status, tab, source, label, audits],
-  );
-  useContextNav(ctxGroups);
   const empty =
     tab === "shortlist" ? "Nothing shortlisted yet."
     : tab === "discarded" ? "Nothing discarded."
@@ -220,7 +199,6 @@ function Ideas({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-start gap-3">
         <div className="flex items-center gap-1">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Ideas</h1>
@@ -256,7 +234,6 @@ function Ideas({ userId }: { userId: string }) {
       {unscored && <p className="text-sm text-muted-foreground">{UNSCORED_LINE}</p>}
 
       <div className="space-y-3">
-        {!railShown && (
         <div className="flex gap-1 border-b border-border/60" role="tablist" aria-label="Ideas by status">
           {TABS.map((t) => (
             <button
@@ -271,11 +248,9 @@ function Ideas({ userId }: { userId: string }) {
             </button>
           ))}
         </div>
-        )}
-        {(!railShown || label) && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {!railShown && <span className="shrink-0 text-xs font-medium text-muted-foreground">From:</span>}
-          {!railShown && (["all", ...SOURCES] as const).map((s) => (
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">From:</span>
+          {(["all", ...SOURCES] as const).map((s) => (
             <FilterChip key={s} active={source === s} onClick={() => setSource(s)} count={s === "posts" && audits === null ? undefined : sourceCount(s)}>
               {s === "all" ? "All" : SOURCE_NAME[s]}
               {s === "posts" && audits === null && <Loader2 className="h-3 w-3 animate-spin" aria-label="Loading" />}
@@ -287,7 +262,6 @@ function Ideas({ userId }: { userId: string }) {
             </FilterChip>
           )}
         </div>
-        )}
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
