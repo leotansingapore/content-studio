@@ -319,6 +319,11 @@ Caps: a new `edit-read` 10 a day (vision plus Jev, about US$0.05, refunded on fa
 - Meta Ad Library video ads are someone else's paid creative, and remix-closeness already left Close on ads for Leo to rule on; until he does, I would keep this to Instagram reels and uploads.
 - A Chinese, Malay or Tamil version could post with warnings only, as edit-translate does, or wait for a second press. I would keep warnings only, the same as edit-translate.
 
+
+## Leo's answers (25 Oct 2026)
+
+- Cap: talking-head versions get their own cap of 6 a day (`edit-version`), so a day's worst case is about US$16.50, beside ai-video's 2 a day.
+
 ## Related
 
 remix-teardown, remix-closeness, remix-variations, remix-fit-check, remix-source-trail, remix-your-brand, formats-talking-head, formats-faceless-video, edit-video, edit-captions, edit-translate, people-dub-lipsync, people-presenters, people-my-face, people-face-swap, people-ai-labels, business-cost-preview

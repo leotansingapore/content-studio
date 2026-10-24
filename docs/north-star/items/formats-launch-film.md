@@ -322,6 +322,11 @@ The shared `source`, `from` and `mention=no` params are read as on every /make p
 - Which brands get it? Recommendation: product brands with screens in Media (Activity Tracker, Content Studio, MoneyBees, FINternship) first; adviser brands only once they have screens of their own tools, since an insurer's illustration screen would need the compliance check on every frame.
 - A 3D direction (huashu's depth direction with Three.js, which is MIT) is left out: Canvas 2D has no perspective, and the cost of 3D export on a phone is unknown. Recommendation: ship 2D, then decide from the first films whether a depth direction is worth a WebGL renderer.
 
+
+## Leo's answers (25 Oct 2026)
+
+- Model: gpt-6-luna writes the directions, the film and each note (about US$0.003 a film, US$0.001 a note), with gpt-4.1 compared on the first films.
+
 ## Related
 
 `formats-hook-demo`, `formats-animated`, `formats-faceless-video`, `formats-gallery`, `brand-kit`, `brand-media-library`, `brand-demo-videos`, `brand-products`, `brand-voice-memory`, `edit-video`, `edit-by-chat`, `publish-export-share`, `people-ai-labels`, `business-cost-preview`
