@@ -109,6 +109,14 @@ describe("campaignCost", () => {
     expect(cost.usd).toBe(11.08);
   });
 
+  it("prices each AI video by the price it is given (the page gives its script's estimate), AI_VIDEO by default (live-p5dog day 3)", () => {
+    const c = withVideos();
+    const cost = campaignCost(c, { video: 2, remix: 30 }, (p) => ({ usd: p.n === 3 ? 3.46 : 2.77, kind: "about" }));
+    expect(cost.videoUsd).toEqual([3.46, 2.77, 2.77, 2.77]);
+    expect(cost.usd).toBe(11.77);
+    expect(campaignCost(c, { video: 2, remix: 30 }).videoUsd).toEqual([AI_VIDEO.usd, AI_VIDEO.usd, AI_VIDEO.usd, AI_VIDEO.usd]);
+  });
+
   it("leaves made and skipped posts out", () => {
     const cost = campaignCost(withVideos({ 1: "made", 2: "skipped", 3: "made", 6: "skipped", 4: "making", 9: "making" }), { video: 2, remix: null });
     expect(cost.free).toBe(6);

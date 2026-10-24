@@ -19,10 +19,10 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { STILL_MAKING, aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import {
   AI_BUSY, AI_WAITING, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
-  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, videoCaption, waitingFor, whenText, type MakeOutcome,
+  onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, videoCaption, videoPriceOf, waitingFor, whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
-import { AI_VIDEO, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
+import { FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
 import { FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
@@ -240,6 +240,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   // its paid video is still waiting on this device: Make picks it up at no cost, with no price and no ask
   // (a made post's job stays pending until the editor's join is done, which is not this)
   const waiting = cur.format === "ai-video" && cur.state === "making" && !maker && !!waitingFor(c, cur);
+  // the video's price from its own script and voice, never under what Make charges (live-p5dog day 3)
+  const videoPrice = videoPriceOf(userId, cur);
 
   /** Why Make can't run on this post now; null when it can. */
   function makeReason(p: CampaignPost): string | null {
@@ -455,7 +457,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             making(
               <>
                 {who ? `A 15-second AI video of ${who === "mine" ? "you" : "your presenter"} saying this script, made when you press Make.` : "A 15-second AI video of this script. You pick who appears when you press Make."}{" "}
-                <PriceChip price={AI_VIDEO} left={videos} />
+                <PriceChip price={videoPrice} left={videos} />
               </>,
             )}
         </div>
@@ -569,7 +571,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <div className="min-w-0 space-y-4">
           {stage()}
           <div className="flex flex-wrap gap-2">
-            {action("make", maker || cur.state === "making" && !written ? "Making..." : waiting ? "Check again" : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(AI_VIDEO)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
+            {action("make", maker || cur.state === "making" && !written ? "Making..." : waiting ? "Check again" : cur.format === "ai-video" ? <>Make<span className="hidden sm:inline"> | {priceText(videoPrice)}</span></> : "Make", () => make(cur), makeOff || !!work, true)}
             {action("swap", swapping ? "Swapping..." : "Swap", () => void swap(cur), swapOff || !!work)}
             {action("edit", "Edit", () => edit(cur), !!work || !!maker || swapping || !(cur.state === "made" || written))}
             {action("skip", "Skip", () => skip(cur), cur.state === "made" || cur.state === "drafting" || !!maker || swapping || !!work)}
@@ -592,7 +594,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             <div role="alertdialog" aria-label="Make this AI video?" className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
               <p className="font-medium">Make this AI video?</p>
               <p className="text-sm text-muted-foreground">
-                {priceText(AI_VIDEO)} in Higgsfield credits and the voiceover. {videos === null ? UNREAD : `${videos} of ${DAILY_LIMITS["ai-video"]} left today.`}
+                {priceText(videoPrice)} in Higgsfield credits and the voiceover. {videos === null ? UNREAD : `${videos} of ${DAILY_LIMITS["ai-video"]} left today.`}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button autoFocus className={BIG} onClick={() => void run(cur)}>Make it</Button>

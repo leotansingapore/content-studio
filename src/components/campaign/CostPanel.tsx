@@ -1,5 +1,5 @@
 // WHAT IT COSTS on /campaigns/:id (plan-campaign-page, Leo only): what making the rest comes to, from campaignCost
-// (free posts; slideshows and walls on today's remix limit; AI videos at AI_VIDEO each) and what today's limits cover,
+// (free posts; slideshows and walls on today's remix limit; AI videos at their scripts' estimates) and what today's limits cover,
 // then "Make the <f> free posts" through makeFreePosts. The run lives in this module, not the component, so leaving
 // the page keeps it going and coming back shows its progress, counted from the posts the store marks made.
 
@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { toast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { makeFreePosts } from "@/lib/campaignActions";
+import { makeFreePosts, videoPriceOf } from "@/lib/campaignActions";
 import { draftingOf } from "@/lib/campaignJob";
 import {
-  AI_VIDEO, campaignCost, draftsDropped, FREE_FORMATS, getCampaign, REMIX_MAKE, videosLeft, type Campaign, type CampaignCost,
+  campaignCost, draftsDropped, FREE_FORMATS, getCampaign, REMIX_MAKE, videosLeft, type Campaign, type CampaignCost,
 } from "@/lib/campaigns";
 import { listJoin } from "@/lib/campaignWizard";
 import { loadDrafts, MAX_DRAFTS } from "@/lib/draftHistory";
@@ -36,7 +36,14 @@ export function costLines(c: Pick<Campaign, "posts">, cost: CampaignCost): { big
   if (cost.free) what.push(`${plural(cost.free, "free post")}.`);
   const remixName = listJoin([...(slideshows ? [plural(slideshows, "slideshow")] : []), ...(walls ? [plural(walls, "wall of text", "walls of text")] : [])]);
   if (remix) what.push(`${remixName} at ${lower(priceText(REMIX_MAKE))}${remix === 1 ? "" : " each"}, from today's remix limit.`);
-  if (videos) what.push(`${plural(videos, "AI video")} at ${lower(priceText(AI_VIDEO))}${videos === 1 ? "" : " each"}.`);
+  if (videos) {
+    // each video is priced from its own script (live-p5dog day 3): one figure when they match, else what they come to
+    const [first] = cost.videoUsd;
+    const all = cost.videoUsd.reduce((n, u) => n + u, 0);
+    what.push(cost.videoUsd.every((u) => Math.abs(u - first) < 0.005)
+      ? `${plural(videos, "AI video")} at ${lower(priceText({ usd: first, kind: "about" }))}${videos === 1 ? "" : " each"}.`
+      : `${plural(videos, "AI video")}, ${lower(priceText({ usd: all, kind: "about" }))} in all.`);
+  }
   const lines = [what.join(" ")];
   const { videos: cv, remix: cr } = cost.covers;
   if ((videos && cv === null) || (remix && cr === null)) lines.push(UNREAD_LINE);
@@ -118,7 +125,7 @@ export default function CostPanel({ userId, campaign: c }: { userId: string; cam
   const run = useFreeRun(c.id);
   // read again when an AI video Make in the queue ends
   const usesLeft = useUsesLeft(c.posts.some((p) => p.state === "making"));
-  const cost = campaignCost(c, { video: videosLeft(usesLeft("ai-video"), usesLeft("ai-voice")), remix: usesLeft("remix-make"), pick: usesLeft("montage-pick") });
+  const cost = campaignCost(c, { video: videosLeft(usesLeft("ai-video"), usesLeft("ai-voice")), remix: usesLeft("remix-make"), pick: usesLeft("montage-pick") }, (p) => videoPriceOf(userId, p));
   const { big, sub, lines } = costLines(c, cost);
 
   const drafting = draftingOf(c.id);

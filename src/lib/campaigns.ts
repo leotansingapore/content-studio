@@ -46,7 +46,7 @@ export const LIMIT_LINE = "You have 12 campaigns. Delete a done one first.";
 export const SIZE_LINE = "Couldn't save. Delete a done campaign to make room.";
 const PREFIX = "content-studio-campaigns-";
 
-/** A 15 s AI video: Speak for the clip plus its voiceover, from the price table (never typed). */
+/** A 15 s AI video: Speak for the clip plus its voiceover, from the price table (never typed). A post with a script is priced from it (videoPriceOf). */
 export const AI_VIDEO = sumPrices(priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice")) as Price;
 /** A slideshow or a wall of text: one remix make. */
 export const REMIX_MAKE = priceOf("remix-make") as Price;
@@ -200,8 +200,10 @@ export interface CampaignCost {
   free: number;
   /** Posts a maker makes at Make, not yet made or skipped. */
   made: { slideshows: number; walls: number; videos: number };
-  /** What those makes come to, in US$ to the cent: REMIX_MAKE per slideshow or wall, AI_VIDEO per video. */
+  /** What those makes come to, in US$ to the cent: REMIX_MAKE per slideshow or wall, each video's own estimate. */
   usd: number;
+  /** Each AI video's estimate in US$, in post order: the price campaignCost is given, AI_VIDEO by default. */
+  videoUsd: number[];
   /**
    * How many of them today's limits cover; null when a limit couldn't be read (no coverage line). `picks`: how many
    * slideshows and walls get a picture Jev picked (montage-pick), null when not read; past it they take the first found.
@@ -213,15 +215,21 @@ export interface CampaignCost {
 export const videosLeft = (aiVideo: number | null, aiVoice: number | null): number | null =>
   aiVideo === null || aiVoice === null ? null : Math.min(aiVideo, aiVoice);
 
-export function campaignCost(c: Pick<Campaign, "posts">, left: { video: number | null; remix: number | null; pick?: number | null }): CampaignCost {
+export function campaignCost(
+  c: Pick<Campaign, "posts">,
+  left: { video: number | null; remix: number | null; pick?: number | null },
+  videoPrice: (p: CampaignPost) => Price = () => AI_VIDEO,
+): CampaignCost {
   const open = c.posts.filter((p) => p.state !== "made" && p.state !== "skipped");
   const count = (f: CampaignFormat) => open.filter((p) => p.format === f).length;
   const made = { slideshows: count("slideshow"), walls: count("wall"), videos: count("ai-video") };
   const remix = made.slideshows + made.walls;
+  const videoUsd = open.filter((p) => p.format === "ai-video").map((p) => videoPrice(p).usd);
   return {
     free: open.filter((p) => FREE_FORMATS.includes(p.format)).length,
     made,
-    usd: Math.round((remix * REMIX_MAKE.usd + made.videos * AI_VIDEO.usd) * 100) / 100,
+    usd: Math.round((remix * REMIX_MAKE.usd + videoUsd.reduce((n, u) => n + u, 0)) * 100) / 100,
+    videoUsd,
     covers: {
       remix: left.remix === null ? null : Math.min(left.remix, remix),
       videos: left.video === null ? null : Math.min(left.video, made.videos),

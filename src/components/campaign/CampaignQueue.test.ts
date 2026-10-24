@@ -94,6 +94,27 @@ describe("Make on an AI video post when today's AI videos are used (live-p5w4 N1
   });
 });
 
+describe("an AI video post's price comes from its own script (live-p5dog day 3: 46 words ran 18.5 s, three parts, US$3.44, under a US$2.77 card)", () => {
+  const post4 = CAMPAIGN.posts.find((p) => p.n === 4)!;
+  const render = (script: string) => {
+    const campaign: Campaign = { ...CAMPAIGN, posts: [{ ...post4, script }] };
+    return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=4`] }, createElement(CampaignQueue, { userId: "u-1", campaign, angle: null })));
+  };
+
+  // PriceChip draws nothing in node (it waits for the session), so the Make button's own price is read
+  const makeLabel = (out: string) => out.split(makeButton(out))[1].split("</button>")[0];
+
+  it("a 46-word script reads three parts on Make, and a 38-word one (day 2's post 4, 14.8 s) keeps two", () => {
+    fake.left = { "ai-video": 2, "ai-voice": 4 };
+    fake.who = "presenter";
+    const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
+    const long = render(words(46));
+    expect(makeLabel(long)).toContain("About US$3.46");
+    expect(long).not.toContain("US$2.77");
+    expect(makeLabel(render(words(38)))).toContain("About US$2.77");
+  });
+});
+
 describe("the side column on a script post (live-p5w4 N5: the caption repeated the script with its HOOK:, BODY: and CTA: labels)", () => {
   const once = (out: string, text: string) => out.split(text).length - 1;
 

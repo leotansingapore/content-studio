@@ -15,7 +15,7 @@ import { loadAudiences } from "@/lib/audiences";
 import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
-import { dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignPost } from "@/lib/campaigns";
+import { AI_VIDEO, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignPost } from "@/lib/campaigns";
 import { shortDay } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
 import { keyToDate, scheduleAt, timeLabel } from "@/lib/dueDates";
@@ -27,7 +27,8 @@ import { loadRemixPrefs } from "@/lib/remixBrand";
 import { loadSlideshows, MAX_SHOWS, saveSlideshow, slideshowToDraft } from "@/lib/slideshow";
 import { slideshowBusy, slideshowJob, startSlideshow, FINISH_FAILED as SHOW_FAILED } from "@/lib/slideshowJob";
 import { splitDraftIntoSlides } from "@/lib/carousel";
-import { asTopic, defaultWho, speakerOf, speakers, type TalkWho } from "@/lib/talkingHead";
+import { priceOf, sumPrices, type Price } from "@/lib/prices";
+import { asTopic, defaultWho, scriptEstimate, speakerOf, speakers, wordCount, type TalkWho } from "@/lib/talkingHead";
 import { onTalkJob, resumeTalk, startTalk, talkBusy, talkJob } from "@/lib/talkingHeadJob";
 import { onWallJob, startWall, wallBusy, wallJob, FINISH_FAILED as WALL_FAILED } from "@/lib/wallJob";
 import type { WrittenPost } from "../../supabase/functions/idea-dump/logic.ts";
@@ -272,6 +273,21 @@ function voiceFor(userId: string, who: TalkWho) {
   return sp?.person === "presenter" ? presenterVoice(sp.p, remembered) : remembered;
 }
 
+/** The voice Make speaks a post in: who appears' own, else (Ask each time) the remix voice remembered. */
+const voiceOfPost = (userId: string) => {
+  const who = savedWho(userId);
+  return who ? voiceFor(userId, who) : loadRemixPrefs(userId).voice;
+};
+
+/**
+ * What an AI video post costs on the card before Make (live-p5dog day 3): its script's estimate in the voice Make
+ * speaks it in, plus the voiceover; AI_VIDEO while it has no script.
+ */
+export function videoPriceOf(userId: string, p: Pick<CampaignPost, "script">): Price {
+  const words = wordCount(p.script ?? "");
+  return words ? (sumPrices(scriptEstimate(words, voiceOfPost(userId)), priceOf("ai-voice")) as Price) : AI_VIDEO;
+}
+
 /** Follows the talking head run `start` begins or picks up (true when it did) until the editor has the video, or it stops. */
 function followTalk(userId: string, c: Pick<Campaign, "id">, p: Pick<CampaignPost, "n">, draftId: string, start: () => boolean): Promise<MakeOutcome> {
   const k = keyOf(c.id, p.n);
@@ -327,9 +343,14 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     dropDraft(userId, d.id);
     return { ok: false, error: SAVE_LINE };
   }
+  const voice = voiceFor(userId, who);
   return followTalk(userId, c, p, d.id, () => {
-    // the post's own caption and call to action go to the editor with it (live-p5dog D3)
-    void startTalk(userId, { source: null, text: script, who, photo: null, look: "", setting: "office", voice: voiceFor(userId, who), length: 15, mention: true, caption: videoCaption(p), draftId: d.id });
+    // the post's own caption and call to action go to the editor with it (live-p5dog D3); the price check stops only
+    // above the card's estimate (videoPriceOf), not a 15 s video's
+    void startTalk(userId, {
+      source: null, text: script, who, photo: null, look: "", setting: "office", voice, length: 15, mention: true, caption: videoCaption(p), draftId: d.id,
+      quoted: scriptEstimate(wordCount(script), voice).usd,
+    });
     return talkJob()?.ask?.draftId === d.id;
   });
 }

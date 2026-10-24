@@ -48,6 +48,14 @@ describe("what it costs", () => {
     expect(lines(posts, 2).lines[1]).toBe("Today's limit covers all 2 AI videos.");
   });
 
+  it("names each AI video's own estimate: one figure when they match, the total when they differ (live-p5dog day 3)", () => {
+    const posts = [post(1, "text-post"), post(2, "ai-video"), post(3, "ai-video")];
+    const at = (usd: (n: number) => number) => costLines({ posts }, campaignCost({ posts }, { video: 2, remix: 30 }, (p) => ({ usd: usd(p.n), kind: "about" })));
+    expect(at(() => 3.46).lines[0]).toBe("1 free post. 2 AI videos at about US$3.46 each.");
+    expect(at((n) => (n === 2 ? 3.46 : 2.77)).lines[0]).toBe("1 free post. 2 AI videos, about US$6.23 in all.");
+    expect(at((n) => (n === 2 ? 3.46 : 2.77)).big).toBe("US$6.23");
+  });
+
   it("no AI video is Free, and Free after the paid ones are made says what is left", () => {
     const text = Array.from({ length: 6 }, (_, i) => post(i + 1, i % 2 ? "carousel" : "short-video"));
     expect(lines(text, 2)).toEqual({ big: "Free", sub: "Every post here costs nothing to make.", lines: [] });

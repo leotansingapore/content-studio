@@ -64,10 +64,12 @@ vi.mock("@/lib/talkingHead", async (orig) => ({ ...(await orig<typeof import("./
 vi.mock("@/lib/campaignJob", async (orig) => ({ ...(await orig<typeof import("./campaignJob")>()), startDrafting }));
 
 import { saveAudience } from "./audiences";
-import { angleCounts, campaignCost, getCampaign, saveCampaigns, type Campaign, type CampaignPost } from "./campaigns";
+import { AI_VIDEO, angleCounts, campaignCost, getCampaign, saveCampaigns, type Campaign, type CampaignPost } from "./campaigns";
 import { splitDraftIntoSlides } from "./carousel";
 import { getDraftById, loadDrafts, MAX_DRAFTS, saveDrafts, type DraftEntry } from "./draftHistory";
+import { priceOf, sumPrices } from "./prices";
 import { blankSlideshow, loadSlideshows, MAX_SHOWS, saveSlideshow } from "./slideshow";
+import { scriptEstimate } from "./talkingHead";
 
 class MemStorage {
   s = new Map<string, string>();
@@ -419,6 +421,29 @@ describe("makePost, an AI video", () => {
     expect(startTalk).not.toHaveBeenCalled();
     expect(resumeTalk).not.toHaveBeenCalled();
     expect(the(6).state).toBe("ready");
+  });
+});
+
+describe("an AI video post's price before Make (live-p5dog day 3: Raj's 46 words in Eric's voice cost US$3.44 under a US$2.77 card)", () => {
+  const RAJ = { id: "pr-raj", name: "Raj", look: "An Indian Singaporean man in his mid 30s, a side-parted crop, dark suit and a plain tie", url: "https://x/raj.png", photo: "", createdAt: NOW.toISOString(), status: "on" };
+  const WORDS_46 = Array.from({ length: 46 }, (_, i) => `word${i}`).join(" ");
+
+  it("is its script's estimate in the voice Make speaks it in, plus the voiceover; AI_VIDEO before it has a script", () => {
+    fake.who = "pr-raj";
+    fake.presenters = [RAJ];
+    expect(act.videoPriceOf(UID, { script: WORDS_46 })).toEqual(sumPrices(scriptEstimate(46, "eric"), priceOf("ai-voice")));
+    expect(act.videoPriceOf(UID, { script: WORDS_46 }).usd).toBeCloseTo(3.46, 2);
+    expect(act.videoPriceOf(UID, {})).toEqual(AI_VIDEO);
+  });
+
+  it("Make sends the card's video estimate as the quote, so the price check stops only above it", async () => {
+    fake.who = "pr-raj";
+    fake.presenters = [RAJ];
+    seed([post(6, { format: "ai-video", script: WORDS_46 })]);
+    void act.makePost(UID, "c-1", 6, NOW);
+    await tick();
+    expect(startTalk.mock.calls[0][1]).toMatchObject({ voice: "eric", length: 15 });
+    expect(startTalk.mock.calls[0][1].quoted).toBeCloseTo(55 * 0.0625, 9);
   });
 });
 
