@@ -43,6 +43,13 @@ export const useContextRailShown = () => useSyncExternalStore(onWide, wide, () =
 
 type Heading = { id: string; text: string };
 
+/** A heading as the rail lists it: an all-caps eyebrow phrase ("ASK THE AGENT FOR") in sentence case; one all-caps
+ *  word is an acronym ("F.A.D.S.") and, like anything else, stays as written. */
+export function headingLabel(text: string): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  return t.includes(" ") && /[A-Z]/.test(t) && t === t.toUpperCase() ? t.charAt(0) + t.slice(1).toLowerCase() : t;
+}
+
 /** The page's groups, or else its h2 headings, re-read as the page changes. */
 export function useContextRailContent(): { groups: ContextGroup[] | null; headings: Heading[] } {
   const g = useSyncExternalStore(subscribe, () => groups, () => null);
@@ -56,7 +63,7 @@ export function useContextRailContent(): { groups: ContextGroup[] | null; headin
         .filter((h) => h.offsetParent !== null && (h.textContent ?? "").trim())
         .map((h, i) => {
           if (!h.id) h.id = `section-${i}-${(h.textContent ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}`;
-          return { id: h.id, text: (h.textContent ?? "").trim() };
+          return { id: h.id, text: headingLabel(h.textContent ?? "") };
         });
       setHeadings((prev) => (JSON.stringify(prev) === JSON.stringify(found) ? prev : found));
     };
