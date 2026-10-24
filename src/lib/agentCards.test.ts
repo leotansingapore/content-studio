@@ -76,18 +76,18 @@ describe("needsCard", () => {
 });
 
 describe("estimateScript and priceLine", () => {
-  it("a 40-word script is 16 s, 44 credits, and the video with its voiceover from the price table", () => {
+  it("a 40-word script in Alice's voice is about 16 s, 44 credits, and the video with its voiceover from the price table", () => {
     const e = estimateScript(40);
-    expect(e).toEqual({ seconds: 16, credits: 44, price: sumPrices(priceOf("ai-video", { slices: [9.5, 6.5] }), priceOf("ai-voice")) });
+    expect(e).toEqual({ seconds: 40 / 2.56, credits: 44, price: sumPrices(priceOf("ai-video", { slices: [9.5, 6.5] }), priceOf("ai-voice")) });
     const card = { price: e.price, credits: e.credits, needs: needsOf("speaking", { write: false }) };
     expect(priceLine(card, null)).toBe("About US$2.77 | about 44 Higgsfield credits");
     // the 44 credits alone, as the spec's "About US$2.75" counts them
     expect(priceLine({ price: priceOf("ai-video", { slices: [9.5, 6.5] }) as Price, credits: 44, needs: [] }, null)).toBe("About US$2.75 | about 44 Higgsfield credits");
   });
-  it("a 20 s script is three slices, 55 credits, and a new presenter adds its picture", () => {
-    expect(estimateScript(50)).toMatchObject({ seconds: 20, credits: 55 });
-    expect(priceLine({ ...estimateScript(50), needs: needsOf("speaking", { write: false }) }, 1)).toBe("About US$3.46 | about 55 Higgsfield credits | 1 of 2 videos left today");
-    expect(estimateScript(50, { presenter: true }).price.usd).toBeCloseTo(estimateScript(50).price.usd + (priceOf("ai-image") as Price).usd, 9);
+  it("Eric's 46 words are three parts, 55 credits, as live-p5dog's post 18 cost, and a new presenter adds its picture", () => {
+    expect(estimateScript(46, { voice: "eric" })).toMatchObject({ credits: 55 });
+    expect(priceLine({ ...estimateScript(46, { voice: "eric" }), needs: needsOf("speaking", { write: false }) }, 1)).toBe("About US$3.46 | about 55 Higgsfield credits | 1 of 2 videos left today");
+    expect(estimateScript(46, { voice: "eric", presenter: true }).price.usd).toBeCloseTo(estimateScript(46, { voice: "eric" }).price.usd + (priceOf("ai-image") as Price).usd, 9);
     expect(estimateScript(200).seconds).toBe(30);
   });
   it("before a script, the dearest video says up to, with no about on the credits", () => {

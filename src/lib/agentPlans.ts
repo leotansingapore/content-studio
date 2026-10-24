@@ -34,7 +34,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
 import { removeSlideshow } from "@/lib/slideshow";
 import { onSlideshowJob, slideshowBusy, slideshowJob, startSlideshow, stepText as showStep } from "@/lib/slideshowJob";
-import { DEFAULT_LENGTH, TALK_LENGTHS, defaultWho, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
+import { DEFAULT_LENGTH, TALK_LENGTHS, defaultWho, scriptEstimate, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
 import { goOnAtPrice, madePresenter, onTalkJob, resumeTalk, startTalk, talkBusy, talkJob, writeTalk, type TalkAsk } from "@/lib/talkingHeadJob";
 import { VOICES, type VoiceId } from "@/lib/textVoice";
 import { activeLearnings, addLearning, loadLearnings, MAX_LEARNINGS, type LearningScope } from "@/lib/voiceMemory";
@@ -494,7 +494,7 @@ export function reformat(userId: string, c: AgentCard, format: AgentFormat): Age
 export function withScript(userId: string, c: AgentCard, script: string): AgentCard {
   const f = { ...fieldsOf(c), script: script.trim(), priced: false };
   const words = wordCount(script);
-  const est = estimateScript(words, { presenter: newPresenter(f) });
+  const est = estimateScript(words, { presenter: newPresenter(f), voice: f.voice ?? "alice" });
   const g: PlanFields = { ...f, length: lengthFor(words) };
   return {
     ...c,
@@ -798,7 +798,8 @@ async function talkPress(userId: string, x: Press, src: RemixSource | null, live
   const off = onTalkJob((j) => void (j?.step && live.step(j.step, "making")));
   try {
     if (ownPriced) await goOnAtPrice(userId);
-    else await startTalk(userId, { ...ask, text: f.script ?? "" });
+    // the price check stops only above the video's price on this card (withScript's), not the length's estimate
+    else await startTalk(userId, { ...ask, text: f.script ?? "", quoted: scriptEstimate(wordCount(f.script ?? ""), ask.voice).usd });
   } finally {
     off();
   }

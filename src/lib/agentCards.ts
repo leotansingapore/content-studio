@@ -10,9 +10,10 @@ import { loadCarousels, removeCarousel } from "@/lib/carousel";
 import { removeCompetitor } from "@/lib/competitors";
 import { draftStatus, draftsChanged, loadDrafts, restoreDraft, saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { priceText, type Price } from "@/lib/prices";
-import { talkPrice, videoEstimate, type TalkLength } from "@/lib/talkingHead";
+import { DEFAULT_LENGTH, scriptEstimate, scriptSeconds, talkPrice, type TalkLength } from "@/lib/talkingHead";
+import type { VoiceId } from "@/lib/textVoice";
 import { isOn, loadLearnings, undoLearning, type LearningScope } from "@/lib/voiceMemory";
-import { CREDIT_USD, MAX_AVATAR_SECONDS } from "../../supabase/functions/ai-video/logic.ts";
+import { CREDIT_USD } from "../../supabase/functions/ai-video/logic.ts";
 
 /** The agent's ids: threads t, messages m, cards k, then base 36. Never uuid-shaped, which cloudSync reads as a user id. */
 export const newId = (prefix: "t" | "m" | "k", now = new Date()) =>
@@ -157,20 +158,17 @@ export function nextCard(card: AgentCard, e: CardEvent, now = new Date()): Agent
   }
 }
 
-export const WORDS_PER_SECOND = 2.5;
-
 /**
- * A talking video's estimate from its script's words: seconds at 2.5 a second (30 at most), the Higgsfield credits of
- * its slices (at most 9.5 s each), and talkPrice for the press: the video and its voiceover, plus a new presenter's picture.
+ * A talking video's estimate from its script's words in the voice that speaks it (Alice unless named): its seconds
+ * (scriptSeconds), the Higgsfield credits of its parts (scriptEstimate), and talkPrice for the press: the video and its
+ * voiceover, plus a new presenter's picture. Never under what Make's price check charges (live-p5dog day 3).
  */
-export function estimateScript(words: number, o: { presenter?: boolean } = {}): { seconds: number; credits: number; price: Price } {
-  const seconds = Math.min(MAX_AVATAR_SECONDS, Math.max(1, words) / WORDS_PER_SECOND);
-  // talkPrice types its length as the picker's four, but prices any seconds by the table's slice rule
-  const length = seconds as TalkLength;
+export function estimateScript(words: number, o: { presenter?: boolean; voice?: VoiceId } = {}): { seconds: number; credits: number; price: Price } {
+  const voice = o.voice ?? "alice";
   return {
-    seconds,
-    credits: Math.round(videoEstimate(length).usd / CREDIT_USD),
-    price: talkPrice({ length, write: false, presenter: !!o.presenter }) as Price,
+    seconds: scriptSeconds(words, voice),
+    credits: Math.round(scriptEstimate(words, voice).usd / CREDIT_USD),
+    price: talkPrice({ length: DEFAULT_LENGTH, write: false, presenter: !!o.presenter, script: { words, voice } }) as Price,
   };
 }
 

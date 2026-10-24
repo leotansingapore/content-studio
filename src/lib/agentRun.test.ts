@@ -30,6 +30,7 @@ const fake = vi.hoisted(() => {
     speaker: "person" as "person" | "business",
     sources: {} as Record<string, unknown>,
     talkEnd: "done" as "done" | "priced",
+    talkAsk: null as null | { quoted?: number },
     remixFails: false,
     remix: store(),
     show: store(),
@@ -103,8 +104,9 @@ vi.mock("@/lib/talkingHeadJob", async (orig) => ({
     await wait();
     fake.talk.set({ id: 1, state: "written", step: "", params: {}, script: SCRIPT, flags: { copied: [], claim: false, invented: false } });
   },
-  startTalk: async (_u: string, a: { who: string; text: string }) => {
+  startTalk: async (_u: string, a: { who: string; text: string; quoted?: number }) => {
     fake.calls.push(`startTalk:${a.who}`);
+    fake.talkAsk = a;
     fake.talk.set({ id: 2, state: "voice", step: "Making the voiceover...", params: {}, script: a.text });
     await wait();
     const voice = { pcm: new Float32Array(), seconds: 18, slices: [{ start: 0, end: 9.5 }, { start: 9.5, end: 18 }] };
@@ -403,8 +405,11 @@ describe("nothing priced runs before its card's press", () => {
     expect(c.price?.kind).toBe("about");
     expect(c.credits).toBeGreaterThan(0);
     expect(cardMsg(id).text).toBe(LINES.scriptLead);
+    const quote = c.credits! * 0.0625;
     await approve(id);
     expect(priced()).toEqual(["writeTalk", "startTalk:presenter"]);
+    // the price check stops only above the video card's own price (live-p5dog day 3)
+    expect(fake.talkAsk?.quoted).toBeCloseTo(quote, 9);
     c = cardMsg(id).card!;
     expect([c.status, approveLabel(c), c.line]).toEqual(["proposed", "Make it for US$3.31", "The voiceover runs 18 seconds, so this costs about US$3.31."]);
     await approve(id);
