@@ -14,7 +14,7 @@ import { isAppPath } from "./dockActions";
 import { ownComposer } from "./AgentDock";
 import { madeNoun, tookWords } from "./MadeBlock";
 import { slashItems } from "./SlashMenu";
-import { lastLine, whenGroup } from "./ThreadList";
+import { lastLine, whenGroup, whenShort } from "./ThreadList";
 import type { AgentCard } from "@/lib/agentCards";
 import type { AgentMsg, AgentThread } from "@/lib/agentThreads";
 
@@ -87,6 +87,11 @@ describe("thread list", () => {
     expect(whenGroup(new Date(2026, 9, 22, 0, 5).toISOString(), now)).toBe("Today");
     expect(whenGroup(new Date(2026, 9, 21, 23, 59).toISOString(), now)).toBe("Yesterday");
     expect(whenGroup(new Date(2026, 9, 20, 12, 0).toISOString(), now)).toBe("Earlier");
+  });
+  it("times a row by the clock today, the weekday this week, else the date", () => {
+    expect(whenShort(new Date(2026, 9, 22, 8, 5).toISOString(), now)).toBe("08:05");
+    expect(whenShort(new Date(2026, 9, 19, 12, 0).toISOString(), now)).toBe("Mon");
+    expect(whenShort(new Date(2026, 9, 12, 12, 0).toISOString(), now)).toBe("12 Oct");
   });
   it("shows the last words, 60 characters at most", () => {
     const t = (messages: object[]) => ({ id: "t1", title: "x", createdAt: "", updatedAt: "", messages }) as AgentThread;

@@ -24,6 +24,14 @@ export function whenGroup(iso: string, now = new Date()): "Today" | "Yesterday" 
   return dayKey(d) === dayKey(y) ? "Yesterday" : "Earlier";
 }
 
+/** The row's time: the clock today, the weekday within the week, else the date (Fastlane's thread list). */
+export function whenShort(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  if (dayKey(d) === dayKey(now)) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (now.getTime() - d.getTime() < 6 * 86_400_000) return d.toLocaleDateString("en-GB", { weekday: "short" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
 /** The last message's words, 60 characters at most. */
 export function lastLine(t: AgentThread): string {
   const m = [...t.messages].reverse().find((x: AgentMsg) => x.text?.trim() || x.card || x.receipt);
@@ -108,7 +116,7 @@ export default function ThreadList({
                           <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary" aria-label="Running" />
                         ) : (
                           <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                            {new Date(t.updatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                            {whenShort(t.updatedAt, now)}
                           </span>
                         )}
                       </span>
