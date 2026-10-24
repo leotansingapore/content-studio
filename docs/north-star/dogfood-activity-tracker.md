@@ -227,6 +227,77 @@ Side effect: the two transcript reads added Apollo's TikTok and Pipedrive's reel
 
 Cost, by the price chips (a count, not a bill): Aaron's remix with a new breakdown at US$0.03 and 7 remixes at US$0.02, US$0.17 in all. The YouTube read and the two transcript reads were free (device copy and cache, usage null). On top, 8 fit checks are Jev-only calls, under US$0.01 together. Time: 17 s for Aaron's remix with its breakdown, 8 to 13 s for the rest.
 
+## Phase 5 results (23 and 24 Oct 2026)
+
+The dogfood ran over three sessions: Fri 23 Oct from 08:36 to 09:38 and from 10:26 to 11:12 Singapore time, and Sat 24 Oct from 10:17 to 11:10. Each ran on a localhost build of main (9cfdd82e, then 21bde8b1 from mid-session 1, 750a24f4 on 23 Oct from 10:26, 54ee9d58 with ed28ec8d on 24 Oct) with the demo sign-in on NORTH_STAR_USERS and ?asLeo=1, against the live functions. Every POST, PATCH, PUT and DELETE to the shared database and storage was stopped in the browser (712 in all), the social status read never ran, and a function call went through only at a step that named it, so the campaign, the made posts and the kept presenter live only in the browser state kept with the run. Nothing was posted or scheduled to any account. The brand is ActivityTracker as phases 2 to 4 left it, with 12 app screens added to Media (stills cut from activity-tracker.io's own feature loops) and Raj, an AI presenter made and kept on day 1 (about US$0.02). The run's logs, every call, the ledger and the device states are in _raw/dogfood/live-p5dog/ (results.md there has the full detail and repros).
+
+The campaign matches Fastlane's: "Sales-oriented self-employed professionals and coaches", 4 weeks at 1 a day on Instagram and TikTok, 12 slideshows (pictures from Media) and 12 walls of text alternating, 4 AI videos, the goal "Get more sign-ups and enquiries", and five suggested angles: Work in one app, Chat to follow-up, WhatsApp workflow, Follow-up tasks, One-tap activity log.
+
+### The 13 Good lines
+
+| # | Line | Result | Evidence |
+| --- | --- | --- | --- |
+| 1 | One suggested audience is Fastlane's group | Fail | Suggest from activity-tracker.io gave "Sales reps on a team", "Financial advisers" and "Property agents" in 8 s. Jev same as Fastlane's group: 0.11, 0.41, 0.29, and a reader would say no too. The request sends the saved audiences as `saved`, and this brand's main audience already is Fastlane's group word for word, so the writer is told to avoid it; a direct re-run with no saved audiences still gave 0.38, 0.40, 0.30. "Financial advisers" was kept; the campaign used the saved main audience, so the head to heads compare like for like. |
+| 2 | Five angles within 15 s, none promising a result, ours win 3 of 5 head to head | Fail | 5 angles in 10.2 s (fit 0.68 to 0.70), none promising a result. `hook-check --h2h` by rotation slot, reader a self-employed salesperson in Singapore: ours win 2 of 5 ("Chat to follow-up" 0.95 over "Turn Tasks Into Momentum", "Follow-up tasks" 0.99 over "Outcomes Are Not Enough") and lose "Work in one app" 0.48, "WhatsApp workflow" 0.19 and "One-tap activity log" 0.04 against "Make Consistency Visible", "See Your Work Clearly" and "Accountability Without Management". A second round on 23 Oct, with pair checks, took 16.8 s. |
+| 3 | Before Add, the review names the 28 posts, the writing price and the AI video line | Pass | "Success looks like 28 posts, 2 winners", "12 slideshows and 12 walls of text come to about US$0.48, and today's limit covers all 24. 4 AI videos come to about US$11.08, and today's limit covers 2.", and Add campaign's chip "About US$0.14 \| 4 uses, 16 left after this". Fastlane showed "28 posts, 945 credits. Your 142 credits cover 24 of them." |
+| 4 | All 28 written within 4 minutes, leaving loses none, mix 6/6/6/5/5 in strict rotation, formats 12/12/4 on 28 days | Pass | All 28 ready 88 s after Add, with a full page load to Home 4 s in; nothing was lost. Angle of post n is (n - 1) mod 5 + 1, the mix bar reads 6, 6, 6, 5, 5, and the formats are 12 slideshows, 12 walls and 4 AI videos (posts 4, 11, 18, 25), one a day Mon 26 Oct to Sun 22 Nov at 7:30pm. On day 1 the reload made the batch in flight pay twice; fixed in e932698b (see below). |
+| 5 | Hooks head to head: ours win at least 14 of the 24 slideshow and wall pairs | Pass | 15 of 24, comparing what each post shows (our made cover or the wall's first sentence) with Fastlane's k-th slideshow or wall. Walls 11 of 12 ("When a promising chat ends, the follow-up can get lost in the scroll." 0.99 over "your next prospecting session doesn't have to feel like a grind."); slideshows 4 of 12, where list covers such as "3 signs you may not need another tool" lose to Fastlane's scene-setting hooks. |
+| 6 | At least 6 of 12 slideshows show the app from Media, no photo repeats within a slideshow | Pass | 12 of 12: every slide is one of the 12 app screens, with no repeat within a slideshow, no stock photo and no blank slide. Fastlane showed no app and repeated 11 photos. Across slideshows the same few screens came back (one in all 12); fixed in 750a24f4, not re-made since. |
+| 7 | Every made caption is complete with a call to action, and no slideshow promises one number and lists another | Fail on 2 of 28 | All 12 slideshow and 12 wall captions end on a full sentence and a call to action, and every cover that promises a number lists that many slides. The AI videos for posts 4 and 11, made on 23 Oct, reached the editor with no caption at all; posts 18 and 25, made after ed28ec8d, carry body, call to action and the AI line. A check campaign's carousel promised "3 things" over 5 points (fixed in ed28ec8d, not re-made). |
+| 8 | The 4 AI videos are about ActivityTracker, spoken by the kept presenter, labelled as made by AI | Fail on 2 of 4 | Posts 18 and 25 (24 Oct): Raj in Eric's voice (the request's voice id), "AI person" and "AI voice" chips beside the project name, the caption ending "This video uses an AI-made person or voice.", and each script names ActivityTracker once. Posts 4 and 11 (23 Oct): Raj in the default woman's voice (Alice), no label anyone sees, and scripts that never name the product. Fastlane showed a felt puppy and a skeleton until 210 credits were spent. |
+| 9 | Review one post at a time with keys 1 to 4; every made post on the calendar at its day and time; nothing posted or on the calendar before its Make | Pass | Review is one post at a time; keys 1 (Make) and 2 (Swap) were used through the run, and 3, 4 and the arrows passed in wave 4's check of the same queue. All 28 made posts sit as scheduled drafts at their day and 7:30pm, and a post had no draft until its Make. No publish call was ever made. |
+| 10 | The cost panel matches Higgsfield, the OpenAI log and Jev within 10 percent | Fail | AI video: the panel's US$2.77 matches the server's own count for a two-part video (44 credits, US$2.75, and a voice), but post 18 ran to 18.5 s in Eric's slower voice and needed three parts, US$3.44, which the price check named before paying. Remix: the panel's US$0.02 a slideshow or wall against about US$0.0003 each in the logs (24 writes, 27,587 tokens in and 10,716 out on gpt-6-luna). Higgsfield's own credit use cannot be read from here: the API has no balance route. |
+| 11 | Autopilot leaves next week as drafts for an OK; none on the calendar before Approve; a missed one stays a draft with no phone alert | Pass | On ActivityTracker it wrote nothing, since the campaign already filled the week. On Leo's own brand it wrote 3 drafts (status draft, no time). With the device clock set to Tue 27 Oct, posts 1 and 2 read "Not approved in time. It is in My posts as a draft.", stayed drafts with no time, were not on the calendar, and nothing asked for notification permission or called a send. |
+| 12 | The ideas set gives at least 3 ideas a reader would write, each with a why; the interview gives 5 posts in the brand's voice with no question quoted | Pass | Today's ideas: 6 in 9.4 s (fit 0.84 to 0.89), each with a why; a Refine on "property agents booking viewings from WhatsApp enquiries" gave 3 more. The interview on Leo's own brand: 5 answers, 5 posts in 16 s, all first person, no question quoted. |
+| 13 | Cost from the logs, the round under US$12.50 | Fail | About US$17.87 (see Cost). US$17.19 of it is Higgsfield: 275 credits, 88 of them for day 1's two tries whose parts failed. |
+
+### Fixes between the days, and what each re-check showed
+
+| Commit | What it fixed | Re-check |
+| --- | --- | --- |
+| 21bde8b1 | A wall's Make sent hook and brief as one topic and failed on the 200-character limit (8 of the 12 walls as first written). Now the hook is the topic and the brief the note. | Pass: post 9's wall sent a 65-character topic and a 191-character note; all 12 walls then made. |
+| e932698b | A campaign batch asked again after a reload paid a second time. | Pass: a full page load during a 7-post write left markers for one ask and one free ask; campaign-draft moved by 1 for the batch. The free ask writes the batch again, so it dropped a post the first answer had, which then cost a retry. |
+| 750a24f4 | Empty wall briefs, hooks cut mid-sentence, a DM line repeating the cta, curly quotes, overlapping angles, slideshows reusing the first screens, the queue showing the campaign hook over a made post, the review counting only remixes, finance trends for a business, a failed part left running at Higgsfield. | Pass: a wall swap came back with words; 7 new hooks were whole sentences; no DM line repeated its cta; the queue showed each made post's own cover and words; the review said "today's limit for picking pictures covers 0". Pass within the set: the angle pair check dropped one near-copy (0.80) but let through new angles close to used ones. Not re-checked: the Media spread, the finance filter and the cancel (no part failed again). |
+| ed28ec8d | AI videos: the presenter's own voice, AI person and AI voice labels, a caption of body and cta with the AI line, the business named once, no transcribe on opening, a free Check again after 20 minutes. Also counts that match their lists, angles checked against used titles, asking once, straight quotes in walls and angles. | Pass on posts 18 and 25: voice eric, both chips, the caption line, ActivityTracker named once (after one swap each to get a script written under the fix), and no video-assist call when the video opened. Post 25's second part took about 24 minutes: the queue said "Your video is still being made. It's picked up at no cost when you come back.", and Check again made it with status calls only. |
+
+### Cost
+
+| Spend | How it was counted | US$ |
+| --- | --- | --- |
+| Higgsfield, AI videos | the server's own log, credits at US$0.0625: 23 Oct 44 + 44 credits for two tries whose parts failed (uses given back), 44 + 44 for posts 4 and 11; 24 Oct 55 (three parts) + 44 for posts 18 and 25 | 17.19 |
+| Higgsfield, presenters | 3 pictures, by the chip | 0.02 |
+| Voiceovers | 6, at the price table's US$0.02 | 0.12 |
+| OpenAI, slideshows and walls | 24 writes from the log's tokens on gpt-6-luna | 0.01 |
+| OpenAI and Jev, campaign writing and the rest | campaign drafts 10, swaps 9, angles 2, ideas 2, interview and voice note 2, audiences 2, media sorts 12, one transcribe, by the price table (these log no tokens, so a count, not a bill) | 0.53 |
+| Jev, head to heads | 29 hook-check runs and 2 same-group reads, about 95,000 tokens | under 0.01 |
+| Total | | about 17.87 |
+
+The brief planned about US$11.90. The difference is day 1's two failed AI video tries (US$5.50 if Higgsfield billed every part) and post 18's third part.
+
+### What still reads badly
+
+1. Eric's voice is slower, so a 36 to 48-word script runs 17 to 18.5 s and can need a third part: the card and the cost panel still say US$2.77 for a video that costs US$3.44 (the price check catches it before paying).
+2. Higgsfield parts took 20 to 25 minutes on posts 11 and 25, and on day 1 one part failed in each of two tries with no logged reason (the reason is logged since 750a24f4).
+3. Suggest audiences never offers a group that is already saved, so a brand whose saved audience is the right one gets narrower slices.
+4. Our angle titles lose to Fastlane's 3 of 5, and slideshow covers lose 8 of 12: list covers ("3 ways to log activity as you work") read flat beside Fastlane's moments ("You finish a busy Tuesday and can't remember who you followed up with").
+5. The remix make price is about 60 times the logged model cost.
+6. Posts 4 and 11 keep the woman's voice and have no caption; they were made before ed28ec8d.
+
+### Screenshots
+
+The slideshow rows were taken on 23 Oct; the device state reloaded for 24 Oct kept the made slides' words but not their pictures, so its shots show grey slides. The review shot is from the first session at 1280 px.
+
+| View | Ours, 1440 px | Ours, 390 px | Fastlane |
+| --- | --- | --- | --- |
+| /campaigns | ![Campaigns 1440](../../public/north-star/dogfood/phase5-campaigns-1440.jpg) | ![Campaigns 390](../../public/north-star/dogfood/phase5-campaigns-390.jpg) | ![Fastlane 4:51, the campaign card](../../public/north-star/fastlane/t291.webp) |
+| Wizard, angles | ![Angles 1440](../../public/north-star/dogfood/phase5-wizard-angles-1440.jpg) | ![Angles 390](../../public/north-star/dogfood/phase5-wizard-angles-390.jpg) | ![Fastlane 0:09, no angles yet](../../public/north-star/fastlane/t009.webp) ![Fastlane 0:14, 5 angles](../../public/north-star/fastlane/t014.webp) |
+| Wizard, format and pace | ![Format and pace 1440](../../public/north-star/dogfood/phase5-wizard-pace-1440.jpg) | ![Format and pace 390](../../public/north-star/dogfood/phase5-wizard-pace-390.jpg) | ![Fastlane 0:21, format and pace](../../public/north-star/fastlane/t021.webp) |
+| Wizard, review and Add | ![Review 1280](../../public/north-star/dogfood/phase5-wizard-review-1280.jpg) | | ![Fastlane 0:23, review](../../public/north-star/fastlane/t023.webp) ![Fastlane 0:28, added](../../public/north-star/fastlane/t028.webp) |
+| Campaign page | ![Campaign 1440](../../public/north-star/dogfood/phase5-campaign-1440.jpg) | ![Campaign 390](../../public/north-star/dogfood/phase5-campaign-390.jpg) | ![Fastlane 0:38, campaign page](../../public/north-star/fastlane/t038.webp) |
+| Queue, a made slideshow | ![Slideshow 1440](../../public/north-star/dogfood/phase5-queue-slideshow-1440.jpg) | ![Slideshow 390](../../public/north-star/dogfood/phase5-queue-slideshow-390.jpg) | ![Fastlane 0:41, post 1 slideshow](../../public/north-star/fastlane/t041.webp) |
+| Queue, a made wall | ![Wall 1440](../../public/north-star/dogfood/phase5-queue-wall-1440.jpg) | ![Wall 390](../../public/north-star/dogfood/phase5-queue-wall-390.jpg) | ![Fastlane 0:45, post 2 wall](../../public/north-star/fastlane/t045.webp) |
+| Queue, an AI video | ![AI video 1440](../../public/north-star/dogfood/phase5-queue-ai-video-1440.jpg) | ![AI video 390](../../public/north-star/dogfood/phase5-queue-ai-video-390.jpg) | ![Fastlane 0:58, post 5 AI video](../../public/north-star/fastlane/t058.webp) |
+
 ## Phase 1 live checks (21 Oct 2026)
 
 Same run as the remixes above. Each item's "ours" in src/data/northStar.ts names what was not yet checked live; the checks below used 6 more text remixes, 2 link reads and 1 picture read on top of the 6 for line 8.
