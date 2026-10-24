@@ -9,9 +9,13 @@ import { addProfile, setActiveProfile } from "./profiles";
 import type { SavedClone } from "./reelClone";
 import {
   TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
-  speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, whoChoices, wordLine, writePlan, type Speaker,
+  scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, videoPrice, whoChoices, wordLine,
+  writePlan, type Speaker,
 } from "./talkingHead";
+import type { VoiceId } from "./textVoice";
+import { planSlices } from "./videoEdit";
 import { aiOf } from "./videoProjects";
+import { MAX_SLICE } from "../../supabase/functions/ai-video/logic.ts";
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
 const usd = (p: ReturnType<typeof talkPrice>) => (p as Price).usd;
@@ -97,6 +101,51 @@ describe("the price of a press", () => {
     expect(needsPriceCheck(2.75, 3.4375)).toBe(true);
     expect(needsPriceCheck(2.75, 2.75)).toBe(false);
     expect(needsPriceCheck(2.75, 1.375)).toBe(false);
+  });
+});
+
+describe("the price of a script before its voiceover exists (live-p5dog day 3: Eric's 46 words ran 18.5 s in three parts, US$3.44 under a US$2.77 card)", () => {
+  // [voice, words, the parts Make cut its voiceover into], from the dogfood's text-voice and ai-video calls on days 1 to 3
+  const MADE: [VoiceId, number, number[]][] = [
+    ["alice", 38, [8.19, 6.3]], ["alice", 38, [7.91, 6.39]], ["alice", 38, [8.61, 6.2]], ["alice", 39, [8.55, 5.43]],
+    ["eric", 46, [8.55, 9.04, 0.893]], ["eric", 48, [8.65, 8.25]],
+  ];
+
+  it("is never under the real parts' price for any make measured, in its own voice", () => {
+    for (const [voice, words, parts] of MADE) expect(scriptEstimate(words, voice).usd).toBeGreaterThanOrEqual(videoPrice(parts).usd);
+    expect(scriptEstimate(46, "eric").usd).toBeCloseTo(55 * 0.0625, 6);
+    // a 15 s script in Alice's voice stays two parts
+    expect(scriptEstimate(38, "alice").usd).toBeCloseTo(44 * 0.0625, 6);
+  });
+
+  it("reads each voice at its slowest measured speed, and a voice not yet measured at the length rule's slow end", () => {
+    expect(scriptSeconds(46, "eric")).toBeGreaterThanOrEqual(18.48);
+    expect(scriptSeconds(38, "alice")).toBeGreaterThanOrEqual(14.81);
+    expect(scriptSeconds(48, "george")).toBe(20);
+    expect(scriptSeconds(200, "eric")).toBe(30);
+  });
+
+  it("covers every place planSlices can cut a voiceover of that length: the earliest, the latest and anywhere between", () => {
+    let seed = 7;
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    // rising loudness puts each cut at the start of its 2 s window, falling at its end
+    const shapes = [(i: number) => i, (i: number) => -i, () => rand()];
+    for (let n = 20; n <= 75; n++) {
+      for (const voice of ["alice", "eric", "george"] as VoiceId[]) {
+        const total = scriptSeconds(n, voice);
+        for (const shape of shapes) {
+          const parts = planSlices(Array.from({ length: Math.ceil(total / 0.02) }, (_, i) => shape(i)), 0.02, total, MAX_SLICE).map((s) => s.end - s.start);
+          expect(scriptEstimate(n, voice).usd).toBeGreaterThanOrEqual(videoPrice(parts).usd);
+        }
+      }
+    }
+  });
+
+  it("is what talkPrice charges for the video when the press carries its script", () => {
+    expect(talkPrice({ length: 15, write: false, presenter: false, script: { words: 46, voice: "eric" } })).toEqual(sumPrices(scriptEstimate(46, "eric"), priceOf("ai-voice")));
+    expect(usd(talkPrice({ length: 15, write: false, presenter: false, script: { words: 46, voice: "eric" } }))).toBeCloseTo(3.46, 2);
+    // with no script the length's estimate stands (the talking head page)
+    expect(talkPrice({ length: 15, write: false, presenter: false })).toEqual(sumPrices(videoEstimate(15), priceOf("ai-voice")));
   });
 });
 

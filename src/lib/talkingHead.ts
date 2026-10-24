@@ -17,7 +17,7 @@ import { sourceKey, type RemixSource } from "@/lib/remixSource";
 import type { SavedClone } from "@/lib/reelClone";
 import type { VoiceId } from "@/lib/textVoice";
 import type { AiMark } from "@/lib/videoProjects";
-import { MAX_AVATAR_SECONDS, type SettingId } from "../../supabase/functions/ai-video/logic.ts";
+import { CUT_WINDOW, MAX_AVATAR_SECONDS, MAX_SLICE, type SettingId } from "../../supabase/functions/ai-video/logic.ts";
 import { MAX_TOPIC, SPEAKING_SECONDS, speakingWords, type SpeakingSeconds } from "../../supabase/functions/remix/logic.ts";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
@@ -75,6 +75,26 @@ export const videoPrice = (slices: number[]) => priceOf("ai-video", { slices }) 
 /** The price check after the voiceover: true only when the real slices cost more than the chip said. */
 export const needsPriceCheck = (estimate: number, real: number) => real > estimate + 1e-9;
 
+/**
+ * Words a second each voice reads a script at: its slowest voiceover at Make so far, rounded down (live-p5dog, Alice
+ * 2.56 to 2.79, Eric 2.48 to 2.84); a voice not yet measured reads at the length rule's slow end (speakingWords' 2.4).
+ */
+const READ_WPS: Partial<Record<VoiceId, number>> = { alice: 2.56, eric: 2.48 };
+/** How long a script's voiceover runs in a voice, before it exists: at most MAX_AVATAR_SECONDS. */
+export const scriptSeconds = (words: number, voice: VoiceId) => Math.min(MAX_AVATAR_SECONDS, Math.max(1, words) / (READ_WPS[voice] ?? 2.4));
+
+/**
+ * The video's estimate from its script, before the voiceover exists: the voiceover's seconds in that voice, cut into
+ * parts the way planSlices can cut speech at the earliest (each part CUT_WINDOW short of MAX_SLICE), priced as the
+ * real parts are (videoPrice), so it is never under what Make's price check charges for the same voiceover.
+ */
+export function scriptEstimate(words: number, voice: VoiceId): Price {
+  const parts: number[] = [];
+  let rest = scriptSeconds(words, voice);
+  for (; rest > MAX_SLICE; rest -= MAX_SLICE - CUT_WINDOW) parts.push(MAX_SLICE - CUT_WINDOW);
+  return videoPrice([...parts, rest]);
+}
+
 /** What one press spends: a script write, a presenter picture, the voiceover and the video, as it stands now. */
 export interface TalkSpend {
   length: TalkLength;
@@ -82,10 +102,17 @@ export interface TalkSpend {
   write: boolean;
   /** The press makes a presenter picture (an AI presenter with none made for this look and setting). */
   presenter: boolean;
+  /** The script it speaks and in which voice, when the card has it: the video is priced from it, not the length. */
+  script?: { words: number; voice: VoiceId };
 }
 
 export const talkPrice = (o: TalkSpend) =>
-  sumPrices(o.write ? priceOf("remix-make") : null, videoEstimate(o.length), priceOf("ai-voice"), o.presenter ? priceOf("ai-image") : null);
+  sumPrices(
+    o.write ? priceOf("remix-make") : null,
+    o.script ? scriptEstimate(o.script.words, o.script.voice) : videoEstimate(o.length),
+    priceOf("ai-voice"),
+    o.presenter ? priceOf("ai-image") : null,
+  );
 
 /** The caps beside ai-video (FormatShell's main cap) that the press spends, so the button is off when any is used up. */
 export const talkCaps = (o: TalkSpend): UsageFeature[] => [...(o.write ? ["remix-make" as const] : []), "ai-voice", ...(o.presenter ? ["ai-image" as const] : [])];

@@ -15,6 +15,7 @@ import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 import { findRetakes } from "@/lib/retakes";
 import { outWithin, segLength, srcWithin, withFast } from "@/lib/fastPauses";
 import { EMOJI } from "../../supabase/functions/video-assist/motion.ts";
+import { CUT_WINDOW } from "../../supabase/functions/ai-video/logic.ts";
 
 export interface Word {
   w: string;
@@ -1760,7 +1761,7 @@ export function waveAt(peaks: number[], t: number, n = 41, perSecond = PEAKS_PER
 
 /**
  * Where to cut a voiceover into Higgsfield Speak slices of at most `max` seconds: each cut is the
- * quietest 20 ms frame in the last 2 seconds before the limit, so a word is rarely split and only
+ * quietest 20 ms frame in the last CUT_WINDOW (2) seconds before the limit, so a word is rarely split and only
  * the final slice runs short (a slice of 4.5 s or less is billed as 5 seconds, not 10).
  * `energy` is the loudness of each `frame`-second frame.
  */
@@ -1768,7 +1769,7 @@ export function planSlices(energy: ArrayLike<number>, frame: number, total: numb
   const out: { start: number; end: number }[] = [];
   let s = 0;
   while (total - s > max) {
-    const lo = Math.ceil((s + max - 2) / frame);
+    const lo = Math.ceil((s + max - CUT_WINDOW) / frame);
     const hi = Math.floor(Math.min(s + max, total - 0.5) / frame) - 1;
     let best = hi;
     for (let i = hi; i >= lo; i--) if ((energy[i] ?? 0) < (energy[best] ?? 0)) best = i;

@@ -46,6 +46,8 @@ export interface TalkAsk {
   caption?: string;
   /** The My posts entry this video is made for (a campaign post): the editor's Save to your post updates it. */
   draftId?: string;
+  /** The video's US$ on the card pressed (a campaign post's or the agent's estimate from its script): the price check stops only above it. */
+  quoted?: number;
 }
 
 export type TalkState = "writing" | "written" | "presenter" | "voice" | "priced" | "video" | "joining" | "done" | "failed";
@@ -215,7 +217,7 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   if (voice.seconds > MAX_AVATAR_SECONDS + 0.5) return fail({ error: tooLongLine(voice.seconds) });
   const ai = aiMark("avatar", sp ?? "generated", a.voice);
   const real = videoPrice(voice.slices.map((s) => s.end - s.start));
-  if (needsPriceCheck(videoEstimate(a.length).usd, real.usd)) {
+  if (needsPriceCheck(a.quoted ?? videoEstimate(a.length).usd, real.usd)) {
     return mine(id, { state: "priced", step: "", face, voice, ai, real: { seconds: voice.seconds, price: real } });
   }
   await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai, a.draftId));

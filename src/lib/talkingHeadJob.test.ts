@@ -206,6 +206,16 @@ describe("a press that stops before Speak is paid for", () => {
     expect(talkJob()?.state).toBe("done");
   });
 
+  it("stops only above the card's own quote when the press carries one (live-p5dog day 3: a US$3.44 card stopped again at US$3.44)", async () => {
+    ai.slice.mockResolvedValue(voiceOf(18.5, [8.55, 9.04, 0.91]));
+    await startTalk("u1", { ...ASK, quoted: 55 * 0.0625 });
+    expect(talkJob()?.state).toBe("done");
+    expect(ai.makeAvatar).toHaveBeenCalledTimes(1);
+    await startTalk("u1", { ...ASK, quoted: 44 * 0.0625 });
+    expect(talkJob()?.state).toBe("priced");
+    expect(ai.makeAvatar).toHaveBeenCalledTimes(1);
+  });
+
   it("stops a voiceover over 30 seconds with the limit's words", async () => {
     ai.slice.mockResolvedValue(voiceOf(34, [9.5, 9.5, 9.5, 5.5]));
     await startTalk("u1", ASK);

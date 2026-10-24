@@ -40,6 +40,8 @@ export const MAX_FIELD = 200;
 
 /** Speak bills the requested 5 or 10 seconds and failed on slices close to the cap, so slices stay under 9.5 s. */
 export const MAX_SLICE = 9.5;
+/** planSlices cuts each slice at the quietest moment in the CUT_WINDOW seconds before MAX_SLICE, so a part can be this much short. */
+export const CUT_WINDOW = 2;
 export const MAX_SLICES = 4;
 export const MAX_AVATAR_SECONDS = 30;
 export const MIN_SCENES = 3;
