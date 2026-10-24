@@ -1284,7 +1284,7 @@ export default function FadsPage() {
   // ============ RENDER HELPERS ============
 
   const renderField = (field: keyof FormData, label: string, placeholder: string, rows = 3) => (
-    <div>
+    <div key={field}>
       <Label htmlFor={field}>{label}</Label>
       {rows <= 1 ? (
         <Input
