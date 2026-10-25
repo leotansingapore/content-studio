@@ -154,9 +154,9 @@ export function clearRemixJob(): void {
   if (job?.state !== "working") emit(null);
 }
 
-/** Starts a run unless one is still going (the sheet keeps its button off then). */
-export function startRemix(userId: string, run: RemixRun): void {
-  if (job?.state === "working") return;
+/** Starts a run unless one is still going (the sheet keeps its button off then, and says which run it is). */
+export function startRemix(userId: string, run: RemixRun): "started" | "busy" {
+  if (job?.state === "working") return "busy";
   const id = ++seq;
   // a video takes minutes, so the text formats come back first
   const ordered = { ...run, as: [...run.as.filter((a) => !isVideo(a)), ...run.as.filter(isVideo)] };
@@ -165,6 +165,7 @@ export function startRemix(userId: string, run: RemixRun): void {
   const step = s ? READING : writingStep(ordered.as[0]);
   emit({ id, key: s?.key ?? "", state: "working", step, rows: ordered.as.map((a) => ({ as: a, state: "waiting" })), run: { keep, about, close, mention, offer, as, ...(run.agent ? { agent: run.agent } : {}) } });
   void runRows(id, userId, ordered);
+  return "started";
 }
 
 function patch(id: number, i: number, row: Partial<RemixRow>) {

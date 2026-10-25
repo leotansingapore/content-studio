@@ -176,9 +176,9 @@ describe("startRemix", () => {
     let release!: (v: MakeResponse) => void;
     make.mockReturnValue(new Promise((r) => (release = r)));
     const done = finished();
-    startRemix(UID, run(["post"]));
+    expect(startRemix(UID, run(["post"]))).toBe("started");
     const first = remixJob()!.id;
-    startRemix(UID, run(["carousel"], { source: { ...source, key: "ad:other" } }));
+    expect(startRemix(UID, run(["carousel"], { source: { ...source, key: "ad:other" } }))).toBe("busy");
     expect(remixJob()).toMatchObject({ id: first, key: "ad:123" });
     release(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
     await done;
