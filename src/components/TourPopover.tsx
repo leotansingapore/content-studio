@@ -21,12 +21,19 @@ import {
 } from "@/lib/tour";
 
 // The agent's tour (north star agent-tour, Leo only), mounted once in StudioLayout. The page stays usable under it:
-// no backdrop, below the dock, and the body gets room at the bottom so nothing on a page stays hidden behind it.
-// On its step's page it shows the step; anywhere else, or after Esc, a pill to resume or skip.
+// no backdrop, below the dock's button, and the body gets room at the bottom so nothing on a page stays hidden behind it.
+// On its step's page it shows the step; anywhere else, or after Esc, a pill to resume or skip. While the dock's panel is
+// open (html[data-agent-dock]) it sits above the panel, so Next and Skip always take a press (live-p6replay D9): left of
+// the panel on wide screens, and over the panel's messages, clear of its composer, on phones.
 
 const TOTAL = TOUR_STEPS.length;
 // bottom centre of the content area; 144 px up on phones clears the bottom nav and the dock's button
-const PLACE = "fixed inset-x-0 z-[45] mx-auto bottom-[144px] lg:bottom-6 lg:left-[var(--nav-w)]";
+const PLACE = cn(
+  "fixed inset-x-0 z-[45] mx-auto bottom-[144px] lg:bottom-6 lg:left-[var(--nav-w)]",
+  "[html[data-agent-dock]_&]:z-[61] [html[data-agent-dock]_&]:bottom-[196px] lg:[html[data-agent-dock]_&]:bottom-6",
+  // the panel is 400 px wide, 20 px in from the right: the popover centres in what is left, and narrows to fit
+  "lg:[html[data-agent-dock]_&]:right-[436px] lg:[html[data-agent-dock]_&]:max-w-[min(520px,calc(100vw-var(--nav-w)-452px))]",
+);
 const bottomGap = () => (window.innerWidth >= 1024 ? 24 : 144);
 const RING = ["ring-2", "ring-primary", "ring-offset-4", "ring-offset-background", "rounded-lg"];
 const RINGED = "data-tour-ring";

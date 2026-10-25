@@ -40,6 +40,12 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
       setNavigate(null);
     };
   }, [id, name, email, navigate]);
+  // the open panel says so on <html>, so the tour's popover and pill move clear of it (live-p6replay D9, TourPopover)
+  useEffect(() => {
+    if (!open || ownComposer(pathname)) return;
+    document.documentElement.dataset.agentDock = "open";
+    return () => void delete document.documentElement.dataset.agentDock;
+  }, [open, pathname]);
   useEffect(() => {
     if (!open) return;
     // an Esc the composer used (closing its slash menu) leaves the dock open
