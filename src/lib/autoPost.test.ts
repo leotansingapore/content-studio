@@ -215,6 +215,41 @@ describe("the status chip", () => {
   });
 });
 
+// Pins (phase 7a post-libs): today's answers on fixed inputs, so the draft and inbox changes keep them.
+describe("pins: the chip and the link as they read before inbox drafts", () => {
+  it("names every status Zernio sends", () => {
+    const at = "2026-10-14T01:30:00.000Z";
+    const rows = ["draft", "scheduled", "publishing", "published", "partial", "failed", "cancelled", "unknown", undefined].map((status) => [status, chipOf({ key: "k", postId: "p", status, at })]);
+    expect(rows).toEqual([
+      ["draft", { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
+      ["scheduled", { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
+      ["publishing", { label: "Posting", tone: "wait" }],
+      ["published", { label: "Posted", tone: "good" }],
+      ["partial", { label: "Partly posted", tone: "bad" }],
+      ["failed", { label: "Failed", tone: "bad" }],
+      ["cancelled", { label: "Cancelled", tone: "muted" }],
+      ["unknown", { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
+      [undefined, { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
+    ]);
+  });
+
+  it("reads a one-network post the same way, a TikTok photo post with no link and two accounts on one network included", () => {
+    expect(linkFromView("k1", { id: "p1", status: "published", scheduledFor: null, platforms: [{ platform: "tiktok", accountId: "t", status: "published", url: null, error: "" }] })).toEqual({ key: "k1", postId: "p1", status: "published" });
+    expect(linkFromView("k2", { id: "p2", status: "scheduled", scheduledFor: "2026-10-20T01:00:00.000Z", platforms: [{ platform: "instagram", accountId: "a", status: "pending", url: null, error: "" }] })).toEqual({ key: "k2", postId: "p2", status: "scheduled", at: "2026-10-20T01:00:00.000Z" });
+    expect(
+      linkFromView("k3", {
+        id: "p3",
+        status: "published",
+        scheduledFor: "2026-10-20T01:00:00.000Z",
+        platforms: [
+          { platform: "instagram", accountId: "a", status: "published", url: "https://www.instagram.com/p/a/", error: "" },
+          { platform: "instagram", accountId: "b", status: "published", url: "http://insecure.example/b", error: "" },
+        ],
+      }),
+    ).toEqual({ key: "k3", postId: "p3", status: "published", at: "2026-10-20T01:00:00.000Z", links: [{ platform: "instagram", url: "https://www.instagram.com/p/a/" }] });
+  });
+});
+
 describe("tracked links in the post", () => {
   const brand = { color: "#000", name: "", handle: "", signOff: "Book a call: https://acme.sg/call", tagLinks: true };
   const d = { draft: "Read https://acme.sg/guide.", disclosure: [], platform: "linkedin", hook: "Three CPF checks before 55", pillarDetail: "Retirement" };

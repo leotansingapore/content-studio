@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DAY_SETS, GOAL_DAYS, addSlots, monFirst, openSlots, slotDaysLabel, slotsForGoal, slotsOn } from "./postingSlots";
+import { suggestPostingTime } from "./analytics";
 
 // 2026-10-14 is a Wednesday (Mon-first weekday 2).
 const SLOTS = ["0T08:30", "2T08:30", "2T19:30", "4T12:00"];
@@ -52,6 +53,31 @@ describe("openSlots", () => {
 
   it("returns nothing without slots", () => {
     expect(openSlots([], [], morning, 14)).toEqual([]);
+  });
+});
+
+// Pins (phase 7a post-libs): today's answers on fixed inputs, before nextOpenSlots and fillSlots build on them.
+describe("pins: open slots and the next slot as they read before per-network times", () => {
+  const morning = new Date(2026, 9, 14, 7, 0); // Wed 07:00
+
+  it("openSlots over two weeks with exact, day-only, board and other-time posts", () => {
+    const taken = ["2026-10-14T08:30", "2026-10-16", "2026-10-19T01:00:00.000Z", "2026-10-21T10:00", "2026-10-23T12:00"];
+    expect(openSlots(SLOTS, taken, morning, 14)).toEqual([
+      { date: "2026-10-14", time: "19:30" },
+      { date: "2026-10-21", time: "08:30" },
+      { date: "2026-10-21", time: "19:30" },
+      { date: "2026-10-26", time: "08:30" },
+    ]);
+  });
+
+  it("suggestPostingTime's slot answers that stay when its slot branch moves to nextOpenSlots", () => {
+    // nothing scheduled: the first slot at least 2 hours away (Wed 08:30 is 90 minutes off)
+    expect(suggestPostingTime([], "linkedin", [], morning, SLOTS)).toEqual({ at: "2026-10-14T19:30", why: "slot" });
+    expect(suggestPostingTime([], "instagram", [], new Date(2026, 9, 14, 20, 0), SLOTS)).toEqual({ at: "2026-10-16T12:00", why: "slot" });
+    // Friday's one slot taken: the next Monday
+    expect(suggestPostingTime([], "linkedin", ["2026-10-16T12:00"], new Date(2026, 9, 15, 9, 0), SLOTS)).toEqual({ at: "2026-10-19T08:30", why: "slot" });
+    // no usable slots: the results fallback
+    expect(suggestPostingTime([], "instagram", [], morning, [])).toEqual({ at: "2026-10-14T19:30", why: "common" });
   });
 });
 
