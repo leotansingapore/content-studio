@@ -632,6 +632,15 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
                   )}
                 </div>
               )}
+              {/* Leo, same edit: an uploaded video's read rebuilds its edit (the page asks for the same file again) */}
+              {leo && source.kind === "upload" && source.format === "video" && (
+                <Link
+                  to={links.makeFormat("same-edit", { source: source.key })}
+                  className="inline-flex items-center py-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+                >
+                  Rebuild this edit
+                </Link>
+              )}
               {repeat && !mine && (
                 <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
                   You remixed this on {dayMonth(repeat.at)}.

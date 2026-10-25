@@ -41,7 +41,11 @@ vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
-vi.mock("@/lib/resolveSource", () => ({ resolveSource: (key: string) => (key === as.key ? as.source : key === "ad:9" ? { ...as.source, key, title: "Save $12,000 a year with us" } : null) }));
+vi.mock("@/lib/resolveSource", () => ({
+  resolveSource: (key: string) => (key === as.key ? as.source : key === "ad:9" ? { ...as.source, key, title: "Save $12,000 a year with us" } : null),
+  // an upload's or a clone's words are read from the device's linked sources
+  loadLinkedSources: () => [],
+}));
 vi.mock("@/lib/remixJob", async (actual) => ({ ...(await actual<typeof import("@/lib/remixJob")>()), remixJob: () => as.job }));
 vi.mock("@/lib/aiUsage", async (actual) => ({ ...(await actual<typeof import("@/lib/aiUsage")>()), useUsesLeft: () => (f: string) => as.left[f] ?? null }));
 // the sheet portals to document.body, which node has no part of
@@ -173,5 +177,38 @@ describe("the Remix sheet for Leo", () => {
     expect(html()).toContain("Your remix of &quot;Save $12,000 a year with us&quot; is still being made.");
     as.user = null;
     expect(html()).toContain("Your other remix is still going. This one can start once it&#x27;s done.");
+  });
+});
+
+describe("Rebuild this edit on an upload's read (remix-format-clone, Leo only)", () => {
+  const LINK = /<a [^>]*href="\/make\/same-edit\?source=upload%3Aab12cd"[^>]*>Rebuild this edit<\/a>/;
+  const read = (format: string, kind = "upload") => {
+    const was = { key: as.key, source: as.source };
+    as.key = kind === "upload" ? "upload:ab12cd" : "clone:instagram:C1";
+    as.source = { ...as.source, key: as.key, kind, format, title: "My reel", caption: "My reel" };
+    return () => Object.assign(as, was);
+  };
+
+  it("links an uploaded video's read to the same edit page, and nothing else gets the link", () => {
+    const back = read("video");
+    try {
+      as.user = { id: "u1", email: "leo@example.com" };
+      expect(html()).toMatch(LINK);
+      as.user = null;
+      expect(html()).not.toContain("Rebuild this edit");
+      as.user = undefined;
+      expect(html()).not.toContain("Rebuild this edit");
+    } finally {
+      back();
+    }
+    for (const [format, kind] of [["image", "upload"], ["video", "clone"]] as const) {
+      const undo = read(format, kind);
+      try {
+        as.user = { id: "u1", email: "leo@example.com" };
+        expect(html()).not.toContain("Rebuild this edit");
+      } finally {
+        undo();
+      }
+    }
   });
 });
