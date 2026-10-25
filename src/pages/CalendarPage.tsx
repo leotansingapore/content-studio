@@ -20,7 +20,7 @@ import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { brandOf, checkMe, igHandle, isCarousel, loadConnectedIg, seesBoard, sharedBoard } from "@/lib/reelsBoard";
 import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
-import { openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
+import { fillSlots, openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { loadGoals, saveGoals, setPlatformGoal, weekProgress } from "@/lib/goals";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
@@ -527,6 +527,15 @@ export default function CalendarPage() {
     for (const o of openSlots(slots, taken, new Date(), 42)) map.set(o.date, [...(map.get(o.date) ?? []), o.time]);
     return map;
   }, [slots, taken]);
+  // Fill open slots (Leo, publish-queue): unscheduled drafts into the next 14 days' open slots, oldest first, each on its
+  // own network's times. It sets times only; a post Zernio holds is left alone (its cancel may still be waiting).
+  const fillOpen = !!leo && params.get("fill") === "1";
+  const fill = useMemo(() => {
+    if (!leo || !userId || !unscheduled.length) return null;
+    const slotsBy = loadBrand(userId)?.slotsBy;
+    const scheduled = drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor);
+    return fillSlots(unscheduled.filter((d) => !d.zernio?.postId), { slots, slotsBy }, scheduled, new Date());
+  }, [leo, userId, unscheduled, drafts, slots]);
   // Slots are the open profile's own posting times: shown with its posts, never under Posted.
   const slotsOn = showSlots && slots.length > 0 && platform === "all" && status !== "posted";
   const nextSlotThisWeek = useMemo(() => {
@@ -761,6 +770,91 @@ export default function CalendarPage() {
         </ToastAction>
       ),
     });
+  };
+
+  // "Tue 21 Oct to Mon 27 Oct", or one day; and "1 draft" or "6 drafts".
+  const spanLabel = (ats: string[]) => {
+    const days = ats.map((a) => a.slice(0, 10)).sort();
+    return days[0] === days[days.length - 1] ? dayLabel(days[0]) : `${dayLabel(days[0])} to ${dayLabel(days[days.length - 1])}`;
+  };
+  const draftsWord = (n: number) => `${n} draft${n === 1 ? "" : "s"}`;
+  const closeFill = () => update({ fill: null });
+  // Schedules every placed draft at its slot; Undo puts every one back in drafts.
+  const fillNow = () => {
+    if (!userId || !fill?.placed.length) return;
+    const before = fill.placed.flatMap((p) => drafts.filter((d) => d.id === p.draftId));
+    let next = drafts;
+    for (const p of fill.placed) next = setDraftStatus(userId, p.draftId, "scheduled", p.at);
+    setDrafts(next);
+    closeFill();
+    toast({
+      title: `${draftsWord(fill.placed.length)} scheduled, ${spanLabel(fill.placed.map((p) => p.at))}.`,
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            let back = loadDrafts(userId);
+            for (const d of before) back = restoreDraft(userId, d);
+            setDrafts(back);
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  // The preview in place of the button: each draft with its network and slot, what didn't fit, Cancel and Fill slots.
+  const brandKitLink = (
+    <Link to="/brand#posting-times" className="font-semibold text-primary hover:underline">
+      Add times in Brand kit.
+    </Link>
+  );
+  const fillPreview = (f: NonNullable<typeof fill>) => {
+    const leftBy = new Map<string, number>();
+    for (const l of f.left) leftBy.set(l.platform, (leftBy.get(l.platform) ?? 0) + 1);
+    return (
+      <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2 text-xs">
+        {f.placed.length > 0 ? (
+          <>
+            <p className="font-semibold text-foreground">
+              Put {draftsWord(f.placed.length)} into open slot{f.placed.length === 1 ? "" : "s"}, {spanLabel(f.placed.map((p) => p.at))}?
+            </p>
+            <ul className="max-h-48 space-y-1.5 overflow-y-auto">
+              {f.placed.map((p) => {
+                const d = drafts.find((x) => x.id === p.draftId);
+                return d ? (
+                  <li key={p.draftId} className="min-w-0">
+                    <span className="block truncate font-medium text-foreground">"{titleOf(d)}"</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {PLATFORM_LABEL[d.platform] ?? d.platform} · {whenLabel(p.at)}
+                    </span>
+                  </li>
+                ) : null;
+              })}
+            </ul>
+          </>
+        ) : (
+          <p className="text-muted-foreground">No open slots in the next 14 days. {brandKitLink}</p>
+        )}
+        {f.placed.length > 0 &&
+          [...leftBy].map(([p, n]) => (
+            <p key={p} className="text-muted-foreground">
+              {draftsWord(n)} didn't fit: no open {PLATFORM_LABEL[p] ?? p} slot in the next 14 days. {brandKitLink}
+            </p>
+          ))}
+        <div className="flex justify-end gap-2">
+          <Button type="button" size="sm" variant="ghost" onClick={closeFill} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+            Cancel
+          </Button>
+          {f.placed.length > 0 && (
+            <Button type="button" size="sm" onClick={fillNow} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+              Fill slots
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   // Takes the post off the calendar: it waits in Unscheduled drafts. Undo puts it back on its day.
@@ -1762,12 +1856,24 @@ export default function CalendarPage() {
                   <ChevronDown className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`} />
                 </button>
                 <div
-                  className={`${panelOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}
+                  className={`${panelOpen || fillOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}
                 >
                   <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
                     Unscheduled drafts ({unscheduled.length})
                     <InfoTip label="About unscheduled drafts">Drag one onto a day, or pick its date.</InfoTip>
                   </p>
+                  {fill && fill.placed.length > 0 && !fillOpen && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => update({ fill: "1" }, { push: true })}
+                      className="h-9 w-full gap-1.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
+                    >
+                      <CalendarClock className="h-3.5 w-3.5" /> Fill {fill.placed.length} open slot{fill.placed.length === 1 ? "" : "s"}
+                    </Button>
+                  )}
+                  {fillOpen && fill && fillPreview(fill)}
                   <div className="max-h-[60vh] space-y-2 overflow-y-auto">
                     {unscheduled.map((d) => (
                       <div
