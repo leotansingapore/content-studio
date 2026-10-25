@@ -62,6 +62,9 @@ import {
   onDraftsChanged,
 } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { currentScore } from "@/lib/postScore";
+import { numbersJob, numbersLine, onNumbers, refreshIfStale, refreshNumbers, unlinkPost, type NumbersJob } from "@/lib/realNumbers";
+import { timeAgo } from "@/lib/accountAudit";
 import { zernioHolds } from "@/lib/zernioOutbox";
 import { undoTo, updating, useOutbox } from "@/lib/useZernioOutbox";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
@@ -74,7 +77,7 @@ import { loadPositioning } from "@/lib/positioning";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 import PreviewLinkPanel from "@/components/review/PreviewLinkPanel";
 import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
-import { socialConnectShown } from "@/lib/socialConnect";
+import { platformName, socialConnectShown } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { LANG_NAMES, langOf } from "@/lib/translate";
 import { LANGS, versionsOf } from "@/lib/translateJob";
@@ -200,6 +203,9 @@ const whenLabel = (at: string) => {
   const time = scheduleTime(at);
   return `${dayLabel(at.slice(0, 10))}${time ? `, ${timeLabel(time)}` : ""}`;
 };
+const titleOf = (d: DraftEntry) => (d.hook || d.draft).replace(/\s+/g, " ").trim().slice(0, 80) || "Untitled post";
+// Write's score colours (GeneratePage's Predicted engagement)
+const scoreTone = (v: number) => (v >= 7.5 ? "bg-success/15 text-success" : v >= 5 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning");
 
 export default function DraftsPage() {
   const { toast } = useToast();
@@ -275,6 +281,51 @@ export default function DraftsPage() {
 
   // ---- Leo's phase 7 parts; every other sign-in keeps today's page and calls ----
   const box = useOutbox(userId);
+  // Real numbers (learn-real-numbers): pulled on open when the last pull is over 6 hours old, by the job outside
+  // React; the header chip follows it, and a link it made by itself gets a toast with Undo while this page is open.
+  const [job, setJob] = useState<NumbersJob | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [typing, setTyping] = useState<string[]>([]);
+  const numbersOn = !!leo && !!userId && socialConnectShown();
+  useEffect(() => {
+    if (!numbersOn || !userId) return;
+    let last = numbersJob(userId).at;
+    const read = () => {
+      const j = numbersJob(userId);
+      setJob(j);
+      setDrafts(loadDrafts(userId));
+      if (j.running || !j.at || j.at === last) return;
+      last = j.at;
+      setUpdatedAt(j.at);
+      const linked = j.linked.flatMap((l) => loadDrafts(userId).filter((d) => d.id === l.draftId));
+      if (!linked.length) return;
+      toast({
+        title: linked.length === 1 ? `Numbers linked to "${titleOf(linked[0])}"` : `Numbers linked to ${linked.length} posts`,
+        action: (
+          <ToastAction
+            altText="Undo"
+            onClick={() => {
+              for (const d of linked) unlinkPost(userId, d.id);
+              setDrafts(loadDrafts(userId));
+            }}
+          >
+            Undo
+          </ToastAction>
+        ),
+      });
+    };
+    const off = onNumbers(read);
+    setJob(numbersJob(userId));
+    refreshIfStale(userId);
+    return off;
+  }, [numbersOn, userId, toast]);
+  // "Updated {time}" stays in the chip's place for 3 seconds
+  useEffect(() => {
+    if (!updatedAt) return;
+    const t = setTimeout(() => setUpdatedAt(null), 3000);
+    return () => clearTimeout(t);
+  }, [updatedAt]);
+
   // The schedule steps (publish-schedule) live in the URL for Leo: ?schedule=<post id> (push), with the steps' own
   // ?step= and ?network= (replace). A post that is out, or already with Zernio, never opens them.
   const scheduleParam = leo ? params.get("schedule") : null;
@@ -466,12 +517,54 @@ export default function DraftsPage() {
     });
   };
 
+  // "Numbers from your Instagram post": Unlink clears the link, and the matcher never links that post again
+  const unlink = (prev: DraftEntry) => {
+    if (!userId) return;
+    unlinkPost(userId, prev.id);
+    setDrafts(loadDrafts(userId));
+    toast({
+      title: "Unlinked",
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(restoreDraft(userId, prev))}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  // The header chip while the numbers job runs, for 3 seconds after it lands, and when it couldn't run
+  const chip = "inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium";
+  const numbersChip = (j: NumbersJob) => {
+    if (j.running)
+      return (
+        <span className={`${chip} border-border/60 bg-muted/40 text-muted-foreground`}>
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> Updating your numbers...
+        </span>
+      );
+    if (j.error) {
+      // no analytics on the plan (402) and the daily cap (429) say it in the server's words; anything else can retry
+      const own = j.error.status === 402 || j.error.status === 429;
+      return (
+        <span className={`${chip} border-warning/40 bg-warning/10 text-warning`}>
+          {own ? j.error.message : "Couldn't update your numbers."}
+          {!own && userId && (
+            <button type="button" onClick={() => void refreshNumbers(userId)} className="font-semibold underline-offset-2 hover:underline [@media(pointer:coarse)]:min-h-11">
+              Try again
+            </button>
+          )}
+        </span>
+      );
+    }
+    return updatedAt ? <span className={`${chip} border-border/60 text-muted-foreground`}>Updated {timeAgo(updatedAt)}</span> : null;
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           All posts
         </h1>
+        {job && <span aria-live="polite" className="mr-auto">{numbersChip(job)}</span>}
         {!importOpen && userId && (
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <Upload className="h-3.5 w-3.5" /> Import CSV
@@ -638,6 +731,11 @@ export default function DraftsPage() {
                   : s === "scheduled"
                     ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border/60 bg-muted/40 text-muted-foreground";
+            // Leo: the saved score while the text is the one scored (edit-score), and the real numbers on a posted post,
+            // from Zernio or a hand-linked post (learn-real-numbers): null or all zeros read "No numbers yet"
+            const score = leo ? currentScore(d) : null;
+            const real = leo && s === "posted" ? (d.zernio?.numbers ?? d.live?.numbers ?? (d.live ? null : undefined)) : undefined;
+            const realLine = real ? numbersLine(real, ["views", "reach", "likes", "comments", "shares", "saves"]) : "";
             return (
               <div
                 key={d.id}
@@ -657,6 +755,15 @@ export default function DraftsPage() {
                       {tag}
                     </span>
                   ))}
+                  {score && (
+                    <Link
+                      to={links.generate({ draft: d.id, section: "score" })}
+                      aria-label={`Predicted engagement ${score.v.toFixed(1)} out of 10`}
+                      className={`inline-flex min-h-6 items-center rounded-full px-2 text-[10px] font-bold [@media(pointer:coarse)]:min-h-11 ${scoreTone(score.v)}`}
+                    >
+                      {score.v.toFixed(1)}/10
+                    </Link>
+                  )}
                   <span className="ml-auto text-[10px] text-muted-foreground">
                     {ts.toLocaleString()}
                   </span>
@@ -703,7 +810,31 @@ export default function DraftsPage() {
                     />
                   </label>
                 )}
-                {s === "posted" && (
+                {real !== undefined && (
+                  <div className="mb-3 space-y-1 text-[11px]">
+                    <p className="flex flex-wrap items-center gap-x-2 text-foreground">
+                      <span>{realLine && real ? `${realLine}. Updated ${timeAgo(real.at)}` : "No numbers yet"}</span>
+                      {!typing.includes(d.id) && (
+                        <button
+                          type="button"
+                          onClick={() => setTyping((t) => [...t, d.id])}
+                          className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+                        >
+                          Type my own
+                        </button>
+                      )}
+                    </p>
+                    {d.live && (
+                      <p className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
+                        Numbers from your {platformName(d.live.platform)} post
+                        <button type="button" onClick={() => unlink(d)} className="font-semibold text-foreground hover:underline [@media(pointer:coarse)]:min-h-11">
+                          Unlink
+                        </button>
+                      </p>
+                    )}
+                  </div>
+                )}
+                {s === "posted" && (real === undefined || typing.includes(d.id)) && (
                   <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(
                       [
