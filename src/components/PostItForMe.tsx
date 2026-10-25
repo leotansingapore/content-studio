@@ -15,19 +15,16 @@ import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
 import { checkLimits, type PlatformId } from "@/lib/platformCounters";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName, socialStatus, type AccountView } from "@/lib/socialConnect";
-import { DEFAULT_BRAND, loadBrand, loadCarousels, slugify, type SavedCarousel } from "@/lib/carousel";
-import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
-import { createCanvasMeasure, svgToJpeg, svgToPng } from "@/lib/carouselRender";
+import { loadBrand, loadCarousels, type SavedCarousel } from "@/lib/carousel";
+import { svgToPng } from "@/lib/carouselRender";
 import { SLIDE_SIZES, slideImage } from "@/lib/carouselDesigns";
-import { buildPdf } from "@/lib/pdf";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { getFile } from "@/lib/deviceFiles";
 import { draftStatus, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { scheduleTime } from "@/lib/dueDates";
-import { logActivity } from "@/lib/activity";
-import { links } from "@/lib/links";
+import { ScheduleSteps, carouselPdf, carouselSvgs, logPost } from "@/components/ScheduleSteps";
 import {
   CAPTION_MAX,
   MAX_PICTURES,
@@ -45,11 +42,13 @@ import {
   mediaKind,
   platformProblem,
   postText,
+  postedNow,
   readPost,
   retryPost,
   cancelPost,
   schedulePost,
   tiktokInfo,
+  tiktokReason,
   uploadAll,
   whenLabel,
   zernioTime,
@@ -65,33 +64,6 @@ const pill = (on: boolean) =>
     on ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
   }`;
 
-/** The draft's own carousel slides as SVGs, drawn the way Carousel draws them, in its design and size. */
-async function carouselSvgs(userId: string, c: SavedCarousel): Promise<string[]> {
-  const brand = loadBrand(userId) ?? DEFAULT_BRAND;
-  const measure = createCanvasMeasure();
-  const pictures: Record<string, string> = {};
-  for (const s of c.slides) {
-    if (!s.image || pictures[s.image]) continue;
-    const blob = await getFile(s.image).catch(() => undefined);
-    if (blob) {
-      pictures[s.image] = await new Promise<string>((resolve) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
-        r.onerror = () => resolve("");
-        r.readAsDataURL(blob);
-      });
-    }
-  }
-  return c.slides.map((s, i) =>
-    renderSvg(
-      layoutSlide(
-        { title: s.title, body: s.body, index: i, total: c.slides.length, brand, image: s.image ? pictures[s.image] || undefined : undefined, align: c.align, scale: c.scale, font: c.font, paper: c.paper, design: c.design, size: c.size },
-        measure,
-      ),
-    ),
-  );
-}
-
 /** The draft's own carousel slides as PNGs (a 4:5 one exactly as before). */
 async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile[]> {
   const out: MediaFile[] = [];
@@ -101,30 +73,12 @@ async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile
   return out;
 }
 
-/** The draft's own carousel as one PDF, a LinkedIn document (Leo only). */
-async function carouselPdf(userId: string, c: SavedCarousel): Promise<MediaFile> {
-  const { width, height } = SLIDE_SIZES[c.size ?? "4x5"];
-  const pages = [];
-  for (const svg of await carouselSvgs(userId, c)) {
-    const jpeg = c.size ? new Uint8Array(await (await slideImage(svg, c.size, "image/jpeg", 0.92)).arrayBuffer()) : await svgToJpeg(svg);
-    pages.push({ jpeg, width, height });
-  }
-  return { file: new Blob([buildPdf(pages)], { type: PDF_TYPE }), name: `${slugify(c.title)}.pdf`, type: PDF_TYPE };
-}
-
-/** One Activity row about the post: Leo's sessions only, since logActivity does nothing until his session turns it on. */
-function logPost(userId: string, d: DraftEntry, title: (name: string) => string, detail?: string) {
-  const hook = d.hook.replace(/\s+/g, " ").trim() || "Untitled";
-  const name = `"${hook.length > 70 ? `${hook.slice(0, 67).trimEnd()}...` : hook}"`;
-  logActivity(userId, { who: "you", kind: "post", title: title(name), ...(detail ? { detail } : {}), link: links.calendar({ post: d.id }) });
-}
-
-/** What Zernio said about the post, onto the draft; a published post marks the draft posted. */
+/** What Zernio said about the post, onto the draft; a live post marks the draft posted (a TikTok inbox draft is not live). */
 function applyView(userId: string, d: DraftEntry, view: PostView): DraftEntry[] {
   // real numbers pulled on Analytics stay until the next pull
   const numbers = d.zernio?.numbers;
   let next = setDraftZernio(userId, d.id, { ...linkFromView(d.zernio!.key, view), ...(numbers ? { numbers } : {}) });
-  if (view.status === "published" && draftStatus(d) !== "posted") next = setDraftStatus(userId, d.id, "posted");
+  if (postedNow(view) && draftStatus(d) !== "posted") next = setDraftStatus(userId, d.id, "posted");
   return next;
 }
 
@@ -164,7 +118,7 @@ const DOT = { wait: "bg-primary", good: "bg-success", bad: "bg-destructive", mut
 
 /** The small chip alone (calendar cards); compact is a coloured dot for the month grid's one-line cards. */
 export function ZernioChipLabel({ draft, compact }: { draft: DraftEntry; compact?: boolean }) {
-  const chip = chipOf(draft.zernio);
+  const chip = chipOf(draft.zernio, draftStatus(draft) === "posted");
   if (!chip) return null;
   if (compact) {
     return (
@@ -189,8 +143,10 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
   const [busy, setBusy] = useState<"read" | "retry" | "cancel" | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState("");
+  const leo = useLeoUser();
   const link = draft.zernio;
-  const chip = chipOf(link);
+  const posted = draftStatus(draft) === "posted";
+  const chip = chipOf(link, posted);
   if (!chip || !link?.postId) return null;
   const profileId = activeProfileId(userId);
 
@@ -248,13 +204,18 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
               {lines.map((p, i) => (
                 <li key={`${p.accountId}-${i}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <span className="font-semibold text-foreground">{platformName(p.platform)}</span>
-                  <span className="text-muted-foreground">{p.status === "published" ? "Posted" : p.status === "failed" ? "Failed" : p.status === "cancelled" ? "Removed" : "Waiting"}</span>
+                  <span className="text-muted-foreground">{p.draft && p.status === "published" ? "In your inbox" : p.status === "published" ? "Posted" : p.status === "failed" ? "Failed" : p.status === "cancelled" ? "Removed" : "Waiting"}</span>
+                  {p.draft && p.status === "published" && !posted && (
+                    <button type="button" onClick={() => onDrafts(setDraftStatus(userId, draft.id, "posted"))} className={`font-semibold text-primary hover:underline ${TOUCH}`}>
+                      Mark posted
+                    </button>
+                  )}
                   {p.url && (
                     <a href={p.url} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 font-semibold text-primary hover:underline ${TOUCH}`}>
                       View post <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
-                  {p.error && <span className="w-full text-destructive">{p.error}</span>}
+                  {p.error && <span className="w-full text-destructive">{leo && p.platform === "tiktok" ? tiktokReason(p.error) : p.error}</span>}
                 </li>
               ))}
             </ul>
@@ -370,8 +331,9 @@ export function PostItForMePanel({
   const key = useRef(draft.zernio && !draft.zernio.postId ? draft.zernio.key : crypto.randomUUID());
 
   useEffect(() => {
-    // Calendar renders its editor twice (phone and desktop): only the copy on screen asks
+    // Calendar renders its editor twice (phone and desktop): only the copy on screen asks; Leo's steps ask for themselves
     if (root.current && root.current.offsetParent === null) return;
+    if (leo === undefined || (leo && !thread)) return;
     let live = true;
     socialStatus(profileId)
       .then((s) => {
@@ -385,7 +347,7 @@ export function PostItForMePanel({
     return () => {
       live = false;
     };
-  }, [profileId, platform]);
+  }, [profileId, platform, leo, thread]);
 
   // stand-in links with each file's own ending, so the same platform rules as the server's apply here
   const mediaUrls =
@@ -419,6 +381,9 @@ export function PostItForMePanel({
       live = false;
     };
   }, [profileId, tiktokId, video]);
+
+  // Leo's sign-ins get the schedule steps (publish-schedule); a thread keeps this panel, Threads only
+  if (leo && !thread) return <ScheduleSteps userId={userId} draft={draft} blockReason={blockReason} onDrafts={onDrafts} onClose={onClose} />;
 
   const day = draft.scheduledFor?.slice(0, 10) ?? "";
   const at = zernioTime(draft.scheduledFor, time);

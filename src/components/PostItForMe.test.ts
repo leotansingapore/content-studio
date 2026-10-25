@@ -321,3 +321,30 @@ describe("Post it for me in Leo's Activity", () => {
     ]);
   });
 });
+
+describe("a TikTok inbox draft (publish-tiktok)", () => {
+  const inbox = { ...dated, platform: "tiktok", zernio: { key: "k1", postId: "zp1", status: "scheduled" } };
+  const sent = { id: "zp1", status: "published", scheduledFor: "2030-01-15T01:00:00.000Z", platforms: [{ platform: "tiktok", accountId: "tt1", status: "published", draft: true }] };
+
+  it("reading it back keeps it unposted, the chip says it waits in the inbox, and Mark posted marks it posted", async () => {
+    local.setItem(DRAFTS, JSON.stringify([inbox]));
+    fn.answers.post = () => ({ post: sent });
+    const onDrafts = vi.fn();
+    const props = { userId: UID, draft: inbox, onDrafts };
+    button(await draw(ZernioStatus, props), (w) => w.startsWith("Scheduled")).props.onClick!();
+    await settle();
+    const saved = (onDrafts.mock.calls[0][0] as DraftEntry[])[0];
+    expect(saved.status).toBe("scheduled");
+    expect(saved.zernio).toEqual({ key: "k1", postId: "zp1", status: "published", at: "2030-01-15T01:00:00.000Z", drafts: ["tiktok"] });
+
+    const after = { ...props, draft: saved };
+    const tree = await draw(ZernioStatus, after);
+    expect(text(tree)).toContain("In your TikTok inbox");
+    expect(text(tree)).toContain("In your inbox");
+    button(tree, (w) => w === "Mark posted").props.onClick!();
+    const marked = (onDrafts.mock.calls.at(-1)![0] as DraftEntry[])[0];
+    expect(marked.status).toBe("posted");
+    expect(text(await draw(ZernioStatus, { ...after, draft: marked }))).not.toContain("Mark posted");
+    expect(fn.calls.map((c) => c.action)).toEqual(["post"]);
+  });
+});
