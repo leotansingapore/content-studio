@@ -213,6 +213,8 @@ const span = (ats: string[], label = dayLabel) => {
 };
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const titleOf = (d: DraftEntry) => (d.hook || d.draft).replace(/\s+/g, " ").trim().slice(0, 80) || "Untitled post";
+/** A toast on screen with an action (an Undo), which a new toast would replace. */
+export const undoOnScreen = (toasts: { open?: boolean; action?: unknown }[]) => toasts.some((t) => t.open !== false && !!t.action);
 /** Make 3 more like the winner: Write's hooks panel on the winner, whose formula the first new hook keeps. */
 export const moreLikeWinner = (w: Pick<DraftEntry, "id" | "hookFormula">) => links.generate({ draft: w.id, panel: "hooks", formula: w.hookFormula });
 const firstWords = (text: string, n = 6) => {
@@ -223,7 +225,7 @@ const firstWords = (text: string, n = 6) => {
 const scoreTone = (v: number) => (v >= 7.5 ? "bg-success/15 text-success" : v >= 5 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning");
 
 export default function DraftsPage() {
-  const { toast } = useToast();
+  const { toast, toasts } = useToast();
   const navigate = useNavigate();
   // Make it a thread on a text post's menu (formats-text-threads, north-star gate)
   const leo = useLeoUser();
@@ -301,6 +303,7 @@ export default function DraftsPage() {
   const [job, setJob] = useState<NumbersJob | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [typing, setTyping] = useState<string[]>([]);
+  const [linkToast, setLinkToast] = useState<Parameters<typeof toast>[0] | null>(null);
   const numbersOn = !!leo && !!userId && socialConnectShown();
   useEffect(() => {
     if (!numbersOn || !userId) return;
@@ -314,7 +317,7 @@ export default function DraftsPage() {
       setUpdatedAt(j.at);
       const linked = j.linked.flatMap((l) => loadDrafts(userId).filter((d) => d.id === l.draftId));
       if (!linked.length) return;
-      toast({
+      setLinkToast({
         title: linked.length === 1 ? `Numbers linked to "${titleOf(linked[0])}"` : `Numbers linked to ${linked.length} posts`,
         action: (
           <ToastAction
@@ -333,7 +336,18 @@ export default function DraftsPage() {
     setJob(numbersJob(userId));
     refreshIfStale(userId);
     return off;
-  }, [numbersOn, userId, toast]);
+  }, [numbersOn, userId]);
+  // One toast shows at a time and a new one replaces it: the auto-link toast waits for a toast with an Undo to close.
+  // It is added after this commit, since the Toaster re-subscribes to the toast store in its own effect and misses
+  // a toast added before that.
+  useEffect(() => {
+    if (!linkToast || undoOnScreen(toasts)) return;
+    const t = setTimeout(() => {
+      toast(linkToast);
+      setLinkToast(null);
+    });
+    return () => clearTimeout(t);
+  }, [linkToast, toasts, toast]);
   // "Updated {time}" stays in the chip's place for 3 seconds
   useEffect(() => {
     if (!updatedAt) return;

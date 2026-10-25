@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import DraftsPage, { moreLikeWinner } from "./DraftsPage";
+import DraftsPage, { moreLikeWinner, undoOnScreen } from "./DraftsPage";
 
 const html = (path = "/drafts") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(DraftsPage)));
 
@@ -42,5 +42,15 @@ describe("Make 3 more like the winner (Leo only)", () => {
   it("opens Write's hooks panel on the winner, carrying its formula so the first new hook keeps it", () => {
     expect(moreLikeWinner({ id: "v1", hookFormula: "contrarian" })).toBe("/generate?draft=v1&panel=hooks&formula=contrarian");
     expect(moreLikeWinner({ id: "v1" })).toBe("/generate?draft=v1&panel=hooks");
+  });
+});
+
+describe("the auto-link toast (Leo only)", () => {
+  it("waits while a toast with an Undo is on screen, since a new toast replaces it", () => {
+    const undo = { type: "button" };
+    expect(undoOnScreen([{ open: true, action: undo }])).toBe(true);
+    expect(undoOnScreen([{ open: false, action: undo }])).toBe(false);
+    expect(undoOnScreen([{ open: true }])).toBe(false);
+    expect(undoOnScreen([])).toBe(false);
   });
 });
