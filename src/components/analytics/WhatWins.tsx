@@ -64,6 +64,14 @@ async function nicheFigures(now: number): Promise<{ value: string; ratio: number
   return formatsWorkingNow(all.map((post) => ({ post, insight: enrich(post, averages) })), now).formats;
 }
 
+// One try-next ask per brand at a time: StrictMode and the sign-in read can mount the effect twice before Jev answers.
+const asking = new Map<string, Promise<string[]>>();
+function askTryNext(userId: string, scope: string): Promise<string[]> {
+  let p = asking.get(scope);
+  if (!p) asking.set(scope, (p = tryNextHooks(userId).finally(() => asking.delete(scope))));
+  return p;
+}
+
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 
 function Row({ name, detail = [], muted, to, action }: { name: string; detail?: string[]; muted?: boolean; to?: string; action: string }) {
@@ -91,7 +99,7 @@ function Row({ name, detail = [], muted, to, action }: { name: string; detail?: 
 }
 
 export default function WhatWins({ userId, drafts }: { userId: string; drafts: DraftEntry[] }) {
-  const leo = useLeoUser();
+  const leo = Boolean(useLeoUser());
   const { pathname, search } = useLocation();
   const [by, setBy] = useUrlState<WinsBy>("wins", "format", { allowed: TABS.map((t) => t.id) });
   // the open brand: tags, the tag job and the week's picks are per brand
@@ -116,7 +124,7 @@ export default function WhatWins({ userId, drafts }: { userId: string; drafts: D
     });
     void tagPosts(userId);
     let live = true;
-    void tryNextHooks(userId).then((h) => live && setHooks(h));
+    void askTryNext(userId, scope).then((h) => live && setHooks(h));
     return () => {
       live = false;
       off();

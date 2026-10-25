@@ -107,7 +107,7 @@ export async function scoreLast30(userId: string): Promise<void> {
 // ---- the card ----
 
 export default function ScoreCheck({ userId, drafts }: { userId: string; drafts: DraftEntry[] }) {
-  const leo = useLeoUser();
+  const leo = Boolean(useLeoUser());
   const scope = scoped(userId);
   const [job, setJob] = useState(() => scoreJob(userId));
   // after the job saves, the card reads the stored list (the page's may be older)
