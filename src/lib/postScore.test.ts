@@ -83,7 +83,8 @@ const entry = (id: string, over: Partial<DraftEntry> & { score?: unknown } = {})
   ctaType: "comment",
   ...over,
 });
-const scored = (d: DraftEntry & { score?: unknown }, v: number, down: string[] = []) => ({ ...d, score: { v, down, key: textKey(d.platform, d.draft), at: day(2) } });
+// down stays string[] so a test can store an unknown factor, as an old synced row might
+const scored = (d: DraftEntry & { score?: unknown }, v: number, down: string[] = []) => ({ ...d, score: { v, down, key: textKey(d.platform, d.draft), at: day(2) } }) as DraftEntry;
 
 describe("currentScore", () => {
   const d = scored(entry("d1"), 7.8, ["hook", "cta"]);
