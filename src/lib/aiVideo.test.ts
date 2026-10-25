@@ -143,6 +143,26 @@ describe("a paid clip being put together on the device", () => {
     return { run }; // wrapped: an async function returning the promise would wait for it
   };
 
+  it("joins once its clips are in while another video waits for the editor, and waits only while one is being put together (live-p6replay D1)", async () => {
+    // a wall of text the agent made, done and waiting for /edit: it never holds the paid clip's join
+    vi.mocked(currentJoin).mockReturnValue({ progress: 1, state: "done" });
+    const { run } = await madeAndJoining();
+    await run;
+    expect(aiJob()).toMatchObject({ kind: "template", state: "done" });
+
+    // another video being put together right now: the join waits for it, then goes
+    vi.mocked(startJoin).mockReset();
+    vi.mocked(currentJoin).mockReturnValue({ progress: 0.4, state: "running" });
+    higgsfield(() => ({ jobs: [{ state: "done", url: "https://cdn.example/v.mp4" }] }));
+    const second = makeTemplateClip("Laksa", ASK);
+    await vi.advanceTimersByTimeAsync(9_000);
+    expect(startJoin).not.toHaveBeenCalled();
+    vi.mocked(currentJoin).mockReturnValue({ progress: 1, state: "done" });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await second;
+    expect(startJoin).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the paid job until the join is done, and a remount starts no second join", async () => {
     const finish = slowJoin();
     const { run } = await madeAndJoining();

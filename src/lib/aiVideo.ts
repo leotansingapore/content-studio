@@ -121,9 +121,9 @@ async function download(url: string): Promise<Blob> {
   return res.blob();
 }
 
-/** Waits for the device to finish putting the last video together, and for the editor to take it. */
+/** Waits while the device puts another video together; one done and waiting for the editor moves aside (videoMedia). */
 async function joinSlot() {
-  while (currentJoin()) await sleep(1000);
+  while (currentJoin()?.state === "running") await sleep(1000);
 }
 
 const b64 = (blob: Blob) =>

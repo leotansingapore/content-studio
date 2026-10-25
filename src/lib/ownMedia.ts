@@ -261,8 +261,8 @@ export async function makeOwn(): Promise<void> {
     }
     const music = s.sound === "music" && s.music ? await keepMusic(s.music) : undefined;
     setOwn({ step: "joining" });
-    // a video the editor hasn't picked up yet (a paid avatar) is never overwritten
-    while (currentJoin()) await sleep(1000);
+    // only a join still running waits: a video the editor hasn't picked up yet (a paid avatar) moves aside, never overwritten
+    while (currentJoin()?.state === "running") await sleep(1000);
     const name = s.about.trim().slice(0, 40) || "Your pictures";
     await startSlides(name, s.pictures.map((p, i) => ({ image: p.file, seconds: seconds[i] })), track, JOIN_LABEL, {
       extra: pictureExtra({ written: s.written, words: s.words, seconds, voice, music }),

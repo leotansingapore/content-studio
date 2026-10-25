@@ -85,7 +85,7 @@ describe("handToEditor", () => {
     expect(endJoin()).toBeNull();
   });
 
-  it("waits while another video waits for the editor, so a paid one is never overwritten", async () => {
+  it("never waits on a video waiting for the editor, and never overwrites it: the editor gets both, newest first (live-p6replay D1)", async () => {
     vi.useFakeTimers();
     try {
       const paid = new File(["avatar"], "avatar.mp4");
@@ -93,12 +93,16 @@ describe("handToEditor", () => {
       await handToEditor(paid, { note: "paid" });
       let handed = false;
       const second = handToEditor(mine, { note: "mine" }).then(() => (handed = true));
-      await vi.advanceTimersByTimeAsync(3000);
-      expect(handed).toBe(false);
-      expect(endJoin()?.file).toBe(paid);
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(0);
       await second;
+      expect(handed).toBe(true);
+      expect(currentJoin()?.file).toBe(mine);
       expect(endJoin()?.extra?.note).toBe("mine");
+      // the paid one held aside comes back as the one waiting, for the next pickup
+      expect(currentJoin()).toMatchObject({ state: "done", file: paid });
+      expect(endJoin()?.file).toBe(paid);
+      expect(currentJoin()).toBeNull();
+      expect(endJoin()).toBeNull();
     } finally {
       vi.useRealTimers();
     }

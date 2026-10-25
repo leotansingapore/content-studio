@@ -258,16 +258,23 @@ describe("the wall job", () => {
     expect(j.written).toBeDefined();
   });
 
-  it("waits while another video waits for the editor before it joins", async () => {
+  it("waits while another video is being put together before it joins", async () => {
     answer({ "desk night tea": [clip("a")] });
-    let waiting = 3;
-    join.current.mockImplementation(() => (waiting-- > 0 ? { state: "done", progress: 1 } : null));
+    let running = 3;
+    join.current.mockImplementation(() => (running-- > 0 ? { state: "running", progress: 0.5 } : null));
     const done = startWall(UID, ASK);
     await vi.advanceTimersByTimeAsync(1500);
     expect(join.start).not.toHaveBeenCalled();
     expect(wallJob()?.state).toBe("joining");
     await vi.runAllTimersAsync();
     await done;
+    expect(join.start).toHaveBeenCalledTimes(1);
+  });
+
+  it("joins at once while another video waits for the editor, which videoMedia holds aside (live-p6replay D1)", async () => {
+    answer({ "desk night tea": [clip("a")] });
+    join.current.mockImplementation(() => (join.start.mock.calls.length ? null : { state: "done", progress: 1 }));
+    expect((await run()).state).toBe("done");
     expect(join.start).toHaveBeenCalledTimes(1);
   });
 

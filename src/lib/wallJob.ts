@@ -275,8 +275,8 @@ async function finish(id: number, ask: WallAsk, w: Written): Promise<void> {
     const blob = await downloadStock(clip.src);
     const length = (await mediaLength(blob)) || clip.duration || seconds;
     mine({ state: "joining", extra });
-    // a video the editor hasn't picked up yet (a paid avatar) is never overwritten
-    while (currentJoin()) await sleep(1000);
+    // only a join still running waits: a video the editor hasn't picked up yet (a paid avatar) moves aside, never overwritten
+    while (currentJoin()?.state === "running") await sleep(1000);
     await startJoin("Wall of text", loopTakes(blob, length, seconds), JOIN_LABEL, { mute: true, extra });
     const joined = currentJoin();
     if (joined?.state === "failed") return void mine({ state: "failed", error: joined.error || FINISH_FAILED });

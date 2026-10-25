@@ -282,7 +282,7 @@ export async function startMontage(a: MontageAsk): Promise<void> {
     }
 
     set({ state: "joining", done: takes.length, of: takes.length });
-    while (currentJoin()) await sleep(1000);
+    while (currentJoin()?.state === "running") await sleep(1000);
     await startJoin(a.theme.slice(0, 40), takes, "Putting your montage together", {
       mute: true,
       extra: { note: noteOf(report), settings: { filter: plan.grade, captions: false, overlays, ...(music ? { music } : {}) }, ...(a.draftId ? { draftId: a.draftId } : {}) },

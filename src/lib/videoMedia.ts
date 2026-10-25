@@ -1715,18 +1715,32 @@ export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): Pick
   };
 }
 let joinJob: JoinJob | null = null;
+/**
+ * Finished joins /edit hasn't taken, moved aside when another join started (live-p6replay D1: a wall waiting for the
+ * editor held a paid talking video's join for 5 minutes). endJoin hands the newest first, then these, newest first.
+ */
+const held: JoinJob[] = [];
+/** Before a join takes the slot: a done one waiting for the editor moves aside; a failed one's job has said so already. */
+const holdFinished = () => {
+  if (joinJob?.state === "done") held.push(joinJob);
+};
 const joinListeners = new Set<(j: JoinJob | null) => void>();
 const emitJoin = () => joinListeners.forEach((l) => l(joinJob && { ...joinJob }));
+/** The running join, else the newest finished one waiting for the editor. */
 export const currentJoin = () => joinJob;
 export function onJoinJob(fn: (j: JoinJob | null) => void) {
   joinListeners.add(fn);
   return () => joinListeners.delete(fn);
 }
-/** A finished or failed join, handed over once; a running one stays. */
+/**
+ * A finished or failed join, handed over once; a running one stays. The next one held aside, if any, takes its place.
+ * shortcut: /edit takes one per visit (its pickup runs on a change of state, and done follows done); take all at once if
+ * Leo makes several videos in a row away from /edit.
+ */
 export function endJoin(): JoinJob | null {
   const j = joinJob;
   if (!j || j.state === "running") return null;
-  joinJob = null;
+  joinJob = held.pop() ?? null;
   emitJoin();
   return j;
 }
@@ -1736,10 +1750,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /**
  * A file that is ready as it is (the adviser's own clip under a wall of text) handed to the editor the way a join
  * hands its result: a done join job that endJoin() gives to /edit once, with `extra`. It waits while another join
- * is running or done and not yet picked up, so it never overwrites a paid video /edit hasn't claimed.
+ * is running; one done and not yet picked up moves aside (held), so a paid video /edit hasn't claimed is never overwritten.
  */
 export async function handToEditor(file: File, extra: JoinExtra, label?: string): Promise<void> {
-  while (joinJob) await sleep(1000);
+  while (joinJob?.state === "running") await sleep(1000);
+  holdFinished();
   joinJob = { progress: 1, state: "done", label, extra, file };
   emitJoin();
 }
@@ -1838,6 +1853,7 @@ export async function startSound(ctx: AudioContext, wait = 500): Promise<void> {
 export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[], label?: string, opts?: { mute?: boolean; extra?: JoinExtra }) {
   if (joinJob?.state === "running") throw new Error("Takes are already being joined.");
   const { extra } = opts ?? {};
+  holdFinished();
   joinJob = { progress: 0, state: "running", label };
   emitJoin();
   const els: HTMLVideoElement[] = [];
@@ -1965,6 +1981,7 @@ export function slidePlan(scenes: { seconds: number; length?: number }[]): { sta
  */
 export async function startSlides(name: string, scenes: (({ image: Blob } | { video: Blob }) & { seconds: number })[], voice: Blob, label: string, opts?: { extra?: JoinExtra }) {
   if (joinJob?.state === "running") throw new Error("Another video is being put together.");
+  holdFinished();
   joinJob = { progress: 0, state: "running", label };
   emitJoin();
   let actx: AudioContext | null = null;

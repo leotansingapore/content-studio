@@ -335,8 +335,8 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
     const plan = joinPlan(ask.play === "mine" ? "mine" : "stock", length, ask.demo.seconds, ask.demo.start);
     const extra = hookExtra(hook, plan, ask.source, flags);
     mine({ state: "joining" });
-    // a video the editor hasn't picked up yet (a paid avatar) is never overwritten
-    while (currentJoin()) await sleep(1000);
+    // only a join still running waits: a video the editor hasn't picked up yet (a paid avatar) moves aside, never overwritten
+    while (currentJoin()?.state === "running") await sleep(1000);
     const files = { hook: first, demo };
     await startJoin(HOOK_NAME, plan.takes.map((t) => ({ file: files[t.take], start: t.start, end: t.end })), JOIN_LABEL, { extra });
     const joined = currentJoin();
