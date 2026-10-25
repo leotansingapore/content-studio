@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  demoAsk, demoMessages, MAX_STILL, parseDemo, parseDemoRequest, parseSortRequest, parseVision, readFlags, readType, shapeOf, sortMessages, typeAsk,
+  demoAsk, demoMessages, IMAGE_TYPE_MIN, imageTypeAsk, MAX_STILL, parseDemo, parseDemoRequest, parseSortRequest, parseVision, readFlags, readType, shapeOf,
+  sortMessages, stillSize, typeAsk,
 } from "./logic.ts";
 
 const STILL = `data:image/jpeg;base64,${"A".repeat(400)}`;
@@ -73,6 +74,31 @@ describe("media-sort decisions", () => {
     expect(ask.state).toEqual({ alt: "A man at a desk", onScreen: "", kind: "photo", seconds: null, shape: "portrait", name: "Me at my desk.jpg" });
     expect(Object.keys((ask.questions.type as { criteria: object }).criteria)).toEqual(["person", "logo", "product", "past-post", "screen", "footage", "other"]);
     expect([shapeOf(1920, 1080), shapeOf(1080, 1080), shapeOf(1000, 1080), shapeOf(1080, 1920)]).toEqual(["landscape", "square", "square", "portrait"]);
+  });
+
+  it("asks the same choice with the still's ref in the state when Jev looks at the picture", () => {
+    const r = parseSortRequest(sortReq) as never;
+    const v = { alt: "A man at a desk", onScreen: "Book a review" };
+    const pic = imageTypeAsk(v, r, "img-123");
+    expect(pic.state).toEqual({ still: "img-123", ...typeAsk(v, r).state });
+    expect(pic.questions.type).toEqual({ ...typeAsk(v, r).questions.type, instructions: expect.stringMatching(/^Which kind of file is this, going by the picture, /) });
+  });
+
+  it("sizes a sort still 360 px on its short side, the long side at most 1568, so Jev takes it", () => {
+    expect(stillSize(1080, 1350)).toEqual({ width: 360, height: 450 });
+    expect(stillSize(1920, 1080)).toEqual({ width: 640, height: 360 });
+    expect(stillSize(512, 512)).toEqual({ width: 360, height: 360 });
+    // a long screenshot: the long side caps, the short side shrinks (under 280 Jev refuses it and the words decide)
+    expect(stillSize(1080, 6000)).toEqual({ width: 282, height: 1568 });
+    expect(stillSize(0, 900)).toEqual({ width: 360, height: 360 });
+  });
+
+  it("readType with Jev's look at the still takes the choice at 0.4", () => {
+    const a = (choice: string, p: number) => ({ type: { type: "choice" as const, choice, probabilities: { [choice]: p } } });
+    expect(IMAGE_TYPE_MIN).toBe(0.4);
+    expect(readType(a("footage", 0.43), IMAGE_TYPE_MIN)).toBe("footage");
+    expect(readType(a("footage", 0.39), IMAGE_TYPE_MIN)).toBe("other");
+    expect(readType(a("footage", 0.43))).toBe("other");
   });
 
   it("readType takes the choice at 0.5, falls back to other below it and for null", () => {

@@ -1,6 +1,7 @@
 // media-sort (brand-media-library step 1, brand-demo-videos): reads files people add on the device. Modes, on body.mode:
 //   sort  one JPEG still of a photo or video (a video's frame 25% in): one low-detail vision call writes the alt text
-//         and reads the words on it, then Jev picks one of seven types. Returns { alt, type }.
+//         and reads the words on it, then Jev looks at the still beside those words and picks one of seven types (the
+//         words alone when Jev can't take the picture: a side under 280 px, a timeout, an error). Returns { alt, type }.
 //   demo  1 to 3 stills from a demo's chosen window: one vision call says what the screen shows, then Jev answers three
 //         questions (a named product, a projected return, someone's details). Returns { shows, flags }.
 // Nothing is stored here; the files never leave the device apart from these stills.
@@ -19,8 +20,8 @@ import { openaiChat } from "../_shared/openaiChat.ts";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { isAllowed } from "../market/logic.ts";
 import {
-  DEMO_FORMAT, demoAsk, demoMessages, parseDemo, parseDemoRequest, parseSortRequest, parseVision, readFlags, readType, SORT_FORMAT, sortMessages, typeAsk,
-  VISION_MODEL,
+  DEMO_FORMAT, demoAsk, demoMessages, IMAGE_TYPE_MIN, imageTypeAsk, parseDemo, parseDemoRequest, parseSortRequest, parseVision, readFlags, readType, SORT_FORMAT,
+  sortMessages, typeAsk, VISION_MODEL,
 } from "./logic.ts";
 
 const headers = {
@@ -88,6 +89,11 @@ Deno.serve(async (req) => {
     if (sort) {
       const v = parseVision(seen.content);
       if (!v) return fail(422, "unreadable", "Couldn't read that file.");
+      const ref = `img-${crypto.randomUUID()}`;
+      const pic = imageTypeAsk(v, r, ref);
+      const looked = await askJev(pic.state, pic.questions, { who: "media-sort image", images: { [ref]: r.still } });
+      if (looked?.type) return json({ alt: v.alt, type: readType(looked, IMAGE_TYPE_MIN) });
+      // an older app's 360-wide landscape still is under 280 px tall, which Jev refuses: the words decide, as before
       const ask = typeAsk(v, r);
       return json({ alt: v.alt, type: readType(await askJev(ask.state, ask.questions, { who: "media-sort" })) });
     }

@@ -1,17 +1,17 @@
 // The sort queue (brand-media-library step 1, Leo only): each file added on /media goes to media-sort, 3 at a time,
 // outside React so leaving the page keeps it going. It lives in memory: a reload drops what was waiting, and /media
-// queues it again from `waitingSort`. The still is made here from the file on this device (a photo 360 px wide, a
-// video's frame 25% in). Every answer, and every failure as "other", goes through applySort, which never replaces a
-// type the person picked; the chip on the tile is the fix, so a failure shows no message.
+// queues it again from `waitingSort`. The still is made here from the file on this device (a photo, or a video's frame
+// 25% in), 360 px on its short side so Jev can look at it too (stillSize). Every answer, and every failure as "other",
+// goes through applySort, which never replaces a type the person picked; the chip on the tile is the fix, so a failure
+// shows no message.
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { getFile } from "@/lib/deviceFiles";
 import { applySort, loadMedia, MEDIA_TYPES, type MediaItem, type MediaType } from "@/lib/mediaLibrary";
-import { MAX_STILL } from "../../supabase/functions/media-sort/logic.ts";
+import { MAX_STILL, stillSize } from "../../supabase/functions/media-sort/logic.ts";
 
 export const SORT_USED_UP = "Saved. Sorting is used up for today, so set the type yourself.";
 const AT_ONCE = 3;
-const STILL_WIDTH = 360;
 
 interface Job {
   uid: string;
@@ -75,14 +75,15 @@ function pump() {
 const CHECK = 12;
 
 /**
- * A photo's still, 360 px wide, drawn over a light checkerboard: a JPEG has no transparency, so drawn straight a
- * transparent logo came out "on a black background", and white would hide a white logo.
+ * A photo's still, 360 px on its short side, drawn over a light checkerboard: a JPEG has no transparency, so drawn
+ * straight a transparent logo came out "on a black background", and white would hide a white logo.
  */
 async function photoStill(pic: Blob): Promise<string> {
   const img = await createImageBitmap(pic);
   const c = document.createElement("canvas");
-  c.width = STILL_WIDTH;
-  c.height = Math.round((STILL_WIDTH * img.height) / img.width);
+  const size = stillSize(img.width, img.height);
+  c.width = size.width;
+  c.height = size.height;
   const g = c.getContext("2d")!;
   g.fillStyle = "#ffffff";
   g.fillRect(0, 0, c.width, c.height);
@@ -100,7 +101,7 @@ async function stillOf(m: MediaItem): Promise<string> {
   let still: string | undefined;
   if (m.kind === "video") {
     const { stills } = await (videoMedia ??= import("@/lib/videoMedia"));
-    still = (await stills(file, [0.25], STILL_WIDTH))[0];
+    still = (await stills(file, [0.25], stillSize(m.width, m.height).width))[0];
   } else still = await photoStill(file);
   if (!still || still.length > MAX_STILL) throw new Error("That still is too big to send.");
   return still;

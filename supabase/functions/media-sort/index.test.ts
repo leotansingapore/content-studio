@@ -25,15 +25,15 @@ const DEMO = { mode: "demo", stills: [STILL, STILL, STILL], name: "Illustration"
 
 let env: Record<string, string> = {};
 let openai: "ok" | "down" | "offline" | "garbled" = "ok";
-let jev: "up" | "down" = "up";
-const sent: { url: string; body: Record<string, unknown> }[] = [];
+let jev: "up" | "down" | "no-images" = "up";
+const sent: { url: string; body: Record<string, unknown>; headers: Record<string, string> }[] = [];
 
 beforeAll(async () => {
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     const url = String(u);
     const body = JSON.parse(String(init?.body ?? "{}"));
-    sent.push({ url, body });
+    sent.push({ url, body, headers: (init?.headers ?? {}) as Record<string, string> });
     if (url.startsWith("https://api.openai.com/")) {
       if (openai === "offline") throw new Error("connect refused");
       if (openai === "down") return new Response("overloaded", { status: 500 });
@@ -43,7 +43,9 @@ beforeAll(async () => {
     }
     if (url.startsWith("https://api.typesafe.ai/")) {
       if (jev === "down") return new Response("busy", { status: 503 });
-      if (body.questions.type) return Response.json({ answers: { type: { type: "choice", choice: "logo", probabilities: { logo: 0.82 } } } });
+      if (body.assets && jev === "no-images") return new Response("image too small", { status: 400 });
+      // with the still, Jev is surer: 0.45 clears IMAGE_TYPE_MIN (0.4); the words alone give 0.82
+      if (body.questions.type) return Response.json({ answers: { type: { type: "choice", choice: body.assets ? "past-post" : "logo", probabilities: body.assets ? { "past-post": 0.45 } : { logo: 0.82 } } } });
       return Response.json({ answers: { namedProduct: { type: "noul", noul: 0.2 }, returns: { type: "noul", noul: 0.9 }, personal: { type: "noul", noul: 0.5 } } });
     }
     throw new Error(`unexpected fetch ${url}`);
@@ -82,15 +84,30 @@ describe("media-sort sort", () => {
     expect(sent).toEqual([]);
   });
 
-  it("counts media-sort once, sends one low-detail still, and returns the alt text and Jev's type", async () => {
+  it("counts media-sort once, sends one low-detail still, and returns the alt text and Jev's type from the still", async () => {
     const r = await call(SORT);
-    expect(r).toEqual({ status: 200, body: { alt: "A blue wordmark on white", type: "logo" } });
+    expect(r).toEqual({ status: 200, body: { alt: "A blue wordmark on white", type: "past-post" } });
     expect(db.spent).toEqual(["media-sort"]);
     expect(db.refunded).toEqual([]);
+    expect(sent).toHaveLength(2);
     const [vision, judge] = sent;
     expect(JSON.stringify(vision.body.messages)).toContain('"detail":"low"');
     expect(vision.body.response_format).toMatchObject({ type: "json_schema", json_schema: { name: "media_sort", strict: true } });
+    const ref = (judge.body.state as { still: string }).still;
+    expect(ref).toMatch(/^img-[0-9a-f-]{36}$/);
     expect(judge.body).toMatchObject({ model: "jev-1.13.0", state: { alt: "A blue wordmark on white", onScreen: "Acme", kind: "photo", shape: "square", name: "logo.png" } });
+    expect(judge.body.assets).toEqual({ [ref]: { type: "image", format: "jpg", data_base64: "A".repeat(400) } });
+    expect(judge.headers["TypeSafe-Danger-Zone-Images"]).toBe("true");
+  });
+
+  it("falls back to the words alone when Jev refuses the still", async () => {
+    jev = "no-images";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect((await call(SORT)).body).toEqual({ alt: "A blue wordmark on white", type: "logo" });
+    const [, look, words] = sent;
+    expect(look.body.assets).toBeDefined();
+    expect(words.body).not.toHaveProperty("assets");
+    expect(words.body.state).not.toHaveProperty("still");
   });
 
   it("lands as other with its alt text when Jev is off", async () => {

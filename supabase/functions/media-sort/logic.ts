@@ -1,6 +1,9 @@
 // Pure logic for media-sort (brand-media-library step 1, brand-demo-videos): the request parsers, the vision prompts
 // and their replies, and the Jev questions that pick a file's type or flag what a demo's screen shows. No Deno or npm
 // imports, so vitest covers it (logic.test.ts). The LLM only writes the words (alt text, "what it shows"); Jev decides.
+// A sort's type: Jev looks at the still itself, with those words beside it (shadow 2026-10-26, 85 real pictures:
+// ~/.local/share/jev-shadow/cs-media-sort, 26 of 29 contested picks right against 17 by the words alone). A demo's
+// flags stay on the words: the picture flipped no flag the right way in the same run.
 
 import { noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { pickTag } from "../_shared/tags.ts";
@@ -24,6 +27,15 @@ export type DemoFlag = (typeof DEMO_FLAGS)[number];
 /** Proposed cuts (phase 4 decision 15): set from the first real runs by the integrator. */
 export const TYPE_MIN = 0.5;
 export const FLAG_MIN = 0.5;
+/** The type's cut when Jev saw the still: right on 26 of 29 contested files from 0 to 0.4, 25 at 0.5, 22 at 0.6. */
+export const IMAGE_TYPE_MIN = 0.4;
+
+/** A sort still's size: short side 360 px, long side at most 1568 (Jev refuses a side under 280 or over 1568). */
+export function stillSize(width: number, height: number): { width: number; height: number } {
+  if (!(width > 0 && height > 0)) return { width: 360, height: 360 };
+  const s = Math.min(360 / Math.min(width, height), 1568 / Math.max(width, height));
+  return { width: Math.round(width * s), height: Math.round(height * s) };
+}
 
 export interface SortRequest {
   still: string;
@@ -177,8 +189,17 @@ export function typeAsk(v: Vision, r: SortRequest): { state: Record<string, unkn
   };
 }
 
-/** Jev's pick at TYPE_MIN or more; "other" when unsure or when Jev gave nothing. */
-export const readType = (answers: Record<string, JevAnswer> | null): MediaType => (pickTag(answers?.type, MEDIA_TYPES, TYPE_MIN) as MediaType | null) ?? "other";
+/** The same choice with Jev looking at the still (`ref` in the state, the still sent as that image) beside the words. */
+export function imageTypeAsk(v: Vision, r: SortRequest, ref: string): { state: Record<string, unknown>; questions: Record<string, JevQuestion> } {
+  const ask = typeAsk(v, r);
+  return {
+    state: { still: ref, ...ask.state },
+    questions: { type: { ...ask.questions.type, instructions: "Which kind of file is this, going by the picture, its description, the words on it and its shape?" } },
+  };
+}
+
+/** Jev's pick at `min` (TYPE_MIN, or IMAGE_TYPE_MIN when it saw the still) or more; "other" when unsure or when Jev gave nothing. */
+export const readType = (answers: Record<string, JevAnswer> | null, min = TYPE_MIN): MediaType => (pickTag(answers?.type, MEDIA_TYPES, min) as MediaType | null) ?? "other";
 
 const FLAG_QUESTIONS: Record<DemoFlag, [string, string]> = {
   "named-product": ["namedProduct", "Does the screen show the name of a specific insurance or investment product from an insurer or fund house?"],
