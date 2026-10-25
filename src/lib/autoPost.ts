@@ -56,21 +56,19 @@ export const sgLabel = (iso: string) =>
 
 // ---- the status chip ----
 
-// shortcut: entries' `draft` (social-server) and the link's `platforms` and `drafts` (data-shapes) land in wave 1's
-// merge; then these two are PostView and ZernioLink themselves.
+// shortcut: social-server adds PlatformResult.draft in wave 1's merge; then this is PostView itself
 type View = Omit<PostView, "platforms"> & { platforms: (PlatformResult & { draft?: boolean })[] };
-type Link = ZernioLink & { platforms?: string[]; drafts?: string[] };
 
 export type ChipTone = "wait" | "good" | "bad" | "muted";
 
 /** Every network it went to went as a TikTok inbox draft, which Zernio calls published though nothing is live. */
-const inboxOnly = (link: Link) => !!link.drafts?.length && (link.platforms ?? link.drafts).every((p) => link.drafts!.includes(p));
+const inboxOnly = (link: ZernioLink) => !!link.drafts?.length && (link.platforms ?? link.drafts).every((p) => link.drafts!.includes(p));
 
 /**
  * What the chip on a draft says about its Zernio post, or null when nothing was sent. `markedPosted`: the adviser
  * finished an inbox draft in TikTok and pressed Mark posted, which Zernio never learns.
  */
-export function chipOf(link: Link | undefined, markedPosted = false): { label: string; tone: ChipTone } | null {
+export function chipOf(link: ZernioLink | undefined, markedPosted = false): { label: string; tone: ChipTone } | null {
   if (!link?.postId) return null;
   switch (link.status) {
     case "published":
@@ -211,7 +209,7 @@ export async function uploadAll(profileId: string, files: MediaFile[], done: Map
  * The draft's link from what Zernio says about its post: status, time, each live post's link, the first reason it
  * failed, the networks when there are several (one network is the draft's own, as before) and those sent as drafts.
  */
-export function linkFromView(key: string, v: View): Link {
+export function linkFromView(key: string, v: View): ZernioLink {
   const links = v.platforms.filter((p) => p.url && /^https:\/\//.test(p.url)).map((p) => ({ platform: p.platform, url: p.url! }));
   const error = v.platforms.find((p) => p.error)?.error;
   const platforms = [...new Set(v.platforms.map((p) => p.platform))];

@@ -113,7 +113,7 @@ describe("spreadSlots", () => {
 
 describe("draftsInSet", () => {
   it("returns only that set's drafts, oldest first", () => {
-    const set = { id: "s1", kind: "hook-test" };
+    const set = { id: "s1", kind: "hook-test" as const };
     const drafts = [post("p3", { set }), post("p1", { set }), post("p2", { set: { id: "s2", kind: "versions" } }), post("p4")];
     expect(draftsInSet(drafts, "s1").map((d) => d.id)).toEqual(["p1", "p3"]);
     expect(draftsInSet(drafts, "nope")).toEqual([]);

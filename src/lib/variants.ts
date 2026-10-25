@@ -8,9 +8,6 @@ import { addDays } from "@/lib/dueDates";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { nextOpenSlots, type SlotBrand } from "@/lib/postingSlots";
 
-// shortcut: data-shapes adds DraftEntry.set in wave 1's merge; then this is DraftEntry itself
-type InSet = DraftEntry & { set?: { id: string; kind: "versions" | "hook-test"; from?: string } };
-
 /** The post without its first line (and the blank lines after it) when that line is the hook; the post whole otherwise. */
 export function splitHook(draft: string, hook: string): string {
   const nl = draft.indexOf("\n");
@@ -72,4 +69,4 @@ export function spreadSlots(versions: DraftEntry[], brand: SlotBrand | null | un
 }
 
 /** The drafts in one set, oldest first. */
-export const draftsInSet = (drafts: InSet[], id: string) => drafts.filter((d) => d.set?.id === id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+export const draftsInSet = (drafts: DraftEntry[], id: string) => drafts.filter((d) => d.set?.id === id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
