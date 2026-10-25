@@ -1670,6 +1670,8 @@ export interface JoinExtra {
   ai?: AiMark;
   /** What a premade voice says in it, word for word (an AI video's script): the editor times its captions from it, with no transcribe. */
   said?: string;
+  /** The voice's own word times (same edit, text-voice timestamps): the editor captions from these, with no transcribe. */
+  words?: Word[];
 }
 
 /** The editor's paths for an upload: words over a video, a long recording, a video with no speech to caption, or one captioned now. */

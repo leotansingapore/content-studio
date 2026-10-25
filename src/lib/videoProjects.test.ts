@@ -116,6 +116,15 @@ describe("the AI mark", () => {
     for (const kind of ["template", "dub"]) expect(aiOf({ kind, madeAt: MADE })).toStrictEqual({ kind, madeAt: MADE });
   });
 
+  it("keeps a no-face version's voiceover mark, with its AI voice chip, and the plan a project came from", () => {
+    const mark = { kind: "voiceover", voice: "premade", voiceId: "alice", madeAt: MADE } as const;
+    expect(aiOf(mark)).toStrictEqual(mark);
+    expect(aiChips(aiOf(mark))).toEqual(["AI voice"]);
+    const made = { ...project(mark), plan: { id: "ep-mh3k2x1", version: "ev-mh3k2x9" } };
+    window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify([made]));
+    expect(loadProjects("u")).toStrictEqual([made]);
+  });
+
   it("is no mark without a known kind and a date", () => {
     for (const junk of [undefined, null, "avatar", 5, [], {}, { kind: "swap", madeAt: MADE }, { kind: "avatar" }, { kind: "avatar", madeAt: "yesterday" }, { kind: "avatar", madeAt: 5 }])
       expect(aiOf(junk)).toBeUndefined();

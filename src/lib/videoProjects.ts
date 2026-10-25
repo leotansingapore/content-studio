@@ -17,7 +17,8 @@ import { VOICE_IDS, type VoiceId } from "../../supabase/functions/text-voice/log
 
 /** What the studio's AI made in a video, set by the code that made it (people-ai-labels' shape; the swap fields wait for 4b). */
 export interface AiMark {
-  kind: "avatar" | "explainer" | "template" | "dub";
+  /** voiceover: a premade voice over footage with no AI person (a no-face same-edit version). */
+  kind: "avatar" | "explainer" | "template" | "dub" | "voiceover";
   /** "generated": a person with no saved likeness (an explainer or template person, a one-off photo). */
   person?: "mine" | "presenter" | "generated";
   /** The saved face's or presenter's id. */
@@ -42,7 +43,7 @@ const goodSlice = (s: unknown) => {
 /** A mark read back from synced JSON or a pending job: a bad field is dropped, and one with no kind or date is no mark. */
 export function aiOf(raw: unknown): AiMark | undefined {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const kind = pick(["avatar", "explainer", "template", "dub"], r.kind);
+  const kind = pick(["avatar", "explainer", "template", "dub", "voiceover"], r.kind);
   if (!kind || typeof r.madeAt !== "string" || Number.isNaN(Date.parse(r.madeAt))) return undefined;
   const person = pick(["mine", "presenter", "generated"], r.person);
   const voice = pick(["mine", "premade"], r.voice);
@@ -94,6 +95,8 @@ export interface VideoProject {
   draftId?: string;
   /** What the studio's AI made in it (a person, a voice); none for a filmed or uploaded video. */
   ai?: AiMark;
+  /** The edit plan and version it was made from (same edit, editPlan.ts), on the device that made it. */
+  plan?: { id: string; version: string };
 }
 
 export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
