@@ -39,7 +39,7 @@ const KIND_STYLE: Record<ReviewEventKind, string> = {
   team_created: "border-primary/30 bg-primary/10 text-primary",
   member_joined: "border-border/60 bg-muted/40 text-muted-foreground",
   member_left: "border-border/60 bg-muted/40 text-muted-foreground",
-  submitted: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+  submitted: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   approved: "border-success/40 bg-success/10 text-success",
   changes_requested: "border-destructive/40 bg-destructive/10 text-destructive",
   rejected: "border-destructive/60 bg-destructive/15 text-destructive",

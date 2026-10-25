@@ -62,43 +62,56 @@
     --radius: 0.75rem;
   }
 
+  /* The studio's default (src/lib/theme.ts), after Fastlane: near-black, neutral, the panels one step up from the canvas. */
   .dark {
-    --background: 222 40% 7%;
-    --foreground: 210 40% 96%;
+    --background: 220 8% 7%;
+    --foreground: 220 14% 94%;
 
-    --card: 222 35% 10%;
-    --card-foreground: 210 40% 96%;
+    --card: 220 8% 10%;
+    --card-foreground: 220 14% 94%;
 
-    --popover: 222 35% 10%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 220 8% 11%;
+    --popover-foreground: 220 14% 94%;
 
-    --primary: 215 85% 60%;
-    --primary-foreground: 222 47% 11%;
-    --primary-glow: 215 90% 70%;
+    --primary: 217 91% 64%;
+    --primary-foreground: 222 47% 9%;
+    --primary-glow: 215 90% 72%;
 
-    --secondary: 217 25% 18%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 220 7% 15%;
+    --secondary-foreground: 220 14% 94%;
 
-    --muted: 217 25% 16%;
-    --muted-foreground: 215 18% 65%;
+    --muted: 220 7% 14%;
+    --muted-foreground: 220 9% 66%;
 
-    --accent: 217 25% 20%;
-    --accent-foreground: 210 40% 96%;
+    --accent: 220 7% 16%;
+    --accent-foreground: 220 14% 94%;
 
-    --destructive: 0 65% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --brand: 258 80% 72%;
+    --brand-foreground: 258 40% 10%;
 
-    --border: 217 25% 20%;
-    --rail: 222 40% 5%;
-    --input: 217 25% 22%;
-    --ring: 215 85% 60%;
+    /* light enough to read as text on the canvas; buttons carry dark text */
+    --destructive: 0 75% 62%;
+    --destructive-foreground: 0 0% 8%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(215 85% 60%), hsl(215 90% 70%));
-    --gradient-hero: linear-gradient(135deg, hsl(215 85% 50%), hsl(240 70% 55%));
-    --gradient-card: linear-gradient(180deg, hsl(222 35% 10%), hsl(222 32% 12%));
+    --success: 152 55% 52%;
+    --warning: 32 95% 60%;
 
-    --shadow-elegant: 0 4px 20px -2px hsl(215 85% 60% / 0.18);
-    --shadow-card: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+    --border: 220 7% 18%;
+    --input: 220 7% 22%;
+    --ring: 217 91% 64%;
+
+    --canvas: 220 8% 8%;
+    --sidebar: 220 8% 7%;
+    --rail: 220 10% 4%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 64%), hsl(258 80% 72%));
+    --gradient-hero: linear-gradient(135deg, hsl(217 85% 60%), hsl(258 72% 68%));
+    --gradient-card: linear-gradient(180deg, hsl(220 8% 10%), hsl(220 8% 11%));
+
+    --shadow-elegant: 0 10px 30px -12px hsl(217 91% 64% / 0.25);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4), 0 4px 16px -8px hsl(0 0% 0% / 0.6);
+
+    color-scheme: dark;
   }
 }
 

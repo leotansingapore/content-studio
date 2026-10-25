@@ -343,7 +343,7 @@ function SubmissionCard({
               size="sm"
               onClick={() => decide("approved")}
               disabled={busy !== null}
-              className="gap-1.5 bg-success text-white hover:bg-success/90"
+              className="gap-1.5 bg-success text-white hover:bg-success/90 dark:text-black"
             >
               {busy === "approved" ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

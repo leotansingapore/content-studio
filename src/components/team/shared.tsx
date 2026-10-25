@@ -77,9 +77,9 @@ export function EmptyBlock({ icon, children }: { icon: ReactNode; children: Reac
 
 const STATE_STYLE: Record<DraftReviewState, string> = {
   none: "border-border/60 bg-background text-muted-foreground",
-  pending: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+  pending: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   approved: "border-success/40 bg-success/10 text-success",
-  edited_since_approval: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+  edited_since_approval: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   changes_requested: "border-destructive/40 bg-destructive/10 text-destructive",
   rejected: "border-destructive/60 bg-destructive/15 text-destructive",
 };
@@ -125,7 +125,7 @@ export function FlagList({ flags }: { flags: SubmittedFlag[] | null | undefined 
             className={`flex items-start gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] leading-snug ${
               isError
                 ? "border-destructive/40 bg-destructive/10 text-destructive"
-                : "border-amber-500/40 bg-amber-500/10 text-amber-800"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
             }`}
           >
             <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />

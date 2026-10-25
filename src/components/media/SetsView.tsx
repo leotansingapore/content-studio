@@ -142,7 +142,7 @@ export default function SetsView(p: { userId: string; sets: SetWith[]; urls: Rec
                   {s.starter ? " | starter" : ""}
                 </p>
                 {s.count < MIN_SET_ITEMS ? (
-                  <p className="text-xs text-amber-800">Add at least 3 to use it in a video.</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-200">Add at least 3 to use it in a video.</p>
                 ) : s.undescribed > 0 ? (
                   <Link to={links.media({ folder: s.name })} className="text-xs font-semibold text-primary hover:underline">Describe them for better picks</Link>
                 ) : null}
@@ -226,7 +226,7 @@ export function SetBar({ userId, set, items, urls, onChange }: { userId: string;
         </p>
         <Button size="sm" variant="outline" aria-expanded={picking} onClick={() => (setPicking(!picking), setPicked([]))}>Add from your library</Button>
       </div>
-      {set.count < MIN_SET_ITEMS && <p className="text-xs text-amber-800">Add at least 3 to use it in a video.</p>}
+      {set.count < MIN_SET_ITEMS && <p className="text-xs text-amber-800 dark:text-amber-200">Add at least 3 to use it in a video.</p>}
       {picking &&
         (offer.length === 0 ? (
           <p className="text-xs text-muted-foreground">No other {set.kind === "clips" ? "clips" : "photos"} in Media yet.</p>

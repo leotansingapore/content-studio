@@ -324,7 +324,7 @@ function AdvisorCard({
                 <CheckCircle2 className="h-3 w-3" /> Verified {entry.last_checked}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-3 w-3" /> Unverified - check activity
               </span>
             )}
@@ -388,7 +388,7 @@ function AdvisorCard({
             Cadence: {humanLabel(entry.post_cadence)}
           </p>
           {entry.verification_note && (
-            <p className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700">
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
               {entry.verification_note}
             </p>
           )}

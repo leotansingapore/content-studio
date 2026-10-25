@@ -444,7 +444,7 @@ export default function ReelsPage() {
                               {board.brands.find((b) => b.id === brandOf(c))?.name}
                             </span>
                             {notes > 0 && (
-                              <span className="absolute right-2 top-2 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-white">
+                              <span className="absolute right-2 top-2 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-white dark:text-black">
                                 {notes} note{notes > 1 ? "s" : ""}
                               </span>
                             )}

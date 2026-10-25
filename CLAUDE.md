@@ -81,6 +81,10 @@
   render SectionTabs themselves. Phones get the bottom bar (Home, Strategy, Studio, Radar) and the More sheet. When
   adding a page, add it to a section there and keep `src/lib/nav.test.ts` green; do not add a new section
   without checking the grouping.
+- Theme: the studio is dark by default (Fastlane's look; Leo's default), switched per device from the account menu
+  or the phone More sheet (`src/lib/theme.ts`, `cs-theme`). `index.html` darkens before first paint; public pages
+  (/roadmap, /auth, /review, /l, /join, /t) stay light, and `theme.test.ts` keeps index.html's list equal to
+  `PUBLIC_PATH`. Colour with tokens; a palette colour (`text-amber-800`, `bg-sky-50`) needs its `dark:` pair.
 - Heavy pages are route-level `lazy()` in `src/App.tsx`; the `<Suspense>`
   lives around `<Outlet/>` in StudioLayout. Do NOT add a vite `manualChunks`
   object — the object form force-preloads lazy chunks.

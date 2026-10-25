@@ -28,7 +28,7 @@ export function Part({
         <CardTitle className="flex items-center gap-2 font-serif text-lg">
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-              done ? "bg-success text-white" : "bg-primary/10 text-primary"
+              done ? "bg-success text-white dark:text-black" : "bg-primary/10 text-primary"
             }`}
           >
             {done ? <Check className="h-3.5 w-3.5" /> : n}

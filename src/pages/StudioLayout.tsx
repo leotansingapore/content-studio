@@ -22,10 +22,11 @@ import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { readTeamPosts, readTeamReviews, teamPostsHere } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
-import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Plus, Search, Settings, Sparkles, Star, X } from "lucide-react";
+import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
+import { applyTheme, readTheme, saveTheme, type Theme } from "@/lib/theme";
 import {
   SECTIONS,
   mobileTabs,
@@ -186,7 +187,36 @@ function FootLink({ s, to, active, wide = false }: { s: NavSection; to: string; 
 }
 
 /** The account card at the foot: who is signed in, with Settings and Sign out in its menu. */
-function AccountMenu({ email, settingsTo, northStar, active, onSignOut }: { email: string; settingsTo: string; northStar: boolean; active: boolean; onSignOut: () => void }) {
+/** The theme switch's words: what a tap turns it into. */
+function ThemeSwitchLabel({ theme }: { theme: Theme }) {
+  return theme === "dark" ? (
+    <>
+      <Sun className="h-4 w-4 text-muted-foreground" /> Light mode
+    </>
+  ) : (
+    <>
+      <Moon className="h-4 w-4 text-muted-foreground" /> Dark mode
+    </>
+  );
+}
+
+function AccountMenu({
+  email,
+  settingsTo,
+  northStar,
+  active,
+  theme,
+  onTheme,
+  onSignOut,
+}: {
+  email: string;
+  settingsTo: string;
+  northStar: boolean;
+  active: boolean;
+  theme: Theme;
+  onTheme: () => void;
+  onSignOut: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -220,6 +250,9 @@ function AccountMenu({ email, settingsTo, northStar, active, onSignOut }: { emai
           <Link role="menuitem" to={settingsTo} className={item}>
             <Settings className="h-4 w-4 text-muted-foreground" /> Settings
           </Link>
+          <button role="menuitem" type="button" onClick={onTheme} className={item}>
+            <ThemeSwitchLabel theme={theme} />
+          </button>
           <button role="menuitem" type="button" onClick={onSignOut} className={item}>
             <LogOut className="h-4 w-4 text-muted-foreground" /> Sign out
           </button>
@@ -297,6 +330,18 @@ export default function StudioLayout() {
   if (here && visiblePages(here.pages, email).some((p) => pathname === p.to || pathname.startsWith(p.to + "/"))) lastInSection.current[here.id] = pathname + search;
 
   useScrollMemory();
+
+  // Dark unless this device chose light; public pages outside this shell go back to light (src/lib/theme.ts).
+  const [theme, setTheme] = useState<Theme>(readTheme);
+  useLayoutEffect(() => {
+    applyTheme(theme);
+    return () => applyTheme(null);
+  }, [theme]);
+  const switchTheme = () => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    saveTheme(next);
+    setTheme(next);
+  };
 
   const leo = useLeoUser();
   // Activity logs for Leo's sessions only. Set while drawing, before any page below reads its drafts (a Claude
@@ -549,6 +594,8 @@ export default function StudioLayout() {
               settingsTo={sectionTo(section("settings"))}
               northStar={!!leo}
               active={here?.id === "settings" || pathname === "/north-star"}
+              theme={theme}
+              onTheme={switchTheme}
               onSignOut={handleSignOut}
             />
           </div>
@@ -606,9 +653,14 @@ export default function StudioLayout() {
             <p className="min-w-0 truncate text-xs text-muted-foreground" title={email}>
               {email}
             </p>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="h-11 shrink-0 gap-1.5 text-muted-foreground">
-              <LogOut className="h-3.5 w-3.5" /> Sign out
-            </Button>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={switchTheme} className="h-11 gap-1.5 text-muted-foreground">
+                <ThemeSwitchLabel theme={theme} />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="h-11 gap-1.5 text-muted-foreground">
+                <LogOut className="h-3.5 w-3.5" /> Sign out
+              </Button>
+            </div>
           </div>
         </div>
       </dialog>

@@ -56,7 +56,7 @@ export default function ReelCard({ item, href }: { item: ScoredPost; href: strin
               <Heart className="h-3 w-3 fill-current" /> {compactNum(post.likes)}
             </span>
             {insight.breakout && (
-              <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-warning/90 px-1.5 py-0.5 text-[10px]" title="Engagement vs this creator's average">
+              <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-warning/90 px-1.5 py-0.5 text-[10px] dark:text-black" title="Engagement vs this creator's average">
                 <Flame className="h-3 w-3" /> {insight.ratio.toFixed(1)}x
               </span>
             )}

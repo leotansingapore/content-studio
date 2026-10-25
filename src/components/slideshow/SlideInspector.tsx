@@ -175,7 +175,7 @@ export default function SlideInspector({
   const chips = flags.length > 0 && (
     <ul className="space-y-1">
       {flags.map((f) => (
-        <li key={f.id} className={cn("rounded-md border px-2 py-1 text-[11px]", f.severity === "error" ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-amber-200 bg-amber-50 text-amber-900")}>
+        <li key={f.id} className={cn("rounded-md border px-2 py-1 text-[11px]", f.severity === "error" ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-100")}>
           <span className="font-semibold">{f.match}</span>: {f.message}
         </li>
       ))}

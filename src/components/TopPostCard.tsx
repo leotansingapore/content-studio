@@ -118,7 +118,7 @@ export default function TopPostCard({
           <Icon className="h-3 w-3" /> {FORMAT_LABEL[fmt] ?? "Post"}
         </span>
         {insight.breakout && (
-          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-warning/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-warning/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm dark:text-black">
             <Flame className="h-3 w-3" /> {insight.ratio.toFixed(1)}× avg
           </span>
         )}

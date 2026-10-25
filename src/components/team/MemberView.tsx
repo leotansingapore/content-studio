@@ -206,7 +206,7 @@ export default function MemberView({
                       </div>
                     )}
                     {editedIds.has(s.id) && (
-                      <p className="mt-2 text-[11px] text-amber-700">
+                      <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
                         You changed this post after it was approved. Submit it again before
                         posting.
                       </p>

@@ -61,7 +61,7 @@ export default function DraftReviewControl({
         </p>
       )}
       {state === "edited_since_approval" && (
-        <p className="text-[11px] leading-snug text-amber-700">
+        <p className="text-[11px] leading-snug text-amber-700 dark:text-amber-300">
           You changed this post after it was approved. Resubmit before posting.
         </p>
       )}

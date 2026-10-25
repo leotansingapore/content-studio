@@ -414,7 +414,7 @@ function SectionProgress({ label, fields, formData }: { label: string; fields: (
     <div className="flex items-center gap-3 text-sm">
       <span className="text-muted-foreground min-w-[80px]">{label}</span>
       <Progress value={pct} className="h-2 flex-1" />
-      <span className={`font-medium min-w-[40px] text-right ${pct === 100 ? 'text-green-700' : 'text-muted-foreground'}`}>
+      <span className={`font-medium min-w-[40px] text-right ${pct === 100 ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
         {pct === 100 ? <CheckCircle2 className="h-4 w-4 inline" /> : `${pct}%`}
       </span>
     </div>
@@ -1374,7 +1374,7 @@ export default function FadsPage() {
           <div className="mt-6 max-w-lg mx-auto">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
               <span>Overall Progress</span>
-              <span className={overallProgress === 100 ? "text-green-700 font-semibold" : ""}>{overallProgress}%</span>
+              <span className={overallProgress === 100 ? "text-green-700 dark:text-green-300 font-semibold" : ""}>{overallProgress}%</span>
             </div>
             <Progress value={overallProgress} className="h-3" />
           </div>
@@ -1912,7 +1912,7 @@ export default function FadsPage() {
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-start gap-3">
-                                <div className={`p-2 rounded-lg ${ready ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-700"} shrink-0`}>
+                                <div className={`p-2 rounded-lg ${ready ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"} shrink-0`}>
                                   <Icon className="h-4 w-4" />
                                 </div>
                                 <div>
@@ -1923,9 +1923,9 @@ export default function FadsPage() {
                               {polished ? (
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">AI</span>
                               ) : ready ? (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 font-medium shrink-0">Ready</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-300 font-medium shrink-0">Ready</span>
                               ) : (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 font-medium shrink-0">{a.missing.length} gap{a.missing.length > 1 ? "s" : ""}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium shrink-0">{a.missing.length} gap{a.missing.length > 1 ? "s" : ""}</span>
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">{a.description}</p>

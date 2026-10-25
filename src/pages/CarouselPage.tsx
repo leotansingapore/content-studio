@@ -1386,9 +1386,9 @@ export default function CarouselPage() {
       </Card>
 
       {tooShort && split && (
-        <Card className="border-amber-200 bg-amber-50/60 shadow-card">
+        <Card className="border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/10 shadow-card">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5">
-            <TriangleAlert className="h-5 w-5 shrink-0 text-amber-700" aria-hidden />
+            <TriangleAlert className="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
             <div className="flex-1 space-y-1" role="status">
               <p className="text-sm font-semibold text-foreground">This post is too short for a carousel</p>
               <p className="text-sm text-muted-foreground">
@@ -1619,7 +1619,7 @@ export default function CarouselPage() {
                         </p>
                       )}
                       {design === "photo-cover" && !slides[0]?.image && (
-                        <p className="text-amber-800">Add a picture to slide 1 for the photo cover.</p>
+                        <p className="text-amber-800 dark:text-amber-200">Add a picture to slide 1 for the photo cover.</p>
                       )}
                     </div>
                     <span role="group" aria-label="Slide size" className="flex flex-wrap items-center gap-1.5">

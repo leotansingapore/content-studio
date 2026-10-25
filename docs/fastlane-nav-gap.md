@@ -69,6 +69,6 @@ referral programme.
 ## Build order
 
 1. Shell: one sidebar, the section's tabs at the top of every page, no rail 2 or rail 3; filters go back onto
-   their pages. Chat button and thread list for the agent's users, New post for everyone else.
-2. Account card with Settings and Sign out; a Settings index page.
-3. Dark theme by default with a toggle, after the 102 hard-coded light colours are moved to tokens.
+   their pages. Chat button and thread list for the agent's users, New post for everyone else. Live 25 Oct (00ac5b0e).
+2. Dark theme by default with a switch in the account menu; public pages stay light. Done 25 Oct.
+3. Still open: a Settings index page of tiles, the chat's "Your work" panel, a usage meter in the sidebar.

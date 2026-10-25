@@ -24,7 +24,7 @@ import { callFn } from "@/lib/edgeFn";
 import { reasonText } from "@/lib/prices";
 import { ASKS, ASK_FAILED, ASK_MAX_CHARS } from "../../../supabase/functions/carousel-copy/logic.ts";
 
-export const WARN_BOX = "border-amber-200 bg-amber-50 text-amber-900";
+export const WARN_BOX = "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-100";
 
 export const ROLE_LABEL = { cover: "Cover", point: "Point", cta: "Call to action", recap: "Recap" } as const;
 
@@ -83,7 +83,7 @@ export default function SlideFields(p: {
           {ROLE_LABEL[role]}
         </span>
         {p.flags.length > 0 && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
+          <span className="rounded-full bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-100">
             {p.flags.length} {p.flags.length === 1 ? "flag" : "flags"}
           </span>
         )}
@@ -97,7 +97,7 @@ export default function SlideFields(p: {
           {role === "cover" && (
             <span
               className={`text-[11px] tabular-nums ${
-                coverWords > COVER_HOOK_WORDS ? "font-semibold text-amber-800" : "text-muted-foreground"
+                coverWords > COVER_HOOK_WORDS ? "font-semibold text-amber-800 dark:text-amber-200" : "text-muted-foreground"
               }`}
             >
               {coverWords}/{COVER_HOOK_WORDS} words
@@ -113,7 +113,7 @@ export default function SlideFields(p: {
           aria-describedby={coverWords > COVER_HOOK_WORDS ? `slide-cover-warn-${s.id}` : undefined}
         />
         {coverWords > COVER_HOOK_WORDS && (
-          <p id={`slide-cover-warn-${s.id}`} className="text-[11px] font-medium text-amber-800">
+          <p id={`slide-cover-warn-${s.id}`} className="text-[11px] font-medium text-amber-800 dark:text-amber-200">
             Over {COVER_HOOK_WORDS} words. Cut it so it reads at thumbnail size.
           </p>
         )}
@@ -125,7 +125,7 @@ export default function SlideFields(p: {
           </Label>
           <span
             className={`text-[11px] tabular-nums ${
-              words > WORDS_PER_SLIDE ? "font-semibold text-amber-800" : "text-muted-foreground"
+              words > WORDS_PER_SLIDE ? "font-semibold text-amber-800 dark:text-amber-200" : "text-muted-foreground"
             }`}
           >
             {words}/{WORDS_PER_SLIDE} words
@@ -168,7 +168,7 @@ export default function SlideFields(p: {
       </div>
       {p.media !== null && <MediaPicker media={p.media} onPick={p.onPickMedia} />}
       {p.overflow && (
-        <p className="flex items-start gap-1.5 text-xs text-amber-800">
+        <p className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
           <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           Too much text to fit, so the slide cuts it off. Shorten it.
         </p>

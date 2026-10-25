@@ -18,6 +18,15 @@
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#ffffff" />
+    <script>
+      // The studio opens dark unless this device chose light (src/lib/theme.ts); public pages stay light. Before paint, so no flash.
+      try {
+        if (!/^\/(roadmap|auth|review|l|join|t)(\/|$)/.test(location.pathname) && localStorage.getItem("cs-theme") !== "light") {
+          document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#111214");
+        }
+      } catch (e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
