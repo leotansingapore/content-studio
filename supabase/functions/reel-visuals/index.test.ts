@@ -154,3 +154,94 @@ describe("today's breakdown and style read (pinned)", () => {
     expect(used(LEO, "reel-visuals")).toBe(1);
   });
 });
+
+describe("the edit read (same edit, NORTH_STAR_USERS only)", () => {
+  const shots = [{ face: true, said: "Most people check their CPF once a year" }, { face: false, said: "" }];
+  const EDIT = {
+    mode: "edit",
+    frames,
+    pacing,
+    shots,
+    sentences: ["Most people check their CPF once a year.", "Comment CPF for my checklist."],
+    beats: ["Opens on a common habit", "Asks for a comment"],
+    cta: "Comment CPF",
+  };
+  const READ = {
+    frames: [
+      { t: 0.3, shows: "A woman talks to camera in an office", framing: "close", texts: [{ text: "CPF once a year?", place: "top" }] },
+      { t: 4.3, shows: "A calculator on a desk", framing: "wide", texts: [] },
+    ],
+    captions: STYLE.captions,
+    layout: STYLE.layout,
+  };
+
+  it("refuses an account off the list before its body is read or anything is counted", async () => {
+    for (const b of [EDIT, { mode: "edit" }, { ...EDIT, frames: Array.from({ length: 25 }, (_, i) => ({ t: i, image: jpeg })) }]) {
+      const res = await send(UID, b);
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect((await send("", EDIT)).status).toBe(401);
+    expect(db.rows.size).toBe(0);
+    expect([ai.sent, ai.asked]).toEqual([[], []]);
+  });
+
+  it("refuses 25 frames for a listed account before any count", async () => {
+    const res = await send(LEO, { ...EDIT, frames: Array.from({ length: 25 }, (_, i) => ({ t: i, image: jpeg })), shots: Array(25).fill(shots[1]) });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ code: "bad_request", error: "Send 2 to 24 frames." });
+    expect(db.rows.size).toBe(0);
+  });
+
+  it("reads the shots on one edit-read use, not reel-visuals, with one Jev call holding the look and every pick", async () => {
+    ai.replies.push(READ);
+    ai.jev = {
+      style: { type: "choice", choice: "bold", probabilities: { bold: 0.8 } },
+      shot_0: { type: "choice", choice: "speaker", probabilities: { speaker: 0.9 } },
+      shot_1: { type: "choice", choice: "cutaway", probabilities: { cutaway: 0.7 } },
+      text_0_0: { type: "choice", choice: "hook", probabilities: { hook: 0.85 } },
+      beat_0: { type: "choice", choice: "b0", probabilities: { b0: 0.9 } },
+      beat_1: { type: "choice", choice: "b1", probabilities: { b1: 0.6 } },
+    };
+    const res = await send(LEO, EDIT);
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out.read).toEqual(READ);
+    expect(out.look).toMatchObject({ style: "bold" });
+    expect(out.picks).toEqual({
+      shots: [{ pick: "speaker", p: 0.9 }, { pick: "cutaway", p: 0.7 }],
+      texts: [[{ pick: "hook", p: 0.85 }], []],
+      beats: [{ pick: 0, p: 0.9 }, { pick: 1, p: 0.6 }],
+      roles: [null, null],
+    });
+    expect(out.usage.used).toBe(1);
+    expect([used(LEO, "edit-read"), used(LEO, "reel-visuals")]).toEqual([1, 0]);
+    expect(ai.sent[0]).toMatchObject({ max_completion_tokens: 7000, response_format: { json_schema: { name: "reel_edit" } } });
+    // the creator's words go to Jev in memory, never to the vision model
+    expect(JSON.stringify(ai.sent[0])).not.toContain("CPF");
+    expect(ai.asked).toHaveLength(1);
+    expect(ai.asked[0].state).toEqual({ captions: STYLE.captions, layout: STYLE.layout });
+    expect(Object.keys(ai.asked[0].questions)).toEqual(expect.arrayContaining(["style", "shot_0", "shot_1", "text_0_0", "beat_0", "beat_1", "role_1"]));
+  });
+
+  it("answers with every pick null when Jev has none, so the plan falls back on the measured faces", async () => {
+    ai.replies.push(READ);
+    const out = await (await send(LEO, EDIT)).json();
+    expect([out.look, out.picks.shots, out.picks.beats]).toEqual([null, [null, null], [null, null]]);
+    expect(used(LEO, "edit-read")).toBe(1);
+  });
+
+  it("gives the use back only when OpenAI never answered, and keeps it on a read that came back unusable", async () => {
+    for (const reply of [500, "drop"] as const) {
+      ai.replies.push(reply);
+      const res = await send(LEO, EDIT);
+      expect([res.status, await res.json()]).toEqual([502, { code: "failed", error: "Reading the edit didn't come back. Try again." }]);
+    }
+    expect(used(LEO, "edit-read")).toBe(0);
+    ai.replies.push({ ...READ, captions: "" });
+    const bad = await send(LEO, EDIT);
+    expect([bad.status, (await bad.json()).code]).toEqual([422, "unusable"]);
+    expect(used(LEO, "edit-read")).toBe(1);
+    expect(ai.asked).toEqual([]);
+  });
+});

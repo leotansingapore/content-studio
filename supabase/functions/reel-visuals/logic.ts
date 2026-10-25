@@ -46,6 +46,8 @@ export interface Visuals {
 
 export const MIN_FRAMES = 2;
 export const MAX_FRAMES = 12;
+/** Mode "edit" (edit.ts): one frame per shot, as reelStyle.ts's per-cut option takes them. */
+export const MAX_EDIT_FRAMES = 24;
 /** A 432px-wide JPEG at quality 0.72 is ~30-60k characters; this leaves room. */
 export const MAX_IMAGE_CHARS = 250_000;
 export const MAX_BEATS = 10;
@@ -67,10 +69,10 @@ function line(v: unknown, max: number): string {
 }
 
 /** The request, or the reason it was refused. */
-export function parseVisualsRequest(raw: unknown): { ok: true; value: VisualsRequest } | { ok: false; error: string } {
+export function parseVisualsRequest(raw: unknown, maxFrames = MAX_FRAMES): { ok: true; value: VisualsRequest } | { ok: false; error: string } {
   const r = (raw && typeof raw === "object" ? raw : {}) as Item;
-  if (!Array.isArray(r.frames) || r.frames.length < MIN_FRAMES || r.frames.length > MAX_FRAMES) {
-    return { ok: false, error: `Send ${MIN_FRAMES} to ${MAX_FRAMES} frames.` };
+  if (!Array.isArray(r.frames) || r.frames.length < MIN_FRAMES || r.frames.length > maxFrames) {
+    return { ok: false, error: `Send ${MIN_FRAMES} to ${maxFrames} frames.` };
   }
   const frames: FrameInput[] = [];
   for (const f of r.frames) {
