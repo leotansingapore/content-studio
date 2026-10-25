@@ -269,6 +269,14 @@ describe("aiUseRows", () => {
 
 describe("planRows", () => {
   const campaign = { id: "c-k1", name: "Young parents, October", createdAt: "2026-10-05T02:00:00.000Z", audienceName: "Young parents", weeks: 4, perWeek: 7 as const, posts: Array.from({ length: 28 }, () => ({}) as never) };
+  it("leaves out a campaign whose Plan the agent logged itself, so it shows once (live-p6replay D6)", () => {
+    const agent = { kind: "plan" as const, title: 'Planned "Young parents, October"', at: "2026-10-05T02:00:00.400Z" };
+    expect(planRows([campaign], null, [agent])).toEqual([]);
+    // another campaign of the same name a day later, or a row of another kind, still gets its own
+    expect(planRows([{ ...campaign, createdAt: "2026-10-06T02:00:00.000Z" }], null, [agent])).toHaveLength(1);
+    expect(planRows([campaign], null, [{ ...agent, kind: "make" }])).toHaveLength(1);
+  });
+
   it("turns a campaign into one Plan event at its createdAt", () => {
     expect(planRows([campaign], null)).toEqual([
       { id: "plan-c-k1", at: "2026-10-05T02:00:00.000Z", who: "you", kind: "plan", title: 'Planned "Young parents, October"', detail: "28 posts for Young parents, 7 a week for 4 weeks.", link: "/campaigns/c-k1" },

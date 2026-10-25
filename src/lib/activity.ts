@@ -445,12 +445,15 @@ export function aiUseRows(rows: { feature: string; day: string; count: number }[
 /**
  * Campaigns and approved autopilot weeks as Plan and Autopilot events, worked out from their stores on each read
  * (phase 5 writes no activity rows): a campaign is one Plan event at its createdAt; a week with an approved post is
- * one Autopilot event at the time its writing started.
+ * one Autopilot event at the time its writing started. A campaign whose Plan row is in `logged` already (the agent
+ * logs its own, as the agent's) gets none here, so it shows once (live-p6replay D6).
  */
 export function planRows(
   campaigns: Pick<Campaign, "id" | "name" | "createdAt" | "audienceName" | "posts" | "weeks" | "perWeek">[],
   autopilot: { batches: Pick<Batch, "week" | "posts" | "startedAt">[] } | null,
+  logged: Pick<ActivityEvent, "kind" | "title" | "at">[] = [],
 ): ActivityEvent[] {
+  const inLog = (e: ActivityEvent | null) => !!e && logged.some((l) => l.kind === "plan" && l.title === e.title && Math.abs(Date.parse(l.at) - Date.parse(e.at)) < 60_000);
   const plans = campaigns.map((c) =>
     cleanEvent({
       id: `plan-${c.id}`,
@@ -461,7 +464,7 @@ export function planRows(
       detail: `${c.posts.length} posts for ${c.audienceName}, ${c.perWeek} a week for ${c.weeks} ${c.weeks === 1 ? "week" : "weeks"}.`,
       link: links.campaign(c.id),
     }),
-  );
+  ).filter((e) => !inLog(e));
   const weeks = (autopilot?.batches ?? []).map((b) => {
     const approved = b.posts.filter((p) => p.state === "approved").length;
     if (!approved) return null;

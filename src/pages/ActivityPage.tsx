@@ -100,7 +100,7 @@ function Activity({ userId }: { userId: string }) {
   const now = new Date();
   const thisMonth = localDateKey(now).slice(0, 7);
   const linkedMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam) && monthParam <= thisMonth ? monthParam : null;
-  const plans = planRows(loadCampaigns(userId), loadAutopilot(userId));
+  const plans = planRows(loadCampaigns(userId), loadAutopilot(userId), loadActivity(userId, activityMonths(userId)));
   const months = [...new Set([...activityMonths(userId), ...plans.map((e) => monthOf(e.at))])].sort().reverse();
   // a linked event in an older month loads back to it
   const linked = eventId ? [...loadActivity(userId, months), ...plans].find((e) => e.id === eventId) : undefined;
