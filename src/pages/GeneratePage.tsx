@@ -10,7 +10,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import { COMPARE_TABS, links, WRITE_STEPS, type PostLang } from "@/lib/links";
 import { asPostLang, langOf } from "@/lib/translate";
 import { takeNavTranslate } from "@/lib/translateJob";
-import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
+import { useScrollToHash, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import {
   Card,
   CardContent,
@@ -860,6 +860,8 @@ export default function GeneratePage() {
     id: RewriteId;
     text: string;
     status: "streaming" | "done";
+    // Leo only (edit-score): the score line it fixes and the score before
+    fix?: { id: FactorId; from: number };
   } | null>(null);
   const [undoText, setUndoText] = useState<string | null>(null);
   // What the Undo line says happened: a rewrite, a clean or an insert.
@@ -1156,8 +1158,8 @@ export default function GeneratePage() {
         ? "Your board idea is the topic. Pick a format and generate."
         : "Form repopulated. Edit and re-roll, or copy as-is.",
     });
-    // a compare= link scrolls to the compare strip instead
-    if (!searchParams.has("compare"))
+    // a compare= link scrolls to the compare strip instead, and Leo's #score to the score panel
+    if (!searchParams.has("compare") && !(leo && window.location.hash === "#score"))
       setTimeout(() => {
         formAnchorRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -1442,20 +1444,34 @@ export default function GeneratePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hookOptions, isStreaming]);
 
-  // Predicted engagement: Jev's checks on this exact text, remembered on this device per text
+  // Predicted engagement: Jev's checks on this exact text, remembered on this device per text. Leo's (edit-score) are
+  // asked as the draft's own format and saved on the draft too, so his other devices and My posts read them.
+  const scoreFormat: ScoreFormat = format === "carousel" || format === "short-video" ? format : "text-post";
   const [scores, setScores] = useState<ReturnType<typeof loadScores>>({});
   useEffect(() => setScores(loadScores(userId)), [userId]);
   const scoreKeyNow = useMemo(() => textKey(platform, draft), [platform, draft]);
-  const postScore = scores[scoreKeyNow] ?? null;
+  const savedScore = scores[scoreKeyNow] || !leo || !userId || !currentDraftId ? null : currentScore({ platform, score: getDraftById(userId, currentDraftId)?.score }, draft);
+  const postScore: PostScore | null = scores[scoreKeyNow] ?? (savedScore && { score: savedScore.v, down: savedScore.down });
   const [scoring, setScoring] = useState<string | null>(null);
   const [scoreError, setScoreError] = useState<{ key: string; message: string } | null>(null);
-  const runScore = async () => {
+  // /generate?draft=<id>#score (Leo only): lands on the score panel once the draft has drawn; it never scores on load
+  useScrollToHash(Boolean(leo && userId && currentDraftId && draft.trim()));
+  // Leo only: the score before a fix that was used, for "Was a, now b" while the text is the fixed one
+  const [fixedFrom, setFixedFrom] = useState<{ key: string; from: number } | null>(null);
+  /** `text`: a fix just used, scored before the editor has drawn it. */
+  const runScore = async (text = draft) => {
     if (!userId || scoring) return;
-    const key = scoreKeyNow;
+    const key = textKey(platform, text);
+    // typed edits are saved first, so the saved draft holds the text scored
+    if (leo) flushSave.current();
     setScoring(key);
     setScoreError(null);
     try {
-      setScores(saveScore(userId, key, await scorePost(draft, platform)));
+      const score = await scorePost(text, platform, leo ? scoreFormat : undefined);
+      setScores(saveScore(userId, key, score));
+      const entry = leo && currentDraftId ? getDraftById(userId, currentDraftId) : null;
+      if (entry && textKey(entry.platform, entry.draft) === key)
+        upsertDraft(userId, { ...entry, score: { v: score.score, down: score.down, key, at: new Date().toISOString() } });
     } catch (e) {
       setScoreError({ key, message: (e as Error).message });
     } finally {
@@ -2239,13 +2255,13 @@ export default function GeneratePage() {
     void runAdapt(v.platform, v.draftId);
   };
 
-  const handleRewrite = async (id: RewriteId, lines?: string[], ask?: string) => {
+  const handleRewrite = async (id: RewriteId, lines?: string[], ask?: string, fix?: { id: FactorId; from: number }) => {
     const source = draft.trim();
     if (!source) return;
     rewriteAbortRef.current?.abort();
     const controller = new AbortController();
     rewriteAbortRef.current = controller;
-    setRewrite({ id, text: "", status: "streaming" });
+    setRewrite({ id, text: "", status: "streaming", fix });
     const mine = () => rewriteAbortRef.current === controller;
     const fail = (message: string) => {
       if (!mine()) return;
@@ -2256,11 +2272,11 @@ export default function GeneratePage() {
       await streamOnePost(
         { ...buildBasePayload(), ...rewriteFields(source, id, lines, ask) },
         {
-          onToken: (text) => mine() && setRewrite({ id, text, status: "streaming" }),
+          onToken: (text) => mine() && setRewrite({ id, text, status: "streaming", fix }),
           onComplete: (raw) => {
             const text = applyBrandRules(stripDashes(raw), brandKit, platform).trim();
             if (!text) return fail("The reply came back empty. Try again.");
-            if (mine()) setRewrite({ id, text, status: "done" });
+            if (mine()) setRewrite({ id, text, status: "done", fix });
           },
           onError: fail,
         },
@@ -2278,6 +2294,13 @@ export default function GeneratePage() {
     setRewrite(null);
   };
 
+  // "Fix this" on a score line (Leo only): the factor's ask goes through the rewrite panel, so nothing changes until Use this.
+  const fixFactor = (id: FactorId) => {
+    if (!postScore) return;
+    void handleRewrite("ask", undefined, FIX_ASK[id], { id, from: postScore.score });
+    setTimeout(() => document.getElementById("rewrite-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+  };
+
   // The draft as it stands (typed edits included) is what Undo brings back.
   const acceptRewrite = () => {
     if (!rewrite || rewrite.status !== "done") return;
@@ -2285,6 +2308,11 @@ export default function GeneratePage() {
     setUndoNote("Rewritten.");
     setDraft(rewrite.text);
     persistDraftEntry(rewrite.text, chosenHook ?? "");
+    // Leo only (edit-score): a fix that is used is scored once by itself, so the panel can say how the score moved
+    if (rewrite.fix) {
+      setFixedFrom({ key: textKey(platform, rewrite.text), from: rewrite.fix.from });
+      if (!scores[textKey(platform, rewrite.text)]) void runScore(rewrite.text);
+    }
     // Leo only: only the five one-tap rewrites are counted (rewriteLog.ts), never flagged lines or an asked change
     if (leo && userId) {
       logRewrite(userId, rewrite.id, currentDraftId);
@@ -2673,11 +2701,13 @@ export default function GeneratePage() {
   const prompterText = leo && view === "prompter" && format === "short-video" && shortScript ? prompterLines({ draft, storyboard: storyboard ?? undefined }) : [];
   // Leo's price chips (business-cost-preview): only his sessions read today's uses, so everyone else's stay null
   const imgRunning = imgJob?.state === "working" || imgJob?.state === "saving";
-  const usesLeft = useUsesLeft(!leo || storyboardBusy || imgRunning || titlesBusy);
+  const usesLeft = useUsesLeft(!leo || storyboardBusy || imgRunning || titlesBusy || !!scoring);
   const storyboardLeft = usesLeft("storyboard");
   const storyboardWhy = reasonText({ left: storyboardLeft, leo: Boolean(leo) });
   const titlesLeft = usesLeft("video-publish");
   const titlesWhy = reasonText({ left: titlesLeft, leo: Boolean(leo) });
+  const scoreLeft = usesLeft("post-score");
+  const scoreWhy = reasonText({ left: scoreLeft, leo: Boolean(leo) });
   const imageLeft = usesLeft("ai-image");
   const imageWhy = reasonText({ left: imageLeft, leo: Boolean(leo) });
   // a fix spends from the adviser's cap and the across-everyone one, so the smaller of the two is what's left
@@ -4143,7 +4173,7 @@ export default function GeneratePage() {
                       {rewrite.status === "streaming" && (
                         <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />
                       )}
-                      {rewriteLabel(rewrite.id)}
+                      {rewriteLabel(rewrite.id, rewrite.fix && labelFor(rewrite.fix.id, scoreFormat))}
                     </p>
                     <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
                       {rewrite.text || <span className="text-muted-foreground">Rewriting...</span>}
@@ -4566,7 +4596,7 @@ export default function GeneratePage() {
             )}
 
             {craftCheck && !isStreaming && (
-              <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
+              <div id={leo ? "score" : undefined} className={`mt-3 rounded-xl border border-border/60 bg-muted/20 p-3${leo ? " scroll-mt-24" : ""}`} aria-live="polite">
                 {postScore ? (
                   <>
                     <div className="flex flex-wrap items-center gap-2">
@@ -4585,19 +4615,59 @@ export default function GeneratePage() {
                       >
                         {postScore.score.toFixed(1)}/10
                       </span>
+                      {leo && <span className="text-xs font-semibold text-foreground">{scoreBand(postScore.score)}</span>}
                       <InfoTip label="About the score">Five checks on this draft, weighed out of 10. A guide, not a promise of reach.</InfoTip>
                     </div>
                     {postScore.down.length > 0 ? (
                       <ul className="mt-2 space-y-1.5" aria-label="What pulled it down">
-                        {postScore.down.map((id) => (
-                          <li key={id} className="text-xs">
-                            <span className="font-semibold">{labelFor(id)}:</span>{" "}
-                            <span className="text-muted-foreground">{tipFor(id)}</span>
-                          </li>
-                        ))}
+                        {postScore.down.map((id) => {
+                          const why = (
+                            <>
+                              <span className="font-semibold">{labelFor(id, leo ? scoreFormat : "text-post")}:</span>{" "}
+                              <span className="text-muted-foreground">{tipFor(id, leo ? scoreFormat : "text-post")}</span>
+                            </>
+                          );
+                          return leo ? (
+                            <li key={id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+                              <span className="min-w-0 flex-1 basis-56">{why}</span>
+                              <span className="flex items-center gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-11 gap-1.5 text-xs sm:h-8"
+                                  disabled={rewrite?.status === "streaming" || !!scoring}
+                                  onClick={() => fixFactor(id)}
+                                >
+                                  <Wand2 className="h-3.5 w-3.5" /> Fix this
+                                </Button>
+                                <PriceChip price={WRITE_PRICE} left={null} />
+                              </span>
+                            </li>
+                          ) : (
+                            <li key={id} className="text-xs">
+                              {why}
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className="mt-2 text-xs text-muted-foreground">Nothing big is holding it back.</p>
+                    )}
+                    {leo && rewrite?.fix && rewrite.status === "streaming" && (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden /> Fixing the {labelFor(rewrite.fix.id, scoreFormat).toLowerCase()}...
+                      </p>
+                    )}
+                    {leo && fixedFrom?.key === scoreKeyNow && (
+                      <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-foreground">
+                        Was {fixedFrom.from.toFixed(1)}, now {postScore.score.toFixed(1)}
+                        {postScore.score < fixedFrom.from && ". Discard it to keep the old one."}
+                        {postScore.score < fixedFrom.from && undoText !== null && (
+                          <button type="button" onClick={undoRewrite} className="-my-3.5 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2">
+                            Undo
+                          </button>
+                        )}
+                      </p>
                     )}
                   </>
                 ) : (
@@ -4607,15 +4677,24 @@ export default function GeneratePage() {
                       variant="outline"
                       className={`h-9 gap-1.5 ${scoring === scoreKeyNow ? "disabled:opacity-100" : ""}`}
                       onClick={() => void runScore()}
-                      disabled={!!scoring || !userId}
+                      disabled={!!scoring || !userId || (leo && (draft.trim().length < 40 || scoreLeft === 0))}
                     >
                       {scoring === scoreKeyNow ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Gauge className="h-3.5 w-3.5" />}
                       {scoring === scoreKeyNow ? "Scoring..." : "Predict engagement"}
                     </Button>
+                    {leo && scoring !== scoreKeyNow && <PriceChip feature="post-score" left={scoreLeft} />}
+                    {leo && draft.trim().length < 40 && <p className="basis-full text-xs text-muted-foreground">Write a bit more before scoring it.</p>}
+                    {scoreWhy && <p className="basis-full text-xs text-destructive">{scoreWhy}</p>}
                     {scoreError?.key === scoreKeyNow && <p className="text-xs text-destructive" role="alert">{scoreError.message}</p>}
                   </div>
                 )}
               </div>
+            )}
+            {/* a version in another language is never scored: Malay passes the score's Latin-letter check */}
+            {leo && draftLang && draft.trim() && !isStreaming && (
+              <p id="score" className="mt-3 scroll-mt-24 rounded-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                Scores run on the English version.
+              </p>
             )}
 
             {craftCheck && !isStreaming && (
