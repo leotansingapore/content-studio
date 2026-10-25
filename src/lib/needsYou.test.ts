@@ -236,7 +236,14 @@ describe("needsYouItems", () => {
     expect(items[1]).toMatchObject({ title: "24 posts are made and not scheduled", quote: "Made 23", actions: [{ label: "Open", to: "/drafts?status=draft" }] });
     // one made post keeps its own row with its own buttons
     const one = needsYouItems({ drafts: made.slice(0, 1) }, TODAY, NOW);
-    expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in My posts.", actions: [{ label: "Open", to: links.generate({ draft: "m0" }) }, { label: "Schedule", to: links.generate({ draft: "m0", panel: "post" }) }] }]);
+    expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in My posts.", actions: [{ label: "Open", to: links.generate({ draft: "m0" }) }, { label: "Schedule it", to: links.drafts({ schedule: "m0", step: "where" }) }] }]);
+  });
+
+  it("opens the schedule steps on that post from Schedule it, at Where, and posts nothing itself (phase 7a)", () => {
+    const [item] = needsYouItems({ drafts: [draft({ id: "a b/1", hook: "Agent made", createdAt: "2026-10-13T00:00:00Z", agent: { thread: "t1", msg: "m3" } })] }, TODAY, NOW);
+    expect(item.actions[1]).toEqual({ label: "Schedule it", to: "/drafts?schedule=a+b%2F1&step=where" });
+    expect(item.actions[1].to).toBe(links.drafts({ schedule: "a b/1", step: "where" }));
+    expect(item.actions.some((a) => a.markPosted)).toBe(false);
   });
 
   it("leaves out a made post Zernio holds or one linked to a live post, since each has a time", () => {

@@ -197,7 +197,8 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
   if (made.length === 1)
     items.push({
       id: `draft:${made[0].id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(made[0]), line: "Schedule it, or leave it in My posts.",
-      actions: [{ label: "Open", to: draftLink(made[0].id) }, { label: "Schedule", to: draftLink(made[0].id, "post") }],
+      // links.drafts({ schedule, step: "where" }): the schedule steps open on it, and only their last button posts (phase 7a)
+      actions: [{ label: "Open", to: draftLink(made[0].id) }, { label: "Schedule it", to: `/drafts?${new URLSearchParams({ schedule: made[0].id, step: "where" })}` }],
     });
   else if (made.length)
     items.push({
