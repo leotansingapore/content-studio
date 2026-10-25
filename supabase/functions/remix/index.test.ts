@@ -491,3 +491,108 @@ describe("a topic's post, carousel and script (remix-topic)", () => {
     expect(masAsks()).toEqual([]);
   });
 });
+
+// ---- phase 7: a version's hook formula (remix-variations) and a script written to a reel's edit (remix-format-clone) ----
+
+const REEL = { key: "clone:instagram:C1xAbc9", kind: "clone", format: "video", platform: "instagram", url: "https://www.instagram.com/reel/C1xAbc9/", text: "I check my CPF statement every single month because one small gap can cost you years." };
+const EDIT_BRIEF = {
+  beats: [{ role: "hook", seconds: 3, words: 6 }, { role: "ask", seconds: 3, words: 6 }],
+  events: [{ b: 0, kind: "cutaway" }, { b: 1, kind: "text", role: "ask", words: 3 }],
+  overlays: ["Stop checking CPF once a year"],
+};
+const editBody = (brand: Record<string, unknown> = BRAND) => ({ mode: "make", as: "edit", source: REEL, edit: EDIT_BRIEF, brand });
+const EDIT_OK = {
+  lines: ["Most people [[0]] read their CPF yearly.", "Message me for a [[1]] quick review."],
+  texts: [{ k: 1, text: "Book a review" }],
+  searches: [{ k: 0, search: "person reading letter" }],
+  caption: "A monthly look beats a yearly scramble. Message me to book a review.",
+};
+
+describe("a script written to a reel's edit (as edit)", () => {
+  it("writes an adviser's edit in one use and asks Jev's MAS question of its lines and on-screen text, though it has a source", async () => {
+    openai.mode = "queue";
+    openai.answers = [EDIT_OK];
+    jev.answers = { copied_claim: { noul: 0.1 }, invented_self: { noul: 0.1 }, mas: { noul: 0.7 } };
+    const r = await send(editBody());
+    expect(r).toMatchObject({
+      status: 200,
+      body: {
+        as: "edit",
+        result: {
+          as: "edit",
+          lines: ["Most people read their CPF yearly.", "Message me for a quick review."],
+          marks: [{ k: 0, line: 0, word: 2 }, { k: 1, line: 1, word: 4 }],
+          texts: EDIT_OK.texts,
+          searches: EDIT_OK.searches,
+          caption: EDIT_OK.caption,
+        },
+        flags: { copied: [], claim: false, invented: false, mas: true },
+      },
+    });
+    expect(masAsks()).toEqual([["mas"]]);
+    expect(jev.states.at(-1)).toEqual({ post: `Most people read their CPF yearly.\nMessage me for a quick review.\nBook a review\n${EDIT_OK.caption}` });
+    expect(openai.sent[0].response_format).toMatchObject({ json_schema: { name: "remix_edit" } });
+    expect(openai.sent[0].messages[1].content).toContain("Beat 1, hook: about 3 seconds and 6 words. Markers: [[0]] a cutaway starts here.");
+    expect(used()).toBe(1);
+  });
+
+  it("never asks a business's edit the MAS question, which is about licensed advisers", async () => {
+    openai.mode = "queue";
+    openai.answers = [EDIT_OK];
+    jev.answers = { mas: { noul: 0.9 } };
+    const r = await send(editBody({ name: "ActivityTracker", speaker: "business", mention: false }));
+    expect(r).toMatchObject({ status: 200, body: { flags: { mas: null } } });
+    expect(masAsks()).toEqual([]);
+  });
+
+  it("sends a script that broke its markers back once inside the same use, then refuses it with the use kept", async () => {
+    openai.mode = "queue";
+    const broken = { ...EDIT_OK, lines: ["Most people read their CPF yearly.", EDIT_OK.lines[1]] };
+    openai.answers = [broken, EDIT_OK];
+    expect((await send(editBody())).status).toBe(200);
+    expect(openai.calls).toBe(2);
+    expect(openai.sent[1].messages.at(-1)!.content).toContain("- Line 1 has no markers but needs [[0]], each once and in that order.");
+    expect(used()).toBe(1);
+
+    openai.answers = [broken, broken];
+    expect(await send(editBody())).toMatchObject({ status: 422, body: { code: "refused", error: "The script didn't fit the edit. Try again." } });
+    expect(used()).toBe(2);
+  });
+
+  it("sends a line copied from the original's on-screen text back once, keeping the markers", async () => {
+    openai.mode = "queue";
+    const copied = { ...EDIT_OK, lines: [EDIT_OK.lines[0], "Stop checking CPF once a year, [[1]] okay?"] };
+    openai.answers = [copied, EDIT_OK];
+    expect((await send(editBody())).status).toBe(200);
+    const fix = openai.sent[1].messages.at(-1)!.content;
+    expect(fix).toContain("- Stop checking CPF once a year");
+    expect(fix).toContain("Keep every [[k]] marker in its line and in its order.");
+    expect(jev.states.find((s) => "source" in s)!.source).toContain("Stop checking CPF once a year");
+  });
+
+  it("writes from the words the device heard, never a cached transcript of the reel", async () => {
+    db.reels.set("instagram:C1xAbc9", { transcript: "Cached words from the reel reader" });
+    openai.mode = "queue";
+    openai.answers = [EDIT_OK];
+    expect((await send(editBody())).status).toBe(200);
+    expect(openai.sent[0].messages[1].content).not.toContain("Cached words");
+  });
+
+  it("refuses a bad brief with 400 before any count or call", async () => {
+    const r = await send({ ...editBody(), edit: { ...EDIT_BRIEF, beats: EDIT_BRIEF.beats.slice(0, 1) } });
+    expect(r).toMatchObject({ status: 400, body: { code: "bad_request", error: "Send the edit's beats: 2 to 8, each with its role, seconds and words." } });
+    expect([db.rows.size, openai.calls, jev.states.length]).toEqual([0, 0, 0]);
+  });
+});
+
+describe("a make with a hook formula (remix-variations)", () => {
+  it("writes the formula's rule into the one use's prompt, and a source post stays as today otherwise", async () => {
+    openai.mode = "queue";
+    openai.answers = [TOPIC_ANSWERS.post.answer];
+    const r = await send({ mode: "make", as: "post", source: REEL, formula: "contrarian", brand: BRAND });
+    expect(r.status).toBe(200);
+    expect(openai.sent[0].messages[0].content).toContain('Write this hook with the "Contrarian take" formula.');
+    expect(r.body.flags).not.toHaveProperty("mas");
+    expect(used()).toBe(1);
+  });
+});

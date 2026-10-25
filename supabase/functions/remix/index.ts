@@ -8,6 +8,9 @@
 // (AD_LAYOUT_AT, else Headline ad); a meme's options get funny and unsafe in one call after (unsafe ones dropped,
 // all three dropped is 422 with the use kept); an image's words, the best meme and a topic's post, carousel or script
 // get the shared MAS question (_shared/mas.ts) for a person's brand, one Jev call on the words, as flags.mas.
+// Phase 7: any make but hooks may name a hook `formula` (remix-variations); as "edit" writes a script to a reel's edit
+// (remix-format-clone), its [[k]] markers checked in code with one fixing pass in the use, the copy floor over its lines
+// and on-screen text, and the MAS question for a person's brand though it has a source.
 //
 // Order: JWT, NORTH_STAR_USERS, validate, the cached transcript of a reel or TikTok (cs_reel_sources, never a new read),
 // consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
@@ -61,8 +64,8 @@ import {
   makeProblem,
   validateMake,
   withSpoken,
+  type MadeResult,
   type MakeOpts,
-  type MakeResult,
   type MemeLayout,
 } from "./logic.ts";
 
@@ -160,8 +163,9 @@ Deno.serve(async (req) => {
     const parsed = parseMakeRequest(body);
     if (parsed.ok === false) return fail("bad_request", parsed.error, 400);
     const make = parsed.value;
-    // a reel's or TikTok's spoken words, when the breakdown or a pasted-link read cached them: a free row read, never a new read
-    const reel = make.source && readsVideo(make.source) ? parseReelUrl(make.source.url) : null;
+    // a reel's or TikTok's spoken words, when the breakdown or a pasted-link read cached them: a free row read, never a new read;
+    // an edit sends the words the device heard, with the on-screen text after them
+    const reel = make.source && make.as !== "edit" && readsVideo(make.source) ? parseReelUrl(make.source.url) : null;
     if (make.source && reel?.ok) make.source = withSpoken(make.source, (await findSource(admin, reel).catch(() => null))?.transcript);
     if (!Deno.env.get("OPENAI_API_KEY")) {
       console.error("OPENAI_API_KEY is not set");
@@ -196,7 +200,7 @@ Deno.serve(async (req) => {
     let rejected = false;
     // the slideshow's or wall's own "this can't be made safe" answer: a 422, never a retry
     const said: { refusal: string | null } = { refusal: null };
-    const write = async (msgs: typeof messages): Promise<{ result: MakeResult; raw: string } | null> => {
+    const write = async (msgs: typeof messages): Promise<{ result: MadeResult; raw: string } | null> => {
       const res = await openaiChat(
         { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: responseFormat(make), messages: msgs },
         { signal: AbortSignal.timeout(AI_TIMEOUT_MS) },
@@ -250,7 +254,7 @@ Deno.serve(async (req) => {
     const held = await holdTheLine(kept.result, sourceText, dontReuseFor(make), {
       rewrite: async (lines) => {
         rewrote = true;
-        const second = (await write([...messages, { role: "assistant", content: kept.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null;
+        const second = (await write([...messages, { role: "assistant", content: kept.raw }, { role: "user", content: rewriteMessage(lines, make.as) }]).catch(() => null))?.result ?? null;
         // a rewrite that breaks the format's checks is dropped, so the first answer stays
         return second && makeProblem(second, make) ? null : second;
       },
@@ -267,8 +271,8 @@ Deno.serve(async (req) => {
       if (dropped.length === result.options.length) return fail("refused", "None of these were safe to post. Try another topic.", 422);
       result = { ...result, best, dropped };
     }
-    // a topic's post, carousel or script too (the agent's makes); a source's keep today's answer, with no mas
-    if (result.as === "image" || result.as === "meme" || (!make.source && (result.as === "post" || result.as === "carousel" || result.as === "script"))) {
+    // a topic's post, carousel or script too (the agent's makes), and an edit's script; a source's keep today's answer, with no mas
+    if (result.as === "image" || result.as === "meme" || result.as === "edit" || (!make.source && (result.as === "post" || result.as === "carousel" || result.as === "script"))) {
       // the shared MAS question warns and never blocks; a business isn't a licensed adviser, so it isn't asked
       const text = make.brand.speaker === "person" ? masText(result) : null;
       const answers = text ? await askJev({ post: text }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: `remix ${result.as} mas` }) : null;

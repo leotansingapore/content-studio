@@ -18,6 +18,7 @@ import {
 import { MAX_SCENES, MIN_SCENES, validateScript } from "../ai-video/logic.ts";
 import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
+import { POPUP_CHARS } from "../video-assist/motion.ts";
 
 /** No 'face': "You speaking" in the Make row replaces it. */
 export type Keep = "structure" | "hook" | "energy" | "topic" | "part2" | "react";
@@ -145,6 +146,27 @@ export const MEME_UNSAFE_AT = 0.4;
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
 const FORMATS = ["video", "carousel", "image", "text"] as const;
 
+/**
+ * What a make can write: every RemixAs, plus remix-format-clone's script for a reel's edit, which is never a RemixAs, so
+ * the app's sheet, drafts and labels keep their own list.
+ */
+export type MakeAs = RemixAs | "edit";
+export const EDIT_ROLES = ["hook", "point", "proof", "product", "ask"] as const;
+export const EDIT_TEXT_ROLES = ["hook", "label", "number", "list", "ask"] as const;
+export const EDIT_KINDS = ["cutaway", "text", "zoom", "popup", "cut"] as const;
+export type EditKind = (typeof EDIT_KINDS)[number];
+export const MAX_EDIT_EVENTS = 40;
+/** In code, after writing: a line within a quarter of its word budget (one word at least), a text 2 words off its count, a search 1 to 3 words. */
+export const EDIT_LIMITS = { lineSlack: 0.25, textSlack: 2, searchWords: 3 } as const;
+
+/** as "edit" (remix-format-clone): the plan's beats and events, the shape src/lib/editPlan.ts sends. No creator's words: those go in the source. */
+export interface EditBrief {
+  /** 2 to 8, in order: the beat's role, its target seconds and its word budget (the app's seconds times words a second). */
+  beats: { role: (typeof EDIT_ROLES)[number]; seconds: number; words: number }[];
+  /** At most 40, in time order: event k is marker [[k]] in beat b's line; a text has its job and the source's word count. */
+  events: { b: number; kind: EditKind; role?: (typeof EDIT_TEXT_ROLES)[number]; words?: number }[];
+}
+
 export interface SourceIn {
   key: string;
   kind: string;
@@ -172,7 +194,7 @@ export interface BrandPack {
 
 export interface MakeRequest {
   mode: "make";
-  as: RemixAs;
+  as: MakeAs;
   source?: SourceIn;
   /** At most 200, only for TOPIC_AS with no source. */
   topic?: string;
@@ -201,6 +223,8 @@ export interface MakeRequest {
   shows?: string;
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
   formula?: string;
+  /** edit only, and always sent there. */
+  edit?: EditBrief;
 }
 
 export type MakeResult =
@@ -222,9 +246,21 @@ export interface Flags {
   copied: string[];
   claim: boolean;
   invented: boolean;
-  /** image, meme and a topic's post, carousel or script only: Jev's MAS question on the words (masWarn), null when not asked or no answer (scanCompliance then). */
+  /** image, meme, edit and a topic's post, carousel or script only: Jev's MAS question on the words (masWarn), null when not asked or no answer (scanCompliance then). */
   mas?: boolean | null;
 }
+
+/** as "edit": one spoken line per beat with the markers taken out, where each marker sat, the on-screen words and the searches. */
+export interface EditResult {
+  as: "edit";
+  lines: string[];
+  /** Marker k sat before word `word` of line `line` (the line's word count when it ended the line). */
+  marks: { k: number; line: number; word: number }[];
+  texts: { k: number; text: string }[];
+  searches: { k: number; search: string }[];
+  caption: string;
+}
+export type MadeResult = MakeResult | EditResult;
 
 export interface MakeResponse {
   as: RemixAs;
@@ -336,14 +372,16 @@ export function withSpoken(s: SourceIn, transcript: string | null | undefined): 
 export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest } | { ok: false; error: string } {
   const r = obj(raw);
   if (r.mode !== "make") return { ok: false, error: "Unknown request." };
-  const as = r.as as RemixAs;
-  if (!(MAKE_AS as readonly string[]).includes(as)) return { ok: false, error: "That format can't be made yet." };
+  const as = r.as as MakeAs;
+  if (as !== "edit" && !(MAKE_AS as readonly string[]).includes(as)) return { ok: false, error: "That format can't be made yet." };
   // a slideshow can start from a typed topic instead of an original
-  const fromTopic = r.source == null && TOPIC_AS.includes(as);
+  const fromTopic = r.source == null && (TOPIC_AS as readonly string[]).includes(as);
   if (fromTopic && typeof r.topic === "string" && r.topic.length > MAX_TOPIC) return { ok: false, error: `Keep the topic under ${MAX_TOPIC} characters.` };
   const topic = fromTopic ? line(r.topic, MAX_TOPIC) : "";
   if (fromTopic && !topic) return { ok: false, error: "Type a topic or pick a post to remix." };
-  const source = fromTopic ? undefined : parseSource(r.source);
+  const read = fromTopic ? undefined : parseSource(r.source);
+  // an edit's on-screen text goes with the original's words: the writer avoids both, the copy check reads both, nothing keeps it
+  const source = read && as === "edit" ? withOverlays(read, obj(r.edit).overlays) : read;
   if (!fromTopic && !source) return { ok: false, error: "There's nothing in this post to remix." };
   const keep = (r.keep ?? "structure") as Keep;
   if (!(KEEPS as readonly string[]).includes(keep) || (source && !intentsFor(source).includes(keep))) return { ok: false, error: BAD_KEEP };
@@ -391,8 +429,38 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
   };
 }
 
+/** The original's words, then its on-screen text, one line each (at most 24). */
+function withOverlays(s: SourceIn, raw: unknown): SourceIn {
+  const overlays = list(raw, 24, 200);
+  return overlays.length ? { ...s, text: blockText(`${s.text}\n\n${overlays.join("\n")}`, 3000) } : s;
+}
+
+const whole = (v: unknown, lo: number, hi: number) => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
+
+/** An edit's beats and events, cleaned, or the 400 message. */
+function parseEdit(raw: unknown): EditBrief | string {
+  const e = obj(raw);
+  const beats = (Array.isArray(e.beats) ? e.beats : []).map(obj).map((b) => ({ role: EDIT_ROLES.find((x) => x === b.role), seconds: Math.round(Number(b.seconds) * 10) / 10, words: b.words }));
+  if (beats.length < 2 || beats.length > 8 || beats.some((b) => !b.role || !(b.seconds >= 0.5 && b.seconds <= 60) || !whole(b.words, 1, 200))) {
+    return "Send the edit's beats: 2 to 8, each with its role, seconds and words.";
+  }
+  const rows = Array.isArray(e.events) ? e.events.map(obj) : [];
+  const events = rows.map((x) => {
+    const kind = EDIT_KINDS.find((k) => k === x.kind);
+    const role = EDIT_TEXT_ROLES.find((k) => k === x.role);
+    const ok = kind && whole(x.b, 0, beats.length - 1) && (kind !== "text" || (role && whole(x.words, 1, 20)));
+    return ok ? { b: x.b as number, kind, ...(kind === "text" ? { role, words: x.words as number } : {}) } : null;
+  });
+  if (events.length > MAX_EDIT_EVENTS || events.some((x) => !x)) return "Send the edit's events: at most 40, each in one of its beats.";
+  return { beats: beats as EditBrief["beats"], events: events as EditBrief["events"] };
+}
+
 /** Phase 3's options, each read only on its own shape: the cleaned fields, or the 400 message. */
-function parseShape(as: RemixAs, r: Item, speaker: Speaker): Partial<MakeRequest> | string {
+function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest> | string {
+  if (as === "edit") {
+    const edit = parseEdit(r.edit);
+    return typeof edit === "string" ? edit : { edit };
+  }
   if (as === "speaking" && r.seconds != null) {
     const seconds = SPEAKING_SECONDS.find((x) => x === r.seconds);
     return seconds ? { seconds } : "Pick 8, 15, 20 or 30 seconds.";
@@ -573,6 +641,26 @@ function wallRules(req: MakeRequest): string[] {
   ].filter((l, i) => i === 0 || l);
 }
 
+/** remix-format-clone: the spoken script for a reel's edit, one line per beat, each moment of the edit a [[k]] marker before its word. */
+function editRules(req: MakeRequest): string[] {
+  return [
+    "",
+    "Write the spoken script for a short video that follows an edit beat by beat. The beats, their word budgets and their markers are listed in the message.",
+    `- lines: exactly ${req.edit?.beats.length ?? 0} lines, one per beat in order. Each line is only what is said in that beat, within a quarter of its word budget, in short spoken sentences. No stage directions, brackets, labels, emoji or hashtags.`,
+    "- Markers: put each of a beat's markers, like [[3]], in that beat's line once and in the order listed, just before the word where that moment lands. Never add, repeat, drop or move a marker.",
+    `- texts: one { k, text } for each marker that puts words on screen or a pop-up line, where k is the marker's number. On-screen text stays within ${EDIT_LIMITS.textSlack} words of its count; a pop-up line is at most ${POPUP_CHARS} characters.`,
+    "- A figure the viewer sees comes only from the facts given. When the facts hold none, write a short label for it with no number.",
+    `- searches: one { k, search } for each marker where a cutaway starts: 1 to ${EDIT_LIMITS.searchWords} plain English words a stock video library would match, something a camera can film, never a brand, a logo, text or a close-up face.`,
+    "- caption: the post caption, under 120 words, ending with the call to action and at most 3 hashtags.",
+  ];
+}
+
+/** What one marker asks of the writer. */
+function markNeed(e: EditBrief["events"][number]): string {
+  if (e.kind === "text") return e.role === "number" ? `a figure the viewer sees, ${e.words} words` : `on-screen ${e.role}, ${e.words} words`;
+  return e.kind === "cutaway" ? "a cutaway starts here" : e.kind === "popup" ? `a pop-up line, at most ${POPUP_CHARS} characters` : `a ${e.kind}`;
+}
+
 /** The caption, call to action and hashtags every phase 3 shape with a caption ends on, as the slideshow's. */
 const CAPTION_RULES = [
   "- caption: 2 to 4 complete sentences for the post caption that add to the words above, never those words cut short. No hashtags.",
@@ -700,6 +788,7 @@ const formatRules = (req: MakeRequest): string[] => {
     case "hooks": return hooksRules(req);
     case "image": return imageRules(req);
     case "meme": return memeRules(req);
+    case "edit": return editRules(req);
     default: return FORMAT_RULES[req.as];
   }
 };
@@ -709,6 +798,17 @@ export const floorOf = (req: Pick<MakeRequest, "as" | "close">) => (req.as === "
 
 /** What a shape adds to the user message, after the original or the topic: the hook formulas and the demo, or the ad's picture. */
 function shapeLines(req: MakeRequest): string[] {
+  if (req.as === "edit") {
+    const { beats, events } = req.edit!;
+    return [
+      "",
+      "The edit, beat by beat:",
+      ...beats.map((b, i) => {
+        const marks = events.flatMap((e, k) => (e.b === i ? [`[[${k}]] ${markNeed(e)}`] : []));
+        return `Beat ${i + 1}, ${b.role}: about ${b.seconds} seconds and ${b.words} words. ${marks.length ? `Markers: ${marks.join("; ")}.` : "No markers."}`;
+      }),
+    ];
+  }
   if (req.as === "hooks") {
     return [
       "",
@@ -849,11 +949,12 @@ function buildTopicPrompt(req: MakeRequest): { system: string; user: string } {
 }
 
 /** The second pass when the check finds the original's words: only those lines change. */
-export function rewriteMessage(lines: string[]): string {
+export function rewriteMessage(lines: string[], as?: MakeAs): string {
   return [
     "These parts repeat the original:",
     ...lines.map((l) => `- ${l}`),
     "Rewrite only the lines that contain them, in new words, and keep everything else as it is. Return the whole JSON object again.",
+    ...(as === "edit" ? ["Keep every [[k]] marker in its line and in its order."] : []),
   ].join("\n");
 }
 
@@ -989,6 +1090,20 @@ export function responseFormat(req: MakeRequest): unknown {
         words: fieldsObject({ headline: 8, line: 16, button: 3, quote: 25, statLabel: 12 }),
         ...CAPTION,
       });
+    case "edit": {
+      const keyed = (field: string, description: string) => ({
+        type: "object",
+        additionalProperties: false,
+        required: ["k", field],
+        properties: { k: { type: "integer", description: "The marker's number" }, [field]: str(description) },
+      });
+      return schema("remix_edit", {
+        lines: { type: "array", description: `Exactly ${req.edit?.beats.length ?? 0} spoken lines, one per beat, each with its [[k]] markers`, items: { type: "string" } },
+        texts: { type: "array", description: "One per marker that puts words on screen or a pop-up line", items: keyed("text", "The words on screen") },
+        searches: { type: "array", description: "One per marker where a cutaway starts", items: keyed("search", `1 to ${EDIT_LIMITS.searchWords} word stock video search`) },
+        caption: str("Post caption ending with the call to action"),
+      });
+    }
     case "meme":
       return schema("remix_meme", {
         ...REFUSE,
@@ -1001,6 +1116,15 @@ export function responseFormat(req: MakeRequest): unknown {
 }
 
 const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
+/** One spoken line with its [[k]] markers taken out, each kept in `marks` as the word it sits before. */
+function unmark(raw: string, i: number, marks: EditResult["marks"]): string {
+  let said = "";
+  raw.split(/\[\[(\d{1,2})\]\]/).forEach((piece, j) => {
+    if (j % 2) marks.push({ k: Number(piece), line: i, word: wordCount(said) });
+    else said += ` ${piece}`;
+  });
+  return straightQuotes(line(said, 600));
+}
 /** "[smiles]", "(pause)" or "*beat*": the voice would read them out. */
 const STAGE_DIRECTION = /[[\]()*]/;
 /** At most n words, cut at a word with no trailing comma or colon. */
@@ -1018,8 +1142,8 @@ export const straightQuotes = (t: string) => t.replace(/[\u2018\u2019\u201a\u201
 const REFUSES: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
 
 /** The model's own refusal: its reason, or null when it wrote the format. */
-export function refusalOf(as: RemixAs, raw: unknown): string | null {
-  const r = REFUSES.includes(as) ? parseObject(raw) : null;
+export function refusalOf(as: MakeAs, raw: unknown): string | null {
+  const r = (REFUSES as readonly string[]).includes(as) ? parseObject(raw) : null;
   return r?.refuse === true ? line(r.reason, 300) || "refused" : null;
 }
 
@@ -1053,9 +1177,21 @@ function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: st
 }
 
 /** The result cleaned and capped, or null when it can't be used as is. */
-export function validateMake(as: RemixAs, raw: unknown, req: MakeOpts = {}): MakeResult | null {
+export function validateMake(as: MakeAs, raw: unknown, req: MakeOpts = {}): MadeResult | null {
   const r = parseObject(raw);
   if (!r) return null;
+  if (as === "edit") {
+    const marks: EditResult["marks"] = [];
+    const lines = (Array.isArray(r.lines) ? r.lines : []).map((x, i) => unmark(String(x ?? ""), i, marks));
+    const caption = blockText(r.caption, 2200);
+    // one row per marker, the first one sent; editProblem says which are missing
+    const rows = (v: unknown) => (Array.isArray(v) ? v : []).map(obj).filter((o, i, a) => whole(o.k, 0, 99) && a.findIndex((x) => x.k === o.k) === i);
+    const texts = rows(r.texts).map((o) => ({ k: o.k as number, text: straightQuotes(line(o.text, 200)) })).filter((t) => t.text);
+    const searches = rows(r.searches)
+      .map((o) => ({ k: o.k as number, search: String(o.search ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim().replace(/\s+/g, " ") }))
+      .filter((t) => t.search);
+    return lines.length && caption ? { as, lines, marks, texts, searches, caption: straightQuotes(caption) } : null;
+  }
   if (as === "notes" || as === "hooks" || as === "image" || as === "meme") return r.refuse === true ? null : validateShape(as, r, req);
   if (as === "slideshow") {
     if (r.refuse === true) return null;
@@ -1242,7 +1378,7 @@ export const slideNumbers = (slides: { title: string }[]) =>
   });
 
 export interface MakeProblem {
-  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy";
+  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy" | "edit";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
@@ -1254,7 +1390,7 @@ export interface MakeProblem {
  * with mention on, a business has a slide that names it and says what it does; with mention off, no slide or caption
  * names the brand. index.ts gives one fixing pass, then refuses with `error` and keeps the use (the model answered, so it was billed).
  */
-export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
+export function slideshowProblem(r: MadeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
   if (r.as !== "slideshow") return null;
   const n = hookCount(r.slides[0]?.title ?? "");
   const nums = slideNumbers(r.slides);
@@ -1312,7 +1448,7 @@ export function saysI(t: string): boolean {
  * its product exactly once in the words with mention on, and no brand is named anywhere with mention off. A person's
  * name stays a prompt rule only, as on the slideshow. One fixing pass, then a refusal that keeps the use.
  */
-export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "source">): MakeProblem | null {
+export function wallProblem(r: MadeResult, req: Pick<MakeRequest, "brand" | "source">): MakeProblem | null {
   if (r.as !== "wall") return null;
   const b = req.brand;
   const words = wordsIn(r.text);
@@ -1377,7 +1513,7 @@ const openingLine = (t: string) => t.trim().split(/\n|(?<=[.?!])\s/)[0];
 export const endsMidSentence = (t: string) => /(?:\.\.\.|\u2026|[,;\u2013\u2014-])["'\u201d\u2019)\]]?\s*$/.test(t);
 
 /** Where each format finishes a thought; the slideshow's and the wall's captions are checked as whole sentences already. */
-const endings = (r: MakeResult): string[] =>
+const endings = (r: MadeResult): string[] =>
   r.as === "post" ? [r.body, r.cta]
   : r.as === "carousel" ? [r.slides[r.slides.length - 1]?.body ?? "", r.cta]
   : r.as === "script" ? [r.beats[r.beats.length - 1]?.say ?? ""]
@@ -1390,7 +1526,7 @@ const endings = (r: MakeResult): string[] =>
  * named nowhere with mention off, and a business is named exactly once with mention on (4 of 6 posts named it in the
  * body and the cta). A person's name stays a prompt rule only, as on the slideshow and the wall.
  */
-export function textProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
+export function textProblem(r: MadeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
   const cut = endings(r).find(endsMidSentence);
   if (cut) {
     return {
@@ -1422,7 +1558,7 @@ export function textProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): Mak
 }
 
 /** A timed speaking script that came out short of its length's words (formats-talking-head). */
-export function lengthProblem(r: MakeResult, req: Pick<MakeRequest, "seconds">): MakeProblem | null {
+export function lengthProblem(r: MadeResult, req: Pick<MakeRequest, "seconds">): MakeProblem | null {
   if (r.as !== "speaking" || !req.seconds) return null;
   const { low, high } = speakingWords(req.seconds);
   const n = wordCount(r.script);
@@ -1439,7 +1575,7 @@ export function lengthProblem(r: MakeResult, req: Pick<MakeRequest, "seconds">):
  * An ad image's words in code (formats-static-ad): never a number, since a figure the brand didn't type is an invented
  * one (MAS), and no run of 4 words from the original ad. One fixing pass, then a refusal that keeps the use.
  */
-export function imageProblem(r: MakeResult, req: Pick<MakeRequest, "source">): MakeProblem | null {
+export function imageProblem(r: MadeResult, req: Pick<MakeRequest, "source">): MakeProblem | null {
   if (r.as !== "image") return null;
   const words = Object.values(r.words);
   if (words.some((w) => /\d/.test(w))) {
@@ -1458,7 +1594,7 @@ export function imageProblem(r: MakeResult, req: Pick<MakeRequest, "source">): M
 const NUMBER = new RegExp(String.raw`\b${NUM}\b`, "i");
 
 /** A list hook with no number ("Things to know before...", wave 1 live check, 21 Oct): one fixing pass, then a refusal. */
-export function hooksProblem(r: MakeResult): MakeProblem | null {
+export function hooksProblem(r: MadeResult): MakeProblem | null {
   const flat = r.as === "hooks" ? r.hooks.find((h) => h.formula === LIST_FORMULA && !NUMBER.test(h.text)) : undefined;
   return flat
     ? {
@@ -1469,12 +1605,56 @@ export function hooksProblem(r: MakeResult): MakeProblem | null {
     : null;
 }
 
-/** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's. */
-export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds">) =>
-  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r);
+/**
+ * An edit's script in code (remix-format-clone): one line per beat holding exactly its markers in order, each line within
+ * a quarter of its budget, every text within 2 words of its count and every pop-up within the editor's characters, every
+ * cutaway with a search of 1 to 3 words. Every miss goes back in one fixing pass, then a refusal that keeps the use.
+ */
+export function editProblem(r: MadeResult, req: Pick<MakeRequest, "edit">): MakeProblem | null {
+  if (r.as !== "edit" || !req.edit) return null;
+  const { beats, events } = req.edit;
+  const tag = (ks: number[]) => ks.map((k) => `[[${k}]]`).join(" ");
+  const out: string[] = [];
+  if (r.lines.length !== beats.length) out.push(`There are ${r.lines.length} lines for ${beats.length} beats. Write exactly one line per beat.`);
+  else {
+    beats.forEach((b, i) => {
+      const want = events.flatMap((e, k) => (e.b === i ? [k] : []));
+      const got = r.marks.filter((m) => m.line === i).map((m) => m.k);
+      if (got.join() !== want.join()) {
+        out.push(`Line ${i + 1} has ${got.length ? `the markers ${tag(got)}` : "no markers"} but needs ${want.length ? `${tag(want)}, each once and in that order` : "none"}.`);
+      }
+      const n = wordCount(r.lines[i]);
+      // a short beat still gets a word either way
+      const slack = Math.max(1, b.words * EDIT_LIMITS.lineSlack);
+      if (Math.abs(n - b.words) > slack) out.push(`Line ${i + 1} is ${n} words; its beat takes about ${b.words} (${Math.ceil(b.words - slack)} to ${Math.floor(b.words + slack)}).`);
+      if (STAGE_DIRECTION.test(r.lines[i])) out.push(`Line ${i + 1} has brackets or a stage direction, and the voice reads every word.`);
+    });
+    events.forEach((e, k) => {
+      const text = r.texts.find((t) => t.k === k)?.text;
+      const search = r.searches.find((t) => t.k === k)?.search;
+      if ((e.kind === "text" || e.kind === "popup") && !text) out.push(`[[${k}]] puts words on screen and has no text.`);
+      else if (e.kind === "text" && text && Math.abs(wordCount(text) - e.words!) > EDIT_LIMITS.textSlack) {
+        out.push(`The text for [[${k}]] is ${wordCount(text)} words; it takes about ${e.words} (${Math.max(1, e.words! - EDIT_LIMITS.textSlack)} to ${e.words! + EDIT_LIMITS.textSlack}).`);
+      } else if (e.kind === "popup" && text && text.length > POPUP_CHARS) out.push(`The pop-up for [[${k}]] is ${text.length} characters; it takes at most ${POPUP_CHARS}.`);
+      if (e.kind === "cutaway" && !search) out.push(`[[${k}]] starts a cutaway and has no search.`);
+      else if (e.kind === "cutaway" && search && wordCount(search) > EDIT_LIMITS.searchWords) out.push(`The search for [[${k}]] is ${wordCount(search)} words; it takes 1 to ${EDIT_LIMITS.searchWords}.`);
+    });
+  }
+  return out.length
+    ? {
+        kind: "edit",
+        fix: ["This script doesn't fit the edit:", ...out.map((l) => `- ${l}`), "Return the whole JSON object again with every marker where it belongs."].join("\n"),
+        error: "The script didn't fit the edit. Try again.",
+      }
+    : null;
+}
+
+/** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's and the edit's. */
+export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds" | "edit">) =>
+  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r) ?? editProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */
-export function textFields(r: MakeResult): string[] {
+export function textFields(r: MadeResult): string[] {
   const out =
     r.as === "post" ? [r.hook, r.body, r.cta]
     : r.as === "carousel" ? [r.hook, ...r.slides.flatMap((s) => [s.title, s.body]), r.cta]
@@ -1486,12 +1666,13 @@ export function textFields(r: MakeResult): string[] {
     : r.as === "notes" ? [r.title, ...r.items, r.caption]
     : r.as === "hooks" ? r.hooks.map((h) => h.text)
     : r.as === "image" ? [...Object.values(r.words), r.caption]
+    : r.as === "edit" ? [...r.lines, ...r.texts.map((t) => t.text), r.caption]
     : [...r.options.flatMap((o) => Object.values(o)), r.caption];
   return out.filter(Boolean);
 }
 
 /** Runs of `floor` or more words (RUN_FLOOR) and items from the original still in the result. */
-export function copiedIn(r: MakeResult, sourceText: string, dontReuse: string[], floor = RUN_FLOOR.balanced): string[] {
+export function copiedIn(r: MadeResult, sourceText: string, dontReuse: string[], floor = RUN_FLOOR.balanced): string[] {
   const found = new Set<string>();
   for (const field of textFields(r)) {
     for (const run of sharedRuns(field, sourceText, floor)) found.add(run);
@@ -1611,11 +1792,11 @@ export function memeVerdict(answers: Record<string, JevAnswer> | null, count: nu
 }
 
 /**
- * The words Jev's MAS question reads: an image's, a post's, a carousel's or a script's words (and caption), or the best
+ * The words Jev's MAS question reads: an image's, a post's, a carousel's, a script's or an edit's words (and caption), or the best
  * meme and the caption; null when there are none.
  */
-export function masText(r: MakeResult): string | null {
-  if (r.as === "image" || r.as === "post" || r.as === "carousel" || r.as === "script") return textFields(r).join("\n");
+export function masText(r: MadeResult): string | null {
+  if (r.as === "image" || r.as === "post" || r.as === "carousel" || r.as === "script" || r.as === "edit") return textFields(r).join("\n");
   if (r.as === "meme") return r.best === null ? null : [Object.values(r.options[r.best]).join("\n"), r.caption].join("\n");
   return null;
 }
@@ -1625,15 +1806,15 @@ export function masText(r: MakeResult): string | null {
  * then one Jev call for claims and invented facts. Jev null gives no flag.
  */
 export async function holdTheLine(
-  result: MakeResult,
+  result: MadeResult,
   sourceText: string,
   dontReuse: string[],
   deps: {
-    rewrite(lines: string[]): Promise<MakeResult | null>;
+    rewrite(lines: string[]): Promise<MadeResult | null>;
     ask(state: unknown): Promise<{ claim: number | null; invented: number | null } | null>;
   },
   floor = RUN_FLOOR.balanced,
-): Promise<{ result: MakeResult; flags: Flags }> {
+): Promise<{ result: MadeResult; flags: Flags }> {
   let out = result;
   let copied = copiedIn(out, sourceText, dontReuse, floor);
   if (copied.length) {

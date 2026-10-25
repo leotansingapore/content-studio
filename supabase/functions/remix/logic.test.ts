@@ -63,6 +63,9 @@ import {
   speakingWords,
   HOOK_FORMULA_COPY,
   formulaRule,
+  editProblem,
+  EDIT_KINDS,
+  type EditResult,
 } from "./logic";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
@@ -1628,5 +1631,186 @@ describe("a make's hook formula (remix-variations)", () => {
     expect(buildMakePrompt(make({ formula: "story" }))).toEqual(buildMakePrompt(make()));
     expect(shape("hooks", { formulas: FORMULAS, formula: "contrarian" }).formula).toBeUndefined();
     expect(formulaRule("story")).toBeNull();
+  });
+});
+
+// ---- remix-format-clone: a script written to a reel's edit (as "edit"), its markers checked in code -------------
+
+const EDIT_TRANSCRIPT = "I check my CPF statement every single month because one small gap can cost you years. Here is the habit that saves my clients. Message me if you want the checklist.";
+const EDIT = {
+  beats: [
+    { role: "hook", seconds: 3, words: 8 },
+    { role: "point", seconds: 6, words: 16 },
+    { role: "ask", seconds: 3, words: 8 },
+  ],
+  // event k is marker [[k]]
+  events: [
+    { b: 0, kind: "text", role: "hook", words: 5 },
+    { b: 0, kind: "zoom" },
+    { b: 1, kind: "cutaway" },
+    { b: 1, kind: "text", role: "label", words: 3 },
+    { b: 1, kind: "popup" },
+    { b: 2, kind: "cut" },
+    { b: 2, kind: "text", role: "ask", words: 4 },
+  ],
+  overlays: ["Stop checking CPF once a year", "3 quick fixes"],
+};
+const EDIT_SOURCE = { key: "clone:instagram:C1x", kind: "clone", format: "video", platform: "instagram", author: "@coach", text: EDIT_TRANSCRIPT };
+const EDIT_ANSWER = {
+  lines: [
+    "[[0]] Most people look at their CPF [[1]] just yearly.",
+    "So here is the [[2]] routine I run with every client [[3]] to spot gaps [[4]] before they grow.",
+    "[[5]] Send me a message for a [[6]] quick review.",
+  ],
+  texts: [
+    { k: 0, text: "Look at CPF more" },
+    { k: 3, text: "One monthly routine" },
+    { k: 4, text: "Small gaps grow" },
+    { k: 6, text: "Book a quick review" },
+  ],
+  searches: [{ k: 2, search: "person reading letter" }],
+  caption: "A monthly look beats a yearly scramble. Message me to book a quick review.",
+};
+const editMake = (over: Record<string, unknown> = {}) => make({ as: "edit", source: EDIT_SOURCE, edit: EDIT, ...over });
+const edited = (over: Record<string, unknown> = {}) => validateMake("edit", { ...EDIT_ANSWER, ...over }) as EditResult;
+const problemOf = (over: Record<string, unknown> = {}, req = editMake()) => editProblem(edited(over), req);
+
+describe("a script written to a reel's edit (remix-format-clone)", () => {
+  it("needs a source and the edit's beats and events, refusing a bad brief before anything is counted", () => {
+    const bad = (edit: unknown, extra: Record<string, unknown> = {}) => parseMakeRequest(body({ as: "edit", source: EDIT_SOURCE, edit, ...extra }));
+    expect(editMake().edit).toEqual({ beats: EDIT.beats, events: EDIT.events });
+    expect(bad(undefined)).toEqual({ ok: false, error: "Send the edit's beats: 2 to 8, each with its role, seconds and words." });
+    expect(bad({ ...EDIT, beats: EDIT.beats.slice(0, 1) }).ok).toBe(false);
+    expect(bad({ ...EDIT, beats: Array(9).fill(EDIT.beats[1]) }).ok).toBe(false);
+    expect(bad({ ...EDIT, beats: [{ role: "intro", seconds: 3, words: 8 }, ...EDIT.beats.slice(1)] }).ok).toBe(false);
+    expect(bad({ ...EDIT, beats: [{ role: "hook", seconds: 3, words: 0 }, ...EDIT.beats.slice(1)] }).ok).toBe(false);
+    expect(bad({ ...EDIT, events: [{ b: 3, kind: "zoom" }] })).toEqual({ ok: false, error: "Send the edit's events: at most 40, each in one of its beats." });
+    expect(bad({ ...EDIT, events: [{ b: 0, kind: "split" }] }).ok).toBe(false);
+    expect(bad({ ...EDIT, events: [{ b: 0, kind: "text", role: "label" }] }).ok).toBe(false);
+    expect(bad({ ...EDIT, events: Array(41).fill({ b: 0, kind: "zoom" }) }).ok).toBe(false);
+    expect(bad({ ...EDIT, events: Array(40).fill({ b: 0, kind: "zoom" }) }).ok).toBe(true);
+    // never from a typed topic: the edit is a reel's
+    expect(parseMakeRequest(body({ as: "edit", source: undefined, topic: "CPF", edit: EDIT })).ok).toBe(false);
+    expect([...EDIT_KINDS]).toEqual(["cutaway", "text", "zoom", "popup", "cut"]);
+  });
+
+  it("reads the original's on-screen text with its words, so the writer and the copy check see both and the request keeps none", () => {
+    const m = editMake();
+    expect(m.source!.text).toBe(`${EDIT_TRANSCRIPT}\n\nStop checking CPF once a year\n3 quick fixes`);
+    expect(JSON.stringify(m.edit)).not.toContain("Stop checking");
+    expect(buildMakePrompt(m).user).toContain('Its words:\n"""\nI check my CPF statement');
+    expect(buildMakePrompt(m).user).toContain('Stop checking CPF once a year\n3 quick fixes\n"""');
+  });
+
+  it("asks for one line per beat with its markers in order, what each marker needs, and the edit's schema", () => {
+    const { system, user } = buildMakePrompt(editMake());
+    expect(system).toContain("- lines: exactly 3 lines, one per beat in order.");
+    expect(system).toContain("Never add, repeat, drop or move a marker.");
+    expect(system).toContain(COMPLIANCE_RULES.join("\n"));
+    expect(user).toContain(
+      [
+        "The edit, beat by beat:",
+        "Beat 1, hook: about 3 seconds and 8 words. Markers: [[0]] on-screen hook, 5 words; [[1]] a zoom.",
+        "Beat 2, point: about 6 seconds and 16 words. Markers: [[2]] a cutaway starts here; [[3]] on-screen label, 3 words; [[4]] a pop-up line, at most 28 characters.",
+        "Beat 3, ask: about 3 seconds and 8 words. Markers: [[5]] a cut; [[6]] on-screen ask, 4 words.",
+      ].join("\n"),
+    );
+    expect(system).not.toContain("[[0]]");
+    const schema = JSON.stringify(responseFormat(editMake()));
+    expect(schema).toContain('"name":"remix_edit"');
+    expect(schema).toContain('"required":["lines","texts","searches","caption"]');
+    // a number shows only a figure from the facts
+    expect(buildMakePrompt(editMake({ edit: { ...EDIT, events: [{ b: 1, kind: "text", role: "number", words: 2 }] } })).user).toContain("[[0]] a figure the viewer sees, 2 words");
+  });
+
+  it("gives an adviser's edit the MAS line when the fit check flagged it, and a business its own line", () => {
+    expect(buildMakePrompt(editMake({ fit: { verdict: "weak", reasons: ["masSafe"] } })).system).toContain(MAS_LINE);
+    expect(buildMakePrompt(editMake({ fit: { verdict: "weak", reasons: ["masSafe"] }, brand: BIZ })).system).toContain(MAS_LINE_BUSINESS);
+    expect(buildMakePrompt(editMake()).system).not.toContain(MAS_LINE);
+  });
+
+  it("takes the markers out of the lines and keeps where each sat, before the word it lands on", () => {
+    const r = edited();
+    expect(r.lines).toEqual([
+      "Most people look at their CPF just yearly.",
+      "So here is the routine I run with every client to spot gaps before they grow.",
+      "Send me a message for a quick review.",
+    ]);
+    expect(r.marks).toEqual([
+      { k: 0, line: 0, word: 0 },
+      { k: 1, line: 0, word: 6 },
+      { k: 2, line: 1, word: 4 },
+      { k: 3, line: 1, word: 10 },
+      { k: 4, line: 1, word: 13 },
+      { k: 5, line: 2, word: 0 },
+      { k: 6, line: 2, word: 6 },
+    ]);
+    expect(r.searches).toEqual([{ k: 2, search: "person reading letter" }]);
+    expect(problemOf()).toBeNull();
+    expect(validateMake("edit", { ...EDIT_ANSWER, lines: [] })).toBeNull();
+    expect(validateMake("edit", { ...EDIT_ANSWER, caption: "" })).toBeNull();
+    expect(textFields(r)).toEqual([...r.lines, ...r.texts.map((t) => t.text), r.caption]);
+    expect(masText(r)).toBe(textFields(r).join("\n"));
+  });
+
+  it("refuses a missing, repeated or out-of-order marker, or one on the wrong line, with the fix it needs", () => {
+    const lines = EDIT_ANSWER.lines;
+    const missing = problemOf({ lines: [lines[0].replace("[[1]] ", ""), lines[1], lines[2]] });
+    expect(missing).toMatchObject({ kind: "edit", error: "The script didn't fit the edit. Try again." });
+    expect(missing!.fix).toContain("Line 1 has the markers [[0]] but needs [[0]] [[1]], each once and in that order.");
+    expect(problemOf({ lines: [`${lines[0]} [[1]]`, lines[1], lines[2]] })!.fix).toContain("Line 1 has the markers [[0]] [[1]] [[1]] but needs [[0]] [[1]]");
+    expect(problemOf({ lines: [lines[0].replace("[[0]]", "[[x]]").replace("[[1]]", "[[0]]").replace("[[x]]", "[[1]]"), lines[1], lines[2]] })!.fix).toContain("Line 1 has the markers [[1]] [[0]] but needs [[0]] [[1]]");
+    const moved = problemOf({ lines: [`${lines[0]} [[2]]`, lines[1].replace("[[2]] ", ""), lines[2]] })!.fix;
+    expect(moved).toContain("Line 1 has the markers [[0]] [[1]] [[2]] but needs [[0]] [[1]]");
+    expect(moved).toContain("Line 2 has the markers [[3]] [[4]] but needs [[2]] [[3]] [[4]]");
+    expect(problemOf({ lines: lines.slice(0, 2) })!.fix).toContain("There are 2 lines for 3 beats. Write exactly one line per beat.");
+    expect(problemOf({ lines: [lines[0], lines[1], `${lines[2]} [[9]]`] })!.fix).toContain("needs [[5]] [[6]]");
+  });
+
+  it("holds a line within a quarter of its budget and a text within 2 words of its count, and nothing under either cut", () => {
+    // 8 words: 10 is 25 percent over and passes, 11 is over 30 percent and is refused
+    const hook = (n: number) => `[[0]] ${Array.from({ length: n - 1 }, (_, i) => `w${i}`).join(" ")} [[1]] end.`;
+    expect(problemOf({ lines: [hook(10), ...EDIT_ANSWER.lines.slice(1)] })).toBeNull();
+    expect(problemOf({ lines: [hook(11), ...EDIT_ANSWER.lines.slice(1)] })!.fix).toContain("Line 1 is 11 words; its beat takes about 8 (6 to 10).");
+    expect(problemOf({ lines: [hook(6), ...EDIT_ANSWER.lines.slice(1)] })).toBeNull();
+    expect(problemOf({ lines: [hook(5), ...EDIT_ANSWER.lines.slice(1)] })!.fix).toContain("Line 1 is 5 words");
+    // label of 3: 5 words passes, 6 is 3 over and is refused
+    const label = (text: string) => ({ texts: EDIT_ANSWER.texts.map((t) => (t.k === 3 ? { k: 3, text } : t)) });
+    expect(problemOf(label("One small monthly money routine"))).toBeNull();
+    expect(problemOf(label("One small monthly money routine here"))!.fix).toContain('The text for [[3]] is 6 words; it takes about 3 (1 to 5).');
+    expect(problemOf(label("One"))).toBeNull();
+    // a pop-up line fits the editor's 28 characters
+    const pop = (text: string) => ({ texts: EDIT_ANSWER.texts.map((t) => (t.k === 4 ? { k: 4, text } : t)) });
+    expect(problemOf(pop("x".repeat(28)))).toBeNull();
+    expect(problemOf(pop("x".repeat(29)))!.fix).toContain("The pop-up for [[4]] is 29 characters; it takes at most 28.");
+  });
+
+  it("refuses a search over 3 words and a marker left with no text or search", () => {
+    expect(problemOf({ searches: [{ k: 2, search: "woman reading a letter" }] })!.fix).toContain('The search for [[2]] is 4 words; it takes 1 to 3.');
+    expect(problemOf({ searches: [{ k: 2, search: "Letter!" }] })).toBeNull();
+    expect(edited({ searches: [{ k: 2, search: "Letter!" }] }).searches).toEqual([{ k: 2, search: "letter" }]);
+    expect(problemOf({ searches: [] })!.fix).toContain("[[2]] starts a cutaway and has no search.");
+    expect(problemOf({ texts: EDIT_ANSWER.texts.filter((t) => t.k !== 6) })!.fix).toContain("[[6]] puts words on screen and has no text.");
+    // all the problems go back in one fixing pass
+    const all = problemOf({ searches: [], texts: [] })!.fix.split("\n");
+    expect(all.filter((l) => l.startsWith("- "))).toHaveLength(5);
+    expect(all.at(-1)).toBe("Return the whole JSON object again with every marker where it belongs.");
+  });
+
+  it("runs the copy floor over every line and on-screen text, the original's words and its on-screen text both", () => {
+    const m = editMake();
+    const copied = edited({ texts: [...EDIT_ANSWER.texts.slice(0, 1), { k: 3, text: "Stop checking CPF once a year" }] });
+    expect(copiedIn(copied, m.source!.text, dontReuseFor(m), floorOf(m))).toEqual(["Stop checking CPF once a year"]);
+    const said = edited({ lines: [EDIT_ANSWER.lines[0], "Here is the [[2]] habit that saves my clients [[3]] every month [[4]] for good.", EDIT_ANSWER.lines[2]] });
+    expect(copiedIn(said, m.source!.text, dontReuseFor(m), floorOf(m))).toEqual(["Here is the habit that saves my clients"]);
+    // Loose keeps 4 words further off
+    const loose = editMake({ close: "loose" });
+    expect(copiedIn(edited({ caption: "One small gap can cost you a lot." }), loose.source!.text, dontReuseFor(loose), floorOf(loose))).toEqual(["One small gap can cost you"]);
+    expect(copiedIn(edited(), m.source!.text, dontReuseFor(m), floorOf(m))).toEqual([]);
+  });
+
+  it("leaves every other format's checks alone", () => {
+    expect(editProblem(validateMake("post", { hook: "A hook", body: "A body.", cta: "Try it.", hashtags: [] })!, editMake())).toBeNull();
+    expect(editMake().formula).toBeUndefined();
   });
 });
