@@ -58,6 +58,21 @@ describe("the competitor card", () => {
     const { card } = competitorCard(UID, "add @finchcare as a competitor", "competitor", {});
     expect(draw(card!)).toMatch(/<input[^>]*value="@finchcare"/);
   });
+
+  it("reads Add them from the box as typed, with the read's price, not from the empty input it was proposed with (replay D2)", () => {
+    const { card } = competitorCard(UID, "add Finch as a competitor", "competitor", {});
+    expect(draw(card!)).toContain("Type a name, a website or a social link.");
+    // what was typed in the box this visit (the card keeps it in sessionStorage until the press)
+    sessionStorage.setItem(`cs-agent-card-${card!.id}`, "Finch");
+    const html = draw(card!);
+    sessionStorage.removeItem(`cs-agent-card-${card!.id}`);
+    expect(html).not.toContain("Type a name, a website or a social link.");
+    expect(html).toMatch(/<button[^>]*>(?:(?!<\/button>).)*Add them/);
+    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Add them/);
+    // a name is looked up, so the press shows the read's price before it spends it
+    expect(html).toContain("Add Finch as a competitor");
+    expect(html).toContain("Under US$0.01");
+  });
 });
 
 describe("a press the engine refuses", () => {

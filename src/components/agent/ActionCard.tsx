@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
 import { leftOf, limitOf } from "@/lib/agentBudget";
 import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
-import { fieldsOf, MAX_SCRIPT_WORDS, offerChips } from "@/lib/agentPlans";
+import { fieldsOf, MAX_SCRIPT_WORDS, offerChips, withInput } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
@@ -72,13 +72,15 @@ export default function ActionCard({
   /** Sends a cheaper offer as a new message in this thread. */
   onSend: (text: string) => void;
 }) {
-  const card = msg.card;
-  const editable = canEdit(card);
-  const field: "script" | "prompt" | null = card.kind === "image" ? "prompt" : isVideo(card) && !stepIs(card, "script") ? "script" : null;
-  const current = field === "prompt" ? (card.prompt ?? "") : (card.script ?? []).join(" ");
-  const [typed, setTyped] = useState<string | null>(() => (editable ? readTyped(card.id) : null));
+  const stored = msg.card;
+  const editable = canEdit(stored);
+  const field: "script" | "prompt" | null = stored.kind === "image" ? "prompt" : isVideo(stored) && !stepIs(stored, "script") ? "script" : null;
+  const current = field === "prompt" ? (stored.prompt ?? "") : (stored.script ?? []).join(" ");
+  const [typed, setTyped] = useState<string | null>(() => (editable ? readTyped(stored.id) : null));
   // the competitor box: what was typed here, else the link or @handle the engine took from the message
-  const [name, setName] = useState(() => readTyped(card.id) ?? fieldsOf(card).input ?? "");
+  const [name, setName] = useState(() => readTyped(stored.id) ?? fieldsOf(stored).input ?? "");
+  // a proposed competitor card as Add them will save it: its title, price and blocked line follow the box (replay D2)
+  const card = stored.kind === "competitor" && editable ? withInput(stored, name) : stored;
   const [details, setDetails] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +119,7 @@ export default function ActionCard({
   };
   const approve = () => {
     // the competitor box: the name as typed goes on the card before the press
-    if (card.kind === "competitor" && name.trim() !== (fieldsOf(card).input ?? "")) {
+    if (card.kind === "competitor" && name.trim() !== (fieldsOf(stored).input ?? "")) {
       if (!change({ name: name.trim() })) return;
       writeTyped(card.id, null);
     }
