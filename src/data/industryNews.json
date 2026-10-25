@@ -1,5 +1,16 @@
 [
   {
+    "id": "41b61c9912a4",
+    "title": "Personal data of 110,000 members of healthcare services provider Alliance Medinet compromised",
+    "gist": "On Oct 24, Alliance Healthcare Group reported that a cyber incident compromised the personal data of about 110,000 members of healthcare services provider Alliance Medinet. Potentially affected details include names, personal identification numbers, and contact information, with some corporate customers of Income Insurance and Singlife also involved. Alliance Healthcare Group said affected members are being notified while investigations continue.",
+    "talkingPoint": "Clients with corporate health insurance may wonder whether their personal information was involved in this cyber incident. You can ask if their company uses this healthcare provider and offer to review their policy records together.",
+    "clientMessage": "Hi [Client name], a local healthcare services provider recently had a cyber incident affecting around 110,000 members. Unauthorised access to its database exposed personal details like names, identification numbers, and contact information. Some individuals under corporate health insurance plans were also affected. If your employer provides your medical benefits, you may want to check if you received a notification. Let me know if you would like to look over your current coverage records together. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/personal-data-of-110000-members-of-healthcare-services-provider-alliance-medinet-compromised",
+    "publishedAt": "2026-10-24T15:56:29+00:00",
+    "topic": "Insurance"
+  },
+  {
     "id": "8ab982e0befd",
     "title": "Singapore’s core inflation eases to 2% in September on lower services, retail prices",
     "gist": "Singapore's core inflation eased to 2 per cent year-on-year in September from 2.2 per cent in August, according to figures released on Friday (Oct 23) by MAS and METI. Overall inflation fell to 2.2 per cent, even as food inflation rose to 2.4 per cent and accommodation inflation edged up to 0.9 per cent. MAS and METI expect inflation to remain slightly elevated in the immediate quarters ahead before easing more discernibly from mid-2027.",

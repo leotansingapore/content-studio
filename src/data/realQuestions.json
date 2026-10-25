@@ -1,12 +1,40 @@
 {
-  "fetched": "2026-10-24",
+  "fetched": "2026-10-25",
   "questions": [
     {
       "question": "FIRE (Financial Independence, Retire Early) Movement",
       "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-23T14:32:09.000Z",
+      "publishedAt": "2026-10-24T14:24:06.000Z",
       "audience": "working-adult"
+    },
+    {
+      "question": "Mindef Group Insurance vs SingLife Elite II",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xe7a2m/mindef_group_insurance_vs_singlife_elite_ii/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-24T12:23:02.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "retirement if I may never earn more than 2.8k per month",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xe1dsl/retirement_if_i_may_never_earn_more_than_28k_per/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-24T06:32:41.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Do u guys track how much investments u put into per stock/etf?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xdy63j/do_u_guys_track_how_much_investments_u_put_into/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-24T03:31:10.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Thoughts on buying more SG REITS?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xdwu3p/thoughts_on_buying_more_sg_reits/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-24T02:20:11.000Z",
+      "audience": "general"
     },
     {
       "question": "Maybank contract role - CPF in lieu",
@@ -392,34 +420,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-15T15:33:31.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "Anyone considered selling their endowment policy instead of surrendering it?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x6kvz8/anyone_considered_selling_their_endowment_policy/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-15T12:55:55.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "Resale without grants",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x6fdbi/resale_without_grants/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-15T07:37:05.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Advice on ETF’s in Stashaway",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x6f8hq/advice_on_etfs_in_stashaway/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-15T07:28:01.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Just started work need insurance advice",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x6d1y2/just_started_work_need_insurance_advice/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-15T05:12:24.000Z",
-      "audience": "young-adult"
     }
   ]
 }
