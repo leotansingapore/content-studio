@@ -338,6 +338,61 @@ describe("a source run, as it was before topic runs", () => {
   });
 });
 
+// phase 7's pin, taken before versions (remix-variations): a run of 1 and of 3 formats walks the same job states,
+// sends no formula and saves drafts with no set
+describe("a run of 1 to 3 formats, as it was before versions", () => {
+  const results: Record<string, MakeResult> = {
+    post: { as: "post", hook: "Three checks before you sign", body: "First, read it slowly.", cta: "DM me CHECK", hashtags: ["money"] },
+    carousel: { as: "carousel", hook: "Four CPF checks", slides: Array.from({ length: 4 }, (_, i) => ({ title: `Check ${i + 1}`, body: "Why it matters." })), cta: "Save this for your next review" },
+    script: { as: "script", hook: "Stop checking CPF once a year", beats: [{ say: "Stop checking CPF once a year", onScreen: "", visual: "Me", seconds: 5, delivery: "" }], caption: "Comment CPF.", cta: "Comment CPF" },
+  };
+  const walk = async (as: RemixRun["as"]) => {
+    make.mockImplementation(async (b: { as: string }) => answer(results[b.as]));
+    const seen: string[] = [];
+    const off = onRemixJob((j) => {
+      if (j) seen.push(`${j.state}|${j.step}|${j.rows.map((r) => `${r.as}:${r.state}:${r.step ?? ""}:${r.draftId ? "d" : ""}`).join(",")}`);
+    });
+    const done = finished();
+    startRemix(UID, run(as));
+    const j = await done;
+    off();
+    return { seen, j };
+  };
+
+  it("walks one format: reading, writing, done", async () => {
+    const { seen, j } = await walk(["post"]);
+    expect(seen).toEqual([
+      "working|Reading the post|post:waiting::",
+      "working|Reading the post|post:working:Reading the post:",
+      "working||post:done::d",
+      "done||post:done::d",
+    ]);
+    expect(Object.keys(j).sort()).toEqual(["id", "key", "rows", "run", "state", "step"]);
+    expect(Object.keys(j.rows[0]).sort()).toEqual(["as", "draftId", "flags", "hook", "href", "state", "step"]);
+    expect(make.mock.calls.every(([b]) => !("formula" in b))).toBe(true);
+    expect(loadDrafts(UID).every((d) => !("set" in d) && !("hookFormula" in d))).toBe(true);
+  });
+
+  it("walks three formats one after another, each its own draft", async () => {
+    const { seen, j } = await walk(["post", "carousel", "script"]);
+    expect(seen).toEqual([
+      "working|Reading the post|post:waiting::,carousel:waiting::,script:waiting::",
+      "working|Reading the post|post:working:Reading the post:,carousel:waiting::,script:waiting::",
+      "working||post:done::d,carousel:waiting::,script:waiting::",
+      "working|Writing your carousel|post:done::d,carousel:working:Writing your carousel:,script:waiting::",
+      "working||post:done::d,carousel:done::d,script:waiting::",
+      "working|Writing your script|post:done::d,carousel:done::d,script:working:Writing your script:",
+      "working||post:done::d,carousel:done::d,script:done::d",
+      "done||post:done::d,carousel:done::d,script:done::d",
+    ]);
+    expect(j.run).toEqual({ keep: "structure", close: "balanced", mention: true, offer: null, as: "post,carousel,script" });
+    expect(make.mock.calls.map(([b]) => b.as)).toEqual(["post", "carousel", "script"]);
+    expect(make.mock.calls.every(([b]) => !("formula" in b))).toBe(true);
+    expect(loadDrafts(UID).map((d) => d.format)).toEqual(["short-video", "carousel", "text-post"]);
+    expect(loadDrafts(UID).every((d) => !("set" in d) && !("hookFormula" in d))).toBe(true);
+  });
+});
+
 describe("a run from a typed topic (the agent's)", () => {
   const agent = { thread: "t1a2b", msg: "m3c4d" };
   const beat = (say: string) => ({ say, onScreen: "", visual: "Me to camera", seconds: 5, delivery: "Pause" });
