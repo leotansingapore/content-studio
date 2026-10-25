@@ -213,7 +213,9 @@ type Audience =
   | "parent"
   | "pre-retiree"
   | "general";
-type StreamingMode = "idle" | "hooks" | "variants";
+// newHooks (Leo only): the hooks panel's rows, new openings for a finished post
+type StreamingMode = "idle" | "hooks" | "variants" | "newHooks";
+type StreamTarget = Exclude<StreamingMode, "idle">;
 
 const HALT_LABEL = { stopped: "stopped", failed: "didn't finish" } as const;
 
@@ -769,6 +771,22 @@ export default function GeneratePage() {
     null,
   );
   const [streamingMode, setStreamingMode] = useState<StreamingMode>("idle");
+  // Leo only (remix-variations): the hooks panel over the open post (?panel=hooks): its rows, the post they were
+  // written for and with which formulas, Jev's pick, the drafts saved from it, and whether the last run failed.
+  const [newHookRows, setNewHookRows] = useState<VariantState[]>([]);
+  const [hookPanel, setHookPanel] = useState<{
+    draftId: string;
+    formulas: string[];
+    running: boolean;
+    failed: boolean;
+    pick: { key: string; index: number } | null;
+    saved: Record<number, string>;
+    testSet?: string;
+  } | null>(null);
+  const newPickPendingRef = useRef(false);
+  // Leo only: the variations Keep all 3 saved (key: their texts), and each one's draft, so a later pick opens it
+  const [keptVariants, setKeptVariants] = useState<{ key: string; set: string; ids: Record<number, string> } | null>(null);
+  const keptNow = keptVariants?.key === variants.map((v) => v.text).join("\n") ? keptVariants : null;
   const [draft, setDraft] = useState<string>("");
   const [styleReference, setStyleReference] = useState<string | null>(null);
   const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
@@ -1594,6 +1612,8 @@ export default function GeneratePage() {
     };
   };
 
+  const rowsSetter = (target: StreamTarget) => (target === "hooks" ? setHookOptions : target === "variants" ? setVariants : setNewHookRows);
+
   const stopStreaming = () => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
@@ -1605,11 +1625,11 @@ export default function GeneratePage() {
   // written with (formulas[row]).
   const runStream = async (
     requests: StreamRequest[],
-    target: "hooks" | "variants",
+    target: StreamTarget,
     formulas?: string[],
   ) => {
     const runId = ++streamRunRef.current;
-    const setRows = target === "hooks" ? setHookOptions : setVariants;
+    const setRows = rowsSetter(target);
     // This run supersedes anything still in flight. Cancel it, or its chunks
     // keep landing in the rows this run is about to create.
     abortControllerRef.current?.abort();
@@ -1632,7 +1652,7 @@ export default function GeneratePage() {
 
   const streamRows = async (
     requests: StreamRequest[],
-    target: "hooks" | "variants",
+    target: StreamTarget,
     controller: AbortController,
     runId: number,
     formulas?: string[],
@@ -1650,8 +1670,7 @@ export default function GeneratePage() {
       complete: false,
       ...(formulas?.[i] ? { formula: formulas[i] } : {}),
     }));
-    if (target === "hooks") setHookOptions(initial);
-    else setVariants(initial);
+    rowsSetter(target)(initial);
 
     abortControllerRef.current = controller;
     setStreamingMode(target);
@@ -1673,7 +1692,7 @@ export default function GeneratePage() {
   const streamRequest = async (
     payload: StreamRequest,
     firstRow: number,
-    target: "hooks" | "variants",
+    target: StreamTarget,
     controller: AbortController,
     runId: number,
     token: string,
@@ -1718,7 +1737,7 @@ export default function GeneratePage() {
       if (evt.type === "token") {
         const idx = firstRow + (evt.variantIndex as number);
         const text = evt.text as string;
-        const setter = target === "hooks" ? setHookOptions : setVariants;
+        const setter = rowsSetter(target);
         setter((prev) =>
           prev.map((v) =>
             v.index === idx ? { ...v, text: v.text + text } : v,
@@ -1728,7 +1747,7 @@ export default function GeneratePage() {
         const idx = firstRow + (evt.variantIndex as number);
         // Dashes, and emoji or hashtags over the brand kit's policy or the platform's cap, go before the text is shown or saved.
         const finalText = applyBrandRules(stripDashes(evt.text as string), brandKit, platform);
-        const setter = target === "hooks" ? setHookOptions : setVariants;
+        const setter = rowsSetter(target);
         setter((prev) =>
           prev.map((v) =>
             v.index === idx ? { ...v, text: finalText, complete: true } : v,
@@ -2034,10 +2053,11 @@ export default function GeneratePage() {
   );
 
   const persistDraftEntry = useCallback(
-    // A new pick passes null: the comment state it would read is the last draft's.
-    (text: string, hookText: string, comment: string | null = firstComment) => {
+    // A new pick passes null: the comment state it would read is the last draft's. Leo's hooks panel passes the formula
+    // of a hook that is not in the brief's rows; Keep all 3 saves into a set without opening each draft.
+    (text: string, hookText: string, comment: string | null = firstComment, opts: { id?: string; formula?: string; set?: DraftEntry["set"]; open?: false } = {}) => {
       if (!userId || !text.trim()) return;
-      const id = currentDraftId ?? newDraftId();
+      const id = opts.id ?? currentDraftId ?? newDraftId();
       // Preserve scheduling/status/created-at when updating an existing entry
       // (e.g. writing a slot that was scheduled from the Plan).
       const existing = getDraftById(userId, id);
@@ -2063,13 +2083,14 @@ export default function GeneratePage() {
         postedAt: existing?.postedAt,
         repeat: existing?.repeat,
         disclosure: disclosure.length ? disclosure : undefined,
-        firstComment: comment ?? undefined,
-        hookFormula: formulaOfHook(hookText, hookOptions)?.id,
+        firstComment: comment?.trim() ? comment : undefined,
+        hookFormula: opts.formula ?? formulaOfHook(hookText, hookOptions)?.id,
         source,
         ...(labels ? { labels } : {}),
+        ...(opts.set ? { set: opts.set } : {}),
       };
       upsertDraft(userId, entry);
-      setCurrentDraftId(id);
+      if (opts.open !== false) setCurrentDraftId(id);
       return id;
     },
     [
@@ -2110,7 +2131,9 @@ export default function GeneratePage() {
     // fresh entry, but when editing a scheduled/posted slot we keep updating
     // it so it stays put on the calendar.
     if (!preserveIdRef.current) setCurrentDraftId(null);
-    const id = persistDraftEntry(v.text, chosenHook ?? "", null);
+    // Leo only: a variation Keep all 3 saved opens its own draft rather than forking another
+    const kept = preserveIdRef.current ? undefined : keptNow?.ids[idx];
+    const id = persistDraftEntry(v.text, chosenHook ?? "", null, kept ? { id: kept } : {});
     // written in another language (Leo only): its version is made straight after, under the post
     if (makeLang && id) setAutoTranslate({ id, lang: makeLang });
     // Fire hashtags + image-prompt in parallel; failures don't block. The
@@ -2299,6 +2322,140 @@ export default function GeneratePage() {
     if (!postScore) return;
     void handleRewrite("ask", undefined, FIX_ASK[id], { id, from: postScore.score });
     setTimeout(() => document.getElementById("rewrite-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+  };
+
+  // ---- Versions of one post (remix-variations, Leo only) ----
+
+  // Keep all 3: every written variation as its own draft in one set; the one already picked keeps its draft.
+  const keepAllVariants = () => {
+    if (!userId || isStreaming) return;
+    const rows = variants.filter((v) => v.complete && v.text.trim());
+    if (!rows.length) return;
+    const set = { id: newSetId(), kind: "versions" as const, ...(remixSource ? { from: remixSource.key } : {}) };
+    const ids: Record<number, string> = {};
+    for (const v of rows) {
+      const open = v.index === selectedVariantIndex && currentDraftId ? currentDraftId : null;
+      // the picked one is saved as it stands in the editor, typed edits and its first comment included
+      ids[v.index] = persistDraftEntry(open ? draft : v.text, chosenHook ?? "", open ? firstComment : null, { id: open ?? newDraftId(), set, open: false })!;
+    }
+    setKeptVariants({ key: variants.map((v) => v.text).join("\n"), set: set.id, ids });
+    toast({
+      title: `${rows.length} ${rows.length === 1 ? "version" : "versions"} saved to My posts`,
+      action: (
+        <ToastAction altText="Open" onClick={() => navigate(links.drafts({ set: set.id }))}>
+          Open
+        </ToastAction>
+      ),
+    });
+  };
+
+  // Try new hooks: the requests Pick a hook sends (one formula each) with the post's body as the idea, into the panel's
+  // own rows. The formulas are the 3 after the post's own, else the next set; Try again keeps the last ones.
+  const tryNewHooks = async (again?: string[]) => {
+    if (!userId || !currentDraftId || isStreaming || !draft.trim()) return;
+    if (panel !== "hooks") openPanel("hooks");
+    const set = again
+      ? again.flatMap((id) => hookFormula(id) ?? [])
+      : draftFormula
+        ? otherFormulas(draftFormula.id).flatMap((id) => hookFormula(id) ?? [])
+        : hookFormulaSet(hookSetRef.current++);
+    setNewHookRows([]);
+    setHookPanel({ draftId: currentDraftId, formulas: set.map((f) => f.id), running: true, failed: false, pick: null, saved: {} });
+    newPickPendingRef.current = true;
+    const base = buildBasePayload();
+    const withBody = { ...base, ideaContext: [newHookContext(splitHook(draft, draft.split("\n")[0])), base.ideaContext].filter(Boolean).join("\n\n") };
+    let failed = false;
+    try {
+      await runStream(set.map((f) => ({ ...withBody, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, withBody) })), "newHooks", set.map((f) => f.id));
+    } catch (err) {
+      failed = true;
+      // a lapsed session says so the way Write's own writing does
+      if (/\(401\)/.test((err as Error).message)) toast({ title: "Couldn't write hooks", description: (err as Error).message, variant: "destructive" });
+    }
+    setHookPanel((p) => (p ? { ...p, running: false, failed } : p));
+  };
+
+  // Jev's Recommended once all three are written; over its cap there is just no tag
+  useEffect(() => {
+    if (!newPickPendingRef.current || !hookPanel || hookPanel.running) return;
+    newPickPendingRef.current = false;
+    const hooks = newHookRows.map((h) => h.text.trim());
+    if (hooks.length < 2 || newHookRows.some((h) => !h.complete || !h.text.trim())) return;
+    const aud = AUDIENCES.find((a) => a.value === audience);
+    void pickHook(hooks, aud ? `${aud.label}: ${aud.sub}` : "", pillarDetail.trim(), platformLabel(platform)).then((index) => {
+      if (index !== null) setHookPanel((p) => (p ? { ...p, pick: { key: hooks.join("\n"), index } } : p));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hookPanel?.running]);
+
+  // Use this one: the post's first line becomes the hook, its formula is saved with it, and Undo puts the old one back.
+  const pickNewHook = (row: VariantState) => {
+    const hook = row.text.trim();
+    if (!userId || !hook) return;
+    const before = { text: draft, hook: chosenHook, formula: savedEntry?.hookFormula };
+    const text = withOpening(draft, hook);
+    setDraft(text);
+    setChosenHook(hook);
+    setUndoText(null);
+    caretIn.current = null;
+    persistDraftEntry(text, hook, firstComment, { formula: row.formula });
+    toast({
+      title: "Hook changed",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            setDraft(before.text);
+            setChosenHook(before.hook);
+            caretIn.current = null;
+            persistDraftEntry(before.text, before.hook ?? "", firstComment, { formula: before.formula });
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  // Save as a version: the new hook on the same body as a new draft in the post's set (a new set when it has none).
+  const saveHookVersion = (row: VariantState) => {
+    if (!userId || !currentDraftId || !row.text.trim()) return;
+    flushSave.current();
+    const parent = getDraftById(userId, currentDraftId);
+    if (!parent) return;
+    const set = parent.set ?? { id: newSetId(), kind: "versions" as const, from: parent.id };
+    if (!parent.set) upsertDraft(userId, { ...parent, set });
+    const v = versionOf(parent, withOpening(parent.draft, row.text), row.text.trim(), row.formula, set);
+    upsertDraft(userId, v);
+    setHookPanel((p) => (p ? { ...p, saved: { ...p.saved, [row.index]: v.id } } : p));
+    toast({ title: "Saved as a version" });
+  };
+
+  // Save all as a hook test: this post and its new hooks as one set; versions already saved move into it.
+  const saveHookTest = () => {
+    if (!userId || !currentDraftId || !hookPanel) return;
+    flushSave.current();
+    const parent = getDraftById(userId, currentDraftId);
+    const rows = newHookRows.filter((r) => r.complete && r.text.trim());
+    if (!parent || !rows.length) return;
+    const set = { id: newSetId(), kind: "hook-test" as const, from: parent.id };
+    upsertDraft(userId, { ...parent, set });
+    const saved: Record<number, string> = {};
+    for (const r of rows) {
+      const had = hookPanel.saved[r.index] ? getDraftById(userId, hookPanel.saved[r.index]) : null;
+      const v = had ? { ...had, set } : versionOf(parent, withOpening(parent.draft, r.text), r.text.trim(), r.formula, set);
+      upsertDraft(userId, v);
+      saved[r.index] = v.id;
+    }
+    setHookPanel((p) => (p ? { ...p, saved, testSet: set.id } : p));
+    toast({
+      title: `Hook test saved: ${rows.length + 1} versions`,
+      action: (
+        <ToastAction altText="Open" onClick={() => navigate(links.drafts({ set: set.id }))}>
+          Open
+        </ToastAction>
+      ),
+    });
   };
 
   // The draft as it stands (typed edits included) is what Undo brings back.
@@ -3753,6 +3910,18 @@ export default function GeneratePage() {
                 />{" "}
                 Re-roll 3
               </Button>
+              {leo && userId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={keepAllVariants}
+                  disabled={isStreaming || !!keptNow || !variants.some((v) => v.complete && v.text.trim())}
+                  className="gap-1.5"
+                >
+                  {keptNow ? <Check className="h-3.5 w-3.5" /> : <BookmarkPlus className="h-3.5 w-3.5" />}
+                  {keptNow ? "Kept" : "Keep all 3"}
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -4124,6 +4293,22 @@ export default function GeneratePage() {
                       <InsertButton disabled={isStreaming} />
                     </Suspense>
                   )}
+                  {leo && userId && savedEntry && !draftLang && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isStreaming}
+                        onClick={() => void tryNewHooks()}
+                        className="flex h-11 items-center gap-1 rounded-full border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 sm:h-9 [@media(pointer:coarse)]:h-11"
+                      >
+                        <Shuffle className="h-3.5 w-3.5" /> Try new hooks
+                      </button>
+                      {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
+                      {isStreaming && streamingMode !== "newHooks" && (
+                        <span className="basis-full text-xs text-muted-foreground">Wait for the current writing to finish.</span>
+                      )}
+                    </>
+                  )}
                 </div>
                 {undoText !== null && (
                   <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
@@ -4193,6 +4378,93 @@ export default function GeneratePage() {
                     </div>
                   </div>
                 )}
+                {leo && userId && savedEntry && !draftLang && panel === "hooks" && (() => {
+                  // the rows belong to the post they were written for; another post's panel starts empty
+                  const ours = hookPanel?.draftId === savedEntry.id ? hookPanel : null;
+                  const rows = ours ? newHookRows : [];
+                  const pickKey = rows.map((r) => r.text.trim()).join("\n");
+                  return (
+                    <section aria-label="New hooks for this post" className="mt-1.5 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3" aria-live="polite">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                          New hooks for this post
+                          <InfoTip label="About new hooks">Only the first line changes. The body stays the same.</InfoTip>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={closePanel}
+                          aria-label="Close new hooks"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+                        >
+                          <XIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {!ours && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button size="sm" variant="outline" disabled={isStreaming} onClick={() => void tryNewHooks()} className="h-11 gap-1.5 sm:h-9">
+                            <Shuffle className="h-3.5 w-3.5" /> Try new hooks
+                          </Button>
+                          {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
+                        </div>
+                      )}
+                      {ours?.running && (!rows.length || rows.some((r) => !r.complete)) && (
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> Writing 3 new hooks...
+                        </p>
+                      )}
+                      {rows.map((r) => {
+                        const done = r.complete && r.text.trim();
+                        const savedId = ours?.saved[r.index];
+                        return (
+                          <div key={r.index} className="space-y-1.5 border-t border-border/50 pt-2">
+                            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                              {hookFormula(r.formula) && <span className="text-xs font-semibold text-muted-foreground">{hookFormula(r.formula)!.name}</span>}
+                              <span className="min-w-0 flex-1 basis-60 text-sm leading-relaxed text-foreground">
+                                {r.text || <span className="text-muted-foreground">{r.halted ? HALT_LABEL[r.halted] : "drafting..."}</span>}
+                              </span>
+                              {ours?.pick?.key === pickKey && ours.pick.index === r.index && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                                  <Star className="h-3 w-3" aria-hidden /> Recommended
+                                </span>
+                              )}
+                            </div>
+                            {done && (
+                              <div className="flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-8" disabled={withOpening(draft, r.text) === draft} onClick={() => pickNewHook(r)}>
+                                  <Check className="h-3.5 w-3.5" /> Use this one
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-11 gap-1.5 sm:h-8" disabled={Boolean(savedId)} onClick={() => saveHookVersion(r)}>
+                                  {savedId ? <Check className="h-3.5 w-3.5 text-success" /> : <BookmarkPlus className="h-3.5 w-3.5" />}
+                                  {savedId ? "Saved" : "Save as a version"}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {ours?.failed && (
+                        <p role="alert" className="flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-destructive">
+                          Couldn't write new hooks. Try again.
+                          <button
+                            type="button"
+                            disabled={isStreaming}
+                            onClick={() => void tryNewHooks(ours.formulas)}
+                            className="-my-3.5 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2"
+                          >
+                            Try again
+                          </button>
+                        </p>
+                      )}
+                      {ours && !ours.running && rows.some((r) => r.complete && r.text.trim()) && (
+                        <div className="border-t border-border/50 pt-2">
+                          <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" disabled={isStreaming || Boolean(ours.testSet)} onClick={saveHookTest}>
+                            {ours.testSet ? <Check className="h-3.5 w-3.5 text-success" /> : <Columns3 className="h-3.5 w-3.5" />} Save all as a hook test
+                          </Button>
+                        </div>
+                      )}
+                    </section>
+                  );
+                })()}
               </div>
               <div
                 className="space-y-1.5"
