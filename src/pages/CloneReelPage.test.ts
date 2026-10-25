@@ -73,3 +73,13 @@ describe("/clone's result card for everyone else", () => {
     await expect(html(clone())).toMatchFileSnapshot("./__pins__/clone-result-everyone.html");
   });
 });
+
+describe("Rebuild this edit (Leo only)", () => {
+  it("opens Same edit on an Instagram reel's result, and nowhere a video file can't be read", () => {
+    as.leo = true;
+    expect(html(clone())).toContain('href="/make/same-edit?source=clone%3Ainstagram%3AC8xYz12AbCd"');
+    expect(html(clone()).match(/Rebuild this edit/g)).toHaveLength(1);
+    expect(html(clone("tiktok"))).not.toContain("Rebuild this edit");
+    expect(html(clone("instagram", false))).not.toContain("Rebuild this edit");
+  });
+});

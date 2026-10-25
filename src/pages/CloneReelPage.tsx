@@ -83,7 +83,7 @@ import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 import { loadPositioning } from "@/lib/positioning";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
-import { fromClone } from "@/lib/remixSource";
+import { fromClone, sourceKey } from "@/lib/remixSource";
 import { MAKE_VIDEO, makeVideoHref, type MakeVideoKind } from "@/lib/scriptCaption";
 import PriceChip from "@/components/PriceChip";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
@@ -977,6 +977,13 @@ export function VersionCard({
             <Button asChild variant="outline" className="gap-1.5">
               <Link to={talkHref}>
                 <Video className="h-4 w-4" /> Make it as a talking head
+              </Link>
+            </Button>
+          )}
+          {leo && clone.result.source.platform === "instagram" && clone.result.source.isVideo && (
+            <Button asChild variant="outline" className="gap-1.5">
+              <Link to={links.makeFormat("same-edit", { source: sourceKey.clone(clone.result.source.platform, clone.result.source.postId) })}>
+                <Film className="h-4 w-4" /> Rebuild this edit
               </Link>
             </Button>
           )}
