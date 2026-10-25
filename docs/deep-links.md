@@ -598,6 +598,7 @@ of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, 
 | /make/same-edit | voice | Leo only. a premade voice (the text-voice keys, as /make/talking-head) | the brand's voice | replace | /make/same-edit?plan=ep-mh2k9x01ab&voice=george |
 | /make/same-edit | close | Leo only. loose, close | balanced | replace | /make/same-edit?plan=ep-mh2k9x01ab&close=loose |
 | /make/same-edit | beat | Leo only. the plan's selected row, 1-based | none | replace | /make/same-edit?plan=ep-mh2k9x01ab&beat=2 |
+| /make/same-edit | length | Leo only. 15, 30: the seconds the version is written to | 15 | replace | /make/same-edit?plan=ep-mh2k9x01ab&length=30 |
 
 Both /make pages also read the shared source, from and mention=no params, as every /make page does
 (MakeFormatPage resolves source). Paid steps never start from these links: "Show me 3 directions", "Read the edit",
