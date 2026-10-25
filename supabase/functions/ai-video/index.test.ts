@@ -891,3 +891,31 @@ describe("a talking video's status checks", () => {
     expect(partsSpent(2)).toBe("2 other parts had already started, so their credits may already be spent.");
   });
 });
+
+// Pinned before same-edit's version runs: a Speak run counts the adviser's ai-video use and the studio's, listed or not.
+describe("a talking video's uses today (pinned)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
+  const WAV = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(60)]).toString("base64");
+  const AVATAR = { mode: "avatar", photo: { url: "https://cdn.example/raj.png" }, slices: [{ wav: WAV, seconds: 7.5 }, { wav: WAV, seconds: 7.5 }] };
+
+  it("count ai-video and ai-video-global once for anyone, a listed account included", async () => {
+    for (const uid of [UID, LEO]) {
+      const res = await send(uid, AVATAR);
+      expect(res.status, uid).toBe(200);
+      expect(await res.json()).toMatchObject({ credits: 44, tokens: [expect.any(String), expect.any(String)], refund: expect.any(String), usage: { used: 1, limit: 2 } });
+      expect(used(uid, "ai-video"), uid).toBe(1);
+    }
+    expect(studio()).toBe(2);
+  });
+
+  it("ignore a version from an account off the list: today's counts, today's Speak bodies", async () => {
+    const res = await send(UID, { ...AVATAR, version: { plan: "ep-mh3k2x1", of: "ev-mh3k2x9" } });
+    expect(res.status).toBe(200);
+    expect([used(UID, "ai-video"), used(UID, "edit-version"), studio()]).toEqual([1, 0, 1]);
+    const bad = await send(UID, { ...AVATAR, version: "junk" });
+    expect(bad.status).toBe(200);
+    expect([used(UID, "ai-video"), used(UID, "edit-version"), studio()]).toEqual([2, 0, 2]);
+  });
+});
