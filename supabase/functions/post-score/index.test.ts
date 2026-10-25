@@ -88,3 +88,43 @@ describe("today's score, pinned", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("a carousel or a video script (edit-score, Leo only)", () => {
+  const slides = "Slide 1: 3 things to check on your hospital plan\nSlide 2: Ward class. Pick the ward you would stay in.\nSlide 3: Found this useful? Save it.";
+
+  it("refuses carousel and short-video off the list before counting anything or asking Jev", async () => {
+    for (const format of ["carousel", "short-video"]) {
+      const res = await ask(OTHER, { text: slides, platform: "instagram", format });
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
+  it("scores a text-post named as such for anyone, with today's questions", async () => {
+    jev = yesTo({ hook: 0.9, oneIdea: 0.9, specific: 0.9, cta: 0.9, readable: 0.9 });
+    const res = await ask(OTHER, { text: draft, platform: "linkedin", format: "text-post" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ score: 9, down: [] });
+    expect(sent[0]).not.toHaveProperty("state.format");
+  });
+
+  it("scores a carousel for a listed account with the carousel's questions, on post-score", async () => {
+    jev = yesTo({ hook: 0.2, oneIdea: 0.9, specific: 0.9, cta: 0.9, readable: 0.9 });
+    const res = await ask(LEO, { text: slides, platform: "instagram", format: "carousel" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ score: 6.9, down: ["hook"] });
+    expect(used(LEO)).toBe(1);
+    const q = sent[0] as { state: Record<string, string>; questions: Record<string, { instructions: string }> };
+    expect(q.state).toMatchObject({ format: "carousel", first_line: "Slide 1: 3 things to check on your hospital plan" });
+    expect(q.questions.hook.instructions).toContain("cover slide");
+  });
+
+  it("refuses an unknown format before counting anything", async () => {
+    const res = await ask(LEO, { text: slides, format: "story" });
+    expect(res.status).toBe(400);
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+});

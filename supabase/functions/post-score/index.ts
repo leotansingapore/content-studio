@@ -7,6 +7,11 @@
 // scored twice. Without Jev (no key, timeout, outage) it says so and Write's
 // own craft check still shows.
 //
+// {format: "carousel" | "short-video"} (edit-score, Leo only) asks the same five
+// questions worded for a carousel's slides or a video's script; missing is
+// "text-post", today's request word for word. Another format from an account
+// off NORTH_STAR_USERS gets 403 not_enabled before anything is counted.
+//
 // Secrets: TYPESAFE_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy post-score --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Jev: ../_shared/jev.ts. Caps: ../_shared/usageCaps.ts.
@@ -14,7 +19,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
-import { FACTOR_IDS, SCORE_QUESTIONS, composeScore, mostlyEnglish, parseScoreRequest, scoreState } from "./logic.ts";
+import { isAllowed } from "../market/logic.ts";
+import { FACTOR_IDS, composeScore, mostlyEnglish, parseScoreRequest, scoreQuestions, scoreState } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +46,9 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to score a post." }, 401);
+    if (parsed.format !== "text-post" && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+      return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+    }
 
     if (!Deno.env.get("TYPESAFE_API_KEY")) {
       console.error("TYPESAFE_API_KEY is not set");
@@ -51,7 +60,7 @@ Deno.serve(async (req) => {
       return json(r.body, r.status);
     }
 
-    const answers = await askJev(scoreState(parsed.text, parsed.platform), SCORE_QUESTIONS, { who: "post-score" });
+    const answers = await askJev(scoreState(parsed.text, parsed.platform, parsed.format), scoreQuestions(parsed.format), { who: "post-score" });
     const result = composeScore(Object.fromEntries(FACTOR_IDS.map((id) => [id, noulOf(answers, id)])));
     if (!result) return json({ error: UNAVAILABLE }, 503);
     return json(result);

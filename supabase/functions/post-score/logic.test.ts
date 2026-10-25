@@ -1,12 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { FACTORS, FACTOR_IDS, SCORE_QUESTIONS, composeScore, mostlyEnglish, parseScoreRequest, scoreState } from "./logic";
+import {
+  FACTORS,
+  FACTOR_IDS,
+  SCORE_FORMATS,
+  SCORE_QUESTIONS,
+  composeScore,
+  labelFor,
+  mostlyEnglish,
+  parseScoreRequest,
+  scoreQuestions,
+  scoreState,
+  tipFor,
+} from "./logic";
 
 const post = "I paid $0 for my first hospital stay. My friend paid $11,400.\n\nSame ward. Same week.";
 
 describe("parseScoreRequest", () => {
   it("takes a draft and a known platform, Instagram otherwise", () => {
-    expect(parseScoreRequest({ text: `  ${post}  `, platform: "linkedin" })).toEqual({ ok: true, text: post, platform: "linkedin" });
+    expect(parseScoreRequest({ text: `  ${post}  `, platform: "linkedin" })).toEqual({ ok: true, text: post, platform: "linkedin", format: "text-post" });
     expect(parseScoreRequest({ text: post, platform: "myspace" })).toMatchObject({ ok: true, platform: "instagram" });
+  });
+
+  it("keeps text-post as the default, takes the three formats and refuses any other", () => {
+    expect(parseScoreRequest({ text: post, format: null })).toMatchObject({ ok: true, format: "text-post" });
+    for (const format of SCORE_FORMATS) expect(parseScoreRequest({ text: post, format })).toMatchObject({ ok: true, format });
+    for (const format of ["story", "Carousel", "reel", 3, ""]) {
+      expect(parseScoreRequest({ text: post, format })).toEqual({ ok: false, error: "Scores read text posts, carousels and short-video scripts." });
+    }
   });
 
   it("refuses a draft too short or too long to score", () => {
@@ -34,6 +54,62 @@ describe("the questions", () => {
 
   it("weights add up to 10", () => {
     expect(FACTOR_IDS.reduce((s, id) => s + FACTORS[id].weight, 0)).toBe(10);
+  });
+});
+
+describe("the questions per format", () => {
+  const script = "**HOOK (0-3s):** I paid $0 for my hospital stay.\nBODY: My friend paid $11,400.\nCTA: Comment RIDER.\n\n---\n\nCAPTION:\nSame ward, same week.";
+
+  it("asks the same five ids as yes/no for every format, a text post word for word as before", () => {
+    expect(scoreQuestions()).toBe(SCORE_QUESTIONS);
+    expect(scoreQuestions("text-post")).toBe(SCORE_QUESTIONS);
+    for (const format of SCORE_FORMATS) {
+      const q = scoreQuestions(format);
+      expect(Object.keys(q)).toEqual(FACTOR_IDS);
+      for (const x of Object.values(q)) {
+        expect(x.type).toBe("noul");
+        const c = (x as { criteria: { true: string; false: string } }).criteria;
+        expect(c.true.length).toBeGreaterThan(10);
+        expect(c.false.length).toBeGreaterThan(10);
+      }
+    }
+  });
+
+  it("words each question for its shape", () => {
+    expect(scoreQuestions("carousel").hook.instructions).toBe("Would the cover slide in `first_line` make someone scrolling `platform` stop and swipe to the next slide?");
+    expect(scoreQuestions("short-video").hook.instructions).toBe("Would the opening line in `first_line`, said in the first 3 seconds of a `platform` video, make someone keep watching?");
+    expect(scoreQuestions("carousel").oneIdea.instructions).toBe("Do the slides in `post` follow one clear idea, with one point per slide?");
+    expect(scoreQuestions("short-video").oneIdea.instructions).toBe("Does the script in `post` stick to one clear idea from start to finish?");
+    expect(scoreQuestions("carousel").specific.instructions).toBe(scoreQuestions("short-video").specific.instructions);
+    expect(scoreQuestions("carousel").cta.instructions).toBe("Does the last slide or the caption in `post` ask the reader to do one specific thing next?");
+    expect(scoreQuestions("short-video").cta.instructions).toBe("Does the script or caption in `post` end by asking the viewer to do one specific thing next?");
+    expect(scoreQuestions("carousel").readable.instructions).toBe("Can each slide in `post` be read in about 3 seconds on a phone: a short title and at most two short sentences?");
+    expect(scoreQuestions("short-video").readable.instructions).toBe("Does the script in `post` move quickly, with no slow stretch, and end soon after its last point?");
+  });
+
+  it("tells Jev what a carousel or script is, and reads a script's hook without its label", () => {
+    const slides = "Slide 1: 3 things to check on your hospital plan\nSlide 2: Ward class. Pick the ward you would stay in.";
+    expect(scoreState(slides, "instagram", "carousel")).toEqual({ platform: "Instagram", format: "carousel", first_line: "Slide 1: 3 things to check on your hospital plan", post: slides });
+    expect(scoreState(script, "tiktok", "short-video")).toMatchObject({ platform: "TikTok", format: "short video script", first_line: "I paid $0 for my hospital stay." });
+    expect(scoreState("HOOK:\n  Your CPF is not a savings account.\nBODY: x", "tiktok", "short-video").first_line).toBe("Your CPF is not a savings account.");
+    expect(scoreState("[HOOK] Three plans, one claim.", "tiktok", "short-video").first_line).toBe("Three plans, one claim.");
+    expect(scoreState(post, "linkedin", "text-post")).toEqual(scoreState(post, "linkedin"));
+    expect(scoreState(post, "linkedin")).not.toHaveProperty("format");
+  });
+
+  it("has a tip for every factor and format, and names readable 'Easy to follow' for video only", () => {
+    for (const id of FACTOR_IDS) {
+      expect(tipFor(id)).toBe(FACTORS[id].tip);
+      expect(tipFor(id, "text-post")).toBe(FACTORS[id].tip);
+      for (const format of ["carousel", "short-video"] as const) {
+        expect(tipFor(id, format)).toMatch(/^[A-Z].+\.$/);
+      }
+    }
+    expect(tipFor("hook", "carousel")).toBe("Put the number, the surprise or the question on the cover. The cover decides if anyone swipes.");
+    expect(tipFor("readable", "short-video")).toBe("Cut the slow parts and end soon after the last point.");
+    expect(labelFor("readable", "short-video")).toBe("Easy to follow");
+    expect(labelFor("readable", "carousel")).toBe("Easy to read");
+    expect(labelFor("hook")).toBe("First line");
   });
 });
 
