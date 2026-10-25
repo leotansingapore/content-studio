@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
       return json({ error: UNAVAILABLE }, 503);
     }
     const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
-    const cap =
-      r.mode === "profile" ? "profile-score"
+    // one line start, so usageCaps.test.ts reads every cap this function counts
+    const cap = r.mode === "profile" ? "profile-score"
       : r.mode === "facts" ? "fact-check"
       : r.mode === "same-post" ? "post-match"
       : r.mode === "grade" ? "post-grade"
