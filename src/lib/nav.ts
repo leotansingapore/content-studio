@@ -16,6 +16,13 @@ import {
   MessageSquare,
   MessageSquarePlus,
   CalendarClock,
+  Command,
+  Link2,
+  ListChecks,
+  MousePointerClick,
+  Plug,
+  Share2,
+  Zap,
   ClipboardCheck,
   Columns3,
   Settings,
@@ -53,6 +60,8 @@ export type NavPage = {
   group?: string;
   /** No section tabs on this page. */
   bare?: boolean;
+  /** The line under its tile on an index page (Settings), 12 words at most. */
+  hint?: string;
 };
 
 export type NavSection = {
@@ -64,6 +73,8 @@ export type NavSection = {
   pages: NavPage[];
   /** Pinned to the foot of the sidebar. */
   foot?: boolean;
+  /** The first page lists the others as tiles; they get a way back to it instead of tabs (Fastlane's Settings). */
+  index?: boolean;
 };
 
 // Leo 2026-10-24: "matches the fastlane". Fastlane's five (Home, Strategy, Studio, Radar, Analytics) plus Grow, which
@@ -169,9 +180,6 @@ export const SECTIONS: NavSection[] = [
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
       { to: "/fads", label: "F.A.D.S." },
-      { to: "/accounts", label: "Social accounts", show: socialConnectShown },
-      { to: "/bio", label: "Link in bio" },
-      { to: "/links", label: "Tracked links" },
     ],
   },
   {
@@ -196,18 +204,24 @@ export const SECTIONS: NavSection[] = [
     pages: [{ to: "/feedback", label: "Requests and roadmap", title: "Feedback" }],
   },
   {
-    // Set-up pages: who reviews, Claude, skills, automations, logs. Opened from the account menu.
+    // Fastlane's Settings: an index of tiles under the account menu; each page leads back to it. `group` names a tile
+    // group here, not tabs.
     id: "settings",
     label: "Settings",
     icon: Settings,
-    to: "/connect",
+    to: "/settings",
     foot: true,
+    index: true,
     pages: [
-      { to: "/reels/team", label: "Reviewers", show: ownerShown },
-      { to: "/connect", label: "Connect Claude" },
-      { to: "/skills", label: "Skills", owners: LEO_EMAILS },
-      { to: "/automations", label: "Automations", owners: LEO_EMAILS },
-      { to: "/activity", label: "Activity", owners: LEO_EMAILS },
+      { to: "/settings", label: "Settings", end: true, bare: true },
+      { to: "/accounts", label: "Social accounts", icon: Share2, show: socialConnectShown, group: "Connections", hint: "The Instagram and TikTok accounts the studio posts to." },
+      { to: "/bio", label: "Link in bio", icon: Link2, hint: "One page of your links for your profile." },
+      { to: "/links", label: "Tracked links", icon: MousePointerClick, hint: "Short links that count who clicks." },
+      { to: "/connect", label: "Connect Claude", icon: Plug, hint: "Use the studio from a chat with Claude." },
+      { to: "/reels/team", label: "Reviewers", icon: UserCheck, show: ownerShown, group: "Your team", hint: "Who approves posts on your posts board." },
+      { to: "/activity", label: "Activity", icon: ListChecks, owners: LEO_EMAILS, hint: "Everything that ran, and who ran it." },
+      { to: "/automations", label: "Automations", icon: Zap, owners: LEO_EMAILS, group: "The agent", hint: "What runs without you, and its limits." },
+      { to: "/skills", label: "Skills", icon: Command, owners: LEO_EMAILS, hint: "Slash commands the agent runs for you." },
     ],
   },
 ];
@@ -243,15 +257,18 @@ export const pageTitle = (pathname: string) => {
 };
 
 export type Tab = { to: string; label: string; end?: boolean; active: boolean };
+export type SectionTabs = { tabs: Tab[]; chips: Tab[]; back?: Tab };
 
 /**
  * The tab row at the top of a page: its section's pages, or, when they carry groups, one tab per group (opening the
  * group's first page this sign-in sees) with the open group's pages as chips under it. One of a kind is not a choice,
- * so a row of one is left out; a `bare` page gets none.
+ * so a row of one is left out; a `bare` page gets none, and a page under an `index` section gets a way back instead.
  */
-export function sectionTabs(pathname: string, email: string): { tabs: Tab[]; chips: Tab[] } {
+export function sectionTabs(pathname: string, email: string): SectionTabs {
   const hit = pageFor(pathname);
   if (!hit || hit.page.bare) return { tabs: [], chips: [] };
+  const index = hit.section.index ? hit.section.pages[0] : null;
+  if (index) return { tabs: [], chips: [], back: { to: index.to, label: hit.section.label, active: false } };
   const all = groupedPages(hit.section.pages);
   const pages = visiblePages(all, email);
   const tab = (p: NavPage, label = p.label, active = p.to === hit.page.to): Tab => ({ to: p.to, label, end: p.end, active });

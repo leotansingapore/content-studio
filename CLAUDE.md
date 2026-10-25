@@ -77,7 +77,8 @@
   Feedback and Settings (account menu) at the foot. Desktop has ONE sidebar (StudioLayout); the open section's pages
   are a tab row at the top of every page, rendered once by the shell (`SectionTabs`, from `sectionTabs()` in nav.ts).
   Pages carrying a `group` (Studio) show the groups as tabs and the open group's pages as a quieter row under them;
-  `bare` pages (Home, the agent, North star) get no tabs. Filters stay on the page itself as chips. Pages must not
+  `bare` pages (Home, the agent, North star) get no tabs; an `index` section (Settings) lists its pages as tiles
+  at /settings and each page shows a way back instead of tabs. Filters stay on the page itself as chips. Pages must not
   render SectionTabs themselves. Phones get the bottom bar (Home, Strategy, Studio, Radar) and the More sheet. When
   adding a page, add it to a section there and keep `src/lib/nav.test.ts` green; do not add a new section
   without checking the grouping.

@@ -71,4 +71,6 @@ referral programme.
 1. Shell: one sidebar, the section's tabs at the top of every page, no rail 2 or rail 3; filters go back onto
    their pages. Chat button and thread list for the agent's users, New post for everyone else. Live 25 Oct (00ac5b0e).
 2. Dark theme by default with a switch in the account menu; public pages stay light. Done 25 Oct.
-3. Still open: a Settings index page of tiles, the chat's "Your work" panel, a usage meter in the sidebar.
+3. Settings index page of tiles (Connections, Your team, The agent), each page leading back to it; Social accounts,
+   Link in bio and Tracked links moved there from Brand. Done 25 Oct.
+4. Still open: the chat's "Your work" panel, a usage meter in the sidebar.

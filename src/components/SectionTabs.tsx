@@ -2,6 +2,7 @@
 // open group's pages as chips under it. The shell renders it once, above the page. Routes stay intact (deep links,
 // query params keep working).
 import { Link, useLocation } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { sectionTabs, type Tab } from "@/lib/nav";
 
 const tabClass = (active: boolean) =>
@@ -29,7 +30,15 @@ function Row({ tabs, cls }: { tabs: Tab[]; cls: (active: boolean) => string }) {
 
 export default function SectionTabs({ email }: { email: string }) {
   const { pathname } = useLocation();
-  const { tabs, chips } = sectionTabs(pathname, email);
+  const { tabs, chips, back } = sectionTabs(pathname, email);
+  if (back)
+    return (
+      <nav aria-label="Section" data-nav className="mb-4">
+        <Link to={back.to} className="inline-flex min-h-9 items-center gap-1 rounded-lg pr-2 text-sm text-muted-foreground transition-colors hover:text-foreground [@media(pointer:coarse)]:min-h-11">
+          <ChevronLeft className="h-4 w-4" /> {back.label}
+        </Link>
+      </nav>
+    );
   if (!tabs.length && !chips.length) return null;
   return (
     <nav aria-label="Section" data-nav className="mb-6 space-y-3">

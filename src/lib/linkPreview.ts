@@ -72,6 +72,7 @@ export const PAGES: Record<string, string> = {
   "/accounts": "Social accounts",
   "/fads": "F.A.D.S.",
   "/connect": "Connect Claude",
+  "/settings": "Settings",
   "/skills": "Skills",
   "/activity": "Activity",
   "/automations": "Automations",

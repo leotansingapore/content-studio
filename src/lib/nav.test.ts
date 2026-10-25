@@ -30,7 +30,7 @@ describe("nav", () => {
     expect(pageFor("/recruit/agent")?.page.label).toBe("AI agent");
     expect(sectionFor("/profiles/abc")?.id).toBe("find");
     expect(sectionFor("/fads/positioning")?.id).toBe("playbook");
-    expect(sectionFor("/links")?.id).toBe("playbook");
+    expect(sectionFor("/links")?.id).toBe("settings");
     expect(sectionFor("/calendar")?.id).toBe("plan");
     expect(sectionFor("/reels")?.id).toBe("write");
     expect(sectionFor("/reels/team")?.id).toBe("settings");
@@ -58,22 +58,22 @@ describe("nav", () => {
     expect(pages("plan", ANYONE)).toEqual(["/plan", "/calendar"]);
     expect(pages("write", ANYONE)).toEqual(["/generate", "/generate/batch", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
-    expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads", "/bio", "/links"]);
-    expect(pages("settings", ANYONE)).toEqual(["/connect"]);
+    expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/plan", "/ideas", "/campaigns", "/calendar"]);
       expect(pages("write", email).slice(0, 7), email).toEqual(["/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(6, 8), email).toEqual(["/competitors", "/saved"]);
-      expect(pages("settings", email), email).toEqual(["/connect", "/skills", "/automations", "/activity"]);
+      expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/activity", "/automations", "/skills"]);
     }
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
-    const shown = () => ["playbook", "recruit"].flatMap((id) => pages(id, ANYONE));
+    const shown = () => ["settings", "recruit"].flatMap((id) => pages(id, ANYONE));
     expect(shown()).not.toContain("/accounts");
     expect(shown()).not.toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: true, at: Date.now() }));
@@ -90,7 +90,7 @@ describe("nav", () => {
     expect(pages("write", ANYONE)).toContain("/reels");
     expect(pages("settings", LEO)).not.toContain("/reels/team");
     store.set("cs-team-me", JSON.stringify({ owner: true, member: false, at: Date.now() }));
-    expect(pages("settings", ANYONE)).toEqual(["/reels/team", "/connect"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect", "/reels/team"]);
     vi.unstubAllGlobals();
   });
 
@@ -122,11 +122,16 @@ describe("nav", () => {
       expect(review.tabs.find((t) => t.active)?.label).toBe("Review");
       expect(review.chips).toEqual([]);
       expect(sectionTabs("/feedback", ANYONE)).toEqual({ tabs: [], chips: [] });
-      expect(sectionTabs("/connect", ANYONE)).toEqual({ tabs: [], chips: [] });
       for (const p of ["/home", "/agent/t1", "/north-star"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
       expect(labels(sectionTabs("/welcome", ANYONE).tabs)).toEqual(["Getting started", "Academy", "How to post", "How the studio works"]);
       expect(sectionTabs("/nope", LEO)).toEqual({ tabs: [], chips: [] });
     });
+  });
+
+  it("lists Settings as tiles, its pages leading back to it instead of tabs", () => {
+    expect(sectionTabs("/settings", ANYONE)).toEqual({ tabs: [], chips: [] });
+    for (const p of ["/connect", "/links", "/reels/team", "/skills"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
+    expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
   });
 
   it("puts Fastlane's first four on the phone bar and lights one per page", () => {
@@ -144,7 +149,7 @@ describe("nav", () => {
 
   it("gives the More sheet one tile per other section, opening the first page this sign-in sees", () => {
     expect(moreSheet(ANYONE).map((t) => [t.label, t.to])).toEqual([
-      ["Grow", "/recruit"], ["Analytics", "/analytics"], ["Brand", "/playbook"], ["Learn", "/welcome"], ["Feedback", "/feedback"], ["Settings", "/connect"],
+      ["Grow", "/recruit"], ["Analytics", "/analytics"], ["Brand", "/playbook"], ["Learn", "/welcome"], ["Feedback", "/feedback"], ["Settings", "/settings"],
     ]);
     for (const t of mobileTabs()) expect(moreSheet(LEO).map((x) => x.sectionId)).not.toContain(sectionFor(t.to)?.id);
   });
