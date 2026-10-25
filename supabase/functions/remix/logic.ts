@@ -56,6 +56,15 @@ export const MAX_WALL_SCENE = 90;
 export const SPEAKING_SECONDS = [8, 15, 20, 30] as const;
 export type SpeakingSeconds = (typeof SPEAKING_SECONDS)[number];
 export const speakingWords = (s: number) => ({ low: Math.round(2.4 * s), high: Math.round(3.2 * s) });
+/**
+ * A timed script's words to ask for: the length's range, or up to `words` when the caller counted fewer for the length in
+ * its voice (the agent: a 15 s card in Alice's voice is 38 words, where 45 ran 18 s and priced three parts, replay D5).
+ * The check after it still takes up to the length's own ceiling, so a few words over is never a refusal.
+ */
+export function scriptWords(req: Pick<MakeRequest, "seconds" | "words">): { low: number; high: number } {
+  const w = speakingWords(req.seconds!);
+  return req.words ? { low: Math.min(w.low, req.words - 4), high: Math.min(w.high, req.words) } : w;
+}
 /** The made clips behind Words over a made scene (ai-video templates scene-kitchen, scene-walk, scene-interview). */
 export const WALL_SCENES = {
   kitchen: "someone at a home kitchen counter slicing fruit",
@@ -209,6 +218,8 @@ export interface MakeRequest {
   fit?: { verdict: "good" | "weak" | "poor" | "unknown"; reasons: FitReason[] };
   /** speaking only: the length, which sets the words (speakingWords). */
   seconds?: SpeakingSeconds;
+  /** speaking with seconds only: the most words the script may run to, when its voice reads them slower (scriptWords). */
+  words?: number;
   /** wall only: the made clip the words go over (Words over a made scene). */
   scene?: WallScene;
   /** wall: 25 to 30 words, read in an 8 s clip; hooks: at most 8, said in a 4 s clip. */
@@ -463,7 +474,11 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
   }
   if (as === "speaking" && r.seconds != null) {
     const seconds = SPEAKING_SECONDS.find((x) => x === r.seconds);
-    return seconds ? { seconds } : "Pick 8, 15, 20 or 30 seconds.";
+    if (!seconds) return "Pick 8, 15, 20 or 30 seconds.";
+    if (r.words == null) return { seconds };
+    const { high } = speakingWords(seconds);
+    const words = typeof r.words === "number" && Number.isInteger(r.words) && r.words >= 12 && r.words <= high ? r.words : null;
+    return words ? { seconds, words } : `A ${seconds}-second script takes 12 to ${high} words.`;
   }
   if (as === "wall") {
     const scene = (Object.keys(WALL_SCENES) as WallScene[]).find((x) => x === r.scene);
@@ -673,7 +688,7 @@ const refuseRule = (req: MakeRequest, what: string) =>
 /** formats-talking-head: spoken English for a still picture that Speak animates, so it can't act anything out. */
 function speakingRules(req: MakeRequest): string[] {
   const s = req.seconds!;
-  const { low, high } = speakingWords(s);
+  const { low, high } = scriptWords(req);
   return [
     "",
     `Write a script someone says to the phone camera, about ${s} seconds:`,
@@ -1051,7 +1066,7 @@ export function responseFormat(req: MakeRequest): unknown {
   switch (req.as) {
     case "speaking": {
       if (!req.seconds) return MAKE_RESPONSE_FORMATS.speaking;
-      const { low, high } = speakingWords(req.seconds);
+      const { low, high } = scriptWords(req);
       return schema("remix_speaking", { ...REFUSE, script: str(`Only the spoken words, ${low} to ${high} words`), caption: str("Post caption ending with the call to action") });
     }
     case "wall": {
@@ -1558,9 +1573,9 @@ export function textProblem(r: MadeResult, req: Pick<MakeRequest, "brand">): Mak
 }
 
 /** A timed speaking script that came out short of its length's words (formats-talking-head). */
-export function lengthProblem(r: MadeResult, req: Pick<MakeRequest, "seconds">): MakeProblem | null {
+export function lengthProblem(r: MadeResult, req: Pick<MakeRequest, "seconds" | "words">): MakeProblem | null {
   if (r.as !== "speaking" || !req.seconds) return null;
-  const { low, high } = speakingWords(req.seconds);
+  const { low, high } = scriptWords(req);
   const n = wordCount(r.script);
   return n >= low
     ? null
@@ -1650,7 +1665,7 @@ export function editProblem(r: MadeResult, req: Pick<MakeRequest, "edit">): Make
 }
 
 /** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's and the edit's. */
-export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds" | "edit">) =>
+export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds" | "words" | "edit">) =>
   slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r) ?? editProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */

@@ -1063,6 +1063,22 @@ describe("speaking with seconds (formats-talking-head)", () => {
     expect(makeProblem(short, { ...shape("speaking", { seconds: 15 }) })?.kind).toBe("length");
   });
 
+  it("asks for at most the words a caller counted for the length in its voice, and still takes up to the length's ceiling (replay D5)", () => {
+    const counted = shape("speaking", { seconds: 15, words: 38 });
+    expect(counted.words).toBe(38);
+    expect(buildMakePrompt(counted).system).toContain("34 to 38 words, in spoken English");
+    expect(JSON.stringify(responseFormat(counted))).toContain("Only the spoken words, 34 to 38 words");
+    expect(lengthProblem(validateMake("speaking", { script: n(33), caption: "Caption." }, { seconds: 15 })!, counted)?.fix).toContain("34 to 38 words");
+    expect(lengthProblem(validateMake("speaking", { script: n(34), caption: "Caption." }, { seconds: 15 })!, counted)).toBeNull();
+    // a few words over is still a script: the check keeps the length's own ceiling
+    expect(validateMake("speaking", { refuse: false, reason: "", script: n(44), caption: "Caption." }, { seconds: 15 })).not.toBeNull();
+    for (const words of [11, 49, 38.5, "38"]) expect(parseMakeRequest(body({ as: "speaking", seconds: 15, words })), String(words)).toEqual({ ok: false, error: "A 15-second script takes 12 to 48 words." });
+    // sent with no seconds or with another format, it is dropped; with none, the request and prompt are today's
+    expect(make({ as: "speaking", words: 38 }).words).toBeUndefined();
+    expect(make({ as: "post", words: 38 }).words).toBeUndefined();
+    expect(make({ as: "speaking", seconds: 15 })).not.toHaveProperty("words");
+  });
+
   it("keeps today's 70-word ceiling, schema and prompt without seconds", () => {
     expect(validateMake("speaking", { script: n(70), caption: "Caption." })).not.toBeNull();
     expect(validateMake("speaking", { script: n(71), caption: "Caption." })).toBeNull();
