@@ -75,6 +75,8 @@
 //        words, added to the prompt after Singapore finance words so Whisper spells them right (logic.ts whisperPrompt).
 //   POST ?mode=watch&seconds=<edit length>, body = the exported video -> {findings:[{kind,start,end,what,fix}]}:
 //        Gemini watches the file twice and lists what a viewer would trip on (watch.ts, "video-watch" cap).
+//   POST {mode:"film-directions" | "film" | "film-edit", ...} -> the launch film's directions, its scene spec, and a change at
+//        one spot (film.ts, "launch-film" and "film-edit" caps). Leo only (NORTH_STAR_USERS, 403 not_enabled before any count).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY, GEMINI_API_KEY (watch). Deploy WITH JWT verification:
@@ -96,6 +98,7 @@ import { buildOwnMessages, ownQuestions, ownState, parseOwnReply, parseOwnReques
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { MAX_WATCH_BYTES, MAX_WATCH_SECONDS, watchSeconds, watchType, watchVideo } from "./watch.ts";
+import { filmMode, isFilmMode } from "./film.ts";
 import {
   CLIP_VIEWER,
   MAX_AUDIO_BYTES,
@@ -225,6 +228,10 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
+    if (isFilmMode(body?.mode)) {
+      const r = await filmMode(admin, uid, body, isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid), apiKey);
+      return json(r.body, r.status);
+    }
     if (body?.mode === "translate" && body.kind === "post") {
       if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
       const t = parseTranslateRequest(body);
