@@ -321,7 +321,19 @@ export default function HomePage() {
     <div className="space-y-8">
       {leoId ? (
         // the greeting paints at once; Next up, the tiles and the composer follow with the chunk
-        <Suspense fallback={<header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3"><div className="min-w-0">{greet}<GoalLine /></div></header>}>
+        <Suspense
+          fallback={
+            <>
+              <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3"><div className="min-w-0">{greet}<GoalLine /></div></header>
+              {/* Next up, Agent now and the composer's room, so the page below doesn't jump when they arrive */}
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]" aria-busy="true" aria-label="Loading">
+                <div className="h-60 animate-pulse rounded-2xl border border-border/60 bg-card" />
+                <div className="hidden h-28 animate-pulse rounded-2xl border border-border/60 bg-card lg:block" />
+              </div>
+              <div className="h-28 animate-pulse rounded-2xl border border-border/60 bg-card" />
+            </>
+          }
+        >
           <AgentHome
             userId={leoId}
             greeting={<>{greet}<GoalLine /></>}
