@@ -532,3 +532,69 @@ describe("Montage pick from a media set", () => {
     }
   });
 });
+
+describe("every mode before the launch film's (pinned at 6cdc59d2, before film-directions, film and film-edit)", () => {
+  // each mode's own first answer to an empty request, so a new mode can't take over an old one's requests
+  const ask = async (uid: string, body: Record<string, unknown> | null, query = "") => {
+    const res = await db.handler!(
+      new Request(`http://x/video-assist${query}`, { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: body ? JSON.stringify(body) : new Uint8Array(10) }),
+    );
+    return [res.status, await res.json()];
+  };
+  const MODES = ["translate", "clips", "cutaways", "motion", "broll", "montage", "montage-pick", "hooks", "captions", "thread", "own-words", "keywords", "coldopen", "publish"];
+
+  it("answers each one as today, for a listed uid and anyone else, before counting or calling a provider", async () => {
+    const got: Record<string, unknown> = {};
+    for (const uid of [LEO, UID]) {
+      const who = uid === LEO ? "listed" : "other";
+      got[`${who} transcribe`] = await ask(uid, null, "?mode=transcribe");
+      got[`${who} watch`] = await ask(uid, null, "?mode=watch");
+      got[`${who} translate post`] = await ask(uid, { mode: "translate", kind: "post" });
+      got[`${who} vibe`] = await ask(uid, {});
+      for (const mode of MODES) got[`${who} ${mode}`] = await ask(uid, { mode });
+    }
+    expect(got).toEqual(PINNED_MODES);
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+});
+
+// recorded from this code at 6cdc59d2: each mode's own refusal of an empty request
+const PINNED_MODES = {
+  "listed transcribe": [411, { error: "Send the sound file with its length." }],
+  "listed watch": [411, { error: "Send the video with its length." }],
+  "listed translate post": [400, { code: "bad_request", error: "Pick Chinese, Malay or Tamil." }],
+  "listed vibe": [400, { error: "Say what to change, or add a reference video." }],
+  "listed translate": [400, { error: "Pick Chinese, Malay or Tamil." }],
+  "listed clips": [400, { error: "Clips need a video of at least 45 seconds." }],
+  "listed cutaways": [400, { error: "The video is too short for callouts." }],
+  "listed motion": [400, { error: "The video is too short for key lines." }],
+  "listed broll": [400, { error: "The video is too short for B-roll." }],
+  "listed montage": [400, { error: "Type a theme for the montage." }],
+  "listed montage-pick": [400, { error: "Nothing to pick from." }],
+  "listed hooks": [400, { error: "The video is too short for a hook." }],
+  "listed captions": [400, { error: "Caption the video first." }],
+  "listed thread": [400, { code: "bad_request", error: "Write a bit more before making it a thread." }],
+  "listed own-words": [400, { code: "bad_request", error: "Say what it is about first." }],
+  "listed keywords": [400, { code: "bad_request", error: "Caption the video first." }],
+  "listed coldopen": [400, { error: "Caption the video first." }],
+  "listed publish": [400, { error: "The video is too short for a title." }],
+  "other transcribe": [411, { error: "Send the sound file with its length." }],
+  "other watch": [411, { error: "Send the video with its length." }],
+  "other translate post": [403, { code: "not_enabled", error: "This isn't switched on for your account yet." }],
+  "other vibe": [400, { error: "Say what to change, or add a reference video." }],
+  "other translate": [400, { error: "Pick Chinese, Malay or Tamil." }],
+  "other clips": [400, { error: "Clips need a video of at least 45 seconds." }],
+  "other cutaways": [400, { error: "The video is too short for callouts." }],
+  "other motion": [400, { error: "The video is too short for key lines." }],
+  "other broll": [400, { error: "The video is too short for B-roll." }],
+  "other montage": [400, { error: "Type a theme for the montage." }],
+  "other montage-pick": [400, { error: "Nothing to pick from." }],
+  "other hooks": [400, { error: "The video is too short for a hook." }],
+  "other captions": [400, { error: "Caption the video first." }],
+  "other thread": [403, { code: "not_enabled", error: "This isn't switched on for your account yet." }],
+  "other own-words": [403, { code: "not_enabled", error: "This isn't switched on for your account yet." }],
+  "other keywords": [403, { code: "not_enabled", error: "This isn't switched on for your account yet." }],
+  "other coldopen": [400, { error: "Caption the video first." }],
+  "other publish": [400, { error: "The video is too short for a title." }],
+};

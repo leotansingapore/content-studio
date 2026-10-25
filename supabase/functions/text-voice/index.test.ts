@@ -37,16 +37,19 @@ const db = vi.hoisted(() => {
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
-// Eleven Music answers with `eleven` (a status, or "throw" for a timeout); every call is kept
-const eleven: { calls: number; next: number | "throw" } = { calls: 0, next: 200 };
+// ElevenLabs answers with `eleven` (a status, or "throw" for a timeout), or `reply` when a test sets one; every call is kept
+const eleven: { calls: number; next: number | "throw"; sent: { url: string; body: string }[]; reply: null | (() => Response) } = { calls: 0, next: 200, sent: [], reply: null };
+const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
 
 beforeAll(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", ELEVENLABS_API_KEY: "k" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", ELEVENLABS_API_KEY: "k", NORTH_STAR_USERS: LEO };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async () => {
+  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
     eleven.calls++;
+    eleven.sent.push({ url: String(u), body: String(init?.body ?? "") });
     if (eleven.next === "throw") throw new Error("The operation timed out.");
+    if (eleven.reply) return eleven.reply();
     return new Response(eleven.next === 200 ? "mp3" : '{"detail":"busy"}', { status: eleven.next });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -63,6 +66,8 @@ beforeEach(() => {
   db.down.clear();
   eleven.calls = 0;
   eleven.next = 200;
+  eleven.sent = [];
+  eleven.reply = null;
 });
 
 const track = (uid = UID) =>
@@ -97,5 +102,59 @@ describe("a music track's uses", () => {
     expect((await track()).status).toBe(429);
     expect(mine()).toBe(0);
     expect(eleven.calls).toBe(0);
+  });
+});
+
+describe("the voiceover and the dub (pinned at 6cdc59d2, before the lines mode and word times)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/text-voice", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const voiced = (uid: string) => db.rows.get(`${uid}|ai-voice|${db.today()}`) ?? 0;
+
+  for (const uid of [LEO, UID]) {
+    it(`sends today's MP3 request and streams the MP3 back for one use (${uid === LEO ? "a listed uid" : "anyone else"})`, async () => {
+      const res = await send(uid, { text: "Most people pay twice for a hospital stay.", voice: "alice" });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("application/octet-stream");
+      expect(await res.text()).toBe("mp3");
+      expect(eleven.sent).toEqual([
+        {
+          url: "https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2?output_format=mp3_44100_128",
+          body: '{"text":"Most people pay twice for a hospital stay.","model_id":"eleven_turbo_v2_5","voice_settings":{"stability":0.5,"similarity_boost":0.75,"style":0,"speed":1}}',
+        },
+      ]);
+      expect(voiced(uid)).toBe(1);
+    });
+
+    it(`sends today's dub request and answers the audio with each line's span for one use (${uid === LEO ? "a listed uid" : "anyone else"})`, async () => {
+      // the with-timestamps reply's shape, from elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps
+      const text = "Satu\nDua";
+      eleven.reply = () =>
+        Response.json({
+          audio_base64: "QUJD",
+          alignment: {
+            characters: [...text],
+            character_start_times_seconds: [...text].map((_, i) => i * 0.1),
+            character_end_times_seconds: [...text].map((_, i) => i * 0.1 + 0.1),
+          },
+        });
+      const res = await send(uid, { mode: "dub", lines: ["Satu", "Dua"], voice: "alice", lang: "ms" });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ audio: "QUJD", spans: [{ s: 0, e: 0.4 }, { s: 0.5, e: 0.8 }] });
+      expect(eleven.sent).toEqual([
+        {
+          url: "https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2/with-timestamps?output_format=mp3_44100_128",
+          body: '{"text":"Satu\\nDua","model_id":"eleven_turbo_v2_5","voice_settings":{"stability":0.5,"similarity_boost":0.75,"style":0,"speed":1.15},"language_code":"ms"}',
+        },
+      ]);
+      expect(voiced(uid)).toBe(1);
+    });
+  }
+
+  it("answers anyone else who asks for word times with today's MP3", async () => {
+    const res = await send(UID, { text: "Most people pay twice for a hospital stay.", voice: "alice", timestamps: true });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("mp3");
+    expect(eleven.sent.map((c) => c.url)).toEqual(["https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2?output_format=mp3_44100_128"]);
+    expect(voiced(UID)).toBe(1);
   });
 });
