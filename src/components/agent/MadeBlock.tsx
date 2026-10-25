@@ -1,7 +1,7 @@
 // A finished make in the agent's thread (docs/north-star/items/agent-chat.md, "MADE block"): "MADE" and the time it
 // took, a thumbnail (a carousel's first slide, a play tile for a video, a picture tile, or the hook in a box), the
-// title, "Here it is." and the one button to open it. A make's warnings are the engine's (flagsFor, a person's brand
-// only), drawn once on its card just above.
+// title, "Here it is.", the button to open it and, for a made post, "Schedule it" (phase 7a). A make's warnings are
+// the engine's (flagsFor, a person's brand only), drawn once on its card just above.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { isAppPath } from "@/components/agent/dockActions";
 import type { AgentMsg } from "@/lib/agentThreads";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
+import { links } from "@/lib/links";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 
@@ -88,10 +89,20 @@ export default function MadeBlock({ userId, job }: { userId: string; job: Job })
             {title && <p className="line-clamp-2 break-words text-sm font-medium">{title}</p>}
             <p className="text-sm text-muted-foreground">Here it is.</p>
           </div>
-          {open && (
-            <Button asChild size="sm" className="h-11 sm:h-9">
-              <Link to={open}>{video ? "Open in the video editor" : "Open"}</Link>
-            </Button>
+          {(open || draftId) && (
+            <div className="flex flex-wrap gap-2">
+              {open && (
+                <Button asChild size="sm" className="h-11 sm:h-9">
+                  <Link to={open}>{video ? "Open in the video editor" : "Open"}</Link>
+                </Button>
+              )}
+              {/* the steps open on the post; only their last button posts (phase 7a) */}
+              {draftId && (
+                <Button asChild size="sm" variant="outline" className="h-11 sm:h-9">
+                  <Link to={links.drafts({ schedule: draftId, step: "where" })}>Schedule it</Link>
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
