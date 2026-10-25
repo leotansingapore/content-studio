@@ -19,6 +19,7 @@ import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
 import { badgeText, boardWaitingHere, countNeedsYou, onBoardWaiting } from "@/lib/needsYou";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
+import { useZernioOutbox } from "@/lib/useZernioOutbox";
 import { readTeamPosts, readTeamReviews, teamPostsHere } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
@@ -331,6 +332,8 @@ export default function StudioLayout() {
   if (here && visiblePages(here.pages, email).some((p) => pathname === p.to || pathname.startsWith(p.to + "/"))) lastInSection.current[here.id] = pathname + search;
 
   useScrollMemory();
+  // Moves and cancels of auto-posts, sent to Zernio for every sign-in that can auto-post (publish-calendar)
+  useZernioOutbox(uid);
 
   // Dark unless this device chose light; public pages outside this shell go back to light (src/lib/theme.ts).
   const [theme, setTheme] = useState<Theme>(readTheme);
