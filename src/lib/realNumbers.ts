@@ -58,18 +58,9 @@ const add = (a: Numbers, b: Numbers): Numbers => ({
   saves: a.saves + b.saves,
 });
 
-/** A hand-posted draft's live post, as matched or linked. */
-export interface LiveLink {
-  /** MetricsPost.id */
-  postId: string;
-  platform: string;
-  url: string | null;
-  by: "auto" | "jev" | "you";
-  numbers?: Numbers & { at: string };
-}
-// shortcut: the same shape as data-shapes' DraftEntry.live (phase7-build-brief.md decision 5), read through this
-// intersection until both are merged; then the integrator can drop LiveLink for NonNullable<DraftEntry["live"]>
-type Linked = DraftEntry & { live?: LiveLink };
+/** A hand-posted draft's live post, as matched or linked (DraftEntry.live). */
+export type LiveLink = NonNullable<DraftEntry["live"]>;
+type Linked = DraftEntry;
 
 /**
  * Each pulled post goes to the draft that sent its Zernio post (summed when it went to more than one
