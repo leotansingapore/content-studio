@@ -17,15 +17,22 @@ const as = vi.hoisted(() => {
     },
     clear: () => store.clear(),
   };
-  return { user: null as null | undefined | { id: string; email: string } };
+  return { user: null as null | undefined | { id: string; email: string }, job: null as unknown };
 });
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user, useLeoOnly: () => !!as.user }));
+// Leo's card reads the shared job; no test here runs it (effects don't run in a static render)
+vi.mock("@/lib/realNumbers", async (actual) => {
+  const real = await actual<typeof import("@/lib/realNumbers")>();
+  return { ...real, numbersJob: (uid: string) => (as.job as ReturnType<typeof real.numbersJob>) ?? real.numbersJob(uid), refreshIfStale: () => undefined, refreshNumbers: async () => undefined };
+});
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import RealNumbers from "./RealNumbers";
+import RealNumbers, { jobChip } from "./RealNumbers";
+import type { DraftEntry } from "@/lib/draftHistory";
+import type { MetricsPost, NumbersJob } from "@/lib/realNumbers";
 
 const html = (path = "/analytics") =>
   renderToStaticMarkup(
@@ -34,7 +41,9 @@ const html = (path = "/analytics") =>
 
 afterEach(() => {
   as.user = null;
+  as.job = null;
   localStorage.clear();
+  delete (globalThis as { window?: unknown }).window;
 });
 
 describe("Your real numbers for everyone else", () => {
@@ -43,5 +52,94 @@ describe("Your real numbers for everyone else", () => {
   });
   it("draws today's card with a ?link= in the URL", async () => {
     await expect(html("/analytics?link=p1")).toMatchFileSnapshot("./__pins__/real-numbers-everyone.html");
+  });
+});
+
+// MetricsPost is the shape social/metrics.ts gives the app (from https://zernio.com/openapi.json).
+const n0 = { impressions: 0, reach: 0, views: 0, likes: 0, comments: 0, shares: 0, saves: 0 };
+const post = (id: string, text: string, extra: Partial<MetricsPost> = {}): MetricsPost =>
+  ({ id, zernioPostId: null, platform: "linkedin", accountId: "65000000000000000000a001", publishedAt: "2026-10-08T01:00:00Z", text, url: null, numbers: { ...n0, views: 1500, likes: 42 }, ...extra });
+const job = (j: Partial<NumbersJob>): NumbersJob => ({ running: false, error: null, none: false, outside: [], followers: [], linked: [], at: null, ...j });
+const draft = (id: string, text: string, extra: Partial<DraftEntry> = {}): DraftEntry =>
+  ({ id, createdAt: "2026-10-01T00:00:00Z", hook: text.split(" ").slice(0, 3).join(" "), draft: text, pillar: "", pillarDetail: "", audience: "", format: "", platform: "linkedin", ctaType: "", status: "posted", postedAt: "2026-10-08T09:00:00+08:00", ...extra });
+const LIVE = "Three CPF moves to make before 55 that most people miss";
+
+function asLeo(drafts: DraftEntry[] = [], state?: object) {
+  as.user = { id: "u1", email: "leo@example.com" };
+  (globalThis as { window?: unknown }).window = { localStorage, dispatchEvent: () => true };
+  localStorage.setItem("content-studio-drafts-u1", JSON.stringify(drafts));
+  if (state) localStorage.setItem("content-studio-realnumbers-u1", JSON.stringify(state));
+}
+
+describe("Your real numbers on Leo's sign-in (learn-real-numbers)", () => {
+  it("draws a quiet card, not today's, while the sign-in is still being read", () => {
+    as.user = undefined;
+    const out = html();
+    expect(out).toContain("Your real numbers");
+    expect(out).not.toContain("Use my real numbers");
+  });
+
+  it("says when it is updating", () => {
+    asLeo();
+    as.job = job({ running: true });
+    const out = html();
+    expect(out).toContain("Updating your numbers...");
+    expect(out).not.toContain("Use my real numbers");
+  });
+
+  it("shows a failed pull with Try again and keeps the last list", () => {
+    asLeo();
+    as.job = job({ at: "2026-10-11T01:00:00Z", error: { message: "Couldn't read your numbers. Try again in a minute.", code: "", status: 0 }, outside: [post("p1", LIVE)] });
+    const out = html();
+    expect(out).toContain("Couldn&#x27;t update your numbers.");
+    expect(out).toContain(">Try again</button>");
+    expect(out).toContain("Posted outside the app (1)");
+  });
+
+  it("shows the server's 402 and 429 lines with no button, and keeps the last list", () => {
+    asLeo();
+    as.job = job({ at: "2026-10-11T01:00:00Z", error: { message: "Analytics isn't on this Zernio plan.", code: "no_analytics", status: 402 }, outside: [post("p1", LIVE)] });
+    let out = html();
+    expect(out).toContain("Analytics isn&#x27;t on this Zernio plan.");
+    expect(out).not.toMatch(/>(Update|Try again)<\/button>/);
+    expect(out).toContain("Posted outside the app (1)");
+    as.job = job({ at: "2026-10-11T01:00:00Z", error: { message: "You've used today's 300 account reads. They reset at midnight.", code: "daily_limit", status: 429 }, outside: [post("p1", LIVE)] });
+    out = html();
+    expect(out).toContain("You&#x27;ve used today&#x27;s 300 account reads. They reset at midnight.");
+    expect(out).not.toMatch(/>(Update|Try again)<\/button>/);
+    expect(out).toContain("Posted outside the app (1)");
+  });
+
+  it("keeps the 402 line after a reload while the job is paused", () => {
+    asLeo([], { on: true, at: "2026-10-11T01:00:00Z", notMine: [], pausedUntil: new Date(Date.now() + 3_600_000).toISOString() });
+    expect(html()).toContain("Analytics isn&#x27;t on this Zernio plan.");
+  });
+
+  it("asks to connect an account when the brand has none", () => {
+    asLeo();
+    as.job = job({ at: "2026-10-11T01:00:00Z", none: true });
+    const out = html();
+    expect(out).toContain("No accounts are connected for this brand yet.");
+    expect(out).toContain('href="/accounts"');
+  });
+
+  it("draws nothing when Social accounts is off for the sign-in", () => {
+    asLeo();
+    as.job = job({ error: { message: "Not enabled.", code: "", status: 404 } });
+    expect(html()).toBe("");
+  });
+
+
+
+});
+
+describe("jobChip", () => {
+  it("names the run, the plan, the cap and a failure, and nothing once a run lands", () => {
+    expect(jobChip(job({ running: true }), false)?.text).toBe("Updating your numbers...");
+    expect(jobChip(job({ error: { message: "Analytics isn't on this Zernio plan.", code: "no_analytics", status: 402 } }), false)).toEqual({ text: "Analytics isn't on this Zernio plan.", tone: "muted" });
+    expect(jobChip(job({}), true)?.text).toBe("Analytics isn't on this Zernio plan.");
+    expect(jobChip(job({ error: { message: "Daily limit.", code: "daily_limit", status: 429 } }), false)).toEqual({ text: "Daily limit.", tone: "muted" });
+    expect(jobChip(job({ error: { message: "x", code: "failed", status: 502 } }), false)).toEqual({ text: "Couldn't update your numbers.", tone: "error", retry: true });
+    expect(jobChip(job({ at: "2026-10-11T01:00:00Z" }), false)).toBeNull();
   });
 });

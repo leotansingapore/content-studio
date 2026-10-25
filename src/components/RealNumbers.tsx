@@ -10,19 +10,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { FollowerGrowth } from "@/components/AccountAudit";
-import { connectedFor } from "@/lib/accountAudit";
+import { connectedFor, timeAgo } from "@/lib/accountAudit";
 import { loadDrafts, setDraftNumbers } from "@/lib/draftHistory";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName } from "@/lib/socialConnect";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import {
+  loadRealNumbers,
   matchPulled,
+  numbersJob,
   numbersLine,
+  onNumbers,
   pullFollowers,
   pullNumbers,
   realNumbersOn,
+  refreshIfStale,
+  refreshNumbers,
   rememberRealNumbers,
   type FollowerSeries,
   type MetricsPost,
+  type NumbersJob,
 } from "@/lib/realNumbers";
 
 type State =
@@ -39,18 +46,35 @@ const postLine = (p: MetricsPost) => numbersLine(p.numbers, ["views", "reach", "
 
 const dayLabel = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-SG", { day: "numeric", month: "short", timeZone: "Asia/Singapore" }) : "");
 
-export default function RealNumbers({
-  userId,
-  audited,
-  onChange,
-  onFollowers,
-}: {
+interface Props {
   userId: string;
   /** The audit panels on the page: their accounts' follower counts go on the audit's own chart. */
   audited: { platform: string; handle: string }[];
   onChange: () => void;
   onFollowers: (f: FollowerSeries[]) => void;
-}) {
+}
+
+/** Leo's card runs on the shared numbers job; every other sign-in keeps today's card, word for word. */
+export default function RealNumbers(props: Props) {
+  const leo = useLeoUser();
+  if (leo === undefined) return <Skeleton />;
+  return leo ? <LeoNumbers {...props} /> : <TodayNumbers {...props} />;
+}
+
+function Skeleton() {
+  return (
+    <Card className="border-border/60 shadow-card">
+      <CardHeader className="pb-3">
+        <CardTitle className="font-serif text-lg">Your real numbers</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-9 w-40 animate-pulse rounded-md bg-muted" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function TodayNumbers({ userId, audited, onChange, onFollowers }: Props) {
   const [state, setState] = useState<State>({ at: "idle" });
 
   const pull = useCallback(async () => {
@@ -150,6 +174,133 @@ export default function RealNumbers({
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---- Leo's card (learn-real-numbers): the shared job and its states ----
+
+/** The status line over Leo's card: the job's run, refusal or failure. Null once a run has landed cleanly. */
+export function jobChip(job: NumbersJob, paused: boolean): { text: string; tone: "muted" | "error"; retry?: true } | null {
+  const e = job.error;
+  if (job.running) return { text: "Updating your numbers...", tone: "muted" };
+  // 402 no_analytics pauses the job for 24 hours, so the line stays after a reload
+  if (e?.status === 402 || (!e && paused)) return { text: e?.message || "Analytics isn't on this Zernio plan.", tone: "muted" };
+  if (e?.status === 429) return { text: e.message, tone: "muted" };
+  if (e) return { text: "Couldn't update your numbers.", tone: "error", retry: true };
+  return null;
+}
+
+const firstLine = (text: string) => text.split("\n").find((l) => l.trim()) || "A post";
+
+function useNumbersJob(userId: string): NumbersJob {
+  const [, tick] = useState(0);
+  useEffect(() => onNumbers(() => tick((n) => n + 1)), []);
+  return numbersJob(userId);
+}
+
+function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
+  const job = useNumbersJob(userId);
+
+  // the outside list and the follower counts live in memory only, so a cold load pulls once; after that the 6-hour rule
+  useEffect(() => {
+    if (numbersJob(userId).at) refreshIfStale(userId);
+    else void refreshNumbers(userId);
+  }, [userId]);
+
+  const landed = job.running ? null : job.at;
+  useEffect(() => {
+    if (!landed) return;
+    onFollowers(numbersJob(userId).followers);
+    onChange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landed, userId]);
+
+  const s = loadRealNumbers(userId);
+  const paused = !!s.pausedUntil && Date.parse(s.pausedUntil) > Date.now();
+  if (job.error?.status === 404 && /not enabled/i.test(job.error.message)) return null;
+
+  const drafts = loadDrafts(userId);
+  const outside = job.outside;
+  const withNumbers = drafts.filter((d) => d.zernio?.numbers || d.live?.numbers).length;
+  const chip = jobChip(job, paused);
+  const capped = !!chip && !chip.retry && !job.running;
+
+  return (
+    <Card className="border-border/60 shadow-card">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-1 font-serif text-lg">
+          Your real numbers
+          <InfoTip label="About real numbers">Posts you put out yourself are matched to their drafts too.</InfoTip>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div aria-live="polite" className="space-y-3">
+          {chip ? (
+            <p className={`flex items-center gap-1.5 text-sm ${chip.tone === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+              {job.running && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {chip.text}
+            </p>
+          ) : job.none ? (
+            <p className="text-sm text-muted-foreground">No accounts are connected for this brand yet.</p>
+          ) : job.at ? (
+            <p className="text-sm text-muted-foreground">
+              {withNumbers ? `${withNumbers === 1 ? "1 post shows" : `${withNumbers} posts show`} real numbers. ` : "None of your posts have numbers yet. "}
+              Updated {timeAgo(job.at)}.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Views, reach, likes, comments, shares and saves for the last 12 months, from your connected accounts.</p>
+          )}
+        </div>
+
+        {job.none && !job.running && !job.error ? (
+          <Button asChild variant="outline" size="sm" className={TOUCH}>
+            <Link to="/accounts">Connect an account</Link>
+          </Button>
+        ) : chip?.retry ? (
+          <Button type="button" size="sm" onClick={() => void refreshNumbers(userId)} className={TOUCH}>
+            Try again
+          </Button>
+        ) : capped ? null : (
+          <Button type="button" size="sm" variant="outline" onClick={() => void refreshNumbers(userId)} disabled={job.running} className={TOUCH}>
+            Update
+          </Button>
+        )}
+
+        <FollowerCharts followers={job.followers.filter((f) => f.series.length > 1 && !audited.some((a) => connectedFor([f], a.platform, a.handle)))} />
+
+        {outside.length > 0 && (
+          <details className="group" open={outside.length <= 5}>
+            <summary className={`inline-flex h-9 cursor-pointer list-none items-center text-sm font-medium text-foreground ${TOUCH} [&::-webkit-details-marker]:hidden`}>
+              Posted outside the app ({outside.length})
+            </summary>
+            <ul className="space-y-2">
+              {outside.map((p) => (
+                <li key={p.id} className="rounded-lg border border-border/60 px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <div className="min-w-0 flex-1 basis-48">
+                      <p className="truncate text-sm font-medium text-foreground">{firstLine(p.text)}</p>
+                      <p className="text-[11px] text-muted-foreground">{[platformName(p.platform), dayLabel(p.publishedAt)].filter(Boolean).join(", ")}</p>
+                      <p className="text-xs text-foreground">{postLine(p)}</p>
+                    </div>
+                    {p.url && (
+                      <a
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open the post on ${platformName(p.platform)}`}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
