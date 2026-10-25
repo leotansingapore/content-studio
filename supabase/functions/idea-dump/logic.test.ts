@@ -931,7 +931,7 @@ describe("campaign scripts (wave 1 live check: 3 of 4 scripts asked for came bac
     const { system, user } = buildCampaignPrompt(live);
     expect(system).toContain("- Count the words: a post outside the word range on its Words line cannot be used, and a hook ends on a whole sentence inside its limit.");
     expect(user).toContain("Post 1: text-post, attraction stage, call to action open-question, for linkedin\nAngle: Money sitting idle: Cash left in the bank feels safe but quietly loses ground to rising costs.\nWords: hook at most 15 words; body 80 to 220 words");
-    expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words; 4 to 8 points of at most 40 words each");
+    expect(user).toContain("Angle: Jargon-free plans: A one-page plan beats a 40-page report you never read again.\nWords: cover at most 6 words, any number in it 4 to 8; 4 to 8 points of at most 40 words each");
     expect(user).toContain("instead of daily.\nWords: script about 75 spoken words in all (60 to 90) across its HOOK, BODY and CTA lines, the labels not counted");
     expect(user).toContain("Start with what you need to stay liquid.\nWords: script about 42 spoken words in all (36 to 48), counted across every line");
     expect(SHORT_VIDEO_WORDS).toEqual({ low: 60, high: 90 });
@@ -2005,7 +2005,7 @@ describe("a hook's count matches its list (live-p5dog day 2 N6: '3 things we wis
 
   it("tells the writer a carousel's and a slideshow's count matches the hook's", () => {
     const { system } = buildCampaignPrompt(campaignRequest());
-    expect(system).toContain("each point becomes one slide. A hook that names a number of points has exactly that many. cta is one line.");
+    expect(system).toContain("each point becomes one slide. A hook that names a number of points has exactly that many, so the number is 4 to 8. cta is one line.");
     expect(system).toContain("one point per line, for the slides made from it later. A hook that names a number has exactly that many lines. cta is one line.");
   });
 
@@ -2015,6 +2015,27 @@ describe("a hook's count matches its list (live-p5dog day 2 N6: '3 things we wis
     expect(carousel("our top 7 sales habits")!.hook).toBe("our top 5 sales habits");
     expect(carousel("Five follow-up habits")!.hook).toBe("Five follow-up habits");
     expect(carousel("One tap logs sales activity")!.hook).toBe("One tap logs sales activity");
+  });
+
+  it("tells the writer a carousel's cover limit beats its hook formula, and that its number is 4 to 8 (live-p6replay D11)", () => {
+    const list = { name: "The list", template: "{N} things I wish I knew before {milestone}." };
+    const person = buildCampaignPrompt(campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(2, "carousel", { formula: list })] }));
+    expect(person.system).toContain('- carousel: hook is the cover, at most 6 words: a hook formula longer than that keeps its first words and drops the rest ("5 things I wish I knew").');
+    expect(person.user).toContain("Words: cover at most 6 words, any number in it 4 to 8; 4 to 8 points of at most 40 words each");
+    const business = campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(2, "carousel", { formula: list })] });
+    business.context = { ...business.context, speaker: "business", name: "ActivityTracker" };
+    expect(buildCampaignPrompt(business).system).toContain('drops the rest ("5 things we wish we knew")');
+  });
+
+  it("reads a carousel's points one a line when the writer left no blank line between them, and keeps every word (live-p6replay D11)", () => {
+    const lines = POST_5.body.split("\n\n").join("\n");
+    const got = validateCampaign({ posts: [{ ...POST_5, hook: "5 things we wish we knew", body: lines }] }, campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(2, "carousel")] }))!;
+    expect(got[0]).toMatchObject({ hook: "5 things we wish we knew", body: POST_5.body });
+    // points with blank lines between them stay as they are, a line break inside one included, and 3 are still too few
+    const dropped: [number, string][] = [];
+    const three = "Keep tasks beside clients.\nSee them in one app.\n\nLog activity in one tap.\n\nKeep goals in view.";
+    expect(validateCampaign({ posts: [{ ...POST_5, hook: "Three habits that stick", body: three }] }, campaignRequest({ ...CAMPAIGN_ASK, posts: [postAskOf(2, "carousel")] }), dropped)).toEqual([]);
+    expect(dropped).toEqual([[2, "3 points, needs 4 to 8"]]);
   });
 
   it("drops a cover whose number can't be set safely, with the rule for the log, so the job writes it again", () => {

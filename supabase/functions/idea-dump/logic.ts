@@ -999,7 +999,7 @@ const spoken = ({ low, high }: { low: number; high: number }) => `about ${Math.r
  */
 const POST_WORDS: Record<CampaignFormat, string> = {
   "text-post": "hook at most 15 words; body 80 to 220 words",
-  carousel: "cover at most 6 words; 4 to 8 points of at most 40 words each",
+  carousel: "cover at most 6 words, any number in it 4 to 8; 4 to 8 points of at most 40 words each",
   "short-video": `script ${spoken(SHORT_VIDEO_WORDS)} across its HOOK, BODY and CTA lines, the labels not counted; HOOK line at most ${SHORT_VIDEO_HOOK_WORDS} words`,
   slideshow: "hook at most 12 words; brief at most 40 words",
   wall: "hook at most 12 words; brief at most 40 words",
@@ -1100,7 +1100,8 @@ export function buildCampaignPrompt(req: CampaignRequest): { system: string; use
     "",
     "Formats:",
     "- text-post: hook is the first line, at most 15 words. body is the rest of the post, 80 to 220 words in short paragraphs. cta is one line.",
-    "- carousel: hook is the cover, at most 6 words. body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. A hook that names a number of points has exactly that many. cta is one line.",
+    // live-p6replay D11: "The list" ({N} things I wish I knew before {milestone}) came back at 7 words, then over 3 points
+    `- carousel: hook is the cover, at most 6 words: a hook formula longer than that keeps its first words and drops the rest ("${sp === "business" ? "5 things we wish we knew" : "5 things I wish I knew"}"). body is 4 to 8 points of at most 40 words each, with a blank line between points: each point becomes one slide. A hook that names a number of points has exactly that many, so the number is 4 to 8. cta is one line.`,
     `- short-video: script is what the person says to camera, 60 to 90 words (about 30 seconds), in three lines that start HOOK:, BODY: and CTA:. The HOOK line is at most ${SHORT_VIDEO_HOOK_WORDS} words. hook is the HOOK line's words and cta the CTA line's.`,
     `- ai-video: script is what an AI presenter says word for word, ${low} to ${high} words (15 seconds): one short spoken sentence per line, with no labels, stage directions, emojis or hashtags, and the last line is the call to action. hook is the first line and cta the last.${named ? " The script says the business's name once, plainly, after the first line and never in it." : ""} body is the post's caption: one to three sentences, at most ${AI_VIDEO_CAPTION_WORDS} words, on what the video is about, without the call to action.`,
     "- slideshow: hook is the cover, at most 12 words. brief is at most 40 words, one point per line, for the slides made from it later. A hook that names a number has exactly that many lines. cta is one line.",
@@ -1321,6 +1322,12 @@ function countedHook(hook: string, n: number): string | null {
   return now ? hook.slice(0, at[0].index) + now + hook.slice((at[0].index ?? 0) + was.length) : null;
 }
 
+/**
+ * A carousel body's points: split at its blank lines, or at each line break when the writer used no blank line at all,
+ * one point a line (live-p6replay D11: post 26 was dropped three times for 3 points). Every word is kept either way.
+ */
+const pointsOf = (body: string) => (/\n\s*\n/.test(body) ? body.split(/\n\s*\n/) : body.split("\n")).filter((p) => p.trim());
+
 /** The first empty field, as the rule a post broke. */
 const lacks = (fields: Record<string, string>) => {
   const empty = Object.keys(fields).find((k) => !fields[k]);
@@ -1342,7 +1349,7 @@ function writtenFor(ask: PostAsk, item: Record<string, unknown>): WrittenPost | 
       return lacks({ hook, cta }) ?? (words >= 80 ? { ...base, hook, body, cta } : `body ${words} words, needs 80 to 220`);
     }
     case "carousel": {
-      const points = withoutAsk(withoutCta(cleanPost(item.body), cta), cta, (b) => b.split(/\n\s*\n/).length >= 4).split(/\n\s*\n/).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
+      const points = pointsOf(withoutAsk(withoutCta(cleanPost(item.body), cta), cta, (b) => pointsOf(b).length >= 4)).map((p) => cutWords(p.trim(), 40)).filter(Boolean).slice(0, 8);
       const why = lacks({ hook, cta }) ?? (points.length >= 4 ? null : `${points.length} points, needs 4 to 8`);
       if (why) return why;
       const cover = countedHook(hook, points.length);
