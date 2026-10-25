@@ -237,4 +237,13 @@ describe("versions of a same edit (remix-format-clone, Leo only)", () => {
     expect(html(planned, true, "/edit?p=v1&versions=1")).not.toContain("Versions of this edit");
   });
 
+  it("puts a filmed take's script and its upload on /edit?plan=&version= for Leo, and the start screen as it was for anyone else", () => {
+    store.set("content-studio-edit-plans-u1", JSON.stringify([{ plan, versions: [{ ...base, host: { kind: "film" } }] }]));
+    const start = (leo: boolean, at: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(Start, { userId: "u1", leo, busy: "", projects: [], onUpload: () => {}, onOpen: () => {}, onRemove: () => {} })));
+    const take = start(true, "/edit?plan=ep-1&version=ev-1");
+    expect(take).toContain("Film it, then upload the take here.");
+    expect(take).toMatch(/<ol[^>]*><li>Most<\/li><li>people<\/li><li>plan.<\/li><\/ol>/);
+    expect(start(true, "/edit?plan=ep-1&version=ev-9")).toContain("That edit isn&#x27;t on this device yet.");
+    expect(start(false, "/edit?plan=ep-1&version=ev-1")).toBe(start(false, "/edit"));
+  });
 });

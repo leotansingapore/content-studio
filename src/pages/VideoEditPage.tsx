@@ -232,7 +232,7 @@ import { requestMake, tooLongLine, type Flags } from "@/lib/remix";
 import { brandPack, loadRemixPrefs, offerNames } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
-import { NO_STOCK, PRESENTER_GONE, PRESENTER_LINE, VOICE_FAILED, WRITE_FAILED, cutawayScenes, draftOf, editBrief, spoken, versionOf } from "@/lib/sameEditJob";
+import { FILM_LINE, NO_STOCK, PRESENTER_GONE, PRESENTER_LINE, VOICE_FAILED, WRITE_FAILED, cutawayScenes, draftOf, editBrief, spoken, versionOf } from "@/lib/sameEditJob";
 import { makeBody } from "@/lib/slideshowJob";
 import { aiMark, speakerFace, speakerOf, speakers, useSpeakers } from "@/lib/talkingHead";
 import { LANG_NAMES } from "@/lib/translate";
@@ -496,6 +496,11 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
   };
   const left = useUsesLeft(!!busy);
   const captions = left("video-transcribe");
+  // Leo, same edit: ?plan=&version= is the upload screen for a version's filmed take, captioned as any upload
+  const [sp] = useSearchParams();
+  const takeAt = leo && userId && /^ep-/.test(sp.get("plan") ?? "") && /^ev-/.test(sp.get("version") ?? "") ? { id: sp.get("plan")!, version: sp.get("version")! } : null;
+  const take = takeAt ? loadPlans(userId!).find((e) => e.plan.id === takeAt.id)?.versions.find((v) => v.id === takeAt.version) ?? null : null;
+  const up = (f: File) => onUpload(f, take ? { plan: takeAt! } : undefined);
   return (
     <>
       <header className="space-y-1">
@@ -506,11 +511,17 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
           ))}
         </ul>
       </header>
+      {takeAt && (
+        <section className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-3" aria-label="Your take">
+          <h2 className="text-sm font-semibold">{take ? FILM_LINE : "That edit isn't on this device yet. It shows here once it syncs."}</h2>
+          {take && <ol className="list-decimal space-y-1 pl-5 text-sm">{take.lines.map((l, i) => <li key={i}>{l}</li>)}</ol>}
+        </section>
+      )}
       {/* the own and clips panels have their own drop zone and show the busy line themselves */}
       {!ownOpen && !clipsOpen && <label
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
-        onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) onUpload(f); }}
+        onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) up(f); }}
         className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
           over ? "border-primary bg-primary/5" : "border-border/70 hover:border-primary/50"
         } ${busy ? "pointer-events-none" : ""}`}
@@ -531,7 +542,7 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
           </>
         )}
         <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) up(f); }} />
       </label>}
       {ownOpen && <OwnMediaPanel userId={userId} busy={busy} onUpload={onUpload} onJoin={() => openPanel("join")} onClose={() => closePanel("own")} />}
       {clipsOpen && <ClipsPanel userId={userId} busy={busy} onStart={(f, ask) => onUpload(f, undefined, ask)} onClose={() => closePanel("clips")} />}
@@ -1431,6 +1442,10 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
     setSettings(next);
   };
   const patch = (p: Partial<EditSettings>) => change({ ...settings, ...p });
+  // the Versions card lays a plan over this take as one Undo step; a stable callback keeps that card from redrawing while playing
+  const changeRef = useRef(change);
+  changeRef.current = change;
+  const layEdit = useCallback((next: EditSettings) => changeRef.current(next), []);
   const undo = () => {
     const prev = history[history.length - 1];
     if (!prev) return;
@@ -2105,7 +2120,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
           onPut={(p) => { live.current = p; onSave(p); segIdx.current = 0; endAt.current = null; setWords(p.words); setSettings(p.settings); setHistory([]); setThumb(p.thumb); }} />
       )}
       {/* Leo: a video made from an edit plan (same edit) makes versions of it, one change each (?versions=1) */}
-      {leo && project.plan && <VersionsCard userId={userId} project={project} settings={settings} onOpen={onOpen} />}
+      {leo && project.plan && <VersionsCard userId={userId} project={project} settings={settings} onOpen={onOpen} onLay={layEdit} />}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
@@ -3834,7 +3849,14 @@ function usePlanEntries(userId: string): PlanEntry[] {
 }
 
 /** The Versions card on a project made from an edit plan (Leo only); ?versions=1 opens it. Memo: the editor redraws while playing. */
-const VersionsCard = memo(function VersionsCard({ userId, project, settings, onOpen }: { userId: string; project: VideoProject; settings: EditSettings; onOpen: (id: string) => void }) {
+const VersionsCard = memo(function VersionsCard({ userId, project, settings, onOpen, onLay }: {
+  userId: string;
+  project: VideoProject;
+  settings: EditSettings;
+  onOpen: (id: string) => void;
+  /** Lays the plan over this take, one Undo step. */
+  onLay: (next: EditSettings) => void;
+}) {
   const [params] = useSearchParams();
   const update = useUrlUpdate();
   const vs = useVersionsState();
@@ -3849,6 +3871,8 @@ const VersionsCard = memo(function VersionsCard({ userId, project, settings, onO
   const [asking, setAsking] = useState(false);
   const [here, setHere] = useState<boolean | null>(null);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [laying, setLaying] = useState(false);
+  const { toast } = useToast();
   const job = vs.job?.planId === planId ? vs.job : null;
   const working = vs.job?.state === "working";
   const left = useUsesLeft(working || !!vs.writing || !!vs.translating);
@@ -3926,8 +3950,30 @@ const VersionsCard = memo(function VersionsCard({ userId, project, settings, onO
     </div>
   );
   const btn = "h-11 sm:h-9";
+  // a filmed take, captioned: the edit goes over it on one press (the cutaways found again by the script's searches)
+  const canLay = kind === "film" && project.words.length > 0 && ![...(settings.broll ?? []), ...(settings.overlays ?? [])].some((x) => x.id.startsWith(`b-${planId}-`) || x.id.startsWith(`o-${planId}-`)) && !settings.motion?.lines?.length;
+  // shortcut: the lay runs in this card, so leaving the page mid-lay drops it (it is free and takes a few seconds)
+  const lay = async () => {
+    setLaying(true);
+    try {
+      const { laid, missed } = await laidPlan(userId, entry.plan, base, project.words, project.duration);
+      onLay(onOutputClock(layOver(settings, laid, planId), project.words, project.duration, planId));
+      toast({ title: "The edit is on your take. Undo takes it off.", ...(missed ? { description: `${missed} ${missed === 1 ? "cutaway" : "cutaways"} had no stock clip. Add ${missed === 1 ? "it" : "them"} in B-roll.` } : {}) });
+    } catch (e) {
+      toast({ title: "Couldn't lay the edit", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setLaying(false);
+    }
+  };
+
   return (
     <section className="space-y-3 rounded-xl border border-border/70 p-3" aria-label="Versions">
+      {canLay && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button className="h-11 sm:h-10" disabled={laying} onClick={() => void lay()}>{laying ? "Laying the edit..." : "Lay the edit over this take"}</Button>
+          <PriceChip feature="stock-search" left={left("stock-search")} />
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-sm font-semibold">Versions of this edit</h2>
         {made.length > 1 && <span className="text-xs text-muted-foreground">{made.length - 1} made</span>}
