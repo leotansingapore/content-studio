@@ -1513,3 +1513,86 @@ describe("a post, carousel or script from a typed topic", () => {
     expect(ask).toHaveBeenCalledWith({ post: textFields(twice).join("\n"), source: "" });
   });
 });
+
+// phase 7's pin, taken before make's `formula` and `as: "edit"`: every format, from a source and from a topic, for a
+// person and a business, one hash per request so a change names it (remix-modes, 25 Oct)
+describe("every format writes today's prompt and schema with no formula (pinned 25 Oct, before phase 7)", () => {
+  it("builds the same prompt and schema for each format, source and topic, person and business", () => {
+    const opts: Record<string, Record<string, unknown>> = {
+      post: {}, carousel: {}, script: {}, explainer: {}, slideshow: {}, wall: {}, speaking: {}, "speaking 15s": { seconds: 15 },
+      notes: {}, hooks: { formulas: FORMULAS }, "hooks spoken": { formulas: FORMULAS, maxWords: 8 }, image: {}, "image quote": { layout: "quote" },
+      "meme pov": { layout: "pov" }, "wall scene": { scene: "kitchen", maxWords: 30 },
+    };
+    const hashes: Record<string, string> = {};
+    for (const [name, over] of Object.entries(opts)) {
+      const as = name.split(" ")[0];
+      for (const [who, brand] of [["person", body().brand], ["business", BIZ]] as const) {
+        const reqs: Record<string, MakeRequest> = { source: shape(as, { ...over, brand }) };
+        if (TOPIC_AS.includes(as as never)) reqs.topic = topic(as, { ...over, brand });
+        for (const [from, m] of Object.entries(reqs)) {
+          hashes[`${name}, ${from}, ${who}`] = createHash("sha256").update(JSON.stringify([buildMakePrompt(m), responseFormat(m)])).digest("hex").slice(0, 16);
+        }
+      }
+    }
+    expect(hashes).toEqual({
+      "carousel, source, business": "e10b37ed9bcef5a5",
+      "carousel, source, person": "efd931c47c092437",
+      "carousel, topic, business": "0363dcc21efd8067",
+      "carousel, topic, person": "d57021f08a084d63",
+      "explainer, source, business": "b75735fddad34595",
+      "explainer, source, person": "1335e8687f833b01",
+      "hooks spoken, source, business": "2c62eefc807f3db5",
+      "hooks spoken, source, person": "e7ffa724a759fa1e",
+      "hooks spoken, topic, business": "9018269ff56842ed",
+      "hooks spoken, topic, person": "020abe35ec7e9ca5",
+      "hooks, source, business": "2fa7fe291bc0fae3",
+      "hooks, source, person": "587147eac375bb61",
+      "hooks, topic, business": "3a14f522428f94c0",
+      "hooks, topic, person": "42d58da4d4dc326d",
+      "image quote, source, business": "52a4d2ae40ed0b85",
+      "image quote, source, person": "b5b8c6fde9f6b525",
+      "image quote, topic, business": "e9c895b3ca07c6d7",
+      "image quote, topic, person": "0682e3e11050ecfb",
+      "image, source, business": "364832f7d70f7a7f",
+      "image, source, person": "e0c73f5ea01d1748",
+      "image, topic, business": "8d3f5cc6766ddcf0",
+      "image, topic, person": "8be35f43a6e0a823",
+      "meme pov, source, business": "668321780118b6f8",
+      "meme pov, source, person": "cc359763521335a7",
+      "meme pov, topic, business": "07ad24af3bb90b5e",
+      "meme pov, topic, person": "61bd38137d4df9bc",
+      "notes, source, business": "6ab22423fc143fbe",
+      "notes, source, person": "7870de8396da6fa8",
+      "notes, topic, business": "65f028932d2b48b8",
+      "notes, topic, person": "35c3a5f0e00a3dde",
+      "post, source, business": "b52cd8bbac05e5ef",
+      "post, source, person": "a79b8a9ecfcf9af7",
+      "post, topic, business": "d26b48f557e4e585",
+      "post, topic, person": "98124d13fa5d5e2a",
+      "script, source, business": "308f0f9b7378b7f2",
+      "script, source, person": "e05a8a29d4b5e6a3",
+      "script, topic, business": "8e324de3aaccb2f9",
+      "script, topic, person": "c5c029312f2663e0",
+      "slideshow, source, business": "00a7da17092940fd",
+      "slideshow, source, person": "e41d2da8b6cb8784",
+      "slideshow, topic, business": "c14d567b70dcb3c1",
+      "slideshow, topic, person": "e054d4e1d2aac38d",
+      "speaking 15s, source, business": "26235c738b6a3c2f",
+      "speaking 15s, source, person": "a800cd2ad9fe86db",
+      "speaking 15s, topic, business": "207bc442db17ec77",
+      "speaking 15s, topic, person": "4be2cec2bf38c2da",
+      "speaking, source, business": "4ee3774362710bdf",
+      "speaking, source, person": "d35e567932f52c95",
+      "speaking, topic, business": "a5b4b70e5864e774",
+      "speaking, topic, person": "3fee94d1fab39bf5",
+      "wall scene, source, business": "155991328d8ca17f",
+      "wall scene, source, person": "1d046674e0134935",
+      "wall scene, topic, business": "211aa6dd1486a271",
+      "wall scene, topic, person": "67de70cbbadeb032",
+      "wall, source, business": "71b19b38afd597c0",
+      "wall, source, person": "60748f0015f72600",
+      "wall, topic, business": "1318998ee3d75771",
+      "wall, topic, person": "e760538674077c91",
+    });
+  });
+});
