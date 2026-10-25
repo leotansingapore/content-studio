@@ -48,12 +48,11 @@ const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
 const SidebarThreads = lazy(() => import("@/components/agent/SidebarThreads"));
 const AgentMeter = lazy(() => import("@/components/agent/AgentMeter"));
 
-// The Remix sheet and its pill (north star, Leo only) read the data drops, so they load in their own chunk,
-// fetched as soon as the session says Leo so the sheet still opens within 400ms.
-const loadRemixSheet = () => import("@/components/remix/RemixSheet");
-const loadRemixPill = () => import("@/components/remix/RemixPill");
-const RemixSheet = lazy(loadRemixSheet);
-const RemixPill = lazy(loadRemixPill);
+// The Remix sheet and its pill (north star, Leo only) read the data drops, so they load in their own chunk. The drops
+// are dozens of files: fetched 2.5 s after the session says Leo, so the page's own chunks go first (Home's agent block
+// waited ~5 s behind them on 26 Oct), or at once when the address opens a remix.
+const RemixSheet = lazy(() => import("@/components/remix/RemixSheet"));
+const RemixPill = lazy(() => import("@/components/remix/RemixPill"));
 // Activity's recorder (Leo only) listens to every job store, so it loads in its own chunk too.
 const ActivityRecorder = lazy(() => import("@/components/ActivityRecorder"));
 
@@ -366,10 +365,11 @@ export default function StudioLayout() {
       { replace: true },
     );
   }, [leo, remixKey, setSearchParams]);
+  const [remixLate, setRemixLate] = useState(false);
   useEffect(() => {
     if (!leo) return;
-    void loadRemixSheet();
-    void loadRemixPill();
+    const t = setTimeout(() => setRemixLate(true), 2500);
+    return () => clearTimeout(t);
   }, [leo]);
 
   // Leo's plans (north star phase 5): his autopilot posts waiting for an OK join the Pipeline count, and autopilot and
@@ -746,7 +746,7 @@ export default function StudioLayout() {
       </div>
       <JumpTo open={jumpOpen} onClose={() => setJumpOpen(false)} email={email} />
       <ExportPill />
-      {leo && (
+      {leo && (remixLate || remixKey) && (
         <ErrorBoundary resetKey={pathname}>
           <Suspense fallback={null}>
             <RemixSheet user={leo} />
