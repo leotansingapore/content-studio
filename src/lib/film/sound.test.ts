@@ -45,7 +45,7 @@ describe("the film's sound", () => {
     expect(hits.length).toBeGreaterThan(20);
     for (const h of hits) expect(times.has(h.at)).toBe(true);
     // one chime alone, two beats in, with the music off: the first sound is at 1.0 s
-    const lone: Film = { ...film, drop: undefined, scenes: [{ id: "quiet", kind: "type", beats: 2, words: [] }, { id: "end", kind: "logo", beats: 4 }] };
+    const lone: Film = { ...film, drop: undefined, scenes: [{ id: "quiet", kind: "type", beats: 2, words: [] }, { id: "end", kind: "logo", beats: 4, line: "" }] };
     expect(filmHits(lone)).toEqual([{ name: "chime", at: 1 }]);
     const { out2 } = mixdown(soundProbe(lone), { musicOff: true });
     let peak = 0;

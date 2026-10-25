@@ -368,7 +368,7 @@ function drawCards(x: Ctx, scene: Extract<FilmScene, { kind: "cards" }>, local: 
 
 const numberText = (s: Extract<FilmScene, { kind: "number" }>, share: number) => {
   const v = Number(s.value) || 0, decimals = Number.isInteger(v) ? 0 : 1;
-  return `${s.prefix ?? ""}${(v * share).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${s.suffix ?? ""}`;
+  return `${(v * share).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${s.suffix ?? ""}`;
 };
 
 function drawNumber(x: Ctx, scene: Extract<FilmScene, { kind: "number" }>, local: number) {
@@ -447,7 +447,7 @@ function drawLogo(x: Ctx, scene: Extract<FilmScene, { kind: "logo" }>, local: nu
 
 function drawCaption(x: Ctx, text: string) {
   const { g } = x;
-  const box = layoutScene({ id: "", kind: "logo", beats: 1 }, x.w, x.h).caption;
+  const box = layoutScene({ id: "", kind: "logo", beats: 1, line: "" }, x.w, x.h).caption;
   g.save();
   g.font = font(700, box.h * 0.42, '"DM Sans"');
   const lines = wrap(g, text, box.w * 0.9).slice(0, 2);

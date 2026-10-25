@@ -1,4 +1,5 @@
-// The launch film's scene spec (formats-launch-film): its types, `parseFilm`, and the beat grid with its rhythm check.
+// The launch film's scene spec (formats-launch-film): its types, `parseFilm`, the beat grid with every event's time, and
+// the rhythm check. src/lib/film/timeline.ts re-exports all of it, so the server checks the events the studio draws.
 // The model writes this JSON, never code; our own renderer (src/lib/film) draws it, so one parser decides what can be drawn:
 // known kinds, unique ids, word caps, the brand's own Media keys, kit colour roles, and no URL anywhere but the end card's cta.
 // No Deno or npm imports: the browser imports this same file (as mediaLibrary.ts imports media-sort/logic.ts), so the
@@ -380,84 +381,126 @@ export function parseFilm(raw: unknown, ctx: FilmCtx = {}): FilmParse {
   };
 }
 
-// ---------- the beat grid: the server's check after a write, and the studio's timeline (src/lib/film/timeline.ts) ----------
+// ---------- the beat grid: what the studio draws and plays (src/lib/film), and the server's check after a write ----------
 
-export type EventKind = "cut" | "word" | "screen" | "camera" | "tap" | "highlight" | "card" | "count" | "shot" | "logo";
-export interface FilmEvent {
-  /** Whole beats from the start of the film. */
-  beat: number;
-  scene: string;
-  kind: EventKind;
-}
+export const BAR = 4;
+/** The tempo comes from the energy, in code, not from the writer. */
+export const bpmOf = (film: Pick<Film, "energy" | "bpm">) => BPM[film.energy] ?? film.bpm ?? BPM.fast;
+export const beatSeconds = (film: Pick<Film, "energy" | "bpm">) => 60 / bpmOf(film);
+/** Whole beats, at least one, whatever the spec holds. */
+export const beatsOf = (s: { beats: number }) => Math.max(1, Math.round(Number(s.beats)) || 1);
 
 /** Each scene's first beat. */
 export function sceneStarts(film: Pick<Film, "scenes">): number[] {
   let at = 0;
-  return film.scenes.map((s) => ((at += s.beats), at - s.beats));
+  return film.scenes.map((s) => {
+    const start = at;
+    at += beatsOf(s);
+    return start;
+  });
 }
 
-/** When a card lands: spread evenly over its scene, the first on the scene's first beat. */
-export const cardBeat = (i: number, n: number, beats: number) => Math.floor((i * beats) / n);
-/** When a number's count-up lands: up to 4 beats after the scene starts. */
-export const countBeat = (beats: number) => Math.min(4, beats - 1);
+export type EventKind = "cut" | "word" | "screen" | "camera" | "camera-stop" | "tap" | "highlight" | "card" | "count" | "count-end" | "shot" | "logo" | "line" | "cta" | "drop";
+export interface FilmEvent {
+  kind: EventKind;
+  scene: string;
+  /** The element it brings in, as in draw's ids: word2, card1, shot3. */
+  part?: string;
+  /** Beats from the scene's start. */
+  at: number;
+  /** Whole beats from the film's start. */
+  beat: number;
+  /** Seconds from the film's start. */
+  t: number;
+}
 
-/**
- * Every event the eye or ear registers as new, on whole beats, in time order: each scene's cut, a type line a beat
- * (the key line slams on its own beat), the screen and each camera move, tap and highlight on its beat, cards spread
- * evenly, a count-up's landing, a montage shot a beat, the logo's landing.
- */
-export function filmEvents(film: Pick<Film, "scenes">): FilmEvent[] {
+/** Beats a camera move takes. */
+export const moveBeats = (energy: Energy) => (energy === "fast" ? 1 : 2);
+/** Beats a number counts up for. */
+export const countBeats = (s: { beats: number }) => Math.min(4, Math.max(1, beatsOf(s) - 2));
+
+/** When each element of a scene lands, in beats from its start. The renderer, the sound and rhythmIssues all read these. */
+export function sceneBeats(scene: FilmScene, energy: Energy): Pick<FilmEvent, "kind" | "part" | "at">[] {
+  const n = beatsOf(scene);
+  const last = n - 1;
+  const out: Pick<FilmEvent, "kind" | "part" | "at">[] = [{ kind: "cut", at: 0 }];
+  const spread = (count: number, gap: number) => Array.from({ length: count }, (_, i) => Math.min(i * gap, last));
+  if (scene.kind === "type") {
+    const gap = Math.max(1, Math.min(energy === "fast" ? 1 : 2, Math.floor(n / Math.max(1, scene.words.length))));
+    spread(scene.words.length, gap).forEach((at, i) => out.push({ kind: "word", part: `word${i + 1}`, at }));
+  } else if (scene.kind === "screen") {
+    out.push({ kind: "screen", part: "screen", at: 0 });
+    for (const c of scene.camera ?? []) {
+      const at = Math.min(Math.max(0, c.beat), last);
+      if (at === 0) continue; // a camera at beat 0 is the opening framing, not a move
+      out.push({ kind: "camera", at }, { kind: "camera-stop", at: Math.min(at + moveBeats(energy), n) });
+    }
+    for (const tp of scene.tap ?? []) out.push({ kind: "tap", at: Math.min(Math.max(0, tp.beat), last) });
+    if (scene.highlight) out.push({ kind: "highlight", part: "highlight", at: Math.min(Math.max(0, scene.highlight.beat), last) });
+  } else if (scene.kind === "cards") {
+    const gap = Math.max(1, Math.min(4, Math.floor(n / (scene.cards.length + 1))));
+    spread(scene.cards.length, gap).forEach((at, i) => out.push({ kind: "card", part: `card${i + 1}`, at }));
+  } else if (scene.kind === "number") {
+    out.push({ kind: "count", part: "value", at: 0 }, { kind: "count-end", part: "value", at: countBeats(scene) });
+  } else if (scene.kind === "montage") {
+    spread(scene.shots.length, 1).forEach((at, i) => out.push({ kind: "shot", part: `shot${i + 1}`, at }));
+  } else if (scene.kind === "logo") {
+    out.push({ kind: "logo", part: "logo", at: 0 });
+    if (scene.line) out.push({ kind: "line", part: "line", at: Math.min(1, last) });
+    if (scene.cta) out.push({ kind: "cta", part: "cta", at: Math.min(2, last) });
+  }
+  return out;
+}
+
+/** Every event in the film, in time order: what the studio draws and plays, so the server checks the film it shows. */
+export function filmEvents(film: Pick<Film, "scenes" | "energy" | "bpm" | "drop">): FilmEvent[] {
+  const b = beatSeconds(film);
   const starts = sceneStarts(film);
   const out: FilmEvent[] = [];
   film.scenes.forEach((s, i) => {
-    const at = (beat: number, kind: EventKind) => out.push({ beat: starts[i] + beat, scene: s.id, kind });
-    at(0, "cut");
-    if (s.kind === "type") s.words.slice(0, s.beats).forEach((_, j) => at(j, "word"));
-    if (s.kind === "screen") {
-      at(0, "screen");
-      s.camera.forEach((m) => at(m.beat, "camera"));
-      s.tap.forEach((m) => at(m.beat, "tap"));
-      if (s.highlight) at(s.highlight.beat, "highlight");
-    }
-    if (s.kind === "cards") s.cards.forEach((_, j) => at(cardBeat(j, s.cards.length, s.beats), "card"));
-    if (s.kind === "number") at(countBeat(s.beats), "count");
-    if (s.kind === "montage") s.shots.slice(0, s.beats).forEach((_, j) => at(j, "shot"));
-    if (s.kind === "logo") at(0, "logo");
+    for (const e of sceneBeats(s, film.energy)) out.push({ ...e, scene: s.id, beat: starts[i] + e.at, t: (starts[i] + e.at) * b });
+    if (film.drop && film.drop === s.id) out.push({ kind: "drop", scene: s.id, at: 0, beat: starts[i], t: starts[i] * b });
   });
-  return out.sort((a, b) => a.beat - b.beat);
+  return out.sort((x, y) => x.t - y.t);
 }
 
-const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+const clock = (t: number) => {
+  const s = Math.max(0, Math.floor(t + 1e-6));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 
 /**
  * What breaks huashu's rhythm rules, in words a person reads (and the writer gets on its retry); [] for a good film.
- * Something new within 3 s; no stretch over 2 bars without an event (the logo's
- * closing hold aside); on Fast cuts, a bar with an event on every beat between 30 and 60 percent of the length; the
- * drop on a bar line; the film ending on the logo, held 1.5 s or more.
+ * Read off filmEvents: something on the first frame besides the cut; something new within 3 s; no stretch over 2 bars
+ * without an event (the logo's closing hold aside); on Fast cuts, a bar with an event on every beat between 30 and 60
+ * percent of the length; the drop on a bar line; the film ending on the logo, held 1.5 s or more.
  */
 export function rhythmIssues(film: Pick<Film, "scenes" | "bpm" | "energy" | "drop">): string[] {
   const issues: string[] = [];
-  const sec = 60 / film.bpm;
-  const total = film.scenes.reduce((n, s) => n + s.beats, 0);
-  // frame 0 always holds the first scene's landing (its cut is an event on beat 0), so "something on screen" needs no check
-  const beats = [...new Set(filmEvents(film).map((e) => e.beat))];
+  const sec = beatSeconds(film);
+  const total = film.scenes.reduce((n, s) => n + beatsOf(s), 0);
+  const events = filmEvents(film);
+  // what a viewer can see or hear as new; a cut and a word on one beat are one moment
+  const beats = [...new Set(events.map((e) => e.beat))];
+  if (!events.some((e) => e.beat === 0 && e.kind !== "cut" && e.kind !== "drop")) issues.push("Nothing shows on the first frame.");
   if (!beats.some((b) => b > 0 && b * sec <= 3)) issues.push("Nothing new happens in the first 3 seconds.");
   const last = film.scenes[film.scenes.length - 1];
   const points = last?.kind === "logo" ? beats : [...beats, total];
   for (let i = 1; i < points.length; i++) {
-    if (points[i] - points[i - 1] > 8) issues.push(`Nothing happens from ${clock(points[i - 1] * sec)} to ${clock(points[i] * sec)}.`);
+    if (points[i] - points[i - 1] > 2 * BAR) issues.push(`Nothing happens from ${clock(points[i - 1] * sec)} to ${clock(points[i] * sec)}.`);
   }
   if (film.energy === "fast") {
     const from = Math.ceil(total * 0.3);
-    const to = Math.floor(total * 0.6) - 4;
+    const to = Math.floor(total * 0.6) - BAR;
     let burst = false;
-    for (let s = from; s <= to && !burst; s++) burst = beats.filter((b) => b >= s && b < s + 4).length >= 4;
+    for (let s = from; s <= to && !burst; s++) burst = beats.filter((b) => b >= s && b < s + BAR).length >= BAR;
     if (!burst) issues.push("There's no burst of fast cuts near the middle.");
   }
   const at = sceneStarts(film)[film.scenes.findIndex((s) => s.id === film.drop)];
-  if (at !== undefined && at % 4 !== 0) issues.push("The drop doesn't land on a bar line.");
+  if (film.drop && at === undefined) issues.push("The drop names a scene the film doesn't have.");
+  else if (at !== undefined && at % BAR !== 0) issues.push("The drop doesn't land on a bar line.");
   if (last?.kind !== "logo") issues.push("The film doesn't end on the logo.");
-  else if (last.beats * sec < 1.5) issues.push("The logo shows for under 1.5 seconds.");
+  else if (beatsOf(last) * sec < 1.5) issues.push("The logo shows for under 1.5 seconds.");
   return issues;
 }
 

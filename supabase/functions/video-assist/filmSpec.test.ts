@@ -179,13 +179,15 @@ describe("the beat grid", () => {
     }
   });
 
-  it("puts each kind's events on their beats", () => {
+  it("puts each kind's events on the beats the studio draws them", () => {
     const at = (scene: string) => filmEvents(GOOD).filter((e) => e.scene === scene).map((e) => `${e.beat} ${e.kind}`);
     expect(at("hook")).toEqual(["0 cut", "0 word", "1 word", "2 word"]);
-    expect(at("app")).toEqual(["8 cut", "8 screen", "8 camera", "11 tap", "12 camera", "13 highlight", "18 camera"]);
-    expect(at("features")).toEqual(["32 cut", "32 card", "36 card", "40 card"]);
-    expect(at("proof")).toEqual(["44 cut", "48 count"]);
-    expect(at("end")).toEqual(["50 cut", "50 logo"]);
+    // beat 0's camera is the opening framing; a move stops a beat later on Fast cuts
+    expect(at("app")).toEqual(["8 cut", "8 screen", "11 tap", "12 camera", "13 camera-stop", "13 highlight", "18 camera", "19 camera-stop"]);
+    expect(at("burst")).toEqual(["24 cut", "24 shot", "24 drop", "25 shot", "26 shot", "27 shot", "28 shot", "29 shot"]);
+    expect(at("features")).toEqual(["32 cut", "32 card", "35 card", "38 card"]);
+    expect(at("proof")).toEqual(["44 cut", "44 count", "48 count-end"]);
+    expect(at("end")).toEqual(["50 cut", "50 logo", "51 line", "52 cta"]);
   });
 
   it("finds nothing wrong with a good film", () => {

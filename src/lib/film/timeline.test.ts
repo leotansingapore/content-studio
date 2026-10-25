@@ -67,7 +67,7 @@ describe("rhythmIssues", () => {
 
   it("finds a missing burst on Fast cuts, and doesn't ask for one otherwise", () => {
     const film = withScene(goodFilm(), "burst", { shots: [{ word: "Calls" }, { word: "Notes" }] });
-    expect(rhythmIssues(film)).toEqual(["Fast cuts needs a burst of 4 or more hits in one bar between 0:09 and 0:18."]);
+    expect(rhythmIssues(film)).toEqual(["There's no burst of fast cuts near the middle."]);
     expect(rhythmIssues({ ...film, energy: "continuous" })).toEqual([]);
   });
 
@@ -77,7 +77,7 @@ describe("rhythmIssues", () => {
   });
 
   it("finds a logo held 1 s, and a film that doesn't end on it", () => {
-    expect(rhythmIssues(withScene(goodFilm(), "end", { beats: 2 }))).toEqual(["Hold the logo for 1.5 seconds or more."]);
+    expect(rhythmIssues(withScene(goodFilm(), "end", { beats: 2 }))).toEqual(["The logo shows for under 1.5 seconds."]);
     const noLogo = { ...goodFilm(), scenes: goodFilm().scenes.slice(0, -1) };
     expect(rhythmIssues(noLogo)).toContain("The film doesn't end on the logo.");
   });

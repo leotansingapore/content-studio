@@ -61,7 +61,7 @@ export function shortFilm(): Film {
     drop: "burst",
     scenes: [
       { id: "hook", kind: "type", beats: 4, words: ["Your week.", "Planned."], key: 1 },
-      { id: "burst", kind: "montage", beats: 4, shots: [{ word: "Calls" }, { word: "Notes" }, { word: "Tasks" }, { word: "Wins" }] },
+      { id: "burst", kind: "montage", beats: 4, anchor: "word", shots: [{ word: "Calls" }, { word: "Notes" }, { word: "Tasks" }, { word: "Wins" }] },
       { id: "end", kind: "logo", beats: 8, line: "Your week, planned." },
     ],
   };
