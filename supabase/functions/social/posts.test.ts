@@ -185,6 +185,45 @@ describe("what each platform takes", () => {
   });
 });
 
+describe("pinned: today's bodies, byte for byte (phase 7a must not change them)", () => {
+  const FB = "65000000000000000000a006";
+  const slides = Array.from({ length: 7 }, (_, i) => `https://media.zernio.com/temp/1_a_slide-0${i + 1}.png`);
+  const at = '"scheduledFor":"2026-10-12T09:00:00+08:00","timezone":"Asia/Singapore"}';
+  const text = '"content":"Three things to check before you renew."';
+
+  it("a direct TikTok photo post: the flat platformSpecificData that published live on 17 Oct 2026", () => {
+    const body = postBody(input({ mediaUrls: slides, tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false } }), [{ _id: TT, platform: "tiktok" }]);
+    expect(JSON.stringify(body)).toBe(
+      `{${text},"mediaItems":[${slides.map((url) => `{"url":"${url}"}`).join(",")}],"platforms":[{"platform":"tiktok","accountId":"${TT}","customContent":"Three things to check before you renew.","platformSpecificData":{"privacyLevel":"PUBLIC_TO_EVERYONE","allowComment":true,"contentPreviewConfirmed":true,"expressConsentGiven":true,"description":"Three things to check before you renew."}}],${at}`,
+    );
+  });
+
+  it("a direct TikTok video post", () => {
+    const body = postBody(input({ mediaUrls: [MP4], tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: true } }), [{ _id: TT, platform: "tiktok" }]);
+    expect(JSON.stringify(body)).toBe(
+      `{${text},"mediaItems":[{"url":"${MP4}"}],"platforms":[{"platform":"tiktok","accountId":"${TT}","customContent":"Three things to check before you renew.","platformSpecificData":{"privacyLevel":"PUBLIC_TO_EVERYONE","allowComment":true,"contentPreviewConfirmed":true,"expressConsentGiven":true,"allowDuet":false,"allowStitch":true}}],${at}`,
+    );
+  });
+
+  it("a one-platform Instagram post with a first comment", () => {
+    const two = "https://media.zernio.com/temp/1_a_slide-02.png";
+    const body = postBody(input({ mediaUrls: [PNG, two], firstComment: "Link in bio" }), [{ _id: IG, platform: "instagram" }]);
+    expect(JSON.stringify(body)).toBe(
+      `{${text},"mediaItems":[{"url":"${PNG}"},{"url":"${two}"}],"platforms":[{"platform":"instagram","accountId":"${IG}","customContent":"Three things to check before you renew.","platformSpecificData":{"firstComment":"Link in bio"}}],${at}`,
+    );
+  });
+
+  it("a LinkedIn and Facebook post with a caption each, as customContent per entry", () => {
+    const body = postBody(input({ mediaUrls: [], captions: { linkedin: "The LinkedIn one, a little longer.", facebook: "The Facebook one." } }), [
+      { _id: LI, platform: "linkedin" },
+      { _id: FB, platform: "facebook" },
+    ]);
+    expect(JSON.stringify(body)).toBe(
+      `{${text},"mediaItems":[],"platforms":[{"platform":"linkedin","accountId":"${LI}","customContent":"The LinkedIn one, a little longer."},{"platform":"facebook","accountId":"${FB}","customContent":"The Facebook one."}],${at}`,
+    );
+  });
+});
+
 describe("schedule", () => {
   it("posts from the caller's own accounts with the H4 key, and returns the checked post", async () => {
     const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG, LI]) });

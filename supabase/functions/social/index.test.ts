@@ -120,6 +120,35 @@ describe("the social function", () => {
     expect(db.spent).toEqual(["social-presign", "social-schedule", "social-schedule", "social-automation-write", "social-automation-write", "social-read", "social-read"]);
   });
 
+  it("pinned: every action today counts the cap it counted before phase 7a", async () => {
+    const ID = "0123456789abcdef0123456b";
+    const today: [Record<string, unknown>, string][] = [
+      [{ action: "status", profileId: "me" }, "social-read"],
+      [{ action: "connect", profileId: "me", platform: "instagram" }, "social-connect"],
+      [{ action: "disconnect", profileId: "me", accountId: ID }, "social-read"],
+      [{ action: "presign", profileId: "me", filename: "slide-1.png", contentType: "image/png", size: 100 }, "social-presign"],
+      [{ action: "schedule", profileId: "me", accountIds: [ID], clientKey: UID, content: "Hi", mediaUrls: [], now: true }, "social-schedule"],
+      [{ action: "post", profileId: "me", postId: ID }, "social-read"],
+      [{ action: "cancel", profileId: "me", postId: ID }, "social-read"],
+      [{ action: "retry", profileId: "me", postId: ID }, "social-schedule"],
+      [{ action: "tiktok-creator-info", profileId: "me", accountId: ID }, "social-read"],
+      [{ action: "automations", profileId: "me" }, "social-read"],
+      [{ action: "automation-create", profileId: "me", accountId: ID, automation: { keywords: ["guide"], dm: "Here it is." } }, "social-automation-write"],
+      [{ action: "automation-update", profileId: "me", automationId: ID, active: false }, "social-automation-write"],
+      [{ action: "automation-delete", profileId: "me", automationId: ID }, "social-automation-write"],
+      [{ action: "automation-logs", profileId: "me", automationId: ID }, "social-read"],
+      [{ action: "account-posts", profileId: "me", accountId: ID }, "social-read"],
+      [{ action: "metrics", profileId: "me" }, "social-read"],
+      [{ action: "followers", profileId: "me" }, "social-read"],
+      [{ action: "best-time", profileId: "me" }, "social-read"],
+    ];
+    for (const [body, cap] of today) {
+      db.spent.length = 0;
+      await call(UID, body);
+      expect(db.spent, String(body.action)).toEqual([cap]);
+    }
+  });
+
   it("spends none of the day's posts on one it refuses: a time that has passed or a file it can't take", async () => {
     const past = new Date(Date.now() - 3600_000).toISOString();
     const r = await call(UID, { action: "schedule", profileId: "me", accountIds: [MINE], clientKey: UID, content: "Hi", mediaUrls: [], scheduledFor: past });
