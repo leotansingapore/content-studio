@@ -35,9 +35,15 @@ import { resolveSource } from "@/lib/resolveSource";
 import { cutAtWord } from "@/lib/scriptCaption";
 import { removeSlideshow } from "@/lib/slideshow";
 import { onSlideshowJob, slideshowBusy, slideshowJob, startSlideshow, stepText as showStep } from "@/lib/slideshowJob";
-import { DEFAULT_LENGTH, TALK_LENGTHS, defaultWho, scriptEstimate, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
-import { goOnAtPrice, madePresenter, onTalkJob, resumeTalk, startTalk, talkBusy, talkJob, writeTalk, type TalkAsk } from "@/lib/talkingHeadJob";
+import { DEFAULT_LENGTH, TALK_LENGTHS, asTopic, defaultWho, scriptEstimate, scriptSeconds, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
+import { WRITE_FAILED, goOnAtPrice, madePresenter, onTalkJob, resumeTalk, startTalk, talkBusy, talkJob, type TalkAsk } from "@/lib/talkingHeadJob";
 import { VOICES, type VoiceId } from "@/lib/textVoice";
+import { applyBrandRules } from "@/lib/brandRules";
+import { loadBrand } from "@/lib/carousel";
+import { stripDashes } from "@/lib/plainText";
+import { presenterVoice } from "@/lib/presenters";
+import { requestMake, type Flags } from "@/lib/remix";
+import { makeBody } from "@/lib/slideshowJob";
 import { activeLearnings, addLearning, loadLearnings, MAX_LEARNINGS, type LearningScope } from "@/lib/voiceMemory";
 import { onWallJob, startWall, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
 import { GLOBAL_COUNTER_USER, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
@@ -82,6 +88,8 @@ export interface PlanFields {
   voice?: VoiceId;
   length?: TalkLength;
   script?: string;
+  /** The writer's caption for the script, ending with its call to action: the made video takes it to the editor (replay D13). */
+  caption?: string;
   scenes?: Scene[];
   priced?: boolean;
   input?: string;
@@ -270,6 +278,14 @@ export function whoFor(userId: string, pickd: { id: string; look: string } | nul
 const whoWords = (userId: string, who: TalkWho, look: string) =>
   who === "mine" ? "Your face" : who === "presenter" ? `AI presenter, labelled on the post: ${look}` : `${speakers(userId).presenters.find((p) => p.id === who)?.name ?? "Your presenter"}, AI presenter, labelled on the post`;
 const newPresenter = (f: Pick<PlanFields, "who" | "look">) => f.who === "presenter" && !madePresenter(f.look ?? "", "office");
+/** A presenter speaks in a voice that fits their look, as a campaign's AI video does (replay D4: Raj spoke as Alice); your face keeps yours. */
+const voiceFor = (w: { who: TalkWho; look: string }, voice: VoiceId): VoiceId => (w.who === "mine" ? voice : presenterVoice({ look: w.look }, voice));
+/** The most words a script can run to and still last `length` in `voice`, at its slowest measured read (replay D5). */
+export function wordsFor(length: TalkLength, voice: VoiceId): number {
+  let n = speakingWords(length).high;
+  while (n > 12 && scriptSeconds(n, voice) >= length) n--;
+  return n;
+}
 /** The longest length whose words the script reaches, so the talking head never takes the script for a topic and writes a new one. */
 const lengthFor = (words: number): TalkLength => [...TALK_LENGTHS].reverse().find((s) => words >= speakingWords(s).low) ?? TALK_LENGTHS[0];
 export const MIN_SCRIPT_WORDS = speakingWords(TALK_LENGTHS[0]).low;
@@ -298,7 +314,7 @@ export function makeCard(userId: string, a: MakeAsk, now = new Date()): AgentCar
   if (a.plan === "speaking") {
     const w = whoFor(userId, a.speaker);
     const length = a.length ?? DEFAULT_LENGTH;
-    const g: PlanFields = { ...f, ...w, length, voice: loadRemixPrefs(userId).voice };
+    const g: PlanFields = { ...f, ...w, length, voice: voiceFor(w, loadRemixPrefs(userId).voice) };
     return card("video", g, { step: "script", title: `Talking video: "${about}"`, line: `${aSeconds(length)}. The script comes first, then its price.`, details: videoDetails(userId, g, length), price: price("remix-make") ?? undefined, needs: needsOf("speaking", { write: true, presenter: newPresenter(g) }) }, now);
   }
   if (a.plan === "explainer") {
@@ -525,8 +541,8 @@ export function reformat(userId: string, c: AgentCard, format: AgentFormat): Age
 }
 
 /** A talking video's card after its script changed (by the writer or by hand): lines, length, price and credits. */
-export function withScript(userId: string, c: AgentCard, script: string): AgentCard {
-  const f = { ...fieldsOf(c), script: script.trim(), priced: false };
+export function withScript(userId: string, c: AgentCard, script: string, caption?: string): AgentCard {
+  const f = { ...fieldsOf(c), script: script.trim(), priced: false, ...(caption ? { caption } : {}) };
   const words = wordCount(script);
   const est = estimateScript(words, { presenter: newPresenter(f), voice: f.voice ?? "alice" });
   const g: PlanFields = { ...f, length: lengthFor(words) };
@@ -554,7 +570,8 @@ export function withWho(userId: string, c: AgentCard, who: string): AgentCard | 
     return pr ? { who: pr.id as TalkWho, look: pr.look } : null;
   })();
   if (!next) return null;
-  const moved = { ...c, plan: withFields({ ...f, ...next, correction: { kind: "face", from: f.who === "mine" ? "mine" : "ai", to: next.who === "mine" ? "mine" : "ai" } }) };
+  const voice = voiceFor(next, f.voice ?? loadRemixPrefs(userId).voice);
+  const moved = { ...c, plan: withFields({ ...f, ...next, voice, correction: { kind: "face", from: f.who === "mine" ? "mine" : "ai", to: next.who === "mine" ? "mine" : "ai" } }) };
   return f.script ? withScript(userId, moved, f.script) : { ...moved, details: videoDetails(userId, fieldsOf(moved), f.length ?? DEFAULT_LENGTH), needs: needsOf("speaking", { write: true, presenter: newPresenter(fieldsOf(moved)) }) };
 }
 
@@ -813,16 +830,15 @@ async function talkPress(userId: string, x: Press, src: RemixSource | null, live
     voice: f.voice ?? "alice",
     length: f.length ?? DEFAULT_LENGTH,
     mention: loadRemixPrefs(userId).mention,
+    ...(f.caption ? { caption: f.caption } : {}),
   };
   if (x.card().step !== "video") {
     if (talkBusy() || talkWaiting()) return x.fail(LINES.videoBusy);
     live.call();
     live.step("Writing your script...", "writing");
     // the script only (one remix-make use, the card's price): nothing else runs until the video card's press
-    await writeTalk(userId, ask);
-    const j = talkJob();
-    if (j?.state !== "written" || !j.script) return x.fail(j?.error ?? NOT_THROUGH);
-    x.step("video", { ...withScript(userId, x.card(), j.script), flags: flagsFor(userId, j.script, j.flags?.mas) });
+    const w = await writeScript(userId, ask);
+    x.step("video", { ...withScript(userId, x.card(), w.script, w.caption), flags: flagsFor(userId, w.script, w.flags?.mas) });
     return x.put({ text: LINES.scriptLead });
   }
   const ownPriced = !!f.priced && talkWaiting();
@@ -838,6 +854,18 @@ async function talkPress(userId: string, x: Press, src: RemixSource | null, live
     off();
   }
   settleTalk(x);
+}
+
+/**
+ * The talking video's script, as talkingHeadJob's write does it, with the words its length takes in the card's voice
+ * (replay D5: 45 words ran 18 s in Alice's voice for a 15 s card) and the writer's caption with its call to action (D13).
+ */
+async function writeScript(userId: string, a: TalkAsk): Promise<{ script: string; caption: string; flags?: Flags }> {
+  const t = a.text.trim();
+  const body = makeBody(userId, { source: a.source, topic: a.source ? "" : t, note: a.source && asTopic(t, a.length) ? t : "", mention: a.mention, size: "9x16" }, "speaking", { seconds: a.length });
+  const res = await requestMake({ ...body, words: wordsFor(a.length, a.voice) });
+  if (res?.result?.as !== "speaking" || !res.result.script.trim()) throw new Error(WRITE_FAILED);
+  return { script: stripDashes(res.result.script).trim(), caption: stripDashes(applyBrandRules(res.result.caption, loadBrand(userId), "tiktok")).trim(), flags: res.flags };
 }
 
 /** A talk after its press or picked up after a reload: priced goes back to a card, done to MADE and the receipt. */

@@ -30,7 +30,8 @@ const fake = vi.hoisted(() => {
     speaker: "person" as "person" | "business",
     sources: {} as Record<string, unknown>,
     talkEnd: "done" as "done" | "priced",
-    talkAsk: null as null | { quoted?: number },
+    talkAsk: null as null | { quoted?: number; voice?: string; caption?: string },
+    scriptAsk: null as null | { as: string; seconds?: number; words?: number },
     remixFails: false,
     remix: store(),
     show: store(),
@@ -65,6 +66,16 @@ vi.mock("@/lib/remixJob", async (orig) => ({
       m.upsertDraft(userId, { id: "d-made", createdAt: "2026-10-22T00:00:00.000Z", hook: "CPF LIFE pays for life", draft: "CPF LIFE pays for life. It is guaranteed.", pillar: "topic", pillarDetail: "", audience: "general", format: "carousel", platform: "instagram", ctaType: "save-share", agent: run.agent as { thread: string; msg: string } });
       fake.remix.set({ ...job, state: "done", rows: [{ as: run.as[0], state: "done", draftId: "d-made", hook: "CPF LIFE pays for life", href: "/carousel?draft=d-made", flags: { copied: [], claim: false, invented: false } }] });
     });
+  },
+}));
+// the talking video's script: one remix make, written to the words its length takes in the card's voice
+vi.mock("@/lib/remix", async (orig) => ({
+  ...(await orig<typeof import("./remix")>()),
+  requestMake: async (body: { as: string; seconds?: number; words?: number }) => {
+    fake.calls.push("writeScript");
+    fake.scriptAsk = body;
+    await wait();
+    return { result: { as: "speaking", script: SCRIPT, caption: "Check your own payout tonight. Save this for later." }, flags: { copied: [], claim: false, invented: false } };
   },
 }));
 vi.mock("@/lib/slideshowJob", async (orig) => ({
@@ -104,7 +115,7 @@ vi.mock("@/lib/talkingHeadJob", async (orig) => ({
     await wait();
     fake.talk.set({ id: 1, state: "written", step: "", params: {}, script: SCRIPT, flags: { copied: [], claim: false, invented: false } });
   },
-  startTalk: async (_u: string, a: { who: string; text: string; quoted?: number }) => {
+  startTalk: async (_u: string, a: { who: string; text: string; quoted?: number; voice?: string; caption?: string }) => {
     fake.calls.push(`startTalk:${a.who}`);
     fake.talkAsk = a;
     fake.talk.set({ id: 2, state: "voice", step: "Making the voiceover...", params: {}, script: a.text });
@@ -178,7 +189,7 @@ import { activeLearnings, loadLearnings } from "@/lib/voiceMemory";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
-const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$))/;
+const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|writeScript|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$))/;
 const priced = () => fake.calls.filter((c) => PRICED.test(c));
 const pk = (o: Partial<ServerPick>): ServerPick => ({ act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null, subject: null, name: null, ...o });
 const thread = (id: string) => loadThreads(UID).find((t) => t.id === id)!;
@@ -398,7 +409,7 @@ describe("nothing priced runs before its card's press", () => {
     expect(c.details?.find((d) => d.label === "Who appears")?.value).toMatch(/^AI presenter, labelled on the post: An? .*Singaporean/);
     expect(priced()).toEqual([]);
     await approve(id);
-    expect(priced()).toEqual(["writeTalk"]);
+    expect(priced()).toEqual(["writeScript"]);
     c = cardMsg(id).card!;
     expect([c.status, c.step, approveLabel(c)]).toEqual(["proposed", "video", "Approve and make"]);
     expect(c.script?.[0]).toBe("Most people never check what CPF LIFE will pay them.");
@@ -407,13 +418,13 @@ describe("nothing priced runs before its card's press", () => {
     expect(cardMsg(id).text).toBe(LINES.scriptLead);
     const quote = c.credits! * 0.0625;
     await approve(id);
-    expect(priced()).toEqual(["writeTalk", "startTalk:presenter"]);
+    expect(priced()).toEqual(["writeScript", "startTalk:presenter"]);
     // the price check stops only above the video card's own price (live-p5dog day 3)
     expect(fake.talkAsk?.quoted).toBeCloseTo(quote, 9);
     c = cardMsg(id).card!;
     expect([c.status, approveLabel(c), c.line]).toEqual(["proposed", "Make it for US$3.31", "The voiceover runs 18 seconds, so this costs about US$3.31."]);
     await approve(id);
-    expect(priced()).toEqual(["writeTalk", "startTalk:presenter", "goOnAtPrice"]);
+    expect(priced()).toEqual(["writeScript", "startTalk:presenter", "goOnAtPrice"]);
     expect(cardMsg(id).receipt).toMatchObject({ title: "Video made", undoText: "Paid makes can't be undone. Delete the draft in My posts if you don't want it." });
     expect(cardMsg(id).receipt?.line).toMatch(/It used \d+ Higgsfield credits, about US\$\d+\.\d\d\.$/);
   });
@@ -596,7 +607,7 @@ describe("typed approve and decline", () => {
     await approve(id);
     await say("yes make it", { act: "approve" }, { thread: id });
     expect(last(id).text).toMatch(/^Press Approve to spend About US\$\d+\.\d\d\.$/);
-    expect(priced()).toEqual(["writeTalk"]);
+    expect(priced()).toEqual(["writeScript"]);
   });
 
   it("a bare ok never approves, whatever the pick", async () => {
@@ -818,5 +829,48 @@ describe("the 25 Oct replay: follow-ups keep their subject, titles name it, a co
     const line = cardMsg(id).receipt!.line;
     expect(line).not.toMatch(/\.\.\.\./);
     expect(line).toMatch(/^Most people never check what CPF LIFE will pay them\. Here's where to see your\.\.\. It used/);
+  });
+});
+
+describe("the 25 Oct replay: a talking video's voice, length and caption (D4, D5, D13)", () => {
+  const words = (n: number) => Array.from({ length: n }, (_, i) => (i % 9 === 8 ? "end." : "word")).join(" ");
+
+  it("gives a presenter a voice that fits their look, over the remembered Alice, and follows Who appears (D4)", async () => {
+    // no face or presenters saved: the six looks are sent in order, so 4 is the older man and 0 a woman
+    const id = await say("make a talking video about CPF LIFE with the older man", { act: "make", format: "speaking", who: 4 });
+    let c = cardMsg(id).card!;
+    expect([fieldsOf(c).look, fieldsOf(c).voice]).toEqual([expect.stringContaining("man in his 50s"), "eric"]);
+    expect(c.details?.find((d) => d.label === "Voice")?.value).toBe("Eric");
+    const woman = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking", who: 0 });
+    expect(fieldsOf(cardMsg(woman).card!).voice).toBe("alice");
+    await approve(id);
+    expect(fake.scriptAsk?.words).toBe(37);
+    await approve(id);
+    expect(fake.talkAsk?.voice).toBe("eric");
+    c = cardMsg(woman).card!;
+    expect(editCard(UID, woman, cardMsg(woman).id, { who: "new" })).toBeNull();
+    expect(fieldsOf(cardMsg(woman).card!).voice).toBe("alice");
+  });
+
+  it("asks the writer for the words the length takes in the card's voice, and a voice change prices the script again (D5)", async () => {
+    const id = await say("make a 15 second talking video about CPF LIFE with the woman", { act: "make", format: "speaking", length: 15, who: 0 });
+    await approve(id);
+    expect(fake.scriptAsk).toMatchObject({ as: "speaking", seconds: 15, words: 38 });
+    // 43 words: 16.8 s in Alice's voice is two parts, 17.9 s in George's is three
+    expect(editCard(UID, id, cardMsg(id).id, { script: words(43) })).toBeNull();
+    const alice = cardMsg(id).card!;
+    expect([alice.credits, alice.line]).toEqual([44, "A 17-second video of your presenter saying this script."]);
+    expect(editCard(UID, id, cardMsg(id).id, { voice: "george" })).toBeNull();
+    const george = cardMsg(id).card!;
+    expect([george.credits, george.line, george.details?.find((d) => d.label === "Length")?.value]).toEqual([55, "An 18-second video of your presenter saying this script.", "about 18 seconds"]);
+    expect(george.price!.usd).toBeGreaterThan(alice.price!.usd);
+    expect(george.price).toEqual(estimateScript(43, { presenter: true, voice: "george" }).price);
+  });
+
+  it("takes the writer's caption with its call to action to the editor with the video (D13)", async () => {
+    const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(id);
+    await approve(id);
+    expect(fake.talkAsk?.caption).toBe("Check your own payout tonight. Save this for later.");
   });
 });

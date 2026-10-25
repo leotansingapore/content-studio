@@ -594,6 +594,9 @@ export function editCard(userId: string, threadId: string, msgId: string, patch:
   if (patch.voice !== undefined) {
     if (!VOICE_IDS.includes(patch.voice as VoiceId)) return "Pick one of the voices.";
     c = { ...c, plan: { ...c.plan, voice: patch.voice }, details: c.details?.map((d) => (d.label === "Voice" ? { ...d, value: VOICES[patch.voice as VoiceId].label } : d)) };
+    // a written script is said in the new voice's time, so its length, parts and price are estimated again (replay D5)
+    const g = fieldsOf(c);
+    if (g.plan === "speaking" && c.step === "video" && g.script) c = withScript(userId, c, g.script);
   }
   if (patch.format !== undefined) {
     const next = reformat(userId, c, patch.format as AgentFormat);
