@@ -69,7 +69,7 @@ const local = new MemStorage();
 vi.stubGlobal("localStorage", local);
 vi.stubGlobal("window", { localStorage: local, location: new URL("http://localhost/calendar"), addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true });
 
-const { PostItForMePanel, ZernioStatus } = await import("./PostItForMe");
+const { PostItForMePanel, ZernioStatus, chipText } = await import("./PostItForMe");
 const { whenLabel } = await import("@/lib/autoPost");
 const { activityMonths, loadActivity, setActivityOn } = await import("@/lib/activity");
 const { EdgeError } = await import("@/lib/edgeFn");
@@ -346,5 +346,13 @@ describe("a TikTok inbox draft (publish-tiktok)", () => {
     expect(marked.status).toBe("posted");
     expect(text(await draw(ZernioStatus, { ...after, draft: marked }))).not.toContain("Mark posted");
     expect(fn.calls.map((c) => c.action)).toEqual(["post"]);
+  });
+});
+
+describe("the posted chip's views (learn-real-numbers, Leo only)", () => {
+  it("adds the pulled views to the label, and nothing without them", () => {
+    expect(chipText("Posted", { views: 1240 })).toBe("Posted, 1,240 views");
+    expect(chipText("Posted", { views: 0 })).toBe("Posted");
+    expect(chipText("Posted")).toBe("Posted");
   });
 });

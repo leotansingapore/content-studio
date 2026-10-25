@@ -136,6 +136,10 @@ export function ZernioChipLabel({ draft, compact }: { draft: DraftEntry; compact
 }
 
 /** The chip with its details: each platform's link or reason, Retry and Cancel. */
+/** A posted post's chip adds its real views once they are pulled (learn-real-numbers, Leo only). */
+export const chipText = (label: string, numbers?: { views?: number }) =>
+  numbers?.views ? `${label}, ${numbers.views.toLocaleString("en-SG")} views` : label;
+
 export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draft: DraftEntry; onDrafts: (d: DraftEntry[]) => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -195,7 +199,7 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
     <div className="w-full">
       <button type="button" onClick={toggle} aria-expanded={open} className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2.5 text-[10px] font-semibold ${TOUCH} ${TONE[chip.tone]}`}>
         {busy === "read" && <Loader2 className="h-3 w-3 animate-spin" />}
-        {chip.label}
+        {chipText(chip.label, posted && leo ? link.numbers : undefined)}
       </button>
       {open && (
         <div className="mt-2 space-y-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
