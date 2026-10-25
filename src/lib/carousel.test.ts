@@ -436,6 +436,23 @@ describe("brand", () => {
   });
 });
 
+// phase 7a's data-shapes pin, taken before the kit gained slotsBy: a kit with every field of today, phase 4's included,
+// reads back and writes the same JSON
+describe("pin: today's brand kit before slotsBy", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("loads and saves every field byte for byte", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
+    const photo = "data:image/jpeg;base64,/9j/4AAQ";
+    const today = `{"color":"#0F766E","name":"Ada Tan","handle":"@adatan","role":"Financial adviser","photo":"${photo}","signOff":"DM me PLAN","tagLinks":true,"slots":["1T08:30","4T19:00"],"instagram":"adatan","emojiPolicy":"one","hashtagPolicy":"few","avoidWords":"cheapest","website":"https://ada.sg","websiteReadAt":"2026-10-21T08:30:00Z","palette":[{"name":"Sea","hex":"#0F766E"}],"people":[{"id":"pa","name":"Ada","role":"Adviser","photo":"${photo}"}],"stamp":{"videoLogo":true},"slideFont":"modern","slidePaper":"dark","postLang":"ms"}`;
+    store.set("content-studio-carousel-brand-u1", today);
+    const kit = loadBrand("u1")!;
+    expect(JSON.stringify(kit)).toBe(today);
+    saveBrand("u2", kit);
+    expect(store.get("content-studio-carousel-brand-u2")).toBe(today);
+  });
+});
+
 describe("saved carousels", () => {
   const store = new Map<string, string>();
   beforeEach(() => {
@@ -499,6 +516,15 @@ describe("saved carousels", () => {
     expect(store.get("content-studio-carousels-u1")).toBe(
       `[{"id":"p:3","title":"New","platform":"instagram","slides":[{"id":"a","title":"Hook","body":""},{"id":"b","title":"Point","body":"Body"}],"updatedAt":"2026-10-02T00:00:00.000Z"},${today.slice(1)}`,
     );
+  });
+
+  // phase 7a's data-shapes pin, taken before saved carousels gained score: every field of today, phase 4's included
+  it("loads and saves a carousel with every field of today byte for byte", () => {
+    const today = `[{"id":"v:1","title":"Chinese","platform":"instagram","slides":[{"id":"a","title":"Hook","body":""},{"id":"b","title":"Point","body":"Body"}],"draftId":"9","align":"center","scale":1.1,"font":"serif","paper":"dark","design":"numbered","size":"9x16","signer":"pa","lang":"zh","translationOf":{"id":"d:9","at":"2026-10-21T10:00:00.000Z"},"updatedAt":"2026-10-21T10:00:00.000Z"}]`;
+    store.set("content-studio-carousels-u1", today);
+    expect(JSON.stringify(loadCarousels("u1"))).toBe(today);
+    removeCarousel("u1", "none");
+    expect(store.get("content-studio-carousels-u1")).toBe(today);
   });
 
   it("keeps a version's language and source and the signer, and drops bad ones", () => {

@@ -15,6 +15,7 @@ import {
   markUnposted,
   setDraftZernio,
   setDraftAttached,
+  deleteDraft,
   MAX_DRAFTS,
   draftsOfBrand,
   getDraftStats,
@@ -541,5 +542,71 @@ describe("drafts Claude saved, in Leo's Activity", () => {
     ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
     loadDrafts(UID);
     expect(loadActivity(UID, ["2026-10"])).toEqual([]);
+  });
+});
+
+// phase 7a's data-shapes pins, taken before drafts gained set, versions, score, live and the Zernio outbox: what the
+// store keeps, trims, copies and writes today, byte for byte
+describe("pins before phase 7a's fields and the outbox", () => {
+  const ls = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+  const keys = () => Array.from({ length: ls().length }, (_, i) => ls().key(i)).sort();
+  const KEPT = {
+    metrics: { impressions: 900, reactions: 12 },
+    labels: ["format:text"],
+    storyboard: { beats: [], script: "Script", madeAt: "2026-10-01T00:00:00.000Z" },
+    zernio: { key: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", postId: "67000000000000000000d001", status: "scheduled", at: "2026-10-15T01:00:00.000Z" },
+    media: "https://drive.example.com/reel.mp4",
+    attached: ["cimg-a"],
+    source: { key: "top:grace-koh-instagram-C931K2DSgnl", kind: "top-post" as const, author: "@gracedotc0m", remixedAt: "2026-10-08T02:00:00.000Z" },
+    remix: { keep: "structure", as: "post", close: "balanced" },
+    agent: { thread: "t1a2b", msg: "m3c4d" },
+    thread: { network: "threads" as const, posts: ["One", "Two"] },
+    titles: ["A title"],
+    cover: "A cover",
+    lang: "zh" as const,
+    translationOf: { id: "english-1", key: "48-abc123", at: "2026-10-21T10:00:00.000Z" },
+    back: ["Meaning."],
+    sameP: 0.82,
+    hookFormula: "number-reveal",
+  };
+  const WHEN = { status: "scheduled" as const, scheduledFor: "2026-10-15T09:00" };
+
+  it("upsertDraft keeps every field it keeps today, in this order, when an edit leaves them all out", () => {
+    saveDrafts(UID, [post({ id: "other" }), post({ ...WHEN, ...KEPT })]);
+    upsertDraft(UID, post({ ...WHEN, draft: "Edited in Write" }));
+    const { metrics, labels, storyboard, zernio, media, attached, source, remix, agent, thread, titles, cover, lang, translationOf, back, sameP, hookFormula } = KEPT;
+    expect(ls().getItem(`content-studio-drafts-${UID}`)).toBe(
+      JSON.stringify([
+        { ...post({ ...WHEN, draft: "Edited in Write" }), metrics, labels, storyboard, zernio, media, attached, source, remix, agent, thread, titles, cover, lang, translationOf, back, sameP, hookFormula },
+        post({ id: "other" }),
+      ]),
+    );
+    expect(keys()).toEqual([`content-studio-drafts-${UID}`]);
+  });
+
+  it("saveDrafts keeps the first 150 and drops the rest, newest first", () => {
+    const list = Array.from({ length: MAX_DRAFTS + 2 }, (_, i) => post({ id: `p${i}` }));
+    saveDrafts(UID, list);
+    expect(ls().getItem(`content-studio-drafts-${UID}`)).toBe(JSON.stringify(list.slice(0, MAX_DRAFTS)));
+    upsertDraft(UID, post({ id: "new" }));
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(["new", ...list.slice(0, MAX_DRAFTS - 1).map((d) => d.id)]);
+  });
+
+  it("duplicateDraft's copy drops only the schedule, posting record, repeat, numbers and Zernio link", () => {
+    saveDrafts(UID, [post({ id: "o", ...WHEN, postedAt: "2026-10-15T01:00:00.000Z", repeat: { every: "week", start: "2026-10-15" }, ...KEPT })]);
+    const { copy } = duplicateDraft(UID, "o")!;
+    const { metrics: _m, zernio: _z, ...rest } = KEPT;
+    expect(JSON.stringify({ ...copy, id: "copy" })).toBe(
+      JSON.stringify({ ...post({ id: "copy", status: "draft", ...rest }), createdAt: "2026-10-08T02:00:00.000Z", hook: "Weekly tip (copy)" }),
+    );
+  });
+
+  it("saveDrafts with no Zernio link writes the list and nothing else, moves and deletes included", () => {
+    saveDrafts(UID, [post({ ...WHEN }), post({ id: "b", ...WHEN })]);
+    setDraftStatus(UID, "s", "scheduled", "2026-10-16T09:00");
+    setDraftStatus(UID, "b", "draft");
+    deleteDraft(UID, "s");
+    expect(ls().getItem(`content-studio-drafts-${UID}`)).toBe(JSON.stringify([post({ id: "b", status: "draft" })]));
+    expect(keys()).toEqual([`content-studio-drafts-${UID}`]);
   });
 });
