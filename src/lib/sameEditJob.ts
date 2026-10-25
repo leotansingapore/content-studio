@@ -724,7 +724,8 @@ async function finishNoFace(userId: string, id: number, k: { plan: EditPlan; ver
   try {
     const files = await Promise.all(scenes.map((x) => getFile(x.key)));
     if (files.some((f) => !f)) throw new Error(NO_STOCK);
-    while (currentJoin()) await new Promise((r) => setTimeout(r, 1000));
+    // waits only while another video is being put together; a finished one waiting for the editor moves aside (videoMedia)
+    while (currentJoin()?.state === "running") await new Promise((r) => setTimeout(r, 1000));
     await startSlides(k.version.lines[0]?.slice(0, 40) || "Same edit", scenes.map((x, i) => ({ video: files[i]!, seconds: x.seconds })), k.mp3, "Putting your version together", { extra });
     if (currentJoin()?.state === "failed") throw new Error(currentJoin()?.error || "Couldn't put the video together. Try again.");
     mine(id, { state: "done", step: "" });
