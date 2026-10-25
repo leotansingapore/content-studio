@@ -12,11 +12,12 @@ import { EdgeError } from "./edgeFn";
 import { goodFilm } from "./film/fixtures";
 import { parseFilm, type Film } from "./film/timeline";
 import {
-  DEFAULT_SETUP, MAX_FILMS, editorExtra, filmJob, fixIssues, getFilm, loadFilms, loadHistory, notQuite, putFilm, resumeFilm, sendNote, setSpec, undoFilm, voiceFilm, voiceStale,
+  DEFAULT_SETUP, MAX_FILMS, editorExtra, openInEditor, filmJob, fixIssues, getFilm, loadFilms, loadHistory, notQuite, putFilm, resumeFilm, sendNote, setSpec, undoFilm, voiceFilm, voiceStale,
   writeDirections, writeFilm, type FilmDirection, type FilmSetup, type StoredFilm,
 } from "./filmJob";
 import { AI_LINE } from "./videoProjects";
-import { pickupPlan } from "./videoMedia";
+import { currentJoin, pickupPlan } from "./videoMedia";
+import { addCampaign, getCampaign, type Campaign } from "./campaigns";
 
 class MemStorage {
   private m = new Map<string, string>();
@@ -256,5 +257,15 @@ describe("Fields, the store and the hand-off", () => {
   it("names the campaign post's draft when the film was made for one", () => {
     const f = stored({ setup: { ...SETUP, campaign: { id: "c-lq3k9z", n: 4 } } });
     expect(editorExtra(f).draftId).toBe("cmp_c-lq3k9z_4");
+  });
+
+  it("Open in editor hands the film to the join and marks the campaign post made with its draft", async () => {
+    const c = { id: "c-lq3k9z", name: "Launch", createdAt: "", audience: "", angles: [], platforms: ["instagram"], formats: ["ai-video"], weeks: 1, perWeek: 3, startDay: "2026-10-26", pictures: "stock", posts: [{ n: 4, day: "2026-10-29", format: "ai-video", state: "ready" }] } as unknown as Campaign;
+    expect(addCampaign(UID, c)).toBeNull();
+    const f = stored({ setup: { ...SETUP, campaign: { id: c.id, n: 4 } } });
+    await openInEditor(UID, f.id, { shape: "9x16", blob: new Blob(["mp4"], { type: "video/mp4" }), ext: "mp4", seconds: 30, realtime: false });
+    expect(currentJoin()).toMatchObject({ state: "done", extra: { draftId: "cmp_c-lq3k9z_4", settings: { captions: false } } });
+    expect(currentJoin()!.file!.name).toBe("launch-9x16.mp4");
+    expect(getCampaign(UID, c.id)!.posts[0]).toMatchObject({ state: "made", draftId: "cmp_c-lq3k9z_4", made: { kind: "video", id: "cmp_c-lq3k9z_4" } });
   });
 });
