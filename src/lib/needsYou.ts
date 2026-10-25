@@ -126,6 +126,9 @@ const CARD_NOUN: Partial<Record<AgentCard["kind"], string>> = {
 const DAY_MS = 86_400_000;
 const hookOf = (d: DraftEntry) => d.hook || d.draft.slice(0, 60) || "Untitled";
 
+/** Zernio holds it (scheduled, in the TikTok inbox or failed) or it is linked to its live post: it has a time already. */
+export const heldOrLive = (d: Pick<DraftEntry, "zernio" | "live">) => !!d.zernio || !!d.live;
+
 /**
  * Leo's Next up, in a fixed order (a product rule, so no Jev): agent cards waiting, failures, overdue, today, team
  * posts and the board's reviews and notes, unscheduled made posts, autopilot, campaigns, today's ideas, Your market,
@@ -191,8 +194,7 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
     for (const b of board ? notesByBrand(board, input.me) : [])
       items.push({ id: `notes:${b.id}`, kind: "team", title: `Team notes: ${b.name}`, n: b.n, actions: [{ label: "Open", to: `/reels?brand=${encodeURIComponent(b.id)}&view=feed&stage=notes` }] });
 
-  // a draft Zernio holds (scheduled, in the TikTok inbox or failed) or one linked to a live post has a time already
-  const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && !d.zernio && !d.live && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && !heldOrLive(d) && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   // one row for them all, as overdue has, so a campaign's 24 made posts never bury what comes after (live-p6replay D15)
   if (made.length === 1)
     items.push({

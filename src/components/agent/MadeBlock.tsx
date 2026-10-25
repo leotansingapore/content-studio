@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { isAppPath } from "@/components/agent/dockActions";
 import type { AgentMsg } from "@/lib/agentThreads";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
+import { getDraftById } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
+import { heldOrLive } from "@/lib/needsYou";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 
@@ -60,6 +62,8 @@ const HookBox = ({ hook }: { hook: string }) => (
 export default function MadeBlock({ userId, job }: { userId: string; job: Job }) {
   const video = VIDEO_KINDS.has(job.kind) || !!job.open?.startsWith("/edit");
   const draftId = job.drafts?.[0];
+  // Schedule it until the post has a time, as Next up's made row reads it
+  const schedule = !!draftId && !heldOrLive(getDraftById(userId, draftId) ?? {});
   const title = job.title ?? "";
   const open = job.open && isAppPath(job.open) ? job.open : null;
   return (
@@ -89,7 +93,7 @@ export default function MadeBlock({ userId, job }: { userId: string; job: Job })
             {title && <p className="line-clamp-2 break-words text-sm font-medium">{title}</p>}
             <p className="text-sm text-muted-foreground">Here it is.</p>
           </div>
-          {(open || draftId) && (
+          {(open || schedule) && (
             <div className="flex flex-wrap gap-2">
               {open && (
                 <Button asChild size="sm" className="h-11 sm:h-9">
@@ -97,7 +101,7 @@ export default function MadeBlock({ userId, job }: { userId: string; job: Job })
                 </Button>
               )}
               {/* the steps open on the post; only their last button posts (phase 7a) */}
-              {draftId && (
+              {schedule && (
                 <Button asChild size="sm" variant="outline" className="h-11 sm:h-9">
                   <Link to={links.drafts({ schedule: draftId, step: "where" })}>Schedule it</Link>
                 </Button>

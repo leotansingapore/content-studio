@@ -161,3 +161,21 @@ describe("a failed card (replay D8)", () => {
     expect(draw(failed({ error: "The post didn't name ActivityTracker once." }))).not.toContain("Your use was given back.");
   });
 });
+
+describe("a MADE block's Schedule it (phase 7a)", () => {
+  const made = (draft: Partial<DraftEntry>) => {
+    saveDrafts(UID, [{ id: "d1", hook: "CPF at 55", draft: "CPF at 55", createdAt: AT, agent: { thread: "t1", msg: "m1" }, ...draft } as DraftEntry]);
+    return renderToStaticMarkup(
+      <MemoryRouter>
+        <MadeBlock userId={UID} job={{ kind: "remix", state: "done", drafts: ["d1"], open: "/generate?draft=d1", title: "CPF at 55", startedAt: AT, endedAt: AT }} />
+      </MemoryRouter>,
+    );
+  };
+  it("shows on a made post not yet scheduled", () => {
+    expect(made({})).toContain(">Schedule it<");
+  });
+  it("goes once Zernio holds the post or it is linked to its live post, as Next up's made row does", () => {
+    expect(made({ zernio: { key: "k", postId: "z1", status: "scheduled", at: AT } as DraftEntry["zernio"] })).not.toContain("Schedule it");
+    expect(made({ live: { postId: "ig-1", platform: "instagram", url: null, by: "jev" } as DraftEntry["live"] })).not.toContain("Schedule it");
+  });
+});
