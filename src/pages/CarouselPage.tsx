@@ -35,7 +35,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { useScrollToHash, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { CAROUSEL_DESIGNS, COMPARE_TABS, links, type CarouselDesign } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -406,12 +406,14 @@ export function CarouselScore(p: {
       setScoring(false);
     }
   };
-  const fixIt = async (from: number) => {
-    setFix({ from });
+  const fixIt = async (was: { v: number; down: SavedScore["down"] }) => {
+    // kept per text, so Undo back to these words shows this score even though the saved carousel's moves on
+    setCache(saveScore(p.userId, key, { score: was.v, down: was.down }));
+    setFix({ from: was.v });
     const t = await p.onFix();
-    if (t === null) return setFix({ from, failed: true });
+    if (t === null) return setFix({ from: was.v, failed: true });
     const s = await run(t);
-    setFix(s ? { from, key: s.key } : null);
+    setFix(s ? { from: was.v, key: s.key } : null);
   };
 
   return (
@@ -447,7 +449,7 @@ export function CarouselScore(p: {
                   </span>
                   {id === "readable" && (
                     <span className="flex items-center gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => void fixIt(score.v)} disabled={p.busy || scoring || fixLeft === 0} className="h-8 gap-1.5 [@media(pointer:coarse)]:h-11">
+                      <Button type="button" size="sm" variant="outline" onClick={() => void fixIt(score)} disabled={p.busy || scoring || fixLeft === 0} className="h-8 gap-1.5 [@media(pointer:coarse)]:h-11">
                         <Sparkles className="h-3.5 w-3.5" /> Fix this
                       </Button>
                       <PriceChip feature="carousel" left={fixLeft} />
@@ -1201,7 +1203,14 @@ export default function CarouselPage() {
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
   // edit-score (Leo only): the caption is the post's own when these are its slides, as the compare strip reads it
   const scoreOn = Boolean(leo && userId && showEditor);
-  useScrollToHash(scoreOn);
+  // #score from a link, read on arrival: opening the carousel rewrites the address without its hash
+  const scoreLink = useRef(window.location?.hash === "#score");
+  useEffect(() => {
+    if (!scoreOn || !scoreLink.current) return;
+    scoreLink.current = false;
+    // Chrome's scroll methods answer a promise, which an effect must not return
+    void document.getElementById("score")?.scrollIntoView({ block: "center" });
+  }, [scoreOn]);
   const scoreFrom = carouselId === `d:${draftId}` ? drafts.find((d) => d.id === draftId) : undefined;
   const savedNow = scoreOn ? saved.find((c) => c.id === carouselId) : undefined;
   const scoreTextOf = (list: Slide[]) => carouselScoreSource(list, scoreFrom, savedNow?.lang);
@@ -2027,7 +2036,7 @@ export default function CarouselPage() {
                     {exporting.total > 1 ? " Your browser may ask to allow multiple downloads." : ""}
                   </p>
                 )}
-                <ul className={`grid grid-cols-2 gap-3 ${scoreOn ? "lg:max-h-[calc(100vh-22rem)]" : "lg:max-h-[calc(100vh-14rem)]"} lg:overflow-y-auto lg:pr-1`}>
+                <ul className={`grid grid-cols-2 gap-3 ${scoreOn ? "lg:max-h-[calc(100vh-26rem)]" : "lg:max-h-[calc(100vh-14rem)]"} lg:overflow-y-auto lg:pr-1`}>
                   {images.map((img, i) => (
                     <li key={slides[i].id} className="min-w-0 space-y-1">
                       <button
