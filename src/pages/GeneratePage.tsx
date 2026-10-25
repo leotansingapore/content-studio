@@ -34,7 +34,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
-import { FACTORS, loadScores, saveScore, scorePost, textKey } from "@/lib/postScore";
+import { currentScore, labelFor, loadScores, saveScore, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
+import { otherFormulas, splitHook } from "@/lib/variants";
 import {
   Sparkles,
   Copy,
@@ -505,8 +506,51 @@ const REWRITES = [
 // "lines": the lines the sounds-human check flagged, rewritten, the rest kept.
 // "ask": the change asked for in the assistant (/generate?draft=<id>&ask=<words>).
 type RewriteId = (typeof REWRITES)[number]["id"] | "lines" | "ask";
-const rewriteLabel = (id: RewriteId) =>
-  id === "lines" ? "Rewrite flagged lines" : id === "ask" ? "Your change" : REWRITES.find((r) => r.id === id)!.label;
+/** The rewrite panel's title; a score fix (Leo only) passes its factor's label. */
+export const rewriteLabel = (id: RewriteId, fix?: string) =>
+  fix ? `Fix: ${fix}` : id === "lines" ? "Rewrite flagged lines" : id === "ask" ? "Your change" : REWRITES.find((r) => r.id === id)!.label;
+
+// edit-score (Leo only): "Fix this" on a score line sends its factor's ask as the ask rewrite. specific adds no
+// number on purpose (MAS: no invented numbers).
+export const FIX_ASK: Record<FactorId, string> = {
+  hook: "Rewrite only the first line so it opens with a number, a surprise or the question the reader is asking. Keep every other line word for word.",
+  oneIdea: "Cut the points that are not about the main idea. Keep the first line and the call to action.",
+  specific: "Add one concrete detail: a step the reader can take today or a short client story with no names. Do not add any number that is not already in the post.",
+  cta: "Rewrite only the last line as one clear ask: comment a word, send a DM or save the post. Keep every other line word for word.",
+  readable: "Break it into short lines of one or two sentences and cut what is not needed. Keep every point, fact and number.",
+};
+const scoreBand = (v: number) => (v >= 7.5 ? "Strong" : v >= 5 ? "Fair" : "Weak");
+
+// remix-variations (Leo only): "Try new hooks" writes openings for a finished post whose body stays as it is.
+export const newHookContext = (body: string) =>
+  `Write a new opening line for this finished post. Keep it under 25 words. The body below stays exactly as it is, so the line must lead into it.\n\n${body}`;
+// a script's spoken label on its first line ("HOOK:", "**HOOK (0-3s):**", "[HOOK]"), kept when its hook is swapped
+const HOOK_LABEL = /^[\s*_#>[]*hook\b[^:\]\n]*[:\]][*_\s]*/i;
+/** The post with its first line swapped for `hook`; everything after the first line stays byte for byte. */
+export function withOpening(draft: string, hook: string): string {
+  const first = draft.split("\n")[0];
+  return (first.match(HOOK_LABEL)?.[0] ?? "") + hook.trim() + draft.slice(first.length);
+}
+/** A post's version with a new opening: its brief and source in the set, nothing scheduled, posted, numbered or scored. */
+export function versionOf(parent: DraftEntry, text: string, hook: string, formula: string | undefined, set: NonNullable<DraftEntry["set"]>, id = newDraftId(), at = new Date().toISOString()): DraftEntry {
+  const v: DraftEntry = { ...parent, id, createdAt: at, hook, draft: text, hookFormula: formula, set, status: "draft" };
+  for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio", "live", "score", "versions", "thread", "storyboard", "titles", "cover", "agent"] as const) delete v[k];
+  return v;
+}
+// set ids sync inside the drafts key, so never uuid-shaped
+const newSetId = () => `vs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
+/**
+ * Trailing hashtags taken off the post and added to its first comment (publish-comments-followups, Leo only); null
+ * when the post does not end in hashtags or is nothing but hashtags.
+ * shortcut: lives here until platformCounters.ts takes it beside moveLinksToComment (the schedule steps want it too).
+ */
+export function moveHashtagsToComment(text: string, comment = ""): { body: string; comment: string } | null {
+  const m = text.match(/(?:^|\s)((?:#[\p{L}\p{N}_]+\s*)+)$/u);
+  const body = m ? text.slice(0, m.index).trimEnd() : "";
+  if (!m || !body) return null;
+  return { body, comment: [comment.trim(), m[1].trim().split(/\s+/).join(" ")].filter(Boolean).join("\n\n") };
+}
 /** The longest change the assistant passes in. */
 const MAX_ASK = 300;
 
@@ -4547,8 +4591,8 @@ export default function GeneratePage() {
                       <ul className="mt-2 space-y-1.5" aria-label="What pulled it down">
                         {postScore.down.map((id) => (
                           <li key={id} className="text-xs">
-                            <span className="font-semibold">{FACTORS[id].label}:</span>{" "}
-                            <span className="text-muted-foreground">{FACTORS[id].tip}</span>
+                            <span className="font-semibold">{labelFor(id)}:</span>{" "}
+                            <span className="text-muted-foreground">{tipFor(id)}</span>
                           </li>
                         ))}
                       </ul>
