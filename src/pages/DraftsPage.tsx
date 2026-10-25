@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
 import {
@@ -62,6 +62,8 @@ import {
   onDraftsChanged,
 } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { zernioHolds } from "@/lib/zernioOutbox";
+import { undoTo, updating, useOutbox } from "@/lib/useZernioOutbox";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { LabelChip, LabelManager, LabelPicker } from "@/components/Labels";
@@ -191,6 +193,14 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
   );
 }
 
+// Helpers for Leo's phase 7 parts (publish-schedule, publish-queue, remix-variations, learn-real-numbers, edit-score):
+// day labels such as "Tue 21 Oct" and "Tue 21 Oct, 9am"
+const dayLabel = (key: string) => keyToDate(key).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const whenLabel = (at: string) => {
+  const time = scheduleTime(at);
+  return `${dayLabel(at.slice(0, 10))}${time ? `, ${timeLabel(time)}` : ""}`;
+};
+
 export default function DraftsPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -198,7 +208,8 @@ export default function DraftsPage() {
   const leo = useLeoUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
-  const [, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const update = useUrlUpdate();
   const [platformFilter, setPlatformFilter] = useUrlState("platform", "all", { allowed: ["all", ...Object.keys(PLATFORM_LABEL)] });
   const [pillarFilter, setPillarFilter] = useUrlState("pillar", "all", { allowed: ["all", ...Object.keys(PILLAR_LABEL)] });
   const [search, setSearch, query] = useUrlSearch("q");
@@ -262,6 +273,27 @@ export default function DraftsPage() {
     };
   }, []);
 
+  // ---- Leo's phase 7 parts; every other sign-in keeps today's page and calls ----
+  const box = useOutbox(userId);
+  // The schedule steps (publish-schedule) live in the URL for Leo: ?schedule=<post id> (push), with the steps' own
+  // ?step= and ?network= (replace). A post that is out, or already with Zernio, never opens them.
+  const scheduleParam = leo ? params.get("schedule") : null;
+  useGoneItem("schedule", scheduleParam && drafts.length ? drafts.some((d) => d.id === scheduleParam) : undefined);
+  const scheduleFor = (scheduleParam && drafts.find((d) => d.id === scheduleParam && draftStatus(d) !== "posted" && !d.zernio?.postId)?.id) || null;
+  const panelId = scheduleFor ?? postOpenId;
+  useEffect(() => {
+    if (scheduleFor) document.getElementById(`post-${scheduleFor}`)?.scrollIntoView({ block: "nearest" });
+  }, [scheduleFor]);
+  const togglePanel = (id: string) => {
+    if (!leo) return setPostOpenId((cur) => (cur === id ? null : id));
+    if (panelId === id) closePanel();
+    else update({ schedule: id, step: null, network: null }, { push: true });
+  };
+  const closePanel = () => {
+    setPostOpenId(null);
+    if (params.get("schedule")) update({ schedule: null, step: null, network: null });
+  };
+
   const today = localDateKey();
   // The same counts as Home's stat cards.
   const counts = useMemo(() => {
@@ -282,15 +314,35 @@ export default function DraftsPage() {
     });
   }, [drafts, statusFilter, platformFilter, pillarFilter, labelFilter, labels, query]);
 
+
   const openManager = () => {
     setManageLabels(true);
     setLabelOpenId(null);
     requestAnimationFrame(() => document.getElementById("label-manager")?.scrollIntoView({ behavior: "smooth", block: "center" }));
   };
 
+  // undoTo keeps the Zernio link as it is now, so an Undo after a move Zernio already made moves the post back
+  const undoAction = (prev: DraftEntry[]) => (
+    <ToastAction
+      altText="Undo"
+      onClick={() => {
+        if (!userId) return;
+        let back = loadDrafts(userId);
+        for (const d of prev) back = undoTo(userId, d);
+        setDrafts(back);
+      }}
+    >
+      Undo
+    </ToastAction>
+  );
+
   const handleSetStatus = (id: string, status: DraftStatus, when?: string) => {
     if (!userId) return;
+    const prev = drafts.find((d) => d.id === id);
     setDrafts(setDraftStatus(userId, id, status, when));
+    // a new day for a post Zernio holds moves the real post too: say so, with Undo (publish-calendar)
+    if (prev && when && status === "scheduled" && zernioHolds(prev) && prev.scheduledFor !== when)
+      toast({ title: `Moved to ${whenLabel(when)}`, description: "The auto-post moves with it.", action: undoAction([prev]) });
   };
 
   // Back to Scheduled on its day, time and repeat (or to drafts if it never had a day).
@@ -306,7 +358,7 @@ export default function DraftsPage() {
         ? keyToDate(when.slice(0, 10)).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) + (time ? `, ${timeLabel(time)}` : "")
         : undefined,
       action: (
-        <ToastAction altText="Undo" onClick={() => setDrafts(restoreDraft(userId, prev))}>
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoTo(userId, prev))}>
           Undo
         </ToastAction>
       ),
@@ -389,12 +441,28 @@ export default function DraftsPage() {
       setConfirmId(id);
       return;
     }
+    const at = drafts.findIndex((d) => d.id === id);
+    const gone = drafts[at];
+    // a post Zernio holds is cancelled there too, after a short wait the Undo can still beat (publish-calendar)
+    const held = !!gone && zernioHolds(gone);
     const next = deleteDraft(userId, id);
     setDrafts(next);
     setConfirmId(null);
     toast({
       title: "Draft deleted",
-      description: "Removed from your history.",
+      description: `Removed from your history.${held ? " Zernio won't post it." : ""}`,
+      action: held ? (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            // back in its place at Zernio's time, which drops the waiting cancel (zernioOps)
+            const cur = loadDrafts(userId).filter((d) => d.id !== id);
+            setDrafts(saveDrafts(userId, [...cur.slice(0, at), gone, ...cur.slice(at)]));
+          }}
+        >
+          Undo
+        </ToastAction>
+      ) : undefined,
     });
   };
 
@@ -704,6 +772,12 @@ export default function DraftsPage() {
                 {d.zernio?.postId && userId && (
                   <div className="mb-3">
                     <ZernioStatus userId={userId} draft={d} onDrafts={setDrafts} />
+                    {/* a move or cancel waiting to reach Zernio (publish-calendar's receipt) */}
+                    {updating(box, d) && (
+                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> Updating auto-post
+                      </span>
+                    )}
                   </div>
                 )}
                 <div className="mt-auto flex flex-wrap items-center gap-2">
@@ -736,12 +810,13 @@ export default function DraftsPage() {
                       <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
                     </Button>
                   )}
-                  {s === "scheduled" && d.scheduledFor && !d.zernio?.postId && socialConnectShown() && (
+                  {/* Leo's steps open on any post not yet out, with or without a day (publish-schedule) */}
+                  {(leo ? s !== "posted" : s === "scheduled" && d.scheduledFor) && !d.zernio?.postId && socialConnectShown() && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => setPostOpenId((cur) => (cur === d.id ? null : d.id))}
-                      aria-expanded={postOpenId === d.id}
+                      onClick={() => togglePanel(d.id)}
+                      aria-expanded={panelId === d.id}
                       className="h-11 gap-1.5 text-xs text-primary hover:text-primary sm:h-9 [@media(pointer:coarse)]:h-11"
                     >
                       <Send className="h-3.5 w-3.5" /> Post it for me
@@ -784,8 +859,8 @@ export default function DraftsPage() {
                     {confirmId === d.id ? "Confirm" : "Delete"}
                   </Button>
                 </div>
-                {postOpenId === d.id && userId && (
-                  <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={() => setPostOpenId(null)} />
+                {panelId === d.id && userId && (
+                  <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={closePanel} />
                 )}
                 {previewOpenId === d.id && userId && (
                   <PreviewLinkPanel
