@@ -833,6 +833,13 @@ describe("the 25 Oct replay: follow-ups keep their subject, titles name it, a co
     expect(priced()).toEqual(["runRead"]);
   });
 
+  it("cuts a title where a sentence ends with one ellipsis, never four dots (D12)", async () => {
+    const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking", who: 0 });
+    await approve(id);
+    expect(editCard(UID, id, cardMsg(id).id, { script: "Prospecting slips when nobody tracks it. ActivityTracker logs every call and follow-up in one tap, so you see what worked." })).toBeNull();
+    expect(cardMsg(id).card?.title).toBe('Talking video: "Prospecting slips when nobody tracks it..."');
+  });
+
   it("ends a receipt's line once, cut at a word, and says an 18-second video (D12)", async () => {
     // a woman's look, so Alice reads it: 46 words are 18 s in her voice
     const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking", who: 0 });

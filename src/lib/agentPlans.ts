@@ -162,7 +162,8 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** At most `n` characters, cut at a word (replay D12: "consi...", "follow-u...."). */
 const clip = (s: string, n: number) => {
   const t = s.replace(/\s+/g, " ").trim();
-  return t.length > n ? `${cutAtWord(t, n - 3)}...` : t;
+  // a cut at a sentence's end drops its mark, so it never reads "tracks it...."
+  return t.length > n ? `${cutAtWord(t, n - 3).replace(/[.!?]+$/, "")}...` : t;
 };
 /** A line as a sentence: a full stop only when it has no end mark of its own ("remember.. It's in My posts."). */
 const sentence = (s: string) => (/[.!?]$/.test(s.trim()) ? s.trim() : `${s.trim()}.`);
