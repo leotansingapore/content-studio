@@ -2,6 +2,7 @@
 // which slots are still open, and a starting set of slots from a posts-per-week goal. Pure, so the
 // calendar, Upcoming and the goal picker share one tested rule (postingSlots.test.ts).
 import { addDays, keyToDate, localDateKey, scheduleTime } from "@/lib/dueDates";
+import type { DraftEntry } from "@/lib/draftHistory";
 
 const SLOT_RE = /^([0-6])T(([01]\d|2[0-3]):[0-5]\d)$/;
 
@@ -44,6 +45,51 @@ export function openSlots(slots: string[], scheduledFor: string[], now: Date, da
     for (const time of free) if (date > today || time > nowHm) out.push({ date, time });
   }
   return out;
+}
+
+/** A brand kit's posting times: shared, and per network once "Same times on every network" is unticked (publish-queue). */
+export interface SlotBrand {
+  slots?: string[];
+  slotsBy?: Partial<Record<string, string[]>>;
+}
+
+type Held = Pick<DraftEntry, "platform" | "scheduledFor">;
+
+const perNetwork = (b: SlotBrand | null | undefined) => !!b?.slotsBy && Object.keys(b.slotsBy).length > 0;
+
+/** The times a network posts at: its own row with per-network times on, else the shared ones. */
+export const slotTimesFor = (b: SlotBrand | null | undefined, platform: string): string[] => (perNetwork(b) && b!.slotsBy![platform]) || b?.slots || [];
+
+/**
+ * The open slots for a post on this network, each at least 2 hours away. With per-network times on only posts on
+ * the same network hold a slot; with shared times every post does, so it is today's openSlots.
+ */
+export function nextOpenSlots(brand: SlotBrand | null | undefined, platform: string, scheduled: Held[], now: Date, days: number): OpenSlot[] {
+  const held = scheduled.filter((s) => s.scheduledFor && (!perNetwork(brand) || s.platform === platform)).map((s) => s.scheduledFor!);
+  const earliest = now.getTime() + 2 * 3_600_000;
+  // "YYYY-MM-DDTHH:MM" with no offset reads as local time, as the slots are
+  return openSlots(slotTimesFor(brand, platform), held, now, days).filter((o) => Date.parse(`${o.date}T${o.time}`) >= earliest);
+}
+
+/**
+ * Unscheduled drafts into open slots: oldest first, each into its network's next open slot, never two in one.
+ * `left` lists the drafts no slot in `days` took. It sets times only; nothing goes to Zernio.
+ */
+export function fillSlots(drafts: Pick<DraftEntry, "id" | "createdAt" | "platform">[], brand: SlotBrand | null | undefined, scheduled: Held[], now: Date, days = 14) {
+  const held = [...scheduled];
+  const placed: { draftId: string; at: string }[] = [];
+  const left: { draftId: string; platform: string }[] = [];
+  for (const d of [...drafts].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    const slot = nextOpenSlots(brand, d.platform, held, now, days)[0];
+    if (!slot) {
+      left.push({ draftId: d.id, platform: d.platform });
+      continue;
+    }
+    const at = `${slot.date}T${slot.time}`;
+    placed.push({ draftId: d.id, at });
+    held.push({ platform: d.platform, scheduledFor: at });
+  }
+  return { placed, left };
 }
 
 /** Weekdays (0 = Mon) for 1 to 7 posts a week, spread so posts never bunch up. */
