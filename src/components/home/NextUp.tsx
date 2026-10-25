@@ -98,13 +98,13 @@ export default function NextUp({ userId, input, today, markPosted, blocked, clas
         if (a.markPosted) {
           const why = blocked(a.markPosted);
           return (
-            <Button key={a.label} type="button" size="sm" variant="outline" onClick={() => markPosted(a.markPosted!)} disabled={why !== null} title={why ?? undefined} className="gap-1">
+            <Button key={a.label} type="button" size="sm" variant="outline" onClick={() => markPosted(a.markPosted!)} disabled={why !== null} title={why ?? undefined} className="gap-1 [@media(pointer:coarse)]:h-11">
               <CheckCircle2 /> {a.label}
             </Button>
           );
         }
         return (
-          <Button key={a.label} asChild size="sm" variant={main && i === 0 ? "default" : "outline"}>
+          <Button key={a.label} asChild size="sm" variant={main && i === 0 ? "default" : "outline"} className="[@media(pointer:coarse)]:h-11">
             <Link to={a.to!}>{a.label}</Link>
           </Button>
         );
