@@ -192,10 +192,16 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
       items.push({ id: `notes:${b.id}`, kind: "team", title: `Team notes: ${b.name}`, n: b.n, actions: [{ label: "Open", to: `/reels?brand=${encodeURIComponent(b.id)}&view=feed&stage=notes` }] });
 
   const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  for (const d of made)
+  // one row for them all, as overdue has, so a campaign's 24 made posts never bury what comes after (live-p6replay D15)
+  if (made.length === 1)
     items.push({
-      id: `draft:${d.id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(d), line: "Schedule it, or leave it in My posts.",
-      actions: [{ label: "Open", to: draftLink(d.id) }, { label: "Schedule", to: draftLink(d.id, "post") }],
+      id: `draft:${made[0].id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(made[0]), line: "Schedule it, or leave it in My posts.",
+      actions: [{ label: "Open", to: draftLink(made[0].id) }, { label: "Schedule", to: draftLink(made[0].id, "post") }],
+    });
+  else if (made.length)
+    items.push({
+      id: "unscheduled", kind: "unscheduled", title: `${made.length} posts are made and not scheduled`, quote: hookOf(made[0]), line: "Schedule them, or leave them in My posts.",
+      actions: [{ label: "Open", to: "/drafts?status=draft" }],
     });
 
   if (input.autopilot) items.push({ id: "autopilot", kind: "autopilot", title: "Posts for your OK", n: input.autopilot, actions: [{ label: "Open", to: "/plan#autopilot" }] });
