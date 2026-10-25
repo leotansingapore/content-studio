@@ -362,7 +362,7 @@ export interface UploadFile {
 
 export type PostRequest =
   | { action: "presign"; profileId: string; file: UploadFile }
-  | { action: "schedule"; profileId: string; accountIds: string[]; input: ScheduleInput }
+  | { action: "schedule"; profileId: string; accountIds: string[]; input: ScheduleInput; check?: true }
   | { action: "post" | "cancel" | "retry"; profileId: string; postId: string }
   | { action: "move"; profileId: string; postId: string; scheduledFor: string }
   | { action: "tiktok-creator-info"; profileId: string; accountId: string; mediaType: "video" | "photo" };
@@ -410,7 +410,9 @@ export function parsePostRequest(body: unknown, now = Date.now(), listed = false
     if (!Array.isArray(b.accountIds) || b.accountIds.length === 0) return bad("Pick an account to post to.");
     if (b.accountIds.length > SOCIAL_PLATFORMS.length * 2 || !b.accountIds.every(isZernioId)) return notFound;
     const input = checkSchedule(listed ? b : todays(b), now);
-    return "error" in input ? bad(input.error) : { ok: true, req: { action, profileId, accountIds: [...new Set(b.accountIds as string[])], input: input.value } };
+    // check is read for everyone, so northStarOnly refuses it off the list rather than letting it post for real
+    const check = b.check === true ? { check: true as const } : {};
+    return "error" in input ? bad(input.error) : { ok: true, req: { action, profileId, accountIds: [...new Set(b.accountIds as string[])], input: input.value, ...check } };
   }
   if (action === "tiktok-creator-info") {
     if (!isZernioId(b.accountId)) return notFound;
@@ -507,11 +509,63 @@ const ok = (body: Record<string, unknown>): Reply => ({ status: 200, body });
 
 /**
  * True for what only NORTH_STAR_USERS may send, on top of SOCIAL_CONNECT_USERS: a thread (formats-text-threads),
- * and a PDF's upload or post (formats-carousel-designs). index.ts asks it before counting a use; runPost again.
+ * a PDF's upload or post (formats-carousel-designs), and Zernio's own check (the ladder's rung 1).
+ * index.ts asks it before counting a use; runPost again.
  */
 export function northStarOnly(q: PostRequest): boolean {
   if (q.action === "presign") return q.file.contentType === PDF_TYPE;
-  return q.action === "schedule" && (!!q.input.thread || q.input.mediaUrls.some(isPdf));
+  return q.action === "schedule" && (!!q.check || !!q.input.thread || q.input.mediaUrls.some(isPdf));
+}
+
+/**
+ * Zernio's own checks, nothing saved: TikTok entries as a dryRun create (TikTok only, never with an Idempotency-Key),
+ * the other entries through /tools/validate/post and each file through /tools/validate/media.
+ */
+async function zernioCheck(z: Zernio, body: Record<string, unknown>, own: Set<string>): Promise<Reply> {
+  const entries = body.platforms as { platform: string }[];
+  const tiktok = entries.filter((p) => p.platform === "tiktok");
+  const others = entries.filter((p) => p.platform !== "tiktok");
+  const problems: string[] = [];
+  if (tiktok.length) {
+    let data: Record<string, unknown> | null = null;
+    try {
+      data = await z("POST", "/posts", { body: { ...body, platforms: tiktok, dryRun: true } });
+    } catch (e) {
+      // a body TikTok's rules refuse is the check's answer
+      if (!(e instanceof ZernioError) || (e.status !== 400 && e.status !== 422)) throw e;
+      problems.push(`TikTok: ${str(e.message)}`);
+    }
+    if (data && data.dryRun !== true) {
+      // Zernio made a real post: take it down before its time comes
+      if (isZernioId((data.post as { _id?: unknown } | undefined)?._id)) await z("DELETE", `/posts/${pathId(ownPost(data.post, own)._id)}`);
+      console.error("social: a check came back as a real post, cancelled", (data.post as { _id?: unknown } | undefined)?._id);
+      return { status: 502, body: { code: "not_a_check", error: "Zernio made a real post instead of checking it, so it was cancelled." } };
+    }
+    if (data && data.canPublish !== true) {
+      for (const v of Array.isArray(data.tiktok) ? data.tiktok : []) {
+        if (v?.canPublish === false) problems.push(`TikTok: ${str(v.reason ?? v.message) || "it can't take a direct post on this account right now."}`);
+      }
+    }
+  }
+  if (others.length) {
+    try {
+      const valid = await z("POST", "/tools/validate/post", { body: { ...body, platforms: others } });
+      for (const e of Array.isArray(valid?.errors) ? valid.errors : []) problems.push(`${nameOf(str(e?.platform, 40))}: ${str(e?.error)}`);
+      const files = await Promise.all((body.mediaItems as { url: string }[]).map(({ url }) => z("POST", "/tools/validate/media", { body: { url } })));
+      for (const m of files) {
+        if (m?.valid === false) problems.push(`A file: ${str(m.error) || "Zernio can't open it."}`);
+        for (const p of new Set(others.map((o) => o.platform))) {
+          const limit = m?.platformLimits?.[p];
+          if (limit?.withinLimit === false) problems.push(`${nameOf(p)}: a file is ${str(m.sizeFormatted, 20)}, over its ${str(limit.limitFormatted, 20)}.`);
+        }
+      }
+    } catch (e) {
+      // a restricted key without the validate group (unverified which one): the ladder skips this rung
+      if (e instanceof ZernioError && e.status === 403) return { status: 403, body: { code: "check_unavailable", error: "Zernio's check isn't open to this app's key." } };
+      throw e;
+    }
+  }
+  return ok({ check: { ok: problems.length === 0, problems } });
 }
 
 /** Runs one posting action for the caller's brand. mapped: the brand's Zernio profile, or null before its first connect. */
@@ -544,6 +598,7 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
     const accounts = requireAccounts(ids, q.accountIds).map((id) => own.find((a) => a._id === id)!);
     const why = platformProblem(q.input, accounts.map((a) => a.platform));
     if (why) return { status: 400, body: { error: why } };
+    if (q.check) return zernioCheck(z, postBody(q.input, accounts, now), ids);
     const data = await z("POST", "/posts", { body: postBody(q.input, accounts, now), idempotencyKey: idempotencyKey(uid, q.profileId, q.input.clientKey) });
     // H4: a replay of the key returns whatever post holds it; it must be this caller's
     return ok({ post: postView(ownPost(data?.post, ids)) });

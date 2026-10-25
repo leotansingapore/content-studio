@@ -54,6 +54,7 @@ beforeAll(async () => {
     sent.push({ call: `${method} ${url.pathname}`, body });
     if (url.pathname.endsWith("/accounts")) return answer({ accounts: accounts[url.searchParams.get("profileId") ?? ""] ?? [] });
     // a created post, shaped as https://docs.zernio.com/posts/create-post.mdx answers it
+    if (method === "POST" && url.pathname === "/api/v1/posts" && body?.dryRun === true) return answer({ dryRun: true, canPublish: true, tiktok: [] });
     if (method === "POST" && url.pathname === "/api/v1/posts" && Array.isArray(body?.platforms)) {
       return answer({ post: { _id: "67000000000000000000d001", status: "scheduled", platforms: body.platforms.map((p: { platform: string; accountId: string }) => ({ ...p, status: "pending" })) } });
     }
@@ -209,6 +210,24 @@ describe("the social function", () => {
       expect(JSON.stringify(posted()[2])).not.toBe(JSON.stringify(a));
       expect(JSON.stringify(posted()[2])).toContain('"tiktokSettings":{"draft":true');
       expect(JSON.stringify(posted()[2])).toContain('"collaborators":["moneybees"],"commentsEnabled":false');
+    });
+
+    it("refuses a check off NORTH_STAR_USERS before a use or a Zernio call, so it can never post for real", async () => {
+      const res = await call(UID, { ...today(), check: true });
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+      expect(db.spent).toEqual([]);
+      expect(zernio).toEqual([]);
+    });
+
+    it("counts a listed caller's check against the posting cap and sends TikTok as a dry run", async () => {
+      env.NORTH_STAR_USERS = UID;
+      accounts[MINE] = [{ _id: TT, platform: "tiktok", profileId: MINE }];
+      const res = await call(UID, { ...today(), accountIds: [TT], check: true });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ check: { ok: true, problems: [] } });
+      expect(db.spent).toEqual(["social-schedule"]);
+      expect(posted()).toEqual([expect.objectContaining({ dryRun: true })]);
     });
   });
 

@@ -381,6 +381,100 @@ describe("each network's own options (publish-per-network, Leo only)", () => {
   });
 });
 
+// The ladder's rung 1: Zernio's own checks, nothing saved. Fixtures copy
+// https://docs.zernio.com/posts/create-post.mdx (dryRun: TikTok only, 200 { dryRun: true, canPublish, tiktok: [one verdict
+// per entry] }; the verdict's fields beyond "a per-account go/no-go and a reason" are not documented, so accountId,
+// canPublish and reason are assumed), https://docs.zernio.com/validate/validate-post.mdx ({ valid, errors: [{ platform,
+// error }], warnings }), https://docs.zernio.com/validate/validate-media.mdx ({ valid, error, sizeFormatted, platformLimits })
+// and https://docs.zernio.com/api-keys/create-api-key.mdx (a restricted key's 403 code=insufficient_permissions).
+describe("check (Leo only): Zernio's own checks, nothing saved", () => {
+  const TWO = "https://media.zernio.com/temp/1_a_slide-02.png";
+  const tiktok = { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false };
+  const check = (accountIds: string[], i: ScheduleInput = input({ tiktok })): PostRequest => ({ action: "schedule", profileId: "me", accountIds, input: i, check: true } as PostRequest);
+  const go = { dryRun: true, canPublish: true, tiktok: [{ accountId: TT, canPublish: true }] };
+  const valid = { valid: true, message: "No validation issues found.", warnings: [] };
+  const file = (url: string, withinLimit = true) => ({ valid: true, url, contentType: "image/png", size: 245000, sizeFormatted: "245 KB", type: "image", platformLimits: { instagram: { limit: 8388608, limitFormatted: "8.0 MB", withinLimit } } });
+  const listed = () => vi.stubGlobal("Deno", { env: { get: (k: string) => (k === "NORTH_STAR_USERS" ? UID : undefined) } });
+  afterEach(() => vi.unstubAllGlobals());
+  const saved = (keys: string[]) => keys.filter((k) => k.startsWith("PUT ") || k.startsWith("DELETE ") || k.includes("/retry"));
+
+  it("sends TikTok as a dryRun create with no Idempotency-Key, and nothing else", async () => {
+    listed();
+    const f = fake({ "GET /accounts": accounts, "POST /posts": go });
+    expect(await runPost(f.z, MINE, UID, check([TT], input({ tiktok: { ...tiktok, mode: "inbox" } })), NOW)).toEqual({ status: 200, body: { check: { ok: true, problems: [] } } });
+    expect(f.keys()).toEqual(["GET /accounts", "POST /posts"]);
+    const req = f.req("POST /posts")!;
+    expect(req.idempotencyKey).toBeUndefined();
+    expect(req.body).toMatchObject({ dryRun: true, platforms: [{ platform: "tiktok", accountId: TT, platformSpecificData: { tiktokSettings: { draft: true } } }] });
+  });
+
+  it("names TikTok's no-go and a body it refuses as problems, not errors", async () => {
+    listed();
+    const busy = { dryRun: true, canPublish: false, tiktok: [{ accountId: TT, canPublish: false, reason: "TikTok direct posting is at capacity right now." }] };
+    const f = fake({ "GET /accounts": accounts, "POST /posts": busy });
+    expect(await runPost(f.z, MINE, UID, check([TT]), NOW)).toEqual({ status: 200, body: { check: { ok: false, problems: ["TikTok: TikTok direct posting is at capacity right now."] } } });
+    const quiet = fake({ "GET /accounts": accounts, "POST /posts": { dryRun: true, canPublish: false, tiktok: [{ accountId: TT, canPublish: false }] } });
+    expect((await runPost(quiet.z, MINE, UID, check([TT]), NOW)).body).toEqual({ check: { ok: false, problems: ["TikTok: it can't take a direct post on this account right now."] } });
+    const refused = fake({ "GET /accounts": accounts, "POST /posts": new ZernioError(400, "invalid_field_value", "Selected privacy level 'X' is not available for this creator.") });
+    expect((await runPost(refused.z, MINE, UID, check([TT]), NOW)).body).toEqual({ check: { ok: false, problems: ["TikTok: Selected privacy level 'X' is not available for this creator."] } });
+  });
+
+  it("sends Instagram, Facebook and LinkedIn to validate post, each file to validate media, and TikTok to its dry run alone", async () => {
+    listed();
+    const f = fake({ "GET /accounts": accounts, "POST /posts": go, "POST /tools/validate/post": valid, "POST /tools/validate/media": (r?: ZernioRequest) => file((r!.body as { url: string }).url) });
+    const both = input({ tiktok, mediaUrls: [PNG, TWO] });
+    expect(await runPost(f.z, MINE, UID, check([TT, IG], both), NOW)).toEqual({ status: 200, body: { check: { ok: true, problems: [] } } });
+    expect(f.keys()).toEqual(["GET /accounts", "POST /posts", "POST /tools/validate/post", "POST /tools/validate/media", "POST /tools/validate/media"]);
+    expect((f.req("POST /posts")!.body as { platforms: { platform: string }[] }).platforms.map((p) => p.platform)).toEqual(["tiktok"]);
+    const sentToValidate = f.req("POST /tools/validate/post")!;
+    expect(sentToValidate.body).not.toHaveProperty("dryRun");
+    expect((sentToValidate.body as { platforms: { platform: string }[] }).platforms.map((p) => p.platform)).toEqual(["instagram"]);
+    expect(f.calls.filter((c) => c.key === "POST /tools/validate/media").map((c) => c.req!.body)).toEqual([{ url: PNG }, { url: TWO }]);
+    expect(saved(f.keys())).toEqual([]);
+  });
+
+  it("lists what validate finds, and a file over a network's limit", async () => {
+    listed();
+    const f = fake({
+      "GET /accounts": accounts,
+      "POST /tools/validate/post": { valid: false, errors: [{ platform: "instagram", error: "Instagram allows at most 5 hashtags." }], warnings: [{ platform: "instagram", warning: "Near the limit." }] },
+      "POST /tools/validate/media": (r?: ZernioRequest) => ((r!.body as { url: string }).url === TWO ? file(TWO, false) : { valid: false, url: PNG, error: "URL returned 404" }),
+    });
+    expect((await runPost(f.z, MINE, UID, check([IG], input({ mediaUrls: [PNG, TWO] })), NOW)).body).toEqual({
+      check: { ok: false, problems: ["Instagram: Instagram allows at most 5 hashtags.", "A file: URL returned 404", "Instagram: a file is 245 KB, over its 8.0 MB."] },
+    });
+  });
+
+  it("answers check_unavailable when the key's group refuses validate, and checks nothing it can't take", async () => {
+    listed();
+    const denied = new ZernioError(403, "insufficient_permissions", "This API key has the 'publishing' resource group disabled. POST /api/v1/tools/validate/post requires it.");
+    for (const route of ["POST /tools/validate/post", "POST /tools/validate/media"]) {
+      const f = fake({ "GET /accounts": accounts, "POST /tools/validate/post": valid, "POST /tools/validate/media": file(PNG), [route]: denied });
+      expect(await runPost(f.z, MINE, UID, check([IG], input()), NOW), route).toEqual({ status: 403, body: { code: "check_unavailable", error: "Zernio's check isn't open to this app's key." } });
+    }
+    const empty = fake({ "GET /accounts": accounts });
+    expect(await runPost(empty.z, MINE, UID, check([IG], input({ mediaUrls: [] })), NOW)).toEqual({ status: 400, body: { error: "Instagram needs a picture or video." } });
+    expect(empty.keys()).toEqual(["GET /accounts"]);
+  });
+
+  it("cancels at once a real post Zernio makes when it ignores dryRun", async () => {
+    listed();
+    const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [TT]), [`DELETE /posts/${POST}`]: { message: "Deleted" } });
+    expect(await runPost(f.z, MINE, UID, check([TT]), NOW)).toEqual({ status: 502, body: { code: "not_a_check", error: "Zernio made a real post instead of checking it, so it was cancelled." } });
+    expect(f.keys()).toEqual(["GET /accounts", "POST /posts", `DELETE /posts/${POST}`]);
+  });
+
+  it("is Leo's: refused off NORTH_STAR_USERS before Zernio hears of it", async () => {
+    expect(northStarOnly(check([TT]))).toBe(true);
+    const f = fake({});
+    expect(await runPost(f.z, MINE, UID, check([TT]), NOW)).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
+    expect(f.keys()).toEqual([]);
+    // parsed for anyone, so the gate can refuse it rather than post it
+    expect(parsePostRequest({ action: "schedule", profileId: "me", accountIds: [TT], clientKey: KEY, content: "hi", scheduledFor: LATER, check: true }, NOW, false)).toMatchObject({ ok: true, req: { check: true } });
+    expect(parsePostRequest({ action: "schedule", profileId: "me", accountIds: [TT], clientKey: KEY, content: "hi", scheduledFor: LATER, check: "yes" }, NOW, true)).not.toHaveProperty("req.check");
+  });
+});
+
 describe("schedule", () => {
   it("posts from the caller's own accounts with the H4 key, and returns the checked post", async () => {
     const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG, LI]) });
