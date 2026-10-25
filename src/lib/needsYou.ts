@@ -191,7 +191,8 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
     for (const b of board ? notesByBrand(board, input.me) : [])
       items.push({ id: `notes:${b.id}`, kind: "team", title: `Team notes: ${b.name}`, n: b.n, actions: [{ label: "Open", to: `/reels?brand=${encodeURIComponent(b.id)}&view=feed&stage=notes` }] });
 
-  const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  // a draft Zernio holds (scheduled, in the TikTok inbox or failed) or one linked to a live post has a time already
+  const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && !d.zernio && !d.live && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   // one row for them all, as overdue has, so a campaign's 24 made posts never bury what comes after (live-p6replay D15)
   if (made.length === 1)
     items.push({

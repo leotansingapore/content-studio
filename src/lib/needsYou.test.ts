@@ -239,6 +239,17 @@ describe("needsYouItems", () => {
     expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in My posts.", actions: [{ label: "Open", to: links.generate({ draft: "m0" }) }, { label: "Schedule", to: links.generate({ draft: "m0", panel: "post" }) }] }]);
   });
 
+  it("leaves out a made post Zernio holds or one linked to a live post, since each has a time", () => {
+    const made = (id: string, over: Partial<DraftEntry> = {}) => draft({ id, hook: id, createdAt: "2026-10-13T00:00:00Z", agent: { thread: "t1", msg: id }, ...over });
+    const drafts = [
+      made("inbox", { zernio: { key: "k1", postId: "p1", status: "scheduled", drafts: true } as DraftEntry["zernio"] }),
+      made("sending", { zernio: { key: "k2" } }),
+      made("live", { live: { postId: "x", platform: "tiktok", by: "you", numbers: { at: "2026-10-13T00:00:00Z" } } as DraftEntry["live"] }),
+      made("plain"),
+    ];
+    expect(needsYouItems({ drafts }, TODAY, NOW).map((i) => i.id)).toEqual(["draft:plain"]);
+  });
+
   it("leaves out every kind whose source is missing", () => {
     expect(needsYouItems({ drafts: [] }, TODAY, NOW)).toEqual([]);
     const items = needsYouItems({ drafts: full.drafts, campaigns: [{ id: "c", name: "n", audienceName: "", posts: [post("ready")] }] }, TODAY, NOW);
