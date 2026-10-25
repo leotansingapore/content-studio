@@ -174,7 +174,7 @@ describe("the recorder", () => {
     const run = { id: 4, key: "top:abc", state: "working", step: "", run: { versions: 3 }, rows: [{ as: "post", state: "working" }] };
     stores.remix.emit(run);
     stores.remix.emit({ ...run, state: "done", rows: [row(1), row(2), row(3)] });
-    expect(rows()[0]).toMatchObject({ who: "you", kind: "remix", title: "Made 3 versions of a post", link: "/generate?draft=v1" });
+    expect(rows()[0]).toMatchObject({ who: "you", kind: "remix", title: "Made 3 versions of a text post", link: "/generate?draft=v1" });
   });
 
   it("logs a slideshow, a wall of text and a made scene when each one ends", () => {
