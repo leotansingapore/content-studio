@@ -127,14 +127,15 @@ export function optionsProblem(tabs: string[], versions: Versions, m: Media): st
 }
 
 // "#money #cpf" at the very end of the text, on its own line or after the last sentence
-const TRAILING_TAGS = /(?:\s*#[\p{L}\p{N}_]+)+\s*$/u;
+// a tag starts at the text's start or after a space, so "word#tag" is never split
+const TRAILING_TAGS = /(?:^|\s)((?:#[\p{L}\p{N}_]+\s*)+)$/u;
 
 /** The caption's trailing hashtags moved onto the end of the first comment, or null when it ends in none. */
 export function moveHashtags(text: string, comment = ""): { body: string; comment: string } | null {
   const m = TRAILING_TAGS.exec(text);
   const body = m ? text.slice(0, m.index).trimEnd() : "";
   if (!m || !body) return null;
-  const tags = m[0].trim().split(/\s+/).join(" ");
+  const tags = m[1].trim().split(/\s+/).join(" ");
   return { body, comment: comment.trim() ? `${comment.trim()}\n\n${tags}` : tags };
 }
 

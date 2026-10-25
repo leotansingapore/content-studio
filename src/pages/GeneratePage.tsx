@@ -1,3 +1,4 @@
+import { moveHashtags } from "@/components/NetworkCaptions";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RealQuestions from "@/components/RealQuestions";
 import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
@@ -543,17 +544,8 @@ export function versionOf(parent: DraftEntry, text: string, hook: string, formul
 // set ids sync inside the drafts key, so never uuid-shaped
 const newSetId = () => `vs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
-/**
- * Trailing hashtags taken off the post and added to its first comment (publish-comments-followups, Leo only); null
- * when the post does not end in hashtags or is nothing but hashtags.
- * shortcut: lives here until platformCounters.ts takes it beside moveLinksToComment (the schedule steps want it too).
- */
-export function moveHashtagsToComment(text: string, comment = ""): { body: string; comment: string } | null {
-  const m = text.match(/(?:^|\s)((?:#[\p{L}\p{N}_]+\s*)+)$/u);
-  const body = m ? text.slice(0, m.index).trimEnd() : "";
-  if (!m || !body) return null;
-  return { body, comment: [comment.trim(), m[1].trim().split(/\s+/).join(" ")].filter(Boolean).join("\n\n") };
-}
+/** Trailing hashtags into the first comment: one rule, shared with the schedule steps (NetworkCaptions). */
+export const moveHashtagsToComment = moveHashtags;
 /** The longest change the assistant passes in. */
 const MAX_ASK = 300;
 
