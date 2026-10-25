@@ -45,7 +45,7 @@ beforeEach(() => {
 
 const pick = (act: AgentAct, o: Partial<AgentPick> = {}): AgentPick => ({
   act, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null,
-  post: null, day: null, time: null, scope: null, ...o,
+  post: null, day: null, time: null, scope: null, subject: null, name: null, ...o,
 });
 
 describe("needsCard", () => {

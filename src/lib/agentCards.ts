@@ -51,6 +51,10 @@ export interface AgentPick {
   /** "HH:MM". */
   time: string | null;
   scope: LearningScope | null;
+  /** What a make is about, in the message's own words; "last" for another like the last make in the chat. */
+  subject: string | null;
+  /** The business a competitor message names. */
+  name: string | null;
 }
 /** Jev's probability for each question asked, null when it gave none. */
 export type AgentP = Record<string, number | null>;

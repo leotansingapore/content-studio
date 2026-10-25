@@ -180,7 +180,7 @@ const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
 const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$))/;
 const priced = () => fake.calls.filter((c) => PRICED.test(c));
-const pk = (o: Partial<ServerPick>): ServerPick => ({ act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null, ...o });
+const pk = (o: Partial<ServerPick>): ServerPick => ({ act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null, subject: null, name: null, ...o });
 const thread = (id: string) => loadThreads(UID).find((t) => t.id === id)!;
 const last = (id: string): AgentMsg => thread(id).messages[thread(id).messages.length - 1];
 const cardMsg = (id: string): AgentMsg => [...thread(id).messages].reverse().find((m) => m.card)!;
@@ -760,5 +760,63 @@ describe("cards change before the press", () => {
     expect(cardMsg(id).card).toMatchObject({ kind: "make", title: 'Carousel: "make a talking video about CPF"' });
     await approve(id);
     expect(editCard(UID, id, cardMsg(id).id, { format: "post" })).toBe("Approved. Ask for a new one to change it.");
+  });
+});
+
+describe("the 25 Oct replay: follow-ups keep their subject, titles name it, a competitor by name (D2, D3, D12)", () => {
+  const today = () => new Date().toISOString().slice(0, 10);
+  const SUBJECT = "keeping prospecting consistent with ActivityTracker";
+  const TALK = `make a talking head video about ${SUBJECT}`;
+
+  it("titles a card with Jev's subject, not the command, cut at a word (D12)", async () => {
+    const id = await say(TALK, { act: "make", format: "speaking", subject: SUBJECT });
+    expect(cardMsg(id).card?.title).toBe(`Talking video: "${SUBJECT}"`);
+    const pic = await say("make a picture of a phone on a cafe table showing a sales to-do list with three follow-ups ticked off", {
+      act: "make",
+      format: "image",
+      subject: "a phone on a cafe table showing a sales to-do list with three follow-ups ticked off",
+    });
+    expect(cardMsg(pic).card?.title).toBe("Picture: a phone on a cafe table showing a sales");
+  });
+
+  it("makes another one of the last make about its subject, and sends the last make to Jev (D3)", async () => {
+    const id = await say(TALK, { act: "make", format: "speaking", subject: SUBJECT });
+    const first = cardMsg(id).id;
+    await say("can you create another one", { act: "make", subject: "last" }, { thread: id });
+    expect(jev.bodies[1].last).toEqual({ format: "speaking", subject: SUBJECT });
+    const c = cardMsg(id);
+    expect(c.id).not.toBe(first);
+    expect([c.card?.kind, c.card?.title, fieldsOf(c.card!).topic]).toEqual(["video", `Talking video: "${SUBJECT}"`, TALK]);
+  });
+
+  it("offers cheaper chips about the subject, never the whole ask, so the picture chip is a picture (D3)", async () => {
+    const id = await say(TALK, { act: "make", format: "speaking", subject: SUBJECT });
+    fake.usage = { day: today(), used: { "ai-video": 2 } };
+    await say("can you create another talking video like the last one", { act: "make", format: "speaking", subject: "last" }, { thread: id });
+    expect(last(id).go?.map((g) => g.path)).toEqual([`say:Make a picture post about ${SUBJECT}`, `say:Write a script about ${SUBJECT}`]);
+    const t2 = await say("make a talking video about following up within a day of every client chat", { act: "make", format: "speaking", subject: "following up within a day of every client chat" });
+    expect(last(t2).go?.[0].path).toBe("say:Make a picture post about following up within a day of every client chat");
+  });
+
+  it("fills the competitor card from the name Jev read, with the read's price on the card (D2)", async () => {
+    const id = await say("add Finch as a competitor", { act: "competitor", name: "Finch" });
+    expect(last(id).text).toBe("This adds Finch once to the competitors you track.");
+    expect(cardMsg(id).card).toMatchObject({ title: "Add Finch as a competitor", price: priceOf("competitor-read") });
+    expect(priced()).toEqual([]);
+    await approve(id);
+    expect(priced()).toEqual(["runRead"]);
+  });
+
+  it("ends a receipt's line once, cut at a word, and says an 18-second video (D12)", async () => {
+    const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(id);
+    const words46 = Array.from({ length: 46 }, (_, i) => (i % 9 === 8 ? "end." : "word")).join(" ");
+    expect(editCard(UID, id, cardMsg(id).id, { script: words46 })).toBeNull();
+    expect(cardMsg(id).card?.line).toMatch(/^An 18-second video of/);
+    expect(editCard(UID, id, cardMsg(id).id, { script: SCRIPT })).toBeNull();
+    await approve(id);
+    const line = cardMsg(id).receipt!.line;
+    expect(line).not.toMatch(/\.\.\.\./);
+    expect(line).toMatch(/^Most people never check what CPF LIFE will pay them\. Here's where to see your\.\.\. It used/);
   });
 });

@@ -32,6 +32,7 @@ import { NOT_THROUGH, onRemixJob, remixJob, startRemix, writingStep } from "@/li
 import { linkRead, startLinkRead } from "@/lib/remixLink";
 import type { RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
+import { cutAtWord } from "@/lib/scriptCaption";
 import { removeSlideshow } from "@/lib/slideshow";
 import { onSlideshowJob, slideshowBusy, slideshowJob, startSlideshow, stepText as showStep } from "@/lib/slideshowJob";
 import { DEFAULT_LENGTH, TALK_LENGTHS, defaultWho, scriptEstimate, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
@@ -72,6 +73,8 @@ export interface PlanFields {
   format?: AgentFormat;
   /** The message, as the topic (MAX_TOPIC) or the note on a source. */
   topic?: string;
+  /** What it is about in the message's own words (Jev's subject), for titles, chips and "another one". */
+  subject?: string;
   source?: string;
   link?: string;
   who?: TalkWho;
@@ -143,7 +146,17 @@ const MAKE_LINE: Partial<Record<AgentFormat, string>> = {
   wall: "One bold claim over a short clip, opened in the video editor.",
 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 3).trimEnd()}...` : s);
+/** At most `n` characters, cut at a word (replay D12: "consi...", "follow-u...."). */
+const clip = (s: string, n: number) => {
+  const t = s.replace(/\s+/g, " ").trim();
+  return t.length > n ? `${cutAtWord(t, n - 3)}...` : t;
+};
+/** A line as a sentence: a full stop only when it has no end mark of its own ("remember.. It's in My posts."). */
+const sentence = (s: string) => (/[.!?]$/.test(s.trim()) ? s.trim() : `${s.trim()}.`);
+/** "A 15-second video", "An 18-second video". */
+const aSeconds = (n: number) => `${/^(8|11|18)$|^8\d$/.test(String(n)) ? "An" : "A"} ${n}-second video`;
+/** What a card's chips and titles name: Jev's subject, else the message as its topic. */
+export const subjectOf = (f: Pick<PlanFields, "subject" | "topic">) => f.subject ?? f.topic ?? "";
 /** The message as a topic: one line, MAX_TOPIC at most, cut at a word. */
 export function topicOf(text: string): string {
   const t = text.replace(/\s+/g, " ").trim();
@@ -231,6 +244,8 @@ export interface MakeAsk {
   speaker?: { id: string; look: string } | null;
   length?: TalkLength | null;
   correction?: PlanFields["correction"];
+  /** Jev's subject: the title and the chips name it instead of the message. */
+  subject?: string | null;
 }
 
 const card = (kind: AgentCard["kind"], f: PlanFields, c: Partial<AgentCard> & Pick<AgentCard, "title" | "line" | "needs">, now = new Date()): AgentCard => ({
@@ -274,24 +289,37 @@ function videoDetails(userId: string, f: PlanFields, seconds: number): AgentCard
 
 /** The first card of a make, before anything is written or paid for. */
 export function makeCard(userId: string, a: MakeAsk, now = new Date()): AgentCard {
-  const f: PlanFields = { plan: a.plan, act: a.act, p: a.p, format: a.format, topic: topicOf(a.topic), ...(a.source ? { source: a.source } : {}), ...(a.link ? { link: a.link } : {}), ...(a.correction ? { correction: a.correction } : {}) };
-  const about = clip(a.topic.replace(/\s+/g, " ").trim(), 60);
+  const subject = a.subject?.trim() ? topicOf(a.subject) : undefined;
+  const f: PlanFields = { plan: a.plan, act: a.act, p: a.p, format: a.format, topic: topicOf(a.topic), ...(subject ? { subject } : {}), ...(a.source ? { source: a.source } : {}), ...(a.link ? { link: a.link } : {}), ...(a.correction ? { correction: a.correction } : {}) };
+  // the title names the subject, not the command (replay D12)
+  const about = clip(subject ?? a.topic, 60);
   if (a.plan === "link")
     return card("make", f, { title: `Remix this link into a ${NOUN[a.format]}`, line: a.link ?? "", price: sum(price("remix-link"), price("remix-make")), needs: needsOf("link") }, now);
   if (a.plan === "speaking") {
     const w = whoFor(userId, a.speaker);
     const length = a.length ?? DEFAULT_LENGTH;
     const g: PlanFields = { ...f, ...w, length, voice: loadRemixPrefs(userId).voice };
-    return card("video", g, { step: "script", title: `Talking video: "${about}"`, line: `A ${length}-second video. The script comes first, then its price.`, details: videoDetails(userId, g, length), price: price("remix-make") ?? undefined, needs: needsOf("speaking", { write: true, presenter: newPresenter(g) }) }, now);
+    return card("video", g, { step: "script", title: `Talking video: "${about}"`, line: `${aSeconds(length)}. The script comes first, then its price.`, details: videoDetails(userId, g, length), price: price("remix-make") ?? undefined, needs: needsOf("speaking", { write: true, presenter: newPresenter(g) }) }, now);
   }
   if (a.plan === "explainer") {
     const g: PlanFields = { ...f, voice: loadRemixPrefs(userId).voice };
     return card("explainer", g, { step: "script", title: `Explainer video: "${about}"`, line: "The script and its scenes come first, then the video's price.", price: price("ai-video-script") ?? undefined, needs: needsOf("explainer") }, now);
   }
   if (a.plan === "image")
-    return card("image", f, { title: `Picture: ${a.topic.trim().slice(0, 40).trimEnd()}`, line: "One picture, 3:4, saved to Media under AI images.", prompt: a.topic.trim(), price: price("ai-image") ?? undefined, needs: needsOf("image") }, now);
+    return card("image", f, { title: `Picture: ${cutAtWord(subject ?? a.topic, 40)}`, line: "One picture, 3:4, saved to Media under AI images.", prompt: a.topic.trim(), price: price("ai-image") ?? undefined, needs: needsOf("image") }, now);
   return card("make", f, { title: `${cap(NOUN[a.format])}: "${about}"`, line: MAKE_LINE[a.format] ?? "", price: price("remix-make") ?? undefined, needs: needsOf(a.plan) }, now);
 }
+
+/** The newest make in a chat, for "another one" (replay D3): what it was, about what, and from which post or link. */
+export function lastMake(messages: AgentMsg[]): { format: AgentFormat; subject: string; topic: string; source?: string; link?: string } | null {
+  for (const m of [...messages].reverse()) {
+    const f = m.card ? fieldsOf(m.card) : null;
+    if (!f?.format || !MAKES.includes(f.plan)) continue;
+    return { format: f.format, subject: clip(subjectOf(f), 120), topic: f.topic ?? "", ...(f.source ? { source: f.source } : {}), ...(f.link ? { link: f.link } : {}) };
+  }
+  return null;
+}
+const MAKES: PlanName[] = ["post", "carousel", "script", "slideshow", "wall", "link", "speaking", "explainer", "image"];
 
 /** The plan a format runs, and the format a chip means. */
 export const planOf = (format: AgentFormat, link: string | null): MakeAsk["plan"] => (link && !["speaking", "explainer", "image"].includes(format) ? "link" : format);
@@ -303,6 +331,8 @@ export const formatFor = (picked: AgentFormat | null, chip: string | undefined, 
 /** Busy and budget before a make's card: the line instead of a card, or null when it may be proposed. */
 export async function makeCheck(userId: string, c: AgentCard, topic: string): Promise<Reply | null> {
   const f = fieldsOf(c);
+  // the refusal's chips ask again about the subject, never the whole ask (replay D3)
+  if (f.subject) topic = f.subject;
   const busy = busyLine(f.plan);
   if (busy) return { text: busy };
   // a talking video is checked for its video and voiceover too, so no script is written that can't be voiced
@@ -328,9 +358,12 @@ function rowOf(input: string): Omit<Competitor, "id" | "addedAt"> | null {
   };
 }
 
-/** The competitor card: its box filled from a link or @handle in the message, else empty; one already watched is said instead. */
-export function competitorCard(userId: string, message: string, act: AgentAct, p: PlanFields["p"], now = new Date()): Reply {
-  const word = message.match(/(?:https?:\/\/[^\s]+|@[A-Za-z0-9._]{2,30})/)?.[0] ?? "";
+/**
+ * The competitor card: its box filled from a link or @handle in the message, else the name Jev read in it, else empty;
+ * one already watched is said instead.
+ */
+export function competitorCard(userId: string, message: string, act: AgentAct, p: PlanFields["p"], now = new Date(), name: string | null = null): Reply {
+  const word = message.match(/(?:https?:\/\/[^\s]+|@[A-Za-z0-9._]{2,30})/)?.[0] ?? name?.trim() ?? "";
   const row = rowOf(word);
   const twin = row && loadCompetitors(userId).list.find((x) => sameCompetitor(x, row));
   if (twin) return { text: `You already watch ${twin.name}.`, go: [{ label: "Competitors", path: links.competitors({ view: "list" }) }] };
@@ -481,6 +514,7 @@ export function reformat(userId: string, c: AgentCard, format: AgentFormat): Age
     act: f.act,
     p: f.p,
     topic: f.topic ?? "",
+    subject: f.subject,
     source: f.source,
     link: f.link,
     speaker: f.who ? { id: f.who === "presenter" ? "new" : f.who, look: f.look ?? "" } : null,
@@ -501,7 +535,7 @@ export function withScript(userId: string, c: AgentCard, script: string): AgentC
     step: "video",
     title: `Talking video: "${clip(script.trim(), 50)}"`,
     // "It takes a few minutes and opens in the video editor." is the card's own row under the price (agent-approvals)
-    line: `A ${Math.round(est.seconds)}-second video of ${f.who === "mine" ? "you" : "your presenter"} saying this script.`,
+    line: `${aSeconds(Math.round(est.seconds))} of ${f.who === "mine" ? "you" : "your presenter"} saying this script.`,
     script: script.trim().split(/\n+|(?<=[.!?])\s+(?=[A-Z0-9"])/).map((l) => l.trim()).filter(Boolean),
     details: videoDetails(userId, g, est.seconds),
     price: est.price,
@@ -562,7 +596,7 @@ export function flagsFor(userId: string, text: string, mas?: boolean | null): st
 
 const videoReceipt = (hook: string, credits: number, open: string): Receipt => ({
   title: "Video made",
-  line: `${clip(hook.trim(), 80)}. It used ${credits} Higgsfield credits, about US$${creditsUsd(credits).toFixed(2)}.`,
+  line: `${sentence(clip(hook, 80))} It used ${credits} Higgsfield credits, about US$${creditsUsd(credits).toFixed(2)}.`,
   button: { label: "Open in the video editor", path: open },
   undoText: LINES.paid,
 });
@@ -585,7 +619,7 @@ function pressOf(userId: string, thread: string, msgId: string, card: AgentCard)
     /** Didn't go through, with cheaper chips that ask again. */
     fail(error: string) {
       c = nextCard(c, { type: "fail", error }) ?? { ...c, status: "failed", error };
-      put({ card: c, go: offerChips(f.plan, null, f.topic ?? "") });
+      put({ card: c, go: offerChips(f.plan, null, subjectOf(f)) });
     },
     /** The next press of the same card (a script's video, an edit's Use this). */
     step(s: CardStep, patch: Partial<AgentCard>) {
@@ -640,7 +674,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         const id = j.showId;
         pageUndos.set(msgId, () => void removeSlideshow(userId, id));
         const open = links.slideshow({ s: id });
-        return x.done({ title: "Slideshow made", line: `"${clip(f.topic ?? "", 80)}". It's in your slideshows.`, button: { label: "Open", path: open }, undo: { kind: "page", page: "Slideshows" } }, { kind: "slideshow", state: "done", open, title: f.topic ?? "" });
+        return x.done({ title: "Slideshow made", line: `"${clip(subjectOf(f), 80)}". It's in your slideshows.`, button: { label: "Open", path: open }, undo: { kind: "page", page: "Slideshows" } }, { kind: "slideshow", state: "done", open, title: subjectOf(f) });
       }
       case "wall": {
         live.call();
@@ -761,7 +795,7 @@ async function remixPress(userId: string, thread: string, msgId: string, x: Pres
   if (row?.state !== "done" || !row.draftId) return x.fail(row?.error ?? NOT_THROUGH);
   const draft = loadDrafts(userId).find((d) => d.id === row.draftId);
   x.done(
-    { title: `${cap(NOUN[as])} written`, line: `${row.hook ?? ""}. It's in My posts.`, button: { label: "Open", path: row.href ?? links.drafts() }, undo: { kind: "delete-drafts", ids: [row.draftId] } },
+    { title: `${cap(NOUN[as])} written`, line: `${row.hook ? `${sentence(row.hook)} ` : ""}It's in My posts.`, button: { label: "Open", path: row.href ?? links.drafts() }, undo: { kind: "delete-drafts", ids: [row.draftId] } },
     { kind: "remix", state: "done", drafts: [row.draftId], open: row.href, title: row.hook },
     { flags: flagsFor(userId, draft?.draft ?? row.hook ?? "", row.flags?.mas) },
   );

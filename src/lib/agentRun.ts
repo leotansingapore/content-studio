@@ -11,8 +11,8 @@ import { needsCard, nextCard, runUndo, UNDONE, type AgentCard, type AgentFormat,
 import { forgetPick, lastUndoable, learningLines, LEARNING_REMOVED, memoryAnswer, SEE_LEARNED, undidLine, UNDO_LINE, dismissNudge, noteCorrection } from "@/lib/agentMemory";
 import {
   answerCard, approveLabel, blockedReason, campaignReply, changeCard, chipFormat, competitorCard, dockCard, dropPageUndo, fieldsOf, formatFor, holdTarget,
-  learningCard, LINES, linkIn, makeCard, makeCheck, MAX_SCRIPT_WORDS, MIN_SCRIPT_WORDS, offerChips, OPEN_ANALYTICS, OPEN_SWIPE, OPEN_VOICE, pageUndo, planOf,
-  reformat, resumePress, runPress, setNavigate, topicOf, usageNow, withInput, withScript, withWho, type Chip as GoChip, type Live, type Reply,
+  lastMake, learningCard, LINES, linkIn, makeCard, makeCheck, MAX_SCRIPT_WORDS, MIN_SCRIPT_WORDS, offerChips, OPEN_ANALYTICS, OPEN_SWIPE, OPEN_VOICE, pageUndo, planOf,
+  reformat, resumePress, runPress, setNavigate, subjectOf, topicOf, usageNow, withInput, withScript, withWho, type Chip as GoChip, type Live, type Reply,
 } from "@/lib/agentPlans";
 import { appendMsg, loadThreads, newMsg, newThread, patchMsg, type AgentMsg, type AgentThread, type TurnState } from "@/lib/agentThreads";
 import { logActivity } from "@/lib/activity";
@@ -254,6 +254,8 @@ export function clientPick(pick: ServerPick, sent: Pick<Sent, "speakers" | "audi
     day: pick.day,
     time: pick.time,
     scope: pick.scope,
+    subject: pick.subject,
+    name: pick.name,
   };
 }
 
@@ -271,6 +273,7 @@ async function decide(userId: string, thread: string, msg: string, text: string,
   const sent = sentLists(userId, api);
   const pending = onlyProposed(messages);
   const target = currentEditTarget();
+  const made = lastMake(messages);
   const fields: AgentAsk = {
     ...(o.chip ? { chip: o.chip } : {}),
     speaker: speakerFor(userId),
@@ -283,6 +286,7 @@ async function decide(userId: string, thread: string, msg: string, text: string,
     audiences: sent.audiences.map(({ id, name }) => ({ id, name })),
     skills: sent.skills.map(({ slash: s, name, instruction }) => ({ slash: s, name, instruction })),
     competitorAds: hasAds(userId),
+    ...(made ? { last: { format: made.format, subject: made.subject } } : {}),
   };
   let ans: { pick: ServerPick | null; p: ServerP } | null = null;
   // Jev reads English best: other text works through the chips and "/" only
@@ -317,9 +321,9 @@ async function decide(userId: string, thread: string, msg: string, text: string,
       return typed(userId, thread, text, act, pending);
     case "make":
     case "remix":
-      return makeReply(userId, text, act, cp, p, src, o.chip, speaker);
+      return makeReply(userId, text, act, cp, p, src, o.chip, speaker, made);
     case "competitor":
-      return competitorCard(userId, text, act, p);
+      return competitorCard(userId, text, act, p, undefined, cp.name);
     case "campaign":
       return campaignReply(userId, { audience: cp.audience, weeks: cp.weeks, pace: cp.pace, format: cp.format, act, p }).then((r) => (r.card ? guard(userId, r, text) : r));
     case "capabilities":
@@ -370,11 +374,18 @@ async function guard(userId: string, r: Reply, text: string): Promise<Reply> {
   return (r.card && (await makeCheck(userId, r.card, topicOf(text)))) || r;
 }
 
-async function makeReply(userId: string, text: string, act: AgentPick["act"], cp: AgentPick, p: Record<string, number | null>, src: ReturnType<typeof resolveSource>, chip: Chip | undefined, speaker: { id: string; look: string } | null): Promise<Reply> {
-  const link = src ? null : linkIn(text);
-  if (act === "remix" && !src && !link) return { text: LINES.noSource, go: [OPEN_SWIPE, OPEN_ANALYTICS] };
-  const format = formatFor(cp.format, chip, src);
-  const c = makeCard(userId, { plan: planOf(format, link), format, act, p, topic: text, source: src?.key, link: link ?? undefined, speaker, length: cp.length });
+async function makeReply(
+  userId: string, text: string, act: AgentPick["act"], cp: AgentPick, p: Record<string, number | null>, src: ReturnType<typeof resolveSource>, chip: Chip | undefined,
+  speaker: { id: string; look: string } | null, made: ReturnType<typeof lastMake>,
+): Promise<Reply> {
+  // "another one": the last make's subject and source, in the format asked or the same one (replay D3)
+  const again = cp.subject === "last" ? made : null;
+  const from = again ? (again.source ? resolveSource(again.source, userId) : null) : src;
+  const link = again ? (again.link ?? null) : src ? null : linkIn(text);
+  if (act === "remix" && !from && !link) return { text: LINES.noSource, go: [OPEN_SWIPE, OPEN_ANALYTICS] };
+  const format = again ? (cp.format ?? again.format) : formatFor(cp.format, chip, src);
+  const subject = again ? again.subject : cp.subject;
+  const c = makeCard(userId, { plan: planOf(format, link), format, act, p, topic: again ? again.topic || again.subject : text, subject, source: from?.key, link: link ?? undefined, speaker, length: cp.length });
   return (await makeCheck(userId, c, topicOf(text))) ?? { text: LINES.lead, card: c };
 }
 
@@ -513,7 +524,7 @@ export async function press(userId: string, threadId: string, msgId: string, but
   try {
     const reason = blockedReason(userId, c, await usageNow());
     if (reason) {
-      put(userId, threadId, msgId, { card: { ...c, error: reason }, go: offerChips(fieldsOf(c).plan, null, fieldsOf(c).topic ?? "") });
+      put(userId, threadId, msgId, { card: { ...c, error: reason }, go: offerChips(fieldsOf(c).plan, null, subjectOf(fieldsOf(c))) });
     } else {
       shadow(userId, c, true);
       if (fieldsOf(c).plan === "answer") await pressAnswer(userId, threadId, msgId, starting, live);

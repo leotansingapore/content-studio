@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
 import { leftOf, limitOf } from "@/lib/agentBudget";
 import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
-import { fieldsOf, MAX_SCRIPT_WORDS, offerChips, withInput } from "@/lib/agentPlans";
+import { fieldsOf, MAX_SCRIPT_WORDS, offerChips, subjectOf, withInput } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
@@ -143,7 +143,7 @@ export default function ActionCard({
   // the line under Approve: today's reason, else the one a refused press left (the engine read the uses again)
   const shown = reason ?? (status === "proposed" ? (card.error ?? null) : null);
   // the engine's cheaper chips, unless a refused press already put them under the message
-  const offers = shown && !shown.startsWith("Another") && !msg.go?.length ? offerChips(fieldsOf(card).plan, usage, fieldsOf(card).topic ?? "") : [];
+  const offers = shown && !shown.startsWith("Another") && !msg.go?.length ? offerChips(fieldsOf(card).plan, usage, subjectOf(fieldsOf(card))) : [];
   const quiet = "h-11 sm:h-9";
 
   return (
