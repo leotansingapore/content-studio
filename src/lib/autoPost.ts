@@ -22,7 +22,6 @@ import {
   PDF_TYPE,
   platformProblem,
   type CreatorInfo,
-  type PlatformResult,
   type PostView,
   type ScheduleInput,
   type TikTokInput,
@@ -56,8 +55,6 @@ export const sgLabel = (iso: string) =>
 
 // ---- the status chip ----
 
-// shortcut: social-server adds PlatformResult.draft in wave 1's merge; then this is PostView itself
-type View = Omit<PostView, "platforms"> & { platforms: (PlatformResult & { draft?: boolean })[] };
 
 export type ChipTone = "wait" | "good" | "bad" | "muted";
 
@@ -209,7 +206,7 @@ export async function uploadAll(profileId: string, files: MediaFile[], done: Map
  * The draft's link from what Zernio says about its post: status, time, each live post's link, the first reason it
  * failed, the networks when there are several (one network is the draft's own, as before) and those sent as drafts.
  */
-export function linkFromView(key: string, v: View): ZernioLink {
+export function linkFromView(key: string, v: PostView): ZernioLink {
   const links = v.platforms.filter((p) => p.url && /^https:\/\//.test(p.url)).map((p) => ({ platform: p.platform, url: p.url! }));
   const error = v.platforms.find((p) => p.error)?.error;
   const platforms = [...new Set(v.platforms.map((p) => p.platform))];
@@ -227,7 +224,7 @@ export function linkFromView(key: string, v: View): ZernioLink {
 }
 
 /** Whether a read of the post means it is live, so the draft is marked posted: published, unless every entry went to an inbox. */
-export const postedNow = (v: View) => v.status === "published" && !(v.platforms.length && v.platforms.every((p) => p.draft));
+export const postedNow = (v: PostView) => v.status === "published" && !(v.platforms.length && v.platforms.every((p) => p.draft));
 
 export const TIKTOK_BUSY = "TikTok is busy for direct posts right now. Send it to your inbox instead, or retry in a few hours.";
 // Zernio's TikTok errors (docs.zernio.com/platforms/tiktok/posts.mdx, read 20 Oct 2026)
