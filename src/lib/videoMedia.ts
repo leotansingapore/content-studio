@@ -1742,6 +1742,24 @@ export function layOver(settings: EditSettings, laid: Partial<EditSettings>, pla
   const overlays = [...byHand(settings.overlays), ...(laid.overlays ?? [])];
   return { ...settings, ...laid, broll: broll.length ? broll : undefined, overlays: overlays.length ? overlays : undefined };
 }
+
+/**
+ * The plan's cutaways and labels moved from the words' clock, where compilePlan places them, to the finished video's
+ * clock that the editor draws them on, after the pauses these settings cut (planFor); a time inside a cut moves to
+ * where the video goes on. Key lines stay on the words' clock, as the editor reads them.
+ */
+export function onOutputClock(s: EditSettings, words: Word[], duration: number, planId: string): EditSettings {
+  const { segs } = planFor(words, duration, s);
+  const speed = speedOf(s);
+  const end = totalLength(segs) / speed;
+  const out = (t: number) => {
+    const g = segs.find((x) => t < x.end);
+    return Math.round((g ? outAt(segs, Math.max(t, g.start), speed) ?? end : end) * 100) / 100;
+  };
+  const move = <T extends { id: string; from: number; to: number }>(list: T[] | undefined) =>
+    list?.map((x) => (x.id.startsWith(`b-${planId}-`) || x.id.startsWith(`o-${planId}-`) ? { ...x, from: out(x.from), to: Math.max(out(x.from) + 0.1, out(x.to)) } : x));
+  return { ...s, broll: move(s.broll), overlays: move(s.overlays) };
+}
 let joinJob: JoinJob | null = null;
 /**
  * Finished joins /edit hasn't taken, moved aside when another join started (live-p6replay D1: a wall waiting for the

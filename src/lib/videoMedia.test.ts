@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
 import {
-  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, layOver, mergeExtra, onJoinJob, pickupPlan, planFor, seek, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
+  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, layOver, mergeExtra, onJoinJob, onOutputClock, pickupPlan, planFor, seek, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
   TAP_TO_FINISH, withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
 } from "./videoMedia";
 
@@ -208,6 +208,21 @@ describe("layOver (same edit)", () => {
     expect(layOver(base, laid, "ep-2").broll).toHaveLength(3);
     // nothing laid and nothing kept leaves no empty lists behind
     expect(layOver(defaultSettings("bold"), {}, "ep-1")).toMatchObject({ broll: undefined, overlays: undefined });
+  });
+
+  it("moves the plan's cutaways and labels onto the finished video's clock after the pause it cuts, and nothing else", () => {
+    // a 2.5 s pause from 1 s to 3.5 s, cut down to 0.4 s: everything after it plays 2.1 s earlier
+    const words = [{ w: "Most", s: 0, e: 0.5 }, { w: "people.", s: 0.5, e: 1 }, { w: "Check", s: 3.5, e: 4 }, { w: "yours.", s: 4, e: 4.6 }];
+    const s = { ...defaultSettings("bold"), maxPause: 0.4, broll: [{ ...clip, id: "b-ep-1-1", from: 3.5, to: 4.6 }, { ...clip, id: "bh1", from: 3.5, to: 4 }], overlays: [text("o-ep-1-0", 0)] };
+    const out = onOutputClock(s, words, 5, "ep-1");
+    const plan = planFor(words, 5, s);
+    const at = (src: number) => plan.segs.reduce((t, g) => t + Math.max(0, Math.min(src, g.end) - g.start), 0);
+    expect(out.broll![0].from).toBeCloseTo(at(3.5), 2);
+    expect(out.broll![0].from).toBeLessThan(2);
+    expect(out.broll![1]).toEqual(s.broll[1]);
+    expect(out.overlays![0].from).toBe(0);
+    // with no pause cut the clocks agree
+    expect(onOutputClock({ ...s, maxPause: 5 }, words, 5, "ep-1").broll![0].from).toBe(3.5);
   });
 });
 

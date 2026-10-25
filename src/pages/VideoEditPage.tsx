@@ -197,6 +197,7 @@ import {
   type JoinExtra,
   pickupPlan,
   type PickupPath,
+  onOutputClock,
 } from "@/lib/videoMedia";
 import type { VersionPlan } from "@/lib/exportVersions";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
@@ -381,7 +382,10 @@ export default function VideoEditPage() {
       let silent = false;
       try {
         if (timed || said) {
-          p = { ...p, words: timed ?? scriptWords(said!, duration) };
+          const words = timed ?? scriptWords(said!, duration);
+          const planned = pickupPlan(extra, "captions").keep.plan;
+          // a plan's cutaways and labels come laid on the words' clock; the editor draws them on the finished video's
+          p = { ...p, words, ...(planned ? { settings: onOutputClock(p.settings, words, duration, planned.id) } : {}) };
           setProjects(saveProject(uid, p));
           landed = true;
         } else {
