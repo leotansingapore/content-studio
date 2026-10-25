@@ -36,6 +36,8 @@ export interface SlideshowAsk {
   note: string;
   size: Extract<ShowSize, "4x5" | "9x16">;
   pictures: ShowPictures;
+  /** The agent's chat that asked for it: Activity logs the run as the agent's (live-p6replay D6). */
+  agent?: { thread: string; msg: string };
 }
 
 export interface SlideshowJob {

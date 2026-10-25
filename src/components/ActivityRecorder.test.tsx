@@ -198,6 +198,35 @@ describe("the recorder", () => {
     ]);
   });
 
+  it("logs what the agent started as the agent's: a slideshow, a wall, a picture, a presenter, a video and a script (live-p6replay D6)", () => {
+    const agent = { thread: "t1", msg: "m1" };
+    const show = { source: null, topic: "Follow-ups", mention: true, note: "", size: "4x5", pictures: "stock", agent };
+    stores.show.emit({ id: 1, state: "writing", done: 0, of: 0, ask: show });
+    stores.show.emit({ id: 1, state: "done", done: 5, of: 5, ask: show, showId: "s1" });
+    stores.wall.emit({ id: 1, state: "writing", ask: { source: null, about: "Log it once", agent } });
+    stores.wall.emit({ id: 1, state: "done", ask: { source: null, about: "Log it once", agent } });
+    stores.image.emit({ prompt: "A phone on a cafe table", state: "working", agent });
+    stores.image.emit({ prompt: "A phone on a cafe table", state: "done", mediaKey: "m1", agent });
+    stores.talk.emit({ id: 1, state: "writing", step: "", params: {}, ask: { agent } });
+    stores.talk.emit({ id: 1, state: "written", step: "", params: {}, ask: { agent }, script: "Log it once." });
+    stores.ai.emit({ kind: "presenter", state: "working", step: "", agent });
+    stores.ai.emit({ kind: "presenter", state: "done", step: "", url: "https://x/p.png", agent });
+    stores.ai.emit({ kind: "avatar", state: "working", step: "Making your video", agent });
+    stores.ai.emit({ kind: "avatar", state: "done", step: "", agent });
+    // the same jobs with no chat on them stay yours
+    stores.image.emit({ prompt: "Hawker", state: "working" });
+    stores.image.emit({ prompt: "Hawker", state: "done", mediaKey: "m2" });
+    expect(rows().map((r) => [r.who, r.title])).toEqual([
+      ["agent", "Made a slideshow"],
+      ["agent", "Made a wall of text"],
+      ["agent", "Made a picture"],
+      ["agent", "Wrote a talking video script"],
+      ["agent", "Made a presenter picture"],
+      ["agent", "Made an avatar video"],
+      ["you", "Made a picture"],
+    ]);
+  });
+
   it("logs nothing while the log is off", () => {
     setActivityOn(false);
     stores.image.emit({ prompt: "Hawker", state: "working" });

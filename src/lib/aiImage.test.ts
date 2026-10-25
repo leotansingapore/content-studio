@@ -202,6 +202,40 @@ describe("a reload while a picture is made (D4)", () => {
   });
 });
 
+describe("a picture the agent asked for (live-p6replay D6)", () => {
+  const store = new Map<string, string>();
+  const done = { state: "done", url: "https://cdn.higgsfield.ai/t9.png" };
+  beforeEach(() => {
+    store.clear();
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+  });
+
+  it("carries the agent's chat on every state and through a reload, and the next make without one carries none", async () => {
+    const agent = { thread: "t1", msg: "m1" };
+    let kept: unknown = null;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      if ((body as Body).mode !== "status") return { token: "t1" };
+      kept = JSON.parse(store.get("cs-ai-image-making-u1") ?? "null");
+      return done;
+    });
+    const seen: unknown[] = [];
+    const off = onImageJob((j) => seen.push(j?.agent));
+    await settle(makeImage("u1", "A phone on a cafe table", "Cafe", undefined, agent));
+    expect(seen).toEqual([agent, agent, agent]);
+    expect(kept).toMatchObject({ agent });
+    store.set("cs-ai-image-making-u1", JSON.stringify({ token: "t9", prompt: "A phone", name: "Cafe", agent }));
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    expect(imageJob()).toMatchObject({ state: "done", agent });
+    seen.length = 0;
+    await settle(makeImage("u1", "A hawker centre", "Hawker"));
+    off();
+    expect(seen).toEqual([undefined, undefined, undefined]);
+  });
+});
+
 describe("Leo's learnings in the picture prompt", () => {
   const store = new Map<string, string>();
   const learn = (n: number) =>

@@ -34,6 +34,8 @@ export interface AiJob {
   error?: string;
   /** The presenter picture's link, once made. */
   url?: string;
+  /** The agent's chat that started it: Activity logs it as the agent's (live-p6replay D6). */
+  agent?: { thread: string; msg: string };
 }
 
 /** Each one a different Singaporean, so no two presenters share a face (Leo's rule). */
@@ -58,10 +60,14 @@ const SLOW = "It's taking too long. Try again later.";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let job: AiJob | null = null;
+/** Who started the run now going (one runs at a time): every state it emits carries it, and its end clears it. */
+let by: AiJob["agent"];
 const listeners = new Set<(j: AiJob | null) => void>();
 const set = (j: AiJob) => {
-  job = j;
-  listeners.forEach((l) => l({ ...j }));
+  const next = by ? { ...j, agent: by } : j;
+  if (j.state !== "working") by = undefined;
+  job = next;
+  listeners.forEach((l) => l({ ...next }));
 };
 export const aiJob = () => job;
 export function onAiJob(fn: (j: AiJob | null) => void): () => void {
@@ -157,8 +163,9 @@ const fail = (kind: AiJob["kind"], e: unknown) =>
 // ---------- AI presenter ----------
 
 /** `setting` is one of ai-video's presenter settings (logic.ts SETTINGS); none is today's office. */
-export async function makePresenter(look: string, setting?: string): Promise<void> {
+export async function makePresenter(look: string, setting?: string, agent?: AiJob["agent"]): Promise<void> {
   if (aiBusy()) return;
+  by = agent;
   set({ kind: "presenter", state: "working", step: "Making your presenter..." });
   try {
     const { token } = await callFn<{ token: string }>("ai-video", { mode: "presenter", look, ...(setting ? { setting } : {}) }, "Couldn't make the presenter. Try again in a minute.");
@@ -203,6 +210,8 @@ export interface Pending {
   extra?: JoinExtra;
   /** Device file takes (putFile keys) joined after the clip, each from `start` (0 when missing) to `end`: a demo after a spoken hook. */
   after?: { key: string; start?: number; end: number }[];
+  /** The agent's chat that started it, kept so a reload's pickup still logs as the agent's. */
+  agent?: AiJob["agent"];
 }
 export function pendingAvatar(): Pending | null {
   try {
@@ -243,6 +252,7 @@ async function keepParts(p: Pending, clips: Blob[]): Promise<JoinExtra | undefin
 async function finishAvatar(p: Pending): Promise<void> {
   const n = p.tokens.length;
   const kind = p.kind ?? "avatar";
+  by = p.agent && typeof p.agent.thread === "string" && typeof p.agent.msg === "string" ? { thread: p.agent.thread, msg: p.agent.msg } : undefined;
   set({ kind, state: "working", step: `Making your video, 0 of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` });
   try {
     const urls = await waitFor(p.tokens, (d) =>
@@ -279,19 +289,20 @@ const wavSlices = (voice: Voiceover) =>
   })));
 const faceBody = async (photo: Blob | string) => (typeof photo === "string" ? { url: photo } : { jpeg: await b64(await toJpeg(photo)) });
 
-export async function makeAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra): Promise<void> {
+export async function makeAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra, agent?: AiJob["agent"]): Promise<void> {
   if (aiBusy()) return;
-  await startAvatar(name, photo, voice, extra);
+  await startAvatar(name, photo, voice, extra, agent);
 }
 
-async function startAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra): Promise<void> {
+async function startAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra, agent?: AiJob["agent"]): Promise<void> {
+  by = agent;
   set({ kind: "avatar", state: "working", step: "Sending your voiceover and photo..." });
   let p: Pending;
   try {
     const slices = await wavSlices(voice);
     const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: await faceBody(photo), slices }, RETRY);
     const seconds = slices.map((s) => s.seconds);
-    p = { name, tokens, seconds, refund, extra: keepsParts(extra) ? withParts(extra!, seconds, voice.slices.map((s) => s.text ?? "")) : extra };
+    p = { name, tokens, seconds, refund, extra: keepsParts(extra) ? withParts(extra!, seconds, voice.slices.map((s) => s.text ?? "")) : extra, ...(agent ? { agent } : {}) };
     keepPending(p);
   } catch (e) {
     return fail("avatar", e);

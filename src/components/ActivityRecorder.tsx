@@ -3,8 +3,8 @@
 // for anyone else). The stores re-emit the same state many times, so a row is written only on a change from a
 // running state to an ended one, against the last state seen. Each job logs its own part once: an AI video's
 // presenter and clips log through the AI video store, so the talking video and the remix log only what they did
-// themselves. A make the agent started logs here too (agent-chat adds no logging of its own); a remix draft that
-// carries the agent's chat reads as the agent's.
+// themselves. A make the agent started logs here too (agent-chat adds no logging of its own): a remix draft, or a
+// slideshow, wall, picture, AI video or talking video whose ask or state carries the agent's chat, reads as the agent's.
 import { useEffect } from "react";
 import { logActivity, type NewActivity } from "@/lib/activity";
 import { AI_FOLDER, imageJob, onImageJob, type ImageJob } from "@/lib/aiImage";
@@ -27,6 +27,9 @@ const quoted = (t: string | undefined, max = 70) => {
 const list = (words: string[]) => (words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`);
 
 type Ended<J> = (before: J, after: J) => NewActivity | null;
+
+/** The agent's when the job carries its chat (agent: { thread, msg }), else yours. */
+const whoOf = (agent: unknown): NewActivity["who"] => (agent ? "agent" : "you");
 
 /** Logs `ended(before, after)` on each change; a repeat, a null or a throw logs nothing and never reaches the job. */
 function watch<J>(subscribe: (fn: (j: J | null) => void) => () => void, now: J | null, ended: Ended<J>, log: (e: NewActivity) => void): () => void {
@@ -68,27 +71,30 @@ const remixEnded =
 const AI_NOUN: Record<AiJob["kind"], string> = { presenter: "presenter picture", avatar: "avatar video", explainer: "explainer video", template: "template clip" };
 const aiEnded: Ended<AiJob> = (b, j) => {
   if (b.kind !== j.kind || b.state !== "working" || j.state === "working") return null;
-  if (j.state === "done") return { who: "you", kind: "make", title: `Made ${a(AI_NOUN[j.kind])}`, link: links.edit() };
+  const who = whoOf(j.agent);
+  if (j.state === "done") return { who, kind: "make", title: `Made ${a(AI_NOUN[j.kind])}`, link: links.edit() };
   // over 20 minutes at Higgsfield is not a failure: the paid video is kept and picked up later
-  return { who: "you", kind: "make", title: `The ${AI_NOUN[j.kind]} ${j.error === STILL_MAKING ? "is still being made" : "could not be made"}`, detail: j.error, link: links.edit() };
+  return { who, kind: "make", title: `The ${AI_NOUN[j.kind]} ${j.error === STILL_MAKING ? "is still being made" : "could not be made"}`, detail: j.error, link: links.edit() };
 };
 
 const imageBusy = (j: ImageJob) => j.state === "working" || j.state === "saving";
 const imageEnded: Ended<ImageJob> = (b, j) => {
   if (!imageBusy(b) || imageBusy(j)) return null;
   const link = links.media({ folder: AI_FOLDER });
+  const who = whoOf(j.agent);
   // a failed fix puts the picture before it back as done, with fixError: that picture stays, so nothing logs
-  if (b.fix) return j.state === "done" && !j.fixError ? { who: "you", kind: "make", title: "Fixed a picture", detail: b.fix, link } : null;
-  if (j.state === "done") return { who: "you", kind: "make", title: "Made a picture", detail: j.prompt.slice(0, 120), link };
-  return { who: "you", kind: "make", title: "A picture could not be made", detail: j.error };
+  if (b.fix) return j.state === "done" && !j.fixError ? { who, kind: "make", title: "Fixed a picture", detail: b.fix, link } : null;
+  if (j.state === "done") return { who, kind: "make", title: "Made a picture", detail: j.prompt.slice(0, 120), link };
+  return { who, kind: "make", title: "A picture could not be made", detail: j.error };
 };
 
 const showBusy = (j: SlideshowJob) => j.state === "writing" || j.state === "finding" || j.state === "drawing";
 const slideshowEnded: Ended<SlideshowJob> = (b, j) => {
   if (b.id !== j.id || !showBusy(b) || showBusy(j)) return null;
   const about = j.ask.source?.title || j.ask.topic;
-  if (j.state === "done") return { who: "you", kind: j.ask.source ? "remix" : "make", title: "Made a slideshow", detail: about, link: links.slideshow({ s: j.showId }) };
-  return { who: "you", kind: "make", title: "A slideshow could not be made", detail: j.error };
+  const who = whoOf(j.ask.agent);
+  if (j.state === "done") return { who, kind: j.ask.source ? "remix" : "make", title: "Made a slideshow", detail: about, link: links.slideshow({ s: j.showId }) };
+  return { who, kind: "make", title: "A slideshow could not be made", detail: j.error };
 };
 
 const wallBusy = (j: WallJob) => j.state === "writing" || j.state === "finding" || j.state === "clip" || j.state === "joining";
@@ -97,16 +103,18 @@ const wallEnded =
   (b, j) => {
     if (b.id !== j.id || !wallBusy(b) || wallBusy(j)) return null;
     const noun = slot === "scene" ? SCENE_LABEL.toLowerCase() : "a wall of text";
-    if (j.state === "done") return { who: "you", kind: j.ask.source ? "remix" : "make", title: `Made ${noun}`, detail: j.ask.source?.title || j.ask.about, link: links.edit() };
-    return { who: "you", kind: "make", title: `${cap(noun)} could not be made`, detail: j.error };
+    const who = whoOf(j.ask.agent);
+    if (j.state === "done") return { who, kind: j.ask.source ? "remix" : "make", title: `Made ${noun}`, detail: j.ask.source?.title || j.ask.about, link: links.edit() };
+    return { who, kind: "make", title: `${cap(noun)} could not be made`, detail: j.error };
   };
 
 /** The talking video's own steps: the script, and a failure before the AI video store takes over (presenter, clips). */
 const talkEnded: Ended<TalkJob> = (b, j) => {
   if (b.id !== j.id) return null;
   const link = links.makeFormat(TALK_SLUG, j.params);
-  if (b.state === "writing" && j.state === "written") return { who: "you", kind: "make", title: "Wrote a talking video script", detail: j.script, link };
-  if (j.state === "failed" && (b.state === "writing" || b.state === "voice")) return { who: "you", kind: "make", title: "A talking video could not be made", detail: j.error, link };
+  const who = whoOf(j.ask?.agent);
+  if (b.state === "writing" && j.state === "written") return { who, kind: "make", title: "Wrote a talking video script", detail: j.script, link };
+  if (j.state === "failed" && (b.state === "writing" || b.state === "voice")) return { who, kind: "make", title: "A talking video could not be made", detail: j.error, link };
   return null;
 };
 

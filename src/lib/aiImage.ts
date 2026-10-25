@@ -28,6 +28,8 @@ export interface ImageJob {
   fixError?: string;
   /** The /image design that asked for it, so it still drops in there after a reload. */
   designId?: string;
+  /** The agent's chat that asked for it: Activity logs it as the agent's (live-p6replay D6). */
+  agent?: { thread: string; msg: string };
 }
 
 export const AI_FOLDER = "AI images";
@@ -36,7 +38,7 @@ const GIVE_UP_MS = 4 * 60_000;
 const PENDING = "cs-ai-image-making-"; // this device only, on purpose: the token is no use elsewhere
 
 /** A make or fix whose use is spent and whose picture isn't kept yet. */
-type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string };
+type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"] };
 type Ask = Omit<Pending, "token">;
 
 function readPending(scope: string): Pending | null {
@@ -57,10 +59,14 @@ function keepPending(scope: string, p: Pending | null) {
 }
 
 let job: ImageJob | null = null;
+/** Who started the make now going (one runs at a time): every state it emits carries it, and its end clears it. */
+let by: ImageJob["agent"];
 const listeners = new Set<(j: ImageJob | null) => void>();
 const set = (j: ImageJob) => {
-  job = j;
-  listeners.forEach((l) => l({ ...j }));
+  const next = by ? { ...j, agent: by } : j;
+  if (j.state === "done" || j.state === "failed") by = undefined;
+  job = next;
+  listeners.forEach((l) => l({ ...next }));
 };
 export const imageJob = () => job;
 export function onImageJob(fn: (j: ImageJob | null) => void): () => void {
@@ -118,8 +124,8 @@ async function withLogo(userId: string, pic: Blob): Promise<Blob> {
   }
 }
 
-export const makeImage = async (userId: string, prompt: string, name: string, designId?: string): Promise<void> =>
-  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}) }, { mode: "start", prompt: await withMemory(userId, prompt) });
+export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"]): Promise<void> =>
+  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}) }, { mode: "start", prompt: await withMemory(userId, prompt) });
 
 /** "Fix it": Qwen Image 3 edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {
@@ -130,6 +136,7 @@ export function fixImage(userId: string, fix: string): Promise<void> {
 
 async function run(userId: string, ask: Ask, body: Record<string, unknown>, before?: ImageJob): Promise<void> {
   if (imageBusy()) return;
+  by = ask.agent;
   set({ prompt: ask.prompt, state: "working", fix: ask.fix, designId: ask.designId });
   let token: string;
   try {
@@ -148,6 +155,7 @@ export function resumeImage(userId: string): void {
   const scope = scoped(userId);
   const p = imageBusy() ? null : readPending(scope);
   if (!p) return;
+  by = p.agent && typeof p.agent.thread === "string" && typeof p.agent.msg === "string" ? { thread: p.agent.thread, msg: p.agent.msg } : undefined;
   set({ prompt: p.prompt, state: "working", fix: p.fix, designId: p.designId });
   void finish(userId, scope, p);
 }

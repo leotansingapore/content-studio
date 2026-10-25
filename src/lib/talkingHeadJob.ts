@@ -48,6 +48,8 @@ export interface TalkAsk {
   draftId?: string;
   /** The video's US$ on the card pressed (a campaign post's or the agent's estimate from its script): the price check stops only above it. */
   quoted?: number;
+  /** The agent's chat that asked for it: the script, the presenter and the video log as the agent's (live-p6replay D6). */
+  agent?: { thread: string; msg: string };
 }
 
 export type TalkState = "writing" | "written" | "presenter" | "voice" | "priced" | "video" | "joining" | "done" | "failed";
@@ -192,7 +194,7 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
 
   if (a.who === "presenter" && !face) {
     mine(id, { state: "presenter", step: PRESENTER });
-    await makePresenter(a.look.trim(), a.setting);
+    await makePresenter(a.look.trim(), a.setting, a.agent);
     const p = aiJob();
     if (p?.kind !== "presenter" || p.state !== "done" || !p.url) return fail({ error: p?.error || PRESENTER_FAILED });
     presenter = { url: p.url, look: a.look.trim(), setting: a.setting };
@@ -220,14 +222,14 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   if (needsPriceCheck(a.quoted ?? videoEstimate(a.length).usd, real.usd)) {
     return mine(id, { state: "priced", step: "", face, voice, ai, real: { seconds: voice.seconds, price: real } });
   }
-  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai, a.draftId));
+  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai, a.draftId), a.agent);
 }
 
 /** "Make it for US$x" at the price check: the kept voiceover and face go to Speak. */
 export function goOnAtPrice(userId: string): Promise<void> {
   const j = job;
   if (j?.state !== "priced" || !j.face || !j.voice || aiBusy()) return Promise.resolve();
-  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags, script: j.script }, j.ai, j.ask?.draftId));
+  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags, script: j.script }, j.ai, j.ask?.draftId), j.ask?.agent);
 }
 
 /**
@@ -246,9 +248,9 @@ function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags
   };
 }
 
-function video(userId: string, id: number, face: Blob | string, voice: Voiceover, script: string, extra: JoinExtra): Promise<void> {
+function video(userId: string, id: number, face: Blob | string, voice: Voiceover, script: string, extra: JoinExtra, agent?: TalkAsk["agent"]): Promise<void> {
   mine(id, { state: "video", step: SENDING, real: undefined, ai: undefined });
-  return follow(userId, id, () => void makeAvatar(script.slice(0, 40) || "Talking head", face, voice, extra));
+  return follow(userId, id, () => void makeAvatar(script.slice(0, 40) || "Talking head", face, voice, extra, agent));
 }
 
 /** Mirrors the avatar job's steps until it ends; the run is done once the editor has the video to open. */

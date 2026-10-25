@@ -124,6 +124,36 @@ describe("the parts counter while a video is made", () => {
   });
 });
 
+describe("an AI video the agent started (live-p6replay D6)", () => {
+  it("carries the agent's chat on the presenter's and the video's states and through a reload, and nothing on the next run", async () => {
+    const agent = { thread: "t1", msg: "m1" };
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "status" ? { jobs: [{ state: "done", url: "https://cdn.example/p.png" }] } : { token: "p1" }));
+    const seen: unknown[] = [];
+    const off = onAiJob((j) => seen.push([j?.kind, j?.state, j?.agent]));
+    const run = makePresenter("A Chinese Singaporean man in his 50s", undefined, agent);
+    await vi.advanceTimersByTimeAsync(6_000);
+    await run;
+    expect(seen).toEqual([["presenter", "working", agent], ["presenter", "done", agent]]);
+
+    // a paid video left on this device by the agent: its pickup after a reload is still the agent's
+    localStorage.setItem("cs-ai-video-pending", JSON.stringify({ name: "Talk", tokens: ["t1"], seconds: [8], agent }));
+    higgsfield(() => ({ jobs: [{ state: "done", url: "https://cdn.example/v.mp4" }] }));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["clip"]) })));
+    resumeAvatar();
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(aiJob()).toMatchObject({ kind: "avatar", state: "done", agent });
+
+    seen.length = 0;
+    higgsfield(() => ({ jobs: [{ state: "done", url: "https://cdn.example/v.mp4" }] }));
+    const next = makeTemplateClip("Laksa", ASK);
+    await vi.advanceTimersByTimeAsync(6_000);
+    await next;
+    off();
+    expect(seen.every((s) => (s as unknown[])[2] === undefined)).toBe(true);
+    expect(aiJob()).toMatchObject({ kind: "template", state: "done" });
+  });
+});
+
 describe("a paid clip being put together on the device", () => {
   // the join runs until `finish` is called with how it ended
   const slowJoin = () => {

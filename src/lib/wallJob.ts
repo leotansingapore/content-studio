@@ -51,6 +51,8 @@ export interface WallAsk {
   scene?: SceneAsk;
   /** The My posts entry this wall is made for (a campaign post): the editor's Save to your post updates it. */
   draftId?: string;
+  /** The agent's chat that asked for it: Activity logs the run as the agent's (live-p6replay D6). */
+  agent?: { thread: string; msg: string };
 }
 
 export type { WallScene };

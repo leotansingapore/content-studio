@@ -374,3 +374,19 @@ describe("Write it for me", () => {
     expect(formatJobs().find((f) => f.slug === "talking-head")).toBeUndefined();
   });
 });
+
+describe("a talking video the agent asked for (live-p6replay D6)", () => {
+  it("hands the agent's chat to the presenter and the video, and keeps it on the run for the script's row", async () => {
+    const agent = { thread: "t1", msg: "m1" };
+    // a look no earlier test made, so this run makes its presenter rather than reusing this session's
+    await startTalk("u1", { ...ASK, agent, look: "A Chinese Singaporean man in his 50s, rimless glasses" });
+    expect(ai.makePresenter.mock.calls[0][2]).toEqual(agent);
+    expect(ai.makeAvatar.mock.calls[0][4]).toEqual(agent);
+    expect(talkJob()?.ask?.agent).toEqual(agent);
+    ai.makePresenter.mockClear();
+    ai.makeAvatar.mockClear();
+    dropTalk();
+    await startTalk("u1", ASK);
+    expect(ai.makeAvatar.mock.calls[0][4]).toBeUndefined();
+  });
+});
