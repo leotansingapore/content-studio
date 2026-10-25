@@ -30,7 +30,10 @@ import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { commentChannelPost, readChannelReviews, shownStatus, skipChannelPost, type ChannelReviews } from "@/lib/channelReviews";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
-import { useGoneItem, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
+import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate, withParam } from "@/lib/urlState";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { queueCancel, zernioHolds } from "@/lib/zernioOutbox";
+import { outboxRows, retryFailed, retryOp, undoTo, updating, useOutbox, type NeedsRow } from "@/lib/useZernioOutbox";
 import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
   addDays,
@@ -98,6 +101,7 @@ import {
   Clapperboard,
   Coins,
   Hand,
+  Loader2,
   PenLine,
   Repeat as RepeatIcon,
   StickyNote,
@@ -110,7 +114,11 @@ const PLATFORM_LABEL: Record<string, string> = {
   facebook: "Facebook",
   tiktok: "TikTok",
   telegram: "Telegram",
+  youtube: "YouTube",
+  threads: "Threads",
 };
+// YouTube and Threads join the platform filter for Leo (publish-calendar); labels name them for everyone
+const LEO_PLATFORMS = ["youtube", "threads"];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DRAG_TYPE = "text/draft-id";
 
@@ -141,7 +149,8 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 const STATUSES = ["all", "scheduled", "posted"] as const;
 type StatusFilter = (typeof STATUSES)[number];
-const PLATFORMS = ["all", ...Object.keys(PLATFORM_LABEL)];
+const PLATFORMS = ["all", ...Object.keys(PLATFORM_LABEL).filter((k) => !LEO_PLATFORMS.includes(k))];
+const PLATFORMS_LEO = ["all", ...Object.keys(PLATFORM_LABEL)];
 
 // A day key (YYYY-MM-DD) or month (YYYY-MM) from a link, or null when it isn't a real one.
 const linkDay = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && localDateKey(keyToDate(v)) === v ? v : null);
@@ -183,15 +192,22 @@ export default function CalendarPage() {
   // The post whose network preview is open in its panel.
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
+  const update = useUrlUpdate();
+  const leo = useLeoUser();
   useZernioRefresh(userId, drafts, setDrafts);
+  // Moves and cancels waiting for Zernio (StudioLayout's runner sends them): their cards read "Updating auto-post"
+  const box = useOutbox(userId);
   // The assistant moves posts from outside this page: read them again when it does.
   useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
   // Everything a link can name lives in the URL (docs/deep-links.md): view, filters, the month or week shown and
   // the open post, day, team post or channel post.
   const [view, setView] = useUrlState<View>("view", "month", { allowed: VIEWS, remember: "cs-calendar-view" });
-  const [platform, setPlatform] = useUrlState("platform", "all", { allowed: PLATFORMS });
+  const [platform, setPlatform] = useUrlState("platform", "all", { allowed: leo ? PLATFORMS_LEO : PLATFORMS });
   const [status, setStatus] = useUrlState<StatusFilter>("status", "all", { allowed: STATUSES });
-  const [selectedId, openPost, closePost] = useUrlItem("post");
+  const [selectedId] = useUrlItem("post");
+  // Opening or closing a post closes Leo's schedule steps with it, so they never reopen on the next post picked
+  const openPost = (id: string) => update({ post: id, schedule: null, step: null, network: null }, { push: true });
+  const closePost = () => update({ post: null, schedule: null, step: null, network: null });
   // deleted since the link was made; an empty list may still be syncing, so it decides nothing
   useGoneItem("post", drafts.length ? drafts.some((d) => d.id === selectedId) : undefined);
   // Set when the selected chip is a future occurrence of a recurring post (its day).
@@ -490,6 +506,16 @@ export default function CalendarPage() {
     [myTeam, teamReviews],
   );
   const handDue = useMemo(() => dueByHand(reels.filter((r) => showsBiz(r.business)), todayKey), [reels, bizOn, todayKey]);
+  // Leo's auto-post rows under those: didn't post, still on the old time, finish in TikTok
+  const autoRows = useMemo(() => (leo ? outboxRows(drafts, box, titleOf) : []), [leo, drafts, box]);
+  const needsYouShown = teamToApprove.length > 0 || handDue.length > 0 || waitingGroups.length > 0 || autoRows.length > 0;
+  // /calendar#needs-you: bring the section into view once it has loaded, as #overdue does
+  useEffect(() => {
+    if (hash === "#needs-you" && leo && needsYouShown) document.getElementById("needs-you")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [hash, leo, needsYouShown]);
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
+  // "Cancel auto-post" asks once more, as the chip's Cancel post does: Zernio can't bring a cancelled post back
+  const [cancelAsk, setCancelAsk] = useState<string | null>(null);
 
   // Open posting slots for six weeks: a scheduled post at a slot's time (or on its day with no time) takes it.
   const taken = useMemo(
@@ -545,9 +571,37 @@ export default function CalendarPage() {
   };
 
   const selected = drafts.find((d) => d.id === selectedId) ?? null;
+  // Leo's schedule steps live in the URL (?post=&schedule=1, with step and network for the steps): a link reopens them.
+  // Everyone else keeps the panel in component state, as before.
+  const scheduleFor = leo && params.get("schedule") === "1" && selected && draftStatus(selected) !== "posted" ? selected.id : null;
+  const panelId = scheduleFor ?? postOpenId;
+  const togglePanel = (id: string) => {
+    if (!leo) return setPostOpenId((cur) => (cur === id ? null : id));
+    if (panelId === id) closePanel();
+    else update({ post: id, schedule: "1" }, { push: true });
+  };
+  const closePanel = () => {
+    setPostOpenId(null);
+    if (params.get("schedule")) update({ schedule: null, step: null, network: null });
+  };
 
+  // The auto-post chip, or "Updating auto-post" while a move or cancel waits to reach Zernio.
+  const autoChip = (d: DraftEntry, compact?: boolean) => {
+    if (!updating(box, d)) return <ZernioChipLabel draft={d} compact={compact} />;
+    return compact ? (
+      <span title="Updating auto-post" className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary align-middle">
+        <span className="sr-only">Updating auto-post</span>
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> Updating auto-post
+      </span>
+    );
+  };
+
+  // undoTo keeps the Zernio link as it is now, so an Undo after a move Zernio already made moves the post back
   const undoAction = (prev: DraftEntry) => (
-    <ToastAction altText="Undo" onClick={() => userId && setDrafts(restoreDraft(userId, prev))}>
+    <ToastAction altText="Undo" onClick={() => userId && setDrafts(undoTo(userId, prev))}>
       Undo
     </ToastAction>
   );
@@ -714,7 +768,70 @@ export default function CalendarPage() {
     if (!userId) return;
     setDrafts(setDraftStatus(userId, d.id, "draft"));
     closePost();
-    toast({ title: "Back in drafts", description: "It waits in Unscheduled drafts.", action: undoAction(d) });
+    toast({ title: "Back in drafts", description: `It waits in Unscheduled drafts.${zernioHolds(d) ? " Zernio won't post it." : ""}`, action: undoAction(d) });
+  };
+
+  // Needs you's auto-post rows: Retry and Open, Retry and Cancel auto-post, Mark posted.
+  const rowButton = "h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11";
+  const openRow = (id: string) => {
+    update({ post: id, schedule: null, step: null, network: null, ...(view === "upcoming" ? { view: "month" } : {}) }, { push: true });
+    requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  };
+  const retryRow = async (d: DraftEntry) => {
+    if (!userId || rowBusy) return;
+    setRowBusy(d.id);
+    try {
+      const post = await retryFailed(userId, d);
+      toast({ title: post.status === "published" ? "Posted" : "Trying again", description: post.status === "published" ? undefined : "Zernio is posting it again." });
+    } catch (e) {
+      toast({ title: "Couldn't try it again", description: e instanceof Error ? e.message : undefined });
+    } finally {
+      setRowBusy(null);
+      setDrafts(loadDrafts(userId));
+    }
+  };
+  const rowActions = (r: NeedsRow) => {
+    if (r.kind === "inbox")
+      return (
+        <Button size="sm" variant="outline" onClick={() => markPosted(r.draft.id)} className={rowButton}>
+          <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+        </Button>
+      );
+    if (r.kind === "failed")
+      return (
+        <>
+          <Button size="sm" variant="outline" disabled={!!rowBusy} onClick={() => void retryRow(r.draft)} className={`gap-1.5 ${rowButton}`}>
+            {rowBusy === r.draft.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Retry
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => openRow(r.draft.id)} className={rowButton}>
+            Open
+          </Button>
+        </>
+      );
+    const d = r.draft;
+    return (
+      <>
+        <Button size="sm" variant="outline" onClick={() => userId && retryOp(userId, r.op)} className={rowButton}>
+          Retry
+        </Button>
+        {r.op.op === "move" && d && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              if (!userId) return;
+              if (cancelAsk !== r.key) return setCancelAsk(r.key);
+              setCancelAsk(null);
+              queueCancel(userId, d);
+              toast({ title: "Cancelling the auto-post", description: "Zernio won't post it. It stays in My posts." });
+            }}
+            className={`${rowButton} ${cancelAsk === r.key ? "text-destructive hover:text-destructive" : "text-muted-foreground"}`}
+          >
+            {cancelAsk === r.key ? "Confirm cancel" : "Cancel auto-post"}
+          </Button>
+        )}
+      </>
+    );
   };
 
   // One-tap days for a scheduled post: today (when it is overdue), tomorrow, the next open slot.
@@ -841,7 +958,7 @@ export default function CalendarPage() {
             <X className="h-4 w-4" />
           </button>
         </div>
-        {d.zernio?.postId && userId && <ZernioStatus userId={userId} draft={d} onDrafts={setDrafts} />}
+        {d.zernio?.postId && userId && (updating(box, d) ? autoChip(d) : <ZernioStatus userId={userId} draft={d} onDrafts={setDrafts} />)}
         <div className="flex flex-wrap items-center gap-2">
           {!posted && moveInput(d)}
           <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
@@ -862,8 +979,8 @@ export default function CalendarPage() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setPostOpenId((cur) => (cur === d.id ? null : d.id))}
-              aria-expanded={postOpenId === d.id}
+              onClick={() => togglePanel(d.id)}
+              aria-expanded={panelId === d.id}
               className="h-9 px-3 text-xs text-primary hover:text-primary sm:h-8 [@media(pointer:coarse)]:h-11"
             >
               Post it for me
@@ -901,8 +1018,8 @@ export default function CalendarPage() {
             <PostPreview text={d.draft} platform={d.platform} format={d.format} />
           </div>
         )}
-        {postOpenId === d.id && userId && (
-          <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={() => setPostOpenId(null)} />
+        {panelId === d.id && userId && (
+          <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={closePanel} />
         )}
       </div>
     );
@@ -944,13 +1061,13 @@ export default function CalendarPage() {
             <span className="line-clamp-2">{titleOf(e)}</span>
             {e.zernio?.postId && (
               <span className="mt-1 block">
-                <ZernioChipLabel draft={e} />
+                {autoChip(e)}
               </span>
             )}
           </>
         ) : (
           <>
-            <ZernioChipLabel draft={e} compact />
+            {autoChip(e, true)}
             {time && <span className="font-semibold">{timeLabel(time)} </span>}
             {titleOf(e)}
           </>
@@ -1339,7 +1456,7 @@ export default function CalendarPage() {
               {!posted && e.repeat && ` · repeats ${REPEAT_LABEL[e.repeat.every]}`}
             </p>
           </button>
-          <ZernioChipLabel draft={e} />
+          {autoChip(e)}
           {!posted && moveInput(e)}
         </div>
         {!posted && (
@@ -1418,7 +1535,7 @@ export default function CalendarPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All platforms</SelectItem>
-              {Object.entries(PLATFORM_LABEL).map(([k, v]) => (
+              {Object.entries(PLATFORM_LABEL).filter(([k]) => leo || !LEO_PLATFORMS.includes(k)).map(([k, v]) => (
                 <SelectItem key={k} value={k}>
                   {v}
                 </SelectItem>
@@ -1493,8 +1610,8 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {(teamToApprove.length > 0 || handDue.length > 0 || waitingGroups.length > 0) && (
-        <section aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
+      {needsYouShown && (
+        <section id={leo ? "needs-you" : undefined} aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
           <p className="text-sm font-semibold text-foreground">Needs you</p>
           {teamToApprove.length > 0 && (
             <button
@@ -1542,6 +1659,12 @@ export default function CalendarPage() {
               </span>
               <span className="shrink-0 text-xs font-semibold text-primary">Open</span>
             </button>
+          ))}
+          {autoRows.map((r) => (
+            <div key={r.key} className="flex min-h-11 w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg bg-card px-3 py-2 shadow-card">
+              <span className="min-w-0 flex-1 basis-56 text-sm font-medium text-foreground">{r.text}</span>
+              <span className="flex shrink-0 flex-wrap gap-1.5">{rowActions(r)}</span>
+            </div>
           ))}
         </section>
       )}
