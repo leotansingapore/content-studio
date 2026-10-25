@@ -237,7 +237,10 @@ export async function startRead(userId: string, address: string, now = Date.now)
   let line = "";
   try {
     const d = await callFn<Omit<SiteRead, "readAt">>("brand-dna", { url: address.trim(), deep: true }, failedLine(address));
-    keep(key, { read: { ...d, pagesRead: Array.isArray(d.pagesRead) ? d.pagesRead : [d.url], lang: d.lang ?? null, readAt: new Date(now()).toISOString() }, picks: {} });
+    const read = { ...d, pagesRead: Array.isArray(d.pagesRead) ? d.pagesRead : [d.url], lang: d.lang ?? null, readAt: new Date(now()).toISOString() };
+    // an answer of another shape would break the review cards (and the page with them): it counts as a failed read
+    if (!isRead(read)) throw new Error(failedLine(address));
+    keep(key, { read, picks: {} });
   } catch (e) {
     const err = e instanceof EdgeError ? e : null;
     // brand-dna's own 422 ends "or start with just a name", which only fits /brands/new

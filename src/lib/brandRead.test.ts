@@ -195,6 +195,13 @@ describe("a read that doesn't come back", () => {
     expect(toast).toHaveBeenCalledWith({ title: "We couldn't open acme.sg. Check the address and try again.", variant: "destructive" });
   });
 
+  it("counts an answer of another shape as a failed read, so the review never opens on it", async () => {
+    callFn.mockResolvedValueOnce({});
+    await r.startRead("u8", "acme.sg");
+    expect(r.readFailed("u8")).toBe("We couldn't open acme.sg. Check the address and try again.");
+    expect(r.loadWaiting("u8")).toBeNull();
+  });
+
   it("shows decision 2's line when the account isn't on, and the cap's own line over the cap", async () => {
     callFn.mockRejectedValueOnce(new EdgeError("This isn't switched on for your account yet.", 403, "not_enabled"));
     await r.startRead("u7", "acme.sg");
