@@ -146,9 +146,10 @@ export async function briefPicks(deps: Deps, uid: string, profiles: Profile[], n
 }
 
 export async function runUser(deps: Deps, uid: string, prefs: Prefs, o: Options) {
-  // What moved and the outlier alert go only to NORTH_STAR_USERS; everyone else's run is exactly what it was.
+  // What moved, the outlier alert and linked live numbers go only to NORTH_STAR_USERS; everyone else's run is exactly
+  // what it was.
   const listed = isAllowed(o.northStarUsers, uid);
-  const profiles = profilesFrom(uid, await deps.userRows(uid));
+  const profiles = profilesFrom(uid, await deps.userRows(uid), listed);
   const report: { user: string; push: object[]; email: object | null } = { user: uid.slice(0, 8), push: [], email: null };
   // A test send goes to a test inbox only: no phone alerts, nothing claimed or marked sent.
   const test = !!o.testTo;

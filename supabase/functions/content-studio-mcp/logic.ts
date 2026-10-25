@@ -540,7 +540,7 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
       const data: Record<string, string> = { [`content-studio-profiles-${link.userId}`]: JSON.stringify([{ id, name: "Brand" }]) };
       const keys = ["drafts", "goals", "positioning", "following"].map((k) => `content-studio-${k}-${scope}`);
       (await Promise.all(keys.map((k) => store.get(k)))).forEach((v, i) => v !== null && (data[keys[i]] = v));
-      const brand = profilesFrom(link.userId, data).find((p) => p.id === id);
+      const brand = profilesFrom(link.userId, data, caller.leo).find((p) => p.id === id);
       if (!brand) return fail("This brand's week can't be read.");
       const goal = Object.values(brand.goals).reduce((s, n) => s + n, 0);
       const report = weekReport(brand.posts, brand.followed ?? [], sgDay(now.getTime()), goal);

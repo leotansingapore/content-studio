@@ -149,7 +149,7 @@ describe("profilesFrom", () => {
         { id: "a", hook: "x", status: "posted", postedAt: "2026-10-07T02:00:00Z", metrics: { impressions: 10, reactions: 1 }, live: { postId: "ext1", platform: "linkedin", url: null, by: "jev", numbers: { impressions: 0, reach: 700, views: 0, likes: 30, comments: 4, shares: 2, saves: 0, at: "2026-10-08T01:00:00Z" } } },
         { id: "b", hook: "y", status: "posted", postedAt: "2026-10-07T03:00:00Z", metrics: { impressions: 10, reactions: 1 }, live: { postId: "ext2", platform: "linkedin", url: null, by: "auto" } },
       ]),
-    });
+    }, true);
     expect(me.posts.map((p) => p.metrics)).toEqual([
       { impressions: 700, reactions: 30, comments: 4, shares: 2 },
       { impressions: 10, reactions: 1, comments: undefined, shares: undefined },

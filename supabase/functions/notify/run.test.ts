@@ -381,3 +381,25 @@ describe("runUser: a busy week, frozen before What moved", () => {
     expect(raced.calls.filter((c) => c.startsWith("push"))).toEqual([before.calls[2]]);
   });
 });
+
+describe("runUser: a hand-posted draft's linked numbers (learn-real-numbers)", () => {
+  // a post last week with typed numbers, linked to its live post; only Leo's sign-ins ever link one
+  const typed = { id: "p1", hook: "Linked post", platform: "linkedin", status: "posted", postedAt: "2026-10-07T02:00:00Z", metrics: { impressions: 10, reactions: 1 } };
+  const live = { postId: "ext1", platform: "linkedin", url: null, by: "jev", numbers: { impressions: 0, reach: 700, views: 0, likes: 30, comments: 4, shares: 2, saves: 0, at: "2026-10-08T01:00:00Z" } };
+  const email = async (drafts: object[], northStarUsers?: string) => {
+    let text = "";
+    const { deps } = fake({ userRows: async () => ({ [`content-studio-drafts-${UID}`]: JSON.stringify(drafts) }), sendEmail: async (_to, e) => ((text = e.text), true) });
+    await runUser(deps, UID, { email: true, push: false }, opts({ northStarUsers }));
+    return text;
+  };
+
+  it("count in a listed uid's Monday email", async () => {
+    const text = await email([{ ...typed, live }], `x,${UID}`);
+    expect(text).toContain("700 impressions");
+    expect(text).not.toBe(await email([typed], `x,${UID}`));
+  });
+
+  it("never reach anyone else's email: it reads as the typed numbers alone", async () => {
+    for (const northStarUsers of [undefined, "", "someone-else"]) expect(await email([{ ...typed, live }], northStarUsers)).toBe(await email([typed], northStarUsers));
+  });
+});

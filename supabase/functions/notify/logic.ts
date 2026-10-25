@@ -140,16 +140,16 @@ function parseJson(raw: string | null | undefined): unknown {
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
 
-function postsFrom(raw: string | undefined): Post[] {
+function postsFrom(raw: string | undefined, linked: boolean): Post[] {
   const list = parseJson(raw);
   if (!Array.isArray(list)) return [];
   const out: Post[] = [];
   for (const d of list.slice(0, 200)) {
     if (!d || typeof d !== "object" || typeof d.id !== "string" || !d.id) continue;
     const m = d.metrics && typeof d.metrics === "object" ? d.metrics : undefined;
-    // the real numbers pulled for a post that went out through Zernio, else for a hand-posted one linked to its
-    // live post (learn-real-numbers), over typed ones
-    const pulled = d.zernio?.numbers ?? d.live?.numbers;
+    // the real numbers pulled for a post that went out through Zernio, else, for NORTH_STAR_USERS only, for a
+    // hand-posted one linked to its live post (learn-real-numbers), over typed ones
+    const pulled = d.zernio?.numbers ?? (linked ? d.live?.numbers : undefined);
     const real = pulled && typeof pulled === "object" ? realMetrics(pulled) : undefined;
     out.push({
       id: d.id,
@@ -269,7 +269,8 @@ function marketFrom(raw: string | undefined, topicsRaw: string | undefined): Pro
   return { ready: typeof m.audience === "string" && m.audience.trim().length > 0 && asks, lastCheck: times[times.length - 1] ?? null };
 }
 
-export function profilesFrom(uid: string, data: Record<string, string>): Profile[] {
+/** `linked`: the uid is on NORTH_STAR_USERS, so a hand-posted draft's linked live numbers count. */
+export function profilesFrom(uid: string, data: Record<string, string>, linked = false): Profile[] {
   const listed = parseJson(data[`content-studio-profiles-${uid}`]);
   const valid = (Array.isArray(listed) ? listed : []).filter(
     (p): p is { id: string; name: string } =>
@@ -282,7 +283,7 @@ export function profilesFrom(uid: string, data: Record<string, string>): Profile
     return {
       id: p.id,
       name: clip(p.name, 40),
-      posts: postsFrom(data[`content-studio-drafts-${scope}`]),
+      posts: postsFrom(data[`content-studio-drafts-${scope}`], linked),
       goals: goalsFrom(data[`content-studio-goals-${scope}`], data[`content-studio-positioning-${scope}`]),
       followed: followedFrom(data[`content-studio-following-${scope}`]),
       ...(data[`content-studio-market-${scope}`] === undefined ? {} : { market: marketFrom(data[`content-studio-market-${scope}`], data[`content-studio-mentions-${scope}`]) }),
