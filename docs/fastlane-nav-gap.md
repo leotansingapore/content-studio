@@ -75,4 +75,5 @@ referral programme.
    Link in bio and Tracked links moved there from Brand. Done 25 Oct.
 4. "Your work" beside the agent's chat: what is running and the last six runs from the Activity log, All activity,
    Hide. Done 25 Oct.
-5. Still open: a usage meter in the sidebar (Fastlane's "Senna's fuel used").
+5. Agent messages meter in the sidebar foot, after Fastlane's "Senna's fuel used", opening the limits on
+   Automations. Done 25 Oct.

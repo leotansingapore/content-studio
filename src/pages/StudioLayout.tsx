@@ -45,6 +45,7 @@ import {
 const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
 // The agent's chats (Leo only) load in their own chunk, like the agent page.
 const SidebarThreads = lazy(() => import("@/components/agent/SidebarThreads"));
+const AgentMeter = lazy(() => import("@/components/agent/AgentMeter"));
 
 // The Remix sheet and its pill (north star, Leo only) read the data drops, so they load in their own chunk,
 // fetched as soon as the session says Leo so the sheet still opens within 400ms.
@@ -589,6 +590,13 @@ export default function StudioLayout() {
               <FootLink s={section("learn")} to={sectionTo(section("learn"))} active={here?.id === "learn"} />
               <FootLink s={section("feedback")} to={sectionTo(section("feedback"))} active={here?.id === "feedback"} />
             </div>
+            {leo && (
+              <ErrorBoundary>
+                <Suspense fallback={null}>
+                  <AgentMeter />
+                </Suspense>
+              </ErrorBoundary>
+            )}
             <AccountMenu
               email={email}
               settingsTo={sectionTo(section("settings"))}
