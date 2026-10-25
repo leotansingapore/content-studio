@@ -227,6 +227,88 @@ Side effect: the two transcript reads added Apollo's TikTok and Pipedrive's reel
 
 Cost, by the price chips (a count, not a bill): Aaron's remix with a new breakdown at US$0.03 and 7 remixes at US$0.02, US$0.17 in all. The YouTube read and the two transcript reads were free (device copy and cache, usage null). On top, 8 fit checks are Jev-only calls, under US$0.01 together. Time: 17 s for Aaron's remix with its breakdown, 8 to 13 s for the rest.
 
+## Phase 6 results (25 Oct 2026)
+
+Leo's 19 Oct Fastlane session, replayed on ActivityTracker through the agent, on Sun 25 Oct from 08:49 to 09:36 Singapore time. It ran on a localhost build of main (6cdc59d2) with the demo sign-in on NORTH_STAR_USERS and ?asLeo=1, against the live functions, starting from the phase 5 device state (ActivityTracker speaking as a business, Raj kept, both audiences, the goal, 12 Media screens, 6 competitors). Every POST, PATCH, PUT and DELETE to the shared database and storage was stopped in the browser (242), the social status read never ran, and a function call went through only at a step that named it. Nothing was posted, sent or scheduled to any account. The run's calls, ledger, function logs and device state are in _raw/dogfood/live-p6replay/ (results.md there has the full detail and every repro).
+
+### The 13 Good lines
+
+| # | Line | Result | Evidence |
+| --- | --- | --- | --- |
+| 1 | "what can you do" answers within 3 seconds, in business words | Pass | On screen 2.35 s after Enter, "1 step, 2.2s" (Fastlane 8.1 s). It lists posts, carousels, scripts, talking and explainer videos, pictures, moves, Write, competitors and Reply drafts, and says anything paid shows its price first. No adviser or client words. |
+| 2 | Every paid step had a press on a card that showed its price first | Pass | 33 paid calls (remix, text-voice, ai-video, ai-image, competitor read, campaign writing, answers, carousel and video edits), each after the press on its own card in the call log; the campaign's batches follow its one Add and write. A typed "yes go ahead" approved one post card under US$1. |
+| 3 | The video card shows the script, Who appears, talkPrice with its credits and "1 of 2 videos left today"; the receipt's credits match | Pass | "About US$2.77 \| about 44 Higgsfield credits \| 2 of 2 videos left today", then "1 of 2" on the second card, with the script, Who appears and Show details. Both receipts read "It used 44 Higgsfield credits, about US$2.75", equal to the server's "ai-video avatar 2 jobs, 44 credits"; Higgsfield's own balance still can't be read. Both times the writer's 15-second script ran 18 s (US$3.46, 55 credits), so I used Change the script once on each to cut it to 37 and 34 words. |
+| 4 | The presenter is Singaporean and labelled as AI, and the second video follows the older-man learning with "Following" | Pass | Video 1: Raj, the kept Indian Singaporean presenter. Video 2: "A Chinese Singaporean man in his 50s, short greying hair, rimless glasses, dark green polo shirt", with "Following: from now on use an older man as my presenter" on the card. Both carry "AI person" and "AI voice" in the editor and the caption line "This video uses an AI-made person or voice." Fastlane's was a white woman. The card's voice defaulted to Alice, a woman's voice, both times; I picked Eric and George. |
+| 5 | The competitor card adds Finch once, and its Undo works after a reload | Fail as asked | "add Finch as a competitor" drew an empty box, and typing Finch never enabled Add them. Asked again with finchcare.com, it added Finch once, and Undo after a full reload removed it. Fastlane added Finch from "my competitors are finchcare app". |
+| 6 | The third video ask is refused before anything is written, naming what is short, with two cheaper chips that each work | Fail | "can you create another one" became a post card titled with the ask. "can you create another talking video like the last one" was refused with nothing written: "A talking video needs 1 AI video, and you have none left today..." with a picture post and a script as chips. Both chips carry the whole ask as their topic: the picture chip was refused again, and the script chip became a post the writer refused. Fastlane offered a 10-second version. |
+| 7 | The campaign card names 28 posts, the writing price and later makes; Add writes all 28 within 4 minutes and leaving loses none | Fail on 27 of 28 | "28 posts over 4 weeks, 7 a week", "Writing them About US$0.14", "Later makes None: every post is words only". Leaving for Home lost nothing, and the writing took about 1 min 32 s (my own call guard held one batch for 2 min 19 s; opening the campaign resumed it). Post 26, a carousel, was dropped three times ("hook 7 words", then "3 points, needs 4 to 8" twice): 6 writing uses for 27 posts. |
+| 8 | Home's Next up shows the campaign and any waiting card in the fixed order, with Hide for today | Pass | "NEXT UP \| 1 OF 29 THAT NEED YOU" with the waiting explainer card first and its price, then unscheduled drafts, then "Keep making your campaign"; Hide for today took it to 28. 24 unscheduled drafts put the campaign 26th, behind "+26 more waiting". |
+| 9 | /activity lists every run with its who, and the AI use tab matches cs_ai_usage | Fail on who | The AI use tab matches cs_ai_usage row for row for the day. But both videos, the slideshow, the wall, the pictures and the talk script read "You" though the agent made them, and the campaign plan is logged twice. |
+| 10 | Edits land only after Use this, and Undo works from the receipt and on the page | Pass | Three carousel edits, one slideshow edit and one video edit changed the page only on Use this; the receipt's Undo put back the whole carousel and the video's captions, and the page's Undo put back a slide. "add music" answered "No change made". |
+| 11 | The tour runs six steps and comes back at the same step after a detour | Pass | Home, Competitors, Formats, Campaigns, Brand kit, Agent. A detour into a chat at step 4 showed "Tour paused at step 4 of 6" with Resume, which came back to step 4. The open agent dock covers the popover's Next at 1440 until it is closed. |
+| 12 | Nothing was posted, sent or scheduled to an account | Pass | 242 writes stopped, the social status read stopped 8 of 8, no publish or social call made. |
+| 13 | Cost from the logs: the round under US$6.50 | Pass | About US$5.86, US$5.51 of it Higgsfield (see Cost). |
+
+### Wave 2 and wave 3 live checks
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Five makes | Pass | A post and a carousel from the composer chips, a script, a slideshow (from Media) and a wall, each from a "Make it \| Under US$0.01" card, in 4.6 to 24 s. |
+| A link remix | Pass | A TikTok link from Apollo became "Remix this link into a post \| About US$0.01" and a post in 16.4 s. |
+| A picture | Pass | "Approve and make \| Under US$0.01", made in 36.7 s, saved to Media under AI images. |
+| An explainer | Owed | "make an explainer video" was read as a talking video twice; "a narrated explainer, pictures with a voiceover" drew the explainer card, and its script came back as 5 scenes, about 26 s, "About US$0.05". It was not made: an explainer counts against the same 2 AI videos a day as the talking videos, so its Approve then read "No AI videos left today". |
+| A talking video | Pass | Two, as in lines 3 and 4. Approve to MADE took 13 min 13 s and 8 min 23 s (Fastlane 3 min 43 s); the first sat 5 minutes behind the wall's finished join until the editor was opened. |
+| A competitor | Pass after a re-ask | Line 5. |
+| A 28-post campaign | Fail on 27 of 28 | Line 7. |
+| The skills | Pass | /check twice ("Compliance: no flags. Facts to check: none. Sounds human: 3 of 5 pass. Predicted: 6.4 of 10."), /retro, /check-week ("6 posts scheduled in the next 7 days. None has a flag.") and /answer twice (respond.io's 6-day-old ad, three angles each, behind a "Write 3 angles \| Under US$0.01" card). |
+| Claude Code's remix_post through Connect Claude | Needs Leo | A link goes live only when its row syncs to the database, which this run's guard stops; it needs Leo's Mac with a live link (free on the Max plan). |
+| Three carousel edits | Pass | One slide, the whole carousel, and a guarantee the writer declined to write ("I replaced the sales guarantee with a neutral prompt"). |
+| A slideshow edit | Pass | "make the first slide a question": "What keeps your sales pipeline moving?". |
+| Two video edits | Pass on one | "bigger yellow captions at the top" applied and undone; "add music" is not something vibe edit can do, so it answered "No change made" and kept the use. |
+| Memory | Pass | Remember card, "Learning recorded", "undo" turned it off, said again it was kept, and /voice#learned links it "From a chat" back to its message. |
+
+### Cost
+
+| Spend | How it was counted | US$ |
+| --- | --- | --- |
+| Higgsfield, 2 talking videos | the server's log, 44 + 44 credits at US$0.0625 | 5.50 |
+| Higgsfield, a presenter picture and a picture | Soul v2, by the price table | 0.01 |
+| Voiceovers, 2 | by the price table | 0.04 |
+| OpenAI, 11 remix writes and a teardown | the log's tokens on gpt-6-luna | about 0.01 |
+| Campaign writing, 6 asks | by the price table | 0.21 |
+| Edits, the explainer script, 2 answers, a competitor read | by the price table | 0.08 |
+| Jev, 34 agent messages and the checks | about 5,000 tokens a message | about 0.01 |
+| Total | | about 5.86 |
+
+The brief expected about US$5.96. No AI video part failed, so there was no Higgsfield failure to record.
+
+### What still reads badly
+
+1. A wall made by the agent leaves its finished join waiting for the editor, and a talking video approved after it waits behind it until /edit is opened.
+2. The competitor card's box ignores a typed name, so "add Finch as a competitor" can't add Finch.
+3. Follow-ups lose their subject: "another one" becomes a post titled with the ask, and a refusal's cheaper chips send the whole ask as their topic.
+4. The talking video card speaks in Alice's voice over a man's face, and its 15-second script runs 18 s and three parts; a voice change on the card doesn't re-price.
+5. /activity credits the agent's videos, pictures, slideshows and walls to "You".
+6. A video receipt's "Open in the video editor" opens the AI maker, not the made video; the made video's caption is only the AI line.
+7. A failed card always says "Your use was given back.", also when the use was kept.
+8. Titles quote the command and cut mid-word ("Picture: make a picture of a phone on a cafe tabl"), and receipts end "remember.. It's in My posts."
+
+### Screenshots
+
+| View | Ours, 1440 px | Ours, 390 px | Fastlane |
+| --- | --- | --- | --- |
+| /agent, empty | ![Agent empty 1440](../../public/north-star/dogfood/phase6-agent-empty-1440.jpg) | ![Agent empty 390](../../public/north-star/dogfood/phase6-agent-empty-390.jpg) | ![Fastlane 4:17, a new chat](../../public/north-star/fastlane/t257.webp) |
+| /agent, a running turn | ![Running 1440](../../public/north-star/dogfood/phase6-agent-running-1440.jpg) | ![Running 390](../../public/north-star/dogfood/phase6-agent-running-390.jpg) | ![Fastlane 5:05, Thinking 2s](../../public/north-star/fastlane/t305.webp) ![Fastlane 5:13, answered in 8.1s](../../public/north-star/fastlane/t313.webp) |
+| /agent, a video card | ![Video card 1440](../../public/north-star/dogfood/phase6-agent-video-card-1440.jpg) | ![Video card 390](../../public/north-star/dogfood/phase6-agent-video-card-390.jpg) | ![Fastlane 4:26, the UGC card](../../public/north-star/fastlane/t266.webp) ![Fastlane 4:28, shots 3 and 4](../../public/north-star/fastlane/t268.webp) |
+| /agent, a MADE block | ![Made 1440](../../public/north-star/dogfood/phase6-agent-made-1440.jpg) | ![Made 390](../../public/north-star/dogfood/phase6-agent-made-390.jpg) | ![Fastlane 4:35, MADE 3m 43s](../../public/north-star/fastlane/t275.webp) |
+| /agent, a receipt | ![Receipt 1440](../../public/north-star/dogfood/phase6-agent-receipt-1440.jpg) | ![Receipt 390](../../public/north-star/dogfood/phase6-agent-receipt-390.jpg) | ![Fastlane 4:25, Competitor added](../../public/north-star/fastlane/t265.webp) ![Fastlane 4:36, Learning recorded](../../public/north-star/fastlane/t276.webp) |
+| /agent, a refusal | ![Refusal 1440](../../public/north-star/dogfood/phase6-agent-refusal-1440.jpg) | ![Refusal 390](../../public/north-star/dogfood/phase6-agent-refusal-390.jpg) | ![Fastlane 4:23, the credit refusal](../../public/north-star/fastlane/t263.webp) |
+| Home, Next up | ![Next up 1440](../../public/north-star/dogfood/phase6-home-next-up-1440.jpg) | ![Next up 390](../../public/north-star/dogfood/phase6-home-next-up-390.jpg) | ![Fastlane 4:48, Next up](../../public/north-star/fastlane/t288.webp) ![Fastlane 5:48, Home](../../public/north-star/fastlane/t348.webp) |
+| /activity | ![Activity 1440](../../public/north-star/dogfood/phase6-activity-1440.jpg) ![AI use 1440](../../public/north-star/dogfood/phase6-activity-ai-use-1440.jpg) | ![Activity 390](../../public/north-star/dogfood/phase6-activity-390.jpg) | ![Fastlane 5:42, Activity](../../public/north-star/fastlane/t342.webp) |
+| /skills | ![Skills 1440](../../public/north-star/dogfood/phase6-skills-1440.jpg) | ![Skills 390](../../public/north-star/dogfood/phase6-skills-390.jpg) | none: Fastlane has no skills page |
+| /automations | ![Automations 1440](../../public/north-star/dogfood/phase6-automations-1440.jpg) | ![Automations 390](../../public/north-star/dogfood/phase6-automations-390.jpg) | ![Fastlane 5:46, Settings](../../public/north-star/fastlane/t346.webp) |
+| A tour step | ![Tour 1440, step 2](../../public/north-star/dogfood/phase6-tour-step-1440.jpg) | ![Tour 390, step 6](../../public/north-star/dogfood/phase6-tour-step-390.jpg) | ![Fastlane 4:47, tour 1 of 6](../../public/north-star/fastlane/t287.webp) |
+
 ## Phase 5 results (23 and 24 Oct 2026)
 
 The dogfood ran over three sessions: Fri 23 Oct from 08:36 to 09:38 and from 10:26 to 11:12 Singapore time, and Sat 24 Oct from 10:17 to 11:10. Each ran on a localhost build of main (9cfdd82e, then 21bde8b1 from mid-session 1, 750a24f4 on 23 Oct from 10:26, 54ee9d58 with ed28ec8d on 24 Oct) with the demo sign-in on NORTH_STAR_USERS and ?asLeo=1, against the live functions. Every POST, PATCH, PUT and DELETE to the shared database and storage was stopped in the browser (712 in all), the social status read never ran, and a function call went through only at a step that named it, so the campaign, the made posts and the kept presenter live only in the browser state kept with the run. Nothing was posted or scheduled to any account. The brand is ActivityTracker as phases 2 to 4 left it, with 12 app screens added to Media (stills cut from activity-tracker.io's own feature loops) and Raj, an AI presenter made and kept on day 1 (about US$0.02). The run's logs, every call, the ledger and the device states are in _raw/dogfood/live-p5dog/ (results.md there has the full detail and repros).
