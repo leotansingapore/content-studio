@@ -1,30 +1,42 @@
 // Social accounts (/accounts): connect the open brand profile's Instagram, Facebook, TikTok, LinkedIn,
 // YouTube and Threads accounts through Zernio, see whether each still works, reconnect or disconnect it.
 // Server: supabase/functions/social. Until the server says it is switched on, the page says only that.
+// Leo's sign-in (publish-accounts) sees them grouped by platform with a default per platform, the count and
+// price lines, #<platform> anchors, and "Back to your post" after a connect started from a post.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { RotateCw, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { useScrollToHash } from "@/lib/urlState";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
 import { ZERNIO_IG_BRANDS } from "@/lib/reelsBoard";
 import {
   capLine,
+  clearConnectReturn,
   connectLink,
+  countLine,
   disconnectOne,
+  groupAccounts,
   healthLabel,
   isNotEnabled,
+  loadSocialDefaults,
   PLATFORM_NAME,
   platformName,
+  readConnectReturn,
   readRedirect,
   rememberSocialConnect,
   removedLine,
+  saveSocialDefault,
   SOCIAL_PLATFORMS,
   socialStatus,
+  ZERNIO_PRICE_LINE,
   type AccountView,
+  type SocialDefaults,
   type SocialPlatform,
   type SocialStatus,
 } from "@/lib/socialConnect";
@@ -39,6 +51,44 @@ const HEALTH_TONE: Record<AccountView["health"], string> = {
 const isPlatform = (p: string): p is SocialPlatform => (SOCIAL_PLATFORMS as readonly string[]).includes(p);
 const message = (e: unknown) => (e instanceof Error ? e.message : "That didn't go through. Try again in a minute.");
 
+/** One connected account with its health, Reconnect and Disconnect; `extra` sits before the buttons (Leo's Default). */
+function AccountRow({ a, busy, grouped, extra, connect, disconnect }: {
+  a: AccountView;
+  busy: string;
+  grouped?: boolean;
+  extra?: ReactNode;
+  connect: (p: SocialPlatform, again: string) => void;
+  disconnect: (a: AccountView) => void;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-2 px-3 py-2">
+      <div className="mr-auto min-w-0">
+        <p className="truncate text-sm font-semibold">{a.username ? `@${a.username}` : a.name || platformName(a.platform)}</p>
+        <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+          {!grouped && <span>{platformName(a.platform)}</span>}
+          <span className={`font-semibold ${HEALTH_TONE[a.needsReconnect ? "error" : a.health]}`}>{healthLabel(a)}</span>
+          {a.issues[0] && <span>{a.issues[0]}</span>}
+        </p>
+      </div>
+      {extra}
+      {(a.needsReconnect || a.health === "error") && isPlatform(a.platform) && (
+        <Button size="sm" className="h-11 sm:h-9" disabled={!!busy} onClick={() => connect(a.platform as SocialPlatform, a.id)}>
+          {busy === a.id ? "Opening..." : "Reconnect"}
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-11 gap-1.5 text-muted-foreground hover:text-destructive sm:h-9"
+        disabled={!!busy}
+        onClick={() => disconnect(a)}
+      >
+        <Unplug className="h-3.5 w-3.5" /> {busy === `x${a.id}` ? "Disconnecting..." : "Disconnect"}
+      </Button>
+    </li>
+  );
+}
+
 export default function AccountsPage() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
@@ -51,6 +101,12 @@ export default function AccountsPage() {
   const [back, setBack] = useState<{ ok: boolean; text: string } | null>(null);
   // Instagram just connected for a brand whose approved posts then go out by themselves (the posts board)
   const [igBack, setIgBack] = useState(false);
+  // Leo's sign-in (publish-accounts): the post a connect started from, and a default account per platform
+  const leo = useLeoUser();
+  const [backTo, setBackTo] = useState<string | null>(null);
+  const [defaults, setDefaults] = useState<SocialDefaults>({});
+  // /accounts#tiktok lands on that platform's card once Leo's groups are drawn
+  useScrollToHash(state === "ready" && !!leo);
 
   const load = async (uid: string) => {
     try {
@@ -75,11 +131,13 @@ export default function AccountsPage() {
     if (result) {
       setBack(result);
       setIgBack(result.ok && params.get("connected") === "instagram");
+      setBackTo(readConnectReturn());
       setParams({}, { replace: true });
     }
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);
+      if (id) setDefaults(loadSocialDefaults(id));
       if (id) void load(id);
       else setState("off");
     });
@@ -118,6 +176,12 @@ export default function AccountsPage() {
 
   const full = status ? capLine(status) : null;
 
+  const pickDefault = (platform: string, accountId: string) => {
+    if (!userId) return;
+    if (!saveSocialDefault(userId, platform, accountId)) toast({ title: "Couldn't save the default: this device's storage is full.", variant: "destructive" });
+    setDefaults(loadSocialDefaults(userId));
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-1">
@@ -134,10 +198,16 @@ export default function AccountsPage() {
               <Link to="/reels" className="font-semibold text-primary underline-offset-2 hover:underline">Back to the posts board</Link>
             </>
           )}
+          {leo && backTo && (
+            <>
+              {" "}
+              <Link to={backTo} onClick={clearConnectReturn} className="font-semibold text-primary underline-offset-2 hover:underline">Back to your post</Link>
+            </>
+          )}
         </p>
       )}
 
-      {state === "loading" && (
+      {(state === "loading" || (state === "ready" && leo === undefined)) && (
         <p className="text-sm text-muted-foreground" aria-live="polite">
           Loading your accounts...
         </p>
@@ -156,7 +226,63 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {state === "ready" && status && (
+      {state === "ready" && status && leo && (
+        <>
+          {status.removed.length > 0 && (
+            <ul role="status" className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+              {status.removed.map((n) => (
+                <li key={`${n.platform}-${n.username}-${n.at}`}>{removedLine(n)}</li>
+              ))}
+            </ul>
+          )}
+          <div className="space-y-0.5 text-sm">
+            <p className="font-semibold">{countLine(status)}</p>
+            <p className="text-muted-foreground">{ZERNIO_PRICE_LINE}</p>
+          </div>
+          <div className="max-w-3xl space-y-3">
+            {groupAccounts(status.accounts, defaults).map((g) => (
+              <section key={g.platform} id={g.platform} aria-labelledby={`accounts-${g.platform}`} className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
+                <h2 id={`accounts-${g.platform}`} className="text-sm font-semibold">{g.name}</h2>
+                {g.accounts.length > 0 && (
+                  <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
+                    {g.accounts.map((a) => (
+                      <AccountRow
+                        key={a.id}
+                        a={a}
+                        busy={busy}
+                        grouped
+                        connect={connect}
+                        disconnect={disconnect}
+                        extra={
+                          g.showDefault && (
+                            <label className="flex min-h-9 cursor-pointer items-center gap-1.5 px-1 text-xs font-medium [@media(pointer:coarse)]:min-h-11">
+                              <input
+                                type="radio"
+                                name={`default-${g.platform}`}
+                                checked={g.defaultId === a.id}
+                                onChange={() => pickDefault(g.platform, a.id)}
+                                className="h-4 w-4 accent-primary"
+                              />
+                              Default
+                            </label>
+                          )
+                        }
+                      />
+                    ))}
+                  </ul>
+                )}
+                {g.button && isPlatform(g.platform) && (
+                  <Button variant="outline" className="h-11 w-full sm:w-auto" disabled={!!busy || !!full} onClick={() => connect(g.platform as SocialPlatform)}>
+                    {busy === g.platform ? `Opening ${g.name}...` : g.button}
+                  </Button>
+                )}
+              </section>
+            ))}
+          </div>
+        </>
+      )}
+
+      {state === "ready" && status && leo === null && (
         <>
           {status.removed.length > 0 && (
             <ul role="status" className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
@@ -173,30 +299,7 @@ export default function AccountsPage() {
             ) : (
               <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
                 {status.accounts.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-                    <div className="mr-auto min-w-0">
-                      <p className="truncate text-sm font-semibold">{a.username ? `@${a.username}` : a.name || platformName(a.platform)}</p>
-                      <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
-                        <span>{platformName(a.platform)}</span>
-                        <span className={`font-semibold ${HEALTH_TONE[a.needsReconnect ? "error" : a.health]}`}>{healthLabel(a)}</span>
-                        {a.issues[0] && <span>{a.issues[0]}</span>}
-                      </p>
-                    </div>
-                    {(a.needsReconnect || a.health === "error") && isPlatform(a.platform) && (
-                      <Button size="sm" className="h-11 sm:h-9" disabled={!!busy} onClick={() => connect(a.platform as SocialPlatform, a.id)}>
-                        {busy === a.id ? "Opening..." : "Reconnect"}
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-11 gap-1.5 text-muted-foreground hover:text-destructive sm:h-9"
-                      disabled={!!busy}
-                      onClick={() => disconnect(a)}
-                    >
-                      <Unplug className="h-3.5 w-3.5" /> {busy === `x${a.id}` ? "Disconnecting..." : "Disconnect"}
-                    </Button>
-                  </li>
+                  <AccountRow key={a.id} a={a} busy={busy} connect={connect} disconnect={disconnect} />
                 ))}
               </ul>
             )}
