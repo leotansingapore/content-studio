@@ -158,3 +158,70 @@ describe("the voiceover and the dub (pinned at 6cdc59d2, before the lines mode a
     expect(voiced(UID)).toBe(1);
   });
 });
+
+describe("a launch film's lines and a voiceover's word times (NORTH_STAR_USERS only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/text-voice", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const voiced = (uid = LEO) => db.rows.get(`${uid}|ai-voice|${db.today()}`) ?? 0;
+  // the with-timestamps reply (elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps), 0.1 s a character
+  const timed = (text: string) => () =>
+    Response.json({
+      audio_base64: "QUJD",
+      alignment: { characters: [...text], character_start_times_seconds: [...text].map((_, i) => i / 10), character_end_times_seconds: [...text].map((_, i) => (i + 1) / 10) },
+    });
+  const LINES = ["Your week.", "Planned in one tap."];
+
+  it("refuses the lines to anyone off the list before counting or calling ElevenLabs", async () => {
+    const res = await send(UID, { mode: "lines", lines: LINES, voice: "eric" });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    expect(db.rows.size).toBe(0);
+    expect(eleven.calls).toBe(0);
+  });
+
+  it("refuses lines it can't read with 400 before counting", async () => {
+    const res = await send(LEO, { mode: "lines", lines: [], voice: "eric" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ code: "bad_request", error: "Write the film's lines first." });
+    expect(db.rows.size).toBe(0);
+    expect(eleven.calls).toBe(0);
+  });
+
+  it("reads the lines in one with-timestamps call with no language, and answers one span per line for one use", async () => {
+    eleven.reply = timed(LINES.join("\n"));
+    const res = await send(LEO, { mode: "lines", lines: LINES, voice: "eric" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ audio: "QUJD", spans: [{ s: 0, e: 1 }, { s: 1.1, e: 3 }] });
+    expect(eleven.sent).toHaveLength(1);
+    expect(eleven.sent[0].url).toBe("https://api.elevenlabs.io/v1/text-to-speech/cjVigY5qzO86Huf0OWal/with-timestamps?output_format=mp3_44100_128");
+    expect(JSON.parse(eleven.sent[0].body)).toEqual({ text: "Your week.\nPlanned in one tap.", model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, speed: 1 } });
+    expect(voiced()).toBe(1);
+  });
+
+  it("answers a listed caller's voiceover with its words timed, for one use", async () => {
+    const text = "Plan your week in one tap.";
+    eleven.reply = timed(text);
+    const res = await send(LEO, { text, voice: "alice", timestamps: true });
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out.audio).toBe("QUJD");
+    expect(out.words.map((w: { w: string }) => w.w)).toEqual(["Plan", "your", "week", "in", "one", "tap."]);
+    expect([out.words[0].s, out.words.at(-1).e]).toEqual([0, 2.6]);
+    expect(eleven.sent[0].url).toContain("/with-timestamps?");
+    expect(voiced()).toBe(1);
+  });
+
+  it("gives the use back when ElevenLabs never answered, and keeps it when the answer has no audio", async () => {
+    for (const next of [500, "throw"] as const) {
+      eleven.next = next;
+      const res = await send(LEO, { mode: "lines", lines: LINES, voice: "eric" });
+      expect(res.status).toBe(502);
+      expect(await res.json()).toEqual({ code: "failed", error: "Couldn't make the voiceover right now. Try again in a minute." });
+      expect(voiced()).toBe(0);
+    }
+    eleven.next = 200;
+    eleven.reply = () => Response.json({ alignment: {} });
+    expect((await send(LEO, { text: "Plan your week in one tap.", voice: "alice", timestamps: true })).status).toBe(422);
+    expect(voiced()).toBe(1);
+  });
+});

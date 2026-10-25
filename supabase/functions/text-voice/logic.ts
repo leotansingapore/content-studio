@@ -137,6 +137,44 @@ export function lineSpans(lines: string[], alignment: Alignment | null | undefin
   return out;
 }
 
+// ---------- a launch film's voice, and word times for a voiceover (NORTH_STAR_USERS only) ----------
+
+export const MAX_FILM_LINES = 20;
+
+/**
+ * A launch film's spoken lines (text-voice mode "lines"): English, read in one call through the with-timestamps
+ * endpoint so each line's span comes back with the audio. Lines keep their places; an empty one gets no span.
+ */
+export function parseLinesRequest(raw: unknown): ({ ok: true; lines: string[]; voice: VoiceId } & Delivery) | { ok: false; error: string } {
+  const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const voice = VOICE_IDS.find((v) => v === b.voice);
+  if (!voice) return { ok: false, error: "Pick a voice." };
+  const lines = Array.isArray(b.lines) ? b.lines.map((l) => (typeof l === "string" ? l.replace(/\s+/g, " ").trim().slice(0, 300) : "")) : [];
+  if (lines.length > MAX_FILM_LINES) return { ok: false, error: `A film reads ${MAX_FILM_LINES} lines at most.` };
+  if (lines.join("").length < MIN_SCRIPT) return { ok: false, error: "Write the film's lines first." };
+  if (lines.join("\n").length > MAX_SCRIPT) return { ok: false, error: `Keep the film's lines under ${MAX_SCRIPT.toLocaleString("en-US")} characters.` };
+  return { ok: true, lines, voice, ...parseDelivery(b) };
+}
+
+/**
+ * Each word of `text` with when it is said, from ElevenLabs' per-character times: a word starts with its first
+ * character and ends with its last, so the words cover the audio. When the alignment doesn't match the text, words
+ * share the audio by their place in it instead (as lineSpans does).
+ */
+export function wordTimes(text: string, alignment: Alignment | null | undefined, duration: number): { w: string; s: number; e: number }[] {
+  const starts = Array.isArray(alignment?.character_start_times_seconds) ? (alignment!.character_start_times_seconds as number[]) : [];
+  const ends = Array.isArray(alignment?.character_end_times_seconds) ? (alignment!.character_end_times_seconds as number[]) : [];
+  const exact = starts.length === text.length && ends.length === text.length;
+  const at = (n: number) => Math.round(n * 1000) / 1000;
+  return [...text.matchAll(/\S+/g)].map((m) => {
+    const first = m.index ?? 0;
+    const last = first + m[0].length - 1;
+    return exact
+      ? { w: m[0], s: at(Number(starts[first]) || 0), e: at(Number(ends[last]) || 0) }
+      : { w: m[0], s: at((first / text.length) * duration), e: at(((last + 1) / text.length) * duration) };
+  });
+}
+
 // ---------- background music: an instrumental track in the video's mood (Eleven Music) ----------
 
 /** The moods on offer. `about` is what Jev reads to pick one; `style` is what Eleven Music is asked for. */

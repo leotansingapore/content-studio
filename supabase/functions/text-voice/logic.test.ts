@@ -6,6 +6,7 @@ import {
   DEFAULT_EMOTION, EMOTIONS, EMOTION_IDS, PACE_IDS, voiceSettings,
   DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
   moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal, parseMusicRequest, readMood,
+  MAX_FILM_LINES, parseLinesRequest, wordTimes,
 } from "./logic";
 
 describe("parseVoiceRequest", () => {
@@ -112,6 +113,57 @@ describe("dubbing", () => {
 
   it("shares the audio by length when the times don't match the text", () => {
     expect(lineSpans(["ab", "cd"], { character_start_times_seconds: [0] }, 5)).toEqual([{ s: 0, e: 2 }, { s: 3, e: 5 }]);
+  });
+});
+
+// ElevenLabs' with-timestamps reply gives a start and an end for every character of the text sent
+// (elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps): here 0.05 s each, a 0.2 s pause at the line break
+const SAID = "Plan your week.\nIn one tap.";
+const ALIGNMENT = (() => {
+  let t = 0;
+  const s: number[] = [];
+  const e: number[] = [];
+  for (const ch of SAID) {
+    s.push(Math.round(t * 1000) / 1000);
+    t += ch === "\n" ? 0.2 : 0.05;
+    e.push(Math.round(t * 1000) / 1000);
+  }
+  return { characters: [...SAID], character_start_times_seconds: s, character_end_times_seconds: e };
+})();
+
+describe("a launch film's lines", () => {
+  it("takes English lines in place with a voice, and how it sounds", () => {
+    expect(parseLinesRequest({ voice: "eric", lines: ["  Plan  your week. ", "", 7, "In one tap."], pace: "faster" })).toEqual({
+      ok: true,
+      voice: "eric",
+      lines: ["Plan your week.", "", "", "In one tap."],
+      emotion: "warm",
+      pace: "faster",
+    });
+  });
+
+  it("refuses no voice, no words, too many lines or too much to say", () => {
+    expect(parseLinesRequest({ voice: "bob", lines: ["Plan your week."] })).toEqual({ ok: false, error: "Pick a voice." });
+    expect(parseLinesRequest({ voice: "eric", lines: ["", " "] })).toEqual({ ok: false, error: "Write the film's lines first." });
+    expect(parseLinesRequest({ voice: "eric", lines: Array(MAX_FILM_LINES + 1).fill("Plan your week.") })).toEqual({ ok: false, error: "A film reads 20 lines at most." });
+    expect(parseLinesRequest({ voice: "eric", lines: Array(9).fill("x".repeat(300)) })).toEqual({ ok: false, error: "Keep the film's lines under 2,500 characters." });
+  });
+});
+
+describe("word times", () => {
+  it("turns the character times into words whose times cover the audio", () => {
+    const duration = ALIGNMENT.character_end_times_seconds.at(-1)!;
+    const words = wordTimes(SAID, ALIGNMENT, duration);
+    expect(words.map((w) => w.w)).toEqual(["Plan", "your", "week.", "In", "one", "tap."]);
+    expect(words[0]).toEqual({ w: "Plan", s: 0, e: 0.2 });
+    expect(words[3]).toEqual({ w: "In", s: 0.95, e: 1.05 });
+    expect([words[0].s, words.at(-1)!.e]).toEqual([0, duration]);
+    // each word starts after the one before it ends
+    expect(words.every((w, i) => w.e > w.s && (i === 0 || w.s >= words[i - 1].e))).toBe(true);
+  });
+
+  it("shares the audio by place when the times don't match the text", () => {
+    expect(wordTimes("ab cd", { character_start_times_seconds: [0] }, 5)).toEqual([{ w: "ab", s: 0, e: 2 }, { w: "cd", s: 3, e: 5 }]);
   });
 });
 
