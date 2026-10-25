@@ -12,13 +12,14 @@ import { TEMPLATES, type VideoTemplate } from "../../supabase/functions/ai-video
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export type FormatKind = "video" | "slides" | "text" | "image";
-export type FormatNeed = "demo-video" | "photo" | "own-video" | "own-media";
+export type FormatNeed = "demo-video" | "photo" | "own-video" | "own-media" | "reel-video";
 
 export const NEED_LINES: Record<FormatNeed, string> = {
   "demo-video": "Needs a demo video",
   photo: "Needs a photo of the person",
   "own-video": "Needs a video of you",
   "own-media": "Needs your own video or photos",
+  "reel-video": "Needs a reel's video: Instagram or an upload",
 };
 
 type LinkOpts = { source?: string; mention?: "no" };
@@ -193,6 +194,18 @@ export const FORMATS: FormatDef[] = [
     to: () => links.edit({ panel: ["ai"], kind: "montage" }),
     ready: true,
   },
+  {
+    // north star phase 7a: a stub page until film-studio (wave 2) replaces LaunchFilm.tsx
+    slug: "launch-film",
+    name: "Launch film",
+    blurb: "A film of your product, made from your brand and app screens.",
+    kind: "video",
+    group: 1,
+    cap: "launch-film",
+    price: () => priceOf("launch-film"),
+    Component: lazy(() => import("@/components/make/LaunchFilm")),
+    ready: false,
+  },
   // 2: made without filming
   {
     slug: "text-over-clip",
@@ -280,6 +293,20 @@ export const FORMATS: FormatDef[] = [
       ready: false,
     }),
   ),
+  {
+    // north star phase 7a: a stub page until same-edit-page (wave 2) replaces SameEdit.tsx. The first version with a
+    // face: its script, a 15 s Speak run and the voice; the edit's read is its own press.
+    slug: "same-edit",
+    name: "Same edit, your version",
+    blurb: "A reel's cuts, on-screen text and pacing, rebuilt with your words.",
+    kind: "video",
+    group: 3,
+    cap: "ai-video",
+    price: () => sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice")),
+    needs: "reel-video",
+    Component: lazy(() => import("@/components/make/SameEdit")),
+    ready: false,
+  },
   // 4: your own footage
   {
     slug: "own-media",
