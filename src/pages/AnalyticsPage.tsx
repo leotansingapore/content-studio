@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { type AnalyticsPeriod } from "@/lib/links";
@@ -12,7 +12,6 @@ import {
   draftStatus,
   loadDrafts,
   setDraftMetrics,
-  type DraftEntry,
   type PostMetrics,
 } from "@/lib/draftHistory";
 import {
@@ -68,12 +67,14 @@ import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
 import RealNumbers from "@/components/RealNumbers";
-import { extraLine, onNumbers, refreshIfStale } from "@/lib/realNumbers";
+import { extraLine } from "@/lib/realNumbers";
 import { gradePost } from "@/lib/postGrade";
 import { fromDraft } from "@/lib/remixSource";
 import RemixButton from "@/components/remix/RemixButton";
 import GradePanel, { GradeChip } from "@/components/analytics/GradePanel";
 import WinnerCard from "@/components/analytics/WinnerCard";
+import WhatWins from "@/components/analytics/WhatWins";
+import ScoreCheck from "@/components/analytics/ScoreCheck";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { auditedHandles, normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
@@ -111,16 +112,6 @@ import {
   Download,
   Hash,
 } from "lucide-react";
-
-// What wins for you and How the score did (Leo only), with the props analytics-cards declares.
-// shortcut: those two files land from analytics-cards in the same wave, so they are found by glob and this page
-// builds with or without them; swap for two plain imports once both are on ns/phase7.
-type CardProps = { userId: string; drafts: DraftEntry[] };
-type CardModule = { default?: ComponentType<CardProps> } & Record<string, ComponentType<CardProps> | undefined>;
-const CARDS = import.meta.glob<CardModule>("../components/analytics/{WhatWins,ScoreCheck}.tsx", { eager: true });
-const cardOf = (name: string) => CARDS[`../components/analytics/${name}.tsx`]?.default ?? CARDS[`../components/analytics/${name}.tsx`]?.[name];
-const WhatWins = cardOf("WhatWins");
-const ScoreCheck = cardOf("ScoreCheck");
 
 const HOUR_NAMES = Array.from({ length: 24 }, (_, h) => timeLabel(`${String(h).padStart(2, "0")}:00`));
 const HOUR_HEADS = HOUR_NAMES.map((n, h) => (h % 3 === 0 ? n : ""));
@@ -590,7 +581,8 @@ export default function AnalyticsPage() {
   const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
   const ranked = useMemo(() => rankPosts(withinDays(tracked, period), rankBy, 5, followers), [tracked, rankBy, period, followers]);
 
-  // ---- Leo only (phase 7a): grades, Winner found, real numbers kept fresh, the #sections. Others: today's page.
+  // ---- Leo only (phase 7a): grades, Winner found, the #sections. Others: today's page. Real numbers refresh on
+  // open in RealNumbers (the 6-hour rule), and What wins and How the score did check Leo themselves.
   const leo = useLeoUser();
   const leoOn = !!leo && !!userId;
   useScrollToHash(leoOn);
@@ -603,12 +595,6 @@ export default function AnalyticsPage() {
     const now = Date.now();
     return leoOn ? new Map([...ranked, ...(graded ? [graded] : [])].map((d) => [d.id, gradePost(d, tracked, now)])) : null;
   }, [leoOn, ranked, graded, tracked]);
-  useEffect(() => {
-    if (!leoOn || !socialConnectShown()) return;
-    // at most every 6 hours, outside React, so a pull started here finishes on another page
-    refreshIfStale(userId);
-    return onNumbers(bumpMetrics);
-  }, [leoOn, userId, bumpMetrics]);
   const gradePanel = (d: (typeof tracked)[number], titled: boolean) => (
     <GradePanel userId={userId!} post={d} tracked={tracked} grade={grades!.get(d.id)!} titled={titled} scroll={d.id === linkedGrade} onClose={closeGrade} />
   );
@@ -926,11 +912,7 @@ export default function AnalyticsPage() {
         <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
       )}
 
-      {leoOn && WhatWins && (
-        <div id="what-wins" className="scroll-mt-20">
-          <WhatWins userId={userId} drafts={drafts} />
-        </div>
-      )}
+      {userId && <WhatWins userId={userId} drafts={drafts} />}
 
       {hasData ? (
         <>
@@ -1212,11 +1194,7 @@ export default function AnalyticsPage() {
         </Card>
       )}
 
-      {leoOn && ScoreCheck && (
-        <div id="score-check" className="scroll-mt-20">
-          <ScoreCheck userId={userId} drafts={drafts} />
-        </div>
-      )}
+      {userId && <ScoreCheck userId={userId} drafts={drafts} />}
     </div>
   );
 }
