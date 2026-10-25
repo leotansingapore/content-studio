@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EditSettings } from "@/lib/videoEdit";
 
 vi.mock("@/lib/supabase", () => ({
@@ -18,8 +18,9 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row over the start screen reads the rails store, which has no server snapshot; not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { Editor, Start, videoTarget } = await import("./VideoEditPage");
+const { Editor, Start, videoTarget, versionPrice, versionUses, withBeats } = await import("./VideoEditPage");
 const { defaultSettings } = await import("@/lib/videoEdit");
+const prices = await import("@/lib/prices");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 const plain = {
@@ -157,4 +158,83 @@ describe("the open video as the agent's edit target (Leo only)", () => {
     expect(() => p.apply()).toThrow();
     expect(io.sets).toBe(1);
   });
+});
+
+describe("versions of a same edit (remix-format-clone, Leo only)", () => {
+  // the plan: a hook with its on-screen hook, a point with a cutaway, an ask with a zoom; the base video is a presenter's
+  const plan = {
+    v: 1 as const, id: "ep-1", source: "clone:instagram:C1", at: "2026-10-25T01:00:00.000Z",
+    read: { seconds: 30, aspect: "9:16" as const, wpm: 160, look: null, cutsPerMin: 20, music: null, sfx: false, people: 1 as const, cutaways: "full" as const, skipped: [] },
+    beats: [{ role: "hook" as const, share: 0.3, shots: [] }, { role: "point" as const, share: 0.4, shots: [] }, { role: "ask" as const, share: 0.3, shots: [] }],
+    events: [
+      { kind: "text" as const, place: { b: 0, at: 0, span: 1 }, role: "hook" as const, words: 1, y: 0.2 },
+      { kind: "cutaway" as const, place: { b: 1, at: 0.2, span: 0.5 }, picture: "stock" as const },
+      { kind: "zoom" as const, place: { b: 2, at: 0, span: 0.3 } },
+    ],
+  };
+  const base = {
+    id: "ev-1", host: { kind: "presenter" as const, id: "pr-1" }, voice: "alice" as const, lang: "en" as const, offer: null,
+    lines: ["Most", "people", "plan."], marks: [{ k: 0, line: 0, word: 0 }, { k: 1, line: 1, word: 0 }], texts: [{ k: 0, text: "MOST" }], searches: [{ k: 1, search: "office desk" }],
+    caption: "", at: "2026-10-25T01:05:00.000Z",
+  };
+  // its two Speak parts say "Most people" (0 to 4.8 s) and "plan." (4.8 to 12 s), from the project's word times
+  const planned = { ...marked, plan: { id: "ep-1", version: "ev-1" } };
+  const hook = { formula: "contrarian", r: { lines: ["Stop", "skip", "this."], marks: [{ k: 0, line: 0, word: 0 }, { k: 1, line: 1, word: 0 }], texts: [{ k: 0, text: "STOP" }], searches: [{ k: 1, search: "beach" }] } };
+
+  let store: Map<string, string>;
+  beforeEach(() => {
+    store = new Map([["content-studio-edit-plans-u1", JSON.stringify([{ plan, versions: [base] }])]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k), key: () => null, length: 0 });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("takes only the hook beat's line, markers, on-screen text and search from a written hook", () => {
+    expect(withBeats(plan, base, hook.r, new Set([0]))).toEqual({
+      lines: ["Stop", "people", "plan."],
+      marks: [{ k: 1, line: 1, word: 0 }, { k: 0, line: 0, word: 0 }],
+      texts: [{ k: 0, text: "STOP" }],
+      searches: [{ k: 1, search: "office desk" }],
+    });
+  });
+
+  it("prices each box before the press: the voice and the Speak parts its change remakes, and only the writing on a filmed take", () => {
+    const b = { plan, base, project: planned };
+    const { priceOf, sumPrices } = prices;
+    expect(versionPrice(b, { change: "hook", hook })).toEqual(sumPrices(priceOf("ai-voice"), priceOf("edit-version", { slices: [4.8] })));
+    expect(versionPrice(b, { change: "offer", offer: "Hospital plan check" })).toEqual(sumPrices(priceOf("remix-make"), priceOf("ai-voice"), priceOf("edit-version", { slices: [7.2] })));
+    expect(versionPrice(b, { change: "host", who: "mine" })).toEqual(priceOf("edit-version", { slices: [4.8, 7.2] }));
+    expect(versionPrice(b, { change: "lang", lang: "ms" })).toEqual(sumPrices(priceOf("ai-voice"), priceOf("edit-version", { slices: [4.8, 7.2] })));
+    expect(versionPrice({ ...b, base: { ...base, host: { kind: "none" } } }, { change: "hook", hook })).toEqual(priceOf("ai-voice"));
+    expect(versionPrice({ ...b, base: { ...base, host: { kind: "film" } } }, { change: "hook", hook })).toBeNull();
+    expect(versionPrice({ ...b, base: { ...base, host: { kind: "film" } } }, { change: "offer", offer: "Hospital plan check" })).toEqual(priceOf("remix-make"));
+  });
+
+  it("counts edit-version once a face version, a voice for every version but a new face, and a remix for each offer", () => {
+    const asks = [{ change: "hook" as const, hook }, { change: "host" as const, who: "mine" }, { change: "offer" as const, offer: "Review" }];
+    expect(versionUses("face", asks)).toEqual({ "edit-version": 3, "ai-voice": 2, "remix-make": 1 });
+    expect(versionUses("none", asks.slice(0, 1))).toEqual({ "ai-voice": 1 });
+    expect(versionUses("film", asks)).toEqual({ "remix-make": 1 });
+  });
+
+  it("shows Leo a Versions button on a project made from a plan, and the panel's rows with versions=1; nobody else sees any of it", () => {
+    const closed = html(planned, true);
+    expect(closed).toContain("Versions of this edit");
+    expect(closed).toMatch(/<button[^>]*>Versions<\/button>/);
+    expect(closed).not.toContain("New hook");
+    const open = html(planned, true, "/edit?p=v1&versions=1");
+    for (const row of ["New hook", "Write 3 hooks", "Language", "Malay"]) expect(open).toContain(row);
+    expect(open).toMatch(/<button[^>]*disabled=""[^>]*>Make versions<\/button>/);
+    expect(open).toContain("Tick a box for each version you want.");
+    // written hooks wait on this device, with Jev's pick marked
+    store.set("cs-edit-versions-ep-1", JSON.stringify({ hooks: [hook, { ...hook, formula: "question", r: { ...hook.r, lines: ["Why", "skip", "this?"] } }], rec: 1, langs: {} }));
+    const hooks = html(planned, true, "/edit?p=v1&versions=1");
+    expect(hooks).toContain("&quot;Stop&quot;");
+    expect(hooks).toMatch(/&quot;Why&quot;<\/span><span[^>]*>Recommended/);
+    expect(hooks).toContain("Write 3 more");
+    expect(html(planned, false, "/edit?p=v1&versions=1")).toBe(html(plain, false));
+    // a plan gone from this device shows no card
+    store.clear();
+    expect(html(planned, true, "/edit?p=v1&versions=1")).not.toContain("Versions of this edit");
+  });
+
 });

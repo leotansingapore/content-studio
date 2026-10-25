@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { EDIT_TABS, links, type EditTab } from "@/lib/links";
+import { EDIT_TABS, links, type EditTab, type PostLang } from "@/lib/links";
 import { useScrollToHash, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -23,6 +23,7 @@ import StylePresets from "@/components/StylePresets";
 import ReelStyleCopy from "@/components/ReelStyleCopy";
 import PlatformCaptions from "@/components/PlatformCaptions";
 import ScriptCard from "@/components/edit/ScriptCard";
+import ComplianceChips from "@/components/ComplianceChips";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { gridWindow, type Band } from "@/lib/igGrid";
@@ -30,8 +31,8 @@ import { onBrollApply } from "@/lib/autoBroll";
 import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, aiMusicOn, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic, type Mood } from "@/lib/aiMusic";
 import AiVideo from "@/components/AiVideo";
 import { montageBusy } from "@/lib/montage";
-import { aiBusy, aiJob, pendingAvatar } from "@/lib/aiVideo";
-import { downloadStock, type StockItem } from "@/lib/stockMedia";
+import { MAX_AVATAR_SECONDS, aiBusy, aiJob, makeVersion, onAiJob, pendingAvatar, resumeAvatar, sliceVoiceover, versionRun, versionWords, type Voiceover } from "@/lib/aiVideo";
+import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import {
   DEFAULT_EMOTION, DUB_LANGS, EMOTIONS, EMOTION_IDS, MAX_SCRIPT, PACES, PACE_IDS, VOICES, VOICE_IDS, audioSeconds, speak, speakDub,
   type Delivery, type DubLang, type VoiceId,
@@ -43,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { streamOnePost } from "@/lib/batchGenerate";
 import { splitScriptCaption, withVideoCaption } from "@/lib/scriptCaption";
-import { getDraftById, upsertDraft } from "@/lib/draftHistory";
+import { getDraftById, loadDrafts, upsertDraft } from "@/lib/draftHistory";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
@@ -56,7 +57,7 @@ import { supabase } from "@/lib/supabase";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import PriceChip from "@/components/PriceChip";
-import { priceOf, reasonText, sumPrices, type Price, type PriceOpts } from "@/lib/prices";
+import { priceOf, priceText, reasonText, sumPrices, type Price, type PriceOpts } from "@/lib/prices";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import {
   STYLES,
@@ -197,7 +198,10 @@ import {
   type JoinExtra,
   pickupPlan,
   type PickupPath,
+  layOver,
+  monoPcm,
   onOutputClock,
+  startSlides,
 } from "@/lib/videoMedia";
 import type { VersionPlan } from "@/lib/exportVersions";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
@@ -220,7 +224,23 @@ import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } 
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
 import { registerEditTarget, settingWords, type EditTarget } from "@/lib/editTarget";
-import { addVersion, loadPlans } from "@/lib/editPlan";
+import { PLANS_CHANGED, addVersion, compilePlan, loadPlans, versionId, type CutawayClip, type EditPlan, type PlanEntry, type Version } from "@/lib/editPlan";
+import { callFn } from "@/lib/edgeFn";
+import { faceFor, textsFromSpans, wordsIn, PARTS_GONE } from "@/lib/avatarScript";
+import { MAS_FLAG } from "@/lib/presenter";
+import { requestMake, tooLongLine, type Flags } from "@/lib/remix";
+import { brandPack, loadRemixPrefs, offerNames } from "@/lib/remixBrand";
+import type { RemixSource } from "@/lib/remixSource";
+import { resolveSource } from "@/lib/resolveSource";
+import { NO_STOCK, PRESENTER_GONE, PRESENTER_LINE, VOICE_FAILED, WRITE_FAILED, cutawayScenes, draftOf, editBrief, spoken, versionOf } from "@/lib/sameEditJob";
+import { makeBody } from "@/lib/slideshowJob";
+import { aiMark, speakerFace, speakerOf, speakers, useSpeakers } from "@/lib/talkingHead";
+import { LANG_NAMES } from "@/lib/translate";
+import { otherFormulas } from "@/lib/variants";
+import { pickHook } from "@/lib/writingJudge";
+import type { AiPart } from "@/lib/videoEdit";
+import type { AiMark } from "@/lib/videoProjects";
+import type { EditResult } from "../../supabase/functions/remix/logic.ts";
 
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
 // then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
@@ -2084,6 +2104,8 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
         <ScriptCard userId={userId} project={project}
           onPut={(p) => { live.current = p; onSave(p); segIdx.current = 0; endAt.current = null; setWords(p.words); setSettings(p.settings); setHistory([]); setThumb(p.thumb); }} />
       )}
+      {/* Leo: a video made from an edit plan (same edit) makes versions of it, one change each (?versions=1) */}
+      {leo && project.plan && <VersionsCard userId={userId} project={project} settings={settings} onOpen={onOpen} />}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
@@ -3403,3 +3425,631 @@ function Toggle({ on, set, disabled, label }: { on: boolean; set: (v: boolean) =
     </button>
   );
 }
+
+// ---------- Versions of a same edit (remix-format-clone, Leo only) ----------
+// A project made from an edit plan (project.plan) makes versions of it, one change each: a new hook (3 written per
+// press, Jev's pick marked), another offer from the brand kit, another face, or Chinese, Malay or Tamil. ?versions=1
+// opens the panel (push). Each version is saved in the plan and in My posts (the plan's set) before anything is paid
+// for, then made one after another outside React: on a face, only the Speak parts its change covers (aiVideo
+// makeVersion, on edit-version); with no face, a new voice over the same stock cutaways; on a filmed take, the script
+// to film. A paid Speak run resumes after a reload like any avatar video; versions not yet started wait for a press.
+
+type VersionAsk =
+  | { change: "hook"; hook: WrittenHook }
+  | { change: "offer"; offer: string }
+  | { change: "host"; who: string }
+  | { change: "lang"; lang: PostLang };
+/** A hook written for this edit: the writer's whole answer (only its hook beat is used) and its flags. */
+interface WrittenHook { formula: string; r: Pick<Version, "lines" | "marks" | "texts" | "searches">; flags?: Flags }
+/** The panel's typed work on this device, per plan: the hooks written, Jev's pick and the reviewed translations. */
+interface VersionsDraft { hooks: WrittenHook[]; rec: number | null; langs: Partial<Record<PostLang, { lines: string[]; texts: Version["texts"] }>> }
+interface VersionsJob { planId: string; state: "working" | "done" | "failed"; step: string; made: number; total: number; error?: string; flags: Flags[]; missed: number }
+/** What a version is made from: the plan, the version this project is, the project and its settings now. */
+interface VersionBase { plan: EditPlan; base: Version; project: VideoProject; settings: EditSettings; source: RemixSource | null }
+
+export const MAX_VERSIONS_A_PRESS = 6;
+const VLANGS: PostLang[] = ["zh", "ms", "ta"];
+const VDRAFT = (planId: string) => `cs-edit-versions-${planId}`;
+const VDRAFT_CHANGED = "cs-edit-versions-changed";
+const FACE_GONE = "The face in this video isn't saved any more, so it can't be made again.";
+const SOURCE_GONE = "The reel this edit was read from isn't on this device any more, so new words can't be written.";
+export const OTHER_DEVICE = "This video is on another device. Open it there to make versions.";
+const NO_PARTS = "This video's parts weren't kept on this device, so versions can't be made from it.";
+const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const countWords = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+export function loadVersionsDraft(planId: string): VersionsDraft {
+  try {
+    const d = JSON.parse(localStorage.getItem(VDRAFT(planId)) ?? "null");
+    const hooks = Array.isArray(d?.hooks) ? d.hooks.filter((h: WrittenHook) => typeof h?.formula === "string" && Array.isArray(h.r?.lines) && Array.isArray(h.r.marks)) : [];
+    return { hooks, rec: Number.isInteger(d?.rec) && d.rec < hooks.length ? d.rec : null, langs: d?.langs && typeof d.langs === "object" ? d.langs : {} };
+  } catch {
+    return { hooks: [], rec: null, langs: {} };
+  }
+}
+function saveVersionsDraft(planId: string, d: VersionsDraft) {
+  try {
+    localStorage.setItem(VDRAFT(planId), JSON.stringify(d));
+  } catch {
+    // storage full: the panel still shows it until the page closes
+  }
+  window.dispatchEvent(new Event(VDRAFT_CHANGED));
+}
+
+// one store for the panel's runs, so leaving /edit never stops one
+let vstate: { writing?: string; translating?: string; job?: VersionsJob; error?: string } = {};
+const vlisteners = new Set<() => void>();
+const setV = (patch: Partial<typeof vstate>) => {
+  vstate = { ...vstate, ...patch };
+  vlisteners.forEach((l) => l());
+};
+const jobPatch = (patch: Partial<VersionsJob>) => vstate.job && setV({ job: { ...vstate.job, ...patch } });
+function useVersionsState() {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const l = () => bump((n) => n + 1);
+    vlisteners.add(l);
+    return () => void vlisteners.delete(l);
+  }, []);
+  return vstate;
+}
+
+const baseKind = (v: Pick<Version, "host">) => (v.host.kind === "none" ? "none" : v.host.kind === "film" ? "film" : "face");
+/** The base video's Speak parts, each with its words (from the project's word times when the mark kept none). */
+const partsOf = (p: VideoProject): AiPart[] => {
+  const s = p.ai?.slices ?? [];
+  const heard = wordsIn(p.words, s);
+  return s.map((x, i) => ({ ...x, text: x.text || heard[i] || "" }));
+};
+/** The beats a change rewrites: the hook, or the product and ask beats (the last beat when the plan has neither). */
+const beatsOf = (plan: EditPlan, change: "hook" | "offer") => {
+  if (change === "hook") return new Set([0]);
+  const b = plan.beats.flatMap((x, i) => (x.role === "product" || x.role === "ask" ? [i] : []));
+  return new Set(b.length ? b : [plan.beats.length - 1]);
+};
+/** The base with a written answer's lines, marks, on-screen texts and searches in those beats only. */
+export function withBeats(plan: EditPlan, base: Version, r: WrittenHook["r"], beats: Set<number>): Pick<Version, "lines" | "marks" | "texts" | "searches"> {
+  const ks = new Set(plan.events.flatMap((e, k) => (beats.has(e.place.b) ? [k] : [])));
+  return {
+    lines: base.lines.map((l, b) => (beats.has(b) ? r.lines[b] ?? l : l)),
+    marks: [...base.marks.filter((m) => !beats.has(m.line)), ...r.marks.filter((m) => beats.has(m.line))],
+    texts: [...base.texts.filter((t) => !ks.has(t.k)), ...r.texts.filter((t) => ks.has(t.k))],
+    searches: [...base.searches.filter((t) => !ks.has(t.k)), ...r.searches.filter((t) => ks.has(t.k))],
+  };
+}
+/** A translated line's markers, moved to the same share of the way through it. */
+const scaledMarks = (base: Version, lines: string[]) =>
+  base.marks.map((m) => {
+    const was = countWords(base.lines[m.line] ?? "");
+    const now = countWords(lines[m.line] ?? "");
+    return { ...m, word: was ? Math.min(now, Math.round((m.word * now) / was)) : 0 };
+  });
+/** The base video's cutaways the plan laid, by event: a version keeps them where its words move them. */
+const clipsOf = (planId: string, s: EditSettings): Record<number, CutawayClip> =>
+  Object.fromEntries((s.broll ?? []).flatMap(({ id, from: _f, to: _t, ...clip }) => {
+    const k = id.startsWith(`b-${planId}-`) ? Number(id.slice(planId.length + 3)) : NaN;
+    return Number.isInteger(k) ? [[k, clip]] : [];
+  }));
+/** Each line's words spread over the span the dub says it in (a Chinese line is one word). */
+const spanWords = (lines: string[], spans: ({ s: number; e: number } | null)[]): Word[] =>
+  lines.flatMap((l, i) => {
+    const sp = spans[i];
+    return sp && l.trim() ? scriptWords(l, sp.e - sp.s).map((w) => ({ ...w, s: w.s + sp.s, e: w.e + sp.s })) : [];
+  });
+const changeName = (v: Pick<Version, "change" | "lang">) =>
+  v.change === "hook" ? "new hook" : v.change === "offer" ? "new offer" : v.change === "host" ? "new face" : v.change === "lang" ? LANG_NAMES[v.lang as PostLang] : "first version";
+
+/** The plan's cutaways found again by the version's searches, kept on this device as Add B-roll for me keeps them. */
+// shortcut: sameEditJob.ts's findCutaways does the same; share one once that file can change
+async function findCutaways(plan: EditPlan, v: Version): Promise<{ clips: Record<number, CutawayClip>; missed: number }> {
+  const orientation = plan.read.aspect === "16:9" ? "landscape" : plan.read.aspect === "1:1" ? "square" : "portrait";
+  const clips: Record<number, CutawayClip> = {};
+  const used = new Set<string>();
+  let missed = 0;
+  for (const [k, e] of plan.events.entries()) {
+    if (e.kind !== "cutaway") continue;
+    const search = v.searches.find((s) => s.k === k)?.search ?? "";
+    const it = search ? (await searchStock("video", search, 1, orientation).then((r) => r.items, () => [])).find((x) => !used.has(x.id)) : undefined;
+    const blob = it ? await downloadStock(it.src).catch(() => null) : null;
+    const key = `br-${it?.id}-${Date.now().toString(36)}`;
+    if (!it || !blob || !(await putFile(key, blob).then(() => true, () => false))) {
+      missed++;
+      continue;
+    }
+    const probe = await loadVideo(blob).catch(() => null);
+    const length = probe && Number.isFinite(probe.duration) ? probe.duration : it.duration ?? 4;
+    if (probe) URL.revokeObjectURL(probe.src);
+    used.add(it.id);
+    clips[k] = { key, length: Math.max(0.5, length), thumb: it.thumb, by: it.by, byUrl: it.byUrl, url: it.url };
+  }
+  return { clips, missed };
+}
+
+/** The edit laid over a take or a version's words: its cutaways found or kept, its labels, zooms and look. */
+async function laidPlan(userId: string, plan: EditPlan, v: Version, words: Word[], seconds: number, clips?: Record<number, CutawayClip>) {
+  const found = clips ? { clips, missed: 0 } : await findCutaways(plan, v);
+  const facts = brandPack(userId, { platform: "tiktok", mention: true, offer: null }).facts;
+  return { laid: compilePlan(plan, v, words, seconds, { clips: found.clips, facts, color: loadBrand(userId)?.color }), missed: found.missed };
+}
+
+/** The writer's answer for this edit (remix make as "edit"), on a formula for a hook or the brand kit's offer. */
+async function writeEdit(userId: string, b: VersionBase, o: { formula?: string; offer?: string }): Promise<{ r: WrittenHook["r"]; flags: Flags }> {
+  if (!b.source) throw new Error(SOURCE_GONE);
+  const speaker = loadRemixPrefs(userId).speaker;
+  const res = await requestMake({
+    ...makeBody(userId, { source: b.source, topic: "", note: "", mention: true, size: "9x16" }, "speaking"),
+    ...(o.offer ? { brand: brandPack(userId, { platform: "tiktok", mention: true, offer: o.offer, speaker }) } : {}),
+    ...(o.formula ? { formula: o.formula } : {}),
+    as: "edit" as const,
+    close: "balanced" as const,
+    edit: editBrief(b.plan, Math.max(5, Math.round(b.project.duration))),
+  });
+  const r = res?.result as unknown as EditResult | undefined;
+  if (r?.as !== "edit" || !Array.isArray(r.lines)) throw new Error(WRITE_FAILED);
+  const v = versionOf(r, { who: "none", voice: b.base.voice });
+  return { r: { lines: v.lines, marks: v.marks, texts: v.texts, searches: v.searches }, flags: res.flags };
+}
+
+/** "Write 3 hooks": three makes, each on the next hook formula, then Jev's pick over every hook written. */
+async function writeHooks(userId: string, b: VersionBase): Promise<void> {
+  if (vstate.writing) return;
+  setV({ writing: b.plan.id, error: undefined });
+  try {
+    const d = loadVersionsDraft(b.plan.id);
+    const formulas = otherFormulas(d.hooks.at(-1)?.formula);
+    const got = (await Promise.allSettled(formulas.map(async (formula) => ({ formula, ...(await writeEdit(userId, b, { formula })) }))))
+      .flatMap((x) => (x.status === "fulfilled" ? [x.value] : []));
+    if (!got.length) throw new Error(WRITE_FAILED);
+    const hooks = [...d.hooks, ...got];
+    const pick = await pickHook(hooks.map((h) => h.r.lines[0] ?? ""), brandPack(userId, { platform: "tiktok", mention: true, offer: null }).audience, b.source?.title ?? "", "tiktok");
+    saveVersionsDraft(b.plan.id, { ...loadVersionsDraft(b.plan.id), hooks, rec: pick });
+  } catch (e) {
+    setV({ error: (e as Error).message || WRITE_FAILED });
+  } finally {
+    setV({ writing: undefined });
+  }
+}
+
+/** A language's lines and on-screen texts translated in one call, for review before anything is paid. */
+async function translateVersion(b: VersionBase, lang: PostLang): Promise<void> {
+  if (vstate.translating) return;
+  setV({ translating: `${b.plan.id}:${lang}`, error: undefined });
+  try {
+    const n = b.base.lines.length;
+    const out = await translateCaptions(lang, [...b.base.lines, ...b.base.texts.map((t) => t.text)]);
+    const d = loadVersionsDraft(b.plan.id);
+    saveVersionsDraft(b.plan.id, { ...d, langs: { ...d.langs, [lang]: { lines: b.base.lines.map((l, i) => out[i] || l), texts: b.base.texts.map((t, i) => ({ k: t.k, text: out[n + i] || t.text })) } } });
+  } catch (e) {
+    setV({ error: (e as Error).message || "Couldn't translate it. Try again in a minute." });
+  } finally {
+    setV({ translating: undefined });
+  }
+}
+
+/** The new voice with its word times: the dub for a language (times spread over each line's span), else text-voice. */
+async function versionVoice(next: Version, voice: VoiceId, text: string): Promise<{ mp3: Blob; said: Word[]; spans?: ({ s: number; e: number } | null)[] }> {
+  if (next.change === "lang" && next.lang !== "en") {
+    const { audio, spans } = await speakDub(next.lines, voice, next.lang);
+    return { mp3: audio, said: spanWords(next.lines, spans), spans };
+  }
+  const r = await callFn<{ audio?: string; words?: Word[] } | Blob>("text-voice", { text, voice, timestamps: true }, VOICE_FAILED);
+  if (r instanceof Blob) return { mp3: r, said: [] };
+  const bytes = Uint8Array.from(atob(r?.audio ?? ""), (c) => c.charCodeAt(0));
+  if (bytes.length < 1000) throw new Error("The voiceover came back empty. Try again.");
+  return { mp3: new Blob([bytes], { type: "audio/mpeg" }), said: Array.isArray(r?.words) ? r.words : [] };
+}
+
+/** The base's settings for a version on new words: what was cut, trimmed or measured on the old take is dropped. */
+const freshSettings = (s: EditSettings, sameClock: boolean): EditSettings => {
+  const { faceTrack: _f, ...rest } = s;
+  return sameClock ? rest : { ...rest, removed: undefined, coldOpen: undefined, trimStart: 0, trimEnd: 0 };
+};
+
+/** The editor's hand-off for a version, as the first version's (sameEditJob handOff), toast aside. */
+const versionExtra = (b: VersionBase, v: Version, settings: EditSettings, words: Word[], ai: AiMark): JoinExtra => ({
+  toast: `Your ${changeName(v)} version is ready.`,
+  ...(v.caption ? { caption: v.caption } : {}),
+  said: spoken(v),
+  ...(words.length ? { words } : {}),
+  settings,
+  ...(b.source ? { source: { ...b.source, remixedAt: new Date().toISOString() } } : {}),
+  ai,
+  ...(v.draft ? { draftId: v.draft } : {}),
+  plan: { id: b.plan.id, version: v.id },
+});
+
+/** Waits on the avatar job makeVersion started until its video is joined; its steps go to `step`. */
+function followAvatar(start: () => void, step: (s: string) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const off = onAiJob((j) => {
+      if (j?.kind !== "avatar") return;
+      if (j.state === "working") return step(j.step.split(". ")[0].replace(/\.+$/, "").replace(/^\w/, (c) => c.toLowerCase()));
+      off();
+      if (j.state === "done") resolve();
+      else reject(new Error(j.error || "Couldn't make that version. Try again."));
+    });
+    start();
+    const j = aiJob();
+    if (j?.kind !== "avatar" || j.state !== "working") {
+      off();
+      reject(new Error("Your last AI video isn't finished yet. Open it in the editor to finish it."));
+    }
+  });
+}
+
+/** A version on a face: the parts its change covers made again on the same face (a new host: every part, voice kept). */
+async function faceVersion(userId: string, b: VersionBase, next: Version, a: VersionAsk, step: (s: string) => void): Promise<number> {
+  const parts = partsOf(b.project);
+  const ai = b.project.ai!;
+  const sp = a.change === "host" ? speakerOf(speakers(userId), a.who) : null;
+  const photo = a.change === "host" ? (sp ? await speakerFace(sp).catch(() => null) : null) : faceFor(userId, ai);
+  if (!photo) throw new Error(a.change === "host" ? PRESENTER_GONE : FACE_GONE);
+  const voiceId = ai.voiceId ?? b.base.voice;
+  const name = `${b.project.name} (${changeName(next)})`.slice(0, 80);
+  let run: { from: number; to: number };
+  let vo: Voiceover;
+  let clock: { words: Word[]; seconds: number };
+  let settings: EditSettings;
+  let mark: AiMark;
+  if (a.change === "host") {
+    // the voice is kept: the base video's own sound, cut where its parts were cut
+    step("cutting the voice from your video");
+    const file = await getFile(fileKey(b.project)).catch(() => undefined);
+    if (!file) throw new Error(PARTS_GONE);
+    const { pcm, duration } = await monoPcm(file, 24000);
+    run = { from: 0, to: parts.length };
+    vo = { pcm, seconds: duration, slices: parts.map((p) => ({ start: p.start, end: Math.min(p.end, duration), text: p.text })) };
+    clock = { words: b.project.words, seconds: b.project.duration };
+    // laid again on the same words, so the hand-off is on the words' clock like every version's
+    settings = layOver(freshSettings(b.settings, true), (await laidPlan(userId, b.plan, next, clock.words, clock.seconds, clipsOf(b.plan.id, b.settings))).laid, b.plan.id);
+    mark = { ...aiMark("avatar", sp, voiceId), ...(ai.lang ? { lang: ai.lang } : {}) };
+  } else {
+    const r = versionRun(b.base, next, parts);
+    // a written line the same as the video's would pay for a remake that changes nothing
+    if (!r) throw new Error("That version says the same as this video. Pick another.");
+    run = r;
+    step("making the voiceover");
+    const v = await versionVoice(next, voiceId, r.text);
+    const cut = await sliceVoiceover(v.mp3);
+    const said = v.said.length ? v.said : scriptWords(r.text, cut.seconds);
+    const texts = v.spans ? textsFromSpans(v.spans, next.lines, cut.slices, next.lang) : wordsIn(said, cut.slices);
+    vo = { ...cut, slices: cut.slices.map((s, i) => ({ ...s, text: texts[i] ?? "" })) };
+    clock = versionWords(parts, r, b.project.words, said, cut.seconds);
+    if (clock.seconds > MAX_AVATAR_SECONDS + 0.5) throw new Error(tooLongLine(clock.seconds));
+    const { laid } = await laidPlan(userId, b.plan, next, clock.words, clock.seconds, clipsOf(b.plan.id, b.settings));
+    settings = layOver(freshSettings(b.settings, false), laid, b.plan.id);
+    const { slices: _s, ...rest } = ai;
+    mark = { ...rest, madeAt: new Date().toISOString(), ...(next.lang !== "en" ? { lang: next.lang } : {}) };
+  }
+  step("sending to Speak");
+  await followAvatar(() => void makeVersion(name, photo, parts, run, vo, versionExtra(b, next, settings, clock.words, mark), { plan: b.plan.id, of: b.base.id }), step);
+  return 0;
+}
+
+/** A version with no face: a new voice, and the same cutaways found again and cut at its marked words. */
+async function noFaceVersion(userId: string, b: VersionBase, next: Version, step: (s: string) => void): Promise<number> {
+  const voiceId = b.project.ai?.voiceId ?? b.base.voice;
+  step("making the voiceover");
+  const v = await versionVoice(next, voiceId, spoken(next));
+  const seconds = await audioSeconds(v.mp3).catch(() => v.said.at(-1)?.e ?? b.project.duration);
+  const said = v.said.length ? v.said : scriptWords(spoken(next), seconds);
+  step("finding the cutaways");
+  const { laid, missed } = await laidPlan(userId, b.plan, next, said, seconds);
+  const scenes = cutawayScenes(laid.broll ?? [], seconds);
+  const files = await Promise.all(scenes.map((x) => getFile(x.key).catch(() => undefined)));
+  if (!scenes.length || files.some((f) => !f)) throw new Error(NO_STOCK);
+  // the cutaways are the footage here, so they aren't laid over it a second time
+  const settings = layOver(freshSettings(b.settings, false), { ...laid, broll: undefined, brollLayout: undefined }, b.plan.id);
+  const mark = { ...aiMark("voiceover", null, voiceId), ...(next.lang !== "en" ? { lang: next.lang } : {}) };
+  step("putting it together");
+  while (currentJoin()?.state === "running") await sleepMs(1000);
+  await startSlides(`${b.project.name} (${changeName(next)})`.slice(0, 80), scenes.map((x, i) => ({ video: files[i]!, seconds: x.seconds })), v.mp3, "Putting your version together", {
+    extra: versionExtra(b, next, settings, said, mark),
+  });
+  if (currentJoin()?.state === "failed") throw new Error(currentJoin()?.error || "Couldn't put the video together. Try again.");
+  return missed;
+}
+
+/** "Make N versions": each saved before anything is paid for, then made in turn; one failing stops the rest. */
+async function makeVersions(userId: string, b: VersionBase, asks: VersionAsk[]): Promise<void> {
+  if (vstate.job?.state === "working" || !asks.length) return;
+  const total = asks.length;
+  setV({ job: { planId: b.plan.id, state: "working", step: "Writing your versions...", made: 0, total, flags: [], missed: 0 }, error: undefined });
+  const kind = baseKind(b.base);
+  const langs = loadVersionsDraft(b.plan.id).langs;
+  try {
+    for (const [i, a] of asks.entries()) {
+      const step = (s: string) => jobPatch({ step: `Version ${i + 1} of ${total}: ${s}...` });
+      step("writing");
+      let fields: Partial<Version>;
+      let flags: Flags | undefined;
+      if (a.change === "hook") {
+        fields = withBeats(b.plan, b.base, a.hook.r, beatsOf(b.plan, "hook"));
+        flags = a.hook.flags;
+      } else if (a.change === "offer") {
+        const w = await writeEdit(userId, b, { offer: a.offer });
+        fields = { ...withBeats(b.plan, b.base, w.r, beatsOf(b.plan, "offer")), offer: a.offer };
+        flags = w.flags;
+      } else if (a.change === "host") {
+        fields = { host: a.who === "mine" ? { kind: "mine" } : { kind: "presenter", id: a.who } };
+      } else {
+        const t = langs[a.lang];
+        if (!t) throw new Error(`Translate it to ${LANG_NAMES[a.lang]} first.`);
+        fields = { lang: a.lang, lines: t.lines, texts: t.texts, marks: scaledMarks(b.base, t.lines) };
+      }
+      const now = new Date();
+      let next: Version = { ...b.base, ...fields, id: versionId(now, i), of: b.base.id, change: a.change, at: now.toISOString(), project: undefined, draft: undefined };
+      // saved before anything else is paid for: a reload keeps the script, in the plan and in My posts
+      const draft = draftOf(b.plan, next, b.source, now);
+      upsertDraft(userId, draft);
+      next = { ...next, draft: draft.id };
+      const full = addVersion(userId, b.plan.id, next);
+      if (full) throw new Error(full);
+      if (flags) jobPatch({ flags: [...(vstate.job?.flags ?? []), flags] });
+      const missed = kind === "film" ? 0 : kind === "face" ? await faceVersion(userId, b, next, a, step) : await noFaceVersion(userId, b, next, step);
+      jobPatch({ made: i + 1, missed: (vstate.job?.missed ?? 0) + missed });
+    }
+    jobPatch({ state: "done", step: "" });
+  } catch (e) {
+    jobPatch({ state: "failed", step: "", error: (e as Error).message || "That version didn't go through. Try again." });
+  }
+}
+
+/** What one ticked box costs before the press: the writing, the voice and the Speak parts it remakes. */
+export function versionPrice(b: Pick<VersionBase, "plan" | "base" | "project">, a: VersionAsk): Price | "pick" | null {
+  const kind = baseKind(b.base);
+  const write = a.change === "offer" ? priceOf("remix-make") : null;
+  if (kind === "film") return write;
+  const voice = a.change === "host" ? null : priceOf("ai-voice");
+  if (kind === "none") return sumPrices(write, voice);
+  const parts = partsOf(b.project);
+  // the offer's lines are unknown until written: any change to its beats picks the same parts
+  const next: Version =
+    a.change === "hook" ? { ...b.base, ...withBeats(b.plan, b.base, a.hook.r, beatsOf(b.plan, "hook")) }
+    : a.change === "offer" ? { ...b.base, lines: b.base.lines.map((l, i) => (beatsOf(b.plan, "offer").has(i) ? `${l} offer` : l)) }
+    : { ...b.base, change: a.change };
+  const run = versionRun(b.base, next, parts) ?? { from: 0, to: parts.length };
+  return sumPrices(write, voice, priceOf("edit-version", { slices: parts.slice(run.from, run.to).map((p) => p.end - p.start) }));
+}
+
+/** The caps a press spends, with how many uses each. */
+export function versionUses(kind: "face" | "none" | "film", asks: VersionAsk[]): Partial<Record<UsageFeature, number>> {
+  const offers = asks.filter((a) => a.change === "offer").length;
+  const voices = kind === "film" ? 0 : asks.filter((a) => a.change !== "host").length;
+  return { ...(kind === "face" ? { "edit-version": asks.length } : {}), ...(voices ? { "ai-voice": voices } : {}), ...(offers ? { "remix-make": offers } : {}) };
+}
+
+function usePlanEntries(userId: string): PlanEntry[] {
+  const [list, setList] = useState(() => loadPlans(userId));
+  useEffect(() => {
+    const read = () => setList(loadPlans(userId));
+    window.addEventListener(PLANS_CHANGED, read);
+    window.addEventListener("storage", read);
+    return () => {
+      window.removeEventListener(PLANS_CHANGED, read);
+      window.removeEventListener("storage", read);
+    };
+  }, [userId]);
+  return list;
+}
+
+/** The Versions card on a project made from an edit plan (Leo only); ?versions=1 opens it. Memo: the editor redraws while playing. */
+const VersionsCard = memo(function VersionsCard({ userId, project, settings, onOpen }: { userId: string; project: VideoProject; settings: EditSettings; onOpen: (id: string) => void }) {
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const vs = useVersionsState();
+  const plans = usePlanEntries(userId);
+  const people = useSpeakers(userId);
+  const entry = plans.find((e) => e.plan.id === project.plan?.id) ?? null;
+  const base = entry?.versions.find((v) => v.id === project.plan?.version) ?? null;
+  const open = !!entry && !!base && params.get("versions") === "1";
+  const planId = entry?.plan.id ?? "";
+  const [draft, setDraft] = useState<VersionsDraft>(() => loadVersionsDraft(planId));
+  const [ticks, setTicks] = useState<string[]>([]);
+  const [asking, setAsking] = useState(false);
+  const [here, setHere] = useState<boolean | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const job = vs.job?.planId === planId ? vs.job : null;
+  const working = vs.job?.state === "working";
+  const left = useUsesLeft(working || !!vs.writing || !!vs.translating);
+  useEffect(() => {
+    const read = () => setDraft(loadVersionsDraft(planId));
+    read();
+    window.addEventListener(VDRAFT_CHANGED, read);
+    return () => window.removeEventListener(VDRAFT_CHANGED, read);
+  }, [planId]);
+  // a face version needs the base video's parts, which stay on the device that made it
+  const clipKeys = [fileKey(project), ...(project.ai?.slices ?? []).map((s) => s.clip)].join(",");
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void Promise.all(clipKeys.split(",").map((k) => getFile(k).then((f) => !!f, () => false))).then((ok) => live && setHere(ok.every(Boolean)));
+    return () => void (live = false);
+  }, [open, clipKeys]);
+  // a version paid for before a reload is put together at no cost
+  useEffect(() => {
+    if (open && pendingAvatar()?.extra?.plan?.id === planId) resumeAvatar();
+  }, [open, planId]);
+
+  if (!entry || !base) return null;
+  const b: VersionBase = { plan: entry.plan, base, project, settings, source: project.source ?? resolveSource(entry.plan.source, userId) };
+  const kind = baseKind(base);
+  const made = [...entry.versions].sort((x, y) => x.at.localeCompare(y.at));
+  const projects = loadProjects(userId);
+  const offers = offerNames(userId);
+  const otherOffers = offers.filter((o) => o !== base.offer);
+  const hosts = kind === "face" ? [...(people?.face && project.ai?.person !== "mine" ? [{ id: "mine", label: "You" }] : []), ...(people?.presenters ?? []).filter((p) => p.id !== project.ai?.who).map((p) => ({ id: p.id, label: `${p.name} (AI)` }))] : [];
+  const asks: VersionAsk[] = ticks.flatMap((t): VersionAsk[] => {
+    const [c, v] = [t.slice(0, t.indexOf(":")), t.slice(t.indexOf(":") + 1)];
+    if (c === "hook") return draft.hooks[Number(v)] ? [{ change: "hook", hook: draft.hooks[Number(v)] }] : [];
+    if (c === "offer") return otherOffers.includes(v) ? [{ change: "offer", offer: v }] : [];
+    if (c === "host") return hosts.some((h) => h.id === v) ? [{ change: "host", who: v }] : [];
+    return VLANGS.includes(v as PostLang) ? [{ change: "lang", lang: v as PostLang }] : [];
+  });
+  const n = asks.length;
+  const price = sumPrices(...asks.map((a) => versionPrice(b, a)));
+  const uses = versionUses(kind, asks);
+  const cap: UsageFeature = kind === "face" ? "edit-version" : kind === "none" ? "ai-voice" : "remix-make";
+  const reason =
+    (Object.entries(uses) as [UsageFeature, number][]).map(([f, u]) => reasonText({ left: left(f), uses: u, leo: true })).find(Boolean)
+    ?? (asks.some((a) => a.change === "lang" && !draft.langs[a.lang]) ? "Translate each language first." : null)
+    ?? (kind === "face" && here === false ? OTHER_DEVICE : null)
+    ?? (kind === "face" && !project.ai?.slices?.length ? NO_PARTS : null)
+    ?? (kind === "face" && aiBusy() && !working ? "Your last AI video isn't finished yet. Open it in the editor to finish it." : null);
+  const tick = (t: string) => {
+    setAsking(false);
+    setTicks((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : cur.length < MAX_VERSIONS_A_PRESS ? [...cur, t] : cur));
+  };
+  const make = () => {
+    // the press asks first, as the first version's does
+    if (!asking) return setAsking(true);
+    setAsking(false);
+    setTicks([]);
+    void makeVersions(userId, b, asks);
+  };
+  const box = (t: string, label: ReactNode, extra?: ReactNode, below?: ReactNode) => (
+    <li key={t}>
+      <label className="flex min-h-11 cursor-pointer items-start gap-2 py-1.5 text-sm">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0" checked={ticks.includes(t)} disabled={working || (!ticks.includes(t) && ticks.length >= MAX_VERSIONS_A_PRESS)} onChange={() => tick(t)} />
+        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{label}</span>
+        {extra}
+      </label>
+      {below && <div className="pb-1.5 pl-6">{below}</div>}
+    </li>
+  );
+  const flagsOf = (f: Flags | undefined, text: string) => [...(f?.mas ? [MAS_FLAG] : []), ...scanCompliance(text)].filter((x) => !dismissed.includes(x.id));
+  const dismiss = (id: string) => setDismissed((d) => [...d, id]);
+  const row = (title: string, children: ReactNode) => (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+      {children}
+    </div>
+  );
+  const btn = "h-11 sm:h-9";
+  return (
+    <section className="space-y-3 rounded-xl border border-border/70 p-3" aria-label="Versions">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="mr-auto text-sm font-semibold">Versions of this edit</h2>
+        {made.length > 1 && <span className="text-xs text-muted-foreground">{made.length - 1} made</span>}
+        {open ? (
+          <Button size="sm" variant="ghost" className={btn} onClick={() => update({ versions: null })}>Close</Button>
+        ) : (
+          <Button size="sm" variant="outline" className={btn} onClick={() => update({ versions: "1" }, { push: true })}>Versions</Button>
+        )}
+      </div>
+      {job?.state === "working" && (
+        <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite"><ThinkingOrb state="working" size={20} theme="light" aria-hidden /> {job.step}</p>
+      )}
+      {open && (
+        <div className="space-y-4">
+          {kind === "face" && here === false ? (
+            <p className="text-sm text-muted-foreground">{OTHER_DEVICE}</p>
+          ) : (
+            <>
+              {row("New hook", (
+                <>
+                  <ul className="divide-y divide-border/60">
+                    {draft.hooks.map((h, i) => box(`hook:${i}`, `"${h.r.lines[0] ?? ""}"`,
+                      draft.rec === i ? <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Recommended</span> : null,
+                      flagsOf(h.flags, h.r.lines[0] ?? "").length ? <ComplianceChips flags={flagsOf(h.flags, h.r.lines[0] ?? "")} onDismiss={dismiss} /> : null))}
+                  </ul>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="outline" className={btn} disabled={!!vs.writing || working || !b.source} onClick={() => void writeHooks(userId, b)}>
+                      {vs.writing === planId ? "Writing..." : draft.hooks.length ? "Write 3 more" : "Write 3 hooks"}
+                    </Button>
+                    <PriceChip feature="remix-make" left={left("remix-make")} uses={3} />
+                  </div>
+                  {!b.source && <p className="text-xs text-muted-foreground">{SOURCE_GONE}</p>}
+                </>
+              ))}
+              {offers.length > 1 && row("Your offer", <ul className="flex flex-wrap gap-x-4">{otherOffers.map((o) => box(`offer:${o}`, o))}</ul>)}
+              {hosts.length > 0 && row("Who's on it", (
+                <>
+                  <ul className="flex flex-wrap gap-x-4">{hosts.map((h) => box(`host:${h.id}`, h.label))}</ul>
+                  {ticks.some((t) => t.startsWith("host:pr-")) && <p className="text-xs text-muted-foreground">{PRESENTER_LINE}</p>}
+                </>
+              ))}
+              {kind !== "film" && row("Language", (
+                <>
+                  <ul className="flex flex-wrap gap-x-4">{VLANGS.map((l) => box(`lang:${l}`, LANG_NAMES[l]))}</ul>
+                  {VLANGS.filter((l) => ticks.includes(`lang:${l}`)).map((l) => {
+                    const t = draft.langs[l];
+                    if (!t) return (
+                      <div key={l} className="flex flex-wrap items-center gap-2">
+                        <Button size="sm" variant="outline" className={btn} disabled={!!vs.translating || working} onClick={() => void translateVersion(b, l)}>
+                          {vs.translating === `${planId}:${l}` ? "Translating..." : `Translate to ${LANG_NAMES[l]}`}
+                        </Button>
+                        <PriceChip feature="video-translate" left={left("video-translate")} />
+                      </div>
+                    );
+                    const edit = (i: number, text: string) => saveVersionsDraft(planId, { ...draft, langs: { ...draft.langs, [l]: { ...t, lines: t.lines.map((x, j) => (j === i ? text : x)) } } });
+                    return (
+                      <ol key={l} className="space-y-2" aria-label={`${LANG_NAMES[l]} with its English meaning`}>
+                        {base.lines.map((en, i) => (
+                          <li key={i} className="grid gap-1.5 sm:grid-cols-2">
+                            <p className="text-sm text-muted-foreground">{en}</p>
+                            <Textarea rows={2} lang={l} maxLength={300} value={t.lines[i] ?? ""} disabled={working} aria-label={`${LANG_NAMES[l]}, line ${i + 1} of ${base.lines.length}`} onChange={(e) => edit(i, e.target.value)} />
+                          </li>
+                        ))}
+                      </ol>
+                    );
+                  })}
+                </>
+              ))}
+              {vs.error && <p className="text-xs text-destructive" role="alert">{vs.error}</p>}
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                {asking ? (
+                  <div className="space-y-2" role="status">
+                    <p className="text-sm text-muted-foreground">
+                      This makes {n} {n === 1 ? "version" : "versions"} and uses {price && price !== "pick" ? priceText(price).replace(/^\w/, (c) => c.toLowerCase()) : "a little"}{kind === "face" ? " of video credit" : ""}. Make it?
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button className="h-11 sm:h-10" onClick={make}>Make it</Button>
+                      <Button variant="ghost" className="h-11 text-muted-foreground sm:h-10" onClick={() => setAsking(false)}>Not now</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    {n > 0 && <span className="text-sm">{n} {n === 1 ? "version" : "versions"},</span>}
+                    {n > 0 && <PriceChip price={price} left={left(cap)} uses={uses[cap] ?? n} />}
+                    <Button className="h-11 sm:ml-auto sm:h-10" disabled={!n || working || !!reason} onClick={make}>
+                      {working && job ? "Making..." : n === 1 ? "Make 1 version" : n ? `Make ${n} versions` : "Make versions"}
+                    </Button>
+                  </div>
+                )}
+                {(n > 0 ? reason : "Tick a box for each version you want.") && <p className="text-xs text-muted-foreground">{n > 0 ? reason : "Tick a box for each version you want."}</p>}
+                {n >= MAX_VERSIONS_A_PRESS && <p className="text-xs text-muted-foreground">At most {MAX_VERSIONS_A_PRESS} versions a press.</p>}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {job?.state === "failed" && <p className="text-sm text-destructive" role="alert">{job.error}</p>}
+      {job?.state === "done" && job.missed > 0 && <p className="text-xs text-muted-foreground">{job.missed} {job.missed === 1 ? "cutaway" : "cutaways"} had no stock clip. Add {job.missed === 1 ? "it" : "them"} in B-roll.</p>}
+      {job && job.flags.some((f) => f.mas) && !dismissed.includes(MAS_FLAG.id) && <ComplianceChips flags={[MAS_FLAG]} onDismiss={dismiss} />}
+      {made.length > 1 && (
+        <ul className="divide-y divide-border/60 rounded-lg border border-border/60" aria-label="Versions made">
+          {made.map((v, i) => {
+            const there = !!v.project && projects.some((p) => p.id === v.project);
+            return (
+              <li key={v.id} className="flex min-h-11 flex-wrap items-center gap-2 px-3 py-1.5 text-sm">
+                <span className="mr-auto">Version {i + 1}: {changeName(v)}</span>
+                {v.project === project.id ? <span className="text-xs text-muted-foreground">Open now</span>
+                  : there ? <Button size="sm" variant="ghost" className={btn} onClick={() => onOpen(v.project!)}>Open</Button>
+                  : v.host.kind === "film" ? <Button size="sm" variant="ghost" asChild className={btn}><Link to={links.edit({ plan: planId, version: v.id })}>Upload the take</Link></Button>
+                  : <span className="text-xs text-muted-foreground">{v.project ? "On another device" : "Not made yet"}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {made.length > 1 && (
+        <Button size="sm" variant="outline" className={btn} onClick={() => {
+          for (const d of loadDrafts(userId)) if (d.set?.id === planId && d.set.kind !== "hook-test") upsertDraft(userId, { ...d, set: { ...d.set, kind: "hook-test" } });
+        }} asChild>
+          <Link to={links.drafts({ set: planId })}>Make it a hook test</Link>
+        </Button>
+      )}
+    </section>
+  );
+});
