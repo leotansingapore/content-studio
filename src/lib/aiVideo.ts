@@ -652,8 +652,9 @@ export const stillNote = (scenes: number[]) =>
  * is paid for), its look, and its scenes moved; with no AI picture it takes no ai-video use at all. With `images` (a
  * media set's photos) every scene is its photo: no stock, no AI picture, nothing paid but the voiceover.
  */
-export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId, extra?: JoinExtra, opts?: ExplainerOpts): Promise<void> {
+export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceId, extra?: JoinExtra, opts?: ExplainerOpts, agent?: AiJob["agent"]): Promise<void> {
   if (aiBusy()) return;
+  by = agent;
   set({ kind: "explainer", state: "working", step: "Making the voiceover..." });
   try {
     // a set's photos before the voiceover: one gone from this device stops the video before anything is paid for

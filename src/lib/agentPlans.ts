@@ -935,7 +935,7 @@ async function explainerPress(userId: string, x: Press, src: RemixSource | null,
   live.call();
   x.started();
   const off = onAiJob((j) => void (j?.kind === "explainer" && j.state === "working" && live.step(j.step, "making")));
-  await makeExplainer(explainerName(f), f.scenes ?? [], f.voice ?? "alice").finally(off);
+  await makeExplainer(explainerName(f), f.scenes ?? [], f.voice ?? "alice", undefined, undefined, x.agent).finally(off);
   settleExplainer(x);
 }
 

@@ -152,6 +152,20 @@ describe("an AI video the agent started (live-p6replay D6)", () => {
     expect(seen.every((s) => (s as unknown[])[2] === undefined)).toBe(true);
     expect(aiJob()).toMatchObject({ kind: "template", state: "done" });
   });
+
+  it("carries the agent's chat on an explainer's states, so Activity logs it as the agent's", async () => {
+    const agent = { thread: "t1", msg: "m1" };
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "explainer" ? { tokens: ["p1"] } : { jobs: [{ state: "done", url: "https://cdn.example/p.png" }] }));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["png"]) })));
+    const seen: unknown[] = [];
+    const off = onAiJob((j) => seen.push([j?.state, j?.agent]));
+    const run = makeExplainer("Explainer", [{ say: "One.", picture: "A desk." }] as never, "rachel" as never, undefined, undefined, agent);
+    await vi.advanceTimersByTimeAsync(6_000);
+    await run;
+    off();
+    expect(seen.at(-1)).toEqual(["done", agent]);
+    expect(seen.every((s) => (s as unknown[])[1] === agent)).toBe(true);
+  });
 });
 
 describe("a paid clip being put together on the device", () => {

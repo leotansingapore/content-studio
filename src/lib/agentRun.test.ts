@@ -33,6 +33,7 @@ const fake = vi.hoisted(() => {
     talkAsk: null as null | { quoted?: number; voice?: string; caption?: string; agent?: unknown },
     scriptAsk: null as null | { as: string; seconds?: number; words?: number },
     imageAgent: undefined as unknown,
+    explainerAgent: undefined as unknown,
     scriptThrows: null as Error | null,
     explainerAsk: null as null | Record<string, unknown>,
     remixRow: null as null | Record<string, unknown>,
@@ -145,8 +146,9 @@ vi.mock("@/lib/aiVideo", async (orig) => ({
     fake.calls.push("writeExplainer");
     return [1, 2, 3, 4, 5].map((n) => ({ say: `Scene ${n} says a short line about CPF LIFE payouts.`, picture: "a park" }));
   },
-  makeExplainer: async () => {
+  makeExplainer: async (...a: unknown[]) => {
     fake.calls.push("makeExplainer");
+    fake.explainerAgent = a[5];
     fake.ai.set({ kind: "explainer", state: "working", step: "Making the voiceover..." });
     await wait();
     fake.ai.set({ kind: "explainer", state: "done", step: "" });
@@ -935,6 +937,10 @@ describe("the 25 Oct replay: what the agent started logs as the agent's (D6, the
     expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).find((e) => e.title === "Wrote a talking video script")).toMatchObject({ who: "agent", detail: SCRIPT });
     await approve(talk);
     expect(fake.talkAsk?.agent).toEqual(at(talk));
+    const explainer = await say("make an explainer about CPF LIFE", { act: "make", format: "explainer" });
+    await approve(explainer);
+    await approve(explainer);
+    expect(fake.explainerAgent).toEqual(at(explainer));
   });
 });
 
