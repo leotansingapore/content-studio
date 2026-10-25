@@ -122,7 +122,14 @@ function Campaigns({ userId }: { userId: string }) {
           </Button>
         </div>
         <GoalLine />
-        {list.length > 0 && <p className="mt-2 text-sm text-muted-foreground">{counts}</p>}
+        {(list.length > 0 || audiences.length > 0) && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {list.length > 0 && `${counts} | `}
+            <Link to="/audiences" className="font-medium text-foreground underline-offset-2 hover:underline">
+              {audiences.length} {audiences.length === 1 ? "audience" : "audiences"}
+            </Link>
+          </p>
+        )}
       </header>
 
       {!audiences.length && !list.length ? (

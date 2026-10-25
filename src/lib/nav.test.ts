@@ -55,14 +55,14 @@ describe("nav", () => {
 
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
-    expect(pages("plan", ANYONE)).toEqual(["/plan", "/calendar"]);
+    expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan"]);
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
-      expect(pages("plan", email), email).toEqual(["/plan", "/ideas", "/campaigns", "/calendar"]);
+      expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/ideas"]);
       expect(pages("write", email).slice(0, 8), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(6, 8), email).toEqual(["/competitors", "/saved"]);
@@ -137,7 +137,7 @@ describe("nav", () => {
   });
 
   it("puts Fastlane's first four on the phone bar and lights one per page", () => {
-    expect(mobileTabs().map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/plan"], ["Studio", "/studio"], ["Radar", "/swipe"]]);
+    expect(mobileTabs().map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/calendar"], ["Studio", "/studio"], ["Radar", "/swipe"]]);
     const lit = (p: string) => mobileTabs().filter((t) => t.active(p)).map((t) => t.label);
     expect(lit("/calendar")).toEqual(["Strategy"]);
     expect(lit("/drafts")).toEqual(["Studio"]);

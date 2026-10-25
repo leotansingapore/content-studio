@@ -99,12 +99,13 @@ export const SECTIONS: NavSection[] = [
     id: "plan",
     label: "Strategy",
     icon: Target,
-    to: "/plan",
+    to: "/calendar",
+    // Fastlane's Strategy opens on its campaigns, then the calendar; without Campaigns, the calendar comes first
     pages: [
-      { to: "/plan", label: "Plan", icon: Target },
-      { to: "/ideas", label: "Ideas", icon: Lightbulb, owners: LEO_EMAILS },
       { to: "/campaigns", label: "Campaigns", icon: Columns3, owners: LEO_EMAILS },
       { to: "/calendar", label: "Calendar", icon: CalendarClock },
+      { to: "/plan", label: "Plan", icon: Target },
+      { to: "/ideas", label: "Ideas", icon: Lightbulb, owners: LEO_EMAILS },
     ],
   },
   {
