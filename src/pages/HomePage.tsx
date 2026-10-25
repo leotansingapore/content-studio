@@ -59,6 +59,7 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { marketShown } from "@/lib/market";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
 import WhatMovedCard from "@/components/WhatMovedCard";
+import PaceCard from "@/components/home/PaceCard";
 import GoalLine from "@/components/GoalLine";
 import type { Campaign } from "@/lib/campaigns";
 
@@ -672,7 +673,11 @@ export default function HomePage() {
 
       {/* Weekly rhythm: consistency vs goal + streak */}
       {(hasPosts || week.goal > 0) && (
-        <section className="grid gap-3 sm:grid-cols-2">
+        <section className={`grid gap-3 ${leoId ? "items-start sm:grid-cols-[2fr_1fr]" : "sm:grid-cols-2"}`}>
+          {/* Leo's Pace (learn-pace, /home#pace) where This week is; the goal editor still takes its place */}
+          {leoId && !goalDraft ? (
+            <PaceCard userId={leoId} week={week} goalHit={goalHit} onEditGoal={() => setGoalDraft(goals)} />
+          ) : (
           <Card className="border-border/60 shadow-card">
             {goalDraft ? (
               <CardContent className="space-y-2 py-4">
@@ -767,6 +772,7 @@ export default function HomePage() {
               </CardContent>
             )}
           </Card>
+          )}
           <Card className="border-border/60 shadow-card">
             <CardContent className="flex items-center gap-3 py-4">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">

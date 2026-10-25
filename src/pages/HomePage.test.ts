@@ -77,6 +77,17 @@ describe("Home for Leo", () => {
     expect(out).not.toContain(">Change</button>");
   });
 
+  it("shows Pace in place of the This week card, the streak still beside it", () => {
+    const posted = { id: "d1", draft: "A post", platform: "tiktok", createdAt: "2026-10-20T01:00:00Z", status: "posted", postedAt: "2026-10-20T01:00:00Z" };
+    leo({ [`content-studio-drafts-${UID}`]: [posted], [`content-studio-goals-${UID}`]: { tiktok: 3 } });
+    const out = html();
+    expect(out).toContain('<section id="pace"');
+    expect(out).toContain("1 of 3 this week");
+    expect(out).toContain('aria-label="Edit weekly goal"');
+    expect(out).not.toContain(">This week<");
+    expect(out).toContain("lucide-flame");
+  });
+
   it("shows the open brand's own goal, worded for a business when it speaks as one", () => {
     leo({
       [`content-studio-profiles-${UID}`]: [{ id: "at", name: "ActivityTracker", createdAt: "" }],
