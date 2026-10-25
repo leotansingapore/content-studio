@@ -69,6 +69,8 @@ export interface TikTokInput {
   allowComment: boolean;
   allowDuet: boolean;
   allowStitch: boolean;
+  /** "inbox" sends it to the creator's TikTok inbox (publish-tiktok, Leo only); absent or "direct" posts it, as today. */
+  mode?: "inbox" | "direct";
 }
 
 export interface YouTubeInput {
@@ -182,7 +184,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   if (b.tiktok && typeof b.tiktok === "object") {
     const t = b.tiktok as Record<string, unknown>;
     if (typeof t.privacyLevel !== "string" || !PRIVACY.test(t.privacyLevel)) return refuse("Pick who can see it on TikTok.");
-    tiktok = { privacyLevel: t.privacyLevel, allowComment: t.allowComment === true, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true };
+    tiktok = { privacyLevel: t.privacyLevel, allowComment: t.allowComment === true, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true, ...(t.mode === "inbox" ? { mode: "inbox" as const } : {}) };
   }
   let youtube: YouTubeInput | null = null;
   if (b.youtube && typeof b.youtube === "object") {
@@ -224,16 +226,21 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
   const video = input.mediaUrls.some((u) => mediaKind(u) === "video");
   const data: Record<string, unknown> = {};
   if (platform === "tiktok" && input.tiktok) {
-    Object.assign(data, {
+    // an inbox draft: TikTok's editor sets comments, duet and stitch, but the fields page lists them as required
+    const inbox = input.tiktok.mode === "inbox";
+    const t: Record<string, unknown> = {
       privacyLevel: input.tiktok.privacyLevel,
-      allowComment: input.tiktok.allowComment,
+      allowComment: inbox || input.tiktok.allowComment,
       // TikTok's legal requirement: the adviser saw the post and pressed post on this screen
       contentPreviewConfirmed: true,
       expressConsentGiven: true,
-    });
-    if (video) Object.assign(data, { allowDuet: input.tiktok.allowDuet, allowStitch: input.tiktok.allowStitch });
+    };
+    if (video) Object.assign(t, { allowDuet: !inbox && input.tiktok.allowDuet, allowStitch: !inbox && input.tiktok.allowStitch });
     // a photo post's content becomes a 90-character title; the full caption goes in description
-    else data.description = captionFor(input, platform);
+    else t.description = captionFor(input, platform);
+    // direct stays flat, the shape that published live on 17 Oct; a draft goes where Zernio's TikTok pages put it
+    if (inbox) data.tiktokSettings = { draft: true, ...t };
+    else Object.assign(data, t);
   }
   if (platform === "youtube") {
     Object.assign(data, { visibility: input.youtube?.visibility ?? "public", madeForKids: false });
@@ -297,8 +304,16 @@ export function checkUpload(raw: Record<string, unknown>): Checked<UploadFile> {
   return { value: { filename, contentType: raw.contentType as string, size: size as number } };
 }
 
-/** Null when the action is not a posting one. H1: a malformed id is a 404 before any other use. */
-export function parsePostRequest(body: unknown, now = Date.now()): Parsed | null {
+/** A schedule body without what only NORTH_STAR_USERS may send: ignored, not refused, so today's posts never change (decision 3). */
+function todays(b: Record<string, unknown>): Record<string, unknown> {
+  return b.tiktok && typeof b.tiktok === "object" ? { ...b, tiktok: { ...b.tiktok, mode: undefined } } : b;
+}
+
+/**
+ * Null when the action is not a posting one. H1: a malformed id is a 404 before any other use.
+ * listed: the caller is on NORTH_STAR_USERS; off it, phase 7a's schedule fields are dropped before any check.
+ */
+export function parsePostRequest(body: unknown, now = Date.now(), listed = false): Parsed | null {
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
   const action = b.action as PostAction;
   if (!POST_ACTIONS.includes(action)) return null;
@@ -311,7 +326,7 @@ export function parsePostRequest(body: unknown, now = Date.now()): Parsed | null
   if (action === "schedule") {
     if (!Array.isArray(b.accountIds) || b.accountIds.length === 0) return bad("Pick an account to post to.");
     if (b.accountIds.length > SOCIAL_PLATFORMS.length * 2 || !b.accountIds.every(isZernioId)) return notFound;
-    const input = checkSchedule(b, now);
+    const input = checkSchedule(listed ? b : todays(b), now);
     return "error" in input ? bad(input.error) : { ok: true, req: { action, profileId, accountIds: [...new Set(b.accountIds as string[])], input: input.value } };
   }
   if (action === "tiktok-creator-info") {
@@ -338,6 +353,11 @@ export interface PlatformResult {
   status: string;
   url: string | null;
   error: string;
+  /**
+   * A TikTok inbox draft: Zernio marks it published once TikTok has it, though nothing is live until the creator posts it.
+   * postView always sets it; optional only so views built before phase 7a still type-check.
+   */
+  draft?: boolean;
 }
 
 export interface PostView {
@@ -372,6 +392,7 @@ export function postView(p: Record<string, unknown>): PostView {
       status: str(x?.status, 20) || "pending",
       url: https(x?.platformPostUrl),
       error: str(x?.errorMessage),
+      draft: (x?.platformSpecificData as { isDraft?: unknown } | undefined)?.isDraft === true,
     })),
   };
 }

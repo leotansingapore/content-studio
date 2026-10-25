@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     return json(off.body, off.status);
   }
 
-  const posting = parsePostRequest(body);
+  const posting = parsePostRequest(body, Date.now(), isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid));
   if (posting && !posting.ok) return json({ error: posting.error }, posting.status);
   const auto = posting ? null : parseAutomationRequest(body);
   if (auto && !auto.ok) return json({ error: auto.error }, auto.status);

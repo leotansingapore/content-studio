@@ -35,6 +35,8 @@ const db = vi.hoisted(() => {
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => db.admin }));
 
 const zernio: string[] = [];
+// the JSON body of each Zernio call, in order
+const sent: { call: string; body: Record<string, unknown> | undefined }[] = [];
 const env: Record<string, string> = {};
 // a Zernio profile id -> the accounts in it
 const accounts: Record<string, unknown[]> = {};
@@ -48,15 +50,24 @@ beforeAll(async () => {
     const url = new URL(String(u));
     const method = init?.method ?? "GET";
     zernio.push(`${method === "GET" ? "" : `${method} `}${url.pathname}${url.search}`);
-    return answer(url.pathname.endsWith("/accounts") ? { accounts: accounts[url.searchParams.get("profileId") ?? ""] ?? [] } : { profile: {} });
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    sent.push({ call: `${method} ${url.pathname}`, body });
+    if (url.pathname.endsWith("/accounts")) return answer({ accounts: accounts[url.searchParams.get("profileId") ?? ""] ?? [] });
+    // a created post, shaped as https://docs.zernio.com/posts/create-post.mdx answers it
+    if (method === "POST" && url.pathname === "/api/v1/posts" && Array.isArray(body?.platforms)) {
+      return answer({ post: { _id: "67000000000000000000d001", status: "scheduled", platforms: body.platforms.map((p: { platform: string; accountId: string }) => ({ ...p, status: "pending" })) } });
+    }
+    return answer({ profile: {} });
   });
   await import("./index.ts");
 }, 30_000);
 
 beforeEach(() => {
   zernio.length = 0;
+  sent.length = 0;
   db.spent.length = 0;
   Object.assign(env, { ZERNIO_API_KEY: "sk_test", SOCIAL_CONNECT_USERS: UID });
+  delete env.NORTH_STAR_USERS;
   for (const k of Object.keys(accounts)) delete accounts[k];
 });
 
@@ -156,6 +167,42 @@ describe("the social function", () => {
     expect(res.status).not.toBe(403);
     expect(db.spent).toEqual(["social-schedule"]);
     expect(zernio).toContain(`/api/v1/posts/${ID}`);
+  });
+
+  describe("phase 7a's new schedule fields", () => {
+    const TT = "65000000000000000000a002";
+    const IG = "65000000000000000000a001";
+    const PNG = "https://media.zernio.com/temp/1_a_slide-01.png";
+    const today = () => ({
+      action: "schedule",
+      profileId: "me",
+      accountIds: [TT, IG],
+      clientKey: UID,
+      content: "Three things to check before you renew.",
+      mediaUrls: [PNG],
+      scheduledFor: new Date(Date.now() + 8 * 86400_000).toISOString(),
+      tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true },
+    });
+    // every field 7a adds to a schedule, each in a shape a listed caller may send
+    const withNew = () => {
+      const b = today();
+      return { ...b, tiktok: { ...b.tiktok, mode: "inbox" } };
+    };
+    const posted = () => sent.filter((s) => s.call === "POST /api/v1/posts").map((s) => s.body);
+
+    it("sends today's body for a caller off NORTH_STAR_USERS, whatever new fields come with it", async () => {
+      accounts[MINE] = [{ _id: TT, platform: "tiktok", profileId: MINE }, { _id: IG, platform: "instagram", profileId: MINE }];
+      const plain = today();
+      expect((await call(UID, plain)).status).toBe(200);
+      expect((await call(UID, { ...withNew(), scheduledFor: plain.scheduledFor })).status).toBe(200);
+      const [a, b] = posted();
+      expect(JSON.stringify(b)).toBe(JSON.stringify(a));
+      // the same request from a listed caller reads them
+      env.NORTH_STAR_USERS = UID;
+      expect((await call(UID, { ...withNew(), scheduledFor: plain.scheduledFor })).status).toBe(200);
+      expect(JSON.stringify(posted()[2])).not.toBe(JSON.stringify(a));
+      expect(JSON.stringify(posted()[2])).toContain('"tiktokSettings":{"draft":true');
+    });
   });
 
   it("spends none of the day's posts on one it refuses: a time that has passed or a file it can't take", async () => {

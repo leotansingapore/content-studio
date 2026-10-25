@@ -224,6 +224,74 @@ describe("pinned: today's bodies, byte for byte (phase 7a must not change them)"
   });
 });
 
+// Fixtures copy https://docs.zernio.com/platforms/tiktok/fields.mdx and
+// https://docs.zernio.com/platforms/tiktok/posts.mdx#draft-delivery (read 2026-10-25): draft: true sends the media
+// to the creator's inbox; settings sit in the entry's platformSpecificData.tiktokSettings (camelCase accepted); a
+// delivered draft comes back published, with platformSpecificData.isDraft: true and no platformPostUrl.
+describe("TikTok inbox mode (publish-tiktok, Leo only)", () => {
+  const tiktok = { privacyLevel: "SELF_ONLY", allowComment: false, allowDuet: true, allowStitch: true };
+  const both = [
+    { _id: TT, platform: "tiktok" },
+    { _id: IG, platform: "instagram" },
+  ];
+  const entries = (b: Record<string, unknown>) => b.platforms as { platform: string; platformSpecificData?: Record<string, unknown> }[];
+
+  it("puts every TikTok field in tiktokSettings with draft: true, on the TikTok entry only", () => {
+    const direct = postBody(input({ tiktok, firstComment: "Link in bio" }), both);
+    const inbox = postBody(input({ tiktok: { ...tiktok, mode: "inbox" }, firstComment: "Link in bio" }), both);
+    expect(entries(inbox)[0].platformSpecificData).toEqual({
+      tiktokSettings: { draft: true, privacyLevel: "SELF_ONLY", allowComment: true, contentPreviewConfirmed: true, expressConsentGiven: true, description: "Three things to check before you renew." },
+    });
+    // the Instagram entry and the root are as a direct send has them
+    expect(JSON.stringify(entries(inbox)[1])).toBe(JSON.stringify(entries(direct)[1]));
+    const { platforms: _a, ...rootInbox } = inbox;
+    const { platforms: _b, ...rootDirect } = direct;
+    expect(rootInbox).toEqual(rootDirect);
+    expect(inbox).not.toHaveProperty("tiktokSettings");
+  });
+
+  it("sends a video draft with comments on and no duet or stitch: the fields page lists them as required", () => {
+    const b = postBody(input({ mediaUrls: [MP4], tiktok: { ...tiktok, mode: "inbox" } }), [{ _id: TT, platform: "tiktok" }]);
+    expect(entries(b)[0].platformSpecificData).toEqual({
+      tiktokSettings: { draft: true, privacyLevel: "SELF_ONLY", allowComment: true, contentPreviewConfirmed: true, expressConsentGiven: true, allowDuet: false, allowStitch: false },
+    });
+  });
+
+  it("reads mode inbox only; direct or anything else is today's direct post", () => {
+    const sched = (mode: unknown) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: LATER, tiktok: { ...tiktok, mode } }, NOW);
+    expect(sched("inbox")).toMatchObject({ value: { tiktok: { mode: "inbox" } } });
+    for (const mode of ["direct", "INBOX", true, undefined]) {
+      const r = sched(mode) as { value: ScheduleInput };
+      expect(r.value.tiktok, String(mode)).toEqual(tiktok);
+      expect(JSON.stringify(postBody(r.value, [{ _id: TT, platform: "tiktok" }])), String(mode)).toBe(JSON.stringify(postBody(input({ content: "hi", mediaUrls: [], tiktok }), [{ _id: TT, platform: "tiktok" }])));
+    }
+  });
+
+  it("drops the mode for a caller off NORTH_STAR_USERS before anything is checked (decision 3)", () => {
+    const body = { action: "schedule", profileId: "me", accountIds: [TT], clientKey: KEY, content: "hi", scheduledFor: LATER, tiktok: { ...tiktok, mode: "inbox" } };
+    expect(parsePostRequest(body, NOW, true)).toMatchObject({ ok: true, req: { input: { tiktok: { mode: "inbox" } } } });
+    for (const off of [parsePostRequest(body, NOW, false), parsePostRequest(body, NOW)]) {
+      expect((off as { req: { input: ScheduleInput } }).req.input.tiktok).toEqual(tiktok);
+    }
+  });
+
+  it("reads a delivered draft as draft, not as a live post", async () => {
+    const delivered = zPost(POST, [TT, IG], {
+      status: "published",
+      platforms: [
+        { platform: "tiktok", accountId: TT, status: "published", platformSpecificData: { isDraft: true } },
+        { platform: "instagram", accountId: IG, status: "published", platformPostUrl: "https://www.instagram.com/p/abc/", platformSpecificData: { isDraft: "true" } },
+      ],
+    });
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: delivered });
+    const view = (await runPost(f.z, MINE, UID, { action: "post", profileId: "me", postId: POST })).body.post as { platforms: { platform: string; draft: boolean; url: string | null }[] };
+    expect(view.platforms.map((p) => [p.platform, p.draft, p.url])).toEqual([
+      ["tiktok", true, null],
+      ["instagram", false, "https://www.instagram.com/p/abc/"],
+    ]);
+  });
+});
+
 describe("schedule", () => {
   it("posts from the caller's own accounts with the H4 key, and returns the checked post", async () => {
     const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG, LI]) });
@@ -300,8 +368,8 @@ describe("post, cancel and retry", () => {
       status: "partial",
       scheduledFor: "2026-10-12T01:00:00.000Z",
       platforms: [
-        { platform: "instagram", accountId: IG, status: "published", url: "https://www.instagram.com/p/abc/", error: "" },
-        { platform: "linkedin", accountId: LI, status: "failed", url: null, error: "Token expired" },
+        { platform: "instagram", accountId: IG, status: "published", url: "https://www.instagram.com/p/abc/", error: "", draft: false },
+        { platform: "linkedin", accountId: LI, status: "failed", url: null, error: "Token expired", draft: false },
       ],
     });
   });
@@ -361,7 +429,7 @@ describe("move (publish-calendar)", () => {
     const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]), [`PUT /posts/${POST}`]: updated() });
     expect(await runPost(f.z, MINE, UID, move(), NOW)).toEqual({
       status: 200,
-      body: { post: { id: POST, status: "scheduled", scheduledFor: "2026-10-20T01:00:00.000Z", platforms: [{ platform: "instagram", accountId: IG, status: "pending", url: null, error: "" }] } },
+      body: { post: { id: POST, status: "scheduled", scheduledFor: "2026-10-20T01:00:00.000Z", platforms: [{ platform: "instagram", accountId: IG, status: "pending", url: null, error: "", draft: false }] } },
     });
     expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${POST}`, `PUT /posts/${POST}`]);
     expect(f.req(`PUT /posts/${POST}`)).toEqual({ body: { scheduledFor: NEXT, timezone: "Asia/Singapore" } });
