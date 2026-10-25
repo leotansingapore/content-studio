@@ -811,7 +811,7 @@ function ConceptPicker({
   );
 }
 
-function VersionCard({
+export function VersionCard({
   clone,
   building,
   conceptError,
