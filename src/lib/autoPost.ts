@@ -9,16 +9,23 @@ import type { DraftEntry, ZernioLink } from "@/lib/draftHistory";
 import type { CarouselBrand } from "@/lib/carousel";
 import { tagLinks, toPlainText, withCredit, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
+import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
+import { platformName } from "@/lib/socialConnect";
 import {
+  CAPTION_MAX,
   MAX_IMAGE_BYTES,
   MAX_PDF_BYTES,
   MAX_PICTURES,
   MAX_VIDEO_BYTES,
   MEDIA_TYPES,
+  NOW_LEAD_MS,
   PDF_TYPE,
+  platformProblem,
   type CreatorInfo,
   type PlatformResult,
   type PostView,
+  type ScheduleInput,
+  type TikTokInput,
 } from "../../supabase/functions/social/posts.ts";
 
 export { CAPTION_MAX, NEEDS_MEDIA, PDF_LINKEDIN_ONLY, PDF_TYPE, THREAD_MIXED, YOUTUBE_TITLE_MAX, checkSchedule, isPdf, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
@@ -234,3 +241,91 @@ const TIKTOK_LINES: [RegExp, string][] = [
 
 /** A TikTok failure in plain words; anything else in Zernio's own. */
 export const tiktokReason = (error: string) => TIKTOK_LINES.find(([re]) => re.test(error))?.[1] ?? error;
+
+// ---- the schedule steps (publish-schedule) ----
+
+/** Draws the items one at a time, counting each, and stops with an AbortError once the signal aborts. */
+export async function renderEach<T>(items: T[], draw: (t: T) => Promise<Blob>, onSlide: (done: number, total: number) => void, signal: AbortSignal): Promise<Blob[]> {
+  signal.throwIfAborted();
+  const out: Blob[] = [];
+  for (const t of items) {
+    const blob = await draw(t);
+    signal.throwIfAborted();
+    out.push(blob);
+    onSlide(out.length, items.length);
+  }
+  return out;
+}
+
+export const STEPS = ["where", "when", "caption"] as const;
+export type Step = (typeof STEPS)[number];
+
+/** What the steps hold so far. */
+export interface StepForm {
+  /** Step 1: the networks ticked, and the accounts ticked under them. */
+  platforms: string[];
+  accounts: { platform: string }[];
+  /** Stand-in links with each file's own ending, as the panel builds them, so the server's media rules apply. */
+  mediaUrls: string[];
+  /** Files picked on this device. */
+  files?: { name: string; type: string; size: number }[];
+  thread?: string[];
+  /** Step 2: Zernio's time (zernioTime), null for now, "" while Pick a time is not filled in. */
+  scheduledFor: string | null;
+  /** Step 3: the shared caption, each network's own, TikTok's choice. */
+  content: string;
+  captions?: Partial<Record<string, string>>;
+  tiktok?: TikTokInput | null;
+}
+
+const input = (f: StepForm, o: Partial<ScheduleInput> = {}): ScheduleInput => ({
+  clientKey: "",
+  content: f.content,
+  captions: f.captions ?? {},
+  mediaUrls: f.mediaUrls,
+  scheduledFor: null,
+  firstComment: "",
+  tiktok: f.tiktok ?? null,
+  youtube: null,
+  ...(f.thread ? { thread: f.thread } : {}),
+  ...o,
+});
+
+/** The one reason this step can't go on, or null. */
+export function stepProblem(step: Step, f: StepForm, now = Date.now()): string | null {
+  if (step === "where") {
+    if (!f.platforms.length) return platformProblem(input(f), []);
+    const missing = f.platforms.find((p) => !f.accounts.some((a) => a.platform === p));
+    if (missing) return `Choose an account to post to ${platformName(missing)}.`;
+    const file = f.files?.map((x) => fileProblem(x)).find(Boolean);
+    if (file) return file;
+    if ((f.files?.length ?? 0) > MAX_PICTURES) return `Pick up to ${MAX_PICTURES} pictures.`;
+    // a stand-in caption and TikTok choice, so only the network and media rules speak here
+    return platformProblem(input(f, { content: "-", captions: {}, tiktok: { privacyLevel: "-", allowComment: false, allowDuet: false, allowStitch: false } }), f.platforms);
+  }
+  if (step === "when") {
+    if (f.scheduledFor === null) return null;
+    const at = Date.parse(f.scheduledFor);
+    if (!Number.isFinite(at)) return "Pick a day and time.";
+    return at < now + NOW_LEAD_MS ? "That time has passed. Pick a later time, or post now." : null;
+  }
+  for (const p of f.platforms) {
+    const caption = f.captions?.[p] ?? f.content;
+    const over = caption.length - (CAPTION_MAX[p as keyof typeof CAPTION_MAX] ?? Infinity);
+    if (over > 0) return `The ${platformName(p)} caption is ${over} characters too long.`;
+  }
+  if (f.thread) {
+    if (hasComplianceErrors(scanCompliance(f.thread.join("\n\n")))) return "Fix the compliance error in the thread first.";
+  } else {
+    const flagged = f.platforms.find((p) => hasComplianceErrors(scanCompliance(f.captions?.[p] ?? f.content)));
+    if (flagged) return `Fix the compliance error in the ${platformName(flagged)} caption first.`;
+  }
+  return platformProblem(input(f), f.platforms);
+}
+
+/** The step a link asks for, or the first step before it that can't go on; the first step for anything else. */
+export function stepToOpen(asked: Step | null | undefined, f: StepForm, now = Date.now()): Step {
+  const i = STEPS.indexOf(asked as Step);
+  if (i < 0) return "where";
+  return STEPS.slice(0, i).find((s) => stepProblem(s, f, now)) ?? STEPS[i];
+}

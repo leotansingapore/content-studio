@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, schedulePost, tiktokReason, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
+const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, renderEach, schedulePost, stepProblem, stepToOpen, tiktokReason, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -327,5 +327,103 @@ describe("TikTok inbox drafts", () => {
     expect(TIKTOK_BUSY).toBe("TikTok is busy for direct posts right now. Send it to your inbox instead, or retry in a few hours.");
     expect(tiktokReason("You have created too many posts in the last 24 hours via the API.")).toBe("TikTok's daily limit for this account is reached. Try tomorrow, or post it in the TikTok app.");
     expect(tiktokReason("Video duration is too long")).toBe("Video duration is too long");
+  });
+});
+
+// publish-schedule: the slides are drawn before step 1, one at a time, with a count and a cancel.
+describe("renderEach", () => {
+  it("draws one item at a time and counts each one", async () => {
+    const order: string[] = [];
+    const seen: [number, number][] = [];
+    const out = await renderEach(["a", "b", "c"], async (t) => (order.push(t), new Blob([t])), (done, total) => seen.push([done, total]), new AbortController().signal);
+    expect(order).toEqual(["a", "b", "c"]);
+    expect(seen).toEqual([[1, 3], [2, 3], [3, 3]]);
+    expect(await Promise.all(out.map((b) => b.text()))).toEqual(["a", "b", "c"]);
+  });
+
+  it("draws nothing after the signal aborts, and rejects with an AbortError", async () => {
+    const stop = new AbortController();
+    const drawn: number[] = [];
+    const seen: number[] = [];
+    const run = renderEach([1, 2, 3, 4], async (n) => {
+      drawn.push(n);
+      if (n === 2) stop.abort();
+      return new Blob([String(n)]);
+    }, (done) => seen.push(done), stop.signal);
+    await expect(run).rejects.toMatchObject({ name: "AbortError" });
+    expect(drawn).toEqual([1, 2]);
+    expect(seen).toEqual([1]);
+    const before = new AbortController();
+    before.abort();
+    const none: number[] = [];
+    await expect(renderEach([1], async (n) => (none.push(n), new Blob()), () => {}, before.signal)).rejects.toMatchObject({ name: "AbortError" });
+    expect(none).toEqual([]);
+  });
+});
+
+// publish-schedule: one reason a step can't go on, the same words the tests read.
+describe("stepProblem", () => {
+  const now = Date.parse("2026-10-20T00:00:00Z");
+  const png = (n: number) => Array.from({ length: n }, (_, i) => `https://upload.local/${i}.png`);
+  const form = (extra = {}) => ({
+    platforms: ["linkedin"],
+    accounts: [{ platform: "linkedin" }],
+    mediaUrls: png(3),
+    scheduledFor: "2026-10-21T09:00:00+08:00",
+    content: "Three CPF checks before 55.",
+    ...extra,
+  });
+
+  it("where: an account for every ticked network, then the media each network takes", () => {
+    expect(stepProblem("where", form(), now)).toBeNull();
+    expect(stepProblem("where", form({ platforms: [] }), now)).toBe("Pick an account to post to.");
+    expect(stepProblem("where", form({ platforms: ["linkedin", "instagram"] }), now)).toBe("Choose an account to post to Instagram.");
+    const ig = { platforms: ["instagram"], accounts: [{ platform: "instagram" }] };
+    expect(stepProblem("where", form({ ...ig, mediaUrls: [] }), now)).toBe("Instagram needs a picture or video.");
+    expect(stepProblem("where", form({ platforms: ["youtube"], accounts: [{ platform: "youtube" }] }), now)).toBe("YouTube takes one video.");
+    expect(stepProblem("where", form({ mediaUrls: ["https://upload.local/0.webp"] }), now)).toBe("LinkedIn takes JPG or PNG pictures.");
+    // a video to Instagram and YouTube goes
+    expect(stepProblem("where", form({ platforms: ["instagram", "youtube"], accounts: [{ platform: "instagram" }, { platform: "youtube" }], mediaUrls: ["https://upload.local/0.mp4"] }), now)).toBeNull();
+  });
+
+  it("where: picked files with the server's caps, and nothing about the caption or TikTok's privacy yet", () => {
+    expect(stepProblem("where", form({ files: [{ name: "big.jpg", type: "image/jpeg", size: 8_000_001 }] }), now)).toBe("big.jpg is over 8 MB.");
+    expect(stepProblem("where", form({ files: Array.from({ length: 11 }, () => ({ name: "a.jpg", type: "image/jpeg", size: 10 })) }), now)).toBe("Pick up to 10 pictures.");
+    expect(stepProblem("where", form({ content: "x".repeat(3001) }), now)).toBeNull();
+    expect(stepProblem("where", form({ platforms: ["tiktok"], accounts: [{ platform: "tiktok" }] }), now)).toBeNull();
+    expect(stepProblem("where", form({ platforms: ["threads", "facebook"], accounts: [{ platform: "threads" }, { platform: "facebook" }], thread: ["One.", "Two."] }), now)).toBe(THREAD_MIXED);
+  });
+
+  it("when: now, a time ahead, a passed time, a time not picked yet", () => {
+    expect(stepProblem("when", form({ scheduledFor: null }), now)).toBeNull();
+    expect(stepProblem("when", form(), now)).toBeNull();
+    expect(stepProblem("when", form({ scheduledFor: "2026-10-20T08:00:30+08:00" }), now)).toBe("That time has passed. Pick a later time, or post now.");
+    expect(stepProblem("when", form({ scheduledFor: "" }), now)).toBe("Pick a day and time.");
+  });
+
+  it("caption: each network's length and compliance, named by the network", () => {
+    const two = { platforms: ["linkedin", "instagram"], accounts: [{ platform: "linkedin" }, { platform: "instagram" }] };
+    expect(stepProblem("caption", form(two), now)).toBeNull();
+    expect(stepProblem("caption", form({ ...two, content: "x".repeat(2210) }), now)).toBe("The Instagram caption is 10 characters too long.");
+    expect(stepProblem("caption", form({ ...two, content: "x".repeat(2210), captions: { instagram: "Short for Instagram." } }), now)).toBeNull();
+    expect(stepProblem("caption", form({ ...two, captions: { instagram: "This plan is risk-free." } }), now)).toBe("Fix the compliance error in the Instagram caption first.");
+    expect(stepProblem("caption", form({ ...two, content: "This plan is risk-free.", captions: { instagram: "Fine here." } }), now)).toBe("Fix the compliance error in the LinkedIn caption first.");
+    expect(stepProblem("caption", form({ platforms: ["threads"], accounts: [{ platform: "threads" }], mediaUrls: [], thread: ["One.", "Risk-free, every year."] }), now)).toBe("Fix the compliance error in the thread first.");
+  });
+
+  it("caption: the server's other rules, TikTok's privacy and an empty text post", () => {
+    const tiktok = { platforms: ["tiktok"], accounts: [{ platform: "tiktok" }] };
+    expect(stepProblem("caption", form(tiktok), now)).toBe("Pick who can see it on TikTok.");
+    expect(stepProblem("caption", form({ ...tiktok, tiktok: { privacyLevel: "SELF_ONLY", allowComment: true, allowDuet: false, allowStitch: false } }), now)).toBeNull();
+    expect(stepProblem("caption", form({ mediaUrls: [], content: "" }), now)).toBe("Write the caption, or attach a picture or video.");
+  });
+
+  it("opens the step a link asks for, or the first step before it that can't go on", () => {
+    expect(stepToOpen("caption", form(), now)).toBe("caption");
+    expect(stepToOpen("caption", form({ scheduledFor: "2026-10-19T09:00:00+08:00" }), now)).toBe("when");
+    expect(stepToOpen("caption", form({ platforms: ["instagram"] }), now)).toBe("where");
+    expect(stepToOpen("when", form({ content: "" , mediaUrls: [] }), now)).toBe("when");
+    expect(stepToOpen(null, form(), now)).toBe("where");
+    expect(stepToOpen("bogus" as never, form(), now)).toBe("where");
   });
 });
