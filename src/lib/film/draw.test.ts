@@ -68,6 +68,20 @@ describe("drawFilm", () => {
     expect(drawFilm(recorder().g, cardsFilm(), assets, 5, SIZE).map((m) => m.id)).not.toContain("features.card2.title");
   });
 
+  it("draws the cards' titles at one size and their lines at one size", () => {
+    const { g, calls } = recorder();
+    drawFilm(g, cardsFilm(), assets, 9.9, { w: 1920, h: 1080 });
+    // a line may wrap, so its first drawn row starts with its first word
+    const fontBefore = (text: string) => {
+      const at = calls.findIndex((c) => c[0] === "fillText" && (c[1] === text || String(c[1]).startsWith(`${text.split(" ")[0]} `)));
+      expect(at).toBeGreaterThan(0);
+      return calls.slice(0, at).filter((c) => c[0] === "set" && c[1] === "font").pop()![2];
+    };
+    const cards = cardsFilm().scenes.find((s) => s.kind === "cards") as Extract<Film["scenes"][number], { kind: "cards" }>;
+    expect(new Set(cards.cards.map((c) => fontBefore(c.title))).size).toBe(1);
+    expect(new Set(["Ticks off as you go.", "One page for the month."].map(fontBefore)).size).toBe(1);
+  });
+
   it("draws every scene with the clock and random replaced by throwing stubs", () => {
     const boom = () => {
       throw new Error("clock or random read while drawing");

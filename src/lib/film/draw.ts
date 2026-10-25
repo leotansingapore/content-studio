@@ -100,15 +100,22 @@ function wrap(g: G, text: string, width: number): string[] {
   return lines;
 }
 
-/** Text wrapped into the box at the largest size that fits; returns the box it filled. */
-function drawWrapped(g: G, text: string, box: Rect, weight: number, family: string, color: string, align: "center" | "left", max: number): Rect {
+/** The largest size, up to max, at which the text wraps inside the box. */
+function wrapSize(g: G, text: string, box: Rect, weight: number, family: string, max: number): number {
   let size = Math.min(max, box.h / 1.25);
-  let lines: string[] = [];
   for (let k = 0; k < 14; k++, size *= 0.88) {
     g.font = font(weight, size, family);
-    lines = wrap(g, text, box.w);
+    const lines = wrap(g, text, box.w);
     if (lines.length * size * 1.25 <= box.h && lines.every((l) => g.measureText(l).width <= box.w)) break;
   }
+  return size;
+}
+
+/** Text wrapped into the box at the largest size that fits (up to max); returns the box it filled. */
+function drawWrapped(g: G, text: string, box: Rect, weight: number, family: string, color: string, align: "center" | "left", max: number): Rect {
+  const size = wrapSize(g, text, box, weight, family, max);
+  g.font = font(weight, size, family);
+  const lines = wrap(g, text, box.w);
   g.fillStyle = color;
   g.textAlign = align;
   g.textBaseline = "middle";
@@ -329,7 +336,11 @@ function drawCards(x: Ctx, scene: Extract<FilmScene, { kind: "cards" }>, local: 
   const { g, c } = x;
   const f = faces(x.film, x.assets, scene);
   const lay = layoutScene(scene, x.w, x.h);
-  scene.cards.slice(0, 3).forEach((card, i) => {
+  const cards = scene.cards.slice(0, 3);
+  // one title size and one line size for the set, so the cards read as a row of equals
+  const titleSize = Math.min(...cards.map((card, i) => fitSize(g, card.title, lay.cards![i].title, f.dw, f.display)));
+  const lineSize = Math.min(...cards.map((card, i) => (card.line ? wrapSize(g, card.line, lay.cards![i].line, f.bw, f.body, lay.cards![i].title.h * 0.6) : Infinity)));
+  cards.forEach((card, i) => {
     const n = i + 1;
     const dt = since(x, scene, `card${n}`, local);
     if (dt == null) return;
@@ -349,8 +360,8 @@ function drawCards(x: Ctx, scene: Extract<FilmScene, { kind: "cards" }>, local: 
       drawLine(g, String(n).padStart(2, "0"), ib, f.dw, f.display, c.accent);
     }
     mark(x, scene, `card${n}.icon`, ib);
-    mark(x, scene, `card${n}.title`, drawLine(g, card.title, at(box.title), f.dw, f.display, c.text));
-    if (card.line) mark(x, scene, `card${n}.line`, drawWrapped(g, card.line, at(box.line), f.bw, f.body, c.muted, box.box.w > box.box.h * 1.3 ? "left" : "center", box.title.h * 0.6));
+    mark(x, scene, `card${n}.title`, drawLine(g, card.title, at(box.title), f.dw, f.display, c.text, 1, titleSize));
+    if (card.line) mark(x, scene, `card${n}.line`, drawWrapped(g, card.line, at(box.line), f.bw, f.body, c.muted, box.box.w > box.box.h * 1.3 ? "left" : "center", lineSize));
     g.restore();
   });
 }
