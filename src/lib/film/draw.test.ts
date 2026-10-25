@@ -87,7 +87,12 @@ describe("drawFilm", () => {
     const { g, calls } = recorder();
     const marks = drawFilm(g, goodFilm(), assets, 0, SIZE);
     expect(marks.map((m) => m.id)).toEqual(["hook.word1"]);
-    expect(calls).toContainEqual(["fillText", "Your week.", 0, 0]);
+    const at = calls.findIndex((c) => c[0] === "fillText" && c[1] === "Your week.");
+    expect(at).toBeGreaterThan(0);
+    // fully opaque and at full size, not caught at the start of its entrance
+    const alpha = calls.slice(0, at).filter((c) => c[0] === "set" && c[1] === "globalAlpha").pop();
+    expect(alpha).toEqual(["set", "globalAlpha", 1]);
+    expect(calls.slice(0, at).some((c) => c[0] === "scale")).toBe(false);
   });
 
   it("draws the real logo file, and the brand name when there is none", () => {
