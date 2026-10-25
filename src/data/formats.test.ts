@@ -39,6 +39,9 @@ const EXPECTED: Record<string, Price | "pick" | null> = {
   "own-media": sumPrices(priceOf("own-words"), priceOf("ai-voice")),
   clips: sumPrices(priceOf("video-transcribe", { minutes: 60 }), priceOf("video-clips", { passes: 2 })),
   "edit-own": null,
+  // north star phase 7a: stubs until wave 2
+  "launch-film": priceOf("launch-film"),
+  "same-edit": sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice")),
 };
 const chip = (slug: string) => {
   const p = FORMATS.find((f) => f.slug === slug)!.price();
@@ -82,6 +85,8 @@ describe("the format registry", () => {
     expect(chip("green-screen")).toBe("Under US$0.01");
     expect(chip(`template-${TEMPLATES[0].id}`)).toBe("About US$3.70");
     expect(chip("carousel")).toBeNull();
+    expect(chip("launch-film")).toBe("Under US$0.01");
+    expect(chip("same-edit")).toBe("About US$2.77");
   });
 
   it("takes needs from the fixed list, and a template that needs a photo says so", () => {
@@ -89,6 +94,7 @@ describe("the format registry", () => {
     // a hidden template has no card (a format page makes it, as crumple-hook from /make/hook-demo)
     for (const t of TEMPLATES) expect(FORMATS.find((f) => f.slug === `template-${t.id}`)?.needs, t.id).toBe(t.needsPhoto && !t.hidden ? "photo" : undefined);
     expect(NEED_LINES["demo-video"]).toBe("Needs a demo video");
+    expect(NEED_LINES["reel-video"]).toBe("Needs a reel's video: Instagram or an upload");
   });
 
   it("gives every template a card and leaves out the ones the editor hides", () => {
@@ -110,6 +116,9 @@ describe("the format registry", () => {
     expect(formatBySlug("slideshow")).toMatchObject({ slug: "slideshow", cap: "remix-make" });
     expect(formatBySlug("wall-of-text")).toMatchObject({ slug: "wall-of-text", cap: "remix-make" });
     for (const s of ["talking-head", "text-over-clip", "hook-demo", "green-screen"]) expect(formatBySlug(s)?.ready, s).toBe(true);
+    // phase 7a's two makers open for Leo before the gallery lists them
+    expect(formatBySlug("launch-film")).toMatchObject({ cap: "launch-film", group: 1, ready: false });
+    expect(formatBySlug("same-edit")).toMatchObject({ cap: "ai-video", group: 3, needs: "reel-video", ready: false });
     expect(formatBySlug("carousel")).toBeNull();
     expect(formatBySlug("nope")).toBeNull();
     expect(formatBySlug(undefined)).toBeNull();
