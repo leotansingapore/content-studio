@@ -30,7 +30,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import RealNumbers, { jobChip } from "./RealNumbers";
+import RealNumbers, { jobChip, pickerDrafts } from "./RealNumbers";
 import type { DraftEntry } from "@/lib/draftHistory";
 import type { MetricsPost, NumbersJob } from "@/lib/realNumbers";
 
@@ -129,8 +129,63 @@ describe("Your real numbers on Leo's sign-in (learn-real-numbers)", () => {
     expect(html()).toBe("");
   });
 
+  it("gives each outside post Link to a post, and hides one already linked to a draft", () => {
+    asLeo([draft("d1", "Other words", { live: { postId: "p2", platform: "linkedin", url: null, by: "you", numbers: { ...n0, likes: 3, at: "2026-10-11T01:00:00Z" } } })]);
+    as.job = job({ at: new Date().toISOString(), outside: [post("p1", LIVE), post("p2", "Linked one")] });
+    const out = html();
+    expect(out).toContain("Posted outside the app (1)");
+    expect(out.match(/>Link to a post<\/button>/g)).toHaveLength(1);
+    expect(out).not.toContain("Linked one");
+    expect(out).toContain("1 post shows real numbers.");
+  });
 
+  it("reads the numbers on a cold load of ?link= before the picker opens", () => {
+    asLeo();
+    expect(html("/analytics?link=p1")).toContain("Reading your numbers...");
+    as.job = job({ running: true, at: "2026-10-11T01:00:00Z" });
+    expect(html("/analytics?link=p1")).toContain("Reading your numbers...");
+  });
 
+  it("opens the picker for ?link= with the closest drafts first and None of these", () => {
+    asLeo([
+      draft("far", "Something else entirely about budgets"),
+      draft("near", `${LIVE} and a long tail that goes on`),
+      draft("ig", LIVE, { platform: "instagram" }),
+    ]);
+    as.job = job({ at: new Date().toISOString(), outside: [post("p1", LIVE)] });
+    const out = html("/analytics?link=p1");
+    expect(out).toContain("Which post is this?");
+    expect(out).toContain(">None of these</button>");
+    expect(out).toContain('aria-expanded="true"');
+    expect(out).not.toContain("Reading your numbers...");
+    expect(out.indexOf('aria-label="Link &quot;Three CPF moves&quot;"')).toBeGreaterThan(-1);
+    expect(out.indexOf('aria-label="Link &quot;Three CPF moves&quot;"')).toBeLessThan(out.indexOf('aria-label="Link &quot;Something else entirely&quot;"'));
+  });
+});
+
+describe("pickerDrafts", () => {
+  const p = post("p1", LIVE);
+  it("keeps posted drafts on the post's platform within 7 days that are not linked or sent through Zernio, closest first", () => {
+    const list = [
+      draft("a", "Something else"),
+      draft("b", LIVE),
+      draft("c", LIVE, { platform: "instagram" }),
+      draft("d", LIVE, { postedAt: "2026-10-16T09:00:00+08:00" }),
+      draft("e", LIVE, { postedAt: undefined, scheduledFor: "2026-10-14T09:00" }),
+      draft("f", LIVE, { zernio: { key: "k", postId: "z1", status: "published" } as DraftEntry["zernio"] }),
+      draft("g", LIVE, { live: { postId: "x", platform: "linkedin", url: null, by: "auto" } }),
+      draft("h", LIVE, { status: "draft", postedAt: undefined }),
+    ];
+    expect(pickerDrafts(list, p).map((d) => d.id)).toEqual(["b", "e", "a"]);
+  });
+  it("lists at most 10", () => {
+    expect(pickerDrafts(Array.from({ length: 12 }, (_, i) => draft(`d${i}`, LIVE)), p)).toHaveLength(10);
+  });
+  it("cuts a long draft to the live text's length before comparing", () => {
+    const long = draft("long", `${LIVE} ${Array.from({ length: 200 }, (_, i) => `tail${i}`).join(" ")}`);
+    const short = draft("short", "Three CPF moves people miss");
+    expect(pickerDrafts([short, long], p).map((d) => d.id)).toEqual(["long", "short"]);
+  });
 });
 
 describe("jobChip", () => {

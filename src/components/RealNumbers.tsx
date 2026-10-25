@@ -10,13 +10,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { FollowerGrowth } from "@/components/AccountAudit";
+import { useToast } from "@/hooks/use-toast";
 import { connectedFor, timeAgo } from "@/lib/accountAudit";
-import { loadDrafts, setDraftNumbers } from "@/lib/draftHistory";
+import { draftStatus, loadDrafts, setDraftNumbers, type DraftEntry } from "@/lib/draftHistory";
+import { wordOverlap } from "@/lib/nearDuplicate";
+import { toPlainText } from "@/lib/plainText";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { useUrlItem } from "@/lib/urlState";
 import {
+  linkPost,
   loadRealNumbers,
+  markNotMine,
   matchPulled,
   numbersJob,
   numbersLine,
@@ -27,6 +33,7 @@ import {
   refreshIfStale,
   refreshNumbers,
   rememberRealNumbers,
+  unlinkPost,
   type FollowerSeries,
   type MetricsPost,
   type NumbersJob,
@@ -184,7 +191,7 @@ function TodayNumbers({ userId, audited, onChange, onFollowers }: Props) {
   );
 }
 
-// ---- Leo's card (learn-real-numbers): the shared job and its states ----
+// ---- Leo's card (learn-real-numbers): the shared job, its states, and linking an outside post by hand ----
 
 /** The status line over Leo's card: the job's run, refusal or failure. Null once a run has landed cleanly. */
 export function jobChip(job: NumbersJob, paused: boolean): { text: string; tone: "muted" | "error"; retry?: true } | null {
@@ -197,6 +204,19 @@ export function jobChip(job: NumbersJob, paused: boolean): { text: string; tone:
   return null;
 }
 
+const WEEK = 7 * 86_400_000;
+
+/** "Which post is this?": up to 10 posted drafts on the post's platform within 7 days, not already linked, closest words first. */
+export function pickerDrafts(drafts: DraftEntry[], post: MetricsPost): DraftEntry[] {
+  const at = Date.parse(post.publishedAt ?? "");
+  return drafts
+    .filter((d) => draftStatus(d) === "posted" && d.platform === post.platform && !d.zernio?.postId && !d.live && Math.abs(Date.parse(d.postedAt ?? d.scheduledFor ?? "") - at) <= WEEK)
+    .map((d) => ({ d, overlap: wordOverlap(toPlainText(d.draft).slice(0, post.text.length), post.text) }))
+    .sort((a, b) => b.overlap - a.overlap)
+    .slice(0, 10)
+    .map((c) => c.d);
+}
+
 const firstLine = (text: string) => text.split("\n").find((l) => l.trim()) || "A post";
 
 function useNumbersJob(userId: string): NumbersJob {
@@ -207,9 +227,14 @@ function useNumbersJob(userId: string): NumbersJob {
 
 function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
   const job = useNumbersJob(userId);
+  const [linkId, openLink, closeLink] = useUrlItem("link");
+  const { toast } = useToast();
+  // posts linked by hand on this visit: they keep their row, reading "Linked" with Unlink
+  const [here, setHere] = useState<Record<string, string>>({});
 
   // the outside list and the follower counts live in memory only, so a cold load pulls once; after that the 6-hour rule
   useEffect(() => {
+    setHere({});
     if (numbersJob(userId).at) refreshIfStale(userId);
     else void refreshNumbers(userId);
   }, [userId]);
@@ -222,15 +247,41 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landed, userId]);
 
+  // ?link= for a post the latest pull doesn't have: drop it and say so
+  const missing = !!linkId && !!landed && !job.outside.some((p) => p.id === linkId);
+  useEffect(() => {
+    if (!missing) return;
+    closeLink();
+    toast({ title: "That post isn't in your latest numbers." });
+  }, [missing, closeLink, toast]);
+
   const s = loadRealNumbers(userId);
   const paused = !!s.pausedUntil && Date.parse(s.pausedUntil) > Date.now();
   if (job.error?.status === 404 && /not enabled/i.test(job.error.message)) return null;
 
   const drafts = loadDrafts(userId);
-  const outside = job.outside;
+  const linked = new Set(drafts.flatMap((d) => (d.live ? [d.live.postId] : [])));
+  const outside = job.outside.filter((p) => here[p.id] || !linked.has(p.id));
   const withNumbers = drafts.filter((d) => d.zernio?.numbers || d.live?.numbers).length;
   const chip = jobChip(job, paused);
   const capped = !!chip && !chip.retry && !job.running;
+  const reading = !!linkId && !job.outside.some((p) => p.id === linkId) && (job.running || (!job.at && !job.error && !paused));
+
+  const link = (post: MetricsPost, d: DraftEntry) => {
+    linkPost(userId, d.id, post, "you");
+    setHere((h) => ({ ...h, [post.id]: d.id }));
+    closeLink();
+    onChange();
+  };
+  const unlink = (post: MetricsPost) => {
+    unlinkPost(userId, here[post.id]);
+    setHere(({ [post.id]: _gone, ...rest }) => rest);
+    onChange();
+  };
+  const notMine = (post: MetricsPost) => {
+    markNotMine(userId, post.id);
+    closeLink();
+  };
 
   return (
     <Card className="border-border/60 shadow-card">
@@ -257,6 +308,7 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
           ) : (
             <p className="text-sm text-muted-foreground">Views, reach, likes, comments, shares and saves for the last 12 months, from your connected accounts.</p>
           )}
+          {reading && <p className="text-sm text-muted-foreground">Reading your numbers...</p>}
         </div>
 
         {job.none && !job.running && !job.error ? (
@@ -276,7 +328,7 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
         <FollowerCharts followers={job.followers.filter((f) => f.series.length > 1 && !audited.some((a) => connectedFor([f], a.platform, a.handle)))} />
 
         {outside.length > 0 && (
-          <details className="group" open={outside.length <= 5}>
+          <details className="group" open={outside.length <= 5 || outside.some((p) => p.id === linkId)}>
             <summary className={`inline-flex h-9 cursor-pointer list-none items-center text-sm font-medium text-foreground ${TOUCH} [&::-webkit-details-marker]:hidden`}>
               Posted outside the app ({outside.length})
             </summary>
@@ -289,6 +341,25 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
                       <p className="text-[11px] text-muted-foreground">{[platformName(p.platform), dayLabel(p.publishedAt)].filter(Boolean).join(", ")}</p>
                       <p className="text-xs text-foreground">{postLine(p)}</p>
                     </div>
+                    {here[p.id] ? (
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">Linked</span>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => unlink(p)} className={TOUCH}>
+                          Unlink
+                        </Button>
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        aria-expanded={linkId === p.id}
+                        onClick={() => (linkId === p.id ? closeLink() : openLink(p.id))}
+                        className={TOUCH}
+                      >
+                        Link to a post
+                      </Button>
+                    )}
                     {p.url && (
                       <a
                         href={p.url}
@@ -301,6 +372,7 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
                       </a>
                     )}
                   </div>
+                  {linkId === p.id && !here[p.id] && <Picker post={p} drafts={pickerDrafts(drafts, p)} onLink={(d) => link(p, d)} onNone={() => notMine(p)} />}
                 </li>
               ))}
             </ul>
@@ -308,6 +380,32 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function Picker({ post, drafts, onLink, onNone }: { post: MetricsPost; drafts: DraftEntry[]; onLink: (d: DraftEntry) => void; onNone: () => void }) {
+  return (
+    <div role="group" aria-label="Which post is this?" className="mt-2 space-y-2 border-t border-border/60 pt-2">
+      <p className="text-sm font-medium text-foreground">Which post is this?</p>
+      {drafts.length > 0 && (
+        <ul className="space-y-1">
+          {drafts.map((d) => (
+            <li key={d.id} className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-foreground">{d.hook || firstLine(toPlainText(d.draft))}</p>
+                <p className="text-[11px] text-muted-foreground">{[platformName(post.platform), dayLabel(d.postedAt ?? d.scheduledFor ?? null)].filter(Boolean).join(", ")}</p>
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => onLink(d)} aria-label={`Link "${d.hook || "this post"}"`} className={TOUCH}>
+                Link
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button type="button" size="sm" variant="ghost" onClick={onNone} className={TOUCH}>
+        None of these
+      </Button>
+    </div>
   );
 }
 
