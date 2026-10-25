@@ -21,7 +21,28 @@ describe("askJev", () => {
     expect(url).toBe(JEV_ENDPOINT);
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer k1");
     expect(JSON.parse(String(init.body))).toEqual({ model: JEV_MODEL, state: { comment: "How much is a plan?" }, questions: q });
+    expect(init.headers).not.toHaveProperty("TypeSafe-Danger-Zone-Images");
     expect(JEV_MODEL).toBe("jev-1.13.0");
+  });
+
+  it("sends images as assets under their refs, with the images header, and refuses a picture that is not a PNG or JPEG", async () => {
+    const f = reply(200, { answers: { lead: { type: "noul", noul: 0.3 } } });
+    const images = { "img-1": "data:image/jpeg;base64,/9j/AAA=", "img-2": "data:image/png;base64,iVBORw==" };
+    await askJev({ shot: "img-1", logo: "img-2" }, q, { images }, { env: env("k1"), fetch: f as unknown as typeof fetch });
+    const [, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["TypeSafe-Danger-Zone-Images"]).toBe("true");
+    expect(JSON.parse(String(init.body)).assets).toEqual({
+      "img-1": { type: "image", format: "jpg", data_base64: "/9j/AAA=" },
+      "img-2": { type: "image", format: "png", data_base64: "iVBORw==" },
+    });
+    // no images is a plain call
+    await askJev({}, q, { images: {} }, { env: env("k1"), fetch: f as unknown as typeof fetch });
+    expect(JSON.parse(String((f.mock.calls[1] as unknown as [string, RequestInit])[1].body))).not.toHaveProperty("assets");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    for (const bad of ["data:image/webp;base64,AAAA", "https://x.sg/a.jpg", "data:image/jpeg;base64,AA AA"]) {
+      expect(await askJev({ shot: "img-1" }, q, { images: { "img-1": bad } }, { env: env("k1"), fetch: f as unknown as typeof fetch })).toBeNull();
+    }
+    expect(f).toHaveBeenCalledTimes(2);
   });
 
   it("returns null, and never calls out, with no key or no questions", async () => {

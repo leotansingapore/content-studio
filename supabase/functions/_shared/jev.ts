@@ -38,14 +38,33 @@ export const JEV_TIMEOUT_MS = 5000;
 type Env = { get(name: string): string | undefined };
 declare const Deno: { env: Env } | undefined;
 
+const DATA_URL = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/]+=*)$/;
+
+/** `images` as the API's assets; undefined with none, null when one is not a PNG or JPEG data URL. */
+function imageAssets(images?: Record<string, string>) {
+  const refs = Object.entries(images ?? {});
+  if (!refs.length) return undefined;
+  const out: Record<string, { type: "image"; format: "jpg" | "png"; data_base64: string }> = {};
+  for (const [ref, url] of refs) {
+    const m = DATA_URL.exec(url);
+    if (!m) return null;
+    out[ref] = { type: "image", format: m[1] === "png" ? "png" : "jpg", data_base64: m[2] };
+  }
+  return out;
+}
+
 /**
  * The answers, or null when there are none to be had. `deps` exists for
  * tests; edge functions call it with questions only.
+ * `images` (ref -> PNG or JPEG data URL) lets Jev look at pictures: each ref
+ * must appear in the state or the questions, and each side must be 280 to
+ * 1568 px (total pixels up to 2,458,624), or the API refuses the whole call
+ * (docs.typesafe.ai/images.md) and this returns null like any other failure.
  */
 export async function askJev(
   state: unknown,
   questions: Record<string, JevQuestion>,
-  opts: { timeoutMs?: number; who?: string } = {},
+  opts: { timeoutMs?: number; who?: string; images?: Record<string, string> } = {},
   deps: { env?: Env; fetch?: typeof fetch } = {},
 ): Promise<Record<string, JevAnswer> | null> {
   const env = deps.env ?? (typeof Deno !== "undefined" ? Deno.env : undefined);
@@ -58,11 +77,13 @@ export async function askJev(
     console.warn(`jev: ${who}: ${reason} after ${Date.now() - started}ms (${count} questions); answered without Jev`);
     return null;
   };
+  const assets = imageAssets(opts.images);
+  if (assets === null) return failed("an image that is not a PNG or JPEG data URL");
   try {
     const res = await (deps.fetch ?? fetch)(JEV_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: JEV_MODEL, state, questions }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, ...(assets ? { "TypeSafe-Danger-Zone-Images": "true" } : {}) },
+      body: JSON.stringify({ model: JEV_MODEL, state, questions, ...(assets ? { assets } : {}) }),
       signal: AbortSignal.timeout(opts.timeoutMs ?? JEV_TIMEOUT_MS),
     });
     if (!res.ok) return failed(`${res.status} ${(await res.text().catch(() => "")).slice(0, 120)}`.trim());
