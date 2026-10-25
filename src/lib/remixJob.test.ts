@@ -32,6 +32,8 @@ vi.mock("@/lib/textVoice", async (orig) => ({ ...(await orig<typeof import("./te
 import { splitDraftIntoSlides } from "./carousel";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
+import { HOOK_FORMULAS, hookFormulaSet } from "./hookFormulas";
+import { draftsInSet } from "./variants";
 import { VIDEO_LIMITS, type MakeResponse, type MakeResult } from "./remix";
 import {
   BREAKING,
@@ -43,6 +45,7 @@ import {
   clearRemixJob,
   onRemixJob,
   remixJob,
+  retryVersions,
   runParams,
   startRemix,
   writingStep,
@@ -666,6 +669,89 @@ describe("several formats and the videos", () => {
     await vi.waitFor(() => expect(remixJob()!.step).toBe(VOICEOVER));
     release();
     await done;
+  });
+});
+
+describe("versions (remix-variations)", () => {
+  const post = (hook: string) => answer({ as: "post", hook, body: "The body.", cta: "DM me CHECK", hashtags: [] });
+  const ids = new Set(HOOK_FORMULAS.map((f) => f.id));
+
+  it("sends three makes of one format, each with its own formula, and saves three drafts in one set", async () => {
+    make.mockImplementation(async (b: { formula: string }) => post(`Hook for ${b.formula}`));
+    const done = finished();
+    expect(startRemix(UID, run(["post"], { versions: 3 }))).toBe("started");
+    const set = remixJob()!.set!;
+    expect(set).toMatchObject({ kind: "versions", from: "ad:123" });
+    expect(set.id).toMatch(/^vs-[0-9a-z]+$/);
+    const j = await done;
+
+    const sent = make.mock.calls.map(([b]) => b);
+    expect(sent).toHaveLength(3);
+    expect(sent.every((b) => b.as === "post" && b.mode === "make")).toBe(true);
+    const formulas = sent.map((b) => b.formula);
+    expect(new Set(formulas).size).toBe(3);
+    expect(formulas.every((f) => ids.has(f))).toBe(true);
+    expect(formulas).toEqual(hookFormulaSet(j.id).map((f) => f.id));
+
+    const versions = draftsInSet(loadDrafts(UID), set.id);
+    expect(versions).toHaveLength(3);
+    expect(versions.map((d) => d.hookFormula).sort()).toEqual([...formulas].sort());
+    for (const d of versions) {
+      expect(d.set).toEqual(set);
+      expect(d.hook).toBe(`Hook for ${d.hookFormula}`);
+      expect(d.source).toMatchObject({ key: "ad:123" });
+    }
+    expect(j).toMatchObject({ state: "done", set, run: { versions: 3 } });
+    expect(j.rows.map((r) => r.state)).toEqual(["done", "done", "done"]);
+    expect(runParams(j.key, j.run)).toMatchObject({ remix: "ad:123", versions: "3" });
+  });
+
+  it("keeps the other two when one fails, and Try the last one again makes only that one, with its formula, into the same set", async () => {
+    let calls = 0;
+    make.mockImplementation(async (b: { formula: string }) => {
+      if (++calls === 2) throw new EdgeError("failed", 502, "failed");
+      return post(`Hook for ${b.formula}`);
+    });
+    let done = finished();
+    startRemix(UID, run(["post"], { versions: 3, note: "keep it short" }));
+    let j = await done;
+    expect(j.state).toBe("done");
+    expect(j.rows.map((r) => r.state)).toEqual(["done", "failed", "done"]);
+    expect(j.rows[1]).toMatchObject({ refunded: true, error: NOTHING_USED });
+    expect(draftsInSet(loadDrafts(UID), j.set!.id)).toHaveLength(2);
+    const lost = j.rows[1].formula;
+
+    done = finished();
+    expect(retryVersions()).toBe("started");
+    expect(retryVersions()).toBe("busy");
+    const again = await done;
+    expect(make).toHaveBeenCalledTimes(4);
+    expect(make.mock.calls[3][0]).toMatchObject({ formula: lost, note: "keep it short", source: { key: "ad:123" } });
+    expect(again).toMatchObject({ state: "done", set: j.set });
+    expect(again.rows.map((r) => r.state)).toEqual(["done", "done", "done"]);
+    expect(draftsInSet(loadDrafts(UID), j.set!.id).map((d) => d.hookFormula).sort()).toEqual(j.rows.map((r) => r.formula).sort());
+    expect(retryVersions()).toBe("none");
+  });
+
+  it("makes versions of the first text format only, and never of a video", async () => {
+    make.mockImplementation(async (b: { as: string; formula?: string }) =>
+      b.as === "speaking" ? answer({ as: "speaking", script: "Say it.", caption: "C" }) : answer({ as: "carousel", hook: `H ${b.formula}`, slides: Array.from({ length: 4 }, () => ({ title: "T", body: "B" })), cta: "Save this" }),
+    );
+    let done = finished();
+    startRemix(UID, run(["speaking", "carousel", "post"], { versions: 3 }));
+    expect(remixJob()!.rows.map((r) => r.as)).toEqual(["carousel", "carousel", "carousel"]);
+    await done;
+    expect(make.mock.calls.map(([b]) => b.as)).toEqual(["carousel", "carousel", "carousel"]);
+
+    make.mockClear();
+    ai.busy = true;
+    done = finished();
+    startRemix(UID, run(["speaking"], { versions: 3 }));
+    const j = await done;
+    expect(j.set).toBeUndefined();
+    expect(j.rows).toHaveLength(1);
+    expect("formula" in make.mock.calls[0][0]).toBe(false);
+    expect(j.run.versions).toBeUndefined();
   });
 });
 

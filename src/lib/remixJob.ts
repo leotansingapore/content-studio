@@ -24,6 +24,7 @@ import { applyBrandRules } from "@/lib/brandRules";
 import { loadBrand, splitDraftIntoSlides } from "@/lib/carousel";
 import { draftsChanged, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { EdgeError } from "@/lib/edgeFn";
+import { hookFormulaSet } from "@/lib/hookFormulas";
 import { links, slug } from "@/lib/links";
 import { stripDashes } from "@/lib/plainText";
 import { EMPTY_POSITIONING, loadPositioning } from "@/lib/positioning";
@@ -75,7 +76,12 @@ export interface RemixRun {
   fit?: { verdict: string; reasons: FitReason[] };
   /** The agent's chat and message that asked for it, kept on every draft it saves. */
   agent?: { thread: string; msg: string };
+  /** 3 (remix-variations, Leo only): three makes of the first text format in `as`, each opening with its own hook
+   * formula, saved as one set. Ignored for a video. */
+  versions?: 3;
 }
+
+type DraftSet = NonNullable<DraftEntry["set"]>;
 
 export interface RemixRow {
   as: RemixAs;
@@ -95,6 +101,8 @@ export interface RemixRow {
   credits?: number;
   /** A paid avatar waits on this device: the editor finishes it at no cost, and a new one would write over it. */
   waiting?: boolean;
+  /** A version's hook formula (hookFormulas.ts id), sent as the make's `formula`. */
+  formula?: string;
 }
 
 export interface RemixJobState {
@@ -106,7 +114,9 @@ export interface RemixJobState {
   rows: RemixRow[];
   /** The run's own choices: the pill reopens the sheet on them and the done line reads them. `as`: the formats as=
    * holds, left out when they are the source's default. */
-  run: Pick<RemixRun, "keep" | "about" | "close" | "mention" | "offer" | "agent"> & { as?: string };
+  run: Pick<RemixRun, "keep" | "about" | "close" | "mention" | "offer" | "agent" | "versions"> & { as?: string };
+  /** A versions run's set: every version it saves carries it, and "Open them" lists it. */
+  set?: DraftSet;
 }
 
 export const READING = "Reading the post";
@@ -124,6 +134,8 @@ const READ_MS = 600;
 
 let job: RemixJobState | null = null;
 let seq = 0;
+/** The run behind `job`, so "Try the last one again" repeats a failed version with every choice it had. */
+let last: { userId: string; run: RemixRun } | null = null;
 const listeners = new Set<(j: RemixJobState | null) => void>();
 const emit = (next: RemixJobState | null) => {
   job = next;
@@ -142,6 +154,7 @@ export function runParams(key: string, r: RemixJobState["run"]): Record<string, 
     mention: r.mention ? null : "no",
     offer: r.mention && r.offer ? slug(r.offer) : null,
     as: r.as || null,
+    ...(r.versions ? { versions: "3" } : {}),
   };
 }
 
@@ -161,10 +174,30 @@ export function startRemix(userId: string, run: RemixRun): "started" | "busy" {
   // a video takes minutes, so the text formats come back first
   const ordered = { ...run, as: [...run.as.filter((a) => !isVideo(a)), ...run.as.filter(isVideo)] };
   const { source: s, keep, about, close, mention, offer } = run;
-  const as = !s || (run.as.length === 1 && run.as[0] === defaultOutput(s)) ? undefined : run.as.join(",");
+  // versions: the one text format, three times, each with the next formulas in the rotation
+  const three = run.versions === 3 && !isVideo(ordered.as[0]);
+  if (three) ordered.as = [ordered.as[0]];
+  const as = !s || (ordered.as.length === 1 && ordered.as[0] === defaultOutput(s)) ? undefined : ordered.as.join(",");
   const step = s ? READING : writingStep(ordered.as[0]);
-  emit({ id, key: s?.key ?? "", state: "working", step, rows: ordered.as.map((a) => ({ as: a, state: "waiting" })), run: { keep, about, close, mention, offer, as, ...(run.agent ? { agent: run.agent } : {}) } });
+  const rows: RemixRow[] = three ? hookFormulaSet(id).map((f) => ({ as: ordered.as[0], state: "waiting", formula: f.id })) : ordered.as.map((a) => ({ as: a, state: "waiting" }));
+  const set: DraftSet | undefined = three ? { id: newSetId(), kind: "versions", ...(s ? { from: s.key } : {}) } : undefined;
+  last = { userId, run: ordered };
+  emit({ id, key: s?.key ?? "", state: "working", step, rows, run: { keep, about, close, mention, offer, as, ...(run.agent ? { agent: run.agent } : {}), ...(three ? { versions: 3 as const } : {}) }, ...(set ? { set } : {}) });
   void runRows(id, userId, ordered);
+  return "started";
+}
+
+/** Not uuid-shaped, as every id inside a synced key (phase 7 decision 8). */
+const newSetId = () => `vs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/** "Try the last one again": the last versions run's failed versions, with their formulas and every choice, into the same set. */
+export function retryVersions(): "started" | "busy" | "none" {
+  if (job?.state === "working") return "busy";
+  if (!job?.set || !last || !job.rows.some((r) => r.state === "failed")) return "none";
+  const id = ++seq;
+  const rows = job.rows.map((r): RemixRow => (r.state === "failed" ? { as: r.as, state: "waiting", ...(r.formula ? { formula: r.formula } : {}) } : r));
+  emit({ ...job, id, state: "working", step: writingStep(rows[0].as), rows });
+  void runRows(id, last.userId, last.run);
   return "started";
 }
 
@@ -188,8 +221,9 @@ async function runRows(id: number, userId: string, run: RemixRun) {
     teardown = await ensureTeardown(userId, s, text).catch(() => null);
     clearTimeout(breaking);
   }
-  // one after another; a failed row never stops the others
-  for (let i = 0; i < run.as.length; i++) await makeRow(id, i, userId, run, text, teardown, i === 0 && !broke);
+  // one after another; a failed row never stops the others, and a retry skips the rows already made
+  const todo = job?.id === id ? job.rows.flatMap((r, i) => (r.state === "done" ? [] : [i])) : [];
+  for (const i of todo) await makeRow(id, i, userId, run, text, teardown, i === 0 && !broke);
   if (job?.id !== id) return;
   const done = job.rows.some((r) => r.state === "done");
   // a format that failed is tried again with the same note, so it stays until every format is done
@@ -217,7 +251,9 @@ export function failure(e: unknown): Pick<RemixRow, "error" | "refunded"> {
 }
 
 async function makeRow(id: number, i: number, userId: string, run: RemixRun, text: string, teardown: Teardown | null, holdRead: boolean) {
-  const as = run.as[i];
+  if (job?.id !== id) return;
+  const { as, formula } = job.rows[i];
+  const version = formula && job.set ? { set: job.set, formula } : undefined;
   patch(id, i, { state: "working", step: holdRead ? READING : writingStep(as) });
   const s = run.source;
   // platformFor reads only the source's platform, and a topic has none
@@ -234,6 +270,7 @@ async function makeRow(id: number, i: number, userId: string, run: RemixRun, tex
     brand: brandPack(userId, { platform, mention: run.mention, offer: run.offer, speaker: run.speaker }),
     teardown: teardown ? { hookPattern: teardown.hook.pattern || undefined, beats: teardown.beats, dontReuse: teardown.dontReuse } : undefined,
     fit: run.fit as MakeRequest["fit"],
+    ...(formula ? { formula } : {}),
   };
   // the read is on the device and instant; its step holds a moment so the walk shows it. The call starts at once.
   const writing = holdRead ? setTimeout(() => patch(id, i, { step: writingStep(as) }), READ_MS) : undefined;
@@ -242,7 +279,7 @@ async function makeRow(id: number, i: number, userId: string, run: RemixRun, tex
   let res: Awaited<ReturnType<typeof requestMake>>;
   try {
     res = await requestMake(body);
-    draft = toDraft(userId, run, res.result, res.flags, platform, new Date());
+    draft = toDraft(userId, run, res.result, res.flags, platform, new Date(), version);
     upsertDraft(userId, draft);
     draftsChanged();
   } catch (e) {
@@ -303,8 +340,11 @@ const firstSentence = (t: string) => t.trim().match(/^[\s\S]*?[.!?](?=\s|$)/)?.[
 
 export const hrefFor = (d: Pick<DraftEntry, "id" | "format">) => (d.format === "carousel" ? links.carousel({ draft: d.id }) : links.generate({ draft: d.id }));
 
-/** One remix result as a draft: the kit's emoji and hashtag rules and no dashes, with its source (none from a topic), how it was made and the agent's chat. */
-export function toDraft(userId: string, run: RemixRun, r: MakeResult, flags: Flags, platform: string, now: Date): DraftEntry {
+/**
+ * One remix result as a draft: the kit's emoji and hashtag rules and no dashes, with its source (none from a topic),
+ * how it was made and the agent's chat; a version also carries its set and the hook formula it was asked for.
+ */
+export function toDraft(userId: string, run: RemixRun, r: MakeResult, flags: Flags, platform: string, now: Date, version?: { set: DraftSet; formula: string }): DraftEntry {
   const kit = loadBrand(userId);
   const clean = (t: string) => stripDashes(applyBrandRules(t.trim(), kit, platform)).trim();
   const base = {
@@ -316,6 +356,7 @@ export function toDraft(userId: string, run: RemixRun, r: MakeResult, flags: Fla
     ...(run.source ? { source: { ...run.source, remixedAt: now.toISOString() } } : {}),
     remix: { keep: run.keep, as: r.as, close: run.close, ...(run.keep === "topic" && run.about ? { about: run.about } : {}), ...(run.fit ? { fit: run.fit.verdict } : {}), flags },
     ...(run.agent ? { agent: { thread: run.agent.thread, msg: run.agent.msg } } : {}),
+    ...(version ? { set: version.set, hookFormula: version.formula } : {}),
   };
   if (r.as === "carousel") {
     const hook = clean(r.hook);
