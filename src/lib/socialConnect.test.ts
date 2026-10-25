@@ -4,7 +4,24 @@ const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
 const { EdgeError } = await import("@/lib/edgeFn");
-const { capLine, checkSocialConnect, disconnectBrand, forgetSocialConnect, healthLabel, readRedirect, removedLine, socialConnectShown } = await import("./socialConnect");
+const {
+  capLine,
+  checkSocialConnect,
+  clearConnectReturn,
+  countLine,
+  defaultAccount,
+  disconnectBrand,
+  forgetSocialConnect,
+  groupAccounts,
+  healthLabel,
+  loadSocialDefaults,
+  readConnectReturn,
+  readRedirect,
+  removedLine,
+  saveConnectReturn,
+  saveSocialDefault,
+  socialConnectShown,
+} = await import("./socialConnect");
 
 class MemStorage {
   private m = new Map<string, string>();
@@ -15,6 +32,7 @@ class MemStorage {
 
 beforeEach(() => {
   vi.stubGlobal("localStorage", new MemStorage());
+  vi.stubGlobal("sessionStorage", new MemStorage());
   callFn.mockReset();
 });
 afterEach(() => {
@@ -108,5 +126,101 @@ describe("words on the page", () => {
     expect(healthLabel({ ...a, health: "healthy", needsReconnect: false })).toBe("Working");
     expect(healthLabel({ ...a, health: "healthy", needsReconnect: true })).toBe("Reconnect needed");
     expect(healthLabel({ ...a, health: "warning", needsReconnect: false })).toBe("Needs a look");
+  });
+});
+
+// publish-accounts (Leo only): the page grouped by platform, the count line, a default per platform, and the way back
+// to the post a connect started from.
+const acct = (id: string, platform: string, username = id) => ({ id, platform, username, name: "", url: null, picture: null, health: "healthy" as const, needsReconnect: false, issues: [] });
+
+describe("the count line", () => {
+  it("names whichever limit stops the next connect", () => {
+    expect(countLine({ team: 3, teamCap: 20, user: 3, userCap: 6 })).toBe("3 of 6 accounts connected.");
+    // today's team cap of 2 with one account on the team
+    expect(countLine({ team: 1, teamCap: 2, user: 1, userCap: 6 })).toBe("1 of 2 accounts connected.");
+    // other advisers' accounts leave less room on the team than this adviser's own cap
+    expect(countLine({ team: 8, teamCap: 10, user: 1, userCap: 6 })).toBe("1 of 3 accounts connected.");
+  });
+
+  it("gives way to today's cap line when no account can be added", () => {
+    for (const full of [{ team: 2, teamCap: 2, user: 1, userCap: 6 }, { team: 6, teamCap: 50, user: 6, userCap: 6 }, { team: 9, teamCap: 2, user: 1, userCap: 6 }]) {
+      expect(countLine(full)).toBe(capLine(full));
+      expect(countLine(full)).not.toBeNull();
+    }
+  });
+});
+
+describe("accounts grouped by platform", () => {
+  it("gives one group per platform in SOCIAL_PLATFORMS order, with the button that fits", () => {
+    const groups = groupAccounts([acct("t1", "tiktok"), acct("i1", "instagram"), acct("i2", "instagram")], {});
+    expect(groups.map((g) => g.platform)).toEqual(["instagram", "facebook", "tiktok", "linkedin", "youtube", "threads"]);
+    expect(groups[0]).toMatchObject({ name: "Instagram", showDefault: true, defaultId: "i1", button: "Add another Instagram account" });
+    expect(groups[0].accounts.map((a) => a.id)).toEqual(["i1", "i2"]);
+    expect(groups[1]).toMatchObject({ accounts: [], showDefault: false, defaultId: null, button: "Connect Facebook" });
+    // one account is the default, with nothing to pick
+    expect(groups[2]).toMatchObject({ showDefault: false, defaultId: "t1", button: "Add another TikTok account" });
+    expect(groups[3].button).toBe("Connect LinkedIn");
+  });
+
+  it("ticks the picked default and keeps an account on a platform the app can't connect, with no button", () => {
+    const groups = groupAccounts([acct("i1", "instagram"), acct("i2", "instagram"), acct("p1", "pinterest")], { instagram: "i2" });
+    expect(groups[0].defaultId).toBe("i2");
+    expect(groups).toHaveLength(7);
+    expect(groups[6]).toMatchObject({ platform: "pinterest", name: "pinterest", button: null, showDefault: false });
+  });
+});
+
+describe("a default account per platform", () => {
+  it("ignores an id no longer among the accounts and falls back to the first connected one", () => {
+    const ig = [acct("i1", "instagram"), acct("i2", "instagram")];
+    expect(defaultAccount(ig, { instagram: "i2" }, "instagram")).toBe("i2");
+    expect(defaultAccount(ig, { instagram: "gone" }, "instagram")).toBe("i1");
+    // an id from another platform's list never counts
+    expect(defaultAccount([...ig, acct("t1", "tiktok")], { instagram: "t1" }, "instagram")).toBe("i1");
+    expect(defaultAccount(ig, {}, "tiktok")).toBeNull();
+  });
+
+  it("is saved per brand and read back, and anything unreadable reads as none", () => {
+    expect(loadSocialDefaults("u1")).toEqual({});
+    expect(saveSocialDefault("u1", "instagram", "i2")).toBe(true);
+    expect(saveSocialDefault("u1", "tiktok", "t1")).toBe(true);
+    expect(loadSocialDefaults("u1")).toEqual({ instagram: "i2", tiktok: "t1" });
+    expect(JSON.parse(localStorage.getItem("content-studio-social-defaults-u1")!)).toEqual({ instagram: "i2", tiktok: "t1" });
+    localStorage.setItem("content-studio-social-defaults-u1", JSON.stringify({ instagram: 7, tiktok: "t1", x: ["a"] }));
+    expect(loadSocialDefaults("u1")).toEqual({ tiktok: "t1" });
+    localStorage.setItem("content-studio-social-defaults-u1", "{not json");
+    expect(loadSocialDefaults("u1")).toEqual({});
+  });
+
+  it("says so when this device's storage is full, keeping what was saved", () => {
+    saveSocialDefault("u1", "instagram", "i1");
+    vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    expect(saveSocialDefault("u1", "instagram", "i2")).toBe(false);
+    expect(loadSocialDefaults("u1")).toEqual({ instagram: "i1" });
+  });
+});
+
+describe("the way back after connecting", () => {
+  const now = Date.UTC(2026, 9, 25, 2, 0);
+
+  it("returns the saved path and query for 30 minutes, then nothing", () => {
+    saveConnectReturn("/drafts?schedule=d1&step=where", now);
+    expect(readConnectReturn(now + 29 * 60_000)).toBe("/drafts?schedule=d1&step=where");
+    expect(readConnectReturn(now + 31 * 60_000)).toBeNull();
+    clearConnectReturn();
+    expect(readConnectReturn(now)).toBeNull();
+  });
+
+  it("never returns a path outside this app, or anything unreadable", () => {
+    for (const path of ["https://evil.example/x", "//evil.example/x", "/\\evil.example", "drafts", ""]) {
+      sessionStorage.setItem("cs-connect-return", JSON.stringify({ path, at: now }));
+      expect(readConnectReturn(now), path).toBeNull();
+    }
+    sessionStorage.setItem("cs-connect-return", "{not json");
+    expect(readConnectReturn(now)).toBeNull();
+    sessionStorage.setItem("cs-connect-return", JSON.stringify({ path: "/calendar", at: "soon" }));
+    expect(readConnectReturn(now)).toBeNull();
   });
 });

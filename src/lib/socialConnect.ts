@@ -4,6 +4,7 @@
 // only remembers the last answer so the nav can hide the page while it is off.
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
+import { scoped } from "@/lib/profiles";
 import { SOCIAL_PLATFORMS, type SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
 import type { AccountView, RemovedNote } from "../../supabase/functions/social/logic.ts";
 
@@ -106,6 +107,113 @@ export function capLine(s: Pick<SocialStatus, "team" | "teamCap" | "user" | "use
   if (s.user >= s.userCap) return `${s.user} of ${s.userCap} accounts connected, the most one adviser can have. Disconnect one to connect another.`;
   if (s.team >= s.teamCap) return `${s.team} of ${s.teamCap} accounts connected. Disconnect one to connect another.`;
   return null;
+}
+
+/** "3 of 6 accounts connected.": the cap is whichever limit stops the next connect; today's cap line once none can be added. */
+export function countLine(s: Pick<SocialStatus, "team" | "teamCap" | "user" | "userCap">): string {
+  return capLine(s) ?? `${s.user} of ${Math.min(s.userCap, s.user + Math.max(0, s.teamCap - s.team))} accounts connected.`;
+}
+
+/** Leo's sign-in sees the bill before he connects (Zernio's list price, docs.zernio.com/pricing). */
+export const ZERNIO_PRICE_LINE = "Zernio: first 2 free, then US$6 a month each.";
+
+// ---- A default account per platform (publish-accounts) ----------------------------------------------------------
+// Synced per brand: { [platform]: zernioAccountId }. Not security state: the server checks every id it is sent.
+
+export type SocialDefaults = Record<string, string>;
+const DEFAULTS_KEY = "content-studio-social-defaults-";
+export const SOCIAL_DEFAULTS_CHANGED = "content-studio-social-defaults-changed";
+
+export function loadSocialDefaults(userId: string): SocialDefaults {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DEFAULTS_KEY + scoped(userId)) ?? "{}");
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    return Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === "string" && !!e[1]));
+  } catch {
+    return {};
+  }
+}
+
+/** False when this device's storage is full (the default saved before stays). */
+export function saveSocialDefault(userId: string, platform: string, accountId: string): boolean {
+  try {
+    localStorage.setItem(DEFAULTS_KEY + scoped(userId), JSON.stringify({ ...loadSocialDefaults(userId), [platform]: accountId }));
+  } catch {
+    return false;
+  }
+  globalThis.window?.dispatchEvent?.(new Event(SOCIAL_DEFAULTS_CHANGED));
+  return true;
+}
+
+/** The account ticked first for a platform: the picked default while it is still connected, else the first connected one. */
+export function defaultAccount(accounts: AccountView[], defaults: SocialDefaults, platform: string): string | null {
+  const mine = accounts.filter((a) => a.platform === platform);
+  return (mine.find((a) => a.id === defaults[platform]) ?? mine[0])?.id ?? null;
+}
+
+export interface AccountGroup {
+  platform: string;
+  name: string;
+  accounts: AccountView[];
+  /** Default radios show from two accounts on the platform. */
+  showDefault: boolean;
+  defaultId: string | null;
+  /** null for a platform this app can't connect (one connected in Zernio's own dashboard). */
+  button: string | null;
+}
+
+/** What /accounts draws for Leo: one group per platform in SOCIAL_PLATFORMS order, then any other platform's accounts. */
+export function groupAccounts(accounts: AccountView[], defaults: SocialDefaults): AccountGroup[] {
+  const others = [...new Set(accounts.map((a) => a.platform))].filter((p) => !(SOCIAL_PLATFORMS as readonly string[]).includes(p));
+  return [...SOCIAL_PLATFORMS, ...others].map((platform) => {
+    const mine = accounts.filter((a) => a.platform === platform);
+    const name = platformName(platform);
+    const known = (SOCIAL_PLATFORMS as readonly string[]).includes(platform);
+    return {
+      platform,
+      name,
+      accounts: mine,
+      showDefault: mine.length >= 2,
+      defaultId: defaultAccount(mine, defaults, platform),
+      button: !known ? null : mine.length ? `Add another ${name} account` : `Connect ${name}`,
+    };
+  });
+}
+
+// ---- The way back after connecting (publish-accounts) -----------------------------------------------------------
+// A connect started from a post (the schedule steps) saves where it was; /accounts offers "Back to your post" when
+// Zernio sends the browser back. This tab only (sessionStorage), a device hint with the cs- prefix.
+
+const RETURN_KEY = "cs-connect-return";
+const RETURN_MS = 30 * 60_000;
+// this app's own paths only: "//host" and "/\host" would leave it
+const appPath = (p: unknown): p is string => typeof p === "string" && /^\/(?![/\\])/.test(p);
+
+/** Call with the current path and query just before connectLink sends the browser to Zernio. */
+export function saveConnectReturn(path: string, now = Date.now()): void {
+  try {
+    sessionStorage.setItem(RETURN_KEY, JSON.stringify({ path, at: now }));
+  } catch {
+    // private mode: the connect still works, it just lands on /accounts
+  }
+}
+
+/** The saved path, while under 30 minutes old and inside this app; else null. */
+export function readConnectReturn(now = Date.now()): string | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(RETURN_KEY) ?? "null");
+    return v && appPath(v.path) && typeof v.at === "number" && now - v.at >= 0 && now - v.at <= RETURN_MS ? v.path : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearConnectReturn(): void {
+  try {
+    sessionStorage.removeItem(RETURN_KEY);
+  } catch {
+    // nothing stored
+  }
 }
 
 /** What Zernio's redirect back to /accounts says: connected, or the reason it didn't. */
