@@ -96,6 +96,8 @@ export interface FilmNote {
   scene: string | null;
   /** Seconds into the film, where the player goes when the note opens. */
   at: number;
+  /** Where its numbered pin sits, as shares of the frame. */
+  pin?: [number, number];
   text: string;
   reply?: string;
   /** open: typed, not sent (or sent back with Not quite); waiting: queued behind another; changing: with the writer. */
@@ -315,6 +317,7 @@ export interface FilmJob {
 }
 export interface SoundJob {
   key: string;
+  startedAt: number;
   state: "working" | "failed";
   error?: string;
 }
@@ -332,6 +335,8 @@ export interface ExportJob {
 }
 
 let job: FilmJob | null = null;
+/** Directions written while the page was away: Setup opens them on return, once. */
+let unseen: string | null = null;
 let soundJob: SoundJob | null = null;
 let exp: ExportJob | null = null;
 let stopper: AbortController | null = null;
@@ -352,6 +357,12 @@ export const filmJob = () => job;
 export const soundState = () => soundJob;
 export const exportJob = () => exp;
 export const writing = () => job?.state === "working";
+/** The film whose directions landed with no page to open them, once. */
+export function takeUnseen(): string | null {
+  const id = unseen;
+  unseen = null;
+  return id;
+}
 /** A note is with the writer for this film. */
 export const editing = (filmId: string) => running.has(filmId);
 export function clearFailure(): void {
@@ -391,6 +402,7 @@ export async function writeDirections(userId: string, setup: FilmSetup, filmId?:
     const line = putFilm(userId, film);
     if (line) throw new Error(line);
     job = null;
+    unseen = film.id;
     emit();
     return film.id;
   } catch (e) {
@@ -479,7 +491,7 @@ export function setSpec(userId: string, filmId: string, next: Film): string | nu
 
 // ---------- Point to change: notes, one at a time per film ----------
 
-export type NoteDraft = Pick<FilmNote, "t" | "x" | "y" | "target" | "label" | "scene" | "at" | "text">;
+export type NoteDraft = Pick<FilmNote, "t" | "x" | "y" | "target" | "label" | "scene" | "at" | "text" | "pin">;
 
 /** A sent note: in the list at once (Changing..., or Waiting behind another), then to the writer. Its id, or null. */
 export function sendNote(userId: string, filmId: string, n: NoteDraft, reopened?: string): string | null {
@@ -668,7 +680,7 @@ function landed(key: string, s: FilmSound | null, error?: string) {
     sounds.set(key, s);
     if (sounds.size > KEEP) sounds.delete(sounds.keys().next().value!);
   }
-  if (soundJob?.key === key) soundJob = s ? null : { key, state: "failed", error: error ?? "Couldn't make the music." };
+  if (soundJob?.key === key) soundJob = s ? null : { ...soundJob, state: "failed", error: error ?? "Couldn't make the music." };
   (soundWaits.get(key) ?? []).forEach((w) => w(s));
   soundWaits.delete(key);
   emit();
@@ -678,7 +690,7 @@ function landed(key: string, s: FilmSound | null, error?: string) {
 export function ensureSound(spec: Film, opts: SoundOptions): string {
   const key = soundKey(spec, opts);
   if (sounds.has(key) || (soundJob?.key === key && soundJob.state === "working")) return key;
-  soundJob = { key, state: "working" };
+  soundJob = { key, startedAt: Date.now(), state: "working" };
   emit();
   if (typeof Worker === "undefined") {
     setTimeout(() => {
