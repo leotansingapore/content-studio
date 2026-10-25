@@ -417,6 +417,18 @@ describe("brand", () => {
     expect(store.get("content-studio-carousel-brand-u2")).toBe(`{"color":"#AABBCC","name":"Jane","handle":"@jane"}`);
   });
 
+  it("keeps per-network posting times like the shared ones, and drops bad times, unknown networks and the 15th time", () => {
+    const fifteen = Array.from({ length: 15 }, (_, i) => `${i % 7}T${String(8 + Math.floor(i / 7)).padStart(2, "0")}:00`);
+    const kit = sanitizeBrand({ slotsBy: { linkedin: ["1T08:00", "1T08:00", "7T08:00", "1T25:00", 9, "0T07:30"], instagram: fifteen, x: ["1T08:00"], tiktok: "1T08:00", threads: [] } });
+    expect(kit.slotsBy).toEqual({ linkedin: ["0T07:30", "1T08:00"], instagram: [...fifteen].sort().slice(0, 14), threads: [] });
+    expect(sanitizeBrand({ slotsBy: "1T08:00" }).slotsBy).toBeUndefined();
+    expect(sanitizeBrand({ name: "K" }, kit).slotsBy).toEqual(kit.slotsBy);
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
+    saveBrand("u1", { color: "#1E3A8A", name: "Ada", handle: "@ada", slotsBy: { tiktok: ["4T19:00"] } });
+    expect(loadBrand("u1")?.slotsBy).toEqual({ tiktok: ["4T19:00"] });
+  });
+
   // Pinned on main e0e6cf48, before phase 4 added kit fields: a kit with every field of today writes the same JSON.
   it("writes today's full kit byte for byte", () => {
     const store = new Map<string, string>();
@@ -525,6 +537,19 @@ describe("saved carousels", () => {
     expect(JSON.stringify(loadCarousels("u1"))).toBe(today);
     removeCarousel("u1", "none");
     expect(store.get("content-studio-carousels-u1")).toBe(today);
+  });
+
+  it("keeps a well-formed score through a reload, to one decimal, and drops a broken one", () => {
+    const score = { v: 7.8, down: ["readable", "cta"], key: "48-abc123", at: "2026-10-21T10:00:00.000Z" };
+    const broken = [
+      { ...score, v: 11 }, { ...score, v: -1 }, { ...score, v: "7" }, { ...score, down: ["hook", "loud"] }, { ...score, down: "hook" },
+      { ...score, down: ["hook", "oneIdea", "specific", "cta"] }, { ...score, key: "x".repeat(40) }, { ...score, key: "" }, { ...score, at: "yesterday" }, "7.8",
+    ];
+    store.set("content-studio-carousels-u1", JSON.stringify([{ id: "a", title: "A", platform: "instagram", slides, score: { ...score, v: 7.84 } }, ...broken.map((b, i) => ({ id: `b${i}`, title: "B", platform: "instagram", slides, score: b }))]));
+    const [kept, ...rest] = loadCarousels("u1");
+    expect(kept.score).toEqual(score);
+    expect(rest).toHaveLength(broken.length);
+    for (const c of rest) expect(c, c.id).not.toHaveProperty("score");
   });
 
   it("keeps a version's language and source and the signer, and drops bad ones", () => {

@@ -10,6 +10,8 @@ import { activeProfile, scoped } from "@/lib/profiles";
 import { cachedKit, withKit } from "@/lib/brandKitFeed";
 import { CAROUSEL_DESIGNS, type CarouselDesign, type PostLang } from "@/lib/links";
 import type { SlideFont, SlidePaper } from "@/lib/carouselLayout";
+import { FACTOR_IDS, type FactorId } from "../../supabase/functions/post-score/logic.ts";
+import { SOCIAL_PLATFORMS, type SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
 
 export const MAX_SLIDES = 10;
 export const MIN_SLIDES = 2;
@@ -633,6 +635,8 @@ export interface CarouselBrand {
   tagLinks?: boolean;
   /** Weekly posting times, "<day 0 = Mon>T<HH:MM>": Write suggests the next open one. */
   slots?: string[];
+  /** Posting times per network, the same shape as `slots` (publish-queue, Leo only); a network listed here uses only its own. */
+  slotsBy?: Partial<Record<SocialPlatform, string[]>>;
   /** DM links (bioPage.ts dmLinks): Instagram username, Facebook page username, WhatsApp number (digits once checked) and the message a WhatsApp chat starts with. */
   instagram?: string;
   facebook?: string;
@@ -735,6 +739,13 @@ function webOrigin(raw: string): string | undefined {
 const objects = (raw: unknown[]) => raw.filter((o): o is Record<string, unknown> => !!o && typeof o === "object");
 const text = (raw: unknown, max: number) => (typeof raw === "string" && raw ? raw.slice(0, max) : undefined);
 
+/** Weekly posting times, "<day 0 = Mon>T<HH:MM>": known ones only, once each, in order, 14 at most. */
+const slotList = (raw: unknown[]) => [...new Set(raw.filter((x): x is string => typeof x === "string" && /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/.test(x)))].sort().slice(0, 14);
+
+/** Each known network's own times, cleaned like `slots`; anything else is dropped. */
+const slotsByOf = (r: Record<string, unknown>): CarouselBrand["slotsBy"] =>
+  Object.fromEntries(SOCIAL_PLATFORMS.flatMap((p) => (Array.isArray(r[p]) ? [[p, slotList(r[p] as unknown[])]] : [])));
+
 export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BRAND): CarouselBrand {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   return {
@@ -746,9 +757,8 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     logo: "logo" in r ? sanitizeImage(r.logo) : fallback.logo,
     signOff: typeof r.signOff === "string" ? r.signOff.slice(0, MAX_SIGNOFF_CHARS) : fallback.signOff,
     tagLinks: typeof r.tagLinks === "boolean" ? r.tagLinks : fallback.tagLinks,
-    slots: Array.isArray(r.slots)
-      ? [...new Set(r.slots.filter((x): x is string => typeof x === "string" && /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/.test(x)))].sort().slice(0, 14)
-      : fallback.slots,
+    slots: Array.isArray(r.slots) ? slotList(r.slots) : fallback.slots,
+    slotsBy: r.slotsBy && typeof r.slotsBy === "object" && !Array.isArray(r.slotsBy) ? slotsByOf(r.slotsBy as Record<string, unknown>) : fallback.slotsBy,
     instagram: typeof r.instagram === "string" ? r.instagram.slice(0, MAX_DM_CHARS) : fallback.instagram,
     facebook: typeof r.facebook === "string" ? r.facebook.slice(0, MAX_DM_CHARS) : fallback.facebook,
     whatsapp: typeof r.whatsapp === "string" ? r.whatsapp.slice(0, MAX_DM_CHARS) : fallback.whatsapp,
@@ -861,6 +871,8 @@ export interface SavedCarousel {
   /** A version in another language: its language and the carousel it was made from. */
   lang?: PostLang;
   translationOf?: { id: string; at: string };
+  /** Its predicted score (edit-score), as on a draft: `key` is textKey(platform, carouselScoreText(...)) when scored. */
+  score?: DraftEntry["score"];
   updatedAt: string;
 }
 
@@ -904,6 +916,7 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
     if (slides.length === 0) return [];
     const signer = text(r.signer, 40);
     const from = translationOf(r.translationOf);
+    const score = scoreOf(r.score);
     return [{
       id: r.id,
       title: typeof r.title === "string" ? r.title.slice(0, 120) : "Carousel",
@@ -920,9 +933,22 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
       ...(signer ? { signer } : {}),
       ...(POST_LANGS.includes(r.lang) ? { lang: r.lang as PostLang } : {}),
       ...(from ? { translationOf: from } : {}),
+      ...(score ? { score } : {}),
       updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
     }];
   });
+}
+
+/** A score as edit-score saves it: v from 0 to 10 (to one decimal), at most 3 known factor ids, a key under 40 characters and an ISO time; else none. */
+function scoreOf(raw: unknown): SavedCarousel["score"] {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const { v, down, key } = r;
+  const at = isoTime(r.at);
+  const ok =
+    typeof v === "number" && v >= 0 && v <= 10 &&
+    Array.isArray(down) && down.length <= 3 && down.every((id) => (FACTOR_IDS as unknown[]).includes(id)) &&
+    typeof key === "string" && key.length > 0 && key.length < 40;
+  return ok && at ? { v: Math.round(v * 10) / 10, down: down as FactorId[], key, at } : undefined;
 }
 
 function translationOf(raw: unknown): SavedCarousel["translationOf"] {
