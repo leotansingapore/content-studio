@@ -62,6 +62,9 @@ import {
   onDraftsChanged,
 } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { loadBrand } from "@/lib/carousel";
+import { fillSlots } from "@/lib/postingSlots";
+import { draftsInSet, hookTestResult, spreadSlots } from "@/lib/variants";
 import { currentScore } from "@/lib/postScore";
 import { numbersJob, numbersLine, onNumbers, refreshIfStale, refreshNumbers, unlinkPost, type NumbersJob } from "@/lib/realNumbers";
 import { timeAgo } from "@/lib/accountAudit";
@@ -203,7 +206,17 @@ const whenLabel = (at: string) => {
   const time = scheduleTime(at);
   return `${dayLabel(at.slice(0, 10))}${time ? `, ${timeLabel(time)}` : ""}`;
 };
+const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+const span = (ats: string[], label = dayLabel) => {
+  const days = ats.map((a) => a.slice(0, 10)).sort();
+  return days[0] === days[days.length - 1] ? label(days[0]) : `${label(days[0])} to ${label(days[days.length - 1])}`;
+};
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const titleOf = (d: DraftEntry) => (d.hook || d.draft).replace(/\s+/g, " ").trim().slice(0, 80) || "Untitled post";
+const firstWords = (text: string, n = 6) => {
+  const w = text.replace(/\s+/g, " ").trim().split(" ");
+  return w.length > n ? `${w.slice(0, n).join(" ")}...` : w.join(" ");
+};
 // Write's score colours (GeneratePage's Predicted engagement)
 const scoreTone = (v: number) => (v >= 7.5 ? "bg-success/15 text-success" : v >= 5 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning");
 
@@ -345,6 +358,16 @@ export default function DraftsPage() {
     if (params.get("schedule")) update({ schedule: null, step: null, network: null });
   };
 
+  // A set of versions (remix-variations): ?set=<id> lists only that set, with the hook test card above it
+  const setParam = leo ? params.get("set") : null;
+  useGoneItem("set", setParam && drafts.length ? drafts.some((d) => d.set?.id === setParam) : undefined, "set");
+  const setVersions = useMemo(() => (setParam ? draftsInSet(drafts, setParam) : []), [drafts, setParam]);
+
+  // Posting times for Fill open slots and Spread them out (publish-queue): the brand kit's shared and per-network times
+  const kit = useMemo(() => (leo && userId ? loadBrand(userId) : null), [leo, userId]);
+  const held = useMemo(() => drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor), [drafts]);
+  const [fillOpen, setFillOpen] = useState(false);
+
   const today = localDateKey();
   // The same counts as Home's stat cards.
   const counts = useMemo(() => {
@@ -359,12 +382,20 @@ export default function DraftsPage() {
       if (platformFilter !== "all" && d.platform !== platformFilter) return false;
       if (pillarFilter !== "all" && d.pillar !== pillarFilter) return false;
       if (labelFilter === "none" ? labels.some((l) => d.labels?.includes(l.id)) : labelFilter !== "all" && !d.labels?.includes(labelFilter)) return false;
+      if (setParam && d.set?.id !== setParam) return false;
       if (!q) return true;
       const blob = `${d.hook} ${d.draft}`.toLowerCase();
       return blob.includes(q);
     });
-  }, [drafts, statusFilter, platformFilter, pillarFilter, labelFilter, labels, query]);
+  }, [drafts, statusFilter, platformFilter, pillarFilter, labelFilter, labels, query, setParam]);
 
+  // Fill open slots on the Draft filter (Leo, publish-queue): the drafts listed, oldest first, each into its network's
+  // next open slot in 14 days. It sets times only; a post Zernio holds is left alone.
+  const fill = useMemo(() => {
+    if (!leo || statusFilter !== "draft") return null;
+    const open = visible.filter((d) => draftStatus(d) === "draft" && !d.zernio?.postId);
+    return open.length ? fillSlots(open, kit, held, new Date()) : null;
+  }, [leo, statusFilter, visible, kit, held]);
 
   const openManager = () => {
     setManageLabels(true);
@@ -517,6 +548,29 @@ export default function DraftsPage() {
     });
   };
 
+  // Schedules every placed draft at its slot (Fill open slots, Spread them out); Undo puts every one back.
+  const placeAll = (placed: { draftId: string; at: string }[]) => {
+    if (!userId || !placed.length) return null;
+    const before = placed.flatMap((p) => drafts.filter((d) => d.id === p.draftId));
+    let next = drafts;
+    for (const p of placed) next = setDraftStatus(userId, p.draftId, "scheduled", p.at);
+    setDrafts(next);
+    return undoAction(before);
+  };
+  const fillNow = () => {
+    if (!fill?.placed.length) return;
+    const action = placeAll(fill.placed);
+    setFillOpen(false);
+    toast({ title: `${plural(fill.placed.length, "draft")} scheduled, ${span(fill.placed.map((p) => p.at))}.`, action: action ?? undefined });
+  };
+  const spreadNow = (plan: ReturnType<typeof spreadSlots>) => {
+    const action = placeAll(plan.placed);
+    toast({
+      title: `Scheduled ${plural(plan.placed.length, "version")}, ${span(plan.placed.map((p) => p.at), shortDay)}`,
+      description: plan.left.length ? `${plural(plan.left.length, "version")} didn't fit. Add times in Brand kit.` : undefined,
+      action: action ?? undefined,
+    });
+  };
   // "Numbers from your Instagram post": Unlink clears the link, and the matcher never links that post again
   const unlink = (prev: DraftEntry) => {
     if (!userId) return;
@@ -556,6 +610,117 @@ export default function DraftsPage() {
       );
     }
     return updatedAt ? <span className={`${chip} border-border/60 text-muted-foreground`}>Updated {timeAgo(updatedAt)}</span> : null;
+  };
+
+  // The hook test card over a set (remix-variations): what it is, Spread them out, and the result once numbers are in
+  const setCard = () => {
+    if (setVersions.length < 2) return null;
+    const kind = setVersions[0].set?.kind;
+    const result = hookTestResult(setVersions);
+    const winner = result.kind === "winner" ? setVersions.find((d) => d.id === result.id) : undefined;
+    // versions still to place: never a posted one or one Zernio holds; scheduled ones only set where the next can go
+    const spreadable = setVersions.filter((v) => v.scheduledFor || (draftStatus(v) === "draft" && !v.zernio?.postId));
+    const waiting = spreadable.some((v) => !v.scheduledFor);
+    const plan = waiting ? spreadSlots(spreadable, kit, held, new Date()) : null;
+    return (
+      <section aria-label="This set" className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-serif text-lg font-semibold text-foreground">
+            {kind === "hook-test" ? `Hook test: ${setVersions.length} versions of one post` : `Versions: ${setVersions.length} from one post`}
+          </h2>
+          <Button size="sm" variant="ghost" onClick={() => update({ set: null })} className="h-11 text-xs text-muted-foreground sm:h-9">
+            Show all posts
+          </Button>
+        </div>
+        {plan && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-xs text-muted-foreground">Posts each version 3 days apart in your open slots.</p>
+            <Button size="sm" onClick={() => spreadNow(plan)} disabled={!plan.placed.length} className="h-11 gap-1.5 sm:h-9">
+              <CalendarClock className="h-3.5 w-3.5" /> Spread them out
+            </Button>
+            {!plan.placed.length && (
+              <p className="w-full text-xs text-muted-foreground">
+                No open slots for these versions.{" "}
+                <Link to="/brand#posting-times" className="font-semibold text-primary hover:underline">
+                  Add times in Brand kit.
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+        {result.kind === "waiting" ? (
+          <p className="text-xs text-muted-foreground">
+            Waiting for numbers on {result.missing} of {result.total}
+          </p>
+        ) : result.kind === "close" ? (
+          <p className="text-xs font-semibold text-foreground">Too close to call</p>
+        ) : winner ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-xs font-semibold text-success">Winner so far: {firstWords(winner.hook || winner.draft)}</p>
+            <Button size="sm" variant="outline" onClick={() => navigate(links.generate({ draft: winner.id, panel: "hooks" }))} className="h-11 gap-1.5 sm:h-9">
+              <Sparkles className="h-3.5 w-3.5" /> Make 3 more like the winner
+            </Button>
+          </div>
+        ) : null}
+      </section>
+    );
+  };
+
+  // Fill open slots' preview in place: each draft with its network and slot, what didn't fit, Cancel and Fill slots
+  const brandKitLink = (
+    <Link to="/brand#posting-times" className="font-semibold text-primary hover:underline">
+      Add times in Brand kit.
+    </Link>
+  );
+  const fillRow = (f: NonNullable<typeof fill>) => {
+    if (!fillOpen)
+      return f.placed.length ? (
+        <Button size="sm" variant="outline" onClick={() => setFillOpen(true)} className="h-11 gap-1.5 sm:h-9">
+          <CalendarClock className="h-3.5 w-3.5" /> Fill {plural(f.placed.length, "open slot")}
+        </Button>
+      ) : null;
+    const leftBy = new Map<string, number>();
+    for (const l of f.left) leftBy.set(l.platform, (leftBy.get(l.platform) ?? 0) + 1);
+    return (
+      <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
+        {f.placed.length > 0 ? (
+          <>
+            <p className="font-semibold text-foreground">
+              Put {plural(f.placed.length, "draft")} into open slots, {span(f.placed.map((p) => p.at))}?
+            </p>
+            <ul className="max-h-60 space-y-1.5 overflow-y-auto">
+              {f.placed.map((p) => {
+                const d = drafts.find((x) => x.id === p.draftId);
+                return d ? (
+                  <li key={p.draftId} className="grid gap-x-3 sm:grid-cols-[minmax(0,1fr)_6rem_10rem]">
+                    <span className="truncate font-medium text-foreground">"{titleOf(d)}"</span>
+                    <span className="text-muted-foreground">{platformName(d.platform)}</span>
+                    <span className="text-muted-foreground">{whenLabel(p.at)}</span>
+                  </li>
+                ) : null;
+              })}
+            </ul>
+            {[...leftBy].map(([p, n]) => (
+              <p key={p} className="text-muted-foreground">
+                {plural(n, "draft")} didn't fit: no open {platformName(p)} slot in the next 14 days. {brandKitLink}
+              </p>
+            ))}
+          </>
+        ) : (
+          <p className="text-muted-foreground">No open slots in the next 14 days. {brandKitLink}</p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setFillOpen(false)} className="h-11 px-3 text-xs sm:h-9">
+            Cancel
+          </Button>
+          {f.placed.length > 0 && (
+            <Button size="sm" onClick={fillNow} className="h-11 px-3 text-xs sm:h-9">
+              Fill slots
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -698,6 +863,9 @@ export default function DraftsPage() {
       )}
         </>
       )}
+
+      {setParam && setCard()}
+      {fill && fillRow(fill)}
 
       {visible.length === 0 ? (
         <Card className="border-border/60 shadow-card">
