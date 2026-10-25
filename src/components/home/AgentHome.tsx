@@ -2,7 +2,7 @@
 // "Ask the agent for" tiles, Agent now and the agent's composer, in place of the due card, the Today rows, "Your next
 // move", the three buttons and "Get set up". HomePage loads it lazily, so the agent engine never loads for anyone else.
 
-import { useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import AgentNow from "@/components/home/AgentNow";
@@ -19,8 +19,10 @@ import { draftsOfBrand, type DraftEntry } from "@/lib/draftHistory";
 import { sgDay } from "@/lib/goals";
 import { links } from "@/lib/links";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
+import { refreshIfStale } from "@/lib/realNumbers";
 import type { Board, Me } from "@/lib/reelsBoard";
 import { ownBrandName } from "@/lib/remixBrand";
+import { socialConnectShown } from "@/lib/socialConnect";
 import { readTeamPosts, readTeamReviews } from "@/lib/teamPosts";
 import { useScrollToHash } from "@/lib/urlState";
 
@@ -46,6 +48,10 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
   const usage = useAgentUsage();
   const composer = useRef<ComposerHandle>(null);
   useScrollToHash();
+  // Home's open asks for the real numbers, at most every 6 hours and outside React; each pull also records Pace
+  useEffect(() => {
+    if (socialConnectShown()) refreshIfStale(userId);
+  }, [userId]);
 
   // the posts board owner's "go out today" counts every brand's posts, as the Today row did
   const owner = !!day?.me.owner;
