@@ -949,7 +949,7 @@ export default function GeneratePage() {
 
   // ?panel=shortcuts (the keyboard shortcuts dialog), post (Post it for me), thread (Leo's Make it a thread,
   // ThreadPanel.tsx) or insert (Leo's Insert panel, InsertPanel.tsx); opening pushes, so Back closes it.
-  const [panel, openPanel, closePanel] = useUrlItem("panel");
+  const [panel, openPanel] = useUrlItem("panel");
   // ?view=prompter: the teleprompter over a short video draft (Leo only); opening pushes, so Back closes it.
   const [view, openView, closeView] = useUrlItem("view");
   // ?hooks=proven: the hook card on "Proven in your niche" (Leo only); formulas is the default and left out.
@@ -964,7 +964,21 @@ export default function GeneratePage() {
   // the screen stays focused on the output.
   // ?step=topic|funnel|idea|format (docs/deep-links.md): the link's step wins, then the tab's unfinished brief.
   const [stepParam, setStepParam] = useUrlState("step", "topic", { allowed: WRITE_STEPS });
-  const wizardStep = WRITE_STEPS.indexOf(stepParam);
+  // the schedule steps (panel=post) own ?step= and ?network= while open: Write keeps the step it had underneath
+  const writeStep = useRef(stepParam);
+  if (panel !== "post") writeStep.current = stepParam;
+  const wizardStep = WRITE_STEPS.indexOf(panel === "post" ? writeStep.current : stepParam);
+  // closing gives ?step= back to Write in the same write, so the two never fight over it
+  const closePanel = useCallback(
+    () =>
+      setSearchParams((prev) => {
+        const p = withParam(prev, "panel", null);
+        if (panel !== "post") return p;
+        p.delete("network");
+        return withParam(p, "step", writeStep.current, "topic");
+      }, { replace: true }),
+    [panel, setSearchParams],
+  );
   const setWizardStep = (next: number | ((s: number) => number)) =>
     setStepParam(WRITE_STEPS[Math.min(LAST_STEP, Math.max(0, typeof next === "function" ? next(wizardStep) : next))]);
   const [briefOpen, setBriefOpen] = useState<boolean>(true);
