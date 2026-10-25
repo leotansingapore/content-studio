@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { type AnalyticsPeriod } from "@/lib/links";
-import { useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToHash, useUrlItem, useUrlState } from "@/lib/urlState";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +12,7 @@ import {
   draftStatus,
   loadDrafts,
   setDraftMetrics,
+  type DraftEntry,
   type PostMetrics,
 } from "@/lib/draftHistory";
 import {
@@ -66,7 +68,12 @@ import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
 import RealNumbers from "@/components/RealNumbers";
-import { extraLine } from "@/lib/realNumbers";
+import { extraLine, onNumbers, refreshIfStale } from "@/lib/realNumbers";
+import { gradePost } from "@/lib/postGrade";
+import { fromDraft } from "@/lib/remixSource";
+import RemixButton from "@/components/remix/RemixButton";
+import GradePanel, { GradeChip } from "@/components/analytics/GradePanel";
+import WinnerCard from "@/components/analytics/WinnerCard";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { auditedHandles, normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
@@ -104,6 +111,16 @@ import {
   Download,
   Hash,
 } from "lucide-react";
+
+// What wins for you and How the score did (Leo only), with the props analytics-cards declares.
+// shortcut: those two files land from analytics-cards in the same wave, so they are found by glob and this page
+// builds with or without them; swap for two plain imports once both are on ns/phase7.
+type CardProps = { userId: string; drafts: DraftEntry[] };
+type CardModule = { default?: ComponentType<CardProps> } & Record<string, ComponentType<CardProps> | undefined>;
+const CARDS = import.meta.glob<CardModule>("../components/analytics/{WhatWins,ScoreCheck}.tsx", { eager: true });
+const cardOf = (name: string) => CARDS[`../components/analytics/${name}.tsx`]?.default ?? CARDS[`../components/analytics/${name}.tsx`]?.[name];
+const WhatWins = cardOf("WhatWins");
+const ScoreCheck = cardOf("ScoreCheck");
 
 const HOUR_NAMES = Array.from({ length: 24 }, (_, h) => timeLabel(`${String(h).padStart(2, "0")}:00`));
 const HOUR_HEADS = HOUR_NAMES.map((n, h) => (h % 3 === 0 ? n : ""));
@@ -468,13 +485,8 @@ export default function AnalyticsPage() {
   // Draft edits in the bulk table, keyed by draft id then metric field.
   const [bulkEdits, setBulkEdits] = useState<Record<string, Record<string, string>>>({});
 
-  const postedDrafts = useMemo(
-    () =>
-      userId
-        ? loadDrafts(userId).filter((d) => draftStatus(d) === "posted")
-        : [],
-    [userId, metricsVersion],
-  );
+  const drafts = useMemo(() => (userId ? loadDrafts(userId) : []), [userId, metricsVersion]);
+  const postedDrafts = useMemo(() => drafts.filter((d) => draftStatus(d) === "posted"), [drafts]);
 
   const editValue = (d: (typeof postedDrafts)[number], field: keyof PostMetrics): string => {
     const edited = bulkEdits[d.id]?.[field];
@@ -577,6 +589,29 @@ export default function AnalyticsPage() {
   const setRankBy = (m: RankMetric) => setRankParam(paramOf(RANK_PARAM, m, "engagements"));
   const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
   const ranked = useMemo(() => rankPosts(withinDays(tracked, period), rankBy, 5, followers), [tracked, rankBy, period, followers]);
+
+  // ---- Leo only (phase 7a): grades, Winner found, real numbers kept fresh, the #sections. Others: today's page.
+  const leo = useLeoUser();
+  const leoOn = !!leo && !!userId;
+  useScrollToHash(leoOn);
+  const [gradeId, openGrade, closeGrade] = useUrlItem("grade");
+  const graded = leoOn && gradeId ? tracked.find((d) => d.id === gradeId) : undefined;
+  useGoneItem("grade", leoOn ? !!graded : undefined);
+  // the post the address opened on load is scrolled to; one opened from its chip stays where it is
+  const linkedGrade = useRef(gradeId).current;
+  const grades = useMemo(() => {
+    const now = Date.now();
+    return leoOn ? new Map([...ranked, ...(graded ? [graded] : [])].map((d) => [d.id, gradePost(d, tracked, now)])) : null;
+  }, [leoOn, ranked, graded, tracked]);
+  useEffect(() => {
+    if (!leoOn || !socialConnectShown()) return;
+    // at most every 6 hours, outside React, so a pull started here finishes on another page
+    refreshIfStale(userId);
+    return onNumbers(bumpMetrics);
+  }, [leoOn, userId, bumpMetrics]);
+  const gradePanel = (d: (typeof tracked)[number], titled: boolean) => (
+    <GradePanel userId={userId!} post={d} tracked={tracked} grade={grades!.get(d.id)!} titled={titled} scroll={d.id === linkedGrade} onClose={closeGrade} />
+  );
   const followerPlatforms = useMemo(
     () => SOCIAL_PLATFORMS.map((p) => p.key).filter((k) => postedDrafts.some((d) => d.platform === k)),
     [postedDrafts],
@@ -742,7 +777,13 @@ export default function AnalyticsPage() {
       </Card>
 
       {userId && socialConnectShown() && (
-        <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
+        leoOn ? (
+          <div id="real-numbers" className="scroll-mt-20">
+            <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
+          </div>
+        ) : (
+          <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
+        )
       )}
 
       {/* Bulk metrics entry — add real numbers for every posted post in one place */}
@@ -782,8 +823,8 @@ export default function AnalyticsPage() {
               ))}
             </div>
             {postedDrafts.map((d) => {
-              // pulled on Your real numbers: shown in place of the typed ones, which stay stored
-              const real = d.zernio?.numbers;
+              // pulled on Your real numbers (its Zernio post's, else a linked live post's): shown in place of the typed ones, which stay stored
+              const real = d.zernio?.numbers ?? d.live?.numbers;
               const shown = real ? realMetrics(real) : null;
               return (
               <div
@@ -883,6 +924,12 @@ export default function AnalyticsPage() {
       )}
       {showMix && userId && (
         <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
+      )}
+
+      {leoOn && WhatWins && (
+        <div id="what-wins" className="scroll-mt-20">
+          <WhatWins userId={userId} drafts={drafts} />
+        </div>
       )}
 
       {hasData ? (
@@ -1068,6 +1115,8 @@ export default function AnalyticsPage() {
                 <Download className="h-3.5 w-3.5" /> Export CSV
               </Button>
             </div>
+            {leoOn && <WinnerCard userId={userId} drafts={drafts} />}
+            {graded && !ranked.some((d) => d.id === graded.id) && gradePanel(graded, true)}
             <div className="space-y-2">
               {ranked.length === 0 && (
                 <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
@@ -1076,12 +1125,8 @@ export default function AnalyticsPage() {
                     : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} ${period ? `in the last ${period} days` : "yet"}.`}
                 </p>
               )}
-              {ranked.map((d) => (
-                <Link
-                  key={d.id}
-                  to={`/generate?draft=${encodeURIComponent(d.id)}`}
-                  className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40"
-                >
+              {ranked.map((d) => {
+                const text = (
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
                       {d.hook || d.draft.slice(0, 60)}
@@ -1098,6 +1143,8 @@ export default function AnalyticsPage() {
                         .join(" · ")}
                     </p>
                   </div>
+                );
+                const number = (
                   <div className="shrink-0 text-right">
                     <div className="font-serif text-lg font-semibold text-foreground">
                       {rankValue(d, rankBy, followers)}
@@ -1106,8 +1153,40 @@ export default function AnalyticsPage() {
                       {RANK_UNIT[rankBy]}
                     </div>
                   </div>
-                </Link>
-              ))}
+                );
+                const to = `/generate?draft=${encodeURIComponent(d.id)}`;
+                if (!leoOn)
+                  return (
+                    <Link
+                      key={d.id}
+                      to={to}
+                      className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40"
+                    >
+                      {text}
+                      {number}
+                    </Link>
+                  );
+                // Leo: the link stretches over the whole row, and the grade chip and Remix sit on top of it as their own
+                // tab stops, left of the number (under the text on a phone)
+                const title = d.hook || d.draft.slice(0, 60);
+                return (
+                  <Fragment key={d.id}>
+                    <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
+                      <Link to={to} className="flex min-w-0 flex-1 outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']">
+                        {text}
+                      </Link>
+                      <div className="relative z-10 order-last flex basis-full items-center gap-2 sm:order-none sm:basis-auto">
+                        <GradeChip grade={grades!.get(d.id)!} open={gradeId === d.id} title={title} onToggle={() => (gradeId === d.id ? closeGrade() : openGrade(d.id))} />
+                        <RemixButton source={fromDraft(d)} label={title}>
+                          {null}
+                        </RemixButton>
+                      </div>
+                      {number}
+                    </div>
+                    {graded?.id === d.id && gradePanel(d, false)}
+                  </Fragment>
+                );
+              })}
             </div>
           </section>
         </>
@@ -1131,6 +1210,12 @@ export default function AnalyticsPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {leoOn && ScoreCheck && (
+        <div id="score-check" className="scroll-mt-20">
+          <ScoreCheck userId={userId} drafts={drafts} />
+        </div>
       )}
     </div>
   );
