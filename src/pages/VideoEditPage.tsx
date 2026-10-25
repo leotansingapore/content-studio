@@ -218,7 +218,7 @@ import { FEW_WORDS, LEO_PANELS, NO_SOUND, START_PANELS, footageWords, readsLonge
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
-import { registerEditTarget, type EditTarget } from "@/lib/editTarget";
+import { registerEditTarget, settingWords, type EditTarget } from "@/lib/editTarget";
 
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
 // then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
@@ -619,8 +619,8 @@ export function videoTarget(io: {
       const { next, changed } = applyPatch(io.settings(), patch);
       // a change the editor can't make comes back empty: the agent answers with the writer's reply
       const shown = changed.filter((k) => next[k as keyof EditSettings] !== undefined);
-      const said = (v: unknown) => (v === true ? "on" : v === false ? "off" : typeof v === "object" ? "changed" : String(v));
-      const preview = (shown.length ? shown : changed).map((k) => `${k.replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`)}: ${said(next[k as keyof EditSettings])}`).join(", ");
+      // in words on the agent's card, not the raw settings (replay D14)
+      const preview = changed.length ? settingWords(shown.length ? shown : changed, next as unknown as Record<string, unknown>) : "";
       return {
         reply,
         preview,

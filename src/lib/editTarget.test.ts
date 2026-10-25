@@ -31,3 +31,12 @@ describe("edit target registry", () => {
     expect(currentEditTarget()).toBeNull();
   });
 });
+
+describe("a video edit's preview in words (replay D14)", () => {
+  it("says the changed settings as a person would, never raw keys or hex", async () => {
+    const { colourName, settingWords } = await import("./editTarget");
+    expect(settingWords(["position", "size", "baseColor"], { position: "top", size: 1.3, baseColor: "#FFD92B" })).toBe("Captions at the top, captions 1.3 times the usual size, yellow captions");
+    expect(settingWords(["removeFillers", "progressBar", "maxPause"], { removeFillers: true, progressBar: false, maxPause: 0 })).toBe("Ums and uhs cut, progress bar off, every pause kept");
+    expect(["#FFFFFF", "#111111", "#E11D48", "#2563EB", "nope"].map(colourName)).toEqual(["white", "black", "red", "blue", "a new colour"]);
+  });
+});

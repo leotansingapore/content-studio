@@ -129,7 +129,7 @@ describe("the open video as the agent's edit target (Leo only)", () => {
     const p = await target.propose("bigger yellow captions at the top", null);
     expect(io.vibes).toEqual(["bigger yellow captions at the top"]);
     expect(io.sets).toBe(0);
-    expect([target.kind, target.title, p.reply, p.preview, p.flags]).toEqual(["video", "Clip", "Bigger yellow captions at the top.", "position: top, size: 1.3, active color: #FFD400", []]);
+    expect([target.kind, target.title, p.reply, p.preview, p.flags]).toEqual(["video", "Clip", "Bigger yellow captions at the top.", "Captions at the top, captions 1.3 times the usual size, the spoken word in yellow", []]);
     // a change made on the page after the proposal stays
     io.now = { ...io.now, uppercase: !io.now.uppercase };
     const was = io.now;
