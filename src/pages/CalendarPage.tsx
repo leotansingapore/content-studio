@@ -1813,7 +1813,7 @@ export default function CalendarPage() {
               )}
             </div>
           )}
-          {slots.length === 0 && userId && (
+          {!kitTimes && userId && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>No posting times yet. Make them:</span>
               {[3, 5, 7].map((n) => (
