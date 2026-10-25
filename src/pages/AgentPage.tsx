@@ -1,13 +1,14 @@
 // /agent and /agent/:thread (agent-chat, Leo only; docs/north-star/items/agent-chat.md): the agent's chats. The
-// thread list sits in the sidebar from lg up (SidebarThreads) and behind "Chats" (?panel=chats) on phones; the open chat fills the rest,
-// with its composer pinned at the bottom. ?m= rings one message, and ?ask= and ?remix= hand a new chat its words or
-// its post once, then leave the address (so the Remix sheet never opens over the page). Everyone else gets the 404.
-
+// thread list sits in the sidebar from lg up (SidebarThreads) and behind "Chats" (?panel=chats) on phones; the open
+// chat fills the rest, with its composer pinned at the bottom and "Your work" (WorkPanel) beside it from xl up. ?m=
+// rings one message, and ?ask= and ?remix= hand a new chat its words or its post once, then leave the address (so the
+// Remix sheet never opens over the page). Everyone else gets the 404.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { MessagesSquare } from "lucide-react";
 import AgentThread, { useThreads } from "@/components/agent/AgentThread";
 import ThreadList from "@/components/agent/ThreadList";
+import WorkPanel from "@/components/agent/WorkPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { send, turnOf } from "@/lib/agentRun";
@@ -130,6 +131,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
           onThread={toThread}
         />
       </section>
+      <WorkPanel userId={userId} threads={threads} />
       <dialog
         ref={sheet}
         aria-label="Chats"

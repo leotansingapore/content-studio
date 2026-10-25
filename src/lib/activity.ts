@@ -188,6 +188,9 @@ export function loadActivity(userId: string, months: string[]): ActivityEvent[] 
   return [...byId.values()].sort(newest);
 }
 
+/** The newest `n` events from the two latest months any device logged ("Your work" beside the agent's chat). */
+export const recentActivity = (userId: string, n: number): ActivityEvent[] => loadActivity(userId, activityMonths(userId).slice(0, 2)).slice(0, n);
+
 /** The months ("YYYY-MM") any device has logged for this brand, newest first: what "Show <Month>" can reach. */
 export function activityMonths(userId: string): string[] {
   return [...new Set(monthRows(userId).map((r) => r.month))].sort().reverse();

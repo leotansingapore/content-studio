@@ -73,4 +73,6 @@ referral programme.
 2. Dark theme by default with a switch in the account menu; public pages stay light. Done 25 Oct.
 3. Settings index page of tiles (Connections, Your team, The agent), each page leading back to it; Social accounts,
    Link in bio and Tracked links moved there from Brand. Done 25 Oct.
-4. Still open: the chat's "Your work" panel, a usage meter in the sidebar.
+4. "Your work" beside the agent's chat: what is running and the last six runs from the Activity log, All activity,
+   Hide. Done 25 Oct.
+5. Still open: a usage meter in the sidebar (Fastlane's "Senna's fuel used").

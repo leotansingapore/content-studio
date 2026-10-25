@@ -13,6 +13,7 @@ import {
   loadActivity,
   logActivity,
   planRows,
+  recentActivity,
   setActivityOn,
   whenWords,
   type ActivityEvent,
@@ -48,6 +49,16 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", localStorage);
   vi.stubGlobal("window", { localStorage, dispatchEvent: (e: Event) => fired.push(e.type) });
   store.set("cs-device-tag", "dev001");
+});
+
+describe("recentActivity", () => {
+  it("gives the newest events of the two latest months, newest first", () => {
+    store.set(`content-studio-activity-2026-08-dev001-${UID}`, JSON.stringify([ev("old", local(8, 30))]));
+    store.set(`content-studio-activity-2026-09-dev001-${UID}`, JSON.stringify([ev("s2", local(9, 20)), ev("s1", local(9, 2))]));
+    store.set(`content-studio-activity-2026-10-dev002-${UID}`, JSON.stringify([ev("o2", local(10, 5)), ev("o1", local(10, 1))]));
+    expect(recentActivity(UID, 3).map((e) => e.id)).toEqual(["o2", "o1", "s2"]);
+    expect(recentActivity(UID, 10).map((e) => e.id)).toEqual(["o2", "o1", "s2", "s1"]);
+  });
 });
 
 describe("logActivity", () => {
