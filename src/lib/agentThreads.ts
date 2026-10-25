@@ -34,7 +34,8 @@ export interface AgentMsg {
   go?: { path: string; label: string }[];
   meta?: { steps: number; ms: number };
   turn?: TurnState;
-  job?: { kind: JobKind; state: "running" | "done" | "failed"; drafts?: string[]; open?: string; title?: string; startedAt: string; endedAt?: string };
+  /** `name`: a made video's file name, which the editor's project takes, so Open finds that project (agentPlans madeOpen). */
+  job?: { kind: JobKind; state: "running" | "done" | "failed"; drafts?: string[]; open?: string; title?: string; name?: string; startedAt: string; endedAt?: string };
   card?: AgentCard;
   receipt?: Receipt;
   error?: boolean;

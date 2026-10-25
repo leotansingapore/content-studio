@@ -24,6 +24,7 @@ import { loadDrafts } from "@/lib/draftHistory";
 import { currentEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
+import { loadProjects } from "@/lib/videoProjects";
 import { loadPositioning } from "@/lib/positioning";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
 import { defaultOutput } from "@/lib/remix";
@@ -880,8 +881,10 @@ function settleTalk(x: Press): void {
   }
   if (j?.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
   const credits = j.voice ? avatarCredits(j.voice.slices.map((s) => s.end - s.start)) : (x.card().credits ?? 0);
-  const open = links.edit({ panel: ["ai"], kind: "avatar" });
-  x.done(videoReceipt(j.script ?? x.f.script ?? "", credits, open), { kind: "talk", state: "done", open, title: clip(j.script ?? x.f.script ?? "", 80) });
+  const script = j.script ?? x.f.script ?? "";
+  // the editor opens on the made video: /edit takes the joined video into its project, and madeOpen finds it after (replay D7)
+  const open = links.edit();
+  x.done(videoReceipt(script, credits, open), { kind: "talk", state: "done", open, title: clip(script, 80), name: script.slice(0, 40) || "Talking head" });
 }
 
 async function explainerPress(userId: string, x: Press, src: RemixSource | null, live: Live): Promise<void> {
@@ -907,16 +910,31 @@ async function explainerPress(userId: string, x: Press, src: RemixSource | null,
   live.call();
   x.started();
   const off = onAiJob((j) => void (j?.kind === "explainer" && j.state === "working" && live.step(j.step, "making")));
-  await makeExplainer(clip(f.scenes?.[0]?.say ?? "Explainer", 40), f.scenes ?? [], f.voice ?? "alice").finally(off);
+  await makeExplainer(explainerName(f), f.scenes ?? [], f.voice ?? "alice").finally(off);
   settleExplainer(x);
+}
+
+/** The explainer's file name, which its project in the editor takes. */
+const explainerName = (f: PlanFields) => clip(f.scenes?.[0]?.say ?? "Explainer", 40);
+
+/**
+ * Where a made video opens: its own project once the editor has taken it, the first saved under its file name since
+ * the make began (replay D7: Open went to the empty AI panel), else the job's link, whose /edit takes the video.
+ */
+export function madeOpen(userId: string, job: AgentMsg["job"]): string | undefined {
+  if (!job?.name) return job?.open;
+  const p = loadProjects(userId)
+    .filter((x) => x.name === job.name && x.createdAt >= job.startedAt)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
+  return p ? links.edit({ p: p.id }) : job.open;
 }
 
 function settleExplainer(x: Press): void {
   const j = aiJob();
   if (j?.kind !== "explainer" || j.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
   const hook = x.f.scenes?.[0]?.say ?? "";
-  const open = links.edit({ panel: ["ai"], kind: "explainer" });
-  x.done(videoReceipt(hook, explainerCredits(x.f.scenes?.length ?? 0), open), { kind: "video", state: "done", open, title: clip(hook, 80) });
+  const open = links.edit();
+  x.done(videoReceipt(hook, explainerCredits(x.f.scenes?.length ?? 0), open), { kind: "video", state: "done", open, title: clip(hook, 80), name: explainerName(x.f) });
 }
 
 function settleImage(x: Press, prompt: string): void {

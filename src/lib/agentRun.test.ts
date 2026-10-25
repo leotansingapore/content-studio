@@ -874,3 +874,23 @@ describe("the 25 Oct replay: a talking video's voice, length and caption (D4, D5
     expect(fake.talkAsk?.caption).toBe("Check your own payout tonight. Save this for later.");
   });
 });
+
+describe("the 25 Oct replay: a made video opens its own project (D7)", () => {
+  it("opens the editor, which takes the video, and then the project it saved under the video's name, never the empty AI panel", async () => {
+    const { madeOpen } = await import("@/lib/agentPlans");
+    const { saveProject } = await import("@/lib/videoProjects");
+    const project = (id: string, name: string, createdAt: string) => ({ id, name, createdAt, updatedAt: "", duration: 15, size: 1, words: [], settings: {}, thumb: "" }) as unknown as Parameters<typeof saveProject>[1];
+    const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(id);
+    await approve(id);
+    const m = cardMsg(id);
+    expect(m.job).toMatchObject({ kind: "talk", open: "/edit", name: SCRIPT.slice(0, 40) });
+    expect(m.receipt?.button?.path).toBe("/edit");
+    expect(madeOpen(UID, m.job)).toBe("/edit");
+    // one of the same name from before this make is another video
+    saveProject(UID, project("vold", SCRIPT.slice(0, 40), "2020-01-01T00:00:00.000Z"));
+    expect(madeOpen(UID, m.job)).toBe("/edit");
+    saveProject(UID, project("vmade", SCRIPT.slice(0, 40), new Date(Date.parse(m.job!.startedAt) + 1000).toISOString()));
+    expect(madeOpen(UID, m.job)).toBe("/edit?p=vmade");
+  });
+});

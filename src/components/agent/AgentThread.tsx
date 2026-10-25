@@ -13,7 +13,7 @@ import MadeBlock, { madeNoun } from "@/components/agent/MadeBlock";
 import Receipt from "@/components/agent/Receipt";
 import { Button } from "@/components/ui/button";
 import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
-import { fieldsOf } from "@/lib/agentPlans";
+import { fieldsOf, madeOpen } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
 import { GONE_LINE, loadThreads, onThreadsChanged, patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
@@ -291,8 +291,16 @@ export default function AgentThread({
                   <Loader2 className="h-3 w-3 animate-spin" /> {turn.line}
                 </p>
               )}
-              {m.job?.state === "done" && <MadeBlock userId={userId} job={m.job} />}
-              {m.receipt && threadId && <Receipt userId={userId} threadId={threadId} msgId={m.id} receipt={m.receipt} nudge={m.card ? fieldsOf(m.card).nudge : undefined} />}
+              {m.job?.state === "done" && <MadeBlock userId={userId} job={{ ...m.job, open: madeOpen(userId, m.job) }} />}
+              {m.receipt && threadId && (
+                <Receipt
+                  userId={userId}
+                  threadId={threadId}
+                  msgId={m.id}
+                  receipt={m.job?.name && m.receipt.button ? { ...m.receipt, button: { ...m.receipt.button, path: madeOpen(userId, m.job) ?? m.receipt.button.path } } : m.receipt}
+                  nudge={m.card ? fieldsOf(m.card).nudge : undefined}
+                />
+              )}
               {(!!m.go?.length || (m.error && prev?.text)) && (
                 <div className="flex max-w-[92%] flex-wrap gap-1.5">
                   {m.error && prev?.text && (
