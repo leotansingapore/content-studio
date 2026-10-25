@@ -16,6 +16,7 @@ import type { SocialPlatform } from "../../supabase/functions/_shared/zernio.ts"
 import type { RemixSource } from "@/lib/remixSource";
 import { links, type PostLang } from "@/lib/links";
 import { logActivity } from "@/lib/activity";
+import { loadOutbox, queueCancel, saveOutbox, zernioHolds, zernioOps } from "@/lib/zernioOutbox";
 export const MAX_DRAFTS = 150;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -328,7 +329,7 @@ function absorbClaudeDrafts(storage: Storage, userId: string, stored: DraftEntry
     }
   }
   incoming.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const merged = [...incoming, ...stored].slice(0, MAX_DRAFTS);
+  const merged = trimDrafts([...incoming, ...stored]);
   try {
     storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(merged));
   } catch (_) {
@@ -355,12 +356,44 @@ function logClaudeDraft(userId: string, d: DraftEntry): void {
   });
 }
 
-export function saveDrafts(userId: string, drafts: DraftEntry[]): void {
+/** The newest MAX_DRAFTS, dropping the oldest posts Zernio doesn't hold first, so a post still going out keeps its card. */
+function trimDrafts(drafts: DraftEntry[]): DraftEntry[] {
+  const over = drafts.length - MAX_DRAFTS;
+  if (over <= 0) return drafts;
+  const drop = new Set<number>();
+  for (let i = drafts.length - 1; i >= 0 && drop.size < over; i--) if (!zernioHolds(drafts[i])) drop.add(i);
+  for (let i = drafts.length - 1; drop.size < over; i--) drop.add(i);
+  return drafts.filter((_, i) => !drop.has(i));
+}
+
+function withoutZernio({ zernio: _, ...rest }: DraftEntry): DraftEntry {
+  return rest;
+}
+
+function parseList(raw: string | null): DraftEntry[] {
+  try {
+    const parsed = JSON.parse(raw ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Saves the list, trimmed (trimDrafts), and returns it as saved. A post Zernio has cancelled loses its link first,
+ * and a changed time on a post Zernio holds queues a move in the outbox (zernioOutbox.ts); nothing else touches it.
+ */
+export function saveDrafts(userId: string, drafts: DraftEntry[]): DraftEntry[] {
   const storage = safeStorage();
-  if (!storage) return;
-  // Trim to MAX_DRAFTS, newest first.
-  const trimmed = drafts.slice(0, MAX_DRAFTS);
-  storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(trimmed));
+  if (!storage) return drafts;
+  const key = `${KEY_PREFIX}${scoped(userId)}`;
+  const box = loadOutbox(userId);
+  const unlinked = box.gone.length ? drafts.map((d) => (d.zernio?.postId && box.gone.includes(d.zernio.postId) ? withoutZernio(d) : d)) : drafts;
+  const next = trimDrafts(unlinked);
+  const ops = next.some(zernioHolds) ? zernioOps(parseList(storage.getItem(key)), next, box) : box;
+  storage.setItem(key, JSON.stringify(next));
+  if (ops !== box) saveOutbox(userId, ops);
+  return next;
 }
 
 const CHANGED = "content-studio-drafts-changed";
@@ -408,16 +441,14 @@ export function upsertDraft(
   if (prev?.versions && !("versions" in entry)) entry = { ...entry, versions: prev.versions };
   if (prev?.live && !entry.live) entry = { ...entry, live: prev.live };
   if (prev?.score && !("score" in entry) && prev.draft === entry.draft && prev.platform === entry.platform) entry = { ...entry, score: prev.score };
-  const without = current.filter((d) => d.id !== entry.id);
-  const next = [entry, ...without].slice(0, MAX_DRAFTS);
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, [entry, ...current.filter((d) => d.id !== entry.id)]);
 }
 
 export function deleteDraft(userId: string, id: string): DraftEntry[] {
   const current = loadDrafts(userId);
-  const next = current.filter((d) => d.id !== id);
-  saveDrafts(userId, next);
+  const next = saveDrafts(userId, current.filter((d) => d.id !== id));
+  const gone = current.find((d) => d.id === id);
+  if (gone) queueCancel(userId, gone); // Zernio won't post it
   return next;
 }
 
@@ -448,8 +479,7 @@ export function setDraftStatus(
     const moved = advance(series, day > today ? day : today);
     delete moved.zernio; // that post was this occurrence's, kept on the posted record
     const next = [record, ...current.map((d) => (d.id === id ? moved : d))];
-    saveDrafts(userId, next);
-    return next;
+    return saveDrafts(userId, next);
   }
   const next = current.map((d) => {
     if (d.id !== id) return d;
@@ -468,8 +498,9 @@ export function setDraftStatus(
     }
     return updated;
   });
-  saveDrafts(userId, next);
-  return next;
+  const saved = saveDrafts(userId, next);
+  if (status === "draft" && series) queueCancel(userId, series); // Back in drafts: Zernio won't post it
+  return saved;
 }
 
 /** Real numbers pulled on Analytics onto the drafts linked to a post (by draft id): its Zernio link, else its live one. Saves only on a change. */
@@ -483,8 +514,7 @@ export function setDraftNumbers(userId: string, byDraft: Map<string, Numbers>, a
     changed = true;
     return d.zernio ? { ...d, zernio: { ...d.zernio, numbers: { ...n, at } } } : { ...d, live: { ...d.live!, numbers: { ...n, at } } };
   });
-  if (changed) saveDrafts(userId, next);
-  return next;
+  return changed ? saveDrafts(userId, next) : next;
 }
 
 /** Post it for me: sets or (null) clears the Zernio post a draft is linked to. */
@@ -496,8 +526,7 @@ export function setDraftAttached(userId: string, id: string, keys: string[]): Dr
     if (!keys.length) delete updated.attached;
     return updated;
   });
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 export function setDraftZernio(userId: string, id: string, link: ZernioLink | null): DraftEntry[] {
@@ -507,8 +536,7 @@ export function setDraftZernio(userId: string, id: string, link: ZernioLink | nu
     if (!link) delete updated.zernio;
     return updated;
   });
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 /**
@@ -532,16 +560,14 @@ export function duplicateDraft(userId: string, id: string): { drafts: DraftEntry
   if (!src) return null;
   const copy: DraftEntry = { ...src, id: newDraftId(), createdAt: new Date().toISOString(), hook: `${src.hook} (copy)`.trim(), status: "draft" };
   for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio", "live", "set"] as const) delete copy[k];
-  const next = [copy, ...current];
-  saveDrafts(userId, next);
-  return { drafts: next.slice(0, MAX_DRAFTS), copy, dropped: next.slice(MAX_DRAFTS) };
+  const drafts = saveDrafts(userId, [copy, ...current]);
+  const kept = new Set(drafts.map((d) => d.id));
+  return { drafts, copy, dropped: current.filter((d) => !kept.has(d.id)) };
 }
 
 /** Undo for duplicateDraft: removes the copy and puts back anything it pushed off the end. */
 export function undoDuplicate(userId: string, copyId: string, dropped: DraftEntry[]): DraftEntry[] {
-  const next = [...loadDrafts(userId).filter((d) => d.id !== copyId), ...dropped];
-  saveDrafts(userId, next);
-  return next.slice(0, MAX_DRAFTS);
+  return saveDrafts(userId, [...loadDrafts(userId).filter((d) => d.id !== copyId), ...dropped]);
 }
 
 /**
@@ -558,15 +584,13 @@ export function undoPosted(userId: string, prev: DraftEntry, before: DraftEntry[
     ...current.filter((d) => was.has(d.id) || d.id.startsWith("claude-")).map((d) => (d.id === prev.id ? prev : d)),
     ...before.filter((d) => !now.has(d.id)),
   ];
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 /** Puts an entry back exactly as it was (for Undo), in its place in the list. */
 export function restoreDraft(userId: string, entry: DraftEntry): DraftEntry[] {
   const next = loadDrafts(userId).map((d) => (d.id === entry.id ? entry : d));
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 /** Makes a scheduled post repeat from its scheduled day, or stops it repeating. */
@@ -578,8 +602,7 @@ export function setRepeat(userId: string, id: string, every: RepeatEvery | null)
     else delete updated.repeat;
     return updated;
   });
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 /** "Skip this one": the series' next occurrence moves on; a later one is left out. */
@@ -592,8 +615,7 @@ export function skipOccurrence(userId: string, id: string, day: string): DraftEn
     }
     return { ...d, repeat: { ...d.repeat, skip: [...(d.repeat.skip ?? []), day] } };
   });
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 export interface DraftStats {
@@ -686,8 +708,7 @@ export function setDraftMetrics(
       ? { ...d, metrics: { ...d.metrics, ...metrics } }
       : d,
   );
-  saveDrafts(userId, next);
-  return next;
+  return saveDrafts(userId, next);
 }
 
 export interface AnalyticsSummary {

@@ -28,6 +28,8 @@ import {
 } from "./draftHistory";
 import { addProfile, DEFAULT_PROFILE_ID, setActiveProfile } from "./profiles";
 import { loadActivity, setActivityOn } from "./activity";
+import { loadOutbox, settleOutbox } from "./zernioOutbox";
+import { createCloudSync } from "./cloudSync";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -668,5 +670,110 @@ describe("phase 7a's draft fields", () => {
     expect(after[1].zernio).toEqual({ ...zernio, numbers: { ...numbers, at } });
     expect(after[2]).toEqual(post({ id: "plain" }));
     expect(loadDrafts(UID)).toEqual(after);
+  });
+});
+
+describe("the Zernio outbox from My posts' own actions (phase 7 decision 6)", () => {
+  const ls = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+  const POST_ID = "67000000000000000000d001";
+  const link = { key: "k", postId: POST_ID, status: "scheduled", at: "2026-10-15T01:00:00.000Z" };
+  const held = (extra: Partial<DraftEntry> = {}) => post({ status: "scheduled", scheduledFor: "2026-10-15T09:00", zernio: link, ...extra });
+  const ops = () => loadOutbox(UID).ops.map((o) => ({ postId: o.postId, op: o.op, ...(o.at ? { at: o.at } : {}) }));
+
+  it("a move queues one op and its Undo drops it", () => {
+    const original = held();
+    saveDrafts(UID, [original, post({ id: "other" })]);
+    setDraftStatus(UID, "s", "scheduled", "2026-10-16T19:30");
+    expect(ops()).toEqual([{ postId: POST_ID, op: "move", at: "2026-10-16T19:30:00+08:00" }]);
+    restoreDraft(UID, original);
+    expect(ops()).toEqual([]);
+  });
+
+  it("Back in drafts queues one cancel and keeps the link until it goes through; its Undo drops the cancel", () => {
+    const original = held();
+    saveDrafts(UID, [original]);
+    const [d] = setDraftStatus(UID, "s", "draft");
+    expect(d.zernio).toEqual(link);
+    expect(ops()).toEqual([{ postId: POST_ID, op: "cancel" }]);
+    restoreDraft(UID, original);
+    expect(ops()).toEqual([]);
+  });
+
+  it("deleting a post Zernio holds queues one cancel; deleting any other post queues nothing", () => {
+    saveDrafts(UID, [held(), post({ id: "plain", status: "scheduled", scheduledFor: "2026-10-15T09:00" }), held({ id: "sent", zernio: { ...link, postId: "67000000000000000000d002", status: "published" } })]);
+    deleteDraft(UID, "plain");
+    deleteDraft(UID, "sent");
+    expect(ops()).toEqual([]);
+    deleteDraft(UID, "s");
+    expect(ops()).toEqual([{ postId: POST_ID, op: "cancel" }]);
+  });
+
+  it("an edit in Write that keeps the time, and a cloudSync pull that moves it, queue nothing; this device's move then does", async () => {
+    saveDrafts(UID, [held()]);
+    upsertDraft(UID, held({ draft: "Edited in Write" }));
+    ls().setItem("cs-sync-meta", JSON.stringify({ [`content-studio-drafts-${UID}`]: "2026-10-08T01:00:00.000Z" }));
+    const pulled = JSON.stringify([held({ draft: "Moved on the phone", scheduledFor: "2026-10-16T09:00" })]);
+    const sync = createCloudSync(UID, ls(), {
+      pull: async () => ({ data: [{ key: `content-studio-drafts-${UID}`, data: pulled, updated_at: "2026-10-08T03:00:00.000Z" }], error: null }),
+      upsert: async () => ({ error: null }),
+      remove: async () => ({ error: null }),
+    });
+    await sync.start();
+    expect(ls().getItem(`content-studio-drafts-${UID}`)).toBe(pulled);
+    expect(ls().getItem(`content-studio-zernio-outbox-${UID}`)).toBeNull();
+    await sync.stop();
+    setDraftStatus(UID, "s", "scheduled", "2026-10-17T09:00");
+    expect(ops()).toEqual([{ postId: POST_ID, op: "move", at: "2026-10-17T09:00:00+08:00" }]);
+  });
+
+  it("the trim keeps every post Zernio holds before any other and queues nothing, a CSV import of 5 too", () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => (i === MAX_DRAFTS - 1 ? held({ id: "held" }) : post({ id: `p${i}` })));
+    saveDrafts(UID, full);
+    upsertDraft(UID, post({ id: "new" }));
+    let ids = loadDrafts(UID).map((d) => d.id);
+    expect(ids).toHaveLength(MAX_DRAFTS);
+    expect(ids).toContain("held");
+    expect(ids).not.toContain(`p${MAX_DRAFTS - 2}`);
+    saveDrafts(UID, [...Array.from({ length: 5 }, (_, i) => post({ id: `csv${i}` })), ...loadDrafts(UID)]);
+    ids = loadDrafts(UID).map((d) => d.id);
+    expect(ids.slice(0, 5)).toEqual(["csv0", "csv1", "csv2", "csv3", "csv4"]);
+    expect(ids[MAX_DRAFTS - 1]).toBe("held");
+    expect(ls().getItem(`content-studio-zernio-outbox-${UID}`)).toBeNull();
+    // only held posts: the oldest goes after all, and still queues nothing
+    const all = Array.from({ length: MAX_DRAFTS + 1 }, (_, i) => held({ id: `h${i}`, zernio: { ...link, postId: `67000000000000000000${String(i).padStart(4, "0")}` } }));
+    saveDrafts(UID, all);
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(all.slice(0, MAX_DRAFTS).map((d) => d.id));
+    expect(ls().getItem(`content-studio-zernio-outbox-${UID}`)).toBeNull();
+  });
+
+  it("a draft Claude saved, absorbed into a full list, never pushes out a post Zernio holds", () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => (i === MAX_DRAFTS - 1 ? held({ id: "held" }) : post({ id: `p${i}` })));
+    saveDrafts(UID, full);
+    ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, JSON.stringify({ id: "claude-a1", createdAt: "2026-10-08T03:00:00.000Z", hook: "From Claude", draft: "Body" }));
+    const ids = loadDrafts(UID).map((d) => d.id);
+    expect(ids[0]).toBe("claude-a1");
+    expect(ids).toContain("held");
+    expect(ids).not.toContain(`p${MAX_DRAFTS - 2}`);
+  });
+
+  it("a duplicate into a full list hands back what the cap pushed out, never a held post", () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => (i === MAX_DRAFTS - 1 ? held({ id: "held" }) : post({ id: `p${i}` })));
+    saveDrafts(UID, full);
+    const r = duplicateDraft(UID, "p0")!;
+    expect(r.dropped.map((d) => d.id)).toEqual([`p${MAX_DRAFTS - 2}`]);
+    expect(r.drafts.map((d) => d.id)).toContain("held");
+    expect(undoDuplicate(UID, r.copy.id, r.dropped).map((d) => d.id).sort()).toEqual(full.map((d) => d.id).sort());
+  });
+
+  it("once Zernio has cancelled a post, its link is stripped on the next save, so an Undo can't bring the auto-post back", () => {
+    const original = held();
+    saveDrafts(UID, [original]);
+    deleteDraft(UID, "s");
+    settleOutbox(UID, loadOutbox(UID).ops, [], [POST_ID]);
+    const back = saveDrafts(UID, [original]);
+    expect(back[0]).not.toHaveProperty("zernio");
+    expect(loadDrafts(UID)[0]).toEqual({ ...original, zernio: undefined });
+    expect(loadDrafts(UID)[0]).not.toHaveProperty("zernio");
+    expect(ops()).toEqual([]);
   });
 });
