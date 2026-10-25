@@ -213,6 +213,8 @@ const span = (ats: string[], label = dayLabel) => {
 };
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const titleOf = (d: DraftEntry) => (d.hook || d.draft).replace(/\s+/g, " ").trim().slice(0, 80) || "Untitled post";
+/** Make 3 more like the winner: Write's hooks panel on the winner, whose formula the first new hook keeps. */
+export const moreLikeWinner = (w: Pick<DraftEntry, "id" | "hookFormula">) => links.generate({ draft: w.id, panel: "hooks", formula: w.hookFormula });
 const firstWords = (text: string, n = 6) => {
   const w = text.replace(/\s+/g, " ").trim().split(" ");
   return w.length > n ? `${w.slice(0, n).join(" ")}...` : w.join(" ");
@@ -657,7 +659,7 @@ export default function DraftsPage() {
         ) : winner ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-xs font-semibold text-success">Winner so far: {firstWords(winner.hook || winner.draft)}</p>
-            <Button size="sm" variant="outline" onClick={() => navigate(links.generate({ draft: winner.id, panel: "hooks" }))} className="h-11 gap-1.5 sm:h-9">
+            <Button size="sm" variant="outline" onClick={() => navigate(moreLikeWinner(winner))} className="h-11 gap-1.5 sm:h-9">
               <Sparkles className="h-3.5 w-3.5" /> Make 3 more like the winner
             </Button>
           </div>

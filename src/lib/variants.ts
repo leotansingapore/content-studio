@@ -18,10 +18,14 @@ export function splitHook(draft: string, hook: string): string {
 
 export const joinHook = (hook: string, body: string) => `${hook}\n\n${body}`;
 
-/** The 3 formula ids after this one in HOOK_FORMULAS, wrapping round; the first 3 for none or an unknown one. */
-export function otherFormulas(own?: string): string[] {
+/**
+ * The 3 formula ids after this one in HOOK_FORMULAS, wrapping round; the first 3 for none or an unknown one. `keep`
+ * (Make 3 more like the winner): this one first, then the 2 after it.
+ */
+export function otherFormulas(own?: string, keep = false): string[] {
   const i = HOOK_FORMULAS.findIndex((f) => f.id === own);
-  return [1, 2, 3].map((k) => HOOK_FORMULAS[(i + k) % HOOK_FORMULAS.length].id);
+  const from = keep && i >= 0 ? 0 : 1;
+  return [0, 1, 2].map((k) => HOOK_FORMULAS[(i + from + k) % HOOK_FORMULAS.length].id);
 }
 
 export type HookTest = { kind: "waiting"; missing: number; total: number } | { kind: "close" } | { kind: "winner"; id: string };

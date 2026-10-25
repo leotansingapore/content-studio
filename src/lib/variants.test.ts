@@ -40,6 +40,12 @@ describe("otherFormulas", () => {
     expect(otherFormulas(undefined)).toEqual(HOOK_FORMULAS.slice(0, 3).map((f) => f.id));
     expect(otherFormulas("gone")).toEqual(HOOK_FORMULAS.slice(0, 3).map((f) => f.id));
   });
+
+  it("keeps the winner's own formula first, then the 2 after it (Make 3 more like the winner)", () => {
+    expect(otherFormulas("give-it-away", true)).toEqual(["give-it-away", ...HOOK_FORMULAS.slice(0, 2).map((f) => f.id)]);
+    expect(otherFormulas("contrarian", true)).toEqual(HOOK_FORMULAS.slice(0, 3).map((f) => f.id));
+    expect(otherFormulas(undefined, true)).toEqual(otherFormulas(undefined));
+  });
 });
 
 describe("hookTestResult", () => {

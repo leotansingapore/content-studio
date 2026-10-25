@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import DraftsPage from "./DraftsPage";
+import DraftsPage, { moreLikeWinner } from "./DraftsPage";
 
 const html = (path = "/drafts") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(DraftsPage)));
 
@@ -35,5 +35,12 @@ describe("My posts for everyone else", () => {
   });
   it("draws today's first frame on Leo's links", async () => {
     await expect(html("/drafts?set=st-abc&schedule=d1&step=caption&network=linkedin")).toMatchFileSnapshot("./__pins__/drafts-page-everyone.html");
+  });
+});
+
+describe("Make 3 more like the winner (Leo only)", () => {
+  it("opens Write's hooks panel on the winner, carrying its formula so the first new hook keeps it", () => {
+    expect(moreLikeWinner({ id: "v1", hookFormula: "contrarian" })).toBe("/generate?draft=v1&panel=hooks&formula=contrarian");
+    expect(moreLikeWinner({ id: "v1" })).toBe("/generate?draft=v1&panel=hooks");
   });
 });

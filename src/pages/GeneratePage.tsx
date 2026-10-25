@@ -973,6 +973,7 @@ export default function GeneratePage() {
     () =>
       setSearchParams((prev) => {
         const p = withParam(prev, "panel", null);
+        if (panel === "hooks") p.delete("formula");
         if (panel !== "post") return p;
         p.delete("network");
         return withParam(p, "step", writeStep.current, "topic");
@@ -2357,14 +2358,15 @@ export default function GeneratePage() {
   };
 
   // Try new hooks: the requests Pick a hook sends (one formula each) with the post's body as the idea, into the panel's
-  // own rows. The formulas are the 3 after the post's own, else the next set; Try again keeps the last ones.
+  // own rows. The formulas are the 3 after the post's own (its own first when ?formula= names it: Make 3 more like the
+  // winner), else the next set; Try again keeps the last ones.
   const tryNewHooks = async (again?: string[]) => {
     if (!userId || !currentDraftId || isStreaming || !draft.trim()) return;
     if (panel !== "hooks") openPanel("hooks");
     const set = again
       ? again.flatMap((id) => hookFormula(id) ?? [])
       : draftFormula
-        ? otherFormulas(draftFormula.id).flatMap((id) => hookFormula(id) ?? [])
+        ? otherFormulas(draftFormula.id, searchParams.get("formula") === draftFormula.id).flatMap((id) => hookFormula(id) ?? [])
         : hookFormulaSet(hookSetRef.current++);
     setNewHookRows([]);
     setHookPanel({ draftId: currentDraftId, formulas: set.map((f) => f.id), running: true, failed: false, pick: null, saved: {} });
