@@ -232,7 +232,7 @@ import { requestMake, tooLongLine, type Flags } from "@/lib/remix";
 import { brandPack, loadRemixPrefs, offerNames } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
-import { FILM_LINE, NO_STOCK, PRESENTER_GONE, PRESENTER_LINE, VOICE_FAILED, WRITE_FAILED, cutawayScenes, draftOf, editBrief, spoken, versionOf } from "@/lib/sameEditJob";
+import { FILM_LINE, NO_STOCK, PRESENTER_GONE, PRESENTER_LINE, VOICE_FAILED, WRITE_FAILED, cutawayScenes, draftOf, editBrief, findCutaways, spoken, versionOf } from "@/lib/sameEditJob";
 import { makeBody } from "@/lib/slideshowJob";
 import { aiMark, speakerFace, speakerOf, speakers, useSpeakers } from "@/lib/talkingHead";
 import { LANG_NAMES } from "@/lib/translate";
@@ -3553,32 +3553,6 @@ const spanWords = (lines: string[], spans: ({ s: number; e: number } | null)[]):
   });
 const changeName = (v: Pick<Version, "change" | "lang">) =>
   v.change === "hook" ? "new hook" : v.change === "offer" ? "new offer" : v.change === "host" ? "new face" : v.change === "lang" ? LANG_NAMES[v.lang as PostLang] : "first version";
-
-/** The plan's cutaways found again by the version's searches, kept on this device as Add B-roll for me keeps them. */
-// shortcut: sameEditJob.ts's findCutaways does the same; share one once that file can change
-async function findCutaways(plan: EditPlan, v: Version): Promise<{ clips: Record<number, CutawayClip>; missed: number }> {
-  const orientation = plan.read.aspect === "16:9" ? "landscape" : plan.read.aspect === "1:1" ? "square" : "portrait";
-  const clips: Record<number, CutawayClip> = {};
-  const used = new Set<string>();
-  let missed = 0;
-  for (const [k, e] of plan.events.entries()) {
-    if (e.kind !== "cutaway") continue;
-    const search = v.searches.find((s) => s.k === k)?.search ?? "";
-    const it = search ? (await searchStock("video", search, 1, orientation).then((r) => r.items, () => [])).find((x) => !used.has(x.id)) : undefined;
-    const blob = it ? await downloadStock(it.src).catch(() => null) : null;
-    const key = `br-${it?.id}-${Date.now().toString(36)}`;
-    if (!it || !blob || !(await putFile(key, blob).then(() => true, () => false))) {
-      missed++;
-      continue;
-    }
-    const probe = await loadVideo(blob).catch(() => null);
-    const length = probe && Number.isFinite(probe.duration) ? probe.duration : it.duration ?? 4;
-    if (probe) URL.revokeObjectURL(probe.src);
-    used.add(it.id);
-    clips[k] = { key, length: Math.max(0.5, length), thumb: it.thumb, by: it.by, byUrl: it.byUrl, url: it.url };
-  }
-  return { clips, missed };
-}
 
 /** The edit laid over a take or a version's words: its cutaways found or kept, its labels, zooms and look. */
 async function laidPlan(userId: string, plan: EditPlan, v: Version, words: Word[], seconds: number, clips?: Record<number, CutawayClip>) {

@@ -553,7 +553,8 @@ export async function startRead(userId: string, source: RemixSource, file?: Blob
 // ---------- making ----------
 
 /** Each cutaway's stock clip, kept on this device the way Add B-roll for me keeps one; a cutaway with none is left out. */
-async function findCutaways(plan: EditPlan, v: Version, onStep: (done: number, of: number) => void): Promise<{ clips: Record<number, CutawayClip>; missed: number }> {
+/** The plan's cutaways found by the version's searches, kept on this device as Add B-roll for me keeps them. */
+export async function findCutaways(plan: EditPlan, v: Version, onStep: (done: number, of: number) => void = () => undefined): Promise<{ clips: Record<number, CutawayClip>; missed: number }> {
   const want = plan.events.flatMap((e, k) => (e.kind === "cutaway" ? [{ k, search: v.searches.find((s) => s.k === k)?.search ?? "" }] : []));
   const clips: Record<number, CutawayClip> = {};
   const used = new Set<string>();
@@ -696,8 +697,7 @@ function handOff(plan: EditPlan, version: Version, a: MakeAsk, flags: Flags | un
     ...(a.source ? { source: { ...a.source, remixedAt: new Date().toISOString() } } : {}),
     ...(ai ? { ai } : {}),
     ...(version.draft ? { draftId: version.draft } : {}),
-    // shortcut: JoinExtra has no plan field yet; same-edit-editor (wave 3) reads it onto project.plan
-    ...({ plan: { id: plan.id, version: version.id } } as Partial<JoinExtra>),
+    plan: { id: plan.id, version: version.id },
   };
 }
 
