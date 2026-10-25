@@ -11,7 +11,8 @@ import { patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { logActivity, type ActivityKind } from "@/lib/activity";
 import { readUsage, type Usage } from "@/lib/aiUsage";
 import { AI_FOLDER, imageBusy, imageJob, makeImage, onImageJob, resumeImage } from "@/lib/aiImage";
-import { LOOKS, aiBusy, aiJob, avatarCredits, creditsUsd, explainerCredits, makeExplainer, onAiJob, pendingExplainer, resumeExplainer, writeExplainer, type Scene } from "@/lib/aiVideo";
+import { LOOKS, aiBusy, aiJob, avatarCredits, creditsUsd, explainerCredits, makeExplainer, onAiJob, pendingExplainer, resumeExplainer, type Scene } from "@/lib/aiVideo";
+import { callFn } from "@/lib/edgeFn";
 import { actFor, moveWhen, titleOf as draftTitle } from "@/lib/assistantActs";
 import { anglesFor } from "@/lib/angles";
 import { loadAudiences } from "@/lib/audiences";
@@ -137,6 +138,8 @@ export const OPEN_ANALYTICS = { path: "/analytics", label: "Open Analytics" };
 export const OPEN_VOICE = { path: links.voice({ section: "learned" }), label: "Open Your voice" };
 const BACK = "Back at 8am Singapore time.";
 const MADE_WITH = "Higgsfield Speak and ElevenLabs";
+/** An explainer's pictures are Higgsfield Soul's: no one speaks on camera (replay D14). */
+const EXPLAINER_MADE_WITH = "Higgsfield Soul pictures and ElevenLabs";
 
 const NOUN: Record<AgentFormat, string> = {
   post: "post",
@@ -295,12 +298,14 @@ export const MAX_SCRIPT_WORDS = 70;
 
 /** A video card's rows: who, voice, length, how it is made, and the learnings it follows. */
 function videoDetails(userId: string, f: PlanFields, seconds: number): AgentCard["details"] {
-  const following = followingLine(loadLearnings(userId), "videos").replace(/^Following: /, "");
+  const talking = f.plan === "speaking";
+  // the video learnings shape who appears; an explainer has no one on camera and its writer is not sent them (replay D14)
+  const following = talking ? followingLine(loadLearnings(userId), "videos").replace(/^Following: /, "") : "";
   return [
-    ...(f.plan === "speaking" ? [{ label: "Who appears", value: whoWords(userId, f.who!, f.look ?? "") }] : []),
+    ...(talking ? [{ label: "Who appears", value: whoWords(userId, f.who!, f.look ?? "") }] : []),
     { label: "Voice", value: VOICES[f.voice ?? "alice"].label },
     { label: "Length", value: `about ${Math.round(seconds)} seconds` },
-    { label: "Made with", value: MADE_WITH },
+    { label: "Made with", value: talking ? MADE_WITH : EXPLAINER_MADE_WITH },
     ...(following ? [{ label: "Following", value: following }] : []),
   ];
 }
@@ -899,12 +904,19 @@ function settleTalk(x: Press): void {
   x.done(videoReceipt(script, credits, open), { kind: "talk", state: "done", open, title: clip(script, 80), name: script.slice(0, 40) || "Talking head" });
 }
 
+/** The explainer's scenes, as aiVideo's writeExplainer asks, in the brand's voice: a business never ends "Message me" (D14). */
+async function writeScenes(userId: string, topic: string): Promise<Scene[]> {
+  const business = speakerFor(userId) === "business";
+  const { scenes } = await callFn<{ scenes: Scene[] }>("ai-video", { mode: "script", topic, ...(business ? { speaker: "business" } : {}) }, "Couldn't write the explainer. Try again in a minute.");
+  return scenes;
+}
+
 async function explainerPress(userId: string, x: Press, src: RemixSource | null, live: Live): Promise<void> {
   const { f } = x;
   if (x.card().step !== "video") {
     live.call();
     live.step("Writing the script...", "writing");
-    const scenes = await writeExplainer(src ? `${src.title}. ${f.topic ?? ""}`.slice(0, MAX_TOPIC) : (f.topic ?? ""));
+    const scenes = await writeScenes(userId, src ? `${src.title}. ${f.topic ?? ""}`.slice(0, MAX_TOPIC) : (f.topic ?? ""));
     const seconds = wordCount(scenes.map((s) => s.say).join(" ")) / 2.5;
     x.put({ text: LINES.scriptLead });
     return x.step("video", {
@@ -912,8 +924,8 @@ async function explainerPress(userId: string, x: Press, src: RemixSource | null,
       line: `${scenes.length} pictures with your voiceover, about ${Math.round(seconds)} seconds.`,
       script: scenes.map((s) => s.say),
       details: videoDetails(userId, f, seconds),
+      // the price chip carries it: a fraction of a credit beside it read as the price (replay D14, "about 0.45 Higgsfield credits")
       price: sum(price("ai-video", { scenes: scenes.length }), price("ai-voice")),
-      credits: explainerCredits(scenes.length),
       needs: [{ feature: "ai-video", n: 1 }, { feature: "ai-voice", n: 1 }],
       plan: withFields({ ...f, scenes }),
     });

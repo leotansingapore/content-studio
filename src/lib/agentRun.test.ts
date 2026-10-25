@@ -34,6 +34,7 @@ const fake = vi.hoisted(() => {
     scriptAsk: null as null | { as: string; seconds?: number; words?: number },
     imageAgent: undefined as unknown,
     scriptThrows: null as Error | null,
+    explainerAsk: null as null | Record<string, unknown>,
     remixRow: null as null | Record<string, unknown>,
     remixFails: false,
     remix: store(),
@@ -243,6 +244,12 @@ beforeEach(() => {
   jev.bodies = [];
   invoke.mockReset();
   invoke.mockImplementation(async (name: string, opts: { body: Record<string, unknown>; signal?: AbortSignal }) => {
+    // the explainer's script, written by the engine in the brand's voice
+    if (name === "ai-video" && opts.body.mode === "script") {
+      fake.calls.push("writeExplainer");
+      fake.explainerAsk = opts.body;
+      return { data: { scenes: [1, 2, 3, 4, 5].map((n) => ({ say: `Scene ${n} says a short line about CPF LIFE payouts.`, picture: "a park" })) }, error: null };
+    }
     fake.calls.push(`fn:${name}`);
     if (name === "writing-judge") return { data: { replaces: null }, error: null };
     if (name !== "assistant-act") return { data: null, error: new Error(`unexpected ${name}`) };
@@ -961,5 +968,24 @@ describe("the 25 Oct replay: a failed card says the use came back only when it d
     await approve(id);
     await press(UID, id, cardMsg(id).id, "retry");
     expect(cardMsg(id).card?.refunded).toBeUndefined();
+  });
+});
+
+describe("the 25 Oct replay: the explainer card (D14)", () => {
+  it("writes in the brand's voice and shows no Speak, no presenter learning and no fraction of a credit", async () => {
+    fake.speaker = "business";
+    const learnt = await say("from now on use an older man as my presenter", { act: "remember", scope: "videos" });
+    await approve(learnt);
+    const id = await say("make an explainer video about how follow-ups slip", { act: "make", format: "explainer" });
+    await approve(id);
+    expect(fake.explainerAsk).toEqual({ mode: "script", topic: "make an explainer video about how follow-ups slip", speaker: "business" });
+    const c = cardMsg(id).card!;
+    expect(c.details?.find((d) => d.label === "Made with")?.value).toBe("Higgsfield Soul pictures and ElevenLabs");
+    expect(c.details?.find((d) => d.label === "Following")).toBeUndefined();
+    expect(c.credits).toBeUndefined();
+    fake.speaker = "person";
+    const mine = await say("make an explainer video about CPF LIFE", { act: "make", format: "explainer" });
+    await approve(mine);
+    expect(fake.explainerAsk).toEqual({ mode: "script", topic: "make an explainer video about CPF LIFE" });
   });
 });
