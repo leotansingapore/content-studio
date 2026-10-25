@@ -306,6 +306,16 @@ describe("run", () => {
     expect(fs.readFileSync(o.out, "utf8")).toBe(last);
   });
 
+  it("exits 75 and writes nothing when every read hits a usage limit, logging the whole stderr", async () => {
+    const lines = quiet();
+    vi.spyOn(console, "warn").mockImplementation((m) => lines.push(String(m)));
+    const stderr = `You've hit your session limit, resets 7:12am ${"x".repeat(200)}`;
+    const o = fakes({ see: async () => Promise.reject(Object.assign(new Error("Command failed"), { code: 75, stderr })) });
+    expect(await run(o)).toBe(75);
+    expect(fs.existsSync(o.out)).toBe(false);
+    expect(lines.some((l) => l.includes(stderr))).toBe(true);
+  });
+
   it("writes nothing when Jev answers nothing", async () => {
     quiet();
     const o = fakes({ ask: async () => null });

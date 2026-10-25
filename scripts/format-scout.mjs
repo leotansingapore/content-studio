@@ -350,15 +350,25 @@ export const claudeArgs = (dir, prompt) => [
 /** This process's environment without its keys, so nothing the CLI runs could read them. Claude's own login stays. */
 export const keyless = (env) => Object.fromEntries(Object.entries(env).filter(([k]) => k.startsWith("CLAUDE_") || !/KEY|TOKEN|SECRET|PASSWORD/i.test(k)));
 
-/** Claude CLI on Leo's Max plan (free), reading one post's pictures, which sit alone in `dir`. Returns its reply. */
+/** A failed read's exit code 75: claude-resilient.sh's usage limit (or its limit flag still up). */
+export const LIMIT_EXIT = 75;
+
+/**
+ * Claude CLI on Leo's Max plan (free), reading one post's pictures, which sit alone in `dir`. Returns its reply.
+ * Through CLAUDE_BIN, by default claude-resilient.sh, which rotates accounts on a limit and exits 75 when all are
+ * limited (26 Oct: bare `claude` on a limited account failed all 57 reads).
+ */
 async function claudeSees(prompt, dir) {
-  const { stdout } = await execFileP("claude", claudeArgs(dir, prompt), {
+  const bin = process.env.CLAUDE_BIN || path.join(os.homedir(), ".local/bin/claude-resilient.sh");
+  const call = execFileP(bin, claudeArgs(dir, prompt), {
     cwd: dir,
     env: keyless(process.env),
     encoding: "utf8",
     timeout: 180_000,
     maxBuffer: 10 * 1024 * 1024,
   });
+  call.child.stdin?.end(); // the wrapper keeps a piped prompt, so an open stdin would hold it until the timeout
+  const { stdout } = await call;
   return stdout;
 }
 
@@ -431,6 +441,8 @@ export async function run({
   const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "format-scout-")));
   const getJpeg = grab ?? ((url, file) => grabJpeg(url, file, token));
   const askJev = ask ?? ((state) => jevAsk(env, state));
+  let tried = 0;
+  let limited = 0;
   try {
     // Claude reads the pictures: a slideshow's slides, a video's cover
     const read = await pool(candidates, 3, async (p) => {
@@ -458,14 +470,21 @@ export async function run({
         });
         // the prompt names the pictures only: no caption or other scraped text goes to the CLI
         const prompt = p.photo ? SLIDES_PROMPT(boxed) : COVER_PROMPT(boxed[0]);
+        tried++;
         return cleanReading(parseReply(await see(prompt, box)), p.photo);
       } catch (e) {
-        console.warn(`  ${p.id}: Claude failed (${String(e?.message ?? e).slice(0, 120)})`);
+        if (e?.code === LIMIT_EXIT) limited++;
+        console.warn(`  ${p.id}: Claude failed (exit ${e?.code ?? "-"}): ${String(e?.stderr || e?.message || e).trim()}`);
         return null;
       } finally {
         fs.rmSync(box, { recursive: true, force: true });
       }
     });
+    // every read hit a usage limit: exit 75 so the drop is retried once the limit resets, not reported broken
+    if (tried && limited === tried) {
+      console.error(`format-scout: all ${tried} reads hit a Claude usage limit; formatTrends.json keeps its last drop`);
+      return LIMIT_EXIT;
+    }
     const formats = candidates.map((p, k) => ({ p, reading: read[k] })).filter((x) => x.reading);
     console.log(`format-scout: ${formats.length} are slideshows or walls of text; asking Jev about each`);
 
