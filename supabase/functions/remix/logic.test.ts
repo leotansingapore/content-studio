@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { COMPLIANCE_RULES } from "../clone-reel/logic";
+import { HOOK_FORMULAS, hookFormulaFields } from "@/lib/hookFormulas";
 import {
   BAD_KEEP,
   BUSINESS_VOICE,
@@ -60,6 +61,8 @@ import {
   memeVerdict,
   pickAdLayout,
   speakingWords,
+  HOOK_FORMULA_COPY,
+  formulaRule,
 } from "./logic";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
@@ -1594,5 +1597,36 @@ describe("every format writes today's prompt and schema with no formula (pinned 
       "wall, topic, business": "1318998ee3d75771",
       "wall, topic, person": "e760538674077c91",
     });
+  });
+});
+
+// remix-variations: a version names its hook formula, written into the prompt the way Write writes one
+describe("a make's hook formula (remix-variations)", () => {
+  it("keeps a copy of the app's 21 hook formulas, word for word, since an edge function can't import src", () => {
+    expect(HOOK_FORMULA_COPY).toEqual(HOOK_FORMULAS);
+  });
+
+  it("puts that formula's rule in the system prompt, word for word as Write's hookFormulaFields writes it", () => {
+    for (const f of HOOK_FORMULAS) {
+      const rule = hookFormulaFields(f, {}).styleReference;
+      expect(formulaRule(f.id), f.id).toBe(rule);
+      for (const m of [make({ formula: f.id }), topic("post", { formula: f.id }), shape("slideshow", { formula: f.id, brand: BIZ })]) {
+        const { system, user } = buildMakePrompt(m);
+        expect(system, f.id).toContain(`\n\n${rule}`);
+        expect(user, f.id).not.toContain(f.template);
+      }
+    }
+    // three versions, three different rules
+    const three = ["contrarian", "mistake", "list"].map((id) => buildMakePrompt(make({ formula: id })).system);
+    expect(new Set(three).size).toBe(3);
+  });
+
+  it("keeps a known id and ignores an unknown one, and a hooks make keeps its own three formulas", () => {
+    expect(make({ formula: "give-it-away" }).formula).toBe("give-it-away");
+    expect(make({ formula: "story" }).formula).toBeUndefined();
+    expect(make({ formula: 42 }).formula).toBeUndefined();
+    expect(buildMakePrompt(make({ formula: "story" }))).toEqual(buildMakePrompt(make()));
+    expect(shape("hooks", { formulas: FORMULAS, formula: "contrarian" }).formula).toBeUndefined();
+    expect(formulaRule("story")).toBeNull();
   });
 });
