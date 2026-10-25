@@ -33,6 +33,8 @@ const fake = vi.hoisted(() => {
     talkAsk: null as null | { quoted?: number; voice?: string; caption?: string; agent?: unknown },
     scriptAsk: null as null | { as: string; seconds?: number; words?: number },
     imageAgent: undefined as unknown,
+    scriptThrows: null as Error | null,
+    remixRow: null as null | Record<string, unknown>,
     remixFails: false,
     remix: store(),
     show: store(),
@@ -63,6 +65,7 @@ vi.mock("@/lib/remixJob", async (orig) => ({
     fake.remix.set(job);
     void import("./draftHistory").then(async (m) => {
       await new Promise((r) => setTimeout(r, 0));
+      if (fake.remixRow) return fake.remix.set({ ...job, state: "failed", rows: [{ as: run.as[0], state: "failed", ...fake.remixRow }] });
       if (fake.remixFails) return fake.remix.set({ ...job, state: "failed", rows: [{ as: run.as[0], state: "failed", error: "No remixes left today. They reset at 8am Singapore time.", refunded: true }] });
       m.upsertDraft(userId, { id: "d-made", createdAt: "2026-10-22T00:00:00.000Z", hook: "CPF LIFE pays for life", draft: "CPF LIFE pays for life. It is guaranteed.", pillar: "topic", pillarDetail: "", audience: "general", format: "carousel", platform: "instagram", ctaType: "save-share", agent: run.agent as { thread: string; msg: string } });
       fake.remix.set({ ...job, state: "done", rows: [{ as: run.as[0], state: "done", draftId: "d-made", hook: "CPF LIFE pays for life", href: "/carousel?draft=d-made", flags: { copied: [], claim: false, invented: false } }] });
@@ -76,6 +79,7 @@ vi.mock("@/lib/remix", async (orig) => ({
     fake.calls.push("writeScript");
     fake.scriptAsk = body;
     await wait();
+    if (fake.scriptThrows) throw fake.scriptThrows;
     return { result: { as: "speaking", script: SCRIPT, caption: "Check your own payout tonight. Save this for later." }, flags: { copied: [], claim: false, invented: false } };
   },
 }));
@@ -229,6 +233,8 @@ beforeEach(() => {
   fake.sources = {};
   fake.talkEnd = "done";
   fake.remixFails = false;
+  fake.scriptThrows = null;
+  fake.remixRow = null;
   for (const s of [fake.remix, fake.show, fake.wall, fake.talk, fake.ai, fake.image, fake.link]) s.reset();
   jev.pick = null;
   jev.p = {};
@@ -821,7 +827,8 @@ describe("the 25 Oct replay: follow-ups keep their subject, titles name it, a co
   });
 
   it("ends a receipt's line once, cut at a word, and says an 18-second video (D12)", async () => {
-    const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    // a woman's look, so Alice reads it: 46 words are 18 s in her voice
+    const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking", who: 0 });
     await approve(id);
     const words46 = Array.from({ length: 46 }, (_, i) => (i % 9 === 8 ? "end." : "word")).join(" ");
     expect(editCard(UID, id, cardMsg(id).id, { script: words46 })).toBeNull();
@@ -914,5 +921,45 @@ describe("the 25 Oct replay: what the agent started logs as the agent's (D6, the
     expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).find((e) => e.title === "Wrote a talking video script")).toMatchObject({ who: "agent", detail: SCRIPT });
     await approve(talk);
     expect(fake.talkAsk?.agent).toEqual(at(talk));
+  });
+});
+
+describe("the 25 Oct replay: a failed card says the use came back only when it did (D8)", () => {
+  it("marks the card refunded only for a call the server gave back, not a 422 that kept it, a cap, or a dropped connection", async () => {
+    const { EdgeError } = await import("@/lib/edgeFn");
+    const { NOTHING_USED } = await import("@/lib/remixJob");
+    // the writer answered and its check refused: the use is kept
+    fake.remixRow = { error: "The post didn't name ActivityTracker once.", refunded: false };
+    let id = await say("make a post about CPF", { act: "make", format: "post" });
+    await approve(id);
+    expect(cardMsg(id).card).toMatchObject({ status: "failed", error: "The post didn't name ActivityTracker once." });
+    expect(cardMsg(id).card?.refunded).toBeFalsy();
+    // the model never answered: 502, and the server gave the use back
+    fake.remixRow = { error: NOTHING_USED, refunded: true };
+    id = await say("make a post about CPF", { act: "make", format: "post" });
+    await approve(id);
+    expect(cardMsg(id).card?.refunded).toBe(true);
+    // a cap the server read before counting is not a use given back
+    fake.remixRow = null;
+    fake.remixFails = true;
+    id = await say("make a post about CPF", { act: "make", format: "post" });
+    await approve(id);
+    expect(cardMsg(id).card?.refunded).toBeFalsy();
+    // the script's own call: a 502 came back before the writer answered; a lost connection may have used it
+    fake.scriptThrows = new EdgeError("That remix didn't go through. Nothing was used.", 502, "failed");
+    id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(id);
+    expect(cardMsg(id).card).toMatchObject({ status: "failed", refunded: true });
+    fake.scriptThrows = new TypeError("Failed to fetch");
+    id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(id);
+    expect(cardMsg(id).card?.status).toBe("failed");
+    expect(cardMsg(id).card?.refunded).toBeFalsy();
+    // Try again starts over with no line left from before
+    fake.scriptThrows = new EdgeError("That remix didn't go through. Nothing was used.", 502, "failed");
+    id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(id);
+    await press(UID, id, cardMsg(id).id, "retry");
+    expect(cardMsg(id).card?.refunded).toBeUndefined();
   });
 });

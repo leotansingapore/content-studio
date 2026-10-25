@@ -304,7 +304,7 @@ export default function ActionCard({
         {status === "failed" && (
           <div className="space-y-1 text-sm">
             {card.error && <p className="text-destructive">{card.error}</p>}
-            <p className="text-muted-foreground">Your use was given back.</p>
+            {card.refunded && <p className="text-muted-foreground">Your use was given back.</p>}
           </div>
         )}
 

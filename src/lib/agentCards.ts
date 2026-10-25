@@ -87,6 +87,8 @@ export interface AgentCard {
   proposedAt: string;
   decidedAt?: string;
   error?: string;
+  /** A failed press whose use the server gave back (the provider never answered): only then does the card say so. */
+  refunded?: boolean;
 }
 
 export type Undo =
@@ -156,7 +158,7 @@ export function nextCard(card: AgentCard, e: CardEvent, now = new Date()): Agent
     case "fail":
       return s === "starting" || s === "approved" ? { ...card, status: "failed", error: e.error } : null;
     case "retry":
-      return s === "failed" ? { ...card, status: "proposed", decidedAt: undefined, error: undefined } : null;
+      return s === "failed" ? { ...card, status: "proposed", decidedAt: undefined, error: undefined, refunded: undefined } : null;
     case "next":
       return s === "starting" || s === "approved" ? { ...card, ...e.patch, step: e.step, status: "proposed", decidedAt: undefined } : null;
   }

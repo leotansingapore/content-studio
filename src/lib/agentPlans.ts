@@ -29,7 +29,8 @@ import { loadPositioning } from "@/lib/positioning";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
 import { defaultOutput } from "@/lib/remix";
 import { loadRemixPrefs, speakerFor } from "@/lib/remixBrand";
-import { NOT_THROUGH, onRemixJob, remixJob, startRemix, writingStep } from "@/lib/remixJob";
+import { NOT_THROUGH, NOTHING_USED, onRemixJob, remixJob, startRemix, writingStep } from "@/lib/remixJob";
+import { EdgeError } from "@/lib/edgeFn";
 import { linkRead, startLinkRead } from "@/lib/remixLink";
 import type { RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
@@ -636,9 +637,12 @@ function pressOf(userId: string, thread: string, msgId: string, card: AgentCard)
       c = nextCard(c, { type: "started" }) ?? c;
       put({ card: c });
     },
-    /** Didn't go through, with cheaper chips that ask again. */
-    fail(error: string) {
-      c = nextCard(c, { type: "fail", error }) ?? { ...c, status: "failed", error };
+    /**
+     * Didn't go through, with cheaper chips that ask again. `refunded` only when the server gave the use back (replay D8:
+     * every failed card said so, after a 422 that kept it and a dropped connection the server had counted).
+     */
+    fail(error: string, refunded = false) {
+      c = { ...(nextCard(c, { type: "fail", error }) ?? { ...c, status: "failed" as const, error }), ...(refunded ? { refunded } : {}) };
       put({ card: c, go: offerChips(f.plan, null, subjectOf(f)) });
     },
     /** The next press of the same card (a script's video, an edit's Use this). */
@@ -787,7 +791,9 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         return x.fail(NOT_THROUGH); // the engine runs it through the answer skill
     }
   } catch (e) {
-    return x.fail(f.plan === "edit" ? LINES.editFailed : e instanceof Error && e.message ? e.message : NOT_THROUGH);
+    // a 502 or 503 comes back before the provider answered, after the server gave the use back; anything else may have used it
+    const back = e instanceof EdgeError && (e.status === 502 || e.status === 503);
+    return x.fail(f.plan === "edit" ? LINES.editFailed : e instanceof Error && e.message ? e.message : NOT_THROUGH, back);
   }
 }
 
@@ -812,7 +818,8 @@ async function remixPress(userId: string, thread: string, msgId: string, x: Pres
   x.started();
   const j = await until(onRemixJob, remixJob, (y) => !y || y.id !== id || y.state !== "working", (y) => void (y.id === id && y.step && live.step(y.step, "writing")));
   const row = j?.id === id ? j.rows[0] : undefined;
-  if (row?.state !== "done" || !row.draftId) return x.fail(row?.error ?? NOT_THROUGH);
+  // remixJob's NOTHING_USED is its 502 or 503, the model never answered; its other refunded rows were never counted
+  if (row?.state !== "done" || !row.draftId) return x.fail(row?.error ?? NOT_THROUGH, row?.refunded === true && row.error === NOTHING_USED);
   const draft = loadDrafts(userId).find((d) => d.id === row.draftId);
   x.done(
     { title: `${cap(NOUN[as])} written`, line: `${row.hook ? `${sentence(row.hook)} ` : ""}It's in My posts.`, button: { label: "Open", path: row.href ?? links.drafts() }, undo: { kind: "delete-drafts", ids: [row.draftId] } },

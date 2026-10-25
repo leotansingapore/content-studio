@@ -152,3 +152,12 @@ describe("a talking video's first card", () => {
     expect(html).not.toContain("left after this");
   });
 });
+
+describe("a failed card (replay D8)", () => {
+  const failed = (o: Partial<AgentCard>): AgentCard => ({ ...makeCard(UID, { plan: "post", format: "post", act: "make", p: {}, topic: "CPF LIFE" }), status: "failed", error: "This one didn't go through.", ...o });
+  it("says the use was given back only when the engine marked it so", () => {
+    expect(draw(failed({ refunded: true }))).toContain("Your use was given back.");
+    expect(draw(failed({}))).not.toContain("Your use was given back.");
+    expect(draw(failed({ error: "The post didn't name ActivityTracker once." }))).not.toContain("Your use was given back.");
+  });
+});
