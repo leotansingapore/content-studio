@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { type AnalyticsPeriod } from "@/lib/links";
@@ -312,24 +312,45 @@ function WeekStat({ value, label, change }: { value: number; label: string; chan
   );
 }
 
-function WeekPosts({ title, posts }: { title: string; posts: ReportPost[] }) {
+/** Leo only (learn-post-grade): a row's grade chip, and its panel when it is open under that row. */
+type WeekGrade = (id: string, title: string) => { chip: ReactNode; panel: ReactNode } | null;
+
+export function WeekPosts({ title, posts, grade }: { title: string; posts: ReportPost[]; grade?: WeekGrade }) {
   return (
     <div className="min-w-0 space-y-1.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</p>
-      {posts.map((p) => (
-        <Link
-          key={p.id}
-          to={`/generate?draft=${encodeURIComponent(p.id)}`}
-          className="flex min-h-11 flex-col justify-center rounded-lg border border-border/60 px-3 py-1.5 transition-colors hover:border-primary/40"
-        >
-          <span className="truncate text-sm font-medium text-foreground">{p.hook || "Untitled"}</span>
-          <span className="text-[11px] text-muted-foreground">
-            {[PLATFORM_LABEL[p.platform] ?? p.platform, p.impressions ? `${p.impressions.toLocaleString()} impressions` : null, `${p.engagements.toLocaleString()} engagements`]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        </Link>
-      ))}
+      {posts.map((p) => {
+        const to = `/generate?draft=${encodeURIComponent(p.id)}`;
+        const lines = (
+          <>
+            <span className="truncate text-sm font-medium text-foreground">{p.hook || "Untitled"}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {[PLATFORM_LABEL[p.platform] ?? p.platform, p.impressions ? `${p.impressions.toLocaleString()} impressions` : null, `${p.engagements.toLocaleString()} engagements`]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </>
+        );
+        const g = grade?.(p.id, p.hook || "Untitled");
+        if (!g)
+          return (
+            <Link key={p.id} to={to} className="flex min-h-11 flex-col justify-center rounded-lg border border-border/60 px-3 py-1.5 transition-colors hover:border-primary/40">
+              {lines}
+            </Link>
+          );
+        // as a Top posts row: the link stretches over the row and the chip sits on top of it as its own tab stop
+        return (
+          <Fragment key={p.id}>
+            <div className="relative flex items-center gap-2 rounded-lg border border-border/60 pr-2 transition-colors hover:border-primary/40 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
+              <Link to={to} className="flex min-h-11 min-w-0 flex-1 flex-col justify-center py-1.5 pl-3 outline-none after:absolute after:inset-0 after:rounded-lg after:content-['']">
+                {lines}
+              </Link>
+              <div className="relative z-10">{g.chip}</div>
+            </div>
+            {g.panel}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
@@ -338,7 +359,7 @@ function WeekPosts({ title, posts }: { title: string; posts: ReportPost[] }) {
 const WEEK_PICK_KEY = "content-studio-weekpick-";
 
 /** This week (g44): the same report and moves as the Monday email, for the last 7 days. */
-function ThisWeekCard({ userId, version }: { userId: string; version: number }) {
+function ThisWeekCard({ userId, version, grade }: { userId: string; version: number; grade?: WeekGrade }) {
   const report = useMemo(() => {
     const goal = Object.values(loadGoals(userId)).reduce((s, n) => s + (n ?? 0), 0);
     return weekReport(loadDrafts(userId).map(withReal), loadFollowing(userId), sgDay(), goal);
@@ -416,8 +437,8 @@ function ThisWeekCard({ userId, version }: { userId: string; version: number }) 
         </div>
         {report.best.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <WeekPosts title="Best" posts={report.best} />
-            {report.worst.length > 0 && <WeekPosts title="Weakest" posts={report.worst} />}
+            <WeekPosts title="Best" posts={report.best} grade={grade} />
+            {report.worst.length > 0 && <WeekPosts title="Weakest" posts={report.worst} grade={grade} />}
           </div>
         ) : (
           report.posts > 0 && <p className="text-sm text-muted-foreground">To see what worked, fill in these posts' numbers under <NumbersLink />.</p>
@@ -593,11 +614,27 @@ export default function AnalyticsPage() {
   const linkedGrade = useRef(gradeId).current;
   const grades = useMemo(() => {
     const now = Date.now();
-    return leoOn ? new Map([...ranked, ...(graded ? [graded] : [])].map((d) => [d.id, gradePost(d, tracked, now)])) : null;
-  }, [leoOn, ranked, graded, tracked]);
+    return leoOn ? new Map(tracked.map((d) => [d.id, gradePost(d, tracked, now)])) : null;
+  }, [leoOn, tracked]);
   const gradePanel = (d: (typeof tracked)[number], titled: boolean) => (
     <GradePanel userId={userId!} post={d} tracked={tracked} grade={grades!.get(d.id)!} titled={titled} scroll={d.id === linkedGrade} onClose={closeGrade} />
   );
+  // a This week chip opens the panel under its own row (gradeAt); the address alone opens it under Top posts
+  const [gradeAt, setGradeAt] = useState<string | null>(null);
+  const gradeHere = (id: string, week: boolean) => gradeId === id && (gradeAt === id) === week;
+  const toggleGrade = (id: string, week: boolean) => {
+    if (gradeHere(id, week)) return closeGrade();
+    setGradeAt(week ? id : null);
+    if (gradeId !== id) openGrade(id);
+  };
+  const weekGrade: WeekGrade = (id, title) => {
+    const d = tracked.find((x) => x.id === id);
+    if (!d) return null;
+    return {
+      chip: <GradeChip grade={grades!.get(id)!} open={gradeHere(id, true)} title={title} onToggle={() => toggleGrade(id, true)} />,
+      panel: graded?.id === id && gradeAt === id ? gradePanel(d, false) : null,
+    };
+  };
   const followerPlatforms = useMemo(
     () => SOCIAL_PLATFORMS.map((p) => p.key).filter((k) => postedDrafts.some((d) => d.platform === k)),
     [postedDrafts],
@@ -682,7 +719,7 @@ export default function AnalyticsPage() {
         </h1>
       </header>
 
-      {userId && <ThisWeekCard userId={userId} version={metricsVersion} />}
+      {userId && <ThisWeekCard userId={userId} version={metricsVersion} grade={leoOn ? weekGrade : undefined} />}
 
       <RecruitNumbers />
 
@@ -1098,7 +1135,7 @@ export default function AnalyticsPage() {
               </Button>
             </div>
             {leoOn && <WinnerCard userId={userId} drafts={drafts} />}
-            {graded && !ranked.some((d) => d.id === graded.id) && gradePanel(graded, true)}
+            {graded && gradeAt !== graded.id && !ranked.some((d) => d.id === graded.id) && gradePanel(graded, true)}
             <div className="space-y-2">
               {ranked.length === 0 && (
                 <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
@@ -1158,14 +1195,14 @@ export default function AnalyticsPage() {
                         {text}
                       </Link>
                       <div className="relative z-10 order-last flex basis-full items-center gap-2 sm:order-none sm:basis-auto">
-                        <GradeChip grade={grades!.get(d.id)!} open={gradeId === d.id} title={title} onToggle={() => (gradeId === d.id ? closeGrade() : openGrade(d.id))} />
+                        <GradeChip grade={grades!.get(d.id)!} open={gradeHere(d.id, false)} title={title} onToggle={() => toggleGrade(d.id, false)} />
                         <RemixButton source={fromDraft(d)} label={title}>
                           {null}
                         </RemixButton>
                       </div>
                       {number}
                     </div>
-                    {graded?.id === d.id && gradePanel(d, false)}
+                    {graded?.id === d.id && gradeAt !== d.id && gradePanel(d, false)}
                   </Fragment>
                 );
               })}
