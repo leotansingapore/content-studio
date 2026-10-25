@@ -46,7 +46,7 @@ import {
 } from "@/lib/remix";
 import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, speakerFor, type RemixPrefs } from "@/lib/remixBrand";
 import { FIT_WAIT_MS, UNKNOWN_FIT, fitAsk, fitVideo, loadFit, pressAction, requestFit, type FitResult } from "@/lib/remixFit";
-import { clearRemixJob, hrefFor, onRemixJob, remixJob, startRemix, type RemixJobState, type RemixRow } from "@/lib/remixJob";
+import { clearRemixJob, hrefFor, onRemixJob, remixJob, retryVersions, startRemix, type RemixJobState, type RemixRow } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
 import { localTeardown, type Teardown } from "@/lib/remixTeardown";
 import { resolveSource } from "@/lib/resolveSource";
@@ -61,7 +61,7 @@ import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile } from "@/lib/v
 
 const CLOSE_ORDER = Object.keys(CLOSE_LABELS) as Close[];
 /** Closing drops every sheet param with the key, so the next card's sheet starts from the defaults. */
-const SHEET_PARAMS = Object.fromEntries(["remix", "keep", "about", "close", "more", "for", "mention", "offer", "as", "breakdown"].map((p) => [p, null]));
+const SHEET_PARAMS = Object.fromEntries(["remix", "keep", "about", "close", "more", "for", "mention", "offer", "as", "breakdown", "versions"].map((p) => [p, null]));
 
 export default function RemixSheet({ user }: { user: LeoUser }) {
   const [key] = useUrlItem("remix");
@@ -101,6 +101,16 @@ const writeNote = (key: string, text: string) => {
 const compact = (n: number) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
+/** The running remix by name (Leo), so a busy sheet says which run it waits for. */
+function busyLine(j: RemixJobState, userId: string): string {
+  const s = j.key ? (resolveSource(j.key, userId) ?? seenSources(userId).find((x) => x.key === j.key)) : null;
+  const first = (s?.title || s?.caption || "").trim().split("\n")[0];
+  const name = first.length > 60 ? `${first.slice(0, 57).trimEnd()}...` : first;
+  const next = "This one can start once it's done.";
+  if (name) return `${j.set ? `Your 3 versions of "${name}" are` : `Your remix of "${name}" is`} still being made. ${next}`;
+  return j.run.agent ? `The agent's remix is still being made. ${next}` : `Your other remix is still going. ${next}`;
+}
+
 /** "Reel by @handle | 141.9K views" */
 function metaLine(s: RemixSource): string {
   const n = s.numbers;
@@ -127,8 +137,6 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const aiBusy = useAiBusy();
   const [params] = useSearchParams();
   const update = useUrlUpdate();
-  // the sheet is mounted for Leo today; the agent link asks again, so the sheet stays as it is for anyone else
-  const leo = useLeoUser();
 
   const keeps = useMemo<Keep[]>(() => (source ? intentsFor(source) : ["structure"]), [source]);
   const [keep] = useUrlState<Keep>("keep", "structure", { allowed: keeps });
@@ -146,7 +154,21 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const asKey = asList.join(",");
   const as = useMemo(() => cleanAs(asKey.split(","), fallbackAs), [asKey, fallbackAs]);
   const setAs = (next: RemixAs[]) => setAsList(asParam(next, fallbackAs));
-  const picked = as.find(isVideo);
+  // the sheet is mounted for Leo today; the agent link asks again, so the sheet stays as it is for anyone else
+  const leo = useLeoUser();
+  // Versions (remix-variations, Leo only): 3 makes of the first text format picked, one hook formula each
+  const [versionsParam] = useUrlState<"1" | "3">("versions", "1", { allowed: ["1", "3"] });
+  const one = as.find((a) => !isVideo(a));
+  const three = !!leo && versionsParam === "3" && !!one;
+  const makeAs = three ? [one!] : as;
+  const asOne = (a: RemixAs) => asParam([a], fallbackAs).join(",") || null;
+  /** With 3 versions a pick replaces the format; a video goes back to one version. */
+  const pickAs = (next: RemixAs[]) => {
+    if (!three) return setAs(next);
+    const added = next.find((a) => !makeAs.includes(a));
+    if (added) update({ as: asOne(added), ...(isVideo(added) ? { versions: null } : {}) });
+  };
+  const picked = makeAs.find(isVideo);
 
   // the URL wins (mention=no, offer=<slug>), then the remembered pick for this brand, then the default
   const [prefs, setPrefs] = useState<RemixPrefs>(() => loadRemixPrefs(userId));
@@ -227,7 +249,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     };
   }, []);
 
-  const uses = as.length;
+  const uses = three ? 3 : as.length;
   // the run breaks the post down first when this device has none, unless no breakdowns are left (remixJob's pre-step)
   const breaksDown = !teardownCached && leftOf("remix-teardown") !== 0;
   const out = left === 0;
@@ -246,13 +268,14 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       keep,
       about: keep === "topic" ? about : undefined,
       close: closeness,
-      as,
+      as: makeAs,
       note: note.trim() || undefined,
       mention,
       offer,
       speaker,
       voice: prefs.voice,
       fit: f.verdict === "unknown" ? undefined : { verdict: f.verdict, reasons: f.reasons },
+      ...(three ? { versions: 3 as const } : {}),
     });
   };
   const press = async () => {
@@ -263,7 +286,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       f = await Promise.race([fitRun.current ?? Promise.resolve(UNKNOWN_FIT), new Promise<FitResult>((r) => setTimeout(() => r(UNKNOWN_FIT), FIT_WAIT_MS))]);
       setWaiting(false);
     }
-    if (pressAction(f.verdict, false) === "ask" || videoAsk(as)) setAsking(f);
+    if (pressAction(f.verdict, false) === "ask" || videoAsk(makeAs)) setAsking(f);
     else start(f);
   };
   const again = () => {
@@ -280,10 +303,13 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
 
   // a running or finished run shows its own choices, whatever the URL says
   const ran = mine && mine.state !== "failed" ? mine.run : { keep, about, close: closeness };
-  const shownAs = mine && mine.state !== "failed" ? mine.rows.map((r) => r.as) : as;
+  // a versions run's three rows are one format
+  const shownAs = mine && mine.state !== "failed" ? [...new Set(mine.rows.map((r) => r.as))] : makeAs;
   const failedRun = mine?.state === "failed" ? mine.rows : [];
-  // a finished run, several formats or a saved script: each row with its own error and way on; one plain failure is a footer line
-  const resultRows = mine?.state === "done" || failedRun.length > 1 || failedRun.some((r) => r.scriptHref) ? (mine?.rows ?? []) : [];
+  // a finished run, several formats or a saved script: each row with its own error and way on; one plain failure is a
+  // footer line, and so are versions that all failed, since the press makes all three again
+  const versionsDone = mine?.state === "done" && mine.set ? mine : null;
+  const resultRows = !mine?.set && (mine?.state === "done" || failedRun.length > 1 || failedRun.some((r) => r.scriptHref)) ? (mine?.rows ?? []) : [];
   const failedRow = resultRows.length ? undefined : failedRun.find((r) => r.state === "failed");
   // opening one of several results keeps the run, so every other Open stays here and on the pill
   const onOpen = resultRows.length > 1 ? undefined : clearRemixJob;
@@ -295,6 +321,45 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     footer = (
       <Button type="button" onClick={onClose} className="w-full">
         Close
+      </Button>
+    );
+  } else if (versionsDone) {
+    const made = versionsDone.rows.filter((r) => r.state === "done");
+    const lost = versionsDone.rows.length - made.length;
+    body = (
+      <section className="space-y-3">
+        <h3 className="text-base font-semibold text-foreground">{lost ? `${made.length} of ${versionsDone.rows.length} versions are ready` : `${made.length} versions are ready`}</h3>
+        <ul className="space-y-3">
+          {made.map((r) => (
+            <li key={r.draftId} className="space-y-1.5">
+              <blockquote className="border-l-2 border-primary/50 pl-3 text-sm text-foreground">{r.hook}</blockquote>
+              {r.flags && <FlagChips flags={r.flags} />}
+            </li>
+          ))}
+        </ul>
+        {lost > 0 && (
+          <p className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {versionsDone.rows.find((r) => r.state === "failed")?.error ?? "This one didn't go through."}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm">
+            <Link to={links.drafts({ set: versionsDone.set!.id })} onClick={clearRemixJob}>
+              Open them
+            </Link>
+          </Button>
+          {lost > 0 && (
+            <Button type="button" variant="outline" size="sm" disabled={out || (left !== null && lost > left)} onClick={() => retryVersions()} className="gap-2">
+              {lost === 1 ? "Try the last one again" : `Try the last ${lost} again`}
+              <PriceChip feature="remix-make" left={left} uses={lost} />
+            </Button>
+          )}
+        </div>
+      </section>
+    );
+    footer = (
+      <Button type="button" variant="ghost" onClick={again} className="w-full text-muted-foreground">
+        Remix again
       </Button>
     );
   } else if (resultRows.length) {
@@ -358,7 +423,28 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           )}
         </section>
 
-        <MakeRow source={source} as={shownAs} setAs={setAs} busy={working} left={leftOf} mention={mention} />
+        <MakeRow source={source} as={shownAs} setAs={pickAs} busy={working} left={leftOf} mention={mention} />
+
+        {leo && (
+          <section className="space-y-2" aria-labelledby="remix-versions">
+            <h3 id="remix-versions" className="text-xs font-semibold text-muted-foreground">
+              Versions
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              <FilterChip active={!three} disabled={working} onClick={() => update({ versions: null })}>
+                1
+              </FilterChip>
+              <FilterChip active={three} disabled={working || !one || (left !== null && left < 3)} onClick={() => update({ versions: "3", as: asOne(one!) })}>
+                3
+              </FilterChip>
+            </div>
+            {left !== null && left < 3 ? (
+              <p className="text-xs text-muted-foreground">Needs 3 remixes left today.</p>
+            ) : (
+              !one && <p className="text-xs text-muted-foreground">Versions are of a post, a carousel or a script.</p>
+            )}
+          </section>
+        )}
 
         <ForRow
           brand={brand}
@@ -446,7 +532,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     ) : asking ? (
       <AskFirst
         fitQuestion={fitAsk(asking.verdict)}
-        videoLine={videoAsk(as)}
+        videoLine={videoAsk(makeAs)}
         onGo={() => start(asking)}
         onBack={fitAsk(asking.verdict) ? onClose : () => setAsking(null)}
       />
@@ -462,11 +548,11 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         <Button type="button" onClick={() => void press()} disabled={out || short || otherRunning || waiting || !!videoStop} className="h-auto min-h-10 w-full justify-between gap-3 whitespace-normal py-2">
           <span className="flex shrink-0 items-center gap-2">
             {waiting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shuffle className="h-4 w-4" />}
-            {out ? "No remixes left today" : waiting ? "Checking the fit..." : failedRow ? "Try again" : remixLabel(uses)}
+            {out ? "No remixes left today" : waiting ? "Checking the fit..." : failedRow ? "Try again" : three ? "Remix 3 versions" : remixLabel(uses)}
           </span>
           {!out && (
             <span className="min-w-0 text-right leading-tight [&>span]:text-primary-foreground/85">
-              <PriceChip price={makePrice(as, breaksDown)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
+              <PriceChip price={makePrice(three ? [one!, one!, one!] : as, breaksDown)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
               {/* its own line, so the chip never breaks inside "videos left" */}
               {picked && videosLeft !== null && (
                 <span className="block whitespace-nowrap text-[11px] tabular-nums">
@@ -484,7 +570,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
             {videoStop === VIDEO_LIMITS.waiting && <WaitingLink />}
           </p>
         )}
-        {otherRunning && <p className="text-center text-xs text-muted-foreground">Your other remix is still going. This one can start once it's done.</p>}
+        {otherRunning && <p className="text-center text-xs text-muted-foreground">{leo && job ? busyLine(job, userId) : "Your other remix is still going. This one can start once it's done."}</p>}
         {leo && (
           <Link
             to={links.agent({ remix: remixKey })}
