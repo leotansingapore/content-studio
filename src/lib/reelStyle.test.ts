@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hookSecondsOf, scaleJump, styleFrameTimes, transitionIn, withReelStyle, wordsPerMinute, type Grey, type ReelRead } from "./reelStyle";
+import { cutFrameTimes, hookSecondsOf, scaleJump, styleFrameTimes, transitionIn, withReelStyle, wordsPerMinute, type Grey, type ReelRead } from "./reelStyle";
 import { defaultSettings } from "./videoEdit";
 
 // a textured picture as a function of where you look (0-1 across and down)
@@ -106,5 +106,21 @@ describe("the reel's style on the edit", () => {
   it("a word highlight only goes on a word-by-word style", () => {
     const look = { ...read().look!, style: "minimal" as const, captionBox: "word" as const };
     expect(withReelStyle(defaultSettings(), read({ look }), null).next.captionBox).toBeUndefined();
+  });
+});
+
+describe("same edit's frames, one a shot", () => {
+  it("takes one 0.4 s into the opening shot and after each cut, kept inside the video", () => {
+    expect(cutFrameTimes([2, 4.5, 29.8], 30)).toEqual([0.4, 2.4, 4.9, 29.9]);
+    expect(cutFrameTimes([], 8)).toEqual([0.4]);
+  });
+
+  it("takes at most 24, spread over the shots from the first to the last", () => {
+    const cuts = Array.from({ length: 40 }, (_, i) => 1 + i * 1.5);
+    const times = cutFrameTimes(cuts, 62);
+    expect(times).toHaveLength(24);
+    expect([times[0], times[23]]).toEqual([0.4, 59.9]);
+    expect(times.every((t, i) => i === 0 || t > times[i - 1])).toBe(true);
+    expect(cutFrameTimes(cuts.slice(0, 23), 62)).toHaveLength(24);
   });
 });

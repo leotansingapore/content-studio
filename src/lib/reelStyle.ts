@@ -15,7 +15,7 @@ import { invokeFunction, ReelCloneError, type CloneSource } from "@/lib/reelClon
 import { applyRecipe, type Recipe } from "@/lib/stylePresets";
 import { loadVideo, seek } from "@/lib/videoMedia";
 import { STYLES, type EditSettings } from "@/lib/videoEdit";
-import type { FrameInput, Pacing } from "../../supabase/functions/reel-visuals/logic.ts";
+import { MAX_EDIT_FRAMES, type FrameInput, type Pacing } from "../../supabase/functions/reel-visuals/logic.ts";
 import type { ReelLook, StyleDescription } from "../../supabase/functions/reel-visuals/style.ts";
 
 export type { ReelLook, StyleDescription };
@@ -105,9 +105,21 @@ export function styleFrameTimes(cuts: number[], duration: number, max = MAX_STYL
   return [...opening, ...picked];
 }
 
+/**
+ * Same edit's frames (the per-cut option): one 0.4 s into every shot, the opening one included, at most `max`; past
+ * that they are spread evenly over the shots, so every frame still sits inside its own shot.
+ */
+export function cutFrameTimes(cuts: number[], duration: number, max = MAX_EDIT_FRAMES): number[] {
+  const end = Math.max(0.1, duration - 0.1);
+  const all = [0, ...cuts].map((t) => Math.round(Math.min(end, t + 0.4) * 10) / 10).filter((t, i, a) => i === 0 || t > a[i - 1]);
+  return all.length <= max ? all : Array.from({ length: max }, (_, i) => all[Math.round((i * (all.length - 1)) / (max - 1))]);
+}
+
 export interface ReelMeasure {
   duration: number;
   cuts: number[];
+  /** Per cut: a flash, a dip or a hard cut (cuts past the first 24 aren't looked at closely, so they read hard). */
+  cutKinds?: ("hard" | "flash" | "dip")[];
   /** Times of the zooms and punch-ins found. */
   zooms: number[];
   flashes: number;
@@ -123,8 +135,8 @@ function greyOf(g: CanvasRenderingContext2D, w: number, h: number): Grey {
   return { px, w, h };
 }
 
-/** Measures a downloaded reel in this tab. Throws an Error with a message fit to show. */
-export async function measureReel(blob: Blob, onProgress: (share: number) => void): Promise<ReelMeasure> {
+/** Measures a downloaded reel in this tab; `perCut` reads one frame a shot (cutFrameTimes). Throws an Error with a message fit to show. */
+export async function measureReel(blob: Blob, onProgress: (share: number) => void, opts: { perCut?: boolean } = {}): Promise<ReelMeasure> {
   if (blob.size > MAX_VIDEO_BYTES) throw new Error("This video is too large to read in the browser.");
   const v = await loadVideo(blob);
   try {
@@ -160,11 +172,13 @@ export async function measureReel(blob: Blob, onProgress: (share: number) => voi
     // 2. each cut frame by frame (1/15 s, from the sample before it to just after): a punch-in across it, a flash or a dip
     let flashes = 0;
     let dips = 0;
+    const kinds: ("hard" | "flash" | "dip")[] = [];
     const close = cuts.slice(0, MAX_CLOSE_CUTS);
     for (let j = 0; j < close.length; j++) {
       const run: Grey[] = [];
       for (let t = close[j] - step; t <= close[j] + 0.25; t += 1 / 15) run.push(await grab(t));
       const kind = transitionIn(run.map(meanOf));
+      kinds.push(kind ?? "hard");
       if (kind === "flash") flashes++;
       else if (kind === "dip") dips++;
       else {
@@ -186,7 +200,7 @@ export async function measureReel(blob: Blob, onProgress: (share: number) => voi
     big.height = Math.round((FRAME_W * v.videoHeight) / v.videoWidth);
     const bg = big.getContext("2d")!;
     const frames: FrameInput[] = [];
-    for (const t of styleFrameTimes(cuts, duration)) {
+    for (const t of opts.perCut ? cutFrameTimes(cuts, duration) : styleFrameTimes(cuts, duration)) {
       await seek(v, t);
       bg.drawImage(v, 0, 0, big.width, big.height);
       frames.push({ t, image: big.toDataURL("image/jpeg", 0.72) });
@@ -197,6 +211,7 @@ export async function measureReel(blob: Blob, onProgress: (share: number) => voi
     return {
       duration,
       cuts,
+      cutKinds: cuts.map((_, j) => kinds[j] ?? "hard"),
       zooms: zooms.filter((t, i) => i === 0 || t - zooms[i - 1] > 0.6),
       flashes,
       dips,

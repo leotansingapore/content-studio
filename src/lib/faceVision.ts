@@ -551,3 +551,10 @@ export async function facesIn(pictures: HTMLCanvasElement[]): Promise<FaceBox[][
     }),
   );
 }
+
+/** How many faces cover at least `minArea` of one frame (same edit's shot read: a speaker shot, or two people sharing it). */
+export async function countFaces(frame: HTMLCanvasElement | HTMLImageElement, minArea: number): Promise<number> {
+  const det = await faceDetector();
+  const [w, h] = frame instanceof HTMLImageElement ? [frame.naturalWidth, frame.naturalHeight] : [frame.width, frame.height];
+  return det.detect(frame).detections.filter((d) => d.boundingBox && (d.boundingBox.width * d.boundingBox.height) / Math.max(1, w * h) >= minArea).length;
+}
