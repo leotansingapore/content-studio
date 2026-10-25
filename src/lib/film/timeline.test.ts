@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { goodFilm } from "./fixtures";
+import * as server from "../../../supabase/functions/video-assist/filmSpec";
+import { goodFilm, shortFilm } from "./fixtures";
 import { BPM, beatSeconds, filmEvents, filmLength, rhythmIssues, sceneAt, sceneSpans, type Film, type FilmEnergy } from "./timeline";
 
 const withScene = (f: Film, id: string, patch: object): Film => ({ ...f, scenes: f.scenes.map((s) => (s.id === id ? ({ ...s, ...patch } as typeof s) : s)) });
@@ -80,5 +81,21 @@ describe("rhythmIssues", () => {
     expect(rhythmIssues(withScene(goodFilm(), "end", { beats: 2 }))).toEqual(["The logo shows for under 1.5 seconds."]);
     const noLogo = { ...goodFilm(), scenes: goodFilm().scenes.slice(0, -1) };
     expect(rhythmIssues(noLogo)).toContain("The film doesn't end on the logo.");
+  });
+});
+
+describe("one beat grid for the server and the studio", () => {
+  it("gives the same events and rhythm verdicts from video-assist's filmSpec and from timeline", () => {
+    expect(filmEvents).toBe(server.filmEvents);
+    expect(rhythmIssues).toBe(server.rhythmIssues);
+    // 3 cards over 24 beats land on its first 9 (the cards spread the studio draws), then nothing for 16
+    const longCards = withScene(goodFilm(), "features", { beats: 24 });
+    const noBurst = withScene(goodFilm(), "burst", { shots: [{ word: "Calls" }, { word: "Notes" }] });
+    for (const film of [goodFilm(), shortFilm(), longCards, noBurst]) {
+      expect(server.filmEvents(film)).toEqual(filmEvents(film));
+      expect(server.rhythmIssues(film)).toEqual(rhythmIssues(film));
+    }
+    expect(server.rhythmIssues(longCards)).toEqual(["Nothing happens from 0:18 to 0:26."]);
+    expect(server.rhythmIssues(noBurst)).toEqual(["There's no burst of fast cuts near the middle."]);
   });
 });
