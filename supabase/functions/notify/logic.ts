@@ -147,8 +147,10 @@ function postsFrom(raw: string | undefined): Post[] {
   for (const d of list.slice(0, 200)) {
     if (!d || typeof d !== "object" || typeof d.id !== "string" || !d.id) continue;
     const m = d.metrics && typeof d.metrics === "object" ? d.metrics : undefined;
-    // the real numbers pulled on Analytics for a post that went out through Zernio, over typed ones
-    const real = d.zernio?.numbers && typeof d.zernio.numbers === "object" ? realMetrics(d.zernio.numbers) : undefined;
+    // the real numbers pulled for a post that went out through Zernio, else for a hand-posted one linked to its
+    // live post (learn-real-numbers), over typed ones
+    const pulled = d.zernio?.numbers ?? d.live?.numbers;
+    const real = pulled && typeof pulled === "object" ? realMetrics(pulled) : undefined;
     out.push({
       id: d.id,
       hook: str(d.hook) ?? "",
