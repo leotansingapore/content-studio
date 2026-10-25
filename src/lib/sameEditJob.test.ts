@@ -236,7 +236,8 @@ describe("the pure parts", () => {
     expect(J.makePrice("none", 30)).toMatchObject({ usd: 0.0205 });
     expect(J.makeCaps("pr-1")).toEqual({ cap: "ai-video", caps: ["remix-make", "ai-voice"] });
     expect(J.askLine("mine", face)).toBe("This makes a video and uses about US$2.77 of video credit. Make it?");
-    expect(J.askLine("film", J.makePrice("film", 15))).toBe("This writes your script and uses about US$0.00. Make it?");
+    expect(J.askLine("film", J.makePrice("film", 15))).toBe("This writes your script and uses under US$0.01. Make it?");
+    expect(J.askLine("none", J.makePrice("none", 15))).toBe("This makes a video and uses about US$0.02. Make it?");
     expect(J.readCaps({ clone: true, teardown: false })).toEqual(["reel-style", "video-transcribe", "remix-teardown"]);
     const read = J.readPrice({ clone: true, seconds: 30, teardown: true });
     expect(read !== "pick" && read && Math.round(read.usd * 1000) / 1000).toBe(0.063);

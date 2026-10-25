@@ -28,7 +28,7 @@ import {
 import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
 import { links } from "@/lib/links";
 import { stripDashes } from "@/lib/plainText";
-import { priceOf, sumPrices, type Price } from "@/lib/prices";
+import { priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 import { fullText, requestMake, tooLongLine, type Flags } from "@/lib/remix";
 import { brandPack } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
@@ -380,7 +380,8 @@ export const makeCaps = (who: string): { cap: UsageFeature; caps: UsageFeature[]
 
 /** Leo's rule: a press that makes a video asks first. */
 export function askLine(who: string, price: Price | "pick" | null): string {
-  const usd = price && price !== "pick" ? `about US$${price.usd.toFixed(2)}` : "a little";
+  // the chip's own words, so the ask and the chip never disagree
+  const usd = price && price !== "pick" ? priceText(price).replace(/^\w/, (c) => c.toLowerCase()) : "a little";
   if (who === "film") return `This writes your script and uses ${usd}. Make it?`;
   return isFace(who) ? `This makes a video and uses ${usd} of video credit. Make it?` : `This makes a video and uses ${usd}. Make it?`;
 }
