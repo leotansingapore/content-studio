@@ -734,3 +734,11 @@ describe("saved presenters (people-presenters)", () => {
     expect(Object.keys(PRESENTER_PREFS)).toEqual(["gender", "age", "background", "dress"]);
   });
 });
+
+describe("the narrated script's system prompt for a person (pinned before the business voice, replay D14)", () => {
+  it("is today's, word for word, for every shape", async () => {
+    const today = (await import("./fixtures/narrated-person.json")).default as string[];
+    const cases = [{}, { seconds: 60 as const }, { source: { kind: "script" as const, text: "My own words here today and more." } }, { source: { kind: "link" as const, title: "T", text: "x" }, seconds: 60 as const }];
+    expect(cases.map((c) => narratedSystem(c))).toEqual(today);
+  });
+});
