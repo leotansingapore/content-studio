@@ -60,6 +60,8 @@ export type NavPage = {
   group?: string;
   /** No section tabs on this page. */
   bare?: boolean;
+  /** Its deeper addresses (/fads/positioning) are tabs of the page itself, so the row stays over them. */
+  subTabs?: boolean;
   /** The line under its tile on an index page (Settings), 12 words at most. */
   hint?: string;
 };
@@ -179,7 +181,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
-      { to: "/fads", label: "F.A.D.S." },
+      { to: "/fads", label: "F.A.D.S.", subTabs: true },
     ],
   },
   {
@@ -262,11 +264,14 @@ export type SectionTabs = { tabs: Tab[]; chips: Tab[]; back?: Tab };
 /**
  * The tab row at the top of a page: its section's pages, or, when they carry groups, one tab per group (opening the
  * group's first page this sign-in sees) with the open group's pages as chips under it. One of a kind is not a choice,
- * so a row of one is left out; a `bare` page gets none, and a page under an `index` section gets a way back instead.
+ * so a row of one is left out; a `bare` page or a detail address under a page gets none, and a page under an `index`
+ * section gets a way back instead.
  */
 export function sectionTabs(pathname: string, email: string): SectionTabs {
   const hit = pageFor(pathname);
   if (!hit || hit.page.bare) return { tabs: [], chips: [] };
+  // a detail page (a creator, a campaign, a format) has its own way back, as in Fastlane: no tabs over it
+  if ((pathname.replace(/\/+$/, "") || "/") !== hit.page.to && !hit.page.subTabs) return { tabs: [], chips: [] };
   const index = hit.section.index ? hit.section.pages[0] : null;
   if (index) return { tabs: [], chips: [], back: { to: index.to, label: hit.section.label, active: false } };
   const all = groupedPages(hit.section.pages);

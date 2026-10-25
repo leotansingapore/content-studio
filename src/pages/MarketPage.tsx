@@ -106,7 +106,7 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
   const firstTime = state.checks.length === 0;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+    <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold">Set up your market</h1>
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -292,7 +292,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
   const acts = latest ? actCount(latest, state) : 0;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+    <div className="max-w-3xl space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="flex items-center gap-1.5 text-2xl font-semibold">
           Your market<InfoTip>One check a week: news, AI answers and competitors' best posts.</InfoTip>

@@ -100,8 +100,10 @@ describe("nav", () => {
       expect(labels(tabs)).toEqual(["Top posts", "Trends", "Clone a reel", "Inspiration", "Creators", "Following"]);
       expect(tabs.filter((t) => t.active).map((t) => t.to)).toEqual(["/trends"]);
       expect(chips).toEqual([]);
-      // a creator's own page lights Creators
-      expect(sectionTabs("/profiles/abc", ANYONE).tabs.find((t) => t.active)?.to).toBe("/profiles");
+      // a detail page has its own way back: no row over a creator, a campaign or a format; F.A.D.S.'s own tabs keep it
+      for (const p of ["/profiles/abc", "/campaigns/new", "/campaigns/c1", "/make/slideshow", "/inspiration/i1"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
+      expect(sectionTabs("/fads/positioning", ANYONE).tabs.find((t) => t.active)?.to).toBe("/fads");
+      expect(sectionTabs("/drafts/", ANYONE).tabs.find((t) => t.active)?.to).toBe("/drafts");
     });
 
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {

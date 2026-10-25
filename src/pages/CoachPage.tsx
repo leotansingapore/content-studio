@@ -340,7 +340,7 @@ export default function CoachPage() {
   // No diagnosis yet → run it first, right inside the Coach.
   if (showQuiz) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="max-w-2xl space-y-6">
         <header>
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -362,7 +362,7 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
+    <div className="max-w-3xl space-y-10">
       <header>
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
