@@ -2554,6 +2554,33 @@ export default function GeneratePage() {
     persistDraftEntry(moved.body, chosenHook ?? "", moved.comment);
   };
 
+  // Leo only (publish-comments-followups): Instagram's trailing hashtags go under the first comment, with Undo.
+  const tagsMovable = Boolean(leo) && platform === "instagram" && moveHashtagsToComment(draft) !== null;
+  const moveTagsToComment = () => {
+    const moved = moveHashtagsToComment(draft, firstComment ?? "");
+    if (!moved) return;
+    const before = { text: draft, comment: firstComment };
+    setDraft(moved.body);
+    setUndoText(null);
+    setFirstComment(moved.comment);
+    persistDraftEntry(moved.body, chosenHook ?? "", moved.comment);
+    toast({
+      title: "Hashtags moved to the first comment",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            setDraft(before.text);
+            setFirstComment(before.comment);
+            persistDraftEntry(before.text, chosenHook ?? "", before.comment);
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
   const copyVersion = (v: PlatformVersion) => {
     if (warnBlocked(copyBlockFor(v.draftId, v.text))) return;
     const caption = format === "short-video" ? splitScriptCaption(v.text).caption : v.text;
@@ -2632,7 +2659,7 @@ export default function GeneratePage() {
     setSaveState("saving");
     const t = setTimeout(() => flushSave.current(), 800);
     return () => clearTimeout(t);
-  }, [draft, versions]);
+  }, [draft, versions, firstComment]);
   useEffect(() => {
     const onHide = () => document.visibilityState === "hidden" && flushSave.current();
     document.addEventListener("visibilitychange", onHide);
@@ -4205,7 +4232,8 @@ export default function GeneratePage() {
                 <ZernioStatus userId={userId} draft={savedEntry} onDrafts={() => setScheduleTick((n) => n + 1)} />
               </div>
             )}
-            {postOpen && savedEntry && userId && savedEntry.status === "scheduled" && savedEntry.scheduledFor && !savedEntry.zernio?.postId && (
+            {/* Leo's panel is the schedule steps (When included), so it opens on any post not yet out; it reads ?step= and ?network= itself */}
+            {postOpen && savedEntry && userId && (leo ? savedEntry.status !== "posted" : savedEntry.status === "scheduled" && savedEntry.scheduledFor) && !savedEntry.zernio?.postId && (
               <div className="mb-3">
                 <PostItForMePanel
                   userId={userId}
@@ -4609,9 +4637,19 @@ export default function GeneratePage() {
                   Move {findLinks(draft).length > 1 ? "links" : "link"} to first comment
                 </Button>
               )}
+              {tagsMovable && (
+                <Button variant="outline" size="sm" onClick={moveTagsToComment} className="h-11 gap-1.5 sm:h-9">
+                  <Hash className="h-3.5 w-3.5" /> Move hashtags to first comment
+                </Button>
+              )}
+              {leo && firstComment === null && platform !== "tiktok" && (
+                <Button variant="outline" size="sm" onClick={() => setFirstComment("")} className="h-11 gap-1.5 sm:h-9">
+                  <MessageSquare className="h-3.5 w-3.5" /> Add a first comment
+                </Button>
+              )}
             </div>
 
-            {firstComment && (
+            {(leo ? firstComment !== null : firstComment) && (
               <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -4629,7 +4667,24 @@ export default function GeneratePage() {
                     <Copy className="h-3 w-3" /> Copy
                   </Button>
                 </div>
-                <p className="whitespace-pre-wrap break-all font-mono text-xs text-foreground">{commentText}</p>
+                {leo ? (
+                  // Leo only: typed here, saved with the post as it is typed
+                  <Textarea
+                    aria-label="First comment"
+                    autoFocus={!firstComment}
+                    value={firstComment ?? ""}
+                    onChange={(e) => {
+                      setFirstComment(e.target.value);
+                      pendingSave.current.draft = true;
+                    }}
+                    onBlur={() => flushSave.current()}
+                    rows={Math.min(8, Math.max(2, (firstComment ?? "").split("\n").length + 1))}
+                    maxLength={1250}
+                    className="font-mono text-xs"
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap break-all font-mono text-xs text-foreground">{commentText}</p>
+                )}
               </div>
             )}
 
