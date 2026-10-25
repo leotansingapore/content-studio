@@ -78,6 +78,22 @@ export interface YouTubeInput {
   visibility: "public" | "unlisted" | "private";
 }
 
+/** Each network's own options (publish-per-network, Leo only). Defaults are left out. */
+export type Placement = "feed" | "reel" | "story";
+export interface InstagramInput {
+  placement: Placement;
+  shareToFeed?: false;
+  trial?: true;
+  collaborators?: string[];
+  commentsOff?: true;
+}
+export interface FacebookInput {
+  placement: Placement;
+}
+export interface LinkedInInput {
+  poll: { question: string; options: string[]; days: 1 | 3 | 7 | 14 };
+}
+
 /** What the screen sends to schedule a draft. */
 export interface ScheduleInput {
   /** A UUID made once per send of a draft; a retry with it never makes a second post (H4). */
@@ -95,6 +111,9 @@ export interface ScheduleInput {
   thread?: string[];
   /** A PDF's document title on LinkedIn, kept only beside a PDF (Leo only, formats-carousel-designs). */
   documentTitle?: string;
+  instagram?: InstagramInput;
+  facebook?: FacebookInput;
+  linkedin?: LinkedInInput;
 }
 
 /** A thread's posts, the first the root. Zernio's ThreadsPlatformData.threadItems (zernio.com/openapi.json, read 2026-10-21). */
@@ -107,6 +126,10 @@ const refuse = (error: string): Checked<never> => ({ error });
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PLACEMENTS: string[] = ["feed", "reel", "story"];
+const IG_USERNAME = /^[A-Za-z0-9._]{1,30}$/;
+/** Zernio's LinkedIn poll durations (docs.zernio.com/platforms/linkedin/fields.mdx). */
+const POLL_DURATION: Record<number, string> = { 1: "ONE_DAY", 3: "THREE_DAYS", 7: "SEVEN_DAYS", 14: "FOURTEEN_DAYS" };
 // hours 00-23 and minutes 00-59 only: Date.parse takes 24:00
 const ISO_WITH_OFFSET = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
 const PRIVACY = /^[A-Z_]{1,40}$/;
@@ -194,7 +217,47 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
     const visibility = y.visibility === "unlisted" || y.visibility === "private" ? y.visibility : "public";
     youtube = { title, visibility };
   }
-  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}) } };
+  const nets = networkOptions(b);
+  if ("error" in nets) return nets;
+  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}), ...nets.value } };
+}
+
+const obj = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : null);
+
+/** Instagram's, Facebook's and LinkedIn's options, each key only when sent, so a body without them reads as today's. */
+function networkOptions(b: Record<string, unknown>): Checked<Pick<ScheduleInput, "instagram" | "facebook" | "linkedin">> {
+  const out: Pick<ScheduleInput, "instagram" | "facebook" | "linkedin"> = {};
+  const ig = obj(b.instagram);
+  if (ig) {
+    if (!PLACEMENTS.includes(ig.placement as string)) return refuse("Pick Feed, Reel or Story for Instagram.");
+    const collaborators = (Array.isArray(ig.collaborators) ? ig.collaborators : []).map((c) => text(c).replace(/^@/, ""));
+    if (collaborators.length > 3) return refuse("Add up to 3 collaborators.");
+    if (collaborators.some((c) => !IG_USERNAME.test(c))) return refuse("Check the collaborators: an Instagram username has letters, numbers, dots and underscores.");
+    out.instagram = {
+      placement: ig.placement as Placement,
+      ...(ig.shareToFeed === false ? { shareToFeed: false as const } : {}),
+      ...(ig.trial === true ? { trial: true as const } : {}),
+      ...(collaborators.length ? { collaborators } : {}),
+      ...(ig.commentsOff === true ? { commentsOff: true as const } : {}),
+    };
+  }
+  const fb = obj(b.facebook);
+  if (fb) {
+    if (!PLACEMENTS.includes(fb.placement as string)) return refuse("Pick Feed, Reel or Story for Facebook.");
+    out.facebook = { placement: fb.placement as Placement };
+  }
+  const poll = obj(obj(b.linkedin)?.poll);
+  if (poll) {
+    const question = text(poll.question);
+    if (!question || question.length > 140) return refuse("Write the poll question in 140 characters or fewer.");
+    const options = (Array.isArray(poll.options) ? poll.options : []).map(text);
+    if (options.length < 2 || options.length > 4) return refuse("Give the poll 2 to 4 options.");
+    if (options.some((o) => !o || o.length > 30)) return refuse("Keep each poll option between 1 and 30 characters.");
+    const days = poll.days ?? 7;
+    if (typeof days !== "number" || !POLL_DURATION[days]) return refuse("Run the poll for 1 day, 3 days, 1 week or 2 weeks.");
+    out.linkedin = { poll: { question, options, days: days as LinkedInInput["poll"]["days"] } };
+  }
+  return { value: out };
 }
 
 export const captionFor = (input: ScheduleInput, platform: string) => input.captions[platform as SocialPlatform] ?? input.content;
@@ -216,6 +279,13 @@ export function platformProblem(input: ScheduleInput, platforms: string[]): stri
     // the formats on each platform's Zernio page
     if (["instagram", "threads", "linkedin"].includes(p) && input.mediaUrls.some((u) => /\.webp$/i.test(new URL(u).pathname))) return `${nameOf(p)} takes JPG or PNG pictures.`;
     if (p === "threads" && input.mediaUrls.some((u) => /\.mov$/i.test(new URL(u).pathname))) return "Threads takes MP4 videos.";
+    // each network's own options (publish-per-network), as its Zernio page sets them
+    const oneVideo = video && kinds.length === 1;
+    if (p === "instagram" && input.instagram?.placement === "reel" && !oneVideo) return "An Instagram Reel takes one video.";
+    if (p === "facebook" && input.facebook?.placement === "reel" && !oneVideo) return "A Facebook Reel takes one vertical video.";
+    if (p === "facebook" && input.facebook?.placement === "story" && !kinds.length) return "A Facebook Story needs a picture or video.";
+    if (p === "linkedin" && input.linkedin?.poll && kinds.length) return "A LinkedIn poll can't carry pictures or a video.";
+    if (input.firstComment && (p === "instagram" || p === "facebook") && input[p]?.placement === "story") return "Stories post no first comment. Take it off, or post to the feed.";
     if (p === "tiktok" && !input.tiktok) return "Pick who can see it on TikTok.";
   }
   return null;
@@ -250,6 +320,18 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
     // item 0 is the root post and carries the media; the rest are chained as replies
     data.threadItems = input.thread.map((content, i) => (i === 0 && input.mediaUrls.length ? { content, mediaItems: input.mediaUrls.map((url) => ({ url })) } : { content }));
   }
+  const ig = platform === "instagram" ? input.instagram : undefined;
+  if (ig?.placement === "story") data.contentType = "story";
+  else if (ig) {
+    // a single video goes as a Reel and pictures to the feed with no contentType (docs.zernio.com/platforms/instagram/fields.mdx)
+    if (ig.placement === "reel" && ig.shareToFeed === false) data.shareToFeed = false;
+    if (ig.placement === "reel" && ig.trial) data.trialParams = { graduationStrategy: "MANUAL" };
+    if (ig.collaborators?.length) data.collaborators = ig.collaborators;
+    if (ig.commentsOff) data.commentsEnabled = false;
+  }
+  if (platform === "facebook" && input.facebook && input.facebook.placement !== "feed") data.contentType = input.facebook.placement;
+  const poll = platform === "linkedin" ? input.linkedin?.poll : undefined;
+  if (poll) data.poll = { question: poll.question, options: poll.options, duration: POLL_DURATION[poll.days] };
   // a PDF goes as a document; LinkedIn requires its title (zernio.com/openapi.json LinkedInPlatformData, read 2026-10-21)
   if (platform === "linkedin" && input.documentTitle && input.mediaUrls.some(isPdf)) data.documentTitle = input.documentTitle;
   if (input.firstComment && FIRST_COMMENT_PLATFORMS.includes(platform)) data.firstComment = input.firstComment;
@@ -306,7 +388,8 @@ export function checkUpload(raw: Record<string, unknown>): Checked<UploadFile> {
 
 /** A schedule body without what only NORTH_STAR_USERS may send: ignored, not refused, so today's posts never change (decision 3). */
 function todays(b: Record<string, unknown>): Record<string, unknown> {
-  return b.tiktok && typeof b.tiktok === "object" ? { ...b, tiktok: { ...b.tiktok, mode: undefined } } : b;
+  const { instagram: _ig, facebook: _fb, linkedin: _li, ...rest } = b;
+  return rest.tiktok && typeof rest.tiktok === "object" ? { ...rest, tiktok: { ...rest.tiktok, mode: undefined } } : rest;
 }
 
 /**

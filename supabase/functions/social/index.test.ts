@@ -186,7 +186,13 @@ describe("the social function", () => {
     // every field 7a adds to a schedule, each in a shape a listed caller may send
     const withNew = () => {
       const b = today();
-      return { ...b, tiktok: { ...b.tiktok, mode: "inbox" } };
+      return {
+        ...b,
+        tiktok: { ...b.tiktok, mode: "inbox" },
+        instagram: { placement: "feed", collaborators: ["moneybees"], commentsOff: true },
+        facebook: { placement: "story" },
+        linkedin: { poll: { question: "Which do you check first?", options: ["Premiums", "Cover"], days: 3 } },
+      };
     };
     const posted = () => sent.filter((s) => s.call === "POST /api/v1/posts").map((s) => s.body);
 
@@ -202,6 +208,7 @@ describe("the social function", () => {
       expect((await call(UID, { ...withNew(), scheduledFor: plain.scheduledFor })).status).toBe(200);
       expect(JSON.stringify(posted()[2])).not.toBe(JSON.stringify(a));
       expect(JSON.stringify(posted()[2])).toContain('"tiktokSettings":{"draft":true');
+      expect(JSON.stringify(posted()[2])).toContain('"collaborators":["moneybees"],"commentsEnabled":false');
     });
   });
 

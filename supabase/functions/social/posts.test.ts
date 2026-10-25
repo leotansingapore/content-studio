@@ -292,6 +292,95 @@ describe("TikTok inbox mode (publish-tiktok, Leo only)", () => {
   });
 });
 
+// Fixtures copy https://docs.zernio.com/platforms/instagram/fields.mdx, https://docs.zernio.com/platforms/facebook/posts.mdx
+// and https://docs.zernio.com/platforms/linkedin/fields.mdx (read 2026-10-25): Instagram contentType "story" (omit
+// otherwise), shareToFeed and trialParams for Reels, up to 3 collaborators, commentsEnabled false; Facebook
+// contentType "story" or "reel"; a LinkedIn poll of 1-140 characters, 2-4 options of 1-30, ONE_DAY to FOURTEEN_DAYS.
+describe("each network's own options (publish-per-network, Leo only)", () => {
+  const FB = "65000000000000000000a006";
+  const sched = (extra: Record<string, unknown>) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls: [MP4], ...extra }, NOW);
+  const poll = (p: Record<string, unknown>) => sched({ mediaUrls: [], linkedin: { poll: { question: "Which do you check first?", options: ["Premiums", "Cover"], ...p } } });
+  const data = (i: ScheduleInput, platform: string, id = IG) => (postBody(i, [{ _id: id, platform }]).platforms as { platformSpecificData?: Record<string, unknown> }[])[0].platformSpecificData;
+
+  it("reads Instagram's placement, feed sharing, trial, collaborators and comments", () => {
+    expect(sched({ instagram: { placement: "reel", shareToFeed: false, trial: true, collaborators: ["@moneybees", " leo.tan_sg "], commentsOff: true } })).toMatchObject({
+      value: { instagram: { placement: "reel", shareToFeed: false, trial: true, collaborators: ["moneybees", "leo.tan_sg"], commentsOff: true } },
+    });
+    // defaults stay out of the input
+    expect((sched({ instagram: { placement: "feed", shareToFeed: true, trial: false, collaborators: [], commentsOff: false } }) as { value: ScheduleInput }).value.instagram).toEqual({ placement: "feed" });
+    expect(sched({ instagram: { placement: "carousel" } })).toEqual({ error: "Pick Feed, Reel or Story for Instagram." });
+    expect(sched({ instagram: { placement: "feed", collaborators: ["a", "b", "c", "d"] } })).toEqual({ error: "Add up to 3 collaborators." });
+    for (const bad of ["leo tan", "leo/tan", "x".repeat(31), "@"]) {
+      expect(sched({ instagram: { placement: "feed", collaborators: [bad] } }), bad).toEqual({ error: "Check the collaborators: an Instagram username has letters, numbers, dots and underscores." });
+    }
+  });
+
+  it("reads Facebook's placement and LinkedIn's poll, and refuses a poll Zernio would", () => {
+    expect(sched({ facebook: { placement: "reel" } })).toMatchObject({ value: { facebook: { placement: "reel" } } });
+    expect(sched({ facebook: { placement: "live" } })).toEqual({ error: "Pick Feed, Reel or Story for Facebook." });
+    expect(poll({})).toMatchObject({ value: { linkedin: { poll: { question: "Which do you check first?", options: ["Premiums", "Cover"], days: 7 } } } });
+    expect(poll({ days: 14, options: [" Premiums ", "Cover", "Exclusions", "Waiting time"] })).toMatchObject({ value: { linkedin: { poll: { options: ["Premiums", "Cover", "Exclusions", "Waiting time"], days: 14 } } } });
+    expect(poll({ question: "" })).toEqual({ error: "Write the poll question in 140 characters or fewer." });
+    expect(poll({ question: "x".repeat(141) })).toEqual({ error: "Write the poll question in 140 characters or fewer." });
+    expect(poll({ options: ["Only one"] })).toEqual({ error: "Give the poll 2 to 4 options." });
+    expect(poll({ options: ["a", "b", "c", "d", "e"] })).toEqual({ error: "Give the poll 2 to 4 options." });
+    expect(poll({ options: ["a", " "] })).toEqual({ error: "Keep each poll option between 1 and 30 characters." });
+    expect(poll({ options: ["a", "x".repeat(31)] })).toEqual({ error: "Keep each poll option between 1 and 30 characters." });
+    expect(poll({ days: 5 })).toEqual({ error: "Run the poll for 1 day, 3 days, 1 week or 2 weeks." });
+    // no poll: no linkedin key, so the input is today's
+    expect((sched({ mediaUrls: [], linkedin: {} }) as { value: ScheduleInput }).value).not.toHaveProperty("linkedin");
+  });
+
+  it("refuses, in plain words, what the picked networks can't take", () => {
+    const reel = input({ instagram: { placement: "reel" } });
+    expect(platformProblem(reel, ["instagram"])).toBe("An Instagram Reel takes one video.");
+    expect(platformProblem(input({ mediaUrls: [MP4], instagram: { placement: "reel" } }), ["instagram"])).toBeNull();
+    // only the networks picked: the same input to LinkedIn alone goes
+    expect(platformProblem(reel, ["linkedin"])).toBeNull();
+    expect(platformProblem(input({ facebook: { placement: "reel" } }), ["facebook"])).toBe("A Facebook Reel takes one vertical video.");
+    expect(platformProblem(input({ mediaUrls: [], facebook: { placement: "reel" } }), ["facebook"])).toBe("A Facebook Reel takes one vertical video.");
+    expect(platformProblem(input({ mediaUrls: [MP4], facebook: { placement: "reel" } }), ["facebook"])).toBeNull();
+    expect(platformProblem(input({ mediaUrls: [], facebook: { placement: "story" } }), ["facebook"])).toBe("A Facebook Story needs a picture or video.");
+    const pollIn = { poll: { question: "Which?", options: ["a", "b"], days: 7 as const } };
+    expect(platformProblem(input({ linkedin: pollIn }), ["linkedin"])).toBe("A LinkedIn poll can't carry pictures or a video.");
+    expect(platformProblem(input({ mediaUrls: [], linkedin: pollIn }), ["linkedin"])).toBeNull();
+    const story = "Stories post no first comment. Take it off, or post to the feed.";
+    expect(platformProblem(input({ firstComment: "Link: https://x.sg", instagram: { placement: "story" } }), ["instagram"])).toBe(story);
+    expect(platformProblem(input({ firstComment: "Link: https://x.sg", facebook: { placement: "story" } }), ["facebook", "linkedin"])).toBe(story);
+    expect(platformProblem(input({ firstComment: "Link: https://x.sg", instagram: { placement: "feed" } }), ["instagram"])).toBeNull();
+  });
+
+  it("maps them to platformSpecificData on that network's entry", () => {
+    expect(data(input({ mediaUrls: [MP4], instagram: { placement: "reel", shareToFeed: false, trial: true, collaborators: ["moneybees"], commentsOff: true } }), "instagram")).toEqual({
+      shareToFeed: false,
+      trialParams: { graduationStrategy: "MANUAL" },
+      collaborators: ["moneybees"],
+      commentsEnabled: false,
+    });
+    // a Story takes none of the feed's options; a feed post takes no Reel ones
+    expect(data(input({ instagram: { placement: "story", collaborators: ["moneybees"], commentsOff: true } }), "instagram")).toEqual({ contentType: "story" });
+    expect(data(input({ instagram: { placement: "feed", shareToFeed: false, trial: true, collaborators: ["moneybees"] } }), "instagram")).toEqual({ collaborators: ["moneybees"] });
+    expect(data(input({ instagram: { placement: "feed" } }), "instagram")).toBeUndefined();
+    expect(data(input({ mediaUrls: [MP4], facebook: { placement: "reel" } }), "facebook", FB)).toEqual({ contentType: "reel" });
+    expect(data(input({ facebook: { placement: "story" } }), "facebook", FB)).toEqual({ contentType: "story" });
+    expect(data(input({ facebook: { placement: "feed" } }), "facebook", FB)).toBeUndefined();
+    for (const [days, duration] of [[1, "ONE_DAY"], [3, "THREE_DAYS"], [7, "SEVEN_DAYS"], [14, "FOURTEEN_DAYS"]] as const) {
+      expect(data(input({ mediaUrls: [], linkedin: { poll: { question: "Which?", options: ["a", "b"], days } } }), "linkedin", LI)).toEqual({ poll: { question: "Which?", options: ["a", "b"], duration } });
+    }
+    // each network's options stay on its own entry
+    const mixed = postBody(input({ mediaUrls: [MP4], instagram: { placement: "story" }, facebook: { placement: "reel" } }), [{ _id: LI, platform: "linkedin" }, { _id: IG, platform: "instagram" }]);
+    expect((mixed.platforms as { platformSpecificData?: unknown }[]).map((p) => p.platformSpecificData)).toEqual([undefined, { contentType: "story" }]);
+  });
+
+  it("drops all of them for a caller off NORTH_STAR_USERS, a malformed one too, before any check", () => {
+    const body = { action: "schedule", profileId: "me", accountIds: [IG], clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls: [PNG], instagram: { placement: "nope" }, facebook: { placement: "story" }, linkedin: { poll: { question: "" } } };
+    const off = parsePostRequest(body, NOW, false) as { ok: true; req: { input: ScheduleInput } };
+    expect(off.ok).toBe(true);
+    expect(off.req.input).toEqual(input({ content: "hi" }));
+    expect(parsePostRequest(body, NOW, true)).toEqual({ ok: false, status: 400, error: "Pick Feed, Reel or Story for Instagram." });
+  });
+});
+
 describe("schedule", () => {
   it("posts from the caller's own accounts with the H4 key, and returns the checked post", async () => {
     const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG, LI]) });
