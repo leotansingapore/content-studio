@@ -290,6 +290,133 @@ describe("the checks everyone has", () => {
   });
 });
 
+describe("the post modes (north star phase 7, Leo only)", () => {
+  const draft = "I sat with a client last Tuesday who had three hospital plans and no idea which one paid first. We spent an hour on it, and here is what we found.";
+  const malay = "Ramai orang fikir insurans itu mahal. Sebenarnya yang mahal ialah bila anda jatuh sakit dan tiada perlindungan. Minggu lepas seorang klien saya bayar $11,400 untuk wad hospital kerana plan dia sudah luput.";
+  const bodies: Record<string, Record<string, unknown>> = {
+    "same-post": { mode: "same-post", pairs: [{ key: "p1|d1", draft, live: draft, platform: "linkedin" }, { key: "p1|d2", draft: `${draft} Again.`, live: draft, platform: "linkedin" }] },
+    grade: { mode: "grade", text: draft, platform: "linkedin", format: "text-post", posted: "2026-10-20T01:00:00.000Z", words: 31, ratio: 2.4, direction: "above", best: [{ firstLine: "Three plans, one claim.", format: "carousel", posted: "2026-10-01T01:00:00.000Z" }] },
+    tags: { mode: "tags", posts: [{ id: "d1", text: draft, needHook: true }, { id: "d2", text: draft, needHook: false }] },
+    "try-next": { mode: "try-next", audience: "young parents in Singapore", topics: ["hospital plans", "CPF"], best: ["Three plans, one claim."], untried: ["list", "myth-bust", "receipt"] },
+    evergreen: { mode: "evergreen", text: draft },
+  };
+  // the cap each mode counts, and its daily limit (contracts: usageCaps.ts "North star phase 7")
+  const caps: Record<string, [string, number]> = {
+    "same-post": ["post-match", 20],
+    grade: ["post-grade", 30],
+    tags: ["post-angles", 10],
+    "try-next": ["post-angles", 10],
+    evergreen: ["winner-check", 5],
+  };
+  const answers: Record<string, () => Response> = {
+    "same-post": () => Response.json({ answers: { same_0: { type: "noul", noul: 0.86 }, same_1: { type: "noul", noul: 0.31 } } }),
+    grade: () => Response.json({ answers: { reason: { type: "choice", choice: "hook", probabilities: { hook: 0.55 } } } }),
+    tags: () => Response.json({ answers: { "angle:d1": { type: "choice", choice: "storytelling", probabilities: { storytelling: 0.8 } }, "hook:d1": { type: "choice", choice: "none", probabilities: { none: 0.7 } }, "angle:d2": { type: "choice", choice: "educational", probabilities: { educational: 0.3 } } } }),
+    "try-next": () => Response.json({ answers: { try_list: { type: "noul", noul: 0.72 }, "try_myth-bust": { type: "noul", noul: 0.91 }, try_receipt: { type: "noul", noul: 0.4 } } }),
+    evergreen: () => Response.json({ answers: { evergreen: { type: "noul", noul: 0.2 } } }),
+  };
+  const replies: Record<string, unknown> = {
+    "same-post": { links: ["p1|d1"], p: { "p1|d1": 0.86, "p1|d2": 0.31 } },
+    grade: { reason: "hook", p: 0.55 },
+    tags: { tags: { d1: { angle: "Storytelling", hook: "none" }, d2: { angle: "unclear" } } },
+    "try-next": { hooks: ["myth-bust", "list"] },
+    evergreen: { evergreen: false },
+  };
+  const count = (uid: string, cap: string) => db.rows.get(`${uid}|${cap}|${db.today()}`) ?? 0;
+
+  for (const mode of Object.keys(bodies)) {
+    const [cap, limit] = caps[mode];
+    describe(mode, () => {
+      it("is refused off the list before counting anything or asking Jev", async () => {
+        const res = await ask(OTHER, bodies[mode]);
+        expect(res.status).toBe(403);
+        expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+        expect(db.rows.size).toBe(0);
+        expect(calls).toEqual([]);
+      });
+      it(`answers for one ${cap} use and none of writing-judge's, logging p values and never the words`, async () => {
+        jev = answers[mode];
+        const log = vi.spyOn(console, "log").mockImplementation(() => {});
+        try {
+          const res = await ask(LEO, bodies[mode]);
+          expect(res.status).toBe(200);
+          expect(await res.json()).toEqual(replies[mode]);
+          expect(log.mock.calls).toHaveLength(1);
+          expect(log.mock.calls[0][0]).toBe(`writing-judge ${mode}`);
+          expect(JSON.stringify(log.mock.calls)).not.toMatch(/client|hospital|parents|plans/);
+        } finally {
+          log.mockRestore();
+        }
+        expect(count(LEO, cap)).toBe(1);
+        expect(used(LEO)).toBe(0);
+        expect(calls).toHaveLength(1);
+        expect((sent[0] as { model: string }).model).toBe("jev-1.13.0");
+      });
+      it("gives the use back with 502 failed when Jev never answered", async () => {
+        const res = await ask(LEO, bodies[mode]);
+        expect(res.status).toBe(502);
+        expect(await res.json()).toEqual({ code: "failed", error: "The check is unavailable for a moment. Try again shortly." });
+        expect(count(LEO, cap)).toBe(0);
+      });
+      it(`stops at ${limit} a day without asking Jev`, async () => {
+        db.rows.set(`${LEO}|${cap}|${db.today()}`, limit);
+        const res = await ask(LEO, bodies[mode]);
+        expect(res.status).toBe(429);
+        expect(await res.json()).toMatchObject({ code: "daily_limit" });
+        expect(calls).toEqual([]);
+      });
+    });
+  }
+
+  it("tags a batch of 20 holding one Malay post with no 422: the Malay one 'unclear', never asked", async () => {
+    const posts = Array.from({ length: 20 }, (_, i) => ({ id: `d${i}`, text: i === 7 ? malay : draft, needHook: true }));
+    jev = (body) => Response.json({
+      answers: Object.fromEntries(Object.keys(body.questions).map((id) => [id, id.startsWith("angle:")
+        ? { type: "choice", choice: "educational", probabilities: { educational: 0.7 } }
+        : { type: "choice", choice: "list", probabilities: { list: 0.6 } }])),
+    });
+    const res = await ask(LEO, { mode: "tags", posts });
+    expect(res.status).toBe(200);
+    const { tags } = await res.json();
+    expect(tags.d7).toEqual({ angle: "unclear", hook: "unclear" });
+    expect(tags.d0).toEqual({ angle: "Educational", hook: "list" });
+    expect(Object.keys(tags)).toHaveLength(20);
+    const q = Object.keys((sent[0] as { questions: object }).questions);
+    expect(q).toHaveLength(38);
+    expect(q.some((id) => id.endsWith(":d7"))).toBe(false);
+    expect(count(LEO, "post-angles")).toBe(1);
+  });
+
+  it("answers a batch with nothing in English without asking Jev or counting", async () => {
+    const res = await ask(LEO, { mode: "tags", posts: [{ id: "d1", text: malay, needHook: false }] });
+    expect(await res.json()).toEqual({ tags: { d1: { angle: "unclear" } } });
+    const pairs = await ask(LEO, { mode: "same-post", pairs: [{ key: "k", draft: malay, live: malay, platform: "tiktok" }] });
+    expect(await pairs.json()).toEqual({ links: [], p: { k: null } });
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses a grade or an evergreen check of a Malay post with 422 before counting anything", async () => {
+    for (const mode of ["grade", "evergreen"]) {
+      const res = await ask(LEO, { ...bodies[mode], text: malay });
+      expect(res.status).toBe(422);
+      expect(await res.json()).toMatchObject({ code: "not_english" });
+    }
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses a bad body with bad_request before counting anything, 21 posts to tag included", async () => {
+    const posts = Array.from({ length: 21 }, (_, i) => ({ id: `d${i}`, text: draft, needHook: false }));
+    const res = await ask(LEO, { mode: "tags", posts });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ code: "bad_request", error: "Send 1 to 20 posts, each with an id and its text." });
+    expect((await ask(LEO, { mode: "grade", text: draft, platform: "linkedin", ratio: 2 })).status).toBe(400);
+    expect(db.rows.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+});
+
 // Every check as it is today, pinned before the conflict mode joined (phase 4 memory-core): the Jev request each
 // one sends and the answer it gives back. Never update this file with vitest -u.
 describe("today's checks, pinned", () => {

@@ -49,7 +49,37 @@ import {
   goalPick,
   goalState,
   goalTop,
+  ANGLE_CRITERIA,
+  EN_WORDS_MIN,
+  EVERGREEN_MIN,
+  EVERGREEN_QUESTIONS,
+  GRADE_CRITERIA,
+  GRADE_MIN,
+  GRADE_REASONS,
+  MAX_PAIRS,
+  MAX_TAG_POSTS,
+  MODES,
+  SAME_POST_MIN,
+  TAG_MIN,
+  TRY_MIN,
+  evergreenState,
+  gradeQuestions,
+  gradeState,
+  readEvergreen,
+  readGrade,
+  readSamePost,
+  readTags,
+  readTryNext,
+  readsEnglish,
+  samePostQuestions,
+  tagsQuestions,
+  tryNextQuestions,
+  tryNextState,
+  type GradeRequest,
 } from "./logic";
+import { ANGLES } from "@/lib/postLabels";
+import { HOOK_FORMULAS } from "@/lib/hookFormulas";
+import { TAG_MIN as SHARED_TAG_MIN } from "../_shared/tags";
 
 const post = "My client paid $0 for his ward stay.\nHis colleague paid $11,400.\n\nThe result? One rider at 3.5% of his premium. Thoughts?";
 
@@ -433,5 +463,221 @@ describe("the goal kind (plan-goal)", () => {
   it("logs Jev's top kind below the cut too, so the cut can be read off real goals", () => {
     expect(goalTop(choice("trust", 0.59))).toEqual({ kind: "trust", p: 0.59 });
     expect(goalTop(null)).toEqual({ kind: null, p: null });
+  });
+});
+
+// ---- North star phase 7: posts already out ----------------------------------------------------------
+
+const english = "I sat with a client last Tuesday who had three hospital plans and no idea which one paid first. We spent an hour on it, and here is what we found.";
+const malay = "Ramai orang fikir insurans itu mahal. Sebenarnya yang mahal ialah bila anda jatuh sakit dan tiada perlindungan. Minggu lepas seorang klien saya bayar $11,400 untuk wad hospital kerana plan dia sudah luput.";
+const noul = (p: number) => ({ type: "noul" as const, noul: p });
+const choice = (c: string, p: number) => ({ type: "choice" as const, choice: c, probabilities: { [c]: p } });
+
+describe("readsEnglish", () => {
+  it("reads English and Singlish as English, and Malay, Chinese or no letters as not", () => {
+    expect(readsEnglish(english)).toBe(true);
+    expect(readsEnglish("Wah CPF top up this year can or not? I checked already, the relief is only for the first $8,000 you put in lah.")).toBe(true);
+    expect(readsEnglish(malay)).toBe(false);
+    expect(readsEnglish("\u4fdd\u9669\u5176\u5b9e\u4e0d\u8d35\u3002\u771f\u6b63\u8d35\u7684\u662f\u53d1\u73b0\u81ea\u5df1\u6ca1\u6709\u4fdd\u969c\u3002")).toBe(false);
+    expect(readsEnglish("12345 !!!")).toBe(false);
+  });
+
+  it("leaves hashtags, handles and links out of the count, and lets mostlyEnglish decide a short caption", () => {
+    expect(readsEnglish("Medishield life vs integrated shield plans #singapore #medishield #insurance #medicalinsurance #cpf #sgfinance https://x.co/a")).toBe(true);
+    expect(readsEnglish("Semak polisi anda hari ini")).toBe(true);
+    expect(EN_WORDS_MIN).toBe(0.06);
+  });
+});
+
+describe("parseJudgeRequest, the post modes", () => {
+  const pair = (k: string) => ({ key: k, draft: english, live: english, platform: "linkedin" });
+
+  it("joins the five post modes to MODES", () => {
+    for (const m of ["same-post", "grade", "tags", "try-next", "evergreen"]) expect(MODES).toContain(m);
+  });
+
+  it("takes 1 to 10 same-post pairs, cut to 600 and 300 characters, and refuses 11, repeats or a missing half", () => {
+    const r = parseJudgeRequest({ mode: "same-post", pairs: [{ key: "p1|d1", draft: "x".repeat(900), live: "y".repeat(500), platform: "instagram" }] });
+    expect(r).toEqual({ ok: true, request: { mode: "same-post", pairs: [{ key: "p1|d1", draft: "x".repeat(600), live: "y".repeat(300), platform: "instagram" }] } });
+    expect(parseJudgeRequest({ mode: "same-post", pairs: Array.from({ length: MAX_PAIRS }, (_, i) => pair(`k${i}`)) })).toMatchObject({ ok: true });
+    expect(parseJudgeRequest({ mode: "same-post", pairs: Array.from({ length: MAX_PAIRS + 1 }, (_, i) => pair(`k${i}`)) })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "same-post", pairs: [pair("a"), pair("a")] })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "same-post", pairs: [{ ...pair("a"), live: " " }] })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "same-post", pairs: [] })).toMatchObject({ ok: false });
+  });
+
+  it("takes 1 to 20 posts to tag and refuses 21", () => {
+    const posts = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `d${i}`, text: english, needHook: i % 2 === 0 }));
+    const r = parseJudgeRequest({ mode: "tags", posts: posts(MAX_TAG_POSTS) });
+    expect(r).toMatchObject({ ok: true });
+    expect(r.ok && r.request.mode === "tags" && r.request.posts[1]).toEqual({ id: "d1", text: english, needHook: false });
+    expect(parseJudgeRequest({ mode: "tags", posts: posts(MAX_TAG_POSTS + 1) })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "tags", posts: [{ id: "d1", text: "" }] })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "tags", posts: [{ id: "d1", text: english, needHook: "yes" }] })).toMatchObject({ ok: true, request: { posts: [{ needHook: false }] } });
+  });
+
+  it("takes a grade with all five reasons by default, only the known ones offered, and at least two", () => {
+    const base = { mode: "grade", text: english, platform: "linkedin", format: "text-post", posted: "2026-10-20T01:00:00.000Z", words: 31.4, ratio: 2.43, direction: "above" };
+    const r = parseJudgeRequest({ ...base, best: [{ firstLine: "Three plans, one claim.", format: "carousel", posted: "2026-10-01T01:00:00.000Z" }, {}, 4, { firstLine: "a" }, { firstLine: "b" }] });
+    expect(r).toEqual({
+      ok: true,
+      request: { ...base, words: 31, reasons: [...GRADE_REASONS], best: [{ firstLine: "Three plans, one claim.", format: "carousel", posted: "2026-10-01T01:00:00.000Z" }, { firstLine: "a", format: "", posted: "" }, { firstLine: "b", format: "", posted: "" }] },
+    });
+    expect(parseJudgeRequest({ ...base, reasons: ["ask", "hook", "weather"] })).toMatchObject({ ok: true, request: { reasons: ["hook", "ask"] } });
+    expect(parseJudgeRequest({ ...base, reasons: ["hook"] })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ ...base, direction: "same" })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ ...base, ratio: "2" })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ ...base, text: "x".repeat(2000) })).toMatchObject({ ok: true, request: { text: "x".repeat(1500) } });
+  });
+
+  it("takes try-next with the known formula ids only, and needs an audience or topics", () => {
+    const r = parseJudgeRequest({ mode: "try-next", audience: "young parents", topics: "CPF, hospital plans", best: ["a", "b", "c", "d"], untried: ["myth-bust", "made-up", "list"] });
+    expect(r).toEqual({ ok: true, request: { mode: "try-next", audience: "young parents", topics: ["CPF", "hospital plans"], best: ["a", "b", "c"], untried: ["list", "myth-bust"] } });
+    expect(parseJudgeRequest({ mode: "try-next", audience: "", topics: [], untried: ["list"] })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "try-next", audience: "parents", untried: ["made-up"] })).toMatchObject({ ok: false });
+  });
+
+  it("takes an evergreen check of a post with some text", () => {
+    expect(parseJudgeRequest({ mode: "evergreen", text: ` ${english} ` })).toEqual({ ok: true, request: { mode: "evergreen", text: english } });
+    expect(parseJudgeRequest({ mode: "evergreen", text: "Hi" })).toMatchObject({ ok: false });
+  });
+});
+
+describe("the same-post check (learn-real-numbers)", () => {
+  const pairs = [
+    { key: "p1|d1", draft: english, live: english, platform: "linkedin" },
+    { key: "p1|d2", draft: `${english} Again.`, live: english, platform: "linkedin" },
+    { key: "p2|d3", draft: english, live: `${english} #cpf`, platform: "instagram" },
+  ];
+
+  it("asks one yes/no per pair with both halves, and none for a pair with a half not in English", () => {
+    const q = samePostQuestions([...pairs, { key: "p3|d4", draft: english, live: malay, platform: "tiktok" }]);
+    expect(Object.keys(q)).toEqual(["same_0", "same_1", "same_2"]);
+    expect(q.same_0).toMatchObject({ type: "noul", instructions: { platform: "LinkedIn", draft: english, live: english } });
+    expect((q.same_0 as { criteria: { true: string } }).criteria.true).toBe("Yes: same topic, same points in the same order, mostly the same sentences.");
+  });
+
+  it("links a pair at 0.7, only when it is the one pair for that pulled post that clears it", () => {
+    expect(SAME_POST_MIN).toBe(0.7);
+    const read = readSamePost({ same_0: noul(0.7), same_1: noul(0.69), same_2: noul(0.91) }, pairs);
+    expect(read).toEqual({ links: ["p1|d1", "p2|d3"], p: { "p1|d1": 0.7, "p1|d2": 0.69, "p2|d3": 0.91 } });
+    expect(readSamePost({ same_0: noul(0.8), same_1: noul(0.75), same_2: noul(0.2) }, pairs).links).toEqual([]);
+    expect(readSamePost({ same_0: noul(0.699), same_2: noul(0.5) }, pairs)).toEqual({ links: [], p: { "p1|d1": 0.7, "p1|d2": null, "p2|d3": 0.5 } });
+    expect(readSamePost({ same_0: noul(0.6949) }, pairs).links).toEqual([]);
+    expect(readSamePost(null, pairs)).toEqual({ links: [], p: { "p1|d1": null, "p1|d2": null, "p2|d3": null } });
+  });
+});
+
+describe("the grade reason (learn-post-grade)", () => {
+  const r: GradeRequest = {
+    mode: "grade", text: english, platform: "linkedin", format: "text-post", posted: "2026-10-20T01:00:00.000Z", words: 31, ratio: 2.43, direction: "above",
+    best: [{ firstLine: "Three plans, one claim.", format: "carousel", posted: "2026-10-01T01:00:00.000Z" }], reasons: [...GRADE_REASONS],
+  };
+
+  it("names better or worse by direction, with the five criteria or only the ones offered", () => {
+    const up = gradeQuestions(r).reason as { type: string; instructions: string; criteria: Record<string, string> };
+    expect(up.type).toBe("choice");
+    expect(up.instructions).toBe("This post by a Singapore financial adviser got 2.4x their usual engagement on LinkedIn. Which ONE thing most likely explains why it did better than usual? `best` are their best recent posts on the same network.");
+    expect(up.criteria).toEqual(GRADE_CRITERIA);
+    expect(Object.keys(GRADE_CRITERIA)).toEqual(["hook", "topic", "format", "timing", "ask"]);
+    const down = gradeQuestions({ ...r, ratio: 0.4, direction: "below", reasons: ["topic", "ask"] }).reason as { instructions: string; criteria: object };
+    expect(down.instructions).toContain("got 0.4x their usual engagement on LinkedIn");
+    expect(down.instructions).toContain("why it did worse than usual");
+    expect(Object.keys(down.criteria)).toEqual(["topic", "ask"]);
+    expect(gradeState(r)).toEqual({
+      post: english, platform: "LinkedIn", format: "text-post", posted: r.posted, words: 31, vs_usual: "2.4x",
+      best: [{ first_line: "Three plans, one claim.", format: "carousel", posted: "2026-10-01T01:00:00.000Z" }],
+    });
+  });
+
+  it("gives the reason at 0.4 and nothing just under it, and nulls for a missing or unoffered answer", () => {
+    expect(GRADE_MIN).toBe(0.4);
+    expect(readGrade({ reason: choice("hook", 0.4) }, GRADE_REASONS)).toEqual({ reason: "hook", p: 0.4 });
+    expect(readGrade({ reason: choice("hook", 0.39) }, GRADE_REASONS)).toEqual({ reason: null, p: 0.39 });
+    expect(readGrade({ reason: choice("hook", 0.399) }, GRADE_REASONS)).toEqual({ reason: null, p: 0.4 });
+    expect(readGrade({ reason: choice("timing", 0.9) }, ["hook", "ask"])).toEqual({ reason: null, p: null });
+    expect(readGrade({}, GRADE_REASONS)).toEqual({ reason: null, p: null });
+    expect(readGrade(null, GRADE_REASONS)).toEqual({ reason: null, p: null });
+  });
+});
+
+describe("the post tags (learn-format-winners)", () => {
+  const posts = [
+    { id: "d1", text: `Most people say clear your home loan early.\n${english}`, needHook: true },
+    { id: "d2", text: english, needHook: false },
+    { id: "d3", text: malay, needHook: true },
+  ];
+
+  it("keeps the angles in step with /swipe's ANGLES and the hook options with the 21 formulas plus none", () => {
+    expect(Object.keys(ANGLE_CRITERIA)).toEqual([...ANGLES]);
+    const q = tagsQuestions(posts.slice(0, 1));
+    const hook = q["hook:d1"] as { criteria: Record<string, string> };
+    expect(Object.keys(hook.criteria)).toEqual([...HOOK_FORMULAS.map((f) => f.id), "none"]);
+    const list = HOOK_FORMULAS.find((f) => f.id === "list")!;
+    expect(hook.criteria.list).toBe(`${list.name}: ${list.template}`);
+    expect(hook.criteria.none).toBe("None of these shapes");
+    expect(Object.values((q["angle:d1"] as { criteria: Record<string, string> }).criteria)).toEqual(Object.values(ANGLE_CRITERIA));
+    expect(TAG_MIN).toBe(SHARED_TAG_MIN);
+  });
+
+  it("asks an angle per English post and a hook on its first line only when needHook; a Malay post gets no question", () => {
+    const q = tagsQuestions(posts);
+    expect(Object.keys(q)).toEqual(["angle:d1", "hook:d1", "angle:d2"]);
+    expect(q["angle:d1"]).toMatchObject({ type: "choice", instructions: { post: posts[0].text, question: "Which angle does `post` mainly take?" } });
+    expect(q["hook:d1"]).toMatchObject({ type: "choice", instructions: { first_line: "Most people say clear your home loan early." } });
+  });
+
+  it("keeps a pick at 0.5, stores 'unclear' just under it and for the Malay post, and keeps a 'none' hook", () => {
+    const answers = { "angle:d1": choice("contrarian", 0.5), "hook:d1": choice("contrarian", 0.88), "angle:d2": choice("objection-handling", 0.49) };
+    expect(readTags(answers, posts).tags).toEqual({
+      d1: { angle: "Contrarian", hook: "contrarian" },
+      d2: { angle: "unclear" },
+      d3: { angle: "unclear", hook: "unclear" },
+    });
+    expect(readTags({ "angle:d2": choice("objection-handling", 0.6), "hook:d1": choice("none", 0.7) }, posts).tags).toMatchObject({
+      d1: { angle: "unclear", hook: "none" },
+      d2: { angle: "Objection Handling" },
+    });
+    expect(readTags({ "hook:d1": choice("made-up", 0.99) }, posts).tags.d1).toEqual({ angle: "unclear", hook: "unclear" });
+    expect(readTags({ "angle:d2": choice("humour", 0.4999) }, posts).tags.d2).toEqual({ angle: "unclear" });
+  });
+
+  it("logs Jev's picks and p whatever the cut, never the words", () => {
+    const { log } = readTags({ "angle:d1": choice("contrarian", 0.5), "hook:d1": choice("list", 0.3) }, posts);
+    expect(log).toEqual([["contrarian", 0.5, "list", 0.3], [null, null], [null, null, null, null]]);
+    expect(JSON.stringify(log)).not.toContain("client");
+  });
+});
+
+describe("what to try next (learn-format-winners)", () => {
+  it("asks one yes/no per untried formula about their audience and topics", () => {
+    const q = tryNextQuestions(["myth-bust", "list"]);
+    expect(Object.keys(q)).toEqual(["try_list", "try_myth-bust"]);
+    expect(q["try_list"]).toMatchObject({ type: "noul", instructions: 'Would opening a post with the "The list" hook ("{N} things I wish I knew before {milestone}.") suit this adviser\'s `audience` and `topics`?' });
+    expect(tryNextState({ mode: "try-next", audience: "parents", topics: ["CPF"], best: ["a"], untried: [] })).toEqual({ audience: "parents", topics: ["CPF"], best_hooks: ["a"], writer: "a Singapore financial adviser" });
+  });
+
+  it("keeps 0.6 and up, the top 2, likeliest first", () => {
+    expect(TRY_MIN).toBe(0.6);
+    const read = readTryNext({ try_list: noul(0.6), "try_myth-bust": noul(0.9), try_receipt: noul(0.75), try_callout: noul(0.59) }, ["list", "myth-bust", "receipt", "callout"]);
+    expect(read.hooks).toEqual(["myth-bust", "receipt"]);
+    expect(readTryNext({ try_list: noul(0.6), try_callout: noul(0.599) }, ["list", "callout"]).hooks).toEqual(["list"]);
+    expect(readTryNext(null, ["list"])).toEqual({ hooks: [], p: { list: null } });
+  });
+});
+
+describe("the evergreen check (remix-own-winners)", () => {
+  it("asks one yes/no about posting a fresh version next month", () => {
+    expect(EVERGREEN_QUESTIONS.evergreen).toMatchObject({ type: "noul", instructions: "Would a fresh version of `post` still make sense to post next month?" });
+    expect(evergreenState(english)).toEqual({ post: english, writer: "a Singapore financial adviser" });
+  });
+
+  it("keeps the post at 0.5, marks it dated just under, and answers null with no answer (the app keeps it)", () => {
+    expect(EVERGREEN_MIN).toBe(0.5);
+    expect(readEvergreen({ evergreen: noul(0.5) })).toEqual({ evergreen: true, p: 0.5 });
+    expect(readEvergreen({ evergreen: noul(0.49) })).toEqual({ evergreen: false, p: 0.49 });
+    expect(readEvergreen({ evergreen: noul(0.4999) })).toEqual({ evergreen: false, p: 0.5 });
+    expect(readEvergreen({})).toEqual({ evergreen: null, p: null });
+    expect(readEvergreen(null)).toEqual({ evergreen: null, p: null });
   });
 });

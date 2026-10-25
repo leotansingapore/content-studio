@@ -14,6 +14,8 @@
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
+import { TAG_MIN } from "../_shared/tags.ts";
+import { FORMULAS } from "../remix-patterns/logic.ts";
 
 export { mostlyEnglish };
 
@@ -23,7 +25,9 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design", "conflict", "goal"] as const;
+/** Phase 7's reads of posts already out (learn-real-numbers, learn-post-grade, learn-format-winners, remix-own-winners). */
+export const POST_MODES = ["same-post", "grade", "tags", "try-next", "evergreen"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts", "thread", "design", "conflict", "goal", ...POST_MODES] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -49,6 +53,11 @@ export type JudgeRequest =
   | { mode: "design"; slides: { title: string; body: string }[] }
   | { mode: "conflict"; note: string; notes: string[] }
   | { mode: "goal"; text: string }
+  | SamePostRequest
+  | GradeRequest
+  | TagsRequest
+  | TryNextRequest
+  | { mode: "evergreen"; text: string }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -102,6 +111,15 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
     const text = typeof b.text === "string" ? b.text.trim() : "";
     if (text.length < GOAL_TEXT.min) return { ok: false, error: "Write a few more words." };
     if (text.length > GOAL_TEXT.max) return { ok: false, error: `Keep the goal to ${GOAL_TEXT.max} characters.` };
+    return { ok: true, request: { mode, text } };
+  }
+  if (mode === "same-post") return parseSamePost(b);
+  if (mode === "grade") return parseGrade(b);
+  if (mode === "tags") return parseTags(b);
+  if (mode === "try-next") return parseTryNext(b);
+  if (mode === "evergreen") {
+    const text = str(b.text, MAX_TEXT);
+    if (text.length < POST_TEXT_MIN) return { ok: false, error: "Nothing to read yet." };
     return { ok: true, request: { mode, text } };
   }
   if (mode === "facts") {
@@ -767,4 +785,368 @@ export function goalTop(answers: Record<string, JevAnswer> | null): { kind: Goal
 export function goalPick(answers: Record<string, JevAnswer> | null): { kind: GoalKind | null; p: number | null } {
   const top = goalTop(answers);
   return { kind: top.p !== null && top.p >= JEV_GOAL_MIN ? top.kind : null, p: top.p };
+}
+
+// ---- Posts already out (north star phase 7, Leo only) ----------------------------------------------
+// Five reads of posts an adviser has published: is a pulled post the same as a draft (same-post), why a post did
+// better or worse than usual (grade), each post's angle and hook (tags), which untried hooks suit them (try-next),
+// and whether a winner can be told again next month (evergreen). Each is 403 not_enabled off NORTH_STAR_USERS
+// before anything is counted, counts its own cap, and gives the use back when Jev never answered. The batch modes
+// (same-post, tags) and try-next skip the whole-request English check and read each post on its own instead.
+
+/** A posted post is read from this many characters (a short caption is still a post). */
+export const POST_TEXT_MIN = 10;
+
+const NETWORKS: Record<string, string> = {
+  linkedin: "LinkedIn", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", threads: "Threads", youtube: "YouTube", x: "X",
+};
+const networkName = (platform: string) => NETWORKS[platform.toLowerCase()] ?? platform;
+const round2 = (p: number) => Math.round(Math.min(1, Math.max(0, p)) * 100) / 100;
+/** Jev's probability as it came back: every cut compares this, so 0.699 stays under 0.7. */
+const rawP = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+/** The same, rounded to two decimals for the answer and the log. */
+const prob = (v: unknown): number | null => (rawP(v) === null ? null : round2(v as number));
+
+/** English function words: Malay, Indonesian and Tagalog are Latin letters, so mostlyEnglish passes them. */
+const EN_WORDS = new Set(
+  ("the a an and or but to of in on for with is are was were be been it its this that these those you your i my me we our us " +
+    "they their them he she his her not no do does did don't have has had will would can could should if so at from as what " +
+    "how when why who about just more all than then there here up out by").split(" "),
+);
+/** Below this many words (hashtags, handles and links left out) the share says too little, and mostlyEnglish decides. */
+const EN_WORDS_FLOOR = 12;
+/**
+ * The share of words that are English function words at or above this reads as English. Measured 25 Oct 2026 over
+ * the 115 bundled captions, ads and news items with 12 or more words (src/data): the lowest English one was 0.125
+ * (a terse WhatsApp ad), the median 0.38; four Malay adviser posts written for it were 0.00.
+ */
+export const EN_WORDS_MIN = 0.06;
+
+/** mostlyEnglish, plus a measured share of English function words, so a Malay post is not read as English. */
+export function readsEnglish(text: string): boolean {
+  if (!mostlyEnglish(text)) return false;
+  const words = text.toLowerCase().replace(/https?:\/\/\S+|www\.\S+|[#@][\w.]+/g, " ").match(/[a-z]+(?:['’][a-z]+)?/g) ?? [];
+  if (words.length < EN_WORDS_FLOOR) return true;
+  return words.filter((w) => EN_WORDS.has(w.replace("’", "'"))).length / words.length >= EN_WORDS_MIN;
+}
+
+/** The first line with text on it. */
+const firstLine = (text: string) => text.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+
+// ---- Mode "same-post" (learn-real-numbers) ----
+
+export const MAX_PAIRS = 10;
+export interface SamePostRequest {
+  mode: "same-post";
+  /** One pulled post (`live`, all 300 characters Zernio keeps) against one draft (its first 600). */
+  pairs: { key: string; draft: string; live: string; platform: string }[];
+}
+// shortcut: proposed (phase 7 decision 10), not read off real pairs; the integrator reads every logged p within 0.15
+// of it after the first 20 real runs and sets it in one commit.
+/** p(the pulled post is the published draft) at or above this links them, when no other draft clears it for that post. */
+export const SAME_POST_MIN = 0.7;
+
+function parseSamePost(b: Record<string, unknown>): { ok: true; request: SamePostRequest } | { ok: false; error: string } {
+  const raw = Array.isArray(b.pairs) ? b.pairs : [];
+  const pairs = raw.map((x) => {
+    const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+    return { key: str(o.key, 80), draft: str(o.draft, 600), live: str(o.live, 300), platform: str(o.platform, 20) };
+  });
+  const keys = new Set(pairs.map((p) => p.key));
+  if (!pairs.length || pairs.length > MAX_PAIRS || keys.size !== pairs.length || pairs.some((p) => !p.key || !p.draft || !p.live)) {
+    return { ok: false, error: `Send 1 to ${MAX_PAIRS} pairs, each with a key, a draft and a live post.` };
+  }
+  return { ok: true, request: { mode: "same-post", pairs } };
+}
+
+/** One yes/no per pair, both halves in its instructions; a pair with a half not in English gets no question. */
+export function samePostQuestions(pairs: SamePostRequest["pairs"]): Record<string, JevQuestion> {
+  return Object.fromEntries(
+    pairs.flatMap((p, i) =>
+      readsEnglish(p.draft) && readsEnglish(p.live)
+        ? [[
+            `same_${i}`,
+            {
+              type: "noul",
+              instructions: {
+                platform: networkName(p.platform),
+                draft: p.draft,
+                live: p.live,
+                question: "Is `live` the published version of `draft`, the same post with at most light edits such as added hashtags, a sign-off or a changed line?",
+              },
+              criteria: {
+                true: "Yes: same topic, same points in the same order, mostly the same sentences.",
+                false: "No: a different post, even if it covers the same subject.",
+              },
+            } satisfies JevQuestion,
+          ]]
+        : [],
+    ),
+  );
+}
+
+/**
+ * Jev's p per key (null with no question or no answer) and the keys that link: at SAME_POST_MIN or more, and the
+ * only pair for that pulled post (the same `live` text) that clears it.
+ */
+export function readSamePost(answers: Record<string, JevAnswer> | null, pairs: SamePostRequest["pairs"]): { links: string[]; p: Record<string, number | null> } {
+  const raw = pairs.map((_, i) => rawP(answers?.[`same_${i}`]?.noul));
+  const ps = raw.map(prob);
+  const clears = (i: number) => (raw[i] ?? -1) >= SAME_POST_MIN;
+  const links = pairs.filter((x, i) => clears(i) && pairs.every((y, j) => j === i || y.live !== x.live || !clears(j))).map((x) => x.key);
+  return { links, p: Object.fromEntries(pairs.map((x, i) => [x.key, ps[i]])) };
+}
+
+// ---- Mode "grade" (learn-post-grade) ----
+
+export const GRADE_REASONS = ["hook", "topic", "format", "timing", "ask"] as const;
+export type GradeReason = (typeof GRADE_REASONS)[number];
+export const GRADE_CRITERIA: Record<GradeReason, string> = {
+  hook: "The opening line: how strongly the first line makes someone stop, compared with the openings of their best posts.",
+  topic: "The subject: how much this topic matters to their audience compared with their usual topics.",
+  format: "The format or length: whether a post of this kind and length suits this network.",
+  timing: "When it went out: the day and time compared with when their best posts went out.",
+  ask: "The ending: whether it gave readers a clear, easy reason to comment, save or message.",
+};
+// shortcut: proposed (phase 7 decision 10; a 5-way random pick sits at 0.2), not read off real posts; the integrator
+// reads every logged p within 0.15 of it after the first 20 real runs and sets it in one commit.
+/** Jev's reason is shown at or above this probability. */
+export const GRADE_MIN = 0.4;
+export const GRADE_TEXT = 1500;
+export const MAX_BEST = 3;
+
+export interface GradeRequest {
+  mode: "grade";
+  text: string;
+  platform: string;
+  format: string;
+  /** When it went out, as the app has it (ISO). */
+  posted: string;
+  words: number;
+  /** Its engagements over the usual, unrounded. */
+  ratio: number;
+  direction: "above" | "below";
+  best: { firstLine: string; format: string; posted: string }[];
+  /** The reasons whose fix line the app can fill (offeredReasons); all five when not sent. */
+  reasons: GradeReason[];
+}
+
+function parseGrade(b: Record<string, unknown>): { ok: true; request: GradeRequest } | { ok: false; error: string } {
+  const text = str(b.text, GRADE_TEXT);
+  if (text.length < POST_TEXT_MIN) return { ok: false, error: "Nothing to read yet." };
+  const platform = str(b.platform, 20);
+  if (!platform) return { ok: false, error: "Say which network it went out on." };
+  const ratio = typeof b.ratio === "number" && Number.isFinite(b.ratio) && b.ratio >= 0 ? b.ratio : null;
+  if (ratio === null) return { ok: false, error: "Send the post's ratio to its usual." };
+  if (b.direction !== "above" && b.direction !== "below") return { ok: false, error: "Say if it did above or below its usual." };
+  const best = (Array.isArray(b.best) ? b.best : []).map((x) => {
+    const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+    return { firstLine: str(o.firstLine, 200), format: str(o.format, 30), posted: str(o.posted, 40) };
+  }).filter((x) => x.firstLine || x.format || x.posted).slice(0, MAX_BEST);
+  const asked = b.reasons === undefined ? [...GRADE_REASONS] : Array.isArray(b.reasons) ? b.reasons : [];
+  const reasons = GRADE_REASONS.filter((r) => asked.includes(r));
+  if (reasons.length < 2) return { ok: false, error: "Send at least two reasons to choose from." };
+  const words = typeof b.words === "number" && Number.isFinite(b.words) ? Math.max(0, Math.round(b.words)) : 0;
+  return { ok: true, request: { mode: "grade", text, platform, format: str(b.format, 30), posted: str(b.posted, 40), words, ratio, direction: b.direction, best, reasons } };
+}
+
+/** The ratio as the chip shows it, to one decimal ("2.4x"). */
+const times = (ratio: number) => `${Math.round(ratio * 10) / 10}x`;
+
+export function gradeState(r: GradeRequest) {
+  return {
+    post: r.text,
+    platform: networkName(r.platform),
+    format: r.format,
+    posted: r.posted,
+    words: r.words,
+    vs_usual: times(r.ratio),
+    best: r.best.map((x) => ({ first_line: x.firstLine, format: x.format, posted: x.posted })),
+  };
+}
+
+/** One choice over the reasons offered. */
+export function gradeQuestions(r: GradeRequest): Record<string, JevQuestion> {
+  return {
+    reason: {
+      type: "choice",
+      instructions: `This post by a Singapore financial adviser got ${times(r.ratio)} their usual engagement on ${networkName(r.platform)}. Which ONE thing most likely explains why it did ${r.direction === "above" ? "better" : "worse"} than usual? \`best\` are their best recent posts on the same network.`,
+      criteria: Object.fromEntries(r.reasons.map((id) => [id, GRADE_CRITERIA[id]])),
+    },
+  };
+}
+
+/** Jev's likeliest offered reason and its p; the reason is null under GRADE_MIN, and both are null with no answer. */
+export function readGrade(answers: Record<string, JevAnswer> | null, reasons: readonly GradeReason[]): { reason: GradeReason | null; p: number | null } {
+  const reason = reasons.find((x) => x === answers?.reason?.choice) ?? null;
+  const p = reason ? rawP(answers?.reason?.probabilities?.[reason]) : null;
+  if (!reason || p === null) return { reason: null, p: null };
+  return { reason: p >= GRADE_MIN ? reason : null, p: round2(p) };
+}
+
+// ---- Modes "tags" and "try-next" (learn-format-winners) ----
+
+/** The angles of ANGLES in src/lib/postLabels.ts as they apply to an adviser's own posts (kept in step by logic.test.ts). */
+export const ANGLE_CRITERIA = {
+  Storytelling: "Tells what happened to the writer or a client",
+  Contrarian: "Argues against a common belief or common advice",
+  Educational: "Explains how something works or how to do it",
+  Emotional: "Leans on fear, loss, love or relief",
+  Relatable: "Names a feeling or habit most readers share",
+  "Objection Handling": "Answers a reason people give for not acting",
+  Humour: "Mainly tries to be funny",
+  Authority: "Leans on the writer's experience, numbers or credentials",
+} as const;
+export type Angle = keyof typeof ANGLE_CRITERIA;
+const ANGLE_LABELS = Object.keys(ANGLE_CRITERIA) as Angle[];
+/** Jev's option ids are slugs ("objection-handling"), as remix teardown asks them. */
+const angleId = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+const ANGLE_OPTIONS = Object.fromEntries(ANGLE_LABELS.map((a) => [angleId(a), ANGLE_CRITERIA[a]]));
+const FORMULA_IDS: readonly string[] = FORMULAS.map((f) => f.id);
+const HOOK_OPTIONS = { ...Object.fromEntries(FORMULAS.map((f) => [f.id, `${f.name}: ${f.template}`])), none: "None of these shapes" };
+
+export const MAX_TAG_POSTS = 20;
+/** One request of 20 posts asks up to 40 questions, more than JEV_TIMEOUT_MS was measured on. */
+export const TAGS_TIMEOUT_MS = 15_000;
+export { TAG_MIN };
+
+export interface TagsRequest {
+  mode: "tags";
+  /** The first 600 characters of each posted draft; needHook when it was not written from a formula. */
+  posts: { id: string; text: string; needHook: boolean }[];
+}
+export type PostTag = { angle: Angle | "unclear"; hook?: string };
+
+function parseTags(b: Record<string, unknown>): { ok: true; request: TagsRequest } | { ok: false; error: string } {
+  const raw = Array.isArray(b.posts) ? b.posts : [];
+  const posts = raw.map((x) => {
+    const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+    return { id: str(o.id, 80), text: str(o.text, 600), needHook: o.needHook === true };
+  });
+  if (!posts.length || posts.length > MAX_TAG_POSTS || new Set(posts.map((p) => p.id)).size !== posts.length || posts.some((p) => !p.id || !p.text)) {
+    return { ok: false, error: `Send 1 to ${MAX_TAG_POSTS} posts, each with an id and its text.` };
+  }
+  return { ok: true, request: { mode: "tags", posts } };
+}
+
+export const tagsState = () => ({ country: "Singapore", writer: "a licensed financial adviser" });
+
+/** An angle question per English post, and a hook question on its first line when needHook. */
+export function tagsQuestions(posts: TagsRequest["posts"]): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  for (const p of posts) {
+    if (!readsEnglish(p.text)) continue;
+    q[`angle:${p.id}`] = { type: "choice", instructions: { post: p.text, question: "Which angle does `post` mainly take?" }, criteria: ANGLE_OPTIONS };
+    if (p.needHook) {
+      q[`hook:${p.id}`] = {
+        type: "choice",
+        instructions: { first_line: firstLine(p.text), question: "Which hook formula does `first_line`, the first line of a post, follow?" },
+        criteria: HOOK_OPTIONS,
+      };
+    }
+  }
+  return q;
+}
+
+/** Jev's top pick and its raw p for a question, whatever the cut, else nulls. */
+function topPick(a: JevAnswer | undefined, ids: readonly string[]): [string | null, number | null] {
+  const c = typeof a?.choice === "string" && ids.includes(a.choice) ? a.choice : null;
+  return [c, c ? rawP(a?.probabilities?.[c]) : null];
+}
+
+/** Every post's tags: a pick at TAG_MIN or more, else "unclear" (a post not in English, an unsure or missing answer). */
+export function readTags(answers: Record<string, JevAnswer> | null, posts: TagsRequest["posts"]): { tags: Record<string, PostTag>; log: unknown[] } {
+  const tags: Record<string, PostTag> = {};
+  const log: unknown[] = [];
+  for (const p of posts) {
+    const [a, ap] = topPick(answers?.[`angle:${p.id}`], ANGLE_LABELS.map(angleId));
+    const angle = a && ap !== null && ap >= TAG_MIN ? ANGLE_LABELS.find((x) => angleId(x) === a)! : "unclear";
+    const tag: PostTag = { angle };
+    let row: unknown[] = [a, prob(ap)];
+    if (p.needHook) {
+      const [h, hp] = topPick(answers?.[`hook:${p.id}`], [...FORMULA_IDS, "none"]);
+      tag.hook = h && hp !== null && hp >= TAG_MIN ? h : "unclear";
+      row = [...row, h, prob(hp)];
+    }
+    tags[p.id] = tag;
+    log.push(row);
+  }
+  return { tags, log };
+}
+
+export interface TryNextRequest {
+  mode: "try-next";
+  audience: string;
+  topics: string[];
+  /** Up to 3 hook lines of their best posts. */
+  best: string[];
+  /** HOOK_FORMULAS ids with no post in 90 days. */
+  untried: string[];
+}
+// shortcut: proposed (phase 7 decision 10), not read off real answers; set from the logged p after the first 20 runs.
+/** An untried hook is suggested at or above this p, the top 2. */
+export const TRY_MIN = 0.6;
+export const TRY_PICKS = 2;
+
+function parseTryNext(b: Record<string, unknown>): { ok: true; request: TryNextRequest } | { ok: false; error: string } {
+  const list = (v: unknown, max: number, n: number) =>
+    (Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,\n]/) : []).map((x) => str(x, max)).filter(Boolean).slice(0, n);
+  const audience = str(b.audience, 300);
+  const topics = list(b.topics, 80, 10);
+  if (!audience && !topics.length) return { ok: false, error: "Add who you write for first." };
+  const asked = Array.isArray(b.untried) ? b.untried : [];
+  const untried = FORMULA_IDS.filter((id) => asked.includes(id));
+  if (!untried.length) return { ok: false, error: "Send the hook formulas to check." };
+  return { ok: true, request: { mode: "try-next", audience, topics, best: list(b.best, 200, MAX_BEST), untried } };
+}
+
+export const tryNextState = (r: TryNextRequest) => ({ audience: r.audience, topics: r.topics, best_hooks: r.best, writer: "a Singapore financial adviser" });
+
+/** One yes/no per untried formula. */
+export function tryNextQuestions(untried: string[]): Record<string, JevQuestion> {
+  return Object.fromEntries(
+    FORMULAS.filter((f) => untried.includes(f.id)).map((f) => [
+      `try_${f.id}`,
+      {
+        type: "noul",
+        instructions: `Would opening a post with the "${f.name}" hook ("${f.template}") suit this adviser's \`audience\` and \`topics\`?`,
+        criteria: {
+          true: "Yes: it fits the people they write for and the subjects they cover, and can be written without promising returns.",
+          false: "No: it clashes with their audience or topics, or pushes them toward claims an adviser must not make.",
+        },
+      } satisfies JevQuestion,
+    ]),
+  );
+}
+
+/** The top TRY_PICKS formula ids at TRY_MIN or more, likeliest first, and every p for the log. */
+export function readTryNext(answers: Record<string, JevAnswer> | null, untried: string[]): { hooks: string[]; p: Record<string, number | null> } {
+  const raw = Object.fromEntries(untried.map((id) => [id, rawP(answers?.[`try_${id}`]?.noul)]));
+  const hooks = untried.filter((id) => (raw[id] ?? -1) >= TRY_MIN).sort((a, b) => (raw[b] as number) - (raw[a] as number)).slice(0, TRY_PICKS);
+  return { hooks, p: Object.fromEntries(untried.map((id) => [id, prob(raw[id])])) };
+}
+
+// ---- Mode "evergreen" (remix-own-winners) ----
+
+// shortcut: proposed (phase 7 decision 10), not read off real winners; set from the logged p after the first 20 runs.
+/** p(a fresh version still makes sense next month) at or above this keeps the winner. */
+export const EVERGREEN_MIN = 0.5;
+
+export const evergreenState = (text: string) => ({ post: text, writer: "a Singapore financial adviser" });
+
+export const EVERGREEN_QUESTIONS: Record<string, JevQuestion> = {
+  evergreen: {
+    type: "noul",
+    instructions: "Would a fresh version of `post` still make sense to post next month?",
+    criteria: {
+      true: "Yes: the idea is evergreen, such as a money habit, a common mistake, a client story or a how-to, and can be told again with a new hook and example.",
+      false: "No: it hangs on a dated event, a one-off announcement, a promotion with an end date, a personal milestone or breaking news.",
+    },
+  },
+};
+
+/** Keep (true) at EVERGREEN_MIN or more, dated (false) below it, null with no answer (the app keeps the winner). */
+export function readEvergreen(answers: Record<string, JevAnswer> | null): { evergreen: boolean | null; p: number | null } {
+  const p = rawP(answers?.evergreen?.noul);
+  return { evergreen: p === null ? null : p >= EVERGREEN_MIN, p: prob(p) };
 }

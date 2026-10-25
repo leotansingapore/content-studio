@@ -41,6 +41,26 @@
 //     to, the kind only at JEV_GOAL_MIN. Leo only like "thread"; the use goes
 //     back (502 failed) when Jev never answered. Logs {kind, p}, never the
 //     goal. About 300 tokens.
+//   North star phase 7, all Leo only like "thread" (403 not_enabled before any
+//   count), each on its own cap, the use given back with 502 failed when Jev
+//   never answered, and logging p values only, never a post's words:
+//   mode "same-post" {pairs: [{key, draft, live, platform}]} (1 to 10)
+//     -> {links: key[], p: {key: p | null}}: whether a pulled post is the
+//     published draft, linked at SAME_POST_MIN when it is the only pair for
+//     that post that clears it. Counts "post-match". About 4,000 tokens.
+//   mode "grade" {text, platform, format, posted, words, ratio, direction,
+//     best, reasons?} -> {reason | null, p}: why a post did better or worse
+//     than usual, the reason at GRADE_MIN. Counts "post-grade". Under 800 tokens.
+//   mode "tags" {posts: [{id, text, needHook}]} (1 to 20) -> {tags: {id:
+//     {angle, hook?}}}: each post's angle and, when needHook, its hook formula,
+//     "unclear" under TAG_MIN or for a post not in English (never asked).
+//     Counts "post-angles". About 3,000 tokens of posts and 40 questions.
+//   mode "try-next" {audience, topics, best, untried} -> {hooks: id[]}: the
+//     untried hook formulas that suit them, top 2 at TRY_MIN. "post-angles".
+//   mode "evergreen" {text} -> {evergreen: boolean | null}: whether a winner
+//     can be told again next month, at EVERGREEN_MIN. Counts "winner-check".
+//   same-post, tags and try-next skip the whole-request English check and read
+//   each post instead; grade and evergreen also refuse a Malay post (readsEnglish).
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -88,6 +108,23 @@ import {
   goalPick,
   goalState,
   goalTop,
+  POST_MODES,
+  readsEnglish,
+  samePostQuestions,
+  readSamePost,
+  gradeQuestions,
+  gradeState,
+  readGrade,
+  TAGS_TIMEOUT_MS,
+  tagsQuestions,
+  tagsState,
+  readTags,
+  tryNextQuestions,
+  tryNextState,
+  readTryNext,
+  EVERGREEN_QUESTIONS,
+  evergreenState,
+  readEvergreen,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -105,29 +142,45 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
-    const parsed = parseJudgeRequest(await req.json().catch(() => ({})));
-    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const body = await req.json().catch(() => ({}));
+    const parsed = parseJudgeRequest(body);
+    if (!parsed.ok) {
+      const posts = (POST_MODES as readonly unknown[]).includes((body as { mode?: unknown } | null)?.mode);
+      return json(posts ? { code: "bad_request", error: parsed.error } : { error: parsed.error }, 400);
+    }
     const r = parsed.request;
-    const english =
-      r.mode === "hooks" ? r.hooks.join("\n")
-      : r.mode === "idea" ? `${r.topic}\n${r.notes}`
-      : r.mode === "profile" ? [r.name, r.bio, ...r.pinned].join("\n")
-      : r.mode === "carousel" ? r.idea
-      : r.mode === "thread" ? r.post
-      : r.mode === "design" ? r.slides.map((x) => `${x.title}\n${x.body}`).join("\n")
-      : r.mode === "conflict" ? r.note
-      : r.text;
-    // an empty profile has nothing to read and scores 0 on its own
-    const empty = r.mode === "profile" && !/\p{L}/u.test(english);
-    if (!empty && !mostlyEnglish(english)) return json({ code: "not_english", error: "This check reads English posts only." }, 422);
+    // the batch modes read each post on its own (logic.ts), so one Malay post never refuses the other 19
+    if (r.mode !== "same-post" && r.mode !== "tags" && r.mode !== "try-next") {
+      const english =
+        r.mode === "hooks" ? r.hooks.join("\n")
+        : r.mode === "idea" ? `${r.topic}\n${r.notes}`
+        : r.mode === "profile" ? [r.name, r.bio, ...r.pinned].join("\n")
+        : r.mode === "carousel" ? r.idea
+        : r.mode === "thread" ? r.post
+        : r.mode === "design" ? r.slides.map((x) => `${x.title}\n${x.body}`).join("\n")
+        : r.mode === "conflict" ? r.note
+        : r.text;
+      // an empty profile has nothing to read and scores 0 on its own
+      const empty = r.mode === "profile" && !/\p{L}/u.test(english);
+      const readable = r.mode === "grade" || r.mode === "evergreen" ? readsEnglish(english) : mostlyEnglish(english);
+      if (!empty && !readable) return json({ code: "not_english", error: "This check reads English posts only." }, 422);
+    }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to check a post." }, 401);
-    if ((r.mode === "thread" || r.mode === "design" || r.mode === "conflict" || r.mode === "goal") && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
+    const leoOnly = r.mode === "thread" || r.mode === "design" || r.mode === "conflict" || r.mode === "goal" || (POST_MODES as readonly string[]).includes(r.mode);
+    if (leoOnly && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
       return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+    }
+    // a batch with nothing in English asks Jev nothing, so nothing is counted
+    if (r.mode === "same-post" || r.mode === "tags") {
+      const asks = r.mode === "same-post" ? samePostQuestions(r.pairs) : tagsQuestions(r.posts);
+      if (!Object.keys(asks).length) {
+        return json(r.mode === "same-post" ? readSamePost(null, r.pairs) : { tags: readTags(null, r.posts).tags });
+      }
     }
 
     if (!Deno.env.get("TYPESAFE_API_KEY")) {
@@ -135,10 +188,59 @@ Deno.serve(async (req) => {
       return json({ error: UNAVAILABLE }, 503);
     }
     const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
-    const usage = await consumeUsage(admin, uid, r.mode === "profile" ? "profile-score" : r.mode === "facts" ? "fact-check" : "writing-judge");
+    const cap =
+      r.mode === "profile" ? "profile-score"
+      : r.mode === "facts" ? "fact-check"
+      : r.mode === "same-post" ? "post-match"
+      : r.mode === "grade" ? "post-grade"
+      : r.mode === "tags" || r.mode === "try-next" ? "post-angles"
+      : r.mode === "evergreen" ? "winner-check"
+      : "writing-judge";
+    const usage = await consumeUsage(admin, uid, cap);
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
+    }
+    // Jev never answered: the use goes back (phase 7, as phase 5's goal)
+    const failed = async () => {
+      await refundUsage(admin, uid, cap, day);
+      return json({ code: "failed", error: UNAVAILABLE }, 502);
+    };
+
+    if (r.mode === "same-post") {
+      const answers = await askJev({ writer: "a Singapore financial adviser" }, samePostQuestions(r.pairs), { who: "writing-judge same-post", timeoutMs: 10_000 });
+      if (!answers) return failed();
+      const read = readSamePost(answers, r.pairs);
+      console.log("writing-judge same-post", JSON.stringify(Object.values(read.p)));
+      return json(read);
+    }
+    if (r.mode === "grade") {
+      const answers = await askJev(gradeState(r), gradeQuestions(r), { who: "writing-judge grade" });
+      if (!answers) return failed();
+      const read = readGrade(answers, r.reasons);
+      console.log("writing-judge grade", JSON.stringify({ direction: r.direction, top: answers.reason?.choice ?? null, ...read }));
+      return json(read);
+    }
+    if (r.mode === "tags") {
+      const answers = await askJev(tagsState(), tagsQuestions(r.posts), { who: "writing-judge tags", timeoutMs: TAGS_TIMEOUT_MS });
+      if (!answers) return failed();
+      const { tags, log } = readTags(answers, r.posts);
+      console.log("writing-judge tags", JSON.stringify(log));
+      return json({ tags });
+    }
+    if (r.mode === "try-next") {
+      const answers = await askJev(tryNextState(r), tryNextQuestions(r.untried), { who: "writing-judge try-next" });
+      if (!answers) return failed();
+      const { hooks, p } = readTryNext(answers, r.untried);
+      console.log("writing-judge try-next", JSON.stringify(p));
+      return json({ hooks });
+    }
+    if (r.mode === "evergreen") {
+      const answers = await askJev(evergreenState(r.text), EVERGREEN_QUESTIONS, { who: "writing-judge evergreen" });
+      if (!answers) return failed();
+      const { evergreen, p } = readEvergreen(answers);
+      console.log("writing-judge evergreen", JSON.stringify({ p }));
+      return json({ evergreen });
     }
 
     if (r.mode === "thread") {
