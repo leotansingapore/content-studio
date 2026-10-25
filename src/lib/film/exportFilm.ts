@@ -18,7 +18,8 @@ export const SHAPE_SIZE: Record<Shape, { w: number; h: number }> = { "9x16": { w
 export const SHAPE_NAME: Record<Shape, string> = { "9x16": "Vertical 9:16", "1x1": "Square 1:1", "16x9": "Wide 16:9" };
 /** Where social feeds even every video out; the true peak stays at or under videoEdit's PEAK_CEILING (-1 dB). */
 export const MIX_LUFS = -14;
-const LIMIT = 10 ** (-1.5 / 20);
+// half a dB under huashu's -1.5: AAC puts back about that much between samples (a -1.5 mix read back at -0.97 dBTP)
+const LIMIT = 10 ** (-2 / 20);
 /** A line starts this long after its scene's cut, and the next one waits this long after it ends. */
 const LEAD = 0.15;
 const GAP = 0.1;
@@ -77,9 +78,8 @@ export function voiceTrack(lines: PlacedLine[], read: Float32Array[], seconds: n
 }
 
 /**
- * Music and effects with the voice on top, evened to -14 LUFS with peaks held under -1.5 dB (huashu's ceiling, so
- * the true peak sits under -1 dB). Twice, since the limiter takes a little loudness back. Music alone is already
- * there (mixdown), so it comes back as it went in.
+ * Music and effects with the voice on top, evened to -14 LUFS with peaks held under -2 dB, so the encoded file's true
+ * peak stays under -1 dB. Twice, since the limiter takes a little loudness back.
  */
 export function mixFilm(sound: Stereo, voice: Stereo | null): Stereo & { lufs: number } {
   const n = sound.L.length;
