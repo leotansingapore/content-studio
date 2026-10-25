@@ -200,6 +200,23 @@ export const DAILY_LIMITS = {
   "mcp-calls": 500,
   // Three angles to answer a competitor's new ad (idea-dump answer): one Jev pick and one short OpenAI call.
   "skill-answer": 10,
+  // North star phase 7, declared up front (Leo only, NORTH_STAR_USERS). Three film directions, or the film written from
+  // one (video-assist film-directions and film): one gpt-6-luna call with a strict schema, retried once inside the use.
+  "launch-film": 10,
+  // A change typed or pointed at on a launch film (video-assist film-edit): one short call that patches the film.
+  "film-edit": 60,
+  // A reel's edit read (reel-visuals edit): 24 frames through vision plus Jev's shot, text, beat and role picks.
+  "edit-read": 10,
+  // A version of a same-edit video (ai-video Speak runs sent with `version`), counted with ai-video-global in place of ai-video.
+  "edit-version": 6,
+  // Whether a winner is evergreen (writing-judge evergreen): Jev only, given back when Jev has no answer.
+  "winner-check": 5,
+  // Whether a post outside the app is one of your drafts (writing-judge same-post): Jev only, after the word overlap.
+  "post-match": 20,
+  // One reason for a post's grade against your usual (writing-judge grade): Jev only.
+  "post-grade": 30,
+  // The angle and hook of up to 20 posted posts, and what to try next (writing-judge tags and try-next): Jev only.
+  "post-angles": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

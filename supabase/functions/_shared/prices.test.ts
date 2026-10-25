@@ -92,6 +92,27 @@ describe("the price table", () => {
     }
   });
 
+  it("prices the phase-7 caps from the brief's table: films and edit reads priced, a version as ai-video, Jev's reads free", () => {
+    const chip = (f: UsageFeature, o = {}) => priceText(priceOf(f, o) as { usd: number; kind: "about" });
+    expect(priceOf("launch-film")).toEqual({ usd: 0.003, kind: "about" });
+    expect(priceOf("film-edit")).toEqual({ usd: 0.001, kind: "about" });
+    expect(priceOf("edit-read")).toEqual({ usd: 0.05, kind: "about" });
+    expect(chip("launch-film")).toBe("Under US$0.01");
+    expect(chip("film-edit")).toBe("Under US$0.01");
+    expect(chip("edit-read")).toBe("About US$0.05");
+    // a remade part is a Speak run, so it costs what ai-video costs for that length
+    for (const seconds of [7.5, 15, 25, 40]) expect(priceOf("edit-version", { seconds }), `${seconds}s`).toEqual(priceOf("ai-video", { seconds }));
+    expect(priceOf("edit-version", { seconds: 15 })).toEqual({ usd: 2.75, kind: "about" });
+    expect(priceOf("edit-version")).toBe("pick");
+    // a new hook remakes one 7.5 s part, plus its voice
+    expect(chip("edit-version", { seconds: 7.5 })).toBe("About US$1.38");
+    expect(priceText(sumPrices(priceOf("edit-version", { seconds: 7.5 }), priceOf("ai-voice")) as { usd: number; kind: "about" })).toBe("About US$1.40");
+    for (const f of ["winner-check", "post-match", "post-grade", "post-angles"] as UsageFeature[]) {
+      expect(priceOf(f), f).toBeNull();
+      expect(NO_PRICE, f).toContain(f);
+    }
+  });
+
   it("adds DoP lite per scene when an explainer's scenes move", () => {
     expect(DOP_LITE_CREDITS).toBe(2);
     expect(priceOf("ai-video", { scenes: 5, move: false })).toEqual(priceOf("ai-video", { scenes: 5 }));

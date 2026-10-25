@@ -27,24 +27,26 @@ const about = (usd: number): Price => ({ usd, kind: "about" });
 export const DOP_LITE_CREDITS = 2;
 const upTo = (usd: number): Price => ({ usd, kind: "upTo" });
 
+// Higgsfield credits (ai-video/logic.ts). An avatar by its voiceover slices: about US$2.75 for 15 s, up to US$5.50
+// (AVATAR_MAX, for a price before the script exists). Before the voiceover exists, `seconds` (from the script's
+// words, capped at MAX_AVATAR_SECONDS) is cut the way planSlices cuts flat audio: whole MAX_SLICE slices, then the rest.
+// An explainer by its scene pictures only, plus DOP_LITE_CREDITS a scene with move: callers add priceOf("ai-voice")
+// for its voiceover (sumPrices).
+const aiVideoPrice = (o: PriceOpts): Price | null => {
+  if (o.slices?.length) return about(creditsUsd(avatarCredits(o.slices.slice(0, MAX_SLICES))));
+  if (o.scenes && o.scenes > 0) return about(creditsUsd(explainerCredits(o.scenes) + (o.move ? DOP_LITE_CREDITS * o.scenes : 0)));
+  if (o.seconds && o.seconds > 0) {
+    const slices: number[] = [];
+    let rest = Math.min(o.seconds, MAX_AVATAR_SECONDS);
+    for (; rest > MAX_SLICE; rest -= MAX_SLICE) slices.push(MAX_SLICE);
+    return about(creditsUsd(avatarCredits([...slices, rest])));
+  }
+  return null;
+};
+
 /** Every paid cap, priced from the cost constants in the functions. A function gives null while its option is not picked. */
 export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Price | null)>> = {
-  // Higgsfield credits (ai-video/logic.ts). An avatar by its voiceover slices: about US$2.75 for 15 s, up to US$5.50
-  // (AVATAR_MAX, for a price before the script exists). Before the voiceover exists, `seconds` (from the script's
-  // words, capped at MAX_AVATAR_SECONDS) is cut the way planSlices cuts flat audio: whole MAX_SLICE slices, then the rest.
-  // An explainer by its scene pictures only, plus DOP_LITE_CREDITS a scene with move: callers add priceOf("ai-voice")
-  // for its voiceover (sumPrices).
-  "ai-video": (o) => {
-    if (o.slices?.length) return about(creditsUsd(avatarCredits(o.slices.slice(0, MAX_SLICES))));
-    if (o.scenes && o.scenes > 0) return about(creditsUsd(explainerCredits(o.scenes) + (o.move ? DOP_LITE_CREDITS * o.scenes : 0)));
-    if (o.seconds && o.seconds > 0) {
-      const slices: number[] = [];
-      let rest = Math.min(o.seconds, MAX_AVATAR_SECONDS);
-      for (; rest > MAX_SLICE; rest -= MAX_SLICE) slices.push(MAX_SLICE);
-      return about(creditsUsd(avatarCredits([...slices, rest])));
-    }
-    return null;
-  },
+  "ai-video": aiVideoPrice,
   // Seedance 2.5 by length and quality (ai-video/logic.ts): US$0.82 for 4 s at 480p up to US$3.70 for 8 s at 720p.
   "ai-clip": (o) => {
     const seconds = CLIP_SECONDS.find((s) => s === o.seconds);
@@ -133,6 +135,12 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "ideas-daily": about(0.012), // gpt-4.1, about 2,000 in and 1,000 out, plus Jev
   // North star phase 6 (phase6-build-brief.md, vendors, read 2026-10-22).
   "skill-answer": about(0.003), // one Jev pick plus one short OpenAI call, about 1,200 in and 400 out
+  // North star phase 7 (phase7-build-brief.md, prices). gpt-6-luna: a film with 10 notes about US$0.015 in all.
+  "launch-film": about(0.003), // unverified
+  "film-edit": about(0.001), // unverified
+  "edit-read": about(0.05), // vision on 24 frames plus Jev's picks, unverified
+  // a remade part is a Speak run: priceOf("edit-version", { seconds }) per part, plus priceOf("ai-voice") (sumPrices)
+  "edit-version": aiVideoPrice,
 };
 
 /** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
@@ -143,7 +151,7 @@ export const NO_PRICE: UsageFeature[] = [
   // Jev only
   "post-score", "writing-judge", "fact-check", "cold-open", "motion-picks", "montage-pick", "music-mood", "week-pick",
   "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "caption-keywords",
-  "agent-act",
+  "agent-act", "winner-check", "post-match", "post-grade", "post-angles",
   // one capped page fetch and one Jev question
   "page-read",
   // Claude's MCP tool calls: reads and add_draft, no paid work

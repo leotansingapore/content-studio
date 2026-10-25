@@ -242,6 +242,18 @@ describe("aiUseRows", () => {
     expect(Object.keys(DAILY_LIMITS).filter((k) => !labels[k])).toEqual([]);
     expect(Object.values(labels).every((l) => /^[A-Z][A-Za-z0-9 ,'-]+$/.test(l))).toBe(true);
   });
+  it("labels the phase-7 caps with the brief's words", () => {
+    expect(AI_USE_LABELS).toMatchObject({
+      "launch-film": "Launch films",
+      "film-edit": "Launch film changes",
+      "edit-read": "Edit reads",
+      "edit-version": "Video versions",
+      "winner-check": "Winner checks",
+      "post-match": "Post matches",
+      "post-grade": "Post grades",
+      "post-angles": "Post tags",
+    });
+  });
 });
 
 describe("planRows", () => {

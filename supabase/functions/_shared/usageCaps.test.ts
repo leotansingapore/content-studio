@@ -163,6 +163,27 @@ describe("north-star phase-6 caps", () => {
   });
 });
 
+describe("north-star phase-7 caps", () => {
+  // Declared up front so no later phase-7 task edits this file (phase7-build-brief.md, phase-7a usage caps and prices).
+  it("holds the 8 limits the build brief set", () => {
+    const phase7 = {
+      "launch-film": 10,
+      "film-edit": 60,
+      "edit-read": 10,
+      "edit-version": 6,
+      "winner-check": 5,
+      "post-match": 20,
+      "post-grade": 30,
+      "post-angles": 10,
+    };
+    expect(Object.keys(phase7)).toHaveLength(8);
+    expect(DAILY_LIMITS).toMatchObject(phase7);
+    // the remix teardown's tags keep their own cap; learn-format-winners counts on post-angles
+    expect(DAILY_LIMITS["post-tags"]).toBe(60);
+    expect(DAILY_LIMITS["ai-video"]).toBe(2);
+  });
+});
+
 describe("the edge functions that spend", () => {
   // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
   // every call: the feature would say "You've used all undefined for today" from its first use.

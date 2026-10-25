@@ -405,6 +405,14 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "agent-act": "Agent messages",
   "mcp-calls": "Claude tool calls",
   "skill-answer": "Answers to competitor ads",
+  "launch-film": "Launch films",
+  "film-edit": "Launch film changes",
+  "edit-read": "Edit reads",
+  "edit-version": "Video versions",
+  "winner-check": "Winner checks",
+  "post-match": "Post matches",
+  "post-grade": "Post grades",
+  "post-angles": "Post tags",
 };
 
 export interface AiUseRow {
