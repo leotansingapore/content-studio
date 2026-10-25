@@ -742,3 +742,17 @@ describe("the narrated script's system prompt for a person (pinned before the bu
     expect(cases.map((c) => narratedSystem(c))).toEqual(today);
   });
 });
+
+describe("a business brand's narrated script (replay D14: the agent's explainer ended Message me)", () => {
+  it("speaks as the business and ends with its next step, never message me or a consultant's rules", () => {
+    const biz = narratedSystem({ speaker: "business" });
+    expect(biz).toContain("in the business's own voice: we and our, never I or me.");
+    expect(biz).toContain("End with a soft next step for the business, such as following it or trying what it offers, never asking anyone to message me.");
+    for (const words of ["financial consultants", "message you", "insurer", "personal advice"]) expect(biz).not.toContain(words);
+    expect(narratedSystem({ speaker: "business", source: { kind: "script", text: "My own words here today and more." } })).not.toContain("next step");
+  });
+  it("is asked for with speaker business only; a person's or a junk speaker is today's request", () => {
+    expect(parseVideoRequest({ mode: "script", topic: "Why follow-ups slip", speaker: "business" })).toEqual({ ok: true, request: { mode: "script", topic: "Why follow-ups slip", speaker: "business" } });
+    for (const speaker of ["person", "biz", 3, undefined]) expect(parseVideoRequest({ mode: "script", topic: "Why follow-ups slip", speaker })).toEqual({ ok: true, request: { mode: "script", topic: "Why follow-ups slip" } });
+  });
+});
