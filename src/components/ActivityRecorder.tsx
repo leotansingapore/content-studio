@@ -62,7 +62,12 @@ const remixEnded =
     return {
       who: agent ? "agent" : "you",
       kind,
-      title: done.length === 1 ? `Made ${a(noun(done[0].as))}: ${quoted(done[0].hook)}` : `Made ${list(done.map((r) => a(noun(r.as))))}`,
+      title:
+        done.length === 1
+          ? `Made ${a(noun(done[0].as))}: ${quoted(done[0].hook)}`
+          : j.run.versions
+            ? `Made ${done.length} versions of ${a(noun(done[0].as))}`
+            : `Made ${list(done.map((r) => a(noun(r.as))))}`,
       detail: [done.length > 1 ? `${list(done.map((r) => quoted(r.hook, 50)))}.` : "", ...misses].filter(Boolean).join(" "),
       link: done[0].href,
     };
