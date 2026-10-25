@@ -427,7 +427,7 @@ export function onsetOf(x: Float32Array): number {
  * The MP4 has no edit list to skip them, so players would start the sound that far behind the
  * picture (44 ms). Found by encoding a 1 ms beep and decoding it back; 0 when it can't tell.
  */
-async function encoderDelay(cfg: AudioEncoderConfig): Promise<number> {
+export async function encoderDelay(cfg: AudioEncoderConfig): Promise<number> {
   const n = 9600;
   const beep = new Float32Array(n);
   for (let i = 0; i < 48; i++) beep[4800 + i] = Math.sin((2 * Math.PI * i) / 16);
@@ -467,7 +467,7 @@ async function encoderDelay(cfg: AudioEncoderConfig): Promise<number> {
 }
 
 /** An H.264 encoder setup this browser takes at this size: high, main, then baseline profile. */
-async function pickEncoder(w: number, h: number, bitrate: number): Promise<VideoEncoderConfig | null> {
+export async function pickEncoder(w: number, h: number, bitrate: number): Promise<VideoEncoderConfig | null> {
   // level 4.0 holds a 1080p frame; anything bigger needs 5.1
   const level = Math.ceil(w / 16) * Math.ceil(h / 16) <= 8192 ? "28" : "33";
   for (const profile of ["6400", "4d00", "42e0"]) {
