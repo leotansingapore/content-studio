@@ -180,7 +180,7 @@ describe("actBody in agent mode", () => {
     expect(actBody(raw, false)).toEqual(today);
     expect("agent" in actBody(raw)!).toBe(false);
     expect(actBody({ ...raw, agent: "yes" }, true)).toEqual(today);
-    expect(actBody(raw, true)!.agent).toEqual({ ...FULL, agent: undefined, speaker: "person", open: { ...FULL.open } });
+    expect(actBody(raw, true)!.agent).toEqual({ ...FULL, agent: undefined, speaker: "person", open: { ...FULL.open }, last: null });
   });
   it("starts every field empty, and cuts lists and words to their sizes", () => {
     expect(actBody({ message: "hi", today: "2026-10-11", agent: true }, true)!.agent).toEqual({
@@ -195,6 +195,7 @@ describe("actBody in agent mode", () => {
       audiences: [],
       skills: [],
       competitorAds: false,
+      last: null,
     });
     const long = "x".repeat(400);
     const a = agentBody({
@@ -233,6 +234,9 @@ describe("actBody in agent mode", () => {
       { speakers: [{ id: "new", look: "" }] },
       { audiences: [{ id: "a1" }] },
       { skills: [{ slash: "/x", name: "X" }] },
+      { last: "a video" },
+      { last: { format: "video", subject: "CPF LIFE" } },
+      { last: { format: "speaking", subject: " " } },
     ])
       expect(agentBody(extra), JSON.stringify(extra)).toBeNull();
   });
@@ -241,11 +245,11 @@ describe("actBody in agent mode", () => {
 describe("actAsk in agent mode", () => {
   it("asks each question only under its 'asked when'", () => {
     const bare = asked(agentBody({}, false));
-    expect(Object.keys(bare)).toEqual(["act", "scope", "format", "length", "weeks", "pace"]);
+    expect(Object.keys(bare)).toEqual(["act", "scope", "format", "length", "weeks", "pace", "subject", "name"]);
     expect(Object.keys(bare.act.criteria)).toEqual([...TODAY_ACTS, "remember", ...ALWAYS_ACTS, "none"]);
-    expect(Object.keys(asked(agentBody()))).toEqual(["act", "post", "day", "time", "scope", "format", "length", "weeks", "pace"]);
+    expect(Object.keys(asked(agentBody()))).toEqual(["act", "post", "day", "time", "scope", "format", "length", "weeks", "pace", "subject", "name"]);
     const full = asked(agentBody(FULL));
-    expect(Object.keys(full)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill"]);
+    expect(Object.keys(full)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill", "subject", "name"]);
     expect(Object.keys(full.act.criteria)).toEqual([...TODAY_ACTS, "remember", ...ALWAYS_ACTS, "approve", "decline", "edit", "answer", "none"]);
     const one = (extra: Record<string, unknown>) => {
       const q = asked(agentBody(extra, false));
@@ -351,10 +355,12 @@ describe("agentPick", () => {
     day: choice("2026-10-15"),
     time: choice("20:00"),
     scope: choice("videos"),
+    subject: choice("t7"),
+    name: choice("n11_2"),
   };
   it("fills every slot Jev is sure of and returns each probability", () => {
     expect(agentPick(sure, b)).toEqual({
-      pick: { act: "make", format: "speaking", length: 15, who: 2, audience: 0, weeks: 4, pace: 7, slide: 1, which: 1, skill: 0, post: 1, day: "2026-10-15", time: "20:00", scope: "videos" },
+      pick: { act: "make", format: "speaking", length: 15, who: 2, audience: 0, weeks: 4, pace: 7, slide: 1, which: 1, skill: 0, post: 1, day: "2026-10-15", time: "20:00", scope: "videos", subject: "young parents with the older presenter", name: "older presenter" },
       p: Object.fromEntries(SLOTS.map((k) => [k, 0.9])),
     });
     expect(agentPick({ ...sure, which: choice("last") }, b).pick!.which).toBe("last");
@@ -380,6 +386,8 @@ describe("agentPick", () => {
       ["day", "2026-10-12", PICK_MIN],
       ["time", "09:00", PICK_MIN],
       ["scope", "posts", PICK_MIN],
+      ["subject", "t3", PICK_MIN],
+      ["name", "n1_1", PICK_MIN],
     ];
     for (const [id, c, cut] of cuts) {
       const at = agentPick({ ...sure, [id]: choice(c, cut) }, b);
@@ -393,8 +401,8 @@ describe("agentPick", () => {
     expect(agentPick({ act: choice("approve", 0.8) }, b).pick!.act).toBe("approve");
   });
   it("reads an option that says nothing as null, and keeps scope's all", () => {
-    const none = agentPick({ act: choice("none"), format: choice("none"), length: choice("none"), who: choice("any"), audience: choice("none"), slide: choice("all"), which: choice("none"), skill: choice("none"), post: choice("none"), scope: choice("all") }, b).pick!;
-    expect([none.act, none.format, none.length, none.who, none.audience, none.slide, none.which, none.skill, none.post, none.scope]).toEqual([null, null, null, null, null, null, null, null, null, "all"]);
+    const none = agentPick({ act: choice("none"), format: choice("none"), length: choice("none"), who: choice("any"), audience: choice("none"), slide: choice("all"), which: choice("none"), skill: choice("none"), post: choice("none"), scope: choice("all"), subject: choice("none"), name: choice("none") }, b).pick!;
+    expect([none.act, none.format, none.length, none.who, none.audience, none.slide, none.which, none.skill, none.post, none.scope, none.subject, none.name]).toEqual([null, null, null, null, null, null, null, null, null, "all", null, null]);
   });
   it("never takes an option this body was not offered", () => {
     const bare = agentBody({}, false);
@@ -414,5 +422,35 @@ describe("agentPick", () => {
     expect(agentPick({ act: choice("none", 0.7), skill: choice("s2", 0.75) }, b).pick).toMatchObject({ act: null, skill: 1 });
     expect(agentPick(null, b)).toEqual({ pick: null, p: noP() });
     expect(Object.values(noP())).toEqual(SLOTS.map(() => null));
+  });
+});
+
+describe("agent mode's subject, name and last make (25 Oct replay D2, D3, D10)", () => {
+  it("offers the explainer as its own format, never a talking video, whoever their presenter is (D10)", () => {
+    const q = asked(agentBody(FULL));
+    expect(q.format.criteria.explainer).toBe("An explainer video: a voiceover over pictures, with no one on camera. A message that asks for an explainer means this, whoever their presenter is.");
+    expect(q.format.criteria.speaking).toBe("A talking video or talking head: them or a presenter talking to camera.");
+  });
+  it("asks where a make's topic starts, from the message's own endings, with last only after a make in this chat (D3, D12)", () => {
+    const message = "make a talking head video about keeping prospecting consistent with ActivityTracker.";
+    const q = asked(agentBody({ message }, false));
+    expect(q.subject.criteria).toMatchObject({ t2: "a talking head video about keeping prospecting consistent with ActivityTracker", t7: "keeping prospecting consistent with ActivityTracker", t11: "ActivityTracker", none: "The message names no topic." });
+    expect(Object.keys(q.subject.criteria)).not.toContain("last");
+    const again = actAsk(agentBody({ message: "can you create another one", last: { format: "speaking", subject: "following up within a day of every client chat" } }, false), true);
+    expect(again.state.last_made).toBe('A talking video about "following up within a day of every client chat"');
+    expect((again.questions as AQ).subject.criteria.last).toBe("It asks for another one like `last_made`, about the same subject, and names no topic of its own.");
+    expect(agentPick({ act: choice("make"), subject: choice("last", 0.8) }, agentBody({ message: "can you create another one", last: { format: "speaking", subject: "x y" } }, false)).pick!.subject).toBe("last");
+    expect(agentPick({ act: choice("make"), subject: choice("t7") }, agentBody({ message }, false)).pick!.subject).toBe("keeping prospecting consistent with ActivityTracker");
+    // a pasted chat or a long brief is not a make's topic
+    expect(asked(agentBody({ message: Array.from({ length: 31 }, (_, i) => `w${i}`).join(" ") }, false)).subject).toBeUndefined();
+  });
+  it("asks which words name a competitor, from the message's own runs of 1 to 4 words, unless a link or @handle names it (D2)", () => {
+    const q = asked(agentBody({ message: "add Finch as a competitor" }, false));
+    expect(q.name.criteria).toMatchObject({ n1_1: "add", n2_1: "Finch", n2_2: "Finch as", n5_1: "competitor", none: "The message names no business, or asks for something else." });
+    expect(Object.keys(q.name.criteria)).toHaveLength(15);
+    expect(agentPick({ act: choice("competitor"), name: choice("n2_1") }, agentBody({ message: "add Finch as a competitor" }, false)).pick!.name).toBe("Finch");
+    expect(asked(agentBody({ message: "add Finch as a competitor, their site is https://finchcare.com" }, false)).name).toBeUndefined();
+    expect(asked(agentBody({ message: "add @moneyowl as a competitor" }, false)).name).toBeUndefined();
+    expect(asked(agentBody({ message: Array.from({ length: 16 }, (_, i) => `w${i}`).join(" ") }, false)).name).toBeUndefined();
   });
 });

@@ -130,7 +130,7 @@ describe("the remember act", () => {
 describe("agent mode (Leo only)", () => {
   type Sent = { state: Record<string, string>; questions: Record<string, { criteria: Record<string, string> }> };
   const msg = { message: "make a 15 second talking video about MediShield Life", today: "2026-10-11", posts };
-  const nothing = { act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null };
+  const nothing = { act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null, subject: null, name: null };
   it("asks the agent's questions, answers the pick with every probability, and counts agent-act", async () => {
     jev = () => ({ act: choice("make"), format: choice("speaking"), length: choice("15"), weeks: { type: "choice", choice: "none", probabilities: { none: 0.7 } } });
     const r = await call({ ...msg, ...AGENT_FIELDS }, "leo-uid");
@@ -139,7 +139,7 @@ describe("agent mode (Leo only)", () => {
     expect(r.body.p).toEqual({ ...nothing, act: 0.9, format: 0.9, length: 0.9, weeks: 0.7 });
     expect(db.spent).toEqual(["agent-act"]);
     const q = (asked[0] as Sent).questions;
-    expect(Object.keys(q)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill"]);
+    expect(Object.keys(q)).toEqual(["act", "post", "day", "time", "scope", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill", "subject", "name"]);
     expect(q.act.criteria.refuse).toBe("Ask for something that must not be made: a post that copies another person's words exactly, uses another real person's face or voice, or makes a real person (a celebrity, a public figure or anyone outside the business) appear to say, recommend or endorse something.");
     expect((asked[0] as Sent).state.pending).toBe(AGENT_FIELDS.pending);
   });

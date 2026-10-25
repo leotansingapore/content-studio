@@ -160,7 +160,8 @@
       "message": "my competitors are finchcare app, and finchcare app",
       "ctx": "at",
       "label": {
-        "act": "competitor"
+        "act": "competitor",
+        "name": "finchcare app"
       }
     },
     {
@@ -201,7 +202,8 @@
       "ctx": "at",
       "label": {
         "act": "make",
-        "format": "speaking"
+        "format": "speaking",
+        "subject": "keeping prospecting consistent with ActivityTracker"
       }
     },
     {
@@ -210,7 +212,8 @@
       "message": "add Finch as a competitor",
       "ctx": "at",
       "label": {
-        "act": "competitor"
+        "act": "competitor",
+        "name": "Finch"
       }
     },
     {
@@ -779,6 +782,121 @@
       "label": {
         "act": "remember",
         "scope": "posts"
+      }
+    },
+    {
+      "id": "replay2-explainer",
+      "from": "phase 6 replay 25 Oct (D10)",
+      "message": "make an explainer video about how ActivityTracker turns a WhatsApp chat into a follow-up task",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ]
+      },
+      "label": {
+        "act": "make",
+        "format": "explainer",
+        "subject": "how ActivityTracker turns a WhatsApp chat into a follow-up task"
+      }
+    },
+    {
+      "id": "replay2-another",
+      "from": "phase 6 replay 25 Oct (D3)",
+      "message": "can you create another one",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ],
+        "last": {
+          "format": "speaking",
+          "subject": "following up within a day of every client chat"
+        }
+      },
+      "label": {
+        "act": "make",
+        "subject": "last"
+      }
+    },
+    {
+      "id": "replay2-another-video",
+      "from": "phase 6 replay 25 Oct (D3)",
+      "message": "can you create another talking video like the last one",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ],
+        "last": {
+          "format": "speaking",
+          "subject": "following up within a day of every client chat"
+        }
+      },
+      "label": {
+        "act": "make",
+        "format": "speaking",
+        "subject": "last"
+      }
+    },
+    {
+      "id": "replay2-new-subject",
+      "from": "phase 6 replay 25 Oct (D3)",
+      "message": "make another talking video, this time about following up within a day of every client chat",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ],
+        "last": {
+          "format": "speaking",
+          "subject": "keeping prospecting consistent with ActivityTracker"
+        }
+      },
+      "label": {
+        "act": "make",
+        "format": "speaking",
+        "subject": "following up within a day of every client chat"
+      }
+    },
+    {
+      "id": "replay2-picture-chip",
+      "from": "phase 6 replay 25 Oct (D3, a refusal's chip)",
+      "message": "Make a picture post about following up within a day of every client chat",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ],
+        "last": {
+          "format": "speaking",
+          "subject": "following up within a day of every client chat"
+        }
+      },
+      "label": {
+        "act": "make",
+        "format": "image",
+        "subject": "following up within a day of every client chat"
+      }
+    },
+    {
+      "id": "replay2-script-chip",
+      "from": "phase 6 replay 25 Oct (D3, a refusal's chip)",
+      "message": "Write a script about following up within a day of every client chat",
+      "ctx": "at",
+      "fields": {
+        "learnings": [
+          "Use an older man as my presenter (videos)"
+        ],
+        "last": {
+          "format": "speaking",
+          "subject": "following up within a day of every client chat"
+        }
+      },
+      "label": {
+        "act": "make",
+        "format": "script",
+        "subject": "following up within a day of every client chat"
       }
     }
   ]

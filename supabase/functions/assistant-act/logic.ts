@@ -171,7 +171,7 @@ export function actAsk(body: ActBody, leo = false): { state: Record<string, stri
     };
   }
   if (leo) questions.scope = SCOPE_QUESTION;
-  const more = a ? agentAsk(a) : { state: {}, questions: {} };
+  const more = a ? agentAsk(a, body.message) : { state: {}, questions: {} };
   return { state: { today: longDay(today), message: body.message, ...more.state }, questions: { ...questions, ...more.questions } };
 }
 
@@ -245,6 +245,8 @@ export interface AgentFields {
   audiences: { id: string; name: string }[];
   skills: { slash: string; name: string; instruction: string }[];
   competitorAds: boolean;
+  /** The last make in this chat (its format and subject), for "another one": null when there is none. */
+  last: { format: Format; subject: string } | null;
 }
 
 /** Each slot is null when Jev is unsure, it was not asked, or Jev picked its "nothing said" option (none, any, the whole item). */
@@ -271,10 +273,14 @@ export interface AgentPick {
   day: string | null;
   time: string | null;
   scope: Scope | null;
+  /** What a make is about, in the message's own words from where its topic starts; "last" for another like `last`. */
+  subject: string | null;
+  /** The business a competitor message names, in its own words. */
+  name: string | null;
 }
 /** Jev's probability for the option it picked on each question, below the cut too; null when not asked or no answer. */
 export type AgentP = Record<keyof AgentPick, number | null>;
-export const SLOTS = ["act", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill", "post", "day", "time", "scope"] as const satisfies readonly (keyof AgentPick)[];
+export const SLOTS = ["act", "format", "length", "who", "audience", "weeks", "pace", "slide", "which", "skill", "post", "day", "time", "scope", "subject", "name"] as const satisfies readonly (keyof AgentPick)[];
 export const noP = (): AgentP => Object.fromEntries(SLOTS.map((k) => [k, null])) as AgentP;
 
 type Raw = Record<string, unknown>;
@@ -322,6 +328,13 @@ function agentFields(b: Raw): AgentFields | null {
     isObj(x) && maybe(x.slash, 40) !== null && words(x.name, 40) && words(x.instruction, 300) ? { slash: maybe(x.slash, 40)!, name: words(x.name, 40)!, instruction: words(x.instruction, 300)! } : null,
   );
   if (pending === null || lastChange === null || !learnings || !speakers || !audiences || !skills) return null;
+  let last: AgentFields["last"] = null;
+  if (b.last !== undefined) {
+    const l = isObj(b.last) ? b.last : {};
+    const [format, subject] = [oneOf(l.format, FORMATS), words(l.subject, 120)];
+    if (!format || !subject) return null;
+    last = { format, subject };
+  }
   return {
     chip: oneOf(b.chip, CHIPS),
     speaker: oneOf(b.speaker, SPEAKERS) ?? "person",
@@ -334,6 +347,7 @@ function agentFields(b: Raw): AgentFields | null {
     audiences,
     skills,
     competitorAds: b.competitorAds === true,
+    last,
   };
 }
 
@@ -374,7 +388,7 @@ const numbered = (prefix: string, texts: string[]) => Object.fromEntries(texts.m
 const SCOPED = /\s*\((posts|videos|pictures|all)\)$/;
 
 /** Agent mode's slot questions, each only under its "asked when", and the state they read. */
-function agentAsk(a: AgentFields): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
+function agentAsk(a: AgentFields, message: string): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
   const state: Record<string, string> = {};
   if (a.chip) state.chip = `The person pressed the ${a.chip[0].toUpperCase()}${a.chip.slice(1)} chip`;
   if (a.source) state.source = `The person attached a post to the message: "${a.source.title}" (${[a.source.kind, a.source.format].filter(Boolean).join(", ")})`;
@@ -386,8 +400,9 @@ function agentAsk(a: AgentFields): { state: Record<string, string>; questions: R
       script: "A script or shot list they film themselves.",
       slideshow: "Words on a few photos, swiped one at a time.",
       wall: "One bold claim over a short clip.",
-      speaking: "A video of them or a presenter talking to camera.",
-      explainer: "A narrated video made of pictures, with no one on camera.",
+      speaking: "A talking video or talking head: them or a presenter talking to camera.",
+      // replay D10: "make an explainer video about ..." read as speaking at 0.60 next to a presenter preference
+      explainer: "An explainer video: a voiceover over pictures, with no one on camera. A message that asks for an explainer means this, whoever their presenter is.",
       image: "One picture.",
       none: "The message does not say what to make.",
     }),
@@ -447,7 +462,49 @@ function agentAsk(a: AgentFields): { state: Record<string, string>; questions: R
       none: "The message does not ask for any of these.",
     });
   }
+  if (a.last) state.last_made = `A ${LAST_NOUN[a.last.format]} about "${a.last.subject}"`;
+  const ends = endings(message);
+  if (Object.keys(ends).length) {
+    questions.subject = choice(
+      "If the message asks the app to make something, where does its topic start? Each option is the message from one word to its end: pick the one that starts where the topic starts. Pick none when it names no topic.",
+      { ...ends, ...(a.last ? { last: "It asks for another one like `last_made`, about the same subject, and names no topic of its own." } : {}), none: "The message names no topic." },
+    );
+  }
+  const names = spans(message);
+  if (Object.keys(names).length) {
+    questions.name = choice("If the message asks to add a business, brand or account to the competitors they track, which words are its name? Pick none when it names none.", {
+      ...names,
+      none: "The message names no business, or asks for something else.",
+    });
+  }
   return { state, questions };
+}
+
+const LAST_NOUN: Record<Format, string> = { post: "post", carousel: "carousel", script: "script", slideshow: "slideshow", wall: "wall of text", speaking: "talking video", explainer: "explainer video", image: "picture" };
+/** The longest message the subject and name questions read: a make or an add is short, a pasted chat is not. */
+export const SUBJECT_WORDS = 30;
+export const NAME_WORDS = 15;
+const wordsOf = (m: string) => m.split(/\s+/).map((w) => w.replace(/^[^\p{L}\p{N}@]+|[^\p{L}\p{N}]+$/gu, "")).filter(Boolean);
+/** Each ending of the message from its second word, keyed by that word's place: Jev picks where the topic starts. */
+export function endings(message: string): Record<string, string> {
+  const w = wordsOf(message);
+  if (w.length < 2 || w.length > SUBJECT_WORDS) return {};
+  return Object.fromEntries(w.slice(1).map((_, i) => [`t${i + 2}`, w.slice(i + 1).join(" ")]));
+}
+/** Every run of 1 to 4 words, for a short message with no link or @handle (those name the competitor already). */
+export function spans(message: string): Record<string, string> {
+  const w = wordsOf(message);
+  if (!w.length || w.length > NAME_WORDS || /https?:\/\/|(^|\s)@[A-Za-z0-9._]{2,}/i.test(message)) return {};
+  const out: Record<string, string> = {};
+  const seen = new Set<string>();
+  for (let i = 0; i < w.length; i++)
+    for (let n = 1; n <= 4 && i + n <= w.length; n++) {
+      const text = w.slice(i, i + n).join(" ");
+      if (seen.has(text.toLowerCase())) continue;
+      seen.add(text.toLowerCase());
+      out[`n${i + 1}_${n}`] = text;
+    }
+  return out;
 }
 
 /**
@@ -477,6 +534,11 @@ export function agentPick(answers: Record<string, JevAnswer> | null, body: ActBo
   // Leo's standing rule: a bare ok is noted, never go, so no score lets it approve a paid card
   const act = picked === "approve" && BARE_ACK.test(body.message.trim()) ? null : picked;
   const which = at("which");
+  /** A words question's option back to its words; "last" stays the key. */
+  const told = (id: "subject" | "name") => {
+    const k = at(id);
+    return k === "last" ? "last" : k ? String((questions[id] as { criteria: Record<string, unknown> }).criteria[k]) : null;
+  };
   return {
     pick: {
       act,
@@ -493,6 +555,8 @@ export function agentPick(answers: Record<string, JevAnswer> | null, body: ActBo
       day: at("day"),
       time: at("time"),
       scope: at("scope") as Scope | null,
+      subject: told("subject"),
+      name: told("name"),
     },
     p,
   };

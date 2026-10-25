@@ -7,9 +7,13 @@ import type { JevAnswer } from "../_shared/jev";
 const labelled = set as unknown as LabelSet;
 const cs = cases(labelled);
 const choice = (c: string, p = 0.99): JevAnswer => ({ type: "choice", choice: c, probabilities: { [c]: p } });
-/** A label value back to the option key Jev answers with. */
-function optionOf(k: string, v: unknown): string {
+/** A label value back to the option key Jev answers with; a words slot's label is its words, found among the case's options. */
+function optionOf(k: string, v: unknown, c?: Case): string {
   if (v === null) return k === "slide" ? "all" : k === "who" ? "any" : "none";
+  if ((k === "subject" || k === "name") && v !== "last") {
+    const q = c?.agent.ask.questions[k] as { criteria: Record<string, unknown> } | undefined;
+    return Object.entries(q?.criteria ?? {}).find(([, t]) => t === v)?.[0] ?? `missing ${String(v)}`;
+  }
   if (typeof v !== "number" || ["length", "weeks", "pace"].includes(k)) return String(v);
   return `${{ who: "w", audience: "a", slide: "s", which: "l", skill: "s", post: "p" }[k]}${v + 1}`;
 }
@@ -18,7 +22,7 @@ const asLabelled = (c: Case, mode: "today" | "agent") =>
   Object.fromEntries(
     Object.entries(c.item.label)
       .filter(([k]) => k !== "today" && (mode === "agent" || k === "act" || ["post", "day", "time", "scope"].includes(k)))
-      .map(([k, v]) => [k, choice(k === "act" && mode === "today" && !TODAY_ACTS.includes(String(v)) ? "none" : optionOf(k, v))]),
+      .map(([k, v]) => [k, choice(k === "act" && mode === "today" && !TODAY_ACTS.includes(String(v)) ? "none" : optionOf(k, v, c))]),
   );
 
 describe("the labelled messages", () => {
@@ -35,7 +39,7 @@ describe("the labelled messages", () => {
       const q = c.agent.ask.questions as Record<string, { criteria: Record<string, string> }>;
       for (const [k, v] of Object.entries(c.item.label).filter(([k]) => k !== "today")) {
         expect(q[k], `${c.item.id} asks ${k}`).toBeTruthy();
-        expect(Object.keys(q[k].criteria), `${c.item.id} offers ${k} ${String(v)}`).toContain(optionOf(k, v));
+        expect(Object.keys(q[k].criteria), `${c.item.id} offers ${k} ${String(v)}`).toContain(optionOf(k, v, c));
       }
     }
     const acts = new Set(cs.map((c) => c.item.label.act));
