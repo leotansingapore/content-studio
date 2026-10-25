@@ -101,15 +101,13 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
           compact ? "h-11 px-2" : "w-full px-2.5 py-2"
         }`}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-          {initial(active?.name ?? "")}
-        </span>
-        {!compact && (
-          <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Profile</span>
-            <span className="block truncate text-sm font-semibold text-foreground">{active?.name}</span>
+        {compact && (
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+            {initial(active?.name ?? "")}
           </span>
         )}
+        {/* the name alone, up to two lines, as Fastlane's workspace switcher; the button's label says what it does */}
+        {!compact && <span className="line-clamp-2 min-w-0 flex-1 break-words text-sm font-semibold leading-tight text-foreground">{active?.name}</span>}
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </button>
 
