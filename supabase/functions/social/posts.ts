@@ -536,10 +536,11 @@ async function zernioCheck(z: Zernio, body: Record<string, unknown>, own: Set<st
       problems.push(`TikTok: ${str(e.message)}`);
     }
     if (data && data.dryRun !== true) {
-      // Zernio made a real post: take it down before its time comes
-      if (isZernioId((data.post as { _id?: unknown } | undefined)?._id)) await z("DELETE", `/posts/${pathId(ownPost(data.post, own)._id)}`);
-      console.error("social: a check came back as a real post, cancelled", (data.post as { _id?: unknown } | undefined)?._id);
-      return { status: 502, body: { code: "not_a_check", error: "Zernio made a real post instead of checking it, so it was cancelled." } };
+      // Zernio made a real post: logged first, then taken down before its time comes
+      const made = (data.post as { _id?: unknown } | undefined)?._id;
+      console.error("social: a check came back as a real post, cancelling", made);
+      if (isZernioId(made)) await z("DELETE", `/posts/${pathId(ownPost(data.post, own)._id)}`);
+      return { status: 502, body: { code: "not_a_check", error: "Zernio didn't run it as a check. Any post it made was cancelled." } };
     }
     if (data && data.canPublish !== true) {
       for (const v of Array.isArray(data.tiktok) ? data.tiktok : []) {

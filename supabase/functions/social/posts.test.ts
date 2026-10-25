@@ -460,7 +460,7 @@ describe("check (Leo only): Zernio's own checks, nothing saved", () => {
   it("cancels at once a real post Zernio makes when it ignores dryRun", async () => {
     listed();
     const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [TT]), [`DELETE /posts/${POST}`]: { message: "Deleted" } });
-    expect(await runPost(f.z, MINE, UID, check([TT]), NOW)).toEqual({ status: 502, body: { code: "not_a_check", error: "Zernio made a real post instead of checking it, so it was cancelled." } });
+    expect(await runPost(f.z, MINE, UID, check([TT]), NOW)).toEqual({ status: 502, body: { code: "not_a_check", error: "Zernio didn't run it as a check. Any post it made was cancelled." } });
     expect(f.keys()).toEqual(["GET /accounts", "POST /posts", `DELETE /posts/${POST}`]);
   });
 
