@@ -21,6 +21,7 @@ import {
   Download,
   FileText,
   GalleryHorizontalEnd,
+  Gauge,
   Pencil,
   Plus,
   Redo2,
@@ -34,7 +35,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useScrollToHash, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { CAROUSEL_DESIGNS, COMPARE_TABS, links, type CarouselDesign } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -108,6 +109,8 @@ import CarouselVersions from "@/components/carousel/CarouselVersions";
 import { emptyHistory, newTypingStep, record, redo, undo } from "@/lib/carouselHistory";
 import { registerEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
 import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
+import { carouselScoreText, currentScore, labelFor, loadScores, saveScore, scorePost, textKey, tipFor, type SavedScore } from "@/lib/postScore";
+import { MIN_TEXT } from "../../supabase/functions/post-score/logic.ts";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -335,6 +338,142 @@ function AskBox(p: { text: string; left: number | null; busy: boolean; target: (
             <Button type="button" size="sm" onClick={use} className="[@media(pointer:coarse)]:h-11">Use this</Button>
             <Button type="button" size="sm" variant="ghost" onClick={p.onClose} className="[@media(pointer:coarse)]:h-11">Keep mine</Button>
           </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * What a carousel is scored on (edit-score): its slides, then the caption of the post it was made from; null for a
+ * version in another language, which is never sent (Malay passes the server's Latin-letter check).
+ */
+export function carouselScoreSource(slides: Pick<Slide, "title" | "body">[], post: Pick<DraftEntry, "draft" | "lang"> | undefined, lang: string | undefined): string | null {
+  return lang || post?.lang ? null : carouselScoreText(slides, post?.draft);
+}
+
+const bandOf = (v: number) => (v >= 7.5 ? "Strong" : v >= 5 ? "Fair" : "Weak");
+const BAND_TONE = { Strong: "bg-success/15 text-success", Fair: "bg-primary/15 text-primary", Weak: "bg-warning/15 text-warning" };
+
+/**
+ * Predicted engagement under the preview (edit-score, Leo only): post-score worded for a carousel, saved on the saved
+ * carousel through onScored and on this device per text, so Undo back to scored words shows their score at once.
+ * Fix this shows on Easy to read only: onFix runs Tighten with AI (the tightened text, or null) and the result is scored.
+ */
+export function CarouselScore(p: {
+  userId: string;
+  /** carouselScoreSource of the slides. */
+  text: string | null;
+  platform: "instagram" | "linkedin";
+  /** The saved carousel's score through currentScore, so null once the words changed. */
+  saved: SavedScore | null;
+  /** Tighten with AI is running or out for today. */
+  busy: boolean;
+  fixError: string | null;
+  onScored: (s: SavedScore) => void;
+  onFix: () => Promise<string | null>;
+}) {
+  const [cache, setCache] = useState(() => loadScores(p.userId));
+  const [scoring, setScoring] = useState(false);
+  const [error, setError] = useState<{ key: string; message: string } | null>(null);
+  // a fix in progress (no key yet), its result (the key it scored) or its failure
+  const [fix, setFix] = useState<{ from: number; key?: string; failed?: true } | null>(null);
+  const uses = useUsesLeft(scoring || p.busy);
+  const left = uses("post-score");
+  const fixLeft = uses("carousel");
+  const text = p.text ?? "";
+  const key = textKey(p.platform, text);
+  const kept = cache[key];
+  const score = p.saved ?? (kept ? { v: kept.score, down: kept.down } : null);
+  const fixing = fix !== null && !fix.key && !fix.failed;
+  const short = text.trim().length < MIN_TEXT;
+  const why = reasonText({ left, leo: true });
+
+  const run = async (t: string): Promise<SavedScore | null> => {
+    const k = textKey(p.platform, t);
+    setScoring(true);
+    setError(null);
+    try {
+      const r = await scorePost(t, p.platform, "carousel");
+      setCache(saveScore(p.userId, k, r));
+      const s = { v: r.score, down: r.down.slice(0, 3), key: k, at: new Date().toISOString() };
+      p.onScored(s);
+      return s;
+    } catch (e) {
+      setError({ key: k, message: (e as Error).message });
+      return null;
+    } finally {
+      setScoring(false);
+    }
+  };
+  const fixIt = async (from: number) => {
+    setFix({ from });
+    const t = await p.onFix();
+    if (t === null) return setFix({ from, failed: true });
+    const s = await run(t);
+    setFix(s ? { from, key: s.key } : null);
+  };
+
+  return (
+    <section id="score" aria-label="Predicted engagement" aria-live="polite" className="rounded-xl border border-border/60 bg-muted/20 p-3">
+      {p.text === null ? (
+        <p className="text-xs text-muted-foreground">Scores run on the English version.</p>
+      ) : fixing ? (
+        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+          <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Fixing the {labelFor("readable", "carousel").toLowerCase()}...
+        </p>
+      ) : score ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <Gauge className="h-4 w-4 text-primary" aria-hidden />
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Predicted engagement</span>
+            <span aria-label={`Predicted engagement ${score.v.toFixed(1)} out of 10`} className={`rounded-full px-2 py-0.5 text-xs font-bold ${BAND_TONE[bandOf(score.v)]}`}>
+              {score.v.toFixed(1)}/10
+            </span>
+            <span className="text-xs font-semibold text-foreground">{bandOf(score.v)}</span>
+            <InfoTip label="About the score">Five checks on this draft, weighed out of 10. A guide, not a promise of reach.</InfoTip>
+          </div>
+          {fix?.key === key && (
+            <p className="mt-2 text-xs font-medium text-foreground">
+              Was {fix.from.toFixed(1)}, now {score.v.toFixed(1)}{score.v < fix.from ? ". Undo AI changes to keep the old one." : ""}
+            </p>
+          )}
+          {score.down.length > 0 ? (
+            <ul className="mt-2 space-y-2" aria-label="What pulled it down">
+              {score.down.map((id) => (
+                <li key={id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                  <span className="min-w-0 flex-1 basis-56">
+                    <span className="font-semibold">{labelFor(id, "carousel")}:</span> <span className="text-muted-foreground">{tipFor(id, "carousel")}</span>
+                  </span>
+                  {id === "readable" && (
+                    <span className="flex items-center gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => void fixIt(score.v)} disabled={p.busy || scoring || fixLeft === 0} className="h-8 gap-1.5 [@media(pointer:coarse)]:h-11">
+                        <Sparkles className="h-3.5 w-3.5" /> Fix this
+                      </Button>
+                      <PriceChip feature="carousel" left={fixLeft} />
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-xs text-muted-foreground">Nothing big is holding it back.</p>
+          )}
+          {fix?.failed && p.fixError && <p role="alert" className="mt-2 text-xs text-destructive">{p.fixError}</p>}
+        </>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => void run(text)} disabled={scoring || short || left === 0}
+              className={`h-9 gap-1.5 [@media(pointer:coarse)]:h-11 ${scoring ? "disabled:opacity-100" : ""}`}>
+              {scoring ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Gauge className="h-3.5 w-3.5" />}
+              {scoring ? "Scoring..." : "Predict engagement"}
+            </Button>
+            {!scoring && <PriceChip feature="post-score" left={left} />}
+          </div>
+          {short && <p className="text-xs text-muted-foreground">Write a bit more before scoring it.</p>}
+          {why && !short && <p className="text-xs text-destructive">{why}</p>}
+          {error?.key === key && <p role="alert" className="text-xs text-destructive">{error.message}</p>}
         </div>
       )}
     </section>
@@ -744,15 +883,17 @@ export default function CarouselPage() {
   };
 
   // an edited carousel is kept to come back to (per profile, on every device)
-  const keep = (list = slides) => {
+  const keep = (list = slides, score?: SavedScore) => {
     if (!userId || list.length < MIN_SLIDES) return;
     const id = carouselId || `p:${Date.now().toString(36)}`;
     if (!carouselId) setCarouselId(id);
-    // a language version keeps its language and its link to the English (set only on Leo's versions)
+    // a language version keeps its language and its link to the English, and a scored one its score (Leo's only)
     const was = loadCarousels(userId).find((c) => c.id === id);
+    const scored = score ?? was?.score;
     setSaved(saveCarousel(userId, {
       ...(was?.lang ? { lang: was.lang } : {}),
       ...(was?.translationOf ? { translationOf: was.translationOf } : {}),
+      ...(scored ? { score: scored } : {}),
       id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper,
       ...(leo && design !== "clean" ? { design } : {}),
       ...(leo && size !== "4x5" ? { size } : {}),
@@ -991,12 +1132,13 @@ export default function CarouselPage() {
     }
   };
 
-  const tighten = async () => {
-    if (ai.status === "loading" || slides.length < MIN_SLIDES) return;
+  // true once the slides are tightened (the score's Fix this scores them next)
+  const tighten = async (): Promise<boolean> => {
+    if (ai.status === "loading" || slides.length < MIN_SLIDES) return false;
     const empty = slides.findIndex((s) => !s.title.trim() && !s.body.trim());
     if (empty >= 0) {
       setAi({ status: "error", message: `Slide ${empty + 1} is empty. Add text or delete it first.` });
-      return;
+      return false;
     }
     const snapshot = slides;
     // the recap is rewritten from the other slides each time, so it is not sent
@@ -1020,6 +1162,7 @@ export default function CarouselPage() {
               : ""
         }Read them through before you post. Undo brings your version back.`,
       });
+      return true;
     } catch (err) {
       const e =
         err instanceof CarouselCopyError
@@ -1027,6 +1170,7 @@ export default function CarouselPage() {
           : new CarouselCopyError("failed", "Couldn't tighten the slides. Try again in a minute.");
       const status = e.code === "daily_limit" ? "limit" : e.code === "unavailable" ? "unavailable" : "error";
       setAi({ status, message: e.message });
+      return false;
     }
   };
 
@@ -1055,6 +1199,14 @@ export default function CarouselPage() {
   const compareDraft = leo && showEditor && draftId && carouselId === `d:${draftId}` ? (drafts.find((d) => d.id === draftId) ?? null) : null;
   const compareOn = Boolean(compareDraft?.source);
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
+  // edit-score (Leo only): the caption is the post's own when these are its slides, as the compare strip reads it
+  const scoreOn = Boolean(leo && userId && showEditor);
+  useScrollToHash(scoreOn);
+  const scoreFrom = carouselId === `d:${draftId}` ? drafts.find((d) => d.id === draftId) : undefined;
+  const savedNow = scoreOn ? saved.find((c) => c.id === carouselId) : undefined;
+  const scoreTextOf = (list: Slide[]) => carouselScoreSource(list, scoreFrom, savedNow?.lang);
+  const scoreText = scoreOn ? scoreTextOf(slides) : null;
+  const savedScore = scoreText === null ? null : currentScore({ platform, score: savedNow?.score }, scoreText);
 
   // edit-by-chat (Leo only): the open carousel is what the agent changes, and only on its Use this
   const editIn = useRef({ title: "", onScreen: undefined as number | undefined, platform, change });
@@ -1875,7 +2027,7 @@ export default function CarouselPage() {
                     {exporting.total > 1 ? " Your browser may ask to allow multiple downloads." : ""}
                   </p>
                 )}
-                <ul className="grid grid-cols-2 gap-3 lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto lg:pr-1">
+                <ul className={`grid grid-cols-2 gap-3 ${scoreOn ? "lg:max-h-[calc(100vh-22rem)]" : "lg:max-h-[calc(100vh-14rem)]"} lg:overflow-y-auto lg:pr-1`}>
                   {images.map((img, i) => (
                     <li key={slides[i].id} className="min-w-0 space-y-1">
                       <button
@@ -1912,6 +2064,11 @@ export default function CarouselPage() {
                     </li>
                   ))}
                 </ul>
+                {scoreOn && userId && (
+                  <CarouselScore key={carouselId} userId={userId} text={scoreText} platform={platform} saved={savedScore} busy={busy || ai.status === "limit"}
+                    fixError={aiMessage?.message ?? null} onScored={(s) => keepRef.current(undefined, s)}
+                    onFix={async () => ((await tighten()) ? scoreTextOf(slidesRef.current) : null)} />
+                )}
               </CardContent>
             </Card>
           </div>

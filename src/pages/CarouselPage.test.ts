@@ -20,7 +20,8 @@ vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof imp
 // the rewrite store has no server snapshot; nothing is being rewritten on a first frame
 vi.mock("@/components/carousel/SlideFields", async (actual) => ({ ...(await actual<typeof import("@/components/carousel/SlideFields")>()), useRewriting: () => false }));
 
-const { default: CarouselPage, carouselTarget } = await import("./CarouselPage");
+const { default: CarouselPage, carouselTarget, carouselScoreSource, CarouselScore } = await import("./CarouselPage");
+const { textKey } = await import("@/lib/postScore");
 const html = (path = "/carousel") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(CarouselPage)));
 
 describe("/carousel for everyone else", () => {
@@ -99,5 +100,63 @@ describe("the open carousel as the agent's edit target (Leo only)", () => {
     io.live = false;
     expect(() => p.apply()).toThrow("That carousel is no longer open.");
     expect(io.changes).toBe(0);
+  });
+});
+
+describe("the carousel's predicted engagement (edit-score, Leo only)", () => {
+  const SLIDES = [
+    { title: "5 CPF myths", body: "" },
+    { title: "Myth 1", body: "You can't touch your CPF until 65, so there's no point in checking it now." },
+    { title: "Message me", body: "I'll go through yours." },
+  ];
+  const TEXT = "Slide 1: 5 CPF myths\nSlide 2: Myth 1. You can't touch your CPF until 65, so there's no point in checking it now.\nSlide 3: Message me. I'll go through yours.";
+  const panel = (o: { text?: string | null; saved?: { v: number; down: ("hook" | "oneIdea" | "specific" | "cta" | "readable")[] } | null } = {}) => {
+    const text = o.text === undefined ? TEXT : o.text;
+    const saved = o.saved ? { ...o.saved, key: textKey("instagram", text ?? ""), at: "2026-10-25T01:00:00.000Z" } : null;
+    return renderToStaticMarkup(createElement(CarouselScore, {
+      userId: "u1", text, platform: "instagram", saved, busy: false, fixError: null, onScored: () => undefined, onFix: async () => null,
+    }));
+  };
+  const visible = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  it("scores the slides, then the caption of the post they were made from, and never a version in another language", () => {
+    expect(carouselScoreSource(SLIDES, undefined, undefined)).toBe(TEXT);
+    expect(carouselScoreSource(SLIDES, { draft: "Most people never check their CPF. Here are 5 myths." }, undefined)).toBe(`${TEXT}\n\nCaption: Most people never check their CPF. Here are 5 myths.`);
+    expect(carouselScoreSource(SLIDES, undefined, "ms")).toBeNull();
+    expect(carouselScoreSource(SLIDES, { draft: "Kebanyakan orang tidak pernah semak CPF.", lang: "ms" }, undefined)).toBeNull();
+  });
+
+  it("shows Predict engagement with nothing scored, disabled with a line while the text is under 40 characters", () => {
+    expect(panel()).toContain('id="score"');
+    expect(visible(panel())).toBe("Predict engagement");
+    expect(panel()).not.toMatch(/disabled=""/);
+    const short = panel({ text: "Slide 1: Hi\nSlide 2: DM me" });
+    expect(short).toMatch(/<button[^>]*disabled=""/);
+    expect(visible(short)).toBe("Predict engagement Write a bit more before scoring it.");
+  });
+
+  it("a version in another language says why and has no button", () => {
+    const h = panel({ text: null });
+    expect(visible(h)).toBe("Scores run on the English version.");
+    expect(h).not.toContain("<button");
+  });
+
+  it("a score: out of 10 with its band word and the carousel's tips, Fix this on Easy to read only", () => {
+    const h = panel({ saved: { v: 6.1, down: ["hook", "readable"] } });
+    const t = visible(h);
+    expect(t).toContain("Predicted engagement 6.1/10 Fair");
+    expect(h).toContain('aria-label="Predicted engagement 6.1 out of 10"');
+    expect(t).toContain("First line: Put the number, the surprise or the question on the cover. The cover decides if anyone swipes.");
+    expect(t).toContain("Easy to read: Keep each slide to a short title and two short sentences at most.");
+    expect(t.match(/Fix this/g)).toHaveLength(1);
+    expect(t.indexOf("Fix this")).toBeGreaterThan(t.indexOf("Easy to read:"));
+    expect(visible(panel({ saved: { v: 6.1, down: ["hook", "cta"] } }))).not.toContain("Fix this");
+  });
+
+  it("band words at 7.5 and 5, and the line when nothing pulled it down", () => {
+    expect(visible(panel({ saved: { v: 7.5, down: [] } }))).toContain("7.5/10 Strong");
+    expect(visible(panel({ saved: { v: 7.5, down: [] } }))).toContain("Nothing big is holding it back.");
+    expect(visible(panel({ saved: { v: 5, down: ["cta"] } }))).toContain("5.0/10 Fair");
+    expect(visible(panel({ saved: { v: 4.9, down: ["cta"] } }))).toContain("4.9/10 Weak");
   });
 });
