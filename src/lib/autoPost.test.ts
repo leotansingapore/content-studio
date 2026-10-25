@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { PDF_LINKEDIN_ONLY, THREAD_MIXED, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, schedulePost, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
+const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, schedulePost, tiktokReason, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -132,7 +132,7 @@ describe("the draft's link", () => {
           { platform: "linkedin", accountId: "b", status: "failed", url: null, error: "Token expired" },
         ],
       }),
-    ).toEqual({ key: "k", postId: "p1", status: "partial", at: "2026-10-12T01:00:00.000Z", links: [{ platform: "instagram", url: "https://www.instagram.com/p/x/" }], error: "Token expired" });
+    ).toEqual({ key: "k", postId: "p1", status: "partial", at: "2026-10-12T01:00:00.000Z", links: [{ platform: "instagram", url: "https://www.instagram.com/p/x/" }], error: "Token expired", platforms: ["instagram", "linkedin"] });
   });
 });
 
@@ -277,5 +277,55 @@ describe("a thread", () => {
     const input = { clientKey: "k", content: thread[0], captions: {}, mediaUrls: [], scheduledFor: null, firstComment: "", tiktok: null, youtube: null, thread };
     expect(platformProblem(input, ["threads", "facebook"])).toBe(THREAD_MIXED);
     expect(platformProblem(input, ["threads"])).toBeNull();
+  });
+});
+
+// publish-tiktok: Zernio marks a TikTok inbox draft published with platformSpecificData.isDraft and no link
+// (docs.zernio.com/platforms/tiktok/posts.mdx, as the spec read it on 20 Oct 2026); social-server reads it into `draft`.
+describe("TikTok inbox drafts", () => {
+  const entry = (platform: string, extra = {}) => ({ platform, accountId: platform[0], status: "published", url: null, error: "", draft: false, ...extra });
+  const inbox = { id: "p1", status: "published" as const, scheduledFor: "2026-10-20T01:00:00.000Z", platforms: [entry("tiktok", { draft: true })] };
+  const mixed = { ...inbox, platforms: [entry("instagram", { url: "https://www.instagram.com/p/x/" }), entry("tiktok", { draft: true })] };
+
+  it("keeps the draft platforms on the link, and the platforms when there are several", () => {
+    expect(linkFromView("k", inbox)).toEqual({ key: "k", postId: "p1", status: "published", at: "2026-10-20T01:00:00.000Z", drafts: ["tiktok"] });
+    expect(linkFromView("k", mixed)).toEqual({
+      key: "k",
+      postId: "p1",
+      status: "published",
+      at: "2026-10-20T01:00:00.000Z",
+      links: [{ platform: "instagram", url: "https://www.instagram.com/p/x/" }],
+      platforms: ["instagram", "tiktok"],
+      drafts: ["tiktok"],
+    });
+    expect(linkFromView("k", { ...mixed, platforms: [entry("instagram"), entry("linkedin")] }).platforms).toEqual(["instagram", "linkedin"]);
+  });
+
+  it("reads In your TikTok inbox while every entry is a draft, Posted once one is live or it is marked posted", () => {
+    expect(chipOf(linkFromView("k", inbox))).toEqual({ label: "In your TikTok inbox", tone: "wait" });
+    expect(chipOf(linkFromView("k", mixed))).toEqual({ label: "Posted", tone: "good" });
+    expect(chipOf(linkFromView("k", inbox), true)).toEqual({ label: "Posted", tone: "good" });
+    // a draft entry on a post that isn't published yet still reads by its status
+    expect(chipOf({ ...linkFromView("k", inbox), status: "publishing" })).toEqual({ label: "Posting", tone: "wait" });
+  });
+
+  it("postedNow is false when every published entry is a draft, true once one non-draft entry is published", () => {
+    expect(postedNow(inbox)).toBe(false);
+    expect(postedNow({ ...inbox, platforms: [entry("tiktok", { draft: true }), entry("tiktok", { draft: true, accountId: "u" })] })).toBe(false);
+    expect(postedNow(mixed)).toBe(true);
+    expect(postedNow({ ...inbox, platforms: [entry("tiktok")] })).toBe(true);
+    // as applyView read it before: only a published post, and one with no entries listed still counts
+    expect(postedNow({ ...mixed, status: "partial" })).toBe(false);
+    expect(postedNow({ ...inbox, platforms: [] })).toBe(true);
+  });
+
+  it("puts TikTok's three limits in plain words and passes anything else through", () => {
+    expect(tiktokReason("TikTok allows only 5 pending drafts per account in any 24-hour period. Please wait before sending more drafts.")).toBe(
+      "TikTok holds 5 drafts at most. Finish or delete drafts in the TikTok app, then retry.",
+    );
+    expect(tiktokReason("TikTok direct posting is at capacity right now. Please try again later.")).toBe(TIKTOK_BUSY);
+    expect(TIKTOK_BUSY).toBe("TikTok is busy for direct posts right now. Send it to your inbox instead, or retry in a few hours.");
+    expect(tiktokReason("You have created too many posts in the last 24 hours via the API.")).toBe("TikTok's daily limit for this account is reached. Try tomorrow, or post it in the TikTok app.");
+    expect(tiktokReason("Video duration is too long")).toBe("Video duration is too long");
   });
 });

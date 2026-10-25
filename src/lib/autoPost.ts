@@ -17,6 +17,7 @@ import {
   MEDIA_TYPES,
   PDF_TYPE,
   type CreatorInfo,
+  type PlatformResult,
   type PostView,
 } from "../../supabase/functions/social/posts.ts";
 
@@ -48,14 +49,25 @@ export const sgLabel = (iso: string) =>
 
 // ---- the status chip ----
 
+// shortcut: entries' `draft` (social-server) and the link's `platforms` and `drafts` (data-shapes) land in wave 1's
+// merge; then these two are PostView and ZernioLink themselves.
+type View = Omit<PostView, "platforms"> & { platforms: (PlatformResult & { draft?: boolean })[] };
+type Link = ZernioLink & { platforms?: string[]; drafts?: string[] };
+
 export type ChipTone = "wait" | "good" | "bad" | "muted";
 
-/** What the chip on a draft says about its Zernio post, or null when nothing was sent. */
-export function chipOf(link: ZernioLink | undefined): { label: string; tone: ChipTone } | null {
+/** Every network it went to went as a TikTok inbox draft, which Zernio calls published though nothing is live. */
+const inboxOnly = (link: Link) => !!link.drafts?.length && (link.platforms ?? link.drafts).every((p) => link.drafts!.includes(p));
+
+/**
+ * What the chip on a draft says about its Zernio post, or null when nothing was sent. `markedPosted`: the adviser
+ * finished an inbox draft in TikTok and pressed Mark posted, which Zernio never learns.
+ */
+export function chipOf(link: Link | undefined, markedPosted = false): { label: string; tone: ChipTone } | null {
   if (!link?.postId) return null;
   switch (link.status) {
     case "published":
-      return { label: "Posted", tone: "good" };
+      return inboxOnly(link) && !markedPosted ? { label: "In your TikTok inbox", tone: "wait" } : { label: "Posted", tone: "good" };
     case "partial":
       return { label: "Partly posted", tone: "bad" };
     case "failed":
@@ -188,9 +200,37 @@ export async function uploadAll(profileId: string, files: MediaFile[], done: Map
   return files.map((f) => done.get(f.file)!);
 }
 
-/** The draft's link from what Zernio says about its post: status, time, each live post's link and the first reason it failed. */
-export function linkFromView(key: string, v: PostView): ZernioLink {
+/**
+ * The draft's link from what Zernio says about its post: status, time, each live post's link, the first reason it
+ * failed, the networks when there are several (one network is the draft's own, as before) and those sent as drafts.
+ */
+export function linkFromView(key: string, v: View): Link {
   const links = v.platforms.filter((p) => p.url && /^https:\/\//.test(p.url)).map((p) => ({ platform: p.platform, url: p.url! }));
   const error = v.platforms.find((p) => p.error)?.error;
-  return { key, postId: v.id, status: v.status, ...(v.scheduledFor ? { at: v.scheduledFor } : {}), ...(links.length ? { links } : {}), ...(error ? { error } : {}) };
+  const platforms = [...new Set(v.platforms.map((p) => p.platform))];
+  const drafts = [...new Set(v.platforms.filter((p) => p.draft).map((p) => p.platform))];
+  return {
+    key,
+    postId: v.id,
+    status: v.status,
+    ...(v.scheduledFor ? { at: v.scheduledFor } : {}),
+    ...(links.length ? { links } : {}),
+    ...(error ? { error } : {}),
+    ...(platforms.length > 1 ? { platforms } : {}),
+    ...(drafts.length ? { drafts } : {}),
+  };
 }
+
+/** Whether a read of the post means it is live, so the draft is marked posted: published, unless every entry went to an inbox. */
+export const postedNow = (v: View) => v.status === "published" && !(v.platforms.length && v.platforms.every((p) => p.draft));
+
+export const TIKTOK_BUSY = "TikTok is busy for direct posts right now. Send it to your inbox instead, or retry in a few hours.";
+// Zernio's TikTok errors (docs.zernio.com/platforms/tiktok/posts.mdx, read 20 Oct 2026)
+const TIKTOK_LINES: [RegExp, string][] = [
+  [/5 pending drafts/i, "TikTok holds 5 drafts at most. Finish or delete drafts in the TikTok app, then retry."],
+  [/direct posting is at capacity/i, TIKTOK_BUSY],
+  [/too many posts in the last 24 hours/i, "TikTok's daily limit for this account is reached. Try tomorrow, or post it in the TikTok app."],
+];
+
+/** A TikTok failure in plain words; anything else in Zernio's own. */
+export const tiktokReason = (error: string) => TIKTOK_LINES.find(([re]) => re.test(error))?.[1] ?? error;
