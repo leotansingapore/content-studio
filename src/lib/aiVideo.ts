@@ -17,7 +17,8 @@ import { planSlices, sceneSeconds } from "@/lib/videoEdit";
 import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
 import { DUB_LANGS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
 import { textsFromSpans } from "@/lib/avatarScript";
-import type { AiPart } from "@/lib/videoEdit";
+import { partsToRemake, type Version } from "@/lib/editPlan";
+import type { AiPart, Word } from "@/lib/videoEdit";
 import { MAX_AVATAR_SECONDS, MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
 
@@ -212,6 +213,8 @@ export interface Pending {
   after?: { key: string; start?: number; end: number }[];
   /** The agent's chat that started it, kept so a reload's pickup still logs as the agent's. */
   agent?: AiJob["agent"];
+  /** A same edit version: the base video's Speak parts kept on this device, joined before and after the new clips. */
+  keep?: { before: AiPart[]; after: AiPart[] };
 }
 export function pendingAvatar(): Pending | null {
   try {
@@ -233,19 +236,29 @@ const keepPending = (p: Pending | null) => {
 /** Your face or a saved presenter: the video keeps each Speak part, so a line can be made again on that face (people-dub-lipsync). */
 const keepsParts = (e?: JoinExtra) => e?.ai?.person === "mine" || e?.ai?.person === "presenter";
 
-/** The mark with each part's words, place in the joined video and device key, "ai-slice-<job>-<i>-0". */
-function withParts(extra: JoinExtra, seconds: number[], texts: string[]): JoinExtra {
+/**
+ * The mark with each part's words, place in the joined video and device key, "ai-slice-<job>-<i>-0"; a version's kept
+ * parts keep their own keys, in their places around the new ones.
+ */
+function withParts(extra: JoinExtra, seconds: number[], texts: string[], keep?: Pending["keep"]): JoinExtra {
   const job = Date.now().toString(36);
   let at = 0;
-  const slices = seconds.map((s, i) => ({ text: texts[i] ?? "", start: Math.round(at * 1000) / 1000, end: Math.round((at += s) * 1000) / 1000, clip: `ai-slice-${job}-${i}-0` }));
+  const place = (text: string, s: number, clip: string) => ({ text, start: Math.round(at * 1000) / 1000, end: Math.round((at += s) * 1000) / 1000, clip });
+  const old = (x: AiPart) => place(x.text, x.end - x.start, x.clip);
+  const slices = [...(keep?.before ?? []).map(old), ...seconds.map((s, i) => place(texts[i] ?? "", s, `ai-slice-${job}-${i}-0`)), ...(keep?.after ?? []).map(old)];
   return { ...extra, ai: { ...extra.ai!, slices } };
 }
 
-/** Each part saved under its key before the join; a part that can't be kept leaves a video with no parts to fix. */
+/** A version's kept parts read back from JSON, or none. */
+const keptOf = (p: Pending) => (p.keep && Array.isArray(p.keep.before) && Array.isArray(p.keep.after) ? p.keep : { before: [], after: [] });
+
+/** Each new part saved under its key before the join; a part that can't be kept leaves a video with no parts to fix. */
 async function keepParts(p: Pending, clips: Blob[]): Promise<JoinExtra | undefined> {
   const parts = p.kind ? undefined : p.extra?.ai?.slices;
   if (!parts?.length) return p.extra;
-  const kept = parts.length === clips.length && (await Promise.all(parts.map((s, i) => putFile(s.clip, clips[i]))).then(() => true, () => false));
+  const { before, after } = keptOf(p);
+  const fresh = parts.slice(before.length, before.length + clips.length);
+  const kept = parts.length === before.length + clips.length + after.length && (await Promise.all(fresh.map((s, i) => putFile(s.clip, clips[i]))).then(() => true, () => false));
   return kept ? p.extra : { ...p.extra, ai: { ...p.extra!.ai!, slices: undefined } };
 }
 
@@ -265,10 +278,15 @@ async function finishAvatar(p: Pending): Promise<void> {
     const from = (a: { start?: number; end: number }) => (typeof a.start === "number" && a.start > 0 && a.start < a.end ? a.start : 0);
     const after = await Promise.all((Array.isArray(p.after) ? p.after : []).map(async (a) => ({ file: await getFile(a.key).catch(() => undefined), start: from(a), end: a.end })));
     if (after.some((a) => !a.file)) throw new Error(DEMO_GONE);
+    // a version's kept parts, from this device: one gone keeps the paid clips pending until it is back
+    const kept = keptOf(p);
+    const old = (list: AiPart[]) => Promise.all(list.map(async (x) => ({ file: await getFile(x.clip).catch(() => undefined), start: 0, end: x.end - x.start })));
+    const [before, behind] = [await old(kept.before), await old(kept.after)];
+    if ([...before, ...behind].some((a) => !a.file)) throw new Error(GONE);
     await joinSlot();
     // the job stays working (so a remount can't start a second join) and paid for until the join is done
     set({ kind, state: "working", step: "Putting your video together..." });
-    const takes = [...clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), ...after.map((a) => ({ ...a, file: a.file! }))];
+    const takes = [...before, ...clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), ...behind, ...after].map((a) => ({ ...a, file: a.file! }));
     await startJoin(p.name, takes, "Putting your video together", { extra });
     const joined = currentJoin();
     if (joined?.state === "failed") throw new Error(joined.error || "Couldn't put the video together. Try again.");
@@ -294,15 +312,19 @@ export async function makeAvatar(name: string, photo: Blob | string, voice: Voic
   await startAvatar(name, photo, voice, extra, agent);
 }
 
-async function startAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra, agent?: AiJob["agent"]): Promise<void> {
+async function startAvatar(name: string, photo: Blob | string, voice: Voiceover, extra?: JoinExtra, agent?: AiJob["agent"], v?: { keep: NonNullable<Pending["keep"]>; version: VersionOf }): Promise<void> {
   by = agent;
   set({ kind: "avatar", state: "working", step: "Sending your voiceover and photo..." });
   let p: Pending;
   try {
     const slices = await wavSlices(voice);
-    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: await faceBody(photo), slices }, RETRY);
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: await faceBody(photo), slices, ...(v ? { version: v.version } : {}) }, RETRY);
     const seconds = slices.map((s) => s.seconds);
-    p = { name, tokens, seconds, refund, extra: keepsParts(extra) ? withParts(extra!, seconds, voice.slices.map((s) => s.text ?? "")) : extra, ...(agent ? { agent } : {}) };
+    const texts = voice.slices.map((s) => s.text ?? "");
+    p = {
+      name, tokens, seconds, refund, extra: keepsParts(extra) ? withParts(extra!, seconds, texts, v?.keep) : extra, ...(agent ? { agent } : {}),
+      ...(v && (v.keep.before.length || v.keep.after.length) ? { keep: v.keep } : {}),
+    };
     keepPending(p);
   } catch (e) {
     return fail("avatar", e);
@@ -362,6 +384,69 @@ export async function makeInLanguage(name: string, photo: Blob | string, lines: 
     return fail("avatar", e);
   }
   await startAvatar(name, photo, vo, extra);
+}
+
+// ---------- a same edit version (remix-format-clone) ----------
+
+/** ai-video's `version` field: the plan and the version it changes, so the run counts edit-version, not ai-video. */
+export type VersionOf = { plan: string; of?: string };
+const wordCount = (s: string) => s.split(/\s+/).filter(Boolean).length;
+// partsToRemake's own test of a changed line (editPlan.ts plain), so the two never disagree on a punctuation edit
+const plainWords = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * The Speak parts a version makes again, as one run from the first part partsToRemake picks to the last (a kept part
+ * between two changed ones is made again too, so no new words straddle an old take), and what that run says: each line
+ * it covers in full when the line changed, else the old line's own words inside the run. Null when nothing changed.
+ */
+export function versionRun(base: Version, next: Version, parts: AiPart[]): { from: number; to: number; text: string } | null {
+  const picked = partsToRemake(base, next, parts);
+  if (!picked.length) return null;
+  const from = Math.min(...picked);
+  const to = Math.max(...picked) + 1;
+  if (from === 0 && to === parts.length) return { from, to, text: next.lines.join(" ").replace(/\s+/g, " ").trim() };
+  // partsToRemake picked by word ranges, so here the parts' words and the lines' words add up
+  const startOf = (texts: string[], i: number) => texts.slice(0, i).reduce((n, t) => n + wordCount(t), 0);
+  const a = startOf(parts.map((p) => p.text), from);
+  const b = startOf(parts.map((p) => p.text), to);
+  const said = base.lines.flatMap((line, i) => {
+    const s = startOf(base.lines, i);
+    const e = s + wordCount(line);
+    if (e <= a || s >= b) return [];
+    if (plainWords(line) !== plainWords(next.lines[i] ?? "")) return [next.lines[i]];
+    return [line.split(/\s+/).filter(Boolean).slice(Math.max(0, a - s), b - s).join(" ")];
+  });
+  return { from, to, text: said.join(" ").replace(/\s+/g, " ").trim() };
+}
+
+/**
+ * The version's words on the new video's clock: the kept parts' words where they were, those after the run moved by
+ * how much longer or shorter the new voice is, and the new voice's own words inside the run.
+ */
+export function versionWords(parts: AiPart[], run: { from: number; to: number }, words: Word[], said: Word[], seconds: number): { words: Word[]; seconds: number } {
+  const s = parts[run.from]?.start ?? 0;
+  const e = parts[run.to - 1]?.end ?? s;
+  const shift = s + seconds - e;
+  const mid = (w: Word) => (w.s + w.e) / 2;
+  const r = (n: number) => Math.round(n * 1000) / 1000;
+  return {
+    words: [
+      ...words.filter((w) => mid(w) < s),
+      ...said.map((w) => ({ ...w, s: r(w.s + s), e: r(w.e + s) })),
+      ...words.filter((w) => mid(w) >= e).map((w) => ({ ...w, s: r(w.s + shift), e: r(w.e + shift) })),
+    ],
+    seconds: r((parts.at(-1)?.end ?? e) + shift),
+  };
+}
+
+/**
+ * A version on a face: the run's new voice goes to Speak in one ai-video use sent with `version` (edit-version and
+ * ai-video-global), the base video's other parts are kept from this device, and the whole joins in order and opens as
+ * its own project with `extra`. Paid, it resumes from this device like any avatar video, kept parts and all.
+ */
+export async function makeVersion(name: string, photo: Blob | string, parts: AiPart[], run: { from: number; to: number }, voice: Voiceover, extra: JoinExtra, version: VersionOf): Promise<void> {
+  if (aiBusy()) return;
+  await startAvatar(name, photo, voice, extra, undefined, { keep: { before: parts.slice(0, run.from), after: parts.slice(run.to) }, version });
 }
 
 // ---------- fixing a line: only the changed parts made again (people-dub-lipsync part A) ----------

@@ -14,7 +14,7 @@ import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin,
 import { speak, speakDub } from "@/lib/textVoice";
 import {
   DEMO_GONE, PHOTO_GONE, REMAKE_FAILED, STILL_MAKING, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
-  pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake,
+  makeVersion, pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake, versionRun, versionWords,
 } from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
@@ -660,6 +660,88 @@ describe("an AI video of your face or a saved presenter (people-dub-lipsync)", (
       await makeInLanguage("Clip (Malay)", "https://cdn.example/face.jpg", ["Satu.", "", "Dua."], "alice", "ms", { ai: mark });
       expect(aiJob()).toMatchObject({ state: "failed", error: "It runs 32 seconds in Malay. Shorten a line to keep it under 30." });
       expect(callFn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a same edit version (remix-format-clone)", () => {
+    // the base: three Speak parts saying the plan's three lines, the hook over the first
+    const parts = [
+      { text: "Most advisers check CPF once a year.", start: 0, end: 3.5, clip: "ai-slice-b1-0-0" },
+      { text: "Here is what that misses.", start: 3.5, end: 6, clip: "ai-slice-b1-1-0" },
+      { text: "Book a review.", start: 6, end: 8, clip: "ai-slice-b1-2-0" },
+    ];
+    const base = {
+      id: "ev-base", host: { kind: "presenter" as const, id: "pr-1" }, voice: "alice" as const, lang: "en" as const, offer: null,
+      lines: ["Most advisers check CPF once a year.", "Here is what that misses.", "Book a review."], marks: [], texts: [], searches: [], caption: "", at: "2026-10-25T01:00:00.000Z",
+    };
+    const hook = { ...base, id: "ev-hook", of: "ev-base", change: "hook" as const, lines: ["I asked 40 clients one question.", ...base.lines.slice(1)] };
+    const kept = (k: string) => (k.startsWith("ai-slice-b1-") ? new Blob([`kept ${k}`]) : undefined);
+
+    it("remakes only the parts under a changed line, and says the new line with the kept words of a part it shares", () => {
+      expect(versionRun(base, hook, parts)).toEqual({ from: 0, to: 1, text: "I asked 40 clients one question." });
+      // one part holding the hook and the start of line 2: the run says both, the second as it was
+      const shared = [{ ...parts[0], text: "Most advisers check CPF once a year. Here is", end: 4.4 }, { ...parts[1], text: "what that misses.", start: 4.4 }, parts[2]];
+      expect(versionRun(base, hook, shared)).toEqual({ from: 0, to: 1, text: "I asked 40 clients one question. Here is" });
+      // the offer and the ask changed: one run from the first to the last, the kept line between them said as it was
+      const ask = { ...base, lines: [base.lines[0], "Here is what we check.", "Book a free review."] };
+      expect(versionRun(base, ask, parts)).toEqual({ from: 1, to: 3, text: "Here is what we check. Book a free review." });
+      // every part (a new host or language), and nothing changed at all
+      expect(versionRun(base, { ...hook, change: "host" }, parts)).toEqual({ from: 0, to: 3, text: hook.lines.join(" ") });
+      expect(versionRun(base, { ...base, lines: ["Most advisers check CPF once a year!", ...base.lines.slice(1)] }, parts)).toBeNull();
+    });
+
+    it("puts the kept words where they were and the new voice's words in the run, moving the rest by the change in length", () => {
+      const words = [{ w: "Most", s: 0.1, e: 0.4 }, { w: "Here", s: 3.6, e: 3.9 }, { w: "Book", s: 6.1, e: 6.4 }];
+      const said = [{ w: "I", s: 0, e: 0.2 }, { w: "asked", s: 0.2, e: 0.6 }];
+      // the new hook runs 4.5 s where the old one ran 3.5 s
+      expect(versionWords(parts, { from: 0, to: 1 }, words, said, 4.5)).toEqual({
+        words: [{ w: "I", s: 0, e: 0.2 }, { w: "asked", s: 0.2, e: 0.6 }, { w: "Here", s: 4.6, e: 4.9 }, { w: "Book", s: 7.1, e: 7.4 }],
+        seconds: 9,
+      });
+      expect(versionWords(parts, { from: 1, to: 2 }, words, [{ w: "So", s: 0, e: 0.3 }], 2).words.map((w) => [w.w, w.s])).toEqual([["Most", 0.1], ["So", 3.5], ["Book", 5.6]]);
+    });
+
+    it("sends only the run to Speak with the version, keeps the other parts from this device and joins all of them in order", async () => {
+      made(1);
+      vi.mocked(getFile).mockImplementation(async (k) => kept(k));
+      const voice = { pcm: new Float32Array(24000 * 4), seconds: 4.5, slices: [{ start: 0, end: 4.5, text: "I asked 40 clients one question." }] };
+      const run = makeVersion("Hook version", "https://cdn.example/face.jpg", parts, { from: 0, to: 1 }, voice, { toast: "Version 2 is ready.", ai: mark, plan: { id: "ep-1", version: "ev-hook" } }, { plan: "ep-1", of: "ev-base" });
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      const starts = vi.mocked(callFn).mock.calls.map(([, b]) => b as { mode: string; slices?: unknown[]; version?: unknown }).filter((b) => b.mode === "avatar");
+      expect(starts).toEqual([{ mode: "avatar", photo: { url: "https://cdn.example/face.jpg" }, slices: [{ wav: "AAAA", seconds: 4.5 }], version: { plan: "ep-1", of: "ev-base" } }]);
+      const [, takes] = vi.mocked(startJoin).mock.calls[0];
+      expect(await Promise.all(takes.map(async (t) => [await (t.file as Blob).text(), t.start, t.end]))).toEqual([
+        ["https://cdn.example/t0.mp4", 0, 4.5], ["kept ai-slice-b1-1-0", 0, 2.5], ["kept ai-slice-b1-2-0", 0, 2],
+      ]);
+      // the new project's parts: the new one under its own key, the kept ones under theirs, in their new places
+      const slices = joinedExtra()!.ai!.slices!;
+      expect(slices.map((x) => [x.text, x.start, x.end])).toEqual([["I asked 40 clients one question.", 0, 4.5], [parts[1].text, 4.5, 7], [parts[2].text, 7, 9]]);
+      expect(slices[0].clip).toMatch(/^ai-slice-[0-9a-z]+-0-0$/);
+      expect(slices.slice(1).map((x) => x.clip)).toEqual(["ai-slice-b1-1-0", "ai-slice-b1-2-0"]);
+      expect(vi.mocked(putFile).mock.calls.map(([k]) => k)).toEqual([slices[0].clip]);
+      expect(joinedExtra()).toMatchObject({ toast: "Version 2 is ready.", plan: { id: "ep-1", version: "ev-hook" } });
+      expect(pendingAvatar()).toBeNull();
+    });
+
+    it("keeps the paid run pending while a kept part is gone from this device, and a reload joins it at no new cost", async () => {
+      made(1);
+      const voice = { pcm: new Float32Array(24000 * 4), seconds: 4.5, slices: [{ start: 0, end: 4.5 }] };
+      const run = makeVersion("Hook version", "https://cdn.example/face.jpg", parts, { from: 0, to: 1 }, voice, { ai: mark }, { plan: "ep-1" });
+      await vi.advanceTimersByTimeAsync(6_000);
+      await run;
+      expect(aiJob()).toMatchObject({ state: "failed", error: "The parts are on the device you made it on." });
+      expect(pendingAvatar()).toMatchObject({ tokens: ["t0"], keep: { before: [], after: parts.slice(1) } });
+      expect(startJoin).not.toHaveBeenCalled();
+
+      vi.mocked(getFile).mockImplementation(async (k) => kept(k));
+      vi.mocked(callFn).mockClear();
+      made(1);
+      resumeAvatar();
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(vi.mocked(callFn).mock.calls.some(([, b]) => (b as Body).mode === "avatar")).toBe(false);
+      expect(vi.mocked(startJoin).mock.calls[0][1]).toHaveLength(3);
+      expect(aiJob()).toMatchObject({ state: "done" });
     });
   });
 });
