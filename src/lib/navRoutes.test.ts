@@ -10,6 +10,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/": "redirects to /home",
   "/auth": "sign-in page, outside the studio",
   "/roadmap": "public roadmap, linked from Feedback",
+  "/marketing-north-star": "Leo's app marketing hub, reached from the tabs on /north-star",
   "/review/:token": "public compliance preview link",
   "/l/:slug": "public link-in-bio page",
   "/t/report/:slug": "public tracked-link report",

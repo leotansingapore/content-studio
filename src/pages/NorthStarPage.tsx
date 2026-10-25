@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ClipboardCopy, ExternalLink, FileText, Search, X } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import NorthStarTabs from "@/components/NorthStarTabs";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
@@ -557,6 +558,7 @@ function NorthStar() {
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-16" data-testid="north-star-page">
       <header className="space-y-3">
+        <NorthStarTabs />
         <div className="flex items-start gap-2">
           <h1 className="flex flex-1 items-center gap-1.5 font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
             North star

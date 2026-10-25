@@ -50,6 +50,7 @@ const PeoplePage = lazy(() => import("@/pages/PeoplePage"));
 const SavedPage = lazy(() => import("@/pages/SavedPage"));
 const MarketPage = lazy(() => import("@/pages/MarketPage"));
 const NorthStarPage = lazy(() => import("@/pages/NorthStarPage"));
+const MarketingNorthStarPage = lazy(() => import("@/pages/MarketingNorthStarPage"));
 const InspirationDetailPage = lazy(() => import("@/pages/InspirationDetailPage"));
 const ProfilesPage = lazy(() => import("@/pages/ProfilesPage"));
 const ProfileDetailPage = lazy(() => import("@/pages/ProfileDetailPage"));
@@ -167,6 +168,7 @@ export default function App() {
           <Route path="/saved" element={<SavedPage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/north-star" element={<NorthStarPage />} />
+          <Route path="/marketing-north-star" element={<MarketingNorthStarPage />} />
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />
           <Route path="/profiles" element={<ProfilesPage />} />
           <Route path="/profiles/:id" element={<ProfileDetailPage />} />
