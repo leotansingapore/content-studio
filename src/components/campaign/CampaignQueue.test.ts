@@ -10,7 +10,8 @@ vi.mock("@/lib/supabase", () => ({
   SUPABASE_ANON_KEY: "",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) }, functions: { invoke: vi.fn() }, from: vi.fn() },
 }));
-const fake = vi.hoisted(() => ({ left: {} as Record<string, number | null>, who: null as null | "mine" | "presenter" }));
+const fake = vi.hoisted(() => ({ left: {} as Record<string, number | null>, who: null as null | "mine" | "presenter", leo: false }));
+vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoOnly: () => fake.leo }));
 vi.mock("@/lib/aiUsage", async (actual) => ({ ...(await actual<typeof import("@/lib/aiUsage")>()), useUsesLeft: () => (f: string) => fake.left[f] ?? null }));
 vi.mock("@/lib/campaignActions", async (actual) => ({ ...(await actual<typeof import("@/lib/campaignActions")>()), savedWho: () => fake.who }));
 
@@ -72,6 +73,7 @@ const WORDS_LINE = "The video speaks these words, so Swap and Edit are off until
 afterEach(() => {
   fake.left = {};
   fake.who = null;
+  fake.leo = false;
 });
 
 describe("Make on an AI video post when today's AI videos are used (live-p5w4 N1)", () => {
@@ -259,5 +261,21 @@ describe("a made slideshow or wall shows what was made (live-p5dog D8: post 6's 
     expect(out).toContain("4 ways to close out a sales day");
     expect(out).toContain("You finish a client chat, then the next one starts.");
     expect(out).not.toContain(HOOK.replace("'", "&#x27;"));
+  });
+});
+
+describe("Make it a launch film on an AI video slot (formats-launch-film)", () => {
+  const LINK = 'href="/make/launch-film?campaign=c-mvjda76zrjdr&amp;post=4"';
+  it("links Leo's AI video post to the launch film, filled from that post, and spends nothing", () => {
+    fake.leo = true;
+    const out = html(4);
+    expect(out).toContain(LINK);
+    expect(out).toContain(">Make it a launch film<");
+  });
+  it("is not on another kind of post, nor for anyone else", () => {
+    fake.leo = true;
+    expect(html(3)).not.toContain("Make it a launch film");
+    fake.leo = false;
+    expect(html(4)).not.toContain("Make it a launch film");
   });
 });

@@ -42,6 +42,7 @@ import { platformName } from "@/lib/socialConnect";
 import { asTopic } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, onTalkJob, talkBusy, talkJob } from "@/lib/talkingHeadJob";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import { onWallJob, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
 import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
@@ -170,6 +171,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const [view, setView] = useUrlState<"one" | "grid">("view", "one", { allowed: ["one", "grid"] });
   const [postParam, setPostParam] = useUrlState("post", "");
   const update = useUrlUpdate();
+  const leo = useLeoOnly();
 
   const sorted = [...c.posts].sort((a, b) => a.n - b.n);
   const posts = angle ? sorted.filter((p) => p.angleId === angle) : sorted;
@@ -621,6 +623,10 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             <button type="button" className="min-h-11 text-primary hover:underline sm:min-h-0" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "See one slide at a time" : "See every slide"}</button>
           )}
           {cur.format === "ai-video" && cur.state !== "made" && <Link to={links.people({ tab: "presenters" })} className="inline-flex min-h-11 items-center text-primary hover:underline sm:min-h-0">Choose who appears</Link>}
+          {/* a launch film draws the brand's own screens in code for cents, in place of a paid AI video (formats-launch-film) */}
+          {leo && cur.format === "ai-video" && cur.state !== "made" && (
+            <Link to={links.makeFormat("launch-film", { campaign: c.id, post: cur.n })} className="inline-flex min-h-11 items-center text-primary hover:underline sm:min-h-0">Make it a launch film</Link>
+          )}
 
           {work ? (
             <div className="space-y-2" onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } }}>
