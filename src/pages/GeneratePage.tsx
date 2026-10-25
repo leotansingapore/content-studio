@@ -36,6 +36,7 @@ import { supabase } from "@/lib/supabase";
 import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { currentScore, labelFor, loadScores, saveScore, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
+import { slotTimesFor } from "@/lib/postingSlots";
 import {
   Sparkles,
   Copy,
@@ -2826,13 +2827,14 @@ export default function GeneratePage() {
     if (pickedDay) {
       const t = pickedTime
         ? { time: pickedTime, why: "slot" as const }
-        : postingTimeOn(getTrackedPosts(userId), platform, (keyToDate(pickedDay).getDay() + 6) % 7, brandKit?.slots);
+        : postingTimeOn(getTrackedPosts(userId), platform, (keyToDate(pickedDay).getDay() + 6) % 7, slotTimesFor(brandKit, platform));
       const at = `${pickedDay}T${t.time}`;
       // today with that time already gone: the day alone, never a time in the past
       return { at: new Date(at) < new Date() ? pickedDay : at, why: t.why };
     }
-    const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string);
-    return suggestPostingTime(getTrackedPosts(userId), platform, taken, new Date(), brandKit?.slots);
+    // with the brand kit and each post's network, so Leo's per-network times name the slot the calendar names
+    const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => ({ platform: d.platform, scheduledFor: d.scheduledFor }));
+    return suggestPostingTime(getTrackedPosts(userId), platform, taken, new Date(), brandKit ?? undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, currentDraftId, platform, scheduleTick]);
   const whenLabel = (at: string) =>
