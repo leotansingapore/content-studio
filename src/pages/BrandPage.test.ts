@@ -6,7 +6,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
+const as = vi.hoisted(() => {
+  const store = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+    key: (i: number) => [...store.keys()][i] ?? null,
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+  };
+  return { user: null as null | undefined | { id: string; email: string } };
+});
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
@@ -38,5 +51,27 @@ describe("Brand kit's Posting times for everyone else", () => {
     as.user = undefined;
     await expect(draw(SLOTS)).toMatchFileSnapshot("./__pins__/brand-posting-times-everyone.html");
     await expect(draw([])).toMatchFileSnapshot("./__pins__/brand-posting-times-empty-everyone.html");
+  });
+});
+
+describe("Brand kit's Posting times for Leo (publish-queue)", () => {
+  const leo = { id: "u1", email: "leo@example.com" };
+
+  it("offers Same times on every network, ticked, over the shared list", () => {
+    as.user = leo;
+    const out = draw(SLOTS);
+    expect(out).toMatch(/<input type="checkbox"[^>]*checked=""[^>]*\/>Same times on every network/);
+    expect(out.match(/aria-label="Day"/g)).toHaveLength(3);
+    expect(out).not.toContain("<h3");
+  });
+
+  it("draws one list per network once unticked, in the platforms' order, with no weekly-goal start", () => {
+    as.user = leo;
+    const out = draw([], { slotsBy: { linkedin: ["1T08:00", "3T08:00"], instagram: ["0T19:30", "2T19:30", "5T10:00"] } });
+    expect(out).not.toMatch(/<input type="checkbox"[^>]*checked=""/);
+    expect([...out.matchAll(/<h3 id="brand-slots-(\w+)"[^>]*>([^<]+)<\/h3>/g)].map((m) => [m[1], m[2]])).toEqual([["instagram", "Instagram"], ["linkedin", "LinkedIn"]]);
+    expect(out).toContain('aria-labelledby="brand-slots-linkedin"');
+    expect(out.match(/aria-label="Day"/g)).toHaveLength(5);
+    expect(out).not.toContain("Or start from a weekly goal");
   });
 });

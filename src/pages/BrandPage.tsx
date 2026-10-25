@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { useScrollToHash, useUrlState } from "@/lib/urlState";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -57,6 +58,8 @@ import OnEveryPost from "@/components/brand/OnEveryPost";
 import KitFromSite, { kitLockLine } from "@/components/brand/KitFromSite";
 import { KIT_FEEDS, cachedKit, refreshKit, withKit, type KitRefresh } from "@/lib/brandKitFeed";
 import { activeProfile } from "@/lib/profiles";
+import { loadDrafts } from "@/lib/draftHistory";
+import { platformName, SOCIAL_PLATFORMS, socialConnectShown, socialStatus } from "@/lib/socialConnect";
 
 /** Reads an image file into a small data URL: a centred square for the photo, a fitted box for the logo. */
 async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> {
@@ -210,24 +213,20 @@ function PolicyChips<T extends string>({ id, label, value, options, onChange }: 
   );
 }
 
-/** Brand kit's Posting times (#posting-times): the weekly times a saved post suggests, with presets and a weekly-goal start. */
-export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; update: (patch: Partial<CarouselBrand>) => void; userId: string | null }) {
+/** One list of weekly times with Add a time and the presets: the shared list, or one network's (Leo's per-network times). */
+function SlotEditor({ labelId, slots, onChange }: { labelId: string; slots: string[]; onChange: (slots: string[]) => void }) {
   const { toast } = useToast();
   // The time the one-step presets add (every day / weekdays / weekends).
   const [presetTime, setPresetTime] = useState("08:30");
   return (
-    <section id="posting-times" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
-      <div className="flex items-center gap-1">
-        <h2 id="brand-slots-label" className="font-serif text-lg font-semibold">Posting times</h2>
-        <InfoTip label="About posting times">A saved post suggests your next open time.</InfoTip>
-      </div>
-      <ul className="space-y-2" aria-labelledby="brand-slots-label">
-        {(brand.slots ?? []).map((slot, i) => (
+    <>
+      <ul className="space-y-2" aria-labelledby={labelId}>
+        {slots.map((slot, i) => (
           <li key={i} className="flex items-center gap-2">
             <select
               value={slot[0]}
               aria-label="Day"
-              onChange={(e) => update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${e.target.value}${x.slice(1)}` : x)) })}
+              onChange={(e) => onChange(slots.map((x, j) => (j === i ? `${e.target.value}${x.slice(1)}` : x)))}
               className="h-10 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
             >
               {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, n) => (
@@ -238,19 +237,19 @@ export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; 
               type="time"
               value={slot.slice(2)}
               aria-label="Time"
-              onChange={(e) => e.target.value && update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${x[0]}T${e.target.value.slice(0, 5)}` : x)) })}
+              onChange={(e) => e.target.value && onChange(slots.map((x, j) => (j === i ? `${x[0]}T${e.target.value.slice(0, 5)}` : x)))}
               className="h-10 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
             />
             <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label="Remove this time"
-              onClick={() => update({ slots: (brand.slots ?? []).filter((_, j) => j !== i) })}>
+              onClick={() => onChange(slots.filter((_, j) => j !== i))}>
               <X className="h-4 w-4" />
             </Button>
           </li>
         ))}
       </ul>
-      {(brand.slots?.length ?? 0) < 14 && (
+      {slots.length < 14 && (
         <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11"
-          onClick={() => update({ slots: [...(brand.slots ?? []), (brand.slots ?? []).length ? `${(Number(brand.slots![brand.slots!.length - 1][0]) + 2) % 7}T${brand.slots![brand.slots!.length - 1].slice(2)}` : "1T08:30"] })}>
+          onClick={() => onChange([...slots, slots.length ? `${(Number(slots[slots.length - 1][0]) + 2) % 7}T${slots[slots.length - 1].slice(2)}` : "1T08:30"])}>
           <Plus className="h-3.5 w-3.5" /> Add a time
         </Button>
       )}
@@ -277,10 +276,9 @@ export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; 
             size="sm"
             className="h-9 [@media(pointer:coarse)]:h-11"
             onClick={() => {
-              const before = brand.slots ?? [];
-              const r = addSlots(before, days, presetTime);
-              const added = r.slots.length - before.length;
-              update({ slots: r.slots });
+              const r = addSlots(slots, days, presetTime);
+              const added = r.slots.length - slots.length;
+              onChange(r.slots);
               toast({
                 title: added ? `Added ${timeLabel(presetTime)} on ${label.toLowerCase()}` : `${timeLabel(presetTime)} is already on ${label.toLowerCase()}`,
                 description: r.skipped ? `14 posting times is the most, so ${r.skipped} were left out.` : undefined,
@@ -291,7 +289,88 @@ export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; 
           </Button>
         ))}
       </div>
-      {(brand.slots?.length ?? 0) === 0 && userId && (
+    </>
+  );
+}
+
+const isNetwork = (p: string): p is (typeof SOCIAL_PLATFORMS)[number] => (SOCIAL_PLATFORMS as readonly string[]).includes(p);
+
+/**
+ * Brand kit's Posting times (#posting-times): the weekly times a saved post suggests, with presets and a weekly-goal
+ * start. Leo's sign-in (publish-queue) can untick "Same times on every network" for one list per network the brand
+ * uses: a connected account or a post on it. A network with no list of its own keeps the shared times.
+ */
+export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; update: (patch: Partial<CarouselBrand>) => void; userId: string | null }) {
+  const { toast } = useToast();
+  const leo = useLeoUser();
+  // the networks this brand has an account on (a free status read, Leo only, once social accounts are on for him)
+  const [connected, setConnected] = useState<string[]>([]);
+  useEffect(() => {
+    if (!leo || !userId || !socialConnectShown()) return;
+    let live = true;
+    socialStatus(activeProfile(userId).id).then(
+      (st) => live && setConnected(st.accounts.map((a) => a.platform)),
+      () => undefined, // the posts' own networks still give the rows
+    );
+    return () => {
+      live = false;
+    };
+  }, [leo, userId]);
+
+  const perNetwork = !!leo && !!brand.slotsBy && Object.keys(brand.slotsBy).length > 0;
+  const used = () => {
+    const seen = new Set<string>([...connected, ...(userId ? loadDrafts(userId).map((d) => d.platform) : []), ...Object.keys(brand.slotsBy ?? {})]);
+    return SOCIAL_PLATFORMS.filter((p) => seen.has(p));
+  };
+  const networks = perNetwork ? used() : [];
+
+  const splitTimes = () => {
+    if (!userId) return;
+    const fallback = loadPositioning(userId)?.platform ?? "linkedin";
+    const list = used().length ? used() : [isNetwork(fallback) ? fallback : "linkedin"];
+    update({ slotsBy: Object.fromEntries(list.map((p) => [p, [...(brand.slots ?? [])]])) });
+  };
+  const sameTimes = () => {
+    const before = brand.slotsBy;
+    update({ slotsBy: undefined });
+    toast({
+      title: "Same times on every network",
+      description: "Each network's own times were removed.",
+      action: (
+        <ToastAction altText="Undo" onClick={() => update({ slotsBy: before })}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  return (
+    <section id="posting-times" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
+      <div className="flex items-center gap-1">
+        <h2 id="brand-slots-label" className="font-serif text-lg font-semibold">Posting times</h2>
+        <InfoTip label="About posting times">A saved post suggests your next open time.</InfoTip>
+      </div>
+      {leo && (
+        <label className="flex min-h-9 w-fit cursor-pointer items-center gap-2 text-sm [@media(pointer:coarse)]:min-h-11">
+          <input type="checkbox" checked={!perNetwork} onChange={(e) => (e.target.checked ? sameTimes() : splitTimes())} className="h-4 w-4 accent-primary" />
+          Same times on every network
+        </label>
+      )}
+      {perNetwork ? (
+        networks.map((p) => (
+          <div key={p} className="space-y-2 border-t border-border/60 pt-3">
+            <h3 id={`brand-slots-${p}`} className="text-sm font-semibold">{platformName(p)}</h3>
+            <SlotEditor
+              labelId={`brand-slots-${p}`}
+              slots={brand.slotsBy?.[p] ?? brand.slots ?? []}
+              onChange={(slots) => update({ slotsBy: { ...brand.slotsBy, [p]: slots } })}
+            />
+          </div>
+        ))
+      ) : (
+        <SlotEditor labelId="brand-slots-label" slots={brand.slots ?? []} onChange={(slots) => update({ slots })} />
+      )}
+      {!perNetwork && (brand.slots?.length ?? 0) === 0 && userId && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Or start from a weekly goal:</span>
           {[3, 5, 7].map((n) => (
