@@ -23,7 +23,7 @@ import {
 } from "../_shared/zernio.ts";
 import { isAllowed } from "./logic.ts";
 
-export const POST_ACTIONS = ["presign", "schedule", "post", "cancel", "retry", "tiktok-creator-info"] as const;
+export const POST_ACTIONS = ["presign", "schedule", "post", "cancel", "retry", "tiktok-creator-info", "move"] as const;
 export type PostAction = (typeof POST_ACTIONS)[number];
 
 /** The app works in Singapore time; Zernio stores it on the post. */
@@ -131,6 +131,13 @@ export function isPdf(url: string): boolean {
   }
 }
 
+/** A time Zernio can't misread (an offset) and at least a minute ahead, for a new post or a move. */
+function checkTime(v: unknown, now: number): Checked<string> {
+  if (typeof v !== "string" || !ISO_WITH_OFFSET.test(v) || !Number.isFinite(Date.parse(v))) return refuse("Pick the day and time again.");
+  if (Date.parse(v) < now + NOW_LEAD_MS) return refuse("That time has passed. Pick a later time, or post now.");
+  return { value: v };
+}
+
 /** The fields, checked the same way whatever the platforms. Plain words for the adviser. */
 export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleInput> {
   if (!raw || typeof raw !== "object") return refuse("Fill in the post first.");
@@ -165,11 +172,9 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   if (kinds.length > MAX_PICTURES) return refuse(`Post up to ${MAX_PICTURES} pictures.`);
   let scheduledFor: string | null = null;
   if (b.now !== true) {
-    if (typeof b.scheduledFor !== "string" || !ISO_WITH_OFFSET.test(b.scheduledFor) || !Number.isFinite(Date.parse(b.scheduledFor))) {
-      return refuse("Pick the day and time again.");
-    }
-    if (Date.parse(b.scheduledFor) < now + NOW_LEAD_MS) return refuse("That time has passed. Pick a later time, or post now.");
-    scheduledFor = b.scheduledFor;
+    const at = checkTime(b.scheduledFor, now);
+    if ("error" in at) return at;
+    scheduledFor = at.value;
   }
   const firstComment = text(b.firstComment);
   if (firstComment.length > FIRST_COMMENT_MAX) return refuse(`Keep the first comment under ${FIRST_COMMENT_MAX + 1} characters.`);
@@ -270,6 +275,7 @@ export type PostRequest =
   | { action: "presign"; profileId: string; file: UploadFile }
   | { action: "schedule"; profileId: string; accountIds: string[]; input: ScheduleInput }
   | { action: "post" | "cancel" | "retry"; profileId: string; postId: string }
+  | { action: "move"; profileId: string; postId: string; scheduledFor: string }
   | { action: "tiktok-creator-info"; profileId: string; accountId: string; mediaType: "video" | "photo" };
 
 type Parsed = { ok: true; req: PostRequest } | { ok: false; status: number; error: string };
@@ -313,6 +319,10 @@ export function parsePostRequest(body: unknown, now = Date.now()): Parsed | null
     return { ok: true, req: { action, profileId, accountId: b.accountId, mediaType: b.mediaType === "photo" ? "photo" : "video" } };
   }
   if (!isZernioId(b.postId)) return notFound;
+  if (action === "move") {
+    const at = checkTime(b.scheduledFor, now);
+    return "error" in at ? bad(at.error) : { ok: true, req: { action, profileId, postId: b.postId, scheduledFor: at.value } };
+  }
   return { ok: true, req: { action, profileId, postId: b.postId } };
 }
 
@@ -441,6 +451,17 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
   const path = `/posts/${pathId(q.postId)}`;
 
   if (q.action === "post") return ok({ post: view });
+
+  if (q.action === "move") {
+    // Zernio edits a scheduled or failed post; one publishing, wholly or in part, keeps its time
+    if (["publishing", "published", "partial"].includes(view.status) || view.platforms.some((p) => ["published", "processing", "uploading"].includes(p.status))) {
+      return { status: 409, body: { code: "published", error: "It's already going out, so it can't move." } };
+    }
+    // Zernio reschedules a cancelled post like a draft, which would send a post the person took down
+    if (view.status === "cancelled") return { status: 409, body: { code: "cancelled", error: "It was cancelled on Zernio, so it can't move." } };
+    const data = await z("PUT", path, { body: { scheduledFor: q.scheduledFor, timezone: TIMEZONE } });
+    return ok({ post: postView(ownPost(data?.post, ids)) });
+  }
 
   if (q.action === "cancel") {
     const live = view.platforms.filter((p) => p.status === "published").map((p) => nameOf(p.platform));

@@ -338,6 +338,73 @@ describe("post, cancel and retry", () => {
   });
 });
 
+// Fixtures copy https://docs.zernio.com/posts/update-post.mdx (read 2026-10-25): PUT /v1/posts/{postId} takes
+// scheduledFor and timezone, answers 200 { message, post }; draft, scheduled, failed, partial and cancelled posts can be edited.
+describe("move (publish-calendar)", () => {
+  const NEXT = "2026-10-20T09:00:00+08:00";
+  const move = (postId = POST, scheduledFor = NEXT): PostRequest => ({ action: "move", profileId: "me", postId, scheduledFor } as PostRequest);
+  const updated = (extra: Record<string, unknown> = {}) => ({ message: "Post updated", post: { ...zPost(POST, [IG]).post, scheduledFor: "2026-10-20T01:00:00.000Z", ...extra } });
+
+  it("checks the id (404) and the time (400) before any use", () => {
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: "x", scheduledFor: NEXT }, NOW)).toEqual({ ok: false, status: 404, error: "Not found." });
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: POST.toUpperCase(), scheduledFor: NEXT }, NOW)).toMatchObject({ status: 404 });
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: "2026-10-11T09:59:00+08:00" }, NOW)).toEqual({ ok: false, status: 400, error: "That time has passed. Pick a later time, or post now." });
+    // a minute ahead is the floor, as for a new post
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: "2026-10-11T10:00:30+08:00" }, NOW)).toMatchObject({ status: 400 });
+    for (const bad of ["2026-10-20T09:00:00", "tomorrow", undefined, 1760230000000]) {
+      expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: bad }, NOW), String(bad)).toEqual({ ok: false, status: 400, error: "Pick the day and time again." });
+    }
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: NEXT }, NOW)).toEqual({ ok: true, req: { action: "move", profileId: "me", postId: POST, scheduledFor: NEXT } });
+  });
+
+  it("sends PUT with scheduledFor and timezone only, and returns the post through the post check", async () => {
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]), [`PUT /posts/${POST}`]: updated() });
+    expect(await runPost(f.z, MINE, UID, move(), NOW)).toEqual({
+      status: 200,
+      body: { post: { id: POST, status: "scheduled", scheduledFor: "2026-10-20T01:00:00.000Z", platforms: [{ platform: "instagram", accountId: IG, status: "pending", url: null, error: "" }] } },
+    });
+    expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${POST}`, `PUT /posts/${POST}`]);
+    expect(f.req(`PUT /posts/${POST}`)).toEqual({ body: { scheduledFor: NEXT, timezone: "Asia/Singapore" } });
+    // a failed post can move too (Zernio edits it)
+    const g = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG], { status: "failed" }), [`PUT /posts/${POST}`]: updated() });
+    expect((await runPost(g.z, MINE, UID, move(), NOW)).status).toBe(200);
+    // open to every SOCIAL_CONNECT_USERS caller: not a north-star field (decision 3, Q12)
+    expect(northStarOnly(move())).toBe(false);
+  });
+
+  it("refuses a post that is published or going out, wholly or in part, with 409 and no PUT", async () => {
+    const one = (status: string) => [{ platform: "instagram", accountId: IG, status }, { platform: "linkedin", accountId: LI, status: "pending" }];
+    for (const [label, post] of [
+      ["published", zPost(POST, [IG], { status: "published" })],
+      ["publishing", zPost(POST, [IG], { status: "publishing" })],
+      ["partial", zPost(POST, [IG, LI], { status: "partial", platforms: one("published") })],
+      ["an entry published", zPost(POST, [IG, LI], { platforms: one("published") })],
+      ["an entry processing", zPost(POST, [IG, LI], { platforms: one("processing") })],
+      ["an entry uploading", zPost(POST, [IG, LI], { platforms: one("uploading") })],
+    ] as const) {
+      const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: post });
+      expect(await runPost(f.z, MINE, UID, move(), NOW), label).toEqual({ status: 409, body: { code: "published", error: "It's already going out, so it can't move." } });
+      expect(f.keys(), label).not.toContain(`PUT /posts/${POST}`);
+    }
+  });
+
+  it("never reschedules a cancelled post, which Zernio would send again", async () => {
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG], { status: "cancelled" }) });
+    expect(await runPost(f.z, MINE, UID, move(), NOW)).toEqual({ status: 409, body: { code: "cancelled", error: "It was cancelled on Zernio, so it can't move." } });
+    expect(f.keys()).not.toContain(`PUT /posts/${POST}`);
+  });
+
+  it("never moves another adviser's post (H2), or hands back one Zernio answers with (H4)", async () => {
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${THEIR_POST}`]: zPost(THEIR_POST, [VICTIM]) });
+    await expect(runPost(f.z, MINE, UID, move(THEIR_POST), NOW)).rejects.toBeInstanceOf(NotYours);
+    expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${THEIR_POST}`]);
+    const gone = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: new ZernioError(404, "", "Not found") });
+    await expect(runPost(gone.z, MINE, UID, move(), NOW)).rejects.toBeInstanceOf(NotYours);
+    const leaky = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]), [`PUT /posts/${POST}`]: { post: zPost(THEIR_POST, [VICTIM]).post } });
+    await expect(runPost(leaky.z, MINE, UID, move(), NOW)).rejects.toBeInstanceOf(NotYours);
+  });
+});
+
 describe("presign and TikTok creator info", () => {
   it("hands out Zernio's upload link only when both links are https", async () => {
     const req: PostRequest = { action: "presign", profileId: "me", file: { filename: "slide-01.png", contentType: "image/png", size: 1000 } };

@@ -149,6 +149,15 @@ describe("the social function", () => {
     }
   });
 
+  it("counts a move against the posting cap, for a SOCIAL_CONNECT_USERS caller off NORTH_STAR_USERS too", async () => {
+    const ID = "0123456789abcdef0123456b";
+    const at = new Date(Date.now() + 7 * 86400_000).toISOString();
+    const res = await call(UID, { action: "move", profileId: "me", postId: ID, scheduledFor: at });
+    expect(res.status).not.toBe(403);
+    expect(db.spent).toEqual(["social-schedule"]);
+    expect(zernio).toContain(`/api/v1/posts/${ID}`);
+  });
+
   it("spends none of the day's posts on one it refuses: a time that has passed or a file it can't take", async () => {
     const past = new Date(Date.now() - 3600_000).toISOString();
     const r = await call(UID, { action: "schedule", profileId: "me", accountIds: [MINE], clientKey: UID, content: "Hi", mediaUrls: [], scheduledFor: past });

@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   }
 
   // the daily cap this action counts against
-  const feature = q.action === "presign" ? "social-presign" : q.action === "schedule" || q.action === "retry" ? "social-schedule"
+  const feature = q.action === "presign" ? "social-presign" : q.action === "schedule" || q.action === "retry" || q.action === "move" ? "social-schedule"
     : q.action === "connect" ? "social-connect" : isAutomationWrite(q.action) ? "social-automation-write" : "social-read";
   const usage = await consumeUsage(admin, uid, feature);
   if (!usage.allowed) {
