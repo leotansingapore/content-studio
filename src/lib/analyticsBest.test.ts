@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fillSlots, nextOpenSlots } from "./postingSlots";
 import { bestCell, bestTimePosts, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost, suggestPostingTime, postingTimeOn } from "./analytics";
 
 const p = (id: string, draft: string, impressions: number, engaged: number, at: Partial<TrackedPost> = {}): TrackedPost =>
@@ -115,12 +116,57 @@ describe("suggestPostingTime with the adviser's own posting times", () => {
     // Tue 8:30, Thu 11:00 (under 2 hours from now), Thu 19:30
     const slots = ["1T08:30", "3T11:00", "3T19:30"];
     expect(suggestPostingTime([], "linkedin", [], now, slots)).toEqual({ at: "2026-10-08T19:30", why: "slot" });
-    // tonight is taken: next Tuesday
-    expect(suggestPostingTime([], "linkedin", ["2026-10-08T07:00"], now, slots).at).toBe("2026-10-13T08:30");
+    // tonight's slot is taken: next Tuesday
+    expect(suggestPostingTime([], "linkedin", ["2026-10-08T19:30"], now, slots).at).toBe("2026-10-13T08:30");
+    // a post at another time that day no longer takes the slot (one rule with the calendar's open slots, publish-queue)
+    expect(suggestPostingTime([], "linkedin", ["2026-10-08T07:00"], now, slots).at).toBe("2026-10-08T19:30");
+    // a post with a day and no time takes that day's earliest open slot (11:00 here), so two take both
+    expect(suggestPostingTime([], "linkedin", ["2026-10-08"], now, slots).at).toBe("2026-10-08T19:30");
+    expect(suggestPostingTime([], "linkedin", ["2026-10-08", "2026-10-08"], now, slots).at).toBe("2026-10-13T08:30");
+  });
+
+  it("leaves a day's second slot open when its first is taken, as the calendar does", () => {
+    const slots = ["3T19:30", "3T21:00"];
+    expect(suggestPostingTime([], "linkedin", ["2026-10-08T19:30"], now, slots)).toEqual({ at: "2026-10-08T21:00", why: "slot" });
+    const first = nextOpenSlots({ slots }, "linkedin", [], now, 56)[0];
+    expect(suggestPostingTime([], "linkedin", [], now, slots).at).toBe(`${first.date}T${first.time}`);
+  });
+
+  it("names the same slot that filling open slots gives the draft", () => {
+    const slots = ["0T08:30", "2T19:30", "3T19:30", "4T12:00"];
+    const held = [{ platform: "linkedin", scheduledFor: "2026-10-08T19:30" }, { platform: "instagram", scheduledFor: "2026-10-09" }, { platform: "tiktok", scheduledFor: "2026-10-12T10:00" }];
+    const fill = fillSlots([{ id: "d1", createdAt: "2026-10-01T00:00:00Z", platform: "linkedin" }], { slots }, held, now, 56);
+    expect(suggestPostingTime([], "linkedin", held.map((h) => h.scheduledFor), now, slots).at).toBe(fill.placed[0].at);
+    // Monday's post at 10:00 leaves its 8:30 slot open
+    expect(fill.placed[0].at).toBe("2026-10-12T08:30");
   });
 
   it("ignores malformed slots and falls back to results or a common slot", async () => {
     expect(suggestPostingTime([], "instagram", [], now, ["7T09:00", "1T25:00", "x"]).why).toBe("common");
+  });
+});
+
+describe("suggestPostingTime with times per network (publish-queue, Leo only)", () => {
+  const now = new Date(2026, 9, 8, 10, 0); // Thu 8 Oct 2026, 10:00
+  // both networks post Tuesday 8:00; the shared times say Friday 12:00
+  const brand = { slots: ["4T12:00"], slotsBy: { linkedin: ["1T08:00"], instagram: ["1T08:00", "1T19:30"] } };
+
+  it("uses the network's own times, held only by posts on that network", () => {
+    const linkedinTue = [{ platform: "linkedin", scheduledFor: "2026-10-13T08:00" }];
+    expect(suggestPostingTime([], "instagram", linkedinTue, now, brand)).toEqual({ at: "2026-10-13T08:00", why: "slot" });
+    expect(suggestPostingTime([], "linkedin", linkedinTue, now, brand)).toEqual({ at: "2026-10-20T08:00", why: "slot" });
+    // a network with no row of its own posts at the shared times
+    expect(suggestPostingTime([], "tiktok", linkedinTue, now, brand).at).toBe("2026-10-09T12:00");
+  });
+
+  it("counts a bare time from an older caller against every network", () => {
+    expect(suggestPostingTime([], "instagram", ["2026-10-13T08:00"], now, brand).at).toBe("2026-10-13T19:30");
+  });
+
+  it("matches today with per-network times off", () => {
+    const taken = ["2026-10-09T12:00"];
+    expect(suggestPostingTime([], "instagram", taken, now, { slots: ["4T12:00"] })).toEqual(suggestPostingTime([], "instagram", taken, now, ["4T12:00"]));
+    expect(suggestPostingTime([], "instagram", taken, now, { slots: ["4T12:00"], slotsBy: {} }).at).toBe("2026-10-16T12:00");
   });
 });
 

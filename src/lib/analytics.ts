@@ -18,6 +18,7 @@ import {
 import { readout, type PlatformId } from "@/lib/platformCounters";
 import { hookFormula, HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, keyToDate, localDateKey, postedDay, scheduleTime } from "@/lib/dueDates";
+import { nextOpenSlots, type SlotBrand } from "@/lib/postingSlots";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 
 export interface TrackedPost extends DraftEntry {
@@ -694,28 +695,23 @@ export function postingTimeOn(posts: TrackedPost[], platform: string, weekday: n
   return { time: `${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why };
 }
 
-export function suggestPostingTime(posts: TrackedPost[], platform: string, taken: string[], now: Date = new Date(), slots: string[] = []): SuggestedTime {
-  // the adviser's own weekly posting times win: the next one on a day with nothing scheduled
-  const mine = slots.filter((x) => SLOT.test(x)).sort((a, b) => a.slice(2).localeCompare(b.slice(2)));
-  if (mine.length) {
-    const busy = new Set(taken.map((t) => t.slice(0, 10)));
-    const earliest = now.getTime() + 2 * 3_600_000;
-    const today = localDateKey(now);
-    for (let i = 0; i < 56; i++) {
-      const day = addDays(today, i);
-      if (busy.has(day)) continue;
-      const d = keyToDate(day);
-      const wd = (d.getDay() + 6) % 7;
-      for (const x of mine) {
-        if (Number(x[0]) !== wd) continue;
-        const [hh, mm] = x.slice(2).split(":").map(Number);
-        if (new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm).getTime() < earliest) continue;
-        return { at: `${day}T${x.slice(2)}`, why: "slot" };
-      }
-    }
-  }
+/**
+ * One time for a post: the brand's next open slot (nextOpenSlots, the rule the calendar and Fill open slots use), else
+ * the best-landing hour on its next free day. `slots` is the shared list, or the brand kit with Leo's per-network times;
+ * `taken` items with a platform hold only their own network's slots then, while a bare time holds every network's.
+ */
+export function suggestPostingTime(
+  posts: TrackedPost[],
+  platform: string,
+  taken: (string | { platform: string; scheduledFor?: string })[],
+  now: Date = new Date(),
+  slots: string[] | SlotBrand = [],
+): SuggestedTime {
+  const held = taken.map((t) => (typeof t === "string" ? { platform, scheduledFor: t } : t));
+  const open = nextOpenSlots(Array.isArray(slots) ? { slots } : slots, platform, held, now, 56)[0];
+  if (open) return { at: `${open.date}T${open.time}`, why: "slot" };
   const { slot, why } = resultsSlot(posts, platform);
-  const busy = new Set(taken.map((t) => t.slice(0, 10)));
+  const busy = new Set(held.flatMap((t) => (t.scheduledFor ? [t.scheduledFor.slice(0, 10)] : [])));
   const earliest = now.getTime() + 2 * 3_600_000;
   const today = localDateKey(now);
   for (let i = 0; i < 28; i++) {
