@@ -919,3 +919,67 @@ describe("a talking video's uses today (pinned)", () => {
     expect([used(UID, "ai-video"), used(UID, "edit-version"), studio()]).toEqual([2, 0, 2]);
   });
 });
+
+describe("same edit's version runs (NORTH_STAR_USERS only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
+  const WAV = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(60)]).toString("base64");
+  const VERSION = { mode: "avatar", photo: { url: "https://cdn.example/raj.png" }, slices: [{ wav: WAV, seconds: 7.5 }], version: { plan: "ep-mh3k2x1", of: "ev-mh3k2x9" } };
+  const [P1, P2] = ["11111111-2222-4333-8444-555555555555", "66666666-7777-4888-9999-aaaaaaaaaaaa"];
+  const counts = () => [used(LEO, "edit-version"), used(LEO, "ai-video"), studio()];
+
+  it("count edit-version and the studio's ai-video-global, never the adviser's ai-video", async () => {
+    const res = await send(LEO, VERSION);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ credits: 22, tokens: [expect.any(String)], refund: expect.any(String), usage: { used: 1 } });
+    expect(counts()).toEqual([1, 0, 1]);
+    // a first version names only its plan
+    expect((await send(LEO, { ...VERSION, version: { plan: "ep-mh3k2x1" } })).status).toBe(200);
+    expect(counts()).toEqual([2, 0, 2]);
+  });
+
+  it("refuse a listed account's malformed version before any count or call", async () => {
+    for (const version of ["ep-1", { plan: "plan-1" }, { plan: "ep-mh3k2x1", of: "x" }, { plan: "ep-MH3" }]) {
+      const res = await send(LEO, { ...VERSION, version });
+      expect(res.status, JSON.stringify(version)).toBe(400);
+      expect(await res.json()).toEqual({ code: "bad_request", error: "That version of the edit isn't known." });
+    }
+    expect(db.rows.size).toBe(0);
+    expect(hf.calls).toEqual([]);
+  });
+
+  it("give both back when Higgsfield takes no job, or the adviser's alone when the studio's are used up", async () => {
+    expect((await send(LEO, VERSION)).status).toBe(200);
+    hf.submits.push(500);
+    expect((await send(LEO, VERSION)).status).toBe(502);
+    expect(counts()).toEqual([1, 0, 1]);
+    db.rows.set(`${GLOBAL_COUNTER_USER}|ai-video-global|${db.today()}`, 20);
+    const res = await send(LEO, VERSION);
+    expect([res.status, (await res.json()).code]).toEqual([429, "daily_limit"]);
+    expect(counts()).toEqual([1, 0, 20]);
+  });
+
+  it("give both back once when Higgsfield fails a part, by the version's own ticket", async () => {
+    hf.ids.push(P1, P2);
+    const { tokens, refund } = await (await send(LEO, { ...VERSION, slices: [...VERSION.slices, ...VERSION.slices] })).json();
+    expect(counts()).toEqual([1, 0, 1]);
+    hf.status = { [P1]: { status: "in_progress" }, [P2]: { status: "failed", error: "Generation failed" } };
+    expect((await (await send(LEO, { mode: "status", tokens, refund })).json()).jobs[1]).toMatchObject({ state: "failed" });
+    expect(counts()).toEqual([0, 0, 0]);
+    await send(LEO, { mode: "status", tokens, refund });
+    expect(counts()).toEqual([0, 0, 0]);
+  });
+
+  it("open a version's ticket for its own uid only, and an ordinary video's ticket as ai-video", async () => {
+    hf.ids.push(P1, P2);
+    const { tokens, refund } = await (await send(LEO, VERSION)).json();
+    hf.status = { [P1]: { status: "failed", error: "Generation failed" } };
+    await send(LEO_TWO, { mode: "status", tokens, refund });
+    expect(counts()).toEqual([1, 0, 1]);
+    const plain = await (await send(LEO, { ...VERSION, version: undefined })).json();
+    hf.status = { [P2]: { status: "failed", error: "Generation failed" } };
+    await send(LEO, { mode: "status", tokens: plain.tokens, refund: plain.refund });
+    expect(counts()).toEqual([1, 0, 1]);
+  });
+});

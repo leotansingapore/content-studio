@@ -50,6 +50,10 @@
 //        Singaporeans (logic.ts presenterLooks) as three Soul v2 pictures, polled by status. Jev reads `extra` before
 //        anything is counted (a real person or a minor is 422 and takes nothing; no answer goes ahead). Three
 //        "ai-presenter" uses and one "ai-presenter-global"; all of them come back only when Higgsfield's submit fails.
+// Same edit's versions (remix-format-clone), NORTH_STAR_USERS only:
+//   POST {mode:"avatar", photo, slices, version:{plan, of?}} a Speak run made from an edit plan ("ep-" id, and the
+//        "ev-" version it changes): counted on "edit-version" (6 a day) and "ai-video-global" instead of "ai-video",
+//        given back the same ways. Anyone else's version is ignored, never refused, so their run counts as today.
 // Phase 3's hidden and Leo-only templates, any presenter setting but office, talk-script and set answer 403
 // not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
 // new modes before their body is checked too); every other request is as before.
@@ -59,7 +63,7 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GLOBAL_COUNTER_USER, claimOnce, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, claimOnce, consumeUsage, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
 import { HF_BASE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic.ts";
 import { MOTION_MODEL, motionBody } from "../ai-image/broll.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
@@ -87,6 +91,14 @@ function json(body: unknown, status = 200): Response {
 
 const RETRY = "Couldn't start the video right now. Try again in a minute.";
 const NO_CREDITS = "AI video credits have run out. Tell your studio admin.";
+
+/** Same edit's `version` field: the plan and the version it changes, or null when it is malformed. */
+function versionOf(v: unknown): { plan: string; of?: string } | null {
+  const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const id = (x: unknown, prefix: string) => typeof x === "string" && new RegExp(`^${prefix}-[0-9a-z]{1,16}$`).test(x);
+  if (!id(o.plan, "ep") || (o.of != null && !id(o.of, "ev"))) return null;
+  return { plan: o.plan as string, ...(o.of != null ? { of: o.of as string } : {}) };
+}
 
 class HfError extends Error {
   constructor(public status: number) {
@@ -157,6 +169,9 @@ Deno.serve(async (req) => {
     }
     if (!parsed.ok) return json({ code: "bad_request", error: parsed.error }, 400);
     const r = parsed.request;
+    // a Speak run from an edit plan, read for a listed account only: anyone else's field changes nothing
+    const version = r.mode === "avatar" && listed && body?.version != null ? versionOf(body.version) : undefined;
+    if (version === null) return json({ code: "bad_request", error: "That version of the edit isn't known." }, 400);
 
     if (r.mode === "talk-script") {
       const openai = Deno.env.get("OPENAI_API_KEY");
@@ -292,6 +307,8 @@ Deno.serve(async (req) => {
     const auth = { Authorization: `Key ${key}:${secret}` };
     const signing = await tokenSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
+    // shortcut: logic.ts's ticketText for edit-version, which its REFUNDS doesn't list; fold it in there when that file can change.
+    const versionTicket = (ids: string[]) => `${uid}:refund:edit-version:${day}:${ids.map((id) => id.toLowerCase()).join(",")}`;
 
     if (r.mode === "status") {
       const ids = await Promise.all(r.tokens.map((token) => openJobToken(signing, uid, token)));
@@ -310,7 +327,15 @@ Deno.serve(async (req) => {
           return { state: "working" }; // a blip: the browser asks again
         }
       }));
-      if (ids.every(Boolean)) await refundFailed(admin, signing, uid, ids as string[], jobs.some((j) => j.state === "failed"), r.refund, day);
+      if (ids.every(Boolean)) {
+        const anyFailed = jobs.some((j) => j.state === "failed");
+        const back = await refundFailed(admin, signing, uid, ids as string[], anyFailed, r.refund, day);
+        // a version run's ticket names edit-version: both uses back, once per video, as refundFailed does
+        if (!back && anyFailed && r.refund && (await openJobToken(signing, versionTicket(ids as string[]), r.refund)) && (await claimOnce(admin, uid, `refund:${ids[0]!.toLowerCase()}`))) {
+          await refundUsage(admin, uid, "edit-version" as UsageFeature, day);
+          await refundUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global", day);
+        }
+      }
       // a video's poll (it carries the refund ticket) drops every part at the first failure, so the others are cancelled:
       // Higgsfield cancels and refunds only a queued request; one it is making or has made is charged, and the error says so
       const first = jobs.findIndex((j) => j.state === "failed");
@@ -504,14 +529,18 @@ Deno.serve(async (req) => {
     }
 
     // A video: the adviser's own cap first, so someone at their limit can't use up everyone's.
-    const mine = await consumeUsage(admin, uid, "ai-video");
+    // shortcut: the cast type-checks this branch before contracts adds "edit-version" to DAILY_LIMITS; drop it after the wave 1 merge.
+    const videoCap = (version ? "edit-version" : "ai-video") as UsageFeature;
+    const mine = await consumeUsage(admin, uid, videoCap);
     if (!mine.allowed) {
       const refusal = usageRefusal(mine);
       return json(refusal.body, refusal.status);
     }
+    const videoBack = (both = true) =>
+      Promise.all([refundUsage(admin, uid, videoCap, day), both && refundUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global", day)]);
     const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global");
     if (!everyone.allowed) {
-      await giveBack("ai-video", false);
+      await videoBack(false);
       return json({ code: "daily_limit", error: "Today's AI videos for the whole studio are used up. Try again after 8am Singapore time." }, 429);
     }
 
@@ -530,14 +559,14 @@ Deno.serve(async (req) => {
     } catch (e) {
       // a half-started video is no use: cancel what is still queued (refunded) before saying so
       await Promise.all(ids.map((id) => fetch(`${HF_BASE}/requests/${id}/cancel`, { method: "POST", headers: auth }).catch(() => null)));
-      await giveBack("ai-video");
+      await videoBack();
       return failed(e);
     }
     const credits = r.mode === "avatar" ? avatarCredits(r.slices.map((s) => s.seconds)) : explainerCredits(r.pictures.length);
-    console.log("ai-video", r.mode, ids.length, "jobs,", credits, "credits");
+    console.log("ai-video", r.mode, ids.length, "jobs,", credits, "credits", ...(version ? [`version of ${version.plan}`] : []));
     return json({
       tokens: await Promise.all(ids.map((id) => jobToken(signing, uid, id))),
-      refund: await refundTicket(signing, uid, "ai-video", day, ids),
+      refund: version ? await jobToken(signing, versionTicket(ids), ids[0]) : await refundTicket(signing, uid, "ai-video", day, ids),
       credits,
       usage: { used: mine.used, limit: mine.limit },
     });
