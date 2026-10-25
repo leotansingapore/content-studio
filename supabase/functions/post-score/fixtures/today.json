@@ -1,0 +1,204 @@
+{
+  "scored": {
+    "status": 200,
+    "answer": {
+      "score": 7.5,
+      "down": [
+        "cta",
+        "oneIdea"
+      ]
+    },
+    "used": 1,
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "platform": "LinkedIn",
+          "first_line": "I paid $0 for my first hospital stay. My friend paid $11,400.",
+          "post": "I paid $0 for my first hospital stay. My friend paid $11,400.\n\nSame ward. Same week. One rider.\n\nComment RIDER and I'll send you the checklist."
+        },
+        "questions": {
+          "hook": {
+            "type": "noul",
+            "instructions": "Would `first_line` make someone scrolling `platform` stop and read the rest of `post`?",
+            "criteria": {
+              "true": "Specific and pulls the reader in: a number, a surprising claim, a tension, a question this reader cares about, or a story already in motion.",
+              "false": "Generic, slow or throat-clearing: a greeting, a vague statement, or an opening that could start any post."
+            }
+          },
+          "oneIdea": {
+            "type": "noul",
+            "instructions": "Does `post` stick to one clear idea from start to finish?",
+            "criteria": {
+              "true": "One main point that everything supports.",
+              "false": "Several separate points or a list of loosely related tips."
+            }
+          },
+          "specific": {
+            "type": "noul",
+            "instructions": "Does `post` give the reader something concrete: a number, a real example, a short story, or a step they can take?",
+            "criteria": {
+              "true": "At least one concrete number, example, story or action.",
+              "false": "Only general advice or opinions."
+            }
+          },
+          "cta": {
+            "type": "noul",
+            "instructions": "Does `post` end by asking the reader to do one specific thing next, such as comment a word, send a DM, save the post or book a call?",
+            "criteria": {
+              "true": "A clear, specific next step for the reader.",
+              "false": "No ask, or only a vague one such as 'let me know your thoughts'."
+            }
+          },
+          "readable": {
+            "type": "noul",
+            "instructions": "Is `post` easy to read on a phone on `platform`: short paragraphs and lines, and a length that suits `platform`?",
+            "criteria": {
+              "true": "Short lines and paragraphs, a length that fits the platform.",
+              "false": "Dense blocks of text, or far too long or too short for the platform."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "scored, unknown platform": {
+    "status": 200,
+    "answer": {
+      "score": 7.5,
+      "down": [
+        "cta",
+        "oneIdea"
+      ]
+    },
+    "used": 1,
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "platform": "Instagram",
+          "first_line": "I paid $0 for my first hospital stay. My friend paid $11,400.",
+          "post": "I paid $0 for my first hospital stay. My friend paid $11,400.\n\nSame ward. Same week. One rider.\n\nComment RIDER and I'll send you the checklist."
+        },
+        "questions": {
+          "hook": {
+            "type": "noul",
+            "instructions": "Would `first_line` make someone scrolling `platform` stop and read the rest of `post`?",
+            "criteria": {
+              "true": "Specific and pulls the reader in: a number, a surprising claim, a tension, a question this reader cares about, or a story already in motion.",
+              "false": "Generic, slow or throat-clearing: a greeting, a vague statement, or an opening that could start any post."
+            }
+          },
+          "oneIdea": {
+            "type": "noul",
+            "instructions": "Does `post` stick to one clear idea from start to finish?",
+            "criteria": {
+              "true": "One main point that everything supports.",
+              "false": "Several separate points or a list of loosely related tips."
+            }
+          },
+          "specific": {
+            "type": "noul",
+            "instructions": "Does `post` give the reader something concrete: a number, a real example, a short story, or a step they can take?",
+            "criteria": {
+              "true": "At least one concrete number, example, story or action.",
+              "false": "Only general advice or opinions."
+            }
+          },
+          "cta": {
+            "type": "noul",
+            "instructions": "Does `post` end by asking the reader to do one specific thing next, such as comment a word, send a DM, save the post or book a call?",
+            "criteria": {
+              "true": "A clear, specific next step for the reader.",
+              "false": "No ask, or only a vague one such as 'let me know your thoughts'."
+            }
+          },
+          "readable": {
+            "type": "noul",
+            "instructions": "Is `post` easy to read on a phone on `platform`: short paragraphs and lines, and a length that suits `platform`?",
+            "criteria": {
+              "true": "Short lines and paragraphs, a length that fits the platform.",
+              "false": "Dense blocks of text, or far too long or too short for the platform."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "too short": {
+    "status": 400,
+    "answer": {
+      "error": "Write a bit more before scoring it."
+    },
+    "used": 0,
+    "jev": []
+  },
+  "not english": {
+    "status": 422,
+    "answer": {
+      "code": "not_english",
+      "error": "The score reads English posts only."
+    },
+    "used": 0,
+    "jev": []
+  },
+  "jev down": {
+    "status": 503,
+    "answer": {
+      "error": "The score is unavailable for a moment. Try again shortly."
+    },
+    "used": 1,
+    "jev": [
+      {
+        "model": "jev-1.13.0",
+        "state": {
+          "platform": "Instagram",
+          "first_line": "I paid $0 for my first hospital stay. My friend paid $11,400.",
+          "post": "I paid $0 for my first hospital stay. My friend paid $11,400.\n\nSame ward. Same week. One rider.\n\nComment RIDER and I'll send you the checklist."
+        },
+        "questions": {
+          "hook": {
+            "type": "noul",
+            "instructions": "Would `first_line` make someone scrolling `platform` stop and read the rest of `post`?",
+            "criteria": {
+              "true": "Specific and pulls the reader in: a number, a surprising claim, a tension, a question this reader cares about, or a story already in motion.",
+              "false": "Generic, slow or throat-clearing: a greeting, a vague statement, or an opening that could start any post."
+            }
+          },
+          "oneIdea": {
+            "type": "noul",
+            "instructions": "Does `post` stick to one clear idea from start to finish?",
+            "criteria": {
+              "true": "One main point that everything supports.",
+              "false": "Several separate points or a list of loosely related tips."
+            }
+          },
+          "specific": {
+            "type": "noul",
+            "instructions": "Does `post` give the reader something concrete: a number, a real example, a short story, or a step they can take?",
+            "criteria": {
+              "true": "At least one concrete number, example, story or action.",
+              "false": "Only general advice or opinions."
+            }
+          },
+          "cta": {
+            "type": "noul",
+            "instructions": "Does `post` end by asking the reader to do one specific thing next, such as comment a word, send a DM, save the post or book a call?",
+            "criteria": {
+              "true": "A clear, specific next step for the reader.",
+              "false": "No ask, or only a vague one such as 'let me know your thoughts'."
+            }
+          },
+          "readable": {
+            "type": "noul",
+            "instructions": "Is `post` easy to read on a phone on `platform`: short paragraphs and lines, and a length that suits `platform`?",
+            "criteria": {
+              "true": "Short lines and paragraphs, a length that fits the platform.",
+              "false": "Dense blocks of text, or far too long or too short for the platform."
+            }
+          }
+        }
+      }
+    ]
+  }
+}
