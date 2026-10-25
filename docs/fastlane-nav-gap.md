@@ -77,3 +77,5 @@ referral programme.
    Hide. Done 25 Oct.
 5. Agent messages meter in the sidebar foot, after Fastlane's "Senna's fuel used", opening the limits on
    Automations. Done 25 Oct.
+6. Studio overview (/studio, Studio's first tab): "What should the agent make for <brand>?", the agent's composer
+   (Leo), jump chips, then rows of formats, ads running now, trending posts and your latest. Done 26 Oct.

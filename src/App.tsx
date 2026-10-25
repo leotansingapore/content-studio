@@ -28,6 +28,7 @@ const MediaPage = lazy(() => import("@/pages/MediaPage"));
 const ConnectPage = lazy(() => import("@/pages/ConnectPage"));
 const AccountsPage = lazy(() => import("@/pages/AccountsPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const StudioPage = lazy(() => import("@/pages/StudioPage"));
 const GridPage = lazy(() => import("@/pages/GridPage"));
 const DraftsPage = lazy(() => import("@/pages/DraftsPage"));
 const LibraryPage = lazy(() => import("@/pages/LibraryPage"));
@@ -186,6 +187,7 @@ export default function App() {
           <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/studio" element={<StudioPage />} />
           <Route path="/grid" element={<GridPage />} />
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/library" element={<LibraryPage />} />

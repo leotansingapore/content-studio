@@ -111,8 +111,9 @@ export const SECTIONS: NavSection[] = [
     id: "write",
     label: "Studio",
     icon: Wand2,
-    to: "/generate",
+    to: "/studio",
     pages: [
+      { to: "/studio", label: "Overview", title: "Studio", group: "Overview" },
       { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Create" },
       { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },

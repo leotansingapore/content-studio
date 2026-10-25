@@ -6,7 +6,7 @@ const routes = [
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
-  "/agent", "/skills", "/activity", "/automations",
+  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings",
 ];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
@@ -56,14 +56,14 @@ describe("nav", () => {
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/plan", "/calendar"]);
-    expect(pages("write", ANYONE)).toEqual(["/generate", "/generate/batch", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
+    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/plan", "/ideas", "/campaigns", "/calendar"]);
-      expect(pages("write", email).slice(0, 7), email).toEqual(["/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit"]);
+      expect(pages("write", email).slice(0, 8), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(6, 8), email).toEqual(["/competitors", "/saved"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/activity", "/automations", "/skills"]);
@@ -108,13 +108,13 @@ describe("nav", () => {
 
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {
       const leo = sectionTabs("/carousel", LEO);
-      expect(labels(leo.tabs)).toEqual(["Create", "Library", "Review", "Influencers"]);
+      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Review", "Influencers"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
       expect(labels(leo.chips)).toEqual(["Post", "Formats", "Batch", "Carousel", "Image", "Slideshow", "Video"]);
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
       // each group tab opens the group's first page this sign-in sees
-      expect(leo.tabs.map((t) => t.to)).toEqual(["/generate", "/library", "/team", "/people"]);
-      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/generate", "/drafts", "/team"]);
+      expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/library", "/team", "/people"]);
+      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/drafts", "/team"]);
       expect(labels(sectionTabs("/grid", ANYONE).chips)).toEqual(["All posts", "Board", "Grid", "Media"]);
     });
 
@@ -137,10 +137,11 @@ describe("nav", () => {
   });
 
   it("puts Fastlane's first four on the phone bar and lights one per page", () => {
-    expect(mobileTabs().map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/plan"], ["Studio", "/generate"], ["Radar", "/swipe"]]);
+    expect(mobileTabs().map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/plan"], ["Studio", "/studio"], ["Radar", "/swipe"]]);
     const lit = (p: string) => mobileTabs().filter((t) => t.active(p)).map((t) => t.label);
     expect(lit("/calendar")).toEqual(["Strategy"]);
     expect(lit("/drafts")).toEqual(["Studio"]);
+    expect(lit("/studio")).toEqual(["Studio"]);
     expect(lit("/reels")).toEqual(["Studio"]);
     expect(lit("/make/slideshow")).toEqual(["Studio"]);
     expect(lit("/agent/t1")).toEqual(["Home"]);
