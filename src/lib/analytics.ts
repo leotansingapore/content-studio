@@ -31,9 +31,10 @@ export const MIN_GROUP_SAMPLE = 2;
 // A group needs at least this many posts before it can drive an auto-insight.
 const MIN_INSIGHT_SAMPLE = 3;
 
-/** A draft with the real numbers pulled for it, when it has them, in place of typed ones (which stay stored as they are). */
+/** A draft with the real numbers pulled for it (its Zernio post's, else its live post's), when it has them, in place of typed ones (which stay stored as they are). */
 export function withReal<T extends DraftEntry>(d: T): T {
-  return d.zernio?.numbers ? { ...d, metrics: realMetrics(d.zernio.numbers) } : d;
+  const n = d.zernio?.numbers ?? d.live?.numbers;
+  return n ? { ...d, metrics: realMetrics(n) } : d;
 }
 
 export function getTrackedPosts(

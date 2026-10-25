@@ -16,6 +16,7 @@ import {
   setDraftZernio,
   setDraftAttached,
   deleteDraft,
+  setDraftNumbers,
   MAX_DRAFTS,
   draftsOfBrand,
   getDraftStats,
@@ -608,5 +609,64 @@ describe("pins before phase 7a's fields and the outbox", () => {
     deleteDraft(UID, "s");
     expect(ls().getItem(`content-studio-drafts-${UID}`)).toBe(JSON.stringify([post({ id: "b", status: "draft" })]));
     expect(keys()).toEqual([`content-studio-drafts-${UID}`]);
+  });
+});
+
+describe("phase 7a's draft fields", () => {
+  const set = { id: "vs1", kind: "versions" as const, from: "own:abc" };
+  const versions = { linkedin: { caption: "For LinkedIn", linkedin: { poll: { question: "Which?", options: ["A", "B"], days: 7 as const } } }, instagram: { instagram: { placement: "reel" as const, shareToFeed: true } } };
+  const score = { v: 7.8, down: ["cta" as const], key: "4-abc", at: "2026-10-08T02:00:00.000Z" };
+  const live = { postId: "m1", platform: "instagram", url: "https://www.instagram.com/p/abc/", by: "you" as const };
+  const zernio = { key: "k", postId: "67000000000000000000d001", status: "published", platforms: ["tiktok", "instagram"], drafts: ["tiktok"] };
+  const numbers = { impressions: 900, reach: 800, views: 1000, likes: 40, comments: 3, shares: 2, saves: 5 };
+
+  it("each survives a save, a reload and an edit that leaves it out", () => {
+    upsertDraft(UID, post({ set, versions, score, live, zernio }));
+    expect(JSON.parse(JSON.stringify(loadDrafts(UID)))[0]).toMatchObject({ set, versions, score, live, zernio });
+    upsertDraft(UID, post({ hook: "New title, same post" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ hook: "New title, same post", set, versions, score, live, zernio });
+    upsertDraft(UID, post({ id: "plain" }));
+    upsertDraft(UID, post({ id: "plain", draft: "Edited" }));
+    expect(Object.keys(JSON.parse(JSON.stringify(loadDrafts(UID)))[0]).filter((k) => ["set", "versions", "score", "live"].includes(k))).toEqual([]);
+  });
+
+  it("set and versions are kept when a writer leaves them out, and a writer that sets them, even to undefined, wins", () => {
+    upsertDraft(UID, post({ set, versions }));
+    upsertDraft(UID, post({ draft: "Edited" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ set, versions });
+    upsertDraft(UID, post({ set: undefined, versions: { tiktok: { caption: "Only TikTok" } } }));
+    expect(loadDrafts(UID)[0].set).toBeUndefined();
+    expect(loadDrafts(UID)[0].versions).toEqual({ tiktok: { caption: "Only TikTok" } });
+  });
+
+  it("the score stays while the text and platform are the same, and goes once either changes", () => {
+    upsertDraft(UID, post({ score }));
+    upsertDraft(UID, post({ hook: "Only the title changed" }));
+    expect(loadDrafts(UID)[0].score).toEqual(score);
+    upsertDraft(UID, post({ draft: "A new body" }));
+    expect(loadDrafts(UID)[0]).not.toHaveProperty("score");
+    upsertDraft(UID, post({ score }));
+    upsertDraft(UID, post({ platform: "instagram" }));
+    expect(loadDrafts(UID)[0]).not.toHaveProperty("score");
+    upsertDraft(UID, post({ score }));
+    upsertDraft(UID, post({ draft: "Rescored body", score: { ...score, v: 8.4 } }));
+    expect(loadDrafts(UID)[0].score).toEqual({ ...score, v: 8.4 });
+  });
+
+  it("a copy drops live and the set and keeps the versions and the score", () => {
+    saveDrafts(UID, [post({ id: "o", set, versions, score, live, zernio })]);
+    const { copy } = duplicateDraft(UID, "o")!;
+    for (const k of ["set", "live", "zernio"]) expect(copy).not.toHaveProperty(k);
+    expect(copy).toMatchObject({ versions, score });
+  });
+
+  it("setDraftNumbers writes onto a hand-linked post's live link, and onto zernio for a Zernio post", () => {
+    saveDrafts(UID, [post({ id: "hand", live }), post({ id: "app", zernio }), post({ id: "plain" })]);
+    const at = "2026-10-08T02:00:00.000Z";
+    const after = setDraftNumbers(UID, new Map([["hand", numbers], ["app", numbers], ["plain", numbers]]), at);
+    expect(after[0].live).toEqual({ ...live, numbers: { ...numbers, at } });
+    expect(after[1].zernio).toEqual({ ...zernio, numbers: { ...numbers, at } });
+    expect(after[2]).toEqual(post({ id: "plain" }));
+    expect(loadDrafts(UID)).toEqual(after);
   });
 });

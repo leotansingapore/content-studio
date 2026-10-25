@@ -11,6 +11,8 @@ import { scoped, DEFAULT_PROFILE_ID } from "@/lib/profiles";
 import { addDays, keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 import type { Numbers } from "../../supabase/functions/social/metrics.ts";
+import type { FactorId } from "../../supabase/functions/post-score/logic.ts";
+import type { SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
 import type { RemixSource } from "@/lib/remixSource";
 import { links, type PostLang } from "@/lib/links";
 import { logActivity } from "@/lib/activity";
@@ -75,6 +77,31 @@ export interface DraftEntry {
   translationOf?: TranslationLink;
   back?: string[];
   sameP?: number | null;
+  // North star phase 7a (Leo only).
+  /** Versions made together (remix-variations): `from` is the parent draft id or the source key. */
+  set?: { id: string; kind: "versions" | "hook-test"; from?: string };
+  /** Its caption and options per network (publish-per-network); a caption equal to the shared one is not stored. */
+  versions?: Partial<Record<SocialPlatform, NetworkVersion>>;
+  /** Its predicted score (edit-score), read through currentScore (postScore.ts); `key` is textKey(platform, draft) when scored. */
+  score?: { v: number; down: FactorId[]; key: string; at: string };
+  /** The live post it went out as without Post it for me, matched or linked by hand (learn-real-numbers). */
+  live?: LiveLink;
+}
+
+export interface NetworkVersion {
+  caption?: string;
+  instagram?: { placement: "feed" | "reel" | "story"; shareToFeed?: boolean; trial?: boolean; collaborators?: string[]; commentsOff?: boolean };
+  facebook?: { placement: "feed" | "reel" | "story" };
+  linkedin?: { poll?: { question: string; options: string[]; days: 1 | 3 | 7 | 14 } };
+}
+
+export interface LiveLink {
+  /** MetricsPost.id */
+  postId: string;
+  platform: string;
+  url: string | null;
+  by: "auto" | "jev" | "you";
+  numbers?: Numbers & { at: string };
 }
 
 /** The English post a version was made from: its id, textKey(platform, text) of it when translated, and when. */
@@ -134,6 +161,10 @@ export interface ZernioLink {
   error?: string;
   /** Its real numbers, pulled on Analytics (social/metrics.ts), summed over its accounts. Typed metrics stay as they are. */
   numbers?: Numbers & { at: string };
+  /** The platforms the post went to (publish-schedule), for the calendar card. */
+  platforms?: string[];
+  /** The platforms that went as drafts (publish-tiktok's inbox), so the chip reads right before Zernio is asked again. */
+  drafts?: string[];
 }
 
 export interface Storyboard {
@@ -371,6 +402,12 @@ export function upsertDraft(
   if (prev && prev.sameP !== undefined && !("sameP" in entry)) entry = { ...entry, sameP: prev.sameP };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
+  // ...or its set and network versions (a writer that sets one, even to undefined, wins), its hand-linked live post,
+  // and its score while the text and platform it was scored on are the same
+  if (prev?.set && !("set" in entry)) entry = { ...entry, set: prev.set };
+  if (prev?.versions && !("versions" in entry)) entry = { ...entry, versions: prev.versions };
+  if (prev?.live && !entry.live) entry = { ...entry, live: prev.live };
+  if (prev?.score && !("score" in entry) && prev.draft === entry.draft && prev.platform === entry.platform) entry = { ...entry, score: prev.score };
   const without = current.filter((d) => d.id !== entry.id);
   const next = [entry, ...without].slice(0, MAX_DRAFTS);
   saveDrafts(userId, next);
@@ -435,15 +472,16 @@ export function setDraftStatus(
   return next;
 }
 
-/** Real numbers pulled on Analytics onto the drafts that went out through Zernio (by draft id). Saves only on a change. */
+/** Real numbers pulled on Analytics onto the drafts linked to a post (by draft id): its Zernio link, else its live one. Saves only on a change. */
 export function setDraftNumbers(userId: string, byDraft: Map<string, Numbers>, at: string): DraftEntry[] {
   const current = loadDrafts(userId);
   let changed = false;
   const next = current.map((d) => {
-    const n = d.zernio && byDraft.get(d.id);
-    if (!n || JSON.stringify({ ...d.zernio!.numbers, at: "" }) === JSON.stringify({ ...n, at: "" })) return d;
+    const link = d.zernio ?? d.live;
+    const n = link && byDraft.get(d.id);
+    if (!n || JSON.stringify({ ...link!.numbers, at: "" }) === JSON.stringify({ ...n, at: "" })) return d;
     changed = true;
-    return { ...d, zernio: { ...d.zernio!, numbers: { ...n, at } } };
+    return d.zernio ? { ...d, zernio: { ...d.zernio, numbers: { ...n, at } } } : { ...d, live: { ...d.live!, numbers: { ...n, at } } };
   });
   if (changed) saveDrafts(userId, next);
   return next;
@@ -483,8 +521,9 @@ export function markUnposted(userId: string, id: string): DraftEntry[] {
 }
 
 /**
- * A copy of a post as a fresh draft at the top of the list: same content and
- * labels, " (copy)" on the title, no schedule, posting record or numbers.
+ * A copy of a post as a fresh draft at the top of the list: same content, labels,
+ * network versions and score, " (copy)" on the title, no schedule, posting
+ * record, numbers, live post or set.
  * `dropped` is whatever the cap pushed off the end, so Undo can put it back.
  */
 export function duplicateDraft(userId: string, id: string): { drafts: DraftEntry[]; copy: DraftEntry; dropped: DraftEntry[] } | null {
@@ -492,7 +531,7 @@ export function duplicateDraft(userId: string, id: string): { drafts: DraftEntry
   const src = current.find((d) => d.id === id);
   if (!src) return null;
   const copy: DraftEntry = { ...src, id: newDraftId(), createdAt: new Date().toISOString(), hook: `${src.hook} (copy)`.trim(), status: "draft" };
-  for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio"] as const) delete copy[k];
+  for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio", "live", "set"] as const) delete copy[k];
   const next = [copy, ...current];
   saveDrafts(userId, next);
   return { drafts: next.slice(0, MAX_DRAFTS), copy, dropped: next.slice(MAX_DRAFTS) };
