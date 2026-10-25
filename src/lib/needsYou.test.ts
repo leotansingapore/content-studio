@@ -249,7 +249,7 @@ describe("needsYouItems", () => {
   it("leaves out a made post Zernio holds or one linked to a live post, since each has a time", () => {
     const made = (id: string, over: Partial<DraftEntry> = {}) => draft({ id, hook: id, createdAt: "2026-10-13T00:00:00Z", agent: { thread: "t1", msg: id }, ...over });
     const drafts = [
-      made("inbox", { zernio: { key: "k1", postId: "p1", status: "scheduled", drafts: true } as DraftEntry["zernio"] }),
+      made("inbox", { zernio: { key: "k1", postId: "p1", status: "scheduled", drafts: ["tiktok"] } }),
       made("sending", { zernio: { key: "k2" } }),
       made("live", { live: { postId: "x", platform: "tiktok", by: "you", numbers: { at: "2026-10-13T00:00:00Z" } } as DraftEntry["live"] }),
       made("plain"),
