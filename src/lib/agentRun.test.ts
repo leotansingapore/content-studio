@@ -30,8 +30,9 @@ const fake = vi.hoisted(() => {
     speaker: "person" as "person" | "business",
     sources: {} as Record<string, unknown>,
     talkEnd: "done" as "done" | "priced",
-    talkAsk: null as null | { quoted?: number; voice?: string; caption?: string },
+    talkAsk: null as null | { quoted?: number; voice?: string; caption?: string; agent?: unknown },
     scriptAsk: null as null | { as: string; seconds?: number; words?: number },
+    imageAgent: undefined as unknown,
     remixFails: false,
     remix: store(),
     show: store(),
@@ -152,8 +153,9 @@ vi.mock("@/lib/aiImage", async (orig) => ({
   imageBusy: () => ["working", "saving"].includes(fake.image.get()?.state),
   onImageJob: (fn: (j: unknown) => void) => fake.image.on(fn),
   resumeImage: () => {},
-  makeImage: async (_u: string, prompt: string) => {
+  makeImage: async (_u: string, prompt: string, _name: string, _design?: string, agent?: unknown) => {
     fake.calls.push("makeImage");
+    fake.imageAgent = agent;
     fake.image.set({ prompt, state: "working" });
     await wait();
     fake.image.set({ prompt, state: "done" });
@@ -892,5 +894,25 @@ describe("the 25 Oct replay: a made video opens its own project (D7)", () => {
     expect(madeOpen(UID, m.job)).toBe("/edit");
     saveProject(UID, project("vmade", SCRIPT.slice(0, 40), new Date(Date.parse(m.job!.startedAt) + 1000).toISOString()));
     expect(madeOpen(UID, m.job)).toBe("/edit?p=vmade");
+  });
+});
+
+describe("the 25 Oct replay: what the agent started logs as the agent's (D6, the engine's side)", () => {
+  it("hands its chat to the slideshow, wall, picture and talking video jobs, and logs the script it writes itself", async () => {
+    const at = (id: string) => ({ thread: id, msg: cardMsg(id).id });
+    const show = await say("make a slideshow about CPF LIFE", { act: "make", format: "slideshow" });
+    await approve(show);
+    expect(fake.show.get().ask.agent).toEqual(at(show));
+    const wall = await say("make a wall of text about CPF", { act: "make", format: "wall" });
+    await approve(wall);
+    expect(fake.wall.get().ask.agent).toEqual(at(wall));
+    const pic = await say("make a picture of a family at a hawker centre", { act: "make", format: "image" });
+    await approve(pic);
+    expect(fake.imageAgent).toEqual(at(pic));
+    const talk = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
+    await approve(talk);
+    expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).find((e) => e.title === "Wrote a talking video script")).toMatchObject({ who: "agent", detail: SCRIPT });
+    await approve(talk);
+    expect(fake.talkAsk?.agent).toEqual(at(talk));
   });
 });

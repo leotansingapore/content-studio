@@ -627,6 +627,8 @@ function pressOf(userId: string, thread: string, msgId: string, card: AgentCard)
   const put = (patch: Partial<Omit<AgentMsg, "id">>) => void patchMsg(userId, thread, msgId, patch);
   const self = {
     f,
+    /** The chat that started it: each maker's job carries it, so /activity logs the make as the agent's (replay D6). */
+    agent: { thread, msg: msgId },
     card: () => c,
     put,
     /** Approved: the run got going. */
@@ -686,7 +688,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         live.call();
         live.step("Writing the slides...", "writing");
         const off = onSlideshowJob((j) => void (j && showStep(j) && live.step(showStep(j), "writing")));
-        await startSlideshow(userId, { source: src, topic: src ? "" : (f.topic ?? ""), note: src ? (f.topic ?? "") : "", mention: loadRemixPrefs(userId).mention, size: "4x5", pictures: loadMedia(userId).length ? "mine" : "stock" }).finally(off);
+        await startSlideshow(userId, { source: src, topic: src ? "" : (f.topic ?? ""), note: src ? (f.topic ?? "") : "", mention: loadRemixPrefs(userId).mention, size: "4x5", pictures: loadMedia(userId).length ? "mine" : "stock", agent: x.agent }).finally(off);
         const j = slideshowJob();
         if (j?.state !== "done" || !j.showId) return x.fail(j?.error ?? NOT_THROUGH);
         const id = j.showId;
@@ -698,7 +700,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         live.call();
         live.step("Writing the text...", "writing");
         const off = onWallJob((j) => void (j && wallStep(j) && live.step(wallStep(j), "writing")));
-        await startWall(userId, { source: src, about: f.topic ?? "", mention: loadRemixPrefs(userId).mention, bg: "stock" }).finally(off);
+        await startWall(userId, { source: src, about: f.topic ?? "", mention: loadRemixPrefs(userId).mention, bg: "stock", agent: x.agent }).finally(off);
         const j = wallJob();
         if (j?.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
         const text = j.written?.text ?? "";
@@ -715,7 +717,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         live.step("Making your picture...", "making");
         x.started();
         const prompt = x.card().prompt ?? f.topic ?? "";
-        await makeImage(userId, prompt, clip(prompt, 40));
+        await makeImage(userId, prompt, clip(prompt, 40), undefined, x.agent);
         return settleImage(x, prompt);
       }
       case "competitor": {
@@ -832,6 +834,7 @@ async function talkPress(userId: string, x: Press, src: RemixSource | null, live
     length: f.length ?? DEFAULT_LENGTH,
     mention: loadRemixPrefs(userId).mention,
     ...(f.caption ? { caption: f.caption } : {}),
+    agent: x.agent,
   };
   if (x.card().step !== "video") {
     if (talkBusy() || talkWaiting()) return x.fail(LINES.videoBusy);
@@ -839,6 +842,8 @@ async function talkPress(userId: string, x: Press, src: RemixSource | null, live
     live.step("Writing your script...", "writing");
     // the script only (one remix-make use, the card's price): nothing else runs until the video card's press
     const w = await writeScript(userId, ask);
+    // written here, not by the talk job, so its line on /activity is written here too, as the recorder writes the job's
+    logActivity(userId, { who: "agent", kind: "make", title: "Wrote a talking video script", detail: w.script, link: links.agent({ thread: x.agent.thread, m: x.agent.msg }) });
     x.step("video", { ...withScript(userId, x.card(), w.script, w.caption), flags: flagsFor(userId, w.script, w.flags?.mas) });
     return x.put({ text: LINES.scriptLead });
   }
