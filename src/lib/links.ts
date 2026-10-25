@@ -5,6 +5,7 @@
 import type { FormatKind } from "@/data/formats";
 import type { LibraryFormat, LibraryStatus } from "@/lib/library";
 import type { VoiceId } from "@/lib/textVoice";
+import type { SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
 
 /** Production host, for links sent outside the app. */
 export const APP_ORIGIN = "https://consultant-content-studio.vercel.app";
@@ -66,6 +67,14 @@ export const links = {
       teampost?: string;
       post?: string;
       feed?: string;
+      // North star phase 7a, Leo only.
+      /** 1 with post: the schedule steps open on that post (push); step and network as on /drafts. */
+      schedule?: 1;
+      step?: ScheduleStep;
+      network?: string;
+      /** 1: the Fill open slots preview (push). */
+      fill?: 1;
+      section?: "needs-you";
     } = {},
   ) =>
     `/calendar${qs({
@@ -79,10 +88,27 @@ export const links = {
       teampost: o.teampost,
       post: o.post,
       feed: o.feed,
-    })}`,
+      schedule: o.schedule,
+      step: o.step,
+      network: o.network,
+      fill: o.fill,
+    })}${o.section ? `#${o.section}` : ""}`,
   board: (o: { business?: string; feed?: string } = {}) => `/board${qs({ business: o.business, feed: o.feed })}`,
+  /** Leo only (phase 7a): set filters to one set of versions (replace); schedule opens the steps on a post (push), step and network replace. */
   drafts: (
-    o: { status?: "draft" | PostStatus; platform?: string; pillar?: string; label?: string; q?: string; review?: string } = {},
+    o: {
+      status?: "draft" | PostStatus;
+      platform?: string;
+      pillar?: string;
+      label?: string;
+      q?: string;
+      review?: string;
+      set?: string;
+      schedule?: string;
+      step?: ScheduleStep;
+      /** With step=caption: that network's caption tab. */
+      network?: string;
+    } = {},
   ) =>
     `/drafts${qs({
       status: o.status,
@@ -90,7 +116,11 @@ export const links = {
       pillar: o.pillar !== "all" && o.pillar,
       label: o.label !== "all" && o.label,
       q: o.q?.trim(),
+      set: o.set,
       review: o.review,
+      schedule: o.schedule,
+      step: o.step,
+      network: o.network,
     })}`,
   grid: () => "/grid",
   reels: (
@@ -281,14 +311,39 @@ export const links = {
    * Home; section scrolls to What moved, or (Leo only, phase 6) Next up or the Ask tiles. goal=change opens the goal
    * editor and waiting=all the whole Next up list (Leo only, replace); tour=<step> starts the tour there (read once).
    */
-  home: (o: { section?: "what-moved" | "next-up" | "ask"; goal?: "change"; waiting?: "all"; tour?: string } = {}) =>
+  home: (o: { section?: "what-moved" | "next-up" | "ask" | "pace"; goal?: "change"; waiting?: "all"; tour?: string } = {}) =>
     `/home${qs({ goal: o.goal, waiting: o.waiting, tour: o.tour })}${o.section ? `#${o.section}` : ""}`,
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
     `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,
-  /** audit=<platform>:<post id>: one of your own posts from the account audit, shown on top of that account's audit. */
-  analytics: (o: { period?: AnalyticsPeriod; by?: string; time?: string; rank?: string; audit?: string } = {}) =>
-    `/analytics${qs({ period: o.period !== "30d" && o.period, by: o.by !== "platform" && o.by, time: o.time !== "all" && o.time, rank: o.rank !== "engagements" && o.rank, audit: o.audit })}`,
+  /**
+   * audit=<platform>:<post id>: one of your own posts from the account audit, shown on top of that account's audit. Leo
+   * only (phase 7a): wins picks What wins' tab (format left out, replace), grade opens a post's grade panel and link the
+   * "Link to a post" picker for an outside post (push).
+   */
+  analytics: (
+    o: {
+      period?: AnalyticsPeriod;
+      by?: string;
+      time?: string;
+      rank?: string;
+      audit?: string;
+      wins?: "format" | "hook" | "angle";
+      grade?: string;
+      link?: string;
+      section?: "real-numbers" | "what-wins" | "winners" | "score-check" | "add-your-numbers";
+    } = {},
+  ) =>
+    `/analytics${qs({
+      period: o.period !== "30d" && o.period,
+      by: o.by !== "platform" && o.by,
+      time: o.time !== "all" && o.time,
+      rank: o.rank !== "engagements" && o.rank,
+      audit: o.audit,
+      wins: o.wins !== "format" && o.wins,
+      grade: o.grade,
+      link: o.link,
+    })}${o.section ? `#${o.section}` : ""}`,
   trackedLinks: (o: { period?: "7d" | "30d" } = {}) => `/links${qs({ period: o.period !== "30d" && o.period })}`,
   engage: (o: { tool?: string } = {}) => `/recruit/engage${qs({ tool: o.tool !== "replies" && o.tool })}`,
   autoDm: (o: { log?: string; status?: "all" | "sent" | "skipped" | "failed"; edit?: string; keyword?: string } = {}) =>
@@ -309,12 +364,14 @@ export const links = {
   generate: (
     o: {
       draft?: string;
-      step?: WriteStep;
-      panel?: "shortcuts" | "post" | "thread" | "insert";
+      /** The brief's step; with panel=post (Leo only, phase 7a) the schedule step. */
+      step?: WriteStep | ScheduleStep;
+      /** hooks (Leo only, phase 7a): the hooks panel over that post. */
+      panel?: "shortcuts" | "post" | "thread" | "insert" | "hooks";
       /** With panel=insert (Leo only): the Insert panel's tab. */
       kind?: "line" | "hashtags" | "ending" | "hook" | "post";
-      /** With panel=thread: the thread's network. */
-      network?: "threads" | "x";
+      /** With panel=thread: the thread's network (threads left out). With panel=post (Leo only): a caption tab, any network. */
+      network?: string;
       /** The teleprompter over a short-video draft. */
       view?: "prompter";
       /** The hook card's tab: hook formulas, or the lines proven in your niche. */
@@ -346,10 +403,13 @@ export const links = {
       /** Leo only (phase 5): a saved audience's id and a label's id, read once like the other pre-fills, after lang. */
       aud?: string;
       label?: string;
+      /** Leo only (phase 7a): scrolls to the score panel once the draft has drawn. */
+      section?: "score";
     } = {},
   ) => {
-    const { aud, label, ...rest } = o;
-    return `/generate${qs({ ...rest, step: o.step !== "topic" && o.step, network: o.network !== "threads" && o.network, hooks: o.hooks !== "formulas" && o.hooks, kind: o.kind !== "line" && o.kind, aud, label })}`;
+    const { aud, label, section, ...rest } = o;
+    const network = (o.panel === "post" || o.network !== "threads") && o.network;
+    return `/generate${qs({ ...rest, step: o.step !== "topic" && o.step, network, hooks: o.hooks !== "formulas" && o.hooks, kind: o.kind !== "line" && o.kind, aud, label })}${section ? `#${section}` : ""}`;
   },
   /** aud (Leo only): a saved audience's id; it stays in the address (replace) and wins over audience. */
   batch: (o: { pillar?: string; audience?: string; aud?: string } = {}) =>
@@ -369,6 +429,8 @@ export const links = {
       slide?: number;
       /** Leo only (phase 6): a change proposed on the open carousel, at most 300 characters, read once (replace). */
       ask?: string;
+      /** Leo only (phase 7a): scrolls to the score panel. */
+      section?: "score";
     } = {},
   ) =>
     `/carousel${qs({
@@ -381,7 +443,7 @@ export const links = {
       view: o.view,
       slide: o.slide !== 1 && o.slide,
       ask: askText(o.ask),
-    })}`,
+    })}${o.section ? `#${o.section}` : ""}`,
   edit: (
     o: {
       /** A video project id; projects live on one device. */
@@ -436,6 +498,12 @@ export const links = {
       script?: true;
       /** With script: that language's version to review. */
       lang?: PostLang;
+      // North star phase 7a, Leo only.
+      /** With p on a project made from a plan: the Versions panel open (push). */
+      versions?: true;
+      /** An edit plan's id and one of its versions: the upload screen ready to lay that plan over a filmed take (push). */
+      plan?: string;
+      version?: string;
       /** Leo only (phase 6): a change for the vibe box on the open project, at most 300 characters, read once (replace). */
       ask?: string;
     } = {},
@@ -469,6 +537,9 @@ export const links = {
       set: o.set,
       script: o.script && 1,
       lang: o.lang,
+      versions: o.versions && 1,
+      plan: o.plan,
+      version: o.version,
       ask: askText(o.ask),
     })}${o.section ? `#${o.section}` : ""}`,
   /** source=<link:|upload: key> reopens a source read on Leo's Remix a post (push). */
@@ -563,13 +634,18 @@ export const links = {
   /** A section of Connect Claude, scrolled to. */
   connect: (o: { section?: "api" | "tools" | "links" } = {}) => `/connect${o.section ? `#${o.section}` : ""}`,
   // ---- end phase 6
+  // ---- North star phase 7a (Leo only): post, measure, repeat.
+  /** A platform's card on /accounts, scrolled to. */
+  accounts: (o: { section?: SocialPlatform } = {}) => `/accounts${o.section ? `#${o.section}` : ""}`,
+  // ---- end phase 7a
   /** The Image page (Leo only): layout (headline left out) and size (4x5 left out) replace; source is read once, then removed; image opens a saved design (replace). */
   image: (o: { layout?: ImageLayout; size?: "4x5" | "1x1" | "9x16" | "wide"; source?: string; image?: string } = {}) =>
     `/image${qs({ layout: o.layout !== "headline" && o.layout, size: o.size !== "4x5" && o.size, source: o.source, image: o.image })}`,
 };
 
-/** Any page with the Remix sheet open over it on that source (remix=<key>, push). */
-export const withRemix = (path: string, key: string) => path + (path.includes("?") ? "&" : "?") + "remix=" + encodeURIComponent(key);
+/** Any page with the Remix sheet open over it on that source (remix=<key>, push); versions=3 (Leo only) picks 3 versions, 1 is left out. */
+export const withRemix = (path: string, key: string, o: { versions?: 1 | 3 } = {}) =>
+  path + (path.includes("?") ? "&" : "?") + "remix=" + encodeURIComponent(key) + (o.versions === 3 ? "&versions=3" : "");
 
 /** An app path as a full URL: this host in the browser, production elsewhere (a job, a test). */
 export const absolute = (path: string) =>
@@ -578,6 +654,9 @@ export const absolute = (path: string) =>
 // ---- Create pages (wave 2A): the values their params and #sections take.
 export const WRITE_STEPS = ["topic", "funnel", "idea", "format"] as const;
 export type WriteStep = (typeof WRITE_STEPS)[number];
+/** ?step= on /drafts, /calendar and Write's panel=post (Leo only, phase 7a): the schedule steps. */
+export const SCHEDULE_STEPS = ["where", "when", "caption"] as const;
+export type ScheduleStep = (typeof SCHEDULE_STEPS)[number];
 export const EDIT_TABS = ["style", "cuts", "frame", "face", "stickers", "broll", "words"] as const;
 export type EditTab = (typeof EDIT_TABS)[number];
 export type BrandSection =

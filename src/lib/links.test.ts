@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, absolute, links, slug } from "./links";
+import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, absolute, links, slug, withRemix } from "./links";
 
 describe("links", () => {
   it("builds the calendar links the team-posts job sends (docs/deep-links.md)", () => {
@@ -445,5 +445,83 @@ describe("links", () => {
     expect(links.trends({ view: "formats", kind: "wall-of-text", template: "tiktok-7412345678901234567" })).toBe(
       "/trends?view=formats&kind=wall-of-text&template=tiktok-7412345678901234567",
     );
+  });
+
+  // ---- North star phase 7a (Leo only): docs/deep-links.md, Post, measure, repeat.
+  it("opens the schedule steps from /drafts, /calendar and Write, with defaults left out", () => {
+    expect(SCHEDULE_STEPS).toEqual(["where", "when", "caption"]);
+    expect(links.drafts({ schedule: "d1" })).toBe("/drafts?schedule=d1");
+    expect(links.drafts({ schedule: "d1", step: "caption", network: "linkedin" })).toBe("/drafts?schedule=d1&step=caption&network=linkedin");
+    expect(links.drafts({ status: "draft", schedule: "d1", step: "where" })).toBe("/drafts?status=draft&schedule=d1&step=where");
+    expect(links.drafts({ schedule: "", step: undefined, network: "" })).toBe("/drafts");
+    expect(links.calendar({ post: "d1", schedule: 1, step: "when" })).toBe("/calendar?post=d1&schedule=1&step=when");
+    expect(links.calendar({ post: "d1", schedule: 1, step: "caption", network: "instagram" })).toBe("/calendar?post=d1&schedule=1&step=caption&network=instagram");
+    expect(links.generate({ draft: "d1", panel: "post", step: "when" })).toBe("/generate?draft=d1&panel=post&step=when");
+    expect(links.generate({ draft: "d1", panel: "post", step: "caption", network: "linkedin" })).toBe("/generate?draft=d1&panel=post&step=caption&network=linkedin");
+    // threads is the thread panel's default, but a caption tab on Post it for me
+    expect(links.generate({ draft: "d1", panel: "post", network: "threads" })).toBe("/generate?draft=d1&panel=post&network=threads");
+    expect(links.generate({ draft: "d1", panel: "thread", network: "threads" })).toBe("/generate?draft=d1&panel=thread");
+    expect(links.generate({ draft: "d1", network: "threads" })).toBe("/generate?draft=d1");
+  });
+
+  it("builds the calendar's fill preview, Needs you and the new platforms", () => {
+    expect(links.calendar({ fill: 1 })).toBe("/calendar?fill=1");
+    expect(links.calendar({ section: "needs-you" })).toBe("/calendar#needs-you");
+    expect(links.calendar({ business: "leo", section: "needs-you" })).toBe("/calendar?business=leo#needs-you");
+    expect(links.calendar({ platform: "youtube" })).toBe("/calendar?platform=youtube");
+    expect(links.calendar({ platform: "threads" })).toBe("/calendar?platform=threads");
+    expect(links.calendar({ schedule: undefined, fill: undefined, section: undefined })).toBe("/calendar");
+  });
+
+  it("builds a hook test's set, the hooks panel and 3 versions on the Remix sheet", () => {
+    expect(links.drafts({ set: "st-mh2k9x" })).toBe("/drafts?set=st-mh2k9x");
+    expect(links.drafts({ status: "posted", set: "st-1", review: "d1" })).toBe("/drafts?status=posted&set=st-1&review=d1");
+    expect(links.generate({ draft: "d1", panel: "hooks" })).toBe("/generate?draft=d1&panel=hooks");
+    expect(withRemix("/swipe", "top:a-b")).toBe("/swipe?remix=top%3Aa-b");
+    expect(withRemix("/swipe?tab=news", "top:a-b", { versions: 3 })).toBe("/swipe?tab=news&remix=top%3Aa-b&versions=3");
+    expect(withRemix("/home", "own:d1", { versions: 1 })).toBe("/home?remix=own%3Ad1");
+  });
+
+  it("writes the score sections as anchors, last", () => {
+    expect(links.generate({ draft: "d1", section: "score" })).toBe("/generate?draft=d1#score");
+    expect(links.generate({ draft: "d1", aud: "au-1", section: "score" })).toBe("/generate?draft=d1&aud=au-1#score");
+    expect(links.carousel({ carousel: "c1", section: "score" })).toBe("/carousel?carousel=c1#score");
+    expect(links.carousel({ carousel: "d:abc", ask: "x", section: "score" })).toBe("/carousel?carousel=d%3Aabc&ask=x#score");
+    expect(links.analytics({ section: "score-check" })).toBe("/analytics#score-check");
+  });
+
+  it("builds Analytics' numbers, grades, what wins and winners with defaults left out", () => {
+    expect(links.analytics({ link: "ig-178", section: "real-numbers" })).toBe("/analytics?link=ig-178#real-numbers");
+    expect(links.analytics({ grade: "d1" })).toBe("/analytics?grade=d1");
+    expect(links.analytics({ wins: "hook", section: "what-wins" })).toBe("/analytics?wins=hook#what-wins");
+    expect(links.analytics({ wins: "angle" })).toBe("/analytics?wins=angle");
+    expect(links.analytics({ wins: "format" })).toBe("/analytics");
+    for (const section of ["real-numbers", "what-wins", "winners", "score-check", "add-your-numbers"] as const) {
+      expect(links.analytics({ section })).toBe(`/analytics#${section}`);
+    }
+    expect(links.analytics({ period: "90d", audit: "instagram:1", wins: "hook", grade: "d1", link: "p1" })).toBe(
+      "/analytics?period=90d&audit=instagram%3A1&wins=hook&grade=d1&link=p1",
+    );
+    expect(links.analytics({ link: "", grade: undefined })).toBe("/analytics");
+  });
+
+  it("builds Home's pace, the editor's versions and plans, and /accounts' platforms", () => {
+    expect(links.home({ section: "pace" })).toBe("/home#pace");
+    expect(links.edit({ p: "vm1abc2", versions: true })).toBe("/edit?p=vm1abc2&versions=1");
+    expect(links.edit({ plan: "ep-mh2k9x", version: "ev-mh2k9y" })).toBe("/edit?plan=ep-mh2k9x&version=ev-mh2k9y");
+    expect(links.edit({ p: "vm1abc2", versions: true, ask: "x" })).toBe("/edit?p=vm1abc2&versions=1&ask=x");
+    expect(links.edit({ versions: undefined, plan: "", version: undefined })).toBe("/edit");
+    expect(links.accounts()).toBe("/accounts");
+    expect(links.accounts({ section: "tiktok" })).toBe("/accounts#tiktok");
+    for (const section of ["instagram", "facebook", "linkedin", "youtube", "threads"] as const) expect(links.accounts({ section })).toBe(`/accounts#${section}`);
+  });
+
+  it("keeps /make/launch-film and /make/same-edit generic with the specs' params", () => {
+    expect(links.makeFormat("launch-film", { film: "fm-mh2k9x01ab", t: 7.2, tab: "fields" })).toBe("/make/launch-film?film=fm-mh2k9x01ab&t=7.2&tab=fields");
+    expect(links.makeFormat("launch-film", { campaign: "c-lq3k9z", post: 4 })).toBe("/make/launch-film?campaign=c-lq3k9z&post=4");
+    expect(links.makeFormat("launch-film", { film: "fm-1", export: "open", shape: "1x1" })).toBe("/make/launch-film?film=fm-1&export=open&shape=1x1");
+    expect(links.makeFormat("launch-film", { screens: "cimg-a,cimg-b" })).toBe("/make/launch-film?screens=cimg-a,cimg-b");
+    expect(links.makeFormat("same-edit", { source: "clone:instagram:C1", who: "none" })).toBe("/make/same-edit?source=clone%3Ainstagram%3AC1&who=none");
+    expect(links.makeFormat("same-edit", { plan: "ep-mh2k9x", beat: 2 })).toBe("/make/same-edit?plan=ep-mh2k9x&beat=2");
   });
 });

@@ -181,7 +181,7 @@ so one that is gone shows everything.
 | /fads/:tab | (path) | personality, purpose, experience, audience, solutions, messaging, output; anything else opens personality | personality | push (Next/Back steps) | /fads/audience |
 | /recruit/:tab | (path) | /recruit (Brand Brain), /recruit/conversations, /recruit/agent | | | /recruit/conversations |
 | /feedback | tab, post, status, category, entry | owned by the shared feedback board (components/feedback/FeedbackBoard.tsx, copied from leotansingapore/feedback-board, not edited here): tab=roadmap, feedback, changelog; post=<number>; with tab=feedback, status=under_review, planned, in_progress, complete, declined and category=<category>; entry=<changelog slug> | roadmap | replace | /feedback?tab=feedback&status=planned |
-| /bio, /accounts, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow (/home and /connect have rows of their own below) | | | /bio |
+| /bio, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow (/home, /connect and /accounts have rows of their own below) | | | /bio |
 | /join, /review/:token, /l/:slug, /t/report/:slug, /roadmap | (path or #) | public pages that a link already fully names: /join#<invite token>, a preview, a bio page, a campaign report, the public roadmap | | | /join#abc123 |
 | /swipe | tab | Leo only (src/lib/useLeoOnly.ts). foryou (For you), search (Search), hooks (Hooks); anyone else gets posts, and a Leo tab shows the page skeleton while the sign-in loads. Leo also gets ads whenever Competitors or Your space holds ads | posts | replace; switching tab clears every param below too | /swipe?tab=foryou |
 | /swipe | kind | Leo only. foryou tab: organic, ads | both | replace | /swipe?tab=foryou&kind=ads |
@@ -543,3 +543,63 @@ never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 cha
 Paid steps never start from these links: ask fills the page's own box, and nothing is written until its button,
 with the price on it, is pressed. A receipt or a card links to its message, /agent/<thread>?m=<msg>; a learning
 saved from a chat links back the same way from /voice#learned.
+
+## Post, measure, repeat (Leo only)
+
+North star phase 7a (docs/north-star/items/publish-schedule.md, publish-tiktok.md, publish-per-network.md,
+publish-calendar.md, publish-queue.md, publish-accounts.md, learn-real-numbers.md, learn-pace.md,
+learn-post-grade.md, learn-format-winners.md, edit-score.md, remix-variations.md, remix-own-winners.md,
+remix-format-clone.md, formats-launch-film.md). Every row below is Leo's sign-ins only (src/lib/useLeoOnly.ts):
+anyone else gets the not-found page at /make/launch-film and /make/same-edit, and the new params, values and
+anchors on /drafts, /calendar, /generate, /carousel, /analytics, /home, /accounts, /edit and the Remix sheet are
+ignored for anyone else, who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults left out
+of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, versions ev-<base36>.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /drafts | schedule | Leo only. a post id: the schedule steps open on that post | closed | push | /drafts?schedule=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /drafts | step | Leo only. with schedule: where, when, caption; a step the form can't reach yet opens the first blocked step. Files picked on the device are not in the link: a reload keeps the step and captions and asks for the file again | where | replace | /drafts?schedule=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&step=caption |
+| /drafts | network | Leo only. with step=caption: that network's caption tab (instagram, facebook, tiktok, linkedin, youtube, threads); an unticked or unknown network falls back to the first tab | the first tab | replace | /drafts?schedule=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&step=caption&network=linkedin |
+| /drafts | set | Leo only. a set's id: My posts filtered to that set of versions, with the hook test card above the list for a hook test | every post | replace | /drafts?set=<set id> |
+| /calendar | schedule | Leo only. 1 with post: the schedule steps open on that post; nothing is sent until the steps' last button | closed | push | /calendar?post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&schedule=1 |
+| /calendar | step, network | Leo only. with schedule=1: as /drafts | where; the first tab | replace | /calendar?post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&schedule=1&step=when |
+| /calendar | fill | Leo only. 1: the Fill open slots preview; it sets times only, and nothing is placed until its button | closed | push | /calendar?fill=1 |
+| /calendar | platform | Leo only, beside today's values: youtube, threads | all | replace | /calendar?platform=threads |
+| /calendar | #needs-you | Leo only. scrolls to Needs you, as #overdue does | top | (anchor) | /calendar#needs-you |
+| /generate | step | Leo only. with panel=post: where, when, caption (the schedule steps, as /drafts); without panel=post the brief steps as today | where | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=post&step=caption |
+| /generate | network | Leo only. with panel=post: that network's caption tab, threads included (threads is left out only as the thread panel's default) | the first tab | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=post&step=caption&network=linkedin |
+| /generate | panel | Leo only. hooks: the hooks panel over that post (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=hooks |
+| /generate | #score | Leo only. with draft: scrolls to the score panel once the draft has drawn; it never scores by itself on load | top | (anchor) | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f#score |
+| /carousel | #score | Leo only. with carousel: scrolls to that saved carousel's score panel | top | (anchor) | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f#score |
+| any page | versions | Leo only. 3, with remix: the Remix sheet opens with Versions on 3 | 1 | replace | /swipe?post=the-woke-salaryman-instagram-Ddkxv39j961&remix=top%3Athe-woke-salaryman-instagram-Ddkxv39j961&versions=3 |
+| /analytics | link | Leo only. an outside post's id: the "Link to a post" picker for it; a cold load pulls the numbers first, and a post not in the pull is dropped with "That post isn't in your latest numbers." | none | push | /analytics?link=<post id>#real-numbers |
+| /analytics | grade | Leo only. a post id: its grade panel under its Top posts row, or at the top of the section when it is not listed | none | push | /analytics?grade=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /analytics | wins | Leo only. format, hook, angle: the What wins for you tab | format | replace | /analytics?wins=hook#what-wins |
+| /analytics | #real-numbers, #what-wins, #winners, #score-check | Leo only. scrolls to Your real numbers, What wins for you, Winner found or How the score did; #add-your-numbers is the Add your numbers card's own anchor | top | (anchor) | /analytics#what-wins |
+| /home | #pace | Leo only. scrolls to the Pace card | top | (anchor) | /home#pace |
+| /accounts | #instagram, #facebook, #tiktok, #linkedin, #youtube, #threads | Leo only. scrolls to that platform's card | top | (anchor) | /accounts#tiktok |
+| /edit | versions | Leo only. 1 with p on a project made from a plan: the Versions panel open | closed | push | /edit?p=vm1abc2&versions=1 |
+| /edit | plan, version | Leo only. an edit plan's id and one of its versions: the upload screen ready to lay that plan over a filmed take | none | push | /edit?plan=ep-mh2k9x01ab&version=ev-mh2k9x02cd |
+| /make/launch-film | length | Leo only. 15, 30, 60 (seconds) | 30 | replace | /make/launch-film?length=15 |
+| /make/launch-film | shape | Leo only. 9x16, 1x1, 16x9; with film and export=open, the export sheet's pick | 9x16 | replace | /make/launch-film?shape=16x9 |
+| /make/launch-film | energy | Leo only. fast, continuous, quiet | fast | replace | /make/launch-film?energy=quiet |
+| /make/launch-film | voice | Leo only. ai (AI voice reads it) | none (music only) | replace | /make/launch-film?voice=ai |
+| /make/launch-film | product | Leo only. a product id from src/lib/products.ts; an unknown one is ignored | none | replace | /make/launch-film?product=pd-mh2k9x |
+| /make/launch-film | screens | Leo only. Media keys, comma separated; keys not on this device are dropped | the newest 4 screens | replace | /make/launch-film?screens=cimg-mh2k9x01ab,cimg-mh2k9x02cd |
+| /make/launch-film | campaign, post | Leo only. a campaign id and its post's 1-based number: Setup filled from that post | none | replace | /make/launch-film?campaign=c-lq3k9z&post=4 |
+| /make/launch-film | film | Leo only. a film id: the studio, or Pick a direction while none is picked | none | push | /make/launch-film?film=fm-mh2k9x01ab |
+| /make/launch-film | t | Leo only. seconds into the film, with film | 0 | replace | /make/launch-film?film=fm-mh2k9x01ab&t=7.2 |
+| /make/launch-film | tab | Leo only. fields, with film | notes | replace | /make/launch-film?film=fm-mh2k9x01ab&tab=fields |
+| /make/launch-film | note | Leo only. a note id, with film: that note open and the player at its time | none | replace | /make/launch-film?film=fm-mh2k9x01ab&note=n3 |
+| /make/launch-film | export | Leo only. open, with film: the export sheet; nothing exports on arrival | closed | replace | /make/launch-film?film=fm-mh2k9x01ab&export=open&shape=1x1 |
+| /make/same-edit | source | Leo only. a remix source key with a video: clone:instagram:<id>, upload:<sha1> | none | replace | /make/same-edit?source=clone%3Ainstagram%3AC8xYz12AbCd |
+| /make/same-edit | plan | Leo only. a saved plan's id: its edit, with no new read | none | push | /make/same-edit?plan=ep-mh2k9x01ab |
+| /make/same-edit | who | Leo only. mine, a kept presenter's id, none (no face), film (I'll film it) | mine with a verified face, else film | replace | /make/same-edit?plan=ep-mh2k9x01ab&who=none |
+| /make/same-edit | voice | Leo only. a premade voice (the text-voice keys, as /make/talking-head) | the brand's voice | replace | /make/same-edit?plan=ep-mh2k9x01ab&voice=george |
+| /make/same-edit | close | Leo only. loose, close | balanced | replace | /make/same-edit?plan=ep-mh2k9x01ab&close=loose |
+| /make/same-edit | beat | Leo only. the plan's selected row, 1-based | none | replace | /make/same-edit?plan=ep-mh2k9x01ab&beat=2 |
+
+Both /make pages also read the shared source, from and mention=no params, as every /make page does
+(MakeFormatPage resolves source). Paid steps never start from these links: "Show me 3 directions", "Read the edit",
+"Make it", "3 versions" and the schedule steps' last button are presses, each with its price or receipt.
+TikTok's posting mode is a field inside step where, so it has no param of its own.
