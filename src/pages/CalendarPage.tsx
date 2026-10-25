@@ -522,6 +522,11 @@ export default function CalendarPage() {
     () => drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string),
     [drafts],
   );
+  // "Next slot" and Fill open slots read the brand kit: the shared times, and Leo's per-network rows (publish-queue),
+  // under which a scheduled post holds only its own network's slots, as in Write
+  const kit = useMemo(() => ({ slots, slotsBy: leo && userId ? loadBrand(userId)?.slotsBy : undefined }), [slots, leo, userId]);
+  const kitTimes = slots.length > 0 || Object.values(kit.slotsBy ?? {}).some((t) => t?.length);
+  const held = useMemo(() => drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor), [drafts]);
   const slotsByDate = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const o of openSlots(slots, taken, new Date(), 42)) map.set(o.date, [...(map.get(o.date) ?? []), o.time]);
@@ -532,10 +537,8 @@ export default function CalendarPage() {
   const fillOpen = !!leo && params.get("fill") === "1";
   const fill = useMemo(() => {
     if (!leo || !userId || !unscheduled.length) return null;
-    const slotsBy = loadBrand(userId)?.slotsBy;
-    const scheduled = drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor);
-    return fillSlots(unscheduled.filter((d) => !d.zernio?.postId), { slots, slotsBy }, scheduled, new Date());
-  }, [leo, userId, unscheduled, drafts, slots]);
+    return fillSlots(unscheduled.filter((d) => !d.zernio?.postId), kit, held, new Date());
+  }, [leo, userId, unscheduled, kit, held]);
   // Slots are the open profile's own posting times: shown with its posts, never under Posted.
   const slotsOn = showSlots && slots.length > 0 && platform === "all" && status !== "posted";
   const nextSlotThisWeek = useMemo(() => {
@@ -756,7 +759,7 @@ export default function CalendarPage() {
     if (!userId) return;
     const r = duplicateDraft(userId, d.id);
     if (!r) return;
-    const next = suggestPostingTime(getTrackedPosts(userId), d.platform, taken, new Date(), slots);
+    const next = suggestPostingTime(getTrackedPosts(userId), d.platform, held, new Date(), kit);
     setDrafts(setDraftStatus(userId, r.copy.id, "scheduled", next.at));
     const pushedOut = r.dropped[0];
     toast({
@@ -935,9 +938,10 @@ export default function CalendarPage() {
     const out: { label: string; at: string }[] = [];
     if (day && day < todayKey) out.push({ label: "Today", at: scheduleAt(todayKey, time) });
     if (day !== addDays(todayKey, 1)) out.push({ label: "Tomorrow", at: scheduleAt(addDays(todayKey, 1), time) });
-    if (slots.length && userId) {
-      const at = suggestPostingTime(getTrackedPosts(userId), d.platform, taken.filter((x) => x !== d.scheduledFor), new Date(), slots).at;
-      if (at !== d.scheduledFor) out.push({ label: "Next slot", at });
+    if (kitTimes && userId) {
+      // a network with no times of its own falls back to the best time, which is not a slot
+      const next = suggestPostingTime(getTrackedPosts(userId), d.platform, held.filter((x) => x.id !== d.id), new Date(), kit);
+      if (next.why === "slot" && next.at !== d.scheduledFor) out.push({ label: "Next slot", at: next.at });
     }
     return out;
   };
@@ -1886,7 +1890,7 @@ export default function CalendarPage() {
                         <p className="line-clamp-2 text-xs font-medium text-foreground">{titleOf(d)}</p>
                         <p className="truncate text-[10px] text-muted-foreground">{PLATFORM_LABEL[d.platform] ?? d.platform}</p>
                         {(() => {
-                          const next = userId ? suggestPostingTime(getTrackedPosts(userId), d.platform, taken, new Date(), slots) : null;
+                          const next = userId ? suggestPostingTime(getTrackedPosts(userId), d.platform, held, new Date(), kit) : null;
                           return next ? (
                             <Button
                               type="button"
