@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
 import {
-  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, mergeExtra, onJoinJob, pickupPlan, planFor, seek, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
+  addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, layOver, mergeExtra, onJoinJob, pickupPlan, planFor, seek, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
   TAP_TO_FINISH, withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
 } from "./videoMedia";
 
@@ -168,10 +168,46 @@ describe("pickupPlan", () => {
     for (const junk of [undefined, "", "   ", 5, null, ["a"]]) expect(pickupPlan({ toast: "Ready", said: junk } as unknown as JoinExtra, "captions")).toStrictEqual({ keep: {}, toast: { title: "Ready" } });
   });
 
+  it("hands a same edit version's own word times and its plan to the editor, and drops junk (remix-format-clone)", () => {
+    const words = [{ w: "Most", s: 0, e: 0.4 }, { w: "advisers", s: 0.4, e: 1.1 }];
+    const plan = { id: "ep-mh2k9x01ab", version: "ev-mh2k9x02cd" };
+    for (const path of PATHS) expect(pickupPlan({ said: "Most advisers", words, plan }, path)).toStrictEqual({ keep: { plan }, toast: null, said: "Most advisers", words });
+    // one bad word, or a plan id of another shape, and the editor goes on as before
+    for (const junk of [[{ w: "Most", s: 0 }], [{ w: "Most", s: -1, e: 0.4 }], [], "Most", null])
+      expect(pickupPlan({ words: junk } as unknown as JoinExtra, "captions")).toStrictEqual({ keep: {}, toast: null });
+    for (const junk of [{ id: "p1", version: "ev-1" }, { id: "ep-1" }, { id: "ep-1", version: "v1" }, "ep-1", 5])
+      expect(pickupPlan({ plan: junk } as unknown as JoinExtra, "captions").keep).toStrictEqual({});
+    expect(pickupPlan({ plan: { ...plan, extra: 1 } } as unknown as JoinExtra, "captions").keep).toStrictEqual({ plan });
+  });
+
   it("drops junk read back from a pending clip's JSON, and leaves the default tab out of the URL", () => {
     const junk = { toast: 5, note: "", caption: "", source: "ad:1", draftId: 7, tab: "nope" } as unknown as JoinExtra;
     expect(pickupPlan(junk, "captions")).toEqual({ keep: {}, toast: null });
     expect(pickupPlan({ tab: "style", toast: "Ready" }, "captions")).toEqual({ keep: {}, toast: { title: "Ready" } });
+  });
+});
+
+describe("layOver (same edit)", () => {
+  const clip = { key: "br-1-a", length: 4, thumb: "", by: "", byUrl: "", url: "" };
+  const text = (id: string, from: number) => ({ id, kind: "text" as const, text: id, x: 0.5, y: 0.2, size: 1, turn: 0, color: "#fff", from, to: from + 1 });
+
+  it("replaces the plan's own cutaways and labels, keeps what was placed by hand, and takes every field the plan sets", () => {
+    const base = {
+      ...defaultSettings("bold"),
+      hook: "Old hook",
+      broll: [{ ...clip, id: "b-ep-1-2", from: 3, to: 5 }, { ...clip, id: "bh1", from: 9, to: 10 }],
+      overlays: [text("o-ep-1-0", 0), text("sticker1", 6)],
+    };
+    const laid = { hook: "New hook", hookSeconds: 3, broll: [{ ...clip, id: "b-ep-1-2", from: 4, to: 6 }], overlays: [text("o-ep-1-0", 0.5)] };
+    const out = layOver(base, laid, "ep-1");
+    expect(out.hook).toBe("New hook");
+    expect(out.hookSeconds).toBe(3);
+    expect(out.broll!.map((b) => [b.id, b.from])).toEqual([["bh1", 9], ["b-ep-1-2", 4]]);
+    expect(out.overlays!.map((o) => [o.id, o.from])).toEqual([["sticker1", 6], ["o-ep-1-0", 0.5]]);
+    // another plan's items are someone's hand placing here
+    expect(layOver(base, laid, "ep-2").broll).toHaveLength(3);
+    // nothing laid and nothing kept leaves no empty lists behind
+    expect(layOver(defaultSettings("bold"), {}, "ep-1")).toMatchObject({ broll: undefined, overlays: undefined });
   });
 });
 

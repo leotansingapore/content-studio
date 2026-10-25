@@ -219,6 +219,7 @@ import { MAX_LONG_BYTES, MAX_LONG_SECONDS, PART_SECONDS, hoursMinutes, isLong } 
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
 import { registerEditTarget, settingWords, type EditTarget } from "@/lib/editTarget";
+import { addVersion, loadPlans } from "@/lib/editPlan";
 
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
 // then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
@@ -234,6 +235,12 @@ const AI_PARAMS_GONE = Object.fromEntries(["kind", "template", "talk", "offer", 
 const CLIPS_PARAMS_GONE = { about: null, len: null, yt: null };
 // An upload is captioned in one use only while it is one part (captionPlan: up to 1.2 x PART_SECONDS), so its price is a ceiling.
 const UPLOAD_CAPTIONS: Price = { ...(priceOf("video-transcribe", { minutes: (PART_SECONDS * 1.2) / 60 }) as Price), kind: "upTo" };
+
+/** A same edit version opened as a project here: its plan remembers which project holds it (Version.project). */
+function markVersion(userId: string, at: { id: string; version: string }, project: string) {
+  const v = loadPlans(userId).find((e) => e.plan.id === at.id)?.versions.find((x) => x.id === at.version);
+  if (v && v.project !== project) addVersion(userId, at.id, { ...v, project });
+}
 
 export default function VideoEditPage() {
   const { toast } = useToast();
@@ -297,6 +304,8 @@ export default function VideoEditPage() {
       // what a format's hand-off asks for (toast, caption, source, draft, tab), the same on every path below
       const open = (path: PickupPath, quiet = false) => {
         const plan = pickupPlan(extra, path);
+        // a same edit version's plan learns which project holds it (on this device)
+        if (plan.keep.plan) markVersion(uid, plan.keep.plan, id);
         setParams({ p: id, ...(plan.tab ? { tab: plan.tab } : {}) });
         if (plan.toast && !quiet) toast(plan.toast);
         return plan;
@@ -364,14 +373,15 @@ export default function VideoEditPage() {
         open("no-captions");
         return;
       }
-      // an AI video says its script word for word: its captions are timed from it and nothing is transcribed (live-p5dog D8)
-      const said = pickupPlan(extra, "captions").said;
-      if (!said) setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
+      // an AI video says its script word for word: its captions are timed from it and nothing is transcribed (live-p5dog D8);
+      // a same edit version brings its voice's own word times, which its cutaways and labels were laid on
+      const { said, words: timed } = pickupPlan(extra, "captions");
+      if (!said && !timed) setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       let landed = false;
       let silent = false;
       try {
-        if (said) {
-          p = { ...p, words: scriptWords(said, duration) };
+        if (timed || said) {
+          p = { ...p, words: timed ?? scriptWords(said!, duration) };
           setProjects(saveProject(uid, p));
           landed = true;
         } else {

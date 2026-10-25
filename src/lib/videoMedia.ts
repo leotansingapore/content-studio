@@ -1672,20 +1672,33 @@ export interface JoinExtra {
   said?: string;
   /** The voice's own word times (same edit, text-voice timestamps): the editor captions from these, with no transcribe. */
   words?: Word[];
+  /** Written to project.plan: the edit plan ("ep-") and its version ("ev-") the video was made from (same edit). */
+  plan?: { id: string; version: string };
 }
 
 /** The editor's paths for an upload: words over a video, a long recording, a video with no speech to caption, or one captioned now. */
 export type PickupPath = "wall" | "long" | "no-captions" | "captions";
 export interface PickupPlan {
   /** Written onto the new project. */
-  keep: Pick<JoinExtra, "caption" | "source" | "draftId" | "ai">;
+  keep: Pick<JoinExtra, "caption" | "source" | "draftId" | "ai" | "plan">;
   /** Shown as the project opens (on the captions path, once they land); null for none. */
   toast: { title: string; description?: string } | null;
   /** Set beside ?p=; the default tab is left out. */
   tab?: EditTab;
   /** The script the video says (JoinExtra.said): its captions are timed from it instead of transcribed. */
   said?: string;
+  /** The words with their real times (JoinExtra.words): the captions take these as they are, before `said`. */
+  words?: Word[];
 }
+
+const goodWord = (w: unknown) => {
+  const x = (w ?? {}) as Record<string, unknown>;
+  return typeof x.w === "string" && typeof x.s === "number" && typeof x.e === "number" && x.s >= 0 && x.e >= x.s && Number.isFinite(x.e);
+};
+const goodPlan = (p: unknown): p is NonNullable<JoinExtra["plan"]> => {
+  const x = (p ?? {}) as Record<string, unknown>;
+  return typeof x.id === "string" && /^ep-[0-9a-z]+$/.test(x.id) && typeof x.version === "string" && /^ev-[0-9a-z]+$/.test(x.version);
+};
 
 /**
  * What a hand-off's extra asks of the editor, the same on every path. The extra can come back from JSON (a paid
@@ -1700,6 +1713,8 @@ export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): Pick
   const tab = EDIT_TABS.find((t) => t === e.tab && t !== "style");
   const ai = aiOf(e.ai);
   const said = typeof e.said === "string" ? e.said.trim() : "";
+  // one bad word drops them all, so the captions fall back to the script rather than a gap
+  const words = Array.isArray(e.words) && e.words.length && e.words.every(goodWord) ? e.words.map(({ w, s, e: end }) => ({ w, s, e: end })) : undefined;
   // a video with an AI person or voice ends its caption with the AI line, which the person can edit (live-p5dog D2)
   const caption = withAiLine(text(e.caption) ?? "", ai);
   return {
@@ -1708,11 +1723,24 @@ export function pickupPlan(extra: JoinExtra | undefined, path: PickupPath): Pick
       ...(e.source && typeof e.source === "object" ? { source: e.source } : {}),
       ...(text(e.draftId) ? { draftId: e.draftId } : {}),
       ...(ai ? { ai } : {}),
+      ...(goodPlan(e.plan) ? { plan: { id: e.plan.id, version: e.plan.version } } : {}),
     },
     toast: title ? { title, ...(note ? { description: note } : {}) } : null,
     ...(tab ? { tab } : {}),
     ...(said ? { said } : {}),
+    ...(words ? { words } : {}),
   };
+}
+
+/**
+ * A plan's edit laid over a project's settings (same edit): what compilePlan made replaces the plan's own cutaways and
+ * labels (ids "b-<plan>-" and "o-<plan>-") and the fields it sets; cutaways and stickers placed by hand stay as they are.
+ */
+export function layOver(settings: EditSettings, laid: Partial<EditSettings>, planId: string): EditSettings {
+  const byHand = <T extends { id: string }>(list: T[] | undefined) => (list ?? []).filter((x) => !x.id.startsWith(`b-${planId}-`) && !x.id.startsWith(`o-${planId}-`));
+  const broll = [...byHand(settings.broll), ...(laid.broll ?? [])];
+  const overlays = [...byHand(settings.overlays), ...(laid.overlays ?? [])];
+  return { ...settings, ...laid, broll: broll.length ? broll : undefined, overlays: overlays.length ? overlays : undefined };
 }
 let joinJob: JoinJob | null = null;
 /**
