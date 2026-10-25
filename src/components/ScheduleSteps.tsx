@@ -16,8 +16,8 @@ import { NetworkCaptions, captionOf, moveHashtags, networkFields, optionsProblem
 import { INBOX_HELP, TikTokMode } from "@/components/TikTokMode";
 import { useToast } from "@/hooks/use-toast";
 import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
-import { activeProfileId, scoped } from "@/lib/profiles";
-import { SOCIAL_PLATFORMS, connectLink, isNotEnabled, platformName, socialStatus, type AccountView, type SocialPlatform } from "@/lib/socialConnect";
+import { activeProfileId } from "@/lib/profiles";
+import { SOCIAL_PLATFORMS, connectLink, defaultAccount, isNotEnabled, loadSocialDefaults, platformName, saveConnectReturn, socialStatus, type AccountView, type SocialPlatform } from "@/lib/socialConnect";
 import { DEFAULT_BRAND, loadBrand, loadCarousels, slugify, type SavedCarousel } from "@/lib/carousel";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgToJpeg, svgToPng } from "@/lib/carouselRender";
@@ -137,16 +137,6 @@ type StepsRequest = ScheduleRequest & Pick<ScheduleInput, "instagram" | "faceboo
 /** "LinkedIn", "LinkedIn and Instagram", "LinkedIn, Instagram and TikTok". */
 export const andList = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-/** The Default account per network picked on /accounts (publish-accounts' synced key); {} when there is none. */
-export function loadDefaults(userId: string): Record<string, string> {
-  try {
-    const raw = JSON.parse(localStorage.getItem(`content-studio-social-defaults-${scoped(userId)}`) ?? "{}");
-    return raw && typeof raw === "object" && !Array.isArray(raw) ? Object.fromEntries(Object.entries(raw).filter(([, v]) => typeof v === "string")) as Record<string, string> : {};
-  } catch {
-    return {};
-  }
-}
-
 const scoreFormat = (format: string) => (format === "carousel" || format === "short-video" ? format : undefined);
 const scoreTone = (v: number) => (v >= 7.5 ? "border-success/40 bg-success/10 text-success" : v >= 5 ? "border-primary/40 bg-primary/10 text-primary" : "border-destructive/40 bg-destructive/10 text-destructive");
 
@@ -168,7 +158,7 @@ export function ScheduleSteps({
   const [params, setParams] = useSearchParams();
   const profileId = activeProfileId(userId);
   const brand = useMemo(() => loadBrand(userId), [userId]);
-  const defaults = useMemo(() => loadDefaults(userId), [userId]);
+  const defaults = useMemo(() => loadSocialDefaults(userId), [userId]);
   const carousel = useMemo(() => loadCarousels(userId).find((c) => c.draftId === draft.id) ?? null, [userId, draft.id]);
   const slideshow = useMemo(() => loadSlideshows(userId).find((s) => s.draftId === draft.id) ?? null, [userId, draft.id]);
   const importLink = draft.media && mediaKind(draft.media) ? draft.media : null;
@@ -276,7 +266,11 @@ export function ScheduleSteps({
   const order = [draft.platform, ...SOCIAL_PLATFORMS.filter((p) => p !== draft.platform)];
   const rows = order.filter((p) => ticked.includes(p) || accounts.some((a) => a.platform === p));
   const tabs = rows.filter((p) => ticked.includes(p));
-  const accountsOf = (p: string) => accounts.filter((a) => a.platform === p).sort((a, b) => Number(b.id === defaults[p]) - Number(a.id === defaults[p]));
+  // the Default account picked on /accounts first (publish-accounts)
+  const accountsOf = (p: string) => {
+    const first = defaultAccount(accounts, defaults, p);
+    return accounts.filter((a) => a.platform === p).sort((a, b) => Number(b.id === first) - Number(a.id === first));
+  };
   const picksOf = (p: string) => {
     if (chosen[p]) return chosen[p];
     const ok = accountsOf(p).filter((a) => !a.needsReconnect);
@@ -346,7 +340,7 @@ export function ScheduleSteps({
   const dayAt = day ? zernioTime(day, dayTime) : null;
   const slot = useMemo(() => {
     const held = loadDrafts(userId).filter((d) => d.id !== draft.id && draftStatus(d) === "scheduled");
-    return nextOpenSlots(brand, tabs[0] ?? draft.platform, held, new Date(), 14)[0] ?? null;
+    return nextOpenSlots(brand, tabs[0] ?? draft.platform, held, new Date(), 56)[0] ?? null;
     // read when the steps open and when the first network changes
   }, [userId, draft.id, brand, tabs[0]]);
   const ahead = (at: string | null) => !!at && Date.parse(at) >= Date.now() + 60_000;
@@ -460,11 +454,7 @@ export function ScheduleSteps({
     setConnecting(p);
     try {
       // /accounts offers the way back here, to the same post and step (publish-accounts)
-      try {
-        sessionStorage.setItem("cs-connect-return", `${window.location.pathname}${window.location.search}`);
-      } catch {
-        // private mode: the connect still works, without the way back
-      }
+      saveConnectReturn(`${window.location.pathname}${window.location.search}`);
       const { authUrl } = await connectLink(profileId, p as SocialPlatform);
       window.location.assign(authUrl);
     } catch (e) {

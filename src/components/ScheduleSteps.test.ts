@@ -186,6 +186,21 @@ describe("step 1, Where", () => {
     expect(actions()).toEqual(["status"]);
   });
 
+  it("Connect saves the way back to this post and step, then goes to the network's sign-in", async () => {
+    const session = new MemStorage();
+    vi.stubGlobal("sessionStorage", session);
+    const assign = vi.fn();
+    (window as unknown as { location: unknown }).location = { pathname: "/generate", search: "?draft=d1&panel=post", assign };
+    fn.answers.status = () => ({ accounts: [acc("li1", "linkedin")] });
+    fn.answers.connect = () => ({ authUrl: "https://zernio.example/auth" });
+    mount(draftOf({ platform: "instagram" }));
+    press(await draw(), "Connect Instagram");
+    await settle();
+    expect(fn.calls.at(-1)).toMatchObject({ action: "connect", platform: "instagram" });
+    expect(JSON.parse(session.getItem("cs-connect-return")!).path).toBe("/generate?draft=d1&panel=post");
+    expect(assign).toHaveBeenCalledWith("https://zernio.example/auth");
+  });
+
   it("ticks the draft's own network, and a network whose Default account was picked on /accounts, that account first and alone", async () => {
     local.setItem(`content-studio-social-defaults-${UID}`, JSON.stringify({ instagram: "ig2" }));
     fn.answers.status = () => ({ accounts: [acc("li1", "linkedin"), acc("ig1", "instagram", "first"), acc("ig2", "instagram", "second"), acc("tt1", "tiktok")] });
