@@ -3571,7 +3571,7 @@ async function writeEdit(userId: string, b: VersionBase, o: { formula?: string; 
     ...(o.formula ? { formula: o.formula } : {}),
     as: "edit" as const,
     close: "balanced" as const,
-    edit: editBrief(b.plan, Math.max(5, Math.round(b.project.duration))),
+    edit: editBrief(b.plan, Math.max(5, Math.round(b.project.duration)), b.project.ai?.voiceId ?? b.base.voice),
   });
   const r = res?.result as unknown as EditResult | undefined;
   if (r?.as !== "edit" || !Array.isArray(r.lines)) throw new Error(WRITE_FAILED);

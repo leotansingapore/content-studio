@@ -80,8 +80,9 @@ export const needsPriceCheck = (estimate: number, real: number) => real > estima
  * 2.56 to 2.79, Eric 2.48 to 2.84); a voice not yet measured reads at the length rule's slow end (speakingWords' 2.4).
  */
 const READ_WPS: Partial<Record<VoiceId, number>> = { alice: 2.56, eric: 2.48 };
+export const readWps = (voice: VoiceId) => READ_WPS[voice] ?? 2.4;
 /** How long a script's voiceover runs in a voice, before it exists: at most MAX_AVATAR_SECONDS. */
-export const scriptSeconds = (words: number, voice: VoiceId) => Math.min(MAX_AVATAR_SECONDS, Math.max(1, words) / (READ_WPS[voice] ?? 2.4));
+export const scriptSeconds = (words: number, voice: VoiceId) => Math.min(MAX_AVATAR_SECONDS, Math.max(1, words) / readWps(voice));
 
 /**
  * The video's estimate from its script, before the voiceover exists: the voiceover's seconds in that voice, cut into

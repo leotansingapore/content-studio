@@ -98,7 +98,7 @@ const { invokeFunction, loadSavedClones } = await import("./reelClone");
 const { fetchReelVideo } = await import("./reelFrames");
 const { measureReel } = await import("./reelStyle");
 const { makeAvatar, sliceVoiceover } = await import("./aiVideo");
-const { speakers, speakerFace } = await import("./talkingHead");
+const { scriptEstimate, scriptSeconds, speakers, speakerFace, videoEstimate } = await import("./talkingHead");
 const { monoPcm, startSlides } = await import("./videoMedia");
 const { transcribe } = await import("./videoProjects");
 const { upsertDraft } = await import("./draftHistory");
@@ -213,15 +213,27 @@ describe("the pure parts", () => {
     expect(J.soundOf(pcm, rate, words, [5, 15])).toEqual({ bed: true, drops: 1, sfx: true });
   });
 
-  it("briefs the writer: each beat's share of the length at the source's pace, and every event as its marker", () => {
+  it("briefs the writer: each beat's share of the length at the source's pace, never faster than the voice reads, and every event as its marker", () => {
     const plan = { read: { wpm: 240, seconds: 30 }, beats: [{ role: "hook", share: 0.2 }, { role: "point", share: 0.5 }, { role: "ask", share: 0.3 }], events: [{ kind: "text", place: { b: 0, at: 0, span: 1 }, role: "hook", words: 40, y: 0.2 }, { kind: "zoom", place: { b: 1, at: 0.5, span: 0.1 } }] } as never;
-    expect(J.wpsOf(plan)).toBe(3.2);
-    expect(J.wpsOf({ read: { wpm: 60 } } as never)).toBe(2.4);
-    expect(J.wpsOf({ read: { wpm: null } } as never)).toBe(2.6);
-    expect(J.editBrief(plan, 15)).toEqual({
-      beats: [{ role: "hook", seconds: 3, words: 10 }, { role: "point", seconds: 7.5, words: 24 }, { role: "ask", seconds: 4.5, words: 14 }],
+    // the voice's slowest measured read caps the source's pace (talkingHead's scriptSeconds rule)
+    expect(J.wpsOf(plan, "eric")).toBe(2.48);
+    expect(J.wpsOf(plan, "alice")).toBe(2.56);
+    expect(J.wpsOf({ read: { wpm: 60 } } as never, "alice")).toBe(2.4);
+    expect(J.wpsOf({ read: { wpm: null } } as never, "george")).toBe(2.4);
+    expect(J.editBrief(plan, 15, "eric")).toEqual({
+      beats: [{ role: "hook", seconds: 3, words: 7 }, { role: "point", seconds: 7.5, words: 19 }, { role: "ask", seconds: 4.5, words: 11 }],
       events: [{ b: 0, kind: "text", role: "hook", words: 20 }, { b: 1, kind: "zoom" }],
     });
+  });
+
+  it("writes a 15 s version that the voice reads in 15 s, so Make's price check charges the chip's price (live-p7a D1)", () => {
+    // live-p7a's talker plan (ep-mvoignkm, 216 words a minute): its 48-word brief ran 20.15 s in Eric's voice, 3 Speak parts
+    const plan = { read: { wpm: 216, seconds: 44.4 }, beats: [0.21, 0.201, 0.142, 0.068, 0.225, 0.153].map((share) => ({ role: "point", share })), events: [] } as never;
+    for (const voice of ["alice", "eric", "george"] as const) {
+      const words = J.editBrief(plan, 15, voice).beats.reduce((n, b) => n + b.words, 0);
+      expect(scriptSeconds(words, voice)).toBeLessThanOrEqual(15);
+      expect(scriptEstimate(words, voice).usd).toBeLessThanOrEqual(videoEstimate(15).usd);
+    }
   });
 
   it("cuts a no-face video's clips at their marked words, the first from 0 and the last to the end", () => {

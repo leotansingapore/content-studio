@@ -38,7 +38,7 @@ import { fetchReelVideo } from "@/lib/reelFrames";
 import { measureReel, type ReelLook } from "@/lib/reelStyle";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
-import { aiMark, needsPriceCheck, speakerFace, speakerOf, speakers, videoEstimate, videoPrice } from "@/lib/talkingHead";
+import { aiMark, needsPriceCheck, readWps, speakerFace, speakerOf, speakers, videoEstimate, videoPrice } from "@/lib/talkingHead";
 import { JOINING } from "@/lib/talkingHeadJob";
 import { audioSeconds, type VoiceId } from "@/lib/textVoice";
 import { STYLES, sentencesOf, type Word } from "@/lib/videoEdit";
@@ -251,17 +251,27 @@ export function shotsFor(frames: { t: number }[], cuts: number[], faces: number[
   });
 }
 
-/** Words a second for the new script: the source's, held to WPS. */
-export const wpsOf = (plan: Pick<EditPlan, "read">) => Math.min(WPS.max, Math.max(WPS.min, plan.read.wpm ? plan.read.wpm / 60 : WPS.fallback));
+/**
+ * Words a second for the new script: the source's, held to WPS, and never faster than `voice` reads at its slowest
+ * measured (readWps, the rule a campaign's AI video is priced by), so the version runs its length (live-p7a D1).
+ */
+export const wpsOf = (plan: Pick<EditPlan, "read">, voice: VoiceId) =>
+  Math.min(readWps(voice), WPS.max, Math.max(WPS.min, plan.read.wpm ? plan.read.wpm / 60 : WPS.fallback));
 
-/** The writer's brief: each beat's role, its share of `length` and its word budget, and every event as its marker. */
-export function editBrief(plan: EditPlan, length: number): EditBrief {
+/** The writer's brief: each beat's role, its share of `length` and its word budget in `voice`, and every event as its marker. */
+export function editBrief(plan: EditPlan, length: number, voice: VoiceId): EditBrief {
   const total = plan.beats.reduce((t, b) => t + b.share, 0) || 1;
-  const wps = wpsOf(plan);
+  const wps = wpsOf(plan, voice);
+  // whole words carried from beat to beat, so the beats' sum never reads past the length (rounding each beat added one)
+  let due = 0;
+  let given = 0;
   return {
     beats: plan.beats.map((b) => {
       const seconds = Math.min(60, Math.max(0.5, Math.round(((b.share / total) * length) * 10) / 10));
-      return { role: b.role, seconds, words: Math.min(200, Math.max(1, Math.round(seconds * wps))) };
+      due += seconds * wps;
+      const words = Math.min(200, Math.max(1, Math.floor(due + 1e-9) - given));
+      given += words;
+      return { role: b.role, seconds, words };
     }),
     events: plan.events.slice(0, MAX_EVENTS).map((e) => ({
       b: Math.min(plan.beats.length - 1, Math.max(0, e.place.b)),
@@ -617,7 +627,7 @@ export async function startMake(userId: string, a: MakeAsk, params: Record<strin
   let flags: Flags | undefined;
   try {
     const overlays = heard.get(plan.id)?.overlays ?? [];
-    const edit = Object.assign(editBrief(plan, a.length), overlays.length ? { overlays } : {});
+    const edit = Object.assign(editBrief(plan, a.length, a.voice), overlays.length ? { overlays } : {});
     const body = { ...makeBody(userId, { source: a.source, topic: "", note: "", mention: a.mention, size: "9x16" }, "speaking"), as: "edit" as const, close: a.close, edit };
     const res = await requestMake(body);
     const r = res?.result as unknown as EditResult | undefined;
