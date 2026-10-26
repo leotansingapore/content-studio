@@ -524,6 +524,12 @@ export const FIX_ASK: Record<FactorId, string> = {
   cta: "Rewrite only the last line as one clear ask: comment a word, send a DM or save the post. Keep every other line word for word.",
   readable: "Break it into short lines of one or two sentences and cut what is not needed. Keep every point, fact and number.",
 };
+// A business brand's asks speak as the business and never claim a customer story (live-p7a D11 wrote "DM me WORKFLOW").
+const FIX_ASK_BUSINESS: Partial<Record<FactorId, string>> = {
+  specific: "Add one concrete detail: a step the reader can take today or a real example of how it works, with no customer story. Do not add any number that is not already in the post.",
+  cta: "Rewrite only the last line as one clear ask in the business's own words: keep what it asks the reader to do and make it one specific next step. Write as the business: we, us or its name, never I, me or my. Keep every other line word for word.",
+};
+export const fixAsk = (id: FactorId, speaker: HookSpeaker) => (speaker === "business" && FIX_ASK_BUSINESS[id]) || FIX_ASK[id];
 const scoreBand = (v: number) => (v >= 7.5 ? "Strong" : v >= 5 ? "Fair" : "Weak");
 
 // remix-variations (Leo only): "Try new hooks" writes openings for a finished post whose body stays as it is.
@@ -550,6 +556,29 @@ export function withOpening(draft: string, hook: string): string {
   const first = draft.split("\n")[0];
   return (first.match(HOOK_LABEL)?.[0] ?? "") + hook.trim() + draft.slice(first.length);
 }
+// a script's label on its last line ("CTA:"), kept when a fix swaps that line
+const CTA_LABEL = /^[\s*_#>[]*(?:cta|call to action)\b[^:\]\n]*[:\]][*_\s]*/i;
+/** The text before its trailing hashtags, and those hashtags with the space before them, byte for byte. */
+const tagSplit = (t: string): [string, string] => {
+  const m = moveHashtags(t);
+  return m ? [m.body, t.slice(m.body.length)] : [t.trimEnd(), ""];
+};
+/**
+ * A fix as it lands: First line swaps only the first line and Clear ask only the last, whatever else the writer
+ * changed, and every fix keeps the post's own trailing hashtags (live-p7a D11: Clear ask dropped all 4).
+ */
+export function fixedText(before: string, after: string, id: FactorId): string {
+  const [was, tags] = tagSplit(before);
+  const now = tagSplit(after)[0].trim();
+  const lines = now.split("\n").filter((l) => l.trim());
+  if (!lines.length) return before;
+  if (id === "hook") return withOpening(before, lines[0].replace(HOOK_LABEL, ""));
+  if (id === "cta") {
+    const at = was.lastIndexOf("\n") + 1;
+    return was.slice(0, at) + (was.slice(at).match(CTA_LABEL)?.[0] ?? "") + lines[lines.length - 1].replace(CTA_LABEL, "").trim() + tags;
+  }
+  return now + tags;
+}
 /** A post's version with a new opening: its brief and source in the set, nothing scheduled, posted, numbered or scored. */
 export function versionOf(parent: DraftEntry, text: string, hook: string, formula: string | undefined, set: NonNullable<DraftEntry["set"]>, id = newDraftId(), at = new Date().toISOString()): DraftEntry {
   const v: DraftEntry = { ...parent, id, createdAt: at, hook, draft: text, hookFormula: formula, set, status: "draft" };
@@ -568,7 +597,7 @@ const MAX_ASK = 300;
 // context, so a rewrite states a word target and says it overrides them.
 const REWRITE_LENGTH: Partial<Record<RewriteId, number>> = { shorter: 0.65, longer: 1.35 };
 
-function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = ""): { ideaContext: string; styleReference: string } {
+function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = "", fix = false): { ideaContext: string; styleReference: string } {
   const instruction =
     id === "lines"
       ? `rewrite only these lines so each sounds like a person talking, and keep every other line word for word: ${lines.map((l) => `"${l}"`).join(" ")}`
@@ -580,7 +609,7 @@ function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = 
   // the asked change may itself be about length, so it gets no word target to fight
   const rule =
     id === "ask"
-      ? `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. The instruction overrides the format length, variant tone and framing rules.`
+      ? `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. The instruction overrides the format length, variant tone${fix ? ", framing and CTA style" : " and framing"} rules.`
       : `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. Target length: about ${target} words. The instruction and target length override the format length, variant tone and framing rules.`;
   return {
     ideaContext: [
@@ -2319,12 +2348,14 @@ export default function GeneratePage() {
     };
     try {
       await streamOnePost(
-        { ...buildBasePayload(), ...rewriteFields(source, id, lines, ask) },
+        { ...buildBasePayload(), ...rewriteFields(source, id, lines, ask, !!fix) },
         {
           onToken: (text) => mine() && setRewrite({ id, text, status: "streaming", fix }),
           onComplete: (raw) => {
-            const text = applyBrandRules(stripDashes(raw), brandKit, platform).trim();
-            if (!text) return fail("The reply came back empty. Try again.");
+            const clean = applyBrandRules(stripDashes(raw), brandKit, platform).trim();
+            if (!clean) return fail("The reply came back empty. Try again.");
+            // a score fix (Leo only) changes only what its factor is about
+            const text = fix ? fixedText(source, clean, fix.id) : clean;
             if (mine()) setRewrite({ id, text, status: "done", fix });
           },
           onError: fail,
@@ -2346,7 +2377,7 @@ export default function GeneratePage() {
   // "Fix this" on a score line (Leo only): the factor's ask goes through the rewrite panel, so nothing changes until Use this.
   const fixFactor = (id: FactorId) => {
     if (!postScore) return;
-    void handleRewrite("ask", undefined, FIX_ASK[id], { id, from: postScore.score });
+    void handleRewrite("ask", undefined, fixAsk(id, userId ? speakerFor(userId) : "person"), { id, from: postScore.score });
     setTimeout(() => document.getElementById("rewrite-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
   };
 

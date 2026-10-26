@@ -16,7 +16,7 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row reads the rails store, which has no server snapshot; it is not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { default: GeneratePage, FIX_ASK, HOOK_FACTS_RULE, hookBlank, hookFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
+const { default: GeneratePage, FIX_ASK, HOOK_FACTS_RULE, fixAsk, fixedText, hookBlank, hookFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
 const { BLANKS_RULE } = await import("@/lib/platformCounters");
 const { hookFormula } = await import("@/lib/hookFormulas");
 const { FACTORS } = await import("@/lib/postScore");
@@ -131,5 +131,42 @@ describe("Write's hooks have no blanks (Leo only)", () => {
     expect(hookBlank("3 things I wish I knew before managing sales follow-ups solo.")).toBe(false);
     expect(hookBlank("If you still search across chats for client context before a call, stop.")).toBe(false);
     expect(hookBlank("[HOOK] Your follow-ups live in five apps.")).toBe(false);
+  });
+});
+
+// live-p7a D11: Fix this on Clear ask (call 039, ledger 00:32:56) came back with the post's 4 hashtags gone and "DM me
+// WORKFLOW" for a business brand; Use this applied all of it
+describe("Fix this changes only what its factor is about (Leo only)", () => {
+  const body = [
+    "One change brought the pieces together: client notes went from scattered across chats to one clearer sales workflow.",
+    "When client messages and follow-ups sit in different places, getting ready for a call can take extra effort.",
+    "ActivityTracker combines client records, WhatsApp conversations, follow-up tasks and sales goals in one app.",
+    "Then use tasks to organise follow-ups and goals to track sales activity.",
+  ];
+  const post = [...body, "Explore a more connected way to manage your sales workflow.", "#SalesFollowUp #WhatsAppWorkflow #ClientManagement #SalesGoals"].join("\n\n");
+  const reply = [...body.map((l) => l.replace("can take", "takes")), "DM us WORKFLOW to see a more connected sales workflow."].join("\n\n");
+
+  it("swaps only the last line on a Clear ask fix and keeps the hashtags byte for byte", () => {
+    expect(fixedText(post, reply, "cta")).toBe(post.replace("Explore a more connected way to manage your sales workflow.", "DM us WORKFLOW to see a more connected sales workflow."));
+    // a reply that ends on its own hashtags gives its ask, not its tags
+    expect(fixedText(post, `${reply}\n\n#Sales`, "cta")).toBe(fixedText(post, reply, "cta"));
+  });
+  it("swaps only the first line on a First line fix, keeping a script's label", () => {
+    expect(fixedText(post, `What if one app held every client chat?\n\n${reply}`, "hook")).toBe(withOpening(post, "What if one app held every client chat?"));
+    expect(fixedText("HOOK: Old line\nBODY: rest\n\n#tag", "HOOK: New line\nBODY: other", "hook")).toBe("HOOK: New line\nBODY: rest\n\n#tag");
+  });
+  it("keeps the post's own hashtags on a fix that rewrites the body", () => {
+    const tags = "\n\n#SalesFollowUp #WhatsAppWorkflow #ClientManagement #SalesGoals";
+    expect(fixedText(post, reply, "readable")).toBe(`${reply}${tags}`);
+    expect(fixedText(post, `${reply}\n\n#Other #Tags`, "oneIdea")).toBe(`${reply}${tags}`);
+    expect(fixedText("No tags here.", "Shorter.\n\n#added", "specific")).toBe("Shorter.");
+  });
+  it("asks a business brand's fix as the business, and an adviser's as today", () => {
+    for (const id of Object.keys(FIX_ASK) as (keyof typeof FIX_ASK)[]) {
+      expect(fixAsk(id, "person")).toBe(FIX_ASK[id]);
+      expect(fixAsk(id, "business")).not.toMatch(/client story/);
+    }
+    expect(fixAsk("cta", "business")).toContain("Write as the business: we, us or its name, never I, me or my.");
+    expect(fixAsk("cta", "business")).toContain("Keep every other line word for word.");
   });
 });
