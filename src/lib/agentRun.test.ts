@@ -28,6 +28,7 @@ const fake = vi.hoisted(() => {
     calls: [] as string[],
     usage: null as null | { day: string; used: Record<string, number> },
     speaker: "person" as "person" | "business",
+    brandName: "",
     sources: {} as Record<string, unknown>,
     talkEnd: "done" as "done" | "priced",
     talkAsk: null as null | { quoted?: number; voice?: string; caption?: string; agent?: unknown },
@@ -55,7 +56,7 @@ const SCRIPT =
 
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 vi.mock("@/lib/aiUsage", async (orig) => ({ ...(await orig<typeof import("./aiUsage")>()), readUsage: async () => fake.usage }));
-vi.mock("@/lib/remixBrand", async (orig) => ({ ...(await orig<typeof import("./remixBrand")>()), speakerFor: () => fake.speaker }));
+vi.mock("@/lib/remixBrand", async (orig) => ({ ...(await orig<typeof import("./remixBrand")>()), speakerFor: () => fake.speaker, ownBrandName: () => fake.brandName }));
 vi.mock("@/lib/resolveSource", () => ({ resolveSource: (key: string) => fake.sources[key] ?? null }));
 vi.mock("@/lib/remixJob", async (orig) => ({
   ...(await orig<typeof import("./remixJob")>()),
@@ -992,6 +993,12 @@ describe("the 25 Oct replay: the explainer card (D14)", () => {
     const id = await say("make an explainer video about how follow-ups slip", { act: "make", format: "explainer" });
     await approve(id);
     expect(fake.explainerAsk).toEqual({ mode: "script", topic: "make an explainer video about how follow-ups slip", speaker: "business" });
+    // a named business brand's explainer names it once, with no video learnings riding along (live-p7a D23)
+    fake.brandName = "ActivityTracker";
+    const named = await say("make an explainer video about missed renewals", { act: "make", format: "explainer" });
+    await approve(named);
+    expect(fake.explainerAsk).toEqual({ mode: "script", topic: "make an explainer video about missed renewals", speaker: "business", notes: "The brand is ActivityTracker. Name it once." });
+    fake.brandName = "";
     const c = cardMsg(id).card!;
     expect(c.details?.find((d) => d.label === "Made with")?.value).toBe("Higgsfield Soul pictures and ElevenLabs");
     expect(c.details?.find((d) => d.label === "Following")).toBeUndefined();

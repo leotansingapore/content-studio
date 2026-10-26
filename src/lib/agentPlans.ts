@@ -29,7 +29,7 @@ import { loadProjects } from "@/lib/videoProjects";
 import { loadPositioning } from "@/lib/positioning";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
 import { defaultOutput } from "@/lib/remix";
-import { loadRemixPrefs, speakerFor } from "@/lib/remixBrand";
+import { loadRemixPrefs, ownBrandName, speakerFor } from "@/lib/remixBrand";
 import { NOT_THROUGH, NOTHING_USED, onRemixJob, remixJob, startRemix, writingStep } from "@/lib/remixJob";
 import { EdgeError } from "@/lib/edgeFn";
 import { linkRead, startLinkRead } from "@/lib/remixLink";
@@ -908,7 +908,13 @@ function settleTalk(x: Press): void {
 /** The explainer's scenes, as aiVideo's writeExplainer asks, in the brand's voice: a business never ends "Message me" (D14). */
 async function writeScenes(userId: string, topic: string): Promise<Scene[]> {
   const business = speakerFor(userId) === "business";
-  const { scenes } = await callFn<{ scenes: Scene[] }>("ai-video", { mode: "script", topic, ...(business ? { speaker: "business" } : {}) }, "Couldn't write the explainer. Try again in a minute.");
+  // the brand's name only, not the video learnings, which carry the presenter's look (replay D14, live-p7a D23)
+  const name = business ? ownBrandName(userId) : "";
+  const { scenes } = await callFn<{ scenes: Scene[] }>(
+    "ai-video",
+    { mode: "script", topic, ...(business ? { speaker: "business" } : {}), ...(name ? { notes: `The brand is ${name}. Name it once.` } : {}) },
+    "Couldn't write the explainer. Try again in a minute.",
+  );
   return scenes;
 }
 
