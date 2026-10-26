@@ -32,7 +32,7 @@ import { exportFilm, mixFilm, placeVoice, voiceSpans, voiceTrack, type FilmFile,
 import { renderFilmSound, soundKey, type FilmSound, type SoundOptions } from "@/lib/film/sound";
 import { loudness } from "@/lib/film/synth/sound";
 import {
-  filmLength, parseFilm, parseScene,
+  filmLength, parseFilm, parseScene, rhythmIssues,
   type Accent, type Energy, type Film, type FilmCtx, type FilmLength, type FilmScene, type Ground, type ProductType, type Shape,
 } from "@/lib/film/timeline";
 
@@ -100,6 +100,9 @@ export interface FilmNote {
   pin?: [number, number];
   /** Fix it's note: the server keeps the film's length and fills the gaps. */
   fix?: boolean;
+  /** The spec its change made (specStamp), so Undo can mark the note it takes back. */
+  made?: string;
+  undone?: boolean;
   text: string;
   reply?: string;
   /** open: typed, not sent (or sent back with Not quite); waiting: queued behind another; changing: with the writer. */
@@ -158,7 +161,8 @@ function cleanFilm(raw: unknown): StoredFilm | null {
     setup: { ...DEFAULT_SETUP, ...f.setup, screens: Array.isArray(f.setup.screens) ? f.setup.screens.slice(0, MAX_SCREENS) : [] },
     directions: Array.isArray(f.directions) ? f.directions : [],
     recommended: typeof f.recommended === "number" ? f.recommended : null,
-    issues: Array.isArray(f.issues) ? f.issues : [],
+    // read off the spec itself, so Undo and Fields changes never leave another spec's line (live-p7a D6)
+    issues: spec?.ok ? rhythmIssues(spec.film) : [],
     notes: Array.isArray(f.notes) ? f.notes : [],
     exports: Array.isArray(f.exports) ? f.exports : [],
     spec: spec?.ok ? spec.film : undefined,
@@ -235,12 +239,23 @@ function pushHistory(id: string, spec: Film | undefined): void {
   }
 }
 
-/** The spec before the last change, exactly as it was; false when there is none. */
+/** A short stamp of a spec, so a note knows the spec it made. */
+const specStamp = (spec: Film | undefined) => {
+  const j = JSON.stringify(spec ?? null);
+  let h = 2166136261;
+  for (let i = 0; i < j.length; i++) h = Math.imul(h ^ j.charCodeAt(i), 16777619) >>> 0;
+  return `${j.length}.${h.toString(36)}`;
+};
+
+/** The spec before the last change, exactly as it was, and the note that made the change marked undone; false when there is none. */
 export function undoFilm(userId: string, id: string): boolean {
   const list = loadHistory(id);
   const last = list.pop();
   if (!last) return false;
-  const next = change(userId, id, (f) => ({ ...f, spec: JSON.parse(last) as Film }));
+  const next = change(userId, id, (f) => {
+    const taken = specStamp(f.spec);
+    return { ...f, spec: JSON.parse(last) as Film, notes: f.notes.map((n) => (n.status === "done" && n.made === taken ? { ...n, undone: true } : n)) };
+  });
   if (!next) return false;
   try {
     store()?.setItem(historyKey(id), JSON.stringify(list));
@@ -560,7 +575,7 @@ async function runNotes(userId: string, filmId: string): Promise<void> {
         pushHistory(filmId, latest.spec);
         const saved = change(userId, filmId, (x) => ({
           ...x, spec: parsed.film, issues: r.issues ?? [], flags: r.flags ?? x.flags,
-          notes: x.notes.map((n) => (n.id === next.id ? { ...n, status: "done" as const, reply: r.reply || "Changed." } : n)),
+          notes: x.notes.map((n) => (n.id === next.id ? { ...n, status: "done" as const, reply: r.reply || "Changed.", made: specStamp(parsed.film), undone: undefined } : n)),
         }));
         if (!saved) throw new Error(SIZE_LINE);
       } catch (e) {

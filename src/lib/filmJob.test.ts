@@ -36,6 +36,8 @@ const SETUP: FilmSetup = { ...DEFAULT_SETUP, product: "Activity Tracker's AI coa
 
 /** The good film on keys the parser takes. */
 const film = (): Film => JSON.parse(JSON.stringify(goodFilm()).replace(/cimg-app1/g, APP).replace(/cimg-app2/g, APP2));
+/** The good film with the app screen held still: nothing new from 0:04 to 0:10. */
+const gapped = (): Film => ({ ...film(), scenes: film().scenes.map((s) => (s.kind === "screen" ? { ...s, camera: [], tap: [], highlight: undefined } : s)) });
 /** A spec as the parser writes it back (its own key order), which is what the store holds. */
 const norm = (f: Film) => JSON.stringify((parseFilm(f) as { film: Film }).film);
 const DIRECTIONS: FilmDirection[] = [
@@ -202,13 +204,26 @@ describe("Point to change", () => {
   });
 
   it("Fix it sends the rhythm notes as one note on the whole film", async () => {
-    const f = stored({ issues: ["Nothing happens from 0:12 to 0:16."] });
-    fn.mockResolvedValueOnce({ film: film(), reply: "Added a card at 0:13.", issues: [], flags: NO_FLAGS });
+    const f = stored({ spec: gapped() });
+    fn.mockResolvedValueOnce({ film: film(), reply: "Added taps to the app.", issues: [], flags: NO_FLAGS });
     fixIssues(UID, f.id);
     await vi.waitFor(() => expect(getFilm(UID, f.id)!.notes[0]?.status).toBe("done"));
     // the server keeps the film's length and fills the gap (live-p7a D5); any other note sends no fix
-    expect(fn.mock.calls[0][1]).toMatchObject({ mode: "film-edit", scene: null, note: "Fix these: Nothing happens from 0:12 to 0:16.", fix: true });
+    expect(fn.mock.calls[0][1]).toMatchObject({ mode: "film-edit", scene: null, note: "Fix these: Nothing happens from 0:04 to 0:10.", fix: true });
     expect(getFilm(UID, f.id)!.issues).toEqual([]);
+  });
+
+  it("Undo brings back the earlier film's own rhythm line and marks the note it took back (live-p7a D6)", async () => {
+    const f = stored({ spec: gapped() });
+    // the line is the spec's own, whatever was stored beside it
+    expect(getFilm(UID, f.id)!.issues).toEqual(["Nothing happens from 0:04 to 0:10."]);
+    fn.mockResolvedValueOnce({ film: film(), reply: "Added taps to the app.", issues: [], flags: NO_FLAGS });
+    sendNote(UID, f.id, { ...card2, scene: "app", target: "app.screen", label: "Screen", text: "Tap through it" });
+    await vi.waitFor(() => expect(getFilm(UID, f.id)!.notes[0].status).toBe("done"));
+    expect(getFilm(UID, f.id)!.issues).toEqual([]);
+    expect(undoFilm(UID, f.id)).toBe(true);
+    expect(getFilm(UID, f.id)!.issues).toEqual(["Nothing happens from 0:04 to 0:10."]);
+    expect(getFilm(UID, f.id)!.notes[0]).toMatchObject({ status: "done", undone: true });
   });
 
   it("a reload brings a note that was waiting or changing back open, its words kept, and sends nothing", () => {

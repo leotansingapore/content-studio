@@ -945,7 +945,8 @@ function Notes({ userId, film, onOpen }: { userId: string; film: StoredFilm; onO
             </button>
             {n.status === "waiting" && <p className="text-xs text-muted-foreground">Waiting</p>}
             {n.status === "changing" && <p role="status" className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Changing...</p>}
-            {n.status === "done" && (
+            {n.status === "done" && n.undone && <p className="text-xs text-muted-foreground">Undone.</p>}
+            {n.status === "done" && !n.undone && (
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs">Changed: {n.reply}</p>
                 <Button size="sm" variant="ghost" onClick={() => { notQuite(userId, film.id, n.id); onOpen({ ...n, status: "open", thread: [...n.thread, { note: n.text, reply: n.reply ?? "" }], text: "" }); }} className={cn("h-7 px-2", BIG)}>
