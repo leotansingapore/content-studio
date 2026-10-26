@@ -38,7 +38,8 @@ import { fetchReelVideo } from "@/lib/reelFrames";
 import { measureReel, type ReelLook } from "@/lib/reelStyle";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
-import { aiMark, needsPriceCheck, readWps, speakerFace, speakerOf, speakers, videoEstimate, videoPrice } from "@/lib/talkingHead";
+import { presenterVoice } from "@/lib/presenters";
+import { aiMark, needsPriceCheck, readWps, speakerFace, speakerOf, speakers, videoEstimate, videoPrice, type Speakers } from "@/lib/talkingHead";
 import { JOINING } from "@/lib/talkingHeadJob";
 import { audioSeconds, type VoiceId } from "@/lib/textVoice";
 import { STYLES, sentencesOf, type Word } from "@/lib/videoEdit";
@@ -421,6 +422,12 @@ export function draftOf(plan: Pick<EditPlan, "id" | "source">, v: Version, sourc
 
 /** You when your face is verified, else I'll film it; an AI presenter is never picked for you. */
 export const defaultWho = (face: boolean): SameWho => (face ? "mine" : "film");
+
+/** The voice a pick speaks in: a presenter's own, one that fits their look (presenterVoice, as the agent and a campaign pick it), else the remembered one. */
+export function voiceFor(people: Pick<Speakers, "presenters"> | null, who: string, remembered: VoiceId): VoiceId {
+  const p = people?.presenters.find((x) => x.id === who);
+  return p ? presenterVoice(p, remembered) : remembered;
+}
 
 export async function sha1Of(file: Blob): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-1", await file.arrayBuffer());

@@ -236,6 +236,16 @@ describe("the pure parts", () => {
     }
   });
 
+  it("speaks a presenter in a voice that fits their look, as the agent and a campaign do; anyone else in the voice remembered (live-p7a D2)", () => {
+    // live-p7a's Raj, from the run's device state
+    const people = { presenters: [{ id: "pr-mvk90x7t", name: "Raj", look: "An Indian Singaporean man in his mid 30s, a side-parted crop, dark suit and a plain tie" }, { id: "pr-2", name: "Mei", look: "A Chinese Singaporean woman in her 40s" }] } as never;
+    expect(J.voiceFor(people, "pr-mvk90x7t", "alice")).toBe("eric");
+    expect(J.voiceFor(people, "pr-2", "eric")).toBe("alice");
+    expect(J.voiceFor(people, "pr-2", "lily")).toBe("lily");
+    for (const who of ["mine", "none", "film"]) expect(J.voiceFor(people, who, "alice")).toBe("alice");
+    expect(J.voiceFor(null, "pr-mvk90x7t", "alice")).toBe("alice");
+  });
+
   it("cuts a no-face video's clips at their marked words, the first from 0 and the last to the end", () => {
     // b runs 0.1 s before c starts, too short to show: its time goes to the clip before it
     expect(J.cutawayScenes([{ key: "b", from: 6.2 }, { key: "a", from: 2 }, { key: "c", from: 6.3 }], 14)).toEqual([{ key: "a", seconds: 6.3 }, { key: "c", seconds: 7.7 }]);

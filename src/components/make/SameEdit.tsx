@@ -31,7 +31,7 @@ import {
   CLOSES, FILM_LINE, LENGTHS, NO_CUTAWAYS, NOT_SAME_FILE, PRESENTER_LINE, READ_STEPS, TEXT_HEAVY, TWO_PEOPLE_LINE, askLine, clock,
   cloneOf, defaultWho, dropSameEdit, goOnAtPrice, isFace, lengthLine, lookLine, makeCaps, makePrice, onSameEditJob, ownsPending,
   planRows, readCaps, readPrice, resumeSameEdit, sameEditBusy, sameEditJob, sameFile, sourceStop, sourceVideo, startMake, startRead,
-  stopLine, textHeavy, type EditLength, type SameEditJob, type SameWho,
+  stopLine, textHeavy, voiceFor, type EditLength, type SameEditJob, type SameWho,
 } from "@/lib/sameEditJob";
 import { useSpeakers } from "@/lib/talkingHead";
 import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
@@ -90,7 +90,8 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
   const whoAllowed = useMemo(() => [...(people?.face ? ["mine"] : []), ...(people?.presenters.map((p) => p.id) ?? []), "none", "film"], [people]);
   const [whoParam, setWho] = useUrlState<string>("who", defaultWho(!!people?.face), { allowed: whoAllowed });
   const who = whoParam as SameWho;
-  const [voice, setVoice] = useUrlState<VoiceId>("voice", loadRemixPrefs(userId).voice, { allowed: VOICE_IDS });
+  // a presenter speaks in a voice that fits their look (live-p7a D2: Raj spoke as Alice)
+  const [voice, setVoice] = useUrlState<VoiceId>("voice", voiceFor(people, who, loadRemixPrefs(userId).voice), { allowed: VOICE_IDS });
   const [close, setClose] = useUrlState<Close>("close", "balanced", { allowed: CLOSES });
   const [lengthParam, setLength] = useUrlState<string>("length", "15", { allowed: LENGTHS.map(String) });
   const length = Number(lengthParam) as EditLength;
