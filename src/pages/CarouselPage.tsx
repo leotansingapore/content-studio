@@ -121,7 +121,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 type Source = { kind: "draft"; id: string } | { kind: "paste" } | { kind: "ai"; id: string; text: string; title: string; platform: "instagram" | "linkedin" };
 type AiState =
-  | { status: "idle" | "loading" }
+  | { status: "idle" | "loading"; fix?: boolean }
   | { status: "error" | "limit" | "unavailable"; message: string };
 type SplitInfo = Omit<SplitResult, "slides">;
 
@@ -348,6 +348,9 @@ function AskBox(p: { text: string; left: number | null; busy: boolean; target: (
  * What a carousel is scored on (edit-score): its slides, then the caption of the post it was made from; null for a
  * version in another language, which is never sent (Malay passes the server's Latin-letter check).
  */
+/** Tighten's recap slide: added when it fits, never by the score's Fix this (its slide of 4 bullets failed Easy to read: live-p7a D13). */
+export const addsRecap = (slides: Slide[], fix: boolean) => !fix && recapFits(slides);
+
 export function carouselScoreSource(slides: Pick<Slide, "title" | "body">[], post: Pick<DraftEntry, "draft" | "lang"> | undefined, lang: string | undefined): string | null {
   return lang || post?.lang ? null : carouselScoreText(slides, post?.draft);
 }
@@ -1134,8 +1137,8 @@ export default function CarouselPage() {
     }
   };
 
-  // true once the slides are tightened (the score's Fix this scores them next)
-  const tighten = async (): Promise<boolean> => {
+  // true once the slides are tightened (the score's Fix this scores them next, and adds no recap slide)
+  const tighten = async (fix = false): Promise<boolean> => {
     if (ai.status === "loading" || slides.length < MIN_SLIDES) return false;
     const empty = slides.findIndex((s) => !s.title.trim() && !s.body.trim());
     if (empty >= 0) {
@@ -1146,9 +1149,9 @@ export default function CarouselPage() {
     // the recap is rewritten from the other slides each time, so it is not sent
     const base = snapshot.filter((s) => !s.recap);
     const old = snapshot.find((s) => s.recap);
-    setAi({ status: "loading" });
+    setAi({ status: "loading", fix });
     try {
-      const { slides: copy, recap } = await tightenSlides(base, platform, recapFits(base), brand.emojiPolicy);
+      const { slides: copy, recap } = await tightenSlides(base, platform, addsRecap(base, fix), brand.emojiPolicy);
       const next = withRecap(applyCopy(base, copy), recap ? { ...recap, id: old?.id } : old ?? null);
       setBeforeAi(snapshot);
       change(() => next);
@@ -1159,7 +1162,7 @@ export default function CarouselPage() {
         description: `${
           recap && at >= 0
             ? `Slide ${at + 1} is a recap people can screenshot. `
-            : base.length >= MAX_SLIDES
+            : !fix && base.length >= MAX_SLIDES
               ? `No room for a recap slide in ${MAX_SLIDES}. `
               : ""
         }Read them through before you post. Undo brings your version back.`,
@@ -1685,7 +1688,7 @@ export default function CarouselPage() {
                   )}
                   <Button
                     size="sm"
-                    onClick={tighten}
+                    onClick={() => void tighten()}
                     disabled={busy || ai.status === "limit" || tightenLeft === 0}
                     className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 disabled:opacity-60"
                   >
@@ -1706,7 +1709,7 @@ export default function CarouselPage() {
                 {tightenWhy && !busy && <p className="text-xs text-destructive">{tightenWhy}</p>}
                 {busy && (
                   <p role="status" className="text-xs text-muted-foreground">
-                    Rewriting your slides to be shorter and MAS-safe{recapFits(slides.filter((s) => !s.recap)) ? ", with a recap" : ""}. This takes a few seconds.
+                    Rewriting your slides to be shorter and MAS-safe{addsRecap(slides.filter((s) => !s.recap), ai.status === "loading" && !!ai.fix) ? ", with a recap" : ""}. This takes a few seconds.
                   </p>
                 )}
                 {aiMessage && (
@@ -2076,7 +2079,7 @@ export default function CarouselPage() {
                 {scoreOn && userId && (
                   <CarouselScore key={carouselId} userId={userId} text={scoreText} platform={platform} saved={savedScore} busy={busy || ai.status === "limit"}
                     fixError={aiMessage?.message ?? null} onScored={(s) => keepRef.current(undefined, s)}
-                    onFix={async () => ((await tighten()) ? scoreTextOf(slidesRef.current) : null)} />
+                    onFix={async () => ((await tighten(true)) ? scoreTextOf(slidesRef.current) : null)} />
                 )}
               </CardContent>
             </Card>

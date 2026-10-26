@@ -20,7 +20,7 @@ vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof imp
 // the rewrite store has no server snapshot; nothing is being rewritten on a first frame
 vi.mock("@/components/carousel/SlideFields", async (actual) => ({ ...(await actual<typeof import("@/components/carousel/SlideFields")>()), useRewriting: () => false }));
 
-const { default: CarouselPage, carouselTarget, carouselScoreSource, CarouselScore } = await import("./CarouselPage");
+const { default: CarouselPage, addsRecap, carouselTarget, carouselScoreSource, CarouselScore } = await import("./CarouselPage");
 const { textKey } = await import("@/lib/postScore");
 const html = (path = "/carousel") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(CarouselPage)));
 
@@ -118,6 +118,15 @@ describe("the carousel's predicted engagement (edit-score, Leo only)", () => {
     }));
   };
   const visible = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  // live-p7a D13: Fix this on Easy to read ran Tighten with recap: true (calls 056 and 057), whose new slide of 4 bullets
+  // failed Easy to read itself, so the score went from 7.1 to 6.8 with the factor still flagged
+  it("Fix this tightens with no new recap slide, while the Tighten button still adds one when it fits", () => {
+    const six = Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, title: `T${i}`, body: "B" }));
+    expect(addsRecap(six, false)).toBe(true);
+    expect(addsRecap(six, true)).toBe(false);
+    expect(addsRecap(six.slice(0, 3), false)).toBe(false);
+  });
 
   it("scores the slides, then the caption of the post they were made from, and never a version in another language", () => {
     expect(carouselScoreSource(SLIDES, undefined, undefined)).toBe(TEXT);
