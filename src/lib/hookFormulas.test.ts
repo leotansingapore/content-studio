@@ -47,6 +47,22 @@ describe("hook formulas", () => {
     expect(bare.ideaContext).toBe("Hook formula: Myth bust. Follow the formula in the style reference.");
     expect(bare.styleReference.startsWith("Write this hook")).toBe(true);
   });
+
+  // live-p7a D9: Try new hooks on ActivityTracker wrote "After [your years] as a financial consultant, here's what
+  // nobody tells you..." from Insider view's adviser shape and example
+  it("asks a business brand's hooks as the business, never in an adviser's trade", () => {
+    const base = { ideaContext: "Client chats in one app.", styleReference: "Plain." };
+    for (const f of HOOK_FORMULAS) {
+      expect(hookFormulaFields(f, base, "person"), f.id).toEqual(hookFormulaFields(f, base));
+      const biz = hookFormulaFields(f, base, "business").styleReference;
+      expect(biz, f.id).toContain("Write as the business: we, us or its name, never I, me or my.");
+      expect(biz, f.id).not.toMatch(/financial consultant|years as \{role\}|insurers/i);
+      expect(biz, f.id).toMatch(/^[\x20-\x7e\n]*$/);
+    }
+    const insider = hookFormulaFields(hookFormula("insider")!, {}, "business").styleReference;
+    expect(insider).toContain("Shape: What nobody tells you about {topic}, from {what the business sees up close}.");
+    expect(insider).not.toMatch(/\{N\}|years/);
+  });
 });
 
 describe("formulaOfHook", () => {

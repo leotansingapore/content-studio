@@ -202,21 +202,40 @@ export function hookFormulasFrom(id: string): HookFormula[] {
 
 export const hookFormula = (id: string | undefined) => HOOK_FORMULAS.find((f) => f.id === id);
 
+/** Who a hook speaks as: the adviser, or a business brand (remixBrand.ts speakerFor), which never says I. */
+export type HookSpeaker = "person" | "business";
+
+/**
+ * A business's shape where the adviser's needs a person in a trade: Insider view's "After {N} years as {role}" with a
+ * financial consultant's example wrote "After [your years] as a financial consultant" for ActivityTracker (live-p7a D9).
+ */
+const BUSINESS_SHAPES: Record<string, Pick<HookFormula, "template" | "example" | "bestFor">> = {
+  insider: {
+    template: "What nobody tells you about {topic}, from {what the business sees up close}.",
+    example: "What nobody tells you about moving house, from a team that packs up homes every week.",
+    bestFor: "A point of view from what the business sees every day.",
+  },
+};
+
 /**
  * The brief fields for one hook written with a formula. The generator ends its
  * hook prompt with its own style line, so the formula says it overrides it.
+ * A business brand gets its own shapes and speaks as the business.
  */
 export function hookFormulaFields(
   f: HookFormula,
   base: { ideaContext?: string; styleReference?: string },
+  speaker: HookSpeaker = "person",
 ): { ideaContext: string; styleReference: string } {
+  const biz = speaker === "business";
+  const shape = (biz && BUSINESS_SHAPES[f.id]) || f;
   const rule = [
     `Write this hook with the "${f.name}" formula. It overrides the hook style line and any other style reference.`,
-    `Shape: ${f.template}`,
-    `Example of the shape only, do not reuse its facts or numbers: ${f.example}`,
-    `It works for: ${f.bestFor}`,
+    `Shape: ${shape.template}`,
+    `Example of the shape only, do not reuse its facts or numbers: ${shape.example}`,
+    `It works for: ${shape.bestFor}`,
     `Avoid this trap: ${f.trap}`,
-    "No promised or guaranteed returns, no named insurers or products.",
+    biz ? "No promised or guaranteed results. Write as the business: we, us or its name, never I, me or my." : "No promised or guaranteed returns, no named insurers or products.",
   ].join("\n");
   const pointer = `Hook formula: ${f.name}. Follow the formula in the style reference.`;
   return {

@@ -16,7 +16,9 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row reads the rails store, which has no server snapshot; it is not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { default: GeneratePage, FIX_ASK, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
+const { default: GeneratePage, FIX_ASK, HOOK_FACTS_RULE, hookBlank, hookFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
+const { BLANKS_RULE } = await import("@/lib/platformCounters");
+const { hookFormula } = await import("@/lib/hookFormulas");
 const { FACTORS } = await import("@/lib/postScore");
 const { splitHook } = await import("@/lib/variants");
 // React's generated ids (useId, behind the Radix selects) follow the number of children a parent has, so a Leo-only
@@ -102,5 +104,32 @@ describe("Write's fix asks and new hooks", () => {
     expect(moveHashtagsToComment("#cpf in the middle, not at the end.")).toBeNull();
     expect(moveHashtagsToComment("#only #tags")).toBeNull();
     expect(moveHashtagsToComment("Ends on a word#notatag")).toBeNull();
+  });
+});
+
+// live-p7a D9: Try new hooks on ActivityTracker (calls 041 and 042) sent the post's blanks rule, which asks for
+// "[your number]" blanks, and wrote "[Number] things I wish I knew..." and "After [your years] as a financial consultant"
+describe("Write's hooks have no blanks (Leo only)", () => {
+  const base = { ideaContext: `${newHookContext("When client messages sit in different places, a call takes extra effort.")}\n\n${BLANKS_RULE}`, styleReference: undefined };
+  it("asks each hook with the hook's facts rule in place of the post's blanks rule, in the brand's speaker", () => {
+    const list = hookFields(hookFormula("list")!, base, "business");
+    expect(list.ideaContext).not.toContain(BLANKS_RULE);
+    expect(list.ideaContext).not.toContain("square brackets that says what goes there");
+    expect(list.ideaContext).toContain(HOOK_FACTS_RULE);
+    expect(list.ideaContext).toContain("That count is its shape, not a fact.");
+    expect(list.ideaContext.startsWith(newHookContext("When client messages sit in different places, a call takes extra effort."))).toBe(true);
+    expect(list.styleReference).toContain("Write as the business: we, us or its name, never I, me or my.");
+    const insider = hookFields(hookFormula("insider")!, base, "business");
+    expect(insider.ideaContext).not.toContain("That count");
+    expect(insider.styleReference).not.toMatch(/financial consultant|years as/);
+    // a brief with no context still gets the rule
+    expect(hookFields(hookFormula("insider")!, {}, "person").ideaContext).toContain(HOOK_FACTS_RULE);
+  });
+  it("never offers a hook that came back with a blank in it", () => {
+    expect(hookBlank("[Number] things I wish I knew before managing sales follow-ups solo.")).toBe(true);
+    expect(hookBlank("After [your years] as a financial consultant, here's what nobody tells you...")).toBe(true);
+    expect(hookBlank("3 things I wish I knew before managing sales follow-ups solo.")).toBe(false);
+    expect(hookBlank("If you still search across chats for client context before a call, stop.")).toBe(false);
+    expect(hookBlank("[HOOK] Your follow-ups live in five apps.")).toBe(false);
   });
 });

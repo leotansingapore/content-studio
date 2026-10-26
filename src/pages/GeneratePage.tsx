@@ -155,7 +155,7 @@ import PostReceipt from "@/components/PostReceipt";
 import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } from "@/lib/board";
 import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
-import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom, provenFormulas, provenOpen, type HookFormula } from "@/lib/hookFormulas";
+import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom, provenFormulas, provenOpen, type HookFormula, type HookSpeaker } from "@/lib/hookFormulas";
 import { HOOK_BANK } from "@/lib/hookBank";
 import { prompterLines, titlesRun, writeTitles, TITLES_FAILED } from "@/lib/prompter";
 import {
@@ -219,7 +219,8 @@ type Audience =
 type StreamingMode = "idle" | "hooks" | "variants" | "newHooks";
 type StreamTarget = Exclude<StreamingMode, "idle">;
 
-const HALT_LABEL = { stopped: "stopped", failed: "didn't finish" } as const;
+// blank (Leo only): a hook that came back holding a blank to fill is left out, never offered (live-p7a D9)
+const HALT_LABEL = { stopped: "stopped", failed: "didn't finish", blank: "left out: it needed a fact you haven't given" } as const;
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ?? "https://hgdbflprrficdoyxmdxe.supabase.co";
@@ -443,7 +444,7 @@ function restoreRows(raw: unknown): VariantState[] {
       index: r.index,
       text: r.text,
       complete: r.complete === true,
-      ...(r.complete === true ? {} : { halted: r.halted === "failed" ? ("failed" as const) : ("stopped" as const) }),
+      ...(r.complete === true ? {} : { halted: r.halted === "failed" || r.halted === "blank" ? (r.halted as "failed" | "blank") : ("stopped" as const) }),
       ...(hookFormula(r.formula) ? { formula: r.formula as string } : {}),
     }));
 }
@@ -462,8 +463,8 @@ interface VariantState {
   index: number;
   text: string;
   complete: boolean;
-  // Set when the request ended (Stop, error, early close) before this row finished.
-  halted?: "stopped" | "failed";
+  // Set when the request ended (Stop, error, early close) before this row finished, or a hook came back with a blank.
+  halted?: keyof typeof HALT_LABEL;
   // The hook formula a hook row was written with (hookFormulas.ts id).
   formula?: string;
 }
@@ -528,6 +529,20 @@ const scoreBand = (v: number) => (v >= 7.5 ? "Strong" : v >= 5 ? "Fair" : "Weak"
 // remix-variations (Leo only): "Try new hooks" writes openings for a finished post whose body stays as it is.
 export const newHookContext = (body: string) =>
   `Write a new opening line for this finished post. Keep it under 25 words. The body below stays exactly as it is, so the line must lead into it.\n\n${body}`;
+// A hook is one line with no room for a blank, so it keeps its formula's shape without a fact the brief does not give
+// (Leo only; live-p7a D9 wrote "[Number] things I wish I knew..."). The list's count is its shape, as in remix's hooks.
+export const HOOK_FACTS_RULE =
+  "Never invent a number, a client or a result, and never write a blank in square brackets. When the formula needs a number this brief does not give, keep its shape without one.";
+const LIST_COUNT_RULE = "The list formula always says how many things it holds, as a digit or a word, at most 10. That count is its shape, not a fact.";
+/** One hook request's fields: the formula in the brand's speaker, with the hook's facts rule in place of the post's blanks rule. */
+export function hookFields(f: HookFormula, base: { ideaContext?: string; styleReference?: string }, speaker: HookSpeaker) {
+  const rule = f.id === "list" ? `${HOOK_FACTS_RULE} ${LIST_COUNT_RULE}` : HOOK_FACTS_RULE;
+  const ctx = base.ideaContext ?? "";
+  return hookFormulaFields(f, { ...base, ideaContext: ctx.includes(BLANKS_RULE) ? ctx.replace(BLANKS_RULE, rule) : [ctx, rule].filter(Boolean).join("\n\n") }, speaker);
+}
+/** A hook still holding a blank to fill (a "[HOOK]" label in front is not one): no hook row offers it. */
+export const hookBlank = (text: string) => /\[[^\]\n]+\]/.test(text.replace(HOOK_LABEL, ""));
+
 // a script's spoken label on its first line ("HOOK:", "**HOOK (0-3s):**", "[HOOK]"), kept when its hook is swapped
 const HOOK_LABEL = /^[\s*_#>[]*hook\b[^:\]\n]*[:\]][*_\s]*/i;
 /** The post with its first line swapped for `hook`; everything after the first line stays byte for byte. */
@@ -1755,10 +1770,12 @@ export default function GeneratePage() {
         const idx = firstRow + (evt.variantIndex as number);
         // Dashes, and emoji or hashtags over the brand kit's policy or the platform's cap, go before the text is shown or saved.
         const finalText = applyBrandRules(stripDashes(evt.text as string), brandKit, platform);
+        // Leo only: a hook with a blank in it is left out rather than offered (live-p7a D9)
+        const blank = !!leo && (target === "hooks" || target === "newHooks") && hookBlank(finalText);
         const setter = rowsSetter(target);
         setter((prev) =>
           prev.map((v) =>
-            v.index === idx ? { ...v, text: finalText, complete: true } : v,
+            v.index === idx ? (blank ? { ...v, text: "", halted: "blank" as const } : { ...v, text: finalText, complete: true }) : v,
           ),
         );
       } else if (evt.type === "error") {
@@ -1891,7 +1908,8 @@ export default function GeneratePage() {
     setHookPick(null);
     pickPendingRef.current = true;
     await runStream(
-      set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, base) })),
+      // Leo only: each hook in the brand's speaker with no blank to fill (live-p7a D9)
+      set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...(leo && userId ? hookFields(f, base, speakerFor(userId)) : hookFormulaFields(f, base)) })),
       "hooks",
       set.map((f) => f.id),
     );
@@ -2375,7 +2393,7 @@ export default function GeneratePage() {
     const withBody = { ...base, ideaContext: [newHookContext(splitHook(draft, draft.split("\n")[0])), base.ideaContext].filter(Boolean).join("\n\n") };
     let failed = false;
     try {
-      await runStream(set.map((f) => ({ ...withBody, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, withBody) })), "newHooks", set.map((f) => f.id));
+      await runStream(set.map((f) => ({ ...withBody, mode: "hooks" as const, n: 1, ...hookFields(f, withBody, speakerFor(userId)) })), "newHooks", set.map((f) => f.id));
     } catch (err) {
       failed = true;
       // a lapsed session says so the way Write's own writing does
