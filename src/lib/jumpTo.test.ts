@@ -77,6 +77,13 @@ describe("searchJump", () => {
     expect(searchJump(items, "bio")[0].to).toBe("/bio");
     expect(searchJump(items, "notifications")[0].to).toBe("/playbook");
     expect(searchJump(items, "alerts")[0].to).toBe("/playbook");
+    expect(searchJump(items, "plan my week")[0].to).toBe("/plan");
+    expect(searchJump(items, "account")[0].to).toBe("/settings");
+    expect(searchJump(items, "hashtags")[0].to).toBe("/trends");
+    expect(searchJump(items, "trending")[0].to).toBe("/trends");
+    expect(searchJump(items, "trending posts")[0].to).toBe("/swipe");
+    expect(searchJump(items, "competitors")[0].to).toBe("/following");
+    expect(searchJump(items, "request a feature")[0].to).toBe("/feedback");
   });
 
   it("tells the three team places apart", () => {
