@@ -3457,7 +3457,7 @@ type VersionAsk =
 /** A hook written for this edit: the writer's whole answer (only its hook beat is used) and its flags. */
 interface WrittenHook { formula: string; r: Pick<Version, "lines" | "marks" | "texts" | "searches">; flags?: Flags }
 /** The panel's typed work on this device, per plan: the hooks written, Jev's pick and the reviewed translations. */
-interface VersionsDraft { hooks: WrittenHook[]; rec: number | null; langs: Partial<Record<PostLang, { lines: string[]; texts: Version["texts"] }>> }
+interface VersionsDraft { hooks: WrittenHook[]; rec: number | null; langs: Partial<Record<PostLang, { lines: string[]; texts: Version["texts"]; caption?: string }>> }
 interface VersionsJob { planId: string; state: "working" | "done" | "failed"; step: string; made: number; total: number; error?: string; flags: Flags[]; missed: number }
 /** What a version is made from: the plan, the version this project is, the project and its settings now. */
 interface VersionBase { plan: EditPlan; base: Version; project: VideoProject; settings: EditSettings; source: RemixSource | null }
@@ -3599,15 +3599,30 @@ async function writeHooks(userId: string, b: VersionBase): Promise<void> {
   }
 }
 
-/** A language's lines and on-screen texts translated in one call, for review before anything is paid. */
+/** The caption's paragraphs, each as its sentences; a run of hashtags stays as it is. */
+const captionParts = (caption: string) => caption.split("\n").map((p) => p.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean));
+const tagsOnly = (x: string) => /^(#\S+\s*)+$/.test(x);
+/** What a language version's one translate call takes: the lines, the on-screen texts, then the post caption a sentence a line (a line stops at 300 characters). */
+export const toTranslate = (b: Pick<Version, "lines" | "texts" | "caption">) =>
+  [...b.lines, ...b.texts.map((t) => t.text), ...captionParts(b.caption).flat().filter((x) => !tagsOnly(x))];
+/** The call's answer laid back on the version, the English kept wherever a line came back empty (live-p7a D21: the caption stayed English). */
+export function fromTranslated(b: Pick<Version, "lines" | "texts" | "caption">, out: string[]): { lines: string[]; texts: Version["texts"]; caption: string } {
+  let at = b.lines.length + b.texts.length;
+  return {
+    lines: b.lines.map((l, i) => out[i] || l),
+    texts: b.texts.map((t, i) => ({ k: t.k, text: out[b.lines.length + i] || t.text })),
+    caption: captionParts(b.caption).map((p) => p.map((x) => (tagsOnly(x) ? x : out[at++] || x)).join(" ")).join("\n"),
+  };
+}
+
+/** A language's lines, on-screen texts and caption translated in one call, for review before anything is paid. */
 async function translateVersion(b: VersionBase, lang: PostLang): Promise<void> {
   if (vstate.translating) return;
   setV({ translating: `${b.plan.id}:${lang}`, error: undefined });
   try {
-    const n = b.base.lines.length;
-    const out = await translateCaptions(lang, [...b.base.lines, ...b.base.texts.map((t) => t.text)]);
+    const out = await translateCaptions(lang, toTranslate(b.base));
     const d = loadVersionsDraft(b.plan.id);
-    saveVersionsDraft(b.plan.id, { ...d, langs: { ...d.langs, [lang]: { lines: b.base.lines.map((l, i) => out[i] || l), texts: b.base.texts.map((t, i) => ({ k: t.k, text: out[n + i] || t.text })) } } });
+    saveVersionsDraft(b.plan.id, { ...d, langs: { ...d.langs, [lang]: fromTranslated(b.base, out) } });
   } catch (e) {
     setV({ error: (e as Error).message || "Couldn't translate it. Try again in a minute." });
   } finally {
@@ -3764,7 +3779,7 @@ async function makeVersions(userId: string, b: VersionBase, asks: VersionAsk[]):
       } else {
         const t = langs[a.lang];
         if (!t) throw new Error(`Translate it to ${LANG_NAMES[a.lang]} first.`);
-        fields = { lang: a.lang, lines: t.lines, texts: t.texts, marks: scaledMarks(b.base, t.lines) };
+        fields = { lang: a.lang, lines: t.lines, texts: t.texts, marks: scaledMarks(b.base, t.lines), ...(t.caption ? { caption: t.caption } : {}) };
       }
       const now = new Date();
       let next: Version = { ...b.base, ...fields, id: versionId(now, i), of: b.base.id, change: a.change, at: now.toISOString(), project: undefined, draft: undefined };

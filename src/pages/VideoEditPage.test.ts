@@ -18,7 +18,7 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row over the start screen reads the rails store, which has no server snapshot; not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { Editor, Start, videoTarget, versionPrice, versionUses, withBeats } = await import("./VideoEditPage");
+const { Editor, Start, fromTranslated, toTranslate, videoTarget, versionPrice, versionUses, withBeats } = await import("./VideoEditPage");
 const { defaultSettings } = await import("@/lib/videoEdit");
 const prices = await import("@/lib/prices");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -187,6 +187,28 @@ describe("versions of a same edit (remix-format-clone, Leo only)", () => {
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k), key: () => null, length: 0 });
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it("translates the post caption with the lines, a sentence a line, its hashtags kept (live-p7a D21: the Malay version kept the English caption)", () => {
+    // live-p7a's no-face version (calls 201 and 204): its lines, its on-screen ask words and its caption
+    const v = {
+      lines: ["Still chasing every reply?", "Keep clients and follow-ups moving in one place."],
+      texts: [{ k: 1, text: "Follow ActivityTracker" }, { k: 6, text: "PLAN" }],
+      caption: "Keep client records, WhatsApp chats, follow-ups, tasks and goals together in one phone app. Follow ActivityTracker and comment PLAN to learn more. #sales #clientmanagement #followups",
+    };
+    expect(toTranslate(v)).toEqual([
+      ...v.lines, "Follow ActivityTracker", "PLAN",
+      "Keep client records, WhatsApp chats, follow-ups, tasks and goals together in one phone app.", "Follow ActivityTracker and comment PLAN to learn more.",
+    ]);
+    const ms = ["Masih mengejar setiap balasan?", "Urus pelanggan dan susulan di satu tempat.", "Ikuti ActivityTracker", "PLAN", "Simpan rekod pelanggan, sembang WhatsApp, susulan, tugasan dan matlamat dalam satu aplikasi telefon.", "Ikuti ActivityTracker dan komen PLAN untuk tahu lebih lanjut."];
+    expect(fromTranslated(v, ms)).toEqual({
+      lines: ms.slice(0, 2),
+      texts: [{ k: 1, text: "Ikuti ActivityTracker" }, { k: 6, text: "PLAN" }],
+      caption: `${ms[4]} ${ms[5]} #sales #clientmanagement #followups`,
+    });
+    // line breaks stay, a figure's stop isn't a sentence end, and an empty answer keeps the English
+    expect(toTranslate({ lines: [], texts: [], caption: "Log 3.5 hours less.\n\nComment PLAN." })).toEqual(["Log 3.5 hours less.", "Comment PLAN."]);
+    expect(fromTranslated({ lines: [], texts: [], caption: "Log 3.5 hours less.\n\nComment PLAN." }, ["Catat 3.5 jam kurang.", ""]).caption).toBe("Catat 3.5 jam kurang.\n\nComment PLAN.");
+  });
 
   it("takes only the hook beat's line, markers, on-screen text and search from a written hook", () => {
     expect(withBeats(plan, base, hook.r, new Set([0]))).toEqual({
