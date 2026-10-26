@@ -34,6 +34,10 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A competitor's ad (Leo only) | /competitors?ad=<ad id> | the ad drawer |
 | A competitor's post (Leo only) | /competitors?view=posts&post=<platform>:<post id> | every post in Their posts |
 | A saved post (Leo only) | /saved?item=<item key> | the item's drawer |
+| A clone you saved | /clone?clone=<platform>:<post id> | the clone's result |
+| An idea in the Ideas inbox (Leo only) | /ideas?idea=<idea key> | the open idea |
+| A saved design (Leo only) | /image?image=<design id> | the open design |
+| A format trend (Leo only) | /trends?view=formats&template=<id> | every format card |
 
 **Link previews.** A link pasted into Telegram, WhatsApp, Slack or LinkedIn shows a preview from api/page-og.ts
 (vercel.json sends only those fetchers there; src/lib/linkPreview.ts decides the words). Public posts show their
@@ -97,7 +101,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /reels | brand | a reels board brand id, or all | the open profile's brand | replace | /reels?brand=moneybees |
 | /reels | view | feed (Posts: each post whole, caption and decision beside it), board, grid | remembered, else feed | replace | /reels?view=board |
 | /reels | stage | review, changes, approved, scheduled, posted, archived, all, notes (the Posts view's stage chips; notes = open notes from someone else) | review; a card link without it shows the card's own stage | replace | /reels?stage=scheduled |
-| /reels | archived | show, hide | hide | replace | /reels?archived=show |
+| /reels | archived | no longer read: archived posts are the stage=archived chip; links.reels still writes archived=show, and the page ignores it | none | replace | /reels?stage=archived |
 | /reels | card | a reel card id, opens it; the Posts view also scrolls to it and marks it. A chat app that cuts the link at a `~` still opens it (the part before the `~` is matched), but put card last | none | push | /reels?card=c123 |
 | /reels | t, slide | seconds into the video, or the carousel slide, with card | none | with card | /reels?card=c123&t=12 |
 | /library | format | all, text, carousel, video, image. Leo's sign-ins only (src/lib/leoOnly.ts) | all | replace | /library?format=video |
@@ -161,6 +165,9 @@ so one that is gone shows everything.
 | /north-star | rec | the recording the scrubber shows: tour, review, settings (RECORDINGS in src/data/northStar.ts); switching clears at | tour | replace | /north-star?rec=review#recording |
 | /north-star | frame, at | frame: a recording second, open full size, written t176 for the tour or review:t013 / settings:t003 for the others; at: the scrubber's second. Both snap to the next listed second (a few near-duplicate seconds are not frames), past the end to the last | none; t000 | frame push, at replace (written 300 ms after the last move) | /north-star?frame=t176 |
 | /north-star | #id | an item id opens its part and scrolls to its card; also #asks, #areas, #build-order, #phase-1 to #phase-8, #spec, #recording, #competitors, #competitor-<id>, #dogfood, #decisions and each decision id, #how-we-build, #leave-out | top | | /north-star#remix-everywhere |
+| /marketing-north-star | q | search text over the plan's items; Leo's sign-ins only (src/lib/leoOnly.ts), like /north-star | empty | replace | /marketing-north-star?q=creators |
+| /marketing-north-star | status, area, phase, ask, app | status: todo, started, done; area: leaks, loop, position, faces, creators, scale; phase: 1-6; ask: an MK_ASKS id (src/data/marketingNorthStar.ts); app: finternship, at, sb, cmfas | all | replace | /marketing-north-star?app=at&status=todo |
+| /marketing-north-star | open | comma list of area ids whose cards show | none | replace | /marketing-north-star?open=leaks,loop |
 | /analytics | period | 7d, 30d, 90d, all | 30d | replace | /analytics?period=90d |
 | /analytics | by | platform, pillar, format, hook-formula (engagement rate by) | platform | replace | /analytics?by=hook-formula |
 | /analytics | time | linkedin, instagram, facebook, tiktok (best time to post for) | all platforms | replace | /analytics?time=linkedin |
@@ -380,6 +387,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make/notification-stack | bg | Leo only. mine (Background: My video; the video stays on the device and is picked again on each visit). The typed worries, closing word and label are kept on the device in cs-make-notify | stock | replace | /make/notification-stack?bg=mine |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
+| /make/text-over-clip | pick | Leo only. open: the list of videos that did well, as on /make/wall-of-text | closed | replace | /make/text-over-clip?from=remix&pick=open |
 | /make/talking-head | who | Leo only. presenter (a new AI presenter), mine (your saved face), or a saved presenter's id; a typed photo falls back to the default | the brand's "Who appears" | replace | /make/talking-head?who=mine |
 | /make/talking-head | setting | Leo only. office, car, kitchen, couch, cafe | office | replace | /make/talking-head?who=presenter&setting=car |
 | /make/talking-head | length | Leo only. 8, 15, 20, 30 (seconds) | 15 | replace | /make/talking-head?length=30 |
