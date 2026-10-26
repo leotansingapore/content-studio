@@ -198,6 +198,14 @@ export function imageTypeAsk(v: Vision, r: SortRequest, ref: string): { state: R
   };
 }
 
+/** Jev's look at the still came back in a form readType can read: a listed type with a finite confidence and a
+ *  finite probability for it. Anything else counts as no look, so the words decide (at TYPE_MIN). */
+export function usableType(answers: Record<string, JevAnswer> | null): boolean {
+  const a = answers?.type;
+  const c = a?.choice;
+  return !!c && (MEDIA_TYPES as readonly string[]).includes(c) && Number.isFinite(a?.confidence) && Number.isFinite(a?.probabilities?.[c]);
+}
+
 /** Jev's pick at `min` (TYPE_MIN, or IMAGE_TYPE_MIN when it saw the still) or more; "other" when unsure or when Jev gave nothing. */
 export const readType = (answers: Record<string, JevAnswer> | null, min = TYPE_MIN): MediaType => (pickTag(answers?.type, MEDIA_TYPES, min) as MediaType | null) ?? "other";
 

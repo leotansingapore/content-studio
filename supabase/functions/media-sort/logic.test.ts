@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   demoAsk, demoMessages, IMAGE_TYPE_MIN, imageTypeAsk, MAX_STILL, parseDemo, parseDemoRequest, parseSortRequest, parseVision, readFlags, readType, shapeOf,
-  sortMessages, stillSize, typeAsk,
+  sortMessages, stillSize, typeAsk, usableType,
 } from "./logic.ts";
 
 const STILL = `data:image/jpeg;base64,${"A".repeat(400)}`;
@@ -99,6 +99,23 @@ describe("media-sort decisions", () => {
     expect(readType(a("footage", 0.43), IMAGE_TYPE_MIN)).toBe("footage");
     expect(readType(a("footage", 0.39), IMAGE_TYPE_MIN)).toBe("other");
     expect(readType(a("footage", 0.43))).toBe("other");
+  });
+
+  it("usableType takes a listed type with a finite confidence and probability, however low, and nothing else", () => {
+    const a = (type: Record<string, unknown>) => ({ type: { type: "choice" as const, ...type } });
+    const real = { choice: "footage", confidence: 0.85, probabilities: { person: 0.03, footage: 0.87, other: 0.1 } };
+    expect(usableType(a(real))).toBe(true);
+    expect(usableType(a({ ...real, probabilities: { footage: 0.12 } }))).toBe(true);
+    expect(usableType(null)).toBe(false);
+    expect(usableType({})).toBe(false);
+    expect(usableType(a({ ...real, choice: undefined }))).toBe(false);
+    expect(usableType(a({ ...real, choice: "selfie", probabilities: { selfie: 0.9 } }))).toBe(false);
+    expect(usableType(a({ ...real, confidence: undefined }))).toBe(false);
+    expect(usableType(a({ ...real, confidence: Number.NaN }))).toBe(false);
+    expect(usableType(a({ ...real, probabilities: undefined }))).toBe(false);
+    expect(usableType(a({ ...real, probabilities: { other: 0.9 } }))).toBe(false);
+    expect(usableType(a({ ...real, probabilities: { footage: Number.POSITIVE_INFINITY } }))).toBe(false);
+    expect(usableType(a({ ...real, probabilities: { footage: "0.8" } }))).toBe(false);
   });
 
   it("readType takes the choice at 0.5, falls back to other below it and for null", () => {

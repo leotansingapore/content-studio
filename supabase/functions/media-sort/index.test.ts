@@ -25,7 +25,7 @@ const DEMO = { mode: "demo", stills: [STILL, STILL, STILL], name: "Illustration"
 
 let env: Record<string, string> = {};
 let openai: "ok" | "down" | "offline" | "garbled" = "ok";
-let jev: "up" | "down" | "no-images" = "up";
+let jev: "up" | "down" | "no-images" | "unreadable-image" = "up";
 const sent: { url: string; body: Record<string, unknown>; headers: Record<string, string> }[] = [];
 
 beforeAll(async () => {
@@ -44,8 +44,9 @@ beforeAll(async () => {
     if (url.startsWith("https://api.typesafe.ai/")) {
       if (jev === "down") return new Response("busy", { status: 503 });
       if (body.assets && jev === "no-images") return new Response("image too small", { status: 400 });
+      if (body.assets && jev === "unreadable-image") return Response.json({ answers: { type: { type: "choice", choice: "selfie", confidence: 0.9, probabilities: { selfie: 0.9 } } } });
       // with the still, Jev is surer: 0.45 clears IMAGE_TYPE_MIN (0.4); the words alone give 0.82
-      if (body.questions.type) return Response.json({ answers: { type: { type: "choice", choice: body.assets ? "past-post" : "logo", probabilities: body.assets ? { "past-post": 0.45 } : { logo: 0.82 } } } });
+      if (body.questions.type) return Response.json({ answers: { type: { type: "choice", choice: body.assets ? "past-post" : "logo", confidence: body.assets ? 0.45 : 0.82, probabilities: body.assets ? { "past-post": 0.45 } : { logo: 0.82 } } } });
       return Response.json({ answers: { namedProduct: { type: "noul", noul: 0.2 }, returns: { type: "noul", noul: 0.9 }, personal: { type: "noul", noul: 0.5 } } });
     }
     throw new Error(`unexpected fetch ${url}`);
@@ -108,6 +109,14 @@ describe("media-sort sort", () => {
     expect(look.body.assets).toBeDefined();
     expect(words.body).not.toHaveProperty("assets");
     expect(words.body.state).not.toHaveProperty("still");
+  });
+
+  it("falls back to the words alone when Jev's look at the still comes back unreadable", async () => {
+    jev = "unreadable-image";
+    expect((await call(SORT)).body).toEqual({ alt: "A blue wordmark on white", type: "logo" });
+    const [, look, words] = sent;
+    expect(look.body.assets).toBeDefined();
+    expect(words.body).not.toHaveProperty("assets");
   });
 
   it("lands as other with its alt text when Jev is off", async () => {
