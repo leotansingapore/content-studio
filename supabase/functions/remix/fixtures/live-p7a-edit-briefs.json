@@ -1,0 +1,241 @@
+{
+ "note": "live-p7a (26 Oct 2026): the edit briefs the app sent for remix make as edit, and the answers that passed. graphics: call 200 (refused after the fix pass), 017 and 201 needed it. talker: call 064 passed first, 016 and 152 needed the fix pass, 151 was refused. The teardowns' beats are our own breakdown's words; the creators' words are left out.",
+ "talker": {
+  "edit": {
+   "beats": [
+    {
+     "role": "hook",
+     "seconds": 3.2,
+     "words": 10
+    },
+    {
+     "role": "point",
+     "seconds": 3,
+     "words": 10
+    },
+    {
+     "role": "point",
+     "seconds": 2.1,
+     "words": 7
+    },
+    {
+     "role": "product",
+     "seconds": 1,
+     "words": 3
+    },
+    {
+     "role": "point",
+     "seconds": 3.4,
+     "words": 11
+    },
+    {
+     "role": "ask",
+     "seconds": 2.3,
+     "words": 7
+    }
+   ],
+   "events": [
+    {
+     "b": 1,
+     "kind": "text",
+     "role": "label",
+     "words": 1
+    },
+    {
+     "b": 1,
+     "kind": "text",
+     "role": "label",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "label",
+     "words": 2
+    },
+    {
+     "b": 3,
+     "kind": "zoom"
+    },
+    {
+     "b": 4,
+     "kind": "zoom"
+    }
+   ]
+  },
+  "teardown": {
+   "beats": [
+    "It lists the channels where messages arrive, helping viewers recognise the problem.",
+    "It explains that chatbots often lack context and conversations are split across platforms, creating a reason to keep watching.",
+    "It walks through setting up the service and connecting channels, making the solution feel actionable.",
+    "It shows messages arriving in one shared inbox, giving the viewer a clear operational benefit.",
+    "It describes adding business materials so the AI can respond with context and know when a person should step in.",
+    "It adds cross-channel client recognition, then asks viewers to comment \u201cagent\u201d for the guide and link."
+   ]
+  },
+  "answer": {
+   "lines": [
+    "Still losing track of prospects between WhatsApp chats and follow-ups?",
+    "Chats [[0]] scatter; [[1]] details disappear, leaving follow-ups easy to miss today.",
+    "Keep client chats, tasks and goals together.",
+    "[[2]] One [[3]] shared inbox.",
+    "[[4]] Log activity in one tap, then track tasks and goals together.",
+    "Comment workflow to explore ActivityTracker's sales app."
+   ],
+   "texts": [
+    {
+     "k": 0,
+     "text": "Split chats"
+    },
+    {
+     "k": 1,
+     "text": "Lost context"
+    },
+    {
+     "k": 2,
+     "text": "Shared inbox"
+    }
+   ],
+   "searches": [],
+   "caption": "Keep client chats, follow-ups, tasks and goals moving from one phone app. ActivityTracker brings CRM and a shared WhatsApp inbox together, with activity logged in one tap. Comment workflow to explore the app."
+  }
+ },
+ "graphics": {
+  "edit": {
+   "beats": [
+    {
+     "role": "hook",
+     "seconds": 1.3,
+     "words": 4
+    },
+    {
+     "role": "proof",
+     "seconds": 2.3,
+     "words": 7
+    },
+    {
+     "role": "product",
+     "seconds": 9.5,
+     "words": 29
+    },
+    {
+     "role": "ask",
+     "seconds": 1.9,
+     "words": 6
+    }
+   ],
+   "events": [
+    {
+     "b": 0,
+     "kind": "cutaway"
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "label",
+     "words": 3
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "label",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "label",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "ask",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "ask",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "ask",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "ask",
+     "words": 1
+    },
+    {
+     "b": 3,
+     "kind": "text",
+     "role": "ask",
+     "words": 1
+    }
+   ]
+  },
+  "teardown": {
+   "beats": [
+    "He opens with the test and a surprising-results claim, setting up a reveal.",
+    "He gives his own growth figures, then says he built three master skills from what worked.",
+    "He introduces Reel Analyzer and explains how it breaks down a video\u2019s hook, structure and pacing.",
+    "He describes Reel Builder and Content Factory as tools that make reels and handle more of the publishing workflow.",
+    "He says the tools are free on GitHub, then asks viewers to follow and comment \u201cClaude\u201d to get them."
+   ]
+  },
+  "answer": {
+   "lines": [
+    "[[0]] Still chasing every reply?",
+    "Keep clients and follow-ups moving in one place.",
+    "ActivityTracker brings client records, a shared WhatsApp inbox, tasks and goals into one phone app. Log activity in one tap, then keep follow-ups and sales work moving.",
+    "[[1]] Follow [[2]] [[3]] and [[4]] [[5]] comment [[6]] PLAN [[7]] [[8]] below."
+   ],
+   "texts": [
+    {
+     "k": 1,
+     "text": "Follow ActivityTracker"
+    },
+    {
+     "k": 2,
+     "text": "and"
+    },
+    {
+     "k": 3,
+     "text": "comment"
+    },
+    {
+     "k": 4,
+     "text": "your"
+    },
+    {
+     "k": 5,
+     "text": "keyword"
+    },
+    {
+     "k": 6,
+     "text": "PLAN"
+    },
+    {
+     "k": 7,
+     "text": "below"
+    },
+    {
+     "k": 8,
+     "text": "today"
+    }
+   ],
+   "searches": [
+    {
+     "k": 0,
+     "search": "phone messaging"
+    }
+   ],
+   "caption": "Keep client records, WhatsApp chats, follow-ups, tasks and goals together in one phone app. Follow ActivityTracker and comment PLAN to learn more. #sales #clientmanagement #followups"
+  }
+ }
+}

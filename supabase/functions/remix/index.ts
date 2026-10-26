@@ -240,9 +240,14 @@ Deno.serve(async (req) => {
     // the format's checks in code (the slideshow's hook number and brand slide, the wall's emoji, voice and name, a post's
     // or carousel's one brand mention, any format's mid-sentence ending): one fixing pass, then a refusal that keeps the use
     const problem = makeProblem(first.result, make);
+    // an edit's misses are counts and markers, never the writer's words: logged so the first try's misses can be read (live-p7a D16)
+    const missed = (p: { kind: string; fix: string } | null, pass: string) => p?.kind === "edit" && console.log(`remix check edit ${pass}`, p.fix.split("\n").slice(1, -1).join(" ").slice(0, 600));
     if (problem) {
+      missed(problem, "first");
       const fixed = await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: problem.fix }]);
-      if (!fixed || makeProblem(fixed.result, make)) {
+      const still = fixed ? makeProblem(fixed.result, make) : null;
+      if (!fixed || still) {
+        missed(still, "fix");
         console.log("remix check refused", make.as, problem.kind);
         return fail("refused", problem.error, 422);
       }

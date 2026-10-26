@@ -167,6 +167,13 @@ export type EditKind = (typeof EDIT_KINDS)[number];
 export const MAX_EDIT_EVENTS = 40;
 /** In code, after writing: a line within a quarter of its word budget (one word at least), a text 2 words off its count, a search 1 to 3 words. */
 export const EDIT_LIMITS = { lineSlack: 0.25, textSlack: 2, searchWords: 3 } as const;
+/** The words a beat's line may hold: what the writer is told and what editProblem takes, so the two never disagree. */
+export function lineRange(words: number): { lo: number; hi: number } {
+  const slack = Math.max(1, words * EDIT_LIMITS.lineSlack);
+  return { lo: Math.max(1, Math.ceil(words - slack)), hi: Math.floor(words + slack) };
+}
+/** The words an on-screen text may hold, told and checked the same way. */
+export const textRange = (words: number) => ({ lo: Math.max(1, words - EDIT_LIMITS.textSlack), hi: words + EDIT_LIMITS.textSlack });
 
 /** as "edit" (remix-format-clone): the plan's beats and events, the shape src/lib/editPlan.ts sends. No creator's words: those go in the source. */
 export interface EditBrief {
@@ -661,9 +668,9 @@ function editRules(req: MakeRequest): string[] {
   return [
     "",
     "Write the spoken script for a short video that follows an edit beat by beat. The beats, their word budgets and their markers are listed in the message.",
-    `- lines: exactly ${req.edit?.beats.length ?? 0} lines, one per beat in order. Each line is only what is said in that beat, within a quarter of its word budget, in short spoken sentences. No stage directions, brackets, labels, emoji or hashtags.`,
-    "- Markers: put each of a beat's markers, like [[3]], in that beat's line once and in the order listed, just before the word where that moment lands. Never add, repeat, drop or move a marker.",
-    `- texts: one { k, text } for each marker that puts words on screen or a pop-up line, where k is the marker's number. On-screen text stays within ${EDIT_LIMITS.textSlack} words of its count; a pop-up line is at most ${POPUP_CHARS} characters.`,
+    `- lines: exactly ${req.edit?.beats.length ?? 0} lines, one per beat of the edit below, in order. Each line is only what is said in that beat, in short spoken sentences, with its word count inside the beat's range: count the words before you answer. No stage directions, brackets, labels, emoji or hashtags.`,
+    "- Markers: put each of a beat's markers, like [[3]], in that beat's line once and in the order listed, just before the word where that moment lands. Markers may sit side by side before the same word, so a short line can hold many: [[4]] [[5]] Comment below. Never add, repeat, drop or move a marker.",
+    `- texts: one { k, text } for each marker that puts words on screen or a pop-up line, where k is the marker's number. On-screen text keeps inside its listed range of words; a pop-up line is at most ${POPUP_CHARS} characters.`,
     "- A figure the viewer sees comes only from the facts given. When the facts hold none, write a short label for it with no number.",
     `- searches: one { k, search } for each marker where a cutaway starts: 1 to ${EDIT_LIMITS.searchWords} plain English words a stock video library would match, something a camera can film, never a brand, a logo, text or a close-up face.`,
     "- caption: the post caption, under 120 words, ending with the call to action and at most 3 hashtags.",
@@ -672,7 +679,8 @@ function editRules(req: MakeRequest): string[] {
 
 /** What one marker asks of the writer. */
 function markNeed(e: EditBrief["events"][number]): string {
-  if (e.kind === "text") return e.role === "number" ? `a figure the viewer sees, ${e.words} words` : `on-screen ${e.role}, ${e.words} words`;
+  const { lo, hi } = textRange(e.words ?? 1);
+  if (e.kind === "text") return e.role === "number" ? `a figure the viewer sees, ${lo} to ${hi} words` : `on-screen ${e.role}, ${lo} to ${hi} words`;
   return e.kind === "cutaway" ? "a cutaway starts here" : e.kind === "popup" ? `a pop-up line, at most ${POPUP_CHARS} characters` : `a ${e.kind}`;
 }
 
@@ -820,7 +828,8 @@ function shapeLines(req: MakeRequest): string[] {
       "The edit, beat by beat:",
       ...beats.map((b, i) => {
         const marks = events.flatMap((e, k) => (e.b === i ? [`[[${k}]] ${markNeed(e)}`] : []));
-        return `Beat ${i + 1}, ${b.role}: about ${b.seconds} seconds and ${b.words} words. ${marks.length ? `Markers: ${marks.join("; ")}.` : "No markers."}`;
+        const { lo, hi } = lineRange(b.words);
+        return `Beat ${i + 1}, ${b.role}: about ${b.seconds} seconds, ${lo} to ${hi} words. ${marks.length ? `Markers: ${marks.join("; ")}.` : "No markers."}`;
       }),
     ];
   }
@@ -929,7 +938,10 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
     // a swipe carousel's caption often opens on something else, so its hook goes in as given
     ...((req.as === "slideshow" || req.as === "wall") && req.teardown?.hookPattern ? ["", "Its hook:", quote(req.teardown.hookPattern)] : []),
     ...(req.teardown?.beats?.length
-      ? req.close === "loose"
+      // an edit's lines follow its own beats, which can be fewer than the breakdown's (live-p7a D16: 5 listed "in order" for 4 lines)
+      ? req.as === "edit"
+        ? ["", `What the original covers, in order (your ${req.edit!.beats.length} lines follow the edit's ${req.edit!.beats.length} beats below, not this list):`, ...req.teardown.beats.map((b) => `- ${b}`)]
+        : req.close === "loose"
         ? ["", "Its beats, as ideas to use in any order or leave out:", ...req.teardown.beats.map((b) => `- ${b}`)]
         : ["", "Its beats, in order:", ...req.teardown.beats.map((b, i) => `${i + 1}. ${b}`)]
       : []),
@@ -1640,16 +1652,16 @@ export function editProblem(r: MadeResult, req: Pick<MakeRequest, "edit">): Make
       }
       const n = wordCount(r.lines[i]);
       // a short beat still gets a word either way
-      const slack = Math.max(1, b.words * EDIT_LIMITS.lineSlack);
-      if (Math.abs(n - b.words) > slack) out.push(`Line ${i + 1} is ${n} words; its beat takes about ${b.words} (${Math.ceil(b.words - slack)} to ${Math.floor(b.words + slack)}).`);
+      const { lo, hi } = lineRange(b.words);
+      if (n < lo || n > hi) out.push(`Line ${i + 1} is ${n} words; its beat takes about ${b.words} (${lo} to ${hi}).`);
       if (STAGE_DIRECTION.test(r.lines[i])) out.push(`Line ${i + 1} has brackets or a stage direction, and the voice reads every word.`);
     });
     events.forEach((e, k) => {
       const text = r.texts.find((t) => t.k === k)?.text;
       const search = r.searches.find((t) => t.k === k)?.search;
       if ((e.kind === "text" || e.kind === "popup") && !text) out.push(`[[${k}]] puts words on screen and has no text.`);
-      else if (e.kind === "text" && text && Math.abs(wordCount(text) - e.words!) > EDIT_LIMITS.textSlack) {
-        out.push(`The text for [[${k}]] is ${wordCount(text)} words; it takes about ${e.words} (${Math.max(1, e.words! - EDIT_LIMITS.textSlack)} to ${e.words! + EDIT_LIMITS.textSlack}).`);
+      else if (e.kind === "text" && text && (wordCount(text) < textRange(e.words!).lo || wordCount(text) > textRange(e.words!).hi)) {
+        out.push(`The text for [[${k}]] is ${wordCount(text)} words; it takes about ${e.words} (${textRange(e.words!).lo} to ${textRange(e.words!).hi}).`);
       } else if (e.kind === "popup" && text && text.length > POPUP_CHARS) out.push(`The pop-up for [[${k}]] is ${text.length} characters; it takes at most ${POPUP_CHARS}.`);
       if (e.kind === "cutaway" && !search) out.push(`[[${k}]] starts a cutaway and has no search.`);
       else if (e.kind === "cutaway" && search && wordCount(search) > EDIT_LIMITS.searchWords) out.push(`The search for [[${k}]] is ${wordCount(search)} words; it takes 1 to ${EDIT_LIMITS.searchWords}.`);

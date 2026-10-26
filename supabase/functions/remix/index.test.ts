@@ -532,7 +532,7 @@ describe("a script written to a reel's edit (as edit)", () => {
     expect(masAsks()).toEqual([["mas"]]);
     expect(jev.states.at(-1)).toEqual({ post: `Most people read their CPF yearly.\nMessage me for a quick review.\nBook a review\n${EDIT_OK.caption}` });
     expect(openai.sent[0].response_format).toMatchObject({ json_schema: { name: "remix_edit" } });
-    expect(openai.sent[0].messages[1].content).toContain("Beat 1, hook: about 3 seconds and 6 words. Markers: [[0]] a cutaway starts here.");
+    expect(openai.sent[0].messages[1].content).toContain("Beat 1, hook: about 3 seconds, 5 to 7 words. Markers: [[0]] a cutaway starts here.");
     expect(used()).toBe(1);
   });
 

@@ -65,12 +65,15 @@ import {
   formulaRule,
   editProblem,
   EDIT_KINDS,
+  lineRange,
+  textRange,
   type EditResult,
 } from "./logic";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
 import W2 from "./fixtures/phase3-w2-live.json";
 import P3 from "./fixtures/phase3-p3-live.json";
+import EDIT_LIVE from "./fixtures/live-p7a-edit-briefs.json";
 
 const SOURCE_TEXT = "6 signs your CPF plan is off track. Most people never check their CPF statement until it is too late. Save $12,000 by starting early.";
 
@@ -1720,15 +1723,15 @@ describe("a script written to a reel's edit (remix-format-clone)", () => {
 
   it("asks for one line per beat with its markers in order, what each marker needs, and the edit's schema", () => {
     const { system, user } = buildMakePrompt(editMake());
-    expect(system).toContain("- lines: exactly 3 lines, one per beat in order.");
+    expect(system).toContain("- lines: exactly 3 lines, one per beat of the edit below, in order.");
     expect(system).toContain("Never add, repeat, drop or move a marker.");
     expect(system).toContain(COMPLIANCE_RULES.join("\n"));
     expect(user).toContain(
       [
         "The edit, beat by beat:",
-        "Beat 1, hook: about 3 seconds and 8 words. Markers: [[0]] on-screen hook, 5 words; [[1]] a zoom.",
-        "Beat 2, point: about 6 seconds and 16 words. Markers: [[2]] a cutaway starts here; [[3]] on-screen label, 3 words; [[4]] a pop-up line, at most 28 characters.",
-        "Beat 3, ask: about 3 seconds and 8 words. Markers: [[5]] a cut; [[6]] on-screen ask, 4 words.",
+        "Beat 1, hook: about 3 seconds, 6 to 10 words. Markers: [[0]] on-screen hook, 3 to 7 words; [[1]] a zoom.",
+        "Beat 2, point: about 6 seconds, 12 to 20 words. Markers: [[2]] a cutaway starts here; [[3]] on-screen label, 1 to 5 words; [[4]] a pop-up line, at most 28 characters.",
+        "Beat 3, ask: about 3 seconds, 6 to 10 words. Markers: [[5]] a cut; [[6]] on-screen ask, 2 to 6 words.",
       ].join("\n"),
     );
     expect(system).not.toContain("[[0]]");
@@ -1736,7 +1739,7 @@ describe("a script written to a reel's edit (remix-format-clone)", () => {
     expect(schema).toContain('"name":"remix_edit"');
     expect(schema).toContain('"required":["lines","texts","searches","caption"]');
     // a number shows only a figure from the facts
-    expect(buildMakePrompt(editMake({ edit: { ...EDIT, events: [{ b: 1, kind: "text", role: "number", words: 2 }] } })).user).toContain("[[0]] a figure the viewer sees, 2 words");
+    expect(buildMakePrompt(editMake({ edit: { ...EDIT, events: [{ b: 1, kind: "text", role: "number", words: 2 }] } })).user).toContain("[[0]] a figure the viewer sees, 1 to 4 words");
   });
 
   it("gives an adviser's edit the MAS line when the fit check flagged it, and a business its own line", () => {
@@ -1828,5 +1831,54 @@ describe("a script written to a reel's edit (remix-format-clone)", () => {
   it("leaves every other format's checks alone", () => {
     expect(editProblem(validateMake("post", { hook: "A hook", body: "A body.", cta: "Try it.", hashtags: [] })!, editMake())).toBeNull();
     expect(editMake().formula).toBeUndefined();
+  });
+});
+
+describe("the edit writer's first try (live-p7a D16: 4 of 8 makes needed the fix pass and 2 were refused)", () => {
+  type Live = { edit: typeof EDIT; teardown: { beats: string[] }; answer: typeof EDIT_ANSWER };
+  const live = (name: "talker" | "graphics") => (EDIT_LIVE as unknown as Record<string, Live>)[name];
+  const liveMake = (name: "talker" | "graphics") => editMake({ edit: live(name).edit, teardown: live(name).teardown });
+  const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
+
+  it("states each beat's word range and each on-screen text's exactly as the check takes them", () => {
+    for (const name of ["talker", "graphics"] as const) {
+      const m = liveMake(name);
+      const { user } = buildMakePrompt(m);
+      m.edit!.beats.forEach((b, i) => {
+        const { lo, hi } = lineRange(b.words);
+        expect(user).toContain(`Beat ${i + 1}, ${b.role}: about ${b.seconds} seconds, ${lo} to ${hi} words.`);
+        // the live answer with line i at n words, its markers kept: either end passes, a word past it is refused
+        const lineAt = (n: number) => {
+          const lines = live(name).answer.lines.map((l, j) => (j === i ? `${(l.match(/\[\[\d+\]\]/g) ?? []).join(" ")} ${words(n)}.` : l));
+          return editProblem(validateMake("edit", { ...live(name).answer, lines })!, m)?.fix ?? "";
+        };
+        expect(lineAt(lo)).not.toContain(`Line ${i + 1} is`);
+        expect(lineAt(hi)).not.toContain(`Line ${i + 1} is`);
+        expect(lineAt(hi + 1)).toContain(`Line ${i + 1} is ${hi + 1} words`);
+        if (lo > 1) expect(lineAt(lo - 1)).toContain(`Line ${i + 1} is ${lo - 1} words`);
+      });
+      m.edit!.events.forEach((e, k) => {
+        if (e.kind !== "text") return;
+        const { lo, hi } = textRange(e.words!);
+        expect(user).toContain(`[[${k}]] ${e.role === "number" ? "a figure the viewer sees" : `on-screen ${e.role}`}, ${lo} to ${hi} words`);
+      });
+    }
+  });
+
+  it("lets markers sit together before one word, so the ask beat's 8 markers fit its 6 words", () => {
+    const m = liveMake("graphics");
+    expect(buildMakePrompt(m).system).toContain("Markers may sit side by side before the same word");
+    // call 201, the answer that passed after the fix pass: 8 markers on a 5-word line
+    expect(editProblem(validateMake("edit", live("graphics").answer)!, m)).toBeNull();
+  });
+
+  it("writes one line per beat of the edit, with the original's beats given as what it covers, not as lines to keep", () => {
+    // the graphics reel's teardown has 5 beats and its edit 4: the prompt listed both as "in order"
+    const { system, user } = buildMakePrompt(liveMake("graphics"));
+    expect(user).not.toContain("Its beats, in order:");
+    expect(user).toContain("What the original covers, in order (your 4 lines follow the edit's 4 beats below, not this list):");
+    expect(system).toContain("- lines: exactly 4 lines, one per beat of the edit below, in order");
+    // every other make keeps its numbered beats
+    expect(buildMakePrompt(make({ teardown: live("graphics").teardown })).user).toContain("Its beats, in order:\n1. ");
   });
 });
