@@ -695,6 +695,9 @@ export function postingTimeOn(posts: TrackedPost[], platform: string, weekday: n
   return { time: `${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why };
 }
 
+/** What a suggested time is called wherever it shows (Write, the calendar column): a brand kit slot is the next slot. */
+export const suggestedLabel = (t: SuggestedTime) => (t.why === "slot" ? "Next slot" : "Best time");
+
 /**
  * One time for a post: the brand's next open slot (nextOpenSlots, the rule the calendar and Fill open slots use), else
  * the best-landing hour on its next free day. `slots` is the shared list, or the brand kit with Leo's per-network times;

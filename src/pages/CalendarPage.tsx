@@ -23,7 +23,7 @@ import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/li
 import { fillSlots, openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { loadGoals, saveGoals, setPlatformGoal, weekProgress } from "@/lib/goals";
-import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
+import { getTrackedPosts, postingTimeOn, suggestPostingTime, suggestedLabel } from "@/lib/analytics";
 import { loadPositioning } from "@/lib/positioning";
 import { activeProfile, applyBrandLink, profileForBoardBrand, type Profile } from "@/lib/profiles";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
@@ -1899,7 +1899,7 @@ export default function CalendarPage() {
                               onClick={() => reschedule(d.id, next.at)}
                               className="mt-1.5 h-auto min-h-9 w-full justify-start whitespace-normal px-2 py-1.5 text-left text-[11px] sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
                             >
-                              {next.why === "slot" ? "Next slot" : "Best time"}: {whenLabel(next.at)}
+                              {suggestedLabel(next)}: {whenLabel(next.at)}
                             </Button>
                           ) : null;
                         })()}

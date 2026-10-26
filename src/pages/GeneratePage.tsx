@@ -125,7 +125,7 @@ import {
   type DraftRemix,
 } from "@/lib/draftHistory";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
-import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
+import { getTrackedPosts, postingTimeOn, suggestPostingTime, suggestedLabel } from "@/lib/analytics";
 import { keyToDate, localDateKey, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { nearDuplicate } from "@/lib/nearDuplicate";
 import { ToastAction } from "@/components/ui/toast";
@@ -4273,7 +4273,7 @@ export default function GeneratePage() {
                     {saveState === "saving" ? "Saving..." : "Saved to My posts."}
                     {suggestedTime && (
                       <>
-                        <span className="font-medium text-foreground">Best time {whenLabel(suggestedTime.at)}</span>
+                        <span className="font-medium text-foreground">{leo ? `${suggestedLabel(suggestedTime)}: ` : "Best time "}{whenLabel(suggestedTime.at)}</span>
                         <InfoTip label="About the best time">
                           {suggestedTime.why === "slot" ? "Your next open posting time, from Brand kit." : suggestedTime.why === "best" ? "When your past posts landed best." : "A common slot until your posts have results."}
                         </InfoTip>

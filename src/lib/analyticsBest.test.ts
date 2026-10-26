@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fillSlots, nextOpenSlots } from "./postingSlots";
-import { bestCell, bestTimePosts, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost, suggestPostingTime, postingTimeOn } from "./analytics";
+import { bestCell, bestTimePosts, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost, suggestPostingTime, postingTimeOn, suggestedLabel } from "./analytics";
 
 const p = (id: string, draft: string, impressions: number, engaged: number, at: Partial<TrackedPost> = {}): TrackedPost =>
   ({ id, hook: "", draft, platform: "linkedin", format: "text-post", createdAt: "2026-10-01T00:00:00Z", status: "posted",
@@ -143,6 +143,14 @@ describe("suggestPostingTime with the adviser's own posting times", () => {
 
   it("ignores malformed slots and falls back to results or a common slot", async () => {
     expect(suggestPostingTime([], "instagram", [], now, ["7T09:00", "1T25:00", "x"]).why).toBe("common");
+  });
+});
+
+describe("suggestedLabel (live-p7a-post D6)", () => {
+  it("names a brand kit slot Next slot and any other time Best time, the one label Write and the calendar column both show", () => {
+    expect(suggestedLabel({ at: "2026-10-28T08:30", why: "slot" })).toBe("Next slot");
+    expect(suggestedLabel({ at: "2026-10-28T08:30", why: "best" })).toBe("Best time");
+    expect(suggestedLabel({ at: "2026-10-28T09:00", why: "common" })).toBe("Best time");
   });
 });
 
