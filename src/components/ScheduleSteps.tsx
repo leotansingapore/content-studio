@@ -25,7 +25,7 @@ import { SLIDE_SIZES, slideImage } from "@/lib/carouselDesigns";
 import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
 import { draftStatus, loadDrafts, restoreDraft, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
-import { sgWall } from "@/lib/useZernioOutbox";
+import { applyView, sgWall } from "@/lib/useZernioOutbox";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { localDateKey, scheduleTime } from "@/lib/dueDates";
@@ -51,6 +51,7 @@ import {
   linkFromView,
   mediaKind,
   postText,
+  readPost,
   renderEach,
   schedulePost,
   stepProblem,
@@ -62,6 +63,7 @@ import {
   zernioTime,
   type CreatorInfo,
   type MediaFile,
+  type PostView,
   type ScheduleRequest,
   type Step,
   type StepForm,
@@ -138,6 +140,27 @@ type StepsRequest = ScheduleRequest & Pick<ScheduleInput, "instagram" | "faceboo
 /** "LinkedIn", "LinkedIn and Instagram", "LinkedIn, Instagram and TikTok". */
 export const andList = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
+/** Zernio has the post and hasn't sent it: a send now is read again every WATCH_MS while it is one of these. */
+const WAITING = ["scheduled", "publishing"];
+const WATCH_MS = 20_000;
+/** 5 minutes of social-read uses; after that the chip reads it on the next load of My posts or Calendar. */
+const WATCH_TRIES = 15;
+
+/** The finished screen; `watch` is the post id while a send now waits for its network. */
+type Done = { title: string; line: string; inbox: boolean; watch?: string };
+
+/** The finished screen for what Zernio says of the post now: a send now reads as handed over until a read shows it out. */
+function doneFor(post: PostView, o: { inbox: boolean; now: boolean; names: string; when: string }): Done {
+  if (!o.now) return { title: `Scheduled on ${o.names}`, line: `${o.when}. The chip on the post shows when it's up.`, inbox: false };
+  const out = post.status === "published";
+  const watch = WAITING.includes(post.status) ? post.id : undefined;
+  if (o.inbox)
+    return out
+      ? { title: "Sent to your TikTok inbox", line: "Open TikTok > Inbox > System notifications to finish it.", inbox: true }
+      : { title: "Sending to your TikTok inbox", line: "Zernio has it. Waiting for TikTok, which takes about a minute.", inbox: true, watch };
+  return out ? { title: `Posted on ${o.names}`, line: "The chip on the post links to it.", inbox: false } : { title: `Posting to ${o.names}`, line: "It goes out in about a minute.", inbox: false, watch };
+}
+
 const scoreFormat = (format: string) => (format === "carousel" || format === "short-video" ? format : undefined);
 const scoreTone = (v: number) => (v >= 7.5 ? "border-success/40 bg-success/10 text-success" : v >= 5 ? "border-primary/40 bg-primary/10 text-primary" : "border-destructive/40 bg-destructive/10 text-destructive");
 
@@ -198,7 +221,7 @@ export function ScheduleSteps({
   const [failed, setFailed] = useState(false);
   // a post Zernio made and failed at once: a new try cancels it first and sends with a new key
   const [failedPost, setFailedPost] = useState<string | null>(null);
-  const [done, setDone] = useState<{ title: string; line: string; inbox: boolean } | null>(null);
+  const [done, setDone] = useState<Done | null>(null);
   const left = useUsesLeft(writing)("video-captions");
   const uploaded = useRef(new Map<Blob, string>());
   const slides = useRef<MediaFile[] | null>(null);
@@ -591,13 +614,7 @@ export function ScheduleSteps({
       }
       if (tiktokId) saveMode(userId, tiktokId, ttMode);
       logPost(userId, draft, (n) => `Set ${n} to post on ${names}`, `Goes out ${goesNow ? "now" : whenText}.`);
-      setDone(
-        allInbox && goesNow
-          ? { title: "Sent to your TikTok inbox", line: "Open TikTok > Inbox > System notifications to finish it.", inbox: true }
-          : goesNow
-            ? { title: `Posting to ${names}`, line: "It goes out in about a minute.", inbox: false }
-            : { title: `Scheduled on ${names}`, line: `${whenText}. The chip on the post shows when it's up.`, inbox: false },
-      );
+      setDone(doneFor(post, { inbox: allInbox, now: goesNow, names, when: whenText }));
     } catch (e) {
       logPost(userId, draft, (n) => `${n} could not be posted`, message(e));
       setError(tiktokReason(message(e)));
@@ -606,6 +623,48 @@ export function ScheduleSteps({
       setBusy(null);
     }
   };
+
+  // a send now is read again until it is out or failed, so the finished screen never says more than Zernio has
+  // (live-p7a-post D4); the draft takes each read, and the host hears of it on Done
+  const watch = done?.watch;
+  useEffect(() => {
+    if (!watch) return;
+    let live = true;
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const read = () => {
+      timer = setTimeout(() => {
+        readPost(profileId, watch).then(
+          ({ post }) => {
+            if (!live) return;
+            const cur = loadDrafts(userId).find((d) => d.id === draft.id);
+            if (cur?.zernio?.postId === watch) applyView(userId, cur, post);
+            if (WAITING.includes(post.status)) {
+              if (++tries < WATCH_TRIES) read();
+              return;
+            }
+            const why = post.platforms.find((p) => p.error)?.error ?? "Zernio couldn't post it.";
+            if (post.status === "failed") {
+              // back on step 3 with the reason; Try again takes this post off Zernio and sends a new one
+              logPost(userId, draft, (n) => `${n} could not be posted`, why);
+              setDone(null);
+              setFailedPost(post.id);
+              setError(tiktokReason(why));
+              setFailed(true);
+            } else if (post.status === "partial") setDone({ title: "Partly posted", line: tiktokReason(why), inbox: false });
+            else if (post.status === "published") setDone(doneFor(post, { inbox: allInbox, now: true, names, when: whenText }));
+            else setDone((d) => d && { ...d, watch: undefined });
+          },
+          () => undefined, // off, offline or over the cap: the chip reads it on the next load
+        );
+      }, WATCH_MS);
+    };
+    read();
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [watch]);
 
   /** "Send to inbox instead" on TikTok's capacity line: inbox mode, a new key, back to step 1. */
   const toInbox = async () => {

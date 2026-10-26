@@ -25,6 +25,7 @@ import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { scheduleTime } from "@/lib/dueDates";
 import { ScheduleSteps, carouselPdf, carouselSvgs, logPost } from "@/components/ScheduleSteps";
+import { applyView } from "@/lib/useZernioOutbox";
 import {
   CAPTION_MAX,
   MAX_PICTURES,
@@ -42,7 +43,6 @@ import {
   mediaKind,
   platformProblem,
   postText,
-  postedNow,
   readPost,
   retryPost,
   cancelPost,
@@ -71,15 +71,6 @@ async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile
     out.push({ file: c.size ? await slideImage(svg, c.size, "image/png") : await svgToPng(svg), name: "slide.png", type: "image/png" });
   }
   return out;
-}
-
-/** What Zernio said about the post, onto the draft; a live post marks the draft posted (a TikTok inbox draft is not live). */
-function applyView(userId: string, d: DraftEntry, view: PostView): DraftEntry[] {
-  // real numbers pulled on Analytics stay until the next pull
-  const numbers = d.zernio?.numbers;
-  let next = setDraftZernio(userId, d.id, { ...linkFromView(d.zernio!.key, view), ...(numbers ? { numbers } : {}) });
-  if (postedNow(view) && draftStatus(d) !== "posted") next = setDraftStatus(userId, d.id, "posted");
-  return next;
 }
 
 /** A 404 that isn't "not enabled": the post is gone from Zernio (or was never this brand's). */

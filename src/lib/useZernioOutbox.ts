@@ -218,6 +218,15 @@ export function undoTo(userId: string, prev: DraftEntry): DraftEntry[] {
 /** Retry on a stopped op: back to no tries, so the runner sends it again at once. */
 export const retryOp = (userId: string, op: OutboxOp) => settleOutbox(userId, [op], [{ ...op, tries: 0, error: undefined }]);
 
+/** What Zernio said about the post, onto the draft; a live post marks the draft posted (a TikTok inbox draft is not live). */
+export function applyView(userId: string, d: DraftEntry, view: PostView): DraftEntry[] {
+  // real numbers pulled on Analytics stay until the next pull
+  const numbers = d.zernio?.numbers;
+  let next = setDraftZernio(userId, d.id, { ...linkFromView(d.zernio!.key, view), ...(numbers ? { numbers } : {}) });
+  if (postedNow(view) && draftStatus(d) !== "posted") next = setDraftStatus(userId, d.id, "posted");
+  return next;
+}
+
 /** Retry on a post that didn't post, as the chip's Retry does; returns the post as Zernio now has it. */
 export async function retryFailed(userId: string, d: DraftEntry): Promise<PostView> {
   const { post } = await retryPost(activeProfileId(userId), d.zernio!.postId!);

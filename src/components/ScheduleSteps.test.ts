@@ -3,7 +3,7 @@
 // Node has no DOM, so the hooks are stood in for (the PostItForMe.test.ts pattern): each draw collects the effects whose
 // deps changed, the test runs them, and a button is pressed by calling the onClick it has in the element tree.
 import { isValidElement } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const shim = vi.hoisted(() => ({ i: 0, e: 0, slots: [] as unknown[], deps: [] as (unknown[] | undefined)[], effects: [] as (() => unknown)[] }));
@@ -381,6 +381,64 @@ describe("TikTok", () => {
     expect(fn.calls.at(-1)).toMatchObject({ action: "schedule", now: true });
     expect(JSON.parse(local.getItem(DRAFTS)!)[0]).toMatchObject({ status: "scheduled", scheduledFor: "2030-01-15T09:40", zernio: { postId: "zp1", status: "scheduled" } });
     expect(JSON.parse(local.getItem(`content-studio-zernio-outbox-${UID}`) ?? '{"ops":[]}').ops).toEqual([]);
+  });
+
+  describe("a send now, before TikTok answers (live-p7a-post D4)", () => {
+    // Zernio takes a send now as scheduled a minute ahead; TikTok's answer comes on a later read (calls/043 to 045)
+    const ERROR_40002 =
+      "TikTok Business API /business/photo/publish/ failed (code 40002): Please notice the user to update their TikTok to the latest version to enable this functionality. (request_id 202610260941444230F7F99CAAE0447502)";
+    const sendNow = async () => {
+      fn.answers.schedule = () => ({ post: view("scheduled", [{ platform: "tiktok", accountId: "tt1", status: "pending" }]) });
+      mount(draftOf({ platform: "tiktok", media: "https://cdn.example.com/clip.mp4", status: "draft", scheduledFor: undefined }));
+      press(await toCaption(), "Send to inbox");
+      await settle();
+      return draw();
+    };
+    beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+    afterEach(() => vi.useRealTimers());
+
+    it("says Zernio has it, not that it is in the inbox, until a read shows TikTok took it", async () => {
+      let tree = await sendNow();
+      expect(text(tree)).toContain("Sending to your TikTok inbox");
+      expect(text(tree)).toContain("Zernio has it. Waiting for TikTok, which takes about a minute.");
+      expect(text(tree)).not.toContain("Sent to your TikTok inbox");
+      expect(buttonOf(tree, "Copy caption")).not.toBeNull();
+      expect(actions()).not.toContain("post");
+
+      fn.answers.post = () => ({ post: view("publishing", [{ platform: "tiktok", accountId: "tt1", status: "pending" }]) });
+      await vi.advanceTimersByTimeAsync(20_000);
+      tree = await draw();
+      expect(actions().filter((a) => a === "post")).toHaveLength(1);
+      expect(text(tree)).toContain("Sending to your TikTok inbox");
+
+      fn.answers.post = () => ({ post: view("published", [{ platform: "tiktok", accountId: "tt1", status: "published", draft: true }]) });
+      await vi.advanceTimersByTimeAsync(20_000);
+      tree = await draw();
+      expect(text(tree)).toContain("Sent to your TikTok inbox");
+      expect(text(tree)).toContain("Open TikTok > Inbox > System notifications to finish it.");
+      const saved = JSON.parse(local.getItem(DRAFTS)!)[0] as DraftEntry;
+      expect(saved).toMatchObject({ status: "scheduled", zernio: { postId: "zp1", status: "published", drafts: ["tiktok"] } });
+      // settled: no more reads
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(actions().filter((a) => a === "post")).toHaveLength(2);
+    });
+
+    it("a read that comes back failed puts the panel back on step 3 with the plain reason and Try again", async () => {
+      await sendNow();
+      fn.answers.post = () => ({ post: view("failed", [{ platform: "tiktok", accountId: "tt1", status: "failed", error: ERROR_40002 }]) });
+      await vi.advanceTimersByTimeAsync(20_000);
+      const tree = await draw();
+      expect(text(tree)).toContain("Step 3 of 3 | Caption");
+      expect(text(tree)).toContain("Update the TikTok app on the phone signed in to this account, then try again.");
+      expect(text(tree)).not.toMatch(/request_id|Business API|Sent to your TikTok inbox|Sending to your TikTok inbox/);
+      expect(text(sendButton(tree))).toBe("Try again");
+      expect(JSON.parse(local.getItem(DRAFTS)!)[0].zernio).toMatchObject({ postId: "zp1", status: "failed" });
+      // Try again takes the failed post off Zernio first, then sends with a new key
+      fn.answers.cancel = () => ({ cancelled: true });
+      press(tree, "Try again");
+      await settle();
+      expect(actions().slice(-2)).toEqual(["cancel", "schedule"]);
+    });
   });
 
   describe("direct posts that fail", () => {
