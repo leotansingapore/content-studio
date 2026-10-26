@@ -558,7 +558,10 @@ export async function filmMode(admin: UsageClient, uid: string, body: unknown, l
     if (fixed?.ok) out = fixed;
   }
   const film = out.film;
-  const reply = [capWords(first.data?.reply, 30) || "Changed.", ...out.notes].join(" ");
+  // a change that moves the length says so, since the film no longer runs the length picked (live-p7a D7)
+  const [from, to] = [Math.round(length), Math.round(filmSeconds(film))];
+  const longer = to !== from && !out.notes.length ? [`The film is now ${to} seconds, ${to > from ? "up" : "down"} from ${from}.`] : [];
+  const reply = [capWords(first.data?.reply, 30) || "Changed.", ...out.notes, ...longer].join(" ");
   const scene = e.scene ? film.scenes.find((s) => s.id === e.scene) : undefined;
   return { status: 200, body: { film, ...(scene ? { scene } : {}), reply, issues: rhythmIssues(film), flags: await flagsFor(filmWords(film), req.brand.speaker) } };
 }

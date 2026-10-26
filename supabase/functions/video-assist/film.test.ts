@@ -399,6 +399,14 @@ describe("film-edit", () => {
     const was = sceneStarts(before);
     const now = sceneStarts(out.film);
     expect(now.map((s, i) => s - was[i])).toEqual([0, 0, 0, 0, 4, 4]);
+    // the reply says the film is longer than the length picked (live-p7a D7: 30 s became 32 s with no word)
+    expect(out.reply).toBe("Held the cards 4 beats longer. The film is now 32 seconds, up from 30.");
+  });
+
+  it("says nothing of the length when a change keeps it", async () => {
+    const before = await madeFilm();
+    replies = [{ refuse: null, reply: "Card 2 now reads Done.", scene: { ...cards, cards: [cards.cards[0], { ...cards.cards[1], title: "Done" }, cards.cards[2]] }, film: null }];
+    expect((await (await edit(before, {})).json()).reply).toBe("Card 2 now reads Done.");
   });
 
   it("refuses a patch to another scene, or of another kind, with 422 and keeps the use", async () => {
