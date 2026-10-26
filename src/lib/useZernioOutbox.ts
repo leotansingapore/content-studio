@@ -38,7 +38,7 @@ const seen = new Map<string, number>();
 const noun = (title: string) => `"${title.length > 70 ? `${title.slice(0, 67).trimEnd()}...` : title}"`;
 const names = (d: DraftEntry) => (d.zernio?.platforms?.length ? d.zernio.platforms : [d.platform]).map(platformName).join(" and ");
 /** Zernio's UTC time as the draft's "YYYY-MM-DDTHH:MM" in Singapore (no daylight saving). */
-const sgWall = (iso: string) => new Date(Date.parse(iso) + 8 * 3_600_000).toISOString().slice(0, 16);
+export const sgWall = (iso: string) => new Date(Date.parse(iso) + 8 * 3_600_000).toISOString().slice(0, 16);
 
 function log(userId: string, d: DraftEntry | undefined, title: string, detail?: string) {
   logActivity(userId, { who: "you", kind: "post", title, ...(detail ? { detail } : {}), ...(d ? { link: links.calendar({ post: d.id }) } : {}) });

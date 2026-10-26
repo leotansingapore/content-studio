@@ -261,6 +261,27 @@ describe("the one press that posts", () => {
     expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("a draft with no day goes on its day once sent: scheduled at the time Zernio holds, with no move queued (live-p7a-post D1)", async () => {
+    fn.answers.status = () => ({ accounts: [acc("li1", "linkedin")] });
+    fn.answers.schedule = () => ({ post: view("scheduled", [{ platform: "linkedin", accountId: "li1", status: "pending" }]) });
+    mount(draftOf({ status: "draft", scheduledFor: undefined }));
+    let tree = await draw();
+    press(tree, "Next");
+    tree = await draw();
+    (find(tree, (e) => e.props.label === "Pick a time")!.props.onPick as () => void)();
+    tree = await draw();
+    (find(tree, (e) => e.props["aria-label"] === "Day")!.props.onChange as (e: unknown) => void)({ target: { value: "2030-01-15" } });
+    (find(tree, (e) => e.props["aria-label"] === "Time")!.props.onChange as (e: unknown) => void)({ target: { value: "09:00" } });
+    tree = await draw();
+    press(tree, "Next");
+    tree = await draw();
+    press(tree, /^Schedule for/);
+    await settle();
+    expect(fn.calls.at(-1)).toMatchObject({ action: "schedule", scheduledFor: "2030-01-15T09:00:00+08:00" });
+    expect(JSON.parse(local.getItem(DRAFTS)!)[0]).toMatchObject({ status: "scheduled", scheduledFor: "2030-01-15T09:00", zernio: { postId: "zp1", at: "2030-01-15T01:00:00.000Z" } });
+    expect(JSON.parse(local.getItem(`content-studio-zernio-outbox-${UID}`) ?? '{"ops":[]}').ops).toEqual([]);
+  });
+
   it("a red flag in any tab blocks the send and names the tab; a reload on step 3 opens that tab with the kept captions", async () => {
     fn.answers.status = () => ({ accounts: [acc("li1", "linkedin"), acc("fb1", "facebook")] });
     mount(draftOf({ versions: { facebook: { caption: "It's risk-free." } } }), "step=caption&network=facebook");
@@ -348,6 +369,18 @@ describe("TikTok", () => {
     expect(text(tree)).toContain("Sent to your TikTok inbox");
     expect(text(tree)).toContain("Open TikTok > Inbox > System notifications to finish it.");
     expect(buttonOf(tree, "Copy caption")).not.toBeNull();
+  });
+
+  it("an inbox send now puts a draft with no day on today's calendar at Zernio's minute, with no move queued (live-p7a-post D1)", async () => {
+    // Zernio answers a send now with a time a minute ahead, seconds and all (live-p7a-post calls/043)
+    fn.answers.schedule = () => ({ post: { ...view("scheduled", [{ platform: "tiktok", accountId: "tt1", status: "pending" }]), scheduledFor: "2030-01-15T01:40:32.541Z" } });
+    mount(draftOf({ platform: "tiktok", media: "https://cdn.example.com/clip.mp4", status: "draft", scheduledFor: undefined }));
+    const tree = await toCaption();
+    press(tree, "Send to inbox");
+    await settle();
+    expect(fn.calls.at(-1)).toMatchObject({ action: "schedule", now: true });
+    expect(JSON.parse(local.getItem(DRAFTS)!)[0]).toMatchObject({ status: "scheduled", scheduledFor: "2030-01-15T09:40", zernio: { postId: "zp1", status: "scheduled" } });
+    expect(JSON.parse(local.getItem(`content-studio-zernio-outbox-${UID}`) ?? '{"ops":[]}').ops).toEqual([]);
   });
 
   describe("direct posts that fail", () => {
