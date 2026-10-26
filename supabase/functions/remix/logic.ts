@@ -1146,11 +1146,14 @@ const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
 /** One spoken line with its [[k]] markers taken out, each kept in `marks` as the word it sits before. */
 function unmark(raw: string, i: number, marks: EditResult["marks"]): string {
   let said = "";
+  // a stop left standing alone by a marker before it is no word of its own
+  const spoken = (t: string) => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
   raw.split(/\[\[(\d{1,2})\]\]/).forEach((piece, j) => {
-    if (j % 2) marks.push({ k: Number(piece), line: i, word: wordCount(said) });
+    if (j % 2) marks.push({ k: Number(piece), line: i, word: spoken(said) });
     else said += ` ${piece}`;
   });
-  return straightQuotes(line(said, 600));
+  // "inbox [[3]]." came back "inbox ." (live-p7a D17)
+  return straightQuotes(line(said, 600)).replace(/\s+(?=[.,!?;:])/g, "");
 }
 /** "[smiles]", "(pause)" or "*beat*": the voice would read them out. */
 const STAGE_DIRECTION = /[[\]()*]/;

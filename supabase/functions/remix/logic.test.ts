@@ -1882,3 +1882,12 @@ describe("the edit writer's first try (live-p7a D16: 4 of 8 makes needed the fix
     expect(buildMakePrompt(make({ teardown: live("graphics").teardown })).user).toContain("Its beats, in order:\n1. ");
   });
 });
+
+describe("a marker at a line's end (live-p7a D17: \"One shared inbox .\")", () => {
+  it("leaves no space before the stop, and the marker still sits after the line's last word", () => {
+    const r = validateMake("edit", { ...EDIT_ANSWER, lines: ["[[0]] One [[1]] shared inbox [[2]].", "Track goals with your client conversations [[3]] , then [[4]] relax!", "Ask [[5]] [[6]] ?"] }) as EditResult;
+    expect(r.lines).toEqual(["One shared inbox.", "Track goals with your client conversations, then relax!", "Ask?"]);
+    // a stop standing alone is no word: [[4]] still sits before "relax"
+    expect(r.marks.filter((m) => m.k >= 2)).toEqual([{ k: 2, line: 0, word: 3 }, { k: 3, line: 1, word: 6 }, { k: 4, line: 1, word: 7 }, { k: 5, line: 2, word: 1 }, { k: 6, line: 2, word: 1 }]);
+  });
+});
