@@ -59,6 +59,7 @@ export const TIKTOK_LINE = "TikTok doesn't share the video file, so its edit can
 export const TOO_LONG_LINE = "Pick a reel under 90 seconds.";
 export const NO_WORDS_LINE = "This reel has no spoken words to build on. Try Wall of text or Montage for reels like this.";
 export const NO_VIDEO_LINE = "This post has no video to read.";
+export const CLONE_FIRST_LINE = "Only a cloned reel or an upload has a video to read. Clone this reel first, then tap Rebuild this edit.";
 export const NOT_SAME_FILE = "That isn't the video you read. Pick the same file.";
 export const TWO_PEOPLE_LINE = "It has two people talking. Your version has one, so their lines become yours.";
 export const FILM_LINE = "Film it, then upload the take here.";
@@ -120,7 +121,7 @@ export interface SameEditJob {
   versionId?: string;
   ask?: MakeAsk;
   /** A stop before anything paid: its own line on the page. */
-  stop?: "tiktok" | "too-long" | "no-words" | "no-video";
+  stop?: "tiktok" | "too-long" | "no-words" | "no-video" | "clone-first";
   /** The written script, shown with its warnings while the video is made. */
   script?: string;
   flags?: Flags;
@@ -439,10 +440,14 @@ export const sameFile = async (file: Blob, key: string) => key === `upload:${awa
 /** A clone's own reel, when this device has it. */
 export const cloneOf = (userId: string, s: Pick<RemixSource, "key">) => loadSavedClones(userId).find((c) => `clone:${c.id}` === s.key) ?? null;
 
-/** What a source can't be read for, before anything is paid: TikTok shares no file, a photo has none, a known length over 90 s. */
+/**
+ * What a source can't be read for, before anything is paid: TikTok shares no file, a photo has none, an Instagram video
+ * read any other way is cloned first (only a clone's read fetches the file, live-p7a D20), a known length over 90 s.
+ */
 export function sourceStop(userId: string, s: RemixSource): SameEditJob["stop"] | null {
   if (s.platform === "tiktok") return "tiktok";
   if (s.kind === "upload") return null;
+  if (s.kind !== "clone" && s.format === "video" && s.platform === "instagram" && s.url) return "clone-first";
   if (s.kind !== "clone" || s.format === "image") return "no-video";
   const secs = cloneOf(userId, s)?.result.source.durationSec;
   return secs && secs > MAX_SOURCE_SECONDS + 0.5 ? "too-long" : null;
@@ -455,7 +460,7 @@ class Stop extends Error {
     super(why);
   }
 }
-const STOP_LINES: Record<NonNullable<SameEditJob["stop"]>, string> = { tiktok: TIKTOK_LINE, "too-long": TOO_LONG_LINE, "no-words": NO_WORDS_LINE, "no-video": NO_VIDEO_LINE };
+const STOP_LINES: Record<NonNullable<SameEditJob["stop"]>, string> = { tiktok: TIKTOK_LINE, "too-long": TOO_LONG_LINE, "no-words": NO_WORDS_LINE, "no-video": NO_VIDEO_LINE, "clone-first": CLONE_FIRST_LINE };
 export const stopLine = (why: NonNullable<SameEditJob["stop"]>) => STOP_LINES[why];
 
 /** Faces over SPEAKER_FACE on each frame; a frame (or a detector) that can't be read counts none. */

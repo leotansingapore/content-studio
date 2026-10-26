@@ -274,6 +274,16 @@ describe("the pure parts", () => {
     expect(J.sourceStop(UID, SOURCE)).toBeNull();
     expect(J.sourceStop(UID, { ...SOURCE, kind: "upload", key: "upload:abc", platform: undefined })).toBeNull();
   });
+
+  it("sends an Instagram video read through Remix a post to Clone a reel first, since only a clone or an upload has its file (live-p7a D20)", () => {
+    const link = { key: "link:instagram:DeJS3taDEgI", kind: "link" as const, format: "video" as const, platform: "instagram", url: "https://www.instagram.com/reel/DeJS3taDEgI/", remixedAt: "" };
+    expect(J.sourceStop(UID, link)).toBe("clone-first");
+    expect(J.sourceStop(UID, { ...link, kind: "top-post", key: "top:a-b" })).toBe("clone-first");
+    expect(J.stopLine("clone-first")).toBe("Only a cloned reel or an upload has a video to read. Clone this reel first, then tap Rebuild this edit.");
+    // no link to clone from, or not a video: nothing to read
+    expect(J.sourceStop(UID, { ...link, url: undefined })).toBe("no-video");
+    expect(J.sourceStop(UID, { ...link, format: "image" })).toBe("no-video");
+  });
 });
 
 describe("Read the edit", () => {

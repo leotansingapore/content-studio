@@ -192,10 +192,10 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
     void v.play().catch(() => {});
   };
 
+  // a stop's line shows once, in its own box beside its way forward (live-p7a D20: the TikTok line showed twice)
   const readReason =
     !source ? "Pick a reel first: Rebuild this edit on a Clone a reel result."
-    : shownStop ? stopLine(shownStop)
-    : upload && !file ? "Pick the video you read first."
+    : upload && !file && !shownStop ? "Pick the video you read first."
     : null;
   const makeReason =
     priced ? `The voiceover runs ${Math.round(job!.real!.seconds)} seconds, so this costs about US$${job!.real!.price.usd.toFixed(2)}.`
@@ -361,6 +361,9 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
           {shownStop === "tiktok" && source && (
             <Button size="sm" variant="outline" className={TOUCH} onClick={() => navigate(withRemix(location.pathname + location.search, source.key))}>Remix its words</Button>
           )}
+          {shownStop === "clone-first" && source?.url && (
+            <Button size="sm" variant="outline" asChild className={TOUCH}><Link to={links.clone({ url: source.url })}>Clone it</Link></Button>
+          )}
           {shownStop === "no-words" && (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" asChild className={TOUCH}><Link to={links.makeFormat("wall-of-text")}>Wall of text</Link></Button>
@@ -439,7 +442,7 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
         label: "Read the edit",
         busyLabel: "Reading...",
         busy: reading,
-        disabled: busy || !!readReason,
+        disabled: busy || !!readReason || !!shownStop,
         reason: readReason,
         onMake: read,
       };
