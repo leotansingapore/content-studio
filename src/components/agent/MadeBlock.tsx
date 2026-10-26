@@ -62,7 +62,7 @@ const HookBox = ({ hook }: { hook: string }) => (
 export default function MadeBlock({ userId, job }: { userId: string; job: Job }) {
   const video = VIDEO_KINDS.has(job.kind) || !!job.open?.startsWith("/edit");
   const draftId = job.drafts?.[0];
-  // Schedule it until the post has a time, as Next up's made row reads it
+  // Schedule it until the post has a time or is out, as Next up's made row reads it
   const schedule = !!draftId && !heldOrLive(getDraftById(userId, draftId) ?? {});
   const title = job.title ?? "";
   const open = job.open && isAppPath(job.open) ? job.open : null;

@@ -126,8 +126,8 @@ const CARD_NOUN: Partial<Record<AgentCard["kind"], string>> = {
 const DAY_MS = 86_400_000;
 const hookOf = (d: DraftEntry) => d.hook || d.draft.slice(0, 60) || "Untitled";
 
-/** Zernio holds it (scheduled, in the TikTok inbox or failed) or it is linked to its live post: it has a time already. */
-export const heldOrLive = (d: Pick<DraftEntry, "zernio" | "live">) => !!d.zernio || !!d.live;
+/** Zernio holds it (scheduled, in the TikTok inbox or failed), it is linked to its live post or marked posted: it has a time already. */
+export const heldOrLive = (d: Pick<DraftEntry, "zernio" | "live" | "status">) => !!d.zernio || !!d.live || d.status === "posted";
 
 /**
  * Leo's Next up, in a fixed order (a product rule, so no Jev): agent cards waiting, failures, overdue, today, team

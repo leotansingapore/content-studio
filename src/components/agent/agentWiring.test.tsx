@@ -178,4 +178,8 @@ describe("a MADE block's Schedule it (phase 7a)", () => {
     expect(made({ zernio: { key: "k", postId: "z1", status: "scheduled", at: AT } as DraftEntry["zernio"] })).not.toContain("Schedule it");
     expect(made({ live: { postId: "ig-1", platform: "instagram", url: null, by: "jev" } as DraftEntry["live"] })).not.toContain("Schedule it");
   });
+  it("goes once the post is marked posted, with no Zernio link (live-p7a D19)", () => {
+    expect(made({ status: "posted", postedAt: AT })).not.toContain("Schedule it");
+    expect(made({ status: "scheduled", scheduledFor: "2026-10-30T09:00" })).toContain(">Schedule it<");
+  });
 });

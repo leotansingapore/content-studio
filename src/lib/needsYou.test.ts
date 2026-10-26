@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, boardWaitingHere, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
+import { badgeText, boardWaitingHere, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, heldOrLive, homeToday, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
 import { links } from "./links";
 import type { CampaignPost, PostState } from "./campaigns";
 import type { DraftEntry } from "./draftHistory";
@@ -255,6 +255,13 @@ describe("needsYouItems", () => {
       made("plain"),
     ];
     expect(needsYouItems({ drafts }, TODAY, NOW).map((i) => i.id)).toEqual(["draft:plain"]);
+  });
+
+  it("counts a post marked posted as out, so nothing offers Schedule it on it (live-p7a D19)", () => {
+    expect(heldOrLive({ status: "posted" })).toBe(true);
+    expect(heldOrLive({ status: "draft" })).toBe(false);
+    expect(heldOrLive({ status: "scheduled" })).toBe(false);
+    expect(heldOrLive({})).toBe(false);
   });
 
   it("leaves out every kind whose source is missing", () => {
