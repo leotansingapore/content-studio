@@ -20,7 +20,10 @@ vi.mock("@/lib/winners", () => ({
   undoWinner: () => 0,
 }));
 
-const { default: WinnerCard, undoToast, winnerLine } = await import("./WinnerCard");
+const { default: WinnerCard, undoToast, versionsPrice, winnerLine } = await import("./WinnerCard");
+const { saveDrafts } = await import("@/lib/draftHistory");
+const { makePrice } = await import("@/lib/remix");
+const { chipText } = await import("@/lib/prices");
 
 const draft = { id: "w1", hook: "5 things I wish I knew before my first CPF top-up", draft: "5 things I wish I knew before my first CPF top-up\n\nOne.", platform: "linkedin" } as DraftEntry;
 const card = (status: Card["status"], o: Partial<Card> = {}): Card => ({ winner: { draft, network: "linkedin", engagements: 240, usual: 100, ratio: 2.4 }, status, ...o });
@@ -60,6 +63,24 @@ describe("Winner found", () => {
     expect(out).toContain("Under US$0.01");
     expect(as.made).toBe(0);
   });
+  // live-p7a D24: the sheet priced the same 3 makes "About US$0.01" (with the breakdown a post without one gets
+  // first) while this card said "Under US$0.01"
+  it("prices the press as the sheet does: 3 makes, and the breakdown when the post has none yet", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) }, dispatchEvent: () => true });
+    try {
+      saveDrafts("u1", [{ ...draft, createdAt: "2026-10-20T00:00:00.000Z", status: "posted" }]);
+      const sheet = (breakdown: boolean) => chipText({ price: makePrice(["post", "post", "post"], breakdown), left: 10, uses: 3, leo: true }).text;
+      expect(chipText({ price: versionsPrice("u1", "w1", 5), left: 10, uses: 3, leo: true }).text).toBe(sheet(true));
+      expect(sheet(true)).toMatch(/^About US\$0\.01/);
+      expect(html([card("ready")])).toContain("About US$0.01");
+      // no breakdowns left today: the makes go on without one
+      expect(versionsPrice("u1", "w1", 0)).toEqual(makePrice(["post", "post", "post"]));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("offers Make 3 versions when the day's checks are used", () => {
     expect(html([card("limit")])).toContain(">Make 3 versions</button>");
   });

@@ -11,6 +11,9 @@ import PriceChip from "@/components/PriceChip";
 import { toast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { labelForDimension } from "@/lib/analytics";
+import { defaultOutput, makePrice } from "@/lib/remix";
+import { resolveSource } from "@/lib/resolveSource";
+import { localTeardown } from "@/lib/remixTeardown";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
 import { toPlainText } from "@/lib/plainText";
@@ -41,6 +44,13 @@ export function undoToast(had: number, gone: number): { title: string; descripti
 
 const BUSY = "Your other remix is still going. This one can start once it's done.";
 
+/** What Make 3 versions spends, priced as the Remix sheet prices it: 3 makes, and the breakdown first when the post has none yet. */
+export function versionsPrice(userId: string, draftId: string, teardownsLeft: number | null) {
+  const s = resolveSource(sourceKey.own(draftId), userId);
+  const as = s ? defaultOutput(s) : "post";
+  return makePrice([as, as, as], !!s && !localTeardown(userId, s) && teardownsLeft !== 0);
+}
+
 const firstLine = (d: DraftEntry) => {
   const line = (d.hook || toPlainText(d.draft).split("\n").find((l) => l.trim()) || "").trim();
   return line.length > 80 ? `${line.slice(0, 77).trimEnd()}...` : line;
@@ -59,7 +69,8 @@ export default function WinnerCard({ userId, drafts, now = Date.now }: { userId:
   const [busy, setBusy] = useState<string | null>(null);
   const cards = winnerCards(userId, drafts, now());
   const making = cards.some((c) => c.status === "making");
-  const left = useUsesLeft(making)("remix-make");
+  const usesLeft = useUsesLeft(making);
+  const left = usesLeft("remix-make");
   const update = useUrlUpdate();
 
   useEffect(() => onWinners(redraw), []);
@@ -116,7 +127,7 @@ export default function WinnerCard({ userId, drafts, now = Date.now }: { userId:
                   <Button type="button" size="sm" onClick={() => make(c)} className="[@media(pointer:coarse)]:h-11">
                     {c.status === "failed" ? "Try again" : "Make 3 versions"}
                   </Button>
-                  <PriceChip feature="remix-make" left={left} uses={3} />
+                  <PriceChip price={versionsPrice(userId, id, usesLeft("remix-teardown"))} left={left} uses={3} />
                 </>
               )}
             </div>
