@@ -239,7 +239,8 @@ export function planFromRead(input: ReadInput, now = new Date()): EditPlan {
       cutsPerMin: seconds >= 5 ? Math.round(input.cuts.length / minutes) : null,
       music: input.sound ? { bed: input.sound.bed, drops: input.sound.drops } : null,
       sfx: !!input.sound?.sfx,
-      people: input.faces.some((n) => n >= 2) ? 2 : 1,
+      // two faces on a frame, unless Jev says the second is only in a picture (live-p7a D3: a meme read as a second speaker)
+      people: input.faces.some((n, i) => n >= 2 && sure(reply.picks.people?.[i]) !== "one") ? 2 : 1,
       cutaways: reply.look?.topHalf || topCards > fullCutaways ? "top" : "full",
       skipped: [],
     },

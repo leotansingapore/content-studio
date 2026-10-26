@@ -242,13 +242,13 @@ export function teardownBeats(t: Pick<Teardown, "beats" | "payoff" | "cta">): st
   return beats.length ? [beats[0], close] : ["The opening", close];
 }
 
-/** One shot per frame: whether a face was counted on it, and the words said from its cut to the next. */
+/** One shot per frame: whether a face was counted on it (and how many), and the words said from its cut to the next. */
 export function shotsFor(frames: { t: number }[], cuts: number[], faces: number[], words: Word[], seconds: number): EditShot[] {
   const starts = [0, ...cuts];
   return frames.map((f, i) => {
     const s = Math.max(...starts.filter((c) => c <= f.t + 1e-6));
     const e = starts.find((c) => c > f.t + 1e-6) ?? seconds;
-    return { face: (faces[i] ?? 0) >= 1, said: words.filter((w) => w.s >= s - 0.05 && w.s < e).map((w) => w.w).join(" ") };
+    return { face: (faces[i] ?? 0) >= 1, faces: faces[i] ?? 0, said: words.filter((w) => w.s >= s - 0.05 && w.s < e).map((w) => w.w).join(" ") };
   });
 }
 

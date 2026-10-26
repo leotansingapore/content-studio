@@ -1,0 +1,547 @@
+{
+ "note": "live-p7a (26 Oct 2026) call 012: reel-visuals mode edit on @cindiezhu's one-speaker reel DdsjSosgWYL. The read and Jev's picks as they came back; frames are left out. faces is reconstructed: the run's plan read people 2, and the only frame showing a second face is 40.9 s, where the read says a small picture of a man sits near the top (D3).",
+ "faces": [
+  1,
+  0,
+  1,
+  1,
+  1,
+  0,
+  0,
+  1,
+  0,
+  0,
+  2,
+  1,
+  1
+ ],
+ "shots": [
+  {
+   "face": true,
+   "said": "If you're a creator or business owner getting bombarded with messages across"
+  },
+  {
+   "face": false,
+   "said": "Instagram, WhatsApp, Facebook Messenger, TikTok, or even your website, here's a hack to consolidate everything in one place. Most chatbots and AI automations treat conversations"
+  },
+  {
+   "face": true,
+   "said": "separately on each platform and barely understand"
+  },
+  {
+   "face": true,
+   "said": "understand your business. So before you spend hours juggling multiple inboxes, try this."
+  },
+  {
+   "face": true,
+   "said": "Simply go to SleekFlow, press Start Free Trial, enter your name, company, and website. Then press Channels and connect the accounts you want to manage. Now all your"
+  },
+  {
+   "face": false,
+   "said": "messages are going to appear inside one shared inbox."
+  },
+  {
+   "face": false,
+   "said": "Next, give AgentFlow your website link, product catalog, pricing sheets, media kit, or any other document that you need. And"
+  },
+  {
+   "face": true,
+   "said": "And now it will know exactly"
+  },
+  {
+   "face": false,
+   "said": "how to respond, what questions to ask, and when a human should step in. It even remembers"
+  },
+  {
+   "face": false,
+   "said": "the same client across different channels,"
+  },
+  {
+   "face": true,
+   "said": "which is kind of insane. Comment"
+  },
+  {
+   "face": true,
+   "said": "Agent and I'll send you the"
+  },
+  {
+   "face": true,
+   "said": "full guide and the link to AgentFlow."
+  }
+ ],
+ "sentences": [
+  "If you're a creator or business owner getting bombarded with messages across Instagram, WhatsApp, Facebook Messenger, TikTok, or even your website, here's a hack to consolidate everything in one place.",
+  "Most chatbots and AI automations treat conversations separately on each platform and barely understand your business.",
+  "So before you spend hours juggling multiple inboxes, try this.",
+  "Simply go to SleekFlow, press Start Free Trial, enter your name, company, and website.",
+  "Then press Channels and connect the accounts you want to manage.",
+  "Now all your messages are going to appear inside one shared inbox.",
+  "Next, give AgentFlow your website link, product catalog, pricing sheets, media kit, or any other document that you need.",
+  "And now it will know exactly how to respond, what questions to ask, and when a human should step in.",
+  "It even remembers the same client across different channels, which is kind of insane.",
+  "Comment Agent and I'll send you the full guide and the link to AgentFlow."
+ ],
+ "beats": [
+  "It lists the channels where messages arrive, helping viewers recognise the problem.",
+  "It explains that chatbots often lack context and conversations are split across platforms, creating a reason to keep watching.",
+  "It walks through setting up the service and connecting channels, making the solution feel actionable.",
+  "It shows messages arriving in one shared inbox, giving the viewer a clear operational benefit.",
+  "It describes adding business materials so the AI can respond with context and know when a person should step in.",
+  "It adds cross-channel client recognition, then asks viewers to comment \u201cagent\u201d for the guide and link."
+ ],
+ "cta": "Comment \u201cagent\u201d to get the walkthrough and link.",
+ "pacing": {
+  "durationSec": 44,
+  "cuts": 12,
+  "avgShotSec": 3.4,
+  "cutsFirst3s": 0
+ },
+ "read": {
+  "frames": [
+   {
+    "t": 0.4,
+    "shows": "A woman speaks to camera while holding a small microphone, with a two-line title above her.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "How to manage",
+      "place": "top"
+     },
+     {
+      "text": "5 Inboxes with one AI Agent",
+      "place": "top"
+     }
+    ]
+   },
+   {
+    "t": 3.9,
+    "shows": "A woman speaks behind a graphic showing two social media message notifications.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "Instagram",
+      "place": "middle"
+     },
+     {
+      "text": "Hi! How much is this?",
+      "place": "middle"
+     },
+     {
+      "text": "Glow Co",
+      "place": "middle"
+     },
+     {
+      "text": "Hi Cindy! We love your content \ud83d\udc9b Would you be interested in a collaboration?",
+      "place": "middle"
+     }
+    ]
+   },
+   {
+    "t": 11.9,
+    "shows": "A woman speaks behind a graphic showing conversations from four messaging platforms grouped under one customer.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "Same customer",
+      "place": "middle"
+     },
+     {
+      "text": "Instagram",
+      "place": "middle"
+     },
+     {
+      "text": "WhatsApp",
+      "place": "middle"
+     },
+     {
+      "text": "Messenger",
+      "place": "middle"
+     },
+     {
+      "text": "TikTok",
+      "place": "middle"
+     }
+    ]
+   },
+   {
+    "t": 14.4,
+    "shows": "A woman speaks to camera with a small picture of a person and a triangle formula above her.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "A = 1/2 b \u00b7 h",
+      "place": "top"
+     }
+    ]
+   },
+   {
+    "t": 18.4,
+    "shows": "A woman speaks to camera while holding a small microphone, with a square app icon near the upper left.",
+    "framing": "mid",
+    "texts": []
+   },
+   {
+    "t": 25.4,
+    "shows": "A woman speaks behind a large inbox interface showing a vertical navigation bar and a list of messages.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "My Inbox",
+      "place": "top"
+     },
+     {
+      "text": "Select a conversation",
+      "place": "middle"
+     }
+    ]
+   },
+   {
+    "t": 27.9,
+    "shows": "A woman speaks behind a website search settings panel with a domain field and an add button.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "Live web search",
+      "place": "top"
+     },
+     {
+      "text": "DOMAIN OR URL",
+      "place": "middle"
+     },
+     {
+      "text": "http://cindy...com.au/",
+      "place": "middle"
+     },
+     {
+      "text": "Add source",
+      "place": "middle"
+     }
+    ]
+   },
+   {
+    "t": 33.4,
+    "shows": "A woman speaks to camera while holding a small microphone and gesturing with one hand.",
+    "framing": "mid",
+    "texts": []
+   },
+   {
+    "t": 34.4,
+    "shows": "A woman speaks behind a messaging conversation interface showing an incoming message and an AI-generated reply.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "Today",
+      "place": "top"
+     },
+     {
+      "text": "Hi Cindy! We're launching a campaign for our AI tool and would love to work with you.",
+      "place": "middle"
+     },
+     {
+      "text": "Thanks so much for reaching out! \ud83d\ude0a Could you share a little more about the campaign, including the deliverables and tim",
+      "place": "middle"
+     },
+     {
+      "text": "AI agent is handling this conversation",
+      "place": "bottom"
+     },
+     {
+      "text": "AI writing assistant",
+      "place": "bottom"
+     }
+    ]
+   },
+   {
+    "t": 38.4,
+    "shows": "A woman speaks behind a messaging conversation interface showing an attached campaign brief and an AI-generated reply.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "Today",
+      "place": "top"
+     },
+     {
+      "text": "Campaign_Brief.pdf",
+      "place": "middle"
+     },
+     {
+      "text": "Hi! Here's our campaign brief \ud83d\ude0a",
+      "place": "middle"
+     },
+     {
+      "text": "Thanks, we've received the brief for your October campaign, 1 short-form video + 3 stories with 30-day paid usage rights",
+      "place": "middle"
+     },
+     {
+      "text": "AI agent is handling this conversation",
+      "place": "bottom"
+     }
+    ]
+   },
+   {
+    "t": 40.9,
+    "shows": "A woman smiles at the camera with a small picture of a surprised man near the top of the frame.",
+    "framing": "mid",
+    "texts": []
+   },
+   {
+    "t": 41.9,
+    "shows": "A woman speaks behind a tall translucent page of written instructions.",
+    "framing": "mid",
+    "texts": [
+     {
+      "text": "Feed it your business.",
+      "place": "middle"
+     },
+     {
+      "text": "Tell it what to ask.",
+      "place": "bottom"
+     }
+    ]
+   },
+   {
+    "t": 42.9,
+    "shows": "A woman speaks to camera while holding a small microphone and gesturing with one hand.",
+    "framing": "mid",
+    "texts": []
+   }
+  ],
+  "captions": "The speech captions are bold white, mostly lowercase sans-serif text with a dark outline or shadow, centered near the bottom. Usually one or two lines appear at once, with no background box.",
+  "layout": "The speaker fills the vertical frame throughout, with occasional interface graphics or small images layered over her, usually in the center or upper part of the frame."
+ },
+ "picks": {
+  "shots": [
+   {
+    "pick": "speaker",
+    "p": 1
+   },
+   {
+    "pick": "speaker",
+    "p": 1
+   },
+   {
+    "pick": "speaker",
+    "p": 0.97
+   },
+   {
+    "pick": "speaker",
+    "p": 1
+   },
+   {
+    "pick": "speaker",
+    "p": 1
+   },
+   {
+    "pick": "speaker",
+    "p": 0.85
+   },
+   {
+    "pick": "speaker",
+    "p": 0.86
+   },
+   {
+    "pick": "speaker",
+    "p": 1
+   },
+   {
+    "pick": "speaker",
+    "p": 0.85
+   },
+   {
+    "pick": "speaker",
+    "p": 0.92
+   },
+   {
+    "pick": "speaker",
+    "p": 1
+   },
+   {
+    "pick": "speaker",
+    "p": 0.99
+   },
+   {
+    "pick": "speaker",
+    "p": 1
+   }
+  ],
+  "texts": [
+   [
+    {
+     "pick": "label",
+     "p": 0.45
+    },
+    {
+     "pick": "hook",
+     "p": 0.47
+    }
+   ],
+   [
+    {
+     "pick": "caption_repeat",
+     "p": 0.6
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.46
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.38
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.36
+    }
+   ],
+   [
+    {
+     "pick": "caption_repeat",
+     "p": 0.85
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.7
+    },
+    {
+     "pick": "label",
+     "p": 0.58
+    },
+    {
+     "pick": "label",
+     "p": 0.54
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.7
+    }
+   ],
+   [
+    {
+     "pick": "label",
+     "p": 0.34
+    }
+   ],
+   [],
+   [
+    {
+     "pick": "label",
+     "p": 0.95
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.97
+    }
+   ],
+   [
+    {
+     "pick": "caption_repeat",
+     "p": 0.62
+    },
+    {
+     "pick": "label",
+     "p": 0.43
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.55
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.58
+    }
+   ],
+   [],
+   [
+    {
+     "pick": "caption_repeat",
+     "p": 0.72
+    },
+    {
+     "pick": "caption_repeat",
+     "p": 0.69
+    },
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [],
+   [
+    null,
+    null
+   ],
+   []
+  ],
+  "beats": [
+   {
+    "pick": 0,
+    "p": 0.99
+   },
+   {
+    "pick": 1,
+    "p": 1
+   },
+   {
+    "pick": 1,
+    "p": 0.52
+   },
+   {
+    "pick": 2,
+    "p": 1
+   },
+   {
+    "pick": 2,
+    "p": 1
+   },
+   {
+    "pick": 3,
+    "p": 1
+   },
+   {
+    "pick": 4,
+    "p": 0.99
+   },
+   {
+    "pick": 4,
+    "p": 1
+   },
+   {
+    "pick": 5,
+    "p": 0.81
+   },
+   {
+    "pick": 5,
+    "p": 1
+   }
+  ],
+  "roles": [
+   null,
+   {
+    "pick": "point",
+    "p": 0.98
+   },
+   {
+    "pick": "product",
+    "p": 0.49
+   },
+   {
+    "pick": "product",
+    "p": 0.56
+   },
+   {
+    "pick": "point",
+    "p": 0.65
+   },
+   {
+    "pick": "product",
+    "p": 0.64
+   }
+  ]
+ }
+}

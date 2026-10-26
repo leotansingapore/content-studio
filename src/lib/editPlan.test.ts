@@ -17,6 +17,7 @@ import {
 } from "./editPlan";
 import type { Word } from "./videoEdit";
 import type { EditPicks, EditRead } from "../../supabase/functions/reel-visuals/edit";
+import LIVE from "../../supabase/functions/reel-visuals/fixtures/live-p7a-one-speaker.json";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const NOW = new Date(Date.UTC(2026, 9, 25, 9, 0));
@@ -108,6 +109,9 @@ describe("planFromRead", () => {
       seconds: 30, aspect: "9:16", wpm: 50, look: INPUT.reply.look, cutsPerMin: 6, music: { bed: true, drops: 1 }, sfx: false, people: 1, cutaways: "full", skipped: [],
     });
     expect(planFromRead({ ...INPUT, faces: [2, 0, 1, 1] }, NOW).read.people).toBe(2);
+    // Jev says the frame's second face is only a picture: still one person
+    const one = { ...PICKS, people: [{ pick: "one" as const, p: 0.9 }, null, null, null] };
+    expect(planFromRead({ ...INPUT, faces: [2, 0, 1, 1], reply: { ...INPUT.reply, picks: one } }, NOW).read.people).toBe(1);
     const topped = { ...READ, frames: READ.frames.map((f, i) => (i === 1 ? { ...f, framing: "top-card" as const } : f)) };
     expect(planFromRead({ ...INPUT, reply: { ...INPUT.reply, read: topped } }, NOW).read.cutaways).toBe("top");
   });
@@ -283,5 +287,21 @@ describe("the plan store", () => {
     full = 10;
     expect(savePlan(UID, planAt(3))).toBe(PLANS_FULL);
     expect(loadPlans(UID).map((e) => e.plan.id)).toEqual(["ep-p2", "ep-p1"]);
+  });
+});
+
+describe("live-p7a's one-speaker reel (D3)", () => {
+  // call 012: @cindiezhu talks alone; two faces were measured at 40.9 s, where a small picture of a man sits near the top
+  const live = LIVE as unknown as { faces: number[]; sentences: string[]; beats: string[]; cta: string; pacing: { durationSec: number }; read: EditRead; picks: EditPicks };
+  const words = live.sentences.flatMap((s, i) => timed(s, i * 4.4));
+  const input = (picks: EditPicks): ReadInput => ({
+    source: "clone:instagram:DdsjSosgWYL", seconds: 44.4, aspect: "9:16", cuts: live.read.frames.slice(1).map((f) => f.t - 0.4), zooms: [], faces: live.faces, words,
+    sound: null, teardown: { beats: live.beats, cta: live.cta }, reply: { read: live.read, look: null, picks },
+  });
+
+  it("reads as one person once Jev says the second face is in a picture, and as two without an answer", () => {
+    expect(planFromRead(input({ ...live.picks, people: live.faces.map((n) => (n >= 2 ? { pick: "one" as const, p: 0.88 } : null)) }), NOW).read.people).toBe(1);
+    expect(planFromRead(input(live.picks), NOW).read.people).toBe(2);
+    expect(planFromRead(input({ ...live.picks, people: live.faces.map((n) => (n >= 2 ? { pick: "two" as const, p: 0.8 } : null)) }), NOW).read.people).toBe(2);
   });
 });

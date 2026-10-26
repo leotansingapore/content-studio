@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { EDIT_RESPONSE_FORMAT, EDIT_SYSTEM, MAX_TEXTS, buildEditPrompt, editQuestions, parseEditRequest, readEdit, validateEdit, type EditRequest } from "./edit";
+import { EDIT_RESPONSE_FORMAT, EDIT_SYSTEM, MAX_TEXTS, buildEditPrompt, editQuestions, parseEditRequest, readEdit, validateEdit, type EditRead, type EditRequest } from "./edit";
+import LIVE from "./fixtures/live-p7a-one-speaker.json";
 
 const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==";
 const frames = (n: number) => Array.from({ length: n }, (_, i) => ({ t: 0.4 + i * 1.5, image: jpeg }));
@@ -119,7 +120,43 @@ describe("Jev's questions and answers", () => {
       texts: [[null], [{ pick: "number", p: 0.7 }, null]],
       beats: [{ pick: 0, p: 0.8 }, null, { pick: 2, p: 0 }],
       roles: [null, { pick: "proof", p: 0.55 }, null],
+      people: [null, null],
     });
     expect(readEdit(null, req, read).shots).toEqual([null, null]);
+  });
+});
+
+describe("one speaker with a face in a picture (live-p7a D3)", () => {
+  // call 012's one-speaker reel: two faces were measured at 40.9 s, where the read says a small picture of a man sits near the top
+  const live = LIVE as unknown as { faces: number[]; shots: { face: boolean; said: string }[]; sentences: string[]; beats: string[]; cta: string; pacing: EditRequest["pacing"]; read: EditRead };
+  const req = (parseEditRequest({
+    mode: "edit",
+    frames: live.read.frames.map((f) => ({ t: f.t, image: jpeg })),
+    pacing: live.pacing,
+    shots: live.shots.map((s, i) => ({ ...s, faces: live.faces[i] })),
+    sentences: live.sentences,
+    beats: live.beats,
+    cta: live.cta,
+  }) as { value: EditRequest }).value;
+
+  it("takes each shot's face count and asks how many people share a frame only where two faces were measured", () => {
+    expect(req.shots[10]).toMatchObject({ face: true, faces: 2 });
+    const q = editQuestions(req, live.read);
+    expect(Object.keys(q).filter((k) => k.startsWith("people_"))).toEqual(["people_10"]);
+    expect(q.people_10).toMatchObject({ type: "choice", instructions: { shot: live.read.frames[10].shows } });
+    expect(q.people_10.type === "choice" && Object.keys(q.people_10.criteria)).toEqual(["one", "two"]);
+    // a request from before the count still reads (no faces, no people question)
+    const old = (parseEditRequest({ ...body(2), shots: [{ face: true, said: "" }, { face: false, said: "" }] }) as { value: EditRequest }).value;
+    expect(old.shots[0]).toEqual({ face: true, said: "" });
+  });
+
+  it("reads Jev's people pick per frame, null where it wasn't asked", () => {
+    const picks = readEdit({ people_10: { type: "choice", choice: "one", probabilities: { one: 0.93, two: 0.07 } } }, req, live.read);
+    expect(picks.people?.[10]).toEqual({ pick: "one", p: 0.93 });
+    expect(picks.people?.filter(Boolean)).toHaveLength(1);
+  });
+
+  it("tells the vision model to say when a face is only in a picture", () => {
+    expect(EDIT_SYSTEM).toContain("a face that is only in a picture, a screen or a graphic");
   });
 });

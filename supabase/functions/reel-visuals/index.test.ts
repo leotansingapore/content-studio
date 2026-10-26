@@ -213,6 +213,8 @@ describe("the edit read (same edit, NORTH_STAR_USERS only)", () => {
       texts: [[{ pick: "hook", p: 0.85 }], []],
       beats: [{ pick: 0, p: 0.9 }, { pick: 1, p: 0.6 }],
       roles: [null, null],
+      // asked only where two faces were measured (none here)
+      people: [null, null],
     });
     expect(out.usage.used).toBe(1);
     expect([used(LEO, "edit-read"), used(LEO, "reel-visuals")]).toEqual([1, 0]);
