@@ -24,10 +24,15 @@ export const revealBy = (row: { left: number; right: number }, tab: { left: numb
 function Row({ tabs, cls }: { tabs: Tab[]; cls: (active: boolean) => string }) {
   const row = useRef<HTMLDivElement>(null);
   const open = tabs.find((t) => t.active)?.to;
-  // a phone shows the first few tabs only: scroll the row (never the page) so the page you are on is not cut off
+  // a phone shows the first few tabs only: scroll the row (never the page) so the page you are on is not cut off, and
+  // again once the web font is in, since it widens the tabs
   useLayoutEffect(() => {
-    const tab = row.current?.querySelector('[aria-current="page"]');
-    if (row.current && tab) row.current.scrollLeft += revealBy(row.current.getBoundingClientRect(), tab.getBoundingClientRect());
+    const reveal = () => {
+      const tab = row.current?.querySelector('[aria-current="page"]');
+      if (row.current && tab) row.current.scrollLeft += revealBy(row.current.getBoundingClientRect(), tab.getBoundingClientRect());
+    };
+    reveal();
+    void document.fonts?.ready.then(reveal);
   }, [open]);
   return (
     <div ref={row} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
