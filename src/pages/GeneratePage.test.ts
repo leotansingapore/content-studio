@@ -16,7 +16,7 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row reads the rails store, which has no server snapshot; it is not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { default: GeneratePage, FIX_ASK, HOOK_FACTS_RULE, fixAsk, fixedText, hookBlank, hookFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
+const { default: GeneratePage, FIX_ASK, HOOK_FACTS_RULE, fixAsk, fixedText, hookBlank, hookFields, rewriteFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
 const { BLANKS_RULE } = await import("@/lib/platformCounters");
 const { hookFormula } = await import("@/lib/hookFormulas");
 const { FACTORS } = await import("@/lib/postScore");
@@ -161,6 +161,21 @@ describe("Fix this changes only what its factor is about (Leo only)", () => {
     expect(fixedText(post, `${reply}\n\n#Other #Tags`, "oneIdea")).toBe(`${reply}${tags}`);
     expect(fixedText("No tags here.", "Shorter.\n\n#added", "specific")).toBe("Shorter.");
   });
+  // live-p7a D12: First line came back "One change brought the pieces together: ..." (call 037), the same line reordered,
+  // because the ask also said to keep "the same opening line idea"; Clear ask was told to keep "the same call to action"
+  it("never tells the writer to keep the line a fix is about", () => {
+    for (const id of Object.keys(FIX_ASK) as (keyof typeof FIX_ASK)[]) {
+      const { ideaContext } = rewriteFields(post, "ask", [], FIX_ASK[id], true);
+      expect(ideaContext, id).toContain(FIX_ASK[id]);
+      expect(ideaContext, id).not.toMatch(/the same opening line idea|the same call to action|the same points/);
+      expect(ideaContext, id).toContain("Keep everything the instruction does not ask to change.");
+    }
+    // an asked change from the assistant keeps today's wording
+    expect(rewriteFields(post, "ask", [], "end on a question").ideaContext).toContain(
+      "Keep everything the instruction does not ask to change: the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.",
+    );
+  });
+
   it("asks a business brand's fix as the business, and an adviser's as today", () => {
     for (const id of Object.keys(FIX_ASK) as (keyof typeof FIX_ASK)[]) {
       expect(fixAsk(id, "person")).toBe(FIX_ASK[id]);

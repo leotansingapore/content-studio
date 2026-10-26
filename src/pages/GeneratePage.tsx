@@ -597,7 +597,7 @@ const MAX_ASK = 300;
 // context, so a rewrite states a word target and says it overrides them.
 const REWRITE_LENGTH: Partial<Record<RewriteId, number>> = { shorter: 0.65, longer: 1.35 };
 
-function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = "", fix = false): { ideaContext: string; styleReference: string } {
+export function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = "", fix = false): { ideaContext: string; styleReference: string } {
   const instruction =
     id === "lines"
       ? `rewrite only these lines so each sounds like a person talking, and keep every other line word for word: ${lines.map((l) => `"${l}"`).join(" ")}`
@@ -614,7 +614,10 @@ function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = 
   return {
     ideaContext: [
       rule,
-      `Keep${id === "ask" ? " everything the instruction does not ask to change:" : ""} the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.`,
+      // a score fix's ask says what it keeps itself: the list would tell First line to keep its opening line idea (live-p7a D12)
+      fix
+        ? "Keep everything the instruction does not ask to change."
+        : `Keep${id === "ask" ? " everything the instruction does not ask to change:" : ""} the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.`,
       BLANKS_RULE,
       "",
       "The post:",
