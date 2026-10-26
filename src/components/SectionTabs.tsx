@@ -1,6 +1,7 @@
 // The open section's pages as a tab row at the top of every page, after Fastlane (docs/fastlane-nav-gap.md), with the
 // open group's pages as chips under it. The shell renders it once, above the page. Routes stay intact (deep links,
 // query params keep working).
+import { useLayoutEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { sectionTabs, type Tab } from "@/lib/nav";
@@ -16,9 +17,20 @@ const chipClass = (active: boolean) =>
     active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
   }`;
 
+/** How far to scroll a tab row so the open tab shows whole, with a little of its neighbour: 0 when it already does. */
+export const revealBy = (row: { left: number; right: number }, tab: { left: number; right: number }, pad = 24) =>
+  tab.right > row.right ? tab.right - row.right + pad : tab.left < row.left ? tab.left - row.left - pad : 0;
+
 function Row({ tabs, cls }: { tabs: Tab[]; cls: (active: boolean) => string }) {
+  const row = useRef<HTMLDivElement>(null);
+  const open = tabs.find((t) => t.active)?.to;
+  // a phone shows the first few tabs only: scroll the row (never the page) so the page you are on is not cut off
+  useLayoutEffect(() => {
+    const tab = row.current?.querySelector('[aria-current="page"]');
+    if (row.current && tab) row.current.scrollLeft += revealBy(row.current.getBoundingClientRect(), tab.getBoundingClientRect());
+  }, [open]);
   return (
-    <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+    <div ref={row} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
       {tabs.map((t) => (
         <Link key={t.to} to={t.to} aria-current={t.active ? "page" : undefined} className={cls(t.active)}>
           {t.label}
