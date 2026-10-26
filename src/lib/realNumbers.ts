@@ -107,6 +107,8 @@ const ASK_OVERLAP = 0.3;
 const WINDOW_DAYS = 3;
 /** Jev's same-post takes 1 to 10 pairs a call. */
 const MAX_PAIRS = 10;
+/** The pull keeps a post's first 300 characters (writing-judge's same-post reads no more of `live`). */
+const LIVE_CHARS = 300;
 
 export interface Link {
   draftId: string;
@@ -127,7 +129,9 @@ const dayNo = (s: string) => Math.floor((/(Z|[+-]\d\d:?\d\d)$/.test(s) ? Date.pa
  * Which draft each outside post came from. Candidates are posted drafts on the same platform with no Zernio post and
  * no live link, posted (else scheduled) within 3 days. Each is compared by word overlap on the draft cut to the live
  * text's length, since the pull keeps only a post's first 300 characters. Exactly one at 0.7 or more is sure; else
- * every candidate at 0.3 or more goes to Jev. Posts already linked, and posts in `notMine`, are skipped.
+ * every candidate at 0.3 or more goes to Jev with that same span on both sides (a 600-character draft against the
+ * live post's 300 read a lightly edited copy as another post: live-p7a D14). Posts already linked, and posts in
+ * `notMine`, are skipped.
  */
 export function matchOutside(drafts: DraftEntry[], posts: MetricsPost[], notMine: string[] = []): { sure: Link[]; ask: Pair[] } {
   const linked = new Set((drafts as Linked[]).flatMap((d) => (d.live ? [d.live.postId] : [])));
@@ -137,21 +141,22 @@ export function matchOutside(drafts: DraftEntry[], posts: MetricsPost[], notMine
   for (const post of posts) {
     if (!post.publishedAt || !post.text || linked.has(post.id) || notMine.includes(post.id)) continue;
     const day = dayNo(post.publishedAt);
+    const live = post.text.slice(0, LIVE_CHARS);
     const scored = (drafts as Linked[])
       .filter((d) => {
         const when = d.postedAt ?? d.scheduledFor;
         return draftStatus(d) === "posted" && d.platform === post.platform && !d.zernio?.postId && !d.live && !taken.has(d.id) && !!when && Math.abs(dayNo(when) - day) <= WINDOW_DAYS;
       })
       .map((d) => {
-        const text = toPlainText(d.draft);
-        return { d, text, overlap: wordOverlap(text.slice(0, post.text.length), post.text) };
+        const text = toPlainText(d.draft).slice(0, live.length);
+        return { d, text, overlap: wordOverlap(text, live) };
       })
       .filter((c) => c.overlap >= ASK_OVERLAP);
     const high = scored.filter((c) => c.overlap >= SURE_OVERLAP);
     if (high.length === 1) {
       sure.push({ draftId: high[0].d.id, post });
       taken.add(high[0].d.id);
-    } else for (const c of scored) ask.push({ key: `k${ask.length.toString(36)}`, draftId: c.d.id, post, draft: c.text.slice(0, 600), live: post.text.slice(0, 300) });
+    } else for (const c of scored) ask.push({ key: `k${ask.length.toString(36)}`, draftId: c.d.id, post, draft: c.text, live });
   }
   return { sure, ask };
 }

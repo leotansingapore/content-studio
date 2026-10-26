@@ -100,6 +100,19 @@ describe("matchOutside: hand-posted drafts", () => {
     expect(matchOutside([draft("long", { draft: long })], [live("p1", words(1, 20))]).sure.map((l) => l.draftId)).toEqual(["long"]);
   });
 
+  // live-p7a calls/024: a hand-edited copy of the same post (new first sentence, light edits after) went to Jev as 600
+  // characters of the draft against the 284 the pull kept, and scored 0.32 (D14). Both halves now cover the same span.
+  it("sends Jev the draft cut to the live text's length, the span the overlap read", () => {
+    const posted = "\u201cChecking in\u201d is not a follow-up plan.\n\nYou may have sent that note more times than you can remember. How often does it get a reply?\n\nOn its own, the message gives your client nothing new to consider. It leaves them to recall the conversation, make a decision and write back.\n\nFrom their side, it can sound like a prompt to decide now. Responding takes attention, while leaving it unread takes less effort.\n\nThat doesn\u2019t mean they\u2019re being dismissive. Your message may simply get lost among the other priorities on their plate.\n\nOrganise client chats and next steps with ActivityTracker.\n\n#SalesFollowUp #ClientChats";
+    const edited = "Stop sending \u201cchecking in\u201d messages. They're not a follow-up plan.\n\nYou've probably sent that note more times than you can count. How often does it get a reply?\n\nAlone, the message gives your client nothing new to think about. It leaves them to recall the chat, decide and write back.";
+    const { sure, ask } = matchOutside([draft("hand", { draft: posted, platform: "linkedin" })], [live("p1", edited, { platform: "linkedin" })]);
+    expect(sure).toEqual([]);
+    expect(ask).toHaveLength(1);
+    expect(ask[0].live).toBe(edited);
+    expect(ask[0].draft).toBe(posted.slice(0, edited.length));
+    expect(ask[0].draft.length).toBe(ask[0].live.length);
+  });
+
   it("only looks at posted drafts on the same platform within 3 days of the post", () => {
     const drafts = [
       draft("far", { draft: words(1, 20), postedAt: "2026-10-12T09:00:00+08:00" }),
