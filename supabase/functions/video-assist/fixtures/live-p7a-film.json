@@ -1,0 +1,490 @@
+{
+ "note": "live-p7a (26 Oct 2026): call 059, the first 30 s launch film (ActivityTracker's own words and screens) as the server answered it after its rhythm retry, and call 062, Fix it's answer, which cut the 24-beat montage to 8 beats and the film to 22 s (D5).",
+ "setup": {
+  "product": "ActivityTracker's shared WhatsApp inbox",
+  "remember": "Every client chat sits next to its follow-up",
+  "length": 30,
+  "shape": "9x16",
+  "energy": "fast",
+  "voice": false
+ },
+ "kit": {
+  "color": "#C2451D",
+  "palette": [],
+  "font": false
+ },
+ "screens": [
+  {
+   "key": "cimg-mvk8z2ugb8zf",
+   "alt": "Illustration of a phone showing a chat between Grace Wong and Arjun, with two message bubbles.",
+   "video": false
+  },
+  {
+   "key": "cimg-mvk8z2tb3gcd",
+   "alt": "Illustration of a phone displaying a task list with one completed task and two unchecked tasks.",
+   "video": false
+  },
+  {
+   "key": "cimg-mvk8z2s7qf8n",
+   "alt": "Phone screen showing a routines tracker with rows of activities and green progress circles.",
+   "video": false
+  },
+  {
+   "key": "cimg-mvk8z2r4ar3n",
+   "alt": "Illustration of a phone showing a reflection page with text bubbles and an email reminder.",
+   "video": false
+  }
+ ],
+ "direction": {
+  "name": "Chats In Motion",
+  "line": "A client chat and its follow-up share the same working view.",
+  "spine": "screen",
+  "ground": "paper",
+  "accent": "brand",
+  "hero": {
+   "id": "chat-followup",
+   "beats": 8,
+   "cut": "hard",
+   "kind": "screen",
+   "media": "cimg-mvk8z2ugb8zf",
+   "frame": "phone",
+   "camera": [
+    {
+     "beat": 1,
+     "to": "whole"
+    }
+   ],
+   "tap": []
+  }
+ },
+ "film": {
+  "v": 1,
+  "kind": "launch",
+  "product": "devtool",
+  "energy": "fast",
+  "bpm": 120,
+  "style": 0,
+  "font": "dm-sans",
+  "ground": "paper",
+  "accent": "brand",
+  "drop": "chat-followup",
+  "scenes": [
+   {
+    "id": "hook",
+    "beats": 4,
+    "kind": "type",
+    "words": [
+     "Client chats",
+     "Keep moving"
+    ],
+    "key": 1
+   },
+   {
+    "id": "chat-followup",
+    "beats": 8,
+    "cut": "hard",
+    "kind": "screen",
+    "media": "cimg-mvk8z2ugb8zf",
+    "frame": "phone",
+    "camera": [
+     {
+      "beat": 1,
+      "to": "whole"
+     }
+    ],
+    "tap": [],
+    "highlight": {
+     "beat": 4,
+     "box": [
+      0.12,
+      0.2,
+      0.76,
+      0.54
+     ],
+     "label": "Client chat"
+    }
+   },
+   {
+    "id": "features",
+    "beats": 8,
+    "cut": "hard",
+    "kind": "cards",
+    "cards": [
+     {
+      "icon": "phone",
+      "title": "Shared inbox",
+      "line": "Client chats in one phone app."
+     },
+     {
+      "icon": "check",
+      "title": "Follow-ups",
+      "line": "Keep tasks alongside client work."
+     },
+     {
+      "icon": "chart",
+      "title": "Targets",
+      "line": "Bring goals into the same app."
+     }
+    ]
+   },
+   {
+    "id": "burst",
+    "beats": 24,
+    "cut": "whip",
+    "kind": "montage",
+    "anchor": "word",
+    "shots": [
+     {
+      "media": "cimg-mvk8z2ugb8zf",
+      "word": "Chats"
+     },
+     {
+      "media": "cimg-mvk8z2tb3gcd",
+      "word": "Tasks"
+     },
+     {
+      "media": "cimg-mvk8z2s7qf8n",
+      "word": "Routines"
+     },
+     {
+      "media": "cimg-mvk8z2r4ar3n",
+      "word": "Reflection"
+     },
+     {
+      "media": "cimg-mvk8z2ugb8zf",
+      "word": "Clients"
+     },
+     {
+      "media": "cimg-mvk8z2tb3gcd",
+      "word": "Follow-ups"
+     },
+     {
+      "media": "cimg-mvk8z2s7qf8n",
+      "word": "Activity"
+     },
+     {
+      "media": "cimg-mvk8z2r4ar3n",
+      "word": "Reminders"
+     }
+    ]
+   },
+   {
+    "id": "together",
+    "beats": 12,
+    "cut": "flood",
+    "kind": "type",
+    "words": [
+     "Chats",
+     "and",
+     "follow-ups",
+     "together.",
+     "Clients",
+     "and",
+     "tasks",
+     "together, with goals, in one app."
+    ],
+    "key": 2
+   },
+   {
+    "id": "end",
+    "beats": 4,
+    "cut": "hard",
+    "kind": "logo",
+    "line": "Chats and follow-ups, together."
+   }
+  ],
+  "voice": {
+   "on": false,
+   "lines": {}
+  }
+ },
+ "issues": [
+  "Nothing happens from 0:13 to 0:22."
+ ],
+ "fixIt": {
+  "before": {
+   "v": 1,
+   "kind": "launch",
+   "product": "devtool",
+   "energy": "fast",
+   "bpm": 120,
+   "style": 0,
+   "font": "dm-sans",
+   "ground": "paper",
+   "accent": "brand",
+   "drop": "chat-followup",
+   "scenes": [
+    {
+     "id": "hook",
+     "beats": 4,
+     "kind": "type",
+     "words": [
+      "Client chats",
+      "Keep moving"
+     ],
+     "key": 1
+    },
+    {
+     "id": "chat-followup",
+     "beats": 8,
+     "cut": "hard",
+     "kind": "screen",
+     "media": "cimg-mvk8z2ugb8zf",
+     "frame": "phone",
+     "camera": [
+      {
+       "beat": 1,
+       "to": "whole"
+      }
+     ],
+     "tap": [],
+     "highlight": {
+      "beat": 4,
+      "box": [
+       0.12,
+       0.2,
+       0.76,
+       0.54
+      ],
+      "label": "Client chat"
+     }
+    },
+    {
+     "id": "features",
+     "beats": 8,
+     "cut": "hard",
+     "kind": "cards",
+     "cards": [
+      {
+       "icon": "phone",
+       "title": "Inbox",
+       "line": "Client chats in one phone app."
+      },
+      {
+       "icon": "check",
+       "title": "Follow-ups",
+       "line": "Keep tasks alongside client work."
+      },
+      {
+       "icon": "chart",
+       "title": "Targets",
+       "line": "Bring goals into the same app."
+      }
+     ]
+    },
+    {
+     "id": "burst",
+     "beats": 24,
+     "cut": "whip",
+     "kind": "montage",
+     "anchor": "word",
+     "shots": [
+      {
+       "media": "cimg-mvk8z2ugb8zf",
+       "word": "Chats"
+      },
+      {
+       "media": "cimg-mvk8z2tb3gcd",
+       "word": "Tasks"
+      },
+      {
+       "media": "cimg-mvk8z2s7qf8n",
+       "word": "Routines"
+      },
+      {
+       "media": "cimg-mvk8z2r4ar3n",
+       "word": "Reflection"
+      },
+      {
+       "media": "cimg-mvk8z2ugb8zf",
+       "word": "Clients"
+      },
+      {
+       "media": "cimg-mvk8z2tb3gcd",
+       "word": "Follow-ups"
+      },
+      {
+       "media": "cimg-mvk8z2s7qf8n",
+       "word": "Activity"
+      },
+      {
+       "media": "cimg-mvk8z2r4ar3n",
+       "word": "Reminders"
+      }
+     ]
+    },
+    {
+     "id": "together",
+     "beats": 12,
+     "cut": "flood",
+     "kind": "type",
+     "words": [
+      "Chats",
+      "and",
+      "follow-ups",
+      "together.",
+      "Clients",
+      "and",
+      "tasks",
+      "together, with goals, in one app."
+     ],
+     "key": 2
+    },
+    {
+     "id": "end",
+     "beats": 4,
+     "cut": "hard",
+     "kind": "logo",
+     "line": "Chats and follow-ups, together."
+    }
+   ],
+   "voice": {
+    "on": false,
+    "lines": {}
+   }
+  },
+  "note": "Fix these: Nothing happens from 0:15 to 0:24.",
+  "answer": {
+   "v": 1,
+   "kind": "launch",
+   "product": "devtool",
+   "energy": "fast",
+   "bpm": 120,
+   "style": 0,
+   "font": "dm-sans",
+   "ground": "paper",
+   "accent": "brand",
+   "drop": "chat-followup",
+   "scenes": [
+    {
+     "id": "hook",
+     "beats": 4,
+     "kind": "type",
+     "words": [
+      "Client chats",
+      "Keep moving"
+     ],
+     "key": 1
+    },
+    {
+     "id": "chat-followup",
+     "beats": 8,
+     "cut": "hard",
+     "kind": "screen",
+     "media": "cimg-mvk8z2ugb8zf",
+     "frame": "phone",
+     "camera": [
+      {
+       "beat": 1,
+       "to": "whole"
+      }
+     ],
+     "tap": [],
+     "highlight": {
+      "beat": 4,
+      "box": [
+       0.12,
+       0.2,
+       0.76,
+       0.54
+      ],
+      "label": "Client chat"
+     }
+    },
+    {
+     "id": "features",
+     "beats": 8,
+     "cut": "hard",
+     "kind": "cards",
+     "cards": [
+      {
+       "icon": "phone",
+       "title": "Inbox",
+       "line": "Client chats in one phone app."
+      },
+      {
+       "icon": "check",
+       "title": "Follow-ups",
+       "line": "Keep tasks alongside client work."
+      },
+      {
+       "icon": "chart",
+       "title": "Targets",
+       "line": "Bring goals into the same app."
+      }
+     ]
+    },
+    {
+     "id": "burst",
+     "beats": 8,
+     "cut": "whip",
+     "kind": "montage",
+     "anchor": "word",
+     "shots": [
+      {
+       "media": "cimg-mvk8z2ugb8zf",
+       "word": "Chats"
+      },
+      {
+       "media": "cimg-mvk8z2tb3gcd",
+       "word": "Tasks"
+      },
+      {
+       "media": "cimg-mvk8z2s7qf8n",
+       "word": "Routines"
+      },
+      {
+       "media": "cimg-mvk8z2r4ar3n",
+       "word": "Reflection"
+      },
+      {
+       "media": "cimg-mvk8z2ugb8zf",
+       "word": "Clients"
+      },
+      {
+       "media": "cimg-mvk8z2tb3gcd",
+       "word": "Follow-ups"
+      },
+      {
+       "media": "cimg-mvk8z2s7qf8n",
+       "word": "Activity"
+      },
+      {
+       "media": "cimg-mvk8z2r4ar3n",
+       "word": "Reminders"
+      }
+     ]
+    },
+    {
+     "id": "together",
+     "beats": 12,
+     "cut": "flood",
+     "kind": "type",
+     "words": [
+      "Chats",
+      "and",
+      "follow-ups",
+      "together.",
+      "Clients",
+      "and",
+      "tasks",
+      "together, with goals, in one app."
+     ],
+     "key": 2
+    },
+    {
+     "id": "end",
+     "beats": 4,
+     "cut": "hard",
+     "kind": "logo",
+     "line": "Chats and follow-ups, together."
+    }
+   ],
+   "voice": {
+    "on": false,
+    "lines": {}
+   }
+  },
+  "reply": "Made the montage a rapid eight-beat burst to energize the perceived lull."
+ }
+}

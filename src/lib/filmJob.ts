@@ -98,6 +98,8 @@ export interface FilmNote {
   at: number;
   /** Where its numbered pin sits, as shares of the frame. */
   pin?: [number, number];
+  /** Fix it's note: the server keeps the film's length and fills the gaps. */
+  fix?: boolean;
   text: string;
   reply?: string;
   /** open: typed, not sent (or sent back with Not quite); waiting: queued behind another; changing: with the writer. */
@@ -491,7 +493,7 @@ export function setSpec(userId: string, filmId: string, next: Film): string | nu
 
 // ---------- Point to change: notes, one at a time per film ----------
 
-export type NoteDraft = Pick<FilmNote, "t" | "x" | "y" | "target" | "label" | "scene" | "at" | "text" | "pin">;
+export type NoteDraft = Pick<FilmNote, "t" | "x" | "y" | "target" | "label" | "scene" | "at" | "text" | "pin" | "fix">;
 
 /** A sent note: in the list at once (Changing..., or Waiting behind another), then to the writer. Its id, or null. */
 export function sendNote(userId: string, filmId: string, n: NoteDraft, reopened?: string): string | null {
@@ -526,7 +528,7 @@ export function dropNote(userId: string, filmId: string, id: string): void {
 export function fixIssues(userId: string, filmId: string): string | null {
   const f = getFilm(userId, filmId);
   if (!f?.issues.length) return null;
-  return sendNote(userId, filmId, { t: 0, x: 0.5, y: 0.5, target: "", label: "The whole film", scene: null, at: 0, text: `Fix these: ${f.issues.join(" ")}` });
+  return sendNote(userId, filmId, { t: 0, x: 0.5, y: 0.5, target: "", label: "The whole film", scene: null, at: 0, text: `Fix these: ${f.issues.join(" ")}`, fix: true });
 }
 
 const setNote = (userId: string, filmId: string, id: string, patch: Partial<FilmNote>) =>
@@ -547,6 +549,7 @@ async function runNotes(userId: string, filmId: string): Promise<void> {
           "video-assist",
           {
             mode: "film-edit", film: f.spec, scene: next.scene, target: next.target, label: next.label, t: next.t, x: next.x, y: next.y, note: next.text, thread: next.thread,
+            ...(next.fix ? { fix: true } : {}),
             ...filmContext(userId, f.setup.screens),
           },
           EDIT_FAILED,

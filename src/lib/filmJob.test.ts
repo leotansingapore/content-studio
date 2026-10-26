@@ -151,6 +151,7 @@ describe("Point to change", () => {
     expect(getFilm(UID, f.id)!.notes[0]).toMatchObject({ id: "n1", status: "changing" });
     await vi.waitFor(() => expect(getFilm(UID, f.id)!.notes[0].status).toBe("done"));
     expect(fn.mock.calls[0][1]).toMatchObject({ mode: "film-edit", scene: "features", target: "features.card2.title", t: 1.2, x: 0.5, y: 0.52, note: "Make this shorter", thread: [] });
+    expect(fn.mock.calls[0][1]).not.toHaveProperty("fix");
     const after = getFilm(UID, f.id)!;
     expect(after.notes[0].reply).toBe("Card 2 now reads Track it.");
     // every other scene is as it was
@@ -205,7 +206,8 @@ describe("Point to change", () => {
     fn.mockResolvedValueOnce({ film: film(), reply: "Added a card at 0:13.", issues: [], flags: NO_FLAGS });
     fixIssues(UID, f.id);
     await vi.waitFor(() => expect(getFilm(UID, f.id)!.notes[0]?.status).toBe("done"));
-    expect(fn.mock.calls[0][1]).toMatchObject({ mode: "film-edit", scene: null, note: "Fix these: Nothing happens from 0:12 to 0:16." });
+    // the server keeps the film's length and fills the gap (live-p7a D5); any other note sends no fix
+    expect(fn.mock.calls[0][1]).toMatchObject({ mode: "film-edit", scene: null, note: "Fix these: Nothing happens from 0:12 to 0:16.", fix: true });
     expect(getFilm(UID, f.id)!.issues).toEqual([]);
   });
 

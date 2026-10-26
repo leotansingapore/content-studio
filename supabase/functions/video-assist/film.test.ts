@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { sceneStarts, type Film } from "./filmSpec";
+import { parseFilm, rhythmIssues, sceneStarts, type Film } from "./filmSpec";
 import type * as FilmModule from "./film";
+import LIVE_FILM from "./fixtures/live-p7a-film.json";
 
 // The launch film's three modes through video-assist's handler: the gate, the cap, the write and its one fixing pass,
 // Jev's picks, the MAS lines. OpenAI's and Jev's replies are stubbed; the reply shapes copy OpenAI's Structured Outputs
@@ -49,6 +50,7 @@ let replies: (Record<string, unknown> | number | "throw")[] = [];
 // Jev's answers by question id
 let jev: Record<string, unknown> = {};
 let FILM_BUSINESS_LINES: typeof FilmModule.FILM_BUSINESS_LINES, FILM_MAS_LINES: typeof FilmModule.FILM_MAS_LINES, RECOMMEND_QUESTION: string;
+let filmSystem: typeof FilmModule.filmSystem;
 
 beforeAll(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -67,7 +69,7 @@ beforeAll(async () => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   await import("./index.ts");
   // film.ts reads Deno's env as it loads (openaiChat), so it is imported once Deno is stubbed
-  ({ FILM_BUSINESS_LINES, FILM_MAS_LINES, RECOMMEND_QUESTION } = await import("./film"));
+  ({ FILM_BUSINESS_LINES, FILM_MAS_LINES, RECOMMEND_QUESTION, filmSystem } = await import("./film"));
 }, 30_000);
 afterAll(() => {
   vi.useRealTimers();
@@ -445,5 +447,73 @@ describe("film-edit", () => {
     expect(res.status).toBe(422);
     replies = [{ refuse: null, reply: "Zoomed in.", scene: { ...app, camera: [{ beat: 2, to: [0.2, 0.2, 0.5, 0.5] }] }, film: null }];
     expect((await edit(before, { scene: "app", screens: [] })).status).toBe(200);
+  });
+});
+
+describe("a quiet stretch in the first film, and Fix it (live-p7a D5)", () => {
+  type Scene = Record<string, unknown> & { id: string; kind: string; beats: number };
+  const live = LIVE_FILM as unknown as { setup: typeof SETUP; kit: typeof KIT; screens: typeof SCREENS; direction: typeof DIRECTION; film: Film; fixIt: { note: string; answer: Film; reply: string } };
+  // a film the model writes, from a spec: the schema's fields only
+  const bodyOf = (f: Pick<Film, "font" | "ground" | "accent" | "drop" | "scenes">) => ({ font: f.font, ground: f.ground, accent: f.accent, drop: f.drop, scenes: f.scenes, voice: { lines: [] } });
+  const scenes = live.film.scenes as unknown as Scene[];
+  const byId = (id: string) => scenes.find((s) => s.id === id)!;
+  // what a right answer could be: the montage one beat a shot, its 16 beats given to scenes with more to land
+  const fixed = bodyOf({
+    ...live.film,
+    scenes: [
+      { ...byId("hook"), beats: 8, words: ["Client chats", "Keep moving", "Follow-ups", "In one app"] },
+      { ...byId("chat-followup"), beats: 12, tap: [{ beat: 8, at: [0.5, 0.6] }] },
+      { ...byId("features"), beats: 12 },
+      { ...byId("burst"), beats: 8 },
+      { ...byId("together"), beats: 12 },
+      { ...byId("end"), beats: 8 },
+    ] as unknown as Film["scenes"],
+  });
+  const liveFilm = () => post(LEO, { mode: "film", setup: live.setup, brand: BRAND, kit: live.kit, screens: live.screens, direction: live.direction, product: "devtool", style: 0 });
+  const fixIt = (before: Film) =>
+    post(LEO, { mode: "film-edit", film: before, scene: null, target: "", label: "The whole film", t: 0, x: 0.5, y: 0.5, note: live.fixIt.note, fix: true, brand: BRAND, kit: live.kit, screens: live.screens });
+  const seconds = (f: Film) => (f.scenes.reduce((n, s) => n + s.beats, 0) * 60) / f.bpm;
+
+  it("tells the writer a montage's beats are its shots, the burst is a bar or two, and how long a scene may hold", () => {
+    const system = filmSystem("film", "business");
+    expect(system).toContain("one a beat, so its beats equal its shots");
+    expect(system).toContain("a bar or two, not the whole middle");
+    expect(system).toContain("After its last new thing a scene holds 8 beats at most");
+  });
+
+  it("names the scene each quiet stretch sits in when it asks again", async () => {
+    replies = [{ refuse: null, film: bodyOf(live.film) }, { refuse: null, film: bodyOf(live.film) }];
+    const res = await liveFilm();
+    expect((await res.json()).issues).toEqual(["Nothing happens from 0:13 to 0:22."]);
+    const again = (openai()[1].body.messages as { content: string }[])[3].content;
+    expect(again).toContain("- Nothing happens from 0:13 to 0:22.");
+    expect(again).toContain('- The scene "burst" (montage) holds 24 beats, and nothing new lands in its last 16: a montage shows one shot a beat');
+    expect(used("launch-film")).toBe(1);
+  });
+
+  it("keeps the film's length and fills the gap: a shorter answer is fitted back, and a rhythm still off gets one more try in the same use", async () => {
+    expect(rhythmIssues(parseFilm({ ...fixed, energy: "fast" }).ok ? (parseFilm({ ...fixed, energy: "fast" }) as { film: Film }).film : live.film)).toEqual([]);
+    // Fix it's live answer cut the montage to 8 beats, a 22 s film; then a right one
+    replies = [{ refuse: null, reply: live.fixIt.reply, scene: null, film: bodyOf(live.fixIt.answer) }, { refuse: null, reply: "Gave the montage's beats to the scenes around it.", scene: null, film: fixed }];
+    const res = await fixIt(live.film);
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect([seconds(out.film), out.issues]).toEqual([30, []]);
+    expect(openai()).toHaveLength(2);
+    expect(used("film-edit")).toBe(1);
+    // the writer was told where the stretch sits and to keep the length
+    const note = JSON.parse((openai()[0].body.messages as { content: string }[])[1].content).note as string;
+    expect(note).toContain('The scene "burst" (montage) holds 24 beats');
+    expect(note).toContain("Keep the film 30 seconds long");
+  });
+
+  it("asks nothing more when Fix it's first answer is right, and leaves any other note on the whole film as it was", async () => {
+    replies = [{ refuse: null, reply: "Done.", scene: null, film: fixed }];
+    const out = await (await fixIt(live.film)).json();
+    expect([seconds(out.film), out.issues, openai().length]).toEqual([30, [], 1]);
+    calls.length = 0;
+    replies = [{ refuse: null, reply: "Cut the montage.", scene: null, film: bodyOf(live.fixIt.answer) }];
+    const plain = await (await post(LEO, { mode: "film-edit", film: live.film, scene: null, target: "", note: "Make it shorter", brand: BRAND, kit: live.kit, screens: live.screens })).json();
+    expect([seconds(plain.film), openai().length]).toEqual([22, 1]);
   });
 });

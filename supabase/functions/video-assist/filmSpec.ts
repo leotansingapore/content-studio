@@ -134,8 +134,8 @@ export interface FilmCtx {
   media?: string[];
   /** The kit's colours, so a colour the model wrote maps to its role or is refused. */
   kit?: { color: string; palette: { name: string; hex: string }[] };
-  /** The chosen length: the scenes' beats are clamped to land on it within a bar. Missing (an edit): at most 60 s. */
-  length?: FilmLength;
+  /** The chosen length in seconds (Fix it: the film's own): the scenes' beats are clamped to land on it within a bar. Missing (an edit): at most 60 s. */
+  length?: number;
 }
 
 export type FilmParse = { ok: true; film: Film; notes: string[] } | { ok: false; problems: string[] };
