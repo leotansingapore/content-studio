@@ -654,9 +654,27 @@ describe("several formats and the videos", () => {
     startRemix(UID, run(["explainer"], { voice: "lily" }));
     const j = await done;
     const d = loadDrafts(UID)[0];
-    expect(ai.explainer).toHaveBeenCalledWith("Your CPF moves every month.", scenes, "lily");
+    expect(ai.explainer.mock.calls[0].slice(0, 3)).toEqual(["Your CPF moves every month.", scenes, "lily"]);
+    // a run you start yourself logs as yours
+    expect(ai.explainer.mock.calls[0][5]).toBeUndefined();
     expect(splitScriptCaption(d.draft).script).toBe(scenes.map((x) => x.say).join("\n"));
     expect(j.rows[0]).toMatchObject({ state: "done", href: "/edit?panel=ai&kind=explainer" });
+  });
+
+  it("hands the agent's chat to the presenter, the avatar and the explainer when the agent started the run", async () => {
+    const agent = { thread: "t9", msg: "m9" };
+    make.mockResolvedValue(speaking);
+    let done = finished();
+    startRemix(UID, run(["speaking"], { agent }));
+    await done;
+    expect(ai.presenter.mock.calls[0][2]).toEqual(agent);
+    expect(ai.avatar.mock.calls[0][4]).toEqual(agent);
+    const scenes = [{ say: "One line.", picture: "A Chinese Singaporean woman at a desk" }];
+    make.mockResolvedValue(answer({ as: "explainer", scenes, caption: "One line." }));
+    done = finished();
+    startRemix(UID, run(["explainer"], { agent }));
+    await done;
+    expect(ai.explainer.mock.calls[0][5]).toEqual(agent);
   });
 
   it("shows the video steps as the voiceover starts", async () => {

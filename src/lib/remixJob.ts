@@ -309,7 +309,7 @@ async function makeVideo(id: number, i: number, run: RemixRun, r: MakeResult, ho
   try {
     if (aiBusy()) return fail(VIDEO_LIMITS.busy);
     if (r.as === "explainer") {
-      await makeExplainer(name, r.scenes, voice);
+      await makeExplainer(name, r.scenes, voice, undefined, undefined, run.agent);
       const j = aiJob();
       if (j?.kind !== "explainer" || j.state !== "done") return fail();
       return patch(id, i, { state: "done", step: "", href: links.edit({ panel: ["ai"], kind: "explainer" }) });
@@ -320,11 +320,11 @@ async function makeVideo(id: number, i: number, run: RemixRun, r: MakeResult, ho
     const vo = await sliceVoiceover(await speak(r.script, voice));
     if (vo.seconds > MAX_AVATAR_SECONDS + 0.5) return fail(tooLongLine(vo.seconds), { tooLong: true });
     if (aiBusy()) return fail(VIDEO_LIMITS.busy);
-    await makePresenter(LOOKS[Math.floor(Math.random() * LOOKS.length)]);
+    await makePresenter(LOOKS[Math.floor(Math.random() * LOOKS.length)], undefined, run.agent);
     const face = aiJob();
     if (face?.kind !== "presenter" || face.state !== "done" || !face.url) return fail();
     if (aiBusy()) return fail(VIDEO_LIMITS.busy);
-    await makeAvatar(name, face.url, vo);
+    await makeAvatar(name, face.url, vo, undefined, run.agent);
     const j = aiJob();
     // paid for but not put together (a dropped download, a slow poll): the editor picks it up for free
     if (j?.kind !== "avatar" || j.state !== "done") return pendingAvatar() ? fail(VIDEO_LIMITS.waiting, { waiting: true }) : fail();
