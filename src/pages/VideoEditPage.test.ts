@@ -18,7 +18,7 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row over the start screen reads the rails store, which has no server snapshot; not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { Editor, Start, fromTranslated, toTranslate, videoTarget, versionPrice, versionUses, withBeats } = await import("./VideoEditPage");
+const { Editor, Start, fromTranslated, hooksShort, toTranslate, videoTarget, versionPrice, versionUses, withBeats } = await import("./VideoEditPage");
 const { defaultSettings } = await import("@/lib/videoEdit");
 const prices = await import("@/lib/prices");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -208,6 +208,12 @@ describe("versions of a same edit (remix-format-clone, Leo only)", () => {
     // line breaks stay, a figure's stop isn't a sentence end, and an empty answer keeps the English
     expect(toTranslate({ lines: [], texts: [], caption: "Log 3.5 hours less.\n\nComment PLAN." })).toEqual(["Log 3.5 hours less.", "Comment PLAN."]);
     expect(fromTranslated({ lines: [], texts: [], caption: "Log 3.5 hours less.\n\nComment PLAN." }, ["Catat 3.5 jam kurang.", ""]).caption).toBe("Catat 3.5 jam kurang.\n\nComment PLAN.");
+  });
+
+  it("says when fewer hooks came back than were asked for (live-p7a D15: 2 of 3, the third refused)", () => {
+    expect(hooksShort(3, 2)).toBe("1 of the 3 hooks didn't fit the edit, so 2 came back.");
+    expect(hooksShort(3, 1)).toBe("2 of the 3 hooks didn't fit the edit, so 1 came back.");
+    expect(hooksShort(3, 3)).toBeNull();
   });
 
   it("takes only the hook beat's line, markers, on-screen text and search from a written hook", () => {

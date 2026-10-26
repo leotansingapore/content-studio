@@ -3579,6 +3579,9 @@ async function writeEdit(userId: string, b: VersionBase, o: { formula?: string; 
   return { r: { lines: v.lines, marks: v.marks, texts: v.texts, searches: v.searches }, flags: res.flags };
 }
 
+/** The line when fewer hooks came back than were asked for; a refused one kept its use, so it is said. */
+export const hooksShort = (asked: number, got: number) => (got < asked ? `${asked - got} of the ${asked} hooks didn't fit the edit, so ${got} came back.` : null);
+
 /** "Write 3 hooks": three makes, each on the next hook formula, then Jev's pick over every hook written. */
 async function writeHooks(userId: string, b: VersionBase): Promise<void> {
   if (vstate.writing) return;
@@ -3592,6 +3595,9 @@ async function writeHooks(userId: string, b: VersionBase): Promise<void> {
     const hooks = [...d.hooks, ...got];
     const pick = await pickHook(hooks.map((h) => h.r.lines[0] ?? ""), brandPack(userId, { platform: "tiktok", mention: true, offer: null }).audience, b.source?.title ?? "", "tiktok");
     saveVersionsDraft(b.plan.id, { ...loadVersionsDraft(b.plan.id), hooks, rec: pick });
+    // live-p7a D15: 2 of 3 came back and nothing said why
+    const short = hooksShort(formulas.length, got.length);
+    if (short) setV({ error: short });
   } catch (e) {
     setV({ error: (e as Error).message || WRITE_FAILED });
   } finally {
