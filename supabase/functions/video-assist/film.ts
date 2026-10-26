@@ -194,7 +194,7 @@ const HOUSE = [
   "- cards: up to 3 feature cards that spring in, for a list: an icon, a title of 5 words at most and a line of 12 words at most.",
   "- number: a figure that counts up, with a label, for evidence. Only a figure the launch or the brand's facts give; never invent one.",
   "- montage: a burst of 4 to 8 shots, one a beat, so its beats equal its shots; each with a word of 3 words at most; the word's place (anchor word) or the device frame (anchor frame) stays put while the rest changes. Real material only: the brand's screens and words.",
-  "- logo: the end card: the brand's logo or name with one line of 8 words at most, and an optional cta drawn as plain text (a web address or handle).",
+  "- logo: the end card: the brand's logo or name with one line of 8 words at most, and an optional cta drawn as plain text: a web address or handle only when the brand's facts give one, written as they give it; otherwise null.",
   "Cuts into a scene: hard, flood (a wipe of the brand colour), carry (the phone frame stays and its screen changes), whip.",
   "",
   "Rhythm, measured on 21 launch films:",

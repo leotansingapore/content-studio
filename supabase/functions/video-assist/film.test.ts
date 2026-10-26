@@ -489,6 +489,10 @@ describe("a quiet stretch in the first film, and Fix it (live-p7a D5)", () => {
     expect(system).toContain("After its last new thing a scene holds 8 beats at most");
   });
 
+  it("keeps the end card's web address to one the brand gave (live-p7a D8: gpt-4.1 wrote activitytracker.app)", () => {
+    expect(filmSystem("film", "business")).toContain("a web address or handle only when the brand's facts give one, written as they give it; otherwise null");
+  });
+
   it("names the scene each quiet stretch sits in when it asks again", async () => {
     replies = [{ refuse: null, film: bodyOf(live.film) }, { refuse: null, film: bodyOf(live.film) }];
     const res = await liveFilm();
