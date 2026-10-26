@@ -79,7 +79,8 @@
   Pages carrying a `group` (Studio) show the groups as tabs and the open group's pages as a quieter row under them;
   `bare` pages (Home, the agent, North star) get no tabs; an `index` section (Settings) lists its pages as tiles
   at /settings and each page shows a way back instead of tabs. Filters stay on the page itself as chips. Pages must not
-  render SectionTabs themselves. Phones get the bottom bar (Home, Strategy, Studio, Radar) and the More sheet. When
+  render SectionTabs themselves. Phones get the bottom bar (Home, Strategy, then Chats for agent sign-ins or Studio for everyone else; tabs open the
+  first page the sign-in sees) and the More sheet, which holds the rest plus the agent messages meter. When
   adding a page, add it to a section there and keep `src/lib/nav.test.ts` green; do not add a new section
   without checking the grouping.
 - Theme: the studio is dark by default (Fastlane's look; Leo's default), switched per device from the account menu

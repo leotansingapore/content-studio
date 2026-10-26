@@ -136,24 +136,28 @@ describe("nav", () => {
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
   });
 
-  it("puts Fastlane's first four on the phone bar and lights one per page", () => {
-    expect(mobileTabs().map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/calendar"], ["Studio", "/studio"], ["Radar", "/swipe"]]);
-    const lit = (p: string) => mobileTabs().filter((t) => t.active(p)).map((t) => t.label);
+  it("puts Fastlane's bar on the phone: Home, Strategy, then the agent's chats or Studio, and lights one per page", () => {
+    expect(mobileTabs(ANYONE).map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/calendar"], ["Studio", "/studio"]]);
+    expect(mobileTabs(LEO).map((t) => [t.label, t.to])).toEqual([["Home", "/home"], ["Strategy", "/campaigns"], ["Chats", "/agent?panel=chats"]]);
+    const lit = (p: string, email = ANYONE) => mobileTabs(email).filter((t) => t.active(p)).map((t) => t.label);
     expect(lit("/calendar")).toEqual(["Strategy"]);
     expect(lit("/drafts")).toEqual(["Studio"]);
     expect(lit("/studio")).toEqual(["Studio"]);
-    expect(lit("/reels")).toEqual(["Studio"]);
     expect(lit("/make/slideshow")).toEqual(["Studio"]);
-    expect(lit("/agent/t1")).toEqual(["Home"]);
     expect(lit("/welcome")).toEqual([]);
-    expect(lit("/profiles/abc")).toEqual(["Radar"]);
-    expect(lit("/analytics")).toEqual([]);
+    expect(lit("/profiles/abc")).toEqual([]);
+    // the agent's chats light Chats, not Home, for those who have them
+    expect(lit("/agent/t1", LEO)).toEqual(["Chats"]);
+    expect(lit("/agent", LEO)).toEqual(["Chats"]);
+    expect(lit("/home", LEO)).toEqual(["Home"]);
+    expect(lit("/studio", LEO)).toEqual([]);
   });
 
   it("gives the More sheet one tile per other section, opening the first page this sign-in sees", () => {
     expect(moreSheet(ANYONE).map((t) => [t.label, t.to])).toEqual([
-      ["Grow", "/recruit"], ["Analytics", "/analytics"], ["Brand", "/playbook"], ["Learn", "/welcome"], ["Feedback", "/feedback"], ["Settings", "/settings"],
+      ["Radar", "/swipe"], ["Grow", "/recruit"], ["Analytics", "/analytics"], ["Brand", "/playbook"], ["Learn", "/welcome"], ["Feedback", "/feedback"], ["Settings", "/settings"],
     ]);
-    for (const t of mobileTabs()) expect(moreSheet(LEO).map((x) => x.sectionId)).not.toContain(sectionFor(t.to)?.id);
+    // the agent's sign-ins have Chats in the bar, so Studio moves into More
+    expect(moreSheet(LEO).map((t) => t.label)).toEqual(["Studio", "Radar", "Grow", "Analytics", "Brand", "Learn", "Feedback", "Settings"]);
   });
 });

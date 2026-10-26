@@ -289,18 +289,25 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   };
 }
 
-// Phone bottom bar: Fastlane's first four destinations; the rest are in More.
-export const mobileTabs = (): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] =>
-  ["home", "plan", "write", "find"].map((id) => {
+// Phone bottom bar, after Fastlane's (Home, Campaigns, Threads, More): Home, Strategy and the agent's chats for its
+// sign-ins, Home, Strategy and Studio for everyone else; the rest are in More.
+const isChat = (p: string) => p === "/agent" || p.startsWith("/agent/");
+export const mobileTabs = (email: string): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] => {
+  const chats = visiblePages(section("home").pages, email).some((p) => p.to === "/agent");
+  const tab = (id: string) => {
     const s = section(id);
-    return { to: s.to, label: s.label, icon: s.icon, active: (p: string) => sectionFor(p)?.id === id };
-  });
+    // the first page this sign-in sees, as the sidebar opens (Leo's Strategy is Campaigns, everyone else's Calendar)
+    const to = visiblePages(s.pages, email)[0]?.to ?? s.to;
+    return { to, label: s.label, icon: s.icon, active: (p: string) => sectionFor(p)?.id === id && !(chats && isChat(p)) };
+  };
+  return [tab("home"), tab("plan"), chats ? { to: "/agent?panel=chats", label: "Chats", icon: MessageSquare, active: isChat } : tab("write")];
+};
 
 export type MoreTile = { to: string; label: string; icon: LucideIcon; sectionId: string };
 
 /** The phone More sheet: one tile per section the bottom bar does not reach, opening the first page this sign-in sees. */
 export function moreSheet(email: string): MoreTile[] {
-  const bar = new Set(mobileTabs().map((t) => sectionFor(t.to)?.id));
+  const bar = new Set(mobileTabs(email).map((t) => sectionFor(t.to)?.id));
   return SECTIONS.filter((s) => !bar.has(s.id))
     .map((s) => ({ s, first: visiblePages(s.pages, email)[0] }))
     .filter(({ first }) => first)

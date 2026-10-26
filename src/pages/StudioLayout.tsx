@@ -64,22 +64,6 @@ function Logo() {
   );
 }
 
-function Brandmark() {
-  return (
-    <Link to="/home" className="flex min-h-11 items-center gap-2.5">
-      <Logo />
-      <span className="flex flex-col leading-none">
-        <span className="text-sm font-bold tracking-tight text-foreground">
-          Content Studio
-        </span>
-        <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          for advisors
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 /**
  * Shown while a lazy route chunk loads. A shaped skeleton reads as "the page is
  * coming" where a bare "Loading…" reads as a broken screen.
@@ -521,7 +505,7 @@ export default function StudioLayout() {
   const homeCount = needsYou + boardWaiting;
   const sectionTo = (s: NavSection) => lastInSection.current[s.id] ?? visiblePages(s.pages, email)[0]?.to ?? s.to;
 
-  const tabs = mobileTabs();
+  const tabs = mobileTabs(email);
   const moreActive = !tabs.some((t) => t.active(pathname));
   const sheet = moreSheet(email);
   const tileActive = (t: MoreTile) => here?.id === t.sectionId;
@@ -616,7 +600,9 @@ export default function StudioLayout() {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-1.5">
-          <Brandmark />
+          <Link to="/home" aria-label="Content Studio home" className="flex min-h-11 items-center">
+            <Logo />
+          </Link>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -655,6 +641,15 @@ export default function StudioLayout() {
               <X className="h-4 w-4" />
             </Button>
           </div>
+          {leo && (
+            <ErrorBoundary>
+              <Suspense fallback={null}>
+                <div className="mb-3">
+                  <AgentMeter />
+                </div>
+              </Suspense>
+            </ErrorBoundary>
+          )}
           <div className="grid grid-cols-2 gap-2">
             {sheet.map((t) => (
               <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
@@ -683,7 +678,7 @@ export default function StudioLayout() {
         data-bottom-nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-4">
           {tabs.map(({ to, label, icon: Icon, active }) => (
             <Link
               key={to}
