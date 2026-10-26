@@ -228,7 +228,7 @@ export function NetworkCaptions({
               ))}
             <p className={caption.length > max ? "text-destructive" : "text-muted-foreground"}>
               {caption.length} / {max}
-              {tags ? `. ${tags} hashtags` : ""}
+              {tags ? `. ${tags} hashtag${tags === 1 ? "" : "s"}` : ""}
               {limits?.warnings.length ? `. ${limits.warnings.map((w) => w.message).join(" ")}` : ""}
             </p>
             {flags.map((f) => (

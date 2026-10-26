@@ -104,3 +104,18 @@ describe("a tab's red label", () => {
     expect(tabFlagged("facebook", "Plan early.")).toBe(false);
   });
 });
+
+describe("the caption counter (live-p7a-post D7)", () => {
+  const counter = async (caption: string) => {
+    const { createElement } = await import("react");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { NetworkCaptions } = await import("./NetworkCaptions");
+    const write = { busy: false, error: "", chip: null, disabled: false, run: () => undefined };
+    return renderToStaticMarkup(createElement(NetworkCaptions, { tabs: ["tiktok"], open: "tiktok", onOpen: () => undefined, versions: {}, base: caption, onVersions: () => undefined, media: PICTURES, write }));
+  };
+
+  it("counts one hashtag as one hashtag, and more as hashtags", async () => {
+    expect(await counter("[check] Inbox draft test\n\n#check")).toMatch(/\. 1 hashtag(?!s)/);
+    expect(await counter("Two tags #cpf #retirement")).toContain(". 2 hashtags");
+  });
+});
