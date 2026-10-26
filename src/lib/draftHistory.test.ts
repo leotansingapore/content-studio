@@ -708,6 +708,15 @@ describe("the Zernio outbox from My posts' own actions (phase 7 decision 6)", ()
     expect(ops()).toEqual([{ postId: POST_ID, op: "cancel" }]);
   });
 
+  it("deleting a post whose Zernio post failed queues one cancel, so it comes off Zernio; a partly posted one queues nothing (live-p7a-post D5)", () => {
+    const failed = { ...link, status: "failed", error: "TikTok refused it." };
+    saveDrafts(UID, [held({ zernio: failed }), held({ id: "part", zernio: { ...link, postId: "67000000000000000000d003", status: "partial" } })]);
+    deleteDraft(UID, "part");
+    expect(ops()).toEqual([]);
+    deleteDraft(UID, "s");
+    expect(ops()).toEqual([{ postId: POST_ID, op: "cancel" }]);
+  });
+
   it("an edit in Write that keeps the time, and a cloudSync pull that moves it, queue nothing; this device's move then does", async () => {
     saveDrafts(UID, [held()]);
     upsertDraft(UID, held({ draft: "Edited in Write" }));

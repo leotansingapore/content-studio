@@ -448,7 +448,7 @@ export function deleteDraft(userId: string, id: string): DraftEntry[] {
   const current = loadDrafts(userId);
   const next = saveDrafts(userId, current.filter((d) => d.id !== id));
   const gone = current.find((d) => d.id === id);
-  if (gone) queueCancel(userId, gone); // Zernio won't post it
+  if (gone) queueCancel(userId, gone, true); // Zernio won't post it, and a failed post comes off Zernio too
   return next;
 }
 

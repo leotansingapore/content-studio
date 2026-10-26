@@ -65,10 +65,16 @@ export function zernioOps(before: DraftEntry[], after: DraftEntry[], box: Outbox
   return ops === box.ops ? box : { ...box, ops };
 }
 
-/** Queues a cancel for a post Zernio holds, in place of any waiting move (deleteDraft and Back in drafts call it). */
-export function queueCancel(userId: string, draft: DraftEntry): void {
+/**
+ * Queues a cancel for a post Zernio holds, in place of any waiting move (deleteDraft and Back in drafts call it).
+ * `failed`: a post that failed too, which Zernio keeps until it is cancelled (deleteDraft only: an Undo of Back in
+ * drafts drops a waiting op only for a held post, through zernioOps).
+ */
+export function queueCancel(userId: string, draft: DraftEntry, failed = false): void {
   const box = loadOutbox(userId);
-  if (!changeable(draft, box.gone)) return;
+  const z = draft.zernio;
+  const leftOnZernio = failed && !!z?.postId && z.status === "failed" && !box.gone.includes(z.postId);
+  if (!leftOnZernio && !changeable(draft, box.gone)) return;
   saveOutbox(userId, { ...box, ops: withOp(box.ops, { id: opId(), postId: draft.zernio!.postId!, op: "cancel", title: titleOf(draft), tries: 0 }) });
 }
 
