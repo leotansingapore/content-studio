@@ -20,7 +20,7 @@ vi.mock("@/lib/winners", () => ({
   undoWinner: () => 0,
 }));
 
-const { default: WinnerCard, winnerLine } = await import("./WinnerCard");
+const { default: WinnerCard, undoToast, winnerLine } = await import("./WinnerCard");
 
 const draft = { id: "w1", hook: "5 things I wish I knew before my first CPF top-up", draft: "5 things I wish I knew before my first CPF top-up\n\nOne.", platform: "linkedin" } as DraftEntry;
 const card = (status: Card["status"], o: Partial<Card> = {}): Card => ({ winner: { draft, network: "linkedin", engagements: 240, usual: 100, ratio: 2.4 }, status, ...o });
@@ -38,6 +38,12 @@ afterEach(() => {
 });
 
 describe("Winner found", () => {
+  it("says what Undo took and what it kept (live-p7a D18)", () => {
+    expect(undoToast(3, 3)).toEqual({ title: "3 versions removed" });
+    expect(undoToast(3, 2)).toEqual({ title: "2 versions removed", description: "The one you changed or scheduled stays." });
+    expect(undoToast(3, 1)).toEqual({ title: "1 version removed", description: "The 2 you changed or scheduled stay." });
+    expect(undoToast(3, 0)).toEqual({ title: "Those versions were changed or scheduled, so they stay." });
+  });
   it("names the post, the ratio and the network", () => {
     expect(winnerLine(card("ready"))).toBe('"5 things I wish I knew before my first CPF top-up" got 2.4x your usual engagement on LinkedIn.');
     expect(winnerLine({ ...card("ready"), winner: { ...card("ready").winner, usual: 0, ratio: null } })).toBe('"5 things I wish I knew before my first CPF top-up" got 240 engagements on LinkedIn.');
@@ -60,10 +66,15 @@ describe("Winner found", () => {
   it("shows the run, then See the versions and Undo, or Try again", () => {
     expect(html([card("making")])).toContain(">Winner found. Making 3 versions...</h3>");
     expect(html([card("making")])).not.toContain("Make 3 versions</button>");
-    const made = html([card("made", { setId: "vs-abc" })]);
+    const made = html([card("made", { setId: "vs-abc", versions: 3, undo: true })]);
     expect(made).toContain(">Winner found. 3 versions made.</h3>");
     expect(made).toContain('href="/drafts?set=vs-abc"');
     expect(made).toContain(">Undo</button>");
+    // live-p7a D18: an Undo that kept the one you edited leaves that count, and no second Undo
+    const kept = html([card("made", { setId: "vs-abc", versions: 1, undo: false })]);
+    expect(kept).toContain(">Winner found. 1 version made.</h3>");
+    expect(kept).toContain('href="/drafts?set=vs-abc"');
+    expect(kept).not.toContain(">Undo</button>");
     const failed = html([card("failed")]);
     expect(failed).toContain(">Winner found. Couldn&#x27;t make the versions.</h3>");
     expect(failed).toContain(">Try again</button>");

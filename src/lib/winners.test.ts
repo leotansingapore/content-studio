@@ -236,6 +236,23 @@ describe("Make 3 versions and Undo", () => {
     expect(undoWinner(UID, w.id)).toBe(0);
   });
 
+  // live-p7a D18: after Undo kept an edited version, the card still read "3 versions made." and offered Undo again
+  it("after an Undo that keeps some, the card counts what is left, offers no second Undo and redraws", async () => {
+    const w = await ready();
+    const done = finished();
+    makeWinnerVersions(UID, w.id, () => NOW);
+    const j = await done;
+    expect(winnerCards(UID, loadDrafts(UID), NOW)).toMatchObject([{ status: "made", setId: j.set!.id, versions: 3, undo: true }]);
+    const [a] = draftsInSet(loadDrafts(UID), j.set!.id);
+    upsertDraft(UID, { ...a, draft: `${a.draft}\n\nOne more line from me.` });
+    let redrawn = 0;
+    const off = onWinners(() => redrawn++);
+    expect(undoWinner(UID, w.id)).toBe(2);
+    off();
+    expect(redrawn).toBeGreaterThan(0);
+    expect(winnerCards(UID, loadDrafts(UID), NOW)).toMatchObject([{ status: "made", setId: j.set!.id, versions: 1, undo: false }]);
+  });
+
   it("Undo of every version puts the card back to Make 3 versions", async () => {
     const w = await ready();
     const done = finished();

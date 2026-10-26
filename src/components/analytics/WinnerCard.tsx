@@ -25,6 +25,19 @@ const HEADING: Record<Card["status"], string> = {
   made: "Winner found. 3 versions made.",
   failed: "Winner found. Couldn't make the versions.",
 };
+// what is left in the set once an Undo kept an edited or scheduled one, or the versions were deleted in My posts
+const heading = (c: Card) =>
+  c.status === "made" && c.versions !== undefined ? `Winner found. ${c.versions} ${c.versions === 1 ? "version" : "versions"} made.` : HEADING[c.status];
+
+/** Undo's toast: how many went, and how many it kept because they were changed or scheduled. */
+export function undoToast(had: number, gone: number): { title: string; description?: string } {
+  if (!gone) return { title: "Those versions were changed or scheduled, so they stay." };
+  const kept = had - gone;
+  return {
+    title: `${gone} ${gone === 1 ? "version" : "versions"} removed`,
+    ...(kept > 0 ? { description: kept === 1 ? "The one you changed or scheduled stays." : `The ${kept} you changed or scheduled stay.` } : {}),
+  };
+}
 
 const BUSY = "Your other remix is still going. This one can start once it's done.";
 
@@ -65,10 +78,7 @@ export default function WinnerCard({ userId, drafts, now = Date.now }: { userId:
     const r = makeWinnerVersions(userId, id, now);
     setBusy(r === "busy" ? id : null);
   };
-  const undo = (c: Card) => {
-    const gone = undoWinner(userId, c.winner.draft.id);
-    toast({ title: gone ? "Versions removed" : "Those versions were changed or scheduled, so they stay." });
-  };
+  const undo = (c: Card) => toast(undoToast(c.versions ?? 3, undoWinner(userId, c.winner.draft.id)));
 
   return (
     <div id="winners" className="scroll-mt-20 space-y-2">
@@ -82,7 +92,7 @@ export default function WinnerCard({ userId, drafts, now = Date.now }: { userId:
                 {c.status === "making" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
               </span>
               <h3 className="text-sm font-semibold text-foreground" aria-live="polite">
-                {HEADING[c.status]}
+                {heading(c)}
               </h3>
               <InfoTip label="About Winner found">Twice your usual engagement, posted in the last 30 days.</InfoTip>
             </div>
@@ -94,9 +104,11 @@ export default function WinnerCard({ userId, drafts, now = Date.now }: { userId:
                   <Button asChild size="sm" className="[@media(pointer:coarse)]:h-11">
                     <Link to={links.drafts({ set: c.setId })}>See the versions</Link>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => undo(c)} className="[@media(pointer:coarse)]:h-11">
-                    Undo
-                  </Button>
+                  {c.undo && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => undo(c)} className="[@media(pointer:coarse)]:h-11">
+                      Undo
+                    </Button>
+                  )}
                 </>
               )}
               {offer && (

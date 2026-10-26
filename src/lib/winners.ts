@@ -124,7 +124,8 @@ export function onWinners(cb: () => void): () => void {
   };
 }
 
-export type WinnerCard = { winner: Winner; status: "ready" | "limit" | "making" | "made" | "failed"; setId?: string };
+/** A made card also counts the versions still in its set and says whether this session can still Undo them. */
+export type WinnerCard = { winner: Winner; status: "ready" | "limit" | "making" | "made" | "failed"; setId?: string; versions?: number; undo?: boolean };
 
 /**
  * The Winner found cards: "ready" and "failed" offer Make 3 versions (a press), "limit" opens the Remix sheet with
@@ -137,7 +138,9 @@ export function winnerCards(userId: string, drafts: DraftEntry[], now: number): 
   return findWinners(drafts, now).flatMap((winner): WinnerCard[] => {
     const id = winner.draft.id;
     const l = live.get(at(userId, id));
-    if (l === "made" || l === "making" || l === "failed") return [{ winner, status: l, ...(s.handled[id]?.setId ? { setId: s.handled[id].setId } : {}) }];
+    const setId = s.handled[id]?.setId;
+    if (l === "made" && setId) return [{ winner, status: l, setId, versions: draftsInSet(loadDrafts(userId), setId).length, undo: madeTexts.has(setId) }];
+    if (l === "made" || l === "making" || l === "failed") return [{ winner, status: l, ...(setId ? { setId } : {}) }];
     if (s.handled[id]) return [];
     if (s.kept[id]) return [{ winner, status: "ready" }];
     return today && l !== "checking" ? [{ winner, status: "limit" }] : [];
@@ -225,6 +228,6 @@ export function undoWinner(userId: string, draftId: string): number {
   if (!draftsInSet(loadDrafts(userId), setId).length) {
     markHandled(userId, draftId, null);
     setLive(userId, draftId, null);
-  }
+  } else listeners.forEach((l) => l()); // the card counts what is left and drops Undo
   return gone;
 }
