@@ -116,16 +116,28 @@ export const HOOK_FORMULA_COPY: (HookFormula & { bestFor: string })[] = [
 ];
 
 /** A make's `formula` as Write's hookFormulaFields writes its rule (src/lib/hookFormulas.ts), or null for an unknown id. */
-export function formulaRule(id: unknown): string | null {
+// A copy of BUSINESS_SHAPES in src/lib/hookFormulas.ts: a business brand's shape where the adviser's needs a person in
+// a trade (live-p7a D9). logic.test.ts fails the moment they drift.
+export const BUSINESS_SHAPES_COPY: Record<string, { template: string; example: string; bestFor: string }> = {
+  insider: {
+    template: "What nobody tells you about {topic}, from {what the business sees up close}.",
+    example: "What nobody tells you about moving house, from a team that packs up homes every week.",
+    bestFor: "A point of view from what the business sees every day.",
+  },
+};
+
+export function formulaRule(id: unknown, speaker: Speaker = "person"): string | null {
   const f = HOOK_FORMULA_COPY.find((x) => x.id === id);
   if (!f) return null;
+  const biz = speaker === "business";
+  const shape = (biz && BUSINESS_SHAPES_COPY[f.id]) || f;
   return [
     `Write this hook with the "${f.name}" formula. It overrides the hook style line and any other style reference.`,
-    `Shape: ${f.template}`,
-    `Example of the shape only, do not reuse its facts or numbers: ${f.example}`,
-    `It works for: ${f.bestFor}`,
+    `Shape: ${shape.template}`,
+    `Example of the shape only, do not reuse its facts or numbers: ${shape.example}`,
+    `It works for: ${shape.bestFor}`,
     `Avoid this trap: ${f.trap}`,
-    "No promised or guaranteed returns, no named insurers or products.",
+    biz ? "No promised or guaranteed results. Write as the business: we, us or its name, never I, me or my." : "No promised or guaranteed returns, no named insurers or products.",
   ].join("\n");
 }
 /** formats-static-ad's layouts and the words each one takes, with their word limits. */
@@ -895,7 +907,7 @@ function brandLines(b: BrandPack): string[] {
 }
 
 /** A version's hook formula, after the brand and before the note, which still wins over it. */
-const formulaLines = (req: MakeRequest) => (req.formula ? ["", formulaRule(req.formula)!] : []);
+const formulaLines = (req: MakeRequest) => (req.formula ? ["", formulaRule(req.formula, req.brand.speaker)!] : []);
 
 const quote = (s: string) => `"""\n${s.replace(/"""/g, '"')}\n"""`;
 const firstLineOf = (t: string) => t.split("\n").map((l) => l.trim()).find(Boolean) ?? "";

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { COMPLIANCE_RULES } from "../clone-reel/logic";
-import { HOOK_FORMULAS, hookFormulaFields } from "@/lib/hookFormulas";
+import { BUSINESS_SHAPES, HOOK_FORMULAS, hookFormulaFields } from "@/lib/hookFormulas";
 import {
   BAD_KEEP,
   BUSINESS_VOICE,
@@ -61,6 +61,7 @@ import {
   memeVerdict,
   pickAdLayout,
   speakingWords,
+  BUSINESS_SHAPES_COPY,
   HOOK_FORMULA_COPY,
   formulaRule,
   editProblem,
@@ -1626,18 +1627,23 @@ describe("every format writes today's prompt and schema with no formula (pinned 
 describe("a make's hook formula (remix-variations)", () => {
   it("keeps a copy of the app's 21 hook formulas, word for word, since an edge function can't import src", () => {
     expect(HOOK_FORMULA_COPY).toEqual(HOOK_FORMULAS);
+    expect(BUSINESS_SHAPES_COPY).toEqual(BUSINESS_SHAPES);
   });
 
-  it("puts that formula's rule in the system prompt, word for word as Write's hookFormulaFields writes it", () => {
+  it("puts that formula's rule in the system prompt, word for word as Write's hookFormulaFields writes it for the brand's speaker", () => {
     for (const f of HOOK_FORMULAS) {
       const rule = hookFormulaFields(f, {}).styleReference;
+      const biz = hookFormulaFields(f, {}, "business").styleReference;
       expect(formulaRule(f.id), f.id).toBe(rule);
-      for (const m of [make({ formula: f.id }), topic("post", { formula: f.id }), shape("slideshow", { formula: f.id, brand: BIZ })]) {
+      expect(formulaRule(f.id, "business"), f.id).toBe(biz);
+      for (const [m, r] of [[make({ formula: f.id }), rule], [topic("post", { formula: f.id }), rule], [shape("slideshow", { formula: f.id, brand: BIZ }), biz]] as const) {
         const { system, user } = buildMakePrompt(m);
-        expect(system, f.id).toContain(`\n\n${rule}`);
+        expect(system, f.id).toContain(`\n\n${r}`);
         expect(user, f.id).not.toContain(f.template);
       }
     }
+    // a business brand's Insider view never gets the adviser's years-in-a-trade shape (live-p7a D9)
+    expect(buildMakePrompt(shape("slideshow", { formula: "insider", brand: BIZ })).system).not.toContain("financial consultant");
     // three versions, three different rules
     const three = ["contrarian", "mistake", "list"].map((id) => buildMakePrompt(make({ formula: id })).system);
     expect(new Set(three).size).toBe(3);

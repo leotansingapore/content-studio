@@ -209,7 +209,7 @@ export type HookSpeaker = "person" | "business";
  * A business's shape where the adviser's needs a person in a trade: Insider view's "After {N} years as {role}" with a
  * financial consultant's example wrote "After [your years] as a financial consultant" for ActivityTracker (live-p7a D9).
  */
-const BUSINESS_SHAPES: Record<string, Pick<HookFormula, "template" | "example" | "bestFor">> = {
+export const BUSINESS_SHAPES: Record<string, Pick<HookFormula, "template" | "example" | "bestFor">> = {
   insider: {
     template: "What nobody tells you about {topic}, from {what the business sees up close}.",
     example: "What nobody tells you about moving house, from a team that packs up homes every week.",
