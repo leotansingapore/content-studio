@@ -1,5 +1,17 @@
 [
   {
+    "id": "73826671d6f0",
+    "title": "foodpanda offers full-time rider jobs from S$1,800/month, with CPF contributions & benefits",
+    "gist": "On Oct. 21, foodpanda rolled out full-time delivery rider roles in Singapore offering at least S$1,800 per month. The roles require 44 hours of work a week and include full CPF contributions, medical coverage, and other benefits under the Employment Act. To qualify for the base salary, riders must hit a monthly target of 320 qualifying orders.",
+    "talkingPoint": "Clients may have household members working as delivery riders who are considering full-time roles with CPF contributions and medical benefits. You can ask if their family income structure has changed and offer to look at their existing protection and budget together.",
+    "clientMessage": "Hi [Client name], a major delivery platform in Singapore has rolled out full-time rider jobs offering at least S$1,800 per month. These roles include full CPF contributions, medical leave, and coverage under the Employment Act. If you or a family member do delivery work, this change might influence your household budget and benefits. I can look at your current plan with you if you would like to review your arrangements. [Your name]",
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/10/foodpanda-offers-full-time-rider-jobs-from-s1800-month-with-cpf-contributions-benefits",
+    "publishedAt": "2026-10-25T04:05:06+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/73826671d6f0.jpg"
+  },
+  {
     "id": "41b61c9912a4",
     "title": "Personal data of 110,000 members of healthcare services provider Alliance Medinet compromised",
     "gist": "On Oct 24, Alliance Healthcare Group reported that a cyber incident compromised the personal data of about 110,000 members of healthcare services provider Alliance Medinet. Potentially affected details include names, personal identification numbers, and contact information, with some corporate customers of Income Insurance and Singlife also involved. Alliance Healthcare Group said affected members are being notified while investigations continue.",
@@ -8,7 +20,8 @@
     "source": "The Straits Times",
     "url": "https://straitstimes.com/singapore/personal-data-of-110000-members-of-healthcare-services-provider-alliance-medinet-compromised",
     "publishedAt": "2026-10-24T15:56:29+00:00",
-    "topic": "Insurance"
+    "topic": "Insurance",
+    "clipping": "/news/41b61c9912a4.jpg"
   },
   {
     "id": "8ab982e0befd",
@@ -401,18 +414,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "eab7f642835b",
-    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
-    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
-    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
-    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/eab7f642835b.jpg"
-  },
-  {
     "id": "5e4ceccda4ff",
     "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
     "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
@@ -423,6 +424,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/5e4ceccda4ff.jpg"
+  },
+  {
+    "id": "eab7f642835b",
+    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
+    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
+    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
+    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/eab7f642835b.jpg"
   },
   {
     "id": "cc5c9a27e256",
@@ -485,18 +498,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "146ce01a9327",
-    "title": "Budget 2026 Highlights",
-    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
-    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "CPF Board",
-    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "CPF and retirement",
-    "clipping": "/news/146ce01a9327.jpg"
-  },
-  {
     "id": "6d46dc1c57d8",
     "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
     "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
@@ -519,6 +520,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Cost of living",
     "clipping": "/news/38d77cf6f8ef.jpg"
+  },
+  {
+    "id": "146ce01a9327",
+    "title": "Budget 2026 Highlights",
+    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
+    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "CPF Board",
+    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/146ce01a9327.jpg"
   },
   {
     "id": "e98550debf11",

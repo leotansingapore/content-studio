@@ -1,12 +1,40 @@
 {
-  "fetched": "2026-10-25",
+  "fetched": "2026-10-26",
   "questions": [
+    {
+      "question": "MARI invest",
+      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-25T11:19:16.000Z",
+      "audience": "general"
+    },
     {
       "question": "FIRE (Financial Independence, Retire Early) Movement",
       "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-24T14:24:06.000Z",
+      "publishedAt": "2026-10-25T07:02:42.000Z",
       "audience": "working-adult"
+    },
+    {
+      "question": "Dbs finance fees waiver",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xeq0cq/dbs_finance_fees_waiver/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-25T01:55:33.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Need help to understand Presteige life rewards insurance",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xeokic/need_help_to_understand_presteige_life_rewards/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-25T00:43:18.000Z",
+      "audience": "pre-retiree"
+    },
+    {
+      "question": "DBS Multiplier",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xeoe6u/dbs_multiplier/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-25T00:34:43.000Z",
+      "audience": "young-adult"
     },
     {
       "question": "Mindef Group Insurance vs SingLife Elite II",
@@ -83,13 +111,6 @@
       "url": "https://forums.hardwarezone.com.sg/threads/anyone-engage-agency-offering-bank-loans.7228574/",
       "source": "HardwareZone Money Mind",
       "publishedAt": "2026-10-23T00:14:42.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "MARI invest",
-      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-22T18:06:05.000Z",
       "audience": "general"
     },
     {
@@ -399,27 +420,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-16T08:14:42.000Z",
       "audience": "young-adult"
-    },
-    {
-      "question": "did anyone buy the new SGX SDRs?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x78pg4/did_anyone_buy_the_new_sgx_sdrs/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-16T06:22:28.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "[Fresh Grad] Repay Parents first or invest",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x6rrom/fresh_grad_repay_parents_first_or_invest/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-15T17:22:05.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "IBKR VUAA or MOOMOO VOO",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x6ovet/ibkr_vuaa_or_moomoo_voo/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-15T15:33:31.000Z",
-      "audience": "working-adult"
     }
   ]
 }
