@@ -70,9 +70,9 @@ export const MK_APPS: Record<MkApp, string> = {
 /** Each app's own marketing north star, in its own repo (Leo, 26 Oct: "for each repo we will use /marketing-north-star").
  *  Flip `live` once the page is deployed. */
 export const MK_APP_PAGES: { app: Exclude<MkApp, "all">; label: string; url: string; live: boolean; note: string }[] = [
-  { app: "finternship", label: "FINternship and MoneyBees", url: "https://themoneybees.co/marketing-north-star", live: false, note: "The 30-day creator pilot and the career funnel." },
-  { app: "at", label: "ActivityTracker", url: "https://activity-tracker.io/marketing-north-star", live: false, note: "Customer stories, a pack to forward to leaders, customer creators, ads once the account is back." },
-  { app: "sb", label: "SearchBlueprint", url: "https://searchblueprint.io/marketing-north-star", live: false, note: "Trials into paid first, then creators abroad and newsletters." },
+  { app: "finternship", label: "FINternship and MoneyBees", url: "https://themoneybees.co/marketing-north-star", live: true, note: "The 30-day creator pilot and the career funnel." },
+  { app: "at", label: "ActivityTracker", url: "https://activity-tracker.io/marketing-north-star", live: true, note: "Customer stories, a pack to forward to leaders, customer creators, ads once the account is back." },
+  { app: "sb", label: "SearchBlueprint", url: "https://searchblueprint.io/marketing-north-star", live: true, note: "Trials into paid first, then creators abroad and newsletters." },
 ];
 
 export const MK_THESIS: string[] = [
