@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
 
-import { draftsInSet, hookTestResult, joinHook, otherFormulas, splitHook, spreadSlots } from "./variants";
+import { draftsInSet, hookTestResult, joinHook, nextFormulas, otherFormulas, splitHook, spreadSlots } from "./variants";
 import { HOOK_FORMULAS } from "./hookFormulas";
 import type { DraftEntry } from "./draftHistory";
 
@@ -45,6 +45,20 @@ describe("otherFormulas", () => {
     expect(otherFormulas("give-it-away", true)).toEqual(["give-it-away", ...HOOK_FORMULAS.slice(0, 2).map((f) => f.id)]);
     expect(otherFormulas("contrarian", true)).toEqual(HOOK_FORMULAS.slice(0, 3).map((f) => f.id));
     expect(otherFormulas(undefined, true)).toEqual(otherFormulas(undefined));
+  });
+});
+
+describe("nextFormulas", () => {
+  it("goes on after the brand's newest version with a formula, whatever loaded the page (live-p7a D10)", () => {
+    const set = { id: "vs-1", kind: "versions" as const };
+    const drafts = [
+      post("d3", { set, hookFormula: "insider" }),
+      post("d4", { hookFormula: "myth-bust" }), // not a version: never steers the rotation
+      post("d2", { set, hookFormula: "list" }),
+      post("d5", { set: { id: "vs-2", kind: "hook-test" } }),
+    ];
+    expect(nextFormulas(drafts)).toEqual(otherFormulas("insider"));
+    expect(nextFormulas([])).toEqual(HOOK_FORMULAS.slice(0, 3).map((f) => f.id));
   });
 });
 

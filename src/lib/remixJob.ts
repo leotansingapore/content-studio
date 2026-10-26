@@ -22,9 +22,8 @@ import {
 } from "@/lib/aiVideo";
 import { applyBrandRules } from "@/lib/brandRules";
 import { loadBrand, splitDraftIntoSlides } from "@/lib/carousel";
-import { draftsChanged, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
+import { draftsChanged, loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { EdgeError } from "@/lib/edgeFn";
-import { hookFormulaSet } from "@/lib/hookFormulas";
 import { links, slug } from "@/lib/links";
 import { stripDashes } from "@/lib/plainText";
 import { EMPTY_POSITIONING, loadPositioning } from "@/lib/positioning";
@@ -54,6 +53,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import { ensureTeardown, localTeardown, type Teardown } from "@/lib/remixTeardown";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { speak, type VoiceId } from "@/lib/textVoice";
+import { nextFormulas } from "@/lib/variants";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 
 export interface RemixRun {
@@ -174,12 +174,12 @@ export function startRemix(userId: string, run: RemixRun): "started" | "busy" {
   // a video takes minutes, so the text formats come back first
   const ordered = { ...run, as: [...run.as.filter((a) => !isVideo(a)), ...run.as.filter(isVideo)] };
   const { source: s, keep, about, close, mention, offer } = run;
-  // versions: the one text format, three times, each with the next formulas in the rotation
+  // versions: the one text format, three times, each with the next formulas after the brand's last versions
   const three = run.versions === 3 && !isVideo(ordered.as[0]);
   if (three) ordered.as = [ordered.as[0]];
   const as = !s || (ordered.as.length === 1 && ordered.as[0] === defaultOutput(s)) ? undefined : ordered.as.join(",");
   const step = s ? READING : writingStep(ordered.as[0]);
-  const rows: RemixRow[] = three ? hookFormulaSet(id).map((f) => ({ as: ordered.as[0], state: "waiting", formula: f.id })) : ordered.as.map((a) => ({ as: a, state: "waiting" }));
+  const rows: RemixRow[] = three ? nextFormulas(loadDrafts(userId)).map((formula) => ({ as: ordered.as[0], state: "waiting", formula })) : ordered.as.map((a) => ({ as: a, state: "waiting" }));
   const set: DraftSet | undefined = three ? { id: newSetId(), kind: "versions", ...(s ? { from: s.key } : {}) } : undefined;
   last = { userId, run: ordered };
   emit({ id, key: s?.key ?? "", state: "working", step, rows, run: { keep, about, close, mention, offer, as, ...(run.agent ? { agent: run.agent } : {}), ...(three ? { versions: 3 as const } : {}) }, ...(set ? { set } : {}) });

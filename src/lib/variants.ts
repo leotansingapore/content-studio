@@ -28,6 +28,15 @@ export function otherFormulas(own?: string, keep = false): string[] {
   return [0, 1, 2].map((k) => HOOK_FORMULAS[(i + from + k) % HOOK_FORMULAS.length].id);
 }
 
+/**
+ * The 3 formulas a versions run tries next: the 3 after the brand's newest version with a formula, read from its
+ * drafts, so the rotation goes on across page loads and devices (live-p7a D10); the first 3 when it has none.
+ */
+export function nextFormulas(drafts: DraftEntry[]): string[] {
+  const last = drafts.reduce<DraftEntry | null>((a, d) => (d.set && d.hookFormula && (!a || d.createdAt > a.createdAt) ? d : a), null);
+  return otherFormulas(last?.hookFormula);
+}
+
 export type HookTest = { kind: "waiting"; missing: number; total: number } | { kind: "close" } | { kind: "winner"; id: string };
 
 /**

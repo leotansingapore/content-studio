@@ -30,9 +30,9 @@ vi.mock("@/lib/aiVideo", async (orig) => ({
 vi.mock("@/lib/textVoice", async (orig) => ({ ...(await orig<typeof import("./textVoice")>()), speak: ai.speak }));
 
 import { splitDraftIntoSlides } from "./carousel";
-import { loadDrafts } from "./draftHistory";
+import { loadDrafts, saveDrafts, type DraftEntry } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
-import { HOOK_FORMULAS, hookFormulaSet } from "./hookFormulas";
+import { HOOK_FORMULAS } from "./hookFormulas";
 import { draftsInSet } from "./variants";
 import { VIDEO_LIMITS, type MakeResponse, type MakeResult } from "./remix";
 import {
@@ -691,7 +691,8 @@ describe("versions (remix-variations)", () => {
     const formulas = sent.map((b) => b.formula);
     expect(new Set(formulas).size).toBe(3);
     expect(formulas.every((f) => ids.has(f))).toBe(true);
-    expect(formulas).toEqual(hookFormulaSet(j.id).map((f) => f.id));
+    // a brand with no versions yet starts at the top of the list
+    expect(formulas).toEqual(HOOK_FORMULAS.slice(0, 3).map((f) => f.id));
 
     const versions = draftsInSet(loadDrafts(UID), set.id);
     expect(versions).toHaveLength(3);
@@ -704,6 +705,25 @@ describe("versions (remix-variations)", () => {
     expect(j).toMatchObject({ state: "done", set, run: { versions: 3 } });
     expect(j.rows.map((r) => r.state)).toEqual(["done", "done", "done"]);
     expect(runParams(j.key, j.run)).toMatchObject({ remix: "ad:123", versions: "3" });
+  });
+
+  // live-p7a D10: both sheet runs and the winner's run after a page load were before-after, list and insider
+  it("goes on from the brand's newest version after a page load, so a day's runs never repeat the same 3 hooks", async () => {
+    saveDrafts(UID, [
+      { id: "v1", createdAt: "2026-10-26T00:28:00.000Z", hook: "h", draft: "h", platform: "linkedin", hookFormula: "list", set: { id: "vs-old", kind: "versions" } },
+      { id: "v2", createdAt: "2026-10-26T00:29:00.000Z", hook: "h", draft: "h", platform: "linkedin", hookFormula: "insider", set: { id: "vs-old", kind: "versions" } },
+      { id: "v0", createdAt: "2026-10-26T00:27:00.000Z", hook: "h", draft: "h", platform: "linkedin", hookFormula: "before-after", set: { id: "vs-old", kind: "versions" } },
+    ] as DraftEntry[]);
+    make.mockImplementation(async (b: { formula: string }) => post(`Hook for ${b.formula}`));
+    vi.resetModules();
+    const fresh = await import("./remixJob");
+    const done = new Promise<RemixJobState>((resolve) => {
+      const off = fresh.onRemixJob((j) => j && j.state !== "working" && (off(), resolve(j)));
+    });
+    expect(fresh.startRemix(UID, run(["post"], { versions: 3 }))).toBe("started");
+    const j = await done;
+    expect(j.rows.map((r) => r.formula)).toEqual(["callout", "dilemma", "cold-open"]);
+    expect(make.mock.calls.map(([b]) => b.formula)).toEqual(["callout", "dilemma", "cold-open"]);
   });
 
   it("keeps the other two when one fails, and Try the last one again makes only that one, with its formula, into the same set", async () => {
