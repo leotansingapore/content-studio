@@ -269,7 +269,7 @@ export default function SwipeFilePage() {
         className={`flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
       >
         {[
-          { id: "posts" as const, label: "Top posts", n: TOTAL_TOP_POSTS },
+          { id: "posts" as const, label: "Posts", n: TOTAL_TOP_POSTS },
           ...(leo ? [{ id: "foryou" as const, label: "For you", n: null }] : []),
           { id: "news" as const, label: "Industry news", n: NEWS.length },
           // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
