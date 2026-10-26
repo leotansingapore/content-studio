@@ -45,7 +45,7 @@ function Row({ id, title, seeAll, children }: { id: string; title: string; seeAl
           {title}
         </h2>
         {seeAll && (
-          <Link to={seeAll.to} className="inline-flex min-h-9 items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link to={seeAll.to} className="inline-flex min-h-9 items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
             {seeAll.label} <ChevronRight className="h-4 w-4" />
           </Link>
         )}
