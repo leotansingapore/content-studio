@@ -98,7 +98,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
         aria-expanded={open}
         aria-label={`Profile: ${active?.name}. Switch profile`}
         className={`flex items-center gap-2 rounded-lg border border-border/70 bg-background text-left transition-colors hover:border-primary/40 ${
-          compact ? "h-11 px-2" : "w-full px-2.5 py-2"
+          compact ? "h-11 px-2" : "w-full px-2.5 py-2 [@media(pointer:coarse)]:min-h-11"
         }`}
       >
         {/* the name alone, as Fastlane's workspace switcher (one line on the phone bar, up to two in the sidebar); the
