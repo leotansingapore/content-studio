@@ -162,6 +162,9 @@ describe("buildLibrary", () => {
     expect(byKey(list, "d:part")).toMatchObject({ status: "failed", note: "Zernio couldn't post it: TikTok said no", retryHref: links.drafts({ status: "scheduled" }) });
     expect(byKey(list, "d:fail")).toMatchObject({ status: "failed", note: "Zernio couldn't post it." });
     expect(byKey(list, "d:cancel").status).toBe("ready");
+    // TikTok's refusal in plain words, never its request id (live-p7a-post D3)
+    const refused = build({ drafts: [draft("tt", { status: "scheduled", scheduledFor: "2026-10-18", zernio: { key: "k", postId: "z6", status: "failed", error: "TikTok Business API /business/photo/publish/ failed (code 40002): Please notice the user to update their TikTok to the latest version to enable this functionality. (request_id 202610260941444230F7F99CAAE0447502)" } })] });
+    expect(byKey(refused, "d:tt").note).toBe("Zernio couldn't post it: Update the TikTok app on the phone signed in to this account, then try again.");
     expect(byKey(list, "d:posted")).toMatchObject({ status: "posted", live: [{ platform: "instagram", url: "https://instagram.com/p/x" }] });
   });
 

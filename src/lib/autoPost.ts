@@ -227,15 +227,25 @@ export function linkFromView(key: string, v: PostView): ZernioLink {
 export const postedNow = (v: PostView) => v.status === "published" && !(v.platforms.length && v.platforms.every((p) => p.draft));
 
 export const TIKTOK_BUSY = "TikTok is busy for direct posts right now. Send it to your inbox instead, or retry in a few hours.";
-// Zernio's TikTok errors (docs.zernio.com/platforms/tiktok/posts.mdx, read 20 Oct 2026)
+export const TIKTOK_UPDATE = "Update the TikTok app on the phone signed in to this account, then try again.";
+// Zernio's TikTok errors (docs.zernio.com/platforms/tiktok/posts.mdx, read 20 Oct 2026), and TikTok's code 40002 on
+// an inbox draft from an old app (live-p7a-post calls/045)
 const TIKTOK_LINES: [RegExp, string][] = [
   [/5 pending drafts/i, "TikTok holds 5 drafts at most. Finish or delete drafts in the TikTok app, then retry."],
   [/direct posting is at capacity/i, TIKTOK_BUSY],
   [/too many posts in the last 24 hours/i, "TikTok's daily limit for this account is reached. Try tomorrow, or post it in the TikTok app."],
+  [/update their TikTok to the latest version/i, TIKTOK_UPDATE],
 ];
+// "TikTok Business API /business/photo/publish/ failed (code 40002): <message> (request_id ...)"
+const TIKTOK_API = /^TikTok Business API \S+ failed \(code \d+\):\s*(.*?)\s*(\(request_id [^)]*\))?$/s;
 
-/** A TikTok failure in plain words; anything else in Zernio's own. */
-export const tiktokReason = (error: string) => TIKTOK_LINES.find(([re]) => re.test(error))?.[1] ?? error;
+/** A TikTok failure in plain words; another TikTok API refusal without its path and request id; anything else in Zernio's own. */
+export const tiktokReason = (error: string) => {
+  const line = TIKTOK_LINES.find(([re]) => re.test(error))?.[1];
+  if (line) return line;
+  const api = TIKTOK_API.exec(error);
+  return api?.[1] ? `TikTok refused it. ${api[1]}` : error;
+};
 
 // ---- the schedule steps (publish-schedule) ----
 

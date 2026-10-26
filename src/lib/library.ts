@@ -5,6 +5,7 @@
 
 import { AI_FOLDER, type ImageJob } from "@/lib/aiImage";
 import type { AiJob } from "@/lib/aiVideo";
+import { tiktokReason } from "@/lib/autoPost";
 import type { SavedCarousel } from "@/lib/carousel";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { daysOverdue, keyToDate, localDateKey, overdueLabel, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
@@ -118,7 +119,7 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
     ...(zFailed ? { retryHref: links.drafts({ status: "scheduled" }) } : {}),
     ...(status === "posted" && z?.links?.length ? { live: z.links } : {}),
     ...(zFailed
-      ? { note: z?.error ? `Zernio couldn't post it: ${z.error}` : "Zernio couldn't post it." }
+      ? { note: z?.error ? `Zernio couldn't post it: ${tiktokReason(z.error)}` : "Zernio couldn't post it." }
       : format === "video" && !pid
         ? { note: "Script only" }
         : {}),

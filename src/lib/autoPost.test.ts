@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, renderEach, schedulePost, stepProblem, stepToOpen, tiktokReason, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
+const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, TIKTOK_UPDATE, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, renderEach, schedulePost, stepProblem, stepToOpen, tiktokReason, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -327,6 +327,20 @@ describe("TikTok inbox drafts", () => {
     expect(TIKTOK_BUSY).toBe("TikTok is busy for direct posts right now. Send it to your inbox instead, or retry in a few hours.");
     expect(tiktokReason("You have created too many posts in the last 24 hours via the API.")).toBe("TikTok's daily limit for this account is reached. Try tomorrow, or post it in the TikTok app.");
     expect(tiktokReason("Video duration is too long")).toBe("Video duration is too long");
+  });
+
+  // live-p7a-post D3: TikTok's answer to Leo's inbox draft, as Zernio returned it (calls/045)
+  const REFUSED =
+    "TikTok Business API /business/photo/publish/ failed (code 40002): Please notice the user to update their TikTok to the latest version to enable this functionality. (request_id 202610260941444230F7F99CAAE0447502)";
+  it("an old TikTok app on the posting phone reads as one plain line, with none of the raw text", () => {
+    expect(tiktokReason(REFUSED)).toBe(TIKTOK_UPDATE);
+    expect(TIKTOK_UPDATE).toBe("Update the TikTok app on the phone signed in to this account, then try again.");
+  });
+
+  it("any other refusal from TikTok's API drops the API path and the request id", () => {
+    const other = "TikTok Business API /business/video/publish/ failed (code 40100): The video is too short. (request_id 2026102609AB)";
+    expect(tiktokReason(other)).toBe("TikTok refused it. The video is too short.");
+    for (const s of [tiktokReason(REFUSED), tiktokReason(other)]) expect(s).not.toMatch(/request_id|Business API|code \d/);
   });
 });
 

@@ -14,7 +14,7 @@ import { logActivity } from "@/lib/activity";
 import { links } from "@/lib/links";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName } from "@/lib/socialConnect";
-import { cancelPost, chipOf, linkFromView, postedNow, retryPost, sgLabel, type PostView } from "@/lib/autoPost";
+import { cancelPost, chipOf, linkFromView, postedNow, retryPost, sgLabel, tiktokReason, type PostView } from "@/lib/autoPost";
 import { draftStatus, draftsChanged, loadDrafts, restoreDraft, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
 import { MAX_TRIES, loadOutbox, onOutbox, saveOutbox, settleOutbox, zernioOps, runOutbox, type Outbox, type OutboxOp, type SendResult } from "@/lib/zernioOutbox";
 
@@ -192,7 +192,7 @@ export function outboxRows(drafts: DraftEntry[], box: Outbox, titleOf: (d: Draft
       const live = new Set((z.links ?? []).map((l) => l.platform));
       const failed = (z.platforms?.length ? z.platforms : [d.platform]).filter((p) => !live.has(p));
       const where = (failed.length ? failed : [d.platform]).map(platformName).join(" and ");
-      rows.push({ kind: "failed", key: `f-${d.id}`, text: `Didn't post: "${titleOf(d)}" on ${where}.${z.error ? ` ${z.error}` : ""}`, draft: d });
+      rows.push({ kind: "failed", key: `f-${d.id}`, text: `Didn't post: "${titleOf(d)}" on ${where}.${z.error ? ` ${tiktokReason(z.error)}` : ""}`, draft: d });
     } else if (chipOf(z, draftStatus(d) === "posted")?.label === "In your TikTok inbox") {
       rows.push({ kind: "inbox", key: `i-${d.id}`, text: `Finish in TikTok: "${titleOf(d)}" is in your TikTok inbox`, draft: d });
     }

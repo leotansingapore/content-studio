@@ -207,6 +207,14 @@ describe("outboxRows", () => {
     ]);
   });
 
+  it("puts TikTok's refusal in plain words, with no request id (live-p7a-post D3)", () => {
+    const error = "TikTok Business API /business/photo/publish/ failed (code 40002): Please notice the user to update their TikTok to the latest version to enable this functionality. (request_id 202610260941444230F7F99CAAE0447502)";
+    const d = held(ids(), { hook: "Inbox draft test", platform: "tiktok", zernio: { key: "k", postId: "x4", status: "failed", error } });
+    expect(outboxRows([d], { ops: [], gone: [] }, titleOf).map((r) => r.text)).toEqual([
+      'Didn\'t post: "Inbox draft test" on TikTok. Update the TikTok app on the phone signed in to this account, then try again.',
+    ]);
+  });
+
   it("lists an op that stopped after 3 tries with the time it still goes out, and a TikTok inbox draft until it is marked posted", () => {
     const id = ids();
     const inbox = held(ids(), { hook: "5 signs", zernio: { key: "k", postId: "x3", status: "published", drafts: ["tiktok"] } });

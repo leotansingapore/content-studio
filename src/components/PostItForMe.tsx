@@ -230,7 +230,7 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
               </a>
             ))
           )}
-          {!lines.length && link.error && <p className="text-destructive">{link.error}</p>}
+          {!lines.length && link.error && <p className="text-destructive">{leo ? tiktokReason(link.error) : link.error}</p>}
           {error && <p className="text-destructive">{error}</p>}
           {(canRetry(link) || canCancel(link)) && (
             <div className="flex flex-wrap gap-2">
