@@ -86,6 +86,16 @@ describe("TikTok's posting mode", () => {
     expect(props.onMode).toHaveBeenCalledTimes(2);
   });
 
+  it("the guard scrolls itself whole into view clear of the agent button, so neither of its buttons sits under it (live-p7a-post D11)", () => {
+    press(draw(), "Post directly");
+    const guard = find(draw(), (e) => e.props.role === "alertdialog")!;
+    // the agent button floats 88 px up on phones and is 44 px tall: the guard's last row stays 144 px up
+    expect(String(guard.props.className)).toContain("scroll-mb-36");
+    const el = { scrollIntoView: vi.fn() };
+    (guard as unknown as { ref: (e: unknown) => void }).ref(el);
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
   it("a warmed account goes straight to Post directly, with no guard", () => {
     props.warmed = true;
     press(draw(), "Post directly");
