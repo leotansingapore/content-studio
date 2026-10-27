@@ -121,7 +121,7 @@ const row = async (o: Partial<ChatRow> = {}): Promise<ChatRow> => ({
   refusal: null,
   created_at: iso(NOW - 5 * 60_000),
   brand_name: "MoneyBees",
-  account_hint: "l***@example.com",
+  account_email: "leo@example.com",
   tg_user_name: null,
   confirmed_at: null,
   ...o,
@@ -244,7 +244,7 @@ describe("/start with the one-time code", () => {
     const [reply] = replies();
     expect(reply).toEqual({
       chat_id: LEO,
-      text: "This connects Telegram to MoneyBees in the Content Studio account l***@example.com. Is this your Content Studio account?",
+      text: "This connects Telegram to MoneyBees in the Content Studio account leo@example.com. Is this your Content Studio account?",
       reply_markup: { inline_keyboard: [[{ text: "Yes", callback_data: `yes:${rows[0].id}` }, { text: "No", callback_data: `no:${rows[0].id}` }]] },
     });
     expect(JSON.stringify(reply)).not.toContain("request_chat");
@@ -254,8 +254,8 @@ describe("/start with the one-time code", () => {
     const { db } = fakeDb([await row({ brand_name: null })]);
     const { bot, replies } = stubBot(GOOD);
     await run(start, db, bot);
-    expect(replies()[0].text).toBe(COPY.confirm(null, "l***@example.com"));
-    expect(COPY.confirm(null, "l***@example.com")).toBe("This connects Telegram to the Content Studio account l***@example.com. Is this your Content Studio account?");
+    expect(replies()[0].text).toBe(COPY.confirm(null, "leo@example.com"));
+    expect(COPY.confirm(null, "leo@example.com")).toBe("This connects Telegram to the Content Studio account leo@example.com. Is this your Content Studio account?");
   });
 
   it("refuses the same code from another Telegram user", async () => {

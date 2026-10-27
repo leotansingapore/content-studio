@@ -88,7 +88,22 @@ Deno.serve(async (req) => {
     const db = fnDb(admin);
     const now = Date.now();
     const reply =
-      q.action === "start" ? await runStart(db, uid, q.profileId, username, now, { brandName: q.brandName, email: userData.user?.email })
+      q.action === "start"
+        ? await runStart(db, uid, q.profileId, username, now, {
+            email: userData.user?.email,
+            profiles: async () => {
+              // the brand list cloudSync keeps for this account (src/lib/profiles.ts, content-studio-profiles-<uid>)
+              const { data, error } = await admin.from("cs_user_data").select("data").eq("user_id", uid).eq("key", `content-studio-profiles-${uid}`).maybeSingle();
+              if (error) return null;
+              if (!data) return [];
+              try {
+                const list = JSON.parse(data.data);
+                return Array.isArray(list) ? list : null;
+              } catch {
+                return null;
+              }
+            },
+          })
       : q.action === "disconnect" ? await runDisconnect(db, botClient(token), uid, q.profileId, q.chatRow, now)
       : q.action === "presign"
         ? await runPresign(async (path) => {

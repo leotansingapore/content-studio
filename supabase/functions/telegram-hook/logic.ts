@@ -4,8 +4,8 @@
 // The tie rule, for every path (Telegram's chat picker, or the bot made an admin through the plain links): inside a
 // started, unexpired connect that the same Telegram user confirmed with Yes, the first chat that user shares or
 // makes the bot an admin of is tied, and only when the bot can post there and the person is an admin of it.
-// The Yes answers "This connects Telegram to <brand> in the Content Studio account l***@example.com. Is this your
-// Content Studio account?", so a link someone else made and sent can't quietly tie your group to their account.
+// The Yes answers "This connects Telegram to <brand> in the Content Studio account <full email>. Is this your
+// Content Studio account?", so a link someone else made and sent shows a stranger's email, not yours.
 
 import { secretMatches } from "../social-sweep/logic.ts";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram.ts";
@@ -146,9 +146,9 @@ export interface ChatRow {
   status: "pending" | "connected" | "cant_post" | "removed" | "disconnected";
   refusal: "not_admin" | "cant_post" | null;
   created_at: string;
-  /** The brand and the masked account email the bot names before Yes (set by `telegram` start). */
+  /** The brand and the account's full email the bot names before Yes (set by `telegram` start, from the session). */
   brand_name: string | null;
-  account_hint: string | null;
+  account_email: string | null;
   /** Who tapped Start, as the app shows "Added by". */
   tg_user_name: string | null;
   /** When that Telegram user answered Yes; nothing is tied before it. */
@@ -247,7 +247,7 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
         await say(e.user, COPY.expired);
         return "start:refused";
       }
-      await say(e.user, COPY.confirm(r.brand_name, r.account_hint), {
+      await say(e.user, COPY.confirm(r.brand_name, r.account_email), {
         reply_markup: { inline_keyboard: [[{ text: "Yes", callback_data: `yes:${r.id}` }, { text: "No", callback_data: `no:${r.id}` }]] },
       });
       return "start:asked";

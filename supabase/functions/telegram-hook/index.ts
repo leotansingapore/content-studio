@@ -22,7 +22,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const errText = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e)).slice(0, 200);
 
 const CHAT_COLS =
-  "id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, tg_user_name, brand_name, account_hint, confirmed_at, chat_id, chat_type, title, username, is_forum, topic_id, topic_name, status, refusal, created_at";
+  "id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, tg_user_name, brand_name, account_email, confirmed_at, chat_id, chat_type, title, username, is_forum, topic_id, topic_name, status, refusal, created_at";
 
 function must<T>(r: { data: T; error: { message: string; code?: string } | null }, what: string): T {
   if (r.error) throw Object.assign(new Error(`${what}: ${r.error.message}`), { code: r.error.code });

@@ -15,7 +15,9 @@
 --   * The one-time code is never stored: code_hash is its sha256 (hex). It expires 15 minutes after it is made
 --     (code_expires_at) and belongs to the first Telegram user who taps Start with it (tg_user_id).
 --   * A code someone else made can't tie your chat to their account: before any picker, the bot names the brand
---     and the masked account email (brand_name, account_hint) and asks "Is this your Content Studio account?".
+--     (looked up on the server from the caller's own brands) and the full email of the signed-in account that made
+--     the code (brand_name, account_email, both from the server, never the request) and asks "Is this your Content
+--     Studio account?". The owner reads their own email back in their rows, nobody else.
 --     Only that same Telegram user's Yes (confirmed_at) lets a chat be tied, and a row can't be live without it
 --     (cs_telegram_chats_confirmed); No turns the row disconnected. The app shows who connected each chat
 --     (tg_user_name) beside Disconnect.
@@ -83,9 +85,9 @@ create table if not exists public.cs_telegram_chats (
   -- the Telegram user who tapped Start with the code, and their @name or first name for "Added by"
   tg_user_id bigint,
   tg_user_name text check (char_length(tg_user_name) <= 64),
-  -- what the bot names before the pickers: the brand, and the account's email masked like l***@gmail.com
+  -- what the bot names before the pickers: the brand, and the full email of the account that made the code
   brand_name text check (char_length(brand_name) <= 80),
-  account_hint text check (char_length(account_hint) <= 80),
+  account_email text check (char_length(account_email) <= 320),
   -- when that Telegram user answered Yes to "Is this your Content Studio account?"
   confirmed_at timestamptz,
   -- the chat, once tied (Telegram ids fit 52 bits)

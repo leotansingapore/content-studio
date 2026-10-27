@@ -4,13 +4,22 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 // Telegram call. What each action does is logic.test.ts's.
 const LEO = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const OTHER = "7e57c0de-0000-4000-8000-0000000000d2";
-const h = vi.hoisted(() => ({ handler: null as null | ((r: Request) => Promise<Response>), reads: [] as string[] }));
+const h = vi.hoisted(() => ({ handler: null as null | ((r: Request) => Promise<Response>), reads: [] as string[], inserted: [] as unknown[] }));
+// Leo's synced brand list, as cloudSync stores it in cs_user_data
+const BRANDS = JSON.stringify([{ id: "me", name: "Leo Tan", createdAt: "" }, { id: "pmoneybees", name: "MoneyBees", createdAt: "" }]);
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
   createClient: () => ({
     auth: {
       getUser: async (jwt: string) => ({ data: { user: jwt === "leo" ? { id: "6d80f027-3395-480c-86a1-8827d3d6cce3", email: "leo@example.com" } : jwt === "other" ? { id: "7e57c0de-0000-4000-8000-0000000000d2" } : null } }),
     },
-    from: (t: string) => (h.reads.push(t), { insert: () => ({ select: () => ({ single: async () => ({ data: { id: "00000000-0000-4000-8000-0000000000c1" }, error: null }) }) }) }),
+    from: (t: string) => {
+      h.reads.push(t);
+      const where = { eq: () => where, maybeSingle: async () => ({ data: { data: BRANDS }, error: null }) };
+      return {
+        select: () => where,
+        insert: (row: unknown) => (h.inserted.push(row), { select: () => ({ single: async () => ({ data: { id: "00000000-0000-4000-8000-0000000000c1" }, error: null }) }) }),
+      };
+    },
     rpc: async (fn: string) => (h.reads.push(fn), { data: 1, error: null }),
   }),
 }));
@@ -26,6 +35,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   h.reads.length = 0;
+  h.inserted.length = 0;
   telegram.length = 0;
   Object.assign(env, { TELEGRAM_BOT_TOKEN: "7000000001:TEST-token-for-fixtures-only", TELEGRAM_BOT_USERNAME: "cs_test_bot", NORTH_STAR_USERS: LEO, SUPABASE_URL: "http://x", SUPABASE_SERVICE_ROLE_KEY: "k" });
 });
@@ -54,10 +64,21 @@ describe("the telegram function's gate", () => {
     expect(telegram).toEqual([]);
   });
 
-  it("lets Leo start a connect: one use of the day's cap, then the row", async () => {
-    const res = await call("leo");
+  it("lets Leo start a connect: one use of the day's cap, his brands, then the row", async () => {
+    const res = await call("leo", { action: "start", profileId: "pmoneybees" });
     expect(res.status).toBe(200);
-    expect(h.reads).toEqual(["cs_consume_ai_usage", "cs_telegram_chats"]);
+    expect(h.reads).toEqual(["cs_consume_ai_usage", "cs_user_data", "cs_telegram_chats"]);
     expect(telegram).toEqual([]);
+  });
+
+  it("puts the session's full email and the stored brand name in the row, whatever the body says", async () => {
+    await call("leo", { action: "start", profileId: "pmoneybees", brandName: "Not My Brand", email: "someone@else.com", account_email: "x@y.z" });
+    expect(h.inserted).toEqual([expect.objectContaining({ brand_name: "MoneyBees", account_email: "leo@example.com" })]);
+  });
+
+  it("refuses a brand id that isn't one of the caller's", async () => {
+    const res = await call("leo", { action: "start", profileId: "pother" });
+    expect(res.status).toBe(404);
+    expect(h.inserted).toEqual([]);
   });
 });
