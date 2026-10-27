@@ -382,8 +382,13 @@ function Directions({ userId, film }: { userId: string; film: StoredFilm }) {
   const tick = useFilmTick();
   const def = formatBySlug("launch-film")!;
   const j = filmJob();
-  const [chosen, setChosen] = useState<number | null>(null);
-  const pick = chosen ?? film.recommended ?? 0;
+  // ?direction=<n>, 1-based (replace): the picked direction; the recommended one is the default, left out
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const recommended = film.recommended ?? 0;
+  const linked = Number(params.get("direction")) - 1;
+  const pick = Number.isInteger(linked) && linked >= 0 && linked < film.directions.length ? linked : recommended;
+  const setChosen = (i: number | null) => update({ direction: i === null || i === recommended ? null : String(i + 1) });
   const assets = useAssets(userId, film.directions.flatMap((d) => keysIn(d.hero)));
   const sig = JSON.stringify([film.directions, film.product, film.setup.energy]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
