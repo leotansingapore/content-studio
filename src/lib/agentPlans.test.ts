@@ -4,12 +4,13 @@ const who = vi.hoisted(() => ({ speaker: "person" as "person" | "business" }));
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 vi.mock("@/lib/remixBrand", async (orig) => ({ ...(await orig<typeof import("./remixBrand")>()), speakerFor: () => who.speaker }));
 
-import { LINES, approveLabel, blockedReason, competitorCard, flagsFor, makeCard, offerChips, topicOf, whoFor, withInput, withScript, type MakeAsk } from "@/lib/agentPlans";
+import { LINES, answerCard, approveLabel, blockedReason, competitorCard, flagsFor, formatFor, lastMake, makeCard, offerChips, planOf, topicOf, whoFor, withInput, withScript, type MakeAsk } from "@/lib/agentPlans";
 import { estimateScript, newCardId, type AgentCard } from "@/lib/agentCards";
 import { needsOf } from "@/lib/agentBudget";
 import { LOOKS } from "@/lib/aiVideo";
 import { priceOf, sumPrices, WRITE_PRICE } from "@/lib/prices";
 import { addLearning } from "@/lib/voiceMemory";
+import type { AgentMsg } from "@/lib/agentThreads";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -130,5 +131,23 @@ describe("flags and topics", () => {
     expect(t.length).toBeLessThanOrEqual(200);
     expect(t.endsWith("word")).toBe(true);
     expect(topicOf("  make a\ncarousel ")).toBe("make a carousel");
+  });
+});
+
+describe("another one, and the format a make runs as", () => {
+  const msg = (card?: AgentCard, text?: string): AgentMsg => ({ id: newCardId(), at: "", role: card ? "agent" : "user", ...(card ? { card } : {}), ...(text ? { text } : {}) });
+  it("another one follows the newest make in the chat, with its link, past later cards that made nothing", () => {
+    const older = makeCard(UID, ask({ topic: "Term vs whole life" }));
+    const link = makeCard(UID, ask({ plan: "link", format: "carousel", topic: "remix this as a carousel", subject: "Why CPF LIFE pays more later", link: "https://youtu.be/dQw4w9WgXcQ" }));
+    const chat = [msg(older), msg(undefined, "remix this as a carousel"), msg(link), msg(answerCard("answer", {})), msg(undefined, "another one")];
+    expect(lastMake(chat)).toEqual({ format: "carousel", subject: "Why CPF LIFE pays more later", topic: "remix this as a carousel", link: "https://youtu.be/dQw4w9WgXcQ" });
+    expect(lastMake([msg(undefined, "hi"), msg(answerCard("answer", {}))])).toBeNull();
+  });
+  it("a link asked for as a post or carousel is remixed; as a video or a picture it is made from the words, not read", () => {
+    const link = "https://www.instagram.com/reel/C8xYz12AbCd/";
+    expect([planOf("post", link), planOf("carousel", link), planOf("speaking", link), planOf("explainer", link), planOf("image", link), planOf("post", null)]).toEqual(["link", "link", "speaking", "explainer", "image", "post"]);
+  });
+  it("Jev's format wins over the pressed chip, the Video chip means a talking video, and a plain ask is a post", () => {
+    expect([formatFor("carousel", "video", null), formatFor(null, "video", null), formatFor(null, "carousel", null), formatFor(null, "campaign", null), formatFor(null, undefined, null)]).toEqual(["carousel", "speaking", "carousel", "post", "post"]);
   });
 });
