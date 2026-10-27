@@ -293,6 +293,16 @@ describe("the job", () => {
     expect((await run()).state).toBe("done");
   });
 
+  it("a second press while the slides are being written makes no second write and saves one slideshow", async () => {
+    answer(pages, [0, 0, 0]);
+    const first = startSlideshow(UID, ASK);
+    await startSlideshow(UID, { ...ASK, topic: "again", source: null });
+    await first;
+    expect(make).toHaveBeenCalledTimes(1);
+    expect(slideshowJob()).toMatchObject({ state: "done", ask: ASK });
+    expect(loadSlideshows(UID)).toHaveLength(1);
+  });
+
   it("keeps a photo that won't save on this device by its Pexels link", async () => {
     answer(pages, [0, 0, 0]);
     store.mockRejectedValue(new Error("disk full"));
