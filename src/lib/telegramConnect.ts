@@ -272,3 +272,38 @@ export function telegramMediaProblem(files: { name: string; type: string; size: 
 
 /** Whether a post asked for `at` (null: now) waits for 9am, Telegram's sending hours being 9am to 9pm Singapore time. */
 export const willHold = (at: string | null, now = Date.now()) => !inSendingHours(at ? Date.parse(at) : now);
+
+// ---- a brand's own bot ("Own bot per brand", 027) ----
+// The token is pasted once, sent to `telegram` (bot-add) and kept in Vault; this page only ever reads the bot's @name.
+
+export interface OwnBot {
+  id: string;
+  bot_id: number;
+  username: string;
+  display_name: string;
+  status: "active" | "revoked";
+}
+
+export const OWN_BOT_STEPS = [
+  "In Telegram, open @BotFather and send /newbot. Pick a name and a username for your brand's bot.",
+  "Send /setdomain to @BotFather, pick your bot, and send consultant-content-studio.vercel.app",
+  "Copy the token BotFather sends and paste it here.",
+];
+
+/** "<bot id>:<secret>", as BotFather sends it; the server checks it again with Telegram. */
+export const looksLikeBotToken = (s: string) => /^[0-9]{5,15}:[A-Za-z0-9_-]{30,64}$/.test(s.trim());
+
+export const postingAs = (b: Pick<OwnBot, "username">) => `Posting as @${b.username}`;
+
+/** The brand's own bot, or null while it posts through the shared bot (026/027: owner-only, non-secret columns). */
+export async function readOwnBot(profileId: string): Promise<OwnBot | null> {
+  const { data, error } = await supabase.from("cs_telegram_bots").select("id, bot_id, username, display_name, status").eq("profile_id", profileId).maybeSingle();
+  if (error) throw new Error("Couldn't load your brand's bot. Try again in a minute.");
+  return (data as OwnBot | null) ?? null;
+}
+
+export const addOwnBot = (profileId: string, token: string) =>
+  callFn<{ botUsername: string; botName: string }>("telegram", { action: "bot-add", profileId, token: token.trim() }, "Couldn't check your bot. Try again in a minute.");
+
+export const removeOwnBot = (profileId: string) =>
+  callFn<{ removed: boolean }>("telegram", { action: "bot-remove", profileId }, "Couldn't switch back. Try again in a minute.");

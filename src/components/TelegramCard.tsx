@@ -7,12 +7,15 @@
 // they pick a group or channel in Telegram, and this card reads its own row every 3 s while the tab is visible, so
 // "Connected to {name}." shows within seconds of the bot's webhook. A reload resumes the newest unexpired connect.
 // Each chat shows who connected it beside Disconnect, so one tied by someone else is plain to see and quick to undo.
+// "Use your brand's own bot" (027) swaps the shared bot for one the owner made in BotFather: the token is pasted once,
+// checked and kept in Vault by `telegram`, and this card only ever shows "Posting as @<bot>".
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { clearConnectReturn, isNotEnabled, readConnectReturn } from "@/lib/socialConnect";
 import {
@@ -32,6 +35,13 @@ import {
   readNonce,
   saveNonce,
   takeTelegramLogin,
+  OWN_BOT_STEPS,
+  addOwnBot,
+  looksLikeBotToken,
+  postingAs,
+  readOwnBot,
+  removeOwnBot,
+  type OwnBot,
   type TelegramRow,
 } from "@/lib/telegramConnect";
 
@@ -71,6 +81,23 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
   const [login, setLogin] = useState<{ ok: boolean; text: string } | null>(null);
   // Telegram's verified login, waiting for Connect or Cancel
   const [ask, setAsk] = useState<{ chatRow: string; auth: Record<string, string>; nonce: string; question: string } | null>(null);
+  // the brand's own bot: undefined while read, null on the shared bot
+  const [ownBot, setOwnBot] = useState<OwnBot | null | undefined>(undefined);
+  const [botOpen, setBotOpen] = useState(false);
+  const [botToken, setBotToken] = useState("");
+  const [botBusy, setBotBusy] = useState<"" | "check" | "remove">("");
+  const [botError, setBotError] = useState("");
+
+  useEffect(() => {
+    let live = true;
+    readOwnBot(profileId).then(
+      (b) => live && setOwnBot(b),
+      () => live && setOwnBot(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [profileId]);
 
   const load = useCallback(async () => {
     try {
@@ -177,6 +204,38 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
     }
   };
 
+  const addBot = async () => {
+    setBotBusy("check");
+    setBotError("");
+    try {
+      const r = await addOwnBot(profileId, botToken);
+      setBotToken("");
+      setBotOpen(false);
+      setOwnBot({ id: "", bot_id: 0, username: r.botUsername, display_name: r.botName, status: "active" });
+      void readOwnBot(profileId).then((b) => b && setOwnBot(b), () => undefined);
+    } catch (e) {
+      setBotError(isNotEnabled(e) ? "Telegram isn't switched on for you yet." : message(e));
+    } finally {
+      setBotBusy("");
+    }
+  };
+
+  const switchBack = async () => {
+    if (!ownBot) return;
+    if (!window.confirm(`Switch back to the shared bot? Chats connected through @${ownBot.username} are disconnected and their waiting posts cancelled.`)) return;
+    setBotBusy("remove");
+    try {
+      await removeOwnBot(profileId);
+      setOwnBot(null);
+      toast({ title: "Switched back to the shared bot" });
+      await load();
+    } catch (e) {
+      toast({ title: message(e), variant: "destructive" });
+    } finally {
+      setBotBusy("");
+    }
+  };
+
   const disconnect = async (r: TelegramRow) => {
     const { name } = rowDetail(r);
     if (!window.confirm(`Disconnect ${name}? The bot leaves it, and posts waiting for it are cancelled.`)) return;
@@ -202,6 +261,15 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
         <h2 id="accounts-telegram" className="text-sm font-semibold">Telegram</h2>
         <InfoTip label="About Telegram">Content Studio's bot posts for you. It reads nothing else.</InfoTip>
       </div>
+
+      {ownBot && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
+          <p className="mr-auto text-sm font-semibold">{postingAs(ownBot)}</p>
+          <Button variant="ghost" className="h-11 text-muted-foreground hover:text-foreground" disabled={!!botBusy} onClick={() => void switchBack()}>
+            {botBusy === "remove" ? "Switching back..." : "Switch back to the shared bot"}
+          </Button>
+        </div>
+      )}
 
       {rows === null && !error && <p className="text-sm text-muted-foreground">Loading your Telegram chats...</p>}
 
@@ -297,6 +365,59 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
             {busy === "start" ? "Opening Telegram..." : live ? "Start again" : chats.length ? "Add another Telegram chat" : "Connect Telegram"}
           </Button>
         ))}
+
+      {ownBot === null && !ask && !live && !botOpen && (
+        <Button variant="ghost" className="h-11 w-full justify-start px-0 text-primary hover:bg-transparent hover:underline sm:w-auto" onClick={() => setBotOpen(true)}>
+          Use your brand's own bot
+        </Button>
+      )}
+      {ownBot === null && botOpen && (
+        <div className="space-y-2 rounded-lg border border-border/60 p-3">
+          <h3 className="text-sm font-semibold">Use your brand's own bot</h3>
+          <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+            {OWN_BOT_STEPS.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <label htmlFor="telegram-bot-token" className="block text-sm font-semibold">
+            Bot token
+          </label>
+          <Input
+            id="telegram-bot-token"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={botToken}
+            onChange={(e) => setBotToken(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && looksLikeBotToken(botToken) && !botBusy && void addBot()}
+            placeholder="123456789:AA..."
+            className="h-11"
+          />
+          {botBusy === "check" && (
+            <p role="status" className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking your bot...
+            </p>
+          )}
+          {botError && <p role="alert" className="text-sm text-destructive">{botError}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button className="h-11" disabled={!looksLikeBotToken(botToken) || !!botBusy} onClick={() => void addBot()}>
+              Use this bot
+            </Button>
+            <Button
+              variant="ghost"
+              className="h-11"
+              disabled={!!botBusy}
+              onClick={() => {
+                setBotOpen(false);
+                setBotToken("");
+                setBotError("");
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

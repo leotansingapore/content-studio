@@ -22,6 +22,9 @@ import {
   connectState,
   loadTelegramChannels,
   identityQuestion,
+  OWN_BOT_STEPS,
+  looksLikeBotToken,
+  postingAs,
   loginFrom,
   readNonce,
   saveNonce,
@@ -245,5 +248,26 @@ describe("the browser that pressed Connect Telegram", () => {
     expect(identityQuestion({ firstName: "Leo", username: "leo_test" })).toBe("Connect Telegram as Leo (@leo_test)?");
     expect(identityQuestion({ firstName: "Leo", username: null })).toBe("Connect Telegram as Leo?");
     expect(identityQuestion({ firstName: "", username: "leo_test" })).toBe("Connect Telegram as @leo_test?");
+  });
+});
+
+describe("a brand's own bot", () => {
+  it("says how to make one in three plain steps", () => {
+    expect(OWN_BOT_STEPS).toEqual([
+      "In Telegram, open @BotFather and send /newbot. Pick a name and a username for your brand's bot.",
+      "Send /setdomain to @BotFather, pick your bot, and send consultant-content-studio.vercel.app",
+      "Copy the token BotFather sends and paste it here.",
+    ]);
+    for (const line of OWN_BOT_STEPS) expect(line).toMatch(/^[\x20-\x7e]+$/);
+  });
+
+  it("only lets something shaped like a BotFather token be sent, spaces around it trimmed", () => {
+    expect(looksLikeBotToken("7000000002:" + "A".repeat(35))).toBe(true);
+    expect(looksLikeBotToken("  7000000002:" + "a_b-".repeat(9) + "  ")).toBe(true);
+    for (const t of ["", "hello", "7000000002:short", "abc:" + "A".repeat(35), "7000000002 " + "A".repeat(35)]) expect(looksLikeBotToken(t), t).toBe(false);
+  });
+
+  it("names the bot a brand posts as", () => {
+    expect(postingAs({ username: "mb_test_bot" })).toBe("Posting as @mb_test_bot");
   });
 });
