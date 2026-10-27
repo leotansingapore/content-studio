@@ -206,6 +206,27 @@ describe("team-board", () => {
     expect(db.spent).toEqual([]);
   });
 
+  it("lets nobody manage the team or reach the board as Leo while TEAM_OWNER_IDS is unset or empty", async () => {
+    for (const ids of [undefined, "", " , "]) {
+      env.TEAM_OWNER_IDS = ids as string;
+      expect((await call(LEO, { action: "team.invite", role: "approver", brands: ["leo"] })).status).toBe(403);
+      expect(await call(LEO, { action: "me" })).toEqual({ status: 200, body: { owner: false, member: false } });
+      expect((await call(LEO, { action: "board" })).status).toBe(403);
+    }
+    expect(db.tables.cs_board_invites).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
+  it("sends nothing to the board while BOARD_KEY or MB_STUDIO_URL is unset", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const unset of [{ BOARD_KEY: "" }, { MB_STUDIO_URL: undefined }]) {
+      Object.assign(env, { BOARD_KEY: "bk", MB_STUDIO_URL: "https://board.test" }, unset);
+      expect(await call(LEO, { action: "board" })).toEqual({ status: 500, body: { error: "Something went wrong. Try again." } });
+    }
+    expect(sent).toEqual([]);
+    vi.restoreAllMocks();
+  });
+
   it("hides a board failure behind a plain message", async () => {
     boardStatus = 500;
     expect(await call(LEO, { action: "board" })).toEqual({ status: 502, body: { error: "The board didn't answer. Try again." } });
