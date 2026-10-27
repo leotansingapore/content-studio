@@ -11,7 +11,9 @@ import { useGoneItem, useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
-import { boardWaitingChanged, boardWaitingHere, waitingByBrand } from "@/lib/needsYou";
+import { TEAM_TO_REVIEW, boardWaitingChanged, boardWaitingHere, postsToReview, teamReviewLine, waitingByBrand } from "@/lib/needsYou";
+import { readTeamPosts, readTeamReviews, teamHome } from "@/lib/teamPosts";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import {
   NEXT,
   accessChanged,
@@ -76,6 +78,9 @@ export default function ReelsPage() {
   const [over, setOver] = useState<string | null>(null);
   const openId = params.get("card");
   useGoneItem("card", board ? !!findCard(board.cards, openId) : undefined);
+  // Team posts are approved on the calendar, not here: a line says how many wait, for the sign-ins Home lists them for
+  const leo = useLeoUser();
+  const team = useMemo(() => (leo ? teamReviewLine(true, readTeamPosts(leo.id), readTeamReviews(leo.id), teamHome(leo.id)) : null), [leo]);
 
   const reload = () => {
     setLoading(true);
@@ -231,7 +236,9 @@ export default function ReelsPage() {
     window.location.reload();
   };
   // Archived is the last chip (after All), never a column: it is where finished posts go, not a step.
-  const stages = (board?.stages ?? []).filter((s) => s.id !== "archived");
+  // the board's queue names its brand, so it never reads as the team posts' review (TEAM_TO_REVIEW)
+  const reviewName = postsToReview(brand ? brandName(brand) : undefined);
+  const stages = (board?.stages ?? []).filter((s) => s.id !== "archived").map((s) => (s.id === "review" ? { ...s, name: reviewName } : s));
   const archivedStage = board?.stages.find((s) => s.id === "archived");
   const connectIg = () => {
     if (!igConn) return;
@@ -284,6 +291,26 @@ export default function ReelsPage() {
           </>
         )}
       </header>
+
+      {team && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-warning/40 bg-warning/5 px-3 py-1.5">
+          <p className="mr-auto text-sm font-medium text-foreground">
+            {TEAM_TO_REVIEW}
+            <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{team.n}</span>
+          </p>
+          {/* a full load: a link to another brand switches on arrival; a plain click switches first, saving a reload */}
+          <a
+            href={team.all}
+            onClick={(e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && leo && setActiveProfile(leo.id, teamHome(leo.id))}
+            className="inline-flex min-h-9 items-center text-sm font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+          >
+            See all
+          </a>
+          <Button asChild size="sm" className="[@media(pointer:coarse)]:h-11">
+            <Link to={team.first}>Review</Link>
+          </Button>
+        </div>
+      )}
 
       {board && !needsLink && view === "feed" && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show">
@@ -349,7 +376,7 @@ export default function ReelsPage() {
       )}
 
       {board && !needsLink && view === "feed" && (
-        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "", me)} board={board} me={me} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
+        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "", me)} board={board} me={me} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} empty={stage === "review" ? `No ${reviewName.replace(/^Posts/, "posts")}.` : undefined} />
       )}
 
       {board && !needsLink && view === "board" && (

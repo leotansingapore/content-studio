@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, boardWaitingHere, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, heldOrLive, homeToday, itemSig, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
+import { TEAM_TO_REVIEW, badgeText, boardWaitingHere, postsToReview, teamReviewLine, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, heldOrLive, homeToday, itemSig, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
 import { links } from "./links";
 import type { CampaignPost, PostState } from "./campaigns";
 import type { DraftEntry } from "./draftHistory";
@@ -126,8 +126,8 @@ describe("homeToday", () => {
 
   it("gives Leo review rows, today, team notes in the Posts view and Your market", () => {
     expect(homeToday({ owner: true, member: false }, board, [], TODAY, true)).toEqual([
-      { label: "To review: MoneyBees", n: 1, to: "/reels?brand=moneybees" },
-      { label: "To review: Radiant", n: 1, to: "/reels?brand=radiant&stage=all" },
+      { label: "MoneyBees posts to review", n: 1, to: "/reels?brand=moneybees" },
+      { label: "Radiant posts to review", n: 1, to: "/reels?brand=radiant&stage=all" },
       { label: "Posting today", n: 0, to: "/calendar?view=week" },
       { label: "Team notes: Radiant", n: 1, to: "/reels?brand=radiant&view=feed&stage=notes" },
       { label: "Your market", to: "/market" },
@@ -137,7 +137,7 @@ describe("homeToday", () => {
   it("adds Leo's plan rows after the review rows, each only above 0, linking where links.ts would", () => {
     const plan = { autopilot: 3, campaigns: [{ id: "c-mz1ab", n: 5 }], ideas: 6 };
     const rows = homeToday({ owner: true, member: false }, board, [], TODAY, false, plan);
-    expect(rows.map((r) => r.label)).toEqual(["To review: MoneyBees", "To review: Radiant", "Posts for your OK", "Campaign posts to review", "Today's ideas", "Posting today", "Team notes: Radiant"]);
+    expect(rows.map((r) => r.label)).toEqual(["MoneyBees posts to review", "Radiant posts to review", "Posts for your OK", "Campaign posts to review", "Today's ideas", "Posting today", "Team notes: Radiant"]);
     expect(rows.slice(2, 5)).toEqual([
       { label: "Posts for your OK", n: 3, to: links.plan({ section: "autopilot" }) },
       { label: "Campaign posts to review", n: 5, to: links.campaign("c-mz1ab", { section: "queue" }) },
@@ -162,7 +162,7 @@ describe("homeToday", () => {
   });
 
   it("gives a teammate only the review rows, and nothing breaks when the board didn't answer", () => {
-    expect(homeToday({ owner: false, member: true, role: "editor" }, board, [], TODAY, true).map((r) => r.label)).toEqual(["To review: MoneyBees", "To review: Radiant"]);
+    expect(homeToday({ owner: false, member: true, role: "editor" }, board, [], TODAY, true).map((r) => r.label)).toEqual(["MoneyBees posts to review", "Radiant posts to review"]);
     expect(homeToday({ owner: true, member: false }, null, [], TODAY, false)).toEqual([{ label: "Posting today", n: 0, to: "/calendar?view=week" }]);
   });
 });
@@ -217,8 +217,8 @@ describe("needsYouItems", () => {
     expect(by.overdue).toEqual({ id: "overdue", kind: "overdue", title: "2 posts are overdue", quote: "Newest overdue", line: "1 day overdue", actions: [{ label: "Reschedule", to: "/calendar#overdue" }, { label: "Mark posted", markPosted: "o2" }] });
     // two of this brand's, one board post and one other brand's
     expect(by.today).toEqual({ id: "today", kind: "today", title: "4 posts go out today", quote: "Due first", line: "8am", actions: [{ label: "Open", to: links.generate({ draft: "d2" }) }] });
-    expect(by.team).toEqual({ id: "team", kind: "team", title: "2 team posts wait for you", line: "Approve or skip each one.", actions: [{ label: "Review", to: links.calendar({ business: "team-posts", teampost: "tp1" }) }] });
-    expect(by["review:radiant"]).toMatchObject({ title: "To review: Radiant", n: 1, actions: [{ label: "Review", to: "/reels?brand=radiant&stage=all" }] });
+    expect(by.team).toEqual({ id: "team", kind: "team", title: "Team posts to review", n: 2, line: "Approve or skip each one.", actions: [{ label: "Review", to: links.calendar({ business: "team-posts", teampost: "tp1" }) }] });
+    expect(by["review:radiant"]).toMatchObject({ title: "Radiant posts to review", n: 1, actions: [{ label: "Review", to: "/reels?brand=radiant&stage=all" }] });
     expect(by["notes:radiant"]).toMatchObject({ title: "Team notes: Radiant", n: 1, actions: [{ label: "Open", to: "/reels?brand=radiant&view=feed&stage=notes" }] });
     expect(by.unscheduled).toEqual({ id: "unscheduled", kind: "unscheduled", title: "2 posts are made and not scheduled", quote: "Agent made", line: "Schedule them, or leave them in My posts.", actions: [{ label: "Open", to: links.drafts({ status: "draft" }) }] });
     expect(by.autopilot).toMatchObject({ title: "Posts for your OK", n: 3, actions: [{ label: "Open", to: links.plan({ section: "autopilot" }) }] });
@@ -329,5 +329,40 @@ describe("badgeText", () => {
   it("caps at 9+", () => {
     expect(badgeText(3)).toBe("3");
     expect(badgeText(12)).toBe("9+");
+  });
+});
+
+describe("review queue names", () => {
+  it("names the posts board's queue by its brand and the team posts' queue apart, the same on /reels, /calendar and Home", () => {
+    expect(postsToReview("ActivityTracker")).toBe("ActivityTracker posts to review");
+    expect(postsToReview()).toBe("Posts to review");
+    expect(postsToReview("")).toBe("Posts to review");
+    expect(TEAM_TO_REVIEW).toBe("Team posts to review");
+  });
+});
+
+describe("teamReviewLine", () => {
+  const posts = [team({ id: "tp4", day: "2026-10-24" }), team({ id: "tp2", day: "2026-10-21", time: "10:00" }), team({ id: "tp3", day: "2026-10-21", time: "09:00" }), team({ id: "tp1", postedAt: "2026-10-13T02:00:00Z" })];
+
+  it("counts the team posts waiting, as Home's Next up does, and opens the first to go out", () => {
+    const line = teamReviewLine(true, posts, { tp4: { approvedRev: 1, comments: [] } }, "pmvaytr9ayhh1");
+    expect(line).toEqual({
+      n: 2,
+      first: links.calendar({ business: "team-posts", teampost: "tp3" }),
+      all: "/calendar?business=team-posts&profile=pmvaytr9ayhh1",
+    });
+    // the same number Home's Next up shows and the same link its Review button opens
+    const team = needsYouItems({ drafts: [], teamPosts: posts, reviews: { tp4: { approvedRev: 1, comments: [] } } }, TODAY).find((i) => i.id === "team");
+    expect(team).toMatchObject({ n: line!.n, actions: [{ label: "Review", to: line!.first }] });
+  });
+
+  it("is hidden when nothing waits", () => {
+    expect(teamReviewLine(true, [], {}, "me")).toBeNull();
+    expect(teamReviewLine(true, [team({ id: "a", skipped: true }), team({ id: "b", postedAt: "2026-10-13T02:00:00Z" })], {}, "me")).toBeNull();
+    expect(teamReviewLine(true, [team({ id: "c" })], { c: { approvedRev: 1, comments: [] } }, "me")).toBeNull();
+  });
+
+  it("is hidden for sign-ins that do not review team posts, whatever is waiting", () => {
+    expect(teamReviewLine(false, posts, {}, "me")).toBeNull();
   });
 });

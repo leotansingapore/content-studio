@@ -89,6 +89,7 @@ import {
   type TeamReviews,
 } from "@/lib/teamPosts";
 import { TeamPostChip, TeamPostPanel } from "@/components/TeamPostReview";
+import { TEAM_TO_REVIEW, postsToReview } from "@/lib/needsYou";
 import {
   ChevronDown,
   ChevronLeft,
@@ -1703,7 +1704,8 @@ export default function CalendarPage() {
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-foreground">
-                  {teamToApprove.length} team post{teamToApprove.length > 1 ? "s" : ""} to approve
+                  {TEAM_TO_REVIEW}
+                  <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{teamToApprove.length}</span>
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   Next: {teamToApprove[0].title} · {dayLabel(teamToApprove[0].day)}
@@ -1719,7 +1721,8 @@ export default function CalendarPage() {
               className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                {g.business}: {g.items.length} post{g.items.length > 1 ? "s" : ""} to review
+                {postsToReview(g.business)}
+                <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{g.items.length}</span>
               </span>
               <span className="shrink-0 text-xs font-semibold text-primary">Review</span>
             </Link>
