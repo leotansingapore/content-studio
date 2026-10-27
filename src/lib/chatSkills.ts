@@ -18,6 +18,7 @@ import { loadFollowing } from "@/lib/following";
 import { loadGoals, sgDay } from "@/lib/goals";
 import { composeChecks, judgeHuman, measure, mostlyEnglish } from "@/lib/humanCheck";
 import { links } from "@/lib/links";
+import { plainQuote } from "@/lib/agentThreads";
 import { scorePost } from "@/lib/postScore";
 import { scoped } from "@/lib/profiles";
 import { SAVE_FAILED } from "@/lib/voiceMemory";
@@ -304,8 +305,9 @@ async function runAnswer(userId: string, now: Date): Promise<Part> {
   // throws the function's own words (the daily limit, not switched on, try again): the run fails as a whole
   const res = await callFn<{ ad: string; angles: { title: string; line: string }[] }>("idea-dump", { mode: "answer", ads, context: planContextFor(userId) });
   const ad = ads.find((a) => a.id === res?.ad) ?? ads[0];
-  const angles = Array.isArray(res?.angles) ? res.angles : [];
-  const first = short(ad.text.split("\n").find((l) => l.trim())?.trim() ?? "", 80);
+  // angles are written from the ad's words: plain quotes in the chips and Write's topic too (runSkill does the lines)
+  const angles = (Array.isArray(res?.angles) ? res.angles : []).map((a) => ({ title: plainQuote(a.title), line: plainQuote(a.line) }));
+  const first = short(plainQuote(ad.text.split("\n").find((l) => l.trim()) ?? ""), 80);
   // the post never sees the ad's words: Write gets the angle and one line on the ad
   const ctx = `A reply to a competitor's ${ad.format} ad that has run ${plural(ad.days, "day")}.`;
   return {
@@ -351,7 +353,8 @@ export async function runSkill(userId: string, skill: string, input: { postId?: 
       : skill === "retro" ? await runRetro(userId, now)
       : skill === "check-week" ? runCheckWeek(userId, now)
       : await runAnswer(userId, now);
-    const run: SkillRun = { ...base, ...part, id: id36("r", now), title: post ? postTitle(post) : "", ...(post ? { postId: post.id } : {}) };
+    // every line may quote words the app did not write (an ad, a post, an account you follow): plain quotes, one per line
+    const run: SkillRun = { ...base, ...part, lines: part.lines.map(plainQuote), id: id36("r", now), title: post ? postTitle(post) : "", ...(post ? { postId: post.id } : {}) };
     saveRun(userId, run);
     logActivity(userId, {
       who: "you", kind: "run", title: `Ran ${run.name}${run.title ? ` on "${run.title}"` : ""}`, link: links.skills({ run: run.id }),

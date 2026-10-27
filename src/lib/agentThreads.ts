@@ -104,6 +104,12 @@ function save(userId: string, threads: AgentThread[]): boolean {
   return true;
 }
 
+/**
+ * Words from outside the app (a competitor's ad, a reel, a post, a page read) as they enter a message line: no "[", "]",
+ * "|" or line break, so they never read as the feedback service's [[feedback:...|...]] markup. Every such line uses it.
+ */
+export const plainQuote = (s: string): string => s.replace(/\[/g, "(").replace(/\]/g, ")").replace(/\|/g, "/").replace(/\s+/g, " ").trim();
+
 const clip = (m: AgentMsg): AgentMsg => (m.text && m.text.length > MAX_TEXT ? { ...m, text: m.text.slice(0, MAX_TEXT) } : m);
 
 /** Saves `change` over one thread; `now` null keeps its place in the list (a rename). */

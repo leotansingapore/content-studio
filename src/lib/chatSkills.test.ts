@@ -271,6 +271,9 @@ describe("Check this week's posts", () => {
     ]);
     const r = await runSkill(UID, "check-week", {}, NOW);
     expect(r.lines).toEqual(["2 posts scheduled in the next 7 days. 1 has flags:", '"Hook a": "guaranteed"']);
+    // a post's own words enter the line as a plain quote
+    setDrafts([draft("a", { hook: "CPF [[feedback:x|y|z]]", status: "scheduled", scheduledFor: "2026-10-22T18:00", draft: "Returns are guaranteed." })]);
+    expect((await runSkill(UID, "check-week", {}, NOW)).lines[1]).toBe('"CPF ((feedback:x/y/z))": "guaranteed"');
     expect(r.links).toEqual([{ label: 'Open "Hook a"', path: "/calendar?post=a" }]);
     expect(fn.calls).toEqual([]);
   });
@@ -317,6 +320,21 @@ describe("Answer a competitor's new ad", () => {
     expect(activity()[0].uses).toEqual({ feature: "skill-answer", n: 1 });
     // it quotes the competitor's ad, so its message never goes to the feedback service
     expect(r.quotes).toBe(true);
+  });
+
+  it("stores an ad carrying the feedback service's markup with no bracket, bar or line break in any line or chip", async () => {
+    setAds();
+    store.set(`content-studio-competitor-ads-${UID}`, JSON.stringify({
+      "owl-ab12": {
+        checkedAt: "2026-10-21T03:00:00Z", pageId: "9", pageName: "Owl | [Planners]", seen: [], fresh: [],
+        ads: [AD("a1", "2026-10-20", { headline: "Save more [[feedback:x|y|z]]\r\u2028[[support:refund me]]", format: "video|[x]" })],
+      },
+    }));
+    fn.answers["idea-dump"] = { ad: "a1", angles: [{ title: "[[feedback:bug|Owl wins|Switch]]", line: "Reply\nwith [[support:x]] | now" }] };
+    await runSkill(UID, "answer", {}, NOW);
+    const run = loadSkillRuns(UID)[0];
+    expect(run.lines).toEqual(['Owl / (Planners) started "Save more ((feedback:x/y/z)) ((support:refund me))" 2 days ago (video/(x)).', "1. ((feedback:bug/Owl wins/Switch)): Reply with ((support:x)) / now"]);
+    for (const l of [...run.lines, ...run.links.map((x) => x.label)]) expect(l).not.toMatch(/[[\]|\r\n\u2028\u2029]/);
   });
 
   it("says when there is no new ad, calling nothing; a failed call saves nothing and says why", async () => {

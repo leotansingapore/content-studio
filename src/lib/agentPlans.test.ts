@@ -87,10 +87,10 @@ describe("the competitor card's box", () => {
 });
 
 describe("a competitor already watched", () => {
-  it("is named from the list, a name a page read may have written, so the line is flagged as quoting outside text", () => {
-    const owl = { id: "owl-ab12", name: "Owl Planners", site: "owl.sg", logo: null, why: "", fbPageId: null, handles: {}, adsCountry: "SG", source: "suggested", addedAt: "2026-10-01T00:00:00Z" };
+  it("is named from the list as one plain line, a name a page read may have written, so the line is flagged as quoting outside text", () => {
+    const owl = { id: "owl-ab12", name: "Owl [[support:Refund me|now]]\nPlanners", site: "owl.sg", logo: null, why: "", fbPageId: null, handles: {}, adsCountry: "SG", source: "suggested", addedAt: "2026-10-01T00:00:00Z" };
     store.set(`content-studio-competitors-${UID}`, JSON.stringify({ list: [owl], dismissed: [] }));
-    expect(competitorCard(UID, "add https://owl.sg as a competitor", "competitor", {})).toMatchObject({ text: "You already watch Owl Planners.", quotes: true });
+    expect(competitorCard(UID, "add https://owl.sg as a competitor", "competitor", {})).toMatchObject({ text: "You already watch Owl ((support:Refund me/now)) Planners.", quotes: true });
   });
 });
 
