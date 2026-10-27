@@ -382,7 +382,9 @@ export default function DraftsPage() {
   // Posting times for Fill open slots and Spread them out (publish-queue): the brand kit's shared and per-network times
   const kit = useMemo(() => (leo && userId ? loadBrand(userId) : null), [leo, userId]);
   const held = useMemo(() => drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor), [drafts]);
-  const [fillOpen, setFillOpen] = useState(false);
+  // ?fill=1 (Leo, with status=draft): the Fill open slots preview, pushed so Back closes it
+  const fillOpen = params.get("fill") === "1";
+  const setFillOpen = (on: boolean) => (on ? update({ fill: "1" }, { push: true }) : update({ fill: null }));
 
   const today = localDateKey();
   // The same counts as Home's stat cards.
@@ -746,6 +748,7 @@ export default function DraftsPage() {
           All posts
         </h1>
         {job && <span aria-live="polite" className="mr-auto">{numbersChip(job)}</span>}
+        <CopyLinkButton label="Copy link to this view" className="ml-auto" />
         {!importOpen && userId && (
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <Upload className="h-3.5 w-3.5" /> Import CSV
@@ -775,7 +778,7 @@ export default function DraftsPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setStatusFilter(key)}
+            onClick={() => update({ status: key === "all" ? null : key, fill: null })}
             aria-pressed={statusFilter === key}
             className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
               statusFilter === key
