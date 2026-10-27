@@ -394,10 +394,10 @@ export default function CalendarPage() {
       ),
     [shownFeed, platform, status, bizOn],
   );
-  // Team posts go to Telegram, not a social platform: shown only under "All platforms".
+  // Team posts go to Telegram (FINTERNSHIP FASTRACK or AdvisorOS): shown under "All platforms" and "Telegram".
   const teamByDate = useMemo(() => {
     const map = new Map<string, TeamPost[]>();
-    if (platform !== "all") return map;
+    if (platform !== "all" && platform !== "telegram") return map;
     for (const p of myTeam)
       if (status === "all" || (status === "posted") === Boolean(p.postedAt)) map.set(p.day, [...(map.get(p.day) ?? []), p]);
     return map;

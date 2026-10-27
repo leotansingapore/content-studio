@@ -56,7 +56,7 @@ export function TeamPostChip({
     <button
       type="button"
       onClick={onOpen}
-      title={`Team post: ${post.title} (${s.label})`}
+      title={`Team post to ${groupOf(post)}: ${post.title} (${s.label})`}
       className={`flex w-full items-center gap-1.5 rounded px-1 text-left font-medium ${s.tone} ${
         roomy ? "py-1 text-xs sm:text-[11px]" : "py-0.5 text-[10px]"
       }`}
@@ -64,7 +64,7 @@ export function TeamPostChip({
       {img && <img src={img} alt="" loading="lazy" className={`${roomy ? "h-8 w-8" : "h-4 w-4"} shrink-0 rounded-sm object-cover`} />}
       <span className="min-w-0 flex-1">
         <span className={roomy ? "line-clamp-2" : "block truncate"}>{post.title}</span>
-        {roomy ? <span className="block text-[10px] opacity-80">{s.label}</span> : <span className="sr-only">, {s.label}</span>}
+        {roomy ? <span className="block text-[10px] opacity-80">{s.label}, {groupOf(post)}</span> : <span className="sr-only">, {s.label}, {groupOf(post)}</span>}
       </span>
     </button>
   );
