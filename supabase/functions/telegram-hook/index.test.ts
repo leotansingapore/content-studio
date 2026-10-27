@@ -12,7 +12,7 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
     h.clients++;
     // records a query's calls; every read or write finds nothing
     const chain: Record<string, unknown> = {};
-    for (const m of ["update", "select", "eq", "gt", "or", "in", "order", "limit"]) chain[m] = (...a: unknown[]) => (h.filters.push([m, ...a]), chain);
+    for (const m of ["update", "select", "eq", "gt", "or", "in", "order", "limit", "is", "not"]) chain[m] = (...a: unknown[]) => (h.filters.push([m, ...a]), chain);
     chain.maybeSingle = async () => ({ data: null, error: null });
     return { from: (t: string) => (h.filters.push(["from", t]), chain) };
   },
@@ -65,19 +65,43 @@ describe("the Telegram hook's gate", () => {
     expect(telegram).toEqual([]);
   });
 
-  it("notes the Telegram user on a code at /start only while nobody else tapped Start with it, and only a waiting, unexpired one", async () => {
+  it("notes the Telegram user on a waiting, unexpired, unconfirmed code at /start, taking over any earlier unconfirmed claim", async () => {
     const update = { update_id: 1, message: { message_id: 1, from: { id: 111000111, is_bot: false, first_name: "Leo" }, chat: { id: 111000111, type: "private" }, date: 1, text: "/start Abc_DEF-123456789012345678901234" } };
     expect((await call({ "x-telegram-bot-api-secret-token": "hook-secret-for-tests" }, update)).status).toBe(200);
-    expect(h.filters.slice(0, 7)).toEqual([
+    const hash = expect.stringMatching(/^[0-9a-f]{64}$/);
+    expect(h.filters).toEqual([
       ["from", "cs_telegram_chats"],
       ["update", { tg_user_id: 111000111 }],
-      ["eq", "code_hash", expect.stringMatching(/^[0-9a-f]{64}$/)],
+      ["eq", "code_hash", hash],
       ["eq", "status", "pending"],
       ["gt", "code_expires_at", expect.any(String)],
-      ["or", "tg_user_id.is.null,tg_user_id.eq.111000111"],
+      ["is", "confirmed_at", null],
       ["select", expect.stringContaining("confirmed_at")],
+      // not taken over: only a code already confirmed for this same Telegram user comes back
+      ["from", "cs_telegram_chats"],
+      ["select", expect.stringContaining("confirmed_at")],
+      ["eq", "code_hash", hash],
+      ["eq", "status", "pending"],
+      ["gt", "code_expires_at", expect.any(String)],
+      ["eq", "tg_user_id", 111000111],
+      ["not", "confirmed_at", "is", null],
     ]);
     // nothing found: the bot says the link expired (the stubbed fetch takes the reply)
     expect(telegram).toEqual(["https://api.telegram.org/bot7000000001:TEST-token-for-fixtures-only/sendMessage"]);
+  });
+
+  it("finds a Telegram user's confirmed connect before ordering, so a newer unconfirmed one can't hide it", async () => {
+    const update = { update_id: 2, my_chat_member: { chat: { id: -1001234567890, title: "Test group", type: "supergroup" }, from: { id: 111000111, is_bot: false, first_name: "Leo" }, date: 1, old_chat_member: { user: { id: 7000000001, is_bot: true, first_name: "CS" }, status: "left" }, new_chat_member: { user: { id: 7000000001, is_bot: true, first_name: "CS" }, status: "administrator", can_manage_chat: true } } };
+    expect((await call({ "x-telegram-bot-api-secret-token": "hook-secret-for-tests" }, update)).status).toBe(200);
+    expect(h.filters).toEqual([
+      ["from", "cs_telegram_chats"],
+      ["select", expect.stringContaining("confirmed_at")],
+      ["eq", "tg_user_id", 111000111],
+      ["eq", "status", "pending"],
+      ["gt", "code_expires_at", expect.any(String)],
+      ["not", "confirmed_at", "is", null],
+      ["order", "created_at", { ascending: false }],
+      ["limit", 1],
+    ]);
   });
 });

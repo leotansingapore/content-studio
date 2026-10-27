@@ -1,7 +1,9 @@
 // The hook's updates through logic.ts with Telegram's documented JSON (fixtures/) and no network: the bot is stubbed
 // from the fixtures' answers and the database is an in-memory stand-in with the same rules as index.ts's queries.
 import { describe, expect, it } from "vitest";
+import { createHash, createHmac } from "node:crypto";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram";
+import { runVerify, type FnDb } from "../telegram/logic";
 import { COPY, eventOf, gateOf, handleUpdate, type ChatRow, type HookDb, type TiedChat } from "./logic";
 import start from "./fixtures/update-start.json";
 import startNoCode from "./fixtures/update-start-no-code.json";
@@ -51,13 +53,15 @@ function fakeDb(rows: ChatRow[], posts: Post[] = []) {
   const live = (r: ChatRow, now: string) => r.status === "pending" && r.code_expires_at > now;
   const db: HookDb = {
     async startCode(hash, user, now) {
-      const r = rows.find((x) => x.code_hash === hash && live(x, now) && (x.tg_user_id === null || x.tg_user_id === user));
+      const r = rows.find((x) => x.code_hash === hash && live(x, now));
       if (!r) return null;
+      // a confirmed code stays with its Telegram user; an unconfirmed claim is not ownership
+      if (r.confirmed_at) return r.tg_user_id === user ? { ...r } : null;
       r.tg_user_id = user;
       return { ...r };
     },
     async startedFor(user, now) {
-      return rows.filter((x) => x.tg_user_id === user && live(x, now)).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+      return rows.filter((x) => x.tg_user_id === user && x.confirmed_at !== null && live(x, now)).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
     },
     async tie(row, chat: TiedChat, now) {
       const r = rows.find((x) => x.id === row.id);
@@ -248,14 +252,50 @@ describe("/start with the one-time code", () => {
     expect(channel).toMatchObject({ text: "Pick a channel", request_chat: { request_id: 2, chat_is_channel: true, bot_administrator_rights: { can_post_messages: true } } });
   });
 
-  it("refuses a code another Telegram user tapped Start with first, confirmed or not", async () => {
-    for (const r of [await row({ tg_user_id: OTHER }), await confirmed({ tg_user_id: OTHER })]) {
-      const { db, rows } = fakeDb([r]);
-      const { bot, replies } = stubBot(GOOD);
-      await run(start, db, bot);
-      expect(rows[0].tg_user_id).toBe(OTHER);
-      expect(replies()).toEqual([expect.objectContaining({ chat_id: LEO, text: COPY.expired })]);
-    }
+  it("refuses a code already confirmed for another Telegram user", async () => {
+    const { db, rows } = fakeDb([await confirmed({ tg_user_id: OTHER })]);
+    const { bot, replies } = stubBot(GOOD);
+    await run(start, db, bot);
+    expect(rows[0].tg_user_id).toBe(OTHER);
+    expect(replies()).toEqual([expect.objectContaining({ chat_id: LEO, text: COPY.expired })]);
+  });
+
+  it("lets a later /start take over a code nobody has confirmed: pressing Start first holds nothing", async () => {
+    const { db, rows } = fakeDb([await row({ tg_user_id: OTHER })]);
+    const { bot, replies } = stubBot(GOOD);
+    await run(start, db, bot);
+    expect(rows[0]).toMatchObject({ tg_user_id: LEO, confirmed_at: null });
+    expect(replies()[0]).toMatchObject({ chat_id: LEO, text: COPY.login });
+  });
+
+  it("confirms for the owner after a squatter pressed Start first: the owner's /start, then their signed login in their own session", async () => {
+    const TOKEN = "7000000001:TEST-token-for-fixtures-only";
+    const { db, rows } = fakeDb([await row()]);
+    // the squatter got hold of the link and pressed Start first
+    await run(startOther, db, stubBot(GOOD).bot);
+    expect(rows[0].tg_user_id).toBe(OTHER);
+    // the owner presses Start, then Confirm, signed in to the account that made the code
+    await run(start, db, stubBot(GOOD).bot);
+    const fields: Record<string, string> = { id: String(LEO), first_name: "Leo", username: "leo_test", auth_date: String(Math.floor(NOW / 1000) - 10) };
+    const check = Object.keys(fields).sort().map((k) => `${k}=${fields[k]}`).join("\n");
+    const auth = { ...fields, hash: createHmac("sha256", createHash("sha256").update(TOKEN).digest()).update(check).digest("hex") };
+    // the function's view of the same rows (telegram/index.ts runs these as SQL)
+    const fn: FnDb = {
+      ...({} as FnDb),
+      liveConfirmedElsewhere: async (u, except, now) => rows.some((x) => x.id !== except && x.tg_user_id === u && !!x.confirmed_at && x.status === "pending" && x.code_expires_at > now),
+      verifyLogin: async (uid, id, u, name, loginHash, now) => {
+        const r = rows.find((x) => x.id === id && x.owner_id === uid && x.status === "pending" && x.code_expires_at > now && x.tg_user_id === u && !x.confirmed_at);
+        if (!r) return "not_found";
+        Object.assign(r, { confirmed_at: now, tg_user_name: name, login_hash: loginHash });
+        return "ok";
+      },
+    };
+    const out = await runVerify(fn, stubBot(GOOD).bot, TOKEN, "cs_test_bot", OWNER, rows[0].id, auth, NOW);
+    expect(out.status).toBe(200);
+    expect(rows[0]).toMatchObject({ tg_user_id: LEO, tg_user_name: "@leo_test", confirmed_at: iso(NOW) });
+    // and the squatter's later /start can no longer move it
+    await run(startOther, db, stubBot(GOOD).bot);
+    expect(rows[0].tg_user_id).toBe(LEO);
   });
 
   it("gives the same Telegram user the Confirm button again on a second tap before confirming", async () => {
@@ -308,6 +348,14 @@ describe("only the Telegram user verified for the code's account can tie", () =>
     await run(theirs, db, bot);
     await run(sharedOther, db, bot);
     expect(rows[0]).toMatchObject({ status: "pending", chat_id: null });
+  });
+
+  it("ties to the confirmed connect when the same Telegram user has since tapped Start on a newer one", async () => {
+    const older = await confirmed({ id: "00000000-0000-4000-8000-0000000000c0", code_hash: "0".repeat(64), created_at: iso(NOW - 4 * 60_000) });
+    const newer = await row({ tg_user_id: LEO, created_at: iso(NOW - 60_000) });
+    const { db, rows } = fakeDb([older, newer]);
+    await run(adminGroup, db, stubBot(GOOD).bot);
+    expect(rows.map((r) => [r.status, r.chat_id])).toEqual([["connected", GROUP], ["pending", null]]);
   });
 
   it("ties nothing once the code's 15 minutes are up, even after a verified login", async () => {

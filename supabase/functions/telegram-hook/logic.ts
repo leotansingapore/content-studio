@@ -1,7 +1,7 @@
 // The Content Studio bot's webhook (docs/north-star/items/publish-telegram.md): reads Telegram's updates and ties a
 // group or channel to the brand whose one-time code the person started. Pure: the database and the bot come in.
 //
-// Who may tie: /start <code> notes the Telegram user who tapped it on the code and answers only with a Confirm button
+// Who may tie: /start <code> notes the Telegram user who last tapped it on the code and answers only with a Confirm button
 // (Telegram's login_url) back to Content Studio. That page, signed in, sends Telegram's signed login to the
 // `telegram` function, which confirms the code only when the session is the account that made it and the login is
 // that same Telegram user, and then shows the pickers. So a link someone else
@@ -149,11 +149,11 @@ export type TiedChat = Pick<ChatRow, "title" | "username" | "is_forum"> & { chat
 
 export interface HookDb {
   /**
-   * Notes the Telegram user on the pending, unexpired connect with this code's hash, unless another Telegram user
-   * tapped Start with it first; null when there is no such connect.
+   * Notes the Telegram user on the pending, unexpired, unconfirmed connect with this code's hash, replacing any earlier
+   * unconfirmed one (pressing Start first holds nothing); a confirmed connect comes back only to its own Telegram user.
    */
   startCode(codeHash: string, tgUser: number, now: string): Promise<ChatRow | null>;
-  /** The newest unexpired connect whose verified Telegram user is this one, or null. */
+  /** The newest unexpired confirmed connect of this Telegram user (confirmed filtered before the newest is taken), or null. */
   startedFor(tgUser: number, now: string): Promise<ChatRow | null>;
   /**
    * Ties a pending row to the chat; false when it is no longer pending (another update tied it first). An older live
