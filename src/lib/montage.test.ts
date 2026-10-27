@@ -1,4 +1,4 @@
-import { describe as suite, expect, it, vi } from "vitest";
+import { afterEach, describe as suite, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
 vi.mock("@/lib/stockMedia", () => ({ searchStock: vi.fn(), downloadStock: vi.fn() }));
@@ -8,9 +8,9 @@ vi.mock("@/lib/videoMedia", () => ({ currentJoin: vi.fn(() => null), monoPcm: vi
 import { callFn } from "@/lib/edgeFn";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
 import { getFile } from "@/lib/deviceFiles";
-import { startJoin } from "@/lib/videoMedia";
+import { currentJoin, startJoin } from "@/lib/videoMedia";
 import type { MediaItem } from "@/lib/mediaLibrary";
-import { SHORTEST, SNAP, beatTimes, chooseFor, chooseFromSet, describe, montageJob, noteOf, setCandidates, snapCuts, startMontage } from "./montage";
+import { SHORTEST, SNAP, beatTimes, chooseFor, chooseFromSet, describe, montageBusy, montageJob, noteOf, setCandidates, snapCuts, startMontage } from "./montage";
 import type { StockItem } from "./stockMedia";
 
 const item = (id: string, slug = "x"): StockItem => ({ id, w: 720, h: 1280, alt: "", thumb: "", src: "", by: "", byUrl: "", url: `https://www.pexels.com/video/${slug}-${id}/`, duration: 10 });
@@ -223,5 +223,25 @@ suite("a montage from a clip set", () => {
       ["file cvid-clip001", 4], ["https://p/train commute.mp4", 4], ["file cvid-clip002", 4], ["https://p/hawker food.mp4", 6],
     ]);
     expect(opts?.extra?.note).toBe('From stock, as nothing in City clips fit: "The MRT fills up", "Hawker lunch".');
+  });
+});
+
+suite("the montage job", () => {
+  const beats = ["coffee morning", "train commute", "hawker food"].map((q) => ({ say: q, search: q, fallback: q, text: "", seconds: 4 }));
+  const stocked = () => {
+    vi.mocked(callFn).mockReset().mockImplementation(async (_fn, body) => ((body as { mode: string }).mode === "montage" ? { beats, grade: "warm" } : { picks: [0, 0, 0] }));
+    vi.mocked(searchStock).mockReset().mockImplementation(async (_k, q) => ({ items: [{ ...item(q, q.replace(/ /g, "-")), src: `https://p/${q}.mp4` }], more: false }));
+    vi.mocked(downloadStock).mockReset().mockImplementation(async (src: string) => new Blob([src]));
+    vi.mocked(startJoin).mockReset().mockResolvedValue(undefined);
+  };
+  const ASK = { theme: "Singapore mornings", seconds: 15, words: false, music: null };
+  afterEach(() => void vi.mocked(currentJoin).mockReset().mockReturnValue(null));
+
+  it("ends failed in the join's own words when the video can't be put together, so Make the montage works again", async () => {
+    stocked();
+    vi.mocked(currentJoin).mockImplementation(() => (vi.mocked(startJoin).mock.calls.length ? { progress: 0, state: "failed", error: "This browser can't record video." } : null));
+    await startMontage(ASK);
+    expect(montageJob()).toMatchObject({ state: "failed", error: "This browser can't record video." });
+    expect(montageBusy()).toBe(false);
   });
 });

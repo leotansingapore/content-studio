@@ -287,6 +287,9 @@ export async function startMontage(a: MontageAsk): Promise<void> {
       mute: true,
       extra: { note: noteOf(report), settings: { filter: plan.grade, captions: false, overlays, ...(music ? { music } : {}) }, ...(a.draftId ? { draftId: a.draftId } : {}) },
     });
+    // startJoin never throws: a join that failed says so in its own job
+    const joined = currentJoin();
+    if (joined?.state === "failed") throw new Error(joined.error);
     set({ state: "done", done: takes.length, of: takes.length });
   } catch (e) {
     set({ state: "failed", done: 0, of: 0, error: (e as Error).message || "That didn't go through. Try again." });
