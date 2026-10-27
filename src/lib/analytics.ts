@@ -517,10 +517,11 @@ export function rankPosts(posts: TrackedPost[], metric: RankMetric, n = 5, follo
     .slice(0, n);
 }
 
-/** A spreadsheet of every tracked post. Quotes, commas and line breaks are escaped. */
+/** A spreadsheet of every tracked post. Quotes, commas and line breaks are escaped, and a cell Excel would run as a formula gets an apostrophe (teamReview's csvCell rule). */
 export function postsCsv(posts: TrackedPost[]): string {
   const esc = (v: unknown) => {
-    const s = String(v ?? "");
+    let s = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(s) || /^\s+[=+\-@]/.test(s)) s = `'${s}`;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const head = ["Posted", "Platform", "Format", "Hook", "Impressions", "Reactions", "Comments", "Shares", "Engagements", "Engagement rate %"];

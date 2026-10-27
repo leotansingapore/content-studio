@@ -42,6 +42,13 @@ describe("rankPosts and postsCsv", () => {
     expect(head.startsWith("Posted,Platform,Format,Hook")).toBe(true);
     expect(row).toContain('"He said ""CPF, then\nHDB"""');
   });
+  it("opens a hook that starts with = + - or @ as text in Excel, not as a formula", () => {
+    const hooks = ['=HYPERLINK("http://x","Click")', "+65 9123 4567 is my number", "-5 money myths", "@leo said this", " =1+1"];
+    const rows = postsCsv(hooks.map((h, i) => p(`p${i}`, 1, 100, 5, 0, h))).split("\n").slice(1);
+    expect(rows.map((r) => r.split(",")[3])).toEqual(['"\'=HYPERLINK(""http://x""', "'+65 9123 4567 is my number", "'-5 money myths", "'@leo said this", "' =1+1"]);
+    // an ordinary hook and the numbers are left as they were
+    expect(postsCsv([p("a", 1, 100, 5, 0, "CPF at 55")]).split("\n")[1]).toMatch(/,CPF at 55,100,5,0,0,5,5$/);
+  });
   it("dates each row by the day it went out where the adviser is, not the UTC day", () => {
     // 7:30am on 9 Oct here is still 8 Oct in UTC anywhere east of London
     const early = { ...p("a", 0, 100, 5), postedAt: new Date(2026, 9, 9, 7, 30).toISOString() };
