@@ -76,6 +76,8 @@ const { ScheduleSteps } = await import("./ScheduleSteps");
 const { NetworkCaptions } = await import("./NetworkCaptions");
 const { TikTokMode } = await import("./TikTokMode");
 const { TIKTOK_BUSY, whenLabel } = await import("@/lib/autoPost");
+// at collection, not inside a timed test: a cold transform of PostItForMe's module graph took 7 s in a loaded full run
+const { PostItForMePanel } = await import("./PostItForMe");
 import type { DraftEntry } from "@/lib/draftHistory";
 
 const DRAFTS = `content-studio-drafts-${UID}`;
@@ -126,8 +128,12 @@ const tick = (tree: unknown, words: string, on: boolean) => {
   if (!box) throw new Error(`No checkbox ${words}`);
   (box.props.onChange as (e: unknown) => void)({ target: { checked: on } });
 };
+// The real setImmediate, kept before any test fakes the clock: a turn flushes the stand-in calls' promises without
+// sleeping. setTimeout(0) slept at least 1 ms a turn, and under faked timers waited for each 20 ms advance, so a test
+// with a dozen draws spent seconds here on a loaded machine.
+const { setImmediate: turn } = globalThis;
 const settle = async () => {
-  for (let k = 0; k < 10; k++) await new Promise((r) => setTimeout(r, 0));
+  for (let k = 0; k < 10; k++) await new Promise((r) => turn(r));
 };
 
 type Props = Parameters<typeof ScheduleSteps>[0];
@@ -493,7 +499,6 @@ describe("TikTok", () => {
 
 describe("Post it for me on Leo's sign-in", () => {
   it("renders the steps in place of today's panel, which asks nothing itself; a thread keeps today's panel", async () => {
-    const { PostItForMePanel } = await import("./PostItForMe");
     mount(draftOf());
     fn.answers.status = () => ({ accounts: [] });
     const panel = (thread?: string[]) => {
