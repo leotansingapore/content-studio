@@ -750,7 +750,8 @@ export default function DraftsPage() {
           All posts
         </h1>
         {job && <span aria-live="polite" className="mr-auto">{numbersChip(job)}</span>}
-        <CopyLinkButton label="Copy link to this view" className="ml-auto" />
+        {/* Leo only: My posts' first frame stays as pinned for everyone else (DraftsPage.test.ts) */}
+        {leo && <CopyLinkButton label="Copy link to this view" className="ml-auto" />}
         {!importOpen && userId && (
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <Upload className="h-3.5 w-3.5" /> Import CSV
