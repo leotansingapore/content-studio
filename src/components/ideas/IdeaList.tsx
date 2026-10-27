@@ -1,6 +1,7 @@
 // /ideas' list (Leo only): one row per idea with its source chip, title, the angle's first line and, on a written
 // idea, Jev's fit. A More like this idea sits right under the one it came from. The page owns the filters and keys.
 
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SOURCE_CHIP, type IdeasTab, type InboxIdea } from "@/lib/ideasInbox";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,8 @@ export const fitText = (fit: number | null | undefined) => (typeof fit === "numb
 export default function IdeaList(p: {
   ideas: InboxIdea[];
   openKey: string | null;
-  onOpen: (key: string) => void;
+  /** The address that opens an idea (?idea=<key> on the page's own filters): each row is a real link to it. */
+  hrefOf: (key: string) => string;
   /** Three skeleton rows in the written ideas' place while a set is being written. */
   writing: boolean;
   tab: IdeasTab;
@@ -34,9 +36,8 @@ export default function IdeaList(p: {
           const open = i.key === p.openKey;
           return (
             <li key={i.key} className={cn(i.like && "pl-4")}>
-              <button
-                type="button"
-                onClick={() => p.onOpen(i.key)}
+              <Link
+                to={p.hrefOf(i.key)}
                 aria-current={open ? "true" : undefined}
                 className={cn("block min-h-11 w-full space-y-0.5 p-3 text-left transition-colors hover:bg-muted/40", open && "bg-muted/60")}
               >
@@ -46,7 +47,7 @@ export default function IdeaList(p: {
                 </span>
                 <span className="block truncate text-sm font-medium">{i.title}</span>
                 {i.angle && <span className="block truncate text-xs text-muted-foreground">{i.angle.split("\n")[0]}</span>}
-              </button>
+              </Link>
             </li>
           );
         })}
