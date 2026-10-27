@@ -8,7 +8,7 @@
 // Leo also sees each score's parts and a flag on any clip whose words trip a MAS rule.
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Download, Scissors } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { loadBrand } from "@/lib/carousel";
+import { links } from "@/lib/links";
 import { findClipsFor, findFailed, findRunning, foundFor, onClipFind, runClipAsk, seenClips, startFind, takeAskedLanding, type ClipLength } from "@/lib/clipAsk";
 import { scanCompliance } from "@/lib/compliance";
 import { loadEffects, paintEffects } from "@/lib/faceVision";
@@ -64,13 +65,12 @@ async function exportClip(userId: string, saved: VideoProject, art: BrandArt | n
 }
 
 /** The clips' projects are saved by the find itself (clipAsk.ts); the page re-reads them on onClipFind. */
-export default function ClipFinder({ userId, project, words, settings, duration, onOpen }: {
+export default function ClipFinder({ userId, project, words, settings, duration }: {
   userId: string;
   project: VideoProject;
   words: Word[];
   settings: EditSettings;
   duration: number;
-  onOpen: (id: string) => void;
 }) {
   const { toast } = useToast();
   const leo = useLeoOnly();
@@ -192,7 +192,7 @@ export default function ClipFinder({ userId, project, words, settings, duration,
                     {ours && queue.failed[c.id] && <span className="ml-2 font-sans text-destructive">Couldn't export: {queue.failed[c.id]}</span>}
                   </p>
                 </div>
-                <Button size="sm" variant="outline" className="h-11 shrink-0 text-xs sm:h-8" onClick={() => onOpen(c.id)}>Open</Button>
+                <Button asChild size="sm" variant="outline" className="h-11 shrink-0 text-xs sm:h-8"><Link to={links.edit({ p: c.id })}>Open</Link></Button>
               </li>
             ))}
           </ul>

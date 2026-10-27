@@ -457,7 +457,6 @@ export default function VideoEditPage() {
           leo={leo}
           project={project}
           onSave={(p) => setProjects(saveProject(userId, p))}
-          onOpen={(id) => setParams({ p: id })}
           onBack={() => setParams({}, { replace: true })}
         />
       ) : (
@@ -565,14 +564,15 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
           <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             {projects.map((p) => (
               <li key={p.id} className="group relative">
-                <button type="button" onClick={() => onOpen(p.id)} className="block w-full text-left">
+                {/* a real link to the video, so a new tab and a long-press Copy link work */}
+                <Link to={links.edit({ p: p.id })} className="block w-full text-left">
                   <span className="block aspect-[9/16] overflow-hidden rounded-xl bg-black">
                     {p.thumb && <img src={p.thumb} alt="" className="h-full w-full object-cover" />}
                   </span>
                   <span className="mt-1 block truncate text-xs font-semibold">{p.name}</span>
                   {/* the length it plays: a clip keeps its recording's duration, with the clip in its trims */}
                   <span className="block text-[11px] text-muted-foreground">{fmtTime(p.duration - (p.settings?.trimStart || 0) - (p.settings?.trimEnd || 0))}</span>
-                </button>
+                </Link>
                 <button type="button" aria-label={`Delete ${p.name}`} onClick={() => window.confirm(`Delete ${p.name}?`) && onRemove(p.id)}
                   className="absolute right-1.5 top-1.5 rounded-md bg-background/85 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus:opacity-100 [@media(pointer:coarse)]:p-[15px] [@media(pointer:coarse)]:opacity-100">
                   <Trash2 className="h-3.5 w-3.5" />
@@ -690,12 +690,11 @@ export function videoTarget(io: {
   };
 }
 
-export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
+export function Editor({ userId, leo, project, onSave, onBack }: {
   userId: string;
   leo: boolean;
   project: VideoProject;
   onSave: (p: VideoProject) => void;
-  onOpen: (id: string) => void;
   onBack: () => void;
 }) {
   const { toast } = useToast();
@@ -2112,7 +2111,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
       {showSizes && settings.exportAs !== "audio" && settings.exportAs !== "small" && (
         <ExportSizes projectId={project.id} name={project.name} settings={settings} seconds={total} srcW={video.current?.videoWidth || 1080} srcH={video.current?.videoHeight || 1920} onExport={(list) => void exportSizes(list)} />
       )}
-      <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onOpen={onOpen} />
+      <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} />
       {!words.length && isLong(duration, project.size) && <LongCaptions userId={userId} project={project} file={file} onWords={setWords} />}
       {/* Leo: an AI video of your face or a presenter, one line fixed or made in another language (?script, ?lang); a fix or its Undo puts the project under the edit as a swap does */}
       {leo && project.ai && (
@@ -2120,7 +2119,7 @@ export function Editor({ userId, leo, project, onSave, onOpen, onBack }: {
           onPut={(p) => { live.current = p; onSave(p); segIdx.current = 0; endAt.current = null; setWords(p.words); setSettings(p.settings); setHistory([]); setThumb(p.thumb); }} />
       )}
       {/* Leo: a video made from an edit plan (same edit) makes versions of it, one change each (?versions=1) */}
-      {leo && project.plan && <VersionsCard userId={userId} project={project} settings={settings} onOpen={onOpen} onLay={layEdit} />}
+      {leo && project.plan && <VersionsCard userId={userId} project={project} settings={settings} onLay={layEdit} />}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
@@ -3844,11 +3843,10 @@ function usePlanEntries(userId: string): PlanEntry[] {
 }
 
 /** The Versions card on a project made from an edit plan (Leo only); ?versions=1 opens it. Memo: the editor redraws while playing. */
-const VersionsCard = memo(function VersionsCard({ userId, project, settings, onOpen, onLay }: {
+const VersionsCard = memo(function VersionsCard({ userId, project, settings, onLay }: {
   userId: string;
   project: VideoProject;
   settings: EditSettings;
-  onOpen: (id: string) => void;
   /** Lays the plan over this take, one Undo step. */
   onLay: (next: EditSettings) => void;
 }) {
@@ -4076,7 +4074,7 @@ const VersionsCard = memo(function VersionsCard({ userId, project, settings, onO
               <li key={v.id} className="flex min-h-11 flex-wrap items-center gap-2 px-3 py-1.5 text-sm">
                 <span className="mr-auto">Version {i + 1}: {changeName(v)}</span>
                 {v.project === project.id ? <span className="text-xs text-muted-foreground">Open now</span>
-                  : there ? <Button size="sm" variant="ghost" className={btn} onClick={() => onOpen(v.project!)}>Open</Button>
+                  : there ? <Button size="sm" variant="ghost" asChild className={btn}><Link to={links.edit({ p: v.project! })}>Open</Link></Button>
                   : v.host.kind === "film" ? <Button size="sm" variant="ghost" asChild className={btn}><Link to={links.edit({ plan: planId, version: v.id })}>Upload the take</Link></Button>
                   : <span className="text-xs text-muted-foreground">{v.project ? "On another device" : "Not made yet"}</span>}
               </li>

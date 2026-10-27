@@ -35,7 +35,7 @@ const marked = {
   },
 };
 const html = (project: typeof plain, leo: boolean, at = "/edit?p=v1") =>
-  renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(Editor, { userId: "u1", leo, project, onSave: () => {}, onOpen: () => {}, onBack: () => {} })));
+  renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(Editor, { userId: "u1", leo, project, onSave: () => {}, onBack: () => {} })));
 
 const PLAIN = "7074e298d92dc25a88686897f9843816caa81d4bf795697570951ea1da3aa345";
 const PLAIN_LEO = "78e6d6ed50704ed712474f1d863a2787a4ed611bde261c0631262785a268259e";
