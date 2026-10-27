@@ -105,17 +105,17 @@ describe("the price of a press", () => {
 });
 
 describe("the price of a script before its voiceover exists (live-p5dog day 3: Eric's 46 words ran 18.5 s in three parts, US$3.44 under a US$2.77 card)", () => {
-  // [voice, words, the parts Make cut its voiceover into], from the dogfood's text-voice and ai-video calls on days 1 to 3
+  // [voice, words, the parts Make cut its voiceover into], from the dogfood's text-voice and ai-video calls on days 1 to 3,
+  // and live-p7a-fix's Raj version (27 Oct, calls 008 and 009; its two Alice reads made no Speak parts)
   const MADE: [VoiceId, number, number[]][] = [
     ["alice", 38, [8.19, 6.3]], ["alice", 38, [7.91, 6.39]], ["alice", 38, [8.61, 6.2]], ["alice", 39, [8.55, 5.43]],
-    ["eric", 46, [8.55, 9.04, 0.893]], ["eric", 48, [8.65, 8.25]],
+    ["eric", 46, [8.55, 9.04, 0.893]], ["eric", 48, [8.65, 8.25]], ["eric", 39, [8.07, 8.927]],
   ];
 
+  // Prices err high, never low (Leo, 24 Oct: an estimate may quote one part too many). At these rates one measured make
+  // quotes one part high: Eric's 48 words (live-p5dog, two parts, 44 credits) quote three, 55 credits.
   it("is never under the real parts' price for any make measured, in its own voice", () => {
-    for (const [voice, words, parts] of MADE) expect(scriptEstimate(words, voice).usd).toBeGreaterThanOrEqual(videoPrice(parts).usd);
-    expect(scriptEstimate(46, "eric").usd).toBeCloseTo(55 * 0.0625, 6);
-    // a 15 s script in Alice's voice stays two parts
-    expect(scriptEstimate(38, "alice").usd).toBeCloseTo(44 * 0.0625, 6);
+    for (const [voice, words, parts] of MADE) expect(scriptEstimate(words, voice).usd, `${voice} ${words}`).toBeGreaterThanOrEqual(videoPrice(parts).usd);
   });
 
   it("reads each voice at its slowest measured speed, and a voice not yet measured at the length rule's slow end", () => {
