@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { seedThread } from "@/lib/agentThreads";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
-  BUILT_IN_SKILLS, FULL_LINE, INSTRUCTION_CHARS, MAX_SKILLS, NAME_CHARS, PICK_LINE, PRICED, answerShown, isRunning, loadMySkills, loadSkillRuns, markSeen,
+  BUILT_IN_SKILLS, FULL_LINE, INSTRUCTION_CHARS, MAX_SKILLS, NAME_CHARS, PICK_LINE, PRICED, QUOTING, answerShown, isRunning, loadMySkills, loadSkillRuns, markSeen,
   onSkillsChanged, postChoices, postTitle, removeMySkill, restoreMySkill, runSkill, saveMySkill, skillRunText, slashOf, type MySkill, type SkillRun,
 } from "@/lib/chatSkills";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
@@ -202,7 +202,7 @@ function Skills({ userId }: { userId: string }) {
             {runs.map((r) => (
               <Result key={r.id} r={r} open={r.id === run}
                 onAsk={() => {
-                  const t = seedThread(userId, `${r.name}${r.title ? ` on "${r.title}"` : ""}`, skillRunText(r), r.links, undefined, !!r.quotes);
+                  const t = seedThread(userId, `${r.name}${r.title ? ` on "${r.title}"` : ""}`, skillRunText(r), r.links, undefined, QUOTING.includes(r.skill));
                   if (t.ok === false) return toast({ title: t.error, variant: "destructive" });
                   navigate(links.agent({ thread: t.item.id }));
                 }} />

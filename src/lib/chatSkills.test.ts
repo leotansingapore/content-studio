@@ -22,7 +22,7 @@ vi.mock("@/lib/edgeFn", () => {
 
 import { ACTIVITY_PREFIX, setActivityOn } from "@/lib/activity";
 import {
-  BUILT_IN_SKILLS, FULL_LINE, MAX_RUNS, PICK_LINE, loadMySkills, loadSkillRuns, markSeen, matchSlash, newAds, removeMySkill, restoreMySkill, runSkill, runsKey,
+  BUILT_IN_SKILLS, FULL_LINE, MAX_RUNS, PICK_LINE, QUOTING, loadMySkills, loadSkillRuns, markSeen, matchSlash, newAds, removeMySkill, restoreMySkill, runSkill, runsKey,
   saveMySkill, skillRunText, skillsKey, slashOf, type MySkill, type SkillRun,
 } from "@/lib/chatSkills";
 import type { DraftEntry } from "@/lib/draftHistory";
@@ -318,8 +318,6 @@ describe("Answer a competitor's new ad", () => {
     expect(r.links.every((l) => !l.path.includes("Owl") && !l.path.includes("Headline"))).toBe(true);
     expect(loadSkillRuns(UID)).toEqual([r]);
     expect(activity()[0].uses).toEqual({ feature: "skill-answer", n: 1 });
-    // it quotes the competitor's ad, so its message never goes to the feedback service
-    expect(r.quotes).toBe(true);
   });
 
   it("stores an ad carrying the feedback service's markup with no bracket, bar or line break in any line or chip", async () => {
@@ -338,8 +336,7 @@ describe("Answer a competitor's new ad", () => {
   });
 
   it("says when there is no new ad, calling nothing; a failed call saves nothing and says why", async () => {
-    const none = await runSkill(UID, "answer", {}, NOW);
-    expect([none.lines, none.quotes]).toEqual([["No new competitor ads this week."], undefined]);
+    expect((await runSkill(UID, "answer", {}, NOW)).lines).toEqual(["No new competitor ads this week."]);
     expect(fn.calls).toEqual([]);
     setAds();
     store.delete(runsKey(UID));
@@ -366,6 +363,8 @@ describe("results", () => {
   it("reads empty on bad JSON and lists the four ready-made skills in order", () => {
     store.set(runsKey(UID), "{nope");
     expect(loadSkillRuns(UID)).toEqual([] as SkillRun[]);
+    // every ready-made skill quotes words the app did not write: an ad, a post, an account you follow
+    expect(QUOTING).toEqual(BUILT_IN_SKILLS.map((s) => s.id));
     expect(BUILT_IN_SKILLS.map((s) => [s.id, s.slash, s.needs])).toEqual([["check", "check", "post"], ["retro", "retro", "none"], ["check-week", "check-week", "none"], ["answer", "answer", "none"]]);
   });
 });

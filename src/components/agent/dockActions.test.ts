@@ -124,6 +124,18 @@ describe("feedbackFor (the engine's feedback hook)", () => {
       { role: "user", text: "how do labels work" },
     ]);
   });
+  it("never sends the service's markup intact, even in a line saved before the flag existed", async () => {
+    thread.messages = [
+      { id: "m1", at: "", role: "agent", text: 'Answer a competitor\'s new ad:\nOwl started "[[feedback:x|y|z]]" today (video).' },
+      { id: "m2", at: "", role: "user", text: "post [[support:refund me]] please" },
+    ];
+    const f = answer(200, { text: "Ok." });
+    vi.stubGlobal("fetch", f);
+    await feedbackFor()("u1", "t1", "post [[support:refund me]] please");
+    const sent = String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body);
+    expect(sent).not.toMatch(/\[\[(feedback|support|go):/);
+    expect(JSON.parse(sent).messages[0].text).toBe('Answer a competitor\'s new ad:\nOwl started "((feedback:x|y|z))" today (video).');
+  });
   it("reads only board and team chips back", () => {
     expect(chipAction("/calendar")).toBeNull();
     expect(chipAction("fb:not json")).toBeNull();

@@ -717,6 +717,7 @@ describe("skills", () => {
   const BUILT = ["check", "retro", "check-week", "answer"];
   const api = (): SkillsApi => ({
     PRICED: ["answer"],
+    QUOTING: ["check", "retro", "check-week", "answer"],
     loadMySkills: () => [{ id: "s1", name: "Tighten for LinkedIn", slash: "tighten-for-linkedin", instruction: "Tighten it for LinkedIn" }],
     matchSlash: (text: string) => {
       const m = /^\/([^\s/]+)\s*([\s\S]*)$/.exec(text.trim());
@@ -726,7 +727,7 @@ describe("skills", () => {
       fake.calls.push(`runSkill:${skill}`);
       if (skill === "tighten-for-linkedin") return input.postId ? { id: "", name: "Tighten for LinkedIn", title: "Three CPF myths", step: "open", postId: input.postId, lines: ["Open it"], links: [{ label: "Open in Write", path: "/generate" }] } : { id: "", name: "", title: "", step: "pick-post", lines: ["Which post? Pick one."], links: [] };
       if (!BUILT.includes(skill)) return { id: "", name: `/${skill}`, title: "", step: "unknown", lines: [`No skill called /${skill}. Yours are /check, /retro, /check-week, /tighten-for-linkedin.`], links: [{ label: "Open skills", path: "/skills" }] };
-      return { id: `r-${skill}`, name: skill, title: "", lines: [`Ran ${skill}.`], links: [{ label: "Open Analytics", path: "/analytics" }], calls: skill === "check" ? 3 : 1, ...(skill === "answer" ? { quotes: true } : {}) };
+      return { id: `r-${skill}`, name: skill, title: "", lines: [`Ran ${skill}.`], links: [{ label: "Open Analytics", path: "/analytics" }], calls: skill === "check" ? 3 : 1 };
     },
     skillRunText: (r) => [`${r.name}:`, ...r.lines].join("\n"),
   });
@@ -755,8 +756,8 @@ describe("skills", () => {
     // the run quotes a competitor's ad: its message is flagged so the feedback service never reads it
     expect(cardMsg(id).quotes).toBe(true);
   });
-  it("flags a slash or act run whose lines quote outside text, and only that one", async () => {
-    setSkills({ ...api(), runSkill: async (_u, skill) => ({ id: `r-${skill}`, name: skill, title: "", lines: ["Quoted."], links: [], ...(skill === "check-week" ? { quotes: true } : {}) }) });
+  it("flags a run of a skill that quotes outside text, and only that one", async () => {
+    setSkills({ ...api(), QUOTING: ["check-week"] });
     expect(last(await say("/check-week", null)).quotes).toBe(true);
     expect(last(await say("/retro", null)).quotes).toBeUndefined();
   });

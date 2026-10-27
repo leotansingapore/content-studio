@@ -137,6 +137,8 @@ export const feedbackFor =
       m.text && !m.quotes && m.card?.plan.plan !== "answer" ? [{ role: m.role === "user" ? ("user" as const) : ("assistant" as const), text: m.text }] : [],
     );
     if (said[said.length - 1]?.text !== text) said.push({ role: "user", text });
+    // the backstop for lines saved before any flag: no [[ or ]] reaches the service, so its markup never arrives intact
+    for (const m of said) m.text = m.text.replace(/\[\[/g, "((").replace(/\]\]/g, "))");
     const r = await askFeedback(said, { thread: threadId, identity });
     // a service "go" keeps only an app path: the say:, format:, forget: and fb: prefixes are the engine's alone
     const go = r.actions.flatMap((a) => (a.type !== "go" ? [{ label: a.label, path: FB + JSON.stringify(a) }] : isAppPath(a.path) ? [{ label: a.label, path: a.path }] : []));

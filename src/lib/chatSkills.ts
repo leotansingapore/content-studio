@@ -70,8 +70,6 @@ export interface SkillRun {
    * when it works on a post).
    */
   step?: "pick-post" | "unknown" | "open";
-  /** Its lines quote a competitor's ad: its message is never sent to the feedback service. */
-  quotes?: true;
 }
 
 export const MAX_SKILLS = 12;
@@ -83,6 +81,12 @@ export const FULL_LINE = `You can keep ${MAX_SKILLS} skills. Delete one to add a
 export const PICK_LINE = "Which post? Pick one.";
 /** Built-in skills whose run spends a priced use, so a link never starts them (contracts, wave 1). */
 export const PRICED: readonly string[] = ["answer"];
+/**
+ * Built-in skills whose lines quote words the app did not write (an ad, a post, an account you follow): their messages,
+ * the agent's and Ask about this's, are never sent to the feedback service. Read from the run's skill, so runs saved
+ * before the flag count too.
+ */
+export const QUOTING: readonly string[] = ["check", "retro", "check-week", "answer"];
 
 const SKILLS = "content-studio-chatskills-";
 const RUNS = "content-studio-skillruns-";
@@ -237,7 +241,7 @@ export function newAds(userId: string, now = new Date()): AnswerAd[] {
   return out.sort((a, b) => b.days - a.days).slice(0, 10);
 }
 
-type Part = Pick<SkillRun, "lines" | "links" | "calls" | "quotes">;
+type Part = Pick<SkillRun, "lines" | "links" | "calls">;
 
 async function runCheck(userId: string, d: DraftEntry): Promise<Part> {
   const text = textOf(d);
@@ -314,7 +318,6 @@ async function runAnswer(userId: string, now: Date): Promise<Part> {
     lines: [`${ad.advertiser} started "${first}" ${ad.days ? `${plural(ad.days, "day")} ago` : "today"} (${ad.format}).`, ...angles.map((a, i) => `${i + 1}. ${a.title}: ${a.line}`)],
     links: angles.map((a) => ({ label: `Write this: ${a.title}`, path: links.generate({ pillar: "topic", detail: `${a.title}: ${a.line}`, ctx }) })),
     calls: 1,
-    quotes: true,
   };
 }
 
