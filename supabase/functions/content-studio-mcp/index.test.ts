@@ -156,6 +156,17 @@ describe("a live connection link", () => {
     expect(h.state.rpc).toEqual([expect.objectContaining({ fn: "cs_consume_ai_usage", p_user: A, p_feature: "mcp-calls" })]);
   });
 
+  it("answers as everyone's link, counting nothing, while NORTH_STAR_USERS is unset, empty or lists someone else", async () => {
+    h.rows.push(linkRow(A, A));
+    for (const list of [undefined, "", " , ", B]) {
+      env.NORTH_STAR_USERS = list;
+      const r = await post(`${A}.${SECRET}`, { jsonrpc: "2.0", id: 1, method: "tools/list" });
+      expect(JSON.parse(r.text).result.tools, String(list)).toHaveLength(6);
+      expect(JSON.parse((await post(`${A}.${SECRET}`, rpc("get_activity"))).text).error, String(list)).toEqual({ code: -32602, message: "Unknown tool get_activity" });
+    }
+    expect(h.state.rpc).toEqual([]);
+  });
+
   it("says try again, without the database's own words, when a read fails", async () => {
     h.rows.push(linkRow(A, A));
     h.state.fail = "permission denied for table cs_user_data at internal_host_42";
