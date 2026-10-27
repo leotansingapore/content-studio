@@ -38,7 +38,7 @@ import { writePlatformCaptions, type CaptionPlatform } from "@/lib/platformCapti
 import { useUsesLeft } from "@/lib/aiUsage";
 import { currentScore, scorePost, textKey, type SavedScore } from "@/lib/postScore";
 import { nextOpenSlots } from "@/lib/postingSlots";
-import { videoFit } from "@/lib/mediaFit";
+import { pictureFit, pictureLine, useMediaFacts, videoFit } from "@/lib/mediaFit";
 import { isNewTikTok, loadTikTokCare, markWarmed, modeOf, postsStale, saveMode, savePostCount, type TikTokMode as Mode } from "@/lib/tiktokCare";
 import { accountPosts } from "@/lib/autoDm";
 import {
@@ -148,6 +148,7 @@ const LABEL: Record<Step, string> = { where: "Where", when: "When", caption: "Ca
 const FIRST_COMMENT_MAX = 1250;
 
 type MediaMode = "carousel" | "pdf" | "slideshow" | "import" | "files" | "none";
+const NO_FILES: MediaFile[] = [];
 type When = "day" | "slot" | "pick" | "now";
 type TikTokForm = { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
 /** What the server takes from Leo's steps on top of today's request (read for listed uids only). */
@@ -287,24 +288,8 @@ export function ScheduleSteps({
       live = false;
     };
   }, [attachedSig]);
-  // the video's length, held to each ticked network's cap (mediaFit)
-  const videoFile = mode === "files" ? files.find((f) => f.type.startsWith("video/"))?.file : undefined;
-  const [videoSecs, setVideoSecs] = useState<number | null>(null);
-  useEffect(() => {
-    setVideoSecs(null);
-    if (!videoFile) return;
-    let live = true;
-    import("@/lib/videoMedia")
-      .then(({ loadVideo }) => loadVideo(videoFile))
-      .then((v) => {
-        URL.revokeObjectURL(v.src);
-        if (live) setVideoSecs(v.duration);
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [videoFile]);
+  // the video's length and the pictures' shapes, held to each ticked network's limits (mediaFit)
+  const facts = useMediaFacts(mode === "files" ? files : NO_FILES);
 
   useEffect(() => {
     if (hidden()) return;
@@ -467,10 +452,18 @@ export function ScheduleSteps({
     tiktok: tiktokInput,
   };
   const stories = tabs.filter((p) => (p === "instagram" || p === "facebook") && placementOf(p, versions, media) === "story");
-  const fits = videoSecs === null ? [] : tabs.flatMap((p) => {
-    const fit = videoFit(p, videoSecs, { placement: placementOf(p, versions, media), tiktokMax: p === "tiktok" ? info?.maxVideoSeconds : null });
-    return fit ? [{ p, ...fit }] : [];
-  });
+  const seconds = facts.seconds;
+  const igShape =
+    tabs.includes("instagram") && placementOf("instagram", versions, media) !== "story"
+      ? pictureLine(files.flatMap((f, i) => (f.type.startsWith("image/") ? [facts.sizes[i] ? pictureFit(facts.sizes[i]!.width, facts.sizes[i]!.height) : null] : [])))
+      : null;
+  const fits = [
+    ...(seconds === null ? [] : tabs.flatMap((p) => {
+      const fit = videoFit(p, seconds, { placement: placementOf(p, versions, media), tiktokMax: p === "tiktok" ? info?.maxVideoSeconds : null });
+      return fit ? [{ p, ...fit }] : [];
+    })),
+    ...(mode === "files" && igShape ? [{ p: "instagram", line: igShape, hard: true }] : []),
+  ];
   const tooLong = fits.find((f) => f.hard)?.line ?? null;
   const commentOn = tabs.some((p) => p !== "tiktok");
   const fcFlags = scanCompliance(firstComment);
@@ -955,7 +948,7 @@ export function ScheduleSteps({
                     ))}
                     {files.length > MAX_PICTURES && <p className="text-destructive">Pick up to {MAX_PICTURES} pictures.</p>}
                     {fits.map((f) => (
-                      <p key={f.p} className={`flex flex-wrap items-center gap-x-2 ${f.hard ? "text-destructive" : "text-amber-800 dark:text-amber-300"}`}>
+                      <p key={`${f.p}-${f.line}`} className={`flex flex-wrap items-center gap-x-2 ${f.hard ? "text-destructive" : "text-amber-800 dark:text-amber-300"}`}>
                         {f.line}
                         <button type="button" onClick={() => toggleNetwork(f.p, false)} className={`font-semibold text-primary hover:underline ${TOUCH}`}>
                           Untick {platformName(f.p)}

@@ -89,7 +89,7 @@ import { storePicture } from "@/lib/mediaLibrary";
 import StockSearch from "@/components/StockSearch";
 import { downloadStock } from "@/lib/stockMedia";
 import { fileProblem, fileType, MAX_PICTURES, NEEDS_MEDIA } from "@/lib/autoPost";
-import { videoFit } from "@/lib/mediaFit";
+import { cropRatio, pictureFit, pictureLine, videoFit } from "@/lib/mediaFit";
 import { analyzePosts } from "@/lib/coach";
 import type { PlatformId } from "@/lib/platformCounters";
 import {
@@ -2783,6 +2783,54 @@ export default function GeneratePage() {
   // read off the attached video's tile, for the network's length cap (mediaFit)
   const [attachedSecs, setAttachedSecs] = useState<number | null>(null);
   const videoLine = attachedVideo && attachedSecs !== null ? videoFit(platform, attachedSecs)?.line : null;
+  // and each picture's size, for the shapes Instagram's feed takes; Crop to fit keeps the middle, with Undo
+  const [picSizes, setPicSizes] = useState<Record<string, [number, number]>>({});
+  const pics = attachedMedia.media.filter((m) => !m.video);
+  const picFits = platform === "instagram" ? pics.map((m) => (picSizes[m.key] ? pictureFit(...picSizes[m.key]) : null)) : [];
+  const shapeLine = pictureLine(picFits);
+  const [cropping, setCropping] = useState(false);
+  const cropToFit = async () => {
+    if (!userId || !currentDraftId || cropping) return;
+    const id = currentDraftId;
+    const before = attachedKeys;
+    setCropping(true);
+    try {
+      const next = await Promise.all(
+        before.map(async (k) => {
+          const fit = picFits[pics.findIndex((m) => m.key === k)];
+          const blob = fit ? await getFile(k) : undefined;
+          return blob && fit ? (await storePicture(blob, 1080, cropRatio(fit))).key : k;
+        }),
+      );
+      setDraftAttached(userId, id, next);
+      setAttachedKeys(next);
+      const swap = (from: string[], to: string[]) => from.filter((k) => !to.includes(k));
+      // the originals stay on the device while Undo can still bring them back
+      const sweep = setTimeout(() => {
+        for (const k of swap(before, next)) if (!loadDrafts(userId).some((d) => d.attached?.includes(k))) void deleteFile(k).catch(() => {});
+      }, 20000);
+      toast({
+        title: "Cropped to fit Instagram's feed",
+        action: (
+          <ToastAction
+            altText="Undo"
+            onClick={() => {
+              clearTimeout(sweep);
+              setDraftAttached(userId, id, before);
+              setAttachedKeys(before);
+              swap(next, before).forEach((k) => void deleteFile(k).catch(() => {}));
+            }}
+          >
+            Undo
+          </ToastAction>
+        ),
+      });
+    } catch (e) {
+      toast({ title: "Couldn't crop it", description: e instanceof Error ? e.message : "Try again.", variant: "destructive" });
+    } finally {
+      setCropping(false);
+    }
+  };
   const attachFiles = async (picked: File[]) => {
     if (!picked.length || !userId || attaching) return;
     const fail = (description: string) => toast({ title: "Couldn't attach that", description, variant: "destructive" });
@@ -4604,7 +4652,15 @@ export default function GeneratePage() {
                       {m.video ? (
                         <video src={m.url} muted playsInline onLoadedMetadata={(e) => setAttachedSecs(e.currentTarget.duration)} className="h-16 w-16 rounded-md bg-black object-cover" />
                       ) : (
-                        <img src={m.url} alt={`Attached picture ${i + 1}`} className="h-16 w-16 rounded-md object-cover" />
+                        <img
+                          src={m.url}
+                          alt={`Attached picture ${i + 1}`}
+                          onLoad={(e) => {
+                            const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                            setPicSizes((s) => (s[m.key] ? s : { ...s, [m.key]: [w, h] }));
+                          }}
+                          className="h-16 w-16 rounded-md object-cover"
+                        />
                       )}
                       <button
                         type="button"
@@ -4649,6 +4705,15 @@ export default function GeneratePage() {
                   <p className="text-xs text-amber-800 dark:text-amber-300">{platformLabel(platform)} needs a picture or video to post.</p>
                 )}
                 {videoLine && <p className="text-xs text-amber-800 dark:text-amber-300">{videoLine}</p>}
+                {shapeLine && (
+                  <p className="flex flex-wrap items-center gap-x-2 text-xs text-amber-800 dark:text-amber-300">
+                    {shapeLine}
+                    <button type="button" disabled={cropping} onClick={() => void cropToFit()} className="-my-2 inline-flex items-center gap-1 py-2 font-semibold text-primary hover:underline disabled:opacity-60 [@media(pointer:coarse)]:min-h-11">
+                      {cropping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Crop to fit
+                    </button>
+                  </p>
+                )}
               </div>
             </div>
 

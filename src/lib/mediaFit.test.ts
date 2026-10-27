@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { videoFit } from "./mediaFit";
+import { centerCrop } from "./mediaLibrary";
+import { cropRatio, pictureFit, pictureLine, videoFit } from "./mediaFit";
 
 describe("videoFit", () => {
   it("lets a video under the network's cap go", () => {
@@ -29,5 +30,31 @@ describe("videoFit", () => {
   it("knows nothing of networks it has no caps for, or a length it couldn't read", () => {
     expect(videoFit("telegram", 9999)).toBeNull();
     expect(videoFit("instagram", NaN)).toBeNull();
+  });
+});
+
+describe("Instagram's feed shapes", () => {
+  it("lets 4:5 to 1.91:1 through and names the side a picture breaks", () => {
+    expect(pictureFit(1080, 1350)).toBeNull();
+    expect(pictureFit(1080, 1080)).toBeNull();
+    expect(pictureFit(1080, 565)).toBeNull();
+    expect(pictureFit(1080, 1920)).toBe("taller");
+    expect(pictureFit(1080, 400)).toBe("wider");
+  });
+
+  it("says which pictures break it, numbered as attached", () => {
+    expect(pictureLine([null, null])).toBeNull();
+    expect(pictureLine(["taller"])).toBe("Instagram's feed takes pictures from 4:5 tall to 1.91:1 wide. This picture is taller.");
+    expect(pictureLine([null, "wider", null])).toBe("Instagram's feed takes pictures from 4:5 tall to 1.91:1 wide. Picture 2 is wider.");
+    expect(pictureLine(["taller", null, "wider"])).toBe("Instagram's feed takes pictures from 4:5 tall to 1.91:1 wide. Pictures 1, 3 are outside that.");
+  });
+
+  it("crops the middle to the nearest shape the feed takes, which then fits", () => {
+    const tall = centerCrop(1080, 1920, cropRatio("taller"));
+    expect(tall).toEqual({ x: 0, y: 285, w: 1080, h: 1350 });
+    expect(pictureFit(tall.w, tall.h)).toBeNull();
+    const wide = centerCrop(3000, 1000, cropRatio("wider"));
+    expect(wide).toEqual({ x: 545, y: 0, w: 1910, h: 1000 });
+    expect(pictureFit(wide.w, wide.h)).toBeNull();
   });
 });

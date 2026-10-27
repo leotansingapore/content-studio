@@ -194,7 +194,18 @@ export function foldersOf(list: MediaItem[]): string[] {
 }
 
 /** Resizes a picture to at most `maxWidth` wide, keeps it on this device and returns its key and a data URL to draw. */
-export async function storePicture(file: Blob, maxWidth = 1080): Promise<{ key: string; url: string; width: number; height: number }> {
+/** The middle of a w x h picture at `ratio` (width / height). */
+export function centerCrop(w: number, h: number, ratio: number): { x: number; y: number; w: number; h: number } {
+  if (w / h > ratio) {
+    const cw = Math.round(h * ratio);
+    return { x: Math.round((w - cw) / 2), y: 0, w: cw, h };
+  }
+  const ch = Math.round(w / ratio);
+  return { x: 0, y: Math.round((h - ch) / 2), w, h: ch };
+}
+
+/** `ratio` (width / height) crops the middle to that shape before shrinking. */
+export async function storePicture(file: Blob, maxWidth = 1080, ratio?: number): Promise<{ key: string; url: string; width: number; height: number }> {
   const src = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -203,13 +214,14 @@ export async function storePicture(file: Blob, maxWidth = 1080): Promise<{ key: 
       i.onerror = () => reject(new Error("That file isn't an image this browser can read."));
       i.src = src;
     });
-    const k = Math.min(1, maxWidth / img.naturalWidth);
+    const r = ratio ? centerCrop(img.naturalWidth, img.naturalHeight, ratio) : { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+    const k = Math.min(1, maxWidth / r.w);
     const c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(img.naturalWidth * k));
-    c.height = Math.max(1, Math.round(img.naturalHeight * k));
+    c.width = Math.max(1, Math.round(r.w * k));
+    c.height = Math.max(1, Math.round(r.h * k));
     const g = c.getContext("2d");
     if (!g) throw new Error("This browser can't resize images.");
-    g.drawImage(img, 0, 0, c.width, c.height);
+    g.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
     const url = c.toDataURL("image/jpeg", 0.85);
     const blob = await (await fetch(url)).blob();
     const key = `cimg-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;

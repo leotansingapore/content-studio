@@ -1,6 +1,7 @@
 // Will the attached media go on this network? Checked while writing and in the schedule steps, so a post isn't
 // refused by the network after it is sent. Video lengths are each network's page on docs.zernio.com/platforms
-// (read 2026-10-28), the path every post goes through.
+// (read 2026-10-28), the path every post goes through; picture shapes are Meta's Instagram publishing rules.
+import { useEffect, useState } from "react";
 import { clock } from "@/lib/hookDemo";
 import { platformName } from "@/lib/socialConnect";
 
@@ -45,4 +46,60 @@ export function videoFit(
     line: `${where(platform, o.placement)} takes videos up to ${clock(max)}${more ? ` ${more[1]}` : ""}. ${runs}`,
     hard: !more || Math.round(seconds) > more[0],
   };
+}
+
+/** Meta's Instagram feed takes pictures from 4:5 (tall) to 1.91:1 (wide); Stories and the other networks take any. */
+export const IG_TALLEST = 4 / 5;
+export const IG_WIDEST = 1.91;
+
+/** Which way a picture breaks Instagram's feed shape, or null when it fits. */
+export function pictureFit(width: number, height: number): "taller" | "wider" | null {
+  if (!width || !height) return null;
+  const r = width / height;
+  return r < IG_TALLEST - 0.005 ? "taller" : r > IG_WIDEST + 0.005 ? "wider" : null;
+}
+
+/** The line for pictures (in attached order) that break Instagram's feed shape, or null. */
+export function pictureLine(fits: ("taller" | "wider" | null)[]): string | null {
+  const bad = fits.flatMap((f, i) => (f ? [i + 1] : []));
+  if (!bad.length) return null;
+  const which = fits.length === 1 ? "This picture is" : bad.length === 1 ? `Picture ${bad[0]} is` : `Pictures ${bad.join(", ")} are`;
+  const ways = new Set(bad.map((i) => fits[i - 1]));
+  return `Instagram's feed takes pictures from 4:5 tall to 1.91:1 wide. ${which} ${ways.size > 1 ? "outside that" : [...ways][0]}.`;
+}
+
+/** The nearest shape Instagram's feed takes, to crop to. */
+export const cropRatio = (fit: "taller" | "wider") => (fit === "taller" ? IG_TALLEST : IG_WIDEST);
+
+type Facts = { seconds: number | null; sizes: ({ width: number; height: number } | null)[] };
+
+/** A video's length and each picture's size, read on this device for the checks above; empty until read. */
+export function useMediaFacts(list: { file: Blob; type: string }[]): Facts {
+  const [facts, setFacts] = useState<Facts>({ seconds: null, sizes: [] });
+  useEffect(() => {
+    setFacts({ seconds: null, sizes: [] });
+    if (!list.length) return;
+    let live = true;
+    const read = async (f: { file: Blob; type: string }) => {
+      if (f.type.startsWith("video/")) {
+        const { loadVideo } = await import("@/lib/videoMedia");
+        const v = await loadVideo(f.file);
+        URL.revokeObjectURL(v.src);
+        return v.duration;
+      }
+      const b = await createImageBitmap(f.file);
+      const size = { width: b.width, height: b.height };
+      b.close();
+      return size;
+    };
+    void Promise.all(list.map((f) => read(f).catch(() => null))).then((got) => {
+      if (!live) return;
+      const seconds = got.find((g): g is number => typeof g === "number") ?? null;
+      setFacts({ seconds, sizes: got.map((g) => (g && typeof g === "object" ? g : null)) });
+    });
+    return () => {
+      live = false;
+    };
+  }, [list]);
+  return facts;
 }
