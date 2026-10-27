@@ -86,10 +86,17 @@ select public.cs_test_assert(
   '0.5 all five are SECURITY DEFINER with search_path pinned to pg_catalog, public, pg_temp');
 
 select public.cs_test_assert(
-  (select bool_and(p.proconfig @> array['log_min_error_statement=panic', 'log_parameter_max_length_on_error=0'])
-   from pg_proc p where p.oid in ('public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure,
-                                  'public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text)'::regprocedure)),
-  '0.5b belt and braces: the save sets log_min_error_statement = panic and log_parameter_max_length_on_error = 0 (it is 0.5d''s server settings that keep a token out of the logs)');
+  not exists (
+    select 1
+    from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+    join pg_settings st on st.name = split_part(c, '=', 1)
+    where p.oid in ('public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure,
+                    'public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text)'::regprocedure,
+                    'public.cs_telegram_bot_token(bigint)'::regprocedure, 'public.cs_telegram_bots_forget_token()'::regprocedure,
+                    'public.cs_telegram_bots_release_chats()'::regprocedure)
+      and st.context = 'superuser'
+  ),
+  '0.5b no 027 function sets a superuser-only parameter: the migration role on academy is not a superuser and may not');
 
 -- Bind values are logged, or not, when a statement is bound, before any function's SET clause applies: what keeps a
 -- token passed to cs_telegram_bot_save out of the logs is the server's settings.
@@ -103,8 +110,24 @@ select public.cs_test_assert(
   and not exists (
     select 1 from pg_db_role_setting rs, unnest(rs.setconfig) c
     where c ~ '^(log_statement|log_min_duration|log_parameter|pgaudit\.|auto_explain\.)'
+  )
+  -- auto_explain logs a statement slower than its threshold, parameters included unless told not to: the API role
+  -- (authenticator, where it exists) must time out first, or auto_explain must log no parameters
+  and (
+    not exists (select 1 from pg_roles where rolname = 'authenticator')
+    or coalesce((select setting::int from pg_settings where name = 'auto_explain.log_parameter_max_length'), -1) = 0
+    or exists (
+      select 1
+      from pg_db_role_setting rs join pg_roles r on r.oid = rs.setrole, unnest(rs.setconfig) c,
+           lateral (select substring(c from '^statement_timeout=(.*)$') v) t
+      where r.rolname = 'authenticator' and rs.setdatabase = 0 and t.v is not null
+        and (case when t.v ~ '^[0-9]+$' then t.v::bigint
+                  when t.v ~ '^[0-9]+ms$' then left(t.v, -2)::bigint
+                  when t.v ~ '^[0-9]+s$' then left(t.v, -1)::bigint * 1000
+                  when t.v ~ '^[0-9]+min$' then left(t.v, -3)::bigint * 60000 end) between 1 and 8000
+    )
   ),
-  '0.5d the server keeps bind values out of its logs: log_statement none or ddl, no duration logging or sampling, no parameters on errors, no pgaudit, auto_explain slower than any API statement may run, and no role overriding any of them');
+  '0.5d the server keeps bind values out of its logs: log_statement none or ddl, no duration logging or sampling, no parameters on errors, no pgaudit, auto_explain slower than any API statement may run (authenticator times out by 8 s, or auto_explain logs no parameters), and no role overriding any of them');
 
 select public.cs_test_assert(
   exists (

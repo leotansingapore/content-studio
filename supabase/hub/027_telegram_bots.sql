@@ -41,9 +41,10 @@
 --          'auto_explain.log_min_duration');
 --        select r.rolname, s.setconfig from pg_db_role_setting s left join pg_roles r on r.oid = s.setrole;
 --     Belt and braces on top: the edge function checks the token's shape and that the bot and brand are free before
---     calling cs_telegram_bot_save; the function checks everything again and answers null rather than raising once
---     it holds the token (no unguarded cast, no message with the token); and it runs with log_min_error_statement =
---     panic and log_parameter_max_length_on_error = 0.
+--     calling cs_telegram_bot_save or cs_telegram_bot_replace_token, and the functions check everything again and
+--     answer null or false rather than raising once they hold the token (no unguarded cast, no message with the
+--     token). They set no logging parameter themselves: those are superuser-only, and the migration role on academy
+--     (postgres) is not a superuser.
 --   * The functions are service_role only, SECURITY DEFINER with the house search_path. Storage is untouched.
 --
 -- Grants
@@ -69,10 +70,6 @@
 --      and the policies on storage.objects are as 026 found them (027 adds none):
 --        select polname, polcmd, polroles::regrole[], pg_get_expr(polqual, polrelid) from pg_policy
 --        where polrelid = 'storage.objects'::regclass;
---      Postgres 15 or later, and the migration role may set log_min_error_statement in a function's SET clause
---      (a superuser, or GRANT SET ON PARAMETER); both must return true, or cs_telegram_bot_save can't be created:
---        select current_setting('server_version_num')::int >= 150000;
---        select (select rolsuper from pg_roles where rolname = current_user) or has_parameter_privilege('log_min_error_statement', 'SET');
 --   2. An independent review of this file and 027_telegram_bots.test.sql (migration-review-before-apply).
 --   3. Deploy the telegram and telegram-hook versions that read cs_telegram_bots after applying; the deployed ones
 --      ignore the new column until then.
@@ -129,7 +126,7 @@ alter table public.cs_telegram_chats add constraint cs_telegram_chats_bot_fk
 
 -- Stores the token in Vault and the row with its id. Every refusal is a null, never an error, and everything that could
 -- refuse is checked before the secret is made. The server's logging settings are what keep the call's bind values out
--- of the logs (see the header); the SET clause is belt and braces.
+-- of the logs (see the header).
 create or replace function public.cs_telegram_bot_save(
   p_owner uuid,
   p_profile text,
@@ -142,8 +139,6 @@ create or replace function public.cs_telegram_bot_save(
 language plpgsql
 security definer
 set search_path = pg_catalog, public, pg_temp
-set log_min_error_statement = panic
-set log_parameter_max_length_on_error = 0
 as $fn$
 declare
   v_secret uuid;
@@ -171,7 +166,7 @@ end $fn$;
 
 -- A new token for the same bot (the old one was revoked in BotFather, or leaked): written into the bot's Vault secret in
 -- place, with the new webhook's hash, and the bot is active again. Every chat tied through it stays connected. A
--- refusal is false, never an error; the same belt-and-braces SET clause as the save.
+-- refusal is false, never an error, as with the save.
 create or replace function public.cs_telegram_bot_replace_token(
   p_owner uuid,
   p_profile text,
@@ -182,8 +177,6 @@ create or replace function public.cs_telegram_bot_replace_token(
 language plpgsql
 security definer
 set search_path = pg_catalog, public, pg_temp
-set log_min_error_statement = panic
-set log_parameter_max_length_on_error = 0
 as $fn$
 declare
   v_secret uuid;
