@@ -1,5 +1,16 @@
 [
   {
+    "id": "27931de461be",
+    "title": "S’pore to raise retirement age to 65, re-employment age to 70 in 2029; expand flexi work for seniors",
+    "gist": "Singapore will raise the retirement age to 65 and the re-employment age to 70 on Jan 1, 2029. The Tripartite Workgroup on Senior Employment said this gives senior workers greater assurance to continue working if they wish to. The changes will take effect one year ahead of the original target.",
+    "talkingPoint": "Clients may want to consider how working longer or using flexi-load arrangements could affect their retirement plans. You can ask how long they hope to remain employed and look at their retirement timeline together.",
+    "clientMessage": "Hi [Client name], Singapore will raise the retirement age to 65 and the re-employment age to 70 on Jan 1, 2029. The changes take effect one year earlier than planned, alongside more flexible work options for senior workers. If you plan to continue working longer or adjust your workload, this could affect your retirement timeline. We can look at your current plan together if you would like to see how this fits in. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/business/spore-to-raise-retirement-age-to-65-re-employment-age-to-70-in-2029-expand-flexi-work-for-seniors",
+    "publishedAt": "2026-10-26T05:30:00+00:00",
+    "topic": "CPF and retirement"
+  },
+  {
     "id": "73826671d6f0",
     "title": "foodpanda offers full-time rider jobs from S$1,800/month, with CPF contributions & benefits",
     "gist": "On Oct. 21, foodpanda rolled out full-time delivery rider roles in Singapore offering at least S$1,800 per month. The roles require 44 hours of work a week and include full CPF contributions, medical coverage, and other benefits under the Employment Act. To qualify for the base salary, riders must hit a monthly target of 320 qualifying orders.",
@@ -510,18 +521,6 @@
     "clipping": "/news/6d46dc1c57d8.jpg"
   },
   {
-    "id": "38d77cf6f8ef",
-    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
-    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
-    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "Mothership",
-    "url": "https://mothership.sg/2026/02/2026-budget-summary",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Cost of living",
-    "clipping": "/news/38d77cf6f8ef.jpg"
-  },
-  {
     "id": "146ce01a9327",
     "title": "Budget 2026 Highlights",
     "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
@@ -532,6 +531,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "CPF and retirement",
     "clipping": "/news/146ce01a9327.jpg"
+  },
+  {
+    "id": "38d77cf6f8ef",
+    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
+    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
+    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/02/2026-budget-summary",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
     "id": "e98550debf11",
