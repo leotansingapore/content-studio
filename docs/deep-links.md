@@ -514,7 +514,7 @@ another language is a draft or a carousel like any other: /generate?draft=<versi
 North star phase 5 (docs/north-star/items/brand-audiences.md, plan-goal.md, plan-campaign.md, plan-angles.md,
 plan-campaign-page.md, plan-review-queue.md, plan-autopilot.md, plan-content-plan.md, plan-interview.md,
 plan-ideas-inbox.md). Every row below is Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides /audiences,
-/campaigns and /ideas and anyone else gets the not-found page there (and at /campaigns/new and /campaigns/<id>),
+/campaigns and /ideas and anyone else gets the not-on-your-account page there (and at /campaigns/new and /campaigns/<id>),
 and the new params and anchors on /home, /plan, /coach, /generate and /generate/batch are ignored for anyone else,
 who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults left out of links.
 
@@ -533,6 +533,7 @@ who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults
 | /campaigns/<id> | post | Leo only. a post's number, 1-based: that post shown in the queue; out of range shows the first post not yet made | the first post not yet made | replace | /campaigns/c-lq3k9z?post=4 |
 | /campaigns/<id> | view | Leo only. grid: the queue as cards; a card opens one at a time on that post | one at a time | replace | /campaigns/c-lq3k9z?view=grid |
 | /campaigns/<id> | angle | Leo only. an angle's id: the queue filtered to it and its chip outlined; an unknown id shows every angle | every angle | replace | /campaigns/c-lq3k9z?angle=ang-2 |
+| /campaigns/<id> | configure | Leo only. 1: the campaign settings panel open under the header (name, pace, length) | closed | push | /campaigns/c-lq3k9z?configure=1 |
 | /campaigns/<id> | #queue | Leo only. scrolls to the review queue | top | (anchor) | /campaigns/c-lq3k9z?post=4#queue |
 | /plan | #section | Leo only. autopilot, pillars | top | (anchor) | /plan#autopilot |
 | /plan | autopilot | Leo only. settings: autopilot's settings dialog | closed | push | /plan?autopilot=settings |

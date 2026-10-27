@@ -6,7 +6,7 @@
 import type { FunnelStageId } from "@/data/funnelFramework";
 import { loadAudiences } from "@/lib/audiences";
 import { generatePlan, planItemDate, planOptionsFor, steerFor, upcomingMonday, type GeneratePlanOptions, type PlanPillar } from "@/lib/contentPlan";
-import { localDateKey } from "@/lib/dueDates";
+import { keyToDate, localDateKey } from "@/lib/dueDates";
 import { draftStatus, engagement, MAX_DRAFTS, type DraftEntry } from "@/lib/draftHistory";
 import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
@@ -184,6 +184,33 @@ export function planCampaign(userId: string, ask: CampaignAsk, today: Date): Cam
     target: { posts: posts.length, winners: winnersFor(posts.length) },
     posts,
   };
+}
+
+/** Why pace and length can't change now, or null: once a post is made, or while words are on their way (the writer fills posts by number). */
+export function replanLock(c: Pick<Campaign, "posts">): string | null {
+  if (c.posts.some((p) => p.state === "made" || p.state === "making")) return "Pace and length are fixed once a post is made.";
+  return c.posts.some((p) => p.state === "drafting") ? "Pace and length open again when the posts being written are done." : null;
+}
+
+/** A post whose words a new pace or length keeps: written, or further on. A failed one has none, so it waits again. */
+export const hasWords = (p: CampaignPost) => p.state !== "waiting" && p.state !== "failed";
+
+/**
+ * The campaign over a new length and pace, laid out again from its own start day: posts with words keep them, in
+ * order, on the new days; the other slots wait to be written; any past the new end are dropped.
+ */
+export function replanCampaign(userId: string, c: Campaign, next: Pick<Campaign, "weeks" | "perWeek">): Campaign {
+  const positioning = loadPositioning(userId) ?? EMPTY_POSITIONING;
+  const options = { ...planOptionsFor(userId, c.platforms[0] ?? positioning.platform, { plan: null }), ...steerFor(userId) };
+  const slots = buildCampaignPosts({ ...c, ...next }, positioning, options, keyToDate(c.startDay));
+  const posts = slots.map((s, i): CampaignPost => {
+    const old = c.posts[i];
+    if (!old || !hasWords(old)) return s;
+    const kept: CampaignPost = { ...old, n: s.n, day: s.day, time: s.time };
+    if (!s.time) delete kept.time;
+    return kept;
+  });
+  return { ...c, ...next, posts, target: { posts: posts.length, winners: winnersFor(posts.length) } };
 }
 
 export type CampaignStatus = "draft" | "running" | "done";

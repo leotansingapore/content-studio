@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
-  planCampaign, type PostState, REMIX_MAKE, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
+  planCampaign, type PostState, REMIX_MAKE, replanCampaign, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
 import { MAX_DRAFTS, type DraftEntry } from "./draftHistory";
 import { priceOf, type Price } from "./prices";
@@ -257,6 +257,43 @@ describe("keyAction", () => {
   });
   it("ignores keys pressed with a modifier", () => {
     for (const m of ["altKey", "ctrlKey", "metaKey", "shiftKey"]) expect(key("1", { [m]: true })).toBeNull();
+  });
+});
+
+describe("changing pace and length", () => {
+  // Monday 26 Oct; posts 1-4 written, the rest waiting
+  const c = (o: Partial<Campaign> = {}) => {
+    const base = campaign({ formats: ["text-post"], startDay: "2026-10-26", ...o });
+    return { ...base, posts: base.posts.map((p) => (p.n <= 4 ? { ...p, hook: `Hook ${p.n}` } : { ...p, state: "waiting" as const, hook: undefined })) };
+  };
+
+  it("keeps the start day and the written posts in order, adds waiting slots when longer, drops the tail when shorter", () => {
+    const longer = replanCampaign(UID, c(), { weeks: 6, perWeek: 3 });
+    expect(longer).toMatchObject({ weeks: 6, perWeek: 3, startDay: "2026-10-26", target: { posts: 18, winners: winnersFor(18) } });
+    expect(longer.posts.map((p) => p.n)).toEqual(Array.from({ length: 18 }, (_, i) => i + 1));
+    expect(longer.posts.slice(0, 4).map((p) => [p.hook, p.state])).toEqual([1, 2, 3, 4].map((n) => [`Hook ${n}`, "ready"]));
+    expect(longer.posts.slice(4).every((p) => p.state === "waiting" && !p.hook)).toBe(true);
+    expect(longer.posts.every((p) => p.day >= "2026-10-26" && p.day <= "2026-12-06")).toBe(true);
+    expect(longer.posts.map((p) => p.day)).toEqual([...longer.posts.map((p) => p.day)].sort());
+
+    const shorter = replanCampaign(UID, c(), { weeks: 1, perWeek: 3 });
+    expect(shorter.posts.map((p) => p.hook)).toEqual(["Hook 1", "Hook 2", "Hook 3"]);
+    expect(shorter.posts.every((p) => p.day <= "2026-11-01")).toBe(true);
+    // a failed post has no words: it waits again, so the writer retries it
+    const failed = c();
+    failed.posts[1] = { ...failed.posts[1], state: "failed", error: "This post could not be written.", hook: undefined };
+    expect(replanCampaign(UID, failed, { weeks: 4, perWeek: 3 }).posts[1]).toMatchObject({ n: 2, state: "waiting" });
+    expect(replanCampaign(UID, failed, { weeks: 4, perWeek: 3 }).posts[1]).not.toHaveProperty("error");
+    // a written post takes its new slot's day and time, never its old one
+    const faster = replanCampaign(UID, c(), { weeks: 4, perWeek: 7 });
+    expect(faster.posts[3]).toMatchObject({ n: 4, hook: "Hook 4", day: "2026-10-29" });
+  });
+
+  it("locks once a post is made or while words are being written", () => {
+    expect(replanLock(c())).toBeNull();
+    expect(replanLock(campaign({ posts: [post(1, { state: "made" })] }))).toMatch(/once a post is made/);
+    expect(replanLock(campaign({ posts: [post(1, { state: "making" })] }))).toMatch(/once a post is made/);
+    expect(replanLock(campaign({ posts: [post(1, { state: "drafting" })] }))).toMatch(/posts being written/);
   });
 });
 

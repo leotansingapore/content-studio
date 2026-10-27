@@ -1,6 +1,6 @@
 // One campaign (/campaigns/:id, Leo's sign-ins only; docs/north-star/items/plan-campaign-page.md): the header with
-// Rename and Delete (Undo), the paused and finished states, then the cost, where and goal panels on one row and the
-// review queue under #queue (panels and queue arrive in wave 4). Opening it resumes any posts still to be written
+// Configure (?configure=1: name, pace and length), Rename and Delete (Undo), the paused and finished states, then the
+// cost, where and goal panels on one row and the review queue under #queue (panels and queue arrive in wave 4). Opening it resumes any posts still to be written
 // (src/lib/campaignJob.ts, outside React). ?angle= filters the queue; ?post= and ?view= are the queue's own.
 // Everyone else gets the 404 page.
 
@@ -8,6 +8,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MoreHorizontal } from "lucide-react";
 import CampaignQueue from "@/components/campaign/CampaignQueue";
+import ConfigurePanel from "@/components/campaign/ConfigurePanel";
 import CostPanel from "@/components/campaign/CostPanel";
 import GoalPanel from "@/components/campaign/GoalPanel";
 import WherePanel from "@/components/campaign/WherePanel";
@@ -25,7 +26,7 @@ import { keyToDate, localDateKey } from "@/lib/dueDates";
 import { links } from "@/lib/links";
 import { platformName } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useScrollToHash, useUrlState } from "@/lib/urlState";
+import { useScrollToHash, useUrlItem, useUrlState } from "@/lib/urlState";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const STATUS = { draft: "Draft", running: "Running", done: "Done" } as const;
@@ -77,6 +78,7 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
     return () => document.removeEventListener("pointerdown", away);
   }, [menu]);
   const [renaming, setRenaming] = useState(false);
+  const [configure, openConfigure, closeConfigure] = useUrlItem("configure");
   const cancelled = useRef(false);
 
   if (!c) {
@@ -162,6 +164,10 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
             <span className={`${CHIP} ${status === "running" ? "border-primary/40 bg-primary/10 text-primary" : status === "done" ? "border-success/40 bg-success/10 text-success" : "bg-muted/50"}`}>
               {STATUS[status]}
             </span>
+            <Button variant="outline" className={BIG} aria-expanded={configure === "1"} aria-controls="configure"
+              onClick={() => (configure === "1" ? closeConfigure() : openConfigure("1"))}>
+              Configure
+            </Button>
             <div ref={menuRef} className="relative">
               <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10" aria-label="More for this campaign" aria-haspopup="menu" aria-expanded={menu === "open"}
                 onClick={() => setMenu(menu === "open" ? "closed" : "open")}>
@@ -194,6 +200,8 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
           </div>
         )}
       </div>
+
+      {configure === "1" && <ConfigurePanel userId={userId} campaign={c} onClose={closeConfigure} />}
 
       {paused && (
         <p role="status" className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">{paused}</p>
