@@ -345,9 +345,11 @@ export function parseFilm(raw: unknown, ctx: FilmCtx = {}): FilmParse {
   const v = obj(r.voice);
   const pairs = Array.isArray(v.lines) ? v.lines.map((x) => [obj(x).scene, obj(x).line]) : Object.entries(obj(v.lines));
   const lines: Record<string, string> = {};
-  for (const [id, line] of pairs) {
+  for (const [named, line] of pairs) {
     const t = text(line, WORDS.voiceLine, "The voice", { problems, ctx });
-    if (typeof id === "string" && t && scenes.some((s) => s.id === id)) lines[id] = t;
+    // tidied as the scene ids are, so "Hook " still finds the scene parseScene named "hook"
+    const id = typeof named === "string" ? named.trim().toLowerCase() : "";
+    if (t && scenes.some((s) => s.id === id)) lines[id] = t;
   }
   if (problems.length) return { ok: false, problems };
 

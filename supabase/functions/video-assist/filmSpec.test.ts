@@ -165,6 +165,14 @@ describe("parseFilm", () => {
     expect(r.film.scenes[1]).toMatchObject({ camera: [{ beat: 15, to: [0.9, 0.9, 0.1, 0.1] }], tap: [{ beat: 0, at: [1, 0.5] }] });
     expect(r.film.voice).toEqual({ on: true, lines: { hook: "Your week." } });
   });
+
+  it("keeps the voice's line for a scene whose id the model wrote in capitals or with a space, as it keeps the scene", () => {
+    const raw = { ...withScene(0, { id: "Hook " }), drop: "Burst", voice: { on: true, lines: [{ scene: "Hook ", line: "Your week." }, { scene: "END", line: "Planned." }] } };
+    const r = parseFilm(raw, CTX);
+    if (!r.ok) throw new Error(r.problems.join(" "));
+    expect([r.film.scenes[0].id, r.film.drop]).toEqual(["hook", "burst"]);
+    expect(r.film.voice.lines).toEqual({ hook: "Your week.", end: "Planned." });
+  });
 });
 
 describe("the beat grid", () => {
