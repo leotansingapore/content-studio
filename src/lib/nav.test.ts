@@ -6,7 +6,7 @@ const routes = [
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
-  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings",
+  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/adlauncher",
 ];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
@@ -66,7 +66,7 @@ describe("nav", () => {
       expect(pages("write", email).slice(0, 8), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(6, 8), email).toEqual(["/competitors", "/saved"]);
-      expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/activity", "/automations", "/skills"]);
+      expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
     }
   });
 
@@ -132,7 +132,7 @@ describe("nav", () => {
 
   it("lists Settings as tiles, its pages leading back to it instead of tabs", () => {
     expect(sectionTabs("/settings", ANYONE)).toEqual({ tabs: [], chips: [] });
-    for (const p of ["/connect", "/links", "/reels/team", "/skills"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
+    for (const p of ["/connect", "/links", "/reels/team", "/skills", "/adlauncher"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
   });
 

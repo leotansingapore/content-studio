@@ -136,7 +136,7 @@ export function setActiveProfile(userId: string, id: string): void {
 
 // Pages about no one brand (docs/deep-links.md, "Brand, on every page"): their address carries no ?profile=. Every
 // other studio page reads the open brand's things, so its address names it.
-const NOT_BRAND_PAGES = ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub"];
+const NOT_BRAND_PAGES = ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub", "/adlauncher"];
 
 export const brandPage = (pathname: string) => !NOT_BRAND_PAGES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 

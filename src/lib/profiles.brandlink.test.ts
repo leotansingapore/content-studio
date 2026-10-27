@@ -58,7 +58,7 @@ describe("the open brand in the address", () => {
     expect(brandAddress("/calendar", "?profile=pnope", "", "me", KNOWN)).toBeNull();
   });
   it("keeps the param off pages about no one brand, and takes it off them", () => {
-    for (const p of ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub", "/hub/trends"]) {
+    for (const p of ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub", "/hub/trends", "/adlauncher"]) {
       expect(brandPage(p)).toBe(false);
       expect(brandAddress(p, "", "", "me", KNOWN)).toBeNull();
     }

@@ -67,7 +67,8 @@ it opens on whichever brand that device has open. Example: /calendar?view=upcomi
 
 Pages with no ?profile= in their address, since they show no one brand's things (NOT_BRAND_PAGES in
 src/lib/profiles.ts): /north-star, /marketing-north-star, /settings (the index only), /welcome, /academy,
-/tutorial, /create-guide, /feedback, /reels/team, /brands/new and /hub with its pages; outside the studio, /auth,
+/tutorial, /create-guide, /feedback, /reels/team, /brands/new, /adlauncher (one connection per sign-in) and /hub with
+its pages; outside the studio, /auth,
 /roadmap, /join, /review/<token>, /l/<slug>, /t/<slug> and /t/report/<slug>. A ?profile= link to one of them still
 switches the brand, then the param comes off. /connect, /skills, /bio, /links, /accounts, /activity and
 /automations keep it: Claude links, skills, the bio page, tracked links, social accounts, the activity log and
@@ -253,6 +254,9 @@ Grow, Discover and settings pages:
 - /recruit#part-1, #part-2, #part-4 (the kit's part chips) scroll to that card; /analytics#recruit-numbers
   scrolls to the recruitment numbers.
 - /accounts?connected=<platform> and ?error=: Zernio's return from connecting an account; read once, then removed.
+- /adlauncher?code=&state=&iss= (or ?error=access_denied): AdLauncher's return from connecting (Leo only,
+  docs/adlauncher-ads.md); the code is spent once, then every param is removed (replace). /adlauncher itself has no
+  other params: it shows the one connection this sign-in has.
 - /team?code=<invite code>: the team invite link (teamReview.ts inviteLink); removed once the invite is handled.
 - /brands/new?done=<profile id>: the add-a-brand flow's own reload once the brand is made; opens its ready screen.
 - /diagnosis: sends you to /coach.
