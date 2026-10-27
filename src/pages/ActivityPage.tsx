@@ -7,6 +7,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Loader2 } from "lucide-react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import {
   ACTIVITY_VIEWS,
@@ -136,7 +137,10 @@ function Activity({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Activity</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Activity</h1>
+        <CopyLinkButton label="Copy link to this view" />
+      </div>
 
       <div className="-mx-1 overflow-x-auto px-1">
         <div className="flex w-max gap-1 border-b border-border/60" role="tablist" aria-label="Activity by who or what">
