@@ -26,8 +26,9 @@ import {
 
 type TextNode = Extract<SvgNode, { type: "text" }>;
 
-// Roughly the average advance of Georgia and system sans.
-const measure: Measure = (text, font) => Array.from(text).length * font.size * (font.family === "serif" ? 0.5 : 0.48);
+// Roughly the average advance of Georgia and system sans. Counts characters as Array.from does, but only pays for it
+// when there is a surrogate pair: the pinned matrices below measure over a million strings.
+const measure: Measure = (text, font) => (/[\uD800-\uDFFF]/.test(text) ? Array.from(text).length : text.length) * font.size * (font.family === "serif" ? 0.5 : 0.48);
 const textNodes = (nodes: SvgNode[]) => nodes.filter((n): n is TextNode => n.type === "text");
 const brand = { color: "#1E3A8A", name: "Jane Tan", handle: "janetan.finance" };
 
@@ -361,24 +362,29 @@ describe("today's carousels, before designs and sizes (pinned at 7e8f1493)", () 
   const PIC = "data:image/png;base64,iVBORw0KGgo=";
   const long = "Review your cover every two years or after a big life event, and check the riders too. ".repeat(3);
 
-  it("lays out every role, look, alignment, size, picture and brand the same way as before", () => {
+  // a test per brand, as the whole matrix in one test ran past 5 s under load; the three outputs joined with "\n" hash
+  // to 38872daf1170af64, the pin taken at 7e8f1493, so each third pins what that commit drew
+  it.each([
+    ["the plain brand", brand, "84b3a1e24631b2539fb45fbdd3f6065fb730603720dae4cfeee60ad06d619440"],
+    ["a brand with a photo", { ...brand, photo: PHOTO }, "b0d5879948b451c2c45e95218a02951989925a11feba262a93f6517afb8d5f7b"],
+    ["a pale brand with no name", { ...brand, color: "#FDE68A", name: "", handle: "" }, "3a398c695629d6ac9262ee5615e6bcc99b6f1425035c7fe48161616d052f9994"],
+  ])("lays out every role, look, alignment, size, picture and brand the same way as before: %s", (_, b, pin) => {
     const out: string[] = [];
-    for (const b of [brand, { ...brand, photo: PHOTO }, { ...brand, color: "#FDE68A", name: "", handle: "" }]) {
-      for (const paper of [undefined, "light", "dark", "tint"] as const) {
-        for (const font of [undefined, "classic", "modern", "serif"] as const) {
-          for (const [title, body] of [["Know your number", "Six months of expenses."], ["", long], ["A title", ""], ["Title", "word ".repeat(400)]]) {
-            for (const index of [0, 1, 4]) {
-              for (const extra of [{}, { align: "center" as const, scale: 1.15 }, { image: PIC, scale: 0.85 }]) {
-                const layout = layoutSlide({ title, body, index, total: 5, brand: b, paper, font, ...extra }, measure);
-                out.push(JSON.stringify(layout), renderSvg(layout));
-              }
+    for (const paper of [undefined, "light", "dark", "tint"] as const) {
+      for (const font of [undefined, "classic", "modern", "serif"] as const) {
+        // 250 words overflow every slide here and draw the same as the 400 the pin was taken with, at 60% of the CPU
+        for (const [title, body] of [["Know your number", "Six months of expenses."], ["", long], ["A title", ""], ["Title", "word ".repeat(250)]]) {
+          for (const index of [0, 1, 4]) {
+            for (const extra of [{}, { align: "center" as const, scale: 1.15 }, { image: PIC, scale: 0.85 }]) {
+              const layout = layoutSlide({ title, body, index, total: 5, brand: b, paper, font, ...extra }, measure);
+              out.push(JSON.stringify(layout), renderSvg(layout));
             }
           }
         }
       }
     }
-    expect(out.length).toBe(2 * 3 * 4 * 4 * 4 * 3 * 3);
-    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("38872daf1170af64b4255f0a5843db8bb7e7a7678f1b623ed6bbd7981f942589");
+    expect(out.length).toBe(2 * 4 * 4 * 4 * 3 * 3);
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe(pin);
   });
 });
 
@@ -401,28 +407,28 @@ describe("designs and sizes", () => {
   const HEIGHTS = { "4x5": 1350, "1x1": 1080, "9x16": 1920 };
 
   it("draws all eight designs at 4:5, 1:1 and 9:16 with every line inside the slide and in reading order", () => {
+    // one expect for the lot: an expect per line (about 5,000) cost more than the layouts and timed out under load
+    const wrong: string[] = [];
     for (const design of CAROUSEL_DESIGNS) {
       for (const size of ["4x5", "1x1", "9x16"] as const) {
         const layouts = slidesOf(design, size, { image: PIC });
         layouts.forEach((layout, i) => {
           const where = `${design} ${size} slide ${i + 1}`;
-          expect(layout.height, where).toBe(HEIGHTS[size]);
-          expect(layout.width, where).toBe(1080);
+          if (layout.height !== HEIGHTS[size] || layout.width !== 1080) wrong.push(`${where} is ${layout.width}x${layout.height}`);
           const texts = textNodes(layout.nodes);
           for (const t of texts) {
             const w = measure(t.text, t.font);
             const left = t.anchor === "end" ? t.x - w : t.anchor === "middle" ? t.x - w / 2 : t.x;
-            expect(left, where).toBeGreaterThanOrEqual(PAD_X);
-            expect(left + w, where).toBeLessThanOrEqual(PAD_X + CONTENT_WIDTH + 0.5);
-            expect(t.y - t.font.size, where).toBeGreaterThanOrEqual(0);
-            expect(t.y, where).toBeLessThanOrEqual(layout.height);
+            if (left < PAD_X || left + w > PAD_X + CONTENT_WIDTH + 0.5) wrong.push(`${where}: "${t.text}" runs from x ${left} to ${left + w}`);
+            if (t.y - t.font.size < 0 || t.y > layout.height) wrong.push(`${where}: "${t.text}" sits at y ${t.y}`);
           }
           // the lines of the title and text never overlap: each sits below the one before it
           const words = texts.filter((t) => t.font.size < 100 && t.text !== "✓" && t.text !== "Swipe →" && !/^\d+\/\d+$/.test(t.text) && t.text !== "Jane Tan" && t.text !== "@janetan.finance");
-          words.slice(1).forEach((t, k) => expect(t.y - t.font.size * 0.8, where).toBeGreaterThanOrEqual(words[k].y - 1));
+          words.slice(1).forEach((t, k) => t.y - t.font.size * 0.8 < words[k].y - 1 && wrong.push(`${where}: "${t.text}" overlaps "${words[k].text}"`));
         });
       }
     }
+    expect(wrong, wrong.slice(0, 3).join("; ")).toEqual([]);
   });
 
   it("fits the 6-slide carousel without cutting it at 4:5 and 9:16, in every design", () => {
