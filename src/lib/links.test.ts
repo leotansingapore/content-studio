@@ -200,6 +200,8 @@ describe("links", () => {
     expect(links.image({ layout: "stat", size: "1x1" })).toBe("/image?layout=stat&size=1x1");
     expect(links.image({ layout: "top-bottom", source: "ad:2095783381019179" })).toBe("/image?layout=top-bottom&source=ad%3A2095783381019179");
     expect(links.image({ size: "wide", image: "img-mh2k9x01ab" })).toBe("/image?size=wide&image=img-mh2k9x01ab");
+    expect(links.image({ image: "img-mh2k9x01ab", ad: true })).toBe("/image?image=img-mh2k9x01ab&ad=1");
+    expect(links.adlauncher()).toBe("/adlauncher");
     expect(IMAGE_LAYOUTS).toEqual(["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction"]);
     // a format page stays generic, with each page's own params
     expect(links.makeFormat("talking-head", { who: "presenter", setting: "car", length: 30 })).toBe("/make/talking-head?who=presenter&setting=car&length=30");

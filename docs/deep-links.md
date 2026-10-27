@@ -430,6 +430,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /image | size | Leo only. 4x5, 1x1, 9x16, wide | 4x5 | replace | /image?layout=stat&size=1x1 |
 | /image | source | Leo only. a remix source key (ad:<id>, own:<draft id>, and the other /generate?source= shapes): fills the words once, then removed | none | replace | /image?source=ad%3A2095783381019179 |
 | /image | image | Leo only. a saved design's id: opens it; the address takes it once an edit is kept | none | replace | /image?image=img-mh2k9x01ab |
+| /image | ad | Leo only. 1: Run as an ad over the open design (docs/adlauncher-ads.md), pushed by its button so Back closes it; ignored while the design can't be downloaded. What is typed stays in this tab (sessionStorage cs-ad-sheet-<design id>) until Create paused or Cancel. Check and Create paused are presses, never run on arrival | closed | push | /image?image=img-mh2k9x01ab&ad=1 |
 | /image | pick | Leo only. media, make, stock: opens the picture picker (your media, Make one, or free stock); what a swipe ad's picture shows is kept on the device in cs-image-shows-2 (newest 30), so a second write never reads it again, and a meme's last options in cs-meme-options (newest 20 designs) | none | replace | /image?pick=media |
 | /edit | panel | Leo only. own (Your own video or pictures), clips (Long video into clips), one at a time | none | push | /edit?panel=own |
 | /edit | about | Leo only. with panel=own or clips: what it is about, filled once | none | replace | /edit?panel=clips&about=cpf |

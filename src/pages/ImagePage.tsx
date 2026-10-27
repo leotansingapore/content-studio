@@ -9,18 +9,19 @@
 //
 // URL (docs/deep-links.md): layout and size replace, defaults left out; source=<RemixSource key> is read once into a
 // new design and then removed; image=<saved id> opens a design, and the address takes it once an edit is kept
-// (replace); pick=media|make|stock opens a picture picker (replace; stock is a meme's). A write on arrival comes only
-// from navigation state { go: true } (the Remix sheet's "Also make: Static ad" or "Meme", under US$1), never from a
-// URL param.
+// (replace); pick=media|make|stock opens a picture picker (replace; stock is a meme's); ad=1 opens Run as an ad over
+// the design (push; docs/adlauncher-ads.md). A write on arrival comes only from navigation state { go: true } (the
+// Remix sheet's "Also make: Static ad" or "Meme", under US$1), never from a URL param.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, Download, ImagePlus, Loader2, Plus, Send, Sparkles, UserRound, X as XIcon } from "lucide-react";
+import { AlertTriangle, Check, Download, ImagePlus, Loader2, Megaphone, Plus, Send, Sparkles, UserRound, X as XIcon } from "lucide-react";
 import ComplianceChips from "@/components/ComplianceChips";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import FormatShell from "@/components/make/FormatShell";
 import PriceChip from "@/components/PriceChip";
 import { PostItForMePanel } from "@/components/PostItForMe";
+import RunAsAdSheet from "@/components/image/RunAsAdSheet";
 import { MemeOptions, MemePicture, MediaThumb, memePictures, memeSetFor, memeWriteBusy, MEME_STEP, startMemeWrite, useMemePictures, useMemeWrite } from "@/components/image/MemeOptions";
 import FlagChips from "@/components/remix/FlagChips";
 import { Button } from "@/components/ui/button";
@@ -89,7 +90,7 @@ import { resolveSource } from "@/lib/resolveSource";
 import { ago } from "@/lib/slideshow";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -109,8 +110,8 @@ export default function ImagePage() {
   return <ImageEditor userId={leo.id} />;
 }
 
-/** The design's PNG at its own pixel size (carouselRender's svgToPng draws 1080x1350 only). */
-async function svgPng(svg: string, width: number, height: number): Promise<Blob> {
+/** The design's PNG (or JPEG, for an ad) at its own pixel size (carouselRender's svgToPng draws 1080x1350 only). */
+async function svgPng(svg: string, width: number, height: number, type: "image/png" | "image/jpeg" = "image/png"): Promise<Blob> {
   const img = new Image();
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
@@ -123,7 +124,7 @@ async function svgPng(svg: string, width: number, height: number): Promise<Blob>
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("This browser can't draw images.");
   ctx.drawImage(img, 0, 0, width, height);
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("The image couldn't be created."))), "image/png"));
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("The image couldn't be created."))), type, 0.92));
 }
 
 const blobDataUrl = (b: Blob) =>
@@ -424,10 +425,13 @@ function ImageEditor({ userId }: { userId: string }) {
   // Jev's MAS question read the best meme only
   const masWarn = mineDone?.flags?.mas || (!!memeDone?.flags?.mas && !!memeOptions && optionIndex(img.words, memeOptions.options) === memeOptions.best);
 
-  const pngOf = async (s: ImageSize) => {
+  const pngOf = async (s: ImageSize, type?: "image/jpeg") => {
     const d = layoutImage({ ...input, samples: false }, s, measure);
-    return svgPng(renderSvg(d), d.width, d.height);
+    return svgPng(renderSvg(d), d.width, d.height, type);
   };
+  // Run as an ad (?ad=1): an adviser's brand needs the firm's approval code
+  const [adOpen, openAd, closeAd] = useUrlItem("ad");
+  const person = useMemo(() => speakerFor(userId) === "person", [userId]);
   const [busyFile, setBusyFile] = useState<null | "one" | "all" | "post">(null);
   const download = async (all: boolean) => {
     if (block || busyFile) return;
@@ -717,11 +721,36 @@ function ImageEditor({ userId }: { userId: string }) {
             {busyFile === "post" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Post it for me
           </Button>
         )}
+        <Button
+          variant="outline"
+          onClick={() => {
+            flush();
+            openAd("1");
+          }}
+          disabled={!!block || !!busyFile || writing}
+          className={cn("gap-1.5", TOUCH)}
+        >
+          <Megaphone className="h-4 w-4" /> Run as an ad
+        </Button>
       </div>
       {block && <p className="text-xs text-muted-foreground">{block}</p>}
       {posting && <PostPanel userId={userId} draft={posting} onDrafts={() => setPosting(getDraftById(userId, posting.id))} onClose={() => setPosting(null)} />}
 
       <YourImages list={savedList} openId={imageId} />
+      {adOpen === "1" && !block && !writing && (
+        <RunAsAdSheet
+          userId={userId}
+          designId={img.id}
+          draftId={img.draftId}
+          headline={mainWords(layout, img.words)}
+          text={img.words.caption ?? ""}
+          preview={preview}
+          picture={() => pngOf(size, "image/jpeg")}
+          person={person}
+          masWarn={!!masWarn}
+          onClose={closeAd}
+        />
+      )}
     </div>
   );
 
