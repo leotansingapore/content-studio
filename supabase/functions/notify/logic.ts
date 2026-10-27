@@ -448,7 +448,7 @@ export function dueMessage(due: DuePost[]): PushMessage | null {
   if (!due.length) return null;
   if (due.length === 1) {
     const [{ post, profileId, time, item }] = due;
-    const profile = profileId === "me" ? "" : `&profile=${encodeURIComponent(profileId)}`;
+    const profile = `&profile=${encodeURIComponent(profileId)}`;
     return {
       title: time ? `Due at ${timeLabel(time)}` : "Due today",
       body: `${platformLabel(post.platform)}: ${hookOf(post, 120)}`,

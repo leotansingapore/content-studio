@@ -12,7 +12,7 @@
   "calls": [
     "subs",
     "claim due:me:d1:2026-10-12T10:30 null",
-    "push 1 Due at 10:30am | LinkedIn: Due this morning | /generate?draft=d1",
+    "push 1 Due at 10:30am | LinkedIn: Due this morning | /generate?draft=d1&profile=me",
     "markSent due:me:d1:2026-10-12T10:30",
     "authUser",
     "claim email:2026-10-12 30 minutes",
@@ -26,7 +26,7 @@
       {
         "title": "Due at 10:30am",
         "body": "LinkedIn: Due this morning",
-        "url": "/generate?draft=d1",
+        "url": "/generate?draft=d1&profile=me",
         "tag": "due:me:d1:2026-10-12T10:30",
         "ttl": 3600,
         "devices": 1,

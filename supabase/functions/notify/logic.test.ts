@@ -227,7 +227,8 @@ describe("duePosts and dueMessage", () => {
     });
     const mine = dueMessage(duePosts([profile({ posts: [post({ id: "d", status: "scheduled", scheduledFor: "2026-10-08" })] })], sg(2026, 10, 8, 8)));
     expect(mine?.title).toBe("Due today");
-    expect(mine?.url).toBe("/generate?draft=d");
+    // every brand page keeps ?profile= in its address, so the default brand is named too (docs/deep-links.md)
+    expect(mine?.url).toBe("/generate?draft=d&profile=me");
   });
 
   it("several posts make one alert that opens Home", () => {
