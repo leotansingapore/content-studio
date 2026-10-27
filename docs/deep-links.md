@@ -254,6 +254,11 @@ Grow, Discover and settings pages:
 - /recruit#part-1, #part-2, #part-4 (the kit's part chips) scroll to that card; /analytics#recruit-numbers
   scrolls to the recruitment numbers.
 - /accounts?connected=<platform> and ?error=: Zernio's return from connecting an account; read once, then removed.
+- /accounts?telegram=<connect row>&id=&first_name=&username=&auth_date=&hash=: Telegram's return from the bot's Confirm
+  button (login_url). index.html's first script takes these off the address before anything else loads and keeps them
+  in the tab for the Telegram card, which sends them to `telegram` verify once. Never a link to share. A waiting
+  connect needs no param of its own: the card resumes from the newest unexpired row, which keeps the one-time code
+  out of every URL of ours.
 - /adlauncher?code=&state=&iss= (or ?error=access_denied): AdLauncher's return from connecting (Leo only,
   docs/adlauncher-ads.md); the code is spent once, then every param is removed (replace). /adlauncher itself has no
   other params: it shows the one connection this sign-in has.
@@ -620,7 +625,7 @@ of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, 
 | /analytics | wins | Leo only. format, hook, angle: the What wins for you tab | format | replace | /analytics?wins=hook#what-wins |
 | /analytics | #real-numbers, #what-wins, #winners, #score-check | Leo only. scrolls to Your real numbers, What wins for you, Winner found or How the score did; #add-your-numbers is the Add your numbers card's own anchor | top | (anchor) | /analytics#what-wins |
 | /home | #pace | Leo only. scrolls to the Pace card | top | (anchor) | /home#pace |
-| /accounts | #instagram, #facebook, #tiktok, #linkedin, #youtube, #threads | Leo only. scrolls to that platform's card. The sidebar's and More sheet's Channels block links each channel here (no new URL; its Connect a channel button and Home's Next up row open plain /accounts) | top | (anchor) | /accounts#tiktok |
+| /accounts | #instagram, #facebook, #tiktok, #linkedin, #youtube, #threads, #telegram | Leo only. scrolls to that platform's card (#telegram: the Telegram card, docs/north-star/items/publish-telegram.md). The sidebar's and More sheet's Channels block links each channel here (no new URL; its Connect a channel button and Home's Next up row open plain /accounts; Connect Telegram opens /accounts#telegram) | top | (anchor) | /accounts#telegram |
 | /edit | versions | Leo only. 1 with p on a project made from a plan: the Versions panel open | closed | push | /edit?p=vm1abc2&versions=1 |
 | /edit | plan, version | Leo only. an edit plan's id and one of its versions: the upload screen ready to lay that plan over a filmed take | none | push | /edit?plan=ep-mh2k9x01ab&version=ev-mh2k9x02cd |
 | /make/launch-film | length | Leo only. 15, 30, 60 (seconds) | 30 | replace | /make/launch-film?length=15 |

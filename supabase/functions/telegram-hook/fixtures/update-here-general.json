@@ -1,0 +1,28 @@
+{
+  "update_id": 900015,
+  "message": {
+    "message_id": 3801,
+    "from": {
+      "id": 111000111,
+      "is_bot": false,
+      "first_name": "Leo",
+      "username": "leo_test",
+      "language_code": "en"
+    },
+    "chat": {
+      "id": -1001234567890,
+      "title": "Test group",
+      "type": "supergroup",
+      "is_forum": true
+    },
+    "date": 1793500000,
+    "text": "/here",
+    "entities": [
+      {
+        "offset": 0,
+        "length": 5,
+        "type": "bot_command"
+      }
+    ]
+  }
+}

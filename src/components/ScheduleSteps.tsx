@@ -4,6 +4,8 @@
 // and Caption (a tab per network, the first comment, the score). Nothing posts until the last step's button; its
 // receipt is the finished screen and an Activity row. ?step= and ?network= are this component's (replace); the host
 // opens and closes it. The server checks every id and field again (supabase/functions/social/posts.ts).
+// Telegram (publish-telegram) sits beside the Zernio networks: a row of the brand's connected chats in Where, the
+// 9am to 9pm line in When, and on send its files go to the private bucket and the post to the `telegram` queue.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -38,6 +40,19 @@ import { currentScore, scorePost, textKey, type SavedScore } from "@/lib/postSco
 import { nextOpenSlots } from "@/lib/postingSlots";
 import { isNewTikTok, loadTikTokCare, markWarmed, modeOf, postsStale, saveMode, savePostCount, type TikTokMode as Mode } from "@/lib/tiktokCare";
 import { accountPosts } from "@/lib/autoDm";
+import {
+  HELD_LINE,
+  TELEGRAM_TEXT_MAX,
+  chatRows,
+  readTelegramRows,
+  rowDetail,
+  saveTelegramChannels,
+  scheduleTelegram,
+  telegramMediaProblem,
+  uploadTelegramFiles,
+  willHold,
+  type TelegramRow,
+} from "@/lib/telegramConnect";
 import {
   MAX_PICTURES,
   MEDIA_TYPES,
@@ -222,6 +237,10 @@ export function ScheduleSteps({
   // a post Zernio made and failed at once: a new try cancels it first and sends with a new key
   const [failedPost, setFailedPost] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
+  // Telegram: the brand's connected chats (null while read) and the ones ticked
+  const [tgChats, setTgChats] = useState<TelegramRow[] | null>(null);
+  const [tgPicked, setTgPicked] = useState<string[]>([]);
+  const tgUploaded = useRef(new Map<Blob, string>());
   const left = useUsesLeft(writing)("video-captions");
   const uploaded = useRef(new Map<Blob, string>());
   const slides = useRef<MediaFile[] | null>(null);
@@ -285,6 +304,22 @@ export function ScheduleSteps({
       live = false;
     };
   }, [profileId, defaults]);
+
+  useEffect(() => {
+    if (hidden()) return;
+    let live = true;
+    readTelegramRows(profileId).then(
+      (all) => {
+        if (!live) return;
+        saveTelegramChannels(userId, profileId, all);
+        setTgChats(chatRows(all).filter((r) => r.status === "connected"));
+      },
+      () => live && setTgChats([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, [profileId, userId]);
 
   // ---- what the steps hold ----
   const order = [draft.platform, ...SOCIAL_PLATFORMS.filter((p) => p !== draft.platform)];
@@ -377,6 +412,31 @@ export function ScheduleSteps({
   const whenText = whenPicked === "day" ? whenLabel(day, dayTime) : whenPicked === "slot" && slot ? whenLabel(slot.date, slot.time) : whenPicked === "pick" && at ? whenLabel(pickDay, pickTime) : "";
 
   const { content, captions } = tabs.length ? sendCaptions(tabs, versions, base) : { content: base, captions: {} };
+  // Telegram takes the first network's caption, or the post as written when it goes to Telegram alone
+  const tgOn = tgPicked.length > 0;
+  const tgOnly = tgOn && tabs.length === 0;
+  const tgText = tabs.length ? captionOf(tabs, versions, base, tabs[0]) : base;
+  const tooManySlides = (n: number) => (n > 10 ? "Telegram takes up to 10 pictures in a post." : null);
+  const tgMedia = !tgOn
+    ? null
+    : mode === "pdf"
+      ? "Telegram takes pictures or a video from here, not a PDF."
+      : mode === "import"
+        ? "Telegram can't take an imported link yet. Pick a file instead."
+        : mode === "carousel" && carousel
+          ? tooManySlides(carousel.slides.length)
+          : mode === "slideshow" && slideshow
+            ? tooManySlides(slideshow.slides.length)
+            : mode === "files"
+              ? telegramMediaProblem(files.map((f) => ({ name: f.name, type: f.type, size: f.file.size })))
+              : null;
+  const tgCaption = !tgOn
+    ? null
+    : tgText.length > TELEGRAM_TEXT_MAX
+      ? `The Telegram text is ${tgText.length - TELEGRAM_TEXT_MAX} characters too long.`
+      : tgOnly && hasComplianceErrors(scanCompliance(tgText))
+        ? "Fix the compliance error in the post first."
+        : null;
   const form: StepForm = {
     platforms: tabs,
     accounts: picked.map((a) => ({ platform: a.platform })),
@@ -391,13 +451,14 @@ export function ScheduleSteps({
   const commentOn = tabs.some((p) => p !== "tiktok");
   const fcFlags = scanCompliance(firstComment);
   const reasons: Record<Step, string | null> = {
-    where: state !== "ready" ? "Loading your accounts..." : stepProblem("where", form),
+    where: state !== "ready" ? "Loading your accounts..." : tgOnly ? tgMedia : (stepProblem("where", form) ?? tgMedia),
     when: stepProblem("when", form),
     caption:
       (blockReason ? `Team rule: ${blockReason}` : null) ??
       (tiktokId && !info ? "Reading your TikTok settings..." : null) ??
-      stepProblem("caption", form) ??
-      optionsProblem(tabs, versions, media) ??
+      (tgOnly ? null : stepProblem("caption", form)) ??
+      (tgOnly ? null : optionsProblem(tabs, versions, media)) ??
+      tgCaption ??
       (commentOn && firstComment.trim().length > FIRST_COMMENT_MAX ? `Keep the first comment under ${FIRST_COMMENT_MAX + 1} characters.` : null) ??
       (commentOn && hasComplianceErrors(fcFlags) ? "Fix the compliance error in the first comment first." : null) ??
       (commentOn && firstComment.trim() && stories.length ? "Stories post no first comment. Take it off, or post to the feed." : null) ??
@@ -535,7 +596,8 @@ export function ScheduleSteps({
 
   const allInbox = !!tiktokId && tabs.every((p) => p === "tiktok") && ttMode === "inbox";
   const goesNow = whenPicked === "now";
-  const names = andList(tabs.map(platformName));
+  const names = andList([...tabs.map(platformName), ...(tgOn ? ["Telegram"] : [])]);
+  const tgHeld = tgOn && at !== "" && willHold(at);
 
   const send = async () => {
     if (reasons.where || reasons.when || reasons.caption || busy) return;
@@ -555,7 +617,7 @@ export function ScheduleSteps({
         setFailedPost(null);
       }
       // the key is on the draft before the call, so an answer lost on the way never sends a second post
-      onDrafts(setDraftZernio(userId, draft.id, { key: key.current }));
+      if (!tgOnly) onDrafts(setDraftZernio(userId, draft.id, { key: key.current }));
       let list: MediaFile[] = mode === "files" ? files : [];
       if (mode === "carousel" && carousel) {
         if (!slides.current) {
@@ -582,39 +644,58 @@ export function ScheduleSteps({
         }
         list = showSlides.current;
       }
-      let urls = mode === "import" && importLink ? [importLink] : [];
-      if (list.length) {
-        setBusy({ upload: 0 });
-        urls = await uploadAll(profileId, list, uploaded.current, (p) => setBusy({ upload: p }));
+      let post: PostView | null = null;
+      if (!tgOnly) {
+        let urls = mode === "import" && importLink ? [importLink] : [];
+        if (list.length) {
+          setBusy({ upload: 0 });
+          urls = await uploadAll(profileId, list, uploaded.current, (p) => setBusy({ upload: p }));
+        }
+        setBusy("send");
+        const req: StepsRequest = {
+          accountIds: pickedIds,
+          clientKey: key.current,
+          content,
+          ...(Object.keys(captions).length ? { captions } : {}),
+          mediaUrls: urls,
+          ...(goesNow ? { now: true } : { scheduledFor: at! }),
+          ...(commentOn && firstComment.trim() ? { firstComment: firstComment.trim() } : {}),
+          ...(tiktokInput ? { tiktok: tiktokInput } : {}),
+          ...(tabs.includes("youtube") ? { youtube: { title: ytTitle.trim(), visibility: "public" as const } } : {}),
+          ...(mode === "pdf" && pdfOk ? { documentTitle: carousel?.title.trim() || "Carousel" } : {}),
+          ...networkFields(tabs, versions, media),
+        };
+        ({ post } = await schedulePost(profileId, req));
+        const failed = post.status === "failed" ? (post.platforms.find((p) => p.error)?.error ?? "Zernio couldn't post it.") : null;
+        // on its day at the minute Zernio holds, as the calendar and My posts read a scheduled post; set before the link,
+        // so the save that adds the link changes no time and queues no move (a send now comes back with seconds)
+        if (!failed) setDraftStatus(userId, draft.id, "scheduled", sgWall(post.scheduledFor || at || new Date().toISOString()));
+        // the host hears of the post on Done, so a page that hides the panel once the draft has a post keeps this screen
+        setDraftZernio(userId, draft.id, linkFromView(key.current, post));
+        if (failed) {
+          setFailedPost(post.id);
+          throw new Error(tiktokReason(failed));
+        }
+        if (tiktokId) saveMode(userId, tiktokId, ttMode);
       }
-      setBusy("send");
-      const req: StepsRequest = {
-        accountIds: pickedIds,
-        clientKey: key.current,
-        content,
-        ...(Object.keys(captions).length ? { captions } : {}),
-        mediaUrls: urls,
-        ...(goesNow ? { now: true } : { scheduledFor: at! }),
-        ...(commentOn && firstComment.trim() ? { firstComment: firstComment.trim() } : {}),
-        ...(tiktokInput ? { tiktok: tiktokInput } : {}),
-        ...(tabs.includes("youtube") ? { youtube: { title: ytTitle.trim(), visibility: "public" as const } } : {}),
-        ...(mode === "pdf" && pdfOk ? { documentTitle: carousel?.title.trim() || "Carousel" } : {}),
-        ...networkFields(tabs, versions, media),
-      };
-      const { post } = await schedulePost(profileId, req);
-      const failed = post.status === "failed" ? (post.platforms.find((p) => p.error)?.error ?? "Zernio couldn't post it.") : null;
-      // on its day at the minute Zernio holds, as the calendar and My posts read a scheduled post; set before the link,
-      // so the save that adds the link changes no time and queues no move (a send now comes back with seconds)
-      if (!failed) setDraftStatus(userId, draft.id, "scheduled", sgWall(post.scheduledFor || at || new Date().toISOString()));
-      // the host hears of the post on Done, so a page that hides the panel once the draft has a post keeps this screen
-      setDraftZernio(userId, draft.id, linkFromView(key.current, post));
-      if (failed) {
-        setFailedPost(post.id);
-        throw new Error(tiktokReason(failed));
+      if (tgOn) {
+        // the same key as the networks' post, so a retry never queues a second Telegram post
+        setBusy("send");
+        const tgFiles = list.length ? await uploadTelegramFiles(profileId, list, tgUploaded.current) : [];
+        const tg = await scheduleTelegram(profileId, { chatRows: tgPicked, clientKey: key.current, text: tgText, media: tgFiles, ...(goesNow ? { now: true as const } : { sendAt: at! }) });
+        if (tgOnly) setDraftStatus(userId, draft.id, "scheduled", sgWall(tg.sendAt));
       }
-      if (tiktokId) saveMode(userId, tiktokId, ttMode);
       logPost(userId, draft, (n) => `Set ${n} to post on ${names}`, `Goes out ${goesNow ? "now" : whenText}.`);
-      setDone(doneFor(post, { inbox: allInbox, now: goesNow, names, when: whenText }));
+      const zernio = post && doneFor(post, { inbox: allInbox, now: goesNow, names, when: whenText });
+      setDone(
+        zernio
+          ? tgHeld ? { ...zernio, line: `${zernio.line} Telegram waits until 9am.` } : zernio
+          : tgHeld
+            ? { title: "Scheduled on Telegram", line: "Held until 9am. Telegram posts go out between 9am and 9pm.", inbox: false }
+            : goesNow
+              ? { title: "Sending to Telegram", line: "It goes out within a minute.", inbox: false }
+              : { title: "Scheduled on Telegram", line: `${whenText}.`, inbox: false },
+      );
     } catch (e) {
       logPost(userId, draft, (n) => `${n} could not be posted`, message(e));
       setError(tiktokReason(message(e)));
@@ -793,6 +874,35 @@ export function ScheduleSteps({
                     </div>
                   );
                 })}
+                {tgChats !== null && (
+                  <div className="space-y-1 rounded-md border border-border/70 bg-background/70 p-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className={`flex min-h-9 items-center font-semibold text-foreground ${TOUCH}`}>Telegram</span>
+                      <Link
+                        to="/accounts#telegram"
+                        onClick={() => saveConnectReturn(`${window.location.pathname}${window.location.search}`)}
+                        className={`ml-auto inline-flex min-h-9 items-center font-semibold text-primary hover:underline ${TOUCH}`}
+                      >
+                        {tgChats.length ? "Add another chat" : "Connect Telegram"}
+                      </Link>
+                    </div>
+                    {tgChats.map((c) => {
+                      const d = rowDetail(c);
+                      return (
+                        <label key={c.id} className={`ml-6 flex min-h-9 flex-wrap items-center gap-x-2 ${TOUCH}`}>
+                          <input
+                            type="checkbox"
+                            checked={tgPicked.includes(c.id)}
+                            onChange={(e) => setTgPicked((t) => (e.target.checked ? [...t, c.id] : t.filter((x) => x !== c.id)))}
+                            className="h-4 w-4 accent-primary"
+                          />
+                          <span className="text-foreground">{d.name}</span>
+                          <span className="text-muted-foreground">{d.topic ?? d.kind}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </fieldset>
 
               <fieldset className="space-y-2">
@@ -838,11 +948,13 @@ export function ScheduleSteps({
                 </div>
               )}
               <Option name={`when-${draft.id}`} on={whenPicked === "now"} onPick={() => setWhen("now")} label="Now" />
+              {tgHeld && <p className="text-muted-foreground">{HELD_LINE}</p>}
             </fieldset>
           )}
 
           {step === "caption" && (
             <>
+              {tabs.length > 0 && (
               <NetworkCaptions
                 tabs={tabs}
                 open={openTab}
@@ -890,6 +1002,12 @@ export function ScheduleSteps({
                   ) : null
                 }
               />
+              )}
+              {tgOn && (
+                <p className={tgText.length > TELEGRAM_TEXT_MAX ? "text-destructive" : "text-muted-foreground"}>
+                  {tabs.length ? `Telegram gets the ${platformName(tabs[0])} caption` : "Telegram gets the post as written"}, {tgText.length.toLocaleString("en-US")} / {TELEGRAM_TEXT_MAX.toLocaleString("en-US")} characters.
+                </p>
+              )}
 
               {commentOn && (
                 <div className="space-y-1">

@@ -164,6 +164,8 @@ export const NO_PRICE: UsageFeature[] = [
   "ai-presenter-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
+  // Telegram's Bot API is free at these volumes
+  "telegram-connect", "telegram-schedule", "telegram-presign",
 ];
 
 /** Write's own generation: uncapped, on the academy project (generate-social-content). Unverified. */
