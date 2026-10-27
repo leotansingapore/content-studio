@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -884,21 +885,34 @@ export default function DraftsPage() {
       {fill && fillRow(fill)}
 
       {visible.length === 0 ? (
-        <Card className="border-border/60 shadow-card">
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
-            <Sparkles className="h-6 w-6 text-primary" />
-            {drafts.length === 0
-              ? "No drafts yet. Generate one and pick a variant - it'll save here automatically."
-              : "No drafts match the filters. Loosen them or clear the search."}
-            <Button
-              size="sm"
-              onClick={() => navigate("/generate")}
-              className="gap-1.5"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Write a post
-            </Button>
-          </CardContent>
-        </Card>
+        drafts.length === 0 ? (
+          <EmptyState
+            icon={Sparkles}
+            title="No posts yet"
+            actions={
+              <Button size="sm" onClick={() => navigate("/generate")} className="gap-1.5">
+                <Pencil className="h-3.5 w-3.5" /> Write a post
+              </Button>
+            }
+          >
+            Every post you write saves here by itself, ready to schedule.
+          </EmptyState>
+        ) : (
+          // a filter that hides everything: the way out is clearing it, not writing another post
+          <EmptyState
+            icon={Search}
+            title="No posts match these filters"
+            actions={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => update({ status: null, platform: null, pillar: null, label: null, q: null })}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        )
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {visible.map((d) => {

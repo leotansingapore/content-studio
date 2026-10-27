@@ -4,11 +4,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
-import { Search, X } from "lucide-react";
+import { LibraryBig, Search, X } from "lucide-react";
 import LibraryCard from "@/components/library/LibraryCard";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
@@ -117,12 +118,22 @@ function Library({ userId }: { userId: string }) {
           </header>
 
           {items.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
-              <p className="text-sm text-muted-foreground">Nothing made yet.</p>
-              <Button asChild className={TOUCH}>
-                <Link to={links.swipe()}>Find a post to remix</Link>
-              </Button>
-            </div>
+            <EmptyState
+              icon={LibraryBig}
+              title="Nothing made yet"
+              actions={
+                <>
+                  <Button asChild className={TOUCH}>
+                    <Link to="/generate">Write a post</Link>
+                  </Button>
+                  <Button asChild variant="outline" className={TOUCH}>
+                    <Link to={links.swipe()}>Find a post to remix</Link>
+                  </Button>
+                </>
+              }
+            >
+              Posts, carousels, videos and images you make land here.
+            </EmptyState>
           ) : (
             <>
               <div className="space-y-2">

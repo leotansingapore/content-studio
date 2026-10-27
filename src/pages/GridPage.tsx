@@ -4,6 +4,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Grid3x3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { supabase } from "@/lib/supabase";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { gridTiles } from "@/lib/igGrid";
@@ -56,10 +59,17 @@ export default function GridPage() {
       </header>
 
       {userId && tiles.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No Instagram posts scheduled or posted yet.{" "}
-          <Link to="/calendar" className="font-semibold text-primary hover:underline">Schedule one</Link>
-        </div>
+        <EmptyState
+          icon={Grid3x3}
+          title="No Instagram posts yet"
+          actions={
+            <Button asChild>
+              <Link to="/calendar">Schedule a post</Link>
+            </Button>
+          }
+        >
+          Scheduled and posted Instagram posts show here as your profile grid, so you see it before it goes out.
+        </EmptyState>
       ) : (
         <div className="mx-auto max-w-[480px] overflow-hidden rounded-xl border border-border/60 bg-card">
           <div className="flex items-center gap-3 border-b border-border/60 p-3">

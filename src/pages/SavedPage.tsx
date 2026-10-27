@@ -6,13 +6,14 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
-import { AtSign, ExternalLink, Facebook, Globe, Instagram, Linkedin, Megaphone, MoreHorizontal, Music, Shuffle, Trash2, X, Youtube } from "lucide-react";
+import { AtSign, Bookmark, ExternalLink, Facebook, Globe, Instagram, Linkedin, Megaphone, MoreHorizontal, Music, Shuffle, Trash2, X, Youtube } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import RemixButton from "@/components/remix/RemixButton";
 import { BoardChecklist, NewBoard, useBoards, useRemoveWithUndo } from "@/components/SaveButton";
 import VideoEmbed from "@/components/VideoEmbed";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToastAction } from "@/components/ui/toast";
@@ -292,12 +293,17 @@ function Saved({ userId }: { userId: string }) {
           {store.items.length > 0 && anyTags && <TagFilters filter={tagFilter} counts={tagCounts(inView)} />}
 
           {store.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing saved yet.{" "}
-              <Link to={links.swipe()} className="font-medium text-primary underline-offset-4 hover:underline">
-                Browse top posts
-              </Link>
-            </p>
+            <EmptyState
+              icon={Bookmark}
+              title="Nothing saved yet"
+              actions={
+                <Button asChild variant="outline">
+                  <Link to={links.swipe()}>Browse top posts</Link>
+                </Button>
+              }
+            >
+              Paste a link above, or press Save on any top post or ad.
+            </EmptyState>
           ) : current && !counts[current.id] ? (
             <p className="text-sm text-muted-foreground">No posts in this board yet.</p>
           ) : board === "unsorted" && !counts.unsorted ? (
