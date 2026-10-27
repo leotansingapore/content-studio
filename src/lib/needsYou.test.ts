@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, boardWaitingHere, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, heldOrLive, homeToday, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
+import { badgeText, boardWaitingHere, campaignsToReview, countBoardWaiting, countNeedsYou, countPostingToday, heldOrLive, homeToday, itemSig, needsYouItems, nextUpLabel, notesByBrand, waitingByBrand, type NextUpInput } from "./needsYou";
 import { links } from "./links";
 import type { CampaignPost, PostState } from "./campaigns";
 import type { DraftEntry } from "./draftHistory";
@@ -306,6 +306,16 @@ describe("needsYouItems", () => {
     expect(ids).toContain("setup");
     expect(ids).toHaveLength(14);
     expect(needsYouItems({ ...full, hidden: { unscheduled: TODAY } }, TODAY, NOW).map((i) => i.id)).not.toContain("unscheduled");
+  });
+
+  it("keeps a week's snooze through its last day, and a dismissal until the item's words change", () => {
+    const ids = (hidden: Record<string, string>, today = TODAY) => needsYouItems({ ...full, hidden }, today, NOW).map((i) => i.id);
+    expect(ids({ overdue: "2026-10-20" })).not.toContain("overdue");
+    expect(ids({ overdue: "2026-10-20" }, "2026-10-21")).toContain("overdue");
+    const overdue = needsYouItems(full, TODAY, NOW).find((i) => i.id === "overdue")!;
+    expect(ids({ overdue: `=${itemSig(overdue)}` })).not.toContain("overdue");
+    // a new count or line is a changed item: it comes back
+    expect(ids({ overdue: `=${itemSig({ ...overdue, title: "3 posts are overdue" })}` })).toContain("overdue");
   });
 
   it("labels one item and several", () => {

@@ -92,6 +92,7 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
           className="lg:col-start-1 lg:row-start-1"
           userId={userId}
           today={sgDay()}
+          usage={usage}
           markPosted={markPosted}
           blocked={blocked}
           input={{

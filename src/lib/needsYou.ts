@@ -117,7 +117,7 @@ export interface NextUpInput {
   channels?: number | null;
   /** The first undone "Get set up" step. */
   setup?: { label: string; to: string } | null;
-  /** Item ids hidden on this device, with the day each was hidden. */
+  /** Item ids hidden on this device: the last day each stays snoozed, or "=" + its itemSig while dismissed. */
   hidden?: Record<string, string>;
 }
 
@@ -134,7 +134,8 @@ export const heldOrLive = (d: Pick<DraftEntry, "zernio" | "live" | "status">) =>
 /**
  * Leo's Next up, in a fixed order (a product rule, so no Jev): agent cards waiting, failures, overdue, today, team
  * posts and the board's reviews and notes, unscheduled made posts, autopilot, campaigns, today's ideas, Your market,
- * then setup (connecting a channel first). Items hidden today drop out; a hide from another day counts for nothing. Plain URLs, as homeToday's.
+ * then setup (connecting a channel first). A snoozed item drops out through its last day; a dismissed one until its words
+ * change. Plain URLs, as homeToday's.
  */
 export function needsYouItems(input: NextUpInput, today: string, now = Date.now()): NextUpItem[] {
   const items: NextUpItem[] = [];
@@ -226,8 +227,12 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
   if (input.channels === 0) items.push({ id: "channels", kind: "setup", title: "Connect a channel to post from here", actions: [{ label: "Connect", to: "/accounts" }] });
   if (input.setup) items.push({ id: "setup", kind: "setup", title: input.setup.label, actions: [{ label: "Open", to: input.setup.to }] });
 
-  return items.filter((i) => input.hidden?.[i.id] !== today);
+  return items.filter((i) => !isHidden(input.hidden?.[i.id], i, today));
 }
+
+/** What a dismissal remembers: the item's words, so a changed item (a new count, a new post) comes back. */
+export const itemSig = (i: Pick<NextUpItem, "title" | "quote" | "line" | "n">) => [i.title, i.quote ?? "", i.line ?? "", i.n ?? ""].join("|");
+export const isHidden = (h: string | undefined, i: NextUpItem, today: string) => !!h && (h.startsWith("=") ? h.slice(1) === itemSig(i) : h >= today);
 
 /** Next up's label: "NEXT UP" alone when empty. */
 export const nextUpLabel = (n: number) => (n === 0 ? "NEXT UP" : n === 1 ? "NEXT UP | THE 1 THING THAT NEEDS YOU" : `NEXT UP | 1 OF ${n} THAT NEED YOU`);
