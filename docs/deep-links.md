@@ -520,8 +520,8 @@ North star phase 6 (docs/north-star/items/agent-chat.md, agent-approvals.md, age
 agent-memory.md, agent-activity.md, agent-autonomy.md, agent-skills.md, agent-mcp-api.md, agent-tour.md,
 edit-by-chat.md). Every row below is Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides /agent, /skills,
 /activity and /automations and anyone else gets the not-found page there (and at /agent/<thread>), and the new
-params and anchors on /home, /connect, /carousel, /slideshow, /edit and the tour's ?tour= are ignored for anyone
-else, who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults left out of links. Ids are
+params and anchors on /home, /connect, /carousel, /slideshow and /edit are ignored for anyone else, who keeps today's
+page. The tour's ?tour= is the exception: everyone gets a tour (the studio's, see its row). Same rules as above: built in src/lib/links.ts, defaults left out of links. Ids are
 never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 chars>, results r<base36>.
 
 | Page | Param | Values | Default | History | Example |
@@ -534,7 +534,7 @@ never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 cha
 | /agent | remix | Leo only. a remix source key (the ?remix= shapes above): a new chat with that source on the composer, in place of the Remix sheet; a thread drops it | none | replace | /agent?remix=top%3Athe-woke-salaryman-instagram-Ddkxv39j961 |
 | /home | waiting | Leo only. all: every Next up item, not just the first few | the first few | replace | /home?waiting=all |
 | /home | #next-up, #ask | Leo only. scrolls to Next up or the Ask tiles | top | (anchor) | /home#next-up |
-| any studio page | tour | Leo only. 1 starts the tour at step 1; a step's id (home, competitors, formats, campaigns, brand, agent) starts at that step; an unknown value starts at step 1. Read once, then removed | no tour | replace | /home?tour=1 |
+| any studio page | tour | Every sign-in. 1 starts the tour at step 1; a step's id starts at that step: on Leo's sign-ins the agent's tour (home, competitors, formats, campaigns, brand, agent), on everyone else's the studio tour (home, write, calendar, swipe, brand, analytics); an id the sign-in's tour lacks starts at step 1. Read once, then removed; signed out it is only removed | no tour | replace | /home?tour=1 |
 | /activity | view | Leo only. agent, you, claude, autopilot, schedule, learnings, plan, ai-use | all | replace | /activity?view=claude |
 | /activity | month | Leo only. YYYY-MM: loads back to that month and scrolls to its group | this month | replace | /activity?month=2026-09 |
 | /activity | event | Leo only. an event's id: that event's row open | none | push | /activity?event=amh2k9xab12 |
