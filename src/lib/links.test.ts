@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, absolute, links, slug, withRemix } from "./links";
+import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, absolute, links, slug, withDock, withRemix } from "./links";
 
 describe("links", () => {
   it("builds the calendar links the team-posts job sends (docs/deep-links.md)", () => {
@@ -523,5 +523,22 @@ describe("links", () => {
     expect(links.makeFormat("launch-film", { screens: "cimg-a,cimg-b" })).toBe("/make/launch-film?screens=cimg-a,cimg-b");
     expect(links.makeFormat("same-edit", { source: "clone:instagram:C1", who: "none" })).toBe("/make/same-edit?source=clone%3Ainstagram%3AC1&who=none");
     expect(links.makeFormat("same-edit", { plan: "ep-mh2k9x", beat: 2 })).toBe("/make/same-edit?plan=ep-mh2k9x&beat=2");
+  });
+
+  it("builds the 27 Oct rows: Done campaigns, the calendar's slots and preview, Fill open slots, Agent now, the dock and a film's direction", () => {
+    expect(links.campaigns({ show: "done" })).toBe("/campaigns?show=done");
+    expect(links.campaigns({ goal: "change", show: "done" })).toBe("/campaigns?goal=change&show=done");
+    // slots on is the default, left out; preview rides with the open post
+    expect(links.calendar({ slots: "off" })).toBe("/calendar?slots=off");
+    expect(links.calendar({ slots: "on" })).toBe("/calendar");
+    expect(links.calendar({ post: "d1", preview: 1 })).toBe("/calendar?post=d1&preview=1");
+    expect(links.calendar({ view: "week", slots: "off", post: "d1", preview: 1 })).toBe("/calendar?view=week&post=d1&preview=1&slots=off");
+    expect(links.drafts({ status: "draft", fill: 1 })).toBe("/drafts?status=draft&fill=1");
+    expect(links.home({ section: "agent-now" })).toBe("/home#agent-now");
+    // the dock opens over any page, on a thread or a new chat; the page's own params stay first
+    expect(withDock("/calendar", "tmh2k9x")).toBe("/calendar?dock=tmh2k9x");
+    expect(withDock("/drafts?status=draft", null)).toBe("/drafts?status=draft&dock=new");
+    expect(withDock(links.campaign("c-1", { post: 4 }), "t 1")).toBe("/campaigns/c-1?post=4&dock=t%201");
+    expect(links.makeFormat("launch-film", { film: "fm-1", direction: 2 })).toBe("/make/launch-film?film=fm-1&direction=2");
   });
 });

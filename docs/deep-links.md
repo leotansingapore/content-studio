@@ -39,6 +39,10 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A saved design (Leo only) | /image?image=<design id> | the open design |
 | A format trend (Leo only) | /trends?view=formats&template=<id> | every format card |
 
+A card or row that opens a post is a link to it, so a new tab, cmd-click and a long-press Copy link work: the calendar's
+rows and reel chips, Ideas, a campaign's grid, the editor's Recent videos, its versions and clips, Same edit's "Edits you
+read" and each Skills result.
+
 **Link previews.** A link pasted into Telegram, WhatsApp, Slack or LinkedIn shows a preview from api/page-og.ts
 (vercel.json sends only those fetchers there; src/lib/linkPreview.ts decides the words). Public posts show their
 own title, words and picture: news stories, ads, top posts, trends, inspiration examples and creators. Every
@@ -89,6 +93,8 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /calendar | teampost | a team post id (tp3), opens its review panel | none | push | /calendar?business=team-posts&teampost=tp3 |
 | /calendar | post | a post (draft) id, opens its controls | none | push | /calendar?post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /calendar | feed | a channel post id (the feed item id, URL-encoded), opens the whole post | none | push | /calendar?business=moneybees&feed=moneybees-telegram%3A2026-10-14%3Acpf-rates |
+| /calendar | slots | on, off: the brand kit's open posting slots drawn on the calendar (the Open slots toggle) | remembered (cs-calendar-slots), else on | replace | /calendar?slots=off |
+| /calendar | preview | 1 with post: the open post's preview on its network shown in its panel; opening another post or closing drops it | hidden | replace | /calendar?post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&preview=1 |
 | /board | business | as /calendar | remembered (shared with /calendar), else all | replace | /board?business=moneybees |
 | /board | feed | a channel post id (the feed item id, URL-encoded), opens the whole post | none | push | /board?feed=moneybees-telegram%3A2026-10-14%3Acpf-rates |
 | /drafts | status | all, draft, scheduled, posted | all | replace | /drafts?status=scheduled |
@@ -492,6 +498,7 @@ who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults
 | /generate/batch | aud | Leo only. a saved audience's id; stays in the address and wins over audience=; an unknown or removed id is dropped | the life stages | replace | /generate/batch?aud=au-lq3k9z |
 | /home | goal | Leo only. change: the goal editor open under the greeting; closing removes it | closed | replace | /home?goal=change |
 | /campaigns | goal | Leo only. change: the goal editor open under the H1; closing removes it | closed | replace | /campaigns?goal=change |
+| /campaigns | show | Leo only. done: the Done campaigns shown under Running, unfolded | folded | replace | /campaigns?show=done |
 | /campaigns/new | step | Leo only. who, angles, where, pace, review: the wizard's open step | the first unfinished step | replace | /campaigns/new?step=angles |
 | /campaigns/new | audience | Leo only. an audience id: step 1 answered, the wizard opens on step 2; read once, then kept with the wizard's typed work | none | replace | /campaigns/new?audience=au-lq3k9z |
 | /campaigns/<id> | (path) | Leo only. a campaign's id: the campaign page, with Copy link beside the H1 | | push | /campaigns/c-lq3k9z |
@@ -533,8 +540,9 @@ never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 cha
 | /agent | ask | Leo only. words for a new chat: the composer filled, not sent; read once, then removed; a thread drops it | none | replace | /agent?ask=make+a+carousel+about+CPF+LIFE |
 | /agent | remix | Leo only. a remix source key (the ?remix= shapes above): a new chat with that source on the composer, in place of the Remix sheet; a thread drops it | none | replace | /agent?remix=top%3Athe-woke-salaryman-instagram-Ddkxv39j961 |
 | /home | waiting | Leo only. all: every Next up item, not just the first few | the first few | replace | /home?waiting=all |
-| /home | #next-up, #ask | Leo only. scrolls to Next up or the Ask tiles | top | (anchor) | /home#next-up |
+| /home | #next-up, #ask, #agent-now | Leo only. scrolls to Next up, the Ask tiles or Agent now | top | (anchor) | /home#agent-now |
 | any studio page | tour | Leo only. 1 starts the tour at step 1; a step's id (home, competitors, formats, campaigns, brand, agent) starts at that step; an unknown value starts at step 1. Read once, then removed | no tour | replace | /home?tour=1 |
+| any studio page | dock | Leo only. a thread's id, or new: the agent dock open over the page on that chat, or on a new chat; /home and /agent, which have their own composer, ignore it. A thread that is gone, once the chats have loaded, is dropped with "That chat is no longer here" | closed | push to open; switching chat in the dock replaces; closing removes it | /calendar?dock=tmh2k9x |
 | /activity | view | Leo only. agent, you, claude, autopilot, schedule, learnings, plan, ai-use | all | replace | /activity?view=claude |
 | /activity | month | Leo only. YYYY-MM: loads back to that month and scrolls to its group | this month | replace | /activity?month=2026-09 |
 | /activity | event | Leo only. an event's id: that event's row open | none | push | /activity?event=amh2k9xab12 |
@@ -547,6 +555,9 @@ never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 cha
 | /carousel | ask | Leo only. with carousel or draft: a change in words, at most 300 characters (Write's MAX_ASK), proposed on the open carousel as the in-page suggestion with Use this and Keep mine; read once, then removed | none | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&ask=shorter+hook |
 | /slideshow | ask | Leo only. with s: the same, on the open slideshow | none | replace | /slideshow?s=ssmh2k9x01ab&ask=bigger+text+on+slide+2 |
 | /edit | ask | Leo only. with p: the words in the vibe box of the open project; read once, then removed | none | replace | /edit?p=vm1abc2&ask=bigger+yellow+captions+at+the+top |
+
+Copy link: a thread's header, and a skills result once it is open (/skills?run=<id>); /activity's header copies the view
+it shows.
 
 Paid steps never start from these links: ask fills the page's own box, and nothing is written until its button,
 with the price on it, is pressed. A receipt or a card links to its message, /agent/<thread>?m=<msg>; a learning
@@ -569,6 +580,7 @@ of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, 
 | /drafts | step | Leo only. with schedule: where, when, caption; a step the form can't reach yet opens the first blocked step. Files picked on the device are not in the link: a reload keeps the step and captions and asks for the file again | where | replace | /drafts?schedule=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&step=caption |
 | /drafts | network | Leo only. with step=caption: that network's caption tab (instagram, facebook, tiktok, linkedin, youtube, threads); an unticked or unknown network falls back to the first tab | the first tab | replace | /drafts?schedule=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&step=caption&network=linkedin |
 | /drafts | set | Leo only. a set's id: My posts filtered to that set of versions, with the hook test card above the list for a hook test | every post | replace | /drafts?set=<set id> |
+| /drafts | fill | Leo only. 1 with status=draft: the Fill open slots preview over the drafts listed; it sets times only, and nothing is placed until its button. Without status=draft it is ignored | closed | push | /drafts?status=draft&fill=1 |
 | /calendar | schedule | Leo only. 1 with post: the schedule steps open on that post; nothing is sent until the steps' last button | closed | push | /calendar?post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&schedule=1 |
 | /calendar | step, network | Leo only. with schedule=1: as /drafts | where; the first tab | replace | /calendar?post=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&schedule=1&step=when |
 | /calendar | fill | Leo only. 1: the Fill open slots preview; it sets times only, and nothing is placed until its button | closed | push | /calendar?fill=1 |
@@ -601,6 +613,7 @@ of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, 
 | /make/launch-film | tab | Leo only. fields, with film | notes | replace | /make/launch-film?film=fm-mh2k9x01ab&tab=fields |
 | /make/launch-film | note | Leo only. a note id, with film: that note open and the player at its time | none | replace | /make/launch-film?film=fm-mh2k9x01ab&note=n3 |
 | /make/launch-film | export | Leo only. open, with film: the export sheet; nothing exports on arrival | closed | replace | /make/launch-film?film=fm-mh2k9x01ab&export=open&shape=1x1 |
+| /make/launch-film | direction | Leo only. the direction picked under Pick a direction, 1-based, with film; out of range reads as the recommended one. Nothing is written until "Make this one" is pressed | the recommended direction | replace | /make/launch-film?film=fm-mh2k9x01ab&direction=2 |
 | /make/same-edit | source | Leo only. a remix source key with a video: clone:instagram:<id>, upload:<sha1> | none | replace | /make/same-edit?source=clone%3Ainstagram%3AC8xYz12AbCd |
 | /make/same-edit | plan | Leo only. a saved plan's id: its edit, with no new read | none | push | /make/same-edit?plan=ep-mh2k9x01ab |
 | /make/same-edit | who | Leo only. mine, a kept presenter's id, none (no face), film (I'll film it) | mine with a verified face, else film | replace | /make/same-edit?plan=ep-mh2k9x01ab&who=none |
@@ -608,6 +621,8 @@ of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, 
 | /make/same-edit | close | Leo only. loose, close | balanced | replace | /make/same-edit?plan=ep-mh2k9x01ab&close=loose |
 | /make/same-edit | beat | Leo only. the plan's selected row, 1-based | none | replace | /make/same-edit?plan=ep-mh2k9x01ab&beat=2 |
 | /make/same-edit | length | Leo only. 15, 30: the seconds the version is written to | 15 | replace | /make/same-edit?plan=ep-mh2k9x01ab&length=30 |
+
+Copy link: each grade panel (/analytics?grade=<post id>), and the My posts header, which copies the filters it shows.
 
 Both /make pages also read the shared source, from and mention=no params, as every /make page does
 (MakeFormatPage resolves source). Paid steps never start from these links: "Show me 3 directions", "Read the edit",
