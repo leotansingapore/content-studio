@@ -80,8 +80,9 @@ const SHORT = /^[A-Za-z0-9_-]{5,30}$/;
  */
 export function parseRemixLink(input: unknown): ParsedLink {
   if (typeof input !== "string" || !input.trim()) return no(LINK_COPY.empty);
-  // Share sheets paste "Look at this https://... via @someone": read the first link in the text.
-  let raw = input.match(/https?:\/\/\S+/i)?.[0] ?? input.trim();
+  // Share sheets paste "Look at this https://... via @someone": read the first link in the text. Every link read here
+  // is ASCII, so a bracket, a sentence's closing mark or Chinese typed right after it is not part of it.
+  let raw = input.match(/https?:\/\/[^\s<>"')\]\u0080-\uffff]+/i)?.[0].replace(/[.,;:!?]+$/, "") ?? input.trim();
   if (raw.length > MAX_URL_LENGTH || /\s/.test(raw)) return no(LINK_COPY.invalid);
   // People paste "instagram.com/reel/..." without the scheme.
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;

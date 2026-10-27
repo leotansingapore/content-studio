@@ -73,6 +73,18 @@ describe("parseRemixLink", () => {
     }
   });
 
+  it("reads a link typed into a sentence: a comma, full stop or bracket after it, or Chinese right after it, is not part of it", () => {
+    const typed: [string, LinkKind, string][] = [
+      ["remix https://www.instagram.com/reel/C8xYz12AbCd/, as a carousel", "instagram", "C8xYz12AbCd"],
+      ["this one (https://youtu.be/dQw4w9WgXcQ) please", "youtube", "dQw4w9WgXcQ"],
+      ["Make a post from https://youtu.be/dQw4w9WgXcQ.", "youtube", "dQw4w9WgXcQ"],
+      ["so good https://www.youtube.com/watch?v=dQw4w9WgXcQ!", "youtube", "dQw4w9WgXcQ"],
+      ["\u770b\u8fd9\u4e2ahttps://www.instagram.com/reel/C8xYz12AbCd/\uff0c\u505a\u6210\u5e16\u5b50", "instagram", "C8xYz12AbCd"],
+      ["https://youtu.be/dQw4w9WgXcQ\u505a\u6210\u5e16\u5b50", "youtube", "dQw4w9WgXcQ"],
+    ];
+    for (const [text, kind, id] of typed) expect(ok(text), text).toMatchObject({ kind, id });
+  });
+
   it("refuses profile, search and hashtag pages as not a single post", () => {
     expect(refusal("https://www.instagram.com/natgeo/")).toBe(LINK_COPY.notSingle("instagram"));
     expect(refusal("https://www.instagram.com/explore/tags/cpf/")).toBe(LINK_COPY.notSingle("instagram"));
