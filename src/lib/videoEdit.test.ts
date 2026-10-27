@@ -55,8 +55,11 @@ import {
   overlaysAt,
   overlayHit,
   outAt,
+  outIn,
+  segAt,
   srcAt,
   speedOf,
+  zoomAt,
   wordRange,
   addRemoved,
   removedAt,
@@ -612,6 +615,28 @@ describe("speed", () => {
   it("takes a speed from a vibe edit, kept between 1 and 1.5", async () => {
     expect(applyPatch(defaultSettings(), { speed: 1.17 }).next.speed).toBe(1.15);
     expect(applyPatch(defaultSettings(), { speed: 4 }).next.speed).toBe(1.5);
+  });
+});
+
+describe("playing the edit", () => {
+  it("knows which kept part plays at a time: the next from its first instant, the last past the end", () => {
+    const segs = [{ start: 0, end: 10 }, { start: 12, end: 24 }];
+    expect([segAt(segs, 9.99), segAt(segs, 10), segAt(segs, 21.99), segAt(segs, 50)]).toEqual([0, 1, 1, 1]);
+  });
+
+  it("puts the playhead of a line heard twice where it is playing, the teaser at the start and the line in its place later", () => {
+    // a cold open: 6 to 8 s plays first, then the whole take with that line again in its place
+    const segs = [{ start: 6, end: 8 }, { start: 0, end: 10 }];
+    expect(outIn(segs, 0, 7)).toBe(1);
+    expect(outIn(segs, 1, 7)).toBe(9);
+    expect(outIn(segs, 1, 7, 1.5)).toBeCloseTo(6);
+    // a time far outside the playing part is read as anywhere else in the edit
+    expect(outIn(segs, 0, 3)).toBe(outAt(segs, 3));
+  });
+
+  it("punches in on every other cut after the first, and not in a cut", () => {
+    const segs = [{ start: 0, end: 2 }, { start: 3, end: 5 }, { start: 6, end: 8 }, { start: 9, end: 10 }];
+    expect([1, 4, 7, 9.5, 2.5].map((t) => zoomAt(segs, t, 1.1))).toEqual([1, 1.1, 1, 1.1, 1]);
   });
 });
 
