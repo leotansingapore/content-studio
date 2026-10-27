@@ -72,14 +72,30 @@ select public.cs_test_assert(
   and has_function_privilege('service_role', 'public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)', 'execute')
   and has_function_privilege('service_role', 'public.cs_telegram_bot_token(bigint)', 'execute'),
   '0.4 only the service role may save a bot or read its token; nobody calls the clean-up trigger directly')
-from unnest(array['public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)', 'public.cs_telegram_bot_token(bigint)', 'public.cs_telegram_bots_forget_token()']) f;
+from unnest(array['public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)', 'public.cs_telegram_bot_token(bigint)', 'public.cs_telegram_bots_forget_token()', 'public.cs_telegram_bots_release_chats()']) f;
 
 select public.cs_test_assert(
-  (select count(*) = 3 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
+  (select count(*) = 4 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
    from pg_proc p
    where p.oid in ('public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure,
-                   'public.cs_telegram_bot_token(bigint)'::regprocedure, 'public.cs_telegram_bots_forget_token()'::regprocedure)),
-  '0.5 all three are SECURITY DEFINER with search_path pinned to pg_catalog, public, pg_temp');
+                   'public.cs_telegram_bot_token(bigint)'::regprocedure, 'public.cs_telegram_bots_forget_token()'::regprocedure,
+                   'public.cs_telegram_bots_release_chats()'::regprocedure)),
+  '0.5 all four are SECURITY DEFINER with search_path pinned to pg_catalog, public, pg_temp');
+
+select public.cs_test_assert(
+  (select p.proconfig @> array['log_min_error_statement=panic', 'log_parameter_max_length_on_error=0']
+   from pg_proc p where p.oid = 'public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure),
+  '0.5b the save never logs its statement or its arguments, even if something fails');
+
+select public.cs_test_assert(
+  exists (
+    select 1 from pg_constraint c
+    where c.conrelid = 'public.cs_telegram_chats'::regclass and c.contype = 'f'
+      and c.confrelid = 'public.cs_telegram_bots'::regclass
+      and (select array_agg(a.attname::text order by k.ord) from unnest(c.conkey) with ordinality k(n, ord)
+           join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.n) = array['owner_id', 'profile_id', 'bot_id']
+  ),
+  '0.5c a chat is bound to its bot''s row by owner, brand and bot id, not by the bot id alone');
 
 select public.cs_test_assert(
   (select data_type = 'bigint' from information_schema.columns where table_schema = 'public' and table_name = 'cs_telegram_chats' and column_name = 'bot_id')
@@ -116,21 +132,27 @@ set local role service_role;
 select public.cs_test_assert(public.cs_telegram_bot_token(7000000002) = (select mb from t_tokens), '1.2 the service role reads the token back for a send');
 select public.cs_test_assert(public.cs_telegram_bot_token(7000009999) is null, '1.3 an unknown bot has no token');
 
-select public.cs_test_expect_error(
-  $$select public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d2', 'me', 7000000002, 'mb_test_bot', 'Copy', (select mb from t_tokens), repeat('b', 64))$$,
-  '%duplicate key%', '1.4 a bot belongs to one brand of one account');
-select public.cs_test_expect_error(
-  $$select public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'me', 7000000003, 'fin_test_bot', 'FIN', (select fin from t_tokens), repeat('c', 64))$$,
-  '%duplicate key%', '1.5 one own bot per brand');
-select public.cs_test_expect_error(
-  $$select public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000005, 'fin_test_bot', 'FIN', (select fin from t_tokens), repeat('c', 64))$$,
-  '%token%', '1.6 a token for another bot id is refused');
-select public.cs_test_expect_error(
-  $$select public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000005, 'fin_test_bot', 'FIN', 'not a token', repeat('c', 64))$$,
-  '%token%', '1.7 a malformed token is refused');
-select public.cs_test_expect_error(
-  $$select public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, 'fin_test_bot', 'FIN', (select fin from t_tokens), 'plain secret')$$,
-  '%cs_telegram_bots_webhook_secret_hash_check%', '1.8 only the hash of the webhook secret is kept');
+-- every refusal is a null, never an error: an error could carry the call, and so the token, into the logs
+select public.cs_test_assert(
+  public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d2', 'me', 7000000002, 'mb_test_bot', 'Copy', (select mb from t_tokens), repeat('b', 64)) is null,
+  '1.4 a bot belongs to one brand of one account');
+select public.cs_test_assert(
+  public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'me', 7000000003, 'fin_test_bot', 'FIN', (select fin from t_tokens), repeat('c', 64)) is null,
+  '1.5 one own bot per brand');
+select public.cs_test_assert(
+  public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000005, 'fin_test_bot', 'FIN', (select fin from t_tokens), repeat('c', 64)) is null,
+  '1.6 a token for another bot id is refused');
+select public.cs_test_assert(
+  bool_and(public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000005, 'fin_test_bot', 'FIN', t, repeat('c', 64)) is null),
+  '1.7 a malformed token is refused, including one whose bot id is too big to read')
+from unnest(array['not a token', '', '99999999999999999999:' || repeat('A', 35), '7000000005:short']) t;
+select public.cs_test_assert(
+  public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, 'fin_test_bot', 'FIN', (select fin from t_tokens), 'plain secret') is null
+  and public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, 'bad name!', 'FIN', (select fin from t_tokens), repeat('c', 64)) is null
+  and public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'p FIN', 7000000003, 'fin_test_bot', 'FIN', (select fin from t_tokens), repeat('c', 64)) is null
+  and public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000ff', 'pfin', 7000000003, 'fin_test_bot', 'FIN', (select fin from t_tokens), repeat('c', 64)) is null
+  and public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, 'fin_test_bot', repeat('n', 129), (select fin from t_tokens), repeat('c', 64)) is null,
+  '1.8 a webhook secret that isn''t a hash, a bad @name or brand id, an unknown owner, or a name too long: refused before anything is stored');
 reset role;
 select public.cs_test_assert(
   (select count(*) from vault.secrets where name like 'cs_telegram_bot_%') = 1,
@@ -173,6 +195,30 @@ select public.cs_test_assert((select count(*) from (select id from public.cs_tel
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- 2b. Chats are bound to the bot's row: a chat can't name a bot its brand doesn't have
+-- ---------------------------------------------------------------------------
+
+insert into public.cs_telegram_chats (id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, connected_at, confirmed_at, login_hash, nonce_hash, bot_id) values
+  ('00000000-0000-4000-8000-0000000000c1', '7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('1', 64), now(), 111, -1001000000001, 'supergroup', 'Via own bot', 'connected', now(), now(), repeat('c', 63) || '1', repeat('9', 63) || '1', 7000000002),
+  ('00000000-0000-4000-8000-0000000000c2', '7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('2', 64), now() + interval '15 minutes', null, null, null, null, 'pending', null, null, null, repeat('9', 63) || '2', 7000000002),
+  ('00000000-0000-4000-8000-0000000000c3', '7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('3', 64), now(), 111, -1001000000003, 'supergroup', 'Via shared bot', 'connected', now(), now(), repeat('c', 63) || '3', repeat('9', 63) || '3', null),
+  ('00000000-0000-4000-8000-0000000000c4', '7e57c0de-0000-4000-8000-0000000000d1', 'pfin', repeat('4', 64), now(), 111, -1001000000004, 'supergroup', 'Via FIN bot', 'connected', now(), now(), repeat('c', 63) || '4', repeat('9', 63) || '4', 7000000003);
+insert into public.cs_telegram_posts (id, owner_id, profile_id, chat_row, client_key, text, send_at, status) values
+  ('00000000-0000-4000-8000-0000000000a1', '7e57c0de-0000-4000-8000-0000000000d1', 'me', '00000000-0000-4000-8000-0000000000c1', gen_random_uuid(), 'Waiting', now() + interval '1 hour', 'scheduled'),
+  ('00000000-0000-4000-8000-0000000000a2', '7e57c0de-0000-4000-8000-0000000000d1', 'me', '00000000-0000-4000-8000-0000000000c1', gen_random_uuid(), 'Sent', now(), 'posted'),
+  ('00000000-0000-4000-8000-0000000000a3', '7e57c0de-0000-4000-8000-0000000000d1', 'me', '00000000-0000-4000-8000-0000000000c3', gen_random_uuid(), 'Shared waiting', now() + interval '1 hour', 'scheduled'),
+  ('00000000-0000-4000-8000-0000000000a4', '7e57c0de-0000-4000-8000-0000000000d1', 'pfin', '00000000-0000-4000-8000-0000000000c4', gen_random_uuid(), 'FIN waiting', now() + interval '1 hour', 'scheduled');
+
+select public.cs_test_expect_error(
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, bot_id)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('5', 64), now(), 7000000004)$$,
+  '%cs_telegram_chats_bot_fk%', '2.11 a code can''t be issued for another adviser''s bot');
+select public.cs_test_expect_error(
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, bot_id)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('6', 64), now(), 7000000003)$$,
+  '%cs_telegram_chats_bot_fk%', '2.12 nor for a bot of the same account''s other brand');
+
+-- ---------------------------------------------------------------------------
 -- 3. Removing a bot removes its token from Vault; deleting a user removes theirs
 -- ---------------------------------------------------------------------------
 
@@ -184,6 +230,26 @@ select public.cs_test_assert(
   and exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000003')
   and exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000004'),
   '3.1 deleting a bot deletes its Vault secret, and only its own');
+select public.cs_test_assert(
+  (select array_agg(id::text || ':' || status || ':' || coalesce(bot_id::text, 'shared') order by id) from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d1')
+    = array['00000000-0000-4000-8000-0000000000c1:disconnected:shared', '00000000-0000-4000-8000-0000000000c2:disconnected:shared',
+            '00000000-0000-4000-8000-0000000000c3:connected:shared', '00000000-0000-4000-8000-0000000000c4:connected:7000000003'],
+  '3.1b in the same statement, the chats and codes tied through it are disconnected and let go of the bot; others stay');
+select public.cs_test_assert(
+  (select array_agg(id::text || ':' || status || ':' || coalesce(error, '') order by id) from public.cs_telegram_posts where owner_id = '7e57c0de-0000-4000-8000-0000000000d1')
+    = array['00000000-0000-4000-8000-0000000000a1:cancelled:Disconnected', '00000000-0000-4000-8000-0000000000a2:posted:',
+            '00000000-0000-4000-8000-0000000000a3:scheduled:', '00000000-0000-4000-8000-0000000000a4:scheduled:'],
+  '3.1c and their waiting posts are cancelled; sent posts and other chats'' posts are not');
+
+-- the same bot added again, by another adviser: the old chats stay let go, never pointing at the new row
+set local role service_role;
+select public.cs_test_assert(
+  public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d2', 'pnew', 7000000002, 'mb_test_bot', 'Theirs now', (select mb from t_tokens), repeat('f', 64)) is not null,
+  '3.1d a removed bot can be added again');
+reset role;
+select public.cs_test_assert(
+  not exists (select 1 from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d1' and bot_id = 7000000002),
+  '3.1e the old chats never point at the re-added bot');
 
 delete from auth.users where id = '7e57c0de-0000-4000-8000-0000000000d1';
 select public.cs_test_assert(
