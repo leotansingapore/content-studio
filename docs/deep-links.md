@@ -586,7 +586,7 @@ of links. Ids are never uuid-shaped: films fm-<base36>, edit plans ep-<base36>, 
 | /analytics | wins | Leo only. format, hook, angle: the What wins for you tab | format | replace | /analytics?wins=hook#what-wins |
 | /analytics | #real-numbers, #what-wins, #winners, #score-check | Leo only. scrolls to Your real numbers, What wins for you, Winner found or How the score did; #add-your-numbers is the Add your numbers card's own anchor | top | (anchor) | /analytics#what-wins |
 | /home | #pace | Leo only. scrolls to the Pace card | top | (anchor) | /home#pace |
-| /accounts | #instagram, #facebook, #tiktok, #linkedin, #youtube, #threads | Leo only. scrolls to that platform's card | top | (anchor) | /accounts#tiktok |
+| /accounts | #instagram, #facebook, #tiktok, #linkedin, #youtube, #threads | Leo only. scrolls to that platform's card. The sidebar's and More sheet's Channels block links each channel here (no new URL; its Connect a channel button and Home's Next up row open plain /accounts) | top | (anchor) | /accounts#tiktok |
 | /edit | versions | Leo only. 1 with p on a project made from a plan: the Versions panel open | closed | push | /edit?p=vm1abc2&versions=1 |
 | /edit | plan, version | Leo only. an edit plan's id and one of its versions: the upload screen ready to lay that plan over a filmed take | none | push | /edit?plan=ep-mh2k9x01ab&version=ev-mh2k9x02cd |
 | /make/launch-film | length | Leo only. 15, 30, 60 (seconds) | 30 | replace | /make/launch-film?length=15 |
