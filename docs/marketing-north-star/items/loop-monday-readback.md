@@ -1,6 +1,6 @@
 # Every Monday, last week's winners arrive on Telegram
 
-Status: started
+Status: done (27 Oct 2026, ~/.local/bin/marketing-readback; the card's ours line says what was built and what is not yet)
 App all apps, owner Claude, phase 2 (the loop can see).
 
 ## Why
