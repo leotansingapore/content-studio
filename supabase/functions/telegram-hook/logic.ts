@@ -178,7 +178,9 @@ export interface HookDeps {
 
 // ---- handling ----
 
-const isAdmin = (m: TgMember | null) => m?.status === "creator" || m?.status === "administrator";
+/** Who may connect a chat: its creator, or an admin; in a channel, an admin who can post there. */
+const canConnect = (m: TgMember | null, type: ChatType) =>
+  m?.status === "creator" || (m?.status === "administrator" && (type !== "channel" || m.can_post_messages === true));
 /** The bot posts only as an admin, and in a channel only with Post messages. */
 export const botCanPost = (m: TgMember | null, type: ChatType) => m?.status === "administrator" && (type !== "channel" || m.can_post_messages === true);
 
@@ -265,7 +267,7 @@ async function tie(d: HookDeps, r: ChatRow, user: number, chatId: number, shared
   const bot = chat && chat.type !== "private" ? await d.bot.call<TgMember>("getChatMember", { chat_id: chatId, user_id: d.bot.id }).catch(() => null) : null;
   if (!chat || chat.type === "private" || !botCanPost(bot, chat.type)) return refuse(d, r, user, title, "cant_post", say);
   const them = await d.bot.call<TgMember>("getChatMember", { chat_id: chatId, user_id: user }).catch(() => null);
-  if (!isAdmin(them)) return refuse(d, r, user, title, "not_admin", say);
+  if (!canConnect(them, chat.type)) return refuse(d, r, user, title, "not_admin", say);
   const tied: TiedChat = { chat_id: chat.id, chat_type: chat.type, title, username: chat.username ?? null, is_forum: chat.is_forum === true };
   if (!(await d.db.tie(r, tied, now))) return "tie:already";
   await say(user, tied.is_forum ? `${COPY.connected(title)}\n\n${COPY.forum(title)}` : COPY.connected(title), { reply_markup: { remove_keyboard: true } });

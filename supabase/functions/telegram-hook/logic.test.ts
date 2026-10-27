@@ -32,6 +32,7 @@ import botChannelNoPost from "./fixtures/api-member-bot-channel-no-post.json";
 import botMember from "./fixtures/api-member-bot-member.json";
 import userCreator from "./fixtures/api-member-user-creator.json";
 import userAdmin from "./fixtures/api-member-user-admin.json";
+import userChannelAdmin from "./fixtures/api-member-user-channel-admin.json";
 import userMember from "./fixtures/api-member-user-member.json";
 import sendOk from "./fixtures/api-send-message.json";
 
@@ -147,7 +148,7 @@ function stubBot(members: Record<string, Answer> = {}, chats: Record<number, Ans
 const GOOD = {
   [`${GROUP}:${LEO}`]: userCreator,
   [`${GROUP}:${BOT_ID}`]: botAdmin,
-  [`${CHANNEL}:${LEO}`]: userAdmin,
+  [`${CHANNEL}:${LEO}`]: userChannelAdmin,
   [`${CHANNEL}:${BOT_ID}`]: botChannelAdmin,
 };
 
@@ -459,6 +460,17 @@ describe("tying the picked chat", () => {
     await run(sharedGroup, db, bot);
     expect(rows[0].status).toBe("pending");
     expect(rows[0].chat_id).toBeNull();
+  });
+
+  it("refuses a channel admin who can't post there, and ties for the channel's creator", async () => {
+    const { db, rows } = fakeDb([await confirmed()]);
+    const { bot, replies } = stubBot({ ...GOOD, [`${CHANNEL}:${LEO}`]: userAdmin });
+    await run(sharedChannel, db, bot);
+    expect(rows[0]).toMatchObject({ status: "pending", chat_id: null, refusal: "not_admin" });
+    expect(replies().map((x) => x.text)).toEqual([COPY.notAdmin("Test channel")]);
+    const creator = fakeDb([await confirmed()]);
+    await run(sharedChannel, creator.db, stubBot({ ...GOOD, [`${CHANNEL}:${LEO}`]: userCreator }).bot);
+    expect(creator.rows[0]).toMatchObject({ status: "connected", chat_id: CHANNEL });
   });
 
   it("refuses a person who is not an admin of the chat", async () => {
