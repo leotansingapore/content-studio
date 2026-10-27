@@ -1466,11 +1466,14 @@ describe("ad versions (ad batches on /image)", () => {
     expect(got()).toEqual({ as: "ads", layout: "headline", versions: V, best: null, dropped: [], checked: false });
     const cased = got([{ ...V[0], words: { ...V[0].words, headline: "Low Pay Is Not Why You Cannot Save" } }, V[1], V[2]]) as Extract<MakeResult, { as: "ads" }>;
     expect(cased.versions[0].words.headline).toBe("Low pay is not why you cannot save");
-    expect(got(V.slice(0, 2))).toBeNull();
-    expect(got([V[0], V[1], { ...V[2], formula: "dilemma" }])).toBeNull();
-    expect(got([V[0], V[1], { ...V[2], formula: "contrarian" }])).toBeNull();
-    expect(got([V[0], V[1], { ...V[2], words: { ...V[2].words, headline: n(9) } }])).toBeNull();
-    expect(got([V[0], V[1], { ...V[2], caption: "Without a nomination your family waits," }])).toBeNull();
+    // a version off its shape is left out, and the rest keep the use
+    const two = { as: "ads", layout: "headline", versions: V.slice(0, 2), best: null, dropped: [], checked: false };
+    expect(got(V.slice(0, 2))).toEqual(two);
+    expect(got([V[0], V[1], { ...V[2], formula: "dilemma" }])).toEqual(two);
+    expect(got([V[0], V[1], { ...V[2], formula: "contrarian" }])).toEqual(two);
+    expect(got([V[0], V[1], { ...V[2], words: { ...V[2].words, headline: n(9) } }])).toEqual(two);
+    expect(got([V[0], V[1], { ...V[2], caption: "Without a nomination your family waits," }])).toEqual(two);
+    expect(got([V[0], { ...V[1], words: { ...V[1].words, headline: n(9) } }, { ...V[2], formula: "contrarian" }])).toBeNull();
     expect(validateMake("ads", { ...raw(), refuse: true }, { layout: "headline", versions: IDS })).toBeNull();
     expect(refusalOf("ads", JSON.stringify({ refuse: true, reason: "It promises returns." }))).toBe("It promises returns.");
     const quote = validateMake("ads", raw(V.map((v) => ({ ...v, words: { quote: v.words.headline } })).slice(0, 2)), { layout: "quote", versions: IDS.slice(0, 2) });

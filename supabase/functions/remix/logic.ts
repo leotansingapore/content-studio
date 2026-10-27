@@ -1479,8 +1479,9 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme" | "ads", r: Item
       const formula = String(v.formula ?? "");
       return raw && ENDS_SENTENCE.test(caption) && ids.includes(formula) ? { formula, words: adCase(raw, caption, req.brand?.name), caption } : null;
     });
-    const ok = versions.length === ids.length && versions.every(Boolean) && new Set(versions.map((v) => v!.formula)).size === ids.length;
-    return ok ? { as, layout, versions: versions as AdVersion[], best: null, dropped: [], checked: false } : null;
+    // a version that breaks its layout's limits is left out, so one long line no longer costs the whole set (live 27 Oct)
+    const kept = versions.filter((v): v is AdVersion => v !== null).filter((v, i, all) => all.findIndex((w) => w.formula === v.formula) === i);
+    return kept.length >= AD_VERSIONS.min ? { as, layout, versions: kept, best: null, dropped: [], checked: false } : null;
   }
   const fields = MEME_FIELDS[req.layout as MemeLayout];
   const rows = (Array.isArray(r.options) ? r.options : []).map((x) => (req.layout === "nobody-me" ? { ...obj(x), setup: withoutNobody(obj(x).setup) } : x));
