@@ -81,6 +81,20 @@ export async function scorePost(text: string, platform: string, format?: ScoreFo
 }
 
 /**
+ * A Fix this rewrite scored before Use this is offered (edit-score, Leo only; live-p7a-fix D12 and D26: both fixes left
+ * their own factor flagged): the score kept on this device under the rewrite's words, so Use this shows "Was a, now b"
+ * with no second call, and whether the factor it fixes is still flagged. Null when the score didn't come back.
+ */
+export async function scoreFix(userId: string, text: string, platform: string, format: ScoreFormat, factor: FactorId): Promise<{ cache: Cache; still: boolean } | null> {
+  try {
+    const s = await scorePost(text, platform, format);
+    return { cache: saveScore(userId, textKey(platform, text), s), still: s.down.includes(factor) };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * What a carousel is scored on: one "Slide N: <title>. <body>" line per slide, then the linked draft's caption.
  * The key of a carousel's saved score is textKey(platform, this).
  */
