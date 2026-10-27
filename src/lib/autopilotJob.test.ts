@@ -63,6 +63,11 @@ const writeAll = (body: { posts: { n: number; format: string }[] }) => ({
   })),
 });
 
+// the first import transforms over 200 modules, past the 10 s hook timeout on a loaded machine: done here, at collection,
+// which has no timeout, so each test's fresh import only runs them again
+await import("./autopilot");
+await import("./autopilotJob");
+await import("./draftHistory");
 beforeEach(async () => {
   local = new MemStorage();
   vi.stubGlobal("localStorage", local);

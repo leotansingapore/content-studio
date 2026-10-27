@@ -50,6 +50,10 @@ let job: typeof import("./campaignJob");
 let store: typeof import("./campaigns");
 let EdgeErr: new (m: string, status: number, code?: string) => Error;
 
+// the first import transforms over 200 modules, past the 10 s hook timeout on a loaded machine: done here, at collection,
+// which has no timeout, so each test's fresh import only runs them again
+await import("./campaignJob");
+await import("./campaigns");
 beforeEach(async () => {
   local = new MemStorage();
   vi.stubGlobal("localStorage", local);

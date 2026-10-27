@@ -21,6 +21,10 @@ class MemStorage {
 }
 let local: MemStorage;
 let m: typeof import("./ideasInbox");
+// the first import transforms over 200 modules, past the 10 s hook timeout on a loaded machine: done here, at collection,
+// which has no timeout, so each test's fresh import only runs them again
+await import("./ideasInbox");
+await import("@/components/ideas/IdeaView");
 beforeEach(async () => {
   local = new MemStorage();
   vi.stubGlobal("localStorage", local);

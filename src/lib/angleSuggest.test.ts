@@ -36,6 +36,10 @@ let s: typeof import("./angleSuggest");
 let angles: typeof import("./angles");
 let EdgeErr: new (m: string, status: number, code?: string) => Error;
 
+// the first import transforms over 200 modules, past the 10 s hook timeout on a loaded machine: done here, at collection,
+// which has no timeout, so each test's fresh import only runs them again
+await import("./angleSuggest");
+await import("./angles");
 async function fresh() {
   vi.resetModules();
   s = await import("./angleSuggest");

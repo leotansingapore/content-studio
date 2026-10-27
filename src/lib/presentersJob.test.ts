@@ -39,6 +39,9 @@ let storage: MemStorage;
 let job: typeof import("./presentersJob");
 let EdgeErr: new (m: string, s: number, c?: string) => Error;
 
+// the first import transforms over 200 modules, past the 10 s hook timeout on a loaded machine: done here, at collection,
+// which has no timeout, so each test's fresh import only runs them again
+await import("./presentersJob");
 async function fresh() {
   vi.resetModules();
   job = await import("./presentersJob");
