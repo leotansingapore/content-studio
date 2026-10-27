@@ -69,6 +69,8 @@ export interface SkillRun {
    * when it works on a post).
    */
   step?: "pick-post" | "unknown" | "open";
+  /** Its lines quote a competitor's ad: its message is never sent to the feedback service. */
+  quotes?: true;
 }
 
 export const MAX_SKILLS = 12;
@@ -234,7 +236,7 @@ export function newAds(userId: string, now = new Date()): AnswerAd[] {
   return out.sort((a, b) => b.days - a.days).slice(0, 10);
 }
 
-type Part = Pick<SkillRun, "lines" | "links" | "calls">;
+type Part = Pick<SkillRun, "lines" | "links" | "calls" | "quotes">;
 
 async function runCheck(userId: string, d: DraftEntry): Promise<Part> {
   const text = textOf(d);
@@ -310,6 +312,7 @@ async function runAnswer(userId: string, now: Date): Promise<Part> {
     lines: [`${ad.advertiser} started "${first}" ${ad.days ? `${plural(ad.days, "day")} ago` : "today"} (${ad.format}).`, ...angles.map((a, i) => `${i + 1}. ${a.title}: ${a.line}`)],
     links: angles.map((a) => ({ label: `Write this: ${a.title}`, path: links.generate({ pillar: "topic", detail: `${a.title}: ${a.line}`, ctx }) })),
     calls: 1,
+    quotes: true,
   };
 }
 

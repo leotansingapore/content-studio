@@ -39,6 +39,8 @@ export interface AgentMsg {
   card?: AgentCard;
   receipt?: Receipt;
   error?: boolean;
+  /** Its words quote text from outside the app (a competitor's ad, a page read), so it is never sent to the feedback service. */
+  quotes?: true;
 }
 
 export interface AgentThread {
@@ -126,9 +128,9 @@ export function newThread(userId: string, messages: AgentMsg[], now = new Date()
   return save(userId, [item, ...loadThreads(userId)]) ? { ok: true, item } : { ok: false, error: SAVE_FAILED };
 }
 
-/** A chat that opens with the agent's words, for "Ask about this" on a result. */
-export const seedThread = (userId: string, title: string, agentText: string, go: AgentMsg["go"] = [], now = new Date()): Saved<AgentThread> =>
-  newThread(userId, [newMsg("agent", { text: agentText, ...(go.length ? { go } : {}) }, now)], now, title);
+/** A chat that opens with the agent's words, for "Ask about this" on a result; `quotes` when they quote outside text. */
+export const seedThread = (userId: string, title: string, agentText: string, go: AgentMsg["go"] = [], now = new Date(), quotes = false): Saved<AgentThread> =>
+  newThread(userId, [newMsg("agent", { text: agentText, ...(go.length ? { go } : {}), ...(quotes ? { quotes: true as const } : {}) }, now)], now, title);
 
 export const appendMsg = (userId: string, threadId: string, msg: AgentMsg, now = new Date()): Saved<AgentThread> =>
   edit(userId, threadId, (t) => ({ ...t, messages: [...t.messages, clip(msg)] }), now);

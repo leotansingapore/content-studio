@@ -315,10 +315,13 @@ describe("Answer a competitor's new ad", () => {
     expect(r.links.every((l) => !l.path.includes("Owl") && !l.path.includes("Headline"))).toBe(true);
     expect(loadSkillRuns(UID)).toEqual([r]);
     expect(activity()[0].uses).toEqual({ feature: "skill-answer", n: 1 });
+    // it quotes the competitor's ad, so its message never goes to the feedback service
+    expect(r.quotes).toBe(true);
   });
 
   it("says when there is no new ad, calling nothing; a failed call saves nothing and says why", async () => {
-    expect((await runSkill(UID, "answer", {}, NOW)).lines).toEqual(["No new competitor ads this week."]);
+    const none = await runSkill(UID, "answer", {}, NOW);
+    expect([none.lines, none.quotes]).toEqual([["No new competitor ads this week."], undefined]);
     expect(fn.calls).toEqual([]);
     setAds();
     store.delete(runsKey(UID));

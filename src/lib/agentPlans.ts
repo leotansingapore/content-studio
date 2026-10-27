@@ -64,6 +64,8 @@ export interface Reply {
   go?: Chip[];
   card?: AgentCard;
   receipt?: Receipt;
+  /** The text quotes outside text (agentThreads AgentMsg.quotes). */
+  quotes?: true;
 }
 /** The engine's turn while a press runs: the step line, and one more server call. */
 export interface Live {
@@ -390,7 +392,8 @@ export function competitorCard(userId: string, message: string, act: AgentAct, p
   const word = message.match(/(?:https?:\/\/[^\s]+|@[A-Za-z0-9._]{2,30})/)?.[0] ?? name?.trim() ?? "";
   const row = rowOf(word);
   const twin = row && loadCompetitors(userId).list.find((x) => sameCompetitor(x, row));
-  if (twin) return { text: `You already watch ${twin.name}.`, go: [{ label: "Competitors", path: links.competitors({ view: "list" }) }] };
+  // a watched competitor's name may come from a page read
+  if (twin) return { text: `You already watch ${twin.name}.`, go: [{ label: "Competitors", path: links.competitors({ view: "list" }) }], quotes: true };
   const c = withInput(card("competitor", { plan: "competitor", act, p, input: "" }, { title: "Add a competitor", line: "", needs: [] }, now), word);
   return { text: row ? LINES.competitorLead(row.name) : undefined, card: c };
 }

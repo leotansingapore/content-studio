@@ -202,7 +202,7 @@ function Skills({ userId }: { userId: string }) {
             {runs.map((r) => (
               <Result key={r.id} r={r} open={r.id === run}
                 onAsk={() => {
-                  const t = seedThread(userId, `${r.name}${r.title ? ` on "${r.title}"` : ""}`, skillRunText(r), r.links);
+                  const t = seedThread(userId, `${r.name}${r.title ? ` on "${r.title}"` : ""}`, skillRunText(r), r.links, undefined, !!r.quotes);
                   if (t.ok === false) return toast({ title: t.error, variant: "destructive" });
                   navigate(links.agent({ thread: t.item.id }));
                 }} />

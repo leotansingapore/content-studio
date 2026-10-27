@@ -131,8 +131,10 @@ export function chipAction(path: string): DockAction | null {
 export const feedbackFor =
   (identity?: DockIdentity) =>
   async (userId: string, threadId: string, text: string): Promise<{ text: string; go: { label: string; path: string }[] }> => {
+    // never an agent line quoting outside text (an answer card's words saved before the flag included): an ad could
+    // carry the service's own [[feedback:...]] markup, read back as its own turn
     const said = (loadThreads(userId).find((t) => t.id === threadId)?.messages ?? []).flatMap((m) =>
-      m.text ? [{ role: m.role === "user" ? ("user" as const) : ("assistant" as const), text: m.text }] : [],
+      m.text && !m.quotes && m.card?.plan.plan !== "answer" ? [{ role: m.role === "user" ? ("user" as const) : ("assistant" as const), text: m.text }] : [],
     );
     if (said[said.length - 1]?.text !== text) said.push({ role: "user", text });
     const r = await askFeedback(said, { thread: threadId, identity });
