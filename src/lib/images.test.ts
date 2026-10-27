@@ -13,6 +13,7 @@ import {
   MAX_IMAGES,
   blankImage,
   cachedShows,
+  chosenVersion,
   imageDraft,
   imageWrite,
   loadImages,
@@ -22,7 +23,10 @@ import {
   saveImage,
   startImageWrite,
   swipePicture,
+  versionSet,
+  versionWords,
   wordsFromMake,
+  type AdVersionSet,
   type ImageWriteAsk,
   type SavedImage,
 } from "./images";
@@ -127,6 +131,41 @@ describe("the words a make wrote", () => {
     expect(t.clientWords).toBe("They helped");
     expect(t.quote).toBe("My line");
     expect(wordsFromMake(prev, { as: "image", layout: "stat", layoutBy: "default", words: { statLabel: "of people" }, caption: "C" })).toMatchObject({ number: "57%", statSource: "MOH", statLabel: "of people" });
+  });
+});
+
+describe("ad versions kept in the design", () => {
+  const V = [
+    { formula: "myth-bust", words: { headline: "Low pay is not why", line: "It leaks out after payday.", button: "Message me" }, caption: "It is the order. Ask me." },
+    { formula: "dilemma", words: { headline: "Loan or cash?", line: "Both sound right.", button: "Ask me" }, caption: "Which would you pick? Tell me." },
+    { formula: "warning", words: { headline: "No nomination quietly costs", line: "Your family waits.", button: "Check yours" }, caption: "Fix it in ten minutes. Ask me how." },
+  ];
+  const set: AdVersionSet = { layout: "headline", list: V, best: 1, out: 0, checked: true };
+
+  it("keeps only what Jev kept, with its best counted among the kept ones", () => {
+    expect(versionSet({ as: "ads", layout: "headline", versions: V, best: 2, dropped: [0], checked: true })).toEqual({ layout: "headline", list: [V[1], V[2]], best: 1, out: 1, checked: true });
+    expect(versionSet({ as: "ads", layout: "stat", versions: V, best: null, dropped: [], checked: false })).toMatchObject({ layout: "stat", best: null, out: 0, checked: false });
+  });
+
+  it("puts a version's own words and caption in the fields, keeps a stat's number, and knows which one is on", () => {
+    const words = versionWords({ headline: "Old", topic: "CPF", caption: "Old caption" }, set, 2);
+    expect(words).toEqual({ headline: "No nomination quietly costs", line: "Your family waits.", button: "Check yours", topic: "CPF", caption: "Fix it in ten minutes. Ask me how." });
+    expect(chosenVersion(words, set)).toBe(2);
+    expect(chosenVersion({ ...words, line: "Typed over it." }, set)).toBeNull();
+    const stat: AdVersionSet = { layout: "stat", list: [{ formula: "warning", words: { statLabel: "of families wait longer" }, caption: "Ask me." }], best: 0, out: 0, checked: true };
+    expect(versionWords({ number: "57%", statSource: "MOH" }, stat, 0)).toEqual({ number: "57%", statSource: "MOH", statLabel: "of families wait longer", caption: "Ask me." });
+  });
+
+  it("survives a reload, and a stored set reads back clean", () => {
+    saveImage(U, design("img-ver1xx", { words: versionWords({}, set, 1), versions: set }));
+    expect(loadImages(U)[0].versions).toEqual(set);
+    const clean = sanitizeSavedImage({
+      id: "img-ver2xx",
+      versions: { layout: "headline", list: [{ formula: "myth-bust", words: { headline: "Hi", quote: "not this layout's", button: 3 }, caption: "C." }, { formula: "../x", words: {}, caption: "C." }, "junk"], best: 4, out: 99, checked: "yes" },
+    });
+    expect(clean?.versions).toEqual({ layout: "headline", list: [{ formula: "myth-bust", words: { headline: "Hi" }, caption: "C." }], best: null, out: 0, checked: false });
+    expect(sanitizeSavedImage({ id: "img-ver3xx", versions: { layout: "testimonial", list: V } })?.versions).toBeUndefined();
+    expect(sanitizeSavedImage({ id: "img-ver3xx", versions: { layout: "quote", list: [] } })?.versions).toBeUndefined();
   });
 });
 

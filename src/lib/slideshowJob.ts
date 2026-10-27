@@ -114,7 +114,7 @@ export function makeBody(
   userId: string,
   a: Pick<SlideshowAsk, "source" | "topic" | "mention" | "note" | "size">,
   as: RemixAs = "slideshow",
-  more: Partial<Pick<MakeRequest, "seconds" | "scene" | "maxWords" | "formulas" | "demo" | "layout" | "shows">> = {},
+  more: Partial<Pick<MakeRequest, "seconds" | "scene" | "maxWords" | "formulas" | "demo" | "layout" | "shows" | "versions">> = {},
 ): MakeRequest {
   const s = a.source;
   const t = s ? localTeardown(userId, s) : null;

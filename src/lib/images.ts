@@ -1,6 +1,7 @@
 // The Image page's designs and its "Write it for me" run (docs/north-star/items/formats-static-ad.md; formats-memes
 // saves its memes here too in wave 5). Designs are per brand and synced:
-//   content-studio-images-${scoped(userId)}: SavedImage[], newest first, the latest 20
+//   content-studio-images-${scoped(userId)}: SavedImage[], newest first, the latest 20, each with its ad versions
+//   (Write 6 versions, src/components/image/AdVersions.tsx) when it has them
 // Pictures stay on the device that holds them (deviceFiles, under media library keys), so a design opened on another
 // device shows without its picture and says so.
 //
@@ -13,7 +14,7 @@
 import { callFn } from "@/lib/edgeFn";
 import { SLIDE_FONTS, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
 import { setFormatJob } from "@/lib/formatJob";
-import { IMAGE_SIZES, type ImageSize } from "@/lib/imageLayout";
+import { IMAGE_SIZES, optionIndex, type ImageSize } from "@/lib/imageLayout";
 import { IMAGE_LAYOUTS, links, type ImageLayout } from "@/lib/links";
 import { scoped } from "@/lib/profiles";
 import { requestMake, type Flags, type MakeResult } from "@/lib/remix";
@@ -23,7 +24,22 @@ import type { RemixSource } from "@/lib/remixSource";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import type { LinkedSource } from "@/lib/resolveSource";
-import type { AdLayout } from "../../supabase/functions/remix/logic.ts";
+import { AD_VERSIONS, AD_WORDS, VERSION_LAYOUTS, type AdLayout, type AdVersion } from "../../supabase/functions/remix/logic.ts";
+
+export type VersionLayout = (typeof VERSION_LAYOUTS)[number];
+export const isVersionLayout = (l: string): l is VersionLayout => (VERSION_LAYOUTS as readonly string[]).includes(l);
+
+/** An ad's versions from one Write 6 versions: only the ones Jev kept, so the page never shows one it dropped. */
+export interface AdVersionSet {
+  layout: VersionLayout;
+  list: AdVersion[];
+  /** Jev's pick among the kept ones, or null. */
+  best: number | null;
+  /** How many Jev left out: they said more than the brand's facts, or failed the MAS question. */
+  out: number;
+  /** false: Jev gave no answer, so none was read against the brand's facts. */
+  checked: boolean;
+}
 
 export interface SavedImage {
   id: string;
@@ -40,6 +56,8 @@ export interface SavedImage {
   source?: { key: string; label: string };
   /** Its post in My posts, once Post it for me saved one (as carousels and slideshows keep theirs). */
   draftId?: string;
+  /** Write 6 versions' last set, shown while the design is on that layout. */
+  versions?: AdVersionSet;
   updatedAt: string;
 }
 
@@ -61,6 +79,23 @@ export function blankImage(o: Partial<Pick<SavedImage, "layout" | "size" | "font
 const oneOf = <T extends string>(list: readonly T[], v: unknown, fallback: T): T => (list.includes(v as T) ? (v as T) : fallback);
 const line = (v: unknown, n: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, n) : "");
 
+/** A saved version set as it should be, or undefined: only the layout's own words, at most 6, the indexes in range. */
+function sanitizeVersions(raw: unknown): AdVersionSet | undefined {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : null;
+  const layout = VERSION_LAYOUTS.find((l) => l === r?.layout);
+  if (!r || !layout) return undefined;
+  const own = Object.keys(AD_WORDS[layout]);
+  const list = (Array.isArray(r.list) ? r.list : []).slice(0, AD_VERSIONS.max).flatMap((x): AdVersion[] => {
+    const v = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+    const w = v.words && typeof v.words === "object" ? (v.words as Record<string, unknown>) : {};
+    const words = Object.fromEntries(own.flatMap((k) => (typeof w[k] === "string" ? [[k, (w[k] as string).slice(0, 400)]] : [])));
+    return typeof v.formula === "string" && /^[a-z-]{1,30}$/.test(v.formula) && typeof v.caption === "string" ? [{ formula: v.formula, words, caption: v.caption.slice(0, 600) }] : [];
+  });
+  if (!list.length) return undefined;
+  const at = (n: unknown, hi: number) => (Number.isInteger(n) && (n as number) >= 0 && (n as number) < hi ? (n as number) : null);
+  return { layout, list, best: at(r.best, list.length), out: at(r.out, AD_VERSIONS.max + 1) ?? 0, checked: r.checked === true };
+}
+
 /** One saved design as it should be, or null. Unknown words, bad keys and anything not text are dropped. */
 export function sanitizeSavedImage(raw: unknown): SavedImage | null {
   if (!raw || typeof raw !== "object") return null;
@@ -76,6 +111,7 @@ export function sanitizeSavedImage(raw: unknown): SavedImage | null {
   const s = r.source && typeof r.source === "object" ? (r.source as Record<string, unknown>) : null;
   const key = line(s?.key, 200);
   const pictureKey = typeof r.pictureKey === "string" && (r.pictureKey === HEADSHOT || PICTURE_KEY.test(r.pictureKey)) ? r.pictureKey : undefined;
+  const versions = sanitizeVersions(r.versions);
   return {
     id: r.id,
     layout: oneOf(IMAGE_LAYOUTS, r.layout, "headline"),
@@ -87,6 +123,7 @@ export function sanitizeSavedImage(raw: unknown): SavedImage | null {
     ...(pictureKey ? { pictureKey } : {}),
     ...(key ? { source: { key, label: line(s?.label, 120) } } : {}),
     ...(typeof r.draftId === "string" && r.draftId.length <= 80 ? { draftId: r.draftId } : {}),
+    ...(versions ? { versions } : {}),
     updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
   };
 }
@@ -215,6 +252,20 @@ export function wordsFromMake(prev: Record<string, string>, r: Extract<MakeResul
   for (const k of own[r.layout]) next[r.layout === "testimonial" ? "clientWords" : k] = r.words[k as keyof typeof r.words] ?? "";
   return next;
 }
+
+/** The set to keep from an ads make: the versions Jev kept, its best counted among them. */
+export function versionSet(r: Extract<MakeResult, { as: "ads" }>): AdVersionSet {
+  const kept = r.versions.filter((_, i) => !r.dropped.includes(i));
+  const best = r.best === null ? -1 : kept.indexOf(r.versions[r.best]);
+  return { layout: isVersionLayout(r.layout) ? r.layout : "headline", list: kept, best: best < 0 ? null : best, out: r.dropped.length, checked: r.checked };
+}
+
+/** A design's words with version i's put in: its layout's fields and its caption, the rest (a stat's number) kept. */
+export const versionWords = (prev: Record<string, string>, set: AdVersionSet, i: number) =>
+  wordsFromMake(prev, { as: "image", layout: set.layout, layoutBy: "default", words: set.list[i]?.words ?? {}, caption: set.list[i]?.caption ?? "" });
+
+/** Which version the design's words still are (a typed edit makes it none). */
+export const chosenVersion = (words: Record<string, string>, set: AdVersionSet) => optionIndex(words, set.list.map((_, i) => versionWords({}, set, i)));
 
 export interface ImageWriteAsk {
   /** The design the words go into; saved before the run starts. */

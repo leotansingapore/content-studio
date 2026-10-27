@@ -6,10 +6,14 @@
 // Memes (docs/north-star/items/formats-memes.md) are five more layouts in a Meme group: "Write 3 memes" is one remix
 // make (as "meme") with Jev's safety cut and "Best", and the picture is made, from Media or free stock
 // (src/components/image/MemeOptions.tsx). A meme is 4:5, 1:1 or 9:16 and starts on Square.
+// Ad versions (docs/adlauncher-ads.md): with Versions on 6, the press is one remix make (as "ads") writing six versions
+// of a headline ad, quote card or stat card on six hook formulas, drawn small under the preview; tapping one puts its
+// words in the fields (src/components/image/AdVersions.tsx). They are kept in the design.
 //
 // URL (docs/deep-links.md): layout and size replace, defaults left out; source=<RemixSource key> is read once into a
 // new design and then removed; image=<saved id> opens a design, and the address takes it once an edit is kept
-// (replace); pick=media|make|stock opens a picture picker (replace; stock is a meme's); ad=1 opens Run as an ad over
+// (replace); pick=media|make|stock opens a picture picker (replace; stock is a meme's); versions=6 makes the press write
+// six ad versions (replace, 1 left out, ignored on a testimonial or meme); ad=1 opens Run as an ad over
 // the design (push; docs/adlauncher-ads.md). A write on arrival comes only from navigation state { go: true } (the
 // Remix sheet's "Also make: Static ad" or "Meme", under US$1), never from a URL param.
 
@@ -22,6 +26,7 @@ import FormatShell from "@/components/make/FormatShell";
 import PriceChip from "@/components/PriceChip";
 import { PostItForMePanel } from "@/components/PostItForMe";
 import AdsResults from "@/components/image/AdsResults";
+import { AdVersions, VERSIONS, VERSIONS_STEP, adVersionsBusy, startAdVersions, useAdVersionsRun } from "@/components/image/AdVersions";
 import RunAsAdSheet from "@/components/image/RunAsAdSheet";
 import { MemeOptions, MemePicture, MediaThumb, memePictures, memeSetFor, memeWriteBusy, MEME_STEP, startMemeWrite, useMemePictures, useMemeWrite } from "@/components/image/MemeOptions";
 import FlagChips from "@/components/remix/FlagChips";
@@ -66,10 +71,12 @@ import {
   HEADSHOT,
   blankImage,
   cachedShows,
+  chosenVersion,
   imageById,
   imageDraft,
   imageWrite,
   imageWriteBusy,
+  isVersionLayout,
   loadImages,
   onImageWrite,
   onImagesChanged,
@@ -196,6 +203,10 @@ function ImageEditor({ userId }: { userId: string }) {
   const meme = isMeme(layout);
   const [size] = useUrlState<ImageSize>("size", "4x5", { allowed: sizesFor(layout) });
   const [pick] = useUrlState<"none" | "media" | "make" | "stock">("pick", "none", { allowed: ["none", "media", "make", "stock"] });
+  // a testimonial is a customer's own words and a meme writes its own 3, so neither takes versions
+  const [versionsParam] = useUrlState<"1" | "6">("versions", "1", { allowed: ["1", "6"] });
+  const canVersion = isVersionLayout(layout);
+  const many = canVersion && versionsParam === "6";
   const imageId = params.get("image");
   const sourceKey = params.get("source");
   const kit = useMemo(() => loadBrand(userId), [userId]);
@@ -204,7 +215,8 @@ function ImageEditor({ userId }: { userId: string }) {
   const measure = useMemo(() => createCanvasMeasure(), []);
   const write = useWrite();
   const mw = useMemeWrite();
-  const writing = (!!write && imageWriteBusy()) || (!!mw && memeWriteBusy());
+  const av = useAdVersionsRun();
+  const writing = (!!write && imageWriteBusy()) || (!!mw && memeWriteBusy()) || (!!av && adVersionsBusy());
   const pictures = useMemePictures();
   const leftOf = useUsesLeft(writing || pictures?.state === "working");
   const pictureJob = usePictureJob();
@@ -286,12 +298,17 @@ function ImageEditor({ userId }: { userId: string }) {
 
   /** Starts a write into `design`, saved first so the run has it and leaving the page keeps it. */
   const startWrite = (design: SavedImage, src: RemixSource | null, layoutPicked: boolean, addressed = false) => {
-    if (imageWriteBusy() || memeWriteBusy()) return;
+    if (imageWriteBusy() || memeWriteBusy() || adVersionsBusy()) return;
     flush();
     saveImage(userId, design);
     if (!addressed && imageId !== design.id) update({ image: design.id });
     if (isMeme(design.layout)) {
       void startMemeWrite(userId, { designId: design.id, layout: design.layout, source: src, topic: design.words.topic ?? "", note: src ? sheetNote(src.key) : "", size: design.size });
+      return toResult();
+    }
+    // versions write for the layout on screen and never read the picture: what it shows is passed when it is known
+    if (many && isVersionLayout(design.layout)) {
+      void startAdVersions(userId, { designId: design.id, layout: design.layout, source: src, topic: design.words.topic ?? "", note: src ? sheetNote(src.key) : "", size: design.size, shows: src ? cachedShows(src.key) : "" });
       return toResult();
     }
     void startImageWrite(userId, {
@@ -378,6 +395,17 @@ function ImageEditor({ userId }: { userId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mw]);
 
+  // ad versions for this design: as a meme write, its end is scrolled into view on a phone and its words come in
+  const seenVersions = useRef(av && av.state !== "writing" ? av.id : 0);
+  useEffect(() => {
+    if (!av || av.designId !== img.id || av.state === "writing" || seenVersions.current === av.id) return;
+    seenVersions.current = av.id;
+    const fresh = av.state === "done" ? imageById(userId, img.id) : null;
+    if (fresh) setImg(fresh);
+    toResult();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [av]);
+
   // a meme picture made for this design drops in, over whatever was typed since (the run saved it too)
   const landed = useRef(memePictures()?.seq ?? 0);
   useEffect(() => {
@@ -415,14 +443,20 @@ function ImageEditor({ userId }: { userId: string }) {
   const missing = pictured ? (pictureLine(img, picture.found) ?? pictureLine({ pictureKey: second }, picture2.found)) : null;
   const memeSet = useMemo(() => (meme ? memeSetFor(img.id) : null), [meme, img.id, mw]); // eslint-disable-line react-hooks/exhaustive-deps
   const memeOptions = memeSet?.layout === layout ? memeSet : null;
+  const adSet = img.versions?.layout === layout ? img.versions : null;
   const fileBase = slugify(mainWords(layout, img.words)) || "image";
 
   const textToCheck = [...IMAGE_FIELDS[layout].map((f) => img.words[f.key] ?? ""), img.words.caption ?? ""].filter((t) => t.trim()).join("\n\n");
   const flags = useMemo(() => scanCompliance(textToCheck), [textToCheck]);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const mineDone = !meme && write?.designId === img.id && write.state === "done" ? write : null;
+  // the fields hold one of the versions: a single write's flags are about other words
+  const onVersion = !!adSet && chosenVersion(img.words, adSet) !== null;
+  const mineDone = !meme && !onVersion && write?.designId === img.id && write.state === "done" ? write : null;
   const memeDone = meme && mw?.designId === img.id && mw.state === "done" ? mw : null;
-  const failed = writing ? null : !meme ? (write?.designId === img.id && write.state === "failed" ? write : null) : mw?.designId === img.id && mw.state === "failed" ? mw : null;
+  const versionsDone = onVersion && av?.designId === img.id && av.state === "done" ? av : null;
+  const mine = <T extends { designId: string; state: string }>(r: T | null) => (r?.designId === img.id && r.state === "failed" ? r : null);
+  // a failed run for this design, of the kind the button makes now: memes, six versions or one write
+  const failed = writing ? null : meme ? mine(mw) : many ? mine(av) : mine(write);
   // Jev's MAS question read the best meme only
   const masWarn = mineDone?.flags?.mas || (!!memeDone?.flags?.mas && !!memeOptions && optionIndex(img.words, memeOptions.options) === memeOptions.best);
 
@@ -502,8 +536,10 @@ function ImageEditor({ userId }: { userId: string }) {
   const dropSource = () => edit({ source: undefined });
 
   const hasWords = !imageBlock(layout, { ...img.words, number: "x", statSource: "x" });
-  const price = sumPrices(priceOf("remix-make"), willRead ? priceOf("remix-image") : null);
-  const writeLabel = meme ? (memeOptions ? "Write 3 more" : "Write 3 memes") : hasWords ? "Write it again" : "Write it for me";
+  // six versions are one make and never read the picture
+  const reads = willRead && !many;
+  const price = sumPrices(priceOf("remix-make"), reads ? priceOf("remix-image") : null);
+  const writeLabel = meme ? (memeOptions ? "Write 3 more" : "Write 3 memes") : many ? (adSet ? `Write ${VERSIONS} more` : `Write ${VERSIONS} versions`) : hasWords ? "Write it again" : "Write it for me";
 
   const options = (
     <>
@@ -566,6 +602,12 @@ function ImageEditor({ userId }: { userId: string }) {
               </FilterChip>
             ))}
           </Row>
+          {canVersion && (
+            <Row label="Versions">
+              <FilterChip active={!many} disabled={writing} onClick={() => update({ versions: null })}>1</FilterChip>
+              <FilterChip active={many} disabled={writing} onClick={() => update({ versions: String(VERSIONS) })}>{VERSIONS}</FilterChip>
+            </Row>
+          )}
         </CardContent>
       </Card>
 
@@ -681,10 +723,10 @@ function ImageEditor({ userId }: { userId: string }) {
       </div>
       <div className="relative mx-auto w-full" style={{ maxWidth: W > H ? 560 : Math.round(420 * (W / H) * (H > 1400 ? 1.15 : 1.25)) }}>
         <img src={preview} alt={mainWords(layout, img.words) || "Your image"} width={W} height={H} className="block h-auto w-full rounded-lg border border-border/60 shadow-card" />
-        {writing && (meme ? mw : write) && (
+        {writing && (meme ? mw : adVersionsBusy() ? av : write) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 text-sm text-muted-foreground backdrop-blur-sm">
             <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
-            <span role="status">{meme ? MEME_STEP : writeStep(write)}</span>
+            <span role="status">{meme ? MEME_STEP : adVersionsBusy() ? VERSIONS_STEP : writeStep(write!)}</span>
           </div>
         )}
       </div>
@@ -701,9 +743,24 @@ function ImageEditor({ userId }: { userId: string }) {
       )}
 
       {memeOptions && <MemeOptions set={memeOptions} words={img.words} disabled={writing} onPick={(o) => edit({ words: { ...img.words, ...o } })} />}
+      {adSet && (
+        <AdVersions
+          set={adSet}
+          img={img}
+          input={input}
+          size={size}
+          measure={measure}
+          disabled={writing}
+          onPick={(words) => {
+            // a pick is one tap, so it is kept at once rather than after the typing delay
+            edit({ words });
+            flush();
+          }}
+        />
+      )}
 
       <ComplianceChips flags={flags.filter((f) => !dismissed.includes(f.id))} onDismiss={(id) => setDismissed((d) => [...d, id])} />
-      {(mineDone ?? memeDone)?.flags && <FlagChips flags={(mineDone ?? memeDone)!.flags!} />}
+      {(mineDone ?? memeDone ?? versionsDone)?.flags && <FlagChips flags={(mineDone ?? memeDone ?? versionsDone)!.flags!} />}
       {masWarn && (
         <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> These words may promise a result or point to a product. Check them before you post.
@@ -767,9 +824,9 @@ function ImageEditor({ userId }: { userId: string }) {
         footer={{
           cap: "remix-make",
           price,
-          caps: willRead ? ["remix-image"] : undefined,
+          caps: reads ? ["remix-image"] : undefined,
           label: writeLabel,
-          busyLabel: meme ? MEME_STEP : write?.state === "reading" ? "Reading..." : "Writing...",
+          busyLabel: meme ? MEME_STEP : adVersionsBusy() ? VERSIONS_STEP : write?.state === "reading" ? "Reading..." : "Writing...",
           busy: writing,
           disabled: !!reason,
           reason,

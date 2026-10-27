@@ -649,9 +649,9 @@ export const links = {
   /** A platform's card on /accounts, scrolled to. */
   accounts: (o: { section?: SocialPlatform } = {}) => `/accounts${o.section ? `#${o.section}` : ""}`,
   // ---- end phase 7a
-  /** The Image page (Leo only): layout (headline left out) and size (4x5 left out) replace; source is read once, then removed; image opens a saved design (replace); ad=1 opens Run as an ad over it (push). */
-  image: (o: { layout?: ImageLayout; size?: "4x5" | "1x1" | "9x16" | "wide"; source?: string; image?: string; ad?: true } = {}) =>
-    `/image${qs({ layout: o.layout !== "headline" && o.layout, size: o.size !== "4x5" && o.size, source: o.source, image: o.image, ad: o.ad && 1 })}`,
+  /** The Image page (Leo only): layout (headline left out) and size (4x5 left out) replace; source is read once, then removed; image opens a saved design (replace); versions=6 writes six ad versions (1 left out); ad=1 opens Run as an ad over it (push). */
+  image: (o: { layout?: ImageLayout; size?: "4x5" | "1x1" | "9x16" | "wide"; source?: string; image?: string; versions?: 1 | 6; ad?: true } = {}) =>
+    `/image${qs({ layout: o.layout !== "headline" && o.layout, size: o.size !== "4x5" && o.size, source: o.source, image: o.image, versions: o.versions === 6 && 6, ad: o.ad && 1 })}`,
   /** AdLauncher's connection (Leo only, Settings > Connections). */
   adlauncher: () => "/adlauncher",
 };
