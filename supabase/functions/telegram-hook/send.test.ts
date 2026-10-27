@@ -103,6 +103,22 @@ describe("clearing files 7 days after a post is done", () => {
     expect(log.slice(-3)).toEqual([`live?${a},${b},${c}`, `remove:${a},${c}`, "clear:old-1,old-2"]);
   });
 
+  it("checks a large batch of paths in small calls, so no request outgrows the URL limit, and still keeps the ones in use", async () => {
+    // 50 finished posts with 10 files each
+    const finished = Array.from({ length: 50 }, (_, i) => ({ id: `old-${i}`, media: Array.from({ length: 10 }, (_, k) => `u/me/${String(i * 10 + k).padStart(8, "0")}-0000-4000-8000-000000000000.jpg`) }));
+    const all = finished.flatMap((p) => p.media);
+    const live = [all[3], all[250], all[499]];
+    const { d, log } = harness({ posts: [], finished, live });
+    await runTick(d);
+    const checks = log.filter((l) => l.startsWith("live?")).map((l) => l.slice(5).split(","));
+    expect(checks.length).toBe(13);
+    expect(Math.max(...checks.map((c) => c.length))).toBeLessThanOrEqual(40);
+    expect(checks.flat()).toEqual(all);
+    const removed = log.find((l) => l.startsWith("remove:"))!.slice(7).split(",");
+    expect(removed).toHaveLength(497);
+    for (const x of live) expect(removed).not.toContain(x);
+  });
+
   it("deletes nothing when every file is still in use", async () => {
     const [a] = pics(1);
     const { d, log } = harness({ posts: [], finished: [{ id: "old-1", media: [a] }], live: [a] });

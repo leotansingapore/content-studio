@@ -48,6 +48,8 @@ export interface TickDeps {
 export const MAX_ATTEMPTS = 5;
 /** About 5 posts a tick: an album with its text is a few slow calls, and a tick must end well inside the function's time and the 10-minute stale check. */
 export const PER_TICK = 5;
+/** Paths per "still in use?" query (each is about 60 characters in the URL). */
+export const FILE_CHECK_CHUNK = 40;
 export const STALE = "Check the group before you retry.";
 export const STUCK = "Telegram didn't answer. Check the group before you retry.";
 export const PARTIAL = "Part of it went out. Check the group before you retry.";
@@ -180,7 +182,9 @@ export async function runTick(d: TickDeps): Promise<TickReport> {
   const done = await d.finishedFiles(iso(d.now - 7 * 86_400_000));
   if (done.length) {
     const paths = [...new Set(done.flatMap((p) => p.media))];
-    const keep = new Set(await d.liveFiles(paths));
+    // in chunks: every path rides in the query's URL, and 50 posts of 10 files would pass the gateway's limit
+    const keep = new Set<string>();
+    for (let i = 0; i < paths.length; i += FILE_CHECK_CHUNK) for (const x of await d.liveFiles(paths.slice(i, i + FILE_CHECK_CHUNK))) keep.add(x);
     const gone = paths.filter((x) => !keep.has(x));
     if (gone.length) await d.removeFiles(gone);
     await d.clearFiles(done.map((p) => p.id));
