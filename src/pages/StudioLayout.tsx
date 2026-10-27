@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate, useNavigationType, useSearchPar
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
+import ChannelsBlock from "@/components/ChannelsBlock";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
@@ -530,6 +531,7 @@ export default function StudioLayout() {
               <ProfileSwitcher />
             </div>
           </div>
+          <ChannelsBlock userId={uid ?? leo?.id} className="px-3 pt-4" />
           <nav aria-label="Sections" className="space-y-0.5 px-3 pt-4">
             {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
               <SideLink key={s.id} s={s} to={sectionTo(s)} active={here?.id === s.id} count={s.id === "home" ? homeCount : 0} />
@@ -650,6 +652,7 @@ export default function StudioLayout() {
               </Suspense>
             </ErrorBoundary>
           )}
+          <ChannelsBlock userId={uid ?? leo?.id} className="mb-4" />
           <div className="grid grid-cols-2 gap-2">
             {sheet.map((t) => (
               <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
