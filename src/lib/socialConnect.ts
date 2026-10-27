@@ -20,7 +20,7 @@ export const PLATFORM_NAME: Record<SocialPlatform, string> = {
   threads: "Threads",
 };
 
-export const platformName = (p: string) => PLATFORM_NAME[p as SocialPlatform] ?? p;
+export const platformName = (p: string) => PLATFORM_NAME[p as SocialPlatform] ?? (p === "telegram" ? "Telegram" : p);
 
 export interface SocialStatus {
   enabled: true;
@@ -114,6 +114,10 @@ export interface Channel {
   username: string;
   /** "error" when it needs reconnecting. */
   health: AccountView["health"];
+  /** A Telegram chat's title, for one with no @ handle (telegramConnect.ts). */
+  label?: string;
+  /** The forum topic a Telegram chat posts to. */
+  topic?: string;
 }
 export interface BrandChannels {
   at: number;

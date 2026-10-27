@@ -17,6 +17,8 @@ const store = vi.hoisted(() => {
 const callFn = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn }));
 vi.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: () => new Promise(() => undefined) } } }));
+const as = vi.hoisted(() => ({ leo: false }));
+vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoOnly: () => as.leo }));
 
 import ChannelsBlock from "./ChannelsBlock";
 
@@ -27,7 +29,12 @@ const cache = (channels: { platform: string; username: string; health: string }[
   store.set(`cs-social-channels-${UID}`, JSON.stringify({ [brand]: { at: 1, channels } }));
 const ig = { platform: "instagram", username: "moneybees.sg", health: "healthy" };
 
-afterEach(() => store.clear());
+afterEach(() => {
+  store.clear();
+  as.leo = false;
+});
+const telegramCache = (channels: Record<string, unknown>[], brand = "me") => store.set(`cs-telegram-channels-${UID}`, JSON.stringify({ [brand]: { at: 1, channels } }));
+const advisorOS = { platform: "telegram", username: "", label: "AdvisorOS", topic: "Feature updates", health: "healthy" };
 
 describe("the Channels block", () => {
   it("draws nothing where Social accounts is off, whatever the cache holds", () => {
@@ -69,5 +76,32 @@ describe("the Channels block", () => {
     expect(out).toContain("+2 more");
     expect(out.indexOf("+2 more")).toBeLessThan(out.indexOf("Connect a channel"));
     expect(callFn).not.toHaveBeenCalled();
+  });
+
+  it("shows Leo the brand's Telegram chats, by title and topic, linking to the Telegram card", () => {
+    shown();
+    cache([ig]);
+    telegramCache([advisorOS, { platform: "telegram", username: "moneybees_sg", label: "MoneyBees", health: "error" }]);
+    as.leo = true;
+    const out = html();
+    expect(out).toMatch(/href="\/accounts#telegram".*AdvisorOS.*Feature updates/);
+    expect(out).toMatch(/@moneybees_sg.* on Telegram.*needs a look/);
+    expect(out).not.toContain("Connect Telegram");
+  });
+
+  it("offers Leo Connect Telegram while the brand has no Telegram chat", () => {
+    shown();
+    cache([ig]);
+    as.leo = true;
+    expect(html()).toMatch(/Connect a channel.*href="\/accounts#telegram".*Connect Telegram/);
+  });
+
+  it("shows other sign-ins nothing new, whatever this device holds", () => {
+    shown();
+    cache([ig]);
+    const before = html();
+    telegramCache([advisorOS]);
+    expect(html()).toBe(before);
+    expect(before).not.toMatch(/telegram/i);
   });
 });

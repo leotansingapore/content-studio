@@ -2,13 +2,15 @@
 // YouTube and Threads accounts through Zernio, see whether each still works, reconnect or disconnect it.
 // Server: supabase/functions/social. Until the server says it is switched on, the page says only that.
 // Leo's sign-in (publish-accounts) sees them grouped by platform with a default per platform, the count and
-// price lines, #<platform> anchors, and "Back to your post" after a connect started from a post.
+// price lines, #<platform> anchors, and "Back to your post" after a connect started from a post, then the Telegram
+// card (#telegram, TelegramCard.tsx), which connects through the Content Studio bot rather than Zernio.
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { RotateCw, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import TelegramCard from "@/components/TelegramCard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -280,6 +282,12 @@ export default function AccountsPage() {
             ))}
           </div>
         </>
+      )}
+
+      {leo && userId && (
+        <div className="max-w-3xl">
+          <TelegramCard userId={userId} profileId={profile.id} />
+        </div>
       )}
 
       {state === "ready" && status && leo === null && (

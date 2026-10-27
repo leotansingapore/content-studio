@@ -2,6 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Telegram's login_url return (src/lib/telegramConnect.ts, takeTelegramLogin): its signed fields leave the address
+      // before any other script, style, font or analytics runs, and wait in this tab for the Telegram card.
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search);
+          if (!q.has("telegram")) return;
+          var fields = ["telegram","id","first_name","last_name","username","photo_url","auth_date","hash"];
+          var login = {};
+          var keep = new URLSearchParams();
+          q.forEach(function (v, k) {
+            if (fields.indexOf(k) >= 0) login[k] = v;
+            else keep.append(k, v);
+          });
+          var rest = keep.toString();
+          history.replaceState(history.state, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+          try {
+            sessionStorage.setItem("cs-telegram-login", JSON.stringify(login));
+          } catch (e) {
+            window.__csTelegramLogin = login;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Content Studio — for advisors</title>
     <meta
