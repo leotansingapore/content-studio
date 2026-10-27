@@ -45,6 +45,27 @@ Leo set the north star on 2026-10-19: "the idea is that one can remix any conten
 - Check by eye at 390 px and 1440 px before and after a push. `npm run build` and the full `npx vitest run` before pushing.
 - `git pull --rebase origin main` right before `git push origin main`; the push is the deploy (never `vercel --prod`). Verify the live bundle contains your change.
 
+## UX bar
+
+Leo asked on 27 Oct for a UX goal inside the north star. It is the `ux` area, phase 9: eight cards, one per row of his table (utility, usability, accessibility, performance, reliability, trust, desirability, workflow fit), each with numbered targets in `items/ux-*.md`.
+
+Every build wave is scored against all eight before its push, with the checks each spec lists under "Scoring each build wave":
+
+| Card | Checks | Cost a wave |
+| --- | --- | --- |
+| `ux-utility` | a script over `NS_ITEMS` and `NS_ASKS`; Leo's This week strip; Jev on the first 20 Top posts per brand | under US$0.01 a brand |
+| `ux-usability` | `scripts/ux/paths.mjs` at 1440 and 390 px; the retired-names test; the dogfood ledger | US$0 |
+| `ux-accessibility` | `scripts/ux/a11y.mjs` and its `keys` run; `src/lib/contrast.test.ts`; VoiceOver by hand once a phase | US$0 |
+| `ux-performance` | `vite build` sizes; Lighthouse 12.6 on production `/auth` and `/roadmap`; `scripts/ux/perf.mjs` | US$0, plus about US$5.50 for two videos when a wave touches making |
+| `ux-reliability` | `npx vitest run`, then again with the clock 30 days ahead; `scripts/ux/reliability.mjs typed` and `blip` | US$0, plus about US$6 for the live dogfood when a wave touches making or posting |
+| `ux-trust` | `prices.test.ts` and `dataUse.test.ts`; the page-load audit in `a11y.mjs`; `scripts/ux/trust.mjs` | US$0, plus the same dogfood when paid or posting paths change |
+| `ux-desirability` | `scripts/ux/panel.mjs` (Jev reads 8 screen pairs); `copyRules.test.ts` and `theme.test.ts`; `aicheck` per screen | about US$0.04 |
+| `ux-workflow-fit` | `scripts/ux/paths.mjs` at 390 px; `npx vitest run supabase/functions/notify` | US$0 |
+
+Most of these scripts are still to write, each as a build item in its spec. Until one exists, the wave reports that number as not measured. None of them signs in to production; the browser scripts run on a local server with fixtures.
+
+Each card's `ours` line carries its score, such as "U 0 of 6". A wave that makes any UX number worse says so in its report, with the number before and after, even when its own item is done.
+
 ## Where things live
 
 - North star: `src/data/northStar.ts` (items, asks, decisions, phases), `src/data/northStarCompetitors.ts` (the competitor index), page `src/pages/NorthStarPage.tsx`, test `src/data/northStar.test.ts`.
