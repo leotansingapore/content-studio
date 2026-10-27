@@ -29,8 +29,21 @@ begin
   raise exception 'FAIL %: expected an error like "%", but the statement succeeded', p_label, p_like;
 end $$;
 
+-- Rows of cs-telegram-media the current role can see; a role with no grant on storage.objects sees none (as 025).
+create function public.cs_test_tg_media_visible() returns bigint
+language plpgsql as $$
+declare
+  n bigint;
+begin
+  select count(*) into n from storage.objects where bucket_id = 'cs-telegram-media';
+  return n;
+exception when insufficient_privilege then
+  return 0;
+end $$;
+
 grant execute on function public.cs_test_assert(boolean, text) to anon, authenticated, service_role;
 grant execute on function public.cs_test_expect_error(text, text, text) to anon, authenticated, service_role;
+grant execute on function public.cs_test_tg_media_visible() to anon, authenticated, service_role;
 
 -- A ...d1 connects chats for two brands. B ...d2 is another adviser.
 insert into auth.users (
@@ -76,10 +89,20 @@ select public.cs_test_assert(
   '0.4 the media bucket is private, 20 MB, pictures and MP4 only');
 
 select public.cs_test_assert(
+  not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and (coalesce(qual, '') like '%cs-telegram-media%' or coalesce(with_check, '') like '%cs-telegram-media%')
+  ),
+  '0.4b no storage.objects policy names cs-telegram-media');
+
+select public.cs_test_assert(
   (select count(*) = 1 from cron.job where jobname = 'telegram-send' and schedule = '* * * * *'
-     and command like '%cs_telegram_tick_due()%' and command like '%x-telegram-cron-secret%'
+     and command like '%where public.cs_telegram_tick_due();%'
+     and command like '%''x-telegram-cron-secret'',%(select decrypted_secret from vault.decrypted_secrets where name = ''cs_telegram_cron_secret'')%'
+     and position((select decrypted_secret from vault.decrypted_secrets where name = 'cs_telegram_cron_secret') in command) = 0
      and command not like '%Bearer%'),
-  '0.5 one telegram-send job, every minute, only when a tick is due, with the cron secret from Vault');
+  '0.5 one telegram-send job, every minute, only when a tick is due, reading its header from Vault when it runs (the secret is not in the job)');
 
 select public.cs_test_assert(
   (select count(*) = 2 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
@@ -184,12 +207,30 @@ select public.cs_test_expect_error(
   '%cs_telegram_chats_nonce_hash_check%', '2.13 only the hash of the browser''s nonce is kept');
 select public.cs_test_expect_error(
   $$update public.cs_telegram_chats set confirmed_at = now(), login_hash = repeat('6', 64) where code_hash = repeat('f', 64)$$,
-  '%cs_telegram_chats_confirmed%', '2.14 a code is confirmed only from the browser that started it (its nonce)');
+  '%cs_telegram_chats_confirmed%', '2.14 a confirmed code carries a browser nonce hash (which browser it is, the telegram function checks)');
 update public.cs_telegram_chats set tg_user_name = '@' || repeat('a', 64) where code_hash = repeat('a', 64);
 select public.cs_test_expect_error(
   $$update public.cs_telegram_chats set tg_user_name = '@' || repeat('a', 65) where code_hash = repeat('a', 64)$$,
   '%cs_telegram_chats_tg_user_name_check%', '2.15 who connected fits an @ and a 64-character username, no more');
 delete from public.cs_telegram_chats where code_hash in (repeat('a', 64), repeat('b', 64), repeat('f', 64));
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- 2b. The media bucket: what the function uploads (owner null, under the owner's folder) is invisible to every client
+-- ---------------------------------------------------------------------------
+
+insert into storage.objects (bucket_id, name, owner, metadata)
+values ('cs-telegram-media', '7e57c0de-0000-4000-8000-0000000000d1/me/00000000-0000-4000-8000-000000000001.jpg', null, '{"mimetype": "image/jpeg"}');
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d1","role":"authenticated"}';
+select public.cs_test_assert(public.cs_test_tg_media_visible() = 0, '2.16 the owner can''t list or read the bucket');
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d2","role":"authenticated"}';
+select public.cs_test_assert(public.cs_test_tg_media_visible() = 0, '2.17 another adviser can''t list or read it');
+reset role;
+set local role anon;
+set local request.jwt.claims = '{"role":"anon"}';
+select public.cs_test_assert(public.cs_test_tg_media_visible() = 0, '2.18 anon can''t list or read it');
 reset role;
 
 -- ---------------------------------------------------------------------------
@@ -300,6 +341,7 @@ select public.cs_test_assert(
 -- ---------------------------------------------------------------------------
 
 do $$ begin raise notice 'telegram tests: all passed'; end $$;
+drop function public.cs_test_tg_media_visible();
 drop function public.cs_test_expect_error(text, text, text);
 drop function public.cs_test_assert(boolean, text);
 

@@ -50,6 +50,10 @@
 --        select proname from pg_proc where proname in ('cs_telegram_claim_due', 'cs_telegram_tick_due');
 --        select id from storage.buckets where id = 'cs-telegram-media';
 --        select jobname from cron.job where jobname = 'telegram-send';
+--      and no storage.objects policy may open the bucket to clients (none should name cs-telegram-media, and none
+--      should be broad enough to cover every bucket):
+--        select polname, polcmd, polroles::regrole[], pg_get_expr(polqual, polrelid) from pg_policy
+--        where polrelid = 'storage.objects'::regclass;
 --   2. An independent review of this file and 026_telegram.test.sql (migration-review-before-apply).
 --   3. The cron secret in Vault, never in this repo. The value is the edge secret TELEGRAM_CRON_SECRET (keep it in
 --      the keychain as cs-telegram-cron-secret). psql interpolates a variable only in a statement it reads, so pipe
@@ -58,7 +62,8 @@
 --          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v s="$(security find-generic-password -s cs-telegram-cron-secret -a leo -w)"
 --      This file refuses to run while that Vault secret is missing or empty.
 --   4. Deploy telegram-hook before applying: the job calls it from the first due post.
--- Then run 026_telegram.test.sql (it rolls back).
+-- Then run 026_telegram.test.sql (it rolls back). 026.concurrency.sh (parallel ticks never claim a post twice) commits
+-- rows: run it on a throwaway local cluster only, never on academy.
 --
 -- pg_cron reads schedules in UTC here (cron.timezone is GMT on academy); the hours live in the SQL, not the schedule.
 --
