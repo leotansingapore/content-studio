@@ -50,9 +50,11 @@ interface Post { id: string; chat_row: string; status: string; error?: string }
 function fakeDb(rows: ChatRow[], posts: Post[] = []) {
   const live = (r: ChatRow, now: string) => r.status === "pending" && r.code_expires_at > now;
   const db: HookDb = {
-    async rowForCode(hash, now) {
-      const r = rows.find((x) => x.code_hash === hash && live(x, now));
-      return r ? { ...r } : null;
+    async startCode(hash, user, now) {
+      const r = rows.find((x) => x.code_hash === hash && live(x, now) && (x.tg_user_id === null || x.tg_user_id === user));
+      if (!r) return null;
+      r.tg_user_id = user;
+      return { ...r };
     },
     async startedFor(user, now) {
       return rows.filter((x) => x.tg_user_id === user && live(x, now)).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
@@ -219,7 +221,8 @@ describe("/start with the one-time code", () => {
     const { db, rows } = fakeDb([await row()]);
     const { bot, replies } = stubBot(GOOD);
     await run(start, db, bot);
-    expect(rows[0].tg_user_id).toBeNull();
+    // the webhook notes who tapped Start; only that Telegram user's signed login can confirm the code
+    expect(rows[0]).toMatchObject({ tg_user_id: LEO, confirmed_at: null });
     expect(replies()).toEqual([
       {
         chat_id: LEO,
@@ -245,11 +248,22 @@ describe("/start with the one-time code", () => {
     expect(channel).toMatchObject({ text: "Pick a channel", request_chat: { request_id: 2, chat_is_channel: true, bot_administrator_rights: { can_post_messages: true } } });
   });
 
-  it("refuses a code already verified for another Telegram user", async () => {
-    const { db } = fakeDb([await confirmed({ tg_user_id: OTHER })]);
+  it("refuses a code another Telegram user tapped Start with first, confirmed or not", async () => {
+    for (const r of [await row({ tg_user_id: OTHER }), await confirmed({ tg_user_id: OTHER })]) {
+      const { db, rows } = fakeDb([r]);
+      const { bot, replies } = stubBot(GOOD);
+      await run(start, db, bot);
+      expect(rows[0].tg_user_id).toBe(OTHER);
+      expect(replies()).toEqual([expect.objectContaining({ chat_id: LEO, text: COPY.expired })]);
+    }
+  });
+
+  it("gives the same Telegram user the Confirm button again on a second tap before confirming", async () => {
+    const { db, rows } = fakeDb([await row({ tg_user_id: LEO })]);
     const { bot, replies } = stubBot(GOOD);
     await run(start, db, bot);
-    expect(replies()).toEqual([expect.objectContaining({ chat_id: LEO, text: COPY.expired })]);
+    expect(rows[0].tg_user_id).toBe(LEO);
+    expect(replies()[0].text).toBe(COPY.login);
   });
 
   it("refuses an expired code, and one already connected", async () => {

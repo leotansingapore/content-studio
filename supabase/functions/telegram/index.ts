@@ -33,11 +33,16 @@ function fnDb(db: SupabaseClient): FnDb {
     async insertConnect(row) {
       return must(await chats().insert(row).select("id").single(), "start") as { id: string };
     },
-    async verifyLogin(uid, rowId, tgUser, name, now) {
-      // tgUser is a safe integer from the checked login, so the filter text is only digits
-      const r = await chats().update({ tg_user_id: tgUser, tg_user_name: name || null, confirmed_at: now }).eq("id", rowId).eq("owner_id", uid).eq("status", "pending")
-        .gt("code_expires_at", now).or(`tg_user_id.is.null,tg_user_id.eq.${tgUser}`).select("id");
-      return (must(r, "verify") as unknown[]).length > 0;
+    async liveConfirmedElsewhere(tgUser, except, now) {
+      const r = await chats().select("id").eq("tg_user_id", tgUser).eq("status", "pending").not("confirmed_at", "is", null).gt("code_expires_at", now).neq("id", except).limit(1);
+      return (must(r, "live connects") as unknown[]).length > 0;
+    },
+    async verifyLogin(uid, rowId, tgUser, name, loginHash, now) {
+      const r = await chats().update({ tg_user_name: name || null, confirmed_at: now, login_hash: loginHash }).eq("id", rowId).eq("owner_id", uid).eq("status", "pending")
+        .gt("code_expires_at", now).eq("tg_user_id", tgUser).is("confirmed_at", null).select("id");
+      // 026's unique login_hash: this signed login confirmed a code before
+      if (r.error?.code === "23505") return "used";
+      return (must(r, "verify") as unknown[]).length > 0 ? "ok" : "not_found";
     },
     async ownRow(uid, profileId, id) {
       return must(await chats().select("id, chat_id, status").eq("owner_id", uid).eq("profile_id", profileId).eq("id", id).maybeSingle(), "own row") as OwnRow | null;

@@ -15,10 +15,13 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
       h.reads.push(t);
       // an update's filters, as the query would carry them to PostgREST
       const chain: Record<string, unknown> = {};
-      for (const m of ["eq", "gt", "or", "in", "neq"]) chain[m] = (...a: unknown[]) => (h.filters.push([m, ...a]), chain);
-      chain.select = async () => ({ data: [{ id: "00000000-0000-4000-8000-0000000000c1" }], error: null });
+      for (const m of ["eq", "gt", "or", "in", "neq", "is", "not", "limit"]) chain[m] = (...a: unknown[]) => (h.filters.push([m, ...a]), chain);
+      // a read finds no other live connect; an update confirms one row
+      chain.select = (cols: string) => (h.filters.push(["select", cols]), cols === "id" && h.filters.some((f) => f[0] === "update") ? Promise.resolve({ data: [{ id: "00000000-0000-4000-8000-0000000000c1" }], error: null }) : chain);
+      chain.then = (ok: (v: unknown) => unknown) => ok({ data: [], error: null });
       return {
         update: (v: unknown) => (h.filters.push(["update", v]), chain),
+        select: (cols: string) => (h.filters.push(["read", cols]), chain),
         insert: (row: unknown) => (h.inserted.push(row), { select: () => ({ single: async () => ({ data: { id: "00000000-0000-4000-8000-0000000000c1" }, error: null }) }) }),
       };
     },
@@ -81,14 +84,28 @@ describe("the telegram function's gate", () => {
     const hash = createHmac("sha256", createHash("sha256").update(env.TELEGRAM_BOT_TOKEN!).digest()).update(check).digest("hex");
     const res = await call("leo", { action: "verify", chatRow: "00000000-0000-4000-8000-0000000000c1", auth: { ...fields, hash } });
     expect(res.status).toBe(200);
-    expect(h.reads).toEqual(["cs_telegram_chats"]);
-    expect(h.filters).toEqual([
-      ["update", { tg_user_id: 111000111, tg_user_name: "Leo", confirmed_at: expect.any(String) }],
+    expect(h.reads).toEqual(["cs_telegram_chats", "cs_telegram_chats"]);
+    const update = h.filters.findIndex((f) => f[0] === "update");
+    // first: does this Telegram user hold another confirmed waiting connect?
+    expect(h.filters.slice(0, update)).toEqual([
+      ["read", "id"],
+      ["eq", "tg_user_id", 111000111],
+      ["eq", "status", "pending"],
+      ["not", "confirmed_at", "is", null],
+      ["gt", "code_expires_at", expect.any(String)],
+      ["neq", "id", "00000000-0000-4000-8000-0000000000c1"],
+      ["limit", 1],
+    ]);
+    // then: confirm only this account's own waiting code, started by this same Telegram user, not confirmed before
+    expect(h.filters.slice(update)).toEqual([
+      ["update", { tg_user_name: "Leo", confirmed_at: expect.any(String), login_hash: hash }],
       ["eq", "id", "00000000-0000-4000-8000-0000000000c1"],
       ["eq", "owner_id", LEO],
       ["eq", "status", "pending"],
       ["gt", "code_expires_at", expect.any(String)],
-      ["or", "tg_user_id.is.null,tg_user_id.eq.111000111"],
+      ["eq", "tg_user_id", 111000111],
+      ["is", "confirmed_at", null],
+      ["select", "id"],
     ]);
   });
 

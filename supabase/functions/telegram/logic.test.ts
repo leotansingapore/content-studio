@@ -14,7 +14,7 @@ const MB = 1024 * 1024;
 const pic = (uid = UID, profile = "me", ext = "jpg") => `${uid}/${profile}/00000000-0000-4000-8000-000000000001.${ext}`;
 
 interface Post { owner_id: string; client_key: string; chat_row: string; send_at: string; text: string; media: string[]; status: string; error?: string }
-type Row = OwnRow & { owner_id: string; profile_id: string; tg_user_id?: number | null; tg_user_name?: string | null; confirmed_at?: string | null; code_expires_at?: string };
+type Row = OwnRow & { owner_id: string; profile_id: string; tg_user_id?: number | null; tg_user_name?: string | null; confirmed_at?: string | null; code_expires_at?: string; login_hash?: string };
 
 function fakeDb(rows: Row[] = []) {
   const inserted: Record<string, unknown>[] = [];
@@ -44,11 +44,16 @@ function fakeDb(rows: Row[] = []) {
     async insertPosts(list) {
       for (const p of list) if (!posts.some((x) => x.owner_id === p.owner_id && x.client_key === p.client_key && x.chat_row === p.chat_row)) posts.push({ ...p, status: "scheduled" });
     },
-    async verifyLogin(uid, id, tgUser, name, now) {
-      const r = rows.find((x) => x.id === id && x.owner_id === uid && x.status === "pending" && (x.code_expires_at ?? "") > now && (x.tg_user_id == null || x.tg_user_id === tgUser));
-      if (!r) return false;
-      Object.assign(r, { tg_user_id: tgUser, tg_user_name: name, confirmed_at: now });
-      return true;
+    async liveConfirmedElsewhere(tgUser, except, now) {
+      return rows.some((x) => x.id !== except && x.tg_user_id === tgUser && x.status === "pending" && !!x.confirmed_at && (x.code_expires_at ?? "") > now);
+    },
+    async verifyLogin(uid, id, tgUser, name, loginHash, now) {
+      const r = rows.find((x) => x.id === id && x.owner_id === uid && x.status === "pending" && (x.code_expires_at ?? "") > now && x.tg_user_id === tgUser && !x.confirmed_at);
+      if (!r) return "not_found";
+      // 026's unique login_hash
+      if (rows.some((x) => x.login_hash === loginHash)) return "used";
+      Object.assign(r, { tg_user_name: name, confirmed_at: now, login_hash: loginHash });
+      return "ok";
     },
     async postsFor(uid, key, ids) {
       return posts.filter((p) => p.owner_id === uid && p.client_key === key && ids.includes(p.chat_row)).map((p) => ({ id: `${p.chat_row}:post`, chat_row: p.chat_row, send_at: p.send_at, status: p.status }));
@@ -138,14 +143,15 @@ describe("verify: Telegram's signed login, for the account that made the code", 
     return { ...fields, hash: createHmac("sha256", createHash("sha256").update(token).digest()).update(check).digest("hex") };
   };
   const login = (o: Record<string, string> = {}) => sign({ id: "111000111", first_name: "Leo", username: "leo_test", auth_date: String(Math.floor(NOW / 1000) - 30), ...o });
-  const pending = (o: Partial<Row> = {}): Row => ({ id: ROW, owner_id: UID, profile_id: "me", chat_id: null, status: "pending", tg_user_id: null, code_expires_at: new Date(NOW + 10 * 60_000).toISOString(), ...o });
+  // Leo's Telegram tapped Start with the code: the webhook put that Telegram user on the row, unconfirmed
+  const pending = (o: Partial<Row> = {}): Row => ({ id: ROW, owner_id: UID, profile_id: "me", chat_id: null, status: "pending", tg_user_id: 111000111, code_expires_at: new Date(NOW + 10 * 60_000).toISOString(), ...o });
   const verify = (db: FnDb, bot: Bot, uid: string, auth: Record<string, string>) => runVerify(db, bot, TOKEN, "cs_test_bot", uid, ROW, auth, NOW);
 
   it("records the verified Telegram user on the caller's own code and shows that user the pickers", async () => {
     const { db, rows } = fakeDb([pending()]);
     const { bot, calls } = stubBot(() => ({ message_id: 9 }));
     expect(await verify(db, bot, UID, login())).toEqual({ status: 200, body: { linked: true, picker: true } });
-    expect(rows[0]).toMatchObject({ tg_user_id: 111000111, tg_user_name: "@leo_test", confirmed_at: new Date(NOW).toISOString() });
+    expect(rows[0]).toMatchObject({ tg_user_id: 111000111, tg_user_name: "@leo_test", confirmed_at: new Date(NOW).toISOString(), login_hash: login().hash });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ method: "sendMessage", params: { chat_id: 111000111, text: expect.stringContaining("Pick the group or channel") } });
     expect(JSON.stringify(calls[0].params)).toContain("request_chat");
@@ -155,25 +161,61 @@ describe("verify: Telegram's signed login, for the account that made the code", 
     const { db, rows } = fakeDb([pending()]);
     const { bot, calls } = stubBot();
     expect((await verify(db, bot, OTHER_UID, login())).status).toBe(404);
-    expect(rows[0].tg_user_id).toBeNull();
+    expect(rows[0].confirmed_at).toBeUndefined();
     expect(calls).toEqual([]);
   });
 
-  it("refuses a bad hash or a stale login before the code is touched", async () => {
-    for (const auth of [{ ...login(), hash: "0".repeat(64) }, { ...login(), id: "222000222" }, login({ auth_date: String(Math.floor(NOW / 1000) - 601) }), sign({ id: "111000111", auth_date: String(Math.floor(NOW / 1000)) }, "7000000002:another-bot")]) {
-      const { db, rows } = fakeDb([pending()]);
+  it("refuses a login from a different Telegram user than the one who tapped Start with the code, or a code nobody started", async () => {
+    for (const r of [pending({ tg_user_id: 222000222 }), pending({ tg_user_id: null })]) {
+      const { db, rows } = fakeDb([r]);
       const { bot, calls } = stubBot();
-      expect((await verify(db, bot, UID, auth)).status).toBe(400);
-      expect(rows[0].tg_user_id).toBeNull();
+      expect((await verify(db, bot, UID, login())).status).toBe(404);
+      expect(rows[0].confirmed_at).toBeUndefined();
       expect(calls).toEqual([]);
     }
   });
 
-  it("refuses an expired code, one already verified for another Telegram user, and one no longer waiting", async () => {
-    for (const r of [pending({ code_expires_at: new Date(NOW).toISOString() }), pending({ tg_user_id: 222000222 }), pending({ status: "connected", chat_id: -100 })]) {
+  it("takes each signed login once: never again on the same code or another", async () => {
+    const second = "00000000-0000-4000-8000-0000000000c2";
+    const { db, rows } = fakeDb([pending(), pending({ id: second })]);
+    const auth = login();
+    expect((await verify(db, stubBot(() => ({ message_id: 1 })).bot, UID, auth)).status).toBe(200);
+    expect((await verify(db, stubBot().bot, UID, auth)).status).toBe(404);
+    // the first code is used up (connected), and the same login is tried on the second
+    rows[0].status = "connected";
+    rows[0].chat_id = -100;
+    const again = await runVerify(db, stubBot().bot, TOKEN, "cs_test_bot", UID, second, auth, NOW);
+    expect(again).toEqual({ status: 409, body: { error: "That confirmation was already used. Tap Confirm in Telegram again." } });
+    expect(rows[1].confirmed_at).toBeUndefined();
+  });
+
+  it("lets a Telegram user hold one confirmed connect at a time", async () => {
+    const second = "00000000-0000-4000-8000-0000000000c2";
+    const { db, rows } = fakeDb([pending({ confirmed_at: new Date(NOW - 60_000).toISOString(), login_hash: "f".repeat(64) }), pending({ id: second })]);
+    const out = await runVerify(db, stubBot().bot, TOKEN, "cs_test_bot", UID, second, login(), NOW);
+    expect(out).toEqual({ status: 409, body: { error: "This Telegram account is already connecting a chat. Finish that one, or wait 15 minutes." } });
+    expect(rows[1].confirmed_at).toBeUndefined();
+    // once the first one is done, the second can go ahead
+    rows[0].status = "connected";
+    rows[0].chat_id = -100;
+    expect((await runVerify(db, stubBot(() => ({ message_id: 1 })).bot, TOKEN, "cs_test_bot", UID, second, login(), NOW)).status).toBe(200);
+  });
+
+  it("refuses a bad hash or a stale login before the code is touched", async () => {
+    for (const auth of [{ ...login(), hash: "0".repeat(64) }, { ...login(), id: "222000222" }, login({ auth_date: String(Math.floor(NOW / 1000) - 301) }), sign({ id: "111000111", auth_date: String(Math.floor(NOW / 1000)) }, "7000000002:another-bot")]) {
+      const { db, rows } = fakeDb([pending()]);
+      const { bot, calls } = stubBot();
+      expect((await verify(db, bot, UID, auth)).status).toBe(400);
+      expect(rows[0].confirmed_at).toBeUndefined();
+      expect(calls).toEqual([]);
+    }
+  });
+
+  it("refuses an expired code, and one no longer waiting", async () => {
+    for (const r of [pending({ code_expires_at: new Date(NOW).toISOString() }), pending({ status: "connected", chat_id: -100 })]) {
       const { db, rows } = fakeDb([r]);
       expect((await verify(db, stubBot().bot, UID, login())).status).toBe(404);
-      expect(rows[0].tg_user_id ?? null).toBe(r.tg_user_id ?? null);
+      expect(rows[0].confirmed_at).toBeUndefined();
     }
   });
 

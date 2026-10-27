@@ -1,9 +1,10 @@
 // The Content Studio bot's webhook (docs/north-star/items/publish-telegram.md): reads Telegram's updates and ties a
 // group or channel to the brand whose one-time code the person started. Pure: the database and the bot come in.
 //
-// Who may tie: /start <code> answers only with a Confirm button (Telegram's login_url) back to Content Studio. That
-// page, signed in, sends Telegram's signed login to the `telegram` function, which records the verified Telegram user
-// on the code only when the session is the account that made it, and then shows the pickers. So a link someone else
+// Who may tie: /start <code> notes the Telegram user who tapped it on the code and answers only with a Confirm button
+// (Telegram's login_url) back to Content Studio. That page, signed in, sends Telegram's signed login to the
+// `telegram` function, which confirms the code only when the session is the account that made it and the login is
+// that same Telegram user, and then shows the pickers. So a link someone else
 // made and sent fails for you: you are not signed in to their account. Nothing personal is said in Telegram.
 //
 // The tie rule, for every path (Telegram's chat picker, or the bot made an admin through the plain links): inside an
@@ -147,8 +148,11 @@ export interface ChatRow {
 export type TiedChat = Pick<ChatRow, "title" | "username" | "is_forum"> & { chat_id: number; chat_type: "group" | "supergroup" | "channel" };
 
 export interface HookDb {
-  /** The pending, unexpired connect with this code's hash, or null. */
-  rowForCode(codeHash: string, now: string): Promise<ChatRow | null>;
+  /**
+   * Notes the Telegram user on the pending, unexpired connect with this code's hash, unless another Telegram user
+   * tapped Start with it first; null when there is no such connect.
+   */
+  startCode(codeHash: string, tgUser: number, now: string): Promise<ChatRow | null>;
   /** The newest unexpired connect whose verified Telegram user is this one, or null. */
   startedFor(tgUser: number, now: string): Promise<ChatRow | null>;
   /**
@@ -194,12 +198,12 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
         await say(e.user, COPY.chatter);
         return "start:bare";
       }
-      const r = await d.db.rowForCode(await hashCode(e.code), now);
-      if (!r || (r.tg_user_id !== null && r.tg_user_id !== e.user)) {
+      const r = await d.db.startCode(await hashCode(e.code), e.user, now);
+      if (!r) {
         await say(e.user, COPY.expired);
         return "start:refused";
       }
-      if (r.tg_user_id === e.user) {
+      if (r.confirmed_at) {
         // already verified as this Telegram user (a second tap on the link): the pickers again
         const m = pickerMessage(d.botUsername);
         await say(e.user, m.text, { reply_markup: m.reply_markup });

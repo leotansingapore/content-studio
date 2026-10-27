@@ -110,13 +110,13 @@ export const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0
 
 /** The fields Telegram adds to a login_url, besides hash. */
 export const LOGIN_FIELDS = ["id", "first_name", "last_name", "username", "photo_url", "auth_date"] as const;
-const LOGIN_MAX_AGE_S = 600;
+const LOGIN_MAX_AGE_S = 300;
 const BAD_LOGIN = "Telegram couldn't confirm this. Tap Confirm in Telegram again.";
 const OLD_LOGIN = "That confirmation is too old. Tap Confirm in Telegram again.";
 
 /**
  * Checks the fields a login_url came back with: HMAC-SHA256 of the sorted "key=value" lines, keyed by SHA256 of the
- * bot token, must equal hash, and auth_date must be under 10 minutes old. Answers the Telegram user it proves.
+ * bot token, must equal hash, and auth_date must be under 5 minutes old. Answers the Telegram user it proves.
  */
 export async function checkTelegramLogin(auth: Record<string, unknown>, token: string, now: number): Promise<{ ok: true; id: number; name: string } | { ok: false; error: string }> {
   const hash = typeof auth.hash === "string" ? auth.hash : "";

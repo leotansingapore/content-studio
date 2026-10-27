@@ -125,11 +125,13 @@ export interface PostView {
 
 export interface FnDb {
   insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string }): Promise<{ id: string }>;
+  /** Whether this Telegram user already holds another confirmed, waiting, unexpired connect. */
+  liveConfirmedElsewhere(tgUser: number, exceptRow: string, now: string): Promise<boolean>;
   /**
-   * Records the verified Telegram user on the caller's own waiting, unexpired code, unless another Telegram user was
-   * verified for it first; false when there is no such code.
+   * Confirms the caller's own waiting, unexpired, unconfirmed code whose Telegram user (noted at /start) is this one,
+   * keeping the login's hash: "used" when that login confirmed a code before, "not_found" when no such code.
    */
-  verifyLogin(uid: string, rowId: string, tgUser: number, name: string, now: string): Promise<boolean>;
+  verifyLogin(uid: string, rowId: string, tgUser: number, name: string, loginHash: string, now: string): Promise<"ok" | "used" | "not_found">;
   /** The caller's row in this brand, or null. */
   ownRow(uid: string, profileId: string, id: string): Promise<OwnRow | null>;
   /** Whether another connected row (any brand, any owner) still posts to the chat. */
@@ -165,14 +167,19 @@ export async function runStart(db: FnDb, uid: string, profileId: string, botUser
 
 /**
  * The bot's Confirm button (login_url) brought Telegram's signed login back to /accounts, where the person is signed
- * in. The login must check out against the bot token and be under 10 minutes old, and the code must be the caller's
- * own: a link someone else made fails here, because the person who opens it isn't signed in to that account. Then
- * that Telegram user, and only that one, gets the pickers.
+ * in. The login must check out against the bot token, be under 5 minutes old, be used for the first time, and be the
+ * Telegram user who tapped Start with this code; the code must be the caller's own. A link someone else made fails
+ * here, because the person who opens it isn't signed in to that account. Then that Telegram user gets the pickers.
  */
 export async function runVerify(db: FnDb, bot: Bot, token: string, botUsername: string, uid: string, chatRow: string, auth: Record<string, string>, now: number): Promise<Reply> {
   const login = await checkTelegramLogin(auth, token, now);
   if (!login.ok) return { status: 400, body: { error: login.error } };
-  if (!(await db.verifyLogin(uid, chatRow, login.id, login.name, iso(now)))) {
+  if (await db.liveConfirmedElsewhere(login.id, chatRow, iso(now))) {
+    return { status: 409, body: { error: "This Telegram account is already connecting a chat. Finish that one, or wait 15 minutes." } };
+  }
+  const done = await db.verifyLogin(uid, chatRow, login.id, login.name, auth.hash, iso(now));
+  if (done === "used") return { status: 409, body: { error: "That confirmation was already used. Tap Confirm in Telegram again." } };
+  if (done === "not_found") {
     return { status: 404, body: { error: "This link isn't for this Content Studio account, or it expired. Start again from Social accounts." } };
   }
   const m = pickerMessage(botUsername);

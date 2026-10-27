@@ -36,8 +36,11 @@ function hookDb(db: SupabaseClient): HookDb {
   const tieOnce = (row: ChatRow, chat: object, now: string) =>
     chats().update({ ...chat, status: "connected", refusal: null, connected_at: now, topic_id: null, topic_name: null }).eq("id", row.id).eq("status", "pending").select("id");
   return {
-    async rowForCode(hash, now) {
-      return must(await chats().select(CHAT_COLS).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now).maybeSingle(), "code") as ChatRow | null;
+    async startCode(hash, user, now) {
+      // user is a safe integer (eventOf), so the filter text is only digits
+      const r = await chats().update({ tg_user_id: user }).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now)
+        .or(`tg_user_id.is.null,tg_user_id.eq.${user}`).select(CHAT_COLS).maybeSingle();
+      return must(r, "start code") as ChatRow | null;
     },
     async startedFor(user, now) {
       const r = await chats().select(CHAT_COLS).eq("tg_user_id", user).eq("status", "pending").gt("code_expires_at", now)

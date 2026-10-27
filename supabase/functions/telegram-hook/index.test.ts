@@ -5,8 +5,18 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const h = vi.hoisted(() => ({
   clients: 0,
   handler: null as null | ((r: Request) => Promise<Response>),
+  filters: [] as unknown[][],
 }));
-vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => (h.clients++, {}) }));
+vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
+  createClient: () => {
+    h.clients++;
+    // records a query's calls; every read or write finds nothing
+    const chain: Record<string, unknown> = {};
+    for (const m of ["update", "select", "eq", "gt", "or", "in", "order", "limit"]) chain[m] = (...a: unknown[]) => (h.filters.push([m, ...a]), chain);
+    chain.maybeSingle = async () => ({ data: null, error: null });
+    return { from: (t: string) => (h.filters.push(["from", t]), chain) };
+  },
+}));
 
 const TOKEN = "7000000001:TEST-token-for-fixtures-only";
 const env: Record<string, string | undefined> = {};
@@ -20,6 +30,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   h.clients = 0;
+  h.filters.length = 0;
   telegram.length = 0;
   Object.assign(env, { TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_BOT_USERNAME: "cs_test_bot", TELEGRAM_WEBHOOK_SECRET: "hook-secret-for-tests", TELEGRAM_CRON_SECRET: "cron-secret-for-tests" });
 });
@@ -52,5 +63,21 @@ describe("the Telegram hook's gate", () => {
     expect(await res.json()).toEqual({ enabled: false });
     expect(h.clients).toBe(0);
     expect(telegram).toEqual([]);
+  });
+
+  it("notes the Telegram user on a code at /start only while nobody else tapped Start with it, and only a waiting, unexpired one", async () => {
+    const update = { update_id: 1, message: { message_id: 1, from: { id: 111000111, is_bot: false, first_name: "Leo" }, chat: { id: 111000111, type: "private" }, date: 1, text: "/start Abc_DEF-123456789012345678901234" } };
+    expect((await call({ "x-telegram-bot-api-secret-token": "hook-secret-for-tests" }, update)).status).toBe(200);
+    expect(h.filters.slice(0, 7)).toEqual([
+      ["from", "cs_telegram_chats"],
+      ["update", { tg_user_id: 111000111 }],
+      ["eq", "code_hash", expect.stringMatching(/^[0-9a-f]{64}$/)],
+      ["eq", "status", "pending"],
+      ["gt", "code_expires_at", expect.any(String)],
+      ["or", "tg_user_id.is.null,tg_user_id.eq.111000111"],
+      ["select", expect.stringContaining("confirmed_at")],
+    ]);
+    // nothing found: the bot says the link expired (the stubbed fetch takes the reply)
+    expect(telegram).toEqual(["https://api.telegram.org/bot7000000001:TEST-token-for-fixtures-only/sendMessage"]);
   });
 });

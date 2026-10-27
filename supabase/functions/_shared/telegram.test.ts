@@ -120,10 +120,10 @@ describe("Telegram's login check (login_url)", () => {
     }
   });
 
-  it("refuses a sign-in more than 10 minutes old, or from the future", async () => {
-    const stale = sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 601) });
+  it("refuses a sign-in more than 5 minutes old, or from the future", async () => {
+    const stale = sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 301) });
     const ahead = sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) + 120) });
     for (const auth of [stale, ahead]) expect(await checkTelegramLogin(auth, TOKEN, NOW)).toEqual({ ok: false, error: "That confirmation is too old. Tap Confirm in Telegram again." });
-    expect((await checkTelegramLogin(sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 599) }), TOKEN, NOW)).ok).toBe(true);
+    expect((await checkTelegramLogin(sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 299) }), TOKEN, NOW)).ok).toBe(true);
   });
 });
