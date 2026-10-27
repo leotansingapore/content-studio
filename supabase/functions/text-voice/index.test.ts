@@ -90,6 +90,25 @@ describe("a music track's uses", () => {
     expect([mine(), studio()]).toEqual([0, 0]);
   });
 
+  it("both come back on the day they were taken when a track fails across 8am Singapore", async () => {
+    const day = new Date().toISOString().slice(0, 10);
+    vi.setSystemTime(new Date(`${day}T23:58:00Z`));
+    const next = new Date(Date.parse(`${day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    // three tracks already made across the studio on the new day
+    db.rows.set(`${GLOBAL_COUNTER_USER}|ai-music-global|${next}`, 3);
+    eleven.reply = () => {
+      vi.setSystemTime(new Date(`${next}T00:03:00Z`));
+      return new Response('{"detail":"busy"}', { status: 500 });
+    };
+    try {
+      expect((await track()).status).toBe(502);
+      expect([db.rows.get(`${UID}|ai-music|${day}`), db.rows.get(`${GLOBAL_COUNTER_USER}|ai-music-global|${day}`)]).toEqual([0, 0]);
+      expect(db.rows.get(`${GLOBAL_COUNTER_USER}|ai-music-global|${next}`)).toBe(3);
+    } finally {
+      vi.setSystemTime(vi.getRealSystemTime());
+    }
+  });
+
   it("the adviser's comes back when the studio's counter is unavailable, and Eleven Music is never called", async () => {
     db.down.add("ai-music-global");
     expect((await track()).status).toBe(503);

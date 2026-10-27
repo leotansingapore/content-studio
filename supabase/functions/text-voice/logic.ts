@@ -256,8 +256,8 @@ export async function musicRefusal(admin: UsageClient, uid: string): Promise<{ s
 }
 
 /** Nothing was made after a track's uses were taken: both come back (the adviser's alone when the studio's wasn't taken), as in ai-video. */
-export function giveMusicBack(admin: UsageClient, uid: string, studio = true) {
-  const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
+export function giveMusicBack(admin: UsageClient, uid: string, studio = true, day = new Date().toISOString().slice(0, 10)) {
+  // `day` is the counter's day (UTC) the uses were taken on, as cs_consume_ai_usage keeps it
   return Promise.all([refundUsage(admin, uid, "ai-music", day), studio && refundUsage(admin, GLOBAL_COUNTER_USER, "ai-music-global", day)]);
 }
 

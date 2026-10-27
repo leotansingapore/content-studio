@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
       return json({ error: music ? "Music for me isn't switched on yet." : "Voiceover from text isn't switched on yet." }, 503);
     }
     if (music?.ok) {
+      // the counter's day (UTC), read before a track that takes minutes can carry it past 8am Singapore
+      const day = new Date().toISOString().slice(0, 10);
       const refused = await musicRefusal(admin, uid);
       if (refused) return json(refused.body, refused.status);
       let res: Response;
@@ -87,13 +89,13 @@ Deno.serve(async (req) => {
         });
       } catch (e) {
         console.error("text-voice music request failed", e);
-        await giveMusicBack(admin, uid);
+        await giveMusicBack(admin, uid, true, day);
         return json({ error: MUSIC_RETRY }, 502);
       }
       if (!res.ok) {
         const detail = (await res.text()).slice(0, 300);
         console.error("text-voice music elevenlabs", res.status, detail);
-        await giveMusicBack(admin, uid);
+        await giveMusicBack(admin, uid, true, day);
         return json({ error: musicFailure(res.status, detail) }, 502);
       }
       console.log("text-voice music", music.mood, music.ms, "ms, cost", res.headers.get("character-cost") ?? "?", "song", res.headers.get("song-id") ?? "?");
