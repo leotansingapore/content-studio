@@ -11,6 +11,8 @@ export interface AcademyLesson {
 export interface AcademyModule {
   title: string;
   blurb: string;
+  /** The studio page that does what the module teaches, linked beside its title. */
+  studio: { to: string; label: string };
   lessons: AcademyLesson[];
 }
 
@@ -19,6 +21,7 @@ export const ACADEMY: AcademyModule[] = [
     title: "1. AI content foundations",
     blurb:
       "Set up ChatGPT and custom GPTs to write in your voice and generate posts and hooks fast.",
+    studio: { to: "/voice", label: "Set your voice" },
     lessons: [
       {
         youtubeId: "0Q1AQAxpdGg",
@@ -50,6 +53,7 @@ export const ACADEMY: AcademyModule[] = [
     title: "2. Carousels & visual posts",
     blurb:
       "Turn one idea into finished LinkedIn and Instagram carousels using ChatGPT plus Canva.",
+    studio: { to: "/carousel", label: "Make a carousel" },
     lessons: [
       {
         youtubeId: "zOUwx0JZ8jQ",
@@ -81,6 +85,7 @@ export const ACADEMY: AcademyModule[] = [
     title: "3. Systems & scaling",
     blurb:
       "Build a repeatable content system and repurpose one idea into a week of posts across platforms.",
+    studio: { to: "/plan", label: "Plan a week" },
     lessons: [
       {
         youtubeId: "PcRLelYga_o",
