@@ -2,9 +2,9 @@
 // holds the ones with posts to review (or still being written), RUNNING the rest, DONE folds away. Each row shows
 // its writing progress from the drafting job (src/lib/campaignJob.ts), which this visit resumes for any campaign
 // with posts still to write. NO OPEN CAMPAIGN lists the saved audiences without one, each starting the wizard on
-// step 2. GOAL sits under the H1 (?goal=change opens it). Everyone else gets the 404 page.
+// step 2. GOAL sits under the H1 (?goal=change opens it); ?show=done unfolds DONE. Everyone else gets the 404 page.
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Plus } from "lucide-react";
 import GoalLine from "@/components/GoalLine";
@@ -18,6 +18,7 @@ import { LABEL_CHIP } from "@/lib/labels";
 import { links } from "@/lib/links";
 import { isPositioningUsable, loadPositioning } from "@/lib/positioning";
 import { platformName } from "@/lib/socialConnect";
+import { useUrlFlag } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -58,7 +59,7 @@ function progressOf(c: Campaign, job: Drafting | null, now = Date.now()): { line
 
 function Campaigns({ userId }: { userId: string }) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
-  const [showDone, setShowDone] = useState(false);
+  const [showDone, setShowDone] = useUrlFlag("show", "done");
   useEffect(() => {
     const offs = [onCampaignsChanged(redraw), onCampaignJob(redraw), onAudiencesChanged(redraw)];
     return () => offs.forEach((off) => off());
