@@ -168,6 +168,19 @@ describe("an AI video the agent started (live-p6replay D6)", () => {
   });
 });
 
+describe("one paid video at a time", () => {
+  it("a second press while a clip is being made orders no second clip, and a presenter pressed meanwhile orders nothing", async () => {
+    higgsfield((n) => ({ jobs: [n < 2 ? { state: "working" } : { state: "done", url: "https://cdn.example/v.mp4" }] }));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["clip"]) })));
+    const presses = [makeTemplateClip("Laksa", ASK), makeTemplateClip("Laksa again", ASK), makePresenter("A Malay Singaporean man in his late 30s")];
+    await vi.runAllTimersAsync();
+    await Promise.all(presses);
+    expect(vi.mocked(callFn).mock.calls.filter(([, b]) => (b as Body).mode !== "status").map(([, b]) => (b as Body).mode)).toEqual(["template"]);
+    expect(vi.mocked(startJoin).mock.calls.map(([name]) => name)).toEqual(["Laksa"]);
+    expect(aiJob()).toMatchObject({ kind: "template", state: "done" });
+  });
+});
+
 describe("a paid clip being put together on the device", () => {
   // the join runs until `finish` is called with how it ended
   const slowJoin = () => {
