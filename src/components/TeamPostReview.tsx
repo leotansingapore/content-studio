@@ -18,6 +18,7 @@ import {
   unapprove,
   unskip,
   groupOf,
+  shortGroupOf,
   type TeamPost,
   type TeamReviews,
   type TeamStatus,
@@ -64,7 +65,7 @@ export function TeamPostChip({
       {img && <img src={img} alt="" loading="lazy" className={`${roomy ? "h-8 w-8" : "h-4 w-4"} shrink-0 rounded-sm object-cover`} />}
       <span className="min-w-0 flex-1">
         <span className={roomy ? "line-clamp-2" : "block truncate"}>{post.title}</span>
-        {roomy ? <span className="block text-[10px] opacity-80">{s.label}, {groupOf(post)}</span> : <span className="sr-only">, {s.label}, {groupOf(post)}</span>}
+        {roomy ? <span className="block break-words text-[10px] opacity-80">{s.label}, {shortGroupOf(post)}</span> : <span className="sr-only">, {s.label}, {groupOf(post)}</span>}
       </span>
     </button>
   );

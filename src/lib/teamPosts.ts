@@ -17,6 +17,8 @@ export type TeamChannel = "fastrack" | "advisoros";
 export const TEAM_GROUP: Record<TeamChannel, string> = { fastrack: "FINTERNSHIP FASTRACK", advisoros: "AdvisorOS" };
 /** The group's name, as the job's CHANNELS spell it. */
 export const groupOf = (post: Pick<TeamPost, "channel">) => TEAM_GROUP[post.channel ?? "fastrack"] ?? TEAM_GROUP.fastrack;
+/** The group as a calendar chip names it: "FINTERNSHIP FASTRACK" wraps a letter at a time in a week column. */
+export const shortGroupOf = (post: Pick<TeamPost, "channel">) => (post.channel === "advisoros" ? "AdvisorOS" : "FASTRACK");
 
 export interface TeamPost {
   id: string;
