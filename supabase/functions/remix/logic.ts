@@ -833,8 +833,13 @@ function adsRules(req: MakeRequest): string[] {
     "- Leave every other words field empty.",
     "- Write the words in sentence case: capitalise only the first word, names and the brand, never every word.",
     "- Never put a number in the words: no figures, prices, percentages or counts.",
-    "- caption: the version's text above the picture, 2 or 3 complete sentences that carry the same hook and end by asking the reader to do one thing. No hashtags.",
+    "- caption: the version's text above the picture, 2 or 3 complete sentences that carry the same hook and end by naming one specific thing to do, like Message me for a walkthrough. No hashtags.",
     "- Each version is its own ad: the brand rules below apply to each one on its own, and each says only what the facts given support, with no result, figure or promise they do not hold.",
+    // the facts rule above pushed live versions into "may leave less time" hedges (27 Oct run)
+    "- Say it straight: a plain statement or a direct question about the reader's day, never softened with may, might, could, can help or consider. When a line needs a hedge to be true, say a different thing that is true without one.",
+    // only with facts to name: a brand with none saved had every product line dropped by Jev, all 6 of 6 (27 Oct)
+    ...(jevFacts(req.brand) ? ["- Each version names what the brand does about it, in the facts' own terms: an ad that only gives advice sells nothing."] : []),
+    ...(layout === "headline" ? ["- words.button: at most 3 words, a verb and what the reader gets, like Book a demo or See your numbers, never a vague verb like Consider, Review, Explore or Learn more. A fourth word fails the whole set. No two versions share a button."] : []),
     ...(req.source
       ? [
           "- Take the topic and angle from the original ad and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers.",

@@ -1443,6 +1443,12 @@ describe("ad versions (ad batches on /image)", () => {
     expect(system).toContain("  - words.headline: at most 8 words.");
     expect(system).toContain("- Never put a number in the words");
     expect(system).toContain("each says only what the facts given support");
+    expect(system).toContain("never softened with may, might, could, can help or consider");
+    expect(system).toContain("- words.button: at most 3 words, a verb and what the reader gets");
+    expect(system).toContain("Each version names what the brand does about it, in the facts' own terms");
+    const bare = { ...body().brand, oneLiner: "", audience: "", facts: "", offer: null };
+    expect(buildMakePrompt(ads({ brand: bare })).system).not.toContain("Each version names what the brand does");
+    expect(buildMakePrompt(ads({ layout: "quote" })).system).not.toContain("words.button");
     expect(system).toContain("Take the topic and angle from the original ad and none of its words: no run of 4 or more words from it");
     expect(system).not.toContain("Keep the original ad's shape");
     expect(user.indexOf("- myth-bust (Myth bust).")).toBeGreaterThan(user.indexOf("Formulas, one version each, in this order:"));
