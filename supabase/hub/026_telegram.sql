@@ -6,7 +6,7 @@
 --   cs_telegram_chats   one row per connect: the code (hashed), who tapped Start, then the chat once tied.
 --   cs_telegram_posts   the queue: one row per post per chat.
 --   cs-telegram-media   private bucket for the post's pictures or video, <owner>/<profile>/<uuid>.<ext>.
---   cs_telegram_claim_due(limit, now)   the send tick's claim: due posts, one per chat, 09:00 to 21:00 only.
+--   cs_telegram_claim_due(limit, now)   the send tick's claim: up to 5 due posts, one per chat, 09:00 to 21:00 only.
 --   cs_telegram_tick_due(now)           whether the cron should call the tick at all.
 --   telegram-send       pg_cron, every minute, calls telegram-hook only when cs_telegram_tick_due().
 --
@@ -174,7 +174,7 @@ create policy cs_telegram_posts_owner_read on public.cs_telegram_posts
   for select to authenticated
   using (owner_id = (select auth.uid()));
 
--- The send tick's claim: the earliest due post of each connected chat with nothing still sending, at most 20
+-- The send tick's claim: the earliest due post of each connected chat with nothing still sending, at most 5
 -- (and p_limit), locked with skip locked so two ticks never take the same post, then marked sending once.
 -- Outside 09:00 to 21:00 Singapore time it claims nothing, whatever the caller asks. p_now is for the tests.
 create or replace function public.cs_telegram_claim_due(p_limit integer default 20, p_now timestamptz default now())
@@ -200,7 +200,7 @@ begin
     from public.cs_telegram_posts p
     where p.id in (select id from due) and p.status = 'scheduled'
     order by p.send_at, p.id
-    limit least(greatest(coalesce(p_limit, 0), 0), 20)
+    limit least(greatest(coalesce(p_limit, 0), 0), 5)
     for update of p skip locked
   )
   update public.cs_telegram_posts p

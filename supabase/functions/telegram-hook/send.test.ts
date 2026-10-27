@@ -88,10 +88,10 @@ describe("the hours", () => {
     expect(sent).toHaveLength(1);
   });
 
-  it("asks for at most 20 posts, fails sends stuck for 10 minutes, and clears files of posts finished 7 days ago", async () => {
+  it("asks for 5 posts at most, so a tick ends well inside the function's time and the 10-minute stale check, fails sends stuck for 10 minutes, and clears files of posts finished 7 days ago", async () => {
     const { d, log } = harness({ posts: [] });
     await runTick(d);
-    expect(log).toEqual([`stale<${iso(NOW - 10 * 60_000)}:${STALE}`, `claim:20@${iso(NOW)}`, `finished<${iso(NOW - 7 * 86_400_000)}`]);
+    expect(log).toEqual([`stale<${iso(NOW - 10 * 60_000)}:${STALE}`, `claim:5@${iso(NOW)}`, `finished<${iso(NOW - 7 * 86_400_000)}`]);
   });
 });
 

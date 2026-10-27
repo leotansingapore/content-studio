@@ -261,6 +261,17 @@ update public.cs_telegram_posts set status = 'posted', finished_at = (select at 
 select public.cs_test_assert(public.cs_telegram_tick_due((select at from t_clock)), '4.10 files of a post finished 8 days ago make a tick due');
 update public.cs_telegram_posts set media = '{}' where id = '00000000-0000-4000-8000-0000000000a3';
 select public.cs_test_assert(not public.cs_telegram_tick_due((select at from t_clock)), '4.11 with nothing due, no tick');
+
+-- seven connected chats with a post due each: a claim takes 5 at most, whatever it asks for
+insert into public.cs_telegram_chats (id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, connected_at, confirmed_at, login_hash, nonce_hash)
+select ('00000000-0000-4000-8000-00000000f00' || n)::uuid, '7e57c0de-0000-4000-8000-0000000000d2', 'me', repeat('e', 63) || n, now(), 222, -1009000000000 - n,
+       'supergroup', 'Chat ' || n, 'connected', now(), now(), repeat('a', 63) || n, repeat('b', 63) || n
+from generate_series(1, 7) n;
+insert into public.cs_telegram_posts (owner_id, profile_id, chat_row, client_key, text, send_at)
+select '7e57c0de-0000-4000-8000-0000000000d2', 'me', ('00000000-0000-4000-8000-00000000f00' || n)::uuid, gen_random_uuid(), 'Post ' || n, (select at from t_clock) - interval '1 minute'
+from generate_series(1, 7) n;
+select public.cs_test_assert((select count(*) from public.cs_telegram_claim_due(20, (select at from t_clock))) = 5, '4.12 a claim takes 5 posts at most');
+select public.cs_test_assert((select count(*) from public.cs_telegram_claim_due(20, (select at from t_clock))) = 2, '4.13 the next claim takes the rest');
 reset role;
 
 -- ---------------------------------------------------------------------------
@@ -271,8 +282,9 @@ delete from auth.users where id = '7e57c0de-0000-4000-8000-0000000000d1';
 select public.cs_test_assert(
   (select count(*) from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d1') = 0
   and (select count(*) from public.cs_telegram_posts where owner_id = '7e57c0de-0000-4000-8000-0000000000d1') = 0
-  and (select count(*) from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d2') = 1
-  and (select count(*) from public.cs_telegram_posts where owner_id = '7e57c0de-0000-4000-8000-0000000000d2') = 1,
+  -- B's own chat and post, plus the seven from 4.12
+  and (select count(*) from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d2') = 8
+  and (select count(*) from public.cs_telegram_posts where owner_id = '7e57c0de-0000-4000-8000-0000000000d2') = 8,
   '5.1 deleting a user cascades to their chats and posts and leaves the other adviser''s');
 
 -- ---------------------------------------------------------------------------

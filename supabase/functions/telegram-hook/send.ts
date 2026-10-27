@@ -1,4 +1,4 @@
-// The send tick (pg_cron every minute through 026's telegram-send, only when a post is due): sends due posts between
+// The send tick (pg_cron every minute through 026's telegram-send, only when a post is due): sends up to 5 due posts between
 // 09:00 and 21:00 Singapore time, one attempt per post per tick, and marks each posted, back in the queue with a
 // backoff, or failed with a plain reason. Pure: the queue, the files and the bot come in.
 
@@ -46,7 +46,8 @@ export interface TickDeps {
 }
 
 export const MAX_ATTEMPTS = 5;
-export const PER_TICK = 20;
+/** About 5 posts a tick: an album with its text is a few slow calls, and a tick must end well inside the function's time and the 10-minute stale check. */
+export const PER_TICK = 5;
 export const STALE = "Check the group before you retry.";
 export const STUCK = "Telegram didn't answer. Check the group before you retry.";
 export const PARTIAL = "Part of it went out. Check the group before you retry.";
