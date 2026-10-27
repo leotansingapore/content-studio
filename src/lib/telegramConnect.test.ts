@@ -254,7 +254,7 @@ describe("the browser that pressed Connect Telegram", () => {
 describe("a brand's own bot", () => {
   it("says how to make one in three plain steps", () => {
     expect(OWN_BOT_STEPS).toEqual([
-      "In Telegram, open @BotFather and send /newbot. Pick a name and a username for your brand's bot.",
+      "In Telegram, open @BotFather and send /newbot. Pick a name and a username for your brand's bot. Use a new bot: one another app already reads stops working there.",
       "Send /setdomain to @BotFather, pick your bot, and send consultant-content-studio.vercel.app",
       "Copy the token BotFather sends and paste it here.",
     ]);

@@ -203,7 +203,8 @@ describe("the telegram function's gate", () => {
 
 describe("the brand's own bot", () => {
   const me = { id: 7000000002, is_bot: true, first_name: "MoneyBees", username: "mb_test_bot" };
-  const tgOk = (method: string) => (method === "getMe" ? { ok: true, result: me } : { ok: true, result: true });
+  const tgOk = (method: string) =>
+    method === "getMe" ? { ok: true, result: me } : method === "getWebhookInfo" ? { ok: true, result: { url: "", pending_update_count: 0 } } : { ok: true, result: true };
 
   it("checks the pasted token, stores it through the Vault save, and sets that bot's webhook with its own secret on the hook URL carrying its id", async () => {
     tgAnswer = tgOk;
@@ -212,9 +213,13 @@ describe("the brand's own bot", () => {
     const text = await res.text();
     expect(JSON.parse(text)).toEqual({ botUsername: "mb_test_bot", botName: "MoneyBees" });
     expect(text).not.toContain(OWN.split(":")[1]);
-    expect(telegram.map((t) => t.url.replace(OWN, "<own>"))).toEqual(["https://api.telegram.org/bot<own>/getMe", "https://api.telegram.org/bot<own>/setWebhook"]);
-    const hook = telegram[1].body;
-    expect(hook).toEqual({ url: "http://x/functions/v1/telegram-hook?bot=7000000002", secret_token: expect.stringMatching(/^[A-Za-z0-9_-]{32,64}$/), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: true });
+    expect(telegram.map((t) => t.url.replace(OWN, "<own>"))).toEqual([
+      "https://api.telegram.org/bot<own>/getMe",
+      "https://api.telegram.org/bot<own>/getWebhookInfo",
+      "https://api.telegram.org/bot<own>/setWebhook",
+    ]);
+    const hook = telegram[2].body;
+    expect(hook).toEqual({ url: "http://x/functions/v1/telegram-hook?bot=7000000002", secret_token: expect.stringMatching(/^[A-Za-z0-9_-]{32,64}$/), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
     const save = h.rpcs.find((r) => r.fn === "cs_telegram_bot_save")!;
     expect(save.args).toEqual({ p_owner: LEO, p_profile: "pmoneybees", p_bot_id: 7000000002, p_username: "mb_test_bot", p_display_name: "MoneyBees", p_token: OWN, p_webhook_secret_hash: sha(hook.secret_token as string) });
     expect(h.reads.slice(0, 1)).toEqual(["cs_consume_ai_usage"]);
@@ -240,7 +245,8 @@ describe("the brand's own bot", () => {
   });
 
   it("never puts a token in a response or a log line, even when the database or Telegram fails", async () => {
-    tgAnswer = (method) => (method === "getMe" ? { ok: true, result: me } : { ok: false, error_code: 400, description: `Bad Request: token ${OWN} rejected` });
+    tgAnswer = (method) =>
+      method === "getMe" ? { ok: true, result: me } : method === "getWebhookInfo" ? { ok: true, result: { url: "" } } : { ok: false, error_code: 400, description: `Bad Request: token ${OWN} rejected` };
     h.rpc = (fn) => (fn === "cs_telegram_bot_save" ? { data: null, error: { message: `failed for p_token=${OWN}`, code: "XX000" } } : { data: 1, error: null });
     const failed = await call("leo", { action: "bot-add", profileId: "pmoneybees", token: OWN });
     h.rpc = null;

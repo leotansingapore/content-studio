@@ -424,13 +424,13 @@ describe("own bot per brand", () => {
   const HOOK = "https://hub.supabase.co/functions/v1/telegram-hook";
   const me = { id: 7000000002, is_bot: true, first_name: "MoneyBees", username: "mb_test_bot", can_join_groups: true };
   /** A stub client per token: getMe and setWebhook answer as given; every call is noted with its token. */
-  function clients(o: { getMe?: unknown; setWebhook?: unknown; deleteWebhook?: unknown } = {}) {
+  function clients(o: { getMe?: unknown; setWebhook?: unknown; deleteWebhook?: unknown; getWebhookInfo?: unknown } = {}) {
     const calls: { token: string; method: string; params: Record<string, unknown> }[] = [];
     const client = (token: string): Bot => ({
       id: Number(token.split(":")[0]),
       async call<T>(method: string, params: Record<string, unknown>): Promise<T> {
         calls.push({ token, method, params });
-        const out = (o as Record<string, unknown>)[method] ?? (method === "getMe" ? me : true);
+        const out = (o as Record<string, unknown>)[method] ?? (method === "getMe" ? me : method === "getWebhookInfo" ? { url: "", pending_update_count: 0 } : true);
         if (out instanceof TelegramError) throw out;
         return out as T;
       },
@@ -488,10 +488,38 @@ describe("own bot per brand", () => {
     expect(saved).toEqual([{ owner: UID, profile: "me", botId: 7000000002, username: "mb_test_bot", displayName: "MoneyBees", token: OWN, webhookSecretHash: expect.stringMatching(/^[0-9a-f]{64}$/) }]);
     const hook = calls.find((c) => c.method === "setWebhook")!;
     expect(hook.token).toBe(OWN);
-    expect(hook.params).toEqual({ url: `${HOOK}?bot=7000000002`, secret_token: expect.stringMatching(/^[A-Za-z0-9_-]{32,64}$/), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: true });
+    expect(calls.map((c) => c.method)).toEqual(["getMe", "getWebhookInfo", "setWebhook"]);
+    // what the bot already queued is kept: nothing a person sent it is thrown away
+    expect(hook.params).toEqual({ url: `${HOOK}?bot=7000000002`, secret_token: expect.stringMatching(/^[A-Za-z0-9_-]{32,64}$/), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
     // the stored hash is that secret's: the hook can check it, and the secret itself is kept nowhere
     expect(bots[0].webhook_secret_hash).toBe(await hashCode(hook.params.secret_token as string));
     expect(JSON.stringify(bots)).not.toContain(hook.params.secret_token as string);
+  });
+
+  it("refuses a bot whose webhook already goes to another app, before anything is stored", async () => {
+    const { db, bots, attempts } = fakeDb();
+    const { client, calls } = clients({ getWebhookInfo: { url: "https://other.example/hook", pending_update_count: 3 } });
+    expect(await add(db, client)).toEqual({
+      status: 409,
+      body: { error: "That bot already sends its updates to another app. Make a new bot in BotFather for Content Studio, or remove that app's webhook first." },
+    });
+    expect(calls.map((c) => c.method)).toEqual(["getMe", "getWebhookInfo"]);
+    expect([bots, attempts]).toEqual([[], []]);
+  });
+
+  it("takes a bot with no webhook, or one already pointing at this hook for this bot", async () => {
+    for (const url of ["", `${HOOK}?bot=7000000002`]) {
+      const { db, bots } = fakeDb();
+      expect((await add(db, clients({ getWebhookInfo: { url, pending_update_count: 0 } }).client)).status, url).toBe(200);
+      expect(bots).toHaveLength(1);
+    }
+  });
+
+  it("changes nothing when Telegram can't say where the bot's updates go", async () => {
+    const { db, bots, attempts } = fakeDb();
+    const out = await add(db, clients({ getWebhookInfo: new TelegramError(0, "Telegram didn't answer.") }).client);
+    expect(out).toEqual({ status: 502, body: { error: "Couldn't reach Telegram. Try again in a minute." } });
+    expect([bots, attempts]).toEqual([[], []]);
   });
 
   it("keeps nothing when Telegram won't take the webhook", async () => {
@@ -575,7 +603,7 @@ describe("own bot per brand", () => {
     const racing: FnDb = { ...db, botTaken: async () => false, brandBot: async () => null, saveBot: async () => null };
     const { client, calls } = clients();
     expect(await add(racing, client)).toEqual({ status: 409, body: { error: "That bot is already set up in Content Studio." } });
-    expect(calls.map((c) => c.method)).toEqual(["getMe"]);
+    expect(calls.map((c) => c.method)).toEqual(["getMe", "getWebhookInfo"]);
     expect(bots).toEqual([]);
   });
 

@@ -310,9 +310,12 @@ const UNKNOWN_TOKEN: Reply = { status: 400, body: { error: "Telegram doesn't kno
 
 /**
  * "Use your brand's own bot": checks the pasted token with getMe, refuses the shared bot and a bot already set up in
- * Content Studio (any account), stores the token in Vault with the row, and sets that bot's webhook to the hook URL
- * carrying its id, with a secret_token of its own (only the secret's hash is kept). Answers the bot's @name and name;
- * the token never comes back, and a webhook Telegram won't take leaves nothing behind.
+ * Content Studio (any account), and a bot whose webhook goes to another app (getWebhookInfo). Another app reading the
+ * bot by polling (getUpdates) can't be seen from here without cutting that app's own poll, so the setup steps say a
+ * bot another app reads stops working there. Then stores the token in Vault with the row, and sets that bot's webhook
+ * to the hook URL carrying its id, with a secret_token of its own (only the secret's hash is kept), keeping what the
+ * bot already queued. Answers the bot's @name and name; the token never comes back, and a webhook Telegram won't take
+ * leaves nothing behind.
  */
 export async function runAddBot(
   db: FnDb,
@@ -333,13 +336,19 @@ export async function runAddBot(
   if (await db.botTaken(botId)) return { status: 409, body: { error: "That bot is already set up in Content Studio." } };
   const has = await db.brandBot(uid, profileId);
   if (has) return { status: 409, body: { error: `This brand already posts as @${has.username}. Switch back to the shared bot first.` } };
+  const ours = `${hookUrl}?bot=${botId}`;
+  const info = await bot.call<{ url?: unknown }>("getWebhookInfo", {}).catch(() => null);
+  if (!info) return { status: 502, body: { error: "Couldn't reach Telegram. Try again in a minute." } };
+  if (typeof info.url === "string" && info.url !== "" && info.url !== ours) {
+    return { status: 409, body: { error: "That bot already sends its updates to another app. Make a new bot in BotFather for Content Studio, or remove that app's webhook first." } };
+  }
   const secret = newCode();
   const displayName = typeof me.first_name === "string" ? me.first_name.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 128) : "";
   const id = await db.saveBot({ owner: uid, profile: profileId, botId, username: me.username, displayName, token, webhookSecretHash: await hashCode(secret) });
   // checked above; a null here is another add winning a race for the bot or the brand
   if (!id) return { status: 409, body: { error: "That bot is already set up in Content Studio." } };
   try {
-    await bot.call("setWebhook", { url: `${hookUrl}?bot=${botId}`, secret_token: secret, allowed_updates: ["message", "my_chat_member"], drop_pending_updates: true });
+    await bot.call("setWebhook", { url: ours, secret_token: secret, allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
   } catch {
     await db.deleteBot(id);
     return { status: 502, body: { error: "Telegram didn't take the bot's webhook. Try again in a minute." } };
