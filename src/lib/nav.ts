@@ -128,7 +128,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/board", label: "Board", icon: Columns3 },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
       { to: "/media", label: "Media" },
-      { to: "/reels", label: "Posts board", end: true, show: reelsShown, icon: ClipboardCheck, group: "Review" },
+      { to: "/reels", label: "Posts board", end: true, show: reelsShown, icon: ClipboardCheck, group: "Approvals" },
       { to: "/team", label: "Leader approvals", icon: ClipboardCheck },
       { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Influencers" },
     ],

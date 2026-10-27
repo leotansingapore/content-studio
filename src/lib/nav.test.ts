@@ -108,7 +108,7 @@ describe("nav", () => {
 
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {
       const leo = sectionTabs("/carousel", LEO);
-      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Review", "Influencers"]);
+      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Approvals", "Influencers"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
       expect(labels(leo.chips)).toEqual(["Post", "Formats", "Batch", "Carousel", "Image", "Slideshow", "Video"]);
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
@@ -121,7 +121,7 @@ describe("nav", () => {
     it("leaves out a row of one and gives bare pages none", () => {
       // Review without a posts board is Leader approvals alone: the tab, no chips
       const review = sectionTabs("/team", ANYONE);
-      expect(review.tabs.find((t) => t.active)?.label).toBe("Review");
+      expect(review.tabs.find((t) => t.active)?.label).toBe("Approvals");
       expect(review.chips).toEqual([]);
       expect(sectionTabs("/feedback", ANYONE)).toEqual({ tabs: [], chips: [] });
       for (const p of ["/home", "/agent/t1", "/north-star"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
