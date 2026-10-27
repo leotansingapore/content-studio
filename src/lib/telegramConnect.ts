@@ -264,7 +264,7 @@ export function telegramMediaProblem(files: { name: string; type: string; size: 
     const ext = MEDIA_EXT[f.type];
     if (!ext) return `${f.name} can't go to Telegram from here: it takes JPG, PNG or WebP pictures, or an MP4 video.`;
     if (ext === "mp4" && f.size > VIDEO_MAX_BYTES) return VIDEO_TOO_BIG;
-    if (ext !== "mp4" && f.size > PHOTO_MAX_BYTES) return `${f.name} is over 5 MB, the most Telegram takes from Content Studio.`;
+    if (ext !== "mp4" && f.size > PHOTO_MAX_BYTES) return `${f.name} is over 5 MB, the most Telegram takes from Postmosis.`;
   }
   if (files.length > 1 && files.some((f) => MEDIA_EXT[f.type] === "mp4")) return "Telegram takes pictures or one video in a post, not both.";
   return null;

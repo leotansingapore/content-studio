@@ -31,7 +31,7 @@ import { runPage, type Deps, type Options } from "./run.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
-const FROM = "Content Studio <noreply@mail.themoneybees.co>";
+const FROM = "Postmosis <noreply@mail.themoneybees.co>";
 const TEST_INBOXES = ["delivered@resend.dev", "spleotan@gmail.com"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

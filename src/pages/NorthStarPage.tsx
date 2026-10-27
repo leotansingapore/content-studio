@@ -453,7 +453,7 @@ function DogfoodRow({ p, onFrame }: { p: NsDogfoodPost; onFrame: (f: string) => 
 export default function NorthStarPage() {
   const [email, setEmail] = useState<string | null>(null);
   useEffect(() => {
-    document.title = "North star - Content Studio";
+    document.title = "North star - Postmosis";
     // getSession reads the stored session; no Auth round trip just to read an email.
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
   }, []);

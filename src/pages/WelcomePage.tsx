@@ -60,7 +60,7 @@ export default function WelcomePage() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    document.title = "Welcome - Content Studio";
+    document.title = "Welcome - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;

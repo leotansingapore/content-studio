@@ -5,7 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const TABS: [string, string][] = [
-  ["/north-star", "Content Studio"],
+  ["/north-star", "Postmosis"],
   ["/marketing-north-star", "App marketing"],
 ];
 

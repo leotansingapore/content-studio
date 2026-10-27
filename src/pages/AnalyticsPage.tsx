@@ -543,7 +543,7 @@ export default function AnalyticsPage() {
   };
 
   useEffect(() => {
-    document.title = "Analytics - Content Studio";
+    document.title = "Analytics - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;

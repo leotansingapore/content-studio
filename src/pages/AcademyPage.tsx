@@ -45,7 +45,7 @@ export default function AcademyPage() {
   const playing = lessonParam && ALL_IDS.includes(lessonParam) ? lessonParam : null;
 
   useEffect(() => {
-    document.title = "Academy - Content Studio";
+    document.title = "Academy - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;

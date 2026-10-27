@@ -495,7 +495,7 @@ describe("a saved face's consent check (people-my-face, NORTH_STAR_USERS only)",
     return b.toString("base64");
   })();
   const PHOTO = `/9j/${Buffer.from("an AI-made face, not a real person").toString("base64")}`;
-  const LINE = "I'm the person on camera. I agree that Content Studio can make videos of my face. My code is four, eight, two, one.";
+  const LINE = "I'm the person on camera. I agree that Postmosis can make videos of my face. My code is four, eight, two, one.";
   const ticketFor = async (uid: string, code: string, day = db.today()) => signFor(await consentSecret("service-role-key"), uid, `consent:face:${code}:${day}`);
   const consent = async (uid: string, o: Record<string, unknown> = {}) =>
     send(uid, { mode: "consent", kind: "face", wav: WAV, code: "4821", ticket: await ticketFor(uid, "4821"), photo: PHOTO, ...o });

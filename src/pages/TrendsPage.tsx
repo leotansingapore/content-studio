@@ -359,7 +359,7 @@ export default function TrendsPage() {
   useGoneItem("trend", trends.some((t) => t.id === openId), "trend");
 
   useEffect(() => {
-    document.title = "Trends - Content Studio";
+    document.title = "Trends - Postmosis";
   }, []);
 
   const platforms = useMemo(

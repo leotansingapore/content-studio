@@ -105,9 +105,9 @@ function Step({
 export default function CreateGuidePage() {
   useScrollToHash();
   useEffect(() => {
-    document.title = "Create the post - Content Studio";
+    document.title = "Create the post - Postmosis";
     return () => {
-      document.title = "Content Studio";
+      document.title = "Postmosis";
     };
   }, []);
 

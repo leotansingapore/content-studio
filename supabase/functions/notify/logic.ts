@@ -867,7 +867,7 @@ export function weeklyEmail(
   const text = [
     ...blocks.flatMap((b) => [b, ""]),
     ...(marketCheckOpen ? [`Your market: this week's check is open. See the news and client questions to post about: ${APP_URL}/market`, ""] : []),
-    `Open Content Studio: ${APP_URL}/home`,
+    `Open Postmosis: ${APP_URL}/home`,
     "",
     "You get this every Monday because it is switched on in My Playbook. Switch it off there to stop.",
   ].join("\n");

@@ -122,7 +122,7 @@ describe("reading a request", () => {
   it("holds files to Telegram's limits: pictures to 5 MB, one MP4 video to 20 MB, ten at most, never mixed", () => {
     const presign = (files: unknown) => parseRequest({ action: "presign", profileId: "me", files });
     expect(presign([{ type: "video/mp4", size: 20 * MB }])).toMatchObject({ ok: true });
-    expect(presign([{ type: "video/mp4", size: 20 * MB + 1 }])).toEqual({ ok: false, status: 400, error: "Telegram takes videos up to 20 MB from Content Studio. Post a shorter one, or send it in Telegram." });
+    expect(presign([{ type: "video/mp4", size: 20 * MB + 1 }])).toEqual({ ok: false, status: 400, error: "Telegram takes videos up to 20 MB from Postmosis. Post a shorter one, or send it in Telegram." });
     expect(presign([{ type: "image/png", size: 5 * MB }, { type: "image/webp", size: 1 }])).toMatchObject({ ok: true });
     expect(presign([{ type: "image/jpeg", size: 5 * MB + 1 }])).toMatchObject({ ok: false, status: 400, error: expect.stringContaining("5 MB") });
     expect(presign([{ type: "video/quicktime", size: 1 }])).toMatchObject({ ok: false, status: 400 });

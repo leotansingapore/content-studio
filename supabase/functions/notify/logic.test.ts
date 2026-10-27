@@ -327,7 +327,7 @@ describe("weeklyEmail", () => {
         'Tue 13 Oct, 7:30pm, LinkedIn: "Tuesday one"',
         'Thu 15 Oct, Instagram: "Thursday one"',
         "",
-        `Open Content Studio: ${APP_URL}/home`,
+        `Open Postmosis: ${APP_URL}/home`,
         "",
         "You get this every Monday because it is switched on in My Playbook. Switch it off there to stop.",
       ].join("\n"),

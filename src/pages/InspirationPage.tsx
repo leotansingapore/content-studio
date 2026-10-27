@@ -3,7 +3,7 @@ import Inspiration from "@/components/Inspiration";
 
 export default function InspirationPage() {
   useEffect(() => {
-    document.title = "Inspiration - Content Studio";
+    document.title = "Inspiration - Postmosis";
   }, []);
   return <Inspiration />;
 }

@@ -92,7 +92,7 @@ export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 export const VIDEO_MAX_BYTES = 20 * 1024 * 1024;
 export const MEDIA_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4" };
 export const BUCKET = "cs-telegram-media";
-export const VIDEO_TOO_BIG = "Telegram takes videos up to 20 MB from Content Studio. Post a shorter one, or send it in Telegram.";
+export const VIDEO_TOO_BIG = "Telegram takes videos up to 20 MB from Postmosis. Post a shorter one, or send it in Telegram.";
 
 export function mediaKindOf(path: string): "photo" | "video" | null {
   const ext = path.split(".").pop()?.toLowerCase();
@@ -146,7 +146,7 @@ export async function checkTelegramLogin(
 
 // ---- the pickers: Telegram's own chat pickers (KeyboardButtonRequestChat), shown once the login is verified ----
 
-export const PICK_TEXT = "Pick the group or channel Content Studio should post to.";
+export const PICK_TEXT = "Pick the group or channel Postmosis should post to.";
 
 const ADMIN_RIGHTS = {
   is_anonymous: false,

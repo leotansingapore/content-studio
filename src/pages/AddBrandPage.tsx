@@ -47,7 +47,7 @@ export default function AddBrandPage() {
   const why = reasonText({ left, leo });
 
   useEffect(() => {
-    document.title = "Add a brand - Content Studio";
+    document.title = "Add a brand - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? "";
       setUid(id);

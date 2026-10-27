@@ -26,7 +26,7 @@ export default function GridPage() {
   const measure = useMemo(() => createCanvasMeasure(), []);
 
   useEffect(() => {
-    document.title = "Grid - Content Studio";
+    document.title = "Grid - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);

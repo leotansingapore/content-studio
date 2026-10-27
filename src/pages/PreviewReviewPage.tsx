@@ -36,7 +36,7 @@ function useTokenPageMeta() {
       return m;
     });
     const title = document.title;
-    document.title = "Post for review - Content Studio";
+    document.title = "Post for review - Postmosis";
     return () => {
       added.forEach((m) => m.remove());
       document.title = title;
@@ -104,7 +104,7 @@ export default function PreviewReviewPage() {
     <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:py-12">
       <div className="mx-auto max-w-2xl space-y-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Content Studio - post for review
+          Postmosis - post for review
         </p>
 
         {state === "loading" ? (
@@ -224,7 +224,7 @@ export default function PreviewReviewPage() {
                 </Button>
                 {sent && (
                   <p role="status" className="flex items-center gap-1.5 text-sm text-success">
-                    <CheckCircle2 className="h-4 w-4" /> Sent. {post.sender_name} sees it in Content Studio.
+                    <CheckCircle2 className="h-4 w-4" /> Sent. {post.sender_name} sees it in Postmosis.
                   </p>
                 )}
                 {sendError && (

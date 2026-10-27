@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFoundPage() {
   useEffect(() => {
-    document.title = "Not found - Content Studio";
+    document.title = "Not found - Postmosis";
   }, []);
 
   return (

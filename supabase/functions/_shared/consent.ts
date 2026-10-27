@@ -57,4 +57,4 @@ export function heardCode(transcript: string, code: string): boolean {
 }
 
 /** The line read on camera, the same for everyone (a brand name would put a business's name in a person's mouth). */
-export const CONSENT_LINE = (code: string) => `I'm the person on camera. I agree that Content Studio can make videos of my face. My code is ${code.split("").join(" ")}.`;
+export const CONSENT_LINE = (code: string) => `I'm the person on camera. I agree that Postmosis can make videos of my face. My code is ${code.split("").join(" ")}.`;

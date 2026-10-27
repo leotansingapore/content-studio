@@ -14,7 +14,7 @@
           "name": "content-studio",
           "version": "1.0.0"
         },
-        "instructions": "Content Studio is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns."
+        "instructions": "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns."
       }
     },
     {
@@ -31,7 +31,7 @@
           "name": "content-studio",
           "version": "1.0.0"
         },
-        "instructions": "Content Studio is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns."
+        "instructions": "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns."
       }
     },
     null,
@@ -47,7 +47,7 @@
         "tools": [
           {
             "name": "list_posts",
-            "description": "List the adviser's posts in Content Studio (newest first): drafts, scheduled and posted, with ids for get_post.",
+            "description": "List the adviser's posts in Postmosis (newest first): drafts, scheduled and posted, with ids for get_post.",
             "inputSchema": {
               "type": "object",
               "properties": {
@@ -116,7 +116,7 @@
           },
           {
             "name": "add_draft",
-            "description": "Save a post to the adviser's My posts as a draft, or scheduled when scheduledFor is given. It appears the next time Content Studio opens, where MAS wording is checked before posting. Write only facts the adviser gave you.",
+            "description": "Save a post to the adviser's My posts as a draft, or scheduled when scheduledFor is given. It appears the next time Postmosis opens, where MAS wording is checked before posting. Write only facts the adviser gave you.",
             "inputSchema": {
               "type": "object",
               "properties": {
@@ -287,7 +287,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\n  \"saved\": true,\n  \"id\": \"claude-muyw2m804fzzzx\",\n  \"status\": \"scheduled\",\n  \"note\": \"It shows in My posts the next time Content Studio opens.\"\n}"
+            "text": "{\n  \"saved\": true,\n  \"id\": \"claude-muyw2m804fzzzx\",\n  \"status\": \"scheduled\",\n  \"note\": \"It shows in My posts the next time Postmosis opens.\"\n}"
           }
         ]
       }
@@ -299,7 +299,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\n  \"saved\": true,\n  \"id\": \"claude-muyw2m804fzzzx\",\n  \"status\": \"draft\",\n  \"note\": \"It shows in My posts the next time Content Studio opens.\"\n}"
+            "text": "{\n  \"saved\": true,\n  \"id\": \"claude-muyw2m804fzzzx\",\n  \"status\": \"draft\",\n  \"note\": \"It shows in My posts the next time Postmosis opens.\"\n}"
           }
         ]
       }
@@ -383,7 +383,7 @@
         "content": [
           {
             "type": "text",
-            "text": "20 drafts from Claude are waiting. Open Content Studio once to bring them into My posts, then try again."
+            "text": "20 drafts from Claude are waiting. Open Postmosis once to bring them into My posts, then try again."
           }
         ],
         "isError": true

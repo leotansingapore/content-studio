@@ -68,7 +68,7 @@ export default function TutorialPage() {
             </strong>
           </p>
           <p>
-            Content Studio doesn&apos;t write your post for you. It removes the
+            Postmosis doesn&apos;t write your post for you. It removes the
             blank-page tax. You arrive with a topic and a real client moment;
             you leave 10 minutes later with three drafts to pick from, hashtags
             ready, an image prompt to drop into Canva. Edit into your voice.

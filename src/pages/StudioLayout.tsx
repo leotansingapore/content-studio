@@ -521,7 +521,7 @@ export default function StudioLayout() {
       <aside data-nav className="fixed inset-y-0 left-0 z-30 hidden w-[var(--nav-w)] p-2.5 pr-0 lg:flex">
         <div className="flex min-h-0 w-full flex-col rounded-2xl border border-border/70 bg-sidebar">
           <div className="flex items-center gap-2 px-3 pt-3">
-            <Link to="/home" aria-label="Content Studio home" title="Content Studio" className="shrink-0 rounded-xl [@media(pointer:coarse)]:grid [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:place-items-center">
+            <Link to="/home" aria-label="Postmosis home" title="Postmosis" className="shrink-0 rounded-xl [@media(pointer:coarse)]:grid [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:place-items-center">
               <Logo />
             </Link>
             <div className="min-w-0 flex-1">
@@ -599,7 +599,7 @@ export default function StudioLayout() {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-1.5">
-          <Link to="/home" aria-label="Content Studio home" className="flex min-h-11 min-w-11 items-center">
+          <Link to="/home" aria-label="Postmosis home" className="flex min-h-11 min-w-11 items-center">
             <Logo />
           </Link>
           <div className="flex items-center gap-1">

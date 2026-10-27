@@ -32,7 +32,7 @@ const shape = (p: Record<string, unknown> | null) =>
 const TODAY = {
   apiUrl: FEEDBACK_API,
   boardKey: FEEDBACK_BOARD_KEY,
-  appName: "Content Studio",
+  appName: "Postmosis",
   identity: undefined,
   navigate: "function",
   offsetY: 20,

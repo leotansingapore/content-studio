@@ -221,7 +221,7 @@ describe("every update shape", () => {
 // ---- connecting ----
 
 describe("/start with the one-time code", () => {
-  it("answers only with a Confirm button back to Content Studio: no pickers, no email, no brand", async () => {
+  it("answers only with a Confirm button back to Postmosis: no pickers, no email, no brand", async () => {
     const { db, rows } = fakeDb([await row()]);
     const { bot, replies } = stubBot(GOOD);
     await run(start, db, bot);
@@ -230,7 +230,7 @@ describe("/start with the one-time code", () => {
     expect(replies()).toEqual([
       {
         chat_id: LEO,
-        text: "Tap Confirm and sign in to Content Studio if it asks. Then come back here to pick your group or channel.",
+        text: "Tap Confirm and sign in to Postmosis if it asks. Then come back here to pick your group or channel.",
         reply_markup: { inline_keyboard: [[{ text: "Confirm", login_url: { url: `https://app.postmosis.com/accounts?telegram=${rows[0].id}` } }]] },
       },
     ]);

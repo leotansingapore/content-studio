@@ -57,7 +57,7 @@ export default function FollowingPage() {
   useGoneItem("account", leo && openAccount && list.length ? list.some((a) => accountKey(a) === openAccount) : undefined, "account");
 
   useEffect(() => {
-    document.title = "Following - Content Studio";
+    document.title = "Following - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);

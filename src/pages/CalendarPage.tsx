@@ -255,7 +255,7 @@ export default function CalendarPage() {
   const teamOpenId = params.get("teampost");
 
   useEffect(() => {
-    document.title = "Calendar - Content Studio";
+    document.title = "Calendar - Postmosis";
     let active = true;
     (async () => {
       const { data } = await supabase.auth.getUser();

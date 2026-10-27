@@ -114,7 +114,7 @@ export default function Auth() {
             </span>
             <span className="flex flex-col items-start leading-none">
               <span className="text-base font-bold tracking-tight text-foreground">
-                Content Studio
+                Postmosis
               </span>
               <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                 for advisors

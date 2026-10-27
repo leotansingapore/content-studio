@@ -57,7 +57,7 @@ export function AssistantMount() {
     <AssistantDock
       apiUrl={FEEDBACK_API}
       boardKey={FEEDBACK_BOARD_KEY}
-      appName="Content Studio"
+      appName="Postmosis"
       identity={identity}
       navigate={navigate}
       offsetY={20}

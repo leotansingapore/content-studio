@@ -26,7 +26,7 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 }
 
-const DEAD_LINK = { error: "This connection link isn't active. Make a new one in Content Studio > Connect Claude." };
+const DEAD_LINK = { error: "This connection link isn't active. Make a new one in Postmosis > Connect Claude." };
 
 /** The body as text, or null past `max` bytes (a chunked body has no content-length to check). */
 async function readLimited(req: Request, max: number): Promise<string | null> {
@@ -132,6 +132,6 @@ Deno.serve(async (req) => {
     return json(Array.isArray(body) ? replies : replies[0]);
   } catch (e) {
     console.error("content-studio-mcp failed", e instanceof Error ? e.message : String(e));
-    return json({ jsonrpc: "2.0", id: null, error: { code: -32603, message: "Content Studio couldn't read your data right now. Try again in a minute." } }, 500);
+    return json({ jsonrpc: "2.0", id: null, error: { code: -32603, message: "Postmosis couldn't read your data right now. Try again in a minute." } }, 500);
   }
 });

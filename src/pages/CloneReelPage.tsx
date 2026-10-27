@@ -1413,7 +1413,7 @@ export default function CloneReelPage() {
   const leo = Boolean(leoUser);
 
   useEffect(() => {
-    document.title = "Clone a reel - Content Studio";
+    document.title = "Clone a reel - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
@@ -1434,12 +1434,12 @@ export default function CloneReelPage() {
     return () => {
       active = false;
       abortRef.current?.abort();
-      document.title = "Content Studio";
+      document.title = "Postmosis";
     };
   }, []);
 
   useEffect(() => {
-    if (leoUser) document.title = "Remix a post - Content Studio";
+    if (leoUser) document.title = "Remix a post - Postmosis";
   }, [leoUser]);
 
   // Reading the video runs outside the page; show its progress, and the saved result when it lands.
