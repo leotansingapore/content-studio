@@ -250,6 +250,15 @@ describe("a press while one runs", () => {
     expect(talkJob()).toMatchObject({ state: "done", ask: ASK });
   });
 
+  it("a press while another AI video is being made writes nothing and pays for nothing", async () => {
+    ai.set({ kind: "template", state: "working", step: "Writing the shots..." });
+    await startTalk("u1", ASK);
+    expect(fn).not.toHaveBeenCalled();
+    expect(ai.makePresenter).not.toHaveBeenCalled();
+    expect(speak).not.toHaveBeenCalled();
+    expect(talkJob()).toBeNull();
+  });
+
   it("Make it for US$x pressed twice at the price check pays for one video", async () => {
     ai.slice.mockResolvedValue(voiceOf(21, [9.5, 9.5, 2]));
     await startTalk("u1", ASK);

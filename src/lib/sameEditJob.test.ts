@@ -471,6 +471,19 @@ describe("Make my version", () => {
     expect(J.sameEditJob()?.state).toBe("done");
   });
 
+  it("a face press while another AI video is being made writes nothing, and I'll film it still writes", async () => {
+    const plan = await readPlan();
+    makeFakes();
+    f.ai.job = { kind: "template", state: "working", step: "Writing the shots..." };
+    // not awaited on its own: a press that wrongly went ahead would wait on a video that never comes
+    await Promise.race([J.startMake(UID, { ...ASK, planId: plan.id, who: "mine" }), new Promise((r) => setTimeout(r, 50))]);
+    expect(requestMake).not.toHaveBeenCalled();
+    expect(fns()).toEqual([]);
+    await J.startMake(UID, { ...ASK, planId: plan.id, who: "film" });
+    expect(J.sameEditJob()?.state).toBe("filmed");
+    expect(requestMake).toHaveBeenCalledTimes(1);
+  });
+
   it("a second Make my version while one is being written writes once", async () => {
     const plan = await readPlan();
     makeFakes();
