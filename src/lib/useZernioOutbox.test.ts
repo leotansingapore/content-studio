@@ -11,7 +11,7 @@ vi.mock("@/hooks/use-toast", () => ({ toast: calls.toast }));
 import { EdgeError } from "@/lib/edgeFn";
 import { loadDrafts, saveDrafts, setDraftStatus, deleteDraft, type DraftEntry } from "@/lib/draftHistory";
 import { MAX_TRIES, loadOutbox, saveOutbox, type OutboxOp } from "@/lib/zernioOutbox";
-import { CANCEL_GRACE_MS, outboxRows, retryOp, sendOutbox, undoTo, updating } from "./useZernioOutbox";
+import { CANCEL_GRACE_MS, applyView, outboxRows, retryFailed, retryOp, sendOutbox, undoTo, updating } from "./useZernioOutbox";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 let n = 0;
@@ -306,5 +306,54 @@ describe("outboxRows", () => {
       ["stuck", 'Still on the old time: "Old one" still goes out'],
     ]);
     expect(outboxRows([{ ...inbox, status: "posted" }], { ops: [], gone: [] }, titleOf)).toEqual([]);
+  });
+});
+
+describe("what a read or a Retry finds on Zernio, onto the post", () => {
+  const numbers = { impressions: 3000, reach: 2100, views: 1200, likes: 40, comments: 3, shares: 2, saves: 5, at: "2026-10-14T00:00:00.000Z" };
+  const live = (postId: string, platform = { url: "https://www.tiktok.com/@a/1", draft: false }) => ({
+    id: postId, status: "published" as const, scheduledFor: "2026-10-15T01:00:00.000Z",
+    platforms: [{ platform: "tiktok", accountId: "68000000000000000000a001", status: "published", error: "", ...platform }],
+  });
+
+  it("a read that finds it live marks the post posted and keeps the numbers Analytics pulled", () => {
+    const id = ids();
+    saveDrafts(UID, [held(id, { zernio: { key: "k", postId: id, status: "scheduled", at: "2026-10-15T01:00:00.000Z", numbers } })]);
+    applyView(UID, draftOf(id)!, live(id));
+    expect(draftOf(id)).toMatchObject({ status: "posted", zernio: { status: "published", links: [{ platform: "tiktok", url: "https://www.tiktok.com/@a/1" }], numbers } });
+  });
+
+  it("a read of a post that went to the TikTok inbox keeps it scheduled, and a second read of a live post keeps when it was marked posted", () => {
+    const a = ids();
+    saveDrafts(UID, [held(a)]);
+    applyView(UID, draftOf(a)!, live(a, { url: null as unknown as string, draft: true }));
+    expect(draftOf(a)).toMatchObject({ status: "scheduled", zernio: { status: "published", drafts: ["tiktok"] } });
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(clock);
+      const b = ids();
+      saveDrafts(UID, [held(b)]);
+      applyView(UID, draftOf(b)!, live(b));
+      expect(draftOf(b)).toMatchObject({ status: "posted", postedAt: new Date(clock).toISOString() });
+      vi.setSystemTime(clock + 3_600_000); // the chip reads it again an hour on
+      applyView(UID, draftOf(b)!, live(b));
+      expect(draftOf(b)!.postedAt).toBe(new Date(clock).toISOString());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Retry on a post that didn't post keeps its numbers, and marks it posted only once Zernio has it live", async () => {
+    const id = ids();
+    saveDrafts(UID, [held(id, { zernio: { key: "k", postId: id, status: "failed", error: "Media URL expired.", numbers } })]);
+    calls.fn.mockResolvedValueOnce({ post: { ...live(id), status: "publishing", platforms: [{ ...live(id).platforms[0], status: "pending", url: null }] } });
+    await retryFailed(UID, draftOf(id)!);
+    expect(sent()).toEqual([{ name: "social", action: "retry", profileId: "me", postId: id }]);
+    expect(draftOf(id)).toMatchObject({ status: "scheduled", zernio: { status: "publishing", numbers } });
+    expect(draftOf(id)!.zernio).not.toHaveProperty("error");
+    calls.fn.mockResolvedValueOnce({ post: live(id) });
+    await retryFailed(UID, draftOf(id)!);
+    expect(draftOf(id)).toMatchObject({ status: "posted", zernio: { status: "published", numbers } });
   });
 });
