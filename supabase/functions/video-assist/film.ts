@@ -22,8 +22,8 @@ import { askJev, choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { scanCompliance, type ComplianceFlag } from "../_shared/compliance.ts";
 import {
-  ANCHORS, BAR, BPM, CUTS, DEFAULT_PRODUCT, ENERGIES, FILM_LENGTHS, FONTS, FRAMES, GROUNDS, ICONS, MAX_SCENES, PRODUCT_IDS, PRODUCT_TYPES, SHAPES,
-  beatSeconds, beatsFor, beatsOf, capWords, filmEvents, filmWords, parseAccent, parseFilm, parseGround, parseScene, rhythmIssues, sceneStarts,
+  ANCHORS, BAR, BPM, CUTS, DEFAULT_PRODUCT, ENERGIES, FILM_LENGTHS, FONTS, FRAMES, GROUNDS, ICONS, MAX_SCENE_BEATS, MAX_SCENES, PRODUCT_IDS, PRODUCT_TYPES, SHAPES,
+  beatSeconds, beatsFor, beatsOf, capWords, filmEvents, filmWords, parseAccent, parseFilm, parseGround, parseScene, rhythmIssues, sceneBeats, sceneStarts,
   type Accent, type Energy, type Film, type FilmCtx, type FilmLength, type FilmScene, type Ground, type ProductType, type Shape,
 } from "./filmSpec.ts";
 
@@ -239,6 +239,58 @@ export function gapHints(film: Film): string[] {
   return out;
 }
 
+const vocab = (t: string) => t.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+/**
+ * The words Fix it put on screen or in the voice that neither the film nor the brand's facts hold (live-p7a-fix D25 wrote
+ * "Keep follow-ups nearby? No."): a word overlap, a measurement, not a reading of what the line says.
+ */
+export function madeUp(was: Pick<Film, "scenes" | "voice">, film: Pick<Film, "scenes" | "voice">, brand: Pick<FilmBrand, "name" | "oneLiner" | "audience" | "facts">): string[] {
+  const known = new Set(vocab([...filmWords(was), brand.name, brand.oneLiner, brand.audience, brand.facts].join(" ")));
+  return [...new Set(vocab(filmWords(film).join(" ")).filter((w) => !known.has(w)))];
+}
+
+/**
+ * Fix it's last resort when both writes leave a quiet stretch or add words (live-p7a-fix D25): every scene that holds over
+ * 2 bars after its last new thing gives whole bars to the closing logo, whose hold the rhythm check allows, so the length,
+ * the drop's bar line and every word stay. Null when the film doesn't end on the logo or nothing holds too long.
+ */
+export function trimQuiet(film: Film): Film | null {
+  const end = film.scenes.length - 1;
+  if (film.scenes[end]?.kind !== "logo") return null;
+  let freed = 0;
+  const scenes = film.scenes.map((s, i): FilmScene => {
+    if (i === end) return s;
+    const lastAt = (beats: number) => Math.max(...sceneBeats({ ...s, beats }, film.energy).map((x) => x.at));
+    let n = beatsOf(s);
+    while (n > BAR && n - lastAt(n) > 2 * BAR) n -= BAR;
+    freed += beatsOf(s) - n;
+    return n === beatsOf(s) ? s : { ...s, beats: n };
+  });
+  const logo = beatsOf(scenes[end]) + freed;
+  if (!freed || logo > MAX_SCENE_BEATS) return null;
+  scenes[end] = { ...scenes[end], beats: logo };
+  return { ...film, scenes };
+}
+
+/** What Fix it changed, read off the two films, never the writer's own account of it (live-p7a-fix D25). */
+export function fixReply(was: Film, film: Film): string {
+  const before = new Map(was.scenes.map((s) => [s.id, s]));
+  const same = (a: FilmScene, b: FilmScene) => JSON.stringify({ ...a, beats: 0 }) === JSON.stringify({ ...b, beats: 0 });
+  const changes = [
+    ...film.scenes.flatMap((s) => {
+      const o = before.get(s.id);
+      if (!o) return [`added "${s.id}"`];
+      return [
+        ...(beatsOf(o) !== beatsOf(s) ? [`"${s.id}" now holds ${beatsOf(s)} beats, was ${beatsOf(o)}`] : []),
+        ...(same(o, s) ? [] : filmWords({ scenes: [o] }).join("\n") !== filmWords({ scenes: [s] }).join("\n") ? [`new words in "${s.id}"`] : [`moved things in "${s.id}"`]),
+      ];
+    }),
+    ...was.scenes.filter((s) => !film.scenes.some((x) => x.id === s.id)).map((s) => `took out "${s.id}"`),
+  ];
+  const quiet = rhythmIssues(film).some((i) => i.startsWith("Nothing happens"));
+  return [changes.length ? `${changes.join("; ")}.` : "Nothing changed.", quiet ? "The quiet stretch is still there." : "Nothing sits still now."].join(" ");
+}
+
 /** The MAS lines for a person's brand (decision 11); a business gets the business lines. */
 export const FILM_MAS_LINES = [
   "Compliance (the brand is a financial adviser licensed and regulated in Singapore):",
@@ -303,8 +355,11 @@ export function filmUser(req: FilmRequest): string {
     const film = e.scene
       ? { scene: f.scenes.find((s) => s.id === e.scene), otherScenes: f.scenes.map((s) => ({ id: s.id, kind: s.kind, beats: s.beats })) }
       : { film: { font: f.font, ground: f.ground, accent: f.accent, drop: f.drop, scenes: f.scenes, voice: { lines: Object.entries(f.voice.lines).map(([scene, l]) => ({ scene, line: l })) } } };
-    // Fix it says where each quiet stretch sits and to keep the length (live-p7a D5)
-    const note = e.fix ? [e.note, ...gapHints(f), `Keep the film ${Math.round(seconds)} seconds long: fill each quiet stretch with more lines, cards or shots, never by cutting beats.`].join("\n") : e.note;
+    // Fix it says where each quiet stretch sits and to keep the length (live-p7a D5), moving beats rather than writing
+    // lines to fill time (live-p7a-fix D25 wrote "Keep follow-ups nearby? No.")
+    const note = e.fix
+      ? [e.note, ...gapHints(f), `Keep the film ${Math.round(seconds)} seconds long: give a quiet scene fewer beats and those beats to scenes with more to land or to the end card, and add words only from the film or the brand's facts, never a line to fill time.`].join("\n")
+      : e.note;
     return JSON.stringify({ note, earlierNotesHere: e.thread, at, ...film, grid: grid(Math.min(60, seconds), f.energy), brand, kit, screens });
   }
   const s = req.setup!;
@@ -550,18 +605,31 @@ export async function filmMode(admin: UsageClient, uid: string, body: unknown, l
     console.log("video-assist film-edit unusable", out.problems.join(" | ").slice(0, 300));
     return fail(422, "unusable", EDIT_FAILED);
   }
-  const left = e.fix ? [...rhythmIssues(out.film), ...gapHints(out.film)] : [];
-  if (left.length) {
-    // Fix it's one more try inside the same use; the first answer stands when this one doesn't parse
-    const second = await again(first, left);
-    const fixed = second.answered && !refusal(second) ? parseFilm(assemble(second.data, { product: was.product, energy: was.energy, style: was.style, voice: was.voice.on }), media) : null;
-    if (fixed?.ok) out = fixed;
+  let film = out.film;
+  let notes = out.notes;
+  if (e.fix) {
+    // Fix it (live-p7a-fix D25): a film counts once the shared rhythm check finds nothing and it adds no word the film or
+    // the brand's facts don't hold. One more try inside the same use; then the film that adds no word with the fewest
+    // issues, preferring the second write, then the quiet scenes' beats moved to the end card in code
+    const off = (f: Film) => {
+      const words = madeUp(was, f, req.brand);
+      return [...rhythmIssues(f), ...gapHints(f), ...(words.length ? [`These words are in neither the film nor the brand's facts: ${words.join(", ")}. Use only words they hold.`] : [])];
+    };
+    if (off(film).length) {
+      const second = await again(first, off(film));
+      const parsed = second.answered && !refusal(second) ? parseFilm(assemble(second.data, { product: was.product, energy: was.energy, style: was.style, voice: was.voice.on }), media) : null;
+      const fixed = parsed?.ok ? parsed.film : null;
+      const moved = trimQuiet(was);
+      const kept = [fixed, moved, film, was].filter((f): f is Film => !!f && !madeUp(was, f, req.brand).length);
+      film = kept.reduce((a, b) => (rhythmIssues(b).length < rhythmIssues(a).length ? b : a));
+      notes = [];
+      console.log(`video-assist film-edit fix: ${film === fixed ? "second write" : film === moved ? "beats moved in code" : film === was ? "unchanged" : "first write"}, issues ${rhythmIssues(film).length}`);
+    }
   }
-  const film = out.film;
   // a change that moves the length says so, since the film no longer runs the length picked (live-p7a D7)
   const [from, to] = [Math.round(length), Math.round(filmSeconds(film))];
-  const longer = to !== from && !out.notes.length ? [`The film is now ${to} seconds, ${to > from ? "up" : "down"} from ${from}.`] : [];
-  const reply = [capWords(first.data?.reply, 30) || "Changed.", ...out.notes, ...longer].join(" ");
+  const longer = to !== from && !notes.length ? [`The film is now ${to} seconds, ${to > from ? "up" : "down"} from ${from}.`] : [];
+  const reply = [e.fix ? fixReply(was, film) : capWords(first.data?.reply, 30) || "Changed.", ...notes, ...longer].join(" ");
   const scene = e.scene ? film.scenes.find((s) => s.id === e.scene) : undefined;
   return { status: 200, body: { film, ...(scene ? { scene } : {}), reply, issues: rhythmIssues(film), flags: await flagsFor(filmWords(film), req.brand.speaker) } };
 }
