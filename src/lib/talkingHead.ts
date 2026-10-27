@@ -76,10 +76,11 @@ export const videoPrice = (slices: number[]) => priceOf("ai-video", { slices }) 
 export const needsPriceCheck = (estimate: number, real: number) => real > estimate + 1e-9;
 
 /**
- * Words a second each voice reads a script at: its slowest voiceover at Make so far, rounded down (live-p5dog, Alice
- * 2.56 to 2.79, Eric 2.48 to 2.84); a voice not yet measured reads at the length rule's slow end (speakingWords' 2.4).
+ * Words a second each voice reads a plain script at: its slowest voiceover at Make so far, rounded down (live-p5dog,
+ * Alice 2.56 to 2.79, Eric 2.48 to 2.84; live-p7a-fix 27 Oct, Alice 48 words in 20.0 s on a Write it for me script); a
+ * voice not yet measured reads at the length rule's slow end (speakingWords' 2.4).
  */
-const READ_WPS: Partial<Record<VoiceId, number>> = { alice: 2.56, eric: 2.48 };
+const READ_WPS: Partial<Record<VoiceId, number>> = { alice: 2.4, eric: 2.48 };
 export const readWps = (voice: VoiceId) => READ_WPS[voice] ?? 2.4;
 /** How long a script's voiceover runs in a voice, before it exists: at most MAX_AVATAR_SECONDS. */
 export const scriptSeconds = (words: number, voice: VoiceId) => Math.min(MAX_AVATAR_SECONDS, Math.max(1, words) / readWps(voice));

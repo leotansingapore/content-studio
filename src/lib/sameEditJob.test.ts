@@ -2,6 +2,7 @@
 // first version's make for I'll film it, a face (with its price check) and no face, plus the resume at no cost.
 // Every provider is a fake; each test of a press says which calls ran.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { VoiceId } from "./textVoice";
 import type { Word } from "./videoEdit";
 import type { EditPicks, EditRead } from "../../supabase/functions/reel-visuals/edit";
 
@@ -213,17 +214,35 @@ describe("the pure parts", () => {
     expect(J.soundOf(pcm, rate, words, [5, 15])).toEqual({ bed: true, drops: 1, sfx: true });
   });
 
-  it("briefs the writer: each beat's share of the length at the source's pace, never faster than the voice reads, and every event as its marker", () => {
+  it("briefs the writer: each beat's share of the length at the voice's same-edit pace, and every event as its marker", () => {
     const plan = { read: { wpm: 240, seconds: 30 }, beats: [{ role: "hook", share: 0.2 }, { role: "point", share: 0.5 }, { role: "ask", share: 0.3 }], events: [{ kind: "text", place: { b: 0, at: 0, span: 1 }, role: "hook", words: 40, y: 0.2 }, { kind: "zoom", place: { b: 1, at: 0.5, span: 0.1 } }] } as never;
-    // the voice's slowest measured read caps the source's pace (talkingHead's scriptSeconds rule)
-    expect(J.wpsOf(plan, "eric")).toBe(2.48);
-    expect(J.wpsOf(plan, "alice")).toBe(2.56);
-    expect(J.wpsOf({ read: { wpm: 60 } } as never, "alice")).toBe(2.4);
-    expect(J.wpsOf({ read: { wpm: null } } as never, "george")).toBe(2.4);
+    // the voice's plain read (talkingHead's readWps) slowed by the pauses between beats caps the source's pace
+    expect(J.wpsOf(plan, "eric")).toBeCloseTo(2.48 * 0.92, 9);
+    expect(J.wpsOf(plan, "alice")).toBeCloseTo(2.4 * 0.92, 9);
+    expect(J.wpsOf({ read: { wpm: 60 } } as never, "alice")).toBeCloseTo(2.4 * 0.92, 9);
+    expect(J.wpsOf({ read: { wpm: null } } as never, "george")).toBeCloseTo(2.4 * 0.92, 9);
     expect(J.editBrief(plan, 15, "eric")).toEqual({
-      beats: [{ role: "hook", seconds: 3, words: 7 }, { role: "point", seconds: 7.5, words: 19 }, { role: "ask", seconds: 4.5, words: 11 }],
+      beats: [{ role: "hook", seconds: 3, words: 6 }, { role: "point", seconds: 7.5, words: 17 }, { role: "ask", seconds: 4.5, words: 11 }],
       events: [{ b: 0, kind: "text", role: "hook", words: 20 }, { b: 1, kind: "zoom" }],
     });
+  });
+
+  // live-p7a-fix (27 Oct): same-edit scripts read slower than plain ones, with pauses between beats. Eric read 39 words in
+  // 17.0 s (2.29 a second against his plain 2.48) on the one-speaker reel's plan, Alice 42 words in 18.8 s (2.23 against
+  // her plain 2.40) on the graphics reel's
+  it("writes a 15 s version that reads in 15 s at the pace same-edit scripts were measured at (live-p7a-fix D1)", () => {
+    expect(J.SAME_EDIT_PACE).toBe(Math.floor(Math.min(2.23 / 2.4, 2.29 / 2.48) * 100) / 100);
+    const plans: [VoiceId, number, number[], number][] = [
+      ["eric", 216, [0.21, 0.201, 0.142, 0.068, 0.225, 0.153], 2.29], // plan-read-DdsjSosgWYL.json
+      ["alice", 181, [0.378, 0.123, 0.104, 0.396], 2.23], // plan-read-DeJS3taDEgI.json
+    ];
+    for (const [voice, wpm, shares, read] of plans) {
+      const plan = { read: { wpm, seconds: 44 }, beats: shares.map((share) => ({ role: "point", share })), events: [] } as never;
+      const words = J.editBrief(plan, 15, voice).beats.reduce((n, b) => n + b.words, 0);
+      expect(words / read, voice).toBeLessThanOrEqual(15);
+    }
+    // the 39 words Eric's 15 s version was written to come down to the 34 that fit
+    expect(J.editBrief({ read: { wpm: 216, seconds: 44 }, beats: plans[0][2].map((share) => ({ role: "point", share })), events: [] } as never, 15, "eric").beats.reduce((n, b) => n + b.words, 0)).toBe(34);
   });
 
   it("writes a 15 s version that the voice reads in 15 s, so Make's price check charges the chip's price (live-p7a D1)", () => {

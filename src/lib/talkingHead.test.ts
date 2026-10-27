@@ -9,7 +9,7 @@ import { addProfile, setActiveProfile } from "./profiles";
 import type { SavedClone } from "./reelClone";
 import {
   TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
-  scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, videoPrice, whoChoices, wordLine,
+  readWps, scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, videoPrice, whoChoices, wordLine,
   writePlan, type Speaker,
 } from "./talkingHead";
 import type { VoiceId } from "./textVoice";
@@ -121,6 +121,9 @@ describe("the price of a script before its voiceover exists (live-p5dog day 3: E
   it("reads each voice at its slowest measured speed, and a voice not yet measured at the length rule's slow end", () => {
     expect(scriptSeconds(46, "eric")).toBeGreaterThanOrEqual(18.48);
     expect(scriptSeconds(38, "alice")).toBeGreaterThanOrEqual(14.81);
+    // live-p7a-fix (27 Oct): Write it for me's 48 words for 15 s took Alice 20.0 s, 2.40 a second
+    expect(readWps("alice")).toBe(2.4);
+    expect(scriptSeconds(48, "alice")).toBeGreaterThanOrEqual(20);
     expect(scriptSeconds(48, "george")).toBe(20);
     expect(scriptSeconds(200, "eric")).toBe(30);
   });

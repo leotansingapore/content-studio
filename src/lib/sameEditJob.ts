@@ -254,11 +254,17 @@ export function shotsFor(frames: { t: number }[], cuts: number[], faces: number[
 }
 
 /**
- * Words a second for the new script: the source's, held to WPS, and never faster than `voice` reads at its slowest
- * measured (readWps, the rule a campaign's AI video is priced by), so the version runs its length (live-p7a D1).
+ * A same-edit script reads slower than a plain one, with pauses between its beats: live-p7a-fix (27 Oct) measured Alice
+ * at 2.23 words a second against her plain 2.40 and Eric at 2.29 against 2.48, so 0.92 (the slower pair, rounded down).
+ */
+export const SAME_EDIT_PACE = 0.92;
+/**
+ * Words a second for the new script: the source's, held to WPS, and never faster than `voice` reads a same-edit script
+ * (its plain readWps, the rule a campaign's AI video is priced by, times SAME_EDIT_PACE), so the version runs its length
+ * (live-p7a D1, live-p7a-fix D1).
  */
 export const wpsOf = (plan: Pick<EditPlan, "read">, voice: VoiceId) =>
-  Math.min(readWps(voice), WPS.max, Math.max(WPS.min, plan.read.wpm ? plan.read.wpm / 60 : WPS.fallback));
+  Math.min(readWps(voice) * SAME_EDIT_PACE, WPS.max, Math.max(WPS.min, plan.read.wpm ? plan.read.wpm / 60 : WPS.fallback));
 
 /** The writer's brief: each beat's role, its share of `length` and its word budget in `voice`, and every event as its marker. */
 export function editBrief(plan: EditPlan, length: number, voice: VoiceId): EditBrief {

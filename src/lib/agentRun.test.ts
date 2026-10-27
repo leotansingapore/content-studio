@@ -779,7 +779,7 @@ describe("cards change before the press", () => {
     const words40 = Array.from({ length: 40 }, (_, i) => `word${i}`).join(" ");
     expect(editCard(UID, id, cardMsg(id).id, { script: words40 })).toBeNull();
     expect(cardMsg(id).card).toMatchObject({ credits: 44 });
-    // a new AI presenter's picture is in the price: estimateScript's own figure, 16 s in slices of 9.5 and 6.5
+    // a new AI presenter's picture is in the price: estimateScript's own figure, about 17 s in two 10 s Speak parts
     expect(cardMsg(id).card!.price).toEqual(estimateScript(40, { presenter: true }).price);
     expect(priceText(cardMsg(id).card!.price!)).toBe("About US$2.78");
     expect(fieldsOf(cardMsg(id).card!).length).toBe(15);
@@ -844,11 +844,11 @@ describe("the 25 Oct replay: follow-ups keep their subject, titles name it, a co
   });
 
   it("ends a receipt's line once, cut at a word, and says an 18-second video (D12)", async () => {
-    // a woman's look, so Alice reads it: 46 words are 18 s in her voice
+    // a woman's look, so Alice reads it: 43 words are 18 s in her voice
     const id = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking", who: 0 });
     await approve(id);
-    const words46 = Array.from({ length: 46 }, (_, i) => (i % 9 === 8 ? "end." : "word")).join(" ");
-    expect(editCard(UID, id, cardMsg(id).id, { script: words46 })).toBeNull();
+    const words43 = Array.from({ length: 43 }, (_, i) => (i % 9 === 8 ? "end." : "word")).join(" ");
+    expect(editCard(UID, id, cardMsg(id).id, { script: words43 })).toBeNull();
     expect(cardMsg(id).card?.line).toMatch(/^An 18-second video of/);
     expect(editCard(UID, id, cardMsg(id).id, { script: SCRIPT })).toBeNull();
     await approve(id);
@@ -881,16 +881,16 @@ describe("the 25 Oct replay: a talking video's voice, length and caption (D4, D5
   it("asks the writer for the words the length takes in the card's voice, and a voice change prices the script again (D5)", async () => {
     const id = await say("make a 15 second talking video about CPF LIFE with the woman", { act: "make", format: "speaking", length: 15, who: 0 });
     await approve(id);
-    expect(fake.scriptAsk).toMatchObject({ as: "speaking", seconds: 15, words: 38 });
-    // 43 words: 16.8 s in Alice's voice is two parts, 17.9 s in George's is three
-    expect(editCard(UID, id, cardMsg(id).id, { script: words(43) })).toBeNull();
+    expect(fake.scriptAsk).toMatchObject({ as: "speaking", seconds: 15, words: 35 });
+    // 41 words: 17.1 s in Alice's voice is three parts, 16.5 s in Eric's is two
+    expect(editCard(UID, id, cardMsg(id).id, { script: words(41) })).toBeNull();
     const alice = cardMsg(id).card!;
-    expect([alice.credits, alice.line]).toEqual([44, "A 17-second video of your presenter saying this script."]);
-    expect(editCard(UID, id, cardMsg(id).id, { voice: "george" })).toBeNull();
-    const george = cardMsg(id).card!;
-    expect([george.credits, george.line, george.details?.find((d) => d.label === "Length")?.value]).toEqual([55, "An 18-second video of your presenter saying this script.", "about 18 seconds"]);
-    expect(george.price!.usd).toBeGreaterThan(alice.price!.usd);
-    expect(george.price).toEqual(estimateScript(43, { presenter: true, voice: "george" }).price);
+    expect([alice.credits, alice.line]).toEqual([55, "A 17-second video of your presenter saying this script."]);
+    expect(editCard(UID, id, cardMsg(id).id, { voice: "eric" })).toBeNull();
+    const eric = cardMsg(id).card!;
+    expect([eric.credits, eric.line, eric.details?.find((d) => d.label === "Length")?.value]).toEqual([44, "A 17-second video of your presenter saying this script.", "about 17 seconds"]);
+    expect(eric.price!.usd).toBeLessThan(alice.price!.usd);
+    expect(eric.price).toEqual(estimateScript(41, { presenter: true, voice: "eric" }).price);
   });
 
   it("takes the writer's caption with its call to action to the editor with the video (D13)", async () => {
