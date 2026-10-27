@@ -9,7 +9,7 @@ import { addProfile, setActiveProfile } from "./profiles";
 import type { SavedClone } from "./reelClone";
 import {
   TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
-  readWps, scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, videoPrice, whoChoices, wordLine,
+  readWps, scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, talkWords, videoEstimate, videoPrice, whoChoices, wordLine,
   writePlan, type Speaker,
 } from "./talkingHead";
 import type { VoiceId } from "./textVoice";
@@ -40,6 +40,36 @@ describe("the word target per length (2.4 to 3.2 words a second)", () => {
 
   it("says nothing while the box is empty", () => {
     expect(wordLine(0, 15)).toBe("");
+  });
+});
+
+// live-p7a-fix (27 Oct): Write it for me wrote 48 words for 15 s ("Aim for 36 to 48") and Alice read them in 20.0 s
+describe("the word target in the picked voice (Leo's sign-ins)", () => {
+  it("tops out at the words the voice reads in the length, and the writer is asked for the same range", () => {
+    expect(wordLine(36, 15, "alice")).toBe("36 words. Aim for 32 to 36 for 15 seconds.");
+    expect(wordLine(37, 15, "eric")).toBe("37 words. Aim for 33 to 37 for 15 seconds.");
+    expect(wordLine(48, 15, "alice")).toBe("48 words. Over 15 seconds, so it runs longer.");
+    expect(wordLine(31, 15, "alice")).toBe("31 words may be too short for 15 seconds.");
+    for (const s of TALK_LENGTHS) {
+      for (const voice of ["alice", "eric", "george"] as VoiceId[]) {
+        const { high } = talkWords(s, voice);
+        expect(high / readWps(voice), `${voice} ${s}`).toBeLessThanOrEqual(s);
+        expect((high + 1) / readWps(voice), `${voice} ${s}`).toBeGreaterThan(s);
+      }
+    }
+    // everyone else keeps the length rule's 2.4 to 3.2
+    expect(talkWords(15)).toEqual({ low: 36, high: 48 });
+    expect(wordLine(48, 15)).toBe("48 words. Aim for 36 to 48 for 15 seconds.");
+  });
+
+  it("takes a script inside the voice's range as the script, never as a topic to write a new one from", () => {
+    const script = words(34);
+    expect(script.length).toBeLessThanOrEqual(200);
+    expect(asTopic(script, 15)).toBe(true);
+    expect(asTopic(script, 15, "alice")).toBe(false);
+    expect(writePlan(script, 15, null, "alice")).toBeNull();
+    expect(writePlan(script, 15, { kind: "top-post" }, "alice")).toBeNull();
+    expect(writePlan("Why follow-ups win deals", 15, null, "alice")).toBe("topic");
   });
 });
 

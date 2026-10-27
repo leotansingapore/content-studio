@@ -375,6 +375,27 @@ describe("Write it for me", () => {
   });
 });
 
+// live-p7a-fix (27 Oct): the box said "Aim for 36 to 48" and Alice read the 48 words written in 20.0 s
+describe("Write it for me in the picked voice (Leo's sign-ins)", () => {
+  it("asks the writer for the words the voice reads in the length, and everyone else for the length's words as today", async () => {
+    await writeTalk("u1", { ...ASK, voice: "alice", byVoice: true });
+    expect(fn.mock.calls[0][1]).toMatchObject({ as: "speaking", seconds: 15, words: 36 });
+    dropTalk();
+    await writeTalk("u1", { ...ASK, voice: "eric", byVoice: true });
+    expect(fn.mock.calls[1][1]).toMatchObject({ seconds: 15, words: 37 });
+    dropTalk();
+    await writeTalk("u1", { ...ASK, voice: "alice" });
+    expect(fn.mock.calls[2][1]).not.toHaveProperty("words");
+  });
+
+  it("speaks a script inside the voice's range as it is, writing nothing", async () => {
+    const script = Array.from({ length: 34 }, (_, i) => `w${i}`).join(" ");
+    await startTalk("u1", { ...ASK, text: script, voice: "alice", byVoice: true });
+    expect(fn).not.toHaveBeenCalled();
+    expect(speak).toHaveBeenCalledWith(script, "alice");
+  });
+});
+
 describe("a talking video the agent asked for (live-p6replay D6)", () => {
   it("hands the agent's chat to the presenter and the video, and keeps it on the run for the script's row", async () => {
     const agent = { thread: "t1", msg: "m1" };

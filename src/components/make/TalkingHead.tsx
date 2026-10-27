@@ -35,6 +35,7 @@ import {
 } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, madePresenter, onTalkJob, ownsPending, resumeTalk, startTalk, talkBusy, talkJob, writeTalk, type TalkAsk, type TalkJob } from "@/lib/talkingHeadJob";
 import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 
 /** One heading style for every option on the setup cards. */
@@ -68,6 +69,9 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   const [lengthParam, setLength] = useUrlState<string>("length", String(DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
   const length = Number(lengthParam) as TalkLength;
   const [voice, setVoice] = useUrlState<VoiceId>("voice", "alice", { allowed: VOICE_IDS });
+  // Leo's sign-ins aim the script at the words the picked voice reads in the length (live-p7a-fix); everyone else as today
+  const leo = useLeoUser();
+  const byVoice = leo ? voice : undefined;
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
   const [typed, setTyped] = useState<Typed>(() => {
     const t = loadTyped(userId);
@@ -139,7 +143,7 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   const pending = pendingAvatar();
   const ours = ownsPending(pending);
   const elsewhere = (!busy && aiBusy()) || (!!pending && !ours);
-  const plan = writePlan(typed.script, length, source);
+  const plan = writePlan(typed.script, length, source, byVoice);
   const n = wordCount(typed.script);
   const shown = madePresenter(typed.look, setting);
   const spend = { length, write: !!plan, presenter: who === "presenter" && !shown };
@@ -170,6 +174,7 @@ export default function TalkingHead({ userId, source }: { userId: string; source
     length,
     mention: mention !== "no",
     caption: source?.kind === "clone" ? cloneWords(loadSavedClones(userId), source.key)?.caption : undefined,
+    ...(byVoice ? { byVoice: true } : {}),
   });
   const makeIt = () => {
     if (reason || talkBusy()) return;
@@ -232,7 +237,7 @@ export default function TalkingHead({ userId, source }: { userId: string; source
           />
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
             <p className="text-xs text-muted-foreground" aria-live="polite">
-              {wordLine(n, length)}
+              {wordLine(n, length, byVoice)}
               {plan && <> {plan === "source" ? "Make the video writes the script from this post first." : "Make the video writes a script from this topic first."}</>}
             </p>
             {canWrite(typed.script, source) && <span className="text-xs"><PriceChip feature="remix-make" left={left("remix-make")} /></span>}

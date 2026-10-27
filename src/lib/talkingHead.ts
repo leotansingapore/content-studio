@@ -18,7 +18,7 @@ import type { SavedClone } from "@/lib/reelClone";
 import type { VoiceId } from "@/lib/textVoice";
 import type { AiMark } from "@/lib/videoProjects";
 import { CUT_WINDOW, MAX_AVATAR_SECONDS, MAX_SLICE, type SettingId } from "../../supabase/functions/ai-video/logic.ts";
-import { MAX_TOPIC, SPEAKING_SECONDS, speakingWords, type SpeakingSeconds } from "../../supabase/functions/remix/logic.ts";
+import { MAX_TOPIC, SPEAKING_SECONDS, scriptWords, speakingWords, type SpeakingSeconds } from "../../supabase/functions/remix/logic.ts";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export type TalkLength = SpeakingSeconds;
@@ -39,28 +39,36 @@ export const TALK_TOAST = "Your talking head video is ready. Export it when it l
 
 export const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
 
-/** Under the script box: the words against the length's target (2.4 to 3.2 words a second); nothing while it is empty. */
-export function wordLine(n: number, s: TalkLength): string {
+/**
+ * The words a script aims for at a length: the length rule's 2.4 to 3.2 words a second, or, given the picked voice (Leo's
+ * sign-ins), the range the writer is asked for (remix's scriptWords) up to the words that voice reads in the length
+ * (live-p7a-fix, 27 Oct: "Aim for 36 to 48" for 15 s, and Alice read the 48 words in 20.0 s).
+ */
+export const talkWords = (s: TalkLength, voice?: VoiceId) =>
+  voice ? scriptWords({ seconds: s, words: Math.floor(s * readWps(voice) + 1e-9) }) : speakingWords(s);
+
+/** Under the script box: the words against the length's target (talkWords); nothing while it is empty. */
+export function wordLine(n: number, s: TalkLength, voice?: VoiceId): string {
   if (n <= 0) return "";
-  const { low, high } = speakingWords(s);
+  const { low, high } = talkWords(s, voice);
   if (n < low) return `${n} words may be too short for ${s} seconds.`;
   // nothing cuts a voiceover at the length: longer runs longer and costs more (the price check), and past 30 s it can't be made
   if (n > high) return s >= MAX_AVATAR_SECONDS ? `${n} words. Over ${s} seconds, so shorten it.` : `${n} words. Over ${s} seconds, so it runs longer.`;
   return `${n} words. Aim for ${low} to ${high} for ${s} seconds.`;
 }
 
-/** Text short of the length's words and short enough to send as a topic is a topic to write from, not the script. */
-export const asTopic = (text: string, s: TalkLength) => wordCount(text) < speakingWords(s).low && text.trim().length <= MAX_TOPIC;
+/** Text short of the length's words (talkWords) and short enough to send as a topic is a topic to write from, not the script. */
+export const asTopic = (text: string, s: TalkLength, voice?: VoiceId) => wordCount(text) < talkWords(s, voice).low && text.trim().length <= MAX_TOPIC;
 
 /**
  * What a press writes before the voiceover: from the post (the box is empty or a short steer), from the box as a
  * topic, or nothing (the box is the script). A Clone a reel result keeps its own script and never writes.
  */
-export function writePlan(text: string, s: TalkLength, source: Pick<RemixSource, "kind"> | null): "source" | "topic" | null {
+export function writePlan(text: string, s: TalkLength, source: Pick<RemixSource, "kind"> | null, voice?: VoiceId): "source" | "topic" | null {
   if (source?.kind === "clone") return null;
   const t = text.trim();
-  if (source) return asTopic(t, s) ? "source" : null;
-  return t && asTopic(t, s) ? "topic" : null;
+  if (source) return asTopic(t, s, voice) ? "source" : null;
+  return t && asTopic(t, s, voice) ? "topic" : null;
 }
 
 /** "Write it for me": from the post, or from the box as a topic (3 to 200 characters); never over a clone's script. */

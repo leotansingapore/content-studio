@@ -19,7 +19,7 @@ import { requestMake, tooLongLine, type Flags } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import {
-  TALK_TOAST, aiMark, asTopic, clearScript, loadTyped, needsPriceCheck, saveTyped, speakerFace, speakerOf, speakers, talkParams, videoEstimate,
+  TALK_TOAST, aiMark, asTopic, clearScript, loadTyped, needsPriceCheck, saveTyped, speakerFace, speakerOf, speakers, talkParams, talkWords, videoEstimate,
   videoPrice, writePlan, type TalkLength, type TalkSetting, type TalkWho,
 } from "@/lib/talkingHead";
 import { speak, type VoiceId } from "@/lib/textVoice";
@@ -50,6 +50,8 @@ export interface TalkAsk {
   quoted?: number;
   /** The agent's chat that asked for it: the script, the presenter and the video log as the agent's (live-p6replay D6). */
   agent?: { thread: string; msg: string };
+  /** Leo's sign-ins: the script's words follow the picked voice's read (talkWords), for the writer and the topic check. */
+  byVoice?: boolean;
 }
 
 export type TalkState = "writing" | "written" | "presenter" | "voice" | "priced" | "video" | "joining" | "done" | "failed";
@@ -143,14 +145,14 @@ const paramsOf = (a: TalkAsk) => talkParams({ source: a.source?.key, who: a.who,
 /** Writes the script: from the post (the box as a steer when it is short), or from the box as a topic. */
 async function write(userId: string, a: TalkAsk, from: "source" | "topic"): Promise<{ script: string; caption: string; flags: Flags }> {
   const t = a.text.trim();
-  const res = await requestMake(
-    makeBody(
-      userId,
-      { source: from === "source" ? a.source : null, topic: from === "topic" ? t : "", note: from === "source" && asTopic(t, a.length) ? t : "", mention: a.mention, size: "9x16" },
-      "speaking",
-      { seconds: a.length },
-    ),
+  const voice = a.byVoice ? a.voice : undefined;
+  const body = makeBody(
+    userId,
+    { source: from === "source" ? a.source : null, topic: from === "topic" ? t : "", note: from === "source" && asTopic(t, a.length, voice) ? t : "", mention: a.mention, size: "9x16" },
+    "speaking",
+    { seconds: a.length },
   );
+  const res = await requestMake(voice ? { ...body, words: talkWords(a.length, voice).high } : body);
   if (res?.result?.as !== "speaking") throw new Error(WRITE_FAILED);
   const script = stripDashes(res.result.script).trim();
   // the box shows it now, and a reload or another page keeps it
@@ -176,7 +178,7 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   if (talkBusy() || aiBusy()) return;
   const id = ++seq;
   const fail = (patch: Partial<TalkJob>) => mine(id, { state: "failed", step: "", ...patch });
-  const from = writePlan(a.text, a.length, a.source);
+  const from = writePlan(a.text, a.length, a.source, a.byVoice ? a.voice : undefined);
   let said = { script: a.text.trim(), caption: a.caption ?? "", flags: undefined as Flags | undefined };
   const saved = a.who !== "photo" && a.who !== "presenter";
   let face: Blob | string | null = a.who === "photo" ? a.photo : saved ? null : madePresenter(a.look, a.setting);
