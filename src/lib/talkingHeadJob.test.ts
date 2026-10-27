@@ -240,6 +240,27 @@ describe("a press that stops before Speak is paid for", () => {
   });
 });
 
+describe("a press while one runs", () => {
+  it("a second Make it while the script is being written writes once and makes one video", async () => {
+    const first = startTalk("u1", ASK);
+    const second = startTalk("u1", { ...ASK, text: "Another topic for a second video" });
+    await Promise.all([first, second]);
+    expect(order.filter((o) => o.startsWith("remix make"))).toHaveLength(1);
+    expect(ai.makeAvatar).toHaveBeenCalledTimes(1);
+    expect(talkJob()).toMatchObject({ state: "done", ask: ASK });
+  });
+
+  it("Make it for US$x pressed twice at the price check pays for one video", async () => {
+    ai.slice.mockResolvedValue(voiceOf(21, [9.5, 9.5, 2]));
+    await startTalk("u1", ASK);
+    expect(talkJob()?.state).toBe("priced");
+    await Promise.all([goOnAtPrice("u1"), goOnAtPrice("u1")]);
+    expect(ai.makeAvatar).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(talkJob()?.state).toBe("done");
+  });
+});
+
 describe("your saved face or a saved presenter (Leo only)", () => {
   const UID = "u1";
   // stand-ins for an AI-made face and presenter copy, never a real person
