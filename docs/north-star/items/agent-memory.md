@@ -16,7 +16,7 @@ A receipt then sits in the thread: "Learning recorded" / "For future AI UGC cont
 
 ![Fastlane 4:23](../../../public/north-star/fastlane/t263.webp)
 
-The learning also shows as a row in the "Your work" panel ("Learning recorded", "Update | 10 min ago"). Hovering that row shows a thread URL in the status bar, inferred to be the thread where it was saved (t340). Settings > Activity logs "Learning recorded" by "You" with the text (t342), under filter tabs that include one called "Corrections" (t341), whose contents were not shown. No page in the recording lists all learnings (notes-4.md open question 17), and the Brand page's banner says "Senna reads these before making anything. Change one here, or ask Senna in a thread."
+The learning also shows as a row in the "Your work" panel ("Learning recorded", "Update | 10 min ago"). Hovering that row shows a thread URL in the status bar, inferred to be the thread where it was saved (t340). Settings > Activity logs "Learning recorded" by "You" with the text (t342), under filter tabs that include one called "Corrections" (t341), whose contents were not shown. It is not where learnings go: on 27 Oct the empty tab said "Corrections fix the record after something went wrong, like a post that did not publish." (senna.md, hands-on walk, shot-26), so this item's learning from repeated card changes is our own idea, not a copy of that tab. No page in the recording lists all learnings (notes-4.md open question 17), and the Brand page's banner says "Senna reads these before making anything. Change one here, or ask Senna in a thread."
 
 ![Fastlane 5:40](../../../public/north-star/fastlane/t340.webp)
 
