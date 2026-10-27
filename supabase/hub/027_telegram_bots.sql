@@ -27,11 +27,21 @@
 --     disconnects the chats and codes tied through it, lets go of the bot id, and cancels their waiting posts in the
 --     same statement, so a chat never points at a deleted bot or at the same bot added again by someone else. The
 --     same delete removes its Vault secret.
---   * The token never reaches a log. The edge function checks its shape and that the bot and brand are free before
+--   * The token stays out of the logs because of the server's logging settings. Whether a statement's bind values
+--     are logged is decided when the statement is bound, before any function's SET clause applies, so no function
+--     can promise it. On academy (read-only check, 27 Oct 2026): log_statement = ddl, log_min_duration_statement = -1,
+--     log_min_duration_sample = -1, log_parameter_max_length_on_error = 0, pgaudit.log = none, no role overrides of
+--     logging, and auto_explain.log_min_duration = 10000 with statement_timeout = 8s on authenticator, so no API
+--     statement runs long enough to be explained. 027_telegram_bots.test.sql 0.5d checks these. Re-check them,
+--     read-only, before adding a bot after any change to the project's logging:
+--        select name, setting from pg_settings where name in ('log_statement', 'log_min_duration_statement',
+--          'log_min_duration_sample', 'log_parameter_max_length_on_error', 'log_min_error_statement', 'pgaudit.log',
+--          'auto_explain.log_min_duration');
+--        select r.rolname, s.setconfig from pg_db_role_setting s left join pg_roles r on r.oid = s.setrole;
+--     Belt and braces on top: the edge function checks the token's shape and that the bot and brand are free before
 --     calling cs_telegram_bot_save; the function checks everything again and answers null rather than raising once
---     it holds the token (no unguarded cast, no message with the token), and it runs with log_min_error_statement =
---     panic and log_parameter_max_length_on_error = 0, so even a failure it can't foresee (a race on a unique key)
---     logs neither the statement nor its arguments.
+--     it holds the token (no unguarded cast, no message with the token); and it runs with log_min_error_statement =
+--     panic and log_parameter_max_length_on_error = 0.
 --   * The functions are service_role only, SECURITY DEFINER with the house search_path. Storage is untouched.
 --
 -- Grants
@@ -116,8 +126,8 @@ alter table public.cs_telegram_chats add constraint cs_telegram_chats_bot_fk
   foreign key (owner_id, profile_id, bot_id) references public.cs_telegram_bots (owner_id, profile_id, bot_id);
 
 -- Stores the token in Vault and the row with its id. Every refusal is a null, never an error, and everything that could
--- refuse is checked before the secret is made: an error could carry the call, and so the token, into the logs. The SET
--- clause keeps the statement and its arguments out of the log even for a failure nothing here foresaw.
+-- refuse is checked before the secret is made. The server's logging settings are what keep the call's bind values out
+-- of the logs (see the header); the SET clause is belt and braces.
 create or replace function public.cs_telegram_bot_save(
   p_owner uuid,
   p_profile text,

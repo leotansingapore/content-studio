@@ -86,7 +86,22 @@ select public.cs_test_assert(
 select public.cs_test_assert(
   (select p.proconfig @> array['log_min_error_statement=panic', 'log_parameter_max_length_on_error=0']
    from pg_proc p where p.oid = 'public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure),
-  '0.5b the save never logs its statement or its arguments, even if something fails');
+  '0.5b belt and braces: the save sets log_min_error_statement = panic and log_parameter_max_length_on_error = 0 (it is 0.5d''s server settings that keep a token out of the logs)');
+
+-- Bind values are logged, or not, when a statement is bound, before any function's SET clause applies: what keeps a
+-- token passed to cs_telegram_bot_save out of the logs is the server's settings.
+select public.cs_test_assert(
+  coalesce((select setting from pg_settings where name = 'log_statement'), 'none') in ('none', 'ddl')
+  and coalesce((select setting::int from pg_settings where name = 'log_min_duration_statement'), -1) = -1
+  and coalesce((select setting::int from pg_settings where name = 'log_min_duration_sample'), -1) = -1
+  and coalesce((select setting::int from pg_settings where name = 'log_parameter_max_length_on_error'), 0) = 0
+  and coalesce((select setting from pg_settings where name = 'pgaudit.log'), 'none') = 'none'
+  and coalesce((select setting::int from pg_settings where name = 'auto_explain.log_min_duration'), -1) not between 0 and 8000
+  and not exists (
+    select 1 from pg_db_role_setting rs, unnest(rs.setconfig) c
+    where c ~ '^(log_statement|log_min_duration|log_parameter|pgaudit\.|auto_explain\.)'
+  ),
+  '0.5d the server keeps bind values out of its logs: log_statement none or ddl, no duration logging or sampling, no parameters on errors, no pgaudit, auto_explain slower than any API statement may run, and no role overriding any of them');
 
 select public.cs_test_assert(
   exists (
