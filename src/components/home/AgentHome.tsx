@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import AgentNow from "@/components/home/AgentNow";
 import AskFor from "@/components/home/AskFor";
+import { useBrandChannels } from "@/components/ChannelsBlock";
 import NextUp from "@/components/home/NextUp";
 import { useThreads } from "@/components/agent/AgentThread";
 import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent/Composer";
@@ -47,6 +48,7 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
   const threads = useThreads(userId);
   const usage = useAgentUsage();
   const composer = useRef<ComposerHandle>(null);
+  const channels = useBrandChannels(userId);
   useScrollToHash();
   // Home's open asks for the real numbers, at most every 6 hours and outside React; each pull also records Pace
   useEffect(() => {
@@ -105,6 +107,8 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
             autopilot: plan?.autopilot,
             campaigns: plan?.list,
             ideas: plan?.ideas,
+            // known 0 only: a brand never read on this device gets no row
+            channels: socialConnectShown() ? channels?.channels.length : undefined,
             setup,
           }}
         />

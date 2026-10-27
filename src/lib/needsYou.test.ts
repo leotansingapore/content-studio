@@ -228,6 +228,20 @@ describe("needsYouItems", () => {
     expect(by.setup).toEqual({ id: "setup", kind: "setup", title: "Set your voice", actions: [{ label: "Open", to: "/voice" }] });
   });
 
+  it("adds one Connect a channel row before setup, only when the open brand is known to have no channels", () => {
+    const ids = (channels?: number | null) => needsYouItems({ drafts: [], setup: full.setup, channels }, TODAY, NOW).map((i) => i.id);
+    expect(ids(0)).toEqual(["channels", "setup"]);
+    // never read on this device, or one connected
+    expect(ids(undefined)).toEqual(["setup"]);
+    expect(ids(null)).toEqual(["setup"]);
+    expect(ids(1)).toEqual(["setup"]);
+    expect(needsYouItems({ drafts: [], channels: 0 }, TODAY, NOW)).toEqual([
+      { id: "channels", kind: "setup", title: "Connect a channel to post from here", actions: [{ label: "Connect", to: "/accounts" }] },
+    ]);
+    // hidden for today like any other row
+    expect(needsYouItems({ drafts: [], channels: 0, hidden: { channels: TODAY } }, TODAY, NOW)).toEqual([]);
+  });
+
   it("puts a campaign's made posts in one row with their count, so the campaign comes third of five, not 26th (live-p6replay D15)", () => {
     const made = Array.from({ length: 24 }, (_, i) => draft({ id: `m${i}`, hook: `Made ${i}`, createdAt: `2026-10-13T00:${String(i).padStart(2, "0")}:00Z`, agent: { thread: "t1", msg: `m${i}` } }));
     const campaigns = [{ id: "c1", name: "Coaches, October", audienceName: "Coaches", posts: [post("ready")] }];
