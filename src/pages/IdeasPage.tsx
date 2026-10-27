@@ -7,7 +7,7 @@
 // openAudit, so opening this page never starts a paid refresh. Everyone else gets the 404 page.
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, X } from "lucide-react";
 import IdeaList from "@/components/ideas/IdeaList";
 import IdeaView from "@/components/ideas/IdeaView";
@@ -31,7 +31,7 @@ import { priceOf, priceText, type Price } from "@/lib/prices";
 import { activeProfile, scoped } from "@/lib/profiles";
 import { sgDay } from "@/lib/goals";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate, withParam } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -83,7 +83,8 @@ function Ideas({ userId }: { userId: string }) {
   const [tab, setTab] = useUrlState<IdeasTab>("tab", "inbox", { allowed: TABS });
   const [source, setSource] = useUrlState<IdeaSource | "all">("source", "all", { allowed: ["all", ...SOURCES] });
   const [label, setLabel] = useUrlState<string>("label", "");
-  const [ideaKey, openIdea, closeIdea] = useUrlItem("idea");
+  const [ideaKey, , closeIdea] = useUrlItem("idea");
+  const [params] = useSearchParams();
   const update = useUrlUpdate();
 
   const now = new Date();
@@ -269,7 +270,7 @@ function Ideas({ userId }: { userId: string }) {
           <IdeaList
             ideas={list}
             openKey={open?.key ?? null}
-            onOpen={openIdea}
+            hrefOf={(key) => `?${withParam(params, "idea", key)}`}
             writing={!!running && !running.like && (source === "all" || source === "today") && tab === "inbox"}
             tab={tab}
             empty={empty}

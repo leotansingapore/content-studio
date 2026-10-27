@@ -8,6 +8,7 @@
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MoreHorizontal, X } from "lucide-react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -70,7 +71,7 @@ function Skills({ userId }: { userId: string }) {
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState("");
 
-  const [run, openRun] = useUrlItem("run");
+  const [run] = useUrlItem("run");
   const [skill] = useUrlItem("skill");
   const [post] = useUrlItem("post");
   const [edit] = useUrlItem("edit");
@@ -199,7 +200,7 @@ function Skills({ userId }: { userId: string }) {
         ) : (
           <ul className="space-y-2">
             {runs.map((r) => (
-              <Result key={r.id} r={r} open={r.id === run} onOpen={() => openRun(r.id)}
+              <Result key={r.id} r={r} open={r.id === run}
                 onAsk={() => {
                   const t = seedThread(userId, `${r.name}${r.title ? ` on "${r.title}"` : ""}`, skillRunText(r), r.links);
                   if (t.ok === false) return toast({ title: t.error, variant: "destructive" });
@@ -341,17 +342,18 @@ function SkillForm({ userId, skill, onClose, onSaved }: { userId: string; skill:
   );
 }
 
-function Result({ r, open, onOpen, onAsk }: { r: SkillRun; open: boolean; onOpen: () => void; onAsk: () => void }) {
+function Result({ r, open, onAsk }: { r: SkillRun; open: boolean; onAsk: () => void }) {
   const [more, setMore] = useState(false);
   const ref = useScrollToItem<HTMLLIElement>(open);
   const lines = open || more ? r.lines : r.lines.slice(0, 3);
   return (
     <li ref={ref} className={`${CARD} space-y-2 ${open ? "border-primary ring-2 ring-primary/30" : ""}`}>
-      <button type="button" onClick={onOpen} className={`flex w-full flex-wrap items-center gap-x-2 text-left ${TOUCH}`}>
+      {/* a real link to the result, so a new tab and a long-press Copy link work */}
+      <Link to={links.skills({ run: r.id })} className={`flex w-full flex-wrap items-center gap-x-2 text-left ${TOUCH}`}>
         {!r.seen && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="New" />}
         <span className="font-semibold">{r.name}</span>
         <span className="text-xs text-muted-foreground">{whenOf(r.at)}{r.by === "schedule" ? " (scheduled)" : ""}</span>
-      </button>
+      </Link>
       {r.title && <p className="text-sm font-medium">"{r.title}"</p>}
       {r.failed ? (
         <p className="text-sm text-destructive">Last run failed: {r.failed}.</p>
@@ -370,6 +372,7 @@ function Result({ r, open, onOpen, onAsk }: { r: SkillRun; open: boolean; onOpen
           </Button>
         ))}
         <Button size="sm" variant="ghost" className={`ml-auto h-9 ${TOUCH}`} onClick={onAsk}>Ask about this</Button>
+        {open && <CopyLinkButton path={links.skills({ run: r.id })} label="Copy link to this result" />}
       </div>
     </li>
   );

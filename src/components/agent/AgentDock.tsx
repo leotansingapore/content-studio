@@ -3,14 +3,17 @@
 // The launcher hides on /agent and /home, which carry their own composer. AssistantMount renders this for Leo and
 // today's AssistantDock, untouched, for everyone else. Mounted on every studio page, it also resumes the agent once
 // per sign-in: turns a closed tab left half-done read as interrupted, and jobs still running are followed again.
+// The open dock lives in the address (?dock=<thread id>, or new; docs/deep-links.md): opening pushes, so Back closes it
+// on a phone, switching chat replaces, and closing removes it.
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ExternalLink, MessageSquare, Plus, X } from "lucide-react";
 import AgentThread, { useThreads } from "@/components/agent/AgentThread";
 import { feedbackFor, type DockIdentity } from "@/components/agent/dockActions";
 import { resumeAgent, setFeedback, setNavigate } from "@/lib/agentRun";
 import { links } from "@/lib/links";
+import { useGoneItem, useUrlItem, useUrlUpdate } from "@/lib/urlState";
 
 const resumed = new Set<string>();
 const ICON = "inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11";
@@ -21,9 +24,16 @@ export const ownComposer = (pathname: string) => pathname === "/home" || pathnam
 export default function AgentDock({ userId, identity }: { userId: string; identity?: DockIdentity }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const threads = useThreads(userId);
-  const [threadId, setThreadId] = useState<string | null>(() => threads[0]?.id ?? null);
+  const [dock, openDock, closeDock] = useUrlItem("dock");
+  const update = useUrlUpdate();
+  // /home and /agent have their own composer: a dock link there is ignored
+  const open = !!dock && !ownComposer(pathname);
+  const threadId = dock && dock !== "new" ? dock : null;
+  const setOpen = (on: boolean) => (on ? openDock(threads[0]?.id ?? "new") : closeDock());
+  const setThreadId = (id: string | null) => update({ dock: id ?? "new" });
+  // a chat deleted since the link was made; an empty list may still be syncing, so it decides nothing
+  useGoneItem("dock", threadId && threads.length ? threads.some((t) => t.id === threadId) : undefined, "chat");
 
   useEffect(() => {
     if (resumed.has(userId)) return;
@@ -49,10 +59,10 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
   useEffect(() => {
     if (!open) return;
     // an Esc the composer used (closing its slash menu) leaves the dock open
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && closeDock();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, closeDock]);
 
   if (ownComposer(pathname)) return null;
   const title = threads.find((t) => t.id === threadId)?.title;
@@ -84,7 +94,6 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
         </div>
         <Link
           to={threadId ? links.agent({ thread: threadId }) : links.agent()}
-          onClick={() => setOpen(false)}
           className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-accent [@media(pointer:coarse)]:h-11"
         >
           Open full chat <ExternalLink className="h-3.5 w-3.5" />

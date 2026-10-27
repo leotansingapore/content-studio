@@ -1,5 +1,5 @@
 // Agent now on Leo's Home (docs/north-star/items/agent-home.md): agentRun's agentNow in words, running, a card waiting,
-// something made in the last hour, or idle, with Open into its chat and Open chat to /agent.
+// something made in the last hour, or idle, with Open into its chat and Open chat to /agent. /home#agent-now scrolls here.
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ export function nowWords(now: Now): { title: string; line?: string } {
 export default function AgentNow({ now, className }: { now: Now; className?: string }) {
   const { title, line } = nowWords(now);
   return (
-    <section aria-labelledby="agent-now-label" className={cn("rounded-2xl border border-border/70 bg-card p-4 shadow-card", className)}>
+    <section id="agent-now" aria-labelledby="agent-now-label" className={cn("scroll-mt-20 rounded-2xl border border-border/70 bg-card p-4 shadow-card", className)}>
       <div className="flex min-h-9 items-center justify-between gap-2">
         <h2 id="agent-now-label" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           AGENT NOW

@@ -75,6 +75,10 @@ export const links = {
       /** 1: the Fill open slots preview (push). */
       fill?: 1;
       section?: "needs-you";
+      /** The Open slots toggle: on is the default, left out. */
+      slots?: "on" | "off";
+      /** 1 with post: the open post's preview on its network. */
+      preview?: 1;
     } = {},
   ) =>
     `/calendar${qs({
@@ -92,9 +96,14 @@ export const links = {
       step: o.step,
       network: o.network,
       fill: o.fill,
+      preview: o.preview,
+      slots: o.slots !== "on" && o.slots,
     })}${o.section ? `#${o.section}` : ""}`,
   board: (o: { business?: string; feed?: string } = {}) => `/board${qs({ business: o.business, feed: o.feed })}`,
-  /** Leo only (phase 7a): set filters to one set of versions (replace); schedule opens the steps on a post (push), step and network replace. */
+  /**
+   * Leo only (phase 7a): set filters to one set of versions (replace); schedule opens the steps on a post (push), step and
+   * network replace; fill=1 with status=draft opens the Fill open slots preview (push).
+   */
   drafts: (
     o: {
       status?: "draft" | PostStatus;
@@ -108,6 +117,7 @@ export const links = {
       step?: ScheduleStep;
       /** With step=caption: that network's caption tab. */
       network?: string;
+      fill?: 1;
     } = {},
   ) =>
     `/drafts${qs({
@@ -121,6 +131,7 @@ export const links = {
       schedule: o.schedule,
       step: o.step,
       network: o.network,
+      fill: o.fill,
     })}`,
   grid: () => "/grid",
   reels: (
@@ -308,10 +319,10 @@ export const links = {
       item: o.item,
     })}${o.item && o.breakdown ? "#breakdown" : ""}`,
   /**
-   * Home; section scrolls to What moved, or (Leo only, phase 6) Next up or the Ask tiles. goal=change opens the goal
+   * Home; section scrolls to What moved, or (Leo only, phase 6) Next up, the Ask tiles or Agent now. goal=change opens the goal
    * editor and waiting=all the whole Next up list (Leo only, replace); tour=<step> starts the tour there (read once).
    */
-  home: (o: { section?: "what-moved" | "next-up" | "ask" | "pace"; goal?: "change"; waiting?: "all"; tour?: string } = {}) =>
+  home: (o: { section?: "what-moved" | "next-up" | "ask" | "agent-now" | "pace"; goal?: "change"; waiting?: "all"; tour?: string } = {}) =>
     `/home${qs({ goal: o.goal, waiting: o.waiting, tour: o.tour })}${o.section ? `#${o.section}` : ""}`,
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
@@ -598,8 +609,8 @@ export const links = {
   // ---- North star phase 5 (Leo only): plans and campaigns.
   /** open=<audience id>: that audience's editor (push). */
   audiences: (o: { open?: string } = {}) => `/audiences${qs({ open: o.open })}`,
-  /** goal=change opens the goal editor under the H1 (replace). */
-  campaigns: (o: { goal?: "change" } = {}) => `/campaigns${qs({ goal: o.goal })}`,
+  /** goal=change opens the goal editor under the H1, show=done unfolds the Done campaigns (both replace). */
+  campaigns: (o: { goal?: "change"; show?: "done" } = {}) => `/campaigns${qs({ goal: o.goal, show: o.show })}`,
   /** step (replace) has no fixed default (the first unfinished step), so every step stays in the link; audience is read once. */
   campaignNew: (o: { step?: "who" | "angles" | "where" | "pace" | "review"; audience?: string } = {}) =>
     `/campaigns/new${qs({ step: o.step, audience: o.audience })}`,
@@ -646,6 +657,10 @@ export const links = {
 /** Any page with the Remix sheet open over it on that source (remix=<key>, push); versions=3 (Leo only) picks 3 versions, 1 is left out. */
 export const withRemix = (path: string, key: string, o: { versions?: 1 | 3 } = {}) =>
   path + (path.includes("?") ? "&" : "?") + "remix=" + encodeURIComponent(key) + (o.versions === 3 ? "&versions=3" : "");
+
+/** Any studio page with the agent dock open on a thread, or on a new chat (Leo only; dock=<thread id> or new, push). */
+export const withDock = (path: string, thread: string | null) =>
+  path + (path.includes("?") ? "&" : "?") + "dock=" + encodeURIComponent(thread ?? "new");
 
 /** An app path as a full URL: this host in the browser, production elsewhere (a job, a test). */
 export const absolute = (path: string) =>

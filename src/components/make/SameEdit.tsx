@@ -240,8 +240,10 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
           </div>
         )}
         {earlier && (
-          <Button size="sm" variant="ghost" className={`-ml-2 ${TOUCH}`} onClick={() => update({ plan: earlier.plan.id }, { push: true })}>
-            Open the edit you read {new Date(earlier.plan.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Singapore" })}
+          <Button asChild size="sm" variant="ghost" className={`-ml-2 ${TOUCH}`}>
+            <Link to={links.makeFormat("same-edit", { plan: earlier.plan.id })}>
+              Open the edit you read {new Date(earlier.plan.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Singapore" })}
+            </Link>
           </Button>
         )}
         {!source && !plan && plans.length > 0 && (
@@ -250,10 +252,10 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
             <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
               {plans.slice(0, 5).map((e) => (
                 <li key={e.plan.id}>
-                  <button type="button" onClick={() => update({ plan: e.plan.id }, { push: true })} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60">
+                  <Link to={links.makeFormat("same-edit", { plan: e.plan.id })} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60">
                     <span className="truncate">{resolveSource(e.plan.source, userId)?.author || "A reel"}, {clock(e.plan.read.seconds)}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">{e.versions.length} made</span>
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>

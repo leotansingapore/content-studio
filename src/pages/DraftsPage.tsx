@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { useGoneItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
 import {
@@ -383,7 +383,9 @@ export default function DraftsPage() {
   // Posting times for Fill open slots and Spread them out (publish-queue): the brand kit's shared and per-network times
   const kit = useMemo(() => (leo && userId ? loadBrand(userId) : null), [leo, userId]);
   const held = useMemo(() => drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor), [drafts]);
-  const [fillOpen, setFillOpen] = useState(false);
+  // ?fill=1 (Leo, with status=draft): the Fill open slots preview, pushed so Back closes it
+  const fillOpen = params.get("fill") === "1";
+  const setFillOpen = (on: boolean) => (on ? update({ fill: "1" }, { push: true }) : update({ fill: null }));
 
   const today = localDateKey();
   // The same counts as Home's stat cards.
@@ -413,6 +415,8 @@ export default function DraftsPage() {
     const open = visible.filter((d) => draftStatus(d) === "draft" && !d.zernio?.postId);
     return open.length ? fillSlots(open, kit, held, new Date()) : null;
   }, [leo, statusFilter, visible, kit, held]);
+  // a ?fill=1 link lands on the preview, which sits under the filters on a phone
+  const fillRef = useScrollToItem<HTMLDivElement>(fillOpen && !!fill);
 
   const openManager = () => {
     setManageLabels(true);
@@ -699,7 +703,7 @@ export default function DraftsPage() {
     const leftBy = new Map<string, number>();
     for (const l of f.left) leftBy.set(l.platform, (leftBy.get(l.platform) ?? 0) + 1);
     return (
-      <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
+      <div ref={fillRef} className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
         {f.placed.length > 0 ? (
           <>
             <p className="font-semibold text-foreground">
@@ -747,6 +751,8 @@ export default function DraftsPage() {
           All posts
         </h1>
         {job && <span aria-live="polite" className="mr-auto">{numbersChip(job)}</span>}
+        {/* Leo only: My posts' first frame stays as pinned for everyone else (DraftsPage.test.ts) */}
+        {leo && <CopyLinkButton label="Copy link to this view" className="ml-auto" />}
         {!importOpen && userId && (
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <Upload className="h-3.5 w-3.5" /> Import CSV
@@ -776,7 +782,7 @@ export default function DraftsPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setStatusFilter(key)}
+            onClick={() => update({ status: key === "all" ? null : key, fill: null })}
             aria-pressed={statusFilter === key}
             className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
               statusFilter === key

@@ -5,7 +5,7 @@
 // the page's ?angle= filters the posts. Typed edits wait in this tab's sessionStorage until Save or Cancel.
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Loader2, Slash } from "lucide-react";
 import ComplianceChips from "@/components/ComplianceChips";
 import PostPreview from "@/components/PostPreview";
@@ -41,7 +41,7 @@ import { onSlideshowJob, slideshowBusy, slideshowJob, stepText as showStep } fro
 import { platformName } from "@/lib/socialConnect";
 import { asTopic } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, onTalkJob, talkBusy, talkJob } from "@/lib/talkingHeadJob";
-import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useUrlState, withParam } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import { onWallJob, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
@@ -170,7 +170,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   }, []);
   const [view, setView] = useUrlState<"one" | "grid">("view", "one", { allowed: ["one", "grid"] });
   const [postParam, setPostParam] = useUrlState("post", "");
-  const update = useUrlUpdate();
+  const [params] = useSearchParams();
   const leo = useLeoOnly();
 
   const sorted = [...c.posts].sort((a, b) => a.n - b.n);
@@ -375,13 +375,14 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <ol className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {posts.map((p) => (
             <li key={p.n}>
-              <button type="button" onClick={() => update({ view: null, post: String(p.n) })}
+              {/* a real link to the post, so a new tab and Copy link work; replace, as picking a post does */}
+              <Link to={{ search: withParam(withParam(params, "view", null), "post", String(p.n)).toString() }} replace
                 className={`flex h-full w-full flex-col gap-1.5 rounded-xl border border-border/60 bg-card p-3 text-left shadow-card hover:border-primary/40 ${p.state === "skipped" ? "opacity-50" : ""}`}>
                 <span className="line-clamp-3 min-h-[3.75rem] text-sm font-medium [overflow-wrap:anywhere]">{madeWords(p, shows.find((s) => s.id === p.made?.id)) || p.hook || (p.state === "failed" ? FAILED_POST : "Waiting to be written.")}</span>
                 <span className="text-xs text-muted-foreground">Day {dayIndex(c, p)} | {FORMAT_NAME[p.format]}</span>
                 <span className="line-clamp-1 text-xs text-muted-foreground">{c.angles.find((a) => a.id === p.angleId)?.title}</span>
                 <span className="mt-auto w-fit rounded-full border border-border/70 px-2 py-0.5 text-[11px]">{STATE_WORD[p.state]}</span>
-              </button>
+              </Link>
             </li>
           ))}
         </ol>
