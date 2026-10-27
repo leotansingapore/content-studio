@@ -135,4 +135,11 @@ describe("scrubTokens", () => {
     expect(scrubTokens(`save failed: Key (p_token)=(${own}) bad; again ${TOKEN.replace("TEST-token-for-fixtures-only", "B".repeat(35))}`)).toBe("save failed: Key (p_token)=([token]) bad; again [token]");
     expect(scrubTokens("chat -1001234567890 and bot 7000000002")).toBe("chat -1001234567890 and bot 7000000002");
   });
+
+  it("blanks a token inside a Telegram API URL too, where it follows the letters 'bot'", () => {
+    const own = "7000000002:" + "A".repeat(35);
+    expect(scrubTokens(`fetch failed for https://api.telegram.org/bot${own}/getMe`)).toBe("fetch failed for https://api.telegram.org/bot[token]/getMe");
+    // a longer run of digits is not split into a token
+    expect(scrubTokens("12345678901234567890:" + "A".repeat(35))).toBe("12345678901234567890:" + "A".repeat(35));
+  });
 });
