@@ -229,6 +229,23 @@ describe("the fit check (dogfood 21 Oct: Thomson Medical's TCM ad for ActivityTr
     expect(await fit()).toMatchObject({ status: 200, body: { verdict: "weak", reasons: ["masSafe"] } });
     expect(jev.questions[0]).toEqual(["serves", "retell", "masSafe"]);
   });
+
+  const fits = () => db.rows.get(`${UID}|remix-fit|${db.today()}`) ?? 0;
+  it("keeps one remix-fit use when Jev answers, and gives it back when Jev never does", async () => {
+    jev.answers = { serves: { noul: 0.7 }, retell: { noul: 0.8 }, masSafe: { noul: 0.9 } };
+    expect(await fit()).toMatchObject({ status: 200, body: { verdict: "good" } });
+    expect(fits()).toBe(1);
+    jev.answers = null;
+    expect(await fit()).toMatchObject({ status: 200, body: { verdict: "unknown", reasons: [] } });
+    expect(fits()).toBe(1);
+  });
+
+  it("answers unknown over the day's 100 without asking Jev", async () => {
+    db.rows.set(`${UID}|remix-fit|${db.today()}`, 100);
+    jev.answers = { serves: { noul: 0.7 }, retell: { noul: 0.8 }, masSafe: { noul: 0.9 } };
+    expect(await fit()).toMatchObject({ status: 200, body: { verdict: "unknown" } });
+    expect(jev.questions).toEqual([]);
+  });
 });
 
 // ---- phase 3's shapes: one remix-make use per make, Jev's picks inside it, a refund only when OpenAI never answered ----
