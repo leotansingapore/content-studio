@@ -268,7 +268,7 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
 /** Media's photos on this device to pick one from. */
 function MediaGrid({ userId, skip, onPick }: { userId: string; skip: string[]; onPick: (m: MediaItem) => void }) {
   const [media] = useState(() => loadMedia(userId).filter((m) => !skip.includes(m.key)));
-  if (media.length === 0) return <p className="text-xs text-muted-foreground">No photos in Media yet. Upload one instead.</p>;
+  if (media.length === 0) return <p className="text-xs text-muted-foreground">No photos in Media yet.</p>;
   return (
     <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto rounded-lg border border-border/60 p-2 sm:grid-cols-6" aria-label="Your Media">
       {media.map((m) => (

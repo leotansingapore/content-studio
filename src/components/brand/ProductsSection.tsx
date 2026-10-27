@@ -131,7 +131,7 @@ export default function ProductsSection({ userId, brand }: { userId: string; bra
             {list.items.length > 0 && <span className="ml-auto text-xs font-semibold text-muted-foreground">{list.items.length} of {MAX_PRODUCTS} {noun}</span>}
           </div>
           {list.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing here yet. Find them on your website, or add one.</p>
+            <p className="text-sm text-muted-foreground">Nothing here yet.</p>
           ) : (
             <ul className="divide-y divide-border/60">
               {list.items.map((p) => <Item key={p.id} userId={userId} p={p} onEdit={() => openEditor(p.id)} />)}

@@ -73,7 +73,7 @@ export default function WhoYouWatch({ userId, state, edit, openEdit, closeEdit }
           <InfoTip label="About Who you watch">Up to 12 per brand. Each brand keeps its own list.</InfoTip>
         </div>
         {list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nobody yet. Add a competitor above, or let us suggest some from your brand.</p>
+          <p className="text-sm text-muted-foreground">Nobody yet.</p>
         ) : (
           <ul className="divide-y divide-border/60 rounded-2xl border border-border/60">
             {list.map((c) => (
