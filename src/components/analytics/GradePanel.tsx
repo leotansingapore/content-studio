@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import RemixButton from "@/components/remix/RemixButton";
@@ -119,7 +120,8 @@ export default function GradePanel({
     <div ref={ref} id={GRADE_PANEL_ID} role="region" aria-label="Grade" className="space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
       {titled && <p className="truncate text-sm font-medium text-foreground">{post.hook || post.draft.slice(0, 60)}</p>}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="pt-2 text-sm font-semibold text-foreground">{graded ? BAND_LABEL[graded.band] : "Not graded"}</h3>
+        <h3 className="mr-auto pt-2 text-sm font-semibold text-foreground">{graded ? BAND_LABEL[graded.band] : "Not graded"}</h3>
+        <CopyLinkButton path={links.analytics({ grade: post.id })} label="Copy link to this grade" />
         <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close the grade" className="h-9 w-9 shrink-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
           <X className="h-4 w-4" />
         </Button>
