@@ -297,9 +297,11 @@ Deno.serve(async (req) => {
       result = { ...result, best, dropped };
     }
     if (result.as === "ads") {
-      const verdict = adsVerdict(await askJev(adsState(make.brand), adsQuestions(result.versions, make.brand.speaker), { who: "remix ads" }), result.versions.length);
-      // the dropped headlines too, so a prompt change can be read against what Jev turned away
-      console.log("remix ads", `best ${verdict.best}`, `dropped ${verdict.dropped.join(",") || "-"}`, `checked ${verdict.checked}`, verdict.dropped.map((i) => JSON.stringify(result.versions[i]?.words)).join(" | "));
+      const answers = await askJev(adsState(make.brand), adsQuestions(result.versions, make.brand.speaker), { who: "remix ads" });
+      const verdict = adsVerdict(answers, result.versions.length);
+      // every version's invented score and each dropped version whole, caption too, so FLAG_AT can be read against what Jev turned away
+      const invented = result.versions.map((_, i) => noulOf(answers, `invented_${i}`)?.toFixed(2) ?? "-").join(",");
+      console.log("remix ads", `best ${verdict.best}`, `dropped ${verdict.dropped.join(",") || "-"}`, `invented ${invented}`, `checked ${verdict.checked}`, verdict.dropped.map((i) => JSON.stringify(result.versions[i])).join(" | "));
       // the model answered, so the use stays
       if (verdict.dropped.length === result.versions.length) return fail("refused", "None of these were safe to run. Try another topic.", 422);
       result = { ...result, ...verdict };
