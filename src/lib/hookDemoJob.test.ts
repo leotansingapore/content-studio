@@ -341,6 +341,18 @@ describe("someone says it", () => {
     expect(called("ai-video", "template")).toHaveLength(1);
   });
 
+  it("a second press while the hooks are written or the clip is made writes once and orders one clip", async () => {
+    const write = { ...SPOKEN, hook: "" };
+    const presses = [makeHookDemo(UID, write), makeHookDemo(UID, write), makeHookDemo(UID, SPOKEN), writeHooks(UID, { ...SPOKEN, demo: DEMO })];
+    await vi.runAllTimersAsync();
+    await Promise.all(presses);
+    await vi.runAllTimersAsync();
+    expect(make).toHaveBeenCalledTimes(1);
+    expect(called("ai-video", "template")).toHaveLength(1);
+    expect(media.start).toHaveBeenCalledTimes(1);
+    expect(hookDemoJob()?.state).toBe("done");
+  });
+
   it("orders nothing when another video starts while the hooks are written", async () => {
     make.mockImplementationOnce(async () => {
       store.set("cs-ai-video-pending", JSON.stringify({ name: "Laksa", tokens: ["old"], seconds: [4], kind: "template" }));
