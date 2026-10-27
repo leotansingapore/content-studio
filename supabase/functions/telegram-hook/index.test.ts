@@ -1,0 +1,56 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+// The handler's gate: Telegram's secret or the cron's before anything is read, written or sent; the token never in
+// an answer. What an update or a tick does is logic.test.ts's and send.test.ts's.
+const h = vi.hoisted(() => ({
+  clients: 0,
+  handler: null as null | ((r: Request) => Promise<Response>),
+}));
+vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => (h.clients++, {}) }));
+
+const TOKEN = "7000000001:TEST-token-for-fixtures-only";
+const env: Record<string, string | undefined> = {};
+const telegram: string[] = [];
+
+beforeAll(async () => {
+  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (h.handler = fn), env: { get: (k: string) => env[k] } });
+  vi.stubGlobal("fetch", async (u: string) => (telegram.push(String(u)), new Response("{}")));
+  await import("./index.ts");
+}, 30_000);
+
+beforeEach(() => {
+  h.clients = 0;
+  telegram.length = 0;
+  Object.assign(env, { TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_BOT_USERNAME: "cs_test_bot", TELEGRAM_WEBHOOK_SECRET: "hook-secret-for-tests", TELEGRAM_CRON_SECRET: "cron-secret-for-tests" });
+});
+
+const call = (headers: Record<string, string>, body: unknown = { update_id: 1 }) =>
+  h.handler!(new Request("http://x/telegram-hook", { method: "POST", headers, body: JSON.stringify(body) }));
+
+describe("the Telegram hook's gate", () => {
+  it("answers 401 to a request without either secret, or with a wrong one, and reads nothing", async () => {
+    for (const headers of [{}, { "x-telegram-bot-api-secret-token": "wrong" }, { "x-telegram-cron-secret": "hook-secret-for-tests" }, { authorization: `Bearer ${TOKEN}` }]) {
+      const res = await call(headers);
+      expect(res.status, JSON.stringify(headers)).toBe(401);
+      expect(await res.text()).not.toContain(TOKEN);
+    }
+    expect(h.clients).toBe(0);
+    expect(telegram).toEqual([]);
+  });
+
+  it("answers 401 to everything while the secrets aren't set", async () => {
+    env.TELEGRAM_WEBHOOK_SECRET = undefined;
+    env.TELEGRAM_CRON_SECRET = "";
+    for (const headers of [{ "x-telegram-bot-api-secret-token": "" }, { "x-telegram-cron-secret": "" }]) expect((await call(headers)).status).toBe(401);
+    expect(h.clients).toBe(0);
+  });
+
+  it("does nothing without the bot token, even with the right secret", async () => {
+    env.TELEGRAM_BOT_TOKEN = undefined;
+    const res = await call({ "x-telegram-bot-api-secret-token": "hook-secret-for-tests" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ enabled: false });
+    expect(h.clients).toBe(0);
+    expect(telegram).toEqual([]);
+  });
+});

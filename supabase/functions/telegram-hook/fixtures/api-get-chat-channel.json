@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "result": {
+    "id": -1009876543210,
+    "title": "Test channel",
+    "username": "cs_test_channel",
+    "type": "channel",
+    "accent_color_id": 2,
+    "max_reaction_count": 11,
+    "accepted_gift_types": {
+      "unlimited_gifts": false,
+      "limited_gifts": false,
+      "unique_gifts": false,
+      "premium_subscription": false
+    }
+  }
+}

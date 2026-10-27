@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "result": {
+    "user": {
+      "id": 7000000001,
+      "is_bot": true,
+      "first_name": "Content Studio",
+      "username": "cs_test_bot"
+    },
+    "status": "member"
+  }
+}

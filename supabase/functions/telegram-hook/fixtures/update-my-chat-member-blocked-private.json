@@ -1,0 +1,38 @@
+{
+  "update_id": 900013,
+  "my_chat_member": {
+    "chat": {
+      "id": 111000111,
+      "first_name": "Leo",
+      "type": "private",
+      "username": "leo_test"
+    },
+    "from": {
+      "id": 111000111,
+      "is_bot": false,
+      "first_name": "Leo",
+      "username": "leo_test",
+      "language_code": "en"
+    },
+    "date": 1793500016,
+    "old_chat_member": {
+      "user": {
+        "id": 7000000001,
+        "is_bot": true,
+        "first_name": "Content Studio",
+        "username": "cs_test_bot"
+      },
+      "status": "member"
+    },
+    "new_chat_member": {
+      "user": {
+        "id": 7000000001,
+        "is_bot": true,
+        "first_name": "Content Studio",
+        "username": "cs_test_bot"
+      },
+      "status": "kicked",
+      "until_date": 0
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "result": {
+    "message_id": 4002,
+    "from": {
+      "id": 7000000001,
+      "is_bot": true,
+      "first_name": "Content Studio",
+      "username": "cs_test_bot"
+    },
+    "chat": {
+      "id": -1001234567890,
+      "title": "Test group",
+      "type": "supergroup",
+      "is_forum": true
+    },
+    "date": 1793500000,
+    "photo": [
+      {
+        "file_id": "AgAC",
+        "file_unique_id": "AQAD",
+        "width": 1080,
+        "height": 1350,
+        "file_size": 120000
+      }
+    ]
+  }
+}
