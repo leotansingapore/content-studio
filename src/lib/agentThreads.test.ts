@@ -6,6 +6,7 @@ import {
   MAX_THREADS,
   THREADS_CHANGED,
   appendMsg,
+  archiveThread,
   deleteThread,
   loadThreads,
   newMsg,
@@ -109,6 +110,17 @@ describe("titles", () => {
     expect(saved(renameThread(UID, a.id, "CPF LIFE carousel")).title).toBe("CPF LIFE carousel");
     expect(loadThreads(UID).map((t) => t.title)).toEqual(["second", "CPF LIFE carousel"]);
     expect(renameThread(UID, a.id, "  ")).toEqual({ ok: false, error: "Type a name first." });
+  });
+
+  it("archives without moving the chat; an agent reply keeps it archived, a message from you brings it back", () => {
+    const a = start("first", 0);
+    start("second", 1);
+    expect(saved(archiveThread(UID, a.id, true, at(5))).archived).toBe(at(5).toISOString());
+    expect(loadThreads(UID).map((t) => [t.title, !!t.archived])).toEqual([["second", false], ["first", true]]);
+    expect(saved(appendMsg(UID, a.id, newMsg("agent", { text: "Made it." }), at(6))).archived).toBe(at(5).toISOString());
+    expect(saved(appendMsg(UID, a.id, newMsg("user", { text: "Again" }), at(7))).archived).toBeUndefined();
+    archiveThread(UID, a.id, true, at(8));
+    expect("archived" in saved(archiveThread(UID, a.id, false))).toBe(false);
   });
 });
 

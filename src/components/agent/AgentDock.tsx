@@ -30,7 +30,7 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
   // /home and /agent have their own composer: a dock link there is ignored
   const open = !!dock && !ownComposer(pathname);
   const threadId = dock && dock !== "new" ? dock : null;
-  const setOpen = (on: boolean) => (on ? openDock(threads[0]?.id ?? "new") : closeDock());
+  const setOpen = (on: boolean) => (on ? openDock(threads.find((t) => !t.archived)?.id ?? "new") : closeDock());
   const setThreadId = (id: string | null) => update({ dock: id ?? "new" });
   // a chat deleted since the link was made; an empty list may still be syncing, so it decides nothing
   useGoneItem("dock", threadId && threads.length ? threads.some((t) => t.id === threadId) : undefined, "chat");

@@ -1,13 +1,16 @@
 // The agent's chats (docs/north-star/items/agent-chat.md, "Thread list"): New chat, then Today, Yesterday and
 // Earlier. Each row has the title, the time (a pulsing dot while its turn or a job runs) and the last message's first
-// 60 characters; its "..." menu renames in place or deletes after asking. Deleting keeps what the chat made.
+// 60 characters; its "..." menu renames in place, archives (Fastlane's Archive: the chat moves under Archived at the
+// foot, with Undo) or deletes after asking. Deleting keeps what the chat made.
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { turnOf } from "@/lib/agentRun";
-import { deleteThread, renameThread, type AgentMsg, type AgentThread } from "@/lib/agentThreads";
+import { archiveThread, deleteThread, renameThread, type AgentMsg, type AgentThread } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
 
@@ -61,10 +64,33 @@ export default function ThreadList({
   const [renaming, setRenaming] = useState<{ id: string; text: string; error?: string } | null>(null);
   const [asking, setAsking] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const { toast } = useToast();
   const now = new Date();
-  const groups = (["Today", "Yesterday", "Earlier"] as const)
-    .map((g) => ({ g, items: threads.filter((t) => whenGroup(t.updatedAt, now) === g) }))
-    .filter((x) => x.items.length);
+  const archived = threads.filter((t) => t.archived);
+  // the open chat stays in sight when it is an archived one
+  const archivedOpen = showArchived || archived.some((t) => t.id === current);
+  const groups = [
+    ...(["Today", "Yesterday", "Earlier"] as const)
+      .map((g) => ({ g, items: threads.filter((t) => !t.archived && whenGroup(t.updatedAt, now) === g) }))
+      .filter((x) => x.items.length),
+    ...(archived.length ? [{ g: "Archived" as const, items: archivedOpen ? archived : [] }] : []),
+  ];
+
+  const archive = (t: AgentThread, on: boolean) => {
+    setMenu(null);
+    const r = archiveThread(userId, t.id, on);
+    if (r.ok === false) return setFailed(r.error);
+    setFailed(null);
+    toast({
+      title: on ? "Archived. It's under Archived at the foot of your chats." : "Back in your chats.",
+      action: (
+        <ToastAction altText="Undo" onClick={() => archiveThread(userId, t.id, !on)}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
 
   const saveName = () => {
     if (!renaming) return;
@@ -85,8 +111,15 @@ export default function ThreadList({
       {failed && <p className="mt-2 px-2 text-xs text-destructive" role="alert">{failed}</p>}
       <div className="mt-1 min-h-0 flex-1 overflow-y-auto">
         {groups.map(({ g, items }) => (
-          <section key={g} aria-label={g}>
-            <h2 className={HEAD}>{g}</h2>
+          <section key={g} aria-label={g} className={cn(g === "Archived" && "mt-2 border-t border-border/60")}>
+            {g === "Archived" ? (
+              <button type="button" onClick={() => setShowArchived(!archivedOpen)} aria-expanded={archivedOpen} className={cn(HEAD, "flex min-h-9 w-full items-center gap-1 text-left hover:text-foreground [@media(pointer:coarse)]:min-h-11")}>
+                Archived <span className="tabular-nums">{archived.length}</span>
+                <ChevronDown className={cn("ml-auto h-3.5 w-3.5 transition-transform", archivedOpen && "rotate-180")} aria-hidden />
+              </button>
+            ) : (
+              <h2 className={HEAD}>{g}</h2>
+            )}
             <ul className="mt-1 space-y-0.5">
               {items.map((t) => (
                 <li key={t.id} className="group relative">
@@ -146,6 +179,14 @@ export default function ThreadList({
                         className="flex min-h-9 w-full items-center rounded-md px-2 text-left text-sm hover:bg-accent [@media(pointer:coarse)]:min-h-11"
                       >
                         Rename
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => archive(t, !t.archived)}
+                        className="flex min-h-9 w-full items-center rounded-md px-2 text-left text-sm hover:bg-accent [@media(pointer:coarse)]:min-h-11"
+                      >
+                        {t.archived ? "Unarchive" : "Archive"}
                       </button>
                       <button
                         type="button"

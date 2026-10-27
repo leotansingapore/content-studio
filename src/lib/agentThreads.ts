@@ -49,6 +49,8 @@ export interface AgentThread {
   createdAt: string;
   updatedAt: string;
   messages: AgentMsg[];
+  /** When it was archived: out of the chat list and under Archived, kept, until Unarchive or a new message from you. */
+  archived?: string;
 }
 
 /** A new message with its id ("m" and base 36) and time. */
@@ -139,7 +141,7 @@ export const seedThread = (userId: string, title: string, agentText: string, go:
   newThread(userId, [newMsg("agent", { text: agentText, ...(go.length ? { go } : {}), ...(quotes ? { quotes: true as const } : {}) }, now)], now, title);
 
 export const appendMsg = (userId: string, threadId: string, msg: AgentMsg, now = new Date()): Saved<AgentThread> =>
-  edit(userId, threadId, (t) => ({ ...t, messages: [...t.messages, clip(msg)] }), now);
+  edit(userId, threadId, ({ archived, ...t }) => ({ ...t, ...(archived && msg.role === "agent" ? { archived } : {}), messages: [...t.messages, clip(msg)] }), now);
 
 /** Changes one message; refused when it is gone (trimmed, or the chat deleted). */
 export function patchMsg(userId: string, threadId: string, msgId: string, patch: Partial<Omit<AgentMsg, "id">>, now = new Date()): Saved<AgentThread> {
@@ -151,6 +153,10 @@ export function renameThread(userId: string, threadId: string, title: string): S
   if (!title.trim()) return { ok: false, error: "Type a name first." };
   return edit(userId, threadId, (t) => ({ ...t, title: titleOf(title) }), null);
 }
+
+/** Archives the chat or brings it back, keeping its place in the list. */
+export const archiveThread = (userId: string, threadId: string, on: boolean, now = new Date()): Saved<AgentThread> =>
+  edit(userId, threadId, ({ archived: _, ...t }) => (on ? { ...t, archived: now.toISOString() } : t), null);
 
 /** Rewrites the list without the chat (no tombstone); returns it for Undo, or null when it wasn't there or couldn't save. */
 export function deleteThread(userId: string, threadId: string): AgentThread | null {
