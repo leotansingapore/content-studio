@@ -2,7 +2,7 @@
 // and what happens to a post Telegram refuses. The claim itself (one per chat, skip locked) is 026_telegram.test.sql's.
 import { describe, expect, it } from "vitest";
 import { TelegramError, type Bot } from "../_shared/telegram";
-import { MAX_ATTEMPTS, PARTIAL, STALE, STUCK, runTick, type QueuedPost, type SendChat, type TickDeps } from "./send";
+import { MAX_ATTEMPTS, NOT_RECORDED, PARTIAL, STALE, STUCK, runTick, type QueuedPost, type SendChat, type TickDeps } from "./send";
 import sendOk from "./fixtures/api-send-message.json";
 import photoOk from "./fixtures/api-send-photo.json";
 import albumOk from "./fixtures/api-send-media-group.json";
@@ -23,7 +23,9 @@ const post = (o: Partial<QueuedPost> = {}): QueuedPost => ({ id: "post-1", chat_
 const pics = (n: number) => Array.from({ length: n }, (_, i) => `u/me/0000000${i}-0000-4000-8000-000000000000.jpg`);
 
 type Handler = (params: Record<string, unknown>) => unknown;
-function harness(o: { posts?: QueuedPost[]; chats?: SendChat[]; bot?: Record<string, Handler>; now?: number; urls?: () => Promise<string[]> } = {}) {
+function harness(o: { posts?: QueuedPost[]; chats?: SendChat[]; bot?: Record<string, Handler>; now?: number; urls?: () => Promise<string[]>; postedFails?: number; failedFails?: number } = {}) {
+  let postedFails = o.postedFails ?? 0;
+  let failedFails = o.failedFails ?? 0;
   const sent: { method: string; params: Record<string, unknown> }[] = [];
   const log: string[] = [];
   const bot: Bot = {
@@ -45,9 +47,15 @@ function harness(o: { posts?: QueuedPost[]; chats?: SendChat[]; bot?: Record<str
     claim: async (limit, now) => (log.push(`claim:${limit}@${now}`), claimed++ ? [] : (o.posts ?? [post()])),
     chats: async (ids) => (o.chats ?? [CHAT]).filter((c) => ids.includes(c.id)),
     signedUrls: o.urls ?? (async (paths) => paths.map((p) => `https://hub.supabase.co/storage/v1/object/sign/cs-telegram-media/${p}?token=t`)),
-    posted: async (id, ids, link) => void log.push(`posted:${id}:${ids.join(",")}:${link}`),
+    posted: async (id, ids, link) => {
+      if (postedFails-- > 0) throw new Error("posted write failed");
+      log.push(`posted:${id}:${ids.join(",")}:${link}`);
+    },
     retry: async (id, at, reason) => void log.push(`retry:${id}:${at}:${reason}`),
-    failed: async (id, reason) => void log.push(`failed:${id}:${reason}`),
+    failed: async (id, reason) => {
+      if (failedFails-- > 0) throw new Error("failed write failed");
+      log.push(`failed:${id}:${reason}`);
+    },
     migrate: async (from, to) => void log.push(`migrate:${from}>${to}`),
     cleanup: async (before) => (log.push(`cleanup<${before}`), 0),
   };
@@ -179,6 +187,29 @@ describe("when Telegram refuses", () => {
     expect(await runTick(d)).toMatchObject({ retried: 1 });
     expect(sent).toEqual([]);
     expect(log.some((l) => l.startsWith("retry:post-1:"))).toBe(true);
+  });
+
+  it("never sends again when Telegram took the post but the posted write failed: it is marked failed instead", async () => {
+    const two = [post(), post({ id: "post-2", chat_row: "row-2", text: "Second" })];
+    const chats = [CHAT, { ...CHAT, id: "row-2", chat_id: -1009876543210, username: "cs_test_channel", topic_id: null }];
+    const { d, log, sent } = harness({ posts: two, chats, postedFails: 1 });
+    expect(await runTick(d)).toMatchObject({ sent: 1, failed: 1, retried: 0 });
+    expect(sent.map((s) => s.params.chat_id)).toEqual([-1001234567890, -1009876543210]);
+    expect(log).toContain(`failed:post-1:${NOT_RECORDED}`);
+    expect(log.some((l) => l.startsWith("retry:"))).toBe(false);
+    expect(NOT_RECORDED).toBe("Sent, but not recorded. Check the group.");
+  });
+
+  it("leaves a sent post sending when neither the posted nor the failed write goes through, for the stale check to fail it", async () => {
+    const two = [post(), post({ id: "post-2", chat_row: "row-2", text: "Second" })];
+    const chats = [CHAT, { ...CHAT, id: "row-2", chat_id: -1009876543210, username: "cs_test_channel", topic_id: null }];
+    const { d, log, sent } = harness({ posts: two, chats, postedFails: 1, failedFails: 1 });
+    const out = await runTick(d);
+    expect(out).toMatchObject({ sent: 1, retried: 0 });
+    // sent once each; post-1 has no write at all, so it stays sending
+    expect(sent).toHaveLength(2);
+    expect(log.filter((l) => l.includes("post-1"))).toEqual([]);
+    expect(log).toContain("posted:post-2:4001:https://t.me/cs_test_channel/4001");
   });
 
   it("fails a post whose chat is gone without calling Telegram", async () => {

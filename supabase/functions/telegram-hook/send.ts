@@ -45,6 +45,7 @@ export const PER_TICK = 20;
 export const STALE = "Check the group before you retry.";
 export const STUCK = "Telegram didn't answer. Check the group before you retry.";
 export const PARTIAL = "Part of it went out. Check the group before you retry.";
+export const NOT_RECORDED = "Sent, but not recorded. Check the group.";
 const BUSY_RETRY = "Telegram is busy. Trying again shortly.";
 const BUSY_FAIL = "Telegram is busy. Try again later.";
 
@@ -139,21 +140,34 @@ export async function runTick(d: TickDeps): Promise<TickReport> {
       r.failed++;
       continue;
     }
+    // only the file links and the send itself may lead to another try
+    let ids: number[];
     try {
       const urls = p.media.length ? await d.signedUrls(p.media) : [];
-      const ids = await sendPost(d.bot, p, chat, urls);
-      await d.posted(p.id, ids, messageLink(chat, ids[0]), now);
-      r.sent++;
+      ids = await sendPost(d.bot, p, chat, urls);
     } catch (e) {
       const o = e instanceof SendFailure ? outcomeOf(e.reason, e.sent, p.attempts, d.now) : outcomeOf(e, [], p.attempts, d.now);
-      if ("fail" in o) {
-        await d.failed(p.id, o.fail, now);
-        r.failed++;
-      } else {
-        if (o.migrateTo) await d.migrate(chat.chat_id, o.migrateTo);
-        await d.retry(p.id, iso(o.retryAt), o.reason);
-        r.retried++;
+      try {
+        if ("fail" in o) {
+          await d.failed(p.id, o.fail, now);
+          r.failed++;
+        } else {
+          if (o.migrateTo) await d.migrate(chat.chat_id, o.migrateTo);
+          await d.retry(p.id, iso(o.retryAt), o.reason);
+          r.retried++;
+        }
+      } catch {
+        // not written: the post stays sending and the stale check fails it, never sent again by itself
       }
+      continue;
+    }
+    // Telegram has it now: whatever happens to the writes below, it is never sent again
+    try {
+      await d.posted(p.id, ids, messageLink(chat, ids[0]), now);
+      r.sent++;
+    } catch {
+      r.failed++;
+      await d.failed(p.id, NOT_RECORDED, now).catch(() => undefined);
     }
   }
   r.cleaned = await d.cleanup(iso(d.now - 7 * 86_400_000));
