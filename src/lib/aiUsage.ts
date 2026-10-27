@@ -30,11 +30,12 @@ export async function readUsage(): Promise<Usage | null> {
   return { day, used: Object.fromEntries(data.map((r: { feature: string; count: number }) => [r.feature, r.count])) };
 }
 
-// Caps that count something other than an AI run (fetches, scrapes, Zernio reads and writes, comments): Pace's
+// Caps that count something other than an AI run (fetches, scrapes, Zernio and Telegram reads and writes, comments): Pace's
 // "AI runs, last 7 days" cell leaves them out, or social-read's own pulls would top it (learn-pace).
 export const NOT_AI: UsageFeature[] = [
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
   "feeds", "stock-search", "mentions", "yt-captions", "track-accounts", "reel-style", "reel-video",
+  "telegram-connect", "telegram-schedule", "telegram-presign",
 ];
 
 /**

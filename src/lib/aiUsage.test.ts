@@ -58,6 +58,17 @@ describe("AI runs in the last 7 days", () => {
     expect(await readUsageWeek(now)).toEqual({ total: 11, most: { feature: "reel-clone", n: 6 } });
   });
 
+  it("leaves out Telegram's connect codes, queued posts and upload links, as it does Zernio's", async () => {
+    db.rows = [
+      { feature: "carousel", day: "2026-10-24", count: 3 },
+      { feature: "telegram-schedule", day: "2026-10-24", count: 12 },
+      { feature: "telegram-presign", day: "2026-10-24", count: 12 },
+      { feature: "telegram-connect", day: "2026-10-23", count: 2 },
+      { feature: "social-schedule", day: "2026-10-24", count: 12 },
+    ];
+    expect(await readUsageWeek(now)).toEqual({ total: 3, most: { feature: "carousel", n: 3 } });
+  });
+
   it("is zero with nothing, and null when the rows can't be read", async () => {
     expect(await readUsageWeek(now)).toEqual({ total: 0, most: null });
     db.error = { message: "down" };
