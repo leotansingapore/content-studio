@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { useGoneItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
 import {
@@ -414,6 +414,8 @@ export default function DraftsPage() {
     const open = visible.filter((d) => draftStatus(d) === "draft" && !d.zernio?.postId);
     return open.length ? fillSlots(open, kit, held, new Date()) : null;
   }, [leo, statusFilter, visible, kit, held]);
+  // a ?fill=1 link lands on the preview, which sits under the filters on a phone
+  const fillRef = useScrollToItem<HTMLDivElement>(fillOpen && !!fill);
 
   const openManager = () => {
     setManageLabels(true);
@@ -700,7 +702,7 @@ export default function DraftsPage() {
     const leftBy = new Map<string, number>();
     for (const l of f.left) leftBy.set(l.platform, (leftBy.get(l.platform) ?? 0) + 1);
     return (
-      <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
+      <div ref={fillRef} className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
         {f.placed.length > 0 ? (
           <>
             <p className="font-semibold text-foreground">
