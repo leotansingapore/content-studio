@@ -220,6 +220,47 @@ A refusal is never proved by calling the live hook or `telegram` (`never-test-li
 - The bot's display name and @ name are Leo's (BotFather); "Content Studio" is the default the copy assumes. Whether the name he wants is free is unverified.
 - Whether Telegram lists a chat in the `request_chat` picker when the person may add members but not admins is unverified; the test group settles it, and the plain links in the bot's reply cover a miss.
 
+## Own bot per brand
+
+Leo, 27 Oct: in a group every post shows the bot's name, so a brand may want its own bot. Decision: the shared Content Studio bot stays the default, and each brand can switch to its own.
+
+### Flow
+
+1. On /accounts#telegram, under the brand's chats, "Use your brand's own bot" opens a short how-to: in Telegram, open @BotFather and send /newbot; send /setdomain, pick the bot and send consultant-content-studio.vercel.app (the Confirm button needs it); paste the token BotFather gives.
+2. "Use this bot" sends the token to `telegram` (action bot-add). The page reads "Checking your bot..." and then "Posting as @<username>".
+3. The server checks the token with getMe, refuses one that isn't a bot, the shared bot, or a bot already set up in Content Studio (any account), stores the token in Vault, and calls setWebhook for that bot with its own secret_token and the hook URL `.../functions/v1/telegram-hook?bot=<bot id>`. It answers with the bot's username and name only. If setWebhook fails, nothing is kept.
+4. From then on Connect Telegram for that brand opens `t.me/<own bot>?start=<code>`, the Confirm and the pickers come from the own bot, and chats tied that way post through it.
+5. "Switch back to the shared bot" (asks once) deletes that bot's webhook, marks the chats tied through it disconnected, cancels their waiting posts, and deletes the row and its Vault secret. Chats tied through the shared bot are untouched.
+
+### Data
+
+`supabase/hub/027_telegram_bots.sql`:
+
+- `cs_telegram_bots`: id, owner, brand profile, Telegram bot id (unique: a bot belongs to one brand of one account), username, display name, the Vault secret id of its token, the sha256 of its webhook secret, status (active, revoked), created and updated. One own bot per brand.
+- Clients may select the non-secret columns of their own rows only (a column-level grant; the token's Vault id and the webhook hash are never readable).
+- Service-role-only functions: save a bot (creates the Vault secret and the row together) and read a bot's token for a send or a webhook reply. Deleting the row deletes its Vault secret (trigger).
+- `cs_telegram_chats.bot_id`: the bot a code was issued for and a chat was tied through; null is the shared bot.
+
+### Security
+
+- The token is pasted once, sent over the signed-in session, and from then on only exists in Vault. It is never in a response, a log line, an error or one of our URLs (Telegram's own API puts it in its request path, which is never logged).
+- A webhook for an own bot is accepted only with that bot's secret_token, compared timing-safe against its stored hash; an unknown bot id or a wrong secret is a 401.
+- Every hook query is scoped to the bot the update came through: a code issued for the shared bot can't be started on an own bot, and a bot removed from a chat marks only the rows tied through that bot.
+- The Confirm login is checked against the token of the bot the code was issued for.
+
+### Done when
+
+- [ ] 027 has had its independent review, its live names are checked free, and it is applied.
+- [ ] On Leo's sign-in, a test bot from BotFather (with /setdomain) is added to a test brand: "Posting as @<bot>", and getWebhookInfo shows the hook URL with its bot id.
+- [ ] Connect Telegram for that brand goes through the test bot, and a post lands in the test group under the test bot's name.
+- [ ] "Switch back to the shared bot" disconnects that group, cancels its waiting posts, deletes the webhook and the Vault secret; the next connect uses the shared bot.
+- [ ] A bad token, the shared bot's token, and a token already used by another account are refused with no row kept.
+- [ ] Other sign-ins see nothing new.
+
+### Leo's answer (27 Oct)
+
+- Shared bot + own bot option.
+
 ## Related
 
 publish-accounts, publish-schedule, publish-per-network, publish-calendar, trust-team-push, trust-approved-library, find-alerts-digest, ux-trust

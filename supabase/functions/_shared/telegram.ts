@@ -183,3 +183,7 @@ export function pickerMessage(botUsername: string) {
     },
   };
 }
+
+/** Any bot token ("<bot id>:<secret>") in a log line becomes [token]: a database error can echo what it was given. */
+// (?<![0-9]) rather than \b: in ".../bot<token>/getMe" the token follows a letter, with no word boundary before it
+export const scrubTokens = (s: string): string => s.replace(/(?<![0-9])[0-9]{5,15}:[A-Za-z0-9_-]{30,64}/g, "[token]");

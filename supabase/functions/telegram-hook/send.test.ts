@@ -18,7 +18,7 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const asError = (f: { error_code: number; description: string; parameters?: { retry_after?: number; migrate_to_chat_id?: number } }) =>
   new TelegramError(f.error_code, f.description, f.parameters?.retry_after, f.parameters?.migrate_to_chat_id);
 
-const CHAT: SendChat = { id: "row-1", chat_id: -1001234567890, username: null, topic_id: 326 };
+const CHAT: SendChat = { id: "row-1", chat_id: -1001234567890, username: null, topic_id: 326, bot_id: null };
 const post = (o: Partial<QueuedPost> = {}): QueuedPost => ({ id: "post-1", chat_row: "row-1", text: "Hello group", media: [], attempts: 1, ...o });
 const pics = (n: number) => Array.from({ length: n }, (_, i) => `u/me/0000000${i}-0000-4000-8000-000000000000.jpg`);
 
@@ -33,7 +33,14 @@ function harness(o: {
   failedFails?: number;
   finished?: { id: string; media: string[] }[];
   live?: string[];
+  /** own bots by Telegram id; a missing one is gone */
+  own?: number[];
+  /** what every own bot's call throws */
+  ownFails?: TelegramError;
 } = {}) {
+  const ownSent: { botId: number; method: string; params: Record<string, unknown> }[] = [];
+  const asked: (number | null)[] = [];
+  const revoked: number[] = [];
   let postedFails = o.postedFails ?? 0;
   let failedFails = o.failedFails ?? 0;
   const sent: { method: string; params: Record<string, unknown> }[] = [];
@@ -51,7 +58,19 @@ function harness(o: {
   };
   let claimed = 0;
   const d: TickDeps = {
-    bot,
+    botFor: async (botId) => {
+      asked.push(botId);
+      if (botId === null) return bot;
+      if (!(o.own ?? []).includes(botId)) return null;
+      return {
+        id: botId,
+        async call<T>(method: string, params: Record<string, unknown>): Promise<T> {
+          ownSent.push({ botId, method, params });
+          if (o.ownFails) throw o.ownFails;
+          return sendOk.result as T;
+        },
+      };
+    },
     now: o.now ?? NOW,
     failStale: async (before, reason) => (log.push(`stale<${before}:${reason}`), 0),
     claim: async (limit, now) => (log.push(`claim:${limit}@${now}`), claimed++ ? [] : (o.posts ?? [post()])),
@@ -67,12 +86,13 @@ function harness(o: {
       log.push(`failed:${id}:${reason}`);
     },
     migrate: async (from, to) => void log.push(`migrate:${from}>${to}`),
+    revokeBot: async (botId) => void revoked.push(botId),
     finishedFiles: async (before) => (log.push(`finished<${before}`), o.finished ?? []),
     liveFiles: async (paths) => (log.push(`live?${paths.join(",")}`), (o.live ?? []).filter((x) => paths.includes(x))),
     removeFiles: async (paths) => void log.push(`remove:${paths.join(",")}`),
     clearFiles: async (ids) => void log.push(`clear:${ids.join(",")}`),
   };
-  return { d, sent, log };
+  return { d, sent, log, ownSent, asked, revoked };
 }
 
 describe("the hours", () => {
@@ -256,6 +276,44 @@ describe("when Telegram refuses", () => {
     expect(sent).toHaveLength(2);
     expect(log.filter((l) => l.includes("post-1"))).toEqual([]);
     expect(log).toContain("posted:post-2:4001:https://t.me/cs_test_channel/4001");
+  });
+
+  it("sends each post through the bot its chat was tied through, asking for each bot once a tick", async () => {
+    const chats = [{ ...CHAT, bot_id: 7000000002 }, { ...CHAT, id: "row-2", chat_id: -1009876543210, username: "cs_test_channel", topic_id: null, bot_id: null }, { ...CHAT, id: "row-3", chat_id: -1005, bot_id: 7000000002 }];
+    const posts = [post(), post({ id: "post-2", chat_row: "row-2" }), post({ id: "post-3", chat_row: "row-3" })];
+    const { d, sent, ownSent, asked, log } = harness({ posts, chats, own: [7000000002] });
+    expect(await runTick(d)).toMatchObject({ sent: 3 });
+    expect(ownSent.map((s) => [s.botId, s.params.chat_id])).toEqual([[7000000002, -1001234567890], [7000000002, -1005]]);
+    expect(sent.map((s) => s.params.chat_id)).toEqual([-1009876543210]);
+    expect(asked).toEqual([7000000002, null]);
+    expect(log.filter((l) => l.startsWith("posted:"))).toHaveLength(3);
+  });
+
+  it("fails a post whose own bot has no working token without calling Telegram, saying so", async () => {
+    const { d, sent, ownSent, log } = harness({ chats: [{ ...CHAT, bot_id: 7000000002 }] });
+    expect(await runTick(d)).toMatchObject({ failed: 1, sent: 0 });
+    expect([sent, ownSent]).toEqual([[], []]);
+    expect(log).toContain("failed:post-1:The bot's token no longer works. Paste a new token on Social accounts.");
+  });
+
+  it("marks an own bot revoked when Telegram answers 401, and sends nothing more through it this tick", async () => {
+    const chats = [{ ...CHAT, bot_id: 7000000002 }, { ...CHAT, id: "row-3", chat_id: -1005, bot_id: 7000000002 }];
+    const { d, ownSent, revoked, log } = harness({ posts: [post(), post({ id: "post-3", chat_row: "row-3" })], chats, own: [7000000002], ownFails: new TelegramError(401, "Unauthorized") });
+    expect(await runTick(d)).toMatchObject({ failed: 2, sent: 0 });
+    expect(revoked).toEqual([7000000002]);
+    expect(ownSent).toHaveLength(1);
+    expect(log.filter((l) => l.startsWith("failed:"))).toEqual([
+      "failed:post-1:The bot's token no longer works. Paste a new token on Social accounts.",
+      "failed:post-3:The bot's token no longer works. Paste a new token on Social accounts.",
+    ]);
+  });
+
+  it("never marks the shared bot revoked", async () => {
+    const { d, revoked, log } = harness({ bot: { sendMessage: () => new TelegramError(401, "Unauthorized") } });
+    await runTick(d);
+    expect(revoked).toEqual([]);
+    // the shared bot's token is Content Studio's, not something a brand can paste
+    expect(log).toContain("failed:post-1:The bot's token no longer works.");
   });
 
   it("fails a post whose chat is gone without calling Telegram", async () => {

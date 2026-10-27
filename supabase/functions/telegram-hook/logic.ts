@@ -43,6 +43,11 @@ export async function gateOf(headers: Headers, env: { hook?: string; cron?: stri
   return null;
 }
 
+/** An own bot's update: the header's sha256 must match the hash 027 keeps for that bot (timing-safe). */
+export async function ownBotSecretOk(header: string | null, storedHash: string): Promise<boolean> {
+  return !!header && (await secretMatches(await hashCode(header), storedHash));
+}
+
 // ---- Telegram's shapes (the fields read here) ----
 
 type ChatType = "private" | "group" | "supergroup" | "channel";

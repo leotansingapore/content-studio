@@ -1,6 +1,8 @@
-// Telegram for the app (docs/north-star/items/publish-telegram.md, on ns/phase7): start a connect, disconnect a chat,
-// upload links for a post's files and queue a post. The bot's own side (the code, the picked chat, sending) is
-// telegram-hook. The page reads its rows itself (026: owner-only SELECT), so there is no status action here.
+// Telegram for the app (docs/north-star/items/publish-telegram.md): start a connect, disconnect a chat, upload links for
+// a post's files, queue a post, and add or remove a brand's own bot (027). The bot's own side (the code, the picked
+// chat, sending) is telegram-hook. The page reads its rows itself (026, 027: owner-only SELECT), so there is no status
+// action here. A brand's own bot token is pasted once (bot-add), checked and stored in Vault; it is never answered,
+// logged or put in one of our URLs, and every log line goes through scrubTokens.
 // verify takes Telegram's signed login from the bot's Confirm button (login_url, which needs the bot's domain set to
 // consultant-content-studio.vercel.app with /setdomain in BotFather) and is not counted against a cap.
 //
@@ -10,10 +12,10 @@
 //   supabase functions deploy telegram --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
-import { BUCKET, botClient } from "../_shared/telegram.ts";
+import { BUCKET, botClient, scrubTokens } from "../_shared/telegram.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { isAllowed } from "../social/logic.ts";
-import { parseRequest, runDisconnect, runPresign, runSchedule, runStart, runVerify, type FnDb, type OwnRow, type PostView } from "./logic.ts";
+import { parseRequest, runAddBot, runDisconnect, runPresign, runRemoveBot, runReplaceBot, runSchedule, runStart, runVerify, type BotFor, type FnDb, type OwnRow, type PostView } from "./logic.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -22,14 +24,50 @@ const headers = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 
 function must<T>(r: { data: T; error: { message: string } | null }, what: string): T {
-  if (r.error) throw new Error(`${what}: ${r.error.message}`);
+  if (r.error) throw new Error(`${what}: ${scrubTokens(r.error.message)}`);
   return r.data;
 }
 
 function fnDb(db: SupabaseClient): FnDb {
   const chats = () => db.from("cs_telegram_chats");
   const posts = () => db.from("cs_telegram_posts");
+  const bots = () => db.from("cs_telegram_bots");
   return {
+    async brandBot(uid, profileId) {
+      return must(await bots().select("id, bot_id, username").eq("owner_id", uid).eq("profile_id", profileId).maybeSingle(), "brand bot") as
+        | { id: string; bot_id: number; username: string }
+        | null;
+    },
+    async botTaken(botId) {
+      return (must(await bots().select("id").eq("bot_id", botId).limit(1), "bot taken") as unknown[]).length > 0;
+    },
+    async saveBot(b) {
+      const r = await db.rpc("cs_telegram_bot_save", {
+        p_owner: b.owner,
+        p_profile: b.profile,
+        p_bot_id: b.botId,
+        p_username: b.username,
+        p_display_name: b.displayName,
+        p_token: b.token,
+        p_webhook_secret_hash: b.webhookSecretHash,
+      });
+      // the database's words could carry the token: only its code is kept
+      if (r.error) throw new Error(`save bot: ${(r.error as { code?: string }).code ?? "error"}`);
+      return (r.data as string | null) ?? null;
+    },
+    async replaceToken(b) {
+      const r = await db.rpc("cs_telegram_bot_replace_token", { p_owner: b.owner, p_profile: b.profile, p_bot_id: b.botId, p_token: b.token, p_webhook_secret_hash: b.webhookSecretHash });
+      // the database's words could carry the token: only its code is kept
+      if (r.error) throw new Error(`replace token: ${(r.error as { code?: string }).code ?? "error"}`);
+      return r.data === true;
+    },
+    async deleteBot(id) {
+      must(await bots().delete().eq("id", id), "delete bot");
+    },
+    async codeBot(uid, rowId) {
+      const r = must(await chats().select("bot_id").eq("id", rowId).eq("owner_id", uid).maybeSingle(), "code bot") as { bot_id: number | null } | null;
+      return r ? { botId: r.bot_id ?? null } : null;
+    },
     async cancelPending(uid, profileId, now) {
       return (must(await chats().update({ status: "disconnected", removed_at: now }).eq("owner_id", uid).eq("profile_id", profileId).eq("status", "pending").select("id"), "cancel waiting") as unknown[]).length;
     },
@@ -56,10 +94,11 @@ function fnDb(db: SupabaseClient): FnDb {
       return (must(r, "verify") as unknown[]).length > 0 ? "ok" : "not_found";
     },
     async ownRow(uid, profileId, id) {
-      return must(await chats().select("id, chat_id, status").eq("owner_id", uid).eq("profile_id", profileId).eq("id", id).maybeSingle(), "own row") as OwnRow | null;
+      return must(await chats().select("id, chat_id, status, bot_id").eq("owner_id", uid).eq("profile_id", profileId).eq("id", id).maybeSingle(), "own row") as OwnRow | null;
     },
-    async liveElsewhere(chatId, except) {
-      return (must(await chats().select("id").eq("chat_id", chatId).eq("status", "connected").neq("id", except).limit(1), "chat users") as unknown[]).length > 0;
+    async liveElsewhere(chatId, except, botId) {
+      const q = chats().select("id").eq("chat_id", chatId).eq("status", "connected").neq("id", except);
+      return (must(await (botId === null ? q.is("bot_id", null) : q.eq("bot_id", botId)).limit(1), "chat users") as unknown[]).length > 0;
     },
     async disconnect(id, now) {
       must(await chats().update({ status: "disconnected", removed_at: now }).eq("id", id), "disconnect");
@@ -98,8 +137,8 @@ Deno.serve(async (req) => {
   if (!r.ok) return json({ error: r.error }, r.status);
   const q = r.req;
 
-  // disconnect is not counted: it only ever acts on the caller's own row
-  const feature = q.action === "start" ? "telegram-connect" : q.action === "presign" ? "telegram-presign" : q.action === "schedule" ? "telegram-schedule" : null;
+  // disconnect, verify and bot-remove are not counted: they only ever act on the caller's own rows
+  const feature = q.action === "start" || q.action === "bot-add" || q.action === "bot-replace" ? "telegram-connect" : q.action === "presign" ? "telegram-presign" : q.action === "schedule" ? "telegram-schedule" : null;
   if (feature) {
     const usage = await consumeUsage(admin, uid, feature);
     if (!usage.allowed) {
@@ -111,10 +150,26 @@ Deno.serve(async (req) => {
   try {
     const db = fnDb(admin);
     const now = Date.now();
+    // an own bot's token, read from Vault for this request only
+    const tokenOf = async (botId: number) => {
+      const r = await admin.rpc("cs_telegram_bot_token", { p_bot_id: botId });
+      if (r.error) throw new Error(`bot token: ${(r.error as { code?: string }).code ?? "error"}`);
+      return (r.data as string | null) ?? null;
+    };
+    const bots: BotFor = async (botId) => {
+      if (botId === null) return { bot: botClient(token), token, username };
+      const own = must(await admin.from("cs_telegram_bots").select("username").eq("bot_id", botId).maybeSingle(), "bot") as { username: string } | null;
+      const ownToken = own ? await tokenOf(botId) : null;
+      return own && ownToken ? { bot: botClient(ownToken), token: ownToken, username: own.username } : null;
+    };
     const reply =
       q.action === "start" ? await runStart(db, uid, q.profileId, username, now)
-      : q.action === "verify" ? await runVerify(db, botClient(token), token, username, uid, q.chatRow, q.auth, q.nonce, q.confirm, now)
-      : q.action === "disconnect" ? await runDisconnect(db, botClient(token), uid, q.profileId, q.chatRow, now)
+      : q.action === "verify" ? await runVerify(db, bots, uid, q.chatRow, q.auth, q.nonce, q.confirm, now)
+      : q.action === "disconnect" ? await runDisconnect(db, bots, uid, q.profileId, q.chatRow, now)
+      : q.action === "bot-add"
+        ? await runAddBot(db, botClient, uid, q.profileId, q.token, `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-hook`, Number(token.split(":")[0]))
+      : q.action === "bot-replace" ? await runReplaceBot(db, botClient, uid, q.profileId, q.token, `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-hook`)
+      : q.action === "bot-remove" ? await runRemoveBot(db, botClient, tokenOf, uid, q.profileId)
       : q.action === "presign"
         ? await runPresign(async (path) => {
             const signed = must(await admin.storage.from(BUCKET).createSignedUploadUrl(path), "upload link") as { path: string; token: string };
@@ -123,7 +178,7 @@ Deno.serve(async (req) => {
       : await runSchedule(db, uid, q, now);
     return json(reply.body, reply.status);
   } catch (e) {
-    console.error("telegram failed", q.action, e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 200) : "error");
+    console.error("telegram failed", q.action, scrubTokens(e instanceof Error ? `${e.name}: ${e.message}` : "error").slice(0, 200));
     return json({ error: "Something went wrong. Try again in a minute." }, 500);
   }
 });
