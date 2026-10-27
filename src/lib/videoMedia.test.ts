@@ -161,6 +161,20 @@ describe("pickupPlan", () => {
     expect(pickupPlan({ ai: { ...ai, voiceId: "rachel" } } as unknown as JoinExtra, "captions").keep.ai).not.toHaveProperty("voiceId");
   });
 
+  // live-p7a-fix D27 (27 Oct, same-edit-malay-project.json): the Malay version's caption ended with the English line
+  it("ends a Malay version's caption with the AI line in Malay, once, still part of the caption you edit", () => {
+    const ms = { kind: "voiceover", voice: "premade", voiceId: "alice", lang: "ms", madeAt: "2026-10-27T00:25:33.952Z" } as const;
+    const cap = "Urus chat klien, susulan, tugasan dan matlamat dalam satu aplikasi telefon.";
+    const MS_LINE = "Video ini menggunakan orang atau suara yang dijana oleh AI.";
+    for (const path of PATHS) {
+      expect(pickupPlan({ caption: cap, ai: ms }, path).keep.caption).toBe(`${cap}\n\n${MS_LINE}`);
+      expect(pickupPlan({ caption: `${cap}\n\n${MS_LINE}`, ai: ms }, path).keep.caption).toBe(`${cap}\n\n${MS_LINE}`);
+    }
+    // English, and a language with no line of its own yet, keep the English line
+    expect(pickupPlan({ caption: "Cap.", ai: { ...ms, lang: "en" } }, "captions").keep.caption).toBe("Cap.\n\nThis video uses an AI-made person or voice.");
+    expect(pickupPlan({ caption: "Cap.", ai: { ...ms, lang: undefined } }, "captions").keep.caption).toBe("Cap.\n\nThis video uses an AI-made person or voice.");
+  });
+
   it("hands the editor an AI video's script, so it is captioned from it with no transcribe (live-p5dog D8)", () => {
     const said = "Before, follow-ups sit apart.\nNow they stay with the client.";
     expect(pickupPlan({ toast: "Ready", said: `  ${said} ` }, "captions")).toStrictEqual({ keep: {}, toast: { title: "Ready" }, said });

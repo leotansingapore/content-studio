@@ -35,7 +35,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
-import { currentScore, labelFor, loadScores, saveScore, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
+import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
 import { slotTimesFor } from "@/lib/postingSlots";
 import {
@@ -917,9 +917,10 @@ export default function GeneratePage() {
   const [rewrite, setRewrite] = useState<{
     id: RewriteId;
     text: string;
-    status: "streaming" | "done";
-    // Leo only (edit-score): the score line it fixes and the score before
-    fix?: { id: FactorId; from: number };
+    // checking: a fix is written and being scored before Use this is offered
+    status: "streaming" | "checking" | "done";
+    // Leo only (edit-score): the score line it fixes, the score before, and whether the fix still leaves it flagged
+    fix?: { id: FactorId; from: number; still?: boolean };
   } | null>(null);
   const [undoText, setUndoText] = useState<string | null>(null);
   // What the Undo line says happened: a rewrite, a clean or an insert.
@@ -2349,6 +2350,7 @@ export default function GeneratePage() {
       setRewrite(null);
       toast({ title: "Couldn't rewrite the draft", description: message, variant: "destructive" });
     };
+    let fixed: string | null = null;
     try {
       await streamOnePost(
         { ...buildBasePayload(), ...rewriteFields(source, id, lines, ask, !!fix) },
@@ -2359,7 +2361,8 @@ export default function GeneratePage() {
             if (!clean) return fail("The reply came back empty. Try again.");
             // a score fix (Leo only) changes only what its factor is about
             const text = fix ? fixedText(source, clean, fix.id) : clean;
-            if (mine()) setRewrite({ id, text, status: "done", fix });
+            if (fix) fixed = text;
+            if (mine()) setRewrite({ id, text, status: fix ? "checking" : "done", fix });
           },
           onError: fail,
         },
@@ -2367,6 +2370,14 @@ export default function GeneratePage() {
       );
     } catch (err) {
       fail(err instanceof Error ? err.message : "Try again in a moment.");
+    }
+    // Leo only (edit-score): a fix is scored with its factor before Use this is offered, the carousel's rescore moved ahead
+    // of the press, so a fix that still leaves its factor flagged keeps the old text as the default (live-p7a-fix D12, D26)
+    if (fix && fixed !== null && userId && mine()) {
+      const text: string = fixed;
+      const checked = await scoreFix(userId, text, platform, scoreFormat, fix.id);
+      if (checked) setScores(checked.cache);
+      if (mine()) setRewrite({ id, text, status: "done", fix: { ...fix, ...(checked ? { still: checked.still } : {}) } });
     }
     if (mine()) rewriteAbortRef.current = null;
   };
@@ -4445,7 +4456,7 @@ export default function GeneratePage() {
                 {rewrite && (
                   <div id="rewrite-panel" className="mt-1.5 scroll-mt-24 rounded-xl border border-primary/30 bg-primary/5 p-3">
                     <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      {rewrite.status === "streaming" && (
+                      {rewrite.status !== "done" && (
                         <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />
                       )}
                       {rewriteLabel(rewrite.id, rewrite.fix && labelFor(rewrite.fix.id, scoreFormat))}
@@ -4453,19 +4464,33 @@ export default function GeneratePage() {
                     <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
                       {rewrite.text || <span className="text-muted-foreground">Rewriting...</span>}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        disabled={rewrite.status !== "done"}
-                        onClick={acceptRewrite}
-                        className="gap-1.5"
-                      >
-                        <Check className="h-3.5 w-3.5" /> Use this
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={discardRewrite}>
-                        {rewrite.status === "streaming" ? "Stop" : "Discard"}
-                      </Button>
-                    </div>
+                    {rewrite.status === "done" && rewrite.fix?.still ? (
+                      <>
+                        <p role="status" className="mt-3 text-xs font-medium text-foreground">
+                          {labelFor(rewrite.fix.id, scoreFormat)} is still flagged on this version.
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button size="sm" onClick={discardRewrite}>Keep the old one</Button>
+                          <Button size="sm" variant="outline" onClick={acceptRewrite} className="gap-1.5">
+                            <Check className="h-3.5 w-3.5" /> Use this anyway
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          disabled={rewrite.status !== "done"}
+                          onClick={acceptRewrite}
+                          className="gap-1.5"
+                        >
+                          <Check className="h-3.5 w-3.5" /> Use this
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={discardRewrite}>
+                          {rewrite.status === "done" ? "Discard" : "Stop"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {leo && userId && savedEntry && !draftLang && panel === "hooks" && (() => {
@@ -5024,7 +5049,7 @@ export default function GeneratePage() {
                                   size="sm"
                                   variant="outline"
                                   className="h-11 gap-1.5 text-xs sm:h-8"
-                                  disabled={rewrite?.status === "streaming" || !!scoring}
+                                  disabled={(!!rewrite && rewrite.status !== "done") || !!scoring}
                                   onClick={() => fixFactor(id)}
                                 >
                                   <Wand2 className="h-3.5 w-3.5" /> Fix this
@@ -5042,9 +5067,10 @@ export default function GeneratePage() {
                     ) : (
                       <p className="mt-2 text-xs text-muted-foreground">Nothing big is holding it back.</p>
                     )}
-                    {leo && rewrite?.fix && rewrite.status === "streaming" && (
+                    {leo && rewrite?.fix && rewrite.status !== "done" && (
                       <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden /> Fixing the {labelFor(rewrite.fix.id, scoreFormat).toLowerCase()}...
+                        <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />{" "}
+                        {rewrite.status === "checking" ? "Scoring the fix..." : `Fixing the ${labelFor(rewrite.fix.id, scoreFormat).toLowerCase()}...`}
                       </p>
                     )}
                     {leo && fixedFrom?.key === scoreKeyNow && (

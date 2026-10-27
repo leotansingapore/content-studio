@@ -1691,6 +1691,28 @@ export function editProblem(r: MadeResult, req: Pick<MakeRequest, "edit">): Make
     : null;
 }
 
+/** The words an edit's script says (its lines, markers out); 0 for any other make. */
+export const editWords = (r: MadeResult) => (r.as === "edit" ? r.lines.reduce((t, l) => t + wordCount(l), 0) : 0);
+
+/**
+ * An edit's script over its length: more words than its beats' budgets add up to, which the voice reads past the length
+ * (live-p7a-fix D1: 39 words where the beats held 37, every line inside its own range). The shortening ask, or null when
+ * it fits. Never a refusal: the lines' own ranges (editProblem) stay as they are.
+ */
+export function editLength(r: MadeResult, req: Pick<MakeRequest, "edit">): string | null {
+  if (r.as !== "edit" || !req.edit) return null;
+  const { beats } = req.edit;
+  const cap = beats.reduce((n, b) => n + b.words, 0);
+  const n = editWords(r);
+  if (n <= cap) return null;
+  const over = r.lines.flatMap((l, i) => (beats[i] && wordCount(l) > beats[i].words ? [`- Line ${i + 1} is ${wordCount(l)} words; its beat takes ${beats[i].words}.`] : []));
+  return [
+    `The script is ${n} words and its length takes ${cap} at most, so the voice would run past it:`,
+    ...over,
+    "Return the whole JSON object again with those lines cut to their beat's words, saying the same thing, and every [[k]] marker in its line and in its order.",
+  ].join("\n");
+}
+
 /** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's and the edit's. */
 export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds" | "words" | "edit">) =>
   slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r) ?? editProblem(r, req);

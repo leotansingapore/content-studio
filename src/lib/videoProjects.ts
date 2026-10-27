@@ -63,9 +63,16 @@ export function aiOf(raw: unknown): AiMark | undefined {
 /** A video with an AI-made person or voice (people-ai-labels): the editor's chips, and the caption line it ends with. */
 export const AI_LINE = "This video uses an AI-made person or voice.";
 export const aiChips = (ai: AiMark | undefined): ("AI person" | "AI voice")[] => [...(ai?.person ? (["AI person"] as const) : []), ...(ai?.voice ? (["AI voice"] as const) : [])];
-/** The caption with AI_LINE as its last line, once, when the video has an AI person or voice; any other caption as it is. */
-export const withAiLine = (caption: string, ai: AiMark | undefined): string =>
-  !aiChips(ai).length || caption.trimEnd().endsWith(AI_LINE) ? caption : [caption.trim(), AI_LINE].filter(Boolean).join("\n\n");
+/**
+ * The AI line in a language version's own words (live-p7a-fix D27: a Malay version's caption ended in English).
+ * shortcut: Malay only, the language Leo's versions are checked in; Chinese and Tamil keep AI_LINE until each has a line.
+ */
+const AI_LINES: Partial<Record<NonNullable<AiMark["lang"]>, string>> = { ms: "Video ini menggunakan orang atau suara yang dijana oleh AI." };
+/** The caption with the AI line (in the mark's language) as its last line, once, when the video has an AI person or voice; any other caption as it is. */
+export const withAiLine = (caption: string, ai: AiMark | undefined): string => {
+  const line = (ai?.lang && AI_LINES[ai.lang]) || AI_LINE;
+  return !aiChips(ai).length || caption.trimEnd().endsWith(line) ? caption : [caption.trim(), line].filter(Boolean).join("\n\n");
+};
 
 export interface VideoProject {
   id: string;

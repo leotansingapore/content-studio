@@ -1,20 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DraftEntry } from "@/lib/draftHistory";
 
-const fn = vi.hoisted(() => ({ calls: [] as [string, unknown][] }));
+const fn = vi.hoisted(() => ({ calls: [] as [string, unknown][], next: [] as unknown[] }));
 vi.mock("@/lib/edgeFn", () => ({
   callFn: async (name: string, body: unknown) => {
     fn.calls.push([name, body]);
-    return { score: 7.1, down: ["cta"] };
+    const next = fn.next.shift() ?? { score: 7.1, down: ["cta"] };
+    if (next instanceof Error) throw next;
+    return next;
   },
 }));
 
-import { carouselScoreText, currentScore, loadScores, saveScore, scorePost, scoreVsResults, textKey, tipFor } from "@/lib/postScore";
+import { carouselScoreText, currentScore, loadScores, saveScore, scoreFix, scorePost, scoreVsResults, textKey, tipFor } from "@/lib/postScore";
 
 const store = new Map<string, string>();
 beforeEach(() => {
   store.clear();
   fn.calls.length = 0;
+  fn.next.length = 0;
   vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -46,6 +49,27 @@ describe("scorePost", () => {
       ["post-score", { text: "text", platform: "instagram", format: "carousel" }],
     ]);
     expect(tipFor("cta", "short-video")).toBe("End with one clear ask, said out loud and in the caption.");
+  });
+});
+
+// live-p7a-fix (27 Oct, calls 107 to 111): Fix this on First line took the Good morning post from 5.1 to 7.1 and Fix this
+// on Clear ask to 7.4, and each still flagged its own factor (D12, D26)
+describe("scoreFix", () => {
+  const firstLine = "How do you keep follow-ups from slipping when client chats start coming in?\n\nWhen client chats start coming in, follow-ups can slip down the list.";
+  it("scores a fix before Use this, says whether its own factor is still flagged, and keeps the score for Use this", async () => {
+    fn.next.push({ score: 7.1, down: ["cta", "hook"] }, { score: 7.4, down: ["cta", "hook"] }, { score: 7.6, down: ["cta"] });
+    const hook = await scoreFix("u1", firstLine, "instagram", "text-post", "hook");
+    expect(hook?.still).toBe(true);
+    expect(hook?.cache[textKey("instagram", firstLine)]).toMatchObject({ score: 7.1, down: ["cta", "hook"] });
+    expect(loadScores("u1")[textKey("instagram", firstLine)]).toMatchObject({ score: 7.1 });
+    expect((await scoreFix("u1", `${firstLine}\n\nExplore ActivityTracker.`, "instagram", "text-post", "cta"))?.still).toBe(true);
+    expect((await scoreFix("u1", `${firstLine}!`, "instagram", "text-post", "hook"))?.still).toBe(false);
+    expect(fn.calls.map(([name, body]) => [name, (body as { format: string }).format])).toEqual([["post-score", "text-post"], ["post-score", "text-post"], ["post-score", "text-post"]]);
+  });
+
+  it("answers null when the score doesn't come back, so Use this is offered as before", async () => {
+    fn.next.push(new Error("Couldn't score it right now. Try again in a minute."));
+    expect(await scoreFix("u1", firstLine, "instagram", "text-post", "hook")).toBeNull();
   });
 });
 

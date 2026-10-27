@@ -561,7 +561,8 @@ describe("a script written to a reel's edit (as edit)", () => {
 
   it("sends a line copied from the original's on-screen text back once, keeping the markers", async () => {
     openai.mode = "queue";
-    const copied = { ...EDIT_OK, lines: [EDIT_OK.lines[0], "Stop checking CPF once a year, [[1]] okay?"] };
+    // within the beats' 12 words, so only the copy check sends it back
+    const copied = { ...EDIT_OK, lines: [EDIT_OK.lines[0], "Stop checking CPF once a [[1]] year."] };
     openai.answers = [copied, EDIT_OK];
     expect((await send(editBody())).status).toBe(200);
     const fix = openai.sent[1].messages.at(-1)!.content;
@@ -576,6 +577,58 @@ describe("a script written to a reel's edit (as edit)", () => {
     openai.answers = [EDIT_OK];
     expect((await send(editBody())).status).toBe(200);
     expect(openai.sent[0].messages[1].content).not.toContain("Cached words");
+  });
+
+  // live-p7a-fix calls/007 (27 Oct): the Raj version's brief held 37 words and the writer wrote 39, every line inside its
+  // own range, so Eric read 17.0 s for a 15 s version (D1)
+  const RAJ_BRIEF = {
+    beats: [{ role: "hook", seconds: 3.2, words: 7 }, { role: "point", seconds: 3, words: 8 }, { role: "point", seconds: 2.1, words: 5 }, { role: "proof", seconds: 1, words: 3 }, { role: "point", seconds: 3.4, words: 8 }, { role: "ask", seconds: 2.3, words: 6 }],
+    events: [{ b: 3, kind: "text", role: "label", words: 2 }, { b: 3, kind: "text", role: "label", words: 3 }, { b: 3, kind: "zoom" }, { b: 4, kind: "zoom" }],
+  };
+  const RAJ_39 = {
+    lines: [
+      "Sales chats scattered across apps slow follow-ups.",
+      "Client details can get lost between conversations.",
+      "Bring your workflow together.",
+      "[[0]] [[1]] [[2]] One app, less switching.",
+      "[[3]] Log activity in one tap, then track tasks and goals.",
+      "Comment to explore ActivityTracker for sales workflows.",
+    ],
+    texts: [{ k: 0, text: "CRM" }, { k: 1, text: "Shared WhatsApp inbox" }],
+    searches: [],
+    caption: "Keep client chats, follow-ups, tasks and goals together in one phone app, with activity logged in one tap. Comment to explore ActivityTracker for your sales workflow.",
+  };
+  const RAJ_32 = {
+    ...RAJ_39,
+    lines: ["Sales chats across apps slow follow-ups.", "Client details get lost between chats.", "Bring your workflow together.", "[[0]] [[1]] [[2]] One app, less switching.", "[[3]] Log activity in one tap, track goals.", "Comment to explore ActivityTracker today."],
+  };
+  const AT = { name: "ActivityTracker", speaker: "business", mention: true };
+  const rajBody = () => ({ mode: "make", as: "edit", source: REEL, edit: RAJ_BRIEF, brand: AT });
+  const said = (r: { body: { result: { lines: string[] } } }) => r.body.result.lines.join(" ").split(/\s+/).length;
+
+  it("sends a script over its length's words back once to be shortened, inside the same use (live-p7a-fix D1)", async () => {
+    openai.mode = "queue";
+    openai.answers = [RAJ_39, RAJ_32];
+    const r = await send(rajBody());
+    expect(r.status).toBe(200);
+    expect(said(r)).toBe(32);
+    expect(openai.calls).toBe(2);
+    const ask = openai.sent[1].messages.at(-1)!.content;
+    expect(ask).toContain("The script is 39 words and its length takes 37 at most");
+    expect(ask).toContain("- Line 5 is 10 words; its beat takes 8.");
+    expect(ask).toContain("every [[k]] marker in its line and in its order");
+    expect(used()).toBe(1);
+  });
+
+  it("keeps the first script when the shortened one breaks the edit's markers, and asks nothing more of one that fits", async () => {
+    openai.mode = "queue";
+    openai.answers = [RAJ_39, { ...RAJ_32, lines: RAJ_32.lines.map((l) => l.replace(/\[\[\d\]\] /g, "")) }];
+    const r = await send(rajBody());
+    expect([r.status, said(r), openai.calls, used()]).toEqual([200, 39, 2, 1]);
+    openai.calls = 0;
+    openai.answers = [RAJ_32];
+    expect(said(await send(rajBody()))).toBe(32);
+    expect(openai.calls).toBe(1);
   });
 
   it("refuses a bad brief with 400 before any count or call", async () => {

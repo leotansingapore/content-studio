@@ -9,7 +9,7 @@ import { addProfile, setActiveProfile } from "./profiles";
 import type { SavedClone } from "./reelClone";
 import {
   TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
-  scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, videoEstimate, videoPrice, whoChoices, wordLine,
+  readWps, scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, talkWords, videoEstimate, videoPrice, whoChoices, wordLine,
   writePlan, type Speaker,
 } from "./talkingHead";
 import type { VoiceId } from "./textVoice";
@@ -40,6 +40,36 @@ describe("the word target per length (2.4 to 3.2 words a second)", () => {
 
   it("says nothing while the box is empty", () => {
     expect(wordLine(0, 15)).toBe("");
+  });
+});
+
+// live-p7a-fix (27 Oct): Write it for me wrote 48 words for 15 s ("Aim for 36 to 48") and Alice read them in 20.0 s
+describe("the word target in the picked voice (Leo's sign-ins)", () => {
+  it("tops out at the words the voice reads in the length, and the writer is asked for the same range", () => {
+    expect(wordLine(36, 15, "alice")).toBe("36 words. Aim for 32 to 36 for 15 seconds.");
+    expect(wordLine(37, 15, "eric")).toBe("37 words. Aim for 33 to 37 for 15 seconds.");
+    expect(wordLine(48, 15, "alice")).toBe("48 words. Over 15 seconds, so it runs longer.");
+    expect(wordLine(31, 15, "alice")).toBe("31 words may be too short for 15 seconds.");
+    for (const s of TALK_LENGTHS) {
+      for (const voice of ["alice", "eric", "george"] as VoiceId[]) {
+        const { high } = talkWords(s, voice);
+        expect(high / readWps(voice), `${voice} ${s}`).toBeLessThanOrEqual(s);
+        expect((high + 1) / readWps(voice), `${voice} ${s}`).toBeGreaterThan(s);
+      }
+    }
+    // everyone else keeps the length rule's 2.4 to 3.2
+    expect(talkWords(15)).toEqual({ low: 36, high: 48 });
+    expect(wordLine(48, 15)).toBe("48 words. Aim for 36 to 48 for 15 seconds.");
+  });
+
+  it("takes a script inside the voice's range as the script, never as a topic to write a new one from", () => {
+    const script = words(34);
+    expect(script.length).toBeLessThanOrEqual(200);
+    expect(asTopic(script, 15)).toBe(true);
+    expect(asTopic(script, 15, "alice")).toBe(false);
+    expect(writePlan(script, 15, null, "alice")).toBeNull();
+    expect(writePlan(script, 15, { kind: "top-post" }, "alice")).toBeNull();
+    expect(writePlan("Why follow-ups win deals", 15, null, "alice")).toBe("topic");
   });
 });
 
@@ -105,22 +135,25 @@ describe("the price of a press", () => {
 });
 
 describe("the price of a script before its voiceover exists (live-p5dog day 3: Eric's 46 words ran 18.5 s in three parts, US$3.44 under a US$2.77 card)", () => {
-  // [voice, words, the parts Make cut its voiceover into], from the dogfood's text-voice and ai-video calls on days 1 to 3
+  // [voice, words, the parts Make cut its voiceover into], from the dogfood's text-voice and ai-video calls on days 1 to 3,
+  // and live-p7a-fix's Raj version (27 Oct, calls 008 and 009; its two Alice reads made no Speak parts)
   const MADE: [VoiceId, number, number[]][] = [
     ["alice", 38, [8.19, 6.3]], ["alice", 38, [7.91, 6.39]], ["alice", 38, [8.61, 6.2]], ["alice", 39, [8.55, 5.43]],
-    ["eric", 46, [8.55, 9.04, 0.893]], ["eric", 48, [8.65, 8.25]],
+    ["eric", 46, [8.55, 9.04, 0.893]], ["eric", 48, [8.65, 8.25]], ["eric", 39, [8.07, 8.927]],
   ];
 
+  // Prices err high, never low (Leo, 24 Oct: an estimate may quote one part too many). At these rates one measured make
+  // quotes one part high: Eric's 48 words (live-p5dog, two parts, 44 credits) quote three, 55 credits.
   it("is never under the real parts' price for any make measured, in its own voice", () => {
-    for (const [voice, words, parts] of MADE) expect(scriptEstimate(words, voice).usd).toBeGreaterThanOrEqual(videoPrice(parts).usd);
-    expect(scriptEstimate(46, "eric").usd).toBeCloseTo(55 * 0.0625, 6);
-    // a 15 s script in Alice's voice stays two parts
-    expect(scriptEstimate(38, "alice").usd).toBeCloseTo(44 * 0.0625, 6);
+    for (const [voice, words, parts] of MADE) expect(scriptEstimate(words, voice).usd, `${voice} ${words}`).toBeGreaterThanOrEqual(videoPrice(parts).usd);
   });
 
   it("reads each voice at its slowest measured speed, and a voice not yet measured at the length rule's slow end", () => {
     expect(scriptSeconds(46, "eric")).toBeGreaterThanOrEqual(18.48);
     expect(scriptSeconds(38, "alice")).toBeGreaterThanOrEqual(14.81);
+    // live-p7a-fix (27 Oct): Write it for me's 48 words for 15 s took Alice 20.0 s, 2.40 a second
+    expect(readWps("alice")).toBe(2.4);
+    expect(scriptSeconds(48, "alice")).toBeGreaterThanOrEqual(20);
     expect(scriptSeconds(48, "george")).toBe(20);
     expect(scriptSeconds(200, "eric")).toBe(30);
   });

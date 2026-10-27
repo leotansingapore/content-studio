@@ -76,9 +76,9 @@ describe("needsCard", () => {
 });
 
 describe("estimateScript and priceLine", () => {
-  it("a 40-word script in Alice's voice is about 16 s, 44 credits, and the video with its voiceover from the price table", () => {
+  it("a 40-word script in Alice's voice is about 17 s, 44 credits, and the video with its voiceover from the price table", () => {
     const e = estimateScript(40);
-    expect(e).toEqual({ seconds: 40 / 2.56, credits: 44, price: sumPrices(priceOf("ai-video", { slices: [9.5, 6.5] }), priceOf("ai-voice")) });
+    expect(e).toEqual({ seconds: 40 / 2.4, credits: 44, price: sumPrices(priceOf("ai-video", { slices: [9.5, 6.5] }), priceOf("ai-voice")) });
     const card = { price: e.price, credits: e.credits, needs: needsOf("speaking", { write: false }) };
     expect(priceLine(card, null)).toBe("About US$2.77 | about 44 Higgsfield credits");
     // the 44 credits alone, as the spec's "About US$2.75" counts them

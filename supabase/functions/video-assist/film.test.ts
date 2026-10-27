@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { parseFilm, rhythmIssues, sceneStarts, type Film } from "./filmSpec";
 import type * as FilmModule from "./film";
 import LIVE_FILM from "./fixtures/live-p7a-film.json";
+import D25 from "./fixtures/live-p7a-fix-d25.json";
 
 // The launch film's three modes through video-assist's handler: the gate, the cap, the write and its one fixing pass,
 // Jev's picks, the MAS lines. OpenAI's and Jev's replies are stubbed; the reply shapes copy OpenAI's Structured Outputs
@@ -527,5 +528,51 @@ describe("a quiet stretch in the first film, and Fix it (live-p7a D5)", () => {
     replies = [{ refuse: null, reply: "Cut the montage.", scene: null, film: bodyOf(live.fixIt.answer) }];
     const plain = await (await post(LEO, { mode: "film-edit", film: live.film, scene: null, target: "", note: "Make it shorter", brand: BRAND, kit: live.kit, screens: live.screens })).json();
     expect([seconds(plain.film), openai().length]).toEqual([22, 1]);
+  });
+});
+
+// live-p7a-fix D25 (calls/105): a note made the type scene hold 16 beats with 2 lines ("Nothing happens from 0:19 to
+// 0:27"); Fix it's two writes grew it to 22 beats with 8 lines, one of them "Keep follow-ups nearby? No.", cut the end card
+// from 14 to 8 beats, left "Nothing happens from 0:22 to 0:30." and replied that only the type scene changed
+describe("Fix it clears the quiet stretch it was asked about, adds no words and says what changed (live-p7a-fix D25)", () => {
+  const d25 = D25 as unknown as { note: string; brand: typeof BRAND; kit: typeof KIT; screens: typeof SCREENS; film: Film; answer: Film; reply: string };
+  const bodyOf = (f: Pick<Film, "font" | "ground" | "accent" | "drop" | "scenes">) => ({ font: f.font, ground: f.ground, accent: f.accent, drop: f.drop, scenes: f.scenes, voice: { lines: [] } });
+  const fixIt = () => post(LEO, { mode: "film-edit", film: d25.film, scene: null, target: "", label: "The whole film", t: 0, x: 0.5, y: 0.5, note: d25.note, fix: true, brand: d25.brand, kit: d25.kit, screens: d25.screens });
+  const seconds = (f: Film) => (f.scenes.reduce((n, s) => n + s.beats, 0) * 60) / f.bpm;
+  const onScreen = (f: Film) => JSON.stringify(f.scenes.map((s) => ("words" in s ? s.words : null)));
+  const beats = (f: Film) => Object.fromEntries(f.scenes.map((s) => [s.id, s.beats]));
+
+  it("moves the quiet scene's beats itself when both writes leave the stretch, keeping the length and every word", async () => {
+    expect(rhythmIssues(d25.answer)).toEqual(["Nothing happens from 0:22 to 0:30."]);
+    replies = [{ refuse: null, reply: d25.reply, scene: null, film: bodyOf(d25.answer) }, { refuse: null, reply: d25.reply, scene: null, film: bodyOf(d25.answer) }];
+    const res = await fixIt();
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect([out.issues, seconds(out.film), onScreen(out.film)]).toEqual([[], 34, onScreen(d25.film)]);
+    expect(beats(out.film)).toEqual({ ...beats(d25.film), type: 8, end: 22 });
+    expect(out.reply).toBe('"type" now holds 8 beats, was 16; "end" now holds 22 beats, was 14. Nothing sits still now.');
+    expect([openai().length, used("film-edit")]).toEqual([2, 1]);
+  });
+
+  it("tells the second write which words are in neither the film nor the brand's facts, and to move beats rather than fill time", async () => {
+    replies = [{ refuse: null, reply: d25.reply, scene: null, film: bodyOf(d25.answer) }, { refuse: null, reply: d25.reply, scene: null, film: bodyOf(d25.answer) }];
+    await fixIt();
+    const note = JSON.parse((openai()[0].body.messages as { content: string }[])[1].content).note as string;
+    expect(note).toContain("Keep the film 34 seconds long");
+    expect(note).not.toContain("never by cutting beats");
+    expect(note).toContain("add words only from the film or the brand's facts");
+    const again = (openai()[1].body.messages as { content: string }[])[3].content;
+    expect(again).toContain("- Nothing happens from 0:22 to 0:30.");
+    expect(again).toContain("- These words are in neither the film nor the brand's facts: nearby, no.");
+  });
+
+  it("takes a write that clears the stretch with the film's own words, and the reply names its change", async () => {
+    const moved: Record<string, number> = { burst: 12, together: 10, type: 8 };
+    const right = { ...d25.film, scenes: d25.film.scenes.map((s) => (moved[s.id] ? { ...s, beats: moved[s.id] } : s)) } as Film;
+    expect(rhythmIssues(right)).toEqual([]);
+    replies = [{ refuse: null, reply: "Done.", scene: null, film: bodyOf(right) }];
+    const out = await (await fixIt()).json();
+    expect([out.issues, seconds(out.film), openai().length]).toEqual([[], 34, 1]);
+    expect(out.reply).toBe('"burst" now holds 12 beats, was 6; "together" now holds 10 beats, was 8; "type" now holds 8 beats, was 16. Nothing sits still now.');
   });
 });
