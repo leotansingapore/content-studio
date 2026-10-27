@@ -73,6 +73,7 @@ export const AS_LABELS: Record<RemixAs, string> = {
   hooks: "Hooks",
   image: "Static ad",
   meme: "Meme",
+  ads: "Ad versions",
 };
 
 /** "Writing your script", "Your carousel is ready". */
@@ -88,6 +89,7 @@ export const AS_NOUN: Record<RemixAs, string> = {
   hooks: "hooks",
   image: "image",
   meme: "memes",
+  ads: "ad versions",
 };
 
 const FORMAT_WORDS: Record<RemixAs, string> = {
@@ -103,6 +105,7 @@ const FORMAT_WORDS: Record<RemixAs, string> = {
   hooks: "three hooks",
   image: "the words for an image",
   meme: "three memes",
+  ads: "six versions of an ad",
 };
 
 const CLOSE_PHRASE: Record<Close, string> = { loose: "loosely based on it", balanced: "with new words", close: "close to it, with every line new" };

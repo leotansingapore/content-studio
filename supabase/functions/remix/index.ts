@@ -8,7 +8,10 @@
 // (AD_LAYOUT_AT, else Headline ad); a meme's options get funny and unsafe in one call after (unsafe ones dropped,
 // all three dropped is 422 with the use kept); an image's words, the best meme and a topic's post, carousel or script
 // get the shared MAS question (_shared/mas.ts) for a person's brand, one Jev call on the words, as flags.mas.
-// Phase 7: any make but hooks may name a hook `formula` (remix-variations); as "edit" writes a script to a reel's edit
+// As "ads", up to 6 versions of one ad layout's words ride the same one use, each on a hook formula the app sends: one
+// Jev call after writing drops any that state what the brand's facts don't hold or, for a person's brand, fail the MAS
+// question, and marks the one the audience would most stop for (all dropped is 422 with the use kept).
+// Phase 7: any make but hooks and ads may name a hook `formula` (remix-variations); as "edit" writes a script to a reel's edit
 // (remix-format-clone), its [[k]] markers checked in code with one fixing pass in the use, the copy floor over its lines
 // and on-screen text, and the MAS question for a person's brand though it has a source.
 //
@@ -47,6 +50,9 @@ import {
   parseFitRequest,
   makeQuestions,
   adLayoutQuestion,
+  adsQuestions,
+  adsState,
+  adsVerdict,
   buildMakePrompt,
   dontReuseFor,
   editLength,
@@ -275,6 +281,8 @@ Deno.serve(async (req) => {
         return second && makeProblem(second, make) ? null : second;
       },
       ask: async (state) => {
+        // ad versions are read one by one below, so one flag never lands on the whole set
+        if (make.as === "ads") return null;
         const answers = await askJev({ ...(state as object), facts: jevFacts(make.brand) }, makeQuestions(make.brand.speaker), { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
@@ -286,6 +294,13 @@ Deno.serve(async (req) => {
       // the model answered, so the use stays (decision 3)
       if (dropped.length === result.options.length) return fail("refused", "None of these were safe to post. Try another topic.", 422);
       result = { ...result, best, dropped };
+    }
+    if (result.as === "ads") {
+      const verdict = adsVerdict(await askJev(adsState(make.brand), adsQuestions(result.versions, make.brand.speaker), { who: "remix ads" }), result.versions.length);
+      console.log("remix ads", `best ${verdict.best}`, `dropped ${verdict.dropped.join(",") || "-"}`, `checked ${verdict.checked}`);
+      // the model answered, so the use stays
+      if (verdict.dropped.length === result.versions.length) return fail("refused", "None of these were safe to run. Try another topic.", 422);
+      result = { ...result, ...verdict };
     }
     // a topic's post, carousel or script too (the agent's makes), and an edit's script; a source's keep today's answer, with no mas
     if (result.as === "image" || result.as === "meme" || result.as === "edit" || (!make.source && (result.as === "post" || result.as === "carousel" || result.as === "script"))) {

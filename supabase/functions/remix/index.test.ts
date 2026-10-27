@@ -331,6 +331,56 @@ describe("phase 3's shapes", () => {
     expect(await send({ mode: "make", as: "meme", layout: "top-bottom", topic: "Saving for a flat", brand: BRAND })).toMatchObject({ status: 200, body: { result: { best: null, dropped: [] }, flags: { mas: null } } });
   });
 
+  // ad versions: one use for the whole set, Jev's one call after writing drops and picks; the set-wide claim call is skipped
+  const VERSIONS = ["myth-bust", "dilemma", "warning"];
+  const ADS = VERSIONS.map((formula, i) => ({
+    formula,
+    words: { ...words, headline: ["Low pay is not why you can't save", "Clear the loan or keep the cash?", "Skipping your nomination quietly costs your family"][i], line: "One plain line under it.", button: "Message me" },
+    caption: "It is rarely the pay. It is the order you spend in. Message me to see yours.",
+  }));
+  const ads = { refuse: false, reason: "", versions: ADS };
+  const sendAds = () => send({ mode: "make", as: "ads", layout: "headline", versions: VERSIONS, topic: "Saving on a fresh grad pay", brand: BRAND });
+
+  it("writes ad versions in one use, drops what says more than the facts or fails MAS, and marks the most stopping one best", async () => {
+    openai.mode = "queue";
+    openai.answers = [ads];
+    jev.answers = {
+      stop_0: { score: 1 }, invented_0: { noul: 0.1 }, mas_0: { noul: 0.1 },
+      stop_1: { score: 3 }, invented_1: { noul: 0.7 }, mas_1: { noul: 0.1 },
+      stop_2: { score: 2 }, invented_2: { noul: 0.1 }, mas_2: { noul: 0.2 },
+    } as never;
+    const r = await sendAds();
+    expect(r).toMatchObject({ status: 200, body: { result: { as: "ads", layout: "headline", best: 2, dropped: [1], checked: true }, flags: { claim: false, invented: false } } });
+    expect(r.body.result.versions.map((v: { formula: string }) => v.formula)).toEqual(VERSIONS);
+    expect(r.body.flags.mas).toBeUndefined();
+    // one Jev call, the versions' own: no set-wide claim question and no set-wide MAS question
+    expect(jev.questions).toEqual([["stop_0", "invented_0", "mas_0", "stop_1", "invented_1", "mas_1", "stop_2", "invented_2", "mas_2"]]);
+    expect(jev.states[0]).toMatchObject({ poster: "a licensed financial adviser in Singapore", audience: "fresh grads" });
+    expect(openai.sent[0].messages[1].content).toContain("- dilemma (Real dilemma).");
+    expect(used()).toBe(1);
+  });
+
+  it("refuses ad versions when every one is dropped, keeping the use, and keeps all unchecked when Jev has no answer", async () => {
+    openai.mode = "queue";
+    openai.answers = [ads];
+    jev.answers = { invented_0: { noul: 0.9 }, mas_1: { noul: 0.6 }, invented_2: { noul: 0.5 } } as never;
+    expect(await sendAds()).toMatchObject({ status: 422, body: { code: "refused", error: "None of these were safe to run. Try another topic." } });
+    expect(used()).toBe(1);
+    jev.answers = null;
+    openai.answers = [ads];
+    expect(await sendAds()).toMatchObject({ status: 200, body: { result: { best: null, dropped: [], checked: false } } });
+    expect(used()).toBe(2);
+  });
+
+  it("sends back ad versions that open the same once, then refuses them with the use kept", async () => {
+    openai.mode = "queue";
+    const twin = { ...ads, versions: ADS.map((v) => ({ ...v, words: { ...v.words, headline: "Low pay is not the whole story" } })) };
+    openai.answers = [twin, twin];
+    expect(await sendAds()).toMatchObject({ status: 422, body: { code: "refused", error: "Two versions came out the same. Try again." } });
+    expect(openai.sent[1].messages.at(-1)!.content).toContain('open with the same words, "low pay is"');
+    expect(used()).toBe(1);
+  });
+
   it("gives the use back only when OpenAI never answered", async () => {
     openai.mode = "down";
     expect(await send({ mode: "make", as: "meme", layout: "pov", topic: "Payday", brand: BRAND })).toMatchObject({ status: 502, body: { code: "failed" } });

@@ -314,7 +314,7 @@ export function joinJobs(j: JoinJob | null): LibraryJob[] {
 const REMIX_FORMAT: Record<RemixAs, LibraryFormat> = {
   post: "text", carousel: "carousel", script: "video", speaking: "video", explainer: "video", slideshow: "carousel", wall: "video",
   // phase 3's format pages: a green screen's note list and a hook plus demo end as videos
-  notes: "video", hooks: "video", image: "image", meme: "image",
+  notes: "video", hooks: "video", image: "image", meme: "image", ads: "image",
 };
 
 /** `base` with the Remix sheet open on the run's own choices, so the row reopens what is running and Try again repeats it. */

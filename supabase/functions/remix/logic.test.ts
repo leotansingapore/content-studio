@@ -51,6 +51,11 @@ import {
   MEME_UNSAFE_AT,
   TOPIC_AS,
   adLayoutQuestion,
+  adsQuestions,
+  adsState,
+  adsVerdict,
+  adText,
+  AD_VERSIONS,
   floorOf,
   imageProblem,
   lengthProblem,
@@ -1004,10 +1009,11 @@ describe("every phase 3 shape", () => {
     ["hooks", shape("hooks", { formulas: FORMULAS })],
     ["image", shape("image", { layout: "headline" })],
     ["meme", shape("meme", { layout: "top-bottom" })],
+    ["ads", shape("ads", { layout: "headline", versions: ["myth-bust", "warning", "callout"] })],
   ];
 
   it("starts from a typed topic as well as a source, and nothing else new does", () => {
-    expect(TOPIC_AS).toEqual(["post", "carousel", "script", "slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"]);
+    expect(TOPIC_AS).toEqual(["post", "carousel", "script", "slideshow", "wall", "speaking", "notes", "hooks", "image", "meme", "ads"]);
     expect(topic("notes")).toMatchObject({ as: "notes", topic: "Why I log every client call" });
     expect(topic("speaking", { seconds: 8 }).source).toBeUndefined();
     expect(parseMakeRequest(body({ as: "notes", source: undefined }))).toEqual({ ok: false, error: "Type a topic or pick a post to remix." });
@@ -1395,6 +1401,111 @@ describe("memes (formats-memes)", () => {
     expect(masText({ ...(m as Extract<MakeResult, { as: "meme" }>), best: 2 })).toBe(`Me saving for a BTO\nAlso me buying bubble tea\n${CAP.caption}\n\n${CAP.cta}\n\n#sales`);
     expect(masText(validateMake("image", { words: { headline: "A", line: "B.", button: "Go", quote: "", statLabel: "" }, ...CAP }, { layout: "headline" })!)).toContain("A\nB.\nGo");
     expect(masText(validateMake("speaking", { script: "Hi.", caption: "C." })!)).toBeNull();
+  });
+});
+
+describe("ad versions (ad batches on /image)", () => {
+  const IDS = ["myth-bust", "dilemma", "warning"];
+  const AD_SRC = { key: "ad:2095783381019179", kind: "ad", format: "image", text: "Protect your family today with a plan that grows with you. Get a free quote." };
+  const ads = (over: Record<string, unknown> = {}) => make({ as: "ads", layout: "headline", versions: IDS, ...over });
+  const V = [
+    { formula: "myth-bust", words: { headline: "Low pay is not why you can't save", line: "Most of it leaks out in the first week after payday.", button: "Message me" }, caption: "It is rarely the pay. It is the order you spend in. Message me to see yours." },
+    { formula: "dilemma", words: { headline: "Pay off the loan or keep the cash?", line: "Both sound right until a bill lands.", button: "Ask me" }, caption: "Both sound sensible. One leaves you short when a bill lands. Tell me which you would pick." },
+    { formula: "warning", words: { headline: "Skipping your nomination quietly costs your family", line: "Without one, your family waits longer for your CPF.", button: "Check yours" }, caption: "Without a nomination your family waits. It takes ten minutes to fix. Ask me how." },
+  ];
+  const raw = (versions: unknown[] = V) => ({
+    refuse: false,
+    reason: "",
+    versions: versions.map((v) => ({ ...(v as object), words: { headline: "", line: "", button: "", quote: "", statLabel: "", ...(v as { words: object }).words } })),
+  });
+  const got = (versions: unknown[] = V, req: Record<string, unknown> = {}) => validateMake("ads", raw(versions), { layout: "headline", versions: IDS, ...req });
+
+  it("needs a layout that takes versions and 2 to 6 different known hook formulas", () => {
+    expect(AD_VERSIONS).toEqual({ min: 2, max: 6 });
+    expect(ads()).toMatchObject({ as: "ads", layout: "headline", versions: IDS });
+    expect(ads({ source: undefined, topic: "Saving on a fresh grad pay" })).toMatchObject({ topic: "Saving on a fresh grad pay", versions: IDS });
+    expect(parseMakeRequest(body({ as: "ads", versions: IDS }))).toEqual({ ok: false, error: "Pick a layout: headline, quote or stat." });
+    expect(parseMakeRequest(body({ as: "ads", layout: "testimonial", versions: IDS, brand: BIZ }))).toEqual({ ok: false, error: "A testimonial is a customer's own words, so it has one version." });
+    const bad = "Send 2 to 6 different hook formulas.";
+    expect(parseMakeRequest(body({ as: "ads", layout: "quote", versions: ["myth-bust"] }))).toEqual({ ok: false, error: bad });
+    expect(parseMakeRequest(body({ as: "ads", layout: "quote", versions: ["myth-bust", "myth-bust"] }))).toEqual({ ok: false, error: bad });
+    expect(parseMakeRequest(body({ as: "ads", layout: "quote", versions: ["myth-bust", "made-up"] }))).toEqual({ ok: false, error: bad });
+    expect(parseMakeRequest(body({ as: "ads", layout: "quote", versions: HOOK_FORMULAS.slice(0, 7).map((f) => f.id) }))).toEqual({ ok: false, error: bad });
+    expect(parseMakeRequest(body({ as: "ads", layout: "stat", versions: HOOK_FORMULAS.slice(0, 6).map((f) => f.id) })).ok).toBe(true);
+    // a version's formula is its own, never the one-formula field remix-variations sends
+    expect(ads({ formula: "contrarian" }).formula).toBeUndefined();
+  });
+
+  it("lists each formula once, in order, in the user message, with a business's own shape, and keeps the copy floor of 4", () => {
+    const { system, user } = buildMakePrompt(ads());
+    expect(system).toContain("Write 3 versions of the words for one static ad picture. Its layout is a picture with a headline");
+    expect(system).toContain("- versions: exactly 3, one for each formula listed in the message, in that order");
+    expect(system).toContain("  - words.headline: at most 8 words.");
+    expect(system).toContain("- Never put a number in the words");
+    expect(system).toContain("each says only what the facts given support");
+    expect(system).toContain("Take the topic and angle from the original ad and none of its words: no run of 4 or more words from it");
+    expect(system).not.toContain("Keep the original ad's shape");
+    expect(user.indexOf("- myth-bust (Myth bust).")).toBeGreaterThan(user.indexOf("Formulas, one version each, in this order:"));
+    expect(user.indexOf("- dilemma (Real dilemma).")).toBeGreaterThan(user.indexOf("- myth-bust"));
+    expect(user.indexOf("- warning (The warning).")).toBeGreaterThan(user.indexOf("- dilemma"));
+    expect(system).not.toContain("Myth bust");
+    const biz = buildMakePrompt(ads({ brand: BIZ, versions: ["insider", "warning"] })).user;
+    expect(biz).toContain(`Shape: ${BUSINESS_SHAPES.insider.template}`);
+    expect(buildMakePrompt(ads({ layout: "stat", shows: "A big orange number" })).user).toContain('What the original ad\'s picture shows:\n"""\nA big orange number\n"""');
+    expect(floorOf(ads())).toBe(4);
+    expect(JSON.stringify(responseFormat(ads()))).toContain('"enum":["myth-bust","dilemma","warning"]');
+  });
+
+  it("keeps every version within its layout's limits, in sentence case, one per formula sent", () => {
+    expect(got()).toEqual({ as: "ads", layout: "headline", versions: V, best: null, dropped: [], checked: false });
+    const cased = got([{ ...V[0], words: { ...V[0].words, headline: "Low Pay Is Not Why You Cannot Save" } }, V[1], V[2]]) as Extract<MakeResult, { as: "ads" }>;
+    expect(cased.versions[0].words.headline).toBe("Low pay is not why you cannot save");
+    expect(got(V.slice(0, 2))).toBeNull();
+    expect(got([V[0], V[1], { ...V[2], formula: "dilemma" }])).toBeNull();
+    expect(got([V[0], V[1], { ...V[2], formula: "contrarian" }])).toBeNull();
+    expect(got([V[0], V[1], { ...V[2], words: { ...V[2].words, headline: n(9) } }])).toBeNull();
+    expect(got([V[0], V[1], { ...V[2], caption: "Without a nomination your family waits," }])).toBeNull();
+    expect(validateMake("ads", { ...raw(), refuse: true }, { layout: "headline", versions: IDS })).toBeNull();
+    expect(refusalOf("ads", JSON.stringify({ refuse: true, reason: "It promises returns." }))).toBe("It promises returns.");
+    const quote = validateMake("ads", raw(V.map((v) => ({ ...v, words: { quote: v.words.headline } })).slice(0, 2)), { layout: "quote", versions: IDS.slice(0, 2) });
+    expect(quote).toMatchObject({ layout: "quote", versions: [{ words: { quote: V[0].words.headline } }, { words: { quote: V[1].words.headline } }] });
+    expect(textFields(got()!)).toContain(V[1].caption);
+  });
+
+  it("sends back versions that open on the same 3 words, a number or 4 words of the original, once", () => {
+    const twin = got([V[0], { ...V[1], words: { ...V[1].words, headline: "Low pay is not the reason" } }, V[2]])!;
+    expect(imageProblem(twin, ads())).toMatchObject({ kind: "same", fix: expect.stringContaining('Versions 1 and 2 open with the same words, "low pay is"'), error: "Two versions came out the same. Try again." });
+    expect(makeProblem(twin, ads())?.kind).toBe("same");
+    expect(imageProblem(got()!, ads())).toBeNull();
+    const counted = got([V[0], V[1], { ...V[2], words: { ...V[2].words, line: "It takes 10 minutes." } }])!;
+    expect(imageProblem(counted, ads())?.kind).toBe("number");
+    const copied = got([V[0], V[1], { ...V[2], words: { ...V[2].words, line: "Get a free quote for your family." } }])!;
+    expect(imageProblem(copied, ads({ source: AD_SRC }))).toMatchObject({ kind: "copy", fix: expect.stringContaining("- Get a free quote") });
+    expect(imageProblem(copied, ads({ source: undefined, topic: "CPF" }))).toBeNull();
+  });
+
+  it("asks Jev, in one call, how stopping each version is, whether it says more than the facts and, for a person, MAS", () => {
+    const q = adsQuestions(V as never, "person");
+    expect(Object.keys(q)).toEqual(["stop_0", "invented_0", "mas_0", "stop_1", "invented_1", "mas_1", "stop_2", "invented_2", "mas_2"]);
+    expect(q.stop_1).toMatchObject({ type: "score", instructions: { post: adText(V[1] as never) } });
+    expect((q.stop_1 as { criteria: unknown[] }).criteria).toHaveLength(4);
+    expect(q.invented_0).toMatchObject({ type: "noul", instructions: { question: makeQuestions("person").invented_self.instructions } });
+    expect(q.mas_2).toMatchObject({ type: "noul", instructions: { post: adText(V[2] as never), question: expect.stringContaining("promise or imply a return") } });
+    expect(adText(V[0] as never)).toBe(`${V[0].words.headline}\n${V[0].words.line}\n${V[0].words.button}\n${V[0].caption}`);
+    const biz = adsQuestions(V as never, "business");
+    expect(Object.keys(biz)).not.toContain("mas_0");
+    expect(biz.invented_0).toMatchObject({ instructions: { question: makeQuestions("business").invented_self.instructions } });
+    expect(adsState(make({ brand: BIZ }).brand)).toEqual({ poster: "ActivityTracker, a business in Singapore", audience: "Sales reps in Singapore", facts: "- What they do: Tracks daily sales activity\n- Who they serve: Sales reps in Singapore\n- Logs calls and follow-ups" });
+  });
+
+  it("drops a version that says more than the facts (0.5) or fails MAS (0.5), and marks the most stopping kept one best", () => {
+    const a = (invented: number[], mas: number[], stop: number[]) =>
+      Object.fromEntries(stop.flatMap((s, i) => [[`stop_${i}`, { type: "score" as const, score: s }], [`invented_${i}`, { type: "noul" as const, noul: invented[i] }], [`mas_${i}`, { type: "noul" as const, noul: mas[i] }]]));
+    expect(adsVerdict(a([0.1, 0.49, 0.5], [0.1, 0.1, 0.1], [1, 2, 3]), 3)).toEqual({ best: 1, dropped: [2], checked: true });
+    expect(adsVerdict(a([0.1, 0.1, 0.1], [0.5, 0.49, 0.1], [3, 2, 1]), 3)).toEqual({ best: 1, dropped: [0], checked: true });
+    expect(adsVerdict(a([0.9, 0.9, 0.1], [0.1, 0.1, 0.9], [1, 2, 3]), 3)).toEqual({ best: null, dropped: [0, 1, 2], checked: true });
+    expect(adsVerdict(null, 3)).toEqual({ best: null, dropped: [], checked: false });
+    expect(masText(got()!)).toBeNull();
   });
 });
 

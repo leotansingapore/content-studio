@@ -17,14 +17,15 @@ import {
 } from "../clone-reel/logic.ts";
 import { MAX_SCENES, MIN_SCENES, validateScript } from "../ai-video/logic.ts";
 import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { MAS_QUESTION, MAS_WARN } from "../_shared/mas.ts";
 import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
 import { POPUP_CHARS } from "../video-assist/motion.ts";
 
 /** No 'face': "You speaking" in the Make row replaces it. */
 export type Keep = "structure" | "hook" | "energy" | "topic" | "part2" | "react";
 export type Close = "loose" | "balanced" | "close";
-/** Every format is made here; the TOPIC_AS ones can also start from a typed topic. notes to meme are phase 3's format pages. */
-export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall" | "notes" | "hooks" | "image" | "meme";
+/** Every format is made here; the TOPIC_AS ones can also start from a typed topic. notes to meme are phase 3's format pages, ads the ad's versions on /image. */
+export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall" | "notes" | "hooks" | "image" | "meme" | "ads";
 export type FitReason = "serves" | "retell" | "masSafe" | "textHeavy";
 /** Who the post speaks as: the adviser in the first person, or a business that never claims a personal story. */
 export type Speaker = "person" | "business";
@@ -33,9 +34,9 @@ const NO_NAME: Record<Speaker, string> = { business: "the business", person: "th
 
 export const KEEPS: readonly Keep[] = ["structure", "hook", "energy", "topic", "part2", "react"];
 export const CLOSES: readonly Close[] = ["loose", "balanced", "close"];
-export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall", "notes", "hooks", "image", "meme"] as const satisfies readonly RemixAs[];
+export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall", "notes", "hooks", "image", "meme", "ads"] as const satisfies readonly RemixAs[];
 /** The formats a make can write from a typed topic, with no original (post, carousel and script for the agent, phase 6). */
-export const TOPIC_AS: readonly RemixAs[] = ["post", "carousel", "script", "slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
+export const TOPIC_AS: readonly RemixAs[] = ["post", "carousel", "script", "slideshow", "wall", "speaking", "notes", "hooks", "image", "meme", "ads"];
 export const MAX_TOPIC = 200;
 /** The two formats that go on to a paid AI video after the script. */
 export const VIDEO_AS = ["speaking", "explainer"] as const satisfies readonly RemixAs[];
@@ -152,6 +153,16 @@ export const AD_WORDS: Record<AdLayout, Partial<Record<AdWord, number>>> = {
 };
 /** proposal (decision 11): Jev's layout pick is taken at this or more, else Headline ad. */
 export const AD_LAYOUT_AT = 0.5;
+/** Ad versions (as "ads"): 2 to 6 versions of one layout's words in one make, each opening on its own hook formula. */
+export const AD_VERSIONS = { min: 2, max: 6 } as const;
+/** The layouts that take versions: a testimonial is a customer's own words, so it has only one. */
+export const VERSION_LAYOUTS = ["headline", "quote", "stat"] as const satisfies readonly AdLayout[];
+/** One ad version: its hook formula's id, the layout's words and the text above the picture. */
+export interface AdVersion {
+  formula: string;
+  words: Partial<Record<AdWord, string>>;
+  caption: string;
+}
 /** formats-memes' layouts and the words each one takes, with their word limits. */
 export const MEME_LAYOUTS = ["top-bottom", "nobody-me", "expectation", "pov", "post-reaction"] as const;
 export type MemeLayout = (typeof MEME_LAYOUTS)[number];
@@ -247,8 +258,10 @@ export interface MakeRequest {
   formulas?: HookFormula[];
   /** hooks only: the demo the hook opens, the only thing known about it. */
   demo?: { name: string; seconds: number };
-  /** image: an ad layout, picked by Jev when none is sent; meme: its layout, always sent. */
+  /** image: an ad layout, picked by Jev when none is sent; meme and ads: its layout, always sent. */
   layout?: AdLayout | MemeLayout;
+  /** ads only: 2 to 6 HOOK_FORMULA_COPY ids, one version on each, in this order. */
+  versions?: string[];
   /** image only: the source ad's picture in one sentence (remix-link image mode), at most 300. */
   shows?: string;
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
@@ -270,7 +283,9 @@ export type MakeResult =
   | { as: "hooks"; hooks: { text: string; formula: string; search?: string }[] }
   | { as: "image"; layout: AdLayout; layoutBy: "jev" | "default"; words: Partial<Record<AdWord, string>>; caption: string }
   /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
-  | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string };
+  | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string }
+  /** best and dropped come from Jev after writing (adsVerdict); checked is false when Jev gave no answer, so nothing was read. */
+  | { as: "ads"; layout: AdLayout; versions: AdVersion[]; best: number | null; dropped: number[]; checked: boolean };
 
 export interface Flags {
   copied: string[];
@@ -427,8 +442,8 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
   const verdict = ["good", "weak", "poor", "unknown"].find((v) => v === f.verdict) as NonNullable<MakeRequest["fit"]>["verdict"] | undefined;
   const shape = parseShape(as, r, speaker);
   if (typeof shape === "string") return { ok: false, error: shape };
-  // hooks write three formulas of their own
-  const formula = as !== "hooks" && formulaRule(r.formula) ? (r.formula as string) : undefined;
+  // hooks and ad versions write formulas of their own
+  const formula = as !== "hooks" && as !== "ads" && formulaRule(r.formula) ? (r.formula as string) : undefined;
   return {
     ok: true,
     value: {
@@ -532,6 +547,16 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
   if (as === "meme") {
     const layout = MEME_LAYOUTS.find((x) => x === r.layout);
     return layout ? { layout } : "Pick a meme layout.";
+  }
+  if (as === "ads") {
+    const layout = VERSION_LAYOUTS.find((x) => x === r.layout);
+    if (!layout) return r.layout === "testimonial" ? "A testimonial is a customer's own words, so it has one version." : "Pick a layout: headline, quote or stat.";
+    const ids = Array.isArray(r.versions) ? r.versions : [];
+    const known = ids.every((id) => HOOK_FORMULA_COPY.some((f) => f.id === id));
+    if (ids.length < AD_VERSIONS.min || ids.length > AD_VERSIONS.max || !known || new Set(ids).size !== ids.length) return `Send ${AD_VERSIONS.min} to ${AD_VERSIONS.max} different hook formulas.`;
+    if (typeof r.shows === "string" && r.shows.length > 800) return "Keep what the picture shows under 800 characters.";
+    const shows = line(r.shows, 800);
+    return { layout, versions: ids as string[], ...(shows ? { shows } : {}) };
   }
   return {};
 }
@@ -790,6 +815,36 @@ function imageRules(req: MakeRequest): string[] {
   ];
 }
 
+/**
+ * Ad versions: one layout's words several times over, each version opening on its own hook formula (listed in the
+ * message) so no two read the same, and each its own ad under the brand rules. The original, when there is one, gives
+ * the topic and angle only: the formulas set each opening, so its headline's shape is not kept.
+ */
+function adsRules(req: MakeRequest): string[] {
+  const layout = (req.layout as AdLayout | undefined) ?? "headline";
+  const [shape, ...fields] = AD_RULES[layout];
+  const n = req.versions?.length ?? AD_VERSIONS.max;
+  return [
+    "",
+    `Write ${n} versions of the words for one static ad picture. Its layout is ${shape}`,
+    `- versions: exactly ${n}, one for each formula listed in the message, in that order, each with that formula's id. Each version opens in its own formula's shape, so no two open with the same words or say the same thing.`,
+    "- Each version's words:",
+    ...fields.map((f) => `  ${f}`),
+    "- Leave every other words field empty.",
+    "- Write the words in sentence case: capitalise only the first word, names and the brand, never every word.",
+    "- Never put a number in the words: no figures, prices, percentages or counts.",
+    "- caption: the version's text above the picture, 2 or 3 complete sentences that carry the same hook and end by asking the reader to do one thing. No hashtags.",
+    "- Each version is its own ad: the brand rules below apply to each one on its own, and each says only what the facts given support, with no result, figure or promise they do not hold.",
+    ...(req.source
+      ? [
+          "- Take the topic and angle from the original ad and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers.",
+          "- The formulas set how each version opens, so the original's headline shape is not kept.",
+        ]
+      : []),
+    refuseRule(req, "an ad"),
+  ];
+}
+
 const MEME_RULES: Record<MemeLayout, string> = {
   "top-bottom": "- top: the setup, at most 10 words. bottom: the punchline, at most 10 words. Both are shown in capitals over a picture.",
   "nobody-me": "- setup: who and when, shown after 'Nobody:', starting with Me, like 'Me at 2am', at most 12 words. The layout prints 'Nobody:' itself, so never write it. punch: what they are doing, at most 12 words.",
@@ -823,13 +878,14 @@ const formatRules = (req: MakeRequest): string[] => {
     case "hooks": return hooksRules(req);
     case "image": return imageRules(req);
     case "meme": return memeRules(req);
+    case "ads": return adsRules(req);
     case "edit": return editRules(req);
     default: return FORMAT_RULES[req.as];
   }
 };
 
 /** The copy floor for a make: an ad image keeps no 4-word run (formats-static-ad), the rest the level's own. */
-export const floorOf = (req: Pick<MakeRequest, "as" | "close">) => (req.as === "image" ? 4 : RUN_FLOOR[req.close ?? "balanced"]);
+export const floorOf = (req: Pick<MakeRequest, "as" | "close">) => (req.as === "image" || req.as === "ads" ? 4 : RUN_FLOOR[req.close ?? "balanced"]);
 
 /** What a shape adds to the user message, after the original or the topic: the hook formulas and the demo, or the ad's picture. */
 function shapeLines(req: MakeRequest): string[] {
@@ -851,6 +907,19 @@ function shapeLines(req: MakeRequest): string[] {
       "Formulas:",
       ...(req.formulas ?? []).map((f) => `- ${f.id} (${f.name}). Shape: ${f.template} Example of the shape only, never its facts: ${f.example} Avoid: ${f.trap}`),
       ...(req.demo ? ["", `The demo: a ${req.demo.seconds}-second video. Its file name:`, quote(req.demo.name)] : []),
+    ];
+  }
+  if (req.as === "ads") {
+    const biz = req.brand.speaker === "business";
+    return [
+      "",
+      "Formulas, one version each, in this order:",
+      ...(req.versions ?? []).map((id) => {
+        const f = HOOK_FORMULA_COPY.find((x) => x.id === id)!;
+        const s = (biz && BUSINESS_SHAPES_COPY[id]) || f;
+        return `- ${f.id} (${f.name}). Shape: ${s.template} Example of the shape only, never its facts or numbers: ${s.example} Avoid: ${f.trap}`;
+      }),
+      ...(req.shows ? ["", "What the original ad's picture shows:", quote(req.shows)] : []),
     ];
   }
   return req.as === "image" && req.shows ? ["", "What the original ad's picture shows:", quote(req.shows)] : [];
@@ -1149,6 +1218,24 @@ export function responseFormat(req: MakeRequest): unknown {
         options: { type: "array", description: "Exactly 3 memes", items: fieldsObject(MEME_FIELDS[req.layout as MemeLayout]) },
         ...CAPTION,
       });
+    case "ads":
+      return schema("remix_ads", {
+        ...REFUSE,
+        versions: {
+          type: "array",
+          description: `Exactly ${req.versions?.length ?? 0}, one per formula, in order`,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["formula", "words", "caption"],
+            properties: {
+              formula: { type: "string", enum: req.versions ?? [] },
+              words: fieldsObject({ headline: 8, line: 16, button: 3, quote: 25, statLabel: 12 }),
+              caption: str("2 or 3 complete sentences above the picture, ending with what to do, no hashtags"),
+            },
+          },
+        },
+      });
     default:
       return MAKE_RESPONSE_FORMATS[req.as];
   }
@@ -1181,7 +1268,7 @@ const squash = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 export const straightQuotes = (t: string) => t.replace(/[\u2018\u2019\u201a\u201b]/g, "'").replace(/[\u201c\u201d\u201e\u201f]/g, '"');
 
 /** The formats whose schema lets the model refuse (a speaking script only with seconds). */
-const REFUSES: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
+const REFUSES: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme", "ads"];
 
 /** The model's own refusal: its reason, or null when it wrote the format. */
 export function refusalOf(as: MakeAs, raw: unknown): string | null {
@@ -1204,7 +1291,7 @@ export function slideshowCaption(r: Record<string, unknown>, slides: { title: st
 }
 
 /** What validateMake reads from the request: the phase 3 options, and whether Jev picked an image's layout. */
-export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout" | "brand">> & { layoutBy?: "jev" | "default" };
+export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout" | "brand" | "versions">> & { layoutBy?: "jev" | "default" };
 
 /** Each field as one clean line, kept only when it has words and fits its limit; null when any field fails. */
 function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: string[] = []): Record<string, string> | null {
@@ -1234,7 +1321,7 @@ export function validateMake(as: MakeAs, raw: unknown, req: MakeOpts = {}): Made
       .filter((t) => t.search);
     return lines.length && caption ? { as, lines, marks, texts, searches, caption: straightQuotes(caption) } : null;
   }
-  if (as === "notes" || as === "hooks" || as === "image" || as === "meme") return r.refuse === true ? null : validateShape(as, r, req);
+  if (as === "notes" || as === "hooks" || as === "image" || as === "meme" || as === "ads") return r.refuse === true ? null : validateShape(as, r, req);
   if (as === "slideshow") {
     if (r.refuse === true) return null;
     const rows = Array.isArray(r.slides) ? r.slides : [];
@@ -1337,8 +1424,18 @@ export function hookSearch(raw: unknown, brand = ""): string | undefined {
   return plain && !(name.length >= 3 && squash(t).includes(name)) ? t.toLowerCase() : undefined;
 }
 
+/**
+ * An ad's words in sentence case, Leo's rule (live check 22 Oct: "Keep Client Conversations Moving" on three ads); a
+ * quote stays as written, and the brand's own name keeps its capitals ("by" puts it mid-sentence, where sentenceCase
+ * reads names).
+ */
+function adCase(raw: Record<string, string>, caption: string, brand = ""): Record<string, string> {
+  const rest = (k: string) => [...Object.entries(raw).filter(([j]) => j !== k).map(([, v]) => v), caption, `by ${brand}`].join(". ");
+  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k === "quote" ? v : sentenceCase(v, rest(k))]));
+}
+
 /** Phase 3's shapes, each held to its limits; a caption is its own complete sentences, as the slideshow's. */
-function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: MakeOpts): MakeResult | null {
+function validateShape(as: "notes" | "hooks" | "image" | "meme" | "ads", r: Item, req: MakeOpts): MakeResult | null {
   if (as === "hooks") {
     const ids = (req.formulas ?? []).map((f) => f.id);
     const hooks = (Array.isArray(r.hooks) ? r.hooks : []).map((x) => {
@@ -1363,12 +1460,22 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: M
     const layout = AD_LAYOUTS.find((x) => x === req.layout) ?? "headline";
     // a testimonial's words come only from the facts, so the writer may leave them for the brand to type
     const raw = fieldsWithin(r.words, AD_WORDS[layout], layout === "testimonial" ? ["quote"] : []);
-    // Leo's rule, sentence case (live check 22 Oct: "Keep Client Conversations Moving" on three ads); a quote stays as
-    // written, and the brand's own name keeps its capitals ("by" puts it mid-sentence, where sentenceCase reads names)
-    const rest = (k: string) => [...Object.entries(raw ?? {}).filter(([j]) => j !== k).map(([, v]) => v), String(r.caption ?? ""), `by ${req.brand?.name ?? ""}`].join(". ");
-    const words = raw && Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k === "quote" ? v : sentenceCase(v, rest(k))]));
+    const words = raw && adCase(raw, String(r.caption ?? ""), req.brand?.name);
     const caption = words ? slideshowCaption(r, [{ title: Object.values(words).join(" "), sub: "" }]) : null;
     return words && caption ? { as, layout, layoutBy: req.layoutBy ?? "default", words, caption } : null;
+  }
+  if (as === "ads") {
+    const layout = AD_LAYOUTS.find((x) => x === req.layout) ?? "headline";
+    const ids = req.versions ?? [];
+    const rows = (Array.isArray(r.versions) ? r.versions : []).map(obj);
+    const versions = rows.map((v): AdVersion | null => {
+      const raw = fieldsWithin(v.words, AD_WORDS[layout]);
+      const caption = straightQuotes(blockText(v.caption, 600));
+      const formula = String(v.formula ?? "");
+      return raw && ENDS_SENTENCE.test(caption) && ids.includes(formula) ? { formula, words: adCase(raw, caption, req.brand?.name), caption } : null;
+    });
+    const ok = versions.length === ids.length && versions.every(Boolean) && new Set(versions.map((v) => v!.formula)).size === ids.length;
+    return ok ? { as, layout, versions: versions as AdVersion[], best: null, dropped: [], checked: false } : null;
   }
   const fields = MEME_FIELDS[req.layout as MemeLayout];
   const rows = (Array.isArray(r.options) ? r.options : []).map((x) => (req.layout === "nobody-me" ? { ...obj(x), setup: withoutNobody(obj(x).setup) } : x));
@@ -1420,7 +1527,7 @@ export const slideNumbers = (slides: { title: string }[]) =>
   });
 
 export interface MakeProblem {
-  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy" | "edit";
+  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy" | "edit" | "same";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
@@ -1613,13 +1720,19 @@ export function lengthProblem(r: MadeResult, req: Pick<MakeRequest, "seconds" | 
       };
 }
 
+/** A version's main words: the headline, the quote or the stat's line. */
+const MAIN_WORD: Record<AdLayout, AdWord> = { headline: "headline", quote: "quote", stat: "statLabel", testimonial: "quote" };
+/** The first 3 words of a version's main words, as compared: two versions opening on them read as one ad. */
+const opening = (layout: AdLayout, v: AdVersion) => (v.words[MAIN_WORD[layout]] ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean).slice(0, 3).join(" ");
+
 /**
  * An ad image's words in code (formats-static-ad): never a number, since a figure the brand didn't type is an invented
- * one (MAS), and no run of 4 words from the original ad. One fixing pass, then a refusal that keeps the use.
+ * one (MAS), and no run of 4 words from the original ad; ad versions also never open on the same 3 words. One fixing
+ * pass, then a refusal that keeps the use.
  */
 export function imageProblem(r: MadeResult, req: Pick<MakeRequest, "source">): MakeProblem | null {
-  if (r.as !== "image") return null;
-  const words = Object.values(r.words);
+  if (r.as !== "image" && r.as !== "ads") return null;
+  const words = r.as === "image" ? Object.values(r.words) : r.versions.flatMap((v) => Object.values(v.words));
   if (words.some((w) => /\d/.test(w))) {
     return {
       kind: "number",
@@ -1628,9 +1741,17 @@ export function imageProblem(r: MadeResult, req: Pick<MakeRequest, "source">): M
     };
   }
   const runs = req.source ? [...new Set(words.flatMap((w) => sharedRuns(w, req.source!.text, 4)))] : [];
-  return runs.length
-    ? { kind: "copy", fix: rewriteMessage(runs), error: "The words kept too much of the original ad. Try again." }
-    : null;
+  if (runs.length) return { kind: "copy", fix: rewriteMessage(runs), error: "The words kept too much of the original ad. Try again." };
+  if (r.as !== "ads") return null;
+  const opens = r.versions.map((v) => opening(r.layout, v));
+  const twin = opens.findIndex((o, i) => o && opens.indexOf(o) !== i);
+  return twin < 0
+    ? null
+    : {
+        kind: "same",
+        fix: `Versions ${opens.indexOf(opens[twin]) + 1} and ${twin + 1} open with the same words, "${opens[twin]}". Return the whole JSON object again with every version opening in its own formula's shape, no two starting with the same words.`,
+        error: "Two versions came out the same. Try again.",
+      };
 }
 
 const NUMBER = new RegExp(String.raw`\b${NUM}\b`, "i");
@@ -1731,6 +1852,7 @@ export function textFields(r: MadeResult): string[] {
     : r.as === "hooks" ? r.hooks.map((h) => h.text)
     : r.as === "image" ? [...Object.values(r.words), r.caption]
     : r.as === "edit" ? [...r.lines, ...r.texts.map((t) => t.text), r.caption]
+    : r.as === "ads" ? r.versions.flatMap((v) => [...Object.values(v.words), v.caption])
     : [...r.options.flatMap((o) => Object.values(o)), r.caption];
   return out.filter(Boolean);
 }
@@ -1853,6 +1975,50 @@ export function memeVerdict(answers: Record<string, JevAnswer> | null, count: nu
     if (!dropped.includes(i) && funny !== null && funny > top) [best, top] = [i, funny];
   }
   return { best, dropped };
+}
+
+/** One ad version as a reader sees it: the picture's words, then the text above it. */
+export const adText = (v: AdVersion) => [...Object.values(v.words), v.caption].filter(Boolean).join("\n");
+
+/** Who runs the ads, to whom, and the only facts they may state, for Jev's version questions. */
+export const adsState = (brand: BrandPack) => ({ ...memeState(brand), facts: jevFacts(brand) });
+
+/**
+ * Ad versions, one call: for each version, how likely the audience is to stop for it (score), whether it states
+ * anything about the brand the facts don't hold (makeQuestions' measured wording), and, for a person's brand, the
+ * shared MAS question; each version's words inside its own questions.
+ */
+export function adsQuestions(versions: AdVersion[], speaker: Speaker): Record<string, JevQuestion> {
+  const invented = makeQuestions(speaker).invented_self.instructions;
+  const q: Record<string, JevQuestion> = {};
+  versions.forEach((v, i) => {
+    const post = adText(v);
+    q[`stop_${i}`] = {
+      type: "score",
+      instructions: { post, question: "`poster` runs `post` as a paid social media ad for `audience`. How likely is that audience to stop scrolling and read it?" },
+      criteria: ["scrolls past", "might glance at it", "would read it", "would stop and read all of it"],
+    };
+    q[`invented_${i}`] = { type: "noul", instructions: { post, question: invented } };
+    if (speaker === "person") q[`mas_${i}`] = { type: "noul", instructions: { post, question: MAS_QUESTION } };
+  });
+  return q;
+}
+
+/**
+ * A version that states what the facts don't hold (FLAG_AT) or fails the MAS question (MAS_WARN) is dropped, never
+ * offered as an ad; the kept one the audience would most stop for is best. Jev null keeps all, with no best and
+ * checked false, so the page says they weren't read.
+ */
+export function adsVerdict(answers: Record<string, JevAnswer> | null, count: number): { best: number | null; dropped: number[]; checked: boolean } {
+  const all = Array.from({ length: count }, (_, i) => i);
+  const dropped = all.filter((i) => (noulOf(answers, `invented_${i}`) ?? 0) >= FLAG_AT || (noulOf(answers, `mas_${i}`) ?? 0) >= MAS_WARN);
+  let best: number | null = null;
+  let top = -Infinity;
+  for (const i of all) {
+    const stop = scoreOf(answers, `stop_${i}`);
+    if (!dropped.includes(i) && stop !== null && stop > top) [best, top] = [i, stop];
+  }
+  return { best, dropped, checked: answers !== null };
 }
 
 /**
