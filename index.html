@@ -2,6 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- origin only on every request: an address with Telegram's login fields never rides along, even on a fetch the
+         browser starts before the script below has run -->
+    <meta name="referrer" content="strict-origin" />
     <script>
       // Telegram's login_url return (src/lib/telegramConnect.ts, takeTelegramLogin): its signed fields leave the address
       // before any other script, style, font or analytics runs, and wait in this tab for the Telegram card.

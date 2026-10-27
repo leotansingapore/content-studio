@@ -166,6 +166,15 @@ describe("Telegram's login coming back to /accounts", () => {
     expect(strip).toContain(JSON.stringify(LOGIN_PARAMS));
   });
 
+  it("sends only this site's origin as the Referer, from the first byte, so no request (even one fetched ahead of the strip) carries the address", () => {
+    const meta = html.indexOf('<meta name="referrer" content="strict-origin" />');
+    expect(meta).toBeGreaterThan(0);
+    for (const later of ["<script", "<link", "<style", "<noscript"]) {
+      const i = html.indexOf(later);
+      if (i >= 0) expect(i, later).toBeGreaterThan(meta);
+    }
+  });
+
   const runStrip = (search: string, storage: "ok" | "blocked" = "ok") => {
     const stored = new Map<string, string>();
     const replaced: unknown[][] = [];
