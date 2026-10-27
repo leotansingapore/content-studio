@@ -471,6 +471,32 @@ describe("Make my version", () => {
     expect(J.sameEditJob()?.state).toBe("done");
   });
 
+  it("a second Make my version while one is being written writes once", async () => {
+    const plan = await readPlan();
+    makeFakes();
+    const first = J.startMake(UID, { ...ASK, planId: plan.id, who: "film" });
+    const second = J.startMake(UID, { ...ASK, planId: plan.id, who: "film", length: 30 });
+    await Promise.all([first, second]);
+    expect(requestMake).toHaveBeenCalledTimes(1);
+    expect(J.sameEditJob()).toMatchObject({ state: "filmed", ask: { length: 15 } });
+    expect(loadPlans(UID)[0].versions).toHaveLength(1);
+  });
+
+  it("no face: a video that can't be put together ends failed in the join's words, and the written version stays", async () => {
+    const plan = await readPlan();
+    makeFakes();
+    const { currentJoin } = await import("./videoMedia");
+    vi.mocked(currentJoin).mockImplementation(() => (vi.mocked(startSlides).mock.calls.length ? { progress: 0, state: "failed", error: "This browser can't record video." } : null));
+    try {
+      await J.startMake(UID, { ...ASK, planId: plan.id, who: "none" });
+    } finally {
+      vi.mocked(currentJoin).mockReset().mockReturnValue(null);
+    }
+    expect(J.sameEditJob()).toMatchObject({ state: "failed", error: "This browser can't record video." });
+    expect(J.sameEditBusy()).toBe(false);
+    expect(loadPlans(UID)[0].versions).toHaveLength(1);
+  });
+
   it("a reload picks up only this page's paid video, at no cost", () => {
     f.pending = { extra: { toast: "Your talking head video is ready. Export it when it looks right." } };
     expect(J.resumeSameEdit()).toBe(false);
