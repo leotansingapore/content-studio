@@ -173,7 +173,7 @@ function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
   );
 }
 
-export default function ReelFeed({ cards, board, me, onChange, onMove, onOpen, focus }: {
+export default function ReelFeed({ cards, board, me, onChange, onMove, onOpen, focus, empty = "Nothing here." }: {
   cards: ReelCard[];
   board: Board;
   me: Me | null;
@@ -181,8 +181,10 @@ export default function ReelFeed({ cards, board, me, onChange, onMove, onOpen, f
   onMove: (id: string, to: StageId) => void;
   onOpen: (id: string) => void;
   focus?: string;
+  /** What the empty list says. */
+  empty?: string;
 }) {
-  if (cards.length === 0) return <p className="rounded-xl border border-dashed border-border/70 py-8 text-center text-sm text-muted-foreground">Nothing here.</p>;
+  if (cards.length === 0) return <p className="rounded-xl border border-dashed border-border/70 py-8 text-center text-sm text-muted-foreground">{empty}</p>;
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       {cards.map((c) => <Post key={c.id} card={c} board={board} me={me} onChange={onChange} onMove={onMove} onOpen={onOpen} focused={c.id === focus} />)}

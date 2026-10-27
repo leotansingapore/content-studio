@@ -100,6 +100,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /plan | view | plan, setup (the positioning form over a built plan) | plan; setup when there is no plan | replace | /plan?view=setup |
 | /calendar | view | month, week, upcoming | remembered, else month | replace | /calendar?view=upcoming |
 | /calendar | business | all, team-posts, or a business chip's label as a slug (leo, moneybees, finternship) | remembered (shared with /board), else all; team-posts when the link has teampost | replace | /calendar?business=team-posts |
+| /calendar | business=team-posts with profile | the brand team posts sit on (teamHome, ActivityTracker): every team post on its calendar. The posts board's "Team posts to review" line links it as See all, beside Review (the first waiting, ?teampost=) | | push | /calendar?business=team-posts&profile=pmg2k1x9ab |
 | /calendar | platform | all, linkedin, instagram, facebook, tiktok, telegram | all | replace | /calendar?platform=instagram |
 | /calendar | status | all, scheduled, posted | all | replace | /calendar?status=scheduled |
 | /calendar | month | YYYY-MM, the month the month view shows | the current month, or the open item's month | replace | /calendar?month=2026-11 |
@@ -121,7 +122,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /grid | (none) | the grid has no state of its own; tiles open /generate or /carousel | | | /grid |
 | /reels | brand | a reels board brand id, or all | the open profile's brand | replace | /reels?brand=moneybees |
 | /reels | view | feed (Posts: each post whole, caption and decision beside it), board, grid | remembered, else feed | replace | /reels?view=board |
-| /reels | stage | review, changes, approved, scheduled, posted, archived, all, notes (the Posts view's stage chips; notes = open notes from someone else) | review; a card link without it shows the card's own stage | replace | /reels?stage=scheduled |
+| /reels | stage | review, changes, approved, scheduled, posted, archived, all, notes (the Posts view's stage chips; notes = open notes from someone else). The review chip reads "<brand> posts to review" ("Posts to review" over all brands), never a bare "Review", so it is not taken for team posts' review, which is "Team posts to review" on /calendar and Home | review; a card link without it shows the card's own stage | replace | /reels?stage=scheduled |
 | /reels | archived | no longer read: archived posts are the stage=archived chip; links.reels still writes archived=show, and the page ignores it | none | replace | /reels?stage=archived |
 | /reels | card | a reel card id, opens it; the Posts view also scrolls to it and marks it. A chat app that cuts the link at a `~` still opens it (the part before the `~` is matched), but put card last | none | push | /reels?card=c123 |
 | /reels | t, slide | seconds into the video, or the carousel slide, with card | none | with card | /reels?card=c123&t=12 |

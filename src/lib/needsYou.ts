@@ -12,8 +12,25 @@ import { brandOf, feedCards, type Board, type Me, type ReelCard } from "@/lib/re
 
 export function countNeedsYou(drafts: DraftEntry[], teamPosts: TeamPost[], reviews: TeamReviews, today: string, autopilotWaiting = 0): number {
   const overdue = drafts.filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) < today && !!d.scheduledFor).length;
-  const toApprove = teamPosts.filter((p) => statusOf(p, reviews[p.id]) === "waiting").length;
-  return overdue + toApprove + autopilotWaiting;
+  return overdue + teamWaiting(teamPosts, reviews).length + autopilotWaiting;
+}
+
+/** The two review queues' names, the same on /reels, /calendar and Home (Leo 27 Oct: the board's bare "Review" read as
+ * the place to approve team posts). */
+export const TEAM_TO_REVIEW = "Team posts to review";
+export const postsToReview = (brand?: string) => (brand ? `${brand} posts to review` : "Posts to review");
+
+/** Team posts waiting for Leo's OK, first to go out first. */
+export const teamWaiting = (posts: TeamPost[], reviews: TeamReviews = {}) =>
+  posts.filter((p) => statusOf(p, reviews[p.id]) === "waiting").sort((a, b) => (`${a.day}T${a.time}` < `${b.day}T${b.time}` ? -1 : 1));
+const teamPostLink = (id: string) => `/calendar?business=team-posts&teampost=${encodeURIComponent(id)}`;
+
+/** The posts board's line for team posts waiting: for the sign-ins Home's Next up lists them for (reviewer), the
+ * first one's review panel and the calendar of the brand they sit on (home, by ?profile=). null: no line. */
+export function teamReviewLine(reviewer: boolean, posts: TeamPost[], reviews: TeamReviews, home: string) {
+  const waiting = reviewer ? teamWaiting(posts, reviews) : [];
+  if (!waiting.length) return null;
+  return { n: waiting.length, first: teamPostLink(waiting[0].id), all: `/calendar?business=team-posts&profile=${encodeURIComponent(home)}` };
 }
 
 /** Posts on the posts board waiting on a decision (Review or Needs changes), for the count on its nav item. */
@@ -61,7 +78,7 @@ export const campaignsToReview = (list: Pick<Campaign, "id" | "posts">[]) =>
  * the main chunk. */
 export function homeToday(me: Me | null, board: Board | null, drafts: DraftEntry[], today: string, market: boolean, plan?: PlanCounts) {
   const rows: { label: string; n?: number; to: string }[] = (board ? waitingByBrand(board, "") : []).map((b) => ({
-    label: `To review: ${b.name}`,
+    label: postsToReview(b.name),
     n: b.n,
     to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}`,
   }));
@@ -184,15 +201,12 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
     });
   }
 
-  const waiting = (input.teamPosts ?? []).filter((p) => statusOf(p, input.reviews?.[p.id]) === "waiting").sort((a, b) => (`${a.day}T${a.time}` < `${b.day}T${b.time}` ? -1 : 1));
+  const waiting = teamWaiting(input.teamPosts ?? [], input.reviews);
   if (waiting.length)
-    items.push({
-      id: "team", kind: "team", title: waiting.length === 1 ? "1 team post waits for you" : `${waiting.length} team posts wait for you`,
-      line: "Approve or skip each one.", actions: [{ label: "Review", to: `/calendar?business=team-posts&teampost=${encodeURIComponent(waiting[0].id)}` }],
-    });
+    items.push({ id: "team", kind: "team", title: TEAM_TO_REVIEW, n: waiting.length, line: "Approve or skip each one.", actions: [{ label: "Review", to: teamPostLink(waiting[0].id) }] });
   const board = input.board;
   for (const b of board ? waitingByBrand(board, "") : [])
-    items.push({ id: `review:${b.id}`, kind: "team", title: `To review: ${b.name}`, n: b.n, actions: [{ label: "Review", to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}` }] });
+    items.push({ id: `review:${b.id}`, kind: "team", title: postsToReview(b.name), n: b.n, actions: [{ label: "Review", to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}` }] });
   if (input.me?.owner)
     for (const b of board ? notesByBrand(board, input.me) : [])
       items.push({ id: `notes:${b.id}`, kind: "team", title: `Team notes: ${b.name}`, n: b.n, actions: [{ label: "Open", to: `/reels?brand=${encodeURIComponent(b.id)}&view=feed&stage=notes` }] });
