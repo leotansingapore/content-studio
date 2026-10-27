@@ -13,6 +13,7 @@ export type DockAction =
   | { type: "feedback"; category: "feature" | "improvement" | "bug" | "question"; title: string; body: string; label: string }
   | { type: "support"; message: string; label: string }
   | { type: "go"; path: string; label: string };
+export type FbAction = Exclude<DockAction, { type: "go" }>;
 
 export interface FeedbackAnswer {
   /** assistant_events id, for thumbs. */
@@ -114,7 +115,7 @@ export async function runAction(a: DockAction, o: { identity?: DockIdentity; nav
 /** A go chip that posts to the board or messages the team rides in the thread as "fb:<the action>"; once run, "done:". */
 export const FB = "fb:";
 export const DONE = "done:";
-export function chipAction(path: string): DockAction | null {
+export function chipAction(path: string): FbAction | null {
   if (!path.startsWith(FB)) return null;
   try {
     const a = JSON.parse(path.slice(FB.length)) as DockAction;
@@ -131,10 +132,14 @@ export function chipAction(path: string): DockAction | null {
 export const feedbackFor =
   (identity?: DockIdentity) =>
   async (userId: string, threadId: string, text: string): Promise<{ text: string; go: { label: string; path: string }[] }> => {
+    // never an agent line quoting outside text (an answer card's words saved before the flag included): an ad could
+    // carry the service's own [[feedback:...]] markup, read back as its own turn
     const said = (loadThreads(userId).find((t) => t.id === threadId)?.messages ?? []).flatMap((m) =>
-      m.text ? [{ role: m.role === "user" ? ("user" as const) : ("assistant" as const), text: m.text }] : [],
+      m.text && !m.quotes && m.card?.plan.plan !== "answer" ? [{ role: m.role === "user" ? ("user" as const) : ("assistant" as const), text: m.text }] : [],
     );
     if (said[said.length - 1]?.text !== text) said.push({ role: "user", text });
+    // the backstop for lines saved before any flag: no [[ or ]] reaches the service, so its markup never arrives intact
+    for (const m of said) m.text = m.text.replace(/\[\[/g, "((").replace(/\]\]/g, "))");
     const r = await askFeedback(said, { thread: threadId, identity });
     // a service "go" keeps only an app path: the say:, format:, forget: and fb: prefixes are the engine's alone
     const go = r.actions.flatMap((a) => (a.type !== "go" ? [{ label: a.label, path: FB + JSON.stringify(a) }] : isAppPath(a.path) ? [{ label: a.label, path: a.path }] : []));

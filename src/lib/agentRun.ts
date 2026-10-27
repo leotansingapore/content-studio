@@ -95,6 +95,7 @@ export interface SkillRunLike {
 /** chatSkills.ts's API as merged in wave 2 (chat-skills): slashes are ids with no "/", runSkill never asks Jev. */
 export interface SkillsApi {
   PRICED: readonly string[];
+  QUOTING: readonly string[];
   loadMySkills(userId: string): MySkillLike[];
   matchSlash(text: string, mine: MySkillLike[]): { skill: string; rest: string } | null;
   runSkill(userId: string, skill: string, input: { postId?: string; rest?: string }): Promise<SkillRunLike>;
@@ -471,7 +472,7 @@ async function skillReply(userId: string, api: SkillsApi, skill: string, input: 
     const r = dockCard(userId, { act: "write", post: loadDrafts(userId).findIndex((d) => d.id === run.postId), day: null, time: null, message: mine?.instruction ?? input.rest ?? "", p: {} });
     if (r) return r;
   }
-  return { text: run.failed ?? (run.id ? api.skillRunText(run) : run.lines.join("\n")), go: run.links };
+  return { text: run.failed ?? (run.id ? api.skillRunText(run) : run.lines.join("\n")), go: run.links, ...(api.QUOTING.includes(skill) ? { quotes: true as const } : {}) };
 }
 
 // ---------- presses ----------
@@ -547,7 +548,7 @@ async function pressAnswer(userId: string, thread: string, msg: string, c: Agent
   const run: SkillRunLike = await api.runSkill(userId, "answer", {}).catch((e: unknown) => ({ id: "", name: "", title: "", failed: e instanceof Error ? e.message : FAILED_LINE, lines: [], links: [] }));
   for (let i = 1; i < (run.calls ?? 0); i++) live.call();
   if (run.failed) return put(userId, thread, msg, { card: nextCard(c, { type: "fail", error: run.failed })! });
-  put(userId, thread, msg, { card: approved, text: run.id ? api.skillRunText(run) : run.lines.join("\n"), go: run.links });
+  put(userId, thread, msg, { card: approved, text: run.id ? api.skillRunText(run) : run.lines.join("\n"), go: run.links, ...(api.QUOTING.includes("answer") ? { quotes: true as const } : {}) });
 }
 
 const FORMAT_LABEL: Record<AgentFormat, string> = {

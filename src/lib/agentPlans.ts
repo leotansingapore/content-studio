@@ -7,7 +7,7 @@
 import { leftOf, needsOf, refusal, shortOf, cheaperFor, unitOf, type Need, type Plan, type Short } from "@/lib/agentBudget";
 import { newCardId, nextCard, estimateScript, type AgentAct, type AgentCard, type AgentFormat, type CardStep, type Receipt } from "@/lib/agentCards";
 import { LEARNING_RECORDED, SEE_LEARNED, UNDO_LINE, correctionNudge, followingLine, scopeWords, type Correction, type Nudge } from "@/lib/agentMemory";
-import { patchMsg, type AgentMsg } from "@/lib/agentThreads";
+import { patchMsg, plainQuote, type AgentMsg } from "@/lib/agentThreads";
 import { logActivity, type ActivityKind } from "@/lib/activity";
 import { readUsage, type Usage } from "@/lib/aiUsage";
 import { AI_FOLDER, imageBusy, imageJob, makeImage, onImageJob, resumeImage } from "@/lib/aiImage";
@@ -64,6 +64,8 @@ export interface Reply {
   go?: Chip[];
   card?: AgentCard;
   receipt?: Receipt;
+  /** The text quotes outside text (agentThreads AgentMsg.quotes). */
+  quotes?: true;
 }
 /** The engine's turn while a press runs: the step line, and one more server call. */
 export interface Live {
@@ -390,7 +392,8 @@ export function competitorCard(userId: string, message: string, act: AgentAct, p
   const word = message.match(/(?:https?:\/\/[^\s]+|@[A-Za-z0-9._]{2,30})/)?.[0] ?? name?.trim() ?? "";
   const row = rowOf(word);
   const twin = row && loadCompetitors(userId).list.find((x) => sameCompetitor(x, row));
-  if (twin) return { text: `You already watch ${twin.name}.`, go: [{ label: "Competitors", path: links.competitors({ view: "list" }) }] };
+  // a watched competitor's name may come from a page read
+  if (twin) return { text: `You already watch ${plainQuote(twin.name)}.`, go: [{ label: "Competitors", path: links.competitors({ view: "list" }) }], quotes: true };
   const c = withInput(card("competitor", { plan: "competitor", act, p, input: "" }, { title: "Add a competitor", line: "", needs: [] }, now), word);
   return { text: row ? LINES.competitorLead(row.name) : undefined, card: c };
 }
@@ -735,7 +738,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         const row = rowOf(f.input ?? "");
         if (!parsed || !row) return x.fail(LINES.typeCompetitor);
         const r = addCompetitor(userId, row);
-        if (r.ok === false) return x.fail(r.reason === "duplicate" ? `You already watch ${r.existing?.name ?? "them"}.` : `${MAX_COMPETITORS} of ${MAX_COMPETITORS}. Remove one to add another.`);
+        if (r.ok === false) return x.fail(r.reason === "duplicate" ? `You already watch ${r.existing ? plainQuote(r.existing.name) : "them"}.` : `${MAX_COMPETITORS} of ${MAX_COMPETITORS}. Remove one to add another.`);
         // a link or handle needs no read; a site or a name is read in its own job, as the add bar does
         if (parsed.kind !== "link") {
           live.call();

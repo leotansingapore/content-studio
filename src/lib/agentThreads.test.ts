@@ -140,6 +140,11 @@ describe("messages", () => {
       { id: expect.stringMatching(/^m/), at: at(0).toISOString(), role: "agent", text: "Your best post was the CPF LIFE carousel.", go: [{ path: "/skills?run=r1", label: "Open the result" }] },
     ]);
   });
+
+  it("seeds a result that quotes outside text with its flag, so the feedback service never reads it", () => {
+    const t = saved(seedThread(UID, "Answer a competitor's new ad", 'Owl started "Save more"', [], undefined, true));
+    expect(t.messages[0]).toMatchObject({ role: "agent", text: 'Owl started "Save more"', quotes: true });
+  });
 });
 
 describe("limits", () => {

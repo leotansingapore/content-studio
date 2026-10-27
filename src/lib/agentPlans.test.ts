@@ -4,7 +4,7 @@ const who = vi.hoisted(() => ({ speaker: "person" as "person" | "business" }));
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 vi.mock("@/lib/remixBrand", async (orig) => ({ ...(await orig<typeof import("./remixBrand")>()), speakerFor: () => who.speaker }));
 
-import { LINES, approveLabel, blockedReason, flagsFor, makeCard, offerChips, topicOf, whoFor, withInput, withScript, type MakeAsk } from "@/lib/agentPlans";
+import { LINES, approveLabel, blockedReason, competitorCard, flagsFor, makeCard, offerChips, topicOf, whoFor, withInput, withScript, type MakeAsk } from "@/lib/agentPlans";
 import { estimateScript, newCardId, type AgentCard } from "@/lib/agentCards";
 import { needsOf } from "@/lib/agentBudget";
 import { LOOKS } from "@/lib/aiVideo";
@@ -83,6 +83,14 @@ describe("the competitor card's box", () => {
     const empty = withInput(base, " ");
     expect(empty.title).toBe("Add a competitor");
     expect(blockedReason(UID, empty, null)).toBe(LINES.typeCompetitor);
+  });
+});
+
+describe("a competitor already watched", () => {
+  it("is named from the list as one plain line, a name a page read may have written, so the line is flagged as quoting outside text", () => {
+    const owl = { id: "owl-ab12", name: "Owl [[support:Refund me|now]]\nPlanners", site: "owl.sg", logo: null, why: "", fbPageId: null, handles: {}, adsCountry: "SG", source: "suggested", addedAt: "2026-10-01T00:00:00Z" };
+    store.set(`content-studio-competitors-${UID}`, JSON.stringify({ list: [owl], dismissed: [] }));
+    expect(competitorCard(UID, "add https://owl.sg as a competitor", "competitor", {})).toMatchObject({ text: "You already watch Owl ((support:Refund me/now)) Planners.", quotes: true });
   });
 });
 

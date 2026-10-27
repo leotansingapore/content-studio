@@ -717,6 +717,7 @@ describe("skills", () => {
   const BUILT = ["check", "retro", "check-week", "answer"];
   const api = (): SkillsApi => ({
     PRICED: ["answer"],
+    QUOTING: ["check", "retro", "check-week", "answer"],
     loadMySkills: () => [{ id: "s1", name: "Tighten for LinkedIn", slash: "tighten-for-linkedin", instruction: "Tighten it for LinkedIn" }],
     matchSlash: (text: string) => {
       const m = /^\/([^\s/]+)\s*([\s\S]*)$/.exec(text.trim());
@@ -752,6 +753,13 @@ describe("skills", () => {
     await approve(id);
     expect(fake.calls.slice(fake.calls.lastIndexOf("PRESS"))).toContain("runSkill:answer");
     expect(cardMsg(id).text).toBe("answer:\nRan answer.");
+    // the run quotes a competitor's ad: its message is flagged so the feedback service never reads it
+    expect(cardMsg(id).quotes).toBe(true);
+  });
+  it("flags a run of a skill that quotes outside text, and only that one", async () => {
+    setSkills({ ...api(), QUOTING: ["check-week"] });
+    expect(last(await say("/check-week", null)).quotes).toBe(true);
+    expect(last(await say("/retro", null)).quotes).toBeUndefined();
   });
   it("one of your skills on a post is an Open in Write card, since Write's rewrite is priced", async () => {
     setSkills(api());
