@@ -3,7 +3,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
@@ -42,12 +42,16 @@ const keep = (name: string, s: number) => {
 };
 const AVATAR = "/edit?panel=ai&kind=avatar";
 
+// The first render in a fresh worker compiles React's dev server renderer and the whole panel, builds tailwind-merge's
+// class map and source-maps React's warning stacks: about two thirds of what the first test used to cost, so under a
+// loaded full-suite run it timed out. Pay it once here, on the hook's own budget.
+beforeAll(() => void html(AVATAR));
 beforeEach(() => store.clear());
 
 describe("who speaks, for Leo", () => {
   it("lists My face, each presenter and New presenter, never My photo, with the brand's Who appears pressed", () => {
     face();
-    const mei = keep("Mei", 1);
+    keep("Mei", 1);
     keep("Raj", 2);
     // the first kept presenter is the brand's default
     let m = html(AVATAR);
@@ -62,13 +66,20 @@ describe("who speaks, for Leo", () => {
     expect(m).toContain("Made by AI from your saved face.");
     expect(m).toContain(`src="${FACE}"`);
     setWho(UID, "ask");
-    expect(pressed(html(AVATAR), "Who speaks")).toEqual([]);
-    expect(html(AVATAR)).not.toContain("Save your face first");
-    // ?face= wins over the brand's choice; one that is no longer here falls back to it
-    expect(pressed(html(`${AVATAR}&face=${mei.id}`), "Who speaks")).toEqual(["Mei, AI"]);
-    expect(pressed(html(`${AVATAR}&face=presenter`), "Who speaks")).toEqual(["New presenter"]);
-    expect(html(`${AVATAR}&face=presenter`)).toContain("How your presenter looks");
-    expect(pressed(html(`${AVATAR}&face=pr-gone`), "Who speaks")).toEqual([]);
+    m = html(AVATAR);
+    expect(pressed(m, "Who speaks")).toEqual([]);
+    expect(m).not.toContain("Save your face first");
+  });
+
+  it("presses the ?face= person over the brand's choice, and falls back to it when that person is gone", () => {
+    face();
+    keep("Mei", 1);
+    const raj = keep("Raj", 2);
+    expect(pressed(html(`${AVATAR}&face=${raj.id}`), "Who speaks")).toEqual(["Raj, AI"]);
+    const m = html(`${AVATAR}&face=presenter`);
+    expect(pressed(m, "Who speaks")).toEqual(["New presenter"]);
+    expect(m).toContain("How your presenter looks");
+    expect(pressed(html(`${AVATAR}&face=pr-gone`), "Who speaks")).toEqual(["Mei, AI"]);
   });
 
   it("offers My face only while it is on, and asks to save it first when it is picked without one", () => {
