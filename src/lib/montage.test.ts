@@ -235,7 +235,19 @@ suite("the montage job", () => {
     vi.mocked(startJoin).mockReset().mockResolvedValue(undefined);
   };
   const ASK = { theme: "Singapore mornings", seconds: 15, words: false, music: null };
-  afterEach(() => void vi.mocked(currentJoin).mockReset().mockReturnValue(null));
+  afterEach(() => {
+    vi.mocked(currentJoin).mockReset().mockReturnValue(null);
+    vi.useRealTimers();
+  });
+
+  it("a second press while one is being made plans no second montage", async () => {
+    stocked();
+    const first = startMontage(ASK);
+    await startMontage({ ...ASK, theme: "Rainy days" });
+    await first;
+    expect(vi.mocked(callFn).mock.calls.filter(([, b]) => (b as { mode: string }).mode === "montage")).toHaveLength(1);
+    expect(montageJob()).toMatchObject({ state: "done" });
+  });
 
   it("ends failed in the join's own words when the video can't be put together, so Make the montage works again", async () => {
     stocked();
@@ -243,5 +255,16 @@ suite("the montage job", () => {
     await startMontage(ASK);
     expect(montageJob()).toMatchObject({ state: "failed", error: "This browser can't record video." });
     expect(montageBusy()).toBe(false);
+  });
+
+  it("joins at once when an earlier video failed to join while you were off /edit (it never waits on a failed join)", async () => {
+    vi.useFakeTimers();
+    stocked();
+    vi.mocked(currentJoin).mockImplementation(() => (vi.mocked(startJoin).mock.calls.length ? null : { progress: 0, state: "failed", error: "This browser can't record video." }));
+    const run = startMontage(ASK);
+    await vi.runAllTimersAsync();
+    await run;
+    expect(startJoin).toHaveBeenCalledTimes(1);
+    expect(montageJob()).toMatchObject({ state: "done" });
   });
 });
