@@ -5,6 +5,7 @@
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
+import { SUPABASE_URL } from "@/lib/supabase";
 import { SOCIAL_PLATFORMS, type SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
 import type { AccountView, RemovedNote } from "../../supabase/functions/social/logic.ts";
 
@@ -84,8 +85,77 @@ export async function checkSocialConnect(): Promise<boolean> {
 
 export const isNotEnabled = (e: unknown) => e instanceof EdgeError && e.status === 404 && /not enabled/i.test(e.message);
 
-export const socialStatus = (profileId: string) =>
-  callFn<SocialStatus>("social", { action: "status", profileId }, "Couldn't load your accounts. Try again in a minute.");
+/** Reads the brand's accounts (one of the day's social reads) and keeps what the Channels block shows. */
+export async function socialStatus(profileId: string): Promise<SocialStatus> {
+  const s = await callFn<SocialStatus>("social", { action: "status", profileId }, "Couldn't load your accounts. Try again in a minute.");
+  const userId = storedUserId();
+  if (userId && Array.isArray(s?.accounts)) saveChannels(userId, profileId, s.accounts);
+  return s;
+}
+
+/** The signed-in user in the session supabase-js keeps on this device, read without the auth lock (as useLeoOnly). */
+function storedUserId(): string | null {
+  try {
+    const raw = localStorage.getItem(`sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`);
+    const id = raw ? JSON.parse(raw)?.user?.id : null;
+    return typeof id === "string" && id ? id : null;
+  } catch {
+    return null; // no session stored: nothing kept, the read still answers
+  }
+}
+
+// ---- Channels: each brand's accounts as last read here (the sidebar's Channels block, Home's Next up) ----------
+// Written by socialStatus on every answer, so the block itself never spends one of the 300 daily social reads.
+// Per device and sign-in, outside the sync prefix; platform, handle and health only.
+
+export interface Channel {
+  platform: string;
+  /** Without the @; empty when the network gave none. */
+  username: string;
+  /** "error" when it needs reconnecting. */
+  health: AccountView["health"];
+}
+export interface BrandChannels {
+  at: number;
+  channels: Channel[];
+}
+const CHANNELS_KEY = "cs-social-channels-";
+const CHANNELS_CHANGED = "cs-social-channels-changed";
+
+function readChannels(userId: string): Record<string, unknown> {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHANNELS_KEY + userId) ?? "{}");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveChannels(userId: string, profileId: string, accounts: AccountView[]): void {
+  const channels: Channel[] = accounts.map((a) => ({
+    platform: a.platform,
+    username: (a.username ?? "").replace(/^@/, ""),
+    health: a.needsReconnect ? "error" : a.health,
+  }));
+  try {
+    localStorage.setItem(CHANNELS_KEY + userId, JSON.stringify({ ...readChannels(userId), [profileId]: { at: Date.now(), channels } }));
+  } catch {
+    return; // storage full or blocked: the block keeps what it showed
+  }
+  globalThis.window?.dispatchEvent?.(new Event(CHANNELS_CHANGED));
+}
+
+/** The brand's channels as last read on this device, or null when never read here. */
+export function loadChannels(userId: string | null | undefined, profileId: string): BrandChannels | null {
+  if (!userId) return null;
+  const v = readChannels(userId)[profileId] as BrandChannels | undefined;
+  return v && typeof v.at === "number" && Array.isArray(v.channels) ? v : null;
+}
+
+export function onChannelsChanged(cb: () => void): () => void {
+  window.addEventListener(CHANNELS_CHANGED, cb);
+  return () => window.removeEventListener(CHANNELS_CHANGED, cb);
+}
 
 export const connectLink = (profileId: string, platform: SocialPlatform, reconnectAccountId?: string) =>
   callFn<{ authUrl: string }>("social", { action: "connect", profileId, platform, reconnectAccountId }, "Couldn't start the connection. Try again in a minute.");

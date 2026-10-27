@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
+// the channels cache is kept under the user in supabase-js's stored session
+vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: {} }));
+const signIn = (id: string | null) =>
+  id ? localStorage.setItem("sb-abc-auth-token", JSON.stringify({ access_token: "t", user: { id } })) : localStorage.removeItem("sb-abc-auth-token");
 
 const { EdgeError } = await import("@/lib/edgeFn");
 const {
@@ -14,14 +18,18 @@ const {
   forgetSocialConnect,
   groupAccounts,
   healthLabel,
+  loadChannels,
   loadSocialDefaults,
+  onChannelsChanged,
   readConnectReturn,
   readRedirect,
   removedLine,
   saveConnectReturn,
   saveSocialDefault,
   socialConnectShown,
+  socialStatus,
 } = await import("./socialConnect");
+type AccountView = import("./socialConnect").AccountView;
 
 class MemStorage {
   private m = new Map<string, string>();
@@ -222,5 +230,73 @@ describe("the way back after connecting", () => {
     expect(readConnectReturn(now)).toBeNull();
     sessionStorage.setItem("cs-connect-return", JSON.stringify({ path: "/calendar", at: "soon" }));
     expect(readConnectReturn(now)).toBeNull();
+  });
+});
+
+describe("the channels cache (the sidebar's Channels block and Home's Next up)", () => {
+  const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+  const acct = (o: Partial<AccountView> = {}): AccountView => ({
+    id: "zac_1", platform: "instagram", username: "moneybees.sg", name: "MoneyBees SG", url: null, picture: null, health: "healthy", needsReconnect: false, issues: [], ...o,
+  });
+  const status = (accounts: AccountView[]) => ({ enabled: true, accounts, removed: [], team: accounts.length, teamCap: 10, user: accounts.length, userCap: 6 });
+
+  it("is written per brand by every status read, with platform, handle, health and read time only", async () => {
+    signIn(UID);
+    vi.useFakeTimers({ now: new Date("2026-10-27T02:00:00Z") });
+    callFn.mockResolvedValue(status([acct(), acct({ id: "zac_2", platform: "tiktok", username: "@mb.tok", needsReconnect: true, issues: ["Token expired"] })]));
+    expect(loadChannels(UID, "me")).toBeNull();
+    await socialStatus("me");
+    expect(callFn).toHaveBeenCalledWith("social", { action: "status", profileId: "me" }, expect.any(String));
+    expect(loadChannels(UID, "me")).toEqual({
+      at: Date.parse("2026-10-27T02:00:00Z"),
+      channels: [
+        { platform: "instagram", username: "moneybees.sg", health: "healthy" },
+        { platform: "tiktok", username: "mb.tok", health: "error" },
+      ],
+    });
+    // no account ids, names or issues on the device
+    expect(localStorage.getItem(`cs-social-channels-${UID}`)).not.toMatch(/zac_|MoneyBees SG|Token/);
+    // each brand keeps its own
+    callFn.mockResolvedValue(status([]));
+    await socialStatus("p2");
+    expect(loadChannels(UID, "p2")?.channels).toEqual([]);
+    expect(loadChannels(UID, "me")?.channels).toHaveLength(2);
+    // another sign-in on this device reads nothing
+    expect(loadChannels("someone-else", "me")).toBeNull();
+    expect(loadChannels(null, "me")).toBeNull();
+  });
+
+  it("keeps the last answer when a read fails, and writes nothing with no one signed in", async () => {
+    signIn(UID);
+    callFn.mockResolvedValue(status([acct()]));
+    await socialStatus("me");
+    callFn.mockRejectedValue(new EdgeError("Couldn't reach the server.", 0));
+    await expect(socialStatus("me")).rejects.toThrow();
+    expect(loadChannels(UID, "me")?.channels).toHaveLength(1);
+    signIn(null);
+    callFn.mockResolvedValue(status([]));
+    await socialStatus("me");
+    expect(loadChannels(UID, "me")?.channels).toHaveLength(1);
+  });
+
+  it("tells its listeners each time it is written", async () => {
+    const win = new EventTarget();
+    vi.stubGlobal("window", win);
+    signIn(UID);
+    const seen = vi.fn();
+    const off = onChannelsChanged(seen);
+    callFn.mockResolvedValue(status([acct()]));
+    await socialStatus("me");
+    expect(seen).toHaveBeenCalledTimes(1);
+    off();
+    await socialStatus("me");
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads anything unreadable as never read", () => {
+    for (const bad of ["{", "[]", "null", JSON.stringify({ me: { at: "today", channels: [] } }), JSON.stringify({ me: { at: 1, channels: "x" } })]) {
+      localStorage.setItem(`cs-social-channels-${UID}`, bad);
+      expect(loadChannels(UID, "me"), bad).toBeNull();
+    }
   });
 });
