@@ -88,7 +88,9 @@ Deno.serve(async (req) => {
       // nothing is made, so the adviser's use comes back (as in ai-video)
       if (!everyone.allowed) {
         await refundUsage(admin, uid, "ai-broll", day);
-        return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+        if (everyone.reason === "limit") return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+        const refusal = usageRefusal(everyone);
+        return json(refusal.body, refusal.status);
       }
       const refuse = (status: number) => json({ error: status === 403 ? "AI clip credits have run out. Tell your studio admin." : "Couldn't make the clip right now. Try again in a minute." }, 502);
       // the picture first, waited for here (about 10 to 30 s), so one call makes one clip
@@ -138,7 +140,9 @@ Deno.serve(async (req) => {
       const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-image-fix-global");
       if (!everyone.allowed) {
         await refundUsage(admin, uid, "ai-image-fix", day);
-        return json({ code: "daily_limit", error: "Today's picture fixes for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+        if (everyone.reason === "limit") return json({ code: "daily_limit", error: "Today's picture fixes for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+        const refusal = usageRefusal(everyone);
+        return json(refusal.body, refusal.status);
       }
       const fixed = await submit(FIX_MODEL, buildFixBody(url, parsed.request.fix));
       if (typeof fixed !== "string") return json({ error: fixed === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);

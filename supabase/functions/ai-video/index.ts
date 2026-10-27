@@ -500,7 +500,9 @@ Deno.serve(async (req) => {
       const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-clip-global");
       if (!everyone.allowed) {
         await giveBack("ai-clip", false);
-        return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+        if (everyone.reason === "limit") return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+        const refusal = usageRefusal(everyone);
+        return json(refusal.body, refusal.status);
       }
       const photo = r.photos[0] ?? null;
       const written = t.fixed ? null : await writeJson(openai, templateSystem(t, r.seconds, photo?.role ?? null), templateDetails(t, r.fields), PROMPT_FORMAT, 1500);
@@ -541,7 +543,9 @@ Deno.serve(async (req) => {
     const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global");
     if (!everyone.allowed) {
       await videoBack(false);
-      return json({ code: "daily_limit", error: "Today's AI videos for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      if (everyone.reason === "limit") return json({ code: "daily_limit", error: "Today's AI videos for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      const refusal = usageRefusal(everyone);
+      return json(refusal.body, refusal.status);
     }
 
     const ids: string[] = [];

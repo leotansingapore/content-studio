@@ -16,11 +16,13 @@ const LEO_TWO = "leo-uid-two";
 const db = vi.hoisted(() => {
   // cs_ai_usage in memory, keyed user|feature|day: the consume RPC, one row read and the conditional update
   const rows = new Map<string, number>();
+  const down = new Set<string>(); // features whose counter can't be read
   const today = () => new Date().toISOString().slice(0, 10);
   const key = (q: Record<string, unknown>) => `${q.user_id}|${q.feature}|${q.day}`;
   const admin = {
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
     rpc: async (_fn: string, a: Record<string, unknown>) => {
+      if (down.has(String(a.p_feature))) return { data: null, error: { message: "down" } };
       const k = `${a.p_user}|${a.p_feature}|${today()}`;
       const n = rows.get(k) ?? 0;
       if (n >= Number(a.p_limit)) return { data: null, error: null };
@@ -40,7 +42,7 @@ const db = vi.hoisted(() => {
       }),
     }),
   };
-  return { admin, rows, today, handler: null as null | ((r: Request) => Promise<Response>) };
+  return { admin, rows, down, today, handler: null as null | ((r: Request) => Promise<Response>) };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
@@ -119,6 +121,7 @@ afterAll(() => {
 
 beforeEach(() => {
   db.rows.clear();
+  db.down.clear();
   hf.calls.length = 0;
   hf.submits.length = 0;
   hf.bodies.length = 0;
@@ -159,6 +162,15 @@ describe("an explainer's uses", () => {
     expect(hf.calls).toEqual([]);
   });
 
+  it("give the adviser's use back and say try again shortly, with no Higgsfield call, when the studio's counter can't be read", async () => {
+    db.down.add("ai-video-global");
+    const res = await explainer();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "usage_unavailable" });
+    expect(mine()).toBe(0);
+    expect(hf.calls).toEqual([]);
+  });
+
   it("both come back, and the picture already queued is cancelled, when Higgsfield refuses one halfway", async () => {
     hf.submits.push(200, 500);
     const res = await explainer();
@@ -195,6 +207,15 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     expect((await send(UID, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "office" })).status).toBe(200);
     expect([used(UID, "ai-clip"), used(UID, "ai-image")]).toEqual([1, 1]);
     expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
+  });
+
+  it("give the clip's use back and say try again shortly, with no writer or Higgsfield call, when the studio's counter can't be read", async () => {
+    db.down.add("ai-clip-global");
+    const res = await send(UID, { mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" } });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "usage_unavailable" });
+    expect(used(UID, "ai-clip")).toBe(0);
+    expect([hf.calls, hf.openai]).toEqual([[], []]);
   });
 
   it("make the crumpled-notification hook for a listed account from its frame, with the tested prompt and no writer", async () => {

@@ -10,11 +10,13 @@ const SERVICE_KEY = "service-role-key";
 const db = vi.hoisted(() => {
   // cs_ai_usage in memory, keyed user|feature|day: the consume RPC, one row read and the conditional update
   const rows = new Map<string, number>();
+  const down = new Set<string>(); // features whose counter can't be read
   const today = () => new Date().toISOString().slice(0, 10);
   const key = (q: Record<string, unknown>) => `${q.user_id}|${q.feature}|${q.day}`;
   const admin = {
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
     rpc: async (_fn: string, a: Record<string, unknown>) => {
+      if (down.has(String(a.p_feature))) return { data: null, error: { message: "down" } };
       const k = `${a.p_user}|${a.p_feature}|${today()}`;
       const n = rows.get(k) ?? 0;
       if (n >= Number(a.p_limit)) return { data: null, error: null };
@@ -34,7 +36,7 @@ const db = vi.hoisted(() => {
       }),
     }),
   };
-  return { admin, rows, today, handler: null as null | ((r: Request) => Promise<Response>) };
+  return { admin, rows, down, today, handler: null as null | ((r: Request) => Promise<Response>) };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
@@ -63,6 +65,7 @@ afterAll(() => {
 
 beforeEach(() => {
   db.rows.clear();
+  db.down.clear();
   hf.submits.length = 0;
   hf.status = { status: "completed", images: [{ url: "https://cdn.higgsfield.ai/pic.png" }] };
 });
@@ -96,6 +99,26 @@ describe("Fix it", () => {
     const res = await call(await fixBody());
     expect(res.status).toBe(429);
     expect([used(UID, "ai-image-fix"), used(GLOBAL_COUNTER_USER, "ai-image-fix-global")]).toEqual([0, 40]);
+    expect(hf.submits).toEqual([]);
+  });
+});
+
+describe("the studio's counter, when it can't be read", () => {
+  it("gives the adviser's fix back and says try again shortly, with no edit asked for", async () => {
+    db.down.add("ai-image-fix-global");
+    const res = await call(await fixBody());
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "usage_unavailable" });
+    expect(used(UID, "ai-image-fix")).toBe(0);
+    expect(hf.submits).toEqual([]);
+  });
+
+  it("gives the adviser's B-roll clip back and says try again shortly, with no picture asked for", async () => {
+    db.down.add("ai-broll-global");
+    const res = await call({ mode: "broll", search: "hawker centre", line: "Lunch costs add up", aspect: "9:16" });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "usage_unavailable" });
+    expect(used(UID, "ai-broll")).toBe(0);
     expect(hf.submits).toEqual([]);
   });
 });
