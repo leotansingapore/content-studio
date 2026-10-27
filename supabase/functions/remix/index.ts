@@ -229,7 +229,8 @@ Deno.serve(async (req) => {
       }
       const result = validateMake(make.as, content, opts);
       rejected = !result;
-      if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 300));
+      // 2000: six ad versions run past 300 characters, which hid the failing field (27 Oct)
+      if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 2000));
       return result ? { result, raw: String(content) } : null;
     };
 
@@ -297,7 +298,8 @@ Deno.serve(async (req) => {
     }
     if (result.as === "ads") {
       const verdict = adsVerdict(await askJev(adsState(make.brand), adsQuestions(result.versions, make.brand.speaker), { who: "remix ads" }), result.versions.length);
-      console.log("remix ads", `best ${verdict.best}`, `dropped ${verdict.dropped.join(",") || "-"}`, `checked ${verdict.checked}`);
+      // the dropped headlines too, so a prompt change can be read against what Jev turned away
+      console.log("remix ads", `best ${verdict.best}`, `dropped ${verdict.dropped.join(",") || "-"}`, `checked ${verdict.checked}`, verdict.dropped.map((i) => JSON.stringify(result.versions[i]?.words)).join(" | "));
       // the model answered, so the use stays
       if (verdict.dropped.length === result.versions.length) return fail("refused", "None of these were safe to run. Try another topic.", 422);
       result = { ...result, ...verdict };
