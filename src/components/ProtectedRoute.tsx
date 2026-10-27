@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 import { initCloudSync } from "@/lib/cloudSync";
+import { rememberUser } from "@/lib/profiles";
 
 export default function ProtectedRoute({
   children,
@@ -21,7 +22,11 @@ export default function ProtectedRoute({
       if (!mounted) return;
       // Pull cloud workspace data before the app renders, so every feature
       // reads the freshest cross-device state from localStorage.
-      if (data.session) await initCloudSync(data.session.user.id);
+      if (data.session) {
+        // known before any page draws, so a page can tell a pending brand switch from the brand already open
+        rememberUser(data.session.user.id);
+        await initCloudSync(data.session.user.id);
+      }
       if (!mounted) return;
       setSession(data.session);
       setLoading(false);

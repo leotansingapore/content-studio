@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { slug } from "./links";
+import { brandPending } from "./profiles";
 import { useToast } from "@/hooks/use-toast";
 
 interface Opts<T extends string> {
@@ -161,8 +162,8 @@ export function useScrollToItem<T extends HTMLElement>(linked: boolean) {
 export function useGoneItem(name: string, found: boolean | undefined, what = "post", line = `That ${what} is no longer here`) {
   const [id, , drop] = useUrlItem(name);
   const [params] = useSearchParams();
-  // a ?profile= link opens its brand first (StudioLayout reloads); the post belongs to that brand, not this one
-  const switching = params.has("profile");
+  // a ?profile= link to another brand opens it first (StudioLayout reloads); the post belongs to that brand, not this one
+  const switching = brandPending(params.get("profile"));
   const { toast } = useToast();
   useEffect(() => {
     if (!id || found !== false || switching) return;

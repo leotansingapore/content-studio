@@ -49,10 +49,25 @@ pages sit behind a login. Telegram keeps the first preview it fetched for a link
 The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
 own sections below. Older params that still work are listed under "Still read".
 
-**Brand, on every page:** `?profile=<profile id>` (`me` for the default brand, else `p` plus letters and digits)
-opens that brand first, then the page. The page reloads once to switch and the param is removed once the brand is
-open; a device that doesn't know the brand yet keeps the param until its list syncs. Copy link adds it to every
-link it copies (docs/brand-isolation.md). Example: /calendar?view=upcoming&profile=pmg2k1x9ab.
+**Brand, on every page:** `?profile=<profile id>` (`me` for the default brand, else `p` plus lowercase letters and
+digits) names the brand a page shows, and every brand page keeps the open brand's id in its address at all times,
+`me` included. The studio writes it in with replace (no new history entry) on arrival and after every move inside
+the app, keeping every other param and the hash (useBrandAddress in src/lib/profiles.ts). This is the one exception
+to "defaults are left out of links": whatever is in the address bar opens on the same brand anywhere. A link that
+names another brand this device knows switches to it with one reload, and the param stays; a ?business= link that
+names a brand ends the same way, with ?profile= added. The brand switcher writes the new brand's id in before its
+reload, so the reload can't switch back. A brand this device doesn't know yet stays in the address until its list
+syncs, while the page shows the open brand. Copy link sets the param once, on brand pages only
+(docs/brand-isolation.md). A job that sends a link should always name the brand, `profile=me` too: a link without
+it opens on whichever brand that device has open. Example: /calendar?view=upcoming&profile=pmg2k1x9ab.
+
+Pages with no ?profile= in their address, since they show no one brand's things (NOT_BRAND_PAGES in
+src/lib/profiles.ts): /north-star, /marketing-north-star, /settings (the index only), /welcome, /academy,
+/tutorial, /create-guide, /feedback, /reels/team, /brands/new and /hub with its pages; outside the studio, /auth,
+/roadmap, /join, /review/<token>, /l/<slug>, /t/<slug> and /t/report/<slug>. A ?profile= link to one of them still
+switches the brand, then the param comes off. /connect, /skills, /bio, /links, /accounts, /activity and
+/automations keep it: Claude links, skills, the bio page, tracked links, social accounts, the activity log and
+autopilot are each the open brand's own.
 
 **Remix, on every page (Leo's sign-ins only):** `?remix=<source key>` opens the Remix sheet over the page
 (push; Back or the X closes it). Keys are the /generate?source= shapes under "Still read" (src/lib/remixSource.ts);

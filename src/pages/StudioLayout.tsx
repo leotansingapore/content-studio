@@ -10,7 +10,7 @@ import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
 import { checkMe, fetchBoard, forgetMe, ownerShown, reelsShown, seesBoard, sharedBoard, waitsOnMe } from "@/lib/reelsBoard";
-import { activeProfile, applyBrandLink, profileForBusiness, rememberUser } from "@/lib/profiles";
+import { activeProfile, applyBrandLink, profileForBusiness, rememberUser, useBrandAddress } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { setActivityOn } from "@/lib/activity";
@@ -316,6 +316,8 @@ export default function StudioLayout() {
   if (here && visiblePages(here.pages, email).some((p) => pathname === p.to || pathname.startsWith(p.to + "/"))) lastInSection.current[here.id] = pathname + search;
 
   useScrollMemory();
+  // ?profile=<open brand> on every brand page, after in-app moves too
+  useBrandAddress(uid);
   // Moves and cancels of auto-posts, sent to Zernio for every sign-in that can auto-post (publish-calendar)
   useZernioOutbox(uid);
 
@@ -386,15 +388,10 @@ export default function StudioLayout() {
       if (active) setUid(data.user?.id ?? null);
       if (active && data.user) {
         rememberUser(data.user.id);
-        // a link that names a brand (?profile=, or ?business= by name) opens on it (docs/brand-isolation.md)
+        // a link that names a brand (?profile=, or ?business= by name) opens on it (docs/brand-isolation.md); the
+        // address then keeps naming it (useBrandAddress)
         const sp = new URLSearchParams(window.location.search);
-        const brandLink = applyBrandLink(data.user.id, sp.get("profile") ?? profileForBusiness(data.user.id, sp.get("business")));
-        if (brandLink === "reload") return window.location.reload();
-        if (brandLink === "drop") {
-          const u = new URL(window.location.href);
-          u.searchParams.delete("profile");
-          navigate(u.pathname + u.search + u.hash, { replace: true });
-        }
+        if (applyBrandLink(data.user.id, sp.get("profile") ?? profileForBusiness(data.user.id, sp.get("business"))) === "reload") return window.location.reload();
       }
       if (active && data.user) void refreshPushHere();
       if (active && data.user) void checkSocialConnect().then((on) => active && setSocialOn(on));

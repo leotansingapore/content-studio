@@ -8,6 +8,8 @@
 // and `${userId}~${profileId}` for the others. The list syncs across devices
 // (content-studio- prefix); which profile is open is per device.
 
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { disconnectBrand } from "@/lib/socialConnect";
 
 export interface Profile {
@@ -122,6 +124,47 @@ export function activeProfile(userId: string | null | undefined): Profile {
 
 export function setActiveProfile(userId: string, id: string): void {
   storage()?.setItem(ACTIVE_PREFIX + userId, id);
+  // the address names the brand now open, so the reload after a switch opens on it instead of switching back
+  try {
+    const { pathname, search, hash } = window.location;
+    const next = brandAddress(pathname, search, hash, id, loadProfiles(userId).map((p) => p.id));
+    if (next) window.history.replaceState(window.history.state, "", next);
+  } catch {
+    // no address bar (tests, the server)
+  }
+}
+
+// Pages about no one brand (docs/deep-links.md, "Brand, on every page"): their address carries no ?profile=. Every
+// other studio page reads the open brand's things, so its address names it.
+const NOT_BRAND_PAGES = ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub"];
+
+export const brandPage = (pathname: string) => !NOT_BRAND_PAGES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+/**
+ * The address with the open brand in it: ?profile=<open> on a brand page, none on the others, every other param and
+ * the hash kept. A brand this device doesn't know is left alone (its list may still be syncing). null: already right.
+ */
+export function brandAddress(pathname: string, search: string, hash: string, open: string, known: readonly string[]): string | null {
+  const p = new URLSearchParams(search);
+  const named = p.get("profile");
+  if (named && !known.includes(named)) return null;
+  const before = p.toString();
+  if (brandPage(pathname)) p.set("profile", open);
+  else p.delete("profile");
+  const s = p.toString();
+  return s === before ? null : `${pathname}${s ? `?${s}` : ""}${hash}`;
+}
+
+/** Keeps the open brand in the address of every brand page, after every move inside the app too (brandAddress). */
+export function useBrandAddress(userId: string | null) {
+  const { pathname, search, hash, state } = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    // no user yet: the sign-in, and with it an arriving ?profile= link, hasn't been read
+    if (!userId) return;
+    const next = brandAddress(pathname, search, hash, activeProfileId(userId), loadProfiles(userId).map((p) => p.id));
+    if (next) navigate(next, { replace: true, state });
+  }, [userId, pathname, search, hash, state, navigate]);
 }
 
 // The signed-in user, known once the studio has loaded, so a copied link can name the open brand.
@@ -135,6 +178,7 @@ export function withBrand(href: string): string {
   if (!knownUser) return href;
   try {
     const u = new URL(href);
+    if (!brandPage(u.pathname)) return href;
     u.searchParams.set("profile", activeProfileId(knownUser));
     return u.toString();
   } catch {
@@ -144,17 +188,20 @@ export function withBrand(href: string): string {
 
 /**
  * A ?profile=<id> link switches to that brand first. Returns "reload" when it switched (the caller reloads, as the
- * switcher does), "drop" when the brand is already open (the caller removes the param, so the switcher's own reload
- * can't switch back), or "keep" when this device doesn't know the brand yet (its list may still be syncing).
+ * switcher does; the address already names the brand), "open" when the brand is already open, or "keep" when this
+ * device doesn't know the brand yet (its list may still be syncing).
  */
-export function applyBrandLink(userId: string, wanted: string | null): "reload" | "drop" | "keep" | "none" {
+export function applyBrandLink(userId: string, wanted: string | null): "reload" | "open" | "keep" | "none" {
   if (!wanted) return "none";
   if (!loadProfiles(userId).some((p) => p.id === wanted)) return "keep";
-  if (wanted === activeProfileId(userId)) return "drop";
+  if (wanted === activeProfileId(userId)) return "open";
   setActiveProfile(userId, wanted);
   // only when the switch stuck: blocked storage would otherwise reload forever
-  return activeProfileId(userId) === wanted ? "reload" : "drop";
+  return activeProfileId(userId) === wanted ? "reload" : "open";
 }
+
+/** The address names a brand other than the open one: a switch is on its way, or the brand isn't on this device yet. */
+export const brandPending = (named: string | null) => !!named && (!knownUser || named !== activeProfileId(knownUser));
 
 /** The brand a business is (a ?business= link, a team post's group): by its name or the posts-board brand it owns. */
 export function profileForBusiness(userId: string, business: string | null): string | null {
