@@ -109,7 +109,7 @@ POST `{ action, ... }`, the caller from their own session as in `social`:
 
 - `status`: connected or not, and the account summary (name, organisation, default Page and ad account, currency).
 - `start`: a new `state` and PKCE verifier saved on the caller's row; returns the authorize address built from
-  `ADLAUNCHER_CLIENT_ID` and `ADLAUNCHER_REDIRECT_URI` (`https://consultant-content-studio.vercel.app/adlauncher`).
+  `ADLAUNCHER_CLIENT_ID` and `ADLAUNCHER_REDIRECT_URI` (`https://app.postmosis.com/adlauncher`).
 - `finish { code, state }`: the state must match the caller's row and be under 10 minutes old; exchanges the code,
   saves the tokens, calls `whoami` and keeps its summary, clears the pending fields.
 - `call { tool, args }`: the tool must be on the allowlist. Refreshes once when under 2 minutes are left and saves the
@@ -203,7 +203,9 @@ same (senna.md S8, S12). Here, on a headline ad, quote card or stat card, the op
 ## Rollout (done by the integrating session)
 
 1. Read the SQL, apply `025` to the hub project, and run its test SQL.
-2. Register the client once at `/mcp/register` with `redirect_uris: ["https://consultant-content-studio.vercel.app/adlauncher"]`
-   and set `ADLAUNCHER_CLIENT_ID`, `ADLAUNCHER_REDIRECT_URI` and `ADLAUNCHER_TOKEN_KEY` as secrets.
+2. Register the client once at `/mcp/register` with `redirect_uris: ["https://app.postmosis.com/adlauncher",
+   "https://consultant-content-studio.vercel.app/adlauncher"]` and set `ADLAUNCHER_CLIENT_ID`, `ADLAUNCHER_REDIRECT_URI`
+   and `ADLAUNCHER_TOKEN_KEY` as secrets. Re-registered as "Postmosis" on 27 Oct 2026 for the new host; a refresh
+   keeps the client its token was issued to, so a connection made under the old client stays connected.
 3. Deploy `adlauncher` with JWT on, then push the front end.
 4. Leo connects. Test with Check (the dry run) only; Create paused waits for Leo.
