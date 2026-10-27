@@ -6,7 +6,7 @@ ad, and AdLauncher (autoadslauncher.com, repo `~/agency-launchpad-90`) launches 
 its MCP. Nothing of Meta's plumbing is copied here. Leo's sign-ins only (`leoOnly`, `LEO_EMAILS`) until he opens it.
 
 It ships in three phases that each stand alone (connect AdLauncher, "Run as an ad" from /image, results back), with
-ad batches in /image after them.
+ad batches in /image after them (section 6, Ad versions).
 
 ## What AdLauncher gives us (read in its code on 27 Oct)
 
@@ -161,6 +161,30 @@ An "Ads" block on /image, under Your images, lists the brand's saved launches wi
 `get-campaign-metrics` (spend, leads, cost per lead since the launch day), read when the block opens and at most every
 30 minutes per campaign (cached on the device in `cs-ad-results`), one campaign after another so two refreshes never
 race.
+
+### 6. Ad versions on /image
+
+Fastlane's Senna turns one idea into a batch of distinct ads, and its own users asked how they avoid all looking the
+same (senna.md S8, S12). Here, on a headline ad, quote card or stat card, the options card's Versions row (1 or 6,
+`versions=6` in the address) turns the footer's button into "Write 6 versions" ("Write 6 more" once a set exists):
+
+- One press is one remix make as `ads` (one `remix-make` use, the same price chip as Write it for me; the picture is
+  never read, though what it shows goes in when this device read it before). The app sends six hook formulas from
+  `AD_FORMULAS` (`src/components/image/AdVersions.tsx`: the `HOOK_FORMULAS` that need no number and no story the
+  facts don't hold), the next press the six after the last one written.
+- The function writes one version per formula, in that formula's shape, with its own text above the picture, and checks
+  in code that none holds a number, keeps 4 words of the original or opens on the same 3 words as another (one fixing
+  pass, then a 422 that keeps the use). Then one Jev call reads each version: whether it states anything about the
+  brand its facts don't hold (`makeQuestions`' wording), the MAS question for a person's brand, and how likely the
+  audience is to stop for it. A version that fails either check is dropped and never shown; the one most likely to stop
+  the reader is Best. All dropped is a 422 with the use kept; no Jev answer keeps all six, and the page says they
+  weren't checked against the brand's facts.
+- The kept versions are saved in the design (`SavedImage.versions`, synced with it), Best's words in the fields. Each
+  shows as a small picture in the brand kit, drawn by the page's own code, labelled with its hook's name; tapping one
+  puts its words and text in the fields, so Download, Post it for me and Run as an ad work on it unchanged.
+- Each version is launched on its own through Run as an ad, with its own firm approval code for an adviser. There is no
+  "run all 6".
+- A testimonial has no versions: it is a customer's own words.
 
 ## Rules
 
