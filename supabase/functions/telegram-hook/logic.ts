@@ -1,23 +1,24 @@
 // The Content Studio bot's webhook (docs/north-star/items/publish-telegram.md): reads Telegram's updates and ties a
 // group or channel to the brand whose one-time code the person started. Pure: the database and the bot come in.
 //
-// The tie rule, for every path (Telegram's chat picker, or the bot made an admin through the plain links): inside a
-// started, unexpired connect that the same Telegram user confirmed with Yes, the first chat that user shares or
-// makes the bot an admin of is tied, and only when the bot can post there and the person is an admin of it.
-// The Yes answers "This connects Telegram to <brand> in the Content Studio account <full email>. Is this your
-// Content Studio account?", so a link someone else made and sent shows a stranger's email, not yours.
+// Who may tie: /start <code> answers only with a Confirm button (Telegram's login_url) back to Content Studio. That
+// page, signed in, sends Telegram's signed login to the `telegram` function, which records the verified Telegram user
+// on the code only when the session is the account that made it, and then shows the pickers. So a link someone else
+// made and sent fails for you: you are not signed in to their account. Nothing personal is said in Telegram.
+//
+// The tie rule, for every path (Telegram's chat picker, or the bot made an admin through the plain links): inside an
+// unexpired connect, the first chat that the verified Telegram user shares or makes the bot an admin of is tied, and
+// only when the bot can post there and that person is an admin of it.
 
 import { secretMatches } from "../social-sweep/logic.ts";
-import { TelegramError, hashCode, type Bot } from "../_shared/telegram.ts";
+import { APP_ORIGIN } from "../social/logic.ts";
+import { PICK_TEXT, TelegramError, hashCode, pickerMessage, type Bot } from "../_shared/telegram.ts";
 
 // ---- the bot's words ----
 
 export const COPY = {
-  confirm: (brand: string | null, account: string | null) =>
-    `This connects Telegram to ${brand ? `${brand} in ` : ""}the Content Studio account ${account ?? "with no email on file"}. Is this your Content Studio account?`,
-  cancelled: "Cancelled. Nothing was connected, and that link no longer works.",
-  pick: "Pick the group or channel Content Studio should post to.",
-  notInList: (group: string, channel: string) => `Not in the list? Add me by link: ${group} or ${channel}`,
+  login: "Tap Confirm and sign in to Content Studio if it asks. Then come back here to pick your group or channel.",
+  pick: PICK_TEXT,
   expired: "That link has expired. Go back to Content Studio and tap Connect Telegram again.",
   connected: (name: string) => `Connected to ${name}. Posts you schedule in Content Studio go here between 9am and 9pm.`,
   forum: (name: string) => `${name} has topics. Posts go to General. To use another, open the topic and send /here.`,
@@ -61,12 +62,10 @@ interface TgMessage {
 interface TgUpdate {
   message?: TgMessage;
   my_chat_member?: { chat: TgChat; from: TgUser; new_chat_member: TgMember };
-  callback_query?: { id: string; from: TgUser; message?: { message_id: number; chat: TgChat }; data?: string };
 }
 
 export type Event =
-  | { kind: "start"; user: number; code: string | null; name: string }
-  | { kind: "answer"; user: number; yes: boolean; rowId: string; queryId: string; chatId: number; messageId: number }
+  | { kind: "start"; user: number; code: string | null }
   | { kind: "shared"; user: number; chatId: number; title: string | null }
   | { kind: "member"; user: number; chatId: number; chat: TgChat; member: TgMember }
   | { kind: "here"; user: number; chatId: number; topicId: number | null; topicName: string | null }
@@ -91,12 +90,6 @@ export function eventOf(u: unknown, botUsername: string): Event {
     // a private chat's my_chat_member is the person blocking or unblocking the bot
     return m.chat.type === "private" ? IGNORE : { kind: "member", user: m.from.id, chatId: m.chat.id, chat: m.chat, member: m.new_chat_member };
   }
-  const q = up.callback_query;
-  if (q) {
-    const a = /^(yes|no):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(typeof q.data === "string" ? q.data : "");
-    if (!a || typeof q.id !== "string" || !isId(q.from?.id) || q.message?.chat?.type !== "private" || !isId(q.message.chat.id) || !isId(q.message.message_id)) return IGNORE;
-    return { kind: "answer", user: q.from.id, yes: a[1] === "yes", rowId: a[2], queryId: q.id.slice(0, 64), chatId: q.message.chat.id, messageId: q.message.message_id };
-  }
   const msg = up.message;
   if (!msg?.chat || !msg.from || msg.from.is_bot || !isId(msg.chat.id) || !isId(msg.from.id)) return IGNORE;
   if (isId(msg.migrate_to_chat_id)) return { kind: "migrate", from: msg.chat.id, to: msg.migrate_to_chat_id };
@@ -109,8 +102,7 @@ export function eventOf(u: unknown, botUsername: string): Event {
   if (msg.chat.type === "private") {
     if (msg.chat_shared) return !isId(msg.chat_shared.chat_id) ? IGNORE : { kind: "shared", user: msg.from.id, chatId: msg.chat_shared.chat_id, title: msg.chat_shared.title ?? null };
     const code = command("start");
-    const name = clean(msg.from.username ? `@${msg.from.username}` : (msg.from.first_name ?? ""), 64);
-    if (code !== null) return { kind: "start", user: msg.from.id, code: CODE_RE.test(code) ? code : null, name };
+    if (code !== null) return { kind: "start", user: msg.from.id, code: CODE_RE.test(code) ? code : null };
     return { kind: "chatter", user: msg.from.id };
   }
   if ((msg.chat.type === "group" || msg.chat.type === "supergroup") && command("here") !== null) {
@@ -146,25 +138,18 @@ export interface ChatRow {
   status: "pending" | "connected" | "cant_post" | "removed" | "disconnected";
   refusal: "not_admin" | "cant_post" | null;
   created_at: string;
-  /** The brand and the account's full email the bot names before Yes (set by `telegram` start, from the session). */
-  brand_name: string | null;
-  account_email: string | null;
-  /** Who tapped Start, as the app shows "Added by". */
+  /** The Telegram user Telegram's signed login proved, as the app shows "Added by"; set by `telegram` verify. */
   tg_user_name: string | null;
-  /** When that Telegram user answered Yes; nothing is tied before it. */
+  /** When that login was verified for the account that made the code; nothing is tied before it. */
   confirmed_at: string | null;
 }
 
 export type TiedChat = Pick<ChatRow, "title" | "username" | "is_forum"> & { chat_id: number; chat_type: "group" | "supergroup" | "channel" };
 
 export interface HookDb {
-  /** Ties the Telegram user (and their name) to a pending, unexpired code's row not already started by someone else; null otherwise. */
-  claimCode(codeHash: string, tgUser: number, name: string, now: string): Promise<ChatRow | null>;
-  /** Marks Yes on the row when it is pending, unexpired and started by this same Telegram user; null otherwise. */
-  confirm(rowId: string, tgUser: number, now: string): Promise<ChatRow | null>;
-  /** No: the pending row started by this Telegram user turns disconnected, so its code is dead. */
-  cancelCode(rowId: string, tgUser: number, now: string): Promise<boolean>;
-  /** The user's newest started connect still inside its 15 minutes, confirmed or not, or null. */
+  /** The pending, unexpired connect with this code's hash, or null. */
+  rowForCode(codeHash: string, now: string): Promise<ChatRow | null>;
+  /** The newest unexpired connect whose verified Telegram user is this one, or null. */
   startedFor(tgUser: number, now: string): Promise<ChatRow | null>;
   /**
    * Ties a pending row to the chat; false when it is no longer pending (another update tied it first). An older live
@@ -192,39 +177,6 @@ const isAdmin = (m: TgMember | null) => m?.status === "creator" || m?.status ===
 /** The bot posts only as an admin, and in a channel only with Post messages. */
 export const botCanPost = (m: TgMember | null, type: ChatType) => m?.status === "administrator" && (type !== "channel" || m.can_post_messages === true);
 
-const ADMIN_RIGHTS = {
-  is_anonymous: false,
-  can_manage_chat: true,
-  can_delete_messages: false,
-  can_manage_video_chats: false,
-  can_restrict_members: false,
-  can_promote_members: false,
-  can_change_info: false,
-  can_invite_users: false,
-  can_post_stories: false,
-  can_edit_stories: false,
-  can_delete_stories: false,
-};
-
-/** Telegram's own chat pickers (KeyboardButtonRequestChat): the bot asked in as an admin, in a channel with Post messages. */
-export function pickerKeyboard() {
-  const group = ADMIN_RIGHTS;
-  const channel = { ...ADMIN_RIGHTS, can_post_messages: true };
-  const ask = (request_id: number, chat_is_channel: boolean, rights: typeof channel | typeof group) => ({
-    request_id,
-    chat_is_channel,
-    user_administrator_rights: rights,
-    bot_administrator_rights: rights,
-    request_title: true,
-    request_username: true,
-  });
-  return {
-    keyboard: [[{ text: "Pick a group", request_chat: ask(1, false, group) }, { text: "Pick a channel", request_chat: ask(2, true, channel) }]],
-    resize_keyboard: true,
-    one_time_keyboard: true,
-  };
-}
-
 /** Reads one update and acts on it. Answers a short outcome for the log, which never names a person or a chat. */
 export async function handleUpdate(update: unknown, d: HookDeps): Promise<string> {
   const e = eventOf(update, d.botUsername);
@@ -242,31 +194,20 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
         await say(e.user, COPY.chatter);
         return "start:bare";
       }
-      const r = await d.db.claimCode(await hashCode(e.code), e.user, e.name, now);
-      if (!r) {
+      const r = await d.db.rowForCode(await hashCode(e.code), now);
+      if (!r || (r.tg_user_id !== null && r.tg_user_id !== e.user)) {
         await say(e.user, COPY.expired);
         return "start:refused";
       }
-      await say(e.user, COPY.confirm(r.brand_name, r.account_email), {
-        reply_markup: { inline_keyboard: [[{ text: "Yes", callback_data: `yes:${r.id}` }, { text: "No", callback_data: `no:${r.id}` }]] },
-      });
-      return "start:asked";
-    }
-    case "answer": {
-      // stop the button's spinner, and take Yes and No away so neither is pressed twice
-      await d.bot.call("answerCallbackQuery", { callback_query_id: e.queryId }).catch(() => undefined);
-      await d.bot.call("editMessageReplyMarkup", { chat_id: e.chatId, message_id: e.messageId, reply_markup: { inline_keyboard: [] } }).catch(() => undefined);
-      if (!e.yes) {
-        await say(e.user, (await d.db.cancelCode(e.rowId, e.user, now)) ? COPY.cancelled : COPY.expired);
-        return "answer:no";
+      if (r.tg_user_id === e.user) {
+        // already verified as this Telegram user (a second tap on the link): the pickers again
+        const m = pickerMessage(d.botUsername);
+        await say(e.user, m.text, { reply_markup: m.reply_markup });
+        return "start:pick";
       }
-      if (!(await d.db.confirm(e.rowId, e.user, now))) {
-        await say(e.user, COPY.expired);
-        return "answer:refused";
-      }
-      const link = (kind: string, rights: string) => `https://t.me/${d.botUsername}?${kind}&admin=${rights}`;
-      await say(e.user, `${COPY.pick}\n\n${COPY.notInList(link("startgroup", "manage_chat"), link("startchannel", "post_messages"))}`, { reply_markup: pickerKeyboard() });
-      return "answer:yes";
+      // Telegram opens this with its signed login added; /accounts sends it to `telegram` verify, signed in
+      await say(e.user, COPY.login, { reply_markup: { inline_keyboard: [[{ text: "Confirm", login_url: { url: `${APP_ORIGIN}/accounts?telegram=${r.id}` } }]] } });
+      return "start:login";
     }
     case "shared": {
       const r = confirmedOnly(await d.db.startedFor(e.user, now));
@@ -309,7 +250,7 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
 
 type Say = (chatId: number, text: string, extra?: Record<string, unknown>) => Promise<void>;
 
-/** A started connect counts only once its Telegram user said Yes to the brand and account it names. */
+/** A connect counts only once Telegram's signed login was verified for the account that made the code. */
 const confirmedOnly = (r: ChatRow | null) => (r?.confirmed_at ? r : null);
 
 async function tie(d: HookDeps, r: ChatRow, user: number, chatId: number, sharedTitle: string | null, now: string, say: Say): Promise<string> {

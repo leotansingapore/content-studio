@@ -105,3 +105,75 @@ export async function hashCode(code: string): Promise<string> {
 }
 
 export const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
+
+// ---- Telegram's login check (a login_url button; https://core.telegram.org/widgets/login#checking-authorization) ----
+
+/** The fields Telegram adds to a login_url, besides hash. */
+export const LOGIN_FIELDS = ["id", "first_name", "last_name", "username", "photo_url", "auth_date"] as const;
+const LOGIN_MAX_AGE_S = 600;
+const BAD_LOGIN = "Telegram couldn't confirm this. Tap Confirm in Telegram again.";
+const OLD_LOGIN = "That confirmation is too old. Tap Confirm in Telegram again.";
+
+/**
+ * Checks the fields a login_url came back with: HMAC-SHA256 of the sorted "key=value" lines, keyed by SHA256 of the
+ * bot token, must equal hash, and auth_date must be under 10 minutes old. Answers the Telegram user it proves.
+ */
+export async function checkTelegramLogin(auth: Record<string, unknown>, token: string, now: number): Promise<{ ok: true; id: number; name: string } | { ok: false; error: string }> {
+  const hash = typeof auth.hash === "string" ? auth.hash : "";
+  if (!/^[0-9a-f]{64}$/.test(hash)) return { ok: false, error: BAD_LOGIN };
+  const fields = LOGIN_FIELDS.filter((k) => typeof auth[k] === "string").map((k) => [k, auth[k] as string] as const);
+  const check = fields.map(([k, v]) => `${k}=${v}`).sort().join("\n");
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", await crypto.subtle.digest("SHA-256", enc.encode(token)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const want = [...new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(check)))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  let diff = 0;
+  for (let i = 0; i < 64; i++) diff |= want.charCodeAt(i) ^ hash.charCodeAt(i);
+  if (diff !== 0) return { ok: false, error: BAD_LOGIN };
+  const at = Number(auth.auth_date);
+  const age = now / 1000 - at;
+  if (!Number.isSafeInteger(at) || age > LOGIN_MAX_AGE_S || age < -60) return { ok: false, error: OLD_LOGIN };
+  const id = Number(auth.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return { ok: false, error: BAD_LOGIN };
+  const name = typeof auth.username === "string" && auth.username ? `@${auth.username}` : typeof auth.first_name === "string" ? auth.first_name : "";
+  return { ok: true, id, name: name.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 64) };
+}
+
+// ---- the pickers: Telegram's own chat pickers (KeyboardButtonRequestChat), shown once the login is verified ----
+
+export const PICK_TEXT = "Pick the group or channel Content Studio should post to.";
+
+const ADMIN_RIGHTS = {
+  is_anonymous: false,
+  can_manage_chat: true,
+  can_delete_messages: false,
+  can_manage_video_chats: false,
+  can_restrict_members: false,
+  can_promote_members: false,
+  can_change_info: false,
+  can_invite_users: false,
+  can_post_stories: false,
+  can_edit_stories: false,
+  can_delete_stories: false,
+};
+
+/** The bot asked in as an admin, in a channel with Post messages; the plain links cover a chat the picker doesn't list. */
+export function pickerMessage(botUsername: string) {
+  const channelRights = { ...ADMIN_RIGHTS, can_post_messages: true };
+  const ask = (request_id: number, chat_is_channel: boolean, rights: object) => ({
+    request_id,
+    chat_is_channel,
+    user_administrator_rights: rights,
+    bot_administrator_rights: rights,
+    request_title: true,
+    request_username: true,
+  });
+  const link = (kind: string, rights: string) => `https://t.me/${botUsername}?${kind}&admin=${rights}`;
+  return {
+    text: `${PICK_TEXT}\n\nNot in the list? Add me by link: ${link("startgroup", "manage_chat")} or ${link("startchannel", "post_messages")}`,
+    reply_markup: {
+      keyboard: [[{ text: "Pick a group", request_chat: ask(1, false, ADMIN_RIGHTS) }, { text: "Pick a channel", request_chat: ask(2, true, channelRights) }]],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    },
+  };
+}

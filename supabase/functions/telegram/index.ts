@@ -1,6 +1,8 @@
 // Telegram for the app (docs/north-star/items/publish-telegram.md, on ns/phase7): start a connect, disconnect a chat,
 // upload links for a post's files and queue a post. The bot's own side (the code, the picked chat, sending) is
 // telegram-hook. The page reads its rows itself (026: owner-only SELECT), so there is no status action here.
+// verify takes Telegram's signed login from the bot's Confirm button (login_url, which needs the bot's domain set to
+// consultant-content-studio.vercel.app with /setdomain in BotFather) and is not counted against a cap.
 //
 // Off, with no table or Telegram call, unless TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME are set and the caller is
 // on NORTH_STAR_USERS: 404 {enabled:false}. Caps: telegram-connect, telegram-presign, telegram-schedule (usageCaps.ts).
@@ -11,7 +13,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { BUCKET, botClient } from "../_shared/telegram.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { isAllowed } from "../social/logic.ts";
-import { parseRequest, runDisconnect, runPresign, runSchedule, runStart, type FnDb, type OwnRow, type PostView } from "./logic.ts";
+import { parseRequest, runDisconnect, runPresign, runSchedule, runStart, runVerify, type FnDb, type OwnRow, type PostView } from "./logic.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +32,12 @@ function fnDb(db: SupabaseClient): FnDb {
   return {
     async insertConnect(row) {
       return must(await chats().insert(row).select("id").single(), "start") as { id: string };
+    },
+    async verifyLogin(uid, rowId, tgUser, name, now) {
+      // tgUser is a safe integer from the checked login, so the filter text is only digits
+      const r = await chats().update({ tg_user_id: tgUser, tg_user_name: name || null, confirmed_at: now }).eq("id", rowId).eq("owner_id", uid).eq("status", "pending")
+        .gt("code_expires_at", now).or(`tg_user_id.is.null,tg_user_id.eq.${tgUser}`).select("id");
+      return (must(r, "verify") as unknown[]).length > 0;
     },
     async ownRow(uid, profileId, id) {
       return must(await chats().select("id, chat_id, status").eq("owner_id", uid).eq("profile_id", profileId).eq("id", id).maybeSingle(), "own row") as OwnRow | null;
@@ -88,22 +96,8 @@ Deno.serve(async (req) => {
     const db = fnDb(admin);
     const now = Date.now();
     const reply =
-      q.action === "start"
-        ? await runStart(db, uid, q.profileId, username, now, {
-            email: userData.user?.email,
-            profiles: async () => {
-              // the brand list cloudSync keeps for this account (src/lib/profiles.ts, content-studio-profiles-<uid>)
-              const { data, error } = await admin.from("cs_user_data").select("data").eq("user_id", uid).eq("key", `content-studio-profiles-${uid}`).maybeSingle();
-              if (error) return null;
-              if (!data) return [];
-              try {
-                const list = JSON.parse(data.data);
-                return Array.isArray(list) ? list : null;
-              } catch {
-                return null;
-              }
-            },
-          })
+      q.action === "start" ? await runStart(db, uid, q.profileId, username, now)
+      : q.action === "verify" ? await runVerify(db, botClient(token), token, username, uid, q.chatRow, q.auth, now)
       : q.action === "disconnect" ? await runDisconnect(db, botClient(token), uid, q.profileId, q.chatRow, now)
       : q.action === "presign"
         ? await runPresign(async (path) => {

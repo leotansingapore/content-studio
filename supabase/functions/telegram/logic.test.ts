@@ -1,6 +1,7 @@
+import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram";
-import { CODE_MINUTES, brandFor, parseRequest, runDisconnect, runPresign, runSchedule, runStart, type FnDb, type OwnRow } from "./logic";
+import { CODE_MINUTES, parseRequest, runDisconnect, runPresign, runSchedule, runStart, runVerify, type FnDb, type OwnRow } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const OTHER_UID = "7e57c0de-0000-4000-8000-0000000000d2";
@@ -13,8 +14,9 @@ const MB = 1024 * 1024;
 const pic = (uid = UID, profile = "me", ext = "jpg") => `${uid}/${profile}/00000000-0000-4000-8000-000000000001.${ext}`;
 
 interface Post { owner_id: string; client_key: string; chat_row: string; send_at: string; text: string; media: string[]; status: string; error?: string }
+type Row = OwnRow & { owner_id: string; profile_id: string; tg_user_id?: number | null; tg_user_name?: string | null; confirmed_at?: string | null; code_expires_at?: string };
 
-function fakeDb(rows: (OwnRow & { owner_id: string; profile_id: string })[] = []) {
+function fakeDb(rows: Row[] = []) {
   const inserted: Record<string, unknown>[] = [];
   const posts: Post[] = [];
   const db: FnDb = {
@@ -42,6 +44,12 @@ function fakeDb(rows: (OwnRow & { owner_id: string; profile_id: string })[] = []
     async insertPosts(list) {
       for (const p of list) if (!posts.some((x) => x.owner_id === p.owner_id && x.client_key === p.client_key && x.chat_row === p.chat_row)) posts.push({ ...p, status: "scheduled" });
     },
+    async verifyLogin(uid, id, tgUser, name, now) {
+      const r = rows.find((x) => x.id === id && x.owner_id === uid && x.status === "pending" && (x.code_expires_at ?? "") > now && (x.tg_user_id == null || x.tg_user_id === tgUser));
+      if (!r) return false;
+      Object.assign(r, { tg_user_id: tgUser, tg_user_name: name, confirmed_at: now });
+      return true;
+    },
     async postsFor(uid, key, ids) {
       return posts.filter((p) => p.owner_id === uid && p.client_key === key && ids.includes(p.chat_row)).map((p) => ({ id: `${p.chat_row}:post`, chat_row: p.chat_row, send_at: p.send_at, status: p.status }));
     },
@@ -67,9 +75,9 @@ function stubBot(leave: () => unknown = () => true) {
 
 describe("reading a request", () => {
   it("takes the four actions and turns away anything else", () => {
-    expect(parseRequest({ action: "start", profileId: "me" })).toEqual({ ok: true, req: { action: "start", profileId: "me" } });
-    // the brand the bot names comes from the caller's own stored brands, never from the request
-    expect(parseRequest({ action: "start", profileId: "me", brandName: "Someone Else's Brand" })).toEqual({ ok: true, req: { action: "start", profileId: "me" } });
+    expect(parseRequest({ action: "start", profileId: "me", brandName: "x", email: "y" })).toEqual({ ok: true, req: { action: "start", profileId: "me" } });
+    expect(parseRequest({ action: "verify", chatRow: ROW, auth: { id: "1", hash: "h", auth_date: "2", extra: "x" } })).toEqual({ ok: true, req: { action: "verify", chatRow: ROW, auth: { id: "1", hash: "h", auth_date: "2" } } });
+    expect(parseRequest({ action: "verify", chatRow: "nope", auth: {} })).toMatchObject({ ok: false, status: 404 });
     expect(parseRequest({ action: "status", profileId: "me" })).toMatchObject({ ok: false, status: 400 });
     expect(parseRequest({ action: "start", profileId: "../x" })).toMatchObject({ ok: false, status: 404 });
     expect(parseRequest({ action: "disconnect", profileId: "me", chatRow: "1 or 1=1" })).toMatchObject({ ok: false, status: 404 });
@@ -102,50 +110,76 @@ describe("reading a request", () => {
 });
 
 describe("start", () => {
-  const brands = [{ id: "me", name: "Leo Tan" }, { id: "pmoneybees", name: "MoneyBees" }];
-  const who = (o: Partial<{ email: string | null; profiles: () => Promise<{ id: string; name: string }[] | null> }> = {}) => ({ email: "leo@example.com", profiles: async () => brands, ...o });
-
-  it("names the brand from the caller's own stored brands, and refuses a brand that isn't theirs", () => {
-    expect(brandFor(brands, "pmoneybees")).toEqual({ ok: true, name: "MoneyBees" });
-    expect(brandFor(brands, "pother")).toEqual({ ok: false });
-    // everyone has the default brand; with no stored name the bot leaves the brand out
-    expect(brandFor([], "me")).toEqual({ ok: true, name: null });
-    // the brands can't be read: leave the brand out rather than trust anything else
-    expect(brandFor(null, "pother")).toEqual({ ok: true, name: null });
-  });
-
-  it("stores only the code's hash, for 15 minutes, with the stored brand name and the session's full email, and links to the bot with the code", async () => {
+  it("stores only the code's hash, for 15 minutes, and links to the bot with the code", async () => {
     const { db, inserted } = fakeDb();
-    const out = await runStart(db, UID, "pmoneybees", "cs_test_bot", NOW, who());
+    const out = await runStart(db, UID, "me", "cs_test_bot", NOW);
     expect(out.status).toBe(200);
     const { rowId, link, expiresAt } = out.body as { rowId: string; link: string; expiresAt: string };
     const code = /^https:\/\/t\.me\/cs_test_bot\?start=([A-Za-z0-9_-]{32,64})$/.exec(link)![1];
     expect(rowId).toBe(ROW);
     expect(expiresAt).toBe(new Date(NOW + CODE_MINUTES * 60_000).toISOString());
     expect(CODE_MINUTES).toBe(15);
-    expect(inserted).toEqual([{ owner_id: UID, profile_id: "pmoneybees", code_hash: await hashCode(code), code_expires_at: expiresAt, brand_name: "MoneyBees", account_email: "leo@example.com" }]);
+    expect(inserted).toEqual([{ owner_id: UID, profile_id: "me", code_hash: await hashCode(code), code_expires_at: expiresAt }]);
     expect(JSON.stringify(inserted)).not.toContain(code);
-  });
-
-  it("refuses another user's brand: nothing is stored and no link is made", async () => {
-    const { db, inserted } = fakeDb();
-    const out = await runStart(db, UID, "pother", "cs_test_bot", NOW, who());
-    expect(out.status).toBe(404);
-    expect(out.body).not.toHaveProperty("link");
-    expect(inserted).toEqual([]);
-  });
-
-  it("leaves the brand out when the stored brands can't be read", async () => {
-    const { db, inserted } = fakeDb();
-    await runStart(db, UID, "pmoneybees", "cs_test_bot", NOW, who({ profiles: async () => null }));
-    expect(inserted[0]).toMatchObject({ brand_name: null, account_email: "leo@example.com" });
   });
 
   it("makes a new code every time", async () => {
     const { db } = fakeDb();
-    const a = (await runStart(db, UID, "me", "cs_test_bot", NOW, who())).body.link;
-    const b = (await runStart(db, UID, "me", "cs_test_bot", NOW, who())).body.link;
+    const a = (await runStart(db, UID, "me", "cs_test_bot", NOW)).body.link;
+    const b = (await runStart(db, UID, "me", "cs_test_bot", NOW)).body.link;
     expect(a).not.toBe(b);
+  });
+});
+
+describe("verify: Telegram's signed login, for the account that made the code", () => {
+  const TOKEN = "7000000001:TEST-token-for-fixtures-only";
+  const sign = (fields: Record<string, string>, token = TOKEN) => {
+    const check = Object.keys(fields).sort().map((k) => `${k}=${fields[k]}`).join("\n");
+    return { ...fields, hash: createHmac("sha256", createHash("sha256").update(token).digest()).update(check).digest("hex") };
+  };
+  const login = (o: Record<string, string> = {}) => sign({ id: "111000111", first_name: "Leo", username: "leo_test", auth_date: String(Math.floor(NOW / 1000) - 30), ...o });
+  const pending = (o: Partial<Row> = {}): Row => ({ id: ROW, owner_id: UID, profile_id: "me", chat_id: null, status: "pending", tg_user_id: null, code_expires_at: new Date(NOW + 10 * 60_000).toISOString(), ...o });
+  const verify = (db: FnDb, bot: Bot, uid: string, auth: Record<string, string>) => runVerify(db, bot, TOKEN, "cs_test_bot", uid, ROW, auth, NOW);
+
+  it("records the verified Telegram user on the caller's own code and shows that user the pickers", async () => {
+    const { db, rows } = fakeDb([pending()]);
+    const { bot, calls } = stubBot(() => ({ message_id: 9 }));
+    expect(await verify(db, bot, UID, login())).toEqual({ status: 200, body: { linked: true, picker: true } });
+    expect(rows[0]).toMatchObject({ tg_user_id: 111000111, tg_user_name: "@leo_test", confirmed_at: new Date(NOW).toISOString() });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ method: "sendMessage", params: { chat_id: 111000111, text: expect.stringContaining("Pick the group or channel") } });
+    expect(JSON.stringify(calls[0].params)).toContain("request_chat");
+  });
+
+  it("refuses a signed-in session of a different account: someone else's code stays untouched", async () => {
+    const { db, rows } = fakeDb([pending()]);
+    const { bot, calls } = stubBot();
+    expect((await verify(db, bot, OTHER_UID, login())).status).toBe(404);
+    expect(rows[0].tg_user_id).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses a bad hash or a stale login before the code is touched", async () => {
+    for (const auth of [{ ...login(), hash: "0".repeat(64) }, { ...login(), id: "222000222" }, login({ auth_date: String(Math.floor(NOW / 1000) - 601) }), sign({ id: "111000111", auth_date: String(Math.floor(NOW / 1000)) }, "7000000002:another-bot")]) {
+      const { db, rows } = fakeDb([pending()]);
+      const { bot, calls } = stubBot();
+      expect((await verify(db, bot, UID, auth)).status).toBe(400);
+      expect(rows[0].tg_user_id).toBeNull();
+      expect(calls).toEqual([]);
+    }
+  });
+
+  it("refuses an expired code, one already verified for another Telegram user, and one no longer waiting", async () => {
+    for (const r of [pending({ code_expires_at: new Date(NOW).toISOString() }), pending({ tg_user_id: 222000222 }), pending({ status: "connected", chat_id: -100 })]) {
+      const { db, rows } = fakeDb([r]);
+      expect((await verify(db, stubBot().bot, UID, login())).status).toBe(404);
+      expect(rows[0].tg_user_id ?? null).toBe(r.tg_user_id ?? null);
+    }
+  });
+
+  it("is still linked when the pickers can't be sent; the link in Telegram offers them again", async () => {
+    const { db } = fakeDb([pending()]);
+    expect(await verify(db, stubBot(() => new TelegramError(403, "Forbidden: bot was blocked by the user")).bot, UID, login())).toEqual({ status: 200, body: { linked: true, picker: false } });
   });
 });
 

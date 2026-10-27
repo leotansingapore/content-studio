@@ -13,14 +13,13 @@
 -- Security model
 --   * The bot token is the edge secret TELEGRAM_BOT_TOKEN only; nothing here stores a token.
 --   * The one-time code is never stored: code_hash is its sha256 (hex). It expires 15 minutes after it is made
---     (code_expires_at) and belongs to the first Telegram user who taps Start with it (tg_user_id).
---   * A code someone else made can't tie your chat to their account: before any picker, the bot names the brand
---     (looked up on the server from the caller's own brands) and the full email of the signed-in account that made
---     the code (brand_name, account_email, both from the server, never the request) and asks "Is this your Content
---     Studio account?". The owner reads their own email back in their rows, nobody else.
---     Only that same Telegram user's Yes (confirmed_at) lets a chat be tied, and a row can't be live without it
---     (cs_telegram_chats_confirmed); No turns the row disconnected. The app shows who connected each chat
---     (tg_user_name) beside Disconnect.
+--     (code_expires_at).
+--   * A code someone else made can't tie your chat to their account. /start <code> answers only with a Confirm
+--     button (Telegram's login_url) back to /accounts; there, signed in, the `telegram` function checks Telegram's
+--     signed login against the bot token and records that Telegram user (tg_user_id, tg_user_name, confirmed_at)
+--     only when the session is the account that made the code. Only that Telegram user's pick or admin change ties
+--     a chat, and a row can't be live without a verified login (cs_telegram_chats_confirmed). Nothing personal is
+--     sent in Telegram. The app shows who connected each chat (tg_user_name) beside Disconnect.
 --   * Rows are written only by the edge functions with the service role. The owner may read their own rows (the
 --     page polls its connect row every 3 s, and lists its chats and posts); anon has no grant at all.
 --   * The bucket is private with no storage.objects policy: files go up through signed upload URLs made by the
@@ -82,13 +81,10 @@ create table if not exists public.cs_telegram_chats (
   -- sha256 of the one-time code, hex; the code itself is never stored
   code_hash text not null unique check (code_hash ~ '^[a-f0-9]{64}$'),
   code_expires_at timestamptz not null,
-  -- the Telegram user who tapped Start with the code, and their @name or first name for "Added by"
+  -- the Telegram user whose signed login was verified for the account that made the code, their @name or first
+  -- name for "Added by", and when
   tg_user_id bigint,
   tg_user_name text check (char_length(tg_user_name) <= 64),
-  -- what the bot names before the pickers: the brand, and the full email of the account that made the code
-  brand_name text check (char_length(brand_name) <= 80),
-  account_email text check (char_length(account_email) <= 320),
-  -- when that Telegram user answered Yes to "Is this your Content Studio account?"
   confirmed_at timestamptz,
   -- the chat, once tied (Telegram ids fit 52 bits)
   chat_id bigint,
@@ -109,7 +105,7 @@ create table if not exists public.cs_telegram_chats (
   removed_at timestamptz,
   check (status in ('pending', 'disconnected') or chat_id is not null),
   constraint cs_telegram_chats_confirmed check (
-    (confirmed_at is null or tg_user_id is not null)
+    (confirmed_at is null) = (tg_user_id is null)
     and (status in ('pending', 'disconnected') or confirmed_at is not null)
   )
 );

@@ -32,9 +32,6 @@ import userCreator from "./fixtures/api-member-user-creator.json";
 import userAdmin from "./fixtures/api-member-user-admin.json";
 import userMember from "./fixtures/api-member-user-member.json";
 import sendOk from "./fixtures/api-send-message.json";
-import yes from "./fixtures/update-callback-yes.json";
-import no from "./fixtures/update-callback-no.json";
-import yesOther from "./fixtures/update-callback-yes-other-user.json";
 
 const CODE = "Abc_DEF-123456789012345678901234";
 const NOW = Date.parse("2026-11-02T10:00:00+08:00");
@@ -53,22 +50,9 @@ interface Post { id: string; chat_row: string; status: string; error?: string }
 function fakeDb(rows: ChatRow[], posts: Post[] = []) {
   const live = (r: ChatRow, now: string) => r.status === "pending" && r.code_expires_at > now;
   const db: HookDb = {
-    async claimCode(hash, user, name, now) {
-      const r = rows.find((x) => x.code_hash === hash && live(x, now) && (x.tg_user_id === null || x.tg_user_id === user));
-      if (!r) return null;
-      Object.assign(r, { tg_user_id: user, tg_user_name: name });
-      return { ...r };
-    },
-    async confirm(id, user, now) {
-      const r = rows.find((x) => x.id === id && x.tg_user_id === user && live(x, now));
-      if (!r) return null;
-      r.confirmed_at = now;
-      return { ...r };
-    },
-    async cancelCode(id, user, now) {
-      const r = rows.find((x) => x.id === id && x.tg_user_id === user && x.status === "pending");
-      if (r) r.status = "disconnected";
-      return !!r;
+    async rowForCode(hash, now) {
+      const r = rows.find((x) => x.code_hash === hash && live(x, now));
+      return r ? { ...r } : null;
     },
     async startedFor(user, now) {
       return rows.filter((x) => x.tg_user_id === user && live(x, now)).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
@@ -120,13 +104,11 @@ const row = async (o: Partial<ChatRow> = {}): Promise<ChatRow> => ({
   status: "pending",
   refusal: null,
   created_at: iso(NOW - 5 * 60_000),
-  brand_name: "MoneyBees",
-  account_email: "leo@example.com",
   tg_user_name: null,
   confirmed_at: null,
   ...o,
 });
-/** Leo tapped Start and Yes a minute ago: the picker is up. */
+/** Leo's Telegram login was verified for the account that made the code a minute ago: the pickers are up. */
 const confirmed = (o: Partial<ChatRow> = {}) => row({ tg_user_id: LEO, tg_user_name: "@leo_test", confirmed_at: iso(NOW - 60_000), ...o });
 
 type Answer = { ok: boolean; result: unknown } | TelegramError;
@@ -145,7 +127,6 @@ function stubBot(members: Record<string, Answer> = {}, chats: Record<number, Ans
       sent.push({ method, params });
       if (method === "getChat") return answer(chats[params.chat_id as number], new TelegramError(400, "Bad Request: chat not found")) as T;
       if (method === "getChatMember") return answer(members[`${params.chat_id}:${params.user_id}`], NOT_THERE) as T;
-      if (method === "answerCallbackQuery" || method === "editMessageReplyMarkup") return true as T;
       if (method === "sendMessage") {
         if (sendFails) throw new TelegramError(403, "Forbidden: bot was blocked by the user");
         return sendOk.result as T;
@@ -192,7 +173,7 @@ describe("the hook's gate", () => {
 
 describe("every update shape", () => {
   it.each([
-    ["/start <code>", start, { kind: "start", user: LEO, code: CODE, name: "@leo_test" }],
+    ["/start <code>", start, { kind: "start", user: LEO, code: CODE }],
     ["/start alone", startNoCode, { kind: "start", user: LEO, code: null }],
     ["chat_shared", sharedGroup, { kind: "shared", user: LEO, chatId: GROUP, title: "Test group" }],
     ["my_chat_member", adminGroup, { kind: "member", user: LEO, chatId: GROUP }],
@@ -202,9 +183,7 @@ describe("every update shape", () => {
     ["a private message", chatter, { kind: "chatter", user: OTHER }],
     ["a group message", groupChatter, { kind: "ignore" }],
     ["the bot blocked in a private chat", blocked, { kind: "ignore" }],
-    ["Yes", yes, { kind: "answer", user: LEO, yes: true, rowId: "00000000-0000-4000-8000-0000000000c1", queryId: "4382bfdwdsb323b2d9", chatId: LEO, messageId: 20 }],
-    ["No", no, { kind: "answer", user: LEO, yes: false, rowId: "00000000-0000-4000-8000-0000000000c1" }],
-    ["a button answer with other data", { callback_query: { ...yes.callback_query, data: "yes:not-a-row" } }, { kind: "ignore" }],
+    ["a button answer, which this bot never asks for", { update_id: 2, callback_query: { id: "1", from: { id: LEO }, data: "x" } }, { kind: "ignore" }],
     ["junk", { update_id: 1, edited_message: {} }, { kind: "ignore" }],
     ["not an object", "hello", { kind: "ignore" }],
   ])("reads %s", (_name, update, want) => {
@@ -236,42 +215,48 @@ describe("every update shape", () => {
 // ---- connecting ----
 
 describe("/start with the one-time code", () => {
-  it("ties the Telegram user to the code and asks whether the named brand and account are theirs, with no picker yet", async () => {
+  it("answers only with a Confirm button back to Content Studio: no pickers, no email, no brand", async () => {
     const { db, rows } = fakeDb([await row()]);
     const { bot, replies } = stubBot(GOOD);
     await run(start, db, bot);
-    expect(rows[0]).toMatchObject({ tg_user_id: LEO, tg_user_name: "@leo_test", confirmed_at: null });
-    const [reply] = replies();
-    expect(reply).toEqual({
-      chat_id: LEO,
-      text: "This connects Telegram to MoneyBees in the Content Studio account leo@example.com. Is this your Content Studio account?",
-      reply_markup: { inline_keyboard: [[{ text: "Yes", callback_data: `yes:${rows[0].id}` }, { text: "No", callback_data: `no:${rows[0].id}` }]] },
-    });
-    expect(JSON.stringify(reply)).not.toContain("request_chat");
+    expect(rows[0].tg_user_id).toBeNull();
+    expect(replies()).toEqual([
+      {
+        chat_id: LEO,
+        text: "Tap Confirm and sign in to Content Studio if it asks. Then come back here to pick your group or channel.",
+        reply_markup: { inline_keyboard: [[{ text: "Confirm", login_url: { url: `https://consultant-content-studio.vercel.app/accounts?telegram=${rows[0].id}` } }]] },
+      },
+    ]);
+    expect(JSON.stringify(replies())).not.toContain("request_chat");
   });
 
-  it("names the account alone when the brand has no name", async () => {
-    const { db } = fakeDb([await row({ brand_name: null })]);
+  it("offers the pickers again to the verified Telegram user who taps the link a second time", async () => {
+    const { db } = fakeDb([await confirmed()]);
     const { bot, replies } = stubBot(GOOD);
     await run(start, db, bot);
-    expect(replies()[0].text).toBe(COPY.confirm(null, "leo@example.com"));
-    expect(COPY.confirm(null, "leo@example.com")).toBe("This connects Telegram to the Content Studio account leo@example.com. Is this your Content Studio account?");
+    const [reply] = replies();
+    expect(reply.chat_id).toBe(LEO);
+    expect(reply.text).toContain(COPY.pick);
+    expect(reply.text).toContain("https://t.me/cs_test_bot?startgroup&admin=manage_chat");
+    expect(reply.text).toContain("https://t.me/cs_test_bot?startchannel&admin=post_messages");
+    expect(reply.parse_mode).toBeUndefined();
+    const [[group, channel]] = (reply.reply_markup as { keyboard: { text: string; request_chat: Record<string, unknown> }[][] }).keyboard;
+    expect(group).toMatchObject({ text: "Pick a group", request_chat: { request_id: 1, chat_is_channel: false, request_title: true, bot_administrator_rights: { can_manage_chat: true } } });
+    expect(channel).toMatchObject({ text: "Pick a channel", request_chat: { request_id: 2, chat_is_channel: true, bot_administrator_rights: { can_post_messages: true } } });
   });
 
-  it("refuses the same code from another Telegram user", async () => {
-    const { db, rows } = fakeDb([await row({ tg_user_id: LEO })]);
+  it("refuses a code already verified for another Telegram user", async () => {
+    const { db } = fakeDb([await confirmed({ tg_user_id: OTHER })]);
     const { bot, replies } = stubBot(GOOD);
-    await run(startOther, db, bot);
-    expect(rows[0].tg_user_id).toBe(LEO);
-    expect(replies()).toEqual([expect.objectContaining({ chat_id: OTHER, text: COPY.expired })]);
+    await run(start, db, bot);
+    expect(replies()).toEqual([expect.objectContaining({ chat_id: LEO, text: COPY.expired })]);
   });
 
   it("refuses an expired code, and one already connected", async () => {
-    for (const r of [await row({ code_expires_at: iso(NOW - 1) }), await row({ status: "connected", chat_id: GROUP, tg_user_id: LEO })]) {
-      const { db, rows } = fakeDb([r]);
+    for (const r of [await row({ code_expires_at: iso(NOW - 1) }), await row({ status: "connected", chat_id: GROUP, tg_user_id: LEO, confirmed_at: iso(NOW) })]) {
+      const { db } = fakeDb([r]);
       const { bot, replies } = stubBot(GOOD);
       await run(start, db, bot);
-      expect(rows[0].status === "pending" ? rows[0].tg_user_id : "kept").toBe(r.status === "pending" ? null : "kept");
       expect(replies().map((x) => x.text)).toEqual([COPY.expired]);
     }
   });
@@ -284,57 +269,24 @@ describe("/start with the one-time code", () => {
   });
 });
 
-describe("Yes or No: is this your Content Studio account?", () => {
-  it("on Yes from the person who started, confirms and only then offers Telegram's own group and channel pickers", async () => {
-    const { db, rows } = fakeDb([await row({ tg_user_id: LEO })]);
-    const { bot, replies, sent } = stubBot(GOOD);
-    await run(yes, db, bot);
-    expect(rows[0].confirmed_at).toBe(iso(NOW));
-    expect(sent.slice(0, 2)).toEqual([
-      { method: "answerCallbackQuery", params: { callback_query_id: "4382bfdwdsb323b2d9" } },
-      { method: "editMessageReplyMarkup", params: { chat_id: LEO, message_id: 20, reply_markup: { inline_keyboard: [] } } },
-    ]);
-    const [reply] = replies();
-    expect(reply.chat_id).toBe(LEO);
-    expect(reply.text).toContain(COPY.pick);
-    expect(reply.text).toContain("https://t.me/cs_test_bot?startgroup&admin=manage_chat");
-    expect(reply.text).toContain("https://t.me/cs_test_bot?startchannel&admin=post_messages");
-    expect(reply.parse_mode).toBeUndefined();
-    const [[group, channel]] = (reply.reply_markup as { keyboard: { text: string; request_chat: Record<string, unknown> }[][] }).keyboard;
-    expect(group).toMatchObject({ text: "Pick a group", request_chat: { request_id: 1, chat_is_channel: false, request_title: true, bot_administrator_rights: { can_manage_chat: true } } });
-    expect(channel).toMatchObject({ text: "Pick a channel", request_chat: { request_id: 2, chat_is_channel: true, bot_administrator_rights: { can_post_messages: true } } });
-  });
-
-  it("on No, cancels the code: no picker, and nothing can be tied with it afterwards", async () => {
-    const { db, rows } = fakeDb([await row({ tg_user_id: LEO })]);
-    const { bot, replies } = stubBot(GOOD);
-    await run(no, db, bot);
-    expect(rows[0]).toMatchObject({ status: "disconnected", confirmed_at: null });
-    expect(replies().map((x) => x.text)).toEqual([COPY.cancelled]);
-    await run(yes, db, bot);
-    await run(adminGroup, db, bot);
-    await run(sharedGroup, db, bot);
-    expect(rows[0]).toMatchObject({ status: "disconnected", confirmed_at: null, chat_id: null });
-    expect(replies().map((x) => x.text)).toEqual([COPY.cancelled, COPY.expired, COPY.expired]);
-  });
-
-  it("ignores a Yes for someone else's code: a different Telegram user can't confirm it", async () => {
-    const { db, rows } = fakeDb([await row({ tg_user_id: LEO })]);
-    const { bot, replies } = stubBot(GOOD);
-    await run(yesOther, db, bot);
-    expect(rows[0].confirmed_at).toBeNull();
-    expect(replies()).toEqual([expect.objectContaining({ chat_id: OTHER, text: COPY.expired })]);
-  });
-
-  it("ties nothing from the bot being made an admin, or a shared chat, before Yes", async () => {
+describe("only the Telegram user verified for the code's account can tie", () => {
+  it("ties nothing without a verified login, however the bot was added or the chat shared", async () => {
     for (const update of [adminGroup, adminChannel, sharedGroup, sharedChannel]) {
-      const { db, rows } = fakeDb([await row({ tg_user_id: LEO })]);
+      // the person tapped Start but no login was verified for the account that made the code
+      const { db, rows } = fakeDb([await row({ tg_user_id: null })]);
+      await run(start, db, stubBot(GOOD).bot);
       await run(update, db, stubBot(GOOD).bot);
       expect(rows[0]).toMatchObject({ status: "pending", chat_id: null });
     }
   });
 
-  it("ties nothing for a different Telegram user than the one who said Yes, even an admin of the chat", async () => {
+  it("ties nothing for a row marked with a Telegram user but no verified login", async () => {
+    const { db, rows } = fakeDb([await row({ tg_user_id: LEO, confirmed_at: null })]);
+    await run(adminGroup, db, stubBot(GOOD).bot);
+    expect(rows[0]).toMatchObject({ status: "pending", chat_id: null });
+  });
+
+  it("ties nothing for a different Telegram user than the verified one, even an admin of the chat", async () => {
     const theirs = structuredClone(adminGroup);
     theirs.my_chat_member.from = { id: OTHER, is_bot: false, first_name: "Someone", language_code: "en" } as typeof theirs.my_chat_member.from;
     const { db, rows } = fakeDb([await confirmed()]);
@@ -344,10 +296,24 @@ describe("Yes or No: is this your Content Studio account?", () => {
     expect(rows[0]).toMatchObject({ status: "pending", chat_id: null });
   });
 
-  it("ties nothing once the code's 15 minutes are up, even after Yes", async () => {
+  it("ties nothing once the code's 15 minutes are up, even after a verified login", async () => {
     const { db, rows } = fakeDb([await confirmed({ code_expires_at: iso(NOW - 1) })]);
     await run(adminGroup, db, stubBot(GOOD).bot);
     expect(rows[0]).toMatchObject({ status: "pending", chat_id: null });
+  });
+
+  it("never puts an email address in anything the bot says, whatever comes in", async () => {
+    const said: string[] = [];
+    for (const update of [start, startNoCode, startOther, sharedGroup, sharedChannel, sharedOther, adminGroup, adminChannel, memberGroup, demotedChannel, kicked, left, hereTopic, hereGeneral, hereOther, migrate, chatter, groupChatter]) {
+      for (const r of [await row(), await confirmed(), await confirmed({ status: "connected", chat_id: GROUP, chat_type: "supergroup", title: "Test group" })]) {
+        const { db } = fakeDb([r]);
+        const { bot, sent } = stubBot(GOOD);
+        await run(update, db, bot);
+        said.push(...sent.filter((x) => x.method === "sendMessage").map((x) => JSON.stringify(x.params)));
+      }
+    }
+    expect(said.length).toBeGreaterThan(20);
+    for (const text of said) expect(text).not.toMatch(/[^\s"@/]+@[^\s"@]+\.[a-z]{2,}/i);
   });
 });
 

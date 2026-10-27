@@ -1,5 +1,6 @@
 // Telegram on /accounts and in the schedule steps (docs/north-star/items/publish-telegram.md, on ns/phase7): start a
-// connect, disconnect a chat, upload links for a post's files, and queue a post. Every id from a request is checked
+// connect, verify the Telegram login that comes back from the bot's Confirm button, disconnect a chat, upload links
+// for a post's files, and queue a post. Every id from a request is checked
 // against the caller's own rows before it is used, and every file path against the caller's own folder. Pure: the
 // database, the storage and the bot come in.
 
@@ -9,10 +10,13 @@ import {
   MEDIA_MAX,
   PHOTO_MAX_BYTES,
   TEXT_MAX,
+  LOGIN_FIELDS,
   TelegramError,
   VIDEO_MAX_BYTES,
   VIDEO_TOO_BIG,
+  checkTelegramLogin,
   hashCode,
+  pickerMessage,
   intoSendingHours,
   isUuid,
   mediaKindOf,
@@ -29,6 +33,8 @@ export interface FileAsk {
 
 export type TelegramRequest =
   | { action: "start"; profileId: string }
+  /** Telegram's login_url fields as they came back to /accounts?telegram=<chatRow>. */
+  | { action: "verify"; chatRow: string; auth: Record<string, string> }
   | { action: "disconnect"; profileId: string; chatRow: string }
   | { action: "presign"; profileId: string; files: FileAsk[] }
   /** sendAt null: now. */
@@ -54,10 +60,18 @@ export function fileProblem(f: FileAsk): string | null {
 
 export function parseRequest(body: unknown): Parsed {
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+  if (b.action === "verify") {
+    if (!isUuid(b.chatRow)) return notFound;
+    const raw = (b.auth && typeof b.auth === "object" ? b.auth : {}) as Record<string, unknown>;
+    // Telegram's own fields only, as strings; anything else never reaches the check
+    const auth = Object.fromEntries(
+      [...LOGIN_FIELDS, "hash"].filter((k) => typeof raw[k] === "string" && (raw[k] as string).length <= 512).map((k) => [k, raw[k] as string]),
+    );
+    return { ok: true, req: { action: "verify", chatRow: b.chatRow, auth } };
+  }
   if (b.action !== "start" && b.action !== "disconnect" && b.action !== "presign" && b.action !== "schedule") return bad("Unknown action.");
   if (!isProfileId(b.profileId)) return notFound;
   const profileId = b.profileId;
-  // anything else in the body (a brand name, an email) is ignored: the bot's question is built on the server only
   if (b.action === "start") return { ok: true, req: { action: "start", profileId } };
   if (b.action === "disconnect") return isUuid(b.chatRow) ? { ok: true, req: { action: "disconnect", profileId, chatRow: b.chatRow } } : notFound;
   if (b.action === "presign") {
@@ -110,7 +124,12 @@ export interface PostView {
 }
 
 export interface FnDb {
-  insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string; brand_name: string | null; account_email: string | null }): Promise<{ id: string }>;
+  insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string }): Promise<{ id: string }>;
+  /**
+   * Records the verified Telegram user on the caller's own waiting, unexpired code, unless another Telegram user was
+   * verified for it first; false when there is no such code.
+   */
+  verifyLogin(uid: string, rowId: string, tgUser: number, name: string, now: string): Promise<boolean>;
   /** The caller's row in this brand, or null. */
   ownRow(uid: string, profileId: string, id: string): Promise<OwnRow | null>;
   /** Whether another connected row (any brand, any owner) still posts to the chat. */
@@ -136,41 +155,29 @@ function newCode(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/**
- * The brand the bot names, from the caller's own synced brand list (src/lib/profiles.ts). A brand id not in it is
- * refused, except the default "me" every account has. A list that can't be read leaves the brand out.
- */
-export function brandFor(list: { id: string; name: string }[] | null, profileId: string): { ok: true; name: string | null } | { ok: false } {
-  if (!list) return { ok: true, name: null };
-  const p = list.find((x) => x && x.id === profileId);
-  if (!p) return profileId === "me" ? { ok: true, name: null } : { ok: false };
-  const name = typeof p.name === "string" ? p.name.replace(/[\u0000-\u001f\u007f\s]+/g, " ").trim().slice(0, 80) : "";
-  return { ok: true, name: name || null };
-}
-
-export interface Starter {
-  /** The signed-in account's email, from the verified session. */
-  email: string | null | undefined;
-  /** The caller's stored brands, or null when they can't be read. */
-  profiles: () => Promise<{ id: string; name: string }[] | null>;
-}
-
-export async function runStart(db: FnDb, uid: string, profileId: string, botUsername: string, now: number, who: Starter): Promise<Reply> {
-  const brand = brandFor(await who.profiles(), profileId);
-  if (!brand.ok) return NOT_FOUND;
+export async function runStart(db: FnDb, uid: string, profileId: string, botUsername: string, now: number): Promise<Reply> {
   const code = newCode();
   const expiresAt = iso(now + CODE_MINUTES * 60_000);
-  // The bot names these before any picker: the account's full email (a stranger's is plain to see) and the brand.
-  const { id } = await db.insertConnect({
-    owner_id: uid,
-    profile_id: profileId,
-    code_hash: await hashCode(code),
-    code_expires_at: expiresAt,
-    brand_name: brand.name,
-    account_email: typeof who.email === "string" && who.email.length <= 320 ? who.email : null,
-  });
+  const { id } = await db.insertConnect({ owner_id: uid, profile_id: profileId, code_hash: await hashCode(code), code_expires_at: expiresAt });
   // the code goes back once, in the link, and is never stored or logged
   return ok({ rowId: id, link: `https://t.me/${botUsername}?start=${code}`, expiresAt });
+}
+
+/**
+ * The bot's Confirm button (login_url) brought Telegram's signed login back to /accounts, where the person is signed
+ * in. The login must check out against the bot token and be under 10 minutes old, and the code must be the caller's
+ * own: a link someone else made fails here, because the person who opens it isn't signed in to that account. Then
+ * that Telegram user, and only that one, gets the pickers.
+ */
+export async function runVerify(db: FnDb, bot: Bot, token: string, botUsername: string, uid: string, chatRow: string, auth: Record<string, string>, now: number): Promise<Reply> {
+  const login = await checkTelegramLogin(auth, token, now);
+  if (!login.ok) return { status: 400, body: { error: login.error } };
+  if (!(await db.verifyLogin(uid, chatRow, login.id, login.name, iso(now)))) {
+    return { status: 404, body: { error: "This link isn't for this Content Studio account, or it expired. Start again from Social accounts." } };
+  }
+  const m = pickerMessage(botUsername);
+  const picker = await bot.call("sendMessage", { chat_id: login.id, text: m.text, reply_markup: m.reply_markup }).then(() => true, () => false);
+  return ok({ linked: true, picker });
 }
 
 export async function runDisconnect(db: FnDb, bot: Bot, uid: string, profileId: string, chatRow: string, now: number): Promise<Reply> {

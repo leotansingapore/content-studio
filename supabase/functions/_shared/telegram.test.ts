@@ -1,7 +1,9 @@
+import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   TelegramError,
   botClient,
+  checkTelegramLogin,
   hashCode,
   inSendingHours,
   intoSendingHours,
@@ -93,5 +95,35 @@ describe("the small pieces", () => {
     expect(mediaKindOf("u/me/x.webp")).toBe("photo");
     expect(mediaKindOf("u/me/x.mp4")).toBe("video");
     expect(mediaKindOf("u/me/x.mov")).toBeNull();
+  });
+});
+
+describe("Telegram's login check (login_url)", () => {
+  const NOW = Date.parse("2026-11-02T10:00:00+08:00");
+  // signed here with Node's own crypto, as Telegram documents it: HMAC-SHA256 of the sorted fields, keyed by SHA256(token)
+  const sign = (fields: Record<string, string>, token = TOKEN) => {
+    const check = Object.keys(fields).sort().map((k) => `${k}=${fields[k]}`).join("\n");
+    return { ...fields, hash: createHmac("sha256", createHash("sha256").update(token).digest()).update(check).digest("hex") };
+  };
+  const fields = { id: "111000111", first_name: "Leo", username: "leo_test", auth_date: String(Math.floor(NOW / 1000) - 60) };
+
+  it("accepts Telegram's signed fields and answers the Telegram user", async () => {
+    expect(await checkTelegramLogin(sign(fields), TOKEN, NOW)).toEqual({ ok: true, id: 111000111, name: "@leo_test" });
+    const { username: _u, ...noUsername } = fields;
+    expect(await checkTelegramLogin(sign({ ...noUsername, last_name: "Tan", photo_url: "https://t.me/i/userpic/320/x.jpg" }), TOKEN, NOW)).toEqual({ ok: true, id: 111000111, name: "Leo" });
+  });
+
+  it("refuses a bad hash, a changed field, another bot's signature, or no hash", async () => {
+    const good = sign(fields);
+    for (const auth of [{ ...good, hash: "0".repeat(64) }, { ...good, id: "222000222" }, sign(fields, "7000000002:another-bot"), { ...fields }, { ...good, hash: "not-hex" }]) {
+      expect(await checkTelegramLogin(auth, TOKEN, NOW)).toEqual({ ok: false, error: "Telegram couldn't confirm this. Tap Confirm in Telegram again." });
+    }
+  });
+
+  it("refuses a sign-in more than 10 minutes old, or from the future", async () => {
+    const stale = sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 601) });
+    const ahead = sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) + 120) });
+    for (const auth of [stale, ahead]) expect(await checkTelegramLogin(auth, TOKEN, NOW)).toEqual({ ok: false, error: "That confirmation is too old. Tap Confirm in Telegram again." });
+    expect((await checkTelegramLogin(sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 599) }), TOKEN, NOW)).ok).toBe(true);
   });
 });
