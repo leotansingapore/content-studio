@@ -100,7 +100,9 @@ describe("layoutImage", () => {
 
   it("cuts words that can't fit with an ellipsis and says so", () => {
     for (const layout of AD_LAYOUT_IDS) {
-      const words = Object.fromEntries(IMAGE_FIELDS[layout].map((f) => [f.key, "overlong ".repeat(120)]));
+      // four times each field's limit in its own unit; 120 words in a one-line field took ~0.5 s of CPU, as
+      // ellipsize trims a 1,000-character line a character at a time, and timed out under load
+      const words = Object.fromEntries(IMAGE_FIELDS[layout].map((f) => [f.key, "overlong ".repeat(f.unit === "words" ? 4 * f.max : Math.ceil((4 * f.max) / 9))]));
       const drawn = layoutImage(input(layout, { words }), "wide", measure);
       expect(drawn.overflow, layout).toBe(true);
       expect(texts(drawn.nodes).some((t) => t.text.endsWith("…")), layout).toBe(true);
