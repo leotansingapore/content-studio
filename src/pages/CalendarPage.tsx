@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -182,15 +182,12 @@ const dateInputClass =
 
 export default function CalendarPage() {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { hash } = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Team rule: members on approval can't mark a post posted until it is approved.
   const reviews = useDraftReviews(userId, drafts);
   const [postOpenId, setPostOpenId] = useState<string | null>(null);
-  // The post whose network preview is open in its panel.
-  const [previewId, setPreviewId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const update = useUrlUpdate();
   const leo = useLeoUser();
@@ -206,8 +203,10 @@ export default function CalendarPage() {
   const [status, setStatus] = useUrlState<StatusFilter>("status", "all", { allowed: STATUSES });
   const [selectedId] = useUrlItem("post");
   // Opening or closing a post closes Leo's schedule steps with it, so they never reopen on the next post picked
-  const openPost = (id: string) => update({ post: id, schedule: null, step: null, network: null }, { push: true });
-  const closePost = () => update({ post: null, schedule: null, step: null, network: null });
+  const openPost = (id: string) => update({ post: id, schedule: null, step: null, network: null, preview: null }, { push: true });
+  const closePost = () => update({ post: null, schedule: null, step: null, network: null, preview: null });
+  // ?preview=1: the open post's network preview, shown in its panel
+  const previewOn = params.get("preview") === "1";
   // deleted since the link was made; an empty list may still be syncing, so it decides nothing
   useGoneItem("post", drafts.length ? drafts.some((d) => d.id === selectedId) : undefined);
   // Set when the selected chip is a future occurrence of a recurring post (its day).
@@ -235,17 +234,13 @@ export default function CalendarPage() {
   const [waitOpen, setWaitOpen] = useState(false);
   // Brand kit posting times ("<day 0 = Mon>T<HH:MM>"): open ones show on the calendar as slots to write for.
   const [slots, setSlots] = useState<string[]>([]);
-  const [showSlots, setShowSlots] = useState(() => {
-    try {
-      return localStorage.getItem("cs-calendar-slots") !== "off";
-    } catch {
-      return true;
-    }
-  });
+  // ?slots=off hides them; the pick is remembered on this device (cs-calendar-slots)
+  const [slotsParam, setSlotsParam] = useUrlState("slots", "on", { allowed: ["on", "off"], remember: "cs-calendar-slots" });
+  const showSlots = slotsParam === "on";
   const dayRef = useRef<HTMLDivElement>(null);
   // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
-  const [feedId, openFeedItem, closeFeed] = useUrlItem("feed");
+  const [feedId, , closeFeed] = useUrlItem("feed");
   // Leo's Skip and comments on those posts; a skip shows at once, before the job's next feed says so.
   const [channelReviews, setChannelReviews] = useState<ChannelReviews>({});
   const shownFeed = useMemo(() => feed.map((f) => ({ ...f, status: shownStatus(f.status, channelReviews[f.id]) })), [feed, channelReviews]);
@@ -871,7 +866,7 @@ export default function CalendarPage() {
   // Needs you's auto-post rows: Retry and Open, Retry and Cancel auto-post, Mark posted.
   const rowButton = "h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11";
   const openRow = (id: string) => {
-    update({ post: id, schedule: null, step: null, network: null, ...(view === "upcoming" ? { view: "month" } : {}) }, { push: true });
+    update({ post: id, schedule: null, step: null, network: null, preview: null, ...(view === "upcoming" ? { view: "month" } : {}) }, { push: true });
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   };
   const retryRow = async (d: DraftEntry) => {
@@ -1088,11 +1083,11 @@ export default function CalendarPage() {
         <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs">
           <button
             type="button"
-            onClick={() => setPreviewId((cur) => (cur === d.id ? null : d.id))}
-            aria-expanded={previewId === d.id}
+            onClick={() => update({ preview: previewOn ? null : "1" })}
+            aria-expanded={previewOn && d.id === selectedId}
             className="h-9 rounded-md px-2 font-semibold text-primary hover:underline sm:h-8 [@media(pointer:coarse)]:h-11"
           >
-            {previewId === d.id ? "Hide preview" : `Preview on ${PLATFORM_LABEL[d.platform] ?? "the network"}`}
+            {previewOn && d.id === selectedId ? "Hide preview" : `Preview on ${PLATFORM_LABEL[d.platform] ?? "the network"}`}
           </button>
           <button
             type="button"
@@ -1111,7 +1106,7 @@ export default function CalendarPage() {
             </button>
           )}
         </div>
-        {previewId === d.id && (
+        {previewOn && d.id === selectedId && (
           <div className="max-w-sm">
             <PostPreview text={d.draft} platform={d.platform} format={d.format} />
           </div>
@@ -1177,11 +1172,12 @@ export default function CalendarPage() {
   // How a reel goes out: by itself to its Instagram account, or by Leo's hand.
   const reelHow = (r: (typeof reels)[number]) => (r.auto ? `posts to @${r.handle} automatically` : "post it by hand");
 
+  // a real link to the reel, so a new tab and a long-press Copy link work (not draggable: it is not a post to move)
   const reelChip = (r: (typeof reels)[number], roomy: boolean) => (
-    <button
+    <Link
       key={r.id}
-      type="button"
-      onClick={() => navigate(r.href)}
+      to={r.href}
+      draggable={false}
       title={`${r.business} reel${r.time ? `, ${timeLabel(r.time)}` : ""}: ${r.title} (${r.posted ? "posted" : reelHow(r)})`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
         roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
@@ -1205,15 +1201,15 @@ export default function CalendarPage() {
           {r.title}
         </>
       )}
-    </button>
+    </Link>
   );
 
-  // A channel post (from a feed): tap it to see the whole post, every picture and the caption.
+  // A channel post (from a feed): tap it to see the whole post, every picture and the caption. A link to ?feed=<id>.
   const feedChip = (f: CalendarFeedItem, roomy: boolean) => (
-    <button
+    <Link
       key={f.id}
-      type="button"
-      onClick={() => openFeedItem(f.id)}
+      to={{ search: withParam(params, "feed", f.id).toString() }}
+      draggable={false}
       title={`${f.business} ${f.channel}: ${f.title}`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
         roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
@@ -1230,7 +1226,7 @@ export default function CalendarPage() {
       ) : (
         f.title
       )}
-    </button>
+    </Link>
   );
 
   // A future occurrence of a recurring post: not draggable (move the real one), tap to skip it.
@@ -1534,11 +1530,7 @@ export default function CalendarPage() {
       <div key={e.id} className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card">
         {dateBadge(date)}
         <div className="min-w-0 flex-1 space-y-1.5">
-          <button
-            type="button"
-            onClick={() => navigate(`/generate?draft=${encodeURIComponent(e.id)}`)}
-            className="block w-full min-w-0 text-left"
-          >
+          <Link to={links.generate({ draft: e.id })} draggable={false} className="block w-full min-w-0 text-left">
             <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
             <p className="text-xs text-muted-foreground">
               {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
@@ -1553,7 +1545,7 @@ export default function CalendarPage() {
               )}
               {!posted && e.repeat && ` · repeats ${REPEAT_LABEL[e.repeat.every]}`}
             </p>
-          </button>
+          </Link>
           {autoChip(e)}
           {!posted && moveInput(e)}
         </div>
@@ -1662,15 +1654,7 @@ export default function CalendarPage() {
           <button
             type="button"
             aria-pressed={showSlots}
-            onClick={() => {
-              const next = !showSlots;
-              setShowSlots(next);
-              try {
-                localStorage.setItem("cs-calendar-slots", next ? "on" : "off");
-              } catch {
-                /* the toggle still works for this visit */
-              }
-            }}
+            onClick={() => setSlotsParam(showSlots ? "off" : "on")}
             className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
               showSlots ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
             }`}
@@ -1741,10 +1725,9 @@ export default function CalendarPage() {
             </Link>
           ))}
           {handDue.map((r) => (
-            <button
+            <Link
               key={r.id}
-              type="button"
-              onClick={() => navigate(r.href)}
+              to={r.href}
               className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
               <Hand className="h-4 w-4 shrink-0 text-warning" aria-hidden />
@@ -1756,7 +1739,7 @@ export default function CalendarPage() {
                 </span>
               </span>
               <span className="shrink-0 text-xs font-semibold text-primary">Open</span>
-            </button>
+            </Link>
           ))}
           {autoRows.map((r) => (
             <div key={r.key} className="flex min-h-11 w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg bg-card px-3 py-2 shadow-card">
@@ -2309,10 +2292,9 @@ export default function CalendarPage() {
                 if (i.kind === "reel") {
                   const r = i.item;
                   return (
-                    <button
+                    <Link
                       key={r.id}
-                      type="button"
-                      onClick={() => navigate(r.href)}
+                      to={r.href}
                       className="flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-card p-3 text-left shadow-card"
                     >
                       {dateBadge(r.date)}
@@ -2323,16 +2305,15 @@ export default function CalendarPage() {
                           <span className={r.auto ? "" : "font-medium text-warning"}>{reelHow(r)}</span>
                         </p>
                       </div>
-                    </button>
+                    </Link>
                   );
                 }
                 if (i.kind === "feed") {
                   const f = i.item;
                   return (
-                    <button
+                    <Link
                       key={f.id}
-                      type="button"
-                      onClick={() => openFeedItem(f.id)}
+                      to={{ search: withParam(params, "feed", f.id).toString() }}
                       className="flex w-full items-center gap-3 rounded-xl border border-sky-500/30 bg-card p-3 text-left shadow-card"
                     >
                       {dateBadge(f.date)}
@@ -2345,7 +2326,7 @@ export default function CalendarPage() {
                           {f.media.length > 1 && ` · ${f.media.length} pictures`}
                         </p>
                       </div>
-                    </button>
+                    </Link>
                   );
                 }
                 return postRow(i.item, i.date);
