@@ -8,7 +8,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowDown, ArrowUp, Loader2, Sparkles } from "lucide-react";
 import ActionCard, { hhmm } from "@/components/agent/ActionCard";
 import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent/Composer";
-import { chipAction, DONE, isAppPath, runAction, type DockIdentity } from "@/components/agent/dockActions";
+import { chipAction, DONE, isAppPath, type DockIdentity } from "@/components/agent/dockActions";
+import FbChip from "@/components/agent/FbChip";
 import MadeBlock, { madeNoun } from "@/components/agent/MadeBlock";
 import Receipt from "@/components/agent/Receipt";
 import { Button } from "@/components/ui/button";
@@ -163,16 +164,9 @@ export default function AgentThread({
     if (id && id !== threadId) onThread(id);
   };
 
-  /** A chip that isn't a page: the feedback service's post or message ("fb:"), or the engine's own ("say:", "format:", "forget:"). */
-  const runChip = async (m: AgentMsg, g: Go) => {
+  /** The engine's own chips that aren't a page ("say:", "format:", "forget:"); the feedback service's "fb:" are FbChip's. */
+  const runChip = (m: AgentMsg, g: Go) => {
     if (!threadId) return;
-    const a = chipAction(g.path);
-    if (a) {
-      const line = await runAction(a, { identity });
-      // the outcome takes the chip's place and stays with the message, so a reload never offers to post it twice
-      if (line) patchMsg(userId, threadId, m.id, { go: (m.go ?? []).map((x) => (x === g ? { path: DONE, label: line } : x)) });
-      return;
-    }
     near.current = true;
     const line = choose(userId, threadId, m.id, g.path);
     setChipLine(line ? { msg: m.id, line } : null);
@@ -308,19 +302,30 @@ export default function AgentThread({
                       {m.text === "This was interrupted." ? "Send again" : "Try again"}
                     </Button>
                   )}
-                  {(m.go ?? []).map((g, gi) =>
-                    g.path === DONE ? (
+                  {(m.go ?? []).map((g, gi) => {
+                    const fb = chipAction(g.path);
+                    return g.path === DONE ? (
                       <span key={gi} className="rounded-full bg-success/15 px-3 py-2 text-xs text-success">{g.label}</span>
                     ) : isAppPath(g.path) ? (
                       <Button key={gi} asChild size="sm" variant="outline" className="h-11 sm:h-9">
                         <Link to={g.path}>{g.label}</Link>
                       </Button>
+                    ) : fb && threadId ? (
+                      <FbChip
+                        key={gi}
+                        a={fb}
+                        label={g.label}
+                        identity={identity}
+                        disabled={live}
+                        // the outcome takes the chip's place and stays with the message, so a reload never offers to post it twice
+                        onDone={(line) => void patchMsg(userId, threadId, m.id, { go: (m.go ?? []).map((x) => (x === g ? { path: DONE, label: line } : x)) })}
+                      />
                     ) : ENGINE_CHIP.test(g.path) ? (
-                      <Button key={gi} type="button" size="sm" variant="outline" className="h-11 sm:h-9" disabled={live} onClick={() => void runChip(m, g)}>
+                      <Button key={gi} type="button" size="sm" variant="outline" className="h-11 sm:h-9" disabled={live} onClick={() => runChip(m, g)}>
                         {g.label}
                       </Button>
-                    ) : null,
-                  )}
+                    ) : null;
+                  })}
                 </div>
               )}
               {chipLine?.msg === m.id && <p className="text-xs text-destructive" role="alert">{chipLine.line}</p>}

@@ -13,6 +13,7 @@ export type DockAction =
   | { type: "feedback"; category: "feature" | "improvement" | "bug" | "question"; title: string; body: string; label: string }
   | { type: "support"; message: string; label: string }
   | { type: "go"; path: string; label: string };
+export type FbAction = Exclude<DockAction, { type: "go" }>;
 
 export interface FeedbackAnswer {
   /** assistant_events id, for thumbs. */
@@ -114,7 +115,7 @@ export async function runAction(a: DockAction, o: { identity?: DockIdentity; nav
 /** A go chip that posts to the board or messages the team rides in the thread as "fb:<the action>"; once run, "done:". */
 export const FB = "fb:";
 export const DONE = "done:";
-export function chipAction(path: string): DockAction | null {
+export function chipAction(path: string): FbAction | null {
   if (!path.startsWith(FB)) return null;
   try {
     const a = JSON.parse(path.slice(FB.length)) as DockAction;
