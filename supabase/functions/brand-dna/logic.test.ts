@@ -116,7 +116,8 @@ describe("a hostile page", () => {
     readSite('<a href="/x">'.repeat(25_000), BASE);
     const used = process.cpuUsage(started);
     expect((used.user + used.system) / 1000).toBeLessThan(1500);
-  });
+    // the budget is CPU time, so the wall-clock timeout (5 s by default) must not be what fails it on a loaded machine
+  }, 30_000);
   it("drops script and style blocks, and stops at one that never closes", () => {
     expect(stripBlocks("a<script>x</script>b<STYLE type=x>y</style>c")).toBe("a b c");
     expect(stripBlocks("a<script>never closed")).toBe("a ");
