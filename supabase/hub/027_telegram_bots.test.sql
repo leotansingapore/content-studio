@@ -71,21 +71,24 @@ select public.cs_test_assert(
 select public.cs_test_assert(
   bool_and(not has_function_privilege('anon', f, 'execute') and not has_function_privilege('authenticated', f, 'execute'))
   and has_function_privilege('service_role', 'public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)', 'execute')
-  and has_function_privilege('service_role', 'public.cs_telegram_bot_token(bigint)', 'execute'),
-  '0.4 only the service role may save a bot or read its token; nobody calls the clean-up trigger directly')
-from unnest(array['public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)', 'public.cs_telegram_bot_token(bigint)', 'public.cs_telegram_bots_forget_token()', 'public.cs_telegram_bots_release_chats()']) f;
+  and has_function_privilege('service_role', 'public.cs_telegram_bot_token(bigint)', 'execute')
+  and has_function_privilege('service_role', 'public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text)', 'execute'),
+  '0.4 only the service role may save a bot, replace or read its token; nobody calls the clean-up triggers directly')
+from unnest(array['public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)', 'public.cs_telegram_bot_token(bigint)', 'public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text)', 'public.cs_telegram_bots_forget_token()', 'public.cs_telegram_bots_release_chats()']) f;
 
 select public.cs_test_assert(
-  (select count(*) = 4 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
+  (select count(*) = 5 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
    from pg_proc p
    where p.oid in ('public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure,
                    'public.cs_telegram_bot_token(bigint)'::regprocedure, 'public.cs_telegram_bots_forget_token()'::regprocedure,
-                   'public.cs_telegram_bots_release_chats()'::regprocedure)),
-  '0.5 all four are SECURITY DEFINER with search_path pinned to pg_catalog, public, pg_temp');
+                   'public.cs_telegram_bots_release_chats()'::regprocedure,
+                   'public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text)'::regprocedure)),
+  '0.5 all five are SECURITY DEFINER with search_path pinned to pg_catalog, public, pg_temp');
 
 select public.cs_test_assert(
-  (select p.proconfig @> array['log_min_error_statement=panic', 'log_parameter_max_length_on_error=0']
-   from pg_proc p where p.oid = 'public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure),
+  (select bool_and(p.proconfig @> array['log_min_error_statement=panic', 'log_parameter_max_length_on_error=0'])
+   from pg_proc p where p.oid in ('public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text)'::regprocedure,
+                                  'public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text)'::regprocedure)),
   '0.5b belt and braces: the save sets log_min_error_statement = panic and log_parameter_max_length_on_error = 0 (it is 0.5d''s server settings that keep a token out of the logs)');
 
 -- Bind values are logged, or not, when a statement is bound, before any function's SET clause applies: what keeps a
@@ -183,6 +186,36 @@ update public.cs_telegram_bots set status = 'active' where bot_id = 7000000003;
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- 1b. A revoked token is replaced in place: same Vault secret, new webhook hash, active again, chats kept
+-- ---------------------------------------------------------------------------
+
+set local role service_role;
+update public.cs_telegram_bots set status = 'revoked' where bot_id = 7000000003;
+create temporary table t_before as select token_secret_id from public.cs_telegram_bots where bot_id = 7000000003;
+select public.cs_test_assert(
+  public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, '7000000003:' || repeat('N', 35), repeat('9', 64)),
+  '1.11 the owner''s brand replaces its bot''s token');
+reset role;
+select public.cs_test_assert(
+  (select b.status = 'active' and b.webhook_secret_hash = repeat('9', 64) and b.token_secret_id = (select token_secret_id from t_before)
+          and s.decrypted_secret = '7000000003:' || repeat('N', 35)
+   from public.cs_telegram_bots b join vault.decrypted_secrets s on s.id = b.token_secret_id where b.bot_id = 7000000003)
+  and (select count(*) from vault.secrets where name = 'cs_telegram_bot_7000000003') = 1,
+  '1.12 the same Vault secret now holds the new token, with the new webhook hash, and the bot is active again');
+set local role service_role;
+select public.cs_test_assert(
+  not public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, '7000000002:' || repeat('N', 35), repeat('9', 64))
+  and not public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d2', 'pfin', 7000000003, '7000000003:' || repeat('X', 35), repeat('9', 64))
+  and not public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d1', 'me', 7000000003, '7000000003:' || repeat('X', 35), repeat('9', 64))
+  and not public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, 'not a token', repeat('9', 64))
+  and not public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d1', 'pfin', 7000000003, '7000000003:' || repeat('X', 35), 'plain'),
+  '1.13 refused, never raised: another bot''s token, another adviser, another brand, a malformed token, a plain secret');
+reset role;
+select public.cs_test_assert(
+  (select s.decrypted_secret = '7000000003:' || repeat('N', 35) from public.cs_telegram_bots b join vault.decrypted_secrets s on s.id = b.token_secret_id where b.bot_id = 7000000003),
+  '1.14 a refused replace leaves the token as it was');
+
+-- ---------------------------------------------------------------------------
 -- 2. An owner reads only the non-secret columns of their own bots, and writes nothing
 -- ---------------------------------------------------------------------------
 
@@ -196,6 +229,9 @@ select public.cs_test_expect_error($$select token_secret_id from public.cs_teleg
 select public.cs_test_expect_error($$select webhook_secret_hash from public.cs_telegram_bots$$, '%permission denied%', '2.3 never the webhook hash');
 select public.cs_test_expect_error($$select * from public.cs_telegram_bots$$, '%permission denied%', '2.4 select * is refused');
 select public.cs_test_expect_error($$select public.cs_telegram_bot_token(7000000002)$$, '%permission denied%', '2.5 an owner cannot read their token');
+select public.cs_test_expect_error(
+  $$select public.cs_telegram_bot_replace_token('7e57c0de-0000-4000-8000-0000000000d1', 'me', 7000000002, '7000000002:' || repeat('Q', 35), repeat('9', 64))$$,
+  '%permission denied%', '2.5b nor replace it directly');
 select public.cs_test_expect_error($$update public.cs_telegram_bots set username = 'x'$$, '%permission denied%', '2.6 an owner cannot change a bot');
 select public.cs_test_expect_error($$delete from public.cs_telegram_bots$$, '%permission denied%', '2.7 an owner cannot delete a bot');
 select public.cs_test_expect_error(
@@ -247,6 +283,7 @@ select public.cs_test_assert(
   and exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000004'),
   '3.1 deleting a bot deletes its Vault secret, and only its own');
 select public.cs_test_assert(
+  -- c4, tied through the FIN bot whose token was replaced in 1.11, is still connected through it
   (select array_agg(id::text || ':' || status || ':' || coalesce(bot_id::text, 'shared') order by id) from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d1')
     = array['00000000-0000-4000-8000-0000000000c1:disconnected:shared', '00000000-0000-4000-8000-0000000000c2:disconnected:shared',
             '00000000-0000-4000-8000-0000000000c3:connected:shared', '00000000-0000-4000-8000-0000000000c4:connected:7000000003'],

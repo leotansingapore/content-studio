@@ -35,9 +35,12 @@ function harness(o: {
   live?: string[];
   /** own bots by Telegram id; a missing one is gone */
   own?: number[];
+  /** what every own bot's call throws */
+  ownFails?: TelegramError;
 } = {}) {
   const ownSent: { botId: number; method: string; params: Record<string, unknown> }[] = [];
   const asked: (number | null)[] = [];
+  const revoked: number[] = [];
   let postedFails = o.postedFails ?? 0;
   let failedFails = o.failedFails ?? 0;
   const sent: { method: string; params: Record<string, unknown> }[] = [];
@@ -63,6 +66,7 @@ function harness(o: {
         id: botId,
         async call<T>(method: string, params: Record<string, unknown>): Promise<T> {
           ownSent.push({ botId, method, params });
+          if (o.ownFails) throw o.ownFails;
           return sendOk.result as T;
         },
       };
@@ -82,12 +86,13 @@ function harness(o: {
       log.push(`failed:${id}:${reason}`);
     },
     migrate: async (from, to) => void log.push(`migrate:${from}>${to}`),
+    revokeBot: async (botId) => void revoked.push(botId),
     finishedFiles: async (before) => (log.push(`finished<${before}`), o.finished ?? []),
     liveFiles: async (paths) => (log.push(`live?${paths.join(",")}`), (o.live ?? []).filter((x) => paths.includes(x))),
     removeFiles: async (paths) => void log.push(`remove:${paths.join(",")}`),
     clearFiles: async (ids) => void log.push(`clear:${ids.join(",")}`),
   };
-  return { d, sent, log, ownSent, asked };
+  return { d, sent, log, ownSent, asked, revoked };
 }
 
 describe("the hours", () => {
@@ -284,17 +289,31 @@ describe("when Telegram refuses", () => {
     expect(log.filter((l) => l.startsWith("posted:"))).toHaveLength(3);
   });
 
-  it("fails a post whose own bot is gone without calling Telegram", async () => {
+  it("fails a post whose own bot has no working token without calling Telegram, saying so", async () => {
     const { d, sent, ownSent, log } = harness({ chats: [{ ...CHAT, bot_id: 7000000002 }] });
     expect(await runTick(d)).toMatchObject({ failed: 1, sent: 0 });
     expect([sent, ownSent]).toEqual([[], []]);
-    expect(log).toContain("failed:post-1:Can't post here");
+    expect(log).toContain("failed:post-1:The bot's token no longer works. Paste a new token on Social accounts.");
   });
 
-  it("says plainly when a bot's token stopped working", async () => {
-    const { d, log } = harness({ bot: { sendMessage: () => new TelegramError(401, "Unauthorized") } });
+  it("marks an own bot revoked when Telegram answers 401, and sends nothing more through it this tick", async () => {
+    const chats = [{ ...CHAT, bot_id: 7000000002 }, { ...CHAT, id: "row-3", chat_id: -1005, bot_id: 7000000002 }];
+    const { d, ownSent, revoked, log } = harness({ posts: [post(), post({ id: "post-3", chat_row: "row-3" })], chats, own: [7000000002], ownFails: new TelegramError(401, "Unauthorized") });
+    expect(await runTick(d)).toMatchObject({ failed: 2, sent: 0 });
+    expect(revoked).toEqual([7000000002]);
+    expect(ownSent).toHaveLength(1);
+    expect(log.filter((l) => l.startsWith("failed:"))).toEqual([
+      "failed:post-1:The bot's token no longer works. Paste a new token on Social accounts.",
+      "failed:post-3:The bot's token no longer works. Paste a new token on Social accounts.",
+    ]);
+  });
+
+  it("never marks the shared bot revoked", async () => {
+    const { d, revoked, log } = harness({ bot: { sendMessage: () => new TelegramError(401, "Unauthorized") } });
     await runTick(d);
-    expect(log).toContain("failed:post-1:The bot's token no longer works. Add the bot again on Social accounts.");
+    expect(revoked).toEqual([]);
+    // the shared bot's token is Content Studio's, not something a brand can paste
+    expect(log).toContain("failed:post-1:The bot's token no longer works.");
   });
 
   it("fails a post whose chat is gone without calling Telegram", async () => {

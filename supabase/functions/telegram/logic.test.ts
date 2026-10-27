@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram";
-import { CODE_MINUTES, parseRequest, runAddBot, runDisconnect, runPresign, runRemoveBot, runSchedule, runStart, runVerify, type BotFor, type FnDb, type OwnRow } from "./logic";
+import { CODE_MINUTES, parseRequest, runAddBot, runDisconnect, runPresign, runRemoveBot, runReplaceBot, runSchedule, runStart, runVerify, type BotFor, type FnDb, type OwnRow } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const OTHER_UID = "7e57c0de-0000-4000-8000-0000000000d2";
@@ -27,7 +27,7 @@ type Row = OwnRow & {
   nonce_hash?: string;
   bot_id?: number | null;
 };
-interface OwnBot { id: string; owner_id: string; profile_id: string; bot_id: number; username: string; display_name: string; token: string; webhook_secret_hash: string }
+interface OwnBot { id: string; owner_id: string; profile_id: string; bot_id: number; username: string; display_name: string; token: string; webhook_secret_hash: string; status?: string }
 
 /** The same rules as telegram/index.ts's queries, over rows in memory. */
 function fakeDb(rows: Row[] = [], bots: OwnBot[] = []) {
@@ -65,6 +65,13 @@ function fakeDb(rows: Row[] = [], bots: OwnBot[] = []) {
       const id = `00000000-0000-4000-8000-0000000000b${bots.length + 1}`;
       bots.push({ id, owner_id: b.owner, profile_id: b.profile, bot_id: b.botId, username: b.username, display_name: b.displayName, token: b.token, webhook_secret_hash: b.webhookSecretHash });
       return id;
+    },
+    async replaceToken(b) {
+      // 027's cs_telegram_bot_replace_token: the brand's own row for that bot, or false
+      const row = bots.find((x) => x.owner_id === b.owner && x.profile_id === b.profile && x.bot_id === b.botId);
+      if (!row || !b.token.startsWith(`${b.botId}:`)) return false;
+      Object.assign(row, { token: b.token, webhook_secret_hash: b.webhookSecretHash, status: "active" });
+      return true;
     },
     async deleteBot(id) {
       const i = bots.findIndex((x) => x.id === id);
@@ -607,7 +614,39 @@ describe("own bot per brand", () => {
     expect(bots).toEqual([]);
   });
 
+  it("replaces a revoked token for the same bot: a new webhook secret, the Vault secret updated in place, every chat kept", async () => {
+    const NEW = "7000000002:" + "N".repeat(35);
+    const mine: OwnBot = { id: "b1", owner_id: UID, profile_id: "me", bot_id: 7000000002, username: "mb_test_bot", display_name: "MoneyBees", token: OWN, webhook_secret_hash: "0".repeat(64), status: "revoked" };
+    const { db, bots, rows } = fakeDb([leoRow({ bot_id: 7000000002 })], [mine]);
+    const { client, calls } = clients();
+    const out = await runReplaceBot(db, client, UID, "me", NEW, HOOK);
+    expect(out).toEqual({ status: 200, body: { botUsername: "mb_test_bot", botName: "MoneyBees" } });
+    expect(calls.map((c) => [c.token === NEW ? "new" : "old", c.method])).toEqual([["new", "getMe"], ["new", "setWebhook"]]);
+    const hook = calls[1].params;
+    expect(hook).toEqual({ url: `${HOOK}?bot=7000000002`, secret_token: expect.stringMatching(/^[A-Za-z0-9_-]{32,64}$/), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
+    expect(bots[0]).toMatchObject({ token: NEW, status: "active", webhook_secret_hash: await hashCode(hook.secret_token as string) });
+    expect(rows[0]).toMatchObject({ status: "connected", bot_id: 7000000002 });
+    expect(JSON.stringify(out)).not.toContain("N".repeat(35));
+  });
+
+  it("refuses a token for another bot, a bad token, and a brand on the shared bot, changing nothing", async () => {
+    const mine: OwnBot = { id: "b1", owner_id: UID, profile_id: "me", bot_id: 7000000002, username: "mb_test_bot", display_name: "", token: OWN, webhook_secret_hash: "0".repeat(64), status: "revoked" };
+    const other = { id: 7000000009, is_bot: true, first_name: "Other", username: "other_bot" };
+    for (const [token, o, want] of [
+      ["7000000009:" + "N".repeat(35), { getMe: other }, { status: 400, body: { error: "That token is for another bot. Paste the token for @mb_test_bot." } }],
+      ["not a token", {}, { status: 400, body: { error: "That isn't a bot token. Copy the whole token BotFather sent." } }],
+      ["7000000002:" + "N".repeat(35), { getMe: new TelegramError(401, "Unauthorized") }, { status: 400, body: { error: "Telegram doesn't know that token. Copy it again from BotFather." } }],
+      ["7000000002:" + "N".repeat(35), { setWebhook: new TelegramError(0, "Telegram didn't answer.") }, { status: 502, body: { error: "Telegram didn't take the bot's webhook. Try again in a minute." } }],
+    ] as const) {
+      const { db, bots } = fakeDb([], [{ ...mine }]);
+      expect(await runReplaceBot(db, clients(o).client, UID, "me", token, HOOK), token).toEqual(want);
+      expect(bots[0]).toMatchObject({ token: OWN, status: "revoked" });
+    }
+    expect((await runReplaceBot(fakeDb().db, clients().client, UID, "me", "7000000002:" + "N".repeat(35), HOOK)).status).toBe(404);
+  });
+
   it("reads bot-add and bot-remove, and never keeps a token in a parse error", () => {
+    expect(parseRequest({ action: "bot-replace", profileId: "me", token: OWN })).toEqual({ ok: true, req: { action: "bot-replace", profileId: "me", token: OWN } });
     expect(parseRequest({ action: "bot-add", profileId: "me", token: OWN })).toEqual({ ok: true, req: { action: "bot-add", profileId: "me", token: OWN } });
     expect(parseRequest({ action: "bot-remove", profileId: "me" })).toEqual({ ok: true, req: { action: "bot-remove", profileId: "me" } });
     expect(parseRequest({ action: "bot-add", profileId: "../x", token: OWN })).toMatchObject({ ok: false, status: 404 });

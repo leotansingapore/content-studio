@@ -24,6 +24,7 @@ import {
   identityQuestion,
   OWN_BOT_STEPS,
   looksLikeBotToken,
+  ownBotLine,
   postingAs,
   loginFrom,
   readNonce,
@@ -269,5 +270,10 @@ describe("a brand's own bot", () => {
 
   it("names the bot a brand posts as", () => {
     expect(postingAs({ username: "mb_test_bot" })).toBe("Posting as @mb_test_bot");
+  });
+
+  it("says when the bot's token stopped working, and asks for a new one", () => {
+    expect(ownBotLine({ username: "mb_test_bot", status: "active" })).toBe("Posting as @mb_test_bot");
+    expect(ownBotLine({ username: "mb_test_bot", status: "revoked" })).toBe("This bot's token no longer works: paste a new token");
   });
 });

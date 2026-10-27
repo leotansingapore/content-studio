@@ -38,9 +38,10 @@ import {
   OWN_BOT_STEPS,
   addOwnBot,
   looksLikeBotToken,
-  postingAs,
+  ownBotLine,
   readOwnBot,
   removeOwnBot,
+  replaceOwnBotToken,
   type OwnBot,
   type TelegramRow,
 } from "@/lib/telegramConnect";
@@ -220,6 +221,21 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
     }
   };
 
+  // the bot's token stopped working (Telegram answered 401): a new token for the same bot, chats kept
+  const replaceToken = async () => {
+    setBotBusy("check");
+    setBotError("");
+    try {
+      await replaceOwnBotToken(profileId, botToken);
+      setBotToken("");
+      setOwnBot((b) => b && { ...b, status: "active" });
+    } catch (e) {
+      setBotError(isNotEnabled(e) ? "Telegram isn't switched on for you yet." : message(e));
+    } finally {
+      setBotBusy("");
+    }
+  };
+
   const switchBack = async () => {
     if (!ownBot) return;
     if (!window.confirm(`Switch back to the shared bot? Chats connected through @${ownBot.username} are disconnected and their waiting posts cancelled.`)) return;
@@ -263,11 +279,40 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
       </div>
 
       {ownBot && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
-          <p className="mr-auto text-sm font-semibold">{postingAs(ownBot)}</p>
-          <Button variant="ghost" className="h-11 text-muted-foreground hover:text-foreground" disabled={!!botBusy} onClick={() => void switchBack()}>
-            {botBusy === "remove" ? "Switching back..." : "Switch back to the shared bot"}
-          </Button>
+        <div className={`space-y-2 rounded-lg border px-3 py-2 ${ownBot.status === "revoked" ? "border-destructive/40" : "border-border/60"}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className={`mr-auto text-sm font-semibold ${ownBot.status === "revoked" ? "text-destructive" : ""}`}>{ownBotLine(ownBot)}</p>
+            <Button variant="ghost" className="h-11 text-muted-foreground hover:text-foreground" disabled={!!botBusy} onClick={() => void switchBack()}>
+              {botBusy === "remove" ? "Switching back..." : "Switch back to the shared bot"}
+            </Button>
+          </div>
+          {ownBot.status === "revoked" && (
+            <div className="space-y-2">
+              <label htmlFor="telegram-bot-new-token" className="block text-sm font-semibold">
+                New token for @{ownBot.username}, from BotFather
+              </label>
+              <Input
+                id="telegram-bot-new-token"
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && looksLikeBotToken(botToken) && !botBusy && void replaceToken()}
+                placeholder="123456789:AA..."
+                className="h-11"
+              />
+              {botBusy === "check" && (
+                <p role="status" className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking your bot...
+                </p>
+              )}
+              {botError && <p role="alert" className="text-sm text-destructive">{botError}</p>}
+              <Button className="h-11" disabled={!looksLikeBotToken(botToken) || !!botBusy} onClick={() => void replaceToken()}>
+                Use this token
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

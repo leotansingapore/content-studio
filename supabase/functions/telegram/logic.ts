@@ -45,6 +45,8 @@ export type TelegramRequest =
   | { action: "schedule"; profileId: string; chatRows: string[]; clientKey: string; text: string; media: string[]; sendAt: number | null }
   /** A BotFather token for the brand's own bot; checked, stored in Vault, never sent back. */
   | { action: "bot-add"; profileId: string; token: string }
+  /** A new token for the brand's own bot, after BotFather revoked the old one. */
+  | { action: "bot-replace"; profileId: string; token: string }
   | { action: "bot-remove"; profileId: string };
 
 type Parsed = { ok: true; req: TelegramRequest } | { ok: false; status: number; error: string };
@@ -77,13 +79,16 @@ export function parseRequest(body: unknown): Parsed {
     const nonce = typeof b.nonce === "string" && /^[A-Za-z0-9_-]{16,64}$/.test(b.nonce) ? b.nonce : null;
     return { ok: true, req: { action: "verify", chatRow: b.chatRow, auth, nonce, confirm: b.confirm === true } };
   }
-  if (b.action !== "start" && b.action !== "disconnect" && b.action !== "presign" && b.action !== "schedule" && b.action !== "bot-add" && b.action !== "bot-remove") {
+  if (
+    b.action !== "start" && b.action !== "disconnect" && b.action !== "presign" && b.action !== "schedule" &&
+    b.action !== "bot-add" && b.action !== "bot-replace" && b.action !== "bot-remove"
+  ) {
     return bad("Unknown action.");
   }
   if (!isProfileId(b.profileId)) return notFound;
   const profileId = b.profileId;
   // the token's shape is checked in runAddBot, so a refusal there says the same thing for any wrong paste
-  if (b.action === "bot-add") return { ok: true, req: { action: "bot-add", profileId, token: typeof b.token === "string" ? b.token : "" } };
+  if (b.action === "bot-add" || b.action === "bot-replace") return { ok: true, req: { action: b.action, profileId, token: typeof b.token === "string" ? b.token : "" } };
   if (b.action === "bot-remove") return { ok: true, req: { action: "bot-remove", profileId } };
   if (b.action === "start") return { ok: true, req: { action: "start", profileId } };
   if (b.action === "disconnect") return isUuid(b.chatRow) ? { ok: true, req: { action: "disconnect", profileId, chatRow: b.chatRow } } : notFound;
@@ -151,6 +156,8 @@ export interface FnDb {
   botTaken(botId: number): Promise<boolean>;
   /** 027's cs_telegram_bot_save: the token into Vault and the row with it; null when refused (it never raises). */
   saveBot(b: { owner: string; profile: string; botId: number; username: string; displayName: string; token: string; webhookSecretHash: string }): Promise<string | null>;
+  /** 027's cs_telegram_bot_replace_token: the new token into the bot's Vault secret in place, active again; false when refused. */
+  replaceToken(b: { owner: string; profile: string; botId: number; token: string; webhookSecretHash: string }): Promise<boolean>;
   /**
    * Deletes the bot's row. 027's triggers, in the same statement, disconnect the chats tied through it, cancel their
    * waiting posts and delete its Vault secret.
@@ -354,6 +361,33 @@ export async function runAddBot(
     return { status: 502, body: { error: "Telegram didn't take the bot's webhook. Try again in a minute." } };
   }
   return ok({ botUsername: me.username, botName: displayName });
+}
+
+/**
+ * A new token for the brand's own bot (BotFather revoked the old one): getMe must name that same bot, its webhook is
+ * set again with a new secret through the new token, and then the token in its Vault secret is replaced in place.
+ * Every chat tied through the bot stays connected. Answers the bot's @name and name only.
+ */
+export async function runReplaceBot(db: FnDb, client: (token: string) => Bot, uid: string, profileId: string, token: string, hookUrl: string): Promise<Reply> {
+  const m = TOKEN_RE.exec(token);
+  if (!m) return NOT_A_TOKEN;
+  const own = await db.brandBot(uid, profileId);
+  if (!own) return NOT_FOUND;
+  const bot = client(token);
+  const me = await bot.call<{ id?: unknown; is_bot?: unknown; username?: unknown; first_name?: unknown }>("getMe", {}).catch(() => null);
+  if (!me || me.is_bot !== true || me.id !== Number(m[1])) return UNKNOWN_TOKEN;
+  if (me.id !== own.bot_id) return { status: 400, body: { error: `That token is for another bot. Paste the token for @${own.username}.` } };
+  const secret = newCode();
+  try {
+    await bot.call("setWebhook", { url: `${hookUrl}?bot=${own.bot_id}`, secret_token: secret, allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
+  } catch {
+    return { status: 502, body: { error: "Telegram didn't take the bot's webhook. Try again in a minute." } };
+  }
+  if (!(await db.replaceToken({ owner: uid, profile: profileId, botId: own.bot_id, token, webhookSecretHash: await hashCode(secret) }))) {
+    return { status: 409, body: { error: "Couldn't update the bot. Try again in a minute." } };
+  }
+  const name = typeof me.first_name === "string" ? me.first_name.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 128) : "";
+  return ok({ botUsername: typeof me.username === "string" ? me.username : own.username, botName: name });
 }
 
 /**

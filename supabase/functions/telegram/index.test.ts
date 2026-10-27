@@ -225,6 +225,19 @@ describe("the brand's own bot", () => {
     expect(h.reads.slice(0, 1)).toEqual(["cs_consume_ai_usage"]);
   });
 
+  it("replaces the token of the brand's own bot: the same bot by getMe, its webhook again, then the Vault secret in place", async () => {
+    const NEW = "7000000002:" + "N".repeat(35);
+    h.ownBot = { id: "00000000-0000-4000-8000-0000000000b1", bot_id: 7000000002, username: "mb_test_bot" };
+    h.rpc = (fn) => ({ data: fn === "cs_telegram_bot_replace_token" ? true : 1, error: null });
+    tgAnswer = tgOk;
+    const res = await call("leo", { action: "bot-replace", profileId: "pmoneybees", token: NEW });
+    expect(res.status).toBe(200);
+    expect(await res.text()).not.toContain("N".repeat(35));
+    expect(telegram.map((t) => t.url.replace(NEW, "<new>"))).toEqual(["https://api.telegram.org/bot<new>/getMe", "https://api.telegram.org/bot<new>/setWebhook"]);
+    const replace = h.rpcs.find((r) => r.fn === "cs_telegram_bot_replace_token")!;
+    expect(replace.args).toEqual({ p_owner: LEO, p_profile: "pmoneybees", p_bot_id: 7000000002, p_token: NEW, p_webhook_secret_hash: sha(telegram[1].body.secret_token as string) });
+  });
+
   it("refuses a bad token before Telegram or the database hears of it", async () => {
     const res = await call("leo", { action: "bot-add", profileId: "pmoneybees", token: "nope" });
     expect(res.status).toBe(400);

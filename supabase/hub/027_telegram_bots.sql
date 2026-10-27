@@ -8,6 +8,8 @@
 --                                     bound to that bot's row by (owner_id, profile_id, bot_id).
 --   cs_telegram_bot_save(...)         stores a token in Vault and the row with it; refuses with null, never an error.
 --   cs_telegram_bot_token(bot_id)     reads an active bot's token, for a send or a reply to its webhook.
+--   cs_telegram_bot_replace_token(...) puts a new token for the same bot in its Vault secret in place, with a new
+--                                     webhook hash, and makes the bot active again; its chats stay as they are.
 --   cs_telegram_bots_release_chats()  trigger: deleting a bot disconnects the chats tied through it and cancels their
 --                                     waiting posts, in the same statement.
 --   cs_telegram_bots_forget_token()   trigger: deleting a bot's row deletes its Vault secret.
@@ -60,7 +62,7 @@
 --   1. 026 is applied. The names must be free (check-live-name-before-migration); every line must return null or
 --      no rows:
 --        select to_regclass('public.cs_telegram_bots');
---        select proname from pg_proc where proname in ('cs_telegram_bot_save', 'cs_telegram_bot_token', 'cs_telegram_bots_forget_token', 'cs_telegram_bots_release_chats');
+--        select proname from pg_proc where proname in ('cs_telegram_bot_save', 'cs_telegram_bot_token', 'cs_telegram_bot_replace_token', 'cs_telegram_bots_forget_token', 'cs_telegram_bots_release_chats');
 --        select conname from pg_constraint where conname = 'cs_telegram_chats_bot_fk';
 --        select column_name from information_schema.columns where table_schema = 'public' and table_name = 'cs_telegram_chats' and column_name = 'bot_id';
 --        select name from vault.secrets where name like 'cs_telegram_bot_%';
@@ -96,7 +98,7 @@ create table if not exists public.cs_telegram_bots (
   token_secret_id uuid not null,
   -- sha256 (hex) of the secret_token given to setWebhook; never readable by a client
   webhook_secret_hash text not null check (webhook_secret_hash ~ '^[0-9a-f]{64}$'),
-  -- revoked: Telegram no longer takes the token
+  -- revoked: Telegram answered 401 to a send (telegram-hook marks it); a replaced token makes it active again
   status text not null default 'active' check (status in ('active', 'revoked')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -167,6 +169,43 @@ begin
   return v_id;
 end $fn$;
 
+-- A new token for the same bot (the old one was revoked in BotFather, or leaked): written into the bot's Vault secret in
+-- place, with the new webhook's hash, and the bot is active again. Every chat tied through it stays connected. A
+-- refusal is false, never an error; the same belt-and-braces SET clause as the save.
+create or replace function public.cs_telegram_bot_replace_token(
+  p_owner uuid,
+  p_profile text,
+  p_bot_id bigint,
+  p_token text,
+  p_webhook_secret_hash text
+) returns boolean
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+set log_min_error_statement = panic
+set log_parameter_max_length_on_error = 0
+as $fn$
+declare
+  v_secret uuid;
+begin
+  if p_token is null or p_token !~ '^[0-9]{5,15}:[A-Za-z0-9_-]{30,64}$'
+     or (case when split_part(p_token, ':', 1) ~ '^[0-9]{5,15}$' then split_part(p_token, ':', 1)::bigint end) is distinct from p_bot_id
+     or p_webhook_secret_hash is null or p_webhook_secret_hash !~ '^[0-9a-f]{64}$' then
+    return false;
+  end if;
+  select token_secret_id into v_secret from public.cs_telegram_bots
+  where owner_id = p_owner and profile_id = p_profile and bot_id = p_bot_id
+  for update;
+  if v_secret is null then
+    return false;
+  end if;
+  perform vault.update_secret(v_secret, p_token);
+  update public.cs_telegram_bots
+     set webhook_secret_hash = p_webhook_secret_hash, status = 'active', updated_at = now()
+   where owner_id = p_owner and profile_id = p_profile and bot_id = p_bot_id;
+  return true;
+end $fn$;
+
 -- An active bot's token, for a send or a reply to its webhook; null for an unknown or revoked bot.
 create or replace function public.cs_telegram_bot_token(p_bot_id bigint)
 returns text
@@ -228,9 +267,11 @@ create trigger cs_telegram_bots_forget_token
 
 revoke all on function public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text) from public, anon, authenticated;
 revoke all on function public.cs_telegram_bot_token(bigint) from public, anon, authenticated;
+revoke all on function public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text) from public, anon, authenticated;
 revoke all on function public.cs_telegram_bots_forget_token() from public, anon, authenticated, service_role;
 revoke all on function public.cs_telegram_bots_release_chats() from public, anon, authenticated, service_role;
 grant execute on function public.cs_telegram_bot_save(uuid, text, bigint, text, text, text, text) to service_role;
 grant execute on function public.cs_telegram_bot_token(bigint) to service_role;
+grant execute on function public.cs_telegram_bot_replace_token(uuid, text, bigint, text, text) to service_role;
 
 commit;

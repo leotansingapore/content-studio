@@ -307,3 +307,9 @@ export const addOwnBot = (profileId: string, token: string) =>
 
 export const removeOwnBot = (profileId: string) =>
   callFn<{ removed: boolean }>("telegram", { action: "bot-remove", profileId }, "Couldn't switch back. Try again in a minute.");
+
+/** What the card says of the brand's own bot: posting as it, or (Telegram answered 401 to a send) asking for a new token. */
+export const ownBotLine = (b: Pick<OwnBot, "username" | "status">) => (b.status === "revoked" ? "This bot's token no longer works: paste a new token" : postingAs(b));
+
+export const replaceOwnBotToken = (profileId: string, token: string) =>
+  callFn<{ botUsername: string; botName: string }>("telegram", { action: "bot-replace", profileId, token: token.trim() }, "Couldn't check the new token. Try again in a minute.");

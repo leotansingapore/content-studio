@@ -107,6 +107,9 @@ function tickDeps(db: SupabaseClient, shared: Bot): TickDeps {
       const token = await ownToken(db, botId);
       return token ? botClient(token) : null;
     },
+    async revokeBot(botId) {
+      must(await db.from("cs_telegram_bots").update({ status: "revoked", updated_at: new Date().toISOString() }).eq("bot_id", botId), "revoke bot");
+    },
     now: Date.now(),
     async failStale(before, reason, now) {
       const r = await posts().update({ status: "failed", error: reason, finished_at: now }).eq("status", "sending").lt("sending_at", before).select("id");

@@ -15,7 +15,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { BUCKET, botClient, scrubTokens } from "../_shared/telegram.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { isAllowed } from "../social/logic.ts";
-import { parseRequest, runAddBot, runDisconnect, runPresign, runRemoveBot, runSchedule, runStart, runVerify, type BotFor, type FnDb, type OwnRow, type PostView } from "./logic.ts";
+import { parseRequest, runAddBot, runDisconnect, runPresign, runRemoveBot, runReplaceBot, runSchedule, runStart, runVerify, type BotFor, type FnDb, type OwnRow, type PostView } from "./logic.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +54,12 @@ function fnDb(db: SupabaseClient): FnDb {
       // the database's words could carry the token: only its code is kept
       if (r.error) throw new Error(`save bot: ${(r.error as { code?: string }).code ?? "error"}`);
       return (r.data as string | null) ?? null;
+    },
+    async replaceToken(b) {
+      const r = await db.rpc("cs_telegram_bot_replace_token", { p_owner: b.owner, p_profile: b.profile, p_bot_id: b.botId, p_token: b.token, p_webhook_secret_hash: b.webhookSecretHash });
+      // the database's words could carry the token: only its code is kept
+      if (r.error) throw new Error(`replace token: ${(r.error as { code?: string }).code ?? "error"}`);
+      return r.data === true;
     },
     async deleteBot(id) {
       must(await bots().delete().eq("id", id), "delete bot");
@@ -132,7 +138,7 @@ Deno.serve(async (req) => {
   const q = r.req;
 
   // disconnect, verify and bot-remove are not counted: they only ever act on the caller's own rows
-  const feature = q.action === "start" || q.action === "bot-add" ? "telegram-connect" : q.action === "presign" ? "telegram-presign" : q.action === "schedule" ? "telegram-schedule" : null;
+  const feature = q.action === "start" || q.action === "bot-add" || q.action === "bot-replace" ? "telegram-connect" : q.action === "presign" ? "telegram-presign" : q.action === "schedule" ? "telegram-schedule" : null;
   if (feature) {
     const usage = await consumeUsage(admin, uid, feature);
     if (!usage.allowed) {
@@ -162,6 +168,7 @@ Deno.serve(async (req) => {
       : q.action === "disconnect" ? await runDisconnect(db, bots, uid, q.profileId, q.chatRow, now)
       : q.action === "bot-add"
         ? await runAddBot(db, botClient, uid, q.profileId, q.token, `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-hook`, Number(token.split(":")[0]))
+      : q.action === "bot-replace" ? await runReplaceBot(db, botClient, uid, q.profileId, q.token, `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-hook`)
       : q.action === "bot-remove" ? await runRemoveBot(db, botClient, tokenOf, uid, q.profileId)
       : q.action === "presign"
         ? await runPresign(async (path) => {
