@@ -256,7 +256,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
         </p>
       )}
 
-      {live && state?.kind === "waiting" && (
+      {!ask && live && state?.kind === "waiting" && (
         <div role="status" className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
           <p>{state.linked ?? WAITING_HELP}</p>
           {state.refused && <p className="text-destructive">{state.refused}</p>}
@@ -284,15 +284,17 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {rows !== null &&
-        (live && link ? (
+        !ask &&
+        (live && watched?.confirmed_at ? null : live && link ? (
           <Button asChild className="h-11 w-full sm:w-auto">
             <a href={link} target="_blank" rel="noopener noreferrer">
               Open Telegram
             </a>
           </Button>
         ) : (
+          // during a wait this tab has no link for, a new code replaces the waiting one
           <Button variant="outline" className="h-11 w-full sm:w-auto" disabled={!!busy} onClick={() => void connect()}>
-            {busy === "start" ? "Opening Telegram..." : chats.length ? "Add another Telegram chat" : "Connect Telegram"}
+            {busy === "start" ? "Opening Telegram..." : live ? "Start again" : chats.length ? "Add another Telegram chat" : "Connect Telegram"}
           </Button>
         ))}
     </section>
