@@ -115,6 +115,27 @@ describe("Show me 3 directions and Make this one", () => {
     expect(filmJob()?.error).toBe("That film didn't come out right. Try again.");
   });
 
+  it("a second press while a film is written sends nothing, a Make this one that fails keeps the film as it was, and Try again writes it", async () => {
+    const f = stored();
+    const before = { spec: JSON.stringify(getFilm(UID, f.id)!.spec), history: loadHistory(f.id) };
+    let answer: (v: unknown) => void = () => {};
+    fn.mockImplementationOnce(() => new Promise((r) => (answer = r)));
+    const first = writeFilm(UID, f.id, 2);
+    expect(await writeFilm(UID, f.id, 1)).toBe(false);
+    expect(await writeDirections(UID, SETUP, f.id)).toBeNull();
+    // the writer's film doesn't parse: nothing saves over the one already made
+    answer(filmAnswer({ ...film(), scenes: [] }));
+    expect(await first).toBe(false);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(filmJob()).toMatchObject({ state: "failed", error: "That film didn't come out right. Try again." });
+    expect(getFilm(UID, f.id)!.picked).toBe(0);
+    expect(JSON.stringify(getFilm(UID, f.id)!.spec)).toBe(before.spec);
+    expect(loadHistory(f.id)).toEqual(before.history);
+    fn.mockResolvedValueOnce(filmAnswer());
+    expect(await writeFilm(UID, f.id, 2)).toBe(true);
+    expect(getFilm(UID, f.id)!.picked).toBe(2);
+  });
+
   it("reads the lines with the AI voice after the film when voice is on, one text-voice call", async () => {
     const f = stored({ spec: undefined, picked: undefined, setup: { ...SETUP, voice: true } });
     const voiced = { ...film(), voice: { on: true, lines: { hook: "Your week, planned.", end: "Activity Tracker." } } };
