@@ -89,7 +89,7 @@ create table if not exists public.cs_telegram_chats (
   -- the Telegram user who tapped Start with the code; once their signed login is verified for the account that
   -- made it: their @name or first name for "Added by", when, and that login's hash (each login is used once)
   tg_user_id bigint,
-  tg_user_name text check (char_length(tg_user_name) <= 64),
+  tg_user_name text check (char_length(tg_user_name) <= 65),
   confirmed_at timestamptz,
   login_hash text unique check (login_hash ~ '^[0-9a-f]{64}$'),
   -- sha256 of the nonce kept in the browser that pressed Connect Telegram; the confirm works only there
@@ -181,7 +181,7 @@ create or replace function public.cs_telegram_claim_due(p_limit integer default 
 returns setof public.cs_telegram_posts
 language plpgsql
 security definer
-set search_path = public
+set search_path = pg_catalog, public, pg_temp
 as $fn$
 begin
   if extract(hour from p_now at time zone 'Asia/Singapore') not between 9 and 20 then
@@ -216,7 +216,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = pg_catalog, public, pg_temp
 as $fn$
   select extract(hour from p_now at time zone 'Asia/Singapore') between 9 and 20
     and (

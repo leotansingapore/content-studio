@@ -81,6 +81,12 @@ select public.cs_test_assert(
      and command not like '%Bearer%'),
   '0.5 one telegram-send job, every minute, only when a tick is due, with the cron secret from Vault');
 
+select public.cs_test_assert(
+  (select count(*) = 2 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
+   from pg_proc p
+   where p.oid in ('public.cs_telegram_claim_due(integer, timestamptz)'::regprocedure, 'public.cs_telegram_tick_due(timestamptz)'::regprocedure)),
+  '0.10 both functions are SECURITY DEFINER with search_path pinned to pg_catalog, public, pg_temp');
+
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 select public.cs_test_expect_error($$select count(*) from public.cs_telegram_chats$$, '%permission denied%', '0.6 anon cannot read chats');
@@ -179,6 +185,10 @@ select public.cs_test_expect_error(
 select public.cs_test_expect_error(
   $$update public.cs_telegram_chats set confirmed_at = now(), login_hash = repeat('6', 64) where code_hash = repeat('f', 64)$$,
   '%cs_telegram_chats_confirmed%', '2.14 a code is confirmed only from the browser that started it (its nonce)');
+update public.cs_telegram_chats set tg_user_name = '@' || repeat('a', 64) where code_hash = repeat('a', 64);
+select public.cs_test_expect_error(
+  $$update public.cs_telegram_chats set tg_user_name = '@' || repeat('a', 65) where code_hash = repeat('a', 64)$$,
+  '%cs_telegram_chats_tg_user_name_check%', '2.15 who connected fits an @ and a 64-character username, no more');
 delete from public.cs_telegram_chats where code_hash in (repeat('a', 64), repeat('b', 64), repeat('f', 64));
 reset role;
 
