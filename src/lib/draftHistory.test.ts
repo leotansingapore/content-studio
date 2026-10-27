@@ -498,6 +498,23 @@ describe("drafts Claude saved, as absorbed today", () => {
     ]);
     expect(Array.from({ length: ls().length }, (_, i) => ls().key(i)).sort()).toEqual([`content-studio-drafts-${UID}`, `content-studio-mcpdraft-claude-c3-${UID}~p9`]);
   });
+
+  it("on a full device still show in My posts and keep their row, so a later read takes them in and nothing is lost", () => {
+    const s = ls();
+    s.setItem(`content-studio-drafts-${UID}`, JSON.stringify([post({ id: "old" })]));
+    s.setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
+    const write = s.setItem.bind(s);
+    s.setItem = () => {
+      throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+    };
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(["claude-a1", "old"]);
+    expect(s.getItem(`content-studio-mcpdraft-claude-a1-${UID}`)).toBe(row("claude-a1"));
+    expect(JSON.parse(s.getItem(`content-studio-drafts-${UID}`)!).map((d: DraftEntry) => d.id)).toEqual(["old"]);
+    s.setItem = write; // room again
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(["claude-a1", "old"]);
+    expect(s.getItem(`content-studio-mcpdraft-claude-a1-${UID}`)).toBeNull();
+    expect(JSON.parse(s.getItem(`content-studio-drafts-${UID}`)!).map((d: DraftEntry) => d.id)).toEqual(["claude-a1", "old"]);
+  });
 });
 
 describe("drafts Claude saved, in Leo's Activity", () => {
