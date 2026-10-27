@@ -366,6 +366,13 @@ function trimDrafts(drafts: DraftEntry[]): DraftEntry[] {
   return drafts.filter((_, i) => !drop.has(i));
 }
 
+/** The entries `adding` new ones at the top push out of the list, by trimDrafts' rule (so a post Zernio holds goes last). */
+export function pushedOut(drafts: DraftEntry[], adding: number): DraftEntry[] {
+  // the new ones only need to be posts Zernio doesn't hold
+  const kept = new Set(trimDrafts([...Array.from({ length: adding }, () => ({}) as DraftEntry), ...drafts]));
+  return drafts.filter((d) => !kept.has(d));
+}
+
 function withoutZernio({ zernio: _, ...rest }: DraftEntry): DraftEntry {
   return rest;
 }

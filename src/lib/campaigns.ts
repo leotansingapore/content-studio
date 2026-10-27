@@ -7,7 +7,7 @@ import type { FunnelStageId } from "@/data/funnelFramework";
 import { loadAudiences } from "@/lib/audiences";
 import { generatePlan, planItemDate, planOptionsFor, steerFor, upcomingMonday, type GeneratePlanOptions, type PlanPillar } from "@/lib/contentPlan";
 import { keyToDate, localDateKey } from "@/lib/dueDates";
-import { draftStatus, engagement, MAX_DRAFTS, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, engagement, MAX_DRAFTS, pushedOut, type DraftEntry } from "@/lib/draftHistory";
 import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
@@ -288,7 +288,7 @@ export const draftsDropped = (current: number, adding: number) => Math.max(0, cu
 
 /** True only when an entry that making `adding` new ones pushes out of My posts (newest first) is posted or has numbers. */
 export const dropsPostedDraft = (drafts: DraftEntry[], adding: number): boolean =>
-  drafts.slice(Math.max(0, MAX_DRAFTS - adding)).some((d) => draftStatus(d) === "posted" || hasNumbers(d));
+  pushedOut(drafts, adding).some((d) => draftStatus(d) === "posted" || hasNumbers(d));
 
 /** The next written, unmade post after `from`, wrapping to the start; null when none is waiting for review. */
 export function nextToReview(c: Pick<Campaign, "posts">, from: number): number | null {

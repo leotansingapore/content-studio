@@ -19,7 +19,7 @@ import { AI_VIDEO, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type
 import { shortDay } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
 import { keyToDate, scheduleAt, timeLabel } from "@/lib/dueDates";
-import { deleteDraft, draftsChanged, MAX_DRAFTS, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
+import { deleteDraft, draftsChanged, pushedOut, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { links } from "@/lib/links";
 import { findWords } from "@/lib/platformCounters";
@@ -101,8 +101,10 @@ export function postDraft(userId: string, c: Pick<Campaign, "id" | "audience" | 
 }
 
 /** The hook of the posted (or measured) My posts entry one more post pushes out, else null: Make asks first. */
-export const droppedHook = (drafts: DraftEntry[]): string | null =>
-  dropsPostedDraft(drafts, 1) ? drafts[MAX_DRAFTS - 1]?.hook || drafts[MAX_DRAFTS - 1]?.draft.slice(0, 60) || "an older post" : null;
+export const droppedHook = (drafts: DraftEntry[]): string | null => {
+  const [d] = pushedOut(drafts, 1);
+  return d && dropsPostedDraft(drafts, 1) ? d.hook || d.draft.slice(0, 60) || "an older post" : null;
+};
 
 /** The line before a slideshow's Make when Slideshows is full and this one pushes the oldest out; else null. */
 export function showDropLine(userId: string): string | null {

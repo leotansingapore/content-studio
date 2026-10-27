@@ -568,4 +568,17 @@ describe("a full My posts", () => {
     saveDrafts(UID, full);
     expect(act.droppedHook(loadDrafts(UID))).toBeNull();
   });
+
+  it("names the posted post a Make really drops when the oldest one is still going out on Zernio, which My posts keeps", async () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => draft({ id: `d${i}`, hook: `Hook ${i}` }));
+    full[MAX_DRAFTS - 2] = { ...full[MAX_DRAFTS - 2], status: "posted", metrics: { reactions: 12 } };
+    full[MAX_DRAFTS - 1] = { ...full[MAX_DRAFTS - 1], status: "scheduled", scheduledFor: "2026-11-20T09:00", zernio: { key: "k", postId: "67000000000000000000d001", status: "scheduled" } };
+    saveDrafts(UID, full);
+    expect(act.droppedHook(loadDrafts(UID))).toBe(`Hook ${MAX_DRAFTS - 2}`);
+    seed([post(1)]);
+    expect((await act.makePost(UID, "c-1", 1, NOW)).ok).toBe(true);
+    const kept = loadDrafts(UID).map((d) => d.id);
+    expect(kept).toContain(`d${MAX_DRAFTS - 1}`);
+    expect(kept).not.toContain(`d${MAX_DRAFTS - 2}`);
+  });
 });
