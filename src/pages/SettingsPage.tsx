@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { groupedPages, section, visiblePages } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
 import { startTour } from "@/lib/tour";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useTourUser } from "@/lib/useTourUser";
 
 export default function SettingsPage() {
   const [email, setEmail] = useState("");
-  const leo = useLeoUser();
+  const tour = useTourUser();
   const navigate = useNavigate();
   useEffect(() => {
     // getSession reads the stored session: no Auth round trip under the client lock
@@ -48,17 +48,17 @@ export default function SettingsPage() {
           </ul>
         </section>
       ))}
-      {leo && (
+      {tour && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-5">
           <div>
             <p className="text-sm font-semibold text-foreground">Tour of the studio</p>
-            <p className="text-xs text-muted-foreground">A one-minute look at the main pages, led by the agent.</p>
+            <p className="text-xs text-muted-foreground">A one-minute look at the main pages{tour.agent ? ", led by the agent" : ""}.</p>
           </div>
           <Button
             type="button"
             variant="outline"
             onClick={() => {
-              startTour(leo.id);
+              startTour(tour.id, null, tour.steps);
               navigate("/home");
             }}
             className="h-11 gap-2 sm:h-9"

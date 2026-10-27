@@ -5,8 +5,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
+const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string }, other: null as string | null }));
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user }));
+// effects never run in a static render, so the session read for everyone else is stood in for here
+vi.mock("@/lib/useTourUser", async () => {
+  const { STUDIO_TOUR, TOUR_STEPS } = await import("./tour");
+  return {
+    useTourUser: () =>
+      as.user ? { id: as.user.id, steps: TOUR_STEPS, agent: true } : as.other ? { id: as.other, steps: STUDIO_TOUR, agent: false } : as.user,
+  };
+});
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
@@ -24,6 +32,7 @@ vi.stubGlobal("localStorage", local);
 vi.stubGlobal("window", { localStorage: local });
 
 import {
+  STUDIO_TOUR,
   TOUR_STEPS,
   finishTour,
   nextStep,
@@ -40,6 +49,7 @@ import {
 } from "./tour";
 import TourPopover from "@/components/TourPopover";
 import { isOnboarded } from "@/lib/onboarding";
+import { pageFor } from "@/lib/nav";
 
 // a fresh account per test: the store keeps a copy in memory for storage that refuses writes
 let n = 0;
@@ -51,6 +61,7 @@ afterEach(() => {
   local.clear();
   takeFocus();
   as.user = null;
+  as.other = null;
 });
 
 describe("the steps", () => {
@@ -71,6 +82,32 @@ describe("the steps", () => {
   });
   it("are ASCII with no em dashes", () => {
     for (const s of TOUR_STEPS) expect(s.text).toMatch(/^[\x20-\x7e]+$/);
+  });
+});
+
+describe("the studio tour", () => {
+  it("walks six pages everyone has, none of them Leo-only, and ends on Analytics", () => {
+    expect(STUDIO_TOUR.map((s) => [s.id, s.path])).toEqual([
+      ["home", "/home"],
+      ["write", "/generate"],
+      ["calendar", "/calendar"],
+      ["swipe", "/swipe"],
+      ["brand", "/brand"],
+      ["analytics", "/analytics"],
+    ]);
+    for (const s of STUDIO_TOUR.slice(1)) expect(pageFor(s.path)?.page.owners, s.path).toBeUndefined();
+    for (const s of STUDIO_TOUR) expect(s.text).toMatch(/^[\x20-\x7e]+$/);
+  });
+  it("walks its own list and finishes after Analytics, never sending anyone to /agent", () => {
+    expect(startTour(U, null, STUDIO_TOUR).id).toBe("home");
+    const walked = [1, 2, 3, 4, 5].map(() => nextStep(U, STUDIO_TOUR)?.path);
+    expect(walked).toEqual(["/generate", "/calendar", "/swipe", "/brand", "/analytics"]);
+    expect(nextStep(U, STUDIO_TOUR)).toBeNull();
+    expect(tourState(U)?.state).toBe("done");
+    expect(stepForPath("/agent/t1", STUDIO_TOUR)).toBeNull();
+    expect(stepForPath("/generate", STUDIO_TOUR)).toBe("write");
+    expect(tourParam("?tour=agent", STUDIO_TOUR)?.step).toBe("home");
+    expect(tourParam("?tour=calendar", STUDIO_TOUR)?.step).toBe("calendar");
   });
 });
 
@@ -132,7 +169,7 @@ describe("the store", () => {
     local.setItem(tourKey(U), JSON.stringify({ step: "campaigns", state: "paused", at: "2026-10-22T09:00:00.000Z" }));
     expect(tourState(U)).toEqual({ step: "campaigns", state: "paused", at: "2026-10-22T09:00:00.000Z" });
     expect(tourState("someone-else")).toBeNull();
-    for (const bad of ["{", "null", '"home"', JSON.stringify({ step: "calendar", state: "running", at: "x" }), JSON.stringify({ step: "home", state: "open", at: "x" })]) {
+    for (const bad of ["{", "null", '"home"', JSON.stringify({ step: "nowhere", state: "running", at: "x" }), JSON.stringify({ step: "home", state: "open", at: "x" })]) {
       local.setItem(tourKey(U), bad);
       expect(tourState(U)).toBeNull();
     }
@@ -208,7 +245,7 @@ describe("the popover", () => {
   const draw = (path: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(TourPopover)));
   const store = (step: string, state: string) => local.setItem(tourKey(U), JSON.stringify({ step, state, at: "2026-10-22T09:00:00.000Z" }));
 
-  it("draws nothing for anyone else or while the sign-in is being read, whatever this device holds", () => {
+  it("draws nothing signed out or while the sign-in is being read, whatever this device holds", () => {
     store("home", "running");
     expect(draw("/home")).toBe("");
     as.user = undefined;
@@ -249,6 +286,20 @@ describe("the popover", () => {
       expect(out).toContain('aria-label="Skip tour"');
       expect(out).not.toContain('role="dialog"');
     }
+  });
+
+  it("shows everyone else the studio tour, labelled Tour, never the agent's", () => {
+    as.other = U;
+    store("calendar", "running");
+    const out = draw("/calendar");
+    expect(out).toContain('aria-label="Tour, step 3 of 6"');
+    expect(out).toContain(STUDIO_TOUR[2].text);
+    expect(out).toContain("Tour <span");
+    expect(out).not.toContain("Agent <span");
+    store("analytics", "running");
+    expect(draw("/analytics")).toContain(">Done</button>");
+    store("write", "running");
+    expect(draw("/home")).toContain("Tour paused at step 2 of 6");
   });
 
   it("draws nothing once the tour is done or skipped, or never started", () => {

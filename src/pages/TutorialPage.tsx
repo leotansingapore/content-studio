@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useTourUser } from "@/lib/useTourUser";
 import { startTour } from "@/lib/tour";
 import { useScrollToHash } from "@/lib/urlState";
 import {
@@ -32,17 +32,17 @@ import {
 export default function TutorialPage() {
   // /tutorial#tabs and the other section ids (docs/deep-links.md) land on that card
   useScrollToHash();
-  const leo = useLeoUser();
+  const tour = useTourUser();
   const navigate = useNavigate();
   return (
     <div className="space-y-6">
       <h1 className="sr-only">How the studio works</h1>
-      {leo && (
+      {tour && (
         <Button
           type="button"
           variant="outline"
           onClick={() => {
-            startTour(leo.id);
+            startTour(tour.id, null, tour.steps);
             navigate("/home");
           }}
           className="h-11 gap-2"

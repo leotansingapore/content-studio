@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Sparkles, X } from "lucide-react";
+import { Compass, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useTourUser } from "@/lib/useTourUser";
 import {
-  TOUR_STEPS,
   nextStep,
   onTour,
   pauseTour,
@@ -20,13 +19,13 @@ import {
   tourState,
 } from "@/lib/tour";
 
-// The agent's tour (north star agent-tour, Leo only), mounted once in StudioLayout. The page stays usable under it:
+// The agent's tour (north star agent-tour) on Leo's sign-ins and the studio tour on everyone else's, mounted once in
+// StudioLayout. The page stays usable under it:
 // no backdrop, below the dock's button, and the body gets room at the bottom so nothing on a page stays hidden behind it.
 // On its step's page it shows the step; anywhere else, or after Esc, a pill to resume or skip. While the dock's panel is
 // open (html[data-agent-dock]) it sits above the panel, so Next and Skip always take a press (live-p6replay D9): left of
 // the panel on wide screens, and over the panel's messages, clear of its composer, on phones.
 
-const TOTAL = TOUR_STEPS.length;
 // bottom centre of the content area; 144 px up on phones clears the bottom nav and the dock's button
 const PLACE = cn(
   "fixed inset-x-0 z-[45] mx-auto bottom-[144px] lg:bottom-6 lg:left-[var(--nav-w)]",
@@ -48,7 +47,8 @@ function unring() {
 }
 
 export default function TourPopover() {
-  const leo = useLeoUser();
+  const who = useTourUser();
+  const steps = who?.steps;
   const { pathname, search, hash } = useLocation();
   const navigate = useNavigate();
   const [, bump] = useState(0);
@@ -61,20 +61,21 @@ export default function TourPopover() {
 
   useEffect(() => onTour(() => bump((n) => n + 1)), []);
 
-  // ?tour= is read once and removed with a replace, and for anyone else only removed. It stays while the sign-in is
+  // ?tour= is read once and removed with a replace, and signed out only removed. It stays while the sign-in is
   // still being read, as ?remix= does.
   useEffect(() => {
-    const p = tourParam(search);
-    if (!p || leo === undefined) return;
-    if (!leo) return navigate(pathname + p.search + hash, { replace: true });
-    const step = startTour(leo.id, p.step);
+    const p = tourParam(search, steps);
+    if (!p || who === undefined) return;
+    if (!who) return navigate(pathname + p.search + hash, { replace: true });
+    const step = startTour(who.id, p.step, who.steps);
     navigate(step.path === pathname ? pathname + p.search + hash : step.path + p.search, { replace: true });
-  }, [leo, pathname, search, hash, navigate]);
+  }, [who, steps, pathname, search, hash, navigate]);
 
-  const rec = leo ? tourState(leo.id) : null;
+  const rec = who ? tourState(who.id) : null;
   const live = rec && (rec.state === "running" || rec.state === "paused") ? rec : null;
-  const { step, n } = live ? stepOf(live.step) : { step: null, n: 0 };
-  const view = !live ? null : live.state === "running" && stepForPath(pathname) === live.step ? "popover" : "pill";
+  const { step, n } = live ? stepOf(live.step, steps) : { step: null, n: 0 };
+  const TOTAL = steps?.length ?? 0;
+  const view = !live ? null : live.state === "running" && stepForPath(pathname, steps) === live.step ? "popover" : "pill";
 
   // Focus moves only after a press (start, Next, Resume, Esc), so it never leaves a field someone is typing in.
   useEffect(() => {
@@ -138,31 +139,31 @@ export default function TourPopover() {
 
   const toMain = () => document.getElementById("main-content")?.focus({ preventScroll: true });
   const onNext = () => {
-    if (!leo) return;
-    const to = nextStep(leo.id);
+    if (!who) return;
+    const to = nextStep(who.id, who.steps);
     if (to) return navigate(to.path);
     toMain();
     toast({ title: DONE });
   };
   const onSkip = () => {
-    if (!leo) return;
-    skipTour(leo.id);
+    if (!who) return;
+    skipTour(who.id, who.steps);
     toMain();
     toast({ title: SKIPPED });
   };
   const onResume = () => {
-    if (!leo) return;
-    const s = resumeTour(leo.id);
-    if (s && stepForPath(pathname) !== s.id) navigate(s.path);
+    if (!who) return;
+    const s = resumeTour(who.id, who.steps);
+    if (s && stepForPath(pathname, who.steps) !== s.id) navigate(s.path);
   };
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "Escape" || !leo) return;
+    if (e.key !== "Escape" || !who) return;
     e.preventDefault(); // the dock's Esc stays put
     focusResume.current = true;
-    pauseTour(leo.id);
+    pauseTour(who.id);
   };
 
-  if (!leo || !view || !step) return null;
+  if (!who || !view || !step) return null;
 
   if (view === "pill")
     return (
@@ -209,9 +210,9 @@ export default function TourPopover() {
     >
       <p className="flex items-center gap-2 text-sm font-semibold">
         <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
+          {who.agent ? <Sparkles className="h-3.5 w-3.5" /> : <Compass className="h-3.5 w-3.5" />}
         </span>
-        Agent <span className="font-normal text-muted-foreground">{step.page}</span>
+        {who.agent ? "Agent" : "Tour"} <span className="font-normal text-muted-foreground">{step.page}</span>
       </p>
       <p aria-live="polite" className="mt-2 text-sm leading-relaxed">
         {step.text}

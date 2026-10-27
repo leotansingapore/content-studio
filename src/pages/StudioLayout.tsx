@@ -756,7 +756,7 @@ export default function StudioLayout() {
           </Suspense>
         </ErrorBoundary>
       )}
-      {/* the agent's tour: Leo only, and for anyone else it only drops a typed ?tour= */}
+      {/* the tour: the agent's on Leo's sign-ins, the studio's on everyone else's */}
       <ErrorBoundary>
         <TourPopover />
       </ErrorBoundary>

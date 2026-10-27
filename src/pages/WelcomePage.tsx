@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { markOnboarded } from "@/lib/onboarding";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useTourUser } from "@/lib/useTourUser";
 import { startTour } from "@/lib/tour";
 import {
   Sparkles,
@@ -55,7 +55,7 @@ export async function onboardThenGo(
 
 export default function WelcomePage() {
   const navigate = useNavigate();
-  const leo = useLeoUser();
+  const tour = useTourUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState("");
 
@@ -128,15 +128,15 @@ export default function WelcomePage() {
       </div>
 
       <div className="flex flex-col items-center gap-3">
-        {leo ? (
-          // Leo's tour (agent-tour): go() marks him onboarded first, so /home does not send him back here
+        {tour ? (
+          // the tour (the agent's on Leo's sign-ins): go() marks the account onboarded first, so /home does not send it back here
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             {start}
             <Button
               size="lg"
               variant="outline"
               onClick={() => {
-                startTour(leo.id);
+                startTour(tour.id, null, tour.steps);
                 go("/home");
               }}
               className="gap-2"
