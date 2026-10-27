@@ -278,6 +278,19 @@ describe("the wall job", () => {
     expect(join.start).toHaveBeenCalledTimes(1);
   });
 
+  it("Try again after a join that failed while you were off /edit joins at once, never sitting on Putting it together", async () => {
+    answer({ "desk night tea": [clip("a")] });
+    // the first join fails and nobody claims it (/edit was not open), so it is still the slot's when Try again is pressed
+    const failed = { state: "failed", progress: 0, error: "This browser can't record video." };
+    join.current.mockImplementation(() => (join.start.mock.calls.length === 1 ? failed : join.start.mock.calls.length ? { state: "done", progress: 1 } : null));
+    expect(await run()).toMatchObject({ state: "failed", error: "This browser can't record video." });
+    finishAgain({});
+    await vi.runAllTimersAsync();
+    expect(wallJob()).toMatchObject({ state: "done" });
+    expect(join.start).toHaveBeenCalledTimes(2);
+    expect(make).toHaveBeenCalledTimes(1);
+  });
+
   it("says why it failed: the writer, a refusal in the server's words, the cap, a dropped download, the join", async () => {
     make.mockRejectedValueOnce(new Error("network"));
     expect(await run()).toMatchObject({ state: "failed", error: WRITE_FAILED });
