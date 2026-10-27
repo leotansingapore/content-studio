@@ -189,6 +189,87 @@ describe("sendOutbox", () => {
     expect(calls.fn).not.toHaveBeenCalled();
     expect(loadOutbox(UID).ops).toHaveLength(1);
   });
+
+  it("sends a cancel on its own once the Undo's grace is over, with nothing else changing on the page", async () => {
+    vi.useFakeTimers();
+    try {
+      const id = ids();
+      saveDrafts(UID, [held(id)]);
+      setDraftStatus(UID, `d-${id}`, "draft"); // Back in drafts, then the person just waits
+      calls.fn.mockResolvedValueOnce({ cancelled: true });
+      await sendOutbox(UID, now);
+      expect(calls.fn).not.toHaveBeenCalled();
+      clock += CANCEL_GRACE_MS;
+      await vi.advanceTimersByTimeAsync(CANCEL_GRACE_MS);
+      expect(sent()).toEqual([{ name: "social", action: "cancel", profileId: "me", postId: id }]);
+      expect(loadOutbox(UID)).toEqual({ ops: [], gone: [id] });
+      expect(draftOf(id)!.zernio).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a second post moved while the first move is out goes in the same run", async () => {
+    const a = ids();
+    const b = ids();
+    saveDrafts(UID, [held(a), held(b)]);
+    setDraftStatus(UID, `d-${a}`, "scheduled", "2026-10-16T19:30");
+    calls.fn
+      .mockImplementationOnce(async () => {
+        setDraftStatus(UID, `d-${b}`, "scheduled", "2026-10-17T08:00");
+        void sendOutbox(UID, now); // the outbox event the runner hears while it is busy
+        return view(a, "2026-10-16T11:30:00.000Z");
+      })
+      .mockResolvedValueOnce(view(b, "2026-10-17T00:00:00.000Z"));
+    await sendOutbox(UID, now);
+    expect(sent().map((c) => [(c as { postId?: string }).postId, (c as { scheduledFor?: string }).scheduledFor])).toEqual([
+      [a, "2026-10-16T19:30:00+08:00"],
+      [b, "2026-10-17T08:00:00+08:00"],
+    ]);
+    expect(loadOutbox(UID).ops).toEqual([]);
+    expect(draftOf(b)!.zernio).toMatchObject({ at: "2026-10-17T00:00:00.000Z" });
+  });
+
+  it("a cancel refused because the post is already going out says so, stops trying and keeps the card's link to it", async () => {
+    const id = ids();
+    saveDrafts(UID, [held(id)]);
+    setDraftStatus(UID, `d-${id}`, "draft"); // Back in drafts as it starts going out
+    await sendOutbox(UID, now);
+    clock += CANCEL_GRACE_MS;
+    const refusal = "It's already posted on TikTok, so it can't be cancelled. Delete it there.";
+    calls.fn.mockRejectedValueOnce(new EdgeError(refusal, 409, "published"));
+    await sendOutbox(UID, now);
+    await sendOutbox(UID, now);
+    expect(calls.fn).toHaveBeenCalledTimes(1);
+    expect(loadOutbox(UID)).toEqual({ ops: [], gone: [] });
+    expect(calls.toast).toHaveBeenCalledWith({ title: "Already posted", description: refusal });
+    expect(draftOf(id)!.zernio?.postId).toBe(id);
+  });
+
+  it("a 404 because Post it for me is off for the sign-in keeps the cancel waiting and the card's link, so Zernio's post is never forgotten", async () => {
+    const id = ids();
+    saveDrafts(UID, [held(id)]);
+    setDraftStatus(UID, `d-${id}`, "draft");
+    await sendOutbox(UID, now);
+    clock += CANCEL_GRACE_MS;
+    calls.fn.mockRejectedValueOnce(new EdgeError("Not enabled.", 404));
+    await sendOutbox(UID, now);
+    expect(loadOutbox(UID)).toEqual({ ops: [expect.objectContaining({ postId: id, op: "cancel", tries: 1, error: "Not enabled." })], gone: [] });
+    expect(draftOf(id)!.zernio?.postId).toBe(id);
+  });
+
+  it("a move refused because Zernio already cancelled the post takes the op and the auto-post off the card, at its new time", async () => {
+    const id = ids();
+    saveDrafts(UID, [held(id)]);
+    setDraftStatus(UID, `d-${id}`, "scheduled", "2026-10-16T19:30");
+    calls.fn.mockRejectedValueOnce(new EdgeError("It was cancelled on Zernio, so it can't move.", 409, "cancelled"));
+    await sendOutbox(UID, now);
+    await sendOutbox(UID, now);
+    expect(calls.fn).toHaveBeenCalledTimes(1);
+    expect(loadOutbox(UID)).toEqual({ ops: [], gone: [id] });
+    expect(draftOf(id)).toMatchObject({ status: "scheduled", scheduledFor: "2026-10-16T19:30" });
+    expect(draftOf(id)!.zernio).toBeUndefined();
+  });
 });
 
 describe("outboxRows", () => {
