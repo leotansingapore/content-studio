@@ -128,9 +128,9 @@ export function isUsableIdea(note: string): boolean {
   return wordCount(note) >= MIN_IDEA_WORDS && note.length >= MIN_IDEA_CHARS;
 }
 
-/** A heading such as "Ideas for this week:" isn't an idea, and mustn't join one. */
+/** A heading such as "Ideas for this week:" (or a Chinese one ending in a full-width colon) isn't an idea, and mustn't join one. */
 function isHeading(line: string): boolean {
-  return /:\s*$/.test(line) && wordCount(line.replace(BULLET_RE, "")) <= 5;
+  return /[:\uff1a]\s*$/.test(line) && wordCount(line.replace(BULLET_RE, "")) <= 5;
 }
 
 /**

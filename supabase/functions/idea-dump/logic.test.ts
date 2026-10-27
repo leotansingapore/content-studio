@@ -48,6 +48,13 @@ describe("splitIdeas", () => {
     ).toEqual(["why young adults skip hospital plans", "The real cost of waiting to buy insurance"]);
   });
 
+  it("drops a Chinese heading that ends in a full-width colon, as it drops an English one", () => {
+    expect(splitIdeas("\u8fd9\u5468\u7684\u5e16\u5b50\u60f3\u6cd5\uff1a\n\u5e74\u8f7b\u4eba\u4e3a\u4ec0\u4e48\u4e0d\u4e70\u4f4f\u9662\u4fdd\u9669\n\u516c\u79ef\u91d1\u5728\u5e74\u5e95\u524d\u8981\u4e0d\u8981\u586b\u8865").ideas).toEqual([
+      "\u5e74\u8f7b\u4eba\u4e3a\u4ec0\u4e48\u4e0d\u4e70\u4f4f\u9662\u4fdd\u9669",
+      "\u516c\u79ef\u91d1\u5728\u5e74\u5e95\u524d\u8981\u4e0d\u8981\u586b\u8865",
+    ]);
+  });
+
   it("never glues a symbol-only line into a paragraph", () => {
     expect(
       splitIdeas("first idea about hospital plans\n!!!\nstill the same idea here\n\nsecond idea about CPF top ups").ideas,
