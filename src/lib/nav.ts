@@ -40,7 +40,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ownerShown, reelsShown } from "@/lib/reelsBoard";
-import { LEO_EMAILS } from "@/lib/leoOnly";
+import { LEO_EMAILS, leoOnly } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
 
@@ -51,6 +51,8 @@ export type NavPage = {
   end?: boolean;
   /** Shown only to these sign-ins. */
   owners?: string[];
+  /** Its label on Leo's sign-ins, where the page is a different tool for them (/clone is Remix a post). */
+  leoLabel?: string;
   /** Shown only while this says so (an answer this device remembers from the server). */
   show?: () => boolean;
   /** Browser tab title when it should differ from the label. */
@@ -130,7 +132,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/media", label: "Media" },
       { to: "/reels", label: "Posts board", end: true, show: reelsShown, icon: ClipboardCheck, group: "Approvals" },
       { to: "/team", label: "Leader approvals", icon: ClipboardCheck },
-      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Influencers" },
+      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Faces and voices" },
     ],
   },
   {
@@ -141,7 +143,7 @@ export const SECTIONS: NavSection[] = [
     pages: [
       { to: "/swipe", label: "Top posts", icon: TrendingUp },
       { to: "/trends", label: "Trends", icon: Flame },
-      { to: "/clone", label: "Clone a reel", icon: Clapperboard },
+      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
       { to: "/profiles", label: "Creators", icon: Users },
       { to: "/following", label: "Following", icon: UserCheck },
@@ -238,7 +240,9 @@ export const pathMatches = (pathname: string, to: string, end = false) =>
   pathname === to || (!end && pathname.startsWith(to + "/"));
 
 export const visiblePages = (pages: NavPage[], email: string) =>
-  pages.filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()));
+  pages
+    .filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()))
+    .map((p) => (p.leoLabel && leoOnly(email) ? { ...p, label: p.leoLabel } : p));
 
 /** Each page carries the group (tab) it sits under, so a group survives its first page being hidden. */
 export function groupedPages(pages: NavPage[]): NavPage[] {

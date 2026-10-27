@@ -98,6 +98,8 @@ describe("nav", () => {
     it("lists a plain section's pages, the open one lit", () => {
       const { tabs, chips } = sectionTabs("/trends", ANYONE);
       expect(labels(tabs)).toEqual(["Top posts", "Trends", "Clone a reel", "Inspiration", "Creators", "Following"]);
+      // Leo's /clone is Remix a post, so its tab says so
+      expect(sectionTabs("/trends", LEO).tabs.find((t) => t.to === "/clone")?.label).toBe("Remix a post");
       expect(tabs.filter((t) => t.active).map((t) => t.to)).toEqual(["/trends"]);
       expect(chips).toEqual([]);
       // a detail page has its own way back: no row over a creator, a campaign or a format; F.A.D.S.'s own tabs keep it
@@ -108,7 +110,7 @@ describe("nav", () => {
 
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {
       const leo = sectionTabs("/carousel", LEO);
-      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Approvals", "Influencers"]);
+      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Approvals", "Faces and voices"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
       expect(labels(leo.chips)).toEqual(["Post", "Formats", "Batch", "Carousel", "Image", "Slideshow", "Video"]);
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
