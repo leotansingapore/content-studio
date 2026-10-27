@@ -21,6 +21,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import FormatShell from "@/components/make/FormatShell";
 import PriceChip from "@/components/PriceChip";
 import { PostItForMePanel } from "@/components/PostItForMe";
+import AdsResults from "@/components/image/AdsResults";
 import RunAsAdSheet from "@/components/image/RunAsAdSheet";
 import { MemeOptions, MemePicture, MediaThumb, memePictures, memeSetFor, memeWriteBusy, MEME_STEP, startMemeWrite, useMemePictures, useMemeWrite } from "@/components/image/MemeOptions";
 import FlagChips from "@/components/remix/FlagChips";
@@ -737,6 +738,7 @@ function ImageEditor({ userId }: { userId: string }) {
       {posting && <PostPanel userId={userId} draft={posting} onDrafts={() => setPosting(getDraftById(userId, posting.id))} onClose={() => setPosting(null)} />}
 
       <YourImages list={savedList} openId={imageId} />
+      <AdsResults userId={userId} />
       {adOpen === "1" && !block && !writing && (
         <RunAsAdSheet
           userId={userId}
