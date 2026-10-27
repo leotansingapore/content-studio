@@ -89,6 +89,7 @@ import { storePicture } from "@/lib/mediaLibrary";
 import StockSearch from "@/components/StockSearch";
 import { downloadStock } from "@/lib/stockMedia";
 import { fileProblem, fileType, MAX_PICTURES, NEEDS_MEDIA } from "@/lib/autoPost";
+import { videoFit } from "@/lib/mediaFit";
 import { analyzePosts } from "@/lib/coach";
 import type { PlatformId } from "@/lib/platformCounters";
 import {
@@ -2779,6 +2780,9 @@ export default function GeneratePage() {
     };
   }, [attachedKeys]);
   const attachedVideo = attachedMedia.media.some((m) => m.video);
+  // read off the attached video's tile, for the network's length cap (mediaFit)
+  const [attachedSecs, setAttachedSecs] = useState<number | null>(null);
+  const videoLine = attachedVideo && attachedSecs !== null ? videoFit(platform, attachedSecs)?.line : null;
   const attachFiles = async (picked: File[]) => {
     if (!picked.length || !userId || attaching) return;
     const fail = (description: string) => toast({ title: "Couldn't attach that", description, variant: "destructive" });
@@ -4598,7 +4602,7 @@ export default function GeneratePage() {
                   {attachedMedia.media.map((m, i) => (
                     <span key={m.key} className="relative">
                       {m.video ? (
-                        <video src={m.url} muted playsInline className="h-16 w-16 rounded-md bg-black object-cover" />
+                        <video src={m.url} muted playsInline onLoadedMetadata={(e) => setAttachedSecs(e.currentTarget.duration)} className="h-16 w-16 rounded-md bg-black object-cover" />
                       ) : (
                         <img src={m.url} alt={`Attached picture ${i + 1}`} className="h-16 w-16 rounded-md object-cover" />
                       )}
@@ -4644,6 +4648,7 @@ export default function GeneratePage() {
                 {!attachedKeys.length && format !== "carousel" && NEEDS_MEDIA.includes(platform) && (
                   <p className="text-xs text-amber-800 dark:text-amber-300">{platformLabel(platform)} needs a picture or video to post.</p>
                 )}
+                {videoLine && <p className="text-xs text-amber-800 dark:text-amber-300">{videoLine}</p>}
               </div>
             </div>
 

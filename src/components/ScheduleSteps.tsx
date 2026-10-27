@@ -38,6 +38,7 @@ import { writePlatformCaptions, type CaptionPlatform } from "@/lib/platformCapti
 import { useUsesLeft } from "@/lib/aiUsage";
 import { currentScore, scorePost, textKey, type SavedScore } from "@/lib/postScore";
 import { nextOpenSlots } from "@/lib/postingSlots";
+import { videoFit } from "@/lib/mediaFit";
 import { isNewTikTok, loadTikTokCare, markWarmed, modeOf, postsStale, saveMode, savePostCount, type TikTokMode as Mode } from "@/lib/tiktokCare";
 import { accountPosts } from "@/lib/autoDm";
 import {
@@ -286,6 +287,24 @@ export function ScheduleSteps({
       live = false;
     };
   }, [attachedSig]);
+  // the video's length, held to each ticked network's cap (mediaFit)
+  const videoFile = mode === "files" ? files.find((f) => f.type.startsWith("video/"))?.file : undefined;
+  const [videoSecs, setVideoSecs] = useState<number | null>(null);
+  useEffect(() => {
+    setVideoSecs(null);
+    if (!videoFile) return;
+    let live = true;
+    import("@/lib/videoMedia")
+      .then(({ loadVideo }) => loadVideo(videoFile))
+      .then((v) => {
+        URL.revokeObjectURL(v.src);
+        if (live) setVideoSecs(v.duration);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [videoFile]);
 
   useEffect(() => {
     if (hidden()) return;
@@ -448,16 +467,22 @@ export function ScheduleSteps({
     tiktok: tiktokInput,
   };
   const stories = tabs.filter((p) => (p === "instagram" || p === "facebook") && placementOf(p, versions, media) === "story");
+  const fits = videoSecs === null ? [] : tabs.flatMap((p) => {
+    const fit = videoFit(p, videoSecs, { placement: placementOf(p, versions, media), tiktokMax: p === "tiktok" ? info?.maxVideoSeconds : null });
+    return fit ? [{ p, ...fit }] : [];
+  });
+  const tooLong = fits.find((f) => f.hard)?.line ?? null;
   const commentOn = tabs.some((p) => p !== "tiktok");
   const fcFlags = scanCompliance(firstComment);
   const reasons: Record<Step, string | null> = {
-    where: state !== "ready" ? "Loading your accounts..." : tgOnly ? tgMedia : (stepProblem("where", form) ?? tgMedia),
+    where: state !== "ready" ? "Loading your accounts..." : tgOnly ? tgMedia : (stepProblem("where", form) ?? tooLong ?? tgMedia),
     when: stepProblem("when", form),
     caption:
       (blockReason ? `Team rule: ${blockReason}` : null) ??
       (tiktokId && !info ? "Reading your TikTok settings..." : null) ??
       (tgOnly ? null : stepProblem("caption", form)) ??
       (tgOnly ? null : optionsProblem(tabs, versions, media)) ??
+      (tgOnly ? null : tooLong) ??
       tgCaption ??
       (commentOn && firstComment.trim().length > FIRST_COMMENT_MAX ? `Keep the first comment under ${FIRST_COMMENT_MAX + 1} characters.` : null) ??
       (commentOn && hasComplianceErrors(fcFlags) ? "Fix the compliance error in the first comment first." : null) ??
@@ -929,6 +954,14 @@ export function ScheduleSteps({
                       <p key={i} className="truncate text-muted-foreground">{f.name}, {(f.file.size / 1_000_000).toFixed(1)} MB</p>
                     ))}
                     {files.length > MAX_PICTURES && <p className="text-destructive">Pick up to {MAX_PICTURES} pictures.</p>}
+                    {fits.map((f) => (
+                      <p key={f.p} className={`flex flex-wrap items-center gap-x-2 ${f.hard ? "text-destructive" : "text-amber-800 dark:text-amber-300"}`}>
+                        {f.line}
+                        <button type="button" onClick={() => toggleNetwork(f.p, false)} className={`font-semibold text-primary hover:underline ${TOUCH}`}>
+                          Untick {platformName(f.p)}
+                        </button>
+                      </p>
+                    ))}
                   </div>
                 )}
               </fieldset>

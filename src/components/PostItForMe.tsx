@@ -24,6 +24,7 @@ import { draftStatus, setDraftStatus, setDraftZernio, type DraftEntry } from "@/
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { scheduleTime } from "@/lib/dueDates";
+import { videoFit } from "@/lib/mediaFit";
 import { ScheduleSteps, carouselPdf, carouselSvgs, logPost } from "@/components/ScheduleSteps";
 import { applyView } from "@/lib/useZernioOutbox";
 import {
@@ -308,6 +309,24 @@ export function PostItForMePanel({
       live = false;
     };
   }, [attachedSig]);
+  // the video's length, held to the network's cap (mediaFit)
+  const videoFile = mode === "files" ? files.find((f) => f.type.startsWith("video/"))?.file : undefined;
+  const [videoSecs, setVideoSecs] = useState<number | null>(null);
+  useEffect(() => {
+    setVideoSecs(null);
+    if (!videoFile) return;
+    let live = true;
+    import("@/lib/videoMedia")
+      .then(({ loadVideo }) => loadVideo(videoFile))
+      .then((v) => {
+        URL.revokeObjectURL(v.src);
+        if (live) setVideoSecs(v.duration);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [videoFile]);
   const draftTime = scheduleTime(draft.scheduledFor);
   const [time, setTime] = useState(draftTime ?? "09:00");
   const [now, setNow] = useState(false);
@@ -395,10 +414,12 @@ export function PostItForMePanel({
     { clientKey: key.current, content, captions: {}, mediaUrls, scheduledFor: null, firstComment: "", tiktok: tiktokInput, youtube: null, ...(thread ? { thread } : {}) },
     picked.length ? accounts.filter((a) => picked.includes(a.id)).map((a) => a.platform) : [],
   );
+  const fit = videoSecs === null ? null : videoFit(platform, videoSecs, { tiktokMax: platform === "tiktok" ? info?.maxVideoSeconds : null });
   const reason =
     (blockReason ? `Team rule: ${blockReason}` : null) ??
     (state !== "ready" ? "Loading your accounts..." : null) ??
     fileIssue ??
+    (fit?.hard ? fit.line : null) ??
     (mode === "files" && files.length > MAX_PICTURES ? `Pick up to ${MAX_PICTURES} pictures.` : null) ??
     problem ??
     (platform === "tiktok" && info && !info.canPostMore ? "TikTok says this account can't post more right now. Try later." : null) ??
@@ -536,6 +557,7 @@ export function PostItForMePanel({
                 {files.map((f, i) => (
                   <p key={i} className="truncate text-muted-foreground">{f.name}, {(f.file.size / 1_000_000).toFixed(1)} MB</p>
                 ))}
+                {fit && <p className={fit.hard ? "text-destructive" : "text-amber-800 dark:text-amber-300"}>{fit.line}</p>}
               </div>
             )}
           </fieldset>
