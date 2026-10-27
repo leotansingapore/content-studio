@@ -19,10 +19,13 @@ export interface SendChat {
   chat_id: number;
   username: string | null;
   topic_id: number | null;
+  /** The bot the chat was tied through; null is the shared bot. */
+  bot_id: number | null;
 }
 
 export interface TickDeps {
-  bot: Bot;
+  /** The shared bot for null, a brand's own bot by its Telegram id (null once it is gone or revoked). */
+  botFor(botId: number | null): Promise<Bot | null>;
   now: number;
   /** Fails every post still sending since before `before` with the reason; answers how many. */
   failStale(before: string, reason: string, now: string): Promise<number>;
@@ -101,6 +104,7 @@ export async function sendPost(bot: Bot, p: Pick<QueuedPost, "text" | "media">, 
 /** Telegram's refusal in plain words. */
 export function plainReason(e: TelegramError): string {
   const d = e.description;
+  if (e.status === 401) return "The bot's token no longer works. Add the bot again on Social accounts.";
   if (e.status === 403 || /not enough rights|need administrator rights|have no rights|CHAT_WRITE_FORBIDDEN/i.test(d)) return REASON.cantPost;
   if (/chat not found/i.test(d)) return "Telegram couldn't find the chat.";
   if (/thread not found|topic/i.test(d)) return "That topic is gone. Send /here in another topic, or in General.";
@@ -141,9 +145,16 @@ export async function runTick(d: TickDeps): Promise<TickReport> {
   r.stale = await d.failStale(iso(d.now - 10 * MINUTE), STALE, now);
   const posts = await d.claim(PER_TICK, now);
   const chats = new Map((posts.length ? await d.chats([...new Set(posts.map((p) => p.chat_row))]) : []).map((c) => [c.id, c]));
+  // each post goes out through the bot its chat was tied through; each bot is looked up once a tick
+  const bots = new Map<number | null, Bot | null>();
+  const botOf = async (id: number | null) => {
+    if (!bots.has(id)) bots.set(id, await d.botFor(id));
+    return bots.get(id) ?? null;
+  };
   for (const p of posts) {
     const chat = chats.get(p.chat_row);
-    if (!chat) {
+    const bot = chat ? await botOf(chat.bot_id ?? null) : null;
+    if (!chat || !bot) {
       await d.failed(p.id, REASON.cantPost, now);
       r.failed++;
       continue;
@@ -152,7 +163,7 @@ export async function runTick(d: TickDeps): Promise<TickReport> {
     let ids: number[];
     try {
       const urls = p.media.length ? await d.signedUrls(p.media) : [];
-      ids = await sendPost(d.bot, p, chat, urls);
+      ids = await sendPost(bot, p, chat, urls);
     } catch (e) {
       const o = e instanceof SendFailure ? outcomeOf(e.reason, e.sent, p.attempts, d.now) : outcomeOf(e, [], p.attempts, d.now);
       try {

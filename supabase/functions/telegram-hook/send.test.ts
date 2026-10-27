@@ -18,7 +18,7 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const asError = (f: { error_code: number; description: string; parameters?: { retry_after?: number; migrate_to_chat_id?: number } }) =>
   new TelegramError(f.error_code, f.description, f.parameters?.retry_after, f.parameters?.migrate_to_chat_id);
 
-const CHAT: SendChat = { id: "row-1", chat_id: -1001234567890, username: null, topic_id: 326 };
+const CHAT: SendChat = { id: "row-1", chat_id: -1001234567890, username: null, topic_id: 326, bot_id: null };
 const post = (o: Partial<QueuedPost> = {}): QueuedPost => ({ id: "post-1", chat_row: "row-1", text: "Hello group", media: [], attempts: 1, ...o });
 const pics = (n: number) => Array.from({ length: n }, (_, i) => `u/me/0000000${i}-0000-4000-8000-000000000000.jpg`);
 
@@ -33,7 +33,11 @@ function harness(o: {
   failedFails?: number;
   finished?: { id: string; media: string[] }[];
   live?: string[];
+  /** own bots by Telegram id; a missing one is gone */
+  own?: number[];
 } = {}) {
+  const ownSent: { botId: number; method: string; params: Record<string, unknown> }[] = [];
+  const asked: (number | null)[] = [];
   let postedFails = o.postedFails ?? 0;
   let failedFails = o.failedFails ?? 0;
   const sent: { method: string; params: Record<string, unknown> }[] = [];
@@ -51,7 +55,18 @@ function harness(o: {
   };
   let claimed = 0;
   const d: TickDeps = {
-    bot,
+    botFor: async (botId) => {
+      asked.push(botId);
+      if (botId === null) return bot;
+      if (!(o.own ?? []).includes(botId)) return null;
+      return {
+        id: botId,
+        async call<T>(method: string, params: Record<string, unknown>): Promise<T> {
+          ownSent.push({ botId, method, params });
+          return sendOk.result as T;
+        },
+      };
+    },
     now: o.now ?? NOW,
     failStale: async (before, reason) => (log.push(`stale<${before}:${reason}`), 0),
     claim: async (limit, now) => (log.push(`claim:${limit}@${now}`), claimed++ ? [] : (o.posts ?? [post()])),
@@ -72,7 +87,7 @@ function harness(o: {
     removeFiles: async (paths) => void log.push(`remove:${paths.join(",")}`),
     clearFiles: async (ids) => void log.push(`clear:${ids.join(",")}`),
   };
-  return { d, sent, log };
+  return { d, sent, log, ownSent, asked };
 }
 
 describe("the hours", () => {
@@ -256,6 +271,30 @@ describe("when Telegram refuses", () => {
     expect(sent).toHaveLength(2);
     expect(log.filter((l) => l.includes("post-1"))).toEqual([]);
     expect(log).toContain("posted:post-2:4001:https://t.me/cs_test_channel/4001");
+  });
+
+  it("sends each post through the bot its chat was tied through, asking for each bot once a tick", async () => {
+    const chats = [{ ...CHAT, bot_id: 7000000002 }, { ...CHAT, id: "row-2", chat_id: -1009876543210, username: "cs_test_channel", topic_id: null, bot_id: null }, { ...CHAT, id: "row-3", chat_id: -1005, bot_id: 7000000002 }];
+    const posts = [post(), post({ id: "post-2", chat_row: "row-2" }), post({ id: "post-3", chat_row: "row-3" })];
+    const { d, sent, ownSent, asked, log } = harness({ posts, chats, own: [7000000002] });
+    expect(await runTick(d)).toMatchObject({ sent: 3 });
+    expect(ownSent.map((s) => [s.botId, s.params.chat_id])).toEqual([[7000000002, -1001234567890], [7000000002, -1005]]);
+    expect(sent.map((s) => s.params.chat_id)).toEqual([-1009876543210]);
+    expect(asked).toEqual([7000000002, null]);
+    expect(log.filter((l) => l.startsWith("posted:"))).toHaveLength(3);
+  });
+
+  it("fails a post whose own bot is gone without calling Telegram", async () => {
+    const { d, sent, ownSent, log } = harness({ chats: [{ ...CHAT, bot_id: 7000000002 }] });
+    expect(await runTick(d)).toMatchObject({ failed: 1, sent: 0 });
+    expect([sent, ownSent]).toEqual([[], []]);
+    expect(log).toContain("failed:post-1:Can't post here");
+  });
+
+  it("says plainly when a bot's token stopped working", async () => {
+    const { d, log } = harness({ bot: { sendMessage: () => new TelegramError(401, "Unauthorized") } });
+    await runTick(d);
+    expect(log).toContain("failed:post-1:The bot's token no longer works. Add the bot again on Social accounts.");
   });
 
   it("fails a post whose chat is gone without calling Telegram", async () => {

@@ -4,6 +4,7 @@ import {
   TelegramError,
   botClient,
   checkTelegramLogin,
+  scrubTokens,
   hashCode,
   inSendingHours,
   intoSendingHours,
@@ -125,5 +126,13 @@ describe("Telegram's login check (login_url)", () => {
     const ahead = sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) + 120) });
     for (const auth of [stale, ahead]) expect(await checkTelegramLogin(auth, TOKEN, NOW)).toEqual({ ok: false, error: "That confirmation is too old. Tap Confirm in Telegram again." });
     expect((await checkTelegramLogin(sign({ ...fields, auth_date: String(Math.floor(NOW / 1000) - 299) }), TOKEN, NOW)).ok).toBe(true);
+  });
+});
+
+describe("scrubTokens", () => {
+  it("blanks anything shaped like a bot token, wherever it sits in a log line", () => {
+    const own = "7000000002:" + "A".repeat(35);
+    expect(scrubTokens(`save failed: Key (p_token)=(${own}) bad; again ${TOKEN.replace("TEST-token-for-fixtures-only", "B".repeat(35))}`)).toBe("save failed: Key (p_token)=([token]) bad; again [token]");
+    expect(scrubTokens("chat -1001234567890 and bot 7000000002")).toBe("chat -1001234567890 and bot 7000000002");
   });
 });

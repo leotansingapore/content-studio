@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createHash, createHmac } from "node:crypto";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram";
 import { runStart, runVerify, type FnDb } from "../telegram/logic";
-import { COPY, eventOf, gateOf, handleUpdate, type ChatRow, type HookDb, type TiedChat } from "./logic";
+import { COPY, eventOf, gateOf, handleUpdate, ownBotSecretOk, type ChatRow, type HookDb, type TiedChat } from "./logic";
 import start from "./fixtures/update-start.json";
 import startNoCode from "./fixtures/update-start-no-code.json";
 import startOther from "./fixtures/update-start-other-user.json";
@@ -175,6 +175,14 @@ describe("the hook's gate", () => {
   });
 });
 
+describe("an own bot's webhook secret", () => {
+  it("matches only the secret whose sha256 is stored, and never an empty or missing one", async () => {
+    const stored = await hashCode("own-bot-secret-0123456789abcdefgh");
+    expect(await ownBotSecretOk("own-bot-secret-0123456789abcdefgh", stored)).toBe(true);
+    for (const header of ["own-bot-secret-0123456789abcdefgx", "", null, stored]) expect(await ownBotSecretOk(header, stored), String(header)).toBe(false);
+  });
+});
+
 // ---- reading updates ----
 
 describe("every update shape", () => {
@@ -276,6 +284,11 @@ describe("/start with the one-time code", () => {
       rows.find((x) => x.id === id && x.owner_id === uid && x.status === "pending" && x.code_expires_at > now && x.tg_user_id === u && !x.confirmed_at && (x as ChatRow & { nonce_hash?: string }).nonce_hash === nonceHash);
     const fn: FnDb = {
       ...({} as FnDb),
+      brandBot: async () => null,
+      codeBot: async (uid, id) => {
+        const r = rows.find((x) => x.id === id && x.owner_id === uid);
+        return r ? { botId: null } : null;
+      },
       cancelPending: async (uid, profileId) => {
         const mine = rows.filter((x) => x.owner_id === uid && x.profile_id === profileId && x.status === "pending");
         for (const x of mine) x.status = "disconnected";
@@ -318,9 +331,10 @@ describe("/start with the one-time code", () => {
     const check = Object.keys(fields).sort().map((k) => `${k}=${fields[k]}`).join("\n");
     const auth = { ...fields, hash: createHmac("sha256", createHash("sha256").update(TOKEN).digest()).update(check).digest("hex") };
     const nonce = second.body.nonce as string;
-    expect((await runVerify(fn, stubBot(GOOD).bot, TOKEN, "cs_test_bot", OWNER, rows[1].id, auth, nonce, false, NOW)).body).toEqual({ firstName: "Leo", username: "leo_test" });
+    const shared = async () => ({ bot: stubBot(GOOD).bot, token: TOKEN, username: "cs_test_bot" });
+    expect((await runVerify(fn, shared, OWNER, rows[1].id, auth, nonce, false, NOW)).body).toEqual({ firstName: "Leo", username: "leo_test" });
     expect(rows[1].confirmed_at).toBeNull();
-    expect((await runVerify(fn, stubBot(GOOD).bot, TOKEN, "cs_test_bot", OWNER, rows[1].id, auth, nonce, true, NOW)).status).toBe(200);
+    expect((await runVerify(fn, shared, OWNER, rows[1].id, auth, nonce, true, NOW)).status).toBe(200);
     expect(rows[1]).toMatchObject({ tg_user_id: LEO, tg_user_name: "@leo_test", confirmed_at: iso(NOW) });
     // the squatter's code is dead for them too
     const late = stubBot(GOOD);
