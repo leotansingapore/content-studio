@@ -134,5 +134,7 @@ describe("link previews", () => {
     // the site card exists and the home path gets it
     expect(existsSync(`public${SITE_CARD}`)).toBe(true);
     expect(await handler(new Request("https://consultant-content-studio.vercel.app/api/page-og?path=")).text()).toContain(`og:title" content="${SITE_NAME}"`);
+    // the new host is not a vercel.app preview, so it gets the production origin, which is itself
+    expect(await handler(new Request("https://app.postmosis.com/api/page-og?path=home")).text()).toContain('property="og:image" content="https://app.postmosis.com/og/site.jpg"');
   });
 });

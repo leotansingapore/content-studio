@@ -8,7 +8,7 @@ import type { VoiceId } from "@/lib/textVoice";
 import type { SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
 
 /** Production host, for links sent outside the app. */
-export const APP_ORIGIN = "https://consultant-content-studio.vercel.app";
+export const APP_ORIGIN = "https://app.postmosis.com";
 
 type Val = string | number | boolean | undefined | null;
 

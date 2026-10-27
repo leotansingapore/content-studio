@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   const stripe = new Stripe(key);
-  const origin = req.headers.get("origin") ?? "https://consultant-content-studio.vercel.app";
+  const origin = req.headers.get("origin") ?? "https://app.postmosis.com";
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],

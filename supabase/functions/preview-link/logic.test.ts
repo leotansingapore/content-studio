@@ -19,6 +19,7 @@ describe("tokenFromPath", () => {
 
 describe("allowedOrigin", () => {
   it("allows the app, its previews and local dev", () => {
+    expect(allowedOrigin("https://app.postmosis.com")).toBe("https://app.postmosis.com");
     expect(allowedOrigin("https://consultant-content-studio.vercel.app")).toBe("https://consultant-content-studio.vercel.app");
     expect(allowedOrigin("https://content-studio-abc123-leo.vercel.app")).not.toBeNull();
     expect(allowedOrigin("http://localhost:4173")).not.toBeNull();
@@ -28,6 +29,9 @@ describe("allowedOrigin", () => {
     expect(allowedOrigin("https://evil.example")).toBeNull();
     expect(allowedOrigin("https://consultant-content-studio.vercel.app.evil.example")).toBeNull();
     expect(allowedOrigin("http://consultant-content-studio.vercel.app")).toBeNull();
+    expect(allowedOrigin("https://app.postmosis.com.evil.example")).toBeNull();
+    expect(allowedOrigin("http://app.postmosis.com")).toBeNull();
+    expect(allowedOrigin("https://postmosis.com")).toBeNull();
   });
 });
 

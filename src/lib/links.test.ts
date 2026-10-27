@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { APP_URL } from "../../supabase/functions/notify/logic";
+import { APP_ORIGIN as BIO_ORIGIN } from "../../supabase/functions/link-in-bio/logic";
+import { APP_ORIGIN as SOCIAL_ORIGIN } from "../../supabase/functions/social/logic";
+import { COPY } from "../../supabase/functions/telegram-hook/logic";
+import { ORIGIN as PREVIEW_ORIGIN } from "./linkPreview";
 import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, absolute, links, slug, withDock, withRemix } from "./links";
 
 describe("links", () => {
@@ -544,5 +550,17 @@ describe("links", () => {
     expect(withDock("/drafts?status=draft", null)).toBe("/drafts?status=draft&dock=new");
     expect(withDock(links.campaign("c-1", { post: 4 }), "t 1")).toBe("/campaigns/c-1?post=4&dock=t%201");
     expect(links.makeFormat("launch-film", { film: "fm-1", direction: 2 })).toBe("/make/launch-film?film=fm-1&direction=2");
+  });
+});
+
+// Edge functions can't import src, so each keeps its own copy of the app's address; this keeps them equal.
+describe("the app's address", () => {
+  const fn = (f: string) => readFileSync(new URL(`../../supabase/functions/${f}`, import.meta.url), "utf8");
+  it("is app.postmosis.com, and every copy says the same", () => {
+    expect(APP_ORIGIN).toBe("https://app.postmosis.com");
+    expect([PREVIEW_ORIGIN, APP_URL, BIO_ORIGIN, SOCIAL_ORIGIN]).toEqual(Array(4).fill(APP_ORIGIN));
+    expect(fn("team-board/index.ts")).toContain(`const APP = "${APP_ORIGIN}";`);
+    expect(fn("hub-checkout/index.ts")).toContain(`req.headers.get("origin") ?? "${APP_ORIGIN}"`);
+    expect(COPY.chatter).toContain(" app.postmosis.com/accounts.");
   });
 });

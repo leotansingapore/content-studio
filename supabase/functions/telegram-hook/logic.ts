@@ -26,7 +26,7 @@ export const COPY = {
   here: (topic: string) => `Posts from Content Studio now go to the topic ${topic}.`,
   notAdmin: (name: string) => `You need to be an admin of ${name} to connect it.`,
   cantPost: (name: string) => `I can't post in ${name}. Make me an admin with Post messages, then tap Pick again.`,
-  chatter: "This bot posts for Content Studio. Connect it from consultant-content-studio.vercel.app/accounts.",
+  chatter: `This bot posts for Content Studio. Connect it from ${APP_ORIGIN.replace("https://", "")}/accounts.`,
 };
 
 /** Why waiting posts were cancelled, as the app shows it. */

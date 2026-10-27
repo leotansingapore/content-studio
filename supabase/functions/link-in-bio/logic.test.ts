@@ -52,7 +52,7 @@ describe("safeRedirectUrl", () => {
 
 describe("pageUrl and safeJson", () => {
   it("send dead links to the page and escape markup", () => {
-    expect(pageUrl("ada-tan")).toBe("https://consultant-content-studio.vercel.app/l/ada-tan");
+    expect(pageUrl("ada-tan")).toBe("https://app.postmosis.com/l/ada-tan");
     expect(safeJson({ a: "<b>&" })).toBe('{"a":"\\u003cb\\u003e\\u0026"}');
   });
 });

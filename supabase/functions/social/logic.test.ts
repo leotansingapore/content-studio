@@ -82,7 +82,7 @@ describe("the request", () => {
   });
 
   it("sends Zernio back to a fixed app address", () => {
-    expect(redirectUrl("tiktok")).toBe("https://consultant-content-studio.vercel.app/accounts?connected=tiktok");
+    expect(redirectUrl("tiktok")).toBe("https://app.postmosis.com/accounts?connected=tiktok");
   });
 });
 

@@ -588,7 +588,7 @@ describe("the Monday email's Your market line", () => {
   });
 
   it("adds the line with the link only when the check is open", () => {
-    const line = "Your market: this week's check is open. See the news and client questions to post about: https://consultant-content-studio.vercel.app/market";
+    const line = "Your market: this week's check is open. See the news and client questions to post about: https://app.postmosis.com/market";
     expect(weeklyEmail(ready, MON_8AM_SG, {}, true)!.text).toContain(line);
     expect(weeklyEmail(ready, MON_8AM_SG, {}, false)!.text).not.toContain("Your market");
     expect(weeklyEmail(ready, MON_8AM_SG)!.text).not.toContain("Your market");

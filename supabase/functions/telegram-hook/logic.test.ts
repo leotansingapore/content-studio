@@ -231,7 +231,7 @@ describe("/start with the one-time code", () => {
       {
         chat_id: LEO,
         text: "Tap Confirm and sign in to Content Studio if it asks. Then come back here to pick your group or channel.",
-        reply_markup: { inline_keyboard: [[{ text: "Confirm", login_url: { url: `https://consultant-content-studio.vercel.app/accounts?telegram=${rows[0].id}` } }]] },
+        reply_markup: { inline_keyboard: [[{ text: "Confirm", login_url: { url: `https://app.postmosis.com/accounts?telegram=${rows[0].id}` } }]] },
       },
     ]);
     expect(JSON.stringify(replies())).not.toContain("request_chat");

@@ -2,7 +2,7 @@
 // upload links for a post's files and queue a post. The bot's own side (the code, the picked chat, sending) is
 // telegram-hook. The page reads its rows itself (026: owner-only SELECT), so there is no status action here.
 // verify takes Telegram's signed login from the bot's Confirm button (login_url, which needs the bot's domain set to
-// consultant-content-studio.vercel.app with /setdomain in BotFather) and is not counted against a cap.
+// app.postmosis.com with /setdomain in BotFather) and is not counted against a cap.
 //
 // Off, with no table or Telegram call, unless TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME are set and the caller is
 // on NORTH_STAR_USERS: 404 {enabled:false}. Caps: telegram-connect, telegram-presign, telegram-schedule (usageCaps.ts).

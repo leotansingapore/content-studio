@@ -20,7 +20,7 @@ export { MAX_LABEL, MAX_URL };
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
 const REPORT_RE = /^[a-z0-9]{20}$/;
 /** Same as c_self_re in cs_save_tracked_link: our own /t/ and tracked-link addresses. */
-const SELF_RE = /^https?:\/\/(consultant-content-studio\.vercel\.app|[a-z0-9-]+\.supabase\.co)\.?(:[0-9]{1,5})?\/(t|functions\/v1\/tracked-link)([/?#]|$)/i;
+const SELF_RE = /^https?:\/\/(consultant-content-studio\.vercel\.app|(app\.)?postmosis\.com|[a-z0-9-]+\.supabase\.co)\.?(:[0-9]{1,5})?\/(t|functions\/v1\/tracked-link)([/?#]|$)/i;
 /** cs_save_tracked_link's list: link-in-bio's plus this feature's own words. */
 const RESERVED = new Set([...RESERVED_SLUGS, "t", "track", "tracked-link", "link", "links", "report", "reports", "campaign", "campaigns"]);
 

@@ -1,6 +1,6 @@
 // Pure helpers for the link-in-bio edge function (tested in logic.test.ts).
 
-export const APP_ORIGIN = "https://consultant-content-studio.vercel.app";
+export const APP_ORIGIN = "https://app.postmosis.com";
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

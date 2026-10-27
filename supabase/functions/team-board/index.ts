@@ -15,7 +15,7 @@ import {
   type InviteRow, type MemberRow,
 } from "./logic.ts";
 
-const APP = "https://consultant-content-studio.vercel.app";
+const APP = "https://app.postmosis.com";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
