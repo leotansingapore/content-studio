@@ -32,17 +32,18 @@ end $$;
 grant execute on function public.cs_test_assert(boolean, text) to anon, authenticated, service_role;
 grant execute on function public.cs_test_expect_error(text, text, text) to anon, authenticated, service_role;
 
--- A ...d1 runs two brands; B ...d2 is another adviser.
+-- A ...d1 runs two brands; B ...d2 is another adviser; C ...d3 has a bot and no chat (for 3.2).
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 select '00000000-0000-0000-0000-000000000000', ('7e57c0de-0000-4000-8000-0000000000' || s)::uuid,
        'authenticated', 'authenticated', 'cs-test-' || s || '@example.test', '', now(), '{}', '{}', now(), now()
-from unnest(array['d1', 'd2']) s;
+from unnest(array['d1', 'd2', 'd3']) s;
 
 create temporary table t_tokens as
-select '7000000002:' || repeat('A', 35) as mb, '7000000003:' || repeat('B', 35) as fin, '7000000004:' || repeat('C', 35) as other;
+select '7000000002:' || repeat('A', 35) as mb, '7000000003:' || repeat('B', 35) as fin, '7000000004:' || repeat('C', 35) as other,
+       '7000000006:' || repeat('D', 35) as lone;
 grant select on t_tokens to service_role, authenticated, anon;
 
 -- ---------------------------------------------------------------------------
@@ -251,12 +252,17 @@ select public.cs_test_assert(
   not exists (select 1 from public.cs_telegram_chats where owner_id = '7e57c0de-0000-4000-8000-0000000000d1' and bot_id = 7000000002),
   '3.1e the old chats never point at the re-added bot');
 
-delete from auth.users where id = '7e57c0de-0000-4000-8000-0000000000d1';
+-- C has a bot and no chat, so this checks the user cascade alone (3.1b checks a bot with chats)
+set local role service_role;
+select public.cs_telegram_bot_save('7e57c0de-0000-4000-8000-0000000000d3', 'me', 7000000006, 'lone_test_bot', 'Lone', (select lone from t_tokens), repeat('e', 64));
+reset role;
+delete from auth.users where id = '7e57c0de-0000-4000-8000-0000000000d3';
 select public.cs_test_assert(
-  not exists (select 1 from public.cs_telegram_bots where owner_id = '7e57c0de-0000-4000-8000-0000000000d1')
-  and not exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000003')
+  not exists (select 1 from public.cs_telegram_bots where owner_id = '7e57c0de-0000-4000-8000-0000000000d3')
+  and not exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000006')
+  and exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000003')
   and exists (select 1 from vault.secrets where name = 'cs_telegram_bot_7000000004'),
-  '3.2 deleting a user deletes their bots and those tokens, and leaves the other adviser''s');
+  '3.2 deleting a user deletes their bot and its token, and leaves the other advisers''');
 
 select public.cs_test_assert(
   (select count(*) from vault.secrets where name = 'cs_telegram_cron_secret') = 1,
