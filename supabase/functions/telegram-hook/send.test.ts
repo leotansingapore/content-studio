@@ -23,7 +23,17 @@ const post = (o: Partial<QueuedPost> = {}): QueuedPost => ({ id: "post-1", chat_
 const pics = (n: number) => Array.from({ length: n }, (_, i) => `u/me/0000000${i}-0000-4000-8000-000000000000.jpg`);
 
 type Handler = (params: Record<string, unknown>) => unknown;
-function harness(o: { posts?: QueuedPost[]; chats?: SendChat[]; bot?: Record<string, Handler>; now?: number; urls?: () => Promise<string[]>; postedFails?: number; failedFails?: number } = {}) {
+function harness(o: {
+  posts?: QueuedPost[];
+  chats?: SendChat[];
+  bot?: Record<string, Handler>;
+  now?: number;
+  urls?: () => Promise<string[]>;
+  postedFails?: number;
+  failedFails?: number;
+  finished?: { id: string; media: string[] }[];
+  live?: string[];
+} = {}) {
   let postedFails = o.postedFails ?? 0;
   let failedFails = o.failedFails ?? 0;
   const sent: { method: string; params: Record<string, unknown> }[] = [];
@@ -57,7 +67,10 @@ function harness(o: { posts?: QueuedPost[]; chats?: SendChat[]; bot?: Record<str
       log.push(`failed:${id}:${reason}`);
     },
     migrate: async (from, to) => void log.push(`migrate:${from}>${to}`),
-    cleanup: async (before) => (log.push(`cleanup<${before}`), 0),
+    finishedFiles: async (before) => (log.push(`finished<${before}`), o.finished ?? []),
+    liveFiles: async (paths) => (log.push(`live?${paths.join(",")}`), (o.live ?? []).filter((x) => paths.includes(x))),
+    removeFiles: async (paths) => void log.push(`remove:${paths.join(",")}`),
+    clearFiles: async (ids) => void log.push(`clear:${ids.join(",")}`),
   };
   return { d, sent, log };
 }
@@ -78,7 +91,24 @@ describe("the hours", () => {
   it("asks for at most 20 posts, fails sends stuck for 10 minutes, and clears files of posts finished 7 days ago", async () => {
     const { d, log } = harness({ posts: [] });
     await runTick(d);
-    expect(log).toEqual([`stale<${iso(NOW - 10 * 60_000)}:${STALE}`, `claim:20@${iso(NOW)}`, `cleanup<${iso(NOW - 7 * 86_400_000)}`]);
+    expect(log).toEqual([`stale<${iso(NOW - 10 * 60_000)}:${STALE}`, `claim:20@${iso(NOW)}`, `finished<${iso(NOW - 7 * 86_400_000)}`]);
+  });
+});
+
+describe("clearing files 7 days after a post is done", () => {
+  it("deletes a finished post's files, except any a waiting or sending post still uses, and clears its list", async () => {
+    const [a, b, c] = pics(3);
+    const { d, log } = harness({ posts: [], finished: [{ id: "old-1", media: [a, b] }, { id: "old-2", media: [b, c] }], live: [b] });
+    expect(await runTick(d)).toMatchObject({ cleaned: 2 });
+    expect(log.slice(-3)).toEqual([`live?${a},${b},${c}`, `remove:${a},${c}`, "clear:old-1,old-2"]);
+  });
+
+  it("deletes nothing when every file is still in use", async () => {
+    const [a] = pics(1);
+    const { d, log } = harness({ posts: [], finished: [{ id: "old-1", media: [a] }], live: [a] });
+    await runTick(d);
+    expect(log.some((l) => l.startsWith("remove:"))).toBe(false);
+    expect(log).toContain("clear:old-1");
   });
 });
 

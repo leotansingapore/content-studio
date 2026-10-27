@@ -36,8 +36,13 @@ export interface TickDeps {
   retry(id: string, sendAt: string, reason: string): Promise<void>;
   failed(id: string, reason: string, now: string): Promise<void>;
   migrate(from: number, to: number): Promise<void>;
-  /** Deletes the files of posts finished before `before`; answers how many posts were cleared. */
-  cleanup(before: string): Promise<number>;
+  /** Posts finished (posted, failed or cancelled) before `before` that still list files, a page of them. */
+  finishedFiles(before: string): Promise<{ id: string; media: string[] }[]>;
+  /** Which of these paths a waiting or sending post still uses. */
+  liveFiles(paths: string[]): Promise<string[]>;
+  removeFiles(paths: string[]): Promise<void>;
+  /** Empties those posts' file lists. */
+  clearFiles(postIds: string[]): Promise<void>;
 }
 
 export const MAX_ATTEMPTS = 5;
@@ -170,6 +175,15 @@ export async function runTick(d: TickDeps): Promise<TickReport> {
       await d.failed(p.id, NOT_RECORDED, now).catch(() => undefined);
     }
   }
-  r.cleaned = await d.cleanup(iso(d.now - 7 * 86_400_000));
+  // files go 7 days after their post is done, except any a waiting or sending post shares
+  const done = await d.finishedFiles(iso(d.now - 7 * 86_400_000));
+  if (done.length) {
+    const paths = [...new Set(done.flatMap((p) => p.media))];
+    const keep = new Set(await d.liveFiles(paths));
+    const gone = paths.filter((x) => !keep.has(x));
+    if (gone.length) await d.removeFiles(gone);
+    await d.clearFiles(done.map((p) => p.id));
+  }
+  r.cleaned = done.length;
   return r;
 }

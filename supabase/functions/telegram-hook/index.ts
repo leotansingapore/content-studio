@@ -114,12 +114,18 @@ function tickDeps(db: SupabaseClient, bot: Bot): TickDeps {
     async migrate(from, to) {
       must(await db.from("cs_telegram_chats").update({ chat_id: to, chat_type: "supergroup" }).eq("chat_id", from), "migrate");
     },
-    async cleanup(before) {
-      const done = must(await posts().select("id, media").in("status", ["posted", "failed", "cancelled"]).lt("finished_at", before).neq("media", "{}").limit(50), "old files") as { id: string; media: string[] }[];
-      if (!done.length) return 0;
-      must(await db.storage.from(BUCKET).remove(done.flatMap((p) => p.media)), "remove files");
-      must(await posts().update({ media: [] }).in("id", done.map((p) => p.id)), "clear files");
-      return done.length;
+    async finishedFiles(before) {
+      return must(await posts().select("id, media").in("status", ["posted", "failed", "cancelled"]).lt("finished_at", before).neq("media", "{}").limit(50), "old files") as { id: string; media: string[] }[];
+    },
+    async liveFiles(paths) {
+      const live = must(await posts().select("media").in("status", ["scheduled", "sending"]).overlaps("media", paths), "live files") as { media: string[] }[];
+      return live.flatMap((p) => p.media);
+    },
+    async removeFiles(paths) {
+      must(await db.storage.from(BUCKET).remove(paths), "remove files");
+    },
+    async clearFiles(ids) {
+      must(await posts().update({ media: [] }).in("id", ids), "clear files");
     },
   };
 }
