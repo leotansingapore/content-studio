@@ -606,7 +606,7 @@ describe("the mcp-calls cap", () => {
     expect(answer(await handleRpc(call("add_draft", { text: "the 500th" }), s, link, now, leo(usage)))).toMatchObject({ saved: true });
     const rows = s.rows.size;
     const r = result(await handleRpc(call("add_draft", { text: "the 501st" }), s, link, now, leo(usage)));
-    expect(r).toEqual({ content: [{ type: "text", text: "Content Studio's daily limit of 500 calls is used. It resets at 8am Singapore time." }], isError: true });
+    expect(r).toEqual({ content: [{ type: "text", text: "The Postmosis daily limit of 500 calls is used. It resets at 8am Singapore time." }], isError: true });
     expect(s.rows.size).toBe(rows);
   });
 

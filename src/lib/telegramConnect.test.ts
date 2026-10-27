@@ -137,7 +137,7 @@ describe("before a Telegram post uploads", () => {
     expect(telegramMediaProblem([])).toBeNull();
     expect(telegramMediaProblem([f("image/jpeg", 5), f("image/png", 1)])).toBeNull();
     expect(telegramMediaProblem([f("video/mp4", 20)])).toBeNull();
-    expect(telegramMediaProblem([f("video/mp4", 21)])).toBe("Telegram takes videos up to 20 MB from Content Studio. Post a shorter one, or send it in Telegram.");
+    expect(telegramMediaProblem([f("video/mp4", 21)])).toBe("Telegram takes videos up to 20 MB from Postmosis. Post a shorter one, or send it in Telegram.");
     expect(telegramMediaProblem([f("image/jpeg", 6, "big.jpg")])).toMatch(/5 MB/);
     expect(telegramMediaProblem([f("video/quicktime", 1, "clip.mov")])).toMatch(/MP4/);
     expect(telegramMediaProblem([f("application/pdf", 1, "deck.pdf")])).toMatch(/MP4/);

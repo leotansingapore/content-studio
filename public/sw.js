@@ -13,7 +13,7 @@ self.addEventListener("push", (event) => {
     data = {};
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || "Content Studio", {
+    self.registration.showNotification(data.title || "Postmosis", {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",

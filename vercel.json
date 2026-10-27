@@ -8,7 +8,7 @@
           "value": "content-studio-beige-eta.vercel.app"
         }
       ],
-      "destination": "https://consultant-content-studio.vercel.app/generate",
+      "destination": "https://app.postmosis.com/generate",
       "permanent": false
     }
   ],

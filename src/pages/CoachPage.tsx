@@ -193,7 +193,7 @@ export default function CoachPage() {
   const [inAppCount, setInAppCount] = useState(0);
 
   useEffect(() => {
-    document.title = "Coach - Content Studio";
+    document.title = "Coach - Postmosis";
     let active = true;
     (async () => {
       const { data } = await supabase.auth.getUser();

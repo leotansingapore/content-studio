@@ -185,7 +185,7 @@ export default function SwipeFilePage() {
   );
 
   useEffect(() => {
-    document.title = "Top posts - Content Studio";
+    document.title = "Top posts - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
@@ -196,7 +196,7 @@ export default function SwipeFilePage() {
     });
     return () => {
       active = false;
-      document.title = "Content Studio";
+      document.title = "Postmosis";
     };
   }, []);
 

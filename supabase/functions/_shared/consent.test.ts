@@ -90,7 +90,7 @@ describe("the spoken code", () => {
   it("is heard as numerals or words, with commas, dots, hyphens and spaces", () => {
     for (const heard of ["4821", "4,821", "4 8 2 1", "four eight two one", "Four, eight, two, one.", "4-8-2-1", "four-eight-two-one", "48 21"])
       expect(heardCode(heard, "4821"), heard).toBe(true);
-    expect(heardCode("I'm the person on camera. I agree that Content Studio can make videos of my face. My code is 4, 8, 2, 1.", "4821")).toBe(true);
+    expect(heardCode("I'm the person on camera. I agree that Postmosis can make videos of my face. My code is 4, 8, 2, 1.", "4821")).toBe(true);
     expect(heardCode("My code is zero zero four two.", "0042")).toBe(true);
   });
 
@@ -105,7 +105,7 @@ describe("the spoken code", () => {
 
 describe("the consent line", () => {
   it("is the same for everyone, the code read one digit at a time", () => {
-    expect(CONSENT_LINE("4821")).toBe("I'm the person on camera. I agree that Content Studio can make videos of my face. My code is 4 8 2 1.");
+    expect(CONSENT_LINE("4821")).toBe("I'm the person on camera. I agree that Postmosis can make videos of my face. My code is 4 8 2 1.");
     expect(heardCode(CONSENT_LINE("0042"), "0042")).toBe(true);
   });
 });

@@ -42,12 +42,12 @@ export default function InspirationDetailPage() {
 
   useEffect(() => {
     if (entry) {
-      document.title = `${entry.hook.slice(0, 60)} - Content Studio`;
+      document.title = `${entry.hook.slice(0, 60)} - Postmosis`;
     } else {
-      document.title = "Not found - Content Studio";
+      document.title = "Not found - Postmosis";
     }
     return () => {
-      document.title = "Content Studio";
+      document.title = "Postmosis";
     };
   }, [entry]);
 

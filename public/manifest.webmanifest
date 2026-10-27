@@ -1,6 +1,6 @@
 {
-  "name": "Content Studio",
-  "short_name": "Content Studio",
+  "name": "Postmosis",
+  "short_name": "Postmosis",
   "description": "Plan, write and post your social content as a financial adviser.",
   "start_url": "/home",
   "scope": "/",

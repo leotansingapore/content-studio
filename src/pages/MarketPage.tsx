@@ -45,7 +45,7 @@ export default function MarketPage() {
   const [view, setView] = useUrlState<"digest" | "setup">("view", "digest", { allowed: ["digest", "setup"] });
 
   useEffect(() => {
-    document.title = "Your market - Content Studio";
+    document.title = "Your market - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUid(id);

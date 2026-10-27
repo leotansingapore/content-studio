@@ -327,7 +327,7 @@ describe("weeklyEmail", () => {
         'Tue 13 Oct, 7:30pm, LinkedIn: "Tuesday one"',
         'Thu 15 Oct, Instagram: "Thursday one"',
         "",
-        `Open Content Studio: ${APP_URL}/home`,
+        `Open Postmosis: ${APP_URL}/home`,
         "",
         "You get this every Monday because it is switched on in My Playbook. Switch it off there to stop.",
       ].join("\n"),
@@ -588,7 +588,7 @@ describe("the Monday email's Your market line", () => {
   });
 
   it("adds the line with the link only when the check is open", () => {
-    const line = "Your market: this week's check is open. See the news and client questions to post about: https://consultant-content-studio.vercel.app/market";
+    const line = "Your market: this week's check is open. See the news and client questions to post about: https://app.postmosis.com/market";
     expect(weeklyEmail(ready, MON_8AM_SG, {}, true)!.text).toContain(line);
     expect(weeklyEmail(ready, MON_8AM_SG, {}, false)!.text).not.toContain("Your market");
     expect(weeklyEmail(ready, MON_8AM_SG)!.text).not.toContain("Your market");

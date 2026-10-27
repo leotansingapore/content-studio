@@ -61,7 +61,7 @@ export default function JoinPage() {
   };
 
   useEffect(() => {
-    document.title = "Join the posts board - Content Studio";
+    document.title = "Join the posts board - Postmosis";
     // getSession waits for supabase-js to read a sign-in from the email link, so the address is tidied after it
     supabase.auth.getSession().then(({ data }) => {
       history.replaceState(null, "", "/join");
@@ -116,7 +116,7 @@ export default function JoinPage() {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
             <Sparkles className="h-5 w-5" />
           </span>
-          <span className="text-base font-bold tracking-tight">Content Studio</span>
+          <span className="text-base font-bold tracking-tight">Postmosis</span>
         </div>
 
         {done ? (
@@ -169,7 +169,7 @@ export default function JoinPage() {
               <CardTitle className="font-serif text-xl">Join Leo's posts board</CardTitle>
               <CardDescription>
                 {mode === "code" ? <>We sent a sign-in link to <span className="font-semibold text-foreground">{email}</span>. Tap it, or type the code from the email here.</>
-                  : mode === "password" ? "Sign in with your Content Studio or Academy password."
+                  : mode === "password" ? "Sign in with your Postmosis or Academy password."
                   : "Enter your email and we'll send you a sign-in link. No password needed."}
               </CardDescription>
             </CardHeader>

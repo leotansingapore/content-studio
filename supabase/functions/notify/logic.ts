@@ -10,7 +10,7 @@ import { scoreAccount, times } from "../_shared/outlier.ts";
 import { median } from "../_shared/socialAudit.ts";
 import { realMetrics } from "../social/metrics.ts";
 
-export const APP_URL = "https://consultant-content-studio.vercel.app";
+export const APP_URL = "https://app.postmosis.com";
 export const PREFS_PREFIX = "content-studio-notify-";
 /** The per-brand synced keys profilesFrom reads (content-studio-<name>-<uid>[~<profile>]), besides the profile list. */
 export const BRAND_KEYS = ["drafts", "goals", "positioning", "following", "market", "mentions", "competitor-posts", "competitor-ads"] as const;
@@ -867,7 +867,7 @@ export function weeklyEmail(
   const text = [
     ...blocks.flatMap((b) => [b, ""]),
     ...(marketCheckOpen ? [`Your market: this week's check is open. See the news and client questions to post about: ${APP_URL}/market`, ""] : []),
-    `Open Content Studio: ${APP_URL}/home`,
+    `Open Postmosis: ${APP_URL}/home`,
     "",
     "You get this every Monday because it is switched on in My Playbook. Switch it off there to stop.",
   ].join("\n");

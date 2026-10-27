@@ -59,7 +59,7 @@ export const NS_AREAS: Record<NsArea, { label: string; hint: string }> = {
 };
 
 export const NS_THESIS: string[] = [
-  "Content Studio is where a financial adviser finds what already works and makes it their own. Find a proven post, ad or trend, press Remix, and get back a finished post in your brand, voice and face, in any format, ready to approve and schedule.",
+  "Postmosis is where a financial adviser finds what already works and makes it their own. Find a proven post, ad or trend, press Remix, and get back a finished post in your brand, voice and face, in any format, ready to approve and schedule.",
   "Both halves exist today. Top posts, Following, ads and trends find things; Write, Clone a reel, carousels, the video editor and AI avatars make things. But every remix stops at a text brief you still have to turn into a post. The north star closes that gap: one Remix that ends in media, a gallery of formats with a price on each, your competitors' ads and best posts arriving every week, an agent that does it when you ask, and checks that make it safe for an adviser to post.",
   "Fastlane, which Leo recorded on 19 Oct, sets the bar for the remix loop. 125 other competitors, from Foreplay and Sandcastles to FMG Suite and Hearsay, set it for everything around it."
 ];
@@ -445,7 +445,7 @@ export const NS_SOURCES: { label: string; url: string; note: string }[] = [
     "note": "126 competitors and 1,374 features in six categories, each with its source link, 19 Oct 2026."
   },
   {
-    "label": "What Content Studio has today",
+    "label": "What Postmosis has today",
     "url": "https://github.com/leotansingapore/content-studio/blob/main/docs/north-star/research/current-app.md",
     "note": "every route, edge function and cap, read from origin/main 08537d1."
   },

@@ -44,13 +44,13 @@ describe("nav", () => {
   });
 
   it("names browser tabs after the page", () => {
-    expect(pageTitle("/board")).toBe("Board - Content Studio");
-    expect(pageTitle("/generate")).toBe("Write a post - Content Studio");
-    expect(pageTitle("/library")).toBe("Library - Content Studio");
+    expect(pageTitle("/board")).toBe("Board - Postmosis");
+    expect(pageTitle("/generate")).toBe("Write a post - Postmosis");
+    expect(pageTitle("/library")).toBe("Library - Postmosis");
     for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/campaigns", "Campaigns"], ["/people", "Faces and voices"], ["/make", "Formats"]]) {
-      expect(pageTitle(to), to).toBe(`${title} - Content Studio`);
+      expect(pageTitle(to), to).toBe(`${title} - Postmosis`);
     }
-    expect(pageTitle("/nope")).toBe("Content Studio");
+    expect(pageTitle("/nope")).toBe("Postmosis");
   });
 
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {

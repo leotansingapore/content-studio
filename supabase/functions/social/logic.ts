@@ -25,7 +25,7 @@ import {
   type Zernio,
 } from "../_shared/zernio.ts";
 
-export const APP_ORIGIN = "https://consultant-content-studio.vercel.app";
+export const APP_ORIGIN = "https://app.postmosis.com";
 
 /** Where Zernio sends the browser after sign-in. Built from a constant, never from the request. */
 export const redirectUrl = (platform: SocialPlatform) => `${APP_ORIGIN}/accounts?connected=${platform}`;

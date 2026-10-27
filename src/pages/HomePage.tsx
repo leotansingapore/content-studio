@@ -184,7 +184,7 @@ export default function HomePage() {
   }, [leoId]);
 
   useEffect(() => {
-    document.title = "Home - Content Studio";
+    document.title = "Home - Postmosis";
     let active = true;
     (async () => {
       const { data } = await supabase.auth.getUser();

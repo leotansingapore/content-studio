@@ -83,7 +83,7 @@ export default function ReelsTeamPage() {
   const [confirming, setConfirming] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Team - Posts board - Content Studio";
+    document.title = "Team - Posts board - Postmosis";
     checkMe(true)
       .then(async (me) => {
         setOwner(me.owner);

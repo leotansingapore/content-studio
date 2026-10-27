@@ -31,7 +31,7 @@ export default function FeedbackPage() {
       <FeedbackBoard
         apiUrl={FEEDBACK_API}
         boardKey={FEEDBACK_BOARD_KEY}
-        appName="Content Studio"
+        appName="Postmosis"
         identity={
           user
             ? { id: user.id, name: meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? null, email: user.email ?? null }

@@ -274,7 +274,7 @@ export default function VideoEditPage() {
   const project = projects.find((p) => p.id === pid) ?? null;
 
   useEffect(() => {
-    document.title = "Edit video - Content Studio";
+    document.title = "Edit video - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);
@@ -2089,7 +2089,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
           // people-ai-labels, Leo only: what the studio's AI made in this video (live-p5dog D2)
           <span className="mr-auto flex items-center gap-1">
             {chips.map((chip) => <span key={chip} className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary">{chip}</span>)}
-            <InfoTip label="About the AI label">{"Made by Content Studio's AI. Posts from it get the AI label."}</InfoTip>
+            <InfoTip label="About the AI label">{"Made by the Postmosis AI. Posts from it get the AI label."}</InfoTip>
           </span>
         )}
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>

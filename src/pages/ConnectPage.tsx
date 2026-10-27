@@ -38,7 +38,7 @@ export default function ConnectPage() {
   useScrollToHash(Boolean(leo) && userId !== null);
 
   useEffect(() => {
-    document.title = "Connect Claude - Content Studio";
+    document.title = "Connect Claude - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);
@@ -134,7 +134,7 @@ export default function ConnectPage() {
           </div>
           <ol className="space-y-3 text-sm">
             <li>
-              <span className="font-semibold">Claude app or claude.ai:</span> Settings, Connectors, Add custom connector. Name it Content Studio and paste the link.
+              <span className="font-semibold">Claude app or claude.ai:</span> Settings, Connectors, Add custom connector. Name it Postmosis and paste the link.
             </li>
             <li className="space-y-1.5">
               <span className="font-semibold">Claude Code:</span>

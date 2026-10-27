@@ -168,7 +168,7 @@ describe("the consent check", () => {
     expect(state).toMatchObject({ state: "done", face: { status: "on", photo: PHOTO, photoHash: HASH } });
     const saved = JSON.parse(storage.getItem(`${FACE_KEY_PREFIX}${UID}`)!);
     expect(saved.consent).toEqual({ at: OK.at, line: r.CONSENT_LINE("4821"), heard: OK.heard, token: OK.token });
-    expect(saved.consent.line).toBe("I'm the person on camera. I agree that Content Studio can make videos of my face. My code is 4 8 2 1.");
+    expect(saved.consent.line).toBe("I'm the person on camera. I agree that Postmosis can make videos of my face. My code is 4 8 2 1.");
   });
 
   it("refuses a code not heard with the server's line, saving nothing", async () => {

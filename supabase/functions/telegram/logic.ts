@@ -64,7 +64,7 @@ export function fileProblem(f: FileAsk): string | null {
   const ext = MEDIA_EXT[f.type];
   if (!ext || !Number.isSafeInteger(f.size) || f.size <= 0) return "Telegram takes JPG, PNG or WebP pictures, or an MP4 video.";
   if (ext === "mp4") return f.size > VIDEO_MAX_BYTES ? VIDEO_TOO_BIG : null;
-  return f.size > PHOTO_MAX_BYTES ? "Telegram takes pictures up to 5 MB from Content Studio. Use a smaller one." : null;
+  return f.size > PHOTO_MAX_BYTES ? "Telegram takes pictures up to 5 MB from Postmosis. Use a smaller one." : null;
 }
 
 export function parseRequest(body: unknown): Parsed {

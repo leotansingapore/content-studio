@@ -259,7 +259,7 @@ export const sectionFor = (pathname: string) => pageFor(pathname)?.section ?? nu
 
 export const pageTitle = (pathname: string) => {
   const hit = pageFor(pathname);
-  return hit ? `${hit.page.title ?? hit.page.label} - Content Studio` : "Content Studio";
+  return hit ? `${hit.page.title ?? hit.page.label} - Postmosis` : "Postmosis";
 };
 
 export type Tab = { to: string; label: string; end?: boolean; active: boolean };

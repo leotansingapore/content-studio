@@ -4,8 +4,9 @@
 export const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 export const MAX_BODY = 8 * 1024;
 
-// The app in production, its Vercel previews, and local dev.
+// The app in production (the new host and the old one, which keeps working), its Vercel previews, and local dev.
 const ORIGINS = [
+  /^https:\/\/app\.postmosis\.com$/,
   /^https:\/\/consultant-content-studio\.vercel\.app$/,
   /^https:\/\/content-studio-[a-z0-9-]+\.vercel\.app$/,
   /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/,

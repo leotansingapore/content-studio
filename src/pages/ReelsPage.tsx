@@ -101,7 +101,7 @@ export default function ReelsPage() {
   }, []);
 
   useEffect(() => {
-    document.title = "Posts board - Content Studio";
+    document.title = "Posts board - Postmosis";
     supabase.auth.getUser().then(async ({ data }) => {
       // the server says who this is on the team; the board checks it again on every request
       const who = await checkMe(true).catch((e) => (setError(errorText(e, "check your connection")), null));

@@ -74,7 +74,7 @@ export default function PlaybookPage() {
   });
 
   useEffect(() => {
-    document.title = "My Playbook - Content Studio";
+    document.title = "My Playbook - Postmosis";
     let active = true;
     (async () => {
       const { data } = await supabase.auth.getUser();

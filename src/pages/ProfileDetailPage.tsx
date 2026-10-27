@@ -69,9 +69,9 @@ export default function ProfileDetailPage() {
 
   useEffect(() => {
     if (entry) {
-      document.title = `${entry.name} - Content Studio`;
+      document.title = `${entry.name} - Postmosis`;
     } else {
-      document.title = "Not found - Content Studio";
+      document.title = "Not found - Postmosis";
     }
   }, [entry]);
 

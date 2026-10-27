@@ -13,9 +13,10 @@ import TOP_POSTS from "../data/topPosts.json";
 import ADVISORS from "../data/advisors.json";
 import TRENDS from "../data/trends.json";
 import INSPIRATION from "../data/inspiration.json";
+import { APP_ORIGIN } from "./links";
 
-export const ORIGIN = "https://consultant-content-studio.vercel.app";
-export const SITE_NAME = "Content Studio";
+export const ORIGIN = APP_ORIGIN;
+export const SITE_NAME = "Postmosis";
 // index.html's own description, so a page card says what the home page says
 export const SITE_DESCRIPTION =
   "Turn your positioning into a week of posts. Plan a funnel-balanced calendar - Attraction, Building Trust, Conversion - then draft each post in 60 seconds.";

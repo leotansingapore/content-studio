@@ -18,15 +18,15 @@ import { PICK_TEXT, TelegramError, hashCode, pickerMessage, type Bot } from "../
 // ---- the bot's words ----
 
 export const COPY = {
-  login: "Tap Confirm and sign in to Content Studio if it asks. Then come back here to pick your group or channel.",
+  login: "Tap Confirm and sign in to Postmosis if it asks. Then come back here to pick your group or channel.",
   pick: PICK_TEXT,
-  expired: "That link has expired. Go back to Content Studio and tap Connect Telegram again.",
-  connected: (name: string) => `Connected to ${name}. Posts you schedule in Content Studio go here between 9am and 9pm.`,
+  expired: "That link has expired. Go back to Postmosis and tap Connect Telegram again.",
+  connected: (name: string) => `Connected to ${name}. Posts you schedule in Postmosis go here between 9am and 9pm.`,
   forum: (name: string) => `${name} has topics. Posts go to General. To use another, open the topic and send /here.`,
-  here: (topic: string) => `Posts from Content Studio now go to the topic ${topic}.`,
+  here: (topic: string) => `Posts from Postmosis now go to the topic ${topic}.`,
   notAdmin: (name: string) => `You need to be an admin of ${name} to connect it.`,
   cantPost: (name: string) => `I can't post in ${name}. Make me an admin with Post messages, then tap Pick again.`,
-  chatter: "This bot posts for Content Studio. Connect it from consultant-content-studio.vercel.app/accounts.",
+  chatter: `This bot posts for Postmosis. Connect it from ${APP_ORIGIN.replace("https://", "")}/accounts.`,
 };
 
 /** Why waiting posts were cancelled, as the app shows it. */

@@ -60,7 +60,7 @@ export default function MediaPage() {
   const [sets, setSets] = useState<MediaSet[]>([]);
 
   useEffect(() => {
-    document.title = "Media - Content Studio";
+    document.title = "Media - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);

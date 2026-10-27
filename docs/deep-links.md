@@ -2,8 +2,9 @@
 
 Every state of a page that someone would want to land on, send, or be sent to by a job lives in the URL.
 Jobs outside the app (`~/.local/bin/team-posts`, the MoneyBees roundup, reports) build their links from this
-table, absolute, on `https://consultant-content-studio.vercel.app`. When a job and the app disagree, this
-doc is the contract. In the app, links are built in `src/lib/links.ts` and read with `src/lib/urlState.ts`.
+table, absolute, on `https://app.postmosis.com`. When a job and the app disagree, this
+doc is the contract. The old host, `https://consultant-content-studio.vercel.app`, serves the same app and keeps
+working for every link already sent (/l/, /t/, /review/, /north-star, Telegram and email links); new links use the new host. In the app, links are built in `src/lib/links.ts` and read with `src/lib/urlState.ts`.
 
 Rules: the URL wins, then the remembered pick, then the default. Defaults are left out of links. Values are
 words or real ids. An unknown or stale value is ignored and the page shows its default. Filters, views and

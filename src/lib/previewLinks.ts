@@ -207,7 +207,7 @@ export interface PublicResult<T> {
   message?: string;
 }
 
-const OFFLINE = "Couldn't reach Content Studio. Check your connection and try again.";
+const OFFLINE = "Couldn't reach Postmosis. Check your connection and try again.";
 
 export async function fetchPublicPreview(token: string): Promise<PublicResult<PublicPreview>> {
   if (!PREVIEW_TOKEN_RE.test(token)) return { ok: false, gone: true, message: "" };

@@ -126,7 +126,7 @@ export default function NotifySettings({ userId, email }: { userId: string; emai
   const pushNote =
     problem ??
     (support === "ios-install"
-      ? "On iPhone, add Content Studio to your Home Screen and open it from there."
+      ? "On iPhone, add Postmosis to your Home Screen and open it from there."
       : support === "unsupported"
         ? "This browser can't show alerts."
         : prefs.push && !here

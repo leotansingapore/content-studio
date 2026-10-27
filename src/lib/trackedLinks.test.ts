@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sgDay } from "./bioPage";
 
@@ -60,6 +61,24 @@ describe("addresses", () => {
     expect(isTrackedUrl("https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/ada")).toBe(true);
     expect(isTrackedUrl("https://consultant-content-studio.vercel.app/l/ada-tan")).toBe(false);
     expect(isTrackedUrl("https://consultant-content-studio.vercel.app/tutorial")).toBe(false);
+  });
+  it("knows the new host and the bare domain, and keeps the old host", () => {
+    expect(isTrackedUrl("https://app.postmosis.com/t/ada")).toBe(true);
+    expect(isTrackedUrl("https://postmosis.com/t/ada")).toBe(true);
+    expect(isTrackedUrl("HTTPS://App.Postmosis.Com.:443/t/x?r=1")).toBe(true);
+    expect(isTrackedUrl("app.postmosis.com/t/ada")).toBe(true);
+    expect(isTrackedUrl("https://consultant-content-studio.vercel.app/t/ada")).toBe(true);
+    expect(isTrackedUrl("https://app.postmosis.com/l/ada-tan")).toBe(false);
+    expect(isTrackedUrl("https://app.postmosis.com.evil.example/t/x")).toBe(false);
+    expect(isTrackedUrl("https://notpostmosis.com/t/x")).toBe(false);
+    expect(linkInputProblem({ ...ok, url: "https://app.postmosis.com/t/ada" })).toMatch(/already a tracked link/);
+  });
+  it("says what 028's c_self_re says, on the same addresses", () => {
+    const sql = readFileSync(new URL("../../supabase/hub/028_postmosis_host.sql", import.meta.url), "utf8");
+    const re = new RegExp(sql.match(/c_self_re constant text := '([^']+)'/)![1], "i");
+    for (const url of ["https://app.postmosis.com/t/a", "https://postmosis.com/t/a", "https://consultant-content-studio.vercel.app/t/a",
+      "https://abc.supabase.co/functions/v1/tracked-link/a", "https://app.postmosis.com/l/a", "https://notpostmosis.com/t/a", "https://example.com/t/a"])
+      expect(re.test(url), url).toBe(isTrackedUrl(url));
   });
 });
 

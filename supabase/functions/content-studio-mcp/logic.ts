@@ -149,7 +149,7 @@ const WHEN = /^\d{4}-\d{2}-\d{2}(T(?:[01]\d|2[0-3]):[0-5]\d)?$/;
 export const TOOLS = [
   {
     name: "list_posts",
-    description: "List the adviser's posts in Content Studio (newest first): drafts, scheduled and posted, with ids for get_post.",
+    description: "List the adviser's posts in Postmosis (newest first): drafts, scheduled and posted, with ids for get_post.",
     inputSchema: {
       type: "object",
       properties: {
@@ -181,7 +181,7 @@ export const TOOLS = [
   {
     name: "add_draft",
     description:
-      "Save a post to the adviser's My posts as a draft, or scheduled when scheduledFor is given. It appears the next time Content Studio opens, where MAS wording is checked before posting. Write only facts the adviser gave you.",
+      "Save a post to the adviser's My posts as a draft, or scheduled when scheduledFor is given. It appears the next time Postmosis opens, where MAS wording is checked before posting. Write only facts the adviser gave you.",
     inputSchema: {
       type: "object",
       properties: {
@@ -231,12 +231,12 @@ export const NEW_TOOLS = [
   },
   {
     name: "list_skills",
-    description: "The skills this brand runs in Content Studio's agent chat, ready-made and saved: name, slash and what each does.",
+    description: "The skills this brand runs in the Postmosis agent chat, ready-made and saved: name, slash and what each does.",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "get_activity",
-    description: "What ran in Content Studio for this brand, newest first, at most 100: who did it (you, the agent, Claude, autopilot) and what changed.",
+    description: "What ran in Postmosis for this brand, newest first, at most 100: who did it (you, the agent, Claude, autopilot) and what changed.",
     inputSchema: { type: "object", properties: { days: { type: "number", description: "1 to 30, default 7." } } },
   },
 ] as const;
@@ -290,8 +290,8 @@ const listLimit = (v: unknown) => Math.min(30, Math.max(1, Math.round(Number(v) 
 const newestFirst = (a: { postedAt: string | null }, b: { postedAt: string | null }) => (b.postedAt ?? "").localeCompare(a.postedAt ?? "");
 
 export const CHECK_NOTE = "Warnings only: the adviser decides. Fix every error before add_draft.";
-export const LIMIT_LINE = `Content Studio's daily limit of ${DAILY_LIMITS["mcp-calls"]} calls is used. It resets at 8am Singapore time.`;
-export const BUSY_LINE = "Content Studio can't take this call for a moment. Try again shortly.";
+export const LIMIT_LINE = `The Postmosis daily limit of ${DAILY_LIMITS["mcp-calls"]} calls is used. It resets at 8am Singapore time.`;
+export const BUSY_LINE = "Postmosis can't take this call for a moment. Try again shortly.";
 
 /** Following's accounts (or a competitor's, in the same shape) as one list of their posts, newest first. */
 function trackedPosts(accounts: unknown[], limit: number) {
@@ -522,10 +522,10 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
               // the draft is saved; a missing log row loses nothing
             }
           }
-          return ok({ saved: true, id, status: entry.status, note: "It shows in My posts the next time Content Studio opens." });
+          return ok({ saved: true, id, status: entry.status, note: "It shows in My posts the next time Postmosis opens." });
         }
       }
-      return fail(`${MAX_INBOX} drafts from Claude are waiting. Open Content Studio once to bring them into My posts, then try again.`);
+      return fail(`${MAX_INBOX} drafts from Claude are waiting. Open Postmosis once to bring them into My posts, then try again.`);
     }
     case "check_post": {
       const text = typeof args.text === "string" ? args.text : "";
@@ -556,7 +556,7 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
       return ok({ ads: competitorAds(parseJson<unknown>(await store.get(`content-studio-competitor-ads-${scope}`), {}), listLimit(args.limit)) });
     case "list_skills": {
       const mine = (await savedSkills(store, scope)).map((s) => ({ name: s.name, slash: `/${s.slash}`, description: s.instruction, worksOn: s.works === "post" ? "one of my posts" : "a new post" }));
-      return ok({ skills: [...BUILT_IN_SKILLS, ...mine], note: "These run in Content Studio's agent chat. Each saved skill is also a prompt here." });
+      return ok({ skills: [...BUILT_IN_SKILLS, ...mine], note: "These run in the Postmosis agent chat. Each saved skill is also a prompt here." });
     }
     case "get_activity": {
       const days = Math.min(30, Math.max(1, Math.round(Number(args.days) || 7)));
@@ -577,9 +577,9 @@ interface RpcRequest {
 }
 
 const INSTRUCTIONS =
-  "Content Studio is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns.";
+  "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns.";
 export const LEO_INSTRUCTIONS =
-  "Content Studio is a Singapore financial adviser's social media workspace. Read get_brand before drafting. When you remix someone else's post, keep its structure and write new words: never copy its wording, brand or claims. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns, no named insurer products, no invented numbers. Run check_post before add_draft. If get_brand says the speaker is business, write as the business, with no adviser wording.";
+  "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. When you remix someone else's post, keep its structure and write new words: never copy its wording, brand or claims. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns, no named insurer products, no invented numbers. Run check_post before add_draft. If get_brand says the speaker is business, write as the business, with no adviser wording.";
 
 // ---------- prompts (Leo's links only) ----------
 

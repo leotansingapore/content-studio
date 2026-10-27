@@ -13,11 +13,11 @@ export default function PublicRoadmap() {
   return (
     <>
       {/* The shared board has no page heading of its own. */}
-      <h1 className="sr-only">Content Studio roadmap</h1>
+      <h1 className="sr-only">Postmosis roadmap</h1>
       <FeedbackBoard
         apiUrl={FEEDBACK_API}
         boardKey={FEEDBACK_BOARD_KEY}
-        appName="Content Studio"
+        appName="Postmosis"
         homeUrl="/"
       />
     </>
