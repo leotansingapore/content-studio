@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultSettings } from "./videoEdit";
+import { defaultSettings, heardWords } from "./videoEdit";
 import {
   addToJoin, currentJoin, drawEndCard, drawFrame, drawIntroCard, endJoin, loadBrandArt, type BrandArt, exportAll, exportQueue, handToEditor, joinAdd, layOver, mergeExtra, onJoinJob, onOutputClock, pickupPlan, planFor, seek, slidePlan, startExport, startSound, stopExportQueue, syncBackdrop,
   TAP_TO_FINISH, withJoinAdd, type ExportJob, type Frame, type JoinExtra, type PickupPath,
@@ -237,6 +237,19 @@ describe("layOver (same edit)", () => {
     expect(out.overlays![0].from).toBe(0);
     // with no pause cut the clocks agree
     expect(onOutputClock({ ...s, maxPause: 5 }, words, 5, "ep-1").broll![0].from).toBe(3.5);
+  });
+
+  it("starts a plan's cutaway where its marked word is heard after a cold open, not over the teaser", () => {
+    // 10 s of speech; the line at 6 to 8 s opens the video, heard again in its place or not
+    const words = Array.from({ length: 20 }, (_, i) => ({ w: `w${i}`, s: i * 0.5, e: i * 0.5 + 0.45 }));
+    for (const repeat of [true, false]) {
+      const s = { ...defaultSettings("bold"), maxPause: 0, coldOpen: { s: 6, e: 8, repeat }, broll: [{ ...clip, id: "b-ep-1-1", from: 2, to: 3 }, { ...clip, id: "b-ep-1-2", from: 8.5, to: 9.5 }] };
+      const plan = planFor(words, 10, s);
+      const heard = (i: number) => heardWords(words, plan.segs).filter((h) => h.src === words[i]).map((h) => h.s);
+      const out = onOutputClock(s, words, 10, "ep-1");
+      expect(heard(4), `repeat ${repeat}`).toEqual([4]);
+      expect(out.broll!.map((b) => [b.from, b.to]), `repeat ${repeat}`).toEqual([[4, 5], [heard(17)[0], heard(17)[0] + 1]]);
+    }
   });
 });
 

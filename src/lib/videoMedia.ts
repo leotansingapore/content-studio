@@ -1752,8 +1752,10 @@ export function onOutputClock(s: EditSettings, words: Word[], duration: number, 
   const { segs } = planFor(words, duration, s);
   const speed = speedOf(s);
   const end = totalLength(segs) / speed;
+  // in source order: a cold open plays a later part first, and a time before it must not land in the teaser
+  const bySource = [...segs].sort((a, b) => a.start - b.start);
   const out = (t: number) => {
-    const g = segs.find((x) => t < x.end);
+    const g = bySource.find((x) => t < x.end);
     return Math.round((g ? outAt(segs, Math.max(t, g.start), speed) ?? end : end) * 100) / 100;
   };
   const move = <T extends { id: string; from: number; to: number }>(list: T[] | undefined) =>
