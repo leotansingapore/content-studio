@@ -9,6 +9,7 @@
 // through Run as an ad: an adviser's ad needs its own firm approval code.
 
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { renderSvg } from "@/lib/carouselLayout";
 import type { Measure } from "@/lib/carouselLayout";
@@ -33,6 +34,17 @@ export const VERSIONS_FAILED = "Couldn't write the versions right now. Try again
 export function nextFormulas(prev: string[] = []): string[] {
   const at = prev.length ? (AD_FORMULAS as readonly string[]).indexOf(prev[prev.length - 1]) + 1 : 0;
   return Array.from({ length: VERSIONS }, (_, k) => AD_FORMULAS[(at + k) % AD_FORMULAS.length]);
+}
+
+/** Why the rest of the 6 aren't shown, one count per reason, or "" when none was left out. */
+export function leftOutLine(set: AdVersionSet): string {
+  const facts = set.out - set.mas;
+  const why = [
+    set.unfit > 0 && `${set.unfit} didn't fit the layout`,
+    facts > 0 && `${facts} said more than your brand kit backs`,
+    set.mas > 0 && `${set.mas} broke an MAS rule`,
+  ].filter(Boolean);
+  return why.length ? `${set.unfit + set.out} more left out: ${why.join(", ")}.` : "";
 }
 
 /** A version's label: its hook formula's name. */
@@ -95,7 +107,7 @@ export async function startAdVersions(userId: string, ask: AdVersionsAsk): Promi
     });
     const res = await requestMake(body);
     if (res?.result?.as !== "ads") throw new Error(VERSIONS_FAILED);
-    const set = versionSet(res.result);
+    const set = versionSet(res.result, versions.length);
     const design = imageById(userId, ask.designId);
     // Best goes in the fields, else the first one kept
     if (design) saveImage(userId, { ...design, layout: set.layout, versions: set, words: versionWords(design.words, set, set.best ?? 0) });
@@ -154,7 +166,19 @@ export function AdVersions(p: {
           </label>
         ))}
       </div>
-      {p.set.out > 0 && <p className="text-xs text-muted-foreground">{p.set.out === 1 ? "One more was" : `${p.set.out} more were`} left out as not safe to run.</p>}
+      {leftOutLine(p.set) && (
+        <p className="text-xs text-muted-foreground">
+          {leftOutLine(p.set)}
+          {p.set.out > p.set.mas && (
+            <>
+              {" "}
+              <Link to={links.brand()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">
+                Add facts in Brand kit
+              </Link>
+            </>
+          )}
+        </p>
+      )}
       {!p.set.checked && (
         <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden /> These weren't checked against your brand facts. Read each one before you run it.

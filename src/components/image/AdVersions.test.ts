@@ -9,7 +9,7 @@ import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { blankImage, loadImages, saveImage } from "@/lib/images";
 import type { MakeResponse } from "@/lib/remix";
 import { parseMakeRequest } from "../../../supabase/functions/remix/logic";
-import { AD_FORMULAS, VERSIONS, adVersionsRun, hookName, nextFormulas, startAdVersions, type AdVersionsAsk } from "./AdVersions";
+import { AD_FORMULAS, VERSIONS, adVersionsRun, hookName, leftOutLine, nextFormulas, startAdVersions, type AdVersionsAsk } from "./AdVersions";
 
 class MemStorage {
   s = new Map<string, string>();
@@ -57,7 +57,23 @@ describe("the hooks versions open on", () => {
   });
 });
 
+describe("why the rest of the 6 aren't shown", () => {
+  const set = (out: number, mas: number, unfit: number) => ({ layout: "headline" as const, list: [], best: null, out, mas, unfit, checked: true });
+  it("names each reason with its count, and says nothing when all six came back", () => {
+    expect(leftOutLine(set(0, 0, 0))).toBe("");
+    expect(leftOutLine(set(4, 0, 0))).toBe("4 more left out: 4 said more than your brand kit backs.");
+    expect(leftOutLine(set(3, 1, 1))).toBe("4 more left out: 1 didn't fit the layout, 2 said more than your brand kit backs, 1 broke an MAS rule.");
+    expect(leftOutLine(set(0, 0, 2))).toBe("2 more left out: 2 didn't fit the layout.");
+  });
+});
+
 describe("Write 6 versions", () => {
+  it("counts the versions that never came back as not fitting the layout", async () => {
+    make.mockResolvedValue(reply(nextFormulas().slice(0, 4), { dropped: [0] }));
+    await startAdVersions(U, ask());
+    expect(loadImages(U)[0].versions).toMatchObject({ out: 1, mas: 0, unfit: 2 });
+  });
+
   it("is one make the server takes as sent, and keeps Jev's kept versions in the design with Best in the fields", async () => {
     make.mockResolvedValue(reply(nextFormulas(), { best: 3, dropped: [1] }));
     await startAdVersions(U, ask());

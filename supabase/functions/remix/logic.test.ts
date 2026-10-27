@@ -1510,10 +1510,10 @@ describe("ad versions (ad batches on /image)", () => {
   it("drops a version that says more than the facts (0.5) or fails MAS (0.5), and marks the most stopping kept one best", () => {
     const a = (invented: number[], mas: number[], stop: number[]) =>
       Object.fromEntries(stop.flatMap((s, i) => [[`stop_${i}`, { type: "score" as const, score: s }], [`invented_${i}`, { type: "noul" as const, noul: invented[i] }], [`mas_${i}`, { type: "noul" as const, noul: mas[i] }]]));
-    expect(adsVerdict(a([0.1, 0.49, 0.5], [0.1, 0.1, 0.1], [1, 2, 3]), 3)).toEqual({ best: 1, dropped: [2], checked: true });
-    expect(adsVerdict(a([0.1, 0.1, 0.1], [0.5, 0.49, 0.1], [3, 2, 1]), 3)).toEqual({ best: 1, dropped: [0], checked: true });
-    expect(adsVerdict(a([0.9, 0.9, 0.1], [0.1, 0.1, 0.9], [1, 2, 3]), 3)).toEqual({ best: null, dropped: [0, 1, 2], checked: true });
-    expect(adsVerdict(null, 3)).toEqual({ best: null, dropped: [], checked: false });
+    expect(adsVerdict(a([0.1, 0.49, 0.5], [0.1, 0.1, 0.1], [1, 2, 3]), 3)).toEqual({ best: 1, dropped: [2], mas: 0, checked: true });
+    expect(adsVerdict(a([0.1, 0.1, 0.1], [0.5, 0.49, 0.1], [3, 2, 1]), 3)).toEqual({ best: 1, dropped: [0], mas: 1, checked: true });
+    expect(adsVerdict(a([0.9, 0.9, 0.1], [0.1, 0.1, 0.9], [1, 2, 3]), 3)).toEqual({ best: null, dropped: [0, 1, 2], mas: 1, checked: true });
+    expect(adsVerdict(null, 3)).toEqual({ best: null, dropped: [], mas: 0, checked: false });
     expect(masText(got()!)).toBeNull();
   });
 });

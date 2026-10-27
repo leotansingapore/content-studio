@@ -37,6 +37,10 @@ export interface AdVersionSet {
   best: number | null;
   /** How many Jev left out: they said more than the brand's facts, or failed the MAS question. */
   out: number;
+  /** Of out, how many failed the MAS question; the rest said more than the facts. */
+  mas: number;
+  /** How many asked for never came back: they didn't fit the layout's limits. */
+  unfit: number;
   /** false: Jev gave no answer, so none was read against the brand's facts. */
   checked: boolean;
 }
@@ -93,7 +97,8 @@ function sanitizeVersions(raw: unknown): AdVersionSet | undefined {
   });
   if (!list.length) return undefined;
   const at = (n: unknown, hi: number) => (Number.isInteger(n) && (n as number) >= 0 && (n as number) < hi ? (n as number) : null);
-  return { layout, list, best: at(r.best, list.length), out: at(r.out, AD_VERSIONS.max + 1) ?? 0, checked: r.checked === true };
+  const n = (k: string) => at(r[k], AD_VERSIONS.max + 1) ?? 0;
+  return { layout, list, best: at(r.best, list.length), out: n("out"), mas: Math.min(n("mas"), n("out")), unfit: n("unfit"), checked: r.checked === true };
 }
 
 /** One saved design as it should be, or null. Unknown words, bad keys and anything not text are dropped. */
@@ -253,11 +258,12 @@ export function wordsFromMake(prev: Record<string, string>, r: Extract<MakeResul
   return next;
 }
 
-/** The set to keep from an ads make: the versions Jev kept, its best counted among them. */
-export function versionSet(r: Extract<MakeResult, { as: "ads" }>): AdVersionSet {
+/** The set to keep from an ads make: the versions Jev kept, its best counted among them; asked is how many were sent. */
+export function versionSet(r: Extract<MakeResult, { as: "ads" }>, asked = r.versions.length): AdVersionSet {
   const kept = r.versions.filter((_, i) => !r.dropped.includes(i));
   const best = r.best === null ? -1 : kept.indexOf(r.versions[r.best]);
-  return { layout: isVersionLayout(r.layout) ? r.layout : "headline", list: kept, best: best < 0 ? null : best, out: r.dropped.length, checked: r.checked };
+  const out = r.dropped.length;
+  return { layout: isVersionLayout(r.layout) ? r.layout : "headline", list: kept, best: best < 0 ? null : best, out, mas: Math.min(r.mas ?? 0, out), unfit: Math.max(0, asked - r.versions.length), checked: r.checked };
 }
 
 /** A design's words with version i's put in: its layout's fields and its caption, the rest (a stat's number) kept. */

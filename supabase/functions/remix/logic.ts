@@ -284,8 +284,8 @@ export type MakeResult =
   | { as: "image"; layout: AdLayout; layoutBy: "jev" | "default"; words: Partial<Record<AdWord, string>>; caption: string }
   /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
   | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string }
-  /** best and dropped come from Jev after writing (adsVerdict); checked is false when Jev gave no answer, so nothing was read. */
-  | { as: "ads"; layout: AdLayout; versions: AdVersion[]; best: number | null; dropped: number[]; checked: boolean };
+  /** best and dropped come from Jev after writing (adsVerdict); mas counts the dropped that failed the MAS question; checked is false when Jev gave no answer, so nothing was read. */
+  | { as: "ads"; layout: AdLayout; versions: AdVersion[]; best: number | null; dropped: number[]; mas?: number; checked: boolean };
 
 export interface Flags {
   copied: string[];
@@ -2015,16 +2015,18 @@ export function adsQuestions(versions: AdVersion[], speaker: Speaker): Record<st
  * offered as an ad; the kept one the audience would most stop for is best. Jev null keeps all, with no best and
  * checked false, so the page says they weren't read.
  */
-export function adsVerdict(answers: Record<string, JevAnswer> | null, count: number): { best: number | null; dropped: number[]; checked: boolean } {
+export function adsVerdict(answers: Record<string, JevAnswer> | null, count: number): { best: number | null; dropped: number[]; mas: number; checked: boolean } {
   const all = Array.from({ length: count }, (_, i) => i);
-  const dropped = all.filter((i) => (noulOf(answers, `invented_${i}`) ?? 0) >= FLAG_AT || (noulOf(answers, `mas_${i}`) ?? 0) >= MAS_WARN);
+  const failsMas = (i: number) => (noulOf(answers, `mas_${i}`) ?? 0) >= MAS_WARN;
+  const dropped = all.filter((i) => (noulOf(answers, `invented_${i}`) ?? 0) >= FLAG_AT || failsMas(i));
   let best: number | null = null;
   let top = -Infinity;
   for (const i of all) {
     const stop = scoreOf(answers, `stop_${i}`);
     if (!dropped.includes(i) && stop !== null && stop > top) [best, top] = [i, stop];
   }
-  return { best, dropped, checked: answers !== null };
+  // the page tells an MAS drop from a facts one, so the reason it gives is the one to fix
+  return { best, dropped, mas: dropped.filter(failsMas).length, checked: answers !== null };
 }
 
 /**
