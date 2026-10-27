@@ -253,7 +253,6 @@ export default function AutoDmPage() {
         <header className="flex items-center justify-between gap-3 sm:flex-wrap sm:items-end sm:gap-4">
           <div className="min-w-0 space-y-1.5">
             <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">Auto-DM</h1>
-            <p className="hidden text-[15px] text-muted-foreground sm:block">When someone comments your keyword, they get your DM.</p>
           </div>
           {state === "ready" && accounts.length > 0 && (
             <Button className="h-11 gap-1.5 px-3.5 text-[15px] font-semibold sm:gap-2 sm:px-[18px]" aria-label="New auto-DM" onClick={() => openEdit("new")}>

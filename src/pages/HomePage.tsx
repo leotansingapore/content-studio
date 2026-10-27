@@ -773,7 +773,7 @@ export default function HomePage() {
                   </ul>
                 )}
                 {goalHit ? (
-                  <p className="text-xs text-muted-foreground">Goal hit for the week. Nice.</p>
+                  <p className="text-xs text-muted-foreground">Goal hit for the week.</p>
                 ) : (
                   week.goal === 0 && (
                     <Button variant="link" size="sm" className="h-9 px-0 text-xs [@media(pointer:coarse)]:h-11" onClick={() => setGoalDraft(goals)}>
@@ -799,7 +799,7 @@ export default function HomePage() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {activity.weekStreak > 0
-                    ? "Posting streak. Keep it alive."
+                    ? "Posting streak"
                     : "Post once this week to start a streak."}
                 </p>
               </div>

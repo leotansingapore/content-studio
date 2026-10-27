@@ -77,9 +77,7 @@ export default function StudioPage() {
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             What should {leo ? "the agent" : "you"} make{brand ? ` for ${brand}` : ""}?
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {leo ? "Tell it, or pick a format, an ad or a trending post below. Anything paid shows its price first." : "Pick a way to make it, or start from an ad or a trending post below."}
-          </p>
+          {leo && <p className="text-sm text-muted-foreground">Anything paid shows its price first.</p>}
         </div>
         {leo && (
           <Suspense fallback={<div className="h-28 rounded-xl border border-border/70 bg-card" aria-busy="true" />}>

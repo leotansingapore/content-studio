@@ -55,7 +55,6 @@ function Gallery({ userId }: { userId: string }) {
               {shown.length}
             </span>
           </h1>
-          <p className="text-sm text-muted-foreground">Every format you can make. Pick one to start it.</p>
         </div>
         <p className="max-w-xs text-xs text-muted-foreground lg:text-right">Video prices are for the default length. A longer video costs more.</p>
       </header>
