@@ -745,7 +745,8 @@ function ImageEditor({ userId }: { userId: string }) {
           designId={img.id}
           draftId={img.draftId}
           headline={mainWords(layout, img.words)}
-          text={img.words.caption ?? ""}
+          // a headline ad's line under the headline is its text; a meme's line is already its headline
+          text={img.words.caption || (layout === "headline" ? img.words.line : "") || ""}
           preview={preview}
           picture={() => pngOf(size, "image/jpeg")}
           person={person}
