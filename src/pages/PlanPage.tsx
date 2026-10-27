@@ -888,7 +888,7 @@ export default function PlanPage() {
           </div>
           <p className="mt-1.5 text-[11px] opacity-90">
             {pct === 100
-              ? "Every slot posted. That's a full funnel shipped. Reshuffle for next week."
+              ? "Every slot posted. Reshuffle for next week."
               : `${pct}% shipped. Draft the next one and check it off when it's live.`}
           </p>
         </div>
