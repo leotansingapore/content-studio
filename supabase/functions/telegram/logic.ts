@@ -339,21 +339,21 @@ export async function runAddBot(
   const me = await bot.call<{ id?: unknown; is_bot?: unknown; username?: unknown; first_name?: unknown }>("getMe", {}).catch(() => null);
   if (!me || me.is_bot !== true || me.id !== Number(m[1]) || typeof me.username !== "string" || !/^[A-Za-z0-9_]{5,64}$/.test(me.username)) return UNKNOWN_TOKEN;
   const botId = me.id as number;
-  if (botId === sharedBotId) return { status: 400, body: { error: "That is Content Studio's shared bot. Make a new bot in BotFather for this brand." } };
-  if (await db.botTaken(botId)) return { status: 409, body: { error: "That bot is already set up in Content Studio." } };
+  if (botId === sharedBotId) return { status: 400, body: { error: "That is Postmosis's shared bot. Make a new bot in BotFather for this brand." } };
+  if (await db.botTaken(botId)) return { status: 409, body: { error: "That bot is already set up in Postmosis." } };
   const has = await db.brandBot(uid, profileId);
   if (has) return { status: 409, body: { error: `This brand already posts as @${has.username}. Switch back to the shared bot first.` } };
   const ours = `${hookUrl}?bot=${botId}`;
   const info = await bot.call<{ url?: unknown }>("getWebhookInfo", {}).catch(() => null);
   if (!info) return { status: 502, body: { error: "Couldn't reach Telegram. Try again in a minute." } };
   if (typeof info.url === "string" && info.url !== "" && info.url !== ours) {
-    return { status: 409, body: { error: "That bot already sends its updates to another app. Make a new bot in BotFather for Content Studio, or remove that app's webhook first." } };
+    return { status: 409, body: { error: "That bot already sends its updates to another app. Make a new bot in BotFather for Postmosis, or remove that app's webhook first." } };
   }
   const secret = newCode();
   const displayName = typeof me.first_name === "string" ? me.first_name.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 128) : "";
   const id = await db.saveBot({ owner: uid, profile: profileId, botId, username: me.username, displayName, token, webhookSecretHash: await hashCode(secret) });
   // checked above; a null here is another add winning a race for the bot or the brand
-  if (!id) return { status: 409, body: { error: "That bot is already set up in Content Studio." } };
+  if (!id) return { status: 409, body: { error: "That bot is already set up in Postmosis." } };
   try {
     await bot.call("setWebhook", { url: ours, secret_token: secret, allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
   } catch {

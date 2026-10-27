@@ -462,7 +462,7 @@ describe("own bot per brand", () => {
       [{ getMe: new TelegramError(401, "Unauthorized") }, OWN, "Telegram doesn't know that token. Copy it again from BotFather."],
       [{ getMe: { ...me, is_bot: false } }, OWN, "Telegram doesn't know that token. Copy it again from BotFather."],
       [{ getMe: { ...me, id: 7000000009 } }, OWN, "Telegram doesn't know that token. Copy it again from BotFather."],
-      [{ getMe: { ...me, id: 7000000001 } }, "7000000001:" + "Z".repeat(35), "That is Content Studio's shared bot. Make a new bot in BotFather for this brand."],
+      [{ getMe: { ...me, id: 7000000001 } }, "7000000001:" + "Z".repeat(35), "That is Postmosis's shared bot. Make a new bot in BotFather for this brand."],
     ] as const) {
       const { db, bots } = fakeDb();
       const { client, calls } = clients(o);
@@ -475,7 +475,7 @@ describe("own bot per brand", () => {
   it("refuses a bot already set up in Content Studio, by any account, and a brand that already has its own", async () => {
     const taken: OwnBot = { id: "b0", owner_id: OTHER_UID, profile_id: "me", bot_id: 7000000002, username: "mb_test_bot", display_name: "", token: "x", webhook_secret_hash: "0".repeat(64) };
     const one = fakeDb([], [taken]);
-    expect(await add(one.db, clients().client)).toEqual({ status: 409, body: { error: "That bot is already set up in Content Studio." } });
+    expect(await add(one.db, clients().client)).toEqual({ status: 409, body: { error: "That bot is already set up in Postmosis." } });
     expect(one.bots).toHaveLength(1);
     // refused here, before the token ever reaches the database
     expect(one.attempts).toEqual([]);
@@ -508,7 +508,7 @@ describe("own bot per brand", () => {
     const { client, calls } = clients({ getWebhookInfo: { url: "https://other.example/hook", pending_update_count: 3 } });
     expect(await add(db, client)).toEqual({
       status: 409,
-      body: { error: "That bot already sends its updates to another app. Make a new bot in BotFather for Content Studio, or remove that app's webhook first." },
+      body: { error: "That bot already sends its updates to another app. Make a new bot in BotFather for Postmosis, or remove that app's webhook first." },
     });
     expect(calls.map((c) => c.method)).toEqual(["getMe", "getWebhookInfo"]);
     expect([bots, attempts]).toEqual([[], []]);
@@ -609,7 +609,7 @@ describe("own bot per brand", () => {
     const { db, bots } = fakeDb();
     const racing: FnDb = { ...db, botTaken: async () => false, brandBot: async () => null, saveBot: async () => null };
     const { client, calls } = clients();
-    expect(await add(racing, client)).toEqual({ status: 409, body: { error: "That bot is already set up in Content Studio." } });
+    expect(await add(racing, client)).toEqual({ status: 409, body: { error: "That bot is already set up in Postmosis." } });
     expect(calls.map((c) => c.method)).toEqual(["getMe", "getWebhookInfo"]);
     expect(bots).toEqual([]);
   });
