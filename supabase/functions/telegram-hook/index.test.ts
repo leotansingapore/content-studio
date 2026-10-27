@@ -65,26 +65,18 @@ describe("the Telegram hook's gate", () => {
     expect(telegram).toEqual([]);
   });
 
-  it("notes the Telegram user on a waiting, unexpired, unconfirmed code at /start, taking over any earlier unconfirmed claim", async () => {
+  it("notes the Telegram user on a waiting, unexpired code at /start only while nobody else tapped Start with it", async () => {
     const update = { update_id: 1, message: { message_id: 1, from: { id: 111000111, is_bot: false, first_name: "Leo" }, chat: { id: 111000111, type: "private" }, date: 1, text: "/start Abc_DEF-123456789012345678901234" } };
     expect((await call({ "x-telegram-bot-api-secret-token": "hook-secret-for-tests" }, update)).status).toBe(200);
-    const hash = expect.stringMatching(/^[0-9a-f]{64}$/);
     expect(h.filters).toEqual([
       ["from", "cs_telegram_chats"],
       ["update", { tg_user_id: 111000111 }],
-      ["eq", "code_hash", hash],
+      ["eq", "code_hash", expect.stringMatching(/^[0-9a-f]{64}$/)],
       ["eq", "status", "pending"],
       ["gt", "code_expires_at", expect.any(String)],
-      ["is", "confirmed_at", null],
+      // the first Telegram user to tap Start keeps the code; a later one gets nothing
+      ["or", "tg_user_id.is.null,tg_user_id.eq.111000111"],
       ["select", expect.stringContaining("confirmed_at")],
-      // not taken over: only a code already confirmed for this same Telegram user comes back
-      ["from", "cs_telegram_chats"],
-      ["select", expect.stringContaining("confirmed_at")],
-      ["eq", "code_hash", hash],
-      ["eq", "status", "pending"],
-      ["gt", "code_expires_at", expect.any(String)],
-      ["eq", "tg_user_id", 111000111],
-      ["not", "confirmed_at", "is", null],
     ]);
     // nothing found: the bot says the link expired (the stubbed fetch takes the reply)
     expect(telegram).toEqual(["https://api.telegram.org/bot7000000001:TEST-token-for-fixtures-only/sendMessage"]);

@@ -21,7 +21,11 @@ import {
   chatRows,
   connectState,
   loadTelegramChannels,
+  identityQuestion,
   loginFrom,
+  readNonce,
+  saveNonce,
+  clearNonce,
   takeTelegramLogin,
   rowDetail,
   saveTelegramChannels,
@@ -214,5 +218,23 @@ describe("Telegram's login coming back to /accounts", () => {
     expect(loginFrom({ telegram: "x", id: "1", hash: "abc" })).toBeNull();
     expect(loginFrom({ telegram: ROW, id: "1" })).toBeNull();
     expect(LOGIN_PARAMS).toEqual(["telegram", "id", "first_name", "last_name", "username", "photo_url", "auth_date", "hash"]);
+  });
+});
+
+describe("the browser that pressed Connect Telegram", () => {
+  const ROW = "00000000-0000-4000-8000-0000000000c1";
+  it("keeps the connect's nonce in this browser (outside the synced keys), for that connect only, until it is cleared", () => {
+    saveNonce(ROW, "browser-nonce-1234567890");
+    expect([...store.keys()].filter((k) => k.includes("nonce"))).toEqual(["cs-telegram-nonce"]);
+    expect(readNonce(ROW)).toBe("browser-nonce-1234567890");
+    expect(readNonce("00000000-0000-4000-8000-0000000000c2")).toBeNull();
+    clearNonce();
+    expect(readNonce(ROW)).toBeNull();
+  });
+
+  it("asks who Telegram says this is before anything is confirmed", () => {
+    expect(identityQuestion({ firstName: "Leo", username: "leo_test" })).toBe("Connect Telegram as Leo (@leo_test)?");
+    expect(identityQuestion({ firstName: "Leo", username: null })).toBe("Connect Telegram as Leo?");
+    expect(identityQuestion({ firstName: "", username: "leo_test" })).toBe("Connect Telegram as @leo_test?");
   });
 });

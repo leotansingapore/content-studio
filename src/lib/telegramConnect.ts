@@ -56,8 +56,44 @@ export async function readTelegramRow(id: string): Promise<TelegramRow | null> {
   return (data as TelegramRow | null) ?? null;
 }
 
+/** A new code (the brand's waiting one is cancelled) and the nonce this browser keeps for its confirm. */
 export const startTelegram = (profileId: string) =>
-  callFn<{ rowId: string; link: string; expiresAt: string }>("telegram", { action: "start", profileId }, "Couldn't start the connection. Try again in a minute.");
+  callFn<{ rowId: string; link: string; expiresAt: string; nonce: string }>("telegram", { action: "start", profileId }, "Couldn't start the connection. Try again in a minute.");
+
+// The nonce of the connect this browser started: the confirm works only where it is. Per browser (Telegram opens the
+// Confirm link in a new tab), outside the content-studio- sync prefix so it never reaches another device.
+const NONCE_KEY = "cs-telegram-nonce";
+
+export function saveNonce(rowId: string, nonce: string): void {
+  try {
+    localStorage.setItem(NONCE_KEY, JSON.stringify({ rowId, nonce }));
+  } catch {
+    // storage blocked: the confirm can't work in this browser, and says so
+  }
+}
+
+export function readNonce(rowId: string): string | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(NONCE_KEY) ?? "null");
+    return v?.rowId === rowId && typeof v.nonce === "string" ? v.nonce : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearNonce(): void {
+  try {
+    localStorage.removeItem(NONCE_KEY);
+  } catch {
+    // nothing kept
+  }
+}
+
+/** "Connect Telegram as Leo (@leo_test)?": who Telegram's verified login says this is. */
+export function identityQuestion(who: { firstName: string; username: string | null }): string {
+  const name = who.firstName && who.username ? `${who.firstName} (@${who.username})` : who.firstName || `@${who.username}`;
+  return `Connect Telegram as ${name}?`;
+}
 
 /**
  * The bot's Confirm button (Telegram's login_url) returns to /accounts?telegram=<row> with Telegram's signed fields.
@@ -91,9 +127,13 @@ export function takeTelegramLogin(): { chatRow: string; auth: Record<string, str
   return raw && typeof raw === "object" ? loginFrom(raw as Record<string, unknown>) : null;
 }
 
-/** Sends Telegram's signed login to `telegram`, which records it only on a code this signed-in account made. */
-export const verifyTelegram = (chatRow: string, auth: Record<string, string>) =>
-  callFn<{ linked: boolean; picker: boolean }>("telegram", { action: "verify", chatRow, auth }, "Couldn't confirm it. Tap Confirm in Telegram again.");
+/** Who Telegram's signed login says this is, checked against this account's code and this browser's nonce; writes nothing. */
+export const checkTelegram = (chatRow: string, auth: Record<string, string>, nonce: string) =>
+  callFn<{ firstName: string; username: string | null }>("telegram", { action: "verify", chatRow, auth, nonce, confirm: false }, "Couldn't check it. Tap Confirm in Telegram again.");
+
+/** Connect: the same checks, then the code is confirmed for that Telegram user, who gets the pickers. */
+export const confirmTelegram = (chatRow: string, auth: Record<string, string>, nonce: string) =>
+  callFn<{ linked: boolean; picker: boolean }>("telegram", { action: "verify", chatRow, auth, nonce, confirm: true }, "Couldn't confirm it. Tap Confirm in Telegram again.");
 
 export const disconnectTelegram = (profileId: string, chatRow: string) =>
   callFn<{ disconnected: boolean; cancelled: number }>("telegram", { action: "disconnect", profileId, chatRow }, "Couldn't disconnect it. Try again in a minute.");

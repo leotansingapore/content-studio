@@ -118,7 +118,11 @@ const OLD_LOGIN = "That confirmation is too old. Tap Confirm in Telegram again."
  * Checks the fields a login_url came back with: HMAC-SHA256 of the sorted "key=value" lines, keyed by SHA256 of the
  * bot token, must equal hash, and auth_date must be under 5 minutes old. Answers the Telegram user it proves.
  */
-export async function checkTelegramLogin(auth: Record<string, unknown>, token: string, now: number): Promise<{ ok: true; id: number; name: string } | { ok: false; error: string }> {
+export async function checkTelegramLogin(
+  auth: Record<string, unknown>,
+  token: string,
+  now: number,
+): Promise<{ ok: true; id: number; name: string; firstName: string; username: string | null } | { ok: false; error: string }> {
   const hash = typeof auth.hash === "string" ? auth.hash : "";
   if (!/^[0-9a-f]{64}$/.test(hash)) return { ok: false, error: BAD_LOGIN };
   const fields = LOGIN_FIELDS.filter((k) => typeof auth[k] === "string").map((k) => [k, auth[k] as string] as const);
@@ -134,8 +138,10 @@ export async function checkTelegramLogin(auth: Record<string, unknown>, token: s
   if (!Number.isSafeInteger(at) || age > LOGIN_MAX_AGE_S || age < -60) return { ok: false, error: OLD_LOGIN };
   const id = Number(auth.id);
   if (!Number.isSafeInteger(id) || id <= 0) return { ok: false, error: BAD_LOGIN };
-  const name = typeof auth.username === "string" && auth.username ? `@${auth.username}` : typeof auth.first_name === "string" ? auth.first_name : "";
-  return { ok: true, id, name: name.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 64) };
+  const clean = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, max) : "");
+  const firstName = clean(auth.first_name, 64);
+  const username = /^[A-Za-z0-9_]{1,64}$/.test(clean(auth.username, 64)) ? clean(auth.username, 64) : null;
+  return { ok: true, id, name: username ? `@${username}` : firstName, firstName, username };
 }
 
 // ---- the pickers: Telegram's own chat pickers (KeyboardButtonRequestChat), shown once the login is verified ----

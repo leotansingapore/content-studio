@@ -97,12 +97,12 @@ reset role;
 -- ---------------------------------------------------------------------------
 
 set local role service_role;
-insert into public.cs_telegram_chats (id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, connected_at, confirmed_at, tg_user_name, login_hash) values
-  ('00000000-0000-4000-8000-0000000000c1', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('1', 64), now() + interval '15 minutes', 111, -1001000000001, 'supergroup', 'Test group', 'connected', now(), now(), '@leo_test', repeat('c', 63) || '1'),
-  ('00000000-0000-4000-8000-0000000000c2', '7e57c0de-0000-4000-8000-0000000000d1', 'pmg1x2y3z',   repeat('2', 64), now() + interval '15 minutes', 111, -1001000000002, 'channel',    'Test channel', 'connected', now(), now(), 'Leo', repeat('c', 63) || '2'),
-  ('00000000-0000-4000-8000-0000000000c3', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('3', 64), now() + interval '15 minutes', null, null, null, null, 'pending', null, null, null, null),
-  ('00000000-0000-4000-8000-0000000000c4', '7e57c0de-0000-4000-8000-0000000000d2', 'me',          repeat('4', 64), now() + interval '15 minutes', 222, -1001000000004, 'supergroup', 'Other group', 'connected', now(), now(), null, repeat('c', 63) || '4'),
-  ('00000000-0000-4000-8000-0000000000c5', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('5', 64), now() + interval '15 minutes', 111, -1001000000005, 'supergroup', 'Gone group', 'removed', now(), now(), null, repeat('c', 63) || '5');
+insert into public.cs_telegram_chats (id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, connected_at, confirmed_at, tg_user_name, login_hash, nonce_hash) values
+  ('00000000-0000-4000-8000-0000000000c1', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('1', 64), now() + interval '15 minutes', 111, -1001000000001, 'supergroup', 'Test group', 'connected', now(), now(), '@leo_test', repeat('c', 63) || '1', repeat('9', 63) || '1'),
+  ('00000000-0000-4000-8000-0000000000c2', '7e57c0de-0000-4000-8000-0000000000d1', 'pmg1x2y3z',   repeat('2', 64), now() + interval '15 minutes', 111, -1001000000002, 'channel',    'Test channel', 'connected', now(), now(), 'Leo', repeat('c', 63) || '2', repeat('9', 63) || '2'),
+  ('00000000-0000-4000-8000-0000000000c3', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('3', 64), now() + interval '15 minutes', null, null, null, null, 'pending', null, null, null, null, null),
+  ('00000000-0000-4000-8000-0000000000c4', '7e57c0de-0000-4000-8000-0000000000d2', 'me',          repeat('4', 64), now() + interval '15 minutes', 222, -1001000000004, 'supergroup', 'Other group', 'connected', now(), now(), null, repeat('c', 63) || '4', repeat('9', 63) || '4'),
+  ('00000000-0000-4000-8000-0000000000c5', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('5', 64), now() + interval '15 minutes', 111, -1001000000005, 'supergroup', 'Gone group', 'removed', now(), now(), null, repeat('c', 63) || '5', repeat('9', 63) || '5');
 
 -- 10:00 Singapore time on a fixed day, so the hours never depend on when this runs
 create temporary table t_clock as select timestamptz '2026-11-02 10:00:00+08' as at;
@@ -130,8 +130,8 @@ select public.cs_test_expect_error(
     values ('7e57c0de-0000-4000-8000-0000000000d2', 'me', repeat('1', 64), now())$$,
   '%duplicate key%', '2.2 a code hash is used once');
 select public.cs_test_expect_error(
-  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, confirmed_at, login_hash)
-    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('6', 64), now(), 111, -1001000000001, 'supergroup', 'Test group', 'connected', now(), repeat('d', 64))$$,
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, confirmed_at, login_hash, nonce_hash)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('6', 64), now(), 111, -1001000000001, 'supergroup', 'Test group', 'connected', now(), repeat('d', 64), repeat('8', 64))$$,
   '%duplicate key%', '2.3 one brand has one live row per chat');
 select public.cs_test_expect_error(
   $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, status)
@@ -162,17 +162,24 @@ select public.cs_test_expect_error(
     values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('9', 64), now(), now())$$,
   '%cs_telegram_chats_confirmed%', '2.10 a verified login names its Telegram user');
 -- tapping Start puts the Telegram user on the code before any login is verified
-insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id)
-  values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('a', 64), now() + interval '15 minutes', 111);
-insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, confirmed_at, login_hash)
-  values ('7e57c0de-0000-4000-8000-0000000000d2', 'me', repeat('b', 64), now() + interval '15 minutes', 222, now(), repeat('e', 64));
+insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, nonce_hash)
+  values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('a', 64), now() + interval '15 minutes', 111, repeat('6', 64)),
+         ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('f', 64), now() + interval '15 minutes', 111, null);
+insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, confirmed_at, login_hash, nonce_hash)
+  values ('7e57c0de-0000-4000-8000-0000000000d2', 'me', repeat('b', 64), now() + interval '15 minutes', 222, now(), repeat('e', 64), repeat('7', 64));
 select public.cs_test_expect_error(
   $$update public.cs_telegram_chats set confirmed_at = now(), login_hash = repeat('e', 64) where code_hash = repeat('a', 64)$$,
   '%duplicate key%', '2.11 a signed Telegram login is used once, on one code');
 select public.cs_test_expect_error(
   $$update public.cs_telegram_chats set login_hash = 'not-a-hash' where code_hash = repeat('a', 64)$$,
   '%cs_telegram_chats_login_hash_check%', '2.12 a login is kept as Telegram''s hex hash only');
-delete from public.cs_telegram_chats where code_hash in (repeat('a', 64), repeat('b', 64));
+select public.cs_test_expect_error(
+  $$update public.cs_telegram_chats set nonce_hash = 'browser-nonce' where code_hash = repeat('a', 64)$$,
+  '%cs_telegram_chats_nonce_hash_check%', '2.13 only the hash of the browser''s nonce is kept');
+select public.cs_test_expect_error(
+  $$update public.cs_telegram_chats set confirmed_at = now(), login_hash = repeat('6', 64) where code_hash = repeat('f', 64)$$,
+  '%cs_telegram_chats_confirmed%', '2.14 a code is confirmed only from the browser that started it (its nonce)');
+delete from public.cs_telegram_chats where code_hash in (repeat('a', 64), repeat('b', 64), repeat('f', 64));
 reset role;
 
 -- ---------------------------------------------------------------------------

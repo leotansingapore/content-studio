@@ -30,6 +30,17 @@ function fnDb(db: SupabaseClient): FnDb {
   const chats = () => db.from("cs_telegram_chats");
   const posts = () => db.from("cs_telegram_posts");
   return {
+    async cancelPending(uid, profileId, now) {
+      return (must(await chats().update({ status: "disconnected", removed_at: now }).eq("owner_id", uid).eq("profile_id", profileId).eq("status", "pending").select("id"), "cancel waiting") as unknown[]).length;
+    },
+    async loginUsed(loginHash) {
+      return (must(await chats().select("id").eq("login_hash", loginHash).limit(1), "login used") as unknown[]).length > 0;
+    },
+    async loginTarget(uid, rowId, tgUser, nonceHash, now) {
+      const r = await chats().select("id").eq("id", rowId).eq("owner_id", uid).eq("status", "pending").gt("code_expires_at", now)
+        .eq("tg_user_id", tgUser).is("confirmed_at", null).eq("nonce_hash", nonceHash).limit(1);
+      return (must(r, "login target") as unknown[]).length > 0;
+    },
     async insertConnect(row) {
       return must(await chats().insert(row).select("id").single(), "start") as { id: string };
     },
@@ -37,9 +48,9 @@ function fnDb(db: SupabaseClient): FnDb {
       const r = await chats().select("id").eq("tg_user_id", tgUser).eq("status", "pending").not("confirmed_at", "is", null).gt("code_expires_at", now).neq("id", except).limit(1);
       return (must(r, "live connects") as unknown[]).length > 0;
     },
-    async verifyLogin(uid, rowId, tgUser, name, loginHash, now) {
+    async verifyLogin(uid, rowId, tgUser, name, loginHash, nonceHash, now) {
       const r = await chats().update({ tg_user_name: name || null, confirmed_at: now, login_hash: loginHash }).eq("id", rowId).eq("owner_id", uid).eq("status", "pending")
-        .gt("code_expires_at", now).eq("tg_user_id", tgUser).is("confirmed_at", null).select("id");
+        .gt("code_expires_at", now).eq("tg_user_id", tgUser).is("confirmed_at", null).eq("nonce_hash", nonceHash).select("id");
       // 026's unique login_hash: this signed login confirmed a code before
       if (r.error?.code === "23505") return "used";
       return (must(r, "verify") as unknown[]).length > 0 ? "ok" : "not_found";
@@ -102,7 +113,7 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const reply =
       q.action === "start" ? await runStart(db, uid, q.profileId, username, now)
-      : q.action === "verify" ? await runVerify(db, botClient(token), token, username, uid, q.chatRow, q.auth, now)
+      : q.action === "verify" ? await runVerify(db, botClient(token), token, username, uid, q.chatRow, q.auth, q.nonce, q.confirm, now)
       : q.action === "disconnect" ? await runDisconnect(db, botClient(token), uid, q.profileId, q.chatRow, now)
       : q.action === "presign"
         ? await runPresign(async (path) => {

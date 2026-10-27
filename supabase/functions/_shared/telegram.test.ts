@@ -108,9 +108,9 @@ describe("Telegram's login check (login_url)", () => {
   const fields = { id: "111000111", first_name: "Leo", username: "leo_test", auth_date: String(Math.floor(NOW / 1000) - 60) };
 
   it("accepts Telegram's signed fields and answers the Telegram user", async () => {
-    expect(await checkTelegramLogin(sign(fields), TOKEN, NOW)).toEqual({ ok: true, id: 111000111, name: "@leo_test" });
+    expect(await checkTelegramLogin(sign(fields), TOKEN, NOW)).toEqual({ ok: true, id: 111000111, name: "@leo_test", firstName: "Leo", username: "leo_test" });
     const { username: _u, ...noUsername } = fields;
-    expect(await checkTelegramLogin(sign({ ...noUsername, last_name: "Tan", photo_url: "https://t.me/i/userpic/320/x.jpg" }), TOKEN, NOW)).toEqual({ ok: true, id: 111000111, name: "Leo" });
+    expect(await checkTelegramLogin(sign({ ...noUsername, last_name: "Tan", photo_url: "https://t.me/i/userpic/320/x.jpg" }), TOKEN, NOW)).toEqual({ ok: true, id: 111000111, name: "Leo", firstName: "Leo", username: null });
   });
 
   it("refuses a bad hash, a changed field, another bot's signature, or no hash", async () => {

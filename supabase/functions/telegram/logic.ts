@@ -33,8 +33,11 @@ export interface FileAsk {
 
 export type TelegramRequest =
   | { action: "start"; profileId: string }
-  /** Telegram's login_url fields as they came back to /accounts?telegram=<chatRow>. */
-  | { action: "verify"; chatRow: string; auth: Record<string, string> }
+  /**
+   * Telegram's login_url fields as they came back to /accounts?telegram=<chatRow>, with the nonce this browser kept
+   * from start. confirm false: who is this (writes nothing); true: Connect.
+   */
+  | { action: "verify"; chatRow: string; auth: Record<string, string>; nonce: string | null; confirm: boolean }
   | { action: "disconnect"; profileId: string; chatRow: string }
   | { action: "presign"; profileId: string; files: FileAsk[] }
   /** sendAt null: now. */
@@ -67,7 +70,8 @@ export function parseRequest(body: unknown): Parsed {
     const auth = Object.fromEntries(
       [...LOGIN_FIELDS, "hash"].filter((k) => typeof raw[k] === "string" && (raw[k] as string).length <= 512).map((k) => [k, raw[k] as string]),
     );
-    return { ok: true, req: { action: "verify", chatRow: b.chatRow, auth } };
+    const nonce = typeof b.nonce === "string" && /^[A-Za-z0-9_-]{16,64}$/.test(b.nonce) ? b.nonce : null;
+    return { ok: true, req: { action: "verify", chatRow: b.chatRow, auth, nonce, confirm: b.confirm === true } };
   }
   if (b.action !== "start" && b.action !== "disconnect" && b.action !== "presign" && b.action !== "schedule") return bad("Unknown action.");
   if (!isProfileId(b.profileId)) return notFound;
@@ -124,14 +128,21 @@ export interface PostView {
 }
 
 export interface FnDb {
-  insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string }): Promise<{ id: string }>;
+  /** Cancels the brand's waiting connects (status disconnected); answers how many. */
+  cancelPending(uid: string, profileId: string, now: string): Promise<number>;
+  insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string; nonce_hash: string }): Promise<{ id: string }>;
+  /** Whether this signed login confirmed a code before. */
+  loginUsed(loginHash: string): Promise<boolean>;
+  /** Whether the caller's own waiting, unexpired, unconfirmed code has this Telegram user and this browser's nonce. */
+  loginTarget(uid: string, rowId: string, tgUser: number, nonceHash: string, now: string): Promise<boolean>;
   /** Whether this Telegram user already holds another confirmed, waiting, unexpired connect. */
   liveConfirmedElsewhere(tgUser: number, exceptRow: string, now: string): Promise<boolean>;
   /**
-   * Confirms the caller's own waiting, unexpired, unconfirmed code whose Telegram user (noted at /start) is this one,
-   * keeping the login's hash: "used" when that login confirmed a code before, "not_found" when no such code.
+   * Confirms the caller's own waiting, unexpired, unconfirmed code whose Telegram user (noted at /start) is this one
+   * and whose nonce is this browser's, keeping the login's hash: "used" when that login confirmed a code before,
+   * "not_found" when no such code.
    */
-  verifyLogin(uid: string, rowId: string, tgUser: number, name: string, loginHash: string, now: string): Promise<"ok" | "used" | "not_found">;
+  verifyLogin(uid: string, rowId: string, tgUser: number, name: string, loginHash: string, nonceHash: string, now: string): Promise<"ok" | "used" | "not_found">;
   /** The caller's row in this brand, or null. */
   ownRow(uid: string, profileId: string, id: string): Promise<OwnRow | null>;
   /** Whether another connected row (any brand, any owner) still posts to the chat. */
@@ -158,30 +169,54 @@ function newCode(): string {
 }
 
 export async function runStart(db: FnDb, uid: string, profileId: string, botUsername: string, now: number): Promise<Reply> {
+  // a fresh code replaces the brand's waiting one, so a code someone else tapped Start with first just dies
+  await db.cancelPending(uid, profileId, iso(now));
   const code = newCode();
+  // kept by the browser that pressed Connect Telegram: the confirm works only there
+  const nonce = newCode();
   const expiresAt = iso(now + CODE_MINUTES * 60_000);
-  const { id } = await db.insertConnect({ owner_id: uid, profile_id: profileId, code_hash: await hashCode(code), code_expires_at: expiresAt });
-  // the code goes back once, in the link, and is never stored or logged
-  return ok({ rowId: id, link: `https://t.me/${botUsername}?start=${code}`, expiresAt });
+  const { id } = await db.insertConnect({ owner_id: uid, profile_id: profileId, code_hash: await hashCode(code), code_expires_at: expiresAt, nonce_hash: await hashCode(nonce) });
+  // the code and the nonce go back once and are never stored or logged
+  return ok({ rowId: id, link: `https://t.me/${botUsername}?start=${code}`, expiresAt, nonce });
 }
 
 /**
  * The bot's Confirm button (login_url) brought Telegram's signed login back to /accounts, where the person is signed
  * in. The login must check out against the bot token, be under 5 minutes old, be used for the first time, and be the
- * Telegram user who tapped Start with this code; the code must be the caller's own. A link someone else made fails
- * here, because the person who opens it isn't signed in to that account. Then that Telegram user gets the pickers.
+ * Telegram user who tapped Start with this code; the code must be the caller's own and the nonce this browser's. A
+ * link someone else made, or one opened in another browser, fails here. The first call (confirm false) only answers
+ * who Telegram says this is, for "Connect Telegram as <name> (@username)?"; Connect (confirm true) confirms the code
+ * and that Telegram user gets the pickers.
  */
-export async function runVerify(db: FnDb, bot: Bot, token: string, botUsername: string, uid: string, chatRow: string, auth: Record<string, string>, now: number): Promise<Reply> {
+export async function runVerify(
+  db: FnDb,
+  bot: Bot,
+  token: string,
+  botUsername: string,
+  uid: string,
+  chatRow: string,
+  auth: Record<string, string>,
+  nonce: string | null,
+  confirm: boolean,
+  now: number,
+): Promise<Reply> {
   const login = await checkTelegramLogin(auth, token, now);
   if (!login.ok) return { status: 400, body: { error: login.error } };
+  const notThis: Reply = { status: 404, body: { error: "This doesn't match a Connect Telegram started in this browser, or it expired. Tap Connect Telegram again." } };
+  if (!nonce) return notThis;
+  const nonceHash = await hashCode(nonce);
+  const used: Reply = { status: 409, body: { error: "That confirmation was already used. Tap Confirm in Telegram again." } };
+  if (!confirm) {
+    if (await db.loginUsed(auth.hash)) return used;
+    if (!(await db.loginTarget(uid, chatRow, login.id, nonceHash, iso(now)))) return notThis;
+    return ok({ firstName: login.firstName, username: login.username });
+  }
   if (await db.liveConfirmedElsewhere(login.id, chatRow, iso(now))) {
     return { status: 409, body: { error: "This Telegram account is already connecting a chat. Finish that one, or wait 15 minutes." } };
   }
-  const done = await db.verifyLogin(uid, chatRow, login.id, login.name, auth.hash, iso(now));
-  if (done === "used") return { status: 409, body: { error: "That confirmation was already used. Tap Confirm in Telegram again." } };
-  if (done === "not_found") {
-    return { status: 404, body: { error: "This link isn't for this Content Studio account, or it expired. Start again from Social accounts." } };
-  }
+  const done = await db.verifyLogin(uid, chatRow, login.id, login.name, auth.hash, nonceHash, iso(now));
+  if (done === "used") return used;
+  if (done === "not_found") return notThis;
   const m = pickerMessage(botUsername);
   const picker = await bot.call("sendMessage", { chat_id: login.id, text: m.text, reply_markup: m.reply_markup }).then(() => true, () => false);
   return ok({ linked: true, picker });

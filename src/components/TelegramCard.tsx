@@ -1,8 +1,9 @@
 // The Telegram card on /accounts#telegram (Leo's sign-ins; docs/north-star/items/publish-telegram.md, on ns/phase7).
 // Connect Telegram opens the Content Studio bot with a one-time code. The person taps Start, then Confirm, which is
 // Telegram's login_url back to /accounts?telegram=<row> with Telegram's signed login. index.html's first script takes
-// it off the address before anything else loads; this card sends it to `telegram` verify (in this signed-in session,
-// so a code made by another account fails). Then
+// it off the address before anything else loads. This card checks it with `telegram` (in this signed-in session and
+// this browser's nonce from Connect Telegram, so a code made by another account or another browser fails), asks
+// "Connect Telegram as <name> (@username)?", and only Connect confirms it. Then
 // they pick a group or channel in Telegram, and this card reads its own row every 3 s while the tab is visible, so
 // "Connected to {name}." shows within seconds of the bot's webhook. A reload resumes the newest unexpired connect.
 // Each chat shows who connected it beside Disconnect, so one tied by someone else is plain to see and quick to undo.
@@ -24,8 +25,13 @@ import {
   rowDetail,
   saveTelegramChannels,
   startTelegram,
+  checkTelegram,
+  clearNonce,
+  confirmTelegram,
+  identityQuestion,
+  readNonce,
+  saveNonce,
   takeTelegramLogin,
-  verifyTelegram,
   type TelegramRow,
 } from "@/lib/telegramConnect";
 
@@ -63,6 +69,8 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
   const [now, setNow] = useState(() => Date.now());
   // what came of Telegram's login returning here
   const [login, setLogin] = useState<{ ok: boolean; text: string } | null>(null);
+  // Telegram's verified login, waiting for Connect or Cancel
+  const [ask, setAsk] = useState<{ chatRow: string; auth: Record<string, string>; nonce: string; question: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -92,11 +100,16 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
     const back = takeTelegramLogin();
     if (!back) return;
     setWatchId(back.chatRow);
+    const nonce = readNonce(back.chatRow);
+    if (!nonce) {
+      setLogin({ ok: false, text: "Open Confirm in the browser where you pressed Connect Telegram, signed in there." });
+      return;
+    }
     setLogin({ ok: true, text: "Checking with Telegram..." });
-    verifyTelegram(back.chatRow, back.auth).then(
-      (r) => {
-        setLogin({ ok: true, text: r.picker ? "Telegram is linked. Back in Telegram, pick your group or channel." : "Telegram is linked. In Telegram, tap your Connect link again to pick your group or channel." });
-        void load();
+    checkTelegram(back.chatRow, back.auth, nonce).then(
+      (who) => {
+        setLogin(null);
+        setAsk({ ...back, nonce, question: identityQuestion(who) });
       },
       (e) => setLogin({ ok: false, text: isNotEnabled(e) ? "Telegram isn't switched on for you yet." : message(e) }),
     );
@@ -128,6 +141,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
     try {
       const out = await startTelegram(profileId);
       saveLink(out.rowId, out.link);
+      saveNonce(out.rowId, out.nonce);
       setLink(out.link);
       setWatchId(out.rowId);
       setNow(Date.now());
@@ -136,6 +150,28 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
       await load();
     } catch (e) {
       setError(isNotEnabled(e) ? "Telegram isn't switched on for you yet." : message(e));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const answer = async (yes: boolean) => {
+    if (!ask) return;
+    setBusy(yes ? "yes" : "no");
+    try {
+      if (yes) {
+        const r = await confirmTelegram(ask.chatRow, ask.auth, ask.nonce);
+        setLogin({ ok: true, text: r.picker ? "Telegram is linked. Back in Telegram, pick your group or channel." : "Telegram is linked. In Telegram, tap your Connect link again to pick your group or channel." });
+      } else {
+        await disconnectTelegram(profileId, ask.chatRow);
+        setLogin({ ok: true, text: "Cancelled. Nothing was connected." });
+      }
+      clearNonce();
+      setAsk(null);
+      await load();
+    } catch (e) {
+      setAsk(null);
+      setLogin({ ok: false, text: message(e) });
     } finally {
       setBusy("");
     }
@@ -196,6 +232,22 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
             );
           })}
         </ul>
+      )}
+
+      {ask && (
+        <div role="alertdialog" aria-labelledby="telegram-ask" className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2">
+          <p id="telegram-ask" className="text-sm font-semibold">
+            {ask.question}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button className="h-11 sm:h-9" disabled={!!busy} onClick={() => void answer(true)}>
+              {busy === "yes" ? "Connecting..." : "Connect"}
+            </Button>
+            <Button variant="ghost" className="h-11 sm:h-9" disabled={!!busy} onClick={() => void answer(false)}>
+              {busy === "no" ? "Cancelling..." : "Cancel"}
+            </Button>
+          </div>
+        </div>
       )}
 
       {login && (

@@ -37,13 +37,11 @@ function hookDb(db: SupabaseClient): HookDb {
     chats().update({ ...chat, status: "connected", refusal: null, connected_at: now, topic_id: null, topic_name: null }).eq("id", row.id).eq("status", "pending").select("id");
   return {
     async startCode(hash, user, now) {
-      // an unconfirmed claim is not ownership: the latest Start takes it, and only that user's signed login confirms
-      const took = must(await chats().update({ tg_user_id: user }).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now)
-        .is("confirmed_at", null).select(CHAT_COLS).maybeSingle(), "start code") as ChatRow | null;
-      if (took) return took;
-      // a confirmed code answers only its own Telegram user
-      return must(await chats().select(CHAT_COLS).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now)
-        .eq("tg_user_id", user).not("confirmed_at", "is", null).maybeSingle(), "confirmed code") as ChatRow | null;
+      // the first Telegram user to tap Start keeps the code (user is a safe integer from eventOf, so the filter is
+      // only digits); an owner blocked by someone else's Start presses Connect Telegram again for a fresh code
+      const r = await chats().update({ tg_user_id: user }).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now)
+        .or(`tg_user_id.is.null,tg_user_id.eq.${user}`).select(CHAT_COLS).maybeSingle();
+      return must(r, "start code") as ChatRow | null;
     },
     async startedFor(user, now) {
       // confirmed first, then the newest: a newer unconfirmed Start must not hide the confirmed connect
