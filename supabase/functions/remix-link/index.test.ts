@@ -246,6 +246,20 @@ describe("a pasted Instagram or TikTok link", () => {
     await vi.waitFor(() => expect(used("remix-link")).toBe(0));
   });
 
+  it("keeps the use when the slow run then reads the post, and the next paste is free", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`));
+    let release = () => {};
+    net.hold = new Promise<void>((r) => (release = r));
+    const pending = link(REEL);
+    await vi.advanceTimersByTimeAsync(56_000);
+    expect(await pending).toMatchObject({ status: 504 });
+    release();
+    await vi.waitFor(() => expect(db.reels.size).toBe(1));
+    expect(await link(REEL)).toMatchObject({ status: 200, body: { source: { key: "link:instagram:C931Kabcde" }, usage: null } });
+    expect(used("remix-link")).toBe(1);
+  });
+
   it("is refused before any count for an account not switched on", async () => {
     expect(await link(REEL, OTHER)).toMatchObject({ status: 403, body: { code: "not_enabled" } });
     expect(used("remix-link", OTHER)).toBe(0);
