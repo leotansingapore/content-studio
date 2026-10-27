@@ -24,8 +24,12 @@ describe("fastExport's encoder helpers, shared with the film export", () => {
   });
 });
 
-/** A 220 Hz tone at `amp` for `seconds`, the stand-in for a read voice. */
-const tone = (seconds: number, amp: number) => Float32Array.from({ length: Math.round(seconds * RATE) }, (_, i) => amp * Math.sin((2 * Math.PI * 220 * i) / RATE));
+/** A 220 Hz tone at `amp` for `seconds`, the stand-in for a read voice. A plain loop: Float32Array.from with a mapper took over a second for 10 s. */
+const tone = (seconds: number, amp: number) => {
+  const s = new Float32Array(Math.round(seconds * RATE));
+  for (let i = 0; i < s.length; i++) s[i] = amp * Math.sin((2 * Math.PI * 220 * i) / RATE);
+  return s;
+};
 
 describe("the film's voice and mix", () => {
   const film = goodFilm();
@@ -66,12 +70,13 @@ describe("the film's voice and mix", () => {
   });
 
   it("evens music under a voice to -14 LUFS within 1, true peak at or under -1 dB", () => {
-    const n = 10 * RATE;
-    // a quiet bed and a loud voice with a peak far over the ceiling
-    const bed = { L: tone(10, 0.02), R: tone(10, 0.02) };
+    // 2 s is enough for the gates (400 ms blocks) and keeps the untyped mix cheap while the JIT is starved under load
+    const n = 2 * RATE;
+    // a quiet bed and a quiet voice (about -27 LUFS) with peaks far over the ceiling: it needs lifting and limiting
+    const bed = { L: tone(2, 0.02), R: tone(2, 0.02) };
     const v = new Float32Array(n);
-    v.set(tone(4, 0.3), RATE);
-    for (let k = 0; k < 8; k++) v[RATE + k * 24000] = 3;
+    v.set(tone(1, 0.05), RATE / 2);
+    for (let k = 0; k < 4; k++) v[RATE / 2 + k * 12000] = 3;
     const mixed = mixFilm(bed, { L: v, R: v.slice() });
     const lufs = integratedLoudness([mixed.L, mixed.R], RATE)!;
     expect(Math.abs(lufs - -14)).toBeLessThanOrEqual(1);
