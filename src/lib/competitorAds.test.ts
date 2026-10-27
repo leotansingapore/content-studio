@@ -145,7 +145,8 @@ describe("checks", () => {
       await new Promise((r) => setTimeout(r, 5));
       inFlight--;
       if (body.competitorId === "b") throw new EdgeError(a.ADS_FAILED, 502, "failed");
-      return answer(body.competitorId, [ad(`${body.competitorId}1`)]);
+      // checked now, not on a fixed date: a fixed checkedAt falls due again 7 days later and breaks the 7-day line
+      return answer(body.competitorId, [ad(`${body.competitorId}1`)], new Date().toISOString());
     });
     await a.runDueAds(U);
     expect(callFn.mock.calls.map((c) => c[1].competitorId)).toEqual(["a", "b", "d"]); // c has no page
