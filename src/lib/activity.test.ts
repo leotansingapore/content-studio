@@ -7,6 +7,7 @@ import {
   absorbActivityInbox,
   activityMonths,
   aiUseRows,
+  cleanEvent,
   deviceTag,
   groupByWhen,
   inView,
@@ -49,6 +50,16 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", localStorage);
   vi.stubGlobal("window", { localStorage, dispatchEvent: (e: Event) => fired.push(e.type) });
   store.set("cs-device-tag", "dev001");
+});
+
+describe("Corrections", () => {
+  it("holds correction events only, and a correction is a kind the log keeps", () => {
+    const fix = cleanEvent({ id: "fxk1", at: "2026-10-27T03:00:00.000Z", who: "agent", kind: "correction", title: '"A picture" wasn\'t made' });
+    expect(fix).not.toBeNull();
+    expect(inView(fix!, "corrections")).toBe(true);
+    expect(inView({ ...fix!, kind: "make" }, "corrections")).toBe(false);
+    expect(ACTIVITY_VIEWS.map((v) => v.id)).toContain("corrections");
+  });
 });
 
 describe("recentActivity", () => {
@@ -212,16 +223,18 @@ describe("views", () => {
       ev("4", local(10, 1), { who: "autopilot", kind: "plan" }),
       ev("5", local(10, 1), { who: "schedule", kind: "run" }),
       ev("6", local(10, 1), { who: "you", kind: "plan" }),
+      ev("7", local(10, 1), { who: "schedule", kind: "correction" }),
     ];
     const ids = (view: (typeof ACTIVITY_VIEWS)[number]["id"]) => events.filter((e) => inView(e, view)).map((e) => e.id).join();
-    expect(ACTIVITY_VIEWS.map((v) => v.label)).toEqual(["All", "Agent", "You", "Claude", "Autopilot", "Scheduled runs", "Learnings", "Plan", "AI use"]);
+    expect(ACTIVITY_VIEWS.map((v) => v.label)).toEqual(["All", "Agent", "You", "Claude", "Autopilot", "Corrections", "Scheduled runs", "Learnings", "Plan", "AI use"]);
     expect(ACTIVITY_VIEWS.map((v) => [v.id, ids(v.id)])).toEqual([
-      ["all", "1,2,3,4,5,6"],
+      ["all", "1,2,3,4,5,6,7"],
       ["agent", "1"],
       ["you", "2,6"],
       ["claude", "3"],
       ["autopilot", "4"],
-      ["schedule", "5"],
+      ["corrections", "7"],
+      ["schedule", "5,7"],
       ["learnings", "2"],
       ["plan", "4,6"],
       ["ai-use", ""],

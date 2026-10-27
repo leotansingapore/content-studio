@@ -2,7 +2,7 @@
 // last things that ran, from the Activity log, each opening its own page. Hide is remembered on this device.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookMarked, CalendarClock, ChevronRight, Lightbulb, Play, Plug, Repeat, Send, Sparkles, type LucideIcon } from "lucide-react";
+import { AlertTriangle, BookMarked, CalendarClock, ChevronRight, Lightbulb, Play, Plug, Repeat, Send, Sparkles, type LucideIcon } from "lucide-react";
 import { isBusy } from "@/components/agent/ThreadList";
 import { ACTIVITY_CHANGED, WHO_LABELS, recentActivity, type ActivityKind } from "@/lib/activity";
 import type { AgentThread } from "@/lib/agentThreads";
@@ -11,7 +11,7 @@ import { ago } from "@/lib/slideshow";
 
 const HIDDEN = "cs-work-panel-hidden";
 const SHOWN = 6;
-const ICONS: Record<ActivityKind, LucideIcon> = { post: Send, make: Sparkles, remix: Repeat, brand: BookMarked, learning: Lightbulb, plan: CalendarClock, run: Play, connect: Plug };
+const ICONS: Record<ActivityKind, LucideIcon> = { post: Send, make: Sparkles, remix: Repeat, brand: BookMarked, learning: Lightbulb, plan: CalendarClock, run: Play, connect: Plug, correction: AlertTriangle };
 
 const readHidden = () => {
   try {

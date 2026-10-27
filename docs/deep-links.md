@@ -564,7 +564,7 @@ never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 cha
 | /home | #next-up, #ask, #agent-now | Leo only. scrolls to Next up, the Ask tiles or Agent now | top | (anchor) | /home#agent-now |
 | any studio page | tour | Every sign-in. 1 starts the tour at step 1; a step's id starts at that step: on Leo's sign-ins the agent's tour (home, competitors, formats, campaigns, brand, agent), on everyone else's the studio tour (home, write, calendar, swipe, brand, analytics); an id the sign-in's tour lacks starts at step 1. Read once, then removed; signed out it is only removed | no tour | replace | /home?tour=1 |
 | any studio page | dock | Leo only. a thread's id, or new: the agent dock open over the page on that chat, or on a new chat; /home and /agent, which have their own composer, ignore it. A thread that is gone, once the chats have loaded, is dropped with "That chat is no longer here" | closed | push to open; switching chat in the dock replaces; closing removes it | /calendar?dock=tmh2k9x |
-| /activity | view | Leo only. agent, you, claude, autopilot, schedule, learnings, plan, ai-use | all | replace | /activity?view=claude |
+| /activity | view | Leo only. agent, you, claude, autopilot, corrections, schedule, learnings, plan, ai-use | all | replace | /activity?view=claude |
 | /activity | month | Leo only. YYYY-MM: loads back to that month and scrolls to its group | this month | replace | /activity?month=2026-09 |
 | /activity | event | Leo only. an event's id: that event's row open | none | push | /activity?event=amh2k9xab12 |
 | /skills | run | Leo only. a result's id: that result open and marked seen | none | push | /skills?run=rmh2k9x |

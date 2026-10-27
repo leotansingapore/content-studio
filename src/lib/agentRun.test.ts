@@ -417,6 +417,9 @@ describe("nothing priced runs before its card's press", () => {
     await approve(t2);
     expect(cardMsg(t2).card).toMatchObject({ status: "failed", error: "No remixes left today. They reset at 8am Singapore time." });
     expect(cardMsg(t2).go?.map((g) => g.label)).toEqual(["Write it in Write"]);
+    // the failed make, and only it, goes in Activity's Corrections
+    const fixes = loadActivity(UID, [new Date().toISOString().slice(0, 7)]).filter((e) => e.kind === "correction");
+    expect(fixes).toEqual([expect.objectContaining({ who: "agent", title: `"${cardMsg(t2).card!.title}" wasn't made`, detail: "No remixes left today. They reset at 8am Singapore time." })]);
   });
 
   it("a talking video runs the script card, the video card, the price check, then goes on at the price", async () => {

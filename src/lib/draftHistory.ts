@@ -530,13 +530,28 @@ export function setDraftAttached(userId: string, id: string, keys: string[]): Dr
 }
 
 export function setDraftZernio(userId: string, id: string, link: ZernioLink | null): DraftEntry[] {
+  const before = loadDrafts(userId).find((d) => d.id === id);
   const next = loadDrafts(userId).map((d) => {
     if (d.id !== id) return d;
     const updated: DraftEntry = { ...d, zernio: link ?? undefined };
     if (!link) delete updated.zernio;
     return updated;
   });
-  return saveDrafts(userId, next);
+  const saved = saveDrafts(userId, next);
+  // the first read that finds it failed or partly posted goes in Activity's Corrections, once per post and outcome
+  const went = link?.status;
+  if (before && (went === "failed" || went === "partial") && before.zernio?.status !== went) {
+    const hook = before.hook || before.draft.slice(0, 60) || "Untitled";
+    logActivity(userId, {
+      id: `fx${id.replace(/-/g, "")}${went === "partial" ? "p" : "f"}`.slice(0, 64),
+      who: "schedule",
+      kind: "correction",
+      title: went === "failed" ? `"${hook}" didn't go out` : `"${hook}" only partly went out`,
+      detail: went === "failed" ? "Zernio marked it failed. Try it again from the post, or post it yourself." : "Some networks didn't take it. Try those again from the post.",
+      link: links.generate({ draft: id, panel: "post" }),
+    });
+  }
+  return saved;
 }
 
 /**

@@ -5,6 +5,7 @@
 // shortcut: one synced array, last write wins across devices; split per thread if Leo uses two devices at once.
 
 import { newId, type AgentCard, type Receipt } from "@/lib/agentCards";
+import { logActivity } from "@/lib/activity";
 import { scoped } from "@/lib/profiles";
 import { SAVE_FAILED, type Saved } from "@/lib/voiceMemory";
 
@@ -145,8 +146,14 @@ export const appendMsg = (userId: string, threadId: string, msg: AgentMsg, now =
 
 /** Changes one message; refused when it is gone (trimmed, or the chat deleted). */
 export function patchMsg(userId: string, threadId: string, msgId: string, patch: Partial<Omit<AgentMsg, "id">>, now = new Date()): Saved<AgentThread> {
-  if (!loadThreads(userId).some((t) => t.id === threadId && t.messages.some((m) => m.id === msgId))) return { ok: false, error: GONE_LINE };
-  return edit(userId, threadId, (t) => ({ ...t, messages: t.messages.map((m) => (m.id === msgId ? clip({ ...m, ...patch }) : m)) }), now);
+  const was = loadThreads(userId).find((t) => t.id === threadId)?.messages.find((m) => m.id === msgId);
+  if (!was) return { ok: false, error: GONE_LINE };
+  const saved = edit(userId, threadId, (t) => ({ ...t, messages: t.messages.map((m) => (m.id === msgId ? clip({ ...m, ...patch }) : m)) }), now);
+  // a card that ends failed, on any path (approve, a make, interrupted, an answer), goes in Activity's Corrections once
+  const card = patch.card;
+  if (saved.ok && card?.status === "failed" && was.card?.status !== "failed")
+    logActivity(userId, { id: `fx${card.id}`, who: "agent", kind: "correction", title: `"${card.title}" wasn't made`, detail: card.error ?? "Nothing was made.", link: `/agent/${encodeURIComponent(threadId)}?m=${encodeURIComponent(msgId)}` });
+  return saved;
 }
 
 export function renameThread(userId: string, threadId: string, title: string): Saved<AgentThread> {

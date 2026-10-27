@@ -15,7 +15,8 @@ import type { Campaign } from "@/lib/campaigns";
 import { DAILY_LIMITS, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export type ActivityWho = "you" | "agent" | "claude" | "autopilot" | "schedule";
-export type ActivityKind = "post" | "make" | "remix" | "brand" | "learning" | "plan" | "run" | "connect";
+/** "correction": the record fixed after something went wrong (a post that didn't go out, a make that failed), Fastlane's Corrections. */
+export type ActivityKind = "post" | "make" | "remix" | "brand" | "learning" | "plan" | "run" | "connect" | "correction";
 export interface ActivityEvent {
   /** "a" + base36 time + 4 random [a-z0-9], or the source's own id (a Claude draft's); never a uuid. */
   id: string;
@@ -41,10 +42,10 @@ export const MAX_EVENTS = 1000;
 const DEVICE_KEY = "cs-device-tag";
 
 const WHO: ActivityWho[] = ["you", "agent", "claude", "autopilot", "schedule"];
-const KINDS: ActivityKind[] = ["post", "make", "remix", "brand", "learning", "plan", "run", "connect"];
+const KINDS: ActivityKind[] = ["post", "make", "remix", "brand", "learning", "plan", "run", "connect", "correction"];
 export const WHO_LABELS: Record<ActivityWho, string> = { you: "You", agent: "Agent", claude: "Claude", autopilot: "Autopilot", schedule: "Scheduled" };
 
-export type ActivityView = "all" | "agent" | "you" | "claude" | "autopilot" | "schedule" | "learnings" | "plan" | "ai-use";
+export type ActivityView = "all" | "agent" | "you" | "claude" | "autopilot" | "corrections" | "schedule" | "learnings" | "plan" | "ai-use";
 /** The page's tabs, in order. A tab other than All and AI use shows only when the loaded months hold one of its events. */
 export const ACTIVITY_VIEWS: { id: ActivityView; label: string }[] = [
   { id: "all", label: "All" },
@@ -52,6 +53,7 @@ export const ACTIVITY_VIEWS: { id: ActivityView; label: string }[] = [
   { id: "you", label: "You" },
   { id: "claude", label: "Claude" },
   { id: "autopilot", label: "Autopilot" },
+  { id: "corrections", label: "Corrections" },
   { id: "schedule", label: "Scheduled runs" },
   { id: "learnings", label: "Learnings" },
   { id: "plan", label: "Plan" },
@@ -63,6 +65,7 @@ export function inView(e: ActivityEvent, view: ActivityView): boolean {
   if (view === "all") return true;
   if (view === "ai-use") return false;
   if (view === "learnings") return e.kind === "learning";
+  if (view === "corrections") return e.kind === "correction";
   if (view === "plan") return e.kind === "plan";
   return e.who === view;
 }

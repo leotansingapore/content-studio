@@ -516,6 +516,21 @@ describe("drafts Claude saved, in Leo's Activity", () => {
     vi.unstubAllGlobals();
   });
 
+  it("puts a post in Corrections the first time a read finds it failed or partly posted, once each", () => {
+    const link = { key: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", postId: "67000000000000000000d001", status: "scheduled" };
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-15T09:00", hook: "Three CPF moves" })]);
+    setDraftZernio(UID, "s", link);
+    setDraftZernio(UID, "s", { ...link, status: "failed" });
+    setDraftZernio(UID, "s", { ...link, status: "failed" });
+    setDraftZernio(UID, "s", { ...link, status: "partial" });
+    setDraftZernio(UID, "s", { ...link, status: "published" });
+    const fixes = loadActivity(UID, ["2026-10"]).filter((e) => e.kind === "correction");
+    expect(fixes.map((e) => [e.id, e.who, e.title, e.link])).toEqual([
+      ["fxsf", "schedule", '"Three CPF moves" didn\'t go out', "/generate?draft=s&panel=post"],
+      ["fxsp", "schedule", '"Three CPF moves" only partly went out', "/generate?draft=s&panel=post"],
+    ]);
+  });
+
   it("each is one Claude row at the time Claude saved it, under the draft's id, linked to Write", () => {
     ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
     ls().setItem(`content-studio-mcpdraft-claude-b2-${UID}`, row("claude-b2", { createdAt: "2026-10-08T04:00:00.000Z", status: "scheduled", scheduledFor: "2026-10-20T19:30", hook: "Why I stopped chasing yield" }));
