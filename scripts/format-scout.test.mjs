@@ -383,7 +383,8 @@ describe("the real script with no keys", () => {
       expect(r.stdout).toContain("240 results at US$0.0037 = about US$0.89");
       if (flag === "--dry") expect(r.stdout).toContain("no TYPESAFE_API_KEY");
       expect(snapshot()).toEqual(before);
-    });
+      // a real node start: 0.5 s of CPU, but seconds of waiting for a core under a full suite, so the spawn's own bound
+    }, 30_000);
   }
 });
 

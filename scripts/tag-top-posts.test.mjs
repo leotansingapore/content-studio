@@ -55,7 +55,8 @@ describe("no TYPESAFE_API_KEY", () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("no TYPESAFE_API_KEY");
     expect(fs.readFileSync(REAL).equals(before)).toBe(true);
-  });
+    // a real node start: 0.5 s of CPU, but seconds of waiting for a core under a full suite, so the spawn's own bound
+  }, 30_000);
 
   it("asks nothing and writes nothing", async () => {
     quiet();
