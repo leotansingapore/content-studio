@@ -192,25 +192,43 @@ describe("the edge functions that spend", () => {
     const used: string[] = [];
     for (const dir of readdirSync(root, { withFileTypes: true })) {
       if (!dir.isDirectory() || dir.name.startsWith("_")) continue;
-      let source: string;
-      try {
-        source = readFileSync(new URL(`${dir.name}/index.ts`, root), "utf8");
-      } catch {
-        continue;
-      }
-      for (const call of source.matchAll(/consumeUsage\(\s*admin,\s*[^,]+,\s*([^)]+)\)/g)) {
-        let arg = call[1].trim();
-        if (/^\w+$/.test(arg)) arg = source.match(new RegExp(`const ${arg} = ([^;]+);`))?.[1] ?? "";
-        const names = [...arg.replace(/[!=]==\s*["'][^"']*["']/g, "").matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
-        expect(names, `${dir.name}: ${call[0]}`).not.toEqual([]);
-        for (const name of names) {
-          expect(Object.keys(DAILY_LIMITS), `${dir.name} spends on "${name}"`).toContain(name);
-          used.push(name);
+      // every file, not only index.ts: film.ts, text-voice/logic.ts and content-studio-mcp/logic.ts count caps too
+      for (const file of readdirSync(new URL(`${dir.name}/`, root)).filter((f) => f.endsWith(".ts") && !/[._]test\.ts$/.test(f))) {
+        const source = readFileSync(new URL(`${dir.name}/${file}`, root), "utf8");
+        for (const call of source.matchAll(/consumeUsage\(\s*[\w.]+,\s*[^,]+,\s*([^)]+)\)/g)) {
+          let arg = call[1].trim();
+          if (/^\w+$/.test(arg)) arg = source.match(new RegExp(`const ${arg} = ([^;]+);`))?.[1] ?? "";
+          const names = [...arg.replace(/[!=]==\s*["'][^"']*["']/g, "").matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
+          expect(names, `${dir.name}/${file}: ${call[0]}`).not.toEqual([]);
+          for (const name of names) {
+            expect(Object.keys(DAILY_LIMITS), `${dir.name}/${file} spends on "${name}"`).toContain(name);
+            used.push(name);
+          }
         }
       }
     }
     expect(used).toContain("engage-connect");
     expect(used).toContain("ai-broll-global");
     expect(used.length).toBeGreaterThanOrEqual(30);
+  });
+
+  // Edge functions are outside tsc's include, so a misspelt name in a refund is never caught: refundUsage finds no
+  // row under it and the failed job's use silently stays spent.
+  it("give every use back to a cap that exists", () => {
+    const root = new URL("../", import.meta.url);
+    const named: string[] = [];
+    for (const dir of readdirSync(root, { withFileTypes: true })) {
+      if (!dir.isDirectory() || dir.name.startsWith("_")) continue;
+      for (const file of readdirSync(new URL(`${dir.name}/`, root)).filter((f) => f.endsWith(".ts") && !/[._]test\.ts$/.test(f))) {
+        const source = readFileSync(new URL(`${dir.name}/${file}`, root), "utf8");
+        for (const call of source.matchAll(/refundUsage\(\s*[\w.!]+,\s*[^,]+,\s*["']([^"']+)["']/g)) {
+          expect(Object.keys(DAILY_LIMITS), `${dir.name}/${file} gives back "${call[1]}"`).toContain(call[1]);
+          named.push(call[1]);
+        }
+      }
+    }
+    expect(named).toContain("film-edit");
+    expect(named).toContain("ai-music-global");
+    expect(named.length).toBeGreaterThanOrEqual(50);
   });
 });
