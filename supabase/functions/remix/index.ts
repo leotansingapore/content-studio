@@ -49,6 +49,8 @@ import {
   adLayoutQuestion,
   buildMakePrompt,
   dontReuseFor,
+  editLength,
+  editWords,
   floorOf,
   holdTheLine,
   jevFacts,
@@ -252,6 +254,15 @@ Deno.serve(async (req) => {
         return fail("refused", problem.error, 422);
       }
       first = fixed;
+    }
+    // an edit over its length's words gets one shortening pass in the same use; a shorter script that breaks the edit's
+    // checks is dropped, so the first stays (live-p7a-fix D1)
+    const long = editLength(first.result, make);
+    if (long) {
+      const was = first;
+      const short = (await write([...messages, { role: "assistant", content: was.raw }, { role: "user", content: long }]).catch(() => null)) ?? null;
+      if (short && !makeProblem(short.result, make) && editWords(short.result) < editWords(was.result)) first = short;
+      console.log("remix edit long", `${editWords(was.result)} words`, `now ${editWords(first.result)}`);
     }
 
     const sourceText = make.source?.text ?? "";
