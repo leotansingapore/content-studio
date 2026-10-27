@@ -43,7 +43,7 @@ const refineKey = (userId: string) => `cs-ideas-refine-${scoped(userId)}`;
 export default function IdeasPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Ideas userId={leo.id} />;
 }
 

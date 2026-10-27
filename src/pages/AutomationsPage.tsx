@@ -37,7 +37,7 @@ const shortDay = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { we
 export default function AutomationsPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Automations userId={leo.id} />;
 }
 

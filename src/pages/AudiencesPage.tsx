@@ -44,7 +44,7 @@ const NO_SOURCE = "Type your website, or say who you serve in Plan setup first."
 export default function AudiencesPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Audiences userId={leo.id} />;
 }
 

@@ -257,7 +257,7 @@ function AskBox(p: { text: string; left: number | null; target: () => EditTarget
 export default function SlideshowPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Slideshows userId={leo.id} />;
 }
 

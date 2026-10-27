@@ -24,7 +24,8 @@ export default function MakeFormatPage() {
   );
   const def = formatBySlug(format);
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo || !def) return <NotFoundPage />;
+  if (!def) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return (
     <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
       <def.Component userId={leo.id} source={source} />

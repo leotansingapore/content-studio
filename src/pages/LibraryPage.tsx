@@ -41,7 +41,7 @@ const STATUSES = ["all", ...LIBRARY_STATUSES] as const;
 export default function LibraryPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Library userId={leo.id} />;
 }
 

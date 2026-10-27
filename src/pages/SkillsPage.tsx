@@ -41,7 +41,7 @@ const AUTO = ["check", "retro", "check-week"];
 export default function SkillsPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Skills userId={leo.id} />;
 }
 

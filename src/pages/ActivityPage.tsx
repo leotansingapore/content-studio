@@ -74,7 +74,7 @@ const fullTime = (iso: string) =>
 export default function ActivityPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Activity userId={leo.id} />;
 }
 

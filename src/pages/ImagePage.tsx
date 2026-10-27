@@ -114,7 +114,7 @@ const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export default function ImagePage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <ImageEditor userId={leo.id} />;
 }
 

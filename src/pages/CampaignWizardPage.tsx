@@ -48,7 +48,7 @@ const QUESTION: Partial<Record<WizardStep, string>> = {
 export default function CampaignWizardPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="mx-auto min-h-[40vh] max-w-[680px] animate-pulse rounded-xl bg-muted" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Wizard userId={leo.id} />;
 }
 

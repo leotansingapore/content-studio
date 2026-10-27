@@ -39,7 +39,7 @@ export default function CampaignsPage() {
       </div>
     );
   }
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Campaigns userId={leo.id} />;
 }
 

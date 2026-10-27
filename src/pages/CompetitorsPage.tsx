@@ -20,7 +20,7 @@ type View = (typeof VIEWS)[number];
 export default function CompetitorsPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Competitors userId={leo.id} />;
 }
 

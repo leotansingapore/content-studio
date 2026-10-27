@@ -13,7 +13,7 @@ type Tab = (typeof TABS)[number]["id"];
 export default function PeoplePage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <People userId={leo.id} />;
 }
 

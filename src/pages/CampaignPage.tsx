@@ -38,7 +38,7 @@ export default function CampaignPage() {
   const leo = useLeoUser();
   const { id = "" } = useParams();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <CampaignView userId={leo.id} id={id} />;
 }
 

@@ -32,7 +32,7 @@ export default function AgentPage() {
       </div>
     );
   }
-  if (!leo) return <NotFoundPage />;
+  if (!leo) return <NotFoundPage notOnAccount />;
   return <Agent userId={leo.id} email={leo.email} threadId={thread ?? null} />;
 }
 

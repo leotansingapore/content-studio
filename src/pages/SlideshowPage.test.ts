@@ -1,5 +1,5 @@
 // /slideshow is Leo's only: everyone else gets the not-found page, with or without ?ask= (pinned on today's code at
-// 4403dedf). Never update the pinned file with vitest -u.
+// 4403dedf; its heading hand-edited 27 Oct to the not-on-your-account card). Never update the pinned file with vitest -u.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
