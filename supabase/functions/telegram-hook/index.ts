@@ -1,6 +1,7 @@
 // The Content Studio bot's webhook and the Telegram send tick (docs/north-star/items/publish-telegram.md, on ns/phase7).
 // One URL, two callers, each with its own secret header, and anything else is a 401 before anything is read:
-//   X-Telegram-Bot-Api-Secret-Token  an update from Telegram (setWebhook's secret_token): logic.ts.
+//   X-Telegram-Bot-Api-Secret-Token  an update from Telegram (setWebhook's secret_token, with allowed_updates
+//                                    ["message", "my_chat_member", "callback_query"]): logic.ts.
 //   x-telegram-cron-secret           the send tick from 026's telegram-send cron: send.ts.
 // This file wires Supabase and the bot. Logs carry outcomes and counts only, never a person, a chat or the token.
 //
@@ -20,7 +21,8 @@ declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | unde
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const errText = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e)).slice(0, 200);
 
-const CHAT_COLS = "id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, username, is_forum, topic_id, topic_name, status, refusal, created_at";
+const CHAT_COLS =
+  "id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, tg_user_name, brand_name, account_hint, confirmed_at, chat_id, chat_type, title, username, is_forum, topic_id, topic_name, status, refusal, created_at";
 
 function must<T>(r: { data: T; error: { message: string; code?: string } | null }, what: string): T {
   if (r.error) throw Object.assign(new Error(`${what}: ${r.error.message}`), { code: r.error.code });
@@ -34,11 +36,20 @@ function hookDb(db: SupabaseClient): HookDb {
   const tieOnce = (row: ChatRow, chat: object, now: string) =>
     chats().update({ ...chat, status: "connected", refusal: null, connected_at: now, topic_id: null, topic_name: null }).eq("id", row.id).eq("status", "pending").select("id");
   return {
-    async claimCode(hash, user, now) {
+    async claimCode(hash, user, name, now) {
       // user is a safe integer (eventOf), so the filter text is only digits
-      const r = await chats().update({ tg_user_id: user }).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now)
+      const r = await chats().update({ tg_user_id: user, tg_user_name: name || null }).eq("code_hash", hash).eq("status", "pending").gt("code_expires_at", now)
         .or(`tg_user_id.is.null,tg_user_id.eq.${user}`).select(CHAT_COLS).maybeSingle();
       return must(r, "claim code") as ChatRow | null;
+    },
+    async confirm(rowId, user, now) {
+      const r = await chats().update({ confirmed_at: now }).eq("id", rowId).eq("tg_user_id", user).eq("status", "pending").gt("code_expires_at", now)
+        .select(CHAT_COLS).maybeSingle();
+      return must(r, "confirm") as ChatRow | null;
+    },
+    async cancelCode(rowId, user, now) {
+      const r = await chats().update({ status: "disconnected", removed_at: now }).eq("id", rowId).eq("tg_user_id", user).eq("status", "pending").select("id");
+      return (must(r, "cancel code") as unknown[]).length > 0;
     },
     async startedFor(user, now) {
       const r = await chats().select(CHAT_COLS).eq("tg_user_id", user).eq("status", "pending").gt("code_expires_at", now)

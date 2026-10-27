@@ -97,12 +97,12 @@ reset role;
 -- ---------------------------------------------------------------------------
 
 set local role service_role;
-insert into public.cs_telegram_chats (id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, connected_at) values
-  ('00000000-0000-4000-8000-0000000000c1', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('1', 64), now() + interval '15 minutes', 111, -1001000000001, 'supergroup', 'Test group', 'connected', now()),
-  ('00000000-0000-4000-8000-0000000000c2', '7e57c0de-0000-4000-8000-0000000000d1', 'pmg1x2y3z',   repeat('2', 64), now() + interval '15 minutes', 111, -1001000000002, 'channel',    'Test channel', 'connected', now()),
-  ('00000000-0000-4000-8000-0000000000c3', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('3', 64), now() + interval '15 minutes', null, null, null, null, 'pending', null),
-  ('00000000-0000-4000-8000-0000000000c4', '7e57c0de-0000-4000-8000-0000000000d2', 'me',          repeat('4', 64), now() + interval '15 minutes', 222, -1001000000004, 'supergroup', 'Other group', 'connected', now()),
-  ('00000000-0000-4000-8000-0000000000c5', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('5', 64), now() + interval '15 minutes', 111, -1001000000005, 'supergroup', 'Gone group', 'removed', now());
+insert into public.cs_telegram_chats (id, owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, connected_at, confirmed_at, brand_name, account_hint, tg_user_name) values
+  ('00000000-0000-4000-8000-0000000000c1', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('1', 64), now() + interval '15 minutes', 111, -1001000000001, 'supergroup', 'Test group', 'connected', now(), now(), 'MoneyBees', 'c***@example.test', '@leo_test'),
+  ('00000000-0000-4000-8000-0000000000c2', '7e57c0de-0000-4000-8000-0000000000d1', 'pmg1x2y3z',   repeat('2', 64), now() + interval '15 minutes', 111, -1001000000002, 'channel',    'Test channel', 'connected', now(), now(), null, 'c***@example.test', 'Leo'),
+  ('00000000-0000-4000-8000-0000000000c3', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('3', 64), now() + interval '15 minutes', null, null, null, null, 'pending', null, null, 'MoneyBees', 'c***@example.test', null),
+  ('00000000-0000-4000-8000-0000000000c4', '7e57c0de-0000-4000-8000-0000000000d2', 'me',          repeat('4', 64), now() + interval '15 minutes', 222, -1001000000004, 'supergroup', 'Other group', 'connected', now(), now(), null, 'c***@example.test', null),
+  ('00000000-0000-4000-8000-0000000000c5', '7e57c0de-0000-4000-8000-0000000000d1', 'me',          repeat('5', 64), now() + interval '15 minutes', 111, -1001000000005, 'supergroup', 'Gone group', 'removed', now(), now(), null, null, null);
 
 -- 10:00 Singapore time on a fixed day, so the hours never depend on when this runs
 create temporary table t_clock as select timestamptz '2026-11-02 10:00:00+08' as at;
@@ -130,8 +130,8 @@ select public.cs_test_expect_error(
     values ('7e57c0de-0000-4000-8000-0000000000d2', 'me', repeat('1', 64), now())$$,
   '%duplicate key%', '2.2 a code hash is used once');
 select public.cs_test_expect_error(
-  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status)
-    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('6', 64), now(), 111, -1001000000001, 'supergroup', 'Test group', 'connected')$$,
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status, confirmed_at)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('6', 64), now(), 111, -1001000000001, 'supergroup', 'Test group', 'connected', now())$$,
   '%duplicate key%', '2.3 one brand has one live row per chat');
 select public.cs_test_expect_error(
   $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, status)
@@ -153,6 +153,18 @@ select public.cs_test_expect_error(
   $$insert into public.cs_telegram_posts (owner_id, profile_id, chat_row, client_key, text, send_at)
     values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', '00000000-0000-4000-8000-0000000000c1', gen_random_uuid(), '', now())$$,
   '%cs_telegram_posts_check%', '2.8 a post has text or a file');
+select public.cs_test_expect_error(
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, tg_user_id, chat_id, chat_type, title, status)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('8', 64), now(), 111, -1001000000009, 'supergroup', 'Unasked', 'connected')$$,
+  '%cs_telegram_chats_confirmed%', '2.9 a chat is live only after its Telegram user said Yes');
+select public.cs_test_expect_error(
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, confirmed_at)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('9', 64), now(), now())$$,
+  '%cs_telegram_chats_confirmed%', '2.10 a Yes belongs to the Telegram user who tapped Start');
+select public.cs_test_expect_error(
+  $$insert into public.cs_telegram_chats (owner_id, profile_id, code_hash, code_expires_at, brand_name)
+    values ('7e57c0de-0000-4000-8000-0000000000d1', 'me', repeat('a', 64), now(), repeat('b', 81))$$,
+  '%brand_name%', '2.11 the brand name the bot shows is 80 characters at most');
 reset role;
 
 -- ---------------------------------------------------------------------------
@@ -162,6 +174,9 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d1","role":"authenticated"}';
 select public.cs_test_assert((select count(*) from public.cs_telegram_chats) = 4, '3.1 A reads their four chat rows');
+select public.cs_test_assert(
+  (select tg_user_name = '@leo_test' and account_hint = 'c***@example.test' from public.cs_telegram_chats where id = '00000000-0000-4000-8000-0000000000c1'),
+  '3.1b A reads who connected each chat, and the masked account it was asked about');
 select public.cs_test_assert((select count(*) from public.cs_telegram_posts) = 4, '3.2 A reads their four posts');
 select public.cs_test_expect_error(
   $$update public.cs_telegram_chats set status = 'connected' where id = '00000000-0000-4000-8000-0000000000c5'$$,

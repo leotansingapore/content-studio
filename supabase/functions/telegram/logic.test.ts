@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram";
-import { CODE_MINUTES, parseRequest, runDisconnect, runPresign, runSchedule, runStart, type FnDb, type OwnRow } from "./logic";
+import { CODE_MINUTES, maskEmail, parseRequest, runDisconnect, runPresign, runSchedule, runStart, type FnDb, type OwnRow } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const OTHER_UID = "7e57c0de-0000-4000-8000-0000000000d2";
@@ -67,7 +67,9 @@ function stubBot(leave: () => unknown = () => true) {
 
 describe("reading a request", () => {
   it("takes the four actions and turns away anything else", () => {
-    expect(parseRequest({ action: "start", profileId: "me" })).toEqual({ ok: true, req: { action: "start", profileId: "me" } });
+    expect(parseRequest({ action: "start", profileId: "me" })).toEqual({ ok: true, req: { action: "start", profileId: "me", brandName: null } });
+    expect(parseRequest({ action: "start", profileId: "me", brandName: "  Money\nBees  " })).toMatchObject({ req: { brandName: "Money Bees" } });
+    expect(parseRequest({ action: "start", profileId: "me", brandName: "x".repeat(200) })).toMatchObject({ req: { brandName: "x".repeat(80) } });
     expect(parseRequest({ action: "status", profileId: "me" })).toMatchObject({ ok: false, status: 400 });
     expect(parseRequest({ action: "start", profileId: "../x" })).toMatchObject({ ok: false, status: 404 });
     expect(parseRequest({ action: "disconnect", profileId: "me", chatRow: "1 or 1=1" })).toMatchObject({ ok: false, status: 404 });
@@ -100,23 +102,31 @@ describe("reading a request", () => {
 });
 
 describe("start", () => {
-  it("stores only the code's hash, for 15 minutes, and links to the bot with the code", async () => {
+  it("masks the account's email to its first letter and domain", () => {
+    expect(maskEmail("leo@digitalmarketingagency.sg")).toBe("l***@digitalmarketingagency.sg");
+    expect(maskEmail("a@gmail.com")).toBe("a***@gmail.com");
+    expect(maskEmail(undefined)).toBeNull();
+    expect(maskEmail("not an email")).toBeNull();
+  });
+
+  it("stores only the code's hash, for 15 minutes, with the brand and masked account the bot will name, and links to the bot with the code", async () => {
     const { db, inserted } = fakeDb();
-    const out = await runStart(db, UID, "me", "cs_test_bot", NOW);
+    const out = await runStart(db, UID, "me", "cs_test_bot", NOW, { brandName: "MoneyBees", email: "leo@example.com" });
     expect(out.status).toBe(200);
     const { rowId, link, expiresAt } = out.body as { rowId: string; link: string; expiresAt: string };
     const code = /^https:\/\/t\.me\/cs_test_bot\?start=([A-Za-z0-9_-]{32,64})$/.exec(link)![1];
     expect(rowId).toBe(ROW);
     expect(expiresAt).toBe(new Date(NOW + CODE_MINUTES * 60_000).toISOString());
     expect(CODE_MINUTES).toBe(15);
-    expect(inserted).toEqual([{ owner_id: UID, profile_id: "me", code_hash: await hashCode(code), code_expires_at: expiresAt }]);
+    expect(inserted).toEqual([{ owner_id: UID, profile_id: "me", code_hash: await hashCode(code), code_expires_at: expiresAt, brand_name: "MoneyBees", account_hint: "l***@example.com" }]);
     expect(JSON.stringify(inserted)).not.toContain(code);
+    expect(JSON.stringify(inserted)).not.toContain("leo@example.com");
   });
 
   it("makes a new code every time", async () => {
     const { db } = fakeDb();
-    const a = (await runStart(db, UID, "me", "cs_test_bot", NOW)).body.link;
-    const b = (await runStart(db, UID, "me", "cs_test_bot", NOW)).body.link;
+    const a = (await runStart(db, UID, "me", "cs_test_bot", NOW, { brandName: null, email: "leo@example.com" })).body.link;
+    const b = (await runStart(db, UID, "me", "cs_test_bot", NOW, { brandName: null, email: "leo@example.com" })).body.link;
     expect(a).not.toBe(b);
   });
 });

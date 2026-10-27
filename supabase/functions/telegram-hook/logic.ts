@@ -2,8 +2,10 @@
 // group or channel to the brand whose one-time code the person started. Pure: the database and the bot come in.
 //
 // The tie rule, for every path (Telegram's chat picker, or the bot made an admin through the plain links): inside a
-// started, unexpired connect, the first chat that same Telegram user shares or makes the bot an admin of is tied,
-// and only when the bot can post there and the person is an admin of it.
+// started, unexpired connect that the same Telegram user confirmed with Yes, the first chat that user shares or
+// makes the bot an admin of is tied, and only when the bot can post there and the person is an admin of it.
+// The Yes answers "This connects Telegram to <brand> in the Content Studio account l***@example.com. Is this your
+// Content Studio account?", so a link someone else made and sent can't quietly tie your group to their account.
 
 import { secretMatches } from "../social-sweep/logic.ts";
 import { TelegramError, hashCode, type Bot } from "../_shared/telegram.ts";
@@ -11,6 +13,9 @@ import { TelegramError, hashCode, type Bot } from "../_shared/telegram.ts";
 // ---- the bot's words ----
 
 export const COPY = {
+  confirm: (brand: string | null, account: string | null) =>
+    `This connects Telegram to ${brand ? `${brand} in ` : ""}the Content Studio account ${account ?? "with no email on file"}. Is this your Content Studio account?`,
+  cancelled: "Cancelled. Nothing was connected, and that link no longer works.",
   pick: "Pick the group or channel Content Studio should post to.",
   notInList: (group: string, channel: string) => `Not in the list? Add me by link: ${group} or ${channel}`,
   expired: "That link has expired. Go back to Content Studio and tap Connect Telegram again.",
@@ -39,7 +44,7 @@ export async function gateOf(headers: Headers, env: { hook?: string; cron?: stri
 // ---- Telegram's shapes (the fields read here) ----
 
 type ChatType = "private" | "group" | "supergroup" | "channel";
-interface TgUser { id: number; is_bot?: boolean }
+interface TgUser { id: number; is_bot?: boolean; first_name?: string; username?: string }
 interface TgChat { id: number; type: ChatType; title?: string; username?: string; is_forum?: boolean }
 interface TgMember { status: "creator" | "administrator" | "member" | "restricted" | "left" | "kicked"; can_post_messages?: boolean }
 interface TgMessage {
@@ -56,10 +61,12 @@ interface TgMessage {
 interface TgUpdate {
   message?: TgMessage;
   my_chat_member?: { chat: TgChat; from: TgUser; new_chat_member: TgMember };
+  callback_query?: { id: string; from: TgUser; message?: { message_id: number; chat: TgChat }; data?: string };
 }
 
 export type Event =
-  | { kind: "start"; user: number; code: string | null }
+  | { kind: "start"; user: number; code: string | null; name: string }
+  | { kind: "answer"; user: number; yes: boolean; rowId: string; queryId: string; chatId: number; messageId: number }
   | { kind: "shared"; user: number; chatId: number; title: string | null }
   | { kind: "member"; user: number; chatId: number; chat: TgChat; member: TgMember }
   | { kind: "here"; user: number; chatId: number; topicId: number | null; topicName: string | null }
@@ -84,6 +91,12 @@ export function eventOf(u: unknown, botUsername: string): Event {
     // a private chat's my_chat_member is the person blocking or unblocking the bot
     return m.chat.type === "private" ? IGNORE : { kind: "member", user: m.from.id, chatId: m.chat.id, chat: m.chat, member: m.new_chat_member };
   }
+  const q = up.callback_query;
+  if (q) {
+    const a = /^(yes|no):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(typeof q.data === "string" ? q.data : "");
+    if (!a || typeof q.id !== "string" || !isId(q.from?.id) || q.message?.chat?.type !== "private" || !isId(q.message.chat.id) || !isId(q.message.message_id)) return IGNORE;
+    return { kind: "answer", user: q.from.id, yes: a[1] === "yes", rowId: a[2], queryId: q.id.slice(0, 64), chatId: q.message.chat.id, messageId: q.message.message_id };
+  }
   const msg = up.message;
   if (!msg?.chat || !msg.from || msg.from.is_bot || !isId(msg.chat.id) || !isId(msg.from.id)) return IGNORE;
   if (isId(msg.migrate_to_chat_id)) return { kind: "migrate", from: msg.chat.id, to: msg.migrate_to_chat_id };
@@ -96,7 +109,8 @@ export function eventOf(u: unknown, botUsername: string): Event {
   if (msg.chat.type === "private") {
     if (msg.chat_shared) return !isId(msg.chat_shared.chat_id) ? IGNORE : { kind: "shared", user: msg.from.id, chatId: msg.chat_shared.chat_id, title: msg.chat_shared.title ?? null };
     const code = command("start");
-    if (code !== null) return { kind: "start", user: msg.from.id, code: CODE_RE.test(code) ? code : null };
+    const name = clean(msg.from.username ? `@${msg.from.username}` : (msg.from.first_name ?? ""), 64);
+    if (code !== null) return { kind: "start", user: msg.from.id, code: CODE_RE.test(code) ? code : null, name };
     return { kind: "chatter", user: msg.from.id };
   }
   if ((msg.chat.type === "group" || msg.chat.type === "supergroup") && command("here") !== null) {
@@ -132,14 +146,25 @@ export interface ChatRow {
   status: "pending" | "connected" | "cant_post" | "removed" | "disconnected";
   refusal: "not_admin" | "cant_post" | null;
   created_at: string;
+  /** The brand and the masked account email the bot names before Yes (set by `telegram` start). */
+  brand_name: string | null;
+  account_hint: string | null;
+  /** Who tapped Start, as the app shows "Added by". */
+  tg_user_name: string | null;
+  /** When that Telegram user answered Yes; nothing is tied before it. */
+  confirmed_at: string | null;
 }
 
 export type TiedChat = Pick<ChatRow, "title" | "username" | "is_forum"> & { chat_id: number; chat_type: "group" | "supergroup" | "channel" };
 
 export interface HookDb {
-  /** Ties the Telegram user to a pending, unexpired code's row not already started by someone else; null otherwise. */
-  claimCode(codeHash: string, tgUser: number, now: string): Promise<ChatRow | null>;
-  /** The user's newest started connect still inside its 15 minutes, or null. */
+  /** Ties the Telegram user (and their name) to a pending, unexpired code's row not already started by someone else; null otherwise. */
+  claimCode(codeHash: string, tgUser: number, name: string, now: string): Promise<ChatRow | null>;
+  /** Marks Yes on the row when it is pending, unexpired and started by this same Telegram user; null otherwise. */
+  confirm(rowId: string, tgUser: number, now: string): Promise<ChatRow | null>;
+  /** No: the pending row started by this Telegram user turns disconnected, so its code is dead. */
+  cancelCode(rowId: string, tgUser: number, now: string): Promise<boolean>;
+  /** The user's newest started connect still inside its 15 minutes, confirmed or not, or null. */
   startedFor(tgUser: number, now: string): Promise<ChatRow | null>;
   /**
    * Ties a pending row to the chat; false when it is no longer pending (another update tied it first). An older live
@@ -217,17 +242,34 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
         await say(e.user, COPY.chatter);
         return "start:bare";
       }
-      const r = await d.db.claimCode(await hashCode(e.code), e.user, now);
+      const r = await d.db.claimCode(await hashCode(e.code), e.user, e.name, now);
       if (!r) {
         await say(e.user, COPY.expired);
         return "start:refused";
       }
+      await say(e.user, COPY.confirm(r.brand_name, r.account_hint), {
+        reply_markup: { inline_keyboard: [[{ text: "Yes", callback_data: `yes:${r.id}` }, { text: "No", callback_data: `no:${r.id}` }]] },
+      });
+      return "start:asked";
+    }
+    case "answer": {
+      // stop the button's spinner, and take Yes and No away so neither is pressed twice
+      await d.bot.call("answerCallbackQuery", { callback_query_id: e.queryId }).catch(() => undefined);
+      await d.bot.call("editMessageReplyMarkup", { chat_id: e.chatId, message_id: e.messageId, reply_markup: { inline_keyboard: [] } }).catch(() => undefined);
+      if (!e.yes) {
+        await say(e.user, (await d.db.cancelCode(e.rowId, e.user, now)) ? COPY.cancelled : COPY.expired);
+        return "answer:no";
+      }
+      if (!(await d.db.confirm(e.rowId, e.user, now))) {
+        await say(e.user, COPY.expired);
+        return "answer:refused";
+      }
       const link = (kind: string, rights: string) => `https://t.me/${d.botUsername}?${kind}&admin=${rights}`;
       await say(e.user, `${COPY.pick}\n\n${COPY.notInList(link("startgroup", "manage_chat"), link("startchannel", "post_messages"))}`, { reply_markup: pickerKeyboard() });
-      return "start:ok";
+      return "answer:yes";
     }
     case "shared": {
-      const r = await d.db.startedFor(e.user, now);
+      const r = confirmedOnly(await d.db.startedFor(e.user, now));
       if (r) return tie(d, r, e.user, e.chatId, e.title, now, say);
       // the same pick arriving after my_chat_member already tied it is not an expired link
       const tied = (await d.db.rowsOfChat(e.chatId, ["connected"])).some((x) => x.tg_user_id === e.user);
@@ -240,7 +282,7 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
         await markGone(d, e.chatId, "removed", now);
         return "member:removed";
       }
-      const r = await d.db.startedFor(e.user, now);
+      const r = confirmedOnly(await d.db.startedFor(e.user, now));
       if (botCanPost(e.member, e.chat.type)) return r ? tie(d, r, e.user, e.chatId, e.chat.title ?? null, now, say) : "member:ok";
       await markGone(d, e.chatId, "cant_post", now);
       if (r) await refuse(d, r, e.user, clean(e.chat.title ?? "that chat", 255), "cant_post", say);
@@ -266,6 +308,9 @@ export async function handleUpdate(update: unknown, d: HookDeps): Promise<string
 }
 
 type Say = (chatId: number, text: string, extra?: Record<string, unknown>) => Promise<void>;
+
+/** A started connect counts only once its Telegram user said Yes to the brand and account it names. */
+const confirmedOnly = (r: ChatRow | null) => (r?.confirmed_at ? r : null);
 
 async function tie(d: HookDeps, r: ChatRow, user: number, chatId: number, sharedTitle: string | null, now: string, say: Say): Promise<string> {
   const chat = await d.bot.call<TgChat>("getChat", { chat_id: chatId }).catch(() => null);

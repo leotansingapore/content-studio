@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     const db = fnDb(admin);
     const now = Date.now();
     const reply =
-      q.action === "start" ? await runStart(db, uid, q.profileId, username, now)
+      q.action === "start" ? await runStart(db, uid, q.profileId, username, now, { brandName: q.brandName, email: userData.user?.email })
       : q.action === "disconnect" ? await runDisconnect(db, botClient(token), uid, q.profileId, q.chatRow, now)
       : q.action === "presign"
         ? await runPresign(async (path) => {

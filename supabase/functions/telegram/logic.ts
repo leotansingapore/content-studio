@@ -28,7 +28,8 @@ export interface FileAsk {
 }
 
 export type TelegramRequest =
-  | { action: "start"; profileId: string }
+  /** brandName: the brand's name as the app shows it, for the bot to name before Yes. */
+  | { action: "start"; profileId: string; brandName: string | null }
   | { action: "disconnect"; profileId: string; chatRow: string }
   | { action: "presign"; profileId: string; files: FileAsk[] }
   /** sendAt null: now. */
@@ -57,7 +58,10 @@ export function parseRequest(body: unknown): Parsed {
   if (b.action !== "start" && b.action !== "disconnect" && b.action !== "presign" && b.action !== "schedule") return bad("Unknown action.");
   if (!isProfileId(b.profileId)) return notFound;
   const profileId = b.profileId;
-  if (b.action === "start") return { ok: true, req: { action: "start", profileId } };
+  if (b.action === "start") {
+    const brandName = typeof b.brandName === "string" ? b.brandName.replace(/[\u0000-\u001f\u007f\s]+/g, " ").trim().slice(0, 80) : "";
+    return { ok: true, req: { action: "start", profileId, brandName: brandName || null } };
+  }
   if (b.action === "disconnect") return isUuid(b.chatRow) ? { ok: true, req: { action: "disconnect", profileId, chatRow: b.chatRow } } : notFound;
   if (b.action === "presign") {
     if (!Array.isArray(b.files) || !b.files.length) return bad("Pick a picture or a video.");
@@ -109,7 +113,7 @@ export interface PostView {
 }
 
 export interface FnDb {
-  insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string }): Promise<{ id: string }>;
+  insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string; brand_name: string | null; account_hint: string | null }): Promise<{ id: string }>;
   /** The caller's row in this brand, or null. */
   ownRow(uid: string, profileId: string, id: string): Promise<OwnRow | null>;
   /** Whether another connected row (any brand, any owner) still posts to the chat. */
@@ -135,10 +139,24 @@ function newCode(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export async function runStart(db: FnDb, uid: string, profileId: string, botUsername: string, now: number): Promise<Reply> {
+/** "l***@gmail.com": enough for the person in Telegram to recognise their own account, not enough to read it. */
+export function maskEmail(email: string | null | undefined): string | null {
+  const m = /^([^@\s])[^@\s]*@([^@\s]+\.[^@\s]+)$/.exec(email ?? "");
+  return m ? `${m[1]}***@${m[2]}`.slice(0, 80) : null;
+}
+
+export async function runStart(db: FnDb, uid: string, profileId: string, botUsername: string, now: number, who: { brandName: string | null; email: string | null | undefined }): Promise<Reply> {
   const code = newCode();
   const expiresAt = iso(now + CODE_MINUTES * 60_000);
-  const { id } = await db.insertConnect({ owner_id: uid, profile_id: profileId, code_hash: await hashCode(code), code_expires_at: expiresAt });
+  // the bot names these before any picker, so a link someone else made can't quietly tie your chat to their account
+  const { id } = await db.insertConnect({
+    owner_id: uid,
+    profile_id: profileId,
+    code_hash: await hashCode(code),
+    code_expires_at: expiresAt,
+    brand_name: who.brandName,
+    account_hint: maskEmail(who.email),
+  });
   // the code goes back once, in the link, and is never stored or logged
   return ok({ rowId: id, link: `https://t.me/${botUsername}?start=${code}`, expiresAt });
 }
