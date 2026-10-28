@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAY_SETS, GOAL_DAYS, addSlots, fillSlots, monFirst, nextOpenSlots, openSlots, slotDaysLabel, slotsForGoal, slotsOn } from "./postingSlots";
+import { DAY_SETS, GOAL_DAYS, addSlots, fillSlots, monFirst, nextOpenSlots, openSlots, seriesSlots, slotDaysLabel, slotsForGoal, slotsOn } from "./postingSlots";
 import { suggestPostingTime } from "./analytics";
 
 // 2026-10-14 is a Wednesday (Mon-first weekday 2).
@@ -199,5 +199,25 @@ describe("fillSlots", () => {
 
   it("has nothing to place without posting times", () => {
     expect(fillSlots([draft("a", "2026-10-01")], { slots: [] }, [], wed)).toEqual({ placed: [], left: [{ draftId: "a", platform: "linkedin" }] });
+  });
+});
+
+describe("seriesSlots", () => {
+  const morning = new Date(2026, 9, 14, 7, 0); // Wed 07:00
+
+  it("spaces a series at least three days apart in the brand's own times", () => {
+    // SLOTS: Mon 08:30, Wed 08:30 + 19:30, Fri 12:00; Wed 08:30 is under the 2-hour lead at 07:00
+    expect(seriesSlots(4, { slots: SLOTS }, "instagram", [], morning)).toEqual(["2026-10-14T19:30", "2026-10-19T08:30", "2026-10-23T12:00", "2026-10-26T08:30"]);
+  });
+  it("posts on Tuesdays and Fridays at 09:00 when the brand has no times for the network", () => {
+    expect(seriesSlots(3, null, "linkedin", [], morning)).toEqual(["2026-10-16T09:00", "2026-10-20T09:00", "2026-10-23T09:00"]);
+    expect(seriesSlots(2, { slotsBy: { instagram: SLOTS } }, "linkedin", [], morning)).toEqual(["2026-10-16T09:00", "2026-10-20T09:00"]);
+  });
+  it("skips a slot another scheduled post already holds", () => {
+    expect(seriesSlots(2, { slots: SLOTS }, "instagram", [{ platform: "instagram", scheduledFor: "2026-10-14T19:30" }], morning)).toEqual(["2026-10-16T12:00", "2026-10-19T08:30"]);
+  });
+  it("returns fewer times than asked when the window runs out, and none for none", () => {
+    expect(seriesSlots(0, { slots: SLOTS }, "instagram", [], morning)).toEqual([]);
+    expect(seriesSlots(40, null, "tiktok", [], morning)).toHaveLength(20);
   });
 });

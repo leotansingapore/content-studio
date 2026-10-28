@@ -135,3 +135,27 @@ export function addSlots(existing: string[], days: readonly number[], time: stri
   }
   return { slots: [...set].sort(), skipped };
 }
+
+// A brand with no posting times for the network posts a series on Tuesdays and Fridays at 09:00.
+const SERIES_FALLBACK: SlotBrand = { slots: ["1T09:00", "4T09:00"] };
+
+/**
+ * A series (Starter Story: Jenni AI re-posted one winning video twice a week, only its opening changed): `n` posts on
+ * this network, each in its next open slot and at least `gap` days after the day before it, so about twice a week.
+ * Returns the "YYYY-MM-DDTHH:MM" times it found, fewer than `n` when 70 days run out. Times only; nothing goes to Zernio.
+ */
+export function seriesSlots(n: number, brand: SlotBrand | null | undefined, platform: string, scheduled: Held[], now: Date, gap = 3): string[] {
+  const b = slotTimesFor(brand, platform).length ? brand : SERIES_FALLBACK;
+  const held = [...scheduled];
+  const out: string[] = [];
+  let from = "";
+  for (let i = 0; i < n; i++) {
+    const slot = nextOpenSlots(b, platform, held, now, 70).find((o) => o.date >= from);
+    if (!slot) break;
+    const at = `${slot.date}T${slot.time}`;
+    out.push(at);
+    held.push({ platform, scheduledFor: at });
+    from = addDays(slot.date, gap);
+  }
+  return out;
+}

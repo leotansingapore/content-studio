@@ -37,8 +37,9 @@ import { supabase } from "@/lib/supabase";
 import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
-import { slotTimesFor } from "@/lib/postingSlots";
+import { seriesSlots, slotTimesFor } from "@/lib/postingSlots";
 import {
+  CalendarDays,
   Sparkles,
   Copy,
   Clapperboard,
@@ -120,6 +121,7 @@ import {
   newDraftId,
   setDraftAttached,
   coverOf,
+  draftStatus,
   titlesOf,
   upsertDraft,
   type DraftEntry,
@@ -853,8 +855,9 @@ export default function GeneratePage() {
     null,
   );
   const [streamingMode, setStreamingMode] = useState<StreamingMode>("idle");
-  // Leo only (remix-variations): the hooks panel over the open post (?panel=hooks): its rows, the post they were
-  // written for and with which formulas, Jev's pick, the drafts saved from it, and whether the last run failed.
+  // The hooks panel over the open post (?panel=hooks), for everyone since 28 Oct (remix-variations was Leo only): its rows,
+  // the post they were written for and with which formulas, Jev's pick, the drafts saved from it, whether the last run
+  // failed, and the times its hook test was put on the calendar.
   const [newHookRows, setNewHookRows] = useState<VariantState[]>([]);
   const [hookPanel, setHookPanel] = useState<{
     draftId: string;
@@ -864,6 +867,7 @@ export default function GeneratePage() {
     pick: { key: string; index: number } | null;
     saved: Record<number, string>;
     testSet?: string;
+    series?: string[];
   } | null>(null);
   const newPickPendingRef = useRef(false);
   // Leo only: the variations Keep all 3 saved (key: their texts), and each one's draft, so a later pick opens it
@@ -1850,8 +1854,8 @@ export default function GeneratePage() {
         const idx = firstRow + (evt.variantIndex as number);
         // Dashes, and emoji or hashtags over the brand kit's policy or the platform's cap, go before the text is shown or saved.
         const finalText = applyBrandRules(stripDashes(evt.text as string), brandKit, platform);
-        // Leo only: a hook with a blank in it is left out rather than offered (live-p7a D9)
-        const blank = !!leo && (target === "hooks" || target === "newHooks") && hookBlank(finalText);
+        // A hook with a blank in it is left out rather than offered (live-p7a D9): a new hook's for everyone, a picked one's for Leo only
+        const blank = (target === "newHooks" || (!!leo && target === "hooks")) && hookBlank(finalText);
         const setter = rowsSetter(target);
         setter((prev) =>
           prev.map((v) =>
@@ -2486,6 +2490,7 @@ export default function GeneratePage() {
     const withBody = { ...base, ideaContext: [newHookContext(splitHook(draft, draft.split("\n")[0])), base.ideaContext].filter(Boolean).join("\n\n") };
     let failed = false;
     try {
+      // hookFields for everyone: the base payload carries the post's blanks rule, which wrote "[your years]" hooks (live-p7a D9)
       await runStream(set.map((f) => ({ ...withBody, mode: "hooks" as const, n: 1, ...hookFields(f, withBody, speakerFor(userId)) })), "newHooks", set.map((f) => f.id));
     } catch (err) {
       failed = true;
@@ -2572,6 +2577,36 @@ export default function GeneratePage() {
       title: `Hook test saved: ${rows.length + 1} versions`,
       action: (
         <ToastAction altText="Open" onClick={() => navigate(links.drafts({ set: set.id }))}>
+          Open
+        </ToastAction>
+      ),
+    });
+  };
+
+  // Post them twice a week (Starter Story: Jenni AI re-posted one winner with only its opening changed): the hook test's
+  // undated versions go on the calendar, this post first, each at least 3 days after the last, in the brand's posting
+  // times for the network (Tuesdays and Fridays at 09:00 without any). Times only; nothing goes to Zernio.
+  const scheduleSeries = () => {
+    if (!userId || !hookPanel?.testSet || hookPanel.series) return;
+    flushSave.current();
+    const all = loadDrafts(userId);
+    const versions = all
+      .filter((d) => d.set?.id === hookPanel.testSet && !d.scheduledFor && draftStatus(d) !== "posted")
+      .sort((a, b) => Number(b.id === currentDraftId) - Number(a.id === currentDraftId) || a.createdAt.localeCompare(b.createdAt));
+    if (!versions.length) return;
+    const at = seriesSlots(versions.length, brandKit, platform, all.filter((d) => draftStatus(d) === "scheduled"), new Date());
+    at.forEach((when, i) => upsertDraft(userId, { ...versions[i], status: "scheduled", scheduledFor: when }));
+    setHookPanel((p) => (p ? { ...p, series: at } : p));
+    if (!at.length) {
+      toast({ title: "No open times in the next 10 weeks", description: "Add posting times in the brand kit, then try again.", variant: "destructive" });
+      return;
+    }
+    const first = keyToDate(at[0].slice(0, 10)).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+    toast({
+      title: `${at.length} ${at.length === 1 ? "version" : "versions"} on the calendar`,
+      description: `From ${first}, about twice a week${at.length < versions.length ? `. ${versions.length - at.length} found no open time.` : ""}`,
+      action: (
+        <ToastAction altText="Open the calendar" onClick={() => navigate(links.calendar({}))}>
           Open
         </ToastAction>
       ),
@@ -4493,7 +4528,7 @@ export default function GeneratePage() {
                       <InsertButton disabled={isStreaming} />
                     </Suspense>
                   )}
-                  {leo && userId && savedEntry && !draftLang && (
+                  {userId && savedEntry && !draftLang && (
                     <>
                       <button
                         type="button"
@@ -4592,7 +4627,7 @@ export default function GeneratePage() {
                     )}
                   </div>
                 )}
-                {leo && userId && savedEntry && !draftLang && panel === "hooks" && (() => {
+                {userId && savedEntry && !draftLang && panel === "hooks" && (() => {
                   // the rows belong to the post they were written for; another post's panel starts empty
                   const ours = hookPanel?.draftId === savedEntry.id ? hookPanel : null;
                   const rows = ours ? newHookRows : [];
@@ -4674,6 +4709,11 @@ export default function GeneratePage() {
                           <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" disabled={isStreaming || Boolean(ours.testSet)} onClick={saveHookTest}>
                             {ours.testSet ? <Check className="h-3.5 w-3.5 text-success" /> : <Columns3 className="h-3.5 w-3.5" />} Save all as a hook test
                           </Button>
+                          {ours.testSet && (
+                            <Button size="sm" variant="outline" className="ml-2 h-11 gap-1.5 sm:h-9" disabled={Boolean(ours.series?.length)} onClick={scheduleSeries}>
+                              {ours.series?.length ? <Check className="h-3.5 w-3.5 text-success" /> : <CalendarDays className="h-3.5 w-3.5" />} Post them twice a week
+                            </Button>
+                          )}
                         </div>
                       )}
                     </section>
