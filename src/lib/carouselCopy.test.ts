@@ -24,3 +24,17 @@ describe("Tighten keeps the brand kit's emoji policy", () => {
     expect((await tightenSlides(slides, "instagram", false)).slides[1].title).toBe("Top up 🔑");
   });
 });
+
+describe("Tighten sends the brand's profession", () => {
+  it("names it for any other work and leaves today's body for an adviser", async () => {
+    invoke.mockClear();
+    const slides = [{ title: "Cover", body: "" }, { title: "Point", body: "" }];
+    invoke.mockResolvedValue({ data: { slides, recap: null }, error: null });
+    await tightenSlides(slides, "linkedin", false, undefined, "coach");
+    await tightenSlides(slides, "linkedin", false);
+    expect(invoke.mock.calls.map((c) => c[1].body)).toEqual([
+      { slides, platform: "linkedin", recap: false, profession: "coach" },
+      { slides, platform: "linkedin", recap: false },
+    ]);
+  });
+});

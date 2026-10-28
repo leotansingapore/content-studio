@@ -25,9 +25,11 @@ export async function tightenSlides(
   recap = false,
   /** The brand kit's emoji policy, kept across the whole carousel (first ones kept). */
   emoji?: keyof typeof EMOJI_MAX,
+  /** The brand's "What do you do?" (professionFor); "" for an adviser, who gets today's request. */
+  profession = "",
 ): Promise<{ slides: CopySlide[]; recap: CopySlide | null }> {
   const { data, error } = await supabase.functions.invoke("carousel-copy", {
-    body: { slides: slides.map(({ title, body }) => ({ title, body })), platform, recap },
+    body: { slides: slides.map(({ title, body }) => ({ title, body })), platform, recap, ...(profession ? { profession } : {}) },
   });
   if (error) {
     // FunctionsHttpError hides the status and JSON body behind error.context.

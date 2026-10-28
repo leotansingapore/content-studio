@@ -1153,7 +1153,7 @@ export default function CarouselPage() {
     const old = snapshot.find((s) => s.recap);
     setAi({ status: "loading", fix });
     try {
-      const { slides: copy, recap } = await tightenSlides(base, platform, addsRecap(base, fix), brand.emojiPolicy);
+      const { slides: copy, recap } = await tightenSlides(base, platform, addsRecap(base, fix), brand.emojiPolicy, professionFor(userId));
       const next = withRecap(applyCopy(base, copy), recap ? { ...recap, id: old?.id } : old ?? null);
       setBeforeAi(snapshot);
       change(() => next);
