@@ -4,6 +4,7 @@ import { HONEST_LINE } from "../_shared/profession";
 import { buildBrollMessages, kindQuestions, parseBrollRequest } from "./broll";
 import { buildCaptionsMessages, keywordCandidates, keywordQuestion, parseCaptionsRequest, type Keyword } from "./captions";
 import { buildHooksMessages, hooksState, parseHooksRequest } from "./hooks";
+import { buildClipsMessages, clipQuestions, clipViewer, parseClipsRequest } from "./logic";
 import { buildMontageMessages, parseMontageRequest } from "./montage";
 import { buildPopupMessages, emojiState, keyState, parseMotionRequest } from "./motion";
 
@@ -166,6 +167,40 @@ describe("B-roll for the brand's profession", () => {
     expect(JSON.stringify(out[0])).toContain(`filmed by a ${said}, as a transcript`);
     expect(JSON.stringify(out[2])).toContain(`a short video a ${said} filmed.`);
     expect(JSON.stringify(out[2])).toContain(HONEST_LINE);
+    expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+  });
+});
+
+describe("clips for the brand's profession", () => {
+  const SENTENCES = Array.from({ length: 12 }, (_, i) => ({ s: i * 6, e: i * 6 + 5.5, text: `Point ${i + 1}: most people start too late, so here is the step that makes it easy.` }));
+  const FOUND = [{ start: 0, end: 35.5, title: "Start early", hook: "Most start late", reason: "One clear step." }];
+  const clipPrompts = (extra: Record<string, unknown> = {}) =>
+    [{}, { about: "starting early", length: "short" }].flatMap((more) => {
+      const c = parseClipsRequest({ sentences: SENTENCES, duration: 72, ...more, ...extra });
+      if (!c.ok) throw new Error(c.error);
+      return [
+        buildClipsMessages(c.sentences, c.duration, c.about, undefined, c.length, c.profession),
+        buildClipsMessages(c.sentences, c.duration, c.about, { from: 30, to: 72 }, c.length, c.profession),
+        { viewer: clipViewer(c.profession) },
+        clipQuestions(FOUND, c.sentences, [], c.about, c.profession),
+      ];
+    });
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(buildClipsMessages(SENTENCES, 72, "", undefined, "auto", "$&-maker")[0].content).toContain("a long talking video by a $&-maker (podcast");
+    expect(JSON.stringify(clipQuestions(FOUND, SENTENCES, [], "", "$&-maker"))).toContain("a longer talk by a $&-maker and posted");
+  });
+
+  it("a caller that sends no profession, or an adviser's, gets today's prompts and Jev questions byte for byte", async () => {
+    await expect(JSON.stringify(clipPrompts(), null, 2)).toMatchFileSnapshot("./__pins__/clips-adviser-prompts.json");
+    for (const profession of ["", "Financial adviser"]) expect(clipPrompts({ profession })).toEqual(clipPrompts());
+  });
+
+  it.each(PROFESSIONS)("$raw gets clips found and scored for them, with none of the adviser words", ({ raw, said }) => {
+    const out = clipPrompts({ profession: raw });
+    expect(JSON.stringify(out[0])).toContain(`a long talking video by a ${said} (podcast`);
+    expect(JSON.stringify(out[0])).toContain(HONEST_LINE);
+    expect(JSON.stringify(out[3])).toContain(`a longer talk by a ${said} and posted`);
     expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
   });
 });

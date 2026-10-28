@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AI_LINE, aiChips, aiOf, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
+import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { EdgeError } from "@/lib/edgeFn";
 
@@ -350,5 +350,27 @@ describe("the AI label (people-ai-labels, live-p5dog D2)", () => {
     expect(aiChips({ kind: "template", madeAt: MADE })).toEqual([]);
     expect(aiChips(undefined)).toEqual([]);
     expect(AI_LINE).toBe("This video uses an AI-made person or voice.");
+  });
+});
+
+describe("the editor's writers for the brand's profession", () => {
+  const sent: Record<string, unknown>[] = [];
+  const store = memoryStorage();
+  const brand = (profession: string) => store.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession }));
+  const sentences = [{ s: 0, e: 2, text: "Most people start too late." }];
+  beforeEach(() => {
+    sent.length = 0;
+    vi.stubGlobal("window", { localStorage: store });
+    vi.stubGlobal("fetch", async (_u: string, init: RequestInit) => (sent.push(JSON.parse(String(init.body))), Response.json({ clips: [], sections: [], lines: [], patch: {}, reply: "Done." })));
+  });
+
+  it("finds clips for the open brand's profession, and sends none for an adviser's brand", async () => {
+    brand("Coach");
+    await findClips("u1", sentences, 60);
+    brand("Financial adviser");
+    await findClips("u1", sentences, 60);
+    expect(sent[0]).toMatchObject({ mode: "clips", profession: "coach" });
+    expect(sent[1]).toMatchObject({ mode: "clips" });
+    expect(sent[1]).not.toHaveProperty("profession");
   });
 });

@@ -9,6 +9,7 @@ import { deleteFile, putFile, stills } from "@/lib/videoMedia";
 import { mediaLength } from "@/lib/longAudio";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { removePlatformCaptions } from "@/lib/platformCaptions";
+import { professionFor } from "@/lib/profession";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
 import type { WatchFinding } from "../../supabase/functions/video-assist/watch.ts";
 import type { KeywordPick } from "../../supabase/functions/video-assist/keywords.ts";
@@ -302,9 +303,13 @@ export async function vibeEdit(req: {
   return res.json();
 }
 
-/** Clips from what is said; with the word timings, each clip starts and ends cleanly; `about` is what the person asked for. */
-export async function findClips(sentences: Sentence[], duration: number, words?: Word[], about?: string): Promise<Clip[]> {
-  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "clips", sentences, duration, words, about: about?.trim() || undefined }) });
+/**
+ * Clips from what is said, found for the open brand's profession; with the word timings, each clip starts and ends
+ * cleanly; `about` is what the person asked for.
+ */
+export async function findClips(userId: string, sentences: Sentence[], duration: number, words?: Word[], about?: string): Promise<Clip[]> {
+  const body = { mode: "clips", sentences, duration, words, about: about?.trim() || undefined, profession: professionFor(userId) || undefined };
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return (await res.json()).clips;
 }
 

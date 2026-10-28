@@ -9,6 +9,7 @@ import { callFn, EdgeError } from "@/lib/edgeFn";
 import { onCaptionJob } from "@/lib/captionJob";
 import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
 import { links } from "@/lib/links";
+import { professionFor } from "@/lib/profession";
 import { captionPlan } from "@/lib/longCaptions";
 import { PRESETS, applyRecipe } from "@/lib/stylePresets";
 import { clipSettings, defaultSettings, sentencesOf, withLook, type Clip, type EditSettings, type Word } from "@/lib/videoEdit";
@@ -139,7 +140,8 @@ export const seenClips = () => clearFormatJob(SLUG);
 
 /**
  * video-assist clips on a recording's words: each clip becomes its own project on the same file, with the
- * recording's settings trimmed to it, saved on this device. Length other than auto is sent for the panel only.
+ * recording's settings trimmed to it, saved on this device. Length other than auto is sent for the panel only, and the
+ * open brand's profession for any brand but an adviser's.
  */
 export async function findClipsFor(userId: string, project: VideoProject, words: Word[], settings: EditSettings, about: string, length: ClipLength): Promise<FoundClip[]> {
   const { clips } = await callFn<{ clips: FoundOne[] }>("video-assist", {
@@ -149,6 +151,7 @@ export async function findClipsFor(userId: string, project: VideoProject, words:
     words,
     about: about.trim() || undefined,
     ...(length !== "auto" ? { length } : {}),
+    profession: professionFor(userId) || undefined,
   }, "Couldn't find clips right now. Try again in a minute.");
   const now = Date.now().toString(36);
   const made = clips.map((clip, i): FoundClip => ({

@@ -79,7 +79,7 @@ export async function findYoutubeClips(userId: string, url: string): Promise<voi
     const cap = await callFn<{ videoId: string; title: string; duration: number; sentences: Sentence[] }>(
       "youtube-captions", { url }, "Couldn't read that video's captions right now. Try again in a minute.");
     set({ state: "clips", url });
-    const found = await findClips(cap.sentences, cap.duration);
+    const found = await findClips(userId, cap.sentences, cap.duration);
     const result: YoutubeClips = {
       url, videoId: cap.videoId, title: cap.title, at: new Date().toISOString(),
       clips: found.map((c) => ({ ...c, text: clipText(cap.sentences, c) })),

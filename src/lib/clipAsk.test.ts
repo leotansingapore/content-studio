@@ -69,6 +69,15 @@ describe("the panel's ask", () => {
 });
 
 describe("the find", () => {
+  it("sends the open brand's profession, and none for an adviser's brand", async () => {
+    mem.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await findClipsFor(UID, project("v7"), words, defaultSettings("bold"), "", "auto");
+    mem.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await findClipsFor(UID, project("v7"), words, defaultSettings("bold"), "", "auto");
+    expect(fn.calls[0]).toMatchObject({ mode: "clips", profession: "coach" });
+    expect(JSON.parse(JSON.stringify(fn.calls[1]))).not.toHaveProperty("profession");
+  });
+
   it("keeps a recording's list after the component is gone, and saves each clip as a project on the same file", async () => {
     const made = await findClipsFor(UID, project("v4"), words, defaultSettings("bold"), "", "auto");
     expect(fn.calls[0]).not.toHaveProperty("length");

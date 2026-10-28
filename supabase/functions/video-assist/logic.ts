@@ -3,6 +3,7 @@
 // vitest covers it (logic.test.ts).
 
 import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { WINDOW_OVERLAP, clipPasses } from "./passes.ts";
 
 export const MAX_AUDIO_BYTES = 24 * 1024 * 1024; // Whisper takes 25 MB
@@ -195,7 +196,9 @@ export const MAX_ABOUT = 200;
 /** Word timings for clean clip edges: a 2-hour podcast at a fast 200 words a minute. */
 export const MAX_CLIP_WORDS = 25000;
 
-export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[]; about: string; length: ClipLength } | { ok: false; error: string } {
+export function parseClipsRequest(
+  body: unknown,
+): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[]; about: string; length: ClipLength; profession?: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const duration = Number(b.duration);
   // optional (a YouTube link has captions, not word timings); only well-formed words in time order count
@@ -215,7 +218,9 @@ export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSen
   const about = String(b.about ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_ABOUT);
   // an unknown length is today's
   const length: ClipLength = b.length === "short" || b.length === "long" ? b.length : "auto";
-  return { ok: true, sentences, duration, words, about, length };
+  // profession: the brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompts
+  const profession = professionOf(b.profession);
+  return { ok: true, sentences, duration, words, about, length, ...(profession ? { profession } : {}) };
 }
 
 /**
@@ -267,7 +272,19 @@ export function batches<T>(questions: Record<string, T>, size = 30): Record<stri
   return Array.from({ length: Math.ceil(keys.length / size) }, (_, i) => Object.fromEntries(keys.slice(i * size, (i + 1) * size).map((k) => [k, questions[k]])));
 }
 
-export function buildClipsMessages(sentences: ClipSentence[], duration: number, about = "", window?: Pick<ClipWindow, "from" | "to">, length: ClipLength = "auto"): { role: string; content: string }[] {
+/** Who made the video, in the words any other work gets in place of the adviser's (the clips prompt and Jev's question). */
+const byThem = (text: string, p: string) => (p ? text.replace("by a Singapore financial adviser", () => `by ${aOrAn(p)}`) : text);
+
+export function buildClipsMessages(
+  sentences: ClipSentence[],
+  duration: number,
+  about = "",
+  window?: Pick<ClipWindow, "from" | "to">,
+  length: ClipLength = "auto",
+  profession = "",
+): { role: string; content: string }[] {
+  // any other work keeps the honesty everyone keeps in place of the adviser's rule
+  const said = (l: string) => (profession ? byThem(l, profession).replace("Never promise returns.", () => HONEST_LINE) : l);
   const { lo, hi, aim } = CLIP_LENGTHS[length];
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
   const n = candidateCount(duration);
@@ -287,7 +304,10 @@ export function buildClipsMessages(sentences: ClipSentence[], duration: number, 
         asked,
         part,
         'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string,"skip"?:{"start":number,"end":number}}]}',
-      ].filter(Boolean).join("\n"),
+      ]
+        .filter(Boolean)
+        .map(said)
+        .join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
   ];
@@ -478,6 +498,8 @@ export function skipQuestions(cands: FoundClip[], sentences: ClipSentence[], wor
 
 /** Who Jev imagines watching. */
 export const CLIP_VIEWER = "Singapore working adults scrolling Instagram Reels, TikTok or YouTube Shorts";
+/** The viewer for a brand's clips: working adults anywhere for any other work. */
+export const clipViewer = (profession = "") => (profession ? CLIP_VIEWER.replace("Singapore working adults", () => "Working adults") : CLIP_VIEWER);
 
 const STANDS_ALONE = [
   "Needs the rest of the talk: starts mid-thought, leans on something said before it, or stops before its point",
@@ -498,7 +520,7 @@ const STOPS_SCROLL = [
  * Two Scores per candidate: s<i>, does it stand alone; h<i>, does its first line
  * stop the scroll. With a request, a third, r<i>: how well it matches what was asked. State: {viewer}.
  */
-export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], words: Word[] = [], about = ""): Record<string, JevQuestion> {
+export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], words: Word[] = [], about = "", profession = ""): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
   cands.forEach((c, i) => {
     const said = clipText(sentences, c, words);
@@ -507,7 +529,7 @@ export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], wor
       type: "score",
       instructions: {
         clip: said.join(" ").slice(0, 2000),
-        question: "`clip` is cut from a longer talk by a Singapore financial adviser and posted on its own as a short video. How well does it stand alone for a viewer who has seen nothing else of the talk?",
+        question: byThem("`clip` is cut from a longer talk by a Singapore financial adviser and posted on its own as a short video. How well does it stand alone for a viewer who has seen nothing else of the talk?", profession),
       },
       criteria: STANDS_ALONE,
     };

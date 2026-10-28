@@ -11,7 +11,7 @@
 //        Jev's yes probability that the meaning matches the English (edit-translate, "post-translate" cap). NORTH_STAR_USERS
 //        only (403 not_enabled before any count); the use goes back only when OpenAI never answered, and an incomplete reply
 //        keeps it (422). Any other kind is today's caption request.
-//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?, length?} -> {clips:[{start,end,title,hook,reason,score?,parts?,onTopic?,skip?}]}:
+//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?, length?, profession?} -> {clips:[{start,end,title,hook,reason,score?,parts?,onTopic?,skip?}]}:
 //        standalone reels cut from one long video, 3-5 under 8 minutes and up to 16 an hour beyond: the
 //        LLM proposes about twice that, reading a long recording in passes of about 40 minutes
 //        (passes.ts), Jev scores every candidate out of 100 and the best come first (score unset and
@@ -100,7 +100,7 @@ import { openaiFetch } from "../_shared/openaiChat.ts";
 import { MAX_WATCH_BYTES, MAX_WATCH_SECONDS, watchSeconds, watchType, watchVideo } from "./watch.ts";
 import { filmMode, isFilmMode } from "./film.ts";
 import {
-  CLIP_VIEWER,
+  clipViewer,
   MAX_AUDIO_BYTES,
   applySkips,
   skipQuestions,
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
           const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(w.sentences, c.duration, c.about, w, length) }),
+            body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(w.sentences, c.duration, c.about, w, length, c.profession) }),
             signal: AbortSignal.timeout(60_000),
           }).catch((e) => (console.error("video-assist clips", e), null));
           if (!res?.ok) {
@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
       clips = applySkips(clips, skips, length);
       if (!clips.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
       // Jev ranks the candidates from every pass together (Leo's rule: a ranking is a decision); without an answer, the LLM's order
-      const answers = english ? await ask({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words, c.about), "video-assist clips") : null;
+      const answers = english ? await ask({ viewer: clipViewer(c.profession) }, clipQuestions(clips, c.sentences, c.words, c.about, c.profession), "video-assist clips") : null;
       const count = clipCount(c.duration);
       const ranked = rankClips(clips, answers, count, c.about);
       console.log(`video-assist clips: ${proposed} proposed in ${windows.length} ${windows.length === 1 ? "pass" : "passes"}${passes.some((x) => x.failed) ? " (one failed)" : ""}, ${usable} usable, ${clips.length} after cleaning, ${ranked.length} kept (floor ${count.min}, Jev ${answers ? "on" : "off"}, ${Math.round(c.duration)}s)`);
