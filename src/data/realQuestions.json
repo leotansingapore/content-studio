@@ -1,6 +1,34 @@
 {
-  "fetched": "2026-10-27",
+  "fetched": "2026-10-28",
   "questions": [
+    {
+      "question": "HSBC Step Up Promo - Part 2",
+      "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-27T23:19:02.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Collecting Gold and Silver coins",
+      "url": "https://forums.hardwarezone.com.sg/threads/collecting-gold-and-silver-coins.3747449/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-27T10:24:06.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "MARI invest",
+      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-27T04:29:04.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "FIRE (Financial Independence, Retire Early) Movement",
+      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-27T01:45:06.000Z",
+      "audience": "working-adult"
+    },
     {
       "question": "Cashback or Miles",
       "url": "https://www.reddit.com/r/singaporefi/comments/1xfuiry/cashback_or_miles/",
@@ -16,32 +44,11 @@
       "audience": "working-adult"
     },
     {
-      "question": "HSBC Step Up Promo - Part 2",
-      "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-26T04:09:34.000Z",
-      "audience": "working-adult"
-    },
-    {
       "question": "Any advice on other SG share to invest",
       "url": "https://www.reddit.com/r/singaporefi/comments/1xfk1c2/any_advice_on_other_sg_share_to_invest/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-26T01:43:17.000Z",
       "audience": "general"
-    },
-    {
-      "question": "MARI invest",
-      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-25T11:19:16.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "FIRE (Financial Independence, Retire Early) Movement",
-      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-25T07:02:42.000Z",
-      "audience": "working-adult"
     },
     {
       "question": "Dbs finance fees waiver",
@@ -413,13 +420,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-17T06:06:47.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "what does FI actually mean? is it possible income only considered FI?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x7t2i6/what_does_fi_actually_mean_is_it_possible_income/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-16T21:50:17.000Z",
-      "audience": "general"
     }
   ]
 }
