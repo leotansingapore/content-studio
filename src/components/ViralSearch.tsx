@@ -139,10 +139,12 @@ export default function ViralSearch({ userId }: { userId: string }) {
   const tries = recent.length ? [] : brandFacts(userId).topics.slice(0, 3);
   const valid = words.length >= Q_MIN && words.length <= Q_MAX;
 
-  const go = (force: boolean) => {
-    if (!valid || left === 0 || isSearching(words)) return;
-    update({ q: words });
-    void runSearch(userId, words, force);
+  /** Searches `q` (the box by default); a Try chip passes its own words, so one press searches. */
+  const go = (force: boolean, q = words) => {
+    const w = q.replace(/\s+/g, " ").trim();
+    if (w.length < Q_MIN || w.length > Q_MAX || left === 0 || isSearching(w)) return;
+    update({ q: w });
+    void runSearch(userId, w, force);
   };
 
   // what the grid shows: platform, then period, then sort, then Jev's split
@@ -224,7 +226,14 @@ export default function ViralSearch({ userId }: { userId: string }) {
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs font-semibold text-muted-foreground">Try</span>
               {tries.map((t) => (
-                <Chip key={t} active={false} onClick={() => setText(t)}>
+                <Chip
+                  key={t}
+                  active={false}
+                  onClick={() => {
+                    setText(t);
+                    go(false, t);
+                  }}
+                >
                   {t}
                 </Chip>
               ))}
