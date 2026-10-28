@@ -61,7 +61,7 @@ describe("Write for everyone else", () => {
 describe("Write's examples for the brand's profession", () => {
   const values = (o: ReturnType<typeof optionsFor>) => Object.values(o).map((list) => list.map((x: { value: string }) => x.value));
   // Idea sources added after 47e27562 (Starter Story, 28 Oct 2026). The pin below still holds every older entry.
-  const ADDED = ["reply-comment"];
+  const ADDED = ["reply-comment", "show-work"];
   it("are today's for an adviser or a brand with nothing set", () => {
     const today = optionsFor(false);
     expect(JSON.stringify(today)).toContain("CPF SA top-ups");
@@ -74,6 +74,13 @@ describe("Write's examples for the brand's profession", () => {
       const reply = optionsFor(general).ideaSources.find((s) => s.value === "reply-comment")!;
       expect(reply.prompt).toMatch(/quoting the comment .* word for word, then answer it/);
       expect(adviserWordsIn(`${reply.label} ${reply.example} ${reply.prompt}`)).toEqual([]);
+    }
+  });
+  it("ask for a moment shown as it happens, with no pitch, for any work", () => {
+    for (const general of [false, true]) {
+      const work = optionsFor(general).ideaSources.find((s) => s.value === "show-work")!;
+      expect(work.prompt).toMatch(/shown as it happens.*no pitch/);
+      if (general) expect(adviserWordsIn(`${work.label} ${work.example} ${work.prompt}`)).toEqual([]);
     }
   });
   it("offer the same choices in the same order, worded with none of the adviser words, for any other work", () => {

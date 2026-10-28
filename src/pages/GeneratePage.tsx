@@ -309,6 +309,13 @@ const IDEA_SOURCES: { value: string; label: string; example: string; prompt?: st
     example: "Paste the comment below. The post opens by quoting it, then answers it.",
     prompt: "Reply to a comment someone left on my post. Open by quoting the comment from the context word for word, then answer it plainly.",
   },
+  {
+    // Starter Story, Stella and Erly: videos that show the thing in use convert better than ones that only mention it.
+    value: "show-work",
+    label: "A moment from your work this week",
+    example: "e.g. walking a client through their first review. Show it happening; no pitch.",
+    prompt: "A real moment from my work this week, shown as it happens: what I did, what changed for the person, no pitch, ending on the question a viewer would ask.",
+  },
 ];
 
 const FORMATS: {
@@ -403,6 +410,7 @@ const GENERAL_IDEAS: Record<string, { label: string; example: string }> = {
   "three-things": { label: "'3 things you didn't know about ___'", example: "e.g. 3 things nobody tells you before you start" },
   "myth-bust": { label: "Myth-busting", example: "e.g. 'You need a big following to get clients'" },
   "reply-comment": { label: "Reply to a comment on your post", example: "Paste the comment below. The post opens by quoting it, then answers it." },
+  "show-work": { label: "A moment from your work this week", example: "e.g. a client's first session, a viewing, the fix you made on a call. Show it happening; no pitch." },
 };
 const GENERAL_CTA_SUBS: Partial<Record<CtaType, string>> = {
   "dm-keyword": "'DM me GUIDE for the checklist.'",
