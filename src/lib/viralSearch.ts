@@ -59,6 +59,7 @@ function cleanFound(raw: unknown): Found | null {
     followers: num(f.followers),
     postedAt: str(f.postedAt, 40),
     durationSec: num(f.durationSec),
+    slideshow: f.slideshow === true,
     ratio: num(f.ratio),
     relevance: num(f.relevance),
   };

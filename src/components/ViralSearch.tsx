@@ -24,7 +24,8 @@ import {
   inPeriod, platformName, type Posted, POSTED, Q_MAX, Q_MIN, SEARCH_SORTS, type SearchPlatform, type SearchSort, sortFound, splitRelevant,
 } from "../../supabase/functions/viral-search/logic.ts";
 
-const PLATFORM_CHIPS = ["all", "tiktok", "youtube"] as const;
+// slideshow: TikTok photo slideshows only, the posts a slideshow remix starts from
+const PLATFORM_CHIPS = ["all", "tiktok", "youtube", "slideshow"] as const;
 type PlatformChip = (typeof PLATFORM_CHIPS)[number];
 // Refusals that another press today can't fix, so they get no Try again.
 const FINAL = ["daily_limit", "global_limit", "not_enabled", "not_configured"];
@@ -72,6 +73,7 @@ function ResultCard({ f }: { f: Found }) {
           <span className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur" title={name}>
             <PlatformIcon p={f.platform} className="h-3.5 w-3.5" />
           </span>
+          {f.slideshow && <span className="absolute right-2 top-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">Slideshow</span>}
           {f.views !== null && <span className="absolute bottom-2 left-2 text-[11px] font-semibold text-white drop-shadow">{compactNum(f.views)} views</span>}
         </span>
       </a>
@@ -145,13 +147,14 @@ export default function ViralSearch({ userId }: { userId: string }) {
 
   // what the grid shows: platform, then period, then sort, then Jev's split
   const all = shown?.results ?? [];
-  const counts = { all: 0, tiktok: 0, youtube: 0 };
+  const counts = { all: 0, tiktok: 0, youtube: 0, slideshow: 0 };
   const inTime = all.filter((f) => inPeriod(f, posted));
   for (const f of inTime) {
     counts.all++;
     counts[f.platform]++;
+    if (f.slideshow) counts.slideshow++;
   }
-  const mine = all.filter((f) => platform === "all" || f.platform === platform);
+  const mine = all.filter((f) => platform === "all" || (platform === "slideshow" ? f.slideshow : f.platform === platform));
   const older = mine.length - mine.filter((f) => inPeriod(f, posted)).length;
   const { relevant, less } = splitRelevant(sortFound(mine.filter((f) => inPeriod(f, posted)), sort));
   const failedNotes = shown
@@ -261,7 +264,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
                 <div className="flex flex-wrap items-center gap-1.5">
                   {PLATFORM_CHIPS.map((p) => (
                     <Chip key={p} active={platform === p} onClick={() => setPlatform(p)} count={counts[p]}>
-                      {p === "all" ? "All" : platformName(p)}
+                      {p === "all" ? "All" : p === "slideshow" ? "Slideshows" : platformName(p)}
                     </Chip>
                   ))}
                 </div>

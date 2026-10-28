@@ -28,6 +28,8 @@ export interface Found {
   /** ISO. */
   postedAt: string | null;
   durationSec: number | null;
+  /** A TikTok photo slideshow (the actor's isSlideshow), not a video; always false on YouTube. */
+  slideshow: boolean;
   /** Views over the author's followers, one decimal; null when either is unknown. */
   ratio: number | null;
   /** Jev's yes probability that the result fits the search and the business; null without an answer. */
@@ -121,6 +123,7 @@ export function tiktokFound(raw: unknown): Found | null {
     followers,
     postedAt: iso(i.createTimeISO) ?? iso(i.createTime),
     durationSec: count(v.duration),
+    slideshow: i.isSlideshow === true,
     ratio: ratioOf(views, followers),
     relevance: null,
   };
@@ -145,6 +148,7 @@ export function youtubeFound(raw: unknown): Found | null {
     followers: null,
     postedAt: iso(i.timestamp),
     durationSec: count(i.duration_time_seconds),
+    slideshow: false,
     // YouTube's search page gives no subscriber count
     ratio: null,
     relevance: null,

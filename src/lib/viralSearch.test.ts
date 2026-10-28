@@ -32,7 +32,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const found = (id: string, o: Partial<Found> = {}): Found => ({
   id: `tiktok:${id}`, platform: "tiktok", url: `https://www.tiktok.com/@a/video/${id}`, author: "@a", title: null, caption: "A caption", cover: null,
-  views: 1000, likes: 10, comments: 1, shares: 0, followers: 100, postedAt: "2026-10-01T00:00:00.000Z", durationSec: 30, ratio: 10, relevance: 0.8, ...o,
+  views: 1000, likes: 10, comments: 1, shares: 0, followers: 100, postedAt: "2026-10-01T00:00:00.000Z", durationSec: 30, slideshow: false, ratio: 10, relevance: 0.8, ...o,
 });
 const search = (q: string, at: string, results = [found("1")]) => ({ q, at, results, failed: {} });
 
@@ -60,6 +60,12 @@ describe("the saved searches", () => {
     const s = v.loadViralSearches("u1").searches[0];
     expect(s.results).toHaveLength(40);
     expect(s.results[0].caption).toHaveLength(200);
+  });
+
+  it("keeps a slideshow's mark, and reads a result saved before the mark existed as a video", () => {
+    const { slideshow: _, ...old } = found("2");
+    v.saveViralSearch("u1", search("cpf", "t", [found("1", { slideshow: true }), old as Found]));
+    expect(v.loadViralSearches("u1").searches[0].results.map((f) => f.slideshow)).toEqual([true, false]);
   });
 
   it("trims to fewer searches when storage is full rather than losing the new one", () => {

@@ -52,6 +52,7 @@ describe("the integrator's fixtures as Found", () => {
       followers: 6109,
       postedAt: "2026-03-07T00:57:30.000Z",
       durationSec: 51,
+      slideshow: false,
       ratio: 3.1,
       relevance: null,
     });
@@ -88,6 +89,7 @@ describe("the integrator's fixtures as Found", () => {
       followers: null,
       postedAt: "2024-10-20T11:11:57.000Z",
       durationSec: 348,
+      slideshow: false,
       ratio: null,
       relevance: null,
     });
@@ -98,6 +100,12 @@ describe("the integrator's fixtures as Found", () => {
     expect(youtubeResults({ tasks: [{ status_code: 20000, result: null }] })).toEqual([]);
   });
 
+  it("marks a TikTok photo slideshow only when the actor says isSlideshow true", () => {
+    expect(TIKTOK.map((i) => tiktokFound(i)!.slideshow)).toEqual([false, false, false, false, false]);
+    expect(tiktokFound({ ...TIKTOK[0], isSlideshow: true })!.slideshow).toBe(true);
+    expect(tiktokFound({ ...TIKTOK[0], isSlideshow: "true" })!.slideshow).toBe(false);
+  });
+
   it("keeps captions to 200 characters", () => {
     expect(tiktokFound({ ...TIKTOK[0], text: "word ".repeat(100) })!.caption!.length).toBeLessThanOrEqual(200);
   });
@@ -105,7 +113,7 @@ describe("the integrator's fixtures as Found", () => {
 
 const found = (id: string, o: Partial<Found> = {}): Found => ({
   id, platform: "tiktok", url: `https://x.sg/${id}`, author: null, title: null, caption: null, cover: null, views: null, likes: null, comments: null,
-  shares: null, followers: null, postedAt: null, durationSec: null, ratio: null, relevance: null, ...o,
+  shares: null, followers: null, postedAt: null, durationSec: null, slideshow: false, ratio: null, relevance: null, ...o,
 });
 
 describe("sorting and filtering", () => {

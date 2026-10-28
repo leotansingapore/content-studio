@@ -218,7 +218,7 @@ so one that is gone shows everything.
 | /swipe | kind | Leo only. foryou tab: organic, ads | both | replace | /swipe?tab=foryou&kind=ads |
 | /swipe | hidden | Leo only. foryou tab: only (the cards you hid, each with Unhide) | off | replace | /swipe?tab=foryou&hidden=only |
 | /swipe | q | Leo only. search tab: the search, filled in, with its saved results if any (searching again is a tap, since it is paid); foryou and hooks tabs: search text | empty | replace | /swipe?tab=search&q=cpf |
-| /swipe | platform | Leo only. search tab: tiktok, youtube; ads tab (the library): facebook, instagram, messenger, threads | all | replace | /swipe?tab=search&q=cpf&platform=tiktok |
+| /swipe | platform | Leo only. search tab: tiktok, youtube, slideshow (TikTok photo slideshows only); ads tab (the library): facebook, instagram, messenger, threads | all | replace | /swipe?tab=search&q=cpf&platform=tiktok |
 | /swipe | sort | Leo only. search tab: reach, views, engagement, newest; ads tab (the library): relevant, longest, newest | reach on search, relevant on ads | replace | /swipe?tab=search&q=cpf&sort=views |
 | /swipe | posted | Leo only. search tab: 30d, 90d, any | 90d | replace | /swipe?tab=search&q=cpf&posted=30d |
 | /swipe | scope | Leo only. ads tab: a competitor id, space (Your space), sg (the Singapore drop) | all | replace | /swipe?tab=ads&scope=space |
