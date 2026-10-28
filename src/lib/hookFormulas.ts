@@ -3,6 +3,7 @@
 // so the consultant picks with the shape in mind. Wording rewritten for
 // Singapore financial consultants: no promised returns, no named insurers or
 // products. Formula set ported from Jakeschincariol/linkedin-agent-skill (MIT).
+// Full MIT notice: THIRD_PARTY_NOTICES.md.
 
 export interface HookFormula {
   id: string; // stable: saved with hook rows, keep it when renaming
