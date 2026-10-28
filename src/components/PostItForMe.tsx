@@ -51,6 +51,8 @@ import {
   tiktokInfo,
   tiktokReason,
   uploadAll,
+  TIMEZONE,
+  browserTimeZone,
   whenLabel,
   zernioTime,
   type CreatorInfo,
@@ -385,7 +387,10 @@ export function PostItForMePanel({
   if (leo && !thread) return <ScheduleSteps userId={userId} draft={draft} blockReason={blockReason} onDrafts={onDrafts} onClose={onClose} />;
 
   const day = draft.scheduledFor?.slice(0, 10) ?? "";
-  const at = zernioTime(draft.scheduledFor, time);
+  // it goes out at its time where this browser is (Leo, 28 Oct); Singapore, the default, is never written down
+  const tz = browserTimeZone();
+  const zone = tz === TIMEZONE ? {} : { tz };
+  const at = zernioTime(draft.scheduledFor, time, tz);
   const passed = !at || Date.parse(at) < Date.now() + 60_000;
   const goesNow = now || passed;
   // a thread is edited in its own panel; Zernio shows its first post as the content
@@ -425,7 +430,7 @@ export function PostItForMePanel({
     if (reason || busy) return;
     setError("");
     // the key is on the draft before the call, so an answer lost on the way never sends a second post
-    onDrafts(setDraftZernio(userId, draft.id, { key: key.current }));
+    onDrafts(setDraftZernio(userId, draft.id, { key: key.current, ...zone }));
     try {
       let media: MediaFile[] = mode === "files" ? files : [];
       if (mode === "carousel" && carousel) {
@@ -465,15 +470,17 @@ export function PostItForMePanel({
         ...(thread ? { thread } : {}),
         ...(mode === "pdf" && pdfOk ? { documentTitle: carousel?.title.trim() || "Carousel" } : {}),
         ...(goesNow ? { now: true } : { scheduledFor: at! }),
+        ...(zone.tz ? { timezone: zone.tz } : {}),
         ...(draft.firstComment?.trim() ? { firstComment: draft.firstComment.trim() } : {}),
         ...(tiktokInput ? { tiktok: tiktokInput } : {}),
         ...(platform === "youtube" ? { youtube: { title: ytTitle.trim(), visibility: "public" as const } } : {}),
       });
+      // the zone set with the key stays on the link (setDraftZernio)
       onDrafts(setDraftZernio(userId, draft.id, linkFromView(key.current, post)));
-      logPost(userId, draft, (n) => `Set ${n} to post on ${platformName(platform)}`, `Goes out ${goesNow ? "now" : whenLabel(day, time)}.`);
+      logPost(userId, draft, (n) => `Set ${n} to post on ${platformName(platform)}`, `Goes out ${goesNow ? "now" : whenLabel(day, time, tz)}.`);
       toast({
         title: goesNow ? `Posting to ${platformName(platform)}` : `Scheduled on ${platformName(platform)}`,
-        description: goesNow ? "It goes out in about a minute." : `${whenLabel(day, time)}. The chip on the post shows when it's up.`,
+        description: goesNow ? "It goes out in about a minute." : `${whenLabel(day, time, tz)}. The chip on the post shows when it's up.`,
       });
       onClose();
     } catch (e) {
@@ -558,7 +565,7 @@ export function PostItForMePanel({
             <div className="flex flex-wrap items-center gap-1.5">
               {day && (
                 <button type="button" aria-pressed={!goesNow} disabled={passed && !!at} onClick={() => setNow(false)} className={pill(!goesNow)}>
-                  {at && !passed ? whenLabel(day, time) : "On its day"}
+                  {at && !passed ? whenLabel(day, time, tz) : "On its day"}
                 </button>
               )}
               <button type="button" aria-pressed={goesNow} onClick={() => setNow(true)} className={pill(goesNow)}>Now</button>
@@ -634,7 +641,7 @@ export function PostItForMePanel({
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => void send()} disabled={!!reason || !!busy} className={`h-9 gap-1.5 ${TOUCH}`}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-          {busyLabel ?? (goesNow ? "Post now" : at ? `Schedule for ${whenLabel(day, time)}` : "Schedule")}
+          {busyLabel ?? (goesNow ? "Post now" : at ? `Schedule for ${whenLabel(day, time, tz)}` : "Schedule")}
         </Button>
         {reason && !busy && state === "ready" && accounts.length > 0 && <span className="text-muted-foreground">{reason}</span>}
         {blockReason && state !== "ready" && <span className="text-muted-foreground">Team rule: {blockReason}</span>}

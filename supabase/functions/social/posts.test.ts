@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { PDF_LINKEDIN_ONLY, THREAD_MIXED, checkSchedule, checkUpload, isPdf, northStarOnly, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
+import { PDF_LINKEDIN_ONLY, THREAD_MIXED, checkSchedule, checkUpload, isPdf, isTimeZone, northStarOnly, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
 
 const MINE = "0123456789abcdef01234561";
 const THEIRS = "0123456789abcdef01234569";
@@ -81,6 +81,19 @@ describe("the request", () => {
     expect(parsePostRequest({ action: "status" })).toBeNull();
     expect(parsePostRequest({ action: "automations", profileId: "me" })).toBeNull();
     expect(parsePostRequest(null)).toBeNull();
+  });
+
+  it("keeps the time zone the post was scheduled in, Singapore when none is sent; anything else is refused", () => {
+    const at = (extra: Record<string, unknown>) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: "2026-10-12T09:00:00-04:00", ...extra }, NOW);
+    expect(at({ timezone: "America/New_York" })).toMatchObject({ value: { timezone: "America/New_York" } });
+    expect(at({ timezone: "Asia/Kolkata" })).toMatchObject({ value: { timezone: "Asia/Kolkata" } });
+    // none sent: today's posts stay as they were, Singapore
+    expect(at({})).not.toHaveProperty("value.timezone");
+    expect(at({ timezone: null })).not.toHaveProperty("value.timezone");
+    for (const bad of ["Mars/Base", "", "Asia/Singapore; drop", "../etc", 8, "x".repeat(65)]) expect(at({ timezone: bad }), String(bad)).toEqual({ error: "Pick the day and time again." });
+    expect(isTimeZone("Europe/London")).toBe(true);
+    expect(isTimeZone("UTC")).toBe(true);
+    expect(isTimeZone("Not/AZone")).toBe(false);
   });
 
   it("needs an account and a client key that is a UUID", () => {
@@ -173,6 +186,11 @@ describe("what each platform takes", () => {
       scheduledFor: LATER,
       timezone: "Asia/Singapore",
     });
+  });
+
+  it("sends the post's own time zone to Zernio, Singapore when it has none", () => {
+    expect(postBody(input({ scheduledFor: "2026-11-02T09:00:00-05:00", timezone: "America/New_York" }), [{ _id: LI, platform: "linkedin" }], NOW)).toMatchObject({ scheduledFor: "2026-11-02T09:00:00-05:00", timezone: "America/New_York" });
+    expect(postBody(input({}), [{ _id: LI, platform: "linkedin" }], NOW)).toMatchObject({ timezone: "Asia/Singapore" });
   });
 
   it("puts a TikTok photo post's caption in description, and sends now as a minute ahead", () => {
@@ -606,6 +624,14 @@ describe("move (publish-calendar)", () => {
       expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: bad }, NOW), String(bad)).toEqual({ ok: false, status: 400, error: "Pick the day and time again." });
     }
     expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: NEXT }, NOW)).toEqual({ ok: true, req: { action: "move", profileId: "me", postId: POST, scheduledFor: NEXT } });
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: NEXT, timezone: "Europe/London" }, NOW)).toEqual({ ok: true, req: { action: "move", profileId: "me", postId: POST, scheduledFor: NEXT, timezone: "Europe/London" } });
+    expect(parsePostRequest({ action: "move", profileId: "me", postId: POST, scheduledFor: NEXT, timezone: "Nowhere/Land" }, NOW)).toEqual({ ok: false, status: 400, error: "Pick the day and time again." });
+  });
+
+  it("moves a post in the time zone it was scheduled in", async () => {
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]), [`PUT /posts/${POST}`]: updated() });
+    await runPost(f.z, MINE, UID, { ...move(), timezone: "Europe/London" } as PostRequest, NOW);
+    expect(f.req(`PUT /posts/${POST}`)).toEqual({ body: { scheduledFor: NEXT, timezone: "Europe/London" } });
   });
 
   it("sends PUT with scheduledFor and timezone only, and returns the post through the post check", async () => {

@@ -49,6 +49,7 @@ import {
   timeLabel,
   weekOf,
 } from "@/lib/dueDates";
+import { draftZone } from "@/lib/autoPost";
 import {
   loadDrafts,
   setDraftStatus,
@@ -964,6 +965,7 @@ export default function CalendarPage() {
           aria-label="Posting time"
           className={dateInputClass}
         />
+        {d.scheduledFor && scheduleTime(d.scheduledFor) && <span>{draftZone(d)}</span>}
       </label>
       <select
         value={d.repeat?.every ?? ""}
@@ -1010,7 +1012,7 @@ export default function CalendarPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[11px] text-muted-foreground">
                 {dayLabel(ghost)}
-                {time && `, ${timeLabel(time)}`} · repeats {REPEAT_LABEL[d.repeat!.every]}
+                {time && `, ${timeLabel(time)} ${draftZone({ scheduledFor: `${ghost}T${time}` })}`} · repeats {REPEAT_LABEL[d.repeat!.every]}
               </p>
               <p className="line-clamp-2 text-sm font-medium text-foreground">{titleOf(d)}</p>
             </div>
@@ -1152,7 +1154,7 @@ export default function CalendarPage() {
             <span className="block text-[10px] opacity-80">
               {e.repeat && <RepeatIcon className="mr-1 inline h-2.5 w-2.5 align-[-1px]" aria-label="Repeats" />}
               {PLATFORM_LABEL[e.platform] ?? e.platform}
-              {time && ` · ${timeLabel(time)}`}
+              {time && ` · ${timeLabel(time)} ${draftZone(e)}`}
             </span>
             <span className="line-clamp-2">{titleOf(e)}</span>
             {e.zernio?.postId && (
@@ -1255,7 +1257,7 @@ export default function CalendarPage() {
         {roomy ? (
           <>
             {PLATFORM_LABEL[e.platform] ?? e.platform}
-            {time && ` · ${timeLabel(time)}`}
+            {time && ` · ${timeLabel(time)} ${draftZone({ scheduledFor: `${day}T${time}` })}`}
             <span className="line-clamp-2">{titleOf(e)}</span>
           </>
         ) : (
@@ -1542,7 +1544,7 @@ export default function CalendarPage() {
               ) : late ? (
                 <span className="font-medium text-warning">{overdueLabel(daysOverdue(date, todayKey))}</span>
               ) : time ? (
-                `Scheduled ${timeLabel(time)}`
+                `Scheduled ${timeLabel(time)} ${draftZone(e)}`
               ) : (
                 "Scheduled"
               )}

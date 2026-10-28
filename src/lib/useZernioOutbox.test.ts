@@ -70,6 +70,26 @@ describe("sendOutbox", () => {
     expect(updating(loadOutbox(UID), draftOf(id)!)).toBe(false);
   });
 
+  it("moves a post scheduled from New York in New York's time, and says when it goes out there", async () => {
+    const id = ids();
+    const ny = { key: "k", postId: id, status: "scheduled", at: "2026-10-15T13:00:00.000Z", tz: "America/New_York" };
+    saveDrafts(UID, [held(id, { zernio: ny })]);
+    setDraftStatus(UID, `d-${id}`, "scheduled", "2026-10-16T19:30");
+    calls.fn.mockResolvedValueOnce(view(id, "2026-10-16T23:30:00.000Z"));
+    await sendOutbox(UID, now);
+    expect(sent()).toEqual([{ name: "social", action: "move", profileId: "me", postId: id, scheduledFor: "2026-10-16T19:30:00-04:00", timezone: "America/New_York" }]);
+    expect(draftOf(id)!.zernio).toMatchObject({ at: "2026-10-16T23:30:00.000Z", tz: "America/New_York" });
+    // Zernio already sending it: the card goes back to 9:00 in New York, not Singapore's clock
+    const id2 = ids();
+    saveDrafts(UID, [held(id2, { zernio: { ...ny, postId: id2 } })]);
+    setDraftStatus(UID, `d-${id2}`, "scheduled", "2026-10-16T19:30");
+    calls.fn.mockRejectedValueOnce(new EdgeError("It's already going out, so it can't move.", 409, "published"));
+    await sendOutbox(UID, now);
+    expect(draftOf(id2)).toMatchObject({ scheduledFor: "2026-10-15T09:00", zernio: { status: "publishing" } });
+    const rows = outboxRows([held(id2, { zernio: { ...ny, postId: id2 } })], { ops: [op(id2, { tries: MAX_TRIES })], gone: [] }, (d) => d.hook);
+    expect(rows.map((r) => r.text)).toEqual([expect.stringMatching(/goes out Thu,? 15 Oct,? 9:00\s?am GMT-4$/)]);
+  });
+
   it("Undo after the move went sends the post back to its first time", async () => {
     const id = ids();
     saveDrafts(UID, [held(id)]);
@@ -302,7 +322,7 @@ describe("outboxRows", () => {
     const rows = outboxRows([held(id), inbox], { ops: [op(id, { tries: MAX_TRIES }), op("gone-post", { id: "o-2", op: "cancel", title: "Old one", tries: MAX_TRIES })], gone: [] }, titleOf);
     expect(rows.map((r) => [r.kind, r.text])).toEqual([
       ["inbox", 'Finish in TikTok: "5 signs" is in your TikTok inbox'],
-      ["stuck", expect.stringMatching(/^Still on the old time: "Budget 2027" goes out Thu,? 15 Oct,? 9:00\s?am$/i)],
+      ["stuck", expect.stringMatching(/^Still on the old time: "Budget 2027" goes out Thu,? 15 Oct,? 9:00\s?am SGT$/i)],
       ["stuck", 'Still on the old time: "Old one" still goes out'],
     ]);
     expect(outboxRows([{ ...inbox, status: "posted" }], { ops: [], gone: [] }, titleOf)).toEqual([]);

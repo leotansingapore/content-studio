@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, TIKTOK_UPDATE, canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, renderEach, schedulePost, stepProblem, stepToOpen, tiktokReason, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
+const { PDF_LINKEDIN_ONLY, THREAD_MIXED, TIKTOK_BUSY, TIKTOK_UPDATE, browserTimeZone, canCancel, canRetry, chipOf, draftZone, fileProblem, fileType, isDue, linkFromView, platformProblem, postText, postedNow, renderEach, schedulePost, stepProblem, stepToOpen, tiktokReason, uploadAll, uploadName, UploadError, wallIn, zernioTime, zoneLabel, zoneName } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -146,6 +146,87 @@ describe("the draft as it goes out", () => {
     expect(zernioTime(undefined, "09:00")).toBeNull();
   });
 
+  it("takes the draft's day and time in the zone it was scheduled from, daylight saving included", () => {
+    // Singapore stays byte for byte what it was
+    expect(zernioTime("2026-10-14T09:30", undefined, "Asia/Singapore")).toBe("2026-10-14T09:30:00+08:00");
+    expect(zernioTime("2026-12-01T09:00", undefined, "America/New_York")).toBe("2026-12-01T09:00:00-05:00");
+    expect(zernioTime("2026-07-01T09:00", undefined, "America/New_York")).toBe("2026-07-01T09:00:00-04:00");
+    // US clocks go forward 8 Mar 2026 at 2:00 and back 1 Nov 2026 at 2:00
+    expect(zernioTime("2026-03-08T01:30", undefined, "America/New_York")).toBe("2026-03-08T01:30:00-05:00");
+    expect(zernioTime("2026-03-08T09:00", undefined, "America/New_York")).toBe("2026-03-08T09:00:00-04:00");
+    // 2:30 never happens that day: it goes out at 3:30, the same hour later
+    expect(zernioTime("2026-03-08T02:30", undefined, "America/New_York")).toBe("2026-03-08T03:30:00-04:00");
+    // 1:30 happens twice: the first one
+    expect(zernioTime("2026-11-01T01:30", undefined, "America/New_York")).toBe("2026-11-01T01:30:00-04:00");
+    expect(zernioTime("2026-11-01T09:00", undefined, "America/New_York")).toBe("2026-11-01T09:00:00-05:00");
+    // the south's summer, half and quarter hours, London's change on 29 Mar 2026
+    expect(zernioTime("2026-07-01T09:00", undefined, "Australia/Sydney")).toBe("2026-07-01T09:00:00+10:00");
+    expect(zernioTime("2026-12-01T09:00", undefined, "Australia/Sydney")).toBe("2026-12-01T09:00:00+11:00");
+    expect(zernioTime("2026-10-14", "18:05", "Asia/Kolkata")).toBe("2026-10-14T18:05:00+05:30");
+    expect(zernioTime("2026-10-14", "18:05", "Asia/Kathmandu")).toBe("2026-10-14T18:05:00+05:45");
+    expect(zernioTime("2026-03-28T09:00", undefined, "Europe/London")).toBe("2026-03-28T09:00:00+00:00");
+    expect(zernioTime("2026-03-29T09:00", undefined, "Europe/London")).toBe("2026-03-29T09:00:00+01:00");
+    expect(Date.parse(zernioTime("2026-12-01T09:00", undefined, "America/Los_Angeles")!)).toBe(Date.parse("2026-12-01T17:00:00Z"));
+    expect(zernioTime("2026-10-14", "24:00", "America/New_York")).toBeNull();
+  });
+
+  it("reads Zernio's time back as the day and time where it was scheduled", () => {
+    for (const tz of ["Asia/Singapore", "America/New_York", "Europe/London", "Australia/Sydney", "Asia/Kolkata", "Pacific/Auckland"]) {
+      for (const wall of ["2026-01-15T09:00", "2026-03-08T09:00", "2026-07-04T23:45", "2026-11-01T00:15", "2026-12-31T23:59"]) {
+        expect(wallIn(zernioTime(wall, undefined, tz)!, tz), `${tz} ${wall}`).toBe(wall);
+      }
+    }
+    expect(wallIn("2026-10-14T01:30:00.000Z")).toBe("2026-10-14T09:30");
+  });
+
+  it("names the zone beside the time", () => {
+    expect(zoneLabel("2026-10-14T01:30:00.000Z")).toBe("Wed, 14 Oct, 9:30 am SGT");
+    expect(zoneLabel("2026-10-14T13:30:00.000Z", "America/New_York")).toBe("Wed, 14 Oct, 9:30 am GMT-4");
+    expect(zoneLabel("2026-12-14T14:30:00.000Z", "America/New_York")).toBe("Mon, 14 Dec, 9:30 am GMT-5");
+    expect(zoneName("Asia/Kolkata")).toBe("GMT+5:30");
+    expect(zoneName("Europe/London", Date.parse("2026-07-01T00:00:00Z"))).toBe("GMT+1");
+  });
+
+  it("names the zone a post on the calendar goes out in: its Zernio post's, else this browser's", () => {
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions;
+    const spy = vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...real.call(this), timeZone: "Europe/London" };
+    });
+    try {
+      // on Zernio from before 28 Oct: Singapore, wherever it is looked at
+      expect(draftZone({ scheduledFor: "2026-07-01T09:00", zernio: { key: "k", postId: "p" } })).toBe("SGT");
+      expect(draftZone({ scheduledFor: "2026-07-01T09:00", zernio: { key: "k", postId: "p", tz: "America/New_York" } })).toBe("GMT-4");
+      // on its day: winter or summer time
+      expect(draftZone({ scheduledFor: "2026-12-01T09:00", zernio: { key: "k", postId: "p", tz: "America/New_York" } })).toBe("GMT-5");
+      // not on Zernio: Post it for me would send it from here
+      expect(draftZone({ scheduledFor: "2026-07-01T09:00" })).toBe("GMT+1");
+      expect(draftZone({ scheduledFor: "2026-12-01T09:00", zernio: { key: "k" } })).toBe("GMT");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("uses the browser's zone, Singapore when it can't be read", () => {
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions;
+    const spy = vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions");
+    spy.mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...real.call(this), timeZone: "America/Chicago" };
+    });
+    try {
+      expect(browserTimeZone()).toBe("America/Chicago");
+      spy.mockImplementation(function (this: Intl.DateTimeFormat) {
+        return { ...real.call(this), timeZone: "Not/AZone" };
+      });
+      expect(browserTimeZone()).toBe("Asia/Singapore");
+      spy.mockImplementation(() => {
+        throw new Error("no Intl");
+      });
+      expect(browserTimeZone()).toBe("Asia/Singapore");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("is the text a copy would paste: plain, signed off, disclosed", () => {
     const d = { draft: "**Three** checks.", disclosure: [], platform: "instagram", hook: "", pillarDetail: "" };
     expect(postText(d, null)).toBe("Three checks.");
@@ -166,7 +247,9 @@ describe("the status chip", () => {
   it("says where the post is", () => {
     expect(chipOf(undefined)).toBeNull();
     expect(chipOf({ key: "k" })).toBeNull();
-    expect(chipOf(link({ status: "scheduled", at: "2026-10-14T01:30:00.000Z" }))).toEqual({ label: expect.stringMatching(/^Scheduled .*14.*9:30/), tone: "wait" });
+    expect(chipOf(link({ status: "scheduled", at: "2026-10-14T01:30:00.000Z" }))).toEqual({ label: "Scheduled Wed, 14 Oct, 9:30 am SGT", tone: "wait" });
+    // in the zone it was scheduled from
+    expect(chipOf(link({ status: "scheduled", at: "2026-10-14T13:30:00.000Z", tz: "America/New_York" }))).toEqual({ label: "Scheduled Wed, 14 Oct, 9:30 am GMT-4", tone: "wait" });
     expect(chipOf(link({ status: "published" }))).toEqual({ label: "Posted", tone: "good" });
     expect(chipOf(link({ status: "failed" }))).toEqual({ label: "Failed", tone: "bad" });
   });
@@ -215,21 +298,22 @@ describe("the status chip", () => {
   });
 });
 
-// Pins (phase 7a post-libs): today's answers on fixed inputs, so the draft and inbox changes keep them.
+// Pins (phase 7a post-libs): today's answers on fixed inputs, so the draft and inbox changes keep them. 28 Oct: the
+// scheduled label names its time zone (SGT for every post sent before then), by design.
 describe("pins: the chip and the link as they read before inbox drafts", () => {
   it("names every status Zernio sends", () => {
     const at = "2026-10-14T01:30:00.000Z";
     const rows = ["draft", "scheduled", "publishing", "published", "partial", "failed", "cancelled", "unknown", undefined].map((status) => [status, chipOf({ key: "k", postId: "p", status, at })]);
     expect(rows).toEqual([
-      ["draft", { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
-      ["scheduled", { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
+      ["draft", { label: "Scheduled Wed, 14 Oct, 9:30 am SGT", tone: "wait" }],
+      ["scheduled", { label: "Scheduled Wed, 14 Oct, 9:30 am SGT", tone: "wait" }],
       ["publishing", { label: "Posting", tone: "wait" }],
       ["published", { label: "Posted", tone: "good" }],
       ["partial", { label: "Partly posted", tone: "bad" }],
       ["failed", { label: "Failed", tone: "bad" }],
       ["cancelled", { label: "Cancelled", tone: "muted" }],
-      ["unknown", { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
-      [undefined, { label: "Scheduled Wed, 14 Oct, 9:30 am", tone: "wait" }],
+      ["unknown", { label: "Scheduled Wed, 14 Oct, 9:30 am SGT", tone: "wait" }],
+      [undefined, { label: "Scheduled Wed, 14 Oct, 9:30 am SGT", tone: "wait" }],
     ]);
   });
 

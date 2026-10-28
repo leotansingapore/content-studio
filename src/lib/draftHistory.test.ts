@@ -425,6 +425,15 @@ describe("Post it for me's link to the Zernio post", () => {
     expect(setDraftZernio(UID, "s", null)[0]).not.toHaveProperty("zernio");
   });
 
+  it("keeps the zone it was scheduled in when Zernio's answer replaces the link, and only for the same send", () => {
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-15T09:00" })]);
+    setDraftZernio(UID, "s", { key: link.key, tz: "America/New_York" });
+    // a read of the post (linkFromView) knows nothing of the zone
+    expect(setDraftZernio(UID, "s", { ...link, at: "2026-10-15T13:00:00.000Z" })[0].zernio).toEqual({ ...link, at: "2026-10-15T13:00:00.000Z", tz: "America/New_York" });
+    // a new send is its own
+    expect(setDraftZernio(UID, "s", { key: "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee" })[0].zernio).toEqual({ key: "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee" });
+  });
+
   it("stays with the posted record of a recurring post, not the next occurrence", () => {
     saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-08T09:00", repeat: { every: "week", start: "2026-10-08" }, zernio: link })]);
     const [record, series] = setDraftStatus(UID, "s", "posted");
@@ -711,6 +720,17 @@ describe("the Zernio outbox from My posts' own actions (phase 7 decision 6)", ()
   const link = { key: "k", postId: POST_ID, status: "scheduled", at: "2026-10-15T01:00:00.000Z" };
   const held = (extra: Partial<DraftEntry> = {}) => post({ status: "scheduled", scheduledFor: "2026-10-15T09:00", zernio: link, ...extra });
   const ops = () => loadOutbox(UID).ops.map((o) => ({ postId: o.postId, op: o.op, ...(o.at ? { at: o.at } : {}) }));
+
+  it("a move keeps the post's own zone: 9:00 in New York stays 9:00 there, and putting it back queues nothing", () => {
+    const ny = { ...link, at: "2026-10-15T13:00:00.000Z", tz: "America/New_York" };
+    saveDrafts(UID, [held({ zernio: ny })]);
+    setDraftStatus(UID, "s", "scheduled", "2026-11-02T09:00");
+    // after the clocks went back: EST
+    expect(ops()).toEqual([{ postId: POST_ID, op: "move", at: "2026-11-02T09:00:00-05:00" }]);
+    // back to the moment Zernio holds (9:00 in New York) drops the move; read as Singapore's 9:00 it would queue one
+    setDraftStatus(UID, "s", "scheduled", "2026-10-15T09:00");
+    expect(ops()).toEqual([]);
+  });
 
   it("a move queues one op and its Undo drops it", () => {
     const original = held();

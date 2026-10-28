@@ -34,8 +34,8 @@ export const zernioHolds = (d: Pick<DraftEntry, "zernio">): boolean =>
 /** Held and not going out right now (a publishing post can't move or be cancelled). */
 const changeable = (d: Pick<DraftEntry, "zernio">, gone: string[]) => zernioHolds(d) && d.zernio!.status !== "publishing" && !gone.includes(d.zernio!.postId!);
 
-/** The moment a draft's time names, as Zernio takes it; a day with no time goes out at 9:00 Singapore. */
-const zernioAt = (scheduledFor: string) => zernioTime(scheduledFor) ?? `${scheduledFor.slice(0, 10)}T09:00:00+08:00`;
+/** The moment a draft's time names, as Zernio takes it, in the zone its post was scheduled in; a day with no time goes out at 9:00 there. */
+const zernioAt = (scheduledFor: string, tz?: string) => zernioTime(scheduledFor, undefined, tz) ?? zernioTime(scheduledFor.slice(0, 10), "09:00", tz)!;
 
 const opId = () => `o-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6).padEnd(4, "0")}`;
 const titleOf = (d: DraftEntry) => (d.hook || d.pillarDetail || "Untitled post").replace(/\s+/g, " ").trim().slice(0, 120);
@@ -56,7 +56,7 @@ export function zernioOps(before: DraftEntry[], after: DraftEntry[], box: Outbox
     if (!changeable(d, box.gone) || (prev && prev.scheduledFor === d.scheduledFor && prev.status === d.status)) continue;
     if (d.status !== "scheduled" || !d.scheduledFor) continue;
     const z = d.zernio!;
-    const at = zernioAt(d.scheduledFor);
+    const at = zernioAt(d.scheduledFor, z.tz);
     if (z.at && Date.parse(at) === Date.parse(z.at)) {
       if (ops.some((o) => o.postId === z.postId)) ops = ops.filter((o) => o.postId !== z.postId);
     }

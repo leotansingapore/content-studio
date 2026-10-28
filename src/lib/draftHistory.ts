@@ -156,6 +156,8 @@ export interface ZernioLink {
   status?: string;
   /** When it goes out (ISO). */
   at?: string;
+  /** The IANA zone it was scheduled in (the browser's at the time); Singapore when absent, as for every post before 28 Oct. */
+  tz?: string;
   /** Each platform's live post, once published. */
   links?: { platform: string; url: string }[];
   /** Why it failed, in Zernio's words. */
@@ -540,7 +542,9 @@ export function setDraftZernio(userId: string, id: string, link: ZernioLink | nu
   const before = loadDrafts(userId).find((d) => d.id === id);
   const next = loadDrafts(userId).map((d) => {
     if (d.id !== id) return d;
-    const updated: DraftEntry = { ...d, zernio: link ?? undefined };
+    // Zernio's answer (linkFromView) knows nothing of the zone the send was made in: the same send keeps it
+    const tz = link && !link.tz && d.zernio?.tz && d.zernio.key === link.key ? { tz: d.zernio.tz } : {};
+    const updated: DraftEntry = { ...d, zernio: link ? { ...link, ...tz } : undefined };
     if (!link) delete updated.zernio;
     return updated;
   });

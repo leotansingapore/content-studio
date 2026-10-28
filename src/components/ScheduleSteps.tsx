@@ -27,7 +27,7 @@ import { SLIDE_SIZES, slideImage } from "@/lib/carouselDesigns";
 import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
 import { draftStatus, loadDrafts, restoreDraft, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
-import { applyView, sgWall } from "@/lib/useZernioOutbox";
+import { applyView } from "@/lib/useZernioOutbox";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { localDateKey, scheduleTime } from "@/lib/dueDates";
@@ -76,6 +76,7 @@ import {
   tiktokReason,
   uploadAll,
   whenLabel,
+  wallIn,
   zernioTime,
   type CreatorInfo,
   type MediaFile,
@@ -687,7 +688,7 @@ export function ScheduleSteps({
         const failed = post.status === "failed" ? (post.platforms.find((p) => p.error)?.error ?? "Zernio couldn't post it.") : null;
         // on its day at the minute Zernio holds, as the calendar and My posts read a scheduled post; set before the link,
         // so the save that adds the link changes no time and queues no move (a send now comes back with seconds)
-        if (!failed) setDraftStatus(userId, draft.id, "scheduled", sgWall(post.scheduledFor || at || new Date().toISOString()));
+        if (!failed) setDraftStatus(userId, draft.id, "scheduled", wallIn(post.scheduledFor || at || new Date().toISOString()));
         // the host hears of the post on Done, so a page that hides the panel once the draft has a post keeps this screen
         setDraftZernio(userId, draft.id, linkFromView(key.current, post));
         if (failed) {
@@ -701,7 +702,7 @@ export function ScheduleSteps({
         setBusy("send");
         const tgFiles = list.length ? await uploadTelegramFiles(profileId, list, tgUploaded.current) : [];
         const tg = await scheduleTelegram(profileId, { chatRows: tgPicked, clientKey: key.current, text: tgText, media: tgFiles, ...(goesNow ? { now: true as const } : { sendAt: at! }) });
-        if (tgOnly) setDraftStatus(userId, draft.id, "scheduled", sgWall(tg.sendAt));
+        if (tgOnly) setDraftStatus(userId, draft.id, "scheduled", wallIn(tg.sendAt));
       }
       logPost(userId, draft, (n) => `Set ${n} to post on ${names}`, `Goes out ${goesNow ? "now" : whenText}.`);
       const zernio = post && doneFor(post, { inbox: allInbox, now: goesNow, names, when: whenText });

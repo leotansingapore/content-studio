@@ -1,6 +1,7 @@
 // Post it for me is live for everyone with social accounts switched on: its schedule, cancel and retry paths are
 // pinned on today's code for a session that is not Leo's (what it sends, what it saves on the draft, what it says).
-// Never update these with vitest -u.
+// Never update these with vitest -u. 28 Oct: what it says names the time zone (SGT), by design; the browser is in
+// Singapore unless a case says otherwise.
 //
 // Node has no DOM, so the hooks are stood in for (the StudioLayout pin's pattern): each draw collects the effects
 // whose deps changed, the test runs them, and a button is pressed by calling the onClick it has in the element tree
@@ -127,7 +128,14 @@ async function draw<P>(C: (p: P) => unknown, props: P): Promise<unknown> {
 const zernioOf = (calls: unknown[][]) => calls.map(([list]) => (list as DraftEntry[]).find((d) => d.id === "d1")?.zernio ?? null);
 const activityRows = () => local.keys().filter((k) => k.startsWith("content-studio-activity-"));
 
+const zone = vi.hoisted(() => ({ tz: "Asia/Singapore" }));
+const realOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockImplementation(function (this: Intl.DateTimeFormat) {
+  return { ...realOptions.call(this), timeZone: zone.tz };
+});
+
 beforeEach(() => {
+  zone.tz = "Asia/Singapore";
   local.clear();
   shim.slots = [];
   shim.deps = [];
@@ -155,9 +163,28 @@ describe("Post it for me for everyone else", () => {
       { name: "social", action: "schedule", profileId: "me", accountIds: ["acc1"], clientKey: key, content: "3 CPF myths at 55\n\nMyth one.", mediaUrls: [], scheduledFor: "2030-01-15T09:00:00+08:00" },
     ]);
     expect(zernioOf(onDrafts.mock.calls)).toEqual([{ key }, { key, postId: "zp1", status: "scheduled", at: "2030-01-15T01:00:00.000Z" }]);
-    expect(toasts).toEqual([{ title: "Scheduled on LinkedIn", description: `${whenLabel("2030-01-15", "09:00")}. The chip on the post shows when it's up.` }]);
+    expect(toasts).toEqual([{ title: "Scheduled on LinkedIn", description: `${whenLabel("2030-01-15", "09:00", "Asia/Singapore")}. The chip on the post shows when it's up.` }]);
+    expect(toasts).toEqual([{ title: "Scheduled on LinkedIn", description: expect.stringMatching(/9am SGT\. The chip/) }]);
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(activityRows()).toEqual([]);
+  });
+
+  it("schedules from New York at 9:00 New York time, sends the zone and keeps it on the draft's link", async () => {
+    zone.tz = "America/New_York";
+    local.setItem(DRAFTS, JSON.stringify([dated]));
+    fn.answers.schedule = () => ({ post: view("scheduled") });
+    const onDrafts = vi.fn();
+    const props = { userId: UID, draft: dated, blockReason: null, onDrafts, onClose: vi.fn() };
+    await draw(PostItForMePanel, props);
+    const send = button(await draw(PostItForMePanel, props), (w) => w.startsWith("Schedule for"));
+    expect(text(send).trim()).toMatch(/9am GMT-5$/);
+    send.props.onClick!();
+    await settle();
+
+    const key = (fn.calls[1] as { clientKey: string }).clientKey;
+    expect(fn.calls[1]).toMatchObject({ action: "schedule", scheduledFor: "2030-01-15T09:00:00-05:00", timezone: "America/New_York" });
+    expect(zernioOf(onDrafts.mock.calls)).toEqual([{ key, tz: "America/New_York" }, { key, postId: "zp1", status: "scheduled", at: "2030-01-15T01:00:00.000Z", tz: "America/New_York" }]);
+    expect(toasts).toEqual([{ title: "Scheduled on LinkedIn", description: expect.stringMatching(/9am GMT-5\. The chip/) }]);
   });
 
   it("a send that fails keeps the key on the draft, says why and leaves the panel open", async () => {
@@ -293,7 +320,7 @@ describe("Post it for me in Leo's Activity", () => {
     };
     await schedule();
     expect(rows()).toEqual([
-      { who: "you", kind: "post", title: 'Set "3 CPF myths at 55" to post on LinkedIn', detail: `Goes out ${whenLabel("2030-01-15", "09:00")}.`, link: LINK },
+      { who: "you", kind: "post", title: 'Set "3 CPF myths at 55" to post on LinkedIn', detail: `Goes out ${whenLabel("2030-01-15", "09:00", "Asia/Singapore")}.`, link: LINK },
       { who: "you", kind: "post", title: '"3 CPF myths at 55" could not be posted', detail: "Zernio is down. Try again in a minute.", link: LINK },
     ]);
   });

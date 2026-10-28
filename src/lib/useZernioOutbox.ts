@@ -14,12 +14,13 @@ import { logActivity } from "@/lib/activity";
 import { links } from "@/lib/links";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName } from "@/lib/socialConnect";
-import { cancelPost, chipOf, linkFromView, postedNow, retryPost, sgLabel, tiktokReason, type PostView } from "@/lib/autoPost";
+import { cancelPost, chipOf, linkFromView, postedNow, retryPost, tiktokReason, wallIn, zoneLabel, type PostView } from "@/lib/autoPost";
 import { draftStatus, draftsChanged, loadDrafts, restoreDraft, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
 import { MAX_TRIES, loadOutbox, onOutbox, saveOutbox, settleOutbox, zernioOps, runOutbox, type Outbox, type OutboxOp, type SendResult } from "@/lib/zernioOutbox";
 
-export const movePost = (profileId: string, postId: string, scheduledFor: string) =>
-  callFn<{ post: PostView }>("social", { action: "move", profileId, postId, scheduledFor }, "Couldn't move it on Zernio. Try again in a minute.");
+/** tz: the zone the post was scheduled in, sent only when it isn't Singapore (as before 28 Oct). */
+export const movePost = (profileId: string, postId: string, scheduledFor: string, tz?: string) =>
+  callFn<{ post: PostView }>("social", { action: "move", profileId, postId, scheduledFor, ...(tz ? { timezone: tz } : {}) }, "Couldn't move it on Zernio. Try again in a minute.");
 
 /**
  * A cancel waits this long before it goes, so the toast's Undo can still drop it (Zernio can't bring a cancelled post
@@ -37,9 +38,6 @@ const seen = new Map<string, number>();
 
 const noun = (title: string) => `"${title.length > 70 ? `${title.slice(0, 67).trimEnd()}...` : title}"`;
 const names = (d: DraftEntry) => (d.zernio?.platforms?.length ? d.zernio.platforms : [d.platform]).map(platformName).join(" and ");
-/** Zernio's UTC time as the draft's "YYYY-MM-DDTHH:MM" in Singapore (no daylight saving). */
-export const sgWall = (iso: string) => new Date(Date.parse(iso) + 8 * 3_600_000).toISOString().slice(0, 16);
-
 function log(userId: string, d: DraftEntry | undefined, title: string, detail?: string) {
   logActivity(userId, { who: "you", kind: "post", title, ...(detail ? { detail } : {}), ...(d ? { link: links.calendar({ post: d.id }) } : {}) });
 }
@@ -53,7 +51,7 @@ async function sendOne(userId: string, profileId: string, op: OutboxOp, gone: st
   if (op.op === "move" && !d) return "done";
   try {
     if (op.op === "move") {
-      const { post } = await movePost(profileId, op.postId, op.at!);
+      const { post } = await movePost(profileId, op.postId, op.at!, d!.zernio!.tz);
       const numbers = d!.zernio!.numbers;
       setDraftZernio(userId, d!.id, { ...linkFromView(d!.zernio!.key, post), ...(numbers ? { numbers } : {}) });
       // moved again or put back while this move was out (zernioOps compared against the old time): queue it again
@@ -61,7 +59,7 @@ async function sendOne(userId: string, profileId: string, op: OutboxOp, gone: st
       const box = loadOutbox(userId);
       const next = cur ? zernioOps([{ ...cur, scheduledFor: "" }], [cur], box) : box;
       if (next !== box) saveOutbox(userId, next);
-      log(userId, d, `Moved ${noun(op.title)} on Zernio`, post.scheduledFor ? `Goes out ${sgLabel(post.scheduledFor)}.` : undefined);
+      log(userId, d, `Moved ${noun(op.title)} on Zernio`, post.scheduledFor ? `Goes out ${zoneLabel(post.scheduledFor, d!.zernio!.tz)}.` : undefined);
       return "done";
     }
     await cancelPost(profileId, op.postId);
@@ -83,7 +81,7 @@ async function sendOne(userId: string, profileId: string, op: OutboxOp, gone: st
         // it is going out at the time Zernio holds: the card goes back there, reading Posting until the next read
         const at = d.zernio!.at;
         setDraftZernio(userId, d.id, { ...d.zernio!, status: "publishing" });
-        if (at) setDraftStatus(userId, d.id, "scheduled", sgWall(at));
+        if (at) setDraftStatus(userId, d.id, "scheduled", wallIn(at, d.zernio!.tz));
         toast({ title: `Already posted on ${names(d)}, so it stays where it was.` });
       } else toast({ title: "Already posted", description: e.message });
       log(userId, d, `${noun(op.title)} was already going out`, op.op === "move" ? "It stays at its old time." : e.message);
@@ -201,7 +199,7 @@ export function outboxRows(drafts: DraftEntry[], box: Outbox, titleOf: (d: Draft
     if (op.tries < MAX_TRIES) continue;
     const d = drafts.find((x) => x.zernio?.postId === op.postId) ?? null;
     const at = d?.zernio?.at;
-    rows.push({ kind: "stuck", key: `s-${op.id}`, text: `Still on the old time: "${d ? titleOf(d) : op.title}" ${at ? `goes out ${sgLabel(at)}` : "still goes out"}`, op, draft: d });
+    rows.push({ kind: "stuck", key: `s-${op.id}`, text: `Still on the old time: "${d ? titleOf(d) : op.title}" ${at ? `goes out ${zoneLabel(at, d?.zernio?.tz)}` : "still goes out"}`, op, draft: d });
   }
   return rows;
 }

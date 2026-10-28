@@ -20,6 +20,8 @@ import {
   MEDIA_TYPES,
   NOW_LEAD_MS,
   PDF_TYPE,
+  TIMEZONE,
+  isTimeZone,
   platformProblem,
   type CreatorInfo,
   type PostView,
@@ -28,7 +30,7 @@ import {
 } from "../../supabase/functions/social/posts.ts";
 
 export { CAPTION_MAX, NEEDS_MEDIA, PDF_LINKEDIN_ONLY, PDF_TYPE, THREAD_MIXED, YOUTUBE_TITLE_MAX, checkSchedule, isPdf, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
-export { MAX_PICTURES, MEDIA_TYPES, type CreatorInfo, type PostView };
+export { MAX_PICTURES, MEDIA_TYPES, TIMEZONE, type CreatorInfo, type PostView };
 
 // ---- the draft ----
 
@@ -38,20 +40,80 @@ export function postText(d: Pick<DraftEntry, "draft" | "disclosure" | "platform"
   return brand?.tagLinks ? tagLinks(out, { source: d.platform, campaign: d.hook || d.pillarDetail || "post" }) : out;
 }
 
-/** The draft's day and time as Zernio takes it (Singapore, +08:00), or null when it has no time. */
-export function zernioTime(scheduledFor: string | undefined, time?: string): string | null {
-  const day = scheduledFor?.slice(0, 10) ?? "";
-  const t = time || scheduledFor?.slice(11, 16) || "";
-  return /^\d{4}-\d{2}-\d{2}$/.test(day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? `${day}T${t}:00+08:00` : null;
+// ---- time zones: a post goes out at its time where the person scheduled it (Leo, 28 Oct); Singapore when unsaid ----
+
+/** This browser's IANA zone, Singapore when it can't be read. */
+export function browserTimeZone(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return isTimeZone(tz) ? tz : TIMEZONE;
+  } catch {
+    return TIMEZONE;
+  }
 }
 
-/** "Tue 14 Oct, 9:00 am" for a draft day and time. */
-export const whenLabel = (day: string, time: string) =>
-  `${keyToDate(day).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${timeLabel(time)}`;
+const HOUR_PARTS = { hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" } as const;
 
-/** "Tue 14 Oct, 9:00 am" in Singapore time for an ISO time from Zernio. */
-export const sgLabel = (iso: string) =>
-  new Date(iso).toLocaleString("en-SG", { timeZone: "Asia/Singapore", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+// a formatter costs far more to make than to use, and the calendar asks for one per card
+const formatters = new Map<string, Intl.DateTimeFormat>();
+const formatter = (key: string, make: () => Intl.DateTimeFormat) => formatters.get(key) ?? formatters.set(key, make()).get(key)!;
+
+/** "YYYY-MM-DDTHH:MM" on the clock in `tz` at an instant. */
+function clockIn(tz: string, at: number): { wall: string; utc: number } {
+  const f = formatter(`clock ${tz}`, () => new Intl.DateTimeFormat("en-US", { timeZone: tz, ...HOUR_PARTS }));
+  const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  return { wall: `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`, utc: Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) };
+}
+
+/** Minutes `tz` is ahead of UTC at an instant. */
+const offsetAt = (tz: string, at: number) => Math.round((clockIn(tz, at).utc - Math.floor(at / 1000) * 1000) / 60_000);
+
+/**
+ * The instant a wall-clock day and time names in `tz`, DST-safe. A time the clocks skip (2:30 as they go forward) is
+ * the same hour later; a time that happens twice (as they go back) is the first.
+ */
+function instantIn(day: string, time: string, tz: string): number {
+  const wall = Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10), +time.slice(0, 2), +time.slice(3, 5));
+  const before = offsetAt(tz, wall - 86_400_000);
+  const after = offsetAt(tz, wall + 86_400_000);
+  const fits = [before, after].map((o) => wall - o * 60_000).filter((t) => offsetAt(tz, t) * 60_000 === wall - t);
+  return fits.length ? Math.min(...fits) : wall - before * 60_000;
+}
+
+const offsetText = (minutes: number) => `${minutes < 0 ? "-" : "+"}${String(Math.floor(Math.abs(minutes) / 60)).padStart(2, "0")}:${String(Math.abs(minutes) % 60).padStart(2, "0")}`;
+
+/** The draft's day and time as Zernio takes it, in `tz` with its offset (Singapore: +08:00), or null when it has no time. */
+export function zernioTime(scheduledFor: string | undefined, time?: string, tz: string = TIMEZONE): string | null {
+  const day = scheduledFor?.slice(0, 10) ?? "";
+  const t = time || scheduledFor?.slice(11, 16) || "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) return null;
+  const at = instantIn(day, t, tz);
+  return `${clockIn(tz, at).wall}:00${offsetText(offsetAt(tz, at))}`;
+}
+
+/** Zernio's time (ISO) as the draft's "YYYY-MM-DDTHH:MM" on the clock where it was scheduled (Singapore when unsaid). */
+export const wallIn = (iso: string, tz: string = TIMEZONE) => clockIn(tz, Date.parse(iso)).wall;
+
+/** "SGT", "GMT-4": the zone's short name at an instant (it changes with daylight saving). */
+export const zoneName = (tz: string = TIMEZONE, at = Date.now()) =>
+  formatter(`name ${tz}`, () => new Intl.DateTimeFormat("en-SG", { timeZone: tz, timeZoneName: "short" })).formatToParts(at).find((p) => p.type === "timeZoneName")?.value ?? tz;
+
+/**
+ * The zone's short name a dated post goes out in, on its day: its Zernio post's zone (Singapore for one sent before
+ * 28 Oct), else this browser's, which Post it for me would schedule it in.
+ */
+export function draftZone(d: Pick<DraftEntry, "scheduledFor" | "zernio">): string {
+  const tz = d.zernio?.postId ? d.zernio.tz ?? TIMEZONE : browserTimeZone();
+  return zoneName(tz, Date.parse(zernioTime(d.scheduledFor, undefined, tz) ?? "") || Date.now());
+}
+
+/** "Tue 14 Oct, 9:00 am", and the zone's name after it when given ("9:00 am GMT-4"). */
+export const whenLabel = (day: string, time: string, tz?: string) =>
+  `${keyToDate(day).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${timeLabel(time)}${tz ? ` ${zoneName(tz, instantIn(day, time, tz))}` : ""}`;
+
+/** "Tue, 14 Oct, 9:00 am SGT" for an ISO time from Zernio, on the clock where it was scheduled (Singapore when unsaid). */
+export const zoneLabel = (iso: string, tz: string = TIMEZONE) =>
+  new Date(iso).toLocaleString("en-SG", { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
 
 // ---- the status chip ----
 
@@ -79,7 +141,7 @@ export function chipOf(link: ZernioLink | undefined, markedPosted = false): { la
     case "cancelled":
       return { label: "Cancelled", tone: "muted" };
     default:
-      return { label: link.at ? `Scheduled ${sgLabel(link.at)}` : "Scheduled", tone: "wait" };
+      return { label: link.at ? `Scheduled ${zoneLabel(link.at, link.tz)}` : "Scheduled", tone: "wait" };
   }
 }
 
@@ -101,6 +163,8 @@ export interface ScheduleRequest {
   mediaUrls: string[];
   scheduledFor?: string;
   now?: boolean;
+  /** The IANA zone it was scheduled in, sent only when it isn't Singapore. */
+  timezone?: string;
   firstComment?: string;
   tiktok?: { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
   youtube?: { title: string; visibility: "public" | "unlisted" | "private" };

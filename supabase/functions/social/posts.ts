@@ -26,8 +26,25 @@ import { isAllowed } from "./logic.ts";
 export const POST_ACTIONS = ["presign", "schedule", "post", "cancel", "retry", "tiktok-creator-info", "move"] as const;
 export type PostAction = (typeof POST_ACTIONS)[number];
 
-/** The app works in Singapore time; Zernio stores it on the post. */
+/** A post sent with no time zone (every one before 28 Oct, and Leo's schedule steps) is in Singapore time. */
 export const TIMEZONE = "Asia/Singapore";
+
+/** An IANA time zone this runtime knows ("America/New_York"), as the browser names its own. */
+export function isTimeZone(v: unknown): v is string {
+  if (typeof v !== "string" || !/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+){0,2}$/.test(v) || v.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: v });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The request's time zone: absent is Singapore (left off, so today's bodies stay byte for byte), anything else must be real. */
+function checkZone(v: unknown): Checked<string | null> {
+  if (v === undefined || v === null) return { value: null };
+  return isTimeZone(v) ? { value: v } : refuse("Pick the day and time again.");
+}
 
 // What one upload may be. The app's video exports run at 8 Mbps, so 300 MB (Instagram's own cap for
 // a Reel) holds about 5 minutes; slides and pictures are far under 8 MB. A PDF is a carousel as a LinkedIn
@@ -104,6 +121,8 @@ export interface ScheduleInput {
   mediaUrls: string[];
   /** ISO with an offset, or null for now. */
   scheduledFor: string | null;
+  /** The IANA zone it was scheduled in (the browser's); Singapore when absent. */
+  timezone?: string;
   firstComment: string;
   tiktok: TikTokInput | null;
   youtube: YouTubeInput | null;
@@ -201,6 +220,8 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
     if ("error" in at) return at;
     scheduledFor = at.value;
   }
+  const zone = checkZone(b.timezone);
+  if ("error" in zone) return zone;
   const firstComment = text(b.firstComment);
   if (firstComment.length > FIRST_COMMENT_MAX) return refuse(`Keep the first comment under ${FIRST_COMMENT_MAX + 1} characters.`);
   let tiktok: TikTokInput | null = null;
@@ -219,7 +240,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   }
   const nets = networkOptions(b);
   if ("error" in nets) return nets;
-  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}), ...nets.value } };
+  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, ...(zone.value ? { timezone: zone.value } : {}), firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}), ...nets.value } };
 }
 
 const obj = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : null);
@@ -348,7 +369,7 @@ export function postBody(input: ScheduleInput, accounts: { _id: string; platform
       return { platform: a.platform, accountId: a._id, customContent: captionFor(input, a.platform), ...(data ? { platformSpecificData: data } : {}) };
     }),
     scheduledFor: input.scheduledFor ?? new Date(now + NOW_LEAD_MS).toISOString(),
-    timezone: TIMEZONE,
+    timezone: input.timezone ?? TIMEZONE,
   };
 }
 
@@ -364,7 +385,7 @@ export type PostRequest =
   | { action: "presign"; profileId: string; file: UploadFile }
   | { action: "schedule"; profileId: string; accountIds: string[]; input: ScheduleInput; check?: true }
   | { action: "post" | "cancel" | "retry"; profileId: string; postId: string }
-  | { action: "move"; profileId: string; postId: string; scheduledFor: string }
+  | { action: "move"; profileId: string; postId: string; scheduledFor: string; timezone?: string }
   | { action: "tiktok-creator-info"; profileId: string; accountId: string; mediaType: "video" | "photo" };
 
 type Parsed = { ok: true; req: PostRequest } | { ok: false; status: number; error: string };
@@ -421,7 +442,9 @@ export function parsePostRequest(body: unknown, now = Date.now(), listed = false
   if (!isZernioId(b.postId)) return notFound;
   if (action === "move") {
     const at = checkTime(b.scheduledFor, now);
-    return "error" in at ? bad(at.error) : { ok: true, req: { action, profileId, postId: b.postId, scheduledFor: at.value } };
+    if ("error" in at) return bad(at.error);
+    const zone = checkZone(b.timezone);
+    return "error" in zone ? bad(zone.error) : { ok: true, req: { action, profileId, postId: b.postId, scheduledFor: at.value, ...(zone.value ? { timezone: zone.value } : {}) } };
   }
   return { ok: true, req: { action, profileId, postId: b.postId } };
 }
@@ -619,7 +642,7 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
     }
     // Zernio reschedules a cancelled post like a draft, which would send a post the person took down
     if (view.status === "cancelled") return { status: 409, body: { code: "cancelled", error: "It was cancelled on Zernio, so it can't move." } };
-    const data = await z("PUT", path, { body: { scheduledFor: q.scheduledFor, timezone: TIMEZONE } });
+    const data = await z("PUT", path, { body: { scheduledFor: q.scheduledFor, timezone: q.timezone ?? TIMEZONE } });
     return ok({ post: postView(ownPost(data?.post, ids)) });
   }
 
