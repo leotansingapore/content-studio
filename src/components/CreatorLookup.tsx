@@ -20,6 +20,7 @@ import {
   Radio,
   Loader2,
 } from "lucide-react";
+import { adviserBrand } from "@/lib/profession";
 
 export default function CreatorLookup() {
   const [query, setQuery] = useState("");
@@ -198,9 +199,10 @@ export default function CreatorLookup() {
                   posts live.
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Button asChild variant="outline" size="sm" className="gap-1.5">
+                  {/* Creators is an adviser brand's library */}
+                  {adviserBrand() && <Button asChild variant="outline" size="sm" className="gap-1.5">
                     <Link to="/profiles">Browse covered creators</Link>
-                  </Button>
+                  </Button>}
                   <Button variant="ghost" size="sm" onClick={reset}>
                     Try another handle
                   </Button>

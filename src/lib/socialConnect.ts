@@ -94,7 +94,7 @@ export async function socialStatus(profileId: string): Promise<SocialStatus> {
 }
 
 /** The signed-in user in the session supabase-js keeps on this device, read without the auth lock (as useLeoOnly). */
-function storedUserId(): string | null {
+export function storedUserId(): string | null {
   try {
     const raw = localStorage.getItem(`sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`);
     const id = raw ? JSON.parse(raw)?.user?.id : null;

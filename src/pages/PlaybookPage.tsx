@@ -11,6 +11,7 @@ import {
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { loadGoals, withGoalCadence } from "@/lib/goals";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
+import { adviserBrand } from "@/lib/profession";
 import NotifySettings from "@/components/NotifySettings";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
@@ -201,8 +202,8 @@ export default function PlaybookPage() {
         )}
       </SectionCard>
 
-      {/* Saved */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Saved: Inspiration and Creators are an adviser brand's libraries; another brand sees only what it saved before */}
+      {(adviserBrand(user?.id) || savedInsp.length + savedAdv.length > 0) && <div className="grid gap-4 md:grid-cols-2">
         <SectionCard icon={Lightbulb} title={`Saved inspiration (${savedInsp.length})`}>
           {savedInsp.length ? (
             <ul className="space-y-2">
@@ -257,7 +258,7 @@ export default function PlaybookPage() {
             </p>
           )}
         </SectionCard>
-      </div>
+      </div>}
 
       {user && (
         <SectionCard icon={Bell} title="Reminders">

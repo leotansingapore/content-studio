@@ -28,6 +28,7 @@ import {
   GraduationCap,
   Compass,
 } from "lucide-react";
+import { adviserBrand } from "@/lib/profession";
 
 export default function TutorialPage() {
   // /tutorial#tabs and the other section ids (docs/deep-links.md) land on that card
@@ -554,7 +555,8 @@ export default function TutorialPage() {
               </Link>{" "}
               - paste 3-5 of your past posts. Save.
             </li>
-            <li>
+            {/* Inspiration is an adviser brand's library (Singapore personal finance) */}
+            {adviserBrand() && <li>
               Go to{" "}
               <Link
                 to="/inspiration"
@@ -563,7 +565,7 @@ export default function TutorialPage() {
                 /inspiration
               </Link>{" "}
               - pick a card, click &quot;Use as vibe&quot;.
-            </li>
+            </li>}
             <li>Generate. Edit. Publish by Friday.</li>
           </ol>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -573,12 +575,12 @@ export default function TutorialPage() {
             >
               <Mic className="h-3.5 w-3.5" /> Set your voice
             </Link>
-            <Link
+            {adviserBrand() && <Link
               to="/inspiration"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50 [@media(pointer:coarse)]:min-h-11"
             >
               <Lightbulb className="h-3.5 w-3.5" /> Browse inspiration
-            </Link>
+            </Link>}
             <Link
               to="/generate"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50 [@media(pointer:coarse)]:min-h-11"

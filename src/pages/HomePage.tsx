@@ -53,6 +53,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { loadBrand } from "@/lib/carousel";
+import { adviserBrand } from "@/lib/profession";
 import { checkMe, sharedBoard, waitsOnMe, type Board, type Me } from "@/lib/reelsBoard";
 import { campaignsToReview, homeToday, type PlanCounts } from "@/lib/needsYou";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -873,12 +874,13 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Discover */}
-      <section className="space-y-3">
+      {/* Discover: Inspiration and Creators are Singapore personal-finance libraries, for an adviser's brand only */}
+      {(adviserBrand(uid) || plan) && <section className="space-y-3">
         <h2 className="font-serif text-lg font-semibold text-foreground">
           Need an idea?
         </h2>
         <div className={`grid gap-3 ${plan ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {adviserBrand(uid) && <>
           <Link
             to="/inspiration"
             className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
@@ -911,6 +913,7 @@ export default function HomePage() {
               </p>
             </div>
           </Link>
+          </>}
           {plan && (
             <Link
               to="/ideas"
@@ -927,7 +930,7 @@ export default function HomePage() {
             </Link>
           )}
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

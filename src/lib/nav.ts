@@ -43,6 +43,7 @@ import { ownerShown, reelsShown } from "@/lib/reelsBoard";
 import { LEO_EMAILS, leoOnly } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { adviserBrand } from "@/lib/profession";
 
 export type NavPage = {
   to: string;
@@ -53,7 +54,7 @@ export type NavPage = {
   owners?: string[];
   /** Its label on Leo's sign-ins, where the page is a different tool for them (/clone is Remix a post). */
   leoLabel?: string;
-  /** Shown only while this says so (an answer this device remembers from the server). */
+  /** Shown only while this says so (what this device remembers: an answer from the server, the open brand). */
   show?: () => boolean;
   /** Browser tab title when it should differ from the label. */
   title?: string;
@@ -145,8 +146,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/swipe", label: "Top posts", icon: TrendingUp },
       { to: "/trends", label: "Trends", icon: Flame },
       { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
-      { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
-      { to: "/profiles", label: "Creators", icon: Users },
+      { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
+      { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
       { to: "/following", label: "Following", icon: UserCheck },
       { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
       { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS },

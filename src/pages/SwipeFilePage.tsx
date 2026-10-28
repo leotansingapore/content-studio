@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
 import { loadPositioning } from "@/lib/positioning";
 import { links } from "@/lib/links";
+import { adviserBrand } from "@/lib/profession";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { getAllTopPosts, TOTAL_TOP_POSTS, generatorFormat, creatorKind } from "@/lib/topPosts";
 import {
@@ -271,7 +272,7 @@ export default function SwipeFilePage() {
         {[
           { id: "posts" as const, label: "Posts", n: TOTAL_TOP_POSTS },
           ...(leo ? [{ id: "foryou" as const, label: "For you", n: null }] : []),
-          { id: "news" as const, label: "Industry news", n: NEWS.length },
+          adviserBrand(userId) ? { id: "news" as const, label: "Industry news", n: NEWS.length } : { id: "news" as const, label: "News", n: null },
           // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
           ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
           ...(leo ? [{ id: "search" as const, label: "Search", n: null }, { id: "hooks" as const, label: "Hooks", n: null }] : []),
@@ -316,13 +317,14 @@ export default function SwipeFilePage() {
         </section>
       ) : tab === "news" ? (
         <>
-          <section className="space-y-3">
+          {/* the bulletin's picks are Singapore personal-finance news: an adviser's brand only; feeds and mentions are anyone's */}
+          {adviserBrand(userId) && <section className="space-y-3">
             <div className="flex items-center gap-1.5">
               <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
               <InfoTip label="About industry news">The ActivityTracker bulletin's Industry picks, synced every morning.</InfoTip>
             </div>
             <IndustryNews />
-          </section>
+          </section>}
           <YourFeeds />
           <Mentions />
         </>

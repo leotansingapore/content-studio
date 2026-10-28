@@ -14,6 +14,7 @@
 // is unit-testable without a browser (see diagnosis.test.ts).
 
 import { scoped } from "@/lib/profiles";
+import { adviserBrand } from "@/lib/profession";
 export type AreaId =
   | "ideas"
   | "storytelling"
@@ -421,7 +422,8 @@ export function nextAction(result: DiagnosisResult | null): NextAction {
     kind: "mission",
     headline: `Your biggest focus: ${weakest.label}`,
     detail: `Scoring ${weakest.score}% here. Fix this before anything else. It's what's holding the rest back.`,
-    mission: MISSIONS[weakest.id],
+    // Inspiration is an adviser brand's library (Singapore personal finance): another brand banks ideas in its weekly plan
+    mission: MISSIONS[weakest.id].to === "/inspiration" && !adviserBrand() ? { ...MISSIONS[weakest.id], to: "/plan" } : MISSIONS[weakest.id],
     area: weakest,
   };
 }
