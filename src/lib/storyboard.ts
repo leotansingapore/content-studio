@@ -4,6 +4,7 @@
 
 import { getDraftById, upsertDraft, type Storyboard } from "@/lib/draftHistory";
 import { ReelCloneError, invokeFunction, type ShotBeat } from "@/lib/reelClone";
+import { professionFor } from "@/lib/profession";
 
 export type { Storyboard };
 
@@ -20,7 +21,7 @@ export const storyboardRun = (draftId: string) => runs.get(draftId) ?? null;
 export function makeStoryboard(userId: string, draftId: string, script: string, topic: string): Promise<Storyboard> {
   const running = runs.get(draftId);
   if (running) return running;
-  const promise = invokeFunction("storyboard", { script, topic })
+  const promise = invokeFunction("storyboard", { script, topic, profession: professionFor(userId) || undefined })
     .then((data) => {
       const beats = (data as { beats?: ShotBeat[] } | null)?.beats;
       if (!Array.isArray(beats) || beats.length < 2 || beats.some((b) => typeof b?.say !== "string")) {

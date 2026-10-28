@@ -69,6 +69,16 @@ describe("makeStoryboard", () => {
     expect(storyboardRun("d1")).toBeNull();
   });
 
+  it("sends the open brand's profession, and none for an adviser's brand", async () => {
+    invoke.mockResolvedValue({ data: { beats }, error: null });
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await makeStoryboard("u1", "d9", "script", "");
+    expect(invoke.mock.calls[0][1].body).toEqual({ script: "script", topic: "", profession: "coach" });
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await makeStoryboard("u1", "d9", "script", "");
+    expect(JSON.parse(JSON.stringify(invoke.mock.calls[1][1].body))).toEqual({ script: "script", topic: "" });
+  });
+
   it("keeps the storyboard when Write saves the draft again without it", async () => {
     upsertDraft("u1", entry);
     invoke.mockResolvedValue({ data: { beats }, error: null });
