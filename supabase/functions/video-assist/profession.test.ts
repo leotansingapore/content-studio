@@ -4,7 +4,16 @@ import { HONEST_LINE } from "../_shared/profession";
 import { buildBrollMessages, kindQuestions, parseBrollRequest } from "./broll";
 import { buildCaptionsMessages, keywordCandidates, keywordQuestion, parseCaptionsRequest, type Keyword } from "./captions";
 import { buildHooksMessages, hooksState, parseHooksRequest } from "./hooks";
-import { buildClipsMessages, clipQuestions, clipViewer, parseClipsRequest } from "./logic";
+import {
+  buildClipsMessages,
+  buildCutawaysMessages,
+  buildPublishMessages,
+  clipQuestions,
+  clipViewer,
+  parseClipsRequest,
+  parseCutawaysRequest,
+  parsePublishRequest,
+} from "./logic";
 import { buildMontageMessages, parseMontageRequest } from "./montage";
 import { buildPopupMessages, emojiState, keyState, parseMotionRequest } from "./motion";
 
@@ -202,5 +211,40 @@ describe("clips for the brand's profession", () => {
     expect(JSON.stringify(out[0])).toContain(HONEST_LINE);
     expect(JSON.stringify(out[3])).toContain(`a longer talk by a ${said} and posted`);
     expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+  });
+});
+
+describe("callouts, titles and the cover for the brand's profession", () => {
+  const SENTENCES = [
+    { s: 0, e: 3, text: "Most people start too late." },
+    { s: 3, e: 7, text: "Here is the one step that makes the rest easy." },
+    { s: 7, e: 11, text: "Write down the three things you spend on every week." },
+  ];
+  const finishPrompts = (extra: Record<string, unknown> = {}) => {
+    const c = parseCutawaysRequest({ sentences: SENTENCES, duration: 11, ...extra });
+    const p = parsePublishRequest({ sentences: SENTENCES, duration: 11, ...extra });
+    if (!c.ok || !p.ok) throw new Error("bad fixture");
+    return [buildCutawaysMessages(c.sentences, c.duration, c.profession), buildPublishMessages(p.sentences, p.duration, p.profession)];
+  };
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(buildCutawaysMessages(SENTENCES, 11, "$&-maker")[0].content).toContain("a talking-head video a $&-maker filmed:");
+    expect(buildPublishMessages(SENTENCES, 11, "$&-maker")[0].content).toContain("a short video a $&-maker filmed,");
+  });
+
+  it("a caller that sends no profession, or an adviser's, gets today's prompts byte for byte", async () => {
+    await expect(JSON.stringify(finishPrompts(), null, 2)).toMatchFileSnapshot("./__pins__/cutaways-publish-adviser-prompts.json");
+    for (const profession of ["", "Financial adviser"]) expect(finishPrompts({ profession })).toEqual(finishPrompts());
+  });
+
+  it.each(PROFESSIONS)("$raw gets callouts, titles and a cover written for them, with none of the adviser words", ({ raw, said }) => {
+    const [cutaways, publish] = finishPrompts({ profession: raw });
+    expect(cutaways[0].content).toContain(`a talking-head video a ${said} filmed:`);
+    expect(cutaways[0].content).toContain("that they can film or find");
+    expect(publish[0].content).toContain(`a short video a ${said} filmed,`);
+    for (const out of [cutaways, publish]) {
+      expect(out[0].content).toContain(HONEST_LINE);
+      expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+    }
   });
 });

@@ -5,6 +5,7 @@
 import { getDraftById, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { callFn } from "@/lib/edgeFn";
 import { countWords, spokenLines } from "@/lib/platformCounters";
+import { professionFor } from "@/lib/profession";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 
 /** Words a second at Slow, Normal and Fast. */
@@ -58,12 +59,13 @@ export const titlesRun = (draftId: string) => runs.get(draftId) ?? null;
 /**
  * Three titles and a cover line for a script (video-assist publish, the video-publish cap), saved on the draft. It
  * runs outside the page, so they land on the draft even when the adviser opens another page meanwhile. The reply's
- * cover moment is for a finished video, so it is ignored. One run at a time per draft.
+ * cover moment is for a finished video, so it is ignored. One run at a time per draft. Written for the open brand's
+ * profession (none sent for an adviser's).
  */
 export function writeTitles(userId: string, draftId: string, script: string): Promise<{ titles: string[]; cover: string }> {
   const running = runs.get(draftId);
   if (running) return running;
-  const promise = callFn<{ titles?: unknown; cover?: unknown }>("video-assist", { mode: "publish", ...scriptSentences(script) }, TITLES_FAILED)
+  const promise = callFn<{ titles?: unknown; cover?: unknown }>("video-assist", { mode: "publish", ...scriptSentences(script), profession: professionFor(userId) || undefined }, TITLES_FAILED)
     .then((r) => {
       const titles = (Array.isArray(r?.titles) ? r.titles : []).filter((t): t is string => typeof t === "string" && t.trim() !== "").slice(0, 3);
       const cover = typeof r?.cover === "string" ? r.cover.trim() : "";

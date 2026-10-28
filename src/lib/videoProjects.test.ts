@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe, type AiMark } from "./videoProjects";
+import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, suggestCutaways, swapSource, transcribe, type AiMark } from "./videoProjects";
+import { callFn } from "@/lib/edgeFn";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { EdgeError } from "@/lib/edgeFn";
 
@@ -372,5 +373,20 @@ describe("the editor's writers for the brand's profession", () => {
     expect(sent[0]).toMatchObject({ mode: "clips", profession: "coach" });
     expect(sent[1]).toMatchObject({ mode: "clips" });
     expect(sent[1]).not.toHaveProperty("profession");
+  });
+
+  it("writes callouts, titles and the cover for the open brand's profession, and sends none for an adviser's brand", async () => {
+    vi.mocked(callFn).mockReset().mockResolvedValue({ titles: ["One"], cover: "Start", at: null });
+    brand("Coach");
+    await suggestCutaways("u1", sentences, 60);
+    await publishIdeas("u1", sentences, 60);
+    brand("Financial adviser");
+    await suggestCutaways("u1", sentences, 60);
+    await publishIdeas("u1", sentences, 60);
+    expect(sent[0]).toMatchObject({ mode: "cutaways", profession: "coach" });
+    expect(sent[1]).toMatchObject({ mode: "cutaways" });
+    expect(sent[1]).not.toHaveProperty("profession");
+    const published = vi.mocked(callFn).mock.calls.map(([, b]) => JSON.parse(JSON.stringify(b)));
+    expect(published).toEqual([{ mode: "publish", sentences, duration: 60, profession: "coach" }, { mode: "publish", sentences, duration: 60 }]);
   });
 });

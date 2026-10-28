@@ -1641,7 +1641,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
   const suggestPublish = async () => {
     setIdeating(true);
     try {
-      const idea = sanitizePublish(await publishIdeas(editedSentences(words, plan.segs, speed), plan.total));
+      const idea = sanitizePublish(await publishIdeas(userId, editedSentences(words, plan.segs, speed), plan.total));
       if (!idea) throw new Error("The titles came back incomplete. Try again.");
       setPublish({ ...idea, ...(publish?.line2 ? { line2: publish.line2 } : {}) });
     } catch (e) {
@@ -1875,7 +1875,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
   const suggest = async () => {
     setSuggesting(true);
     try {
-      setCutaways(await suggestCutaways(editedSentences(words, plan.segs, speed), plan.total));
+      setCutaways(await suggestCutaways(userId, editedSentences(words, plan.segs, speed), plan.total));
     } catch (e) {
       toast({ title: "Couldn't suggest callouts", description: (e as Error).message, variant: "destructive" });
     } finally {

@@ -116,6 +116,17 @@ describe("writeTitles", () => {
     expect(getDraftById("u1", "d1")?.titles).toEqual(["One", "Two", "Three"]);
   });
 
+  it("sends the open brand's profession, and none for an adviser's brand", async () => {
+    upsertDraft("u1", entry);
+    invoke.mockResolvedValue({ data: { titles: ["One"], cover: "Start" }, error: null });
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await writeTitles("u1", "d1", script);
+    expect(invoke.mock.calls[0][1].body).toEqual({ mode: "publish", ...scriptSentences(script), profession: "coach" });
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await writeTitles("u1", "d1", script);
+    expect(JSON.parse(JSON.stringify(invoke.mock.calls[1][1].body))).toEqual({ mode: "publish", ...scriptSentences(script) });
+  });
+
   it("shows the plain failure line and saves nothing on a refusal or an empty reply", async () => {
     upsertDraft("u1", entry);
     invoke.mockResolvedValue({ data: null, error: { context: new Response(JSON.stringify({ error: "Couldn't write titles right now. Try again in a minute." }), { status: 502 }) } });

@@ -21,10 +21,10 @@
 //        may skip one tangent in its middle when Jev reads it as an aside (skip:{start,end}). parts holds the score's
 //        parts out of 100 ({alone, opening, topic?}). length "short" or "long" (the clips panel, NORTH_STAR_USERS
 //        only, ignored for anyone else) asks for 12-35 s or 50-100 s clips and keeps 12-40 s or 45-120 s.
-//   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
+//   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration, profession?}
 //        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
 //        to, per section of a filmed talking head ("video-cutaways" cap).
-//   POST {mode:"publish", sentences:[{s,e,text}] on the edited timeline, duration}
+//   POST {mode:"publish", sentences:[{s,e,text}] on the edited timeline, duration, profession?}
 //        -> {titles:[3], cover, at}: post titles and the cover text, written by the LLM,
 //        and the cover moment, picked by Jev (null when Jev has no answer or the
 //        video is not in English) ("video-publish" cap).
@@ -362,7 +362,7 @@ Deno.serve(async (req) => {
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 900, response_format: { type: "json_object" }, messages: buildCutawaysMessages(c.sentences, c.duration) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 900, response_format: { type: "json_object" }, messages: buildCutawaysMessages(c.sentences, c.duration, c.profession) }),
         signal: AbortSignal.timeout(60_000),
       });
       if (!res.ok) {
@@ -646,7 +646,7 @@ Deno.serve(async (req) => {
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.6, max_tokens: 300, response_format: { type: "json_object" }, messages: buildPublishMessages(p.sentences, p.duration) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.6, max_tokens: 300, response_format: { type: "json_object" }, messages: buildPublishMessages(p.sentences, p.duration, p.profession) }),
         signal: AbortSignal.timeout(45_000),
       });
       if (!res.ok) {

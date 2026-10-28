@@ -272,8 +272,8 @@ export function batches<T>(questions: Record<string, T>, size = 30): Record<stri
   return Array.from({ length: Math.ceil(keys.length / size) }, (_, i) => Object.fromEntries(keys.slice(i * size, (i + 1) * size).map((k) => [k, questions[k]])));
 }
 
-/** Who made the video, in the words any other work gets in place of the adviser's (the clips prompt and Jev's question). */
-const byThem = (text: string, p: string) => (p ? text.replace("by a Singapore financial adviser", () => `by ${aOrAn(p)}`) : text);
+/** Who made the video, in the words any other work gets in place of the adviser's (the editor's prompts and Jev's questions). */
+const asThem = (text: string, p: string) => (p ? text.replace("a Singapore financial adviser", () => aOrAn(p)) : text);
 
 export function buildClipsMessages(
   sentences: ClipSentence[],
@@ -284,7 +284,7 @@ export function buildClipsMessages(
   profession = "",
 ): { role: string; content: string }[] {
   // any other work keeps the honesty everyone keeps in place of the adviser's rule
-  const said = (l: string) => (profession ? byThem(l, profession).replace("Never promise returns.", () => HONEST_LINE) : l);
+  const said = (l: string) => (profession ? asThem(l, profession).replace("Never promise returns.", () => HONEST_LINE) : l);
   const { lo, hi, aim } = CLIP_LENGTHS[length];
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
   const n = candidateCount(duration);
@@ -529,7 +529,7 @@ export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], wor
       type: "score",
       instructions: {
         clip: said.join(" ").slice(0, 2000),
-        question: byThem("`clip` is cut from a longer talk by a Singapore financial adviser and posted on its own as a short video. How well does it stand alone for a viewer who has seen nothing else of the talk?", profession),
+        question: asThem("`clip` is cut from a longer talk by a Singapore financial adviser and posted on its own as a short video. How well does it stand alone for a viewer who has seen nothing else of the talk?", profession),
       },
       criteria: STANDS_ALONE,
     };
@@ -655,15 +655,25 @@ function timedSentences(body: unknown): { sentences: ClipSentence[]; duration: n
   return { sentences, duration: Number(b.duration) };
 }
 
-export function parseCutawaysRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+/** The brand's "What do you do?" (../_shared/profession.ts), as a field only for any other work than an adviser's. */
+const professionField = (body: unknown) => {
+  const profession = professionOf((body as Record<string, unknown> | null)?.profession);
+  return profession ? { profession } : {};
+};
+
+export function parseCutawaysRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; profession?: string } | { ok: false; error: string } {
   const { sentences, duration } = timedSentences(body);
   if (!Number.isFinite(duration) || duration < 5) return { ok: false, error: "The video is too short for callouts." };
   if (sentences.length < 2) return { ok: false, error: "Caption the video first, then ask for callouts." };
-  return { ok: true, sentences, duration };
+  return { ok: true, sentences, duration, ...professionField(body) };
 }
 
-export function buildCutawaysMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
+/** Any other work keeps the honesty everyone keeps in place of the adviser's rule (callouts, titles and the cover). */
+const honest = (l: string, p: string) => (p ? asThem(l, p).replace("Never promise returns or guarantees.", () => HONEST_LINE) : l);
+
+export function buildCutawaysMessages(sentences: ClipSentence[], duration: number, profession = ""): { role: string; content: string }[] {
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
+  const said = (l: string) => honest(profession ? l.replace("that a solo adviser can film", () => "that they can film") : l, profession);
   return [
     {
       role: "system",
@@ -676,7 +686,9 @@ export function buildCutawaysMessages(sentences: ClipSentence[], duration: numbe
         "- show: one short line on what to cut away to or put on screen while they talk, that a solo adviser can film or find: a B-roll shot, a screen recording, a simple chart, a document or a prop.",
         "Never promise returns or guarantees. No em dashes. Plain words.",
         'Reply with JSON only: {"sections":[{"at":number,"until":number,"callout":string,"show":string}]}',
-      ].join("\n"),
+      ]
+        .map(said)
+        .join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
   ];
@@ -715,14 +727,14 @@ export function parseCutawaysReply(content: string | null, duration: number): Cu
 /** Jev answers a Choice of up to 255 options; each line of the video is one. */
 export const MAX_COVER_LINES = 255;
 
-export function parsePublishRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+export function parsePublishRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; profession?: string } | { ok: false; error: string } {
   const { sentences, duration } = timedSentences(body);
   if (!Number.isFinite(duration) || duration < 3) return { ok: false, error: "The video is too short for a title." };
   if (!sentences.length) return { ok: false, error: "Caption the video first." };
-  return { ok: true, sentences: sentences.slice(0, MAX_COVER_LINES), duration };
+  return { ok: true, sentences: sentences.slice(0, MAX_COVER_LINES), duration, ...professionField(body) };
 }
 
-export function buildPublishMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
+export function buildPublishMessages(sentences: ClipSentence[], duration: number, profession = ""): { role: string; content: string }[] {
   return [
     {
       role: "system",
@@ -732,7 +744,9 @@ export function buildPublishMessages(sentences: ClipSentence[], duration: number
         "- cover: the text set large on the cover picture, 2 to 6 words, the line that makes someone tap. Use the speaker's own words or their plain meaning.",
         "Only facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No em dashes, hashtags, emoji or quote marks.",
         'Reply with JSON only: {"titles":[string,string,string],"cover":string}',
-      ].join("\n"),
+      ]
+        .map((l) => honest(l, profession))
+        .join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nWhat they say:\n${sentences.map((x) => x.text).join(" ")}` },
   ];

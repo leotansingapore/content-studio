@@ -1,0 +1,22 @@
+[
+  [
+    {
+      "role": "system",
+      "content": "You plan the on-screen extras for a talking-head video a Singapore financial adviser filmed: text callouts and what to cut away to.\nSplit the video into sections where the topic or the point changes: 2 to 8 sections, none starting in the first 3 seconds (the hook card is there).\nFor each section:\n- at: the start time of the sentence where the section begins; until: the end time of its last sentence. Sections never overlap.\n- callout: on-screen text of 2 to 6 words that lands the point: a number, a term or the takeaway, in sentence case. Only facts and figures the speaker says; never invent a number.\n- show: one short line on what to cut away to or put on screen while they talk, that a solo adviser can film or find: a B-roll shot, a screen recording, a simple chart, a document or a prop.\nNever promise returns or guarantees. No em dashes. Plain words.\nReply with JSON only: {\"sections\":[{\"at\":number,\"until\":number,\"callout\":string,\"show\":string}]}"
+    },
+    {
+      "role": "user",
+      "content": "Video length: 11.0s\nTranscript with sentence times in seconds:\n[0.0-3.0] Most people start too late.\n[3.0-7.0] Here is the one step that makes the rest easy.\n[7.0-11.0] Write down the three things you spend on every week."
+    }
+  ],
+  [
+    {
+      "role": "system",
+      "content": "You write the words that go out with a short video a Singapore financial adviser filmed, from what they say in it.\n- titles: 3 titles of 3 to 8 words for the post's title field on YouTube Shorts, TikTok or LinkedIn, in sentence case, each from a different angle: the main point, the question a viewer has, a number or fact the speaker says.\n- cover: the text set large on the cover picture, 2 to 6 words, the line that makes someone tap. Use the speaker's own words or their plain meaning.\nOnly facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No em dashes, hashtags, emoji or quote marks.\nReply with JSON only: {\"titles\":[string,string,string],\"cover\":string}"
+    },
+    {
+      "role": "user",
+      "content": "Video length: 11.0s\nWhat they say:\nMost people start too late. Here is the one step that makes the rest easy. Write down the three things you spend on every week."
+    }
+  ]
+]

@@ -313,8 +313,10 @@ export async function findClips(userId: string, sentences: Sentence[], duration:
   return (await res.json()).clips;
 }
 
-export async function suggestCutaways(sentences: Sentence[], duration: number): Promise<Cutaway[]> {
-  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "cutaways", sentences, duration }) });
+/** Callouts and cutaways written for the open brand's profession. */
+export async function suggestCutaways(userId: string, sentences: Sentence[], duration: number): Promise<Cutaway[]> {
+  const body = { mode: "cutaways", sentences, duration, profession: professionFor(userId) || undefined };
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return (await res.json()).sections;
 }
 
@@ -323,7 +325,11 @@ export async function translateCaptions(lang: string, lines: string[]): Promise<
   return (await res.json()).lines;
 }
 
-/** Three post titles and the cover text from what is said, and the cover moment (null when none was picked). */
-export async function publishIdeas(sentences: Sentence[], duration: number): Promise<PublishIdea> {
-  return callFn<PublishIdea>("video-assist", { mode: "publish", sentences, duration }, "Couldn't write titles right now. Try again in a minute.");
+/** Three post titles and the cover text from what is said, for the open brand's profession, and the cover moment (null when none was picked). */
+export async function publishIdeas(userId: string, sentences: Sentence[], duration: number): Promise<PublishIdea> {
+  return callFn<PublishIdea>(
+    "video-assist",
+    { mode: "publish", sentences, duration, profession: professionFor(userId) || undefined },
+    "Couldn't write titles right now. Try again in a minute.",
+  );
 }
