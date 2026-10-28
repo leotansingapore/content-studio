@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
+const signedIn = vi.hoisted(() => ({ uid: undefined as string | undefined }));
+vi.mock("@/lib/supabase", () => ({
+  supabase: { auth: { getSession: async () => ({ data: { session: signedIn.uid ? { user: { id: signedIn.uid } } : null } }) } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "",
+}));
 vi.mock("@/lib/videoMedia", () => ({
   currentJoin: vi.fn(() => null), getFile: vi.fn(async () => undefined), putFile: vi.fn(async () => {}), deleteFile: vi.fn(async () => {}), monoPcm: vi.fn(),
   startJoin: vi.fn(async () => {}), startSlides: vi.fn(async () => {}), encodeWav: vi.fn(), endJoin: vi.fn(() => null),
@@ -14,7 +18,7 @@ import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin,
 import { speak, speakDub } from "@/lib/textVoice";
 import {
   DEMO_GONE, PHOTO_GONE, REMAKE_FAILED, STILL_MAKING, aiBusy, aiJob, makeAvatar, makeExplainer, makeInLanguage, makePresenter, makeTemplateClip, onAiJob, pendingAvatar, pendingExplainer,
-  makeVersion, pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake, versionRun, versionWords,
+  makeVersion, pendingRemake, remakeJob, remakeParts, resumeAvatar, resumeExplainer, resumeRemake, takeRemake, versionRun, versionWords, writeExplainer,
 } from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
@@ -50,6 +54,27 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+describe("the brand's profession sent to ai-video", () => {
+  const kit = (profession: string) => localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession }));
+  beforeEach(() => {
+    vi.stubGlobal("window", { localStorage, dispatchEvent: () => true });
+    signedIn.uid = "u1";
+  });
+  afterEach(() => (signedIn.uid = undefined));
+
+  it("goes with the explainer script from the open brand's kit, and not for an adviser's", async () => {
+    vi.mocked(callFn).mockResolvedValue({ scenes: [] });
+    kit("Coach");
+    await writeExplainer("Why most people start too late");
+    kit("Financial adviser");
+    await writeExplainer("Why most people start too late");
+    expect(vi.mocked(callFn).mock.calls.map((c) => JSON.parse(JSON.stringify(c[1])))).toEqual([
+      { mode: "script", topic: "Why most people start too late", profession: "coach" },
+      { mode: "script", topic: "Why most people start too late" },
+    ]);
+  });
 });
 
 describe("a template clip that has been paid for", () => {

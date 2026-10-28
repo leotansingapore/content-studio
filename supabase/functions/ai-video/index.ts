@@ -73,9 +73,9 @@ import { consentSecret, heardCode, newCode, openSigned, signFor } from "../_shar
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
   CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex, LOOK_REFUSED, lookQuestions, presenterLooks, readLookCheck,
-  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, failureLine, partsSpent, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL,
+  NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, failureLine, partsSpent, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SPEAK_MODEL,
   TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
-  northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, seedanceRequest, setBody,
+  northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, scriptPrompt, seedanceRequest, setBody,
   speakBody, talkSystem, talkUser, validateScript, validateTalk, type MediaState, type Refundable,
 } from "./logic.ts";
 import { PROMPT_FORMAT, clipPrompt, fixedPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
@@ -261,7 +261,8 @@ Deno.serve(async (req) => {
         const refusal = usageRefusal(usage);
         return json(refusal.body, refusal.status);
       }
-      const content = await writeJson(openai, SCRIPT_SYSTEM, `Topic: ${r.topic}`, SCRIPT_FORMAT, 1200);
+      const { system, user } = scriptPrompt(r);
+      const content = await writeJson(openai, system, user, SCRIPT_FORMAT, 1200);
       const scenes = validateScript(content);
       if (!scenes) {
         if (content) console.error("ai-video script rejected", content.slice(0, 300));

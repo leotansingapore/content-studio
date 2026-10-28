@@ -3,7 +3,7 @@ import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
 import { createHash } from "node:crypto";
 import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
 import { consentSecret, openSigned, signFor } from "../_shared/consent";
-import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, partsSpent, presenterBody } from "./logic";
+import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, partsSpent, presenterBody, scriptPrompt } from "./logic";
 import { fixedPrompt, templateById } from "./templates";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
@@ -354,6 +354,12 @@ describe("the narrated video (NORTH_STAR_USERS only)", () => {
     expect(Object.keys(out)).toEqual(["scenes", "usage"]);
     expect(hf.openai[0].messages[0].content).toBe(SCRIPT_SYSTEM);
     expect(hf.asked).toEqual([]);
+  });
+
+  it("writes anyone else's explainer for the work their brand names", async () => {
+    hf.replies.push({ scenes: scenes(4, 12).map(({ say, picture }) => ({ say, picture })) });
+    expect((await send(UID, { mode: "script", topic: "Why most people start too late", profession: "Coach" })).status).toBe(200);
+    expect(hf.openai[0].messages[0].content).toBe(scriptPrompt({ topic: "", profession: "coach" }).system);
   });
 
   it("makes anyone else's pictures as photos, a typed look ignored", async () => {

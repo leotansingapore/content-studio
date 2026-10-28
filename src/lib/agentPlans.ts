@@ -49,6 +49,7 @@ import { requestMake, type Flags } from "@/lib/remix";
 import { makeBody } from "@/lib/slideshowJob";
 import { activeLearnings, addLearning, loadLearnings, MAX_LEARNINGS, type LearningScope } from "@/lib/voiceMemory";
 import { onWallJob, startWall, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
+import { professionFor } from "@/lib/profession";
 import { GLOBAL_COUNTER_USER, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import { MAX_TOPIC, speakingWords } from "../../supabase/functions/remix/logic.ts";
 
@@ -915,7 +916,7 @@ async function writeScenes(userId: string, topic: string): Promise<Scene[]> {
   const name = business ? ownBrandName(userId) : "";
   const { scenes } = await callFn<{ scenes: Scene[] }>(
     "ai-video",
-    { mode: "script", topic, ...(business ? { speaker: "business" } : {}), ...(name ? { notes: `The brand is ${name}. Name it once.` } : {}) },
+    { mode: "script", topic, ...(business ? { speaker: "business" } : {}), ...(name ? { notes: `The brand is ${name}. Name it once.` } : {}), profession: professionFor(userId) || undefined },
     "Couldn't write the explainer. Try again in a minute.",
   );
   return scenes;

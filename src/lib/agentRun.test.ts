@@ -1019,4 +1019,14 @@ describe("the 25 Oct replay: the explainer card (D14)", () => {
     await approve(mine);
     expect(fake.explainerAsk).toEqual({ mode: "script", topic: "make an explainer video about CPF LIFE" });
   });
+
+  it("sends the open brand's profession with the explainer's script, and none for an adviser's", async () => {
+    const kit = (profession: string) => localStorage.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession }));
+    kit("Real estate agent");
+    await approve(await say("make an explainer video about first homes", { act: "make", format: "explainer" }));
+    expect(fake.explainerAsk).toEqual({ mode: "script", topic: "make an explainer video about first homes", profession: "real estate agent" });
+    kit("Financial adviser");
+    await approve(await say("make an explainer video about first homes", { act: "make", format: "explainer" }));
+    expect("profession" in JSON.parse(JSON.stringify(fake.explainerAsk))).toBe(false);
+  });
 });

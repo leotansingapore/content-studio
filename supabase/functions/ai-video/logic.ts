@@ -12,6 +12,7 @@ import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { GLOBAL_COUNTER_USER, claimOnce, refundUsage, type UsageClient } from "../_shared/usageCaps.ts";
 import { oneLineText, parseObject } from "../clone-reel/logic.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { templateById, type FieldKey, type PhotoRole } from "./templates.ts";
 
 // The v1 route: "higgsfield-ai/speak" accepts image_url and audio_url but drops them from the job, which then
@@ -65,7 +66,8 @@ export const clipCredits = (seconds: ClipSeconds, quality: ClipQuality) => Math.
 
 export type Photo = { url: string } | { jpeg: string };
 export type VideoRequest =
-  | { mode: "script"; topic: string; source?: ScriptSource; seconds?: NarratedSeconds; notes?: string; speaker?: "business" }
+  /** profession: the brand's "What do you do?" (../_shared/profession.ts), absent for an adviser; today's explainer only. */
+  | { mode: "script"; topic: string; source?: ScriptSource; seconds?: NarratedSeconds; notes?: string; speaker?: "business"; profession?: string }
   | { mode: "presenter"; look: string; setting?: SettingId }
   | { mode: "avatar"; photo: Photo; slices: { wav: string; seconds: number }[] }
   | { mode: "explainer"; pictures: string[]; look?: LookId }
@@ -138,7 +140,11 @@ export function parseVideoRequest(raw: unknown): Parsed {
       const notes = oneLineText(b.notes, MAX_NOTES);
       // a business brand's narrated script speaks as the business (the agent's explainer, replay D14); anything else is a person's
       const speaker = b.speaker === "business" ? ("business" as const) : undefined;
-      return { ok: true, request: { mode: "script", topic, ...(source ? { source } : {}), ...(seconds ? { seconds } : {}), ...(notes ? { notes } : {}), ...(speaker ? { speaker } : {}) } };
+      const profession = professionOf(b.profession);
+      return {
+        ok: true,
+        request: { mode: "script", topic, ...(source ? { source } : {}), ...(seconds ? { seconds } : {}), ...(notes ? { notes } : {}), ...(speaker ? { speaker } : {}), ...(profession ? { profession } : {}) },
+      };
     }
     case "presenter": {
       const look = oneLineText(b.look, MAX_LOOK + 1);
@@ -621,6 +627,19 @@ export const SCRIPT_SYSTEM = [
   "Keep it general education: never promise returns, never say guaranteed or risk-free, never name an insurer or product, never give personal advice.",
   "Return only the JSON object.",
 ].join("\n");
+
+/** Today's explainer for any other work: their work named, and the honesty everyone keeps in place of the adviser line. */
+const generalScript = (p: string) =>
+  SCRIPT_SYSTEM.replace("for licensed Singapore financial consultants to post", () => `for ${aOrAn(p)} to post`).replace(
+    "Keep it general education: never promise returns, never say guaranteed or risk-free, never name an insurer or product, never give personal advice.",
+    () => `Keep it general education and never say guaranteed or risk-free. ${HONEST_LINE}`,
+  );
+
+/** What today's explainer writer gets: SCRIPT_SYSTEM for an adviser (no profession), else the same worded for their work. */
+export const scriptPrompt = (r: { topic: string; profession?: string }) => ({
+  system: r.profession ? generalScript(r.profession) : SCRIPT_SYSTEM,
+  user: `Topic: ${r.topic}`,
+});
 
 export const SCRIPT_FORMAT = {
   type: "json_schema",

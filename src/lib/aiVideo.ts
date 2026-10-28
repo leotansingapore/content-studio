@@ -13,6 +13,8 @@
 // so a changed line is made again on its own parts (remakeParts) and the same face can speak another language (makeInLanguage).
 
 import { callFn } from "@/lib/edgeFn";
+import { professionFor } from "@/lib/profession";
+import { supabase } from "@/lib/supabase";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
 import { currentJoin, deleteFile, endJoin, getFile, monoPcm, putFile, startJoin, startSlides, encodeWav, type JoinExtra } from "@/lib/videoMedia";
 import { DUB_LANGS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
@@ -585,8 +587,11 @@ export function takeRemake(projectId: string): Remake | null {
 
 // ---------- explainer ----------
 
+/** The open brand's "What do you do?" for the writers, from this device's sign-in; none for an adviser (today's prompts). */
+const profession = async () => professionFor((await supabase.auth.getSession()).data.session?.user.id) || undefined;
+
 export async function writeExplainer(topic: string): Promise<Scene[]> {
-  const { scenes } = await callFn<{ scenes: Scene[] }>("ai-video", { mode: "script", topic }, "Couldn't write the explainer. Try again in a minute.");
+  const { scenes } = await callFn<{ scenes: Scene[] }>("ai-video", { mode: "script", topic, profession: await profession() }, "Couldn't write the explainer. Try again in a minute.");
   return scenes;
 }
 
