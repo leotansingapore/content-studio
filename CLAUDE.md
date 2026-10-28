@@ -21,15 +21,22 @@
 
 - Supabase project is the shared "academy" instance (hgdbflprrficdoyxmdxe),
   same as aia-product-compass-hub. Edge functions living there
-  (`generate-social-content`, `generate-brand-template`, `generate-collateral`)
+  (`generate-brand-template`, `generate-collateral`)
   are called with the user's session token; this repo does not deploy them.
   Exception: the account audit's functions (`audit-social-account`,
-  `refresh-social-audits`, `suggest-post-ideas`), plus `idea-dump`,
+  `refresh-social-audits`, `suggest-post-ideas`), plus `generate-social-content`
+  (the post writer, versioned here from 28 Oct; aia-product-compass-hub's
+  ContentStudio page calls it too and keeps its copy, which must not be deployed
+  over this one), `idea-dump`,
   `clone-reel`, `reel-visuals`, `storyboard` and `carousel-copy`, and shared code in
   `supabase/functions/_shared/`, ARE versioned here and deployed with
   `supabase functions deploy <name> --project-ref hgdbflprrficdoyxmdxe --use-api`
   (JWT verification on). Their tables come from `supabase/hub/0NN_*.sql`,
-  applied by hand. See `docs/account-audit.md`. Reference copies of the
+  applied by hand. See `docs/account-audit.md`. Every AI writer takes the
+  brand kit's `profession` ("What do you do?", `src/lib/profession.ts`,
+  `supabase/functions/_shared/profession.ts`): none, or an adviser's, builds
+  today's adviser prompt byte for byte (pinned in each function's `__pins__`).
+  Reference copies of the
   unversioned functions live in `supabase/snapshots/functions/`.
 - `content-studio-mcp` (Connect Claude) is the one function deployed WITHOUT
   JWT verification (`--no-verify-jwt`): Claude sends no Supabase token, the
