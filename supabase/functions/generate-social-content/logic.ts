@@ -313,12 +313,16 @@ export function buildSystemForVariant(
   return postSystemPrompt(body, variantIndex);
 }
 
-/** The most each text field may hold, in characters: about twice what the app sends at its largest (a long rewrite carries the draft, brand rules and memory). */
+/**
+ * The most each text field may hold, in characters, with at least a quarter to spare over the app's largest real
+ * request: the recruit agent's brief carries the whole Brand Brain, every interview answer twice (59,397 characters
+ * with each answer at 2,000, src/lib/recruit.test.ts), and a rewrite carries a long draft (src/pages/GeneratePage.test.ts).
+ */
 export const MAX_CHARS: Partial<Record<keyof RequestBody, number>> = {
-  ideaContext: 20_000,
+  ideaContext: 100_000,
   styleReference: 8_000,
   voiceSummary: 6_000,
-  draft: 10_000,
+  draft: 20_000,
   pillarDetail: 1_000,
   profession: 200,
   chosenHook: 1_000,
@@ -326,8 +330,8 @@ export const MAX_CHARS: Partial<Record<keyof RequestBody, number>> = {
 };
 export const MAX_POSTS = 10;
 export const MAX_POST_CHARS = 5_000;
-/** The whole body as sent: every field at its cap, or 10 past posts at theirs, with room for JSON's escapes. */
-export const MAX_BODY_CHARS = 64_000;
+/** The whole body as sent: the largest recruit request (about 67,000) with a quarter to spare, and room for JSON's escapes. */
+export const MAX_BODY_CHARS = 128_000;
 export const TOO_LONG = "That's too long to write from. Shorten it and try again.";
 const UNREADABLE = "Couldn't read that request. Reload the page and try again.";
 const ALLOWED: Partial<Record<keyof RequestBody, readonly string[]>> = {

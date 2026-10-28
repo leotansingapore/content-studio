@@ -118,7 +118,7 @@ describe("generate-social-content: who may write and what it counts", () => {
   });
 
   it("refuses an oversized request with a 400 before any count", async () => {
-    const r = await send({ ...BRIEF, mode: "post", ideaContext: "x".repeat(20_001) });
+    const r = await send({ ...BRIEF, mode: "post", ideaContext: "x".repeat(100_001) });
     expect(r).toMatchObject({ status: 400 });
     expect(JSON.parse(r.text).error).toBe("That's too long to write from. Shorten it and try again.");
     expect([used(), openai.calls]).toEqual([0, 0]);
@@ -155,8 +155,8 @@ describe("generate-social-content: who may write and what it counts", () => {
     expect(used()).toBe(1);
   });
 
-  it("refuses a body over 64,000 characters, or one that isn't an object, before any count", async () => {
-    const big = await send({ ...BRIEF, mode: "post", junk: "x".repeat(64_000) });
+  it("refuses a body over 128,000 characters, or one that isn't an object, before any count", async () => {
+    const big = await send({ ...BRIEF, mode: "post", junk: "x".repeat(128_000) });
     expect(big.status).toBe(400);
     expect(JSON.parse(big.text).error).toBe("That's too long to write from. Shorten it and try again.");
     for (const body of [null, 7, "post", []]) expect((await send(body)).status).toBe(400);

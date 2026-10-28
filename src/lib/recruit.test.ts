@@ -15,7 +15,8 @@ import {
   stripDashes,
   unsupportedNumbers,
 } from "./recruit";
-import { SEND_TEN_SCRIPT } from "@/data/recruitKit";
+import { FORMULAS, RECRUIT_FORMATS, SEND_TEN_SCRIPT } from "@/data/recruitKit";
+import { MAX_BODY_CHARS, MAX_CHARS, requestError } from "../../supabase/functions/generate-social-content/logic";
 import { whatsappLink } from "@/components/recruit/Conversations";
 
 describe("centreCandidate", () => {
@@ -142,5 +143,42 @@ describe("draft guards", () => {
     const ctx = "I taught for 8 years. Team of 12. Joined in 2019.";
     expect(unsupportedNumbers("My team of 12 spends 80 percent of its time advising. 3 things I learned since 2019.", ctx)).toEqual(["80 percent"]);
     expect(unsupportedNumbers("Team up 44% this year", "Team up 44 percent")).toEqual([]);
+  });
+});
+
+// The recruit UI caps none of its fields, so this is a generous real-world brain: every interview answer at 2,000
+// characters (about 330 words), a full story bank and ten conversations. The brief repeats every answer in its raw
+// section, so it measured 59,397 characters on 28 Oct; the post writer must take it with room to spare.
+describe("the largest recruit brief the agent sends", () => {
+  const fill = (n: number) => "word ".repeat(Math.ceil(n / 5)).slice(0, n);
+  const brain = () => {
+    const b = emptyBrain();
+    for (let i = 1; i <= 10; i++) b.interview[`q${i}`] = fill(2000);
+    Object.assign(b, { icp: fill(600), promise: fill(400), voiceWords: fill(400), phrases: fill(800), proof: Array.from({ length: 8 }, () => fill(250)).join("\n") });
+    for (const k of Object.keys(b.story) as (keyof typeof b.story)[]) b.story[k] = fill(800);
+    b.conversations = b.conversations.map((c) => ({ ...c, words: fill(400) }));
+    b.trifecta = b.trifecta.map((t) => ({ ...t, name: fill(40), production: 5, affinity: 5, transformation: 5 }));
+    return b;
+  };
+
+  it("passes the post writer's checks with at least a quarter of every cap to spare, in every format, formula and stage", () => {
+    let largest = { idea: 0, body: 0 };
+    for (const fmt of RECRUIT_FORMATS) {
+      for (const formula of [null, ...FORMULAS.map((f) => f.id)]) {
+        for (const stage of ["tofu", "mofu", "bofu"] as const) {
+          // as Agent.tsx sends it, with Leo's memory (at most 1,500) after it and a long voice summary
+          const ideaContext = `${buildRecruitBrief(brain(), { format: fmt.id, formula, stage, topic: fill(500) })}\n\n${fill(1500)}`;
+          const body = {
+            pillar: "identity", pillarDetail: "Recruitment: a career as a financial adviser on my team", ideaSource: "Recruitment post (#TopofMind method)",
+            ideaContext, format: fmt.format, platform: fmt.platform, ctaType: "book-call", audience: "working-adult", voiceSummary: fill(4000), mode: "post", n: 1, stream: true,
+          } as const;
+          expect(requestError(body)).toBeNull();
+          largest = { idea: Math.max(largest.idea, ideaContext.length), body: Math.max(largest.body, JSON.stringify(body).length) };
+        }
+      }
+    }
+    expect(largest.idea).toBeGreaterThan(55_000);
+    expect(largest.idea).toBeLessThanOrEqual(MAX_CHARS.ideaContext! * 0.75);
+    expect(largest.body).toBeLessThanOrEqual(MAX_BODY_CHARS * 0.75);
   });
 });

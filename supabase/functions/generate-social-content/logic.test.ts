@@ -81,10 +81,10 @@ describe("request sizes", () => {
   });
 
   it.each([
-    ["ideaContext", 20_001],
+    ["ideaContext", 100_001],
     ["styleReference", 8_001],
     ["voiceSummary", 6_001],
-    ["draft", 10_001],
+    ["draft", 20_001],
     ["pillarDetail", 1_001],
     ["chosenHook", 1_001],
     ["ideaSource", 1_001],
