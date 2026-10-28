@@ -244,6 +244,15 @@ describe("buildIdeaDumpContext", () => {
     expect(buildIdeaDumpContext(USER)).toEqual({ voice: "", positioning: null, platforms: [] });
   });
 
+  it("sends the open brand's profession, and none for an adviser's brand", () => {
+    const kit = (profession: string) =>
+      window.localStorage.setItem(`content-studio-carousel-brand-${USER}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession }));
+    kit("Coach");
+    expect(buildIdeaDumpContext(USER)).toEqual({ voice: "", positioning: null, platforms: [], profession: "coach" });
+    kit("Financial adviser");
+    expect(buildIdeaDumpContext(USER)).toEqual({ voice: "", positioning: null, platforms: [] });
+  });
+
   it("still takes the platform from a row with no other words and no goal", () => {
     window.localStorage.setItem(`content-studio-positioning-${USER}`, JSON.stringify({ platform: "facebook" }));
     expect(buildIdeaDumpContext(USER).platforms).toEqual(["facebook"]);
