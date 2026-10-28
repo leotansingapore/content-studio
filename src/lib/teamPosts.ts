@@ -13,17 +13,18 @@ export interface TeamComment {
   rev: number;
 }
 
-export type TeamChannel = "fastrack" | "advisoros" | "memos";
+export type TeamChannel = "fastrack" | "advisoros" | "memos" | "industry";
 export const TEAM_GROUP: Record<TeamChannel, string> = {
   fastrack: "FINTERNSHIP FASTRACK",
   advisoros: "AdvisorOS",
   memos: "FINTERNSHIP FASTRACK memos",
+  industry: "FINTERNSHIP FASTRACK industry",
 };
 /** The group's name, as the job's CHANNELS spell it. */
 export const groupOf = (post: Pick<TeamPost, "channel">) => TEAM_GROUP[post.channel ?? "fastrack"] ?? TEAM_GROUP.fastrack;
 /** The group as a calendar chip names it: "FINTERNSHIP FASTRACK" wraps a letter at a time in a week column. */
 export const shortGroupOf = (post: Pick<TeamPost, "channel">) =>
-  post.channel === "advisoros" ? "AdvisorOS" : post.channel === "memos" ? "Memos" : "FASTRACK";
+  post.channel === "advisoros" ? "AdvisorOS" : post.channel === "memos" ? "Memos" : post.channel === "industry" ? "Industry" : "FASTRACK";
 
 export interface TeamPost {
   id: string;
@@ -59,7 +60,7 @@ export type TeamStatus = "posted" | "skipped" | "approved" | "revising" | "waiti
 export type ThreadComment = TeamComment & { source: "calendar" | "telegram" };
 
 export const TEAM_BRAND = "Leo's team";
-/** The brand a team post sits on (Leo 2026-10-28): AdvisorOS on ActivityTracker, FASTRACK and its memos on Leo's team
+/** The brand a team post sits on (Leo 2026-10-28): AdvisorOS on ActivityTracker, FASTRACK and its memo and industry posts on Leo's team
  *  (no post = FASTRACK). A brand that does not exist yet falls back to ActivityTracker, then the default brand. */
 export const teamHome = (uid: string, post?: Pick<TeamPost, "channel">) => {
   const at = profileForBusiness(uid, "ActivityTracker") ?? DEFAULT_PROFILE_ID;
