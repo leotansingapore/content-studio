@@ -282,7 +282,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
               value={words.note}
               maxLength={STEER_MAX}
               aria-invalid={words.note.trim().length > STEER_MAX}
-              placeholder="What should this slideshow be about?"
+              placeholder="Facts to use, a tone, or what to leave out"
               onChange={(e) => setWords({ ...words, note: e.target.value })}
             />
             {words.note.length > STEER_MAX * 0.8 && (
