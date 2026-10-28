@@ -292,3 +292,39 @@ export function buildSystemForVariant(
   }
   return postSystemPrompt(body, variantIndex);
 }
+
+/** The most each text field may hold, in characters: about twice what the app sends at its largest (a long rewrite carries the draft, brand rules and memory). */
+export const MAX_CHARS: Partial<Record<keyof RequestBody, number>> = {
+  ideaContext: 20_000,
+  styleReference: 8_000,
+  voiceSummary: 6_000,
+  draft: 10_000,
+  pillarDetail: 1_000,
+  chosenHook: 1_000,
+  ideaSource: 1_000,
+};
+export const MAX_POSTS = 10;
+export const MAX_POST_CHARS = 5_000;
+const TOO_LONG = "That's too long to write from. Shorten it and try again.";
+
+/** Why the request can't be written from (400), or null. Checked before the user's daily count, so a refusal costs nothing. */
+export function requestError(raw: RequestBody): string | null {
+  for (const [field, max] of Object.entries(MAX_CHARS)) {
+    const v = raw[field as keyof RequestBody];
+    if (typeof v === "string" && v.length > max!) return TOO_LONG;
+  }
+  if (Array.isArray(raw.posts)) {
+    if (raw.posts.length > MAX_POSTS) return `Send at most ${MAX_POSTS} past posts.`;
+    if (raw.posts.some((p) => typeof p === "string" && p.length > MAX_POST_CHARS)) return TOO_LONG;
+  }
+  const mode: Mode = raw.mode ?? "post";
+  if (mode === "voice-summary") {
+    return (raw.posts ?? []).some((p) => typeof p === "string" && p.trim().length >= 1) ? null : "voice-summary requires at least 1 past post";
+  }
+  if (mode === "hashtags" || mode === "image-prompt") return raw.draft?.trim() ? null : `${mode} requires a draft`;
+  if (!raw.pillar || !raw.format || !raw.platform || !raw.ideaSource || !raw.ctaType) {
+    return "Missing required fields: pillar, format, platform, ideaSource, ctaType";
+  }
+  if (mode === "body" && !raw.chosenHook?.trim()) return "mode 'body' requires chosenHook";
+  return null;
+}

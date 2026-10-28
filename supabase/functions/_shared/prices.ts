@@ -77,6 +77,7 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "repurpose-long": about(0.04), // about 4 US cents a run (usageCaps.ts)
   "idea-dump": about(0.02), // one OpenAI call, unverified
   storyboard: about(0.01), // one OpenAI call, unverified
+  "write-post": about(0.01), // one request to generate-social-content, up to 5 OpenAI drafts, unverified
   carousel: about(0.01), // one OpenAI call (carousel-copy), unverified
   "reel-clone": about(0.03), // an Apify post read plus OpenAI's breakdown and script, unverified
   "reel-concepts": about(0.02), // one OpenAI call on the cached post, unverified

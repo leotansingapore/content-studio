@@ -5,6 +5,7 @@ import {
   hashtagsUserPrompt,
   imagePromptSystemPrompt,
   imagePromptUserPrompt,
+  requestError,
   userPrompt,
   voiceSummarySystemPrompt,
   voiceSummaryUserPrompt,
@@ -60,5 +61,42 @@ export function allPrompts(body: RequestBody, i: number) {
 describe("generate-social-content prompts", () => {
   it("a caller that sends no profession gets the live adviser prompts, byte for byte", async () => {
     await expect(JSON.stringify(BODIES.map(allPrompts), null, 2)).toMatchFileSnapshot("./__pins__/adviser-prompts.json");
+  });
+});
+
+describe("request sizes", () => {
+  const post = (mode: string, extra: Record<string, unknown> = {}) => ({ ...BODIES[1], mode, ...extra });
+  const kb = (n: number) => "x".repeat(n * 1000);
+
+  it("takes the largest the app sends: a long rewrite with brand rules and memory, 5 long past posts", () => {
+    expect(requestError(post("post", { ideaContext: kb(15), styleReference: kb(6), voiceSummary: kb(4), pillarDetail: kb(0.5) }))).toBeNull();
+    expect(requestError({ mode: "voice-summary", posts: Array(10).fill(kb(5)) })).toBeNull();
+    expect(requestError(post("hashtags", { draft: kb(10) }))).toBeNull();
+  });
+
+  it.each([
+    ["ideaContext", 20_001],
+    ["styleReference", 8_001],
+    ["voiceSummary", 6_001],
+    ["draft", 10_001],
+    ["pillarDetail", 1_001],
+    ["chosenHook", 1_001],
+    ["ideaSource", 1_001],
+  ])("refuses %s over its cap with a plain message", (field, size) => {
+    expect(requestError(post("post", { [field]: "x".repeat(size - 1) }))).toBeNull();
+    expect(requestError(post("post", { [field]: "x".repeat(size) }))).toBe("That's too long to write from. Shorten it and try again.");
+  });
+
+  it("refuses more than 10 past posts, or one over 5,000 characters", () => {
+    expect(requestError({ mode: "voice-summary", posts: Array(11).fill("A past post.") })).toBe("Send at most 10 past posts.");
+    expect(requestError({ mode: "voice-summary", posts: ["A past post.", "x".repeat(5_001)] })).toBe("That's too long to write from. Shorten it and try again.");
+  });
+
+  it("keeps today's messages for a request missing what its mode needs", () => {
+    expect(requestError({ mode: "voice-summary", posts: [" "] })).toBe("voice-summary requires at least 1 past post");
+    expect(requestError({ mode: "hashtags" })).toBe("hashtags requires a draft");
+    expect(requestError({ mode: "image-prompt", draft: "  " })).toBe("image-prompt requires a draft");
+    expect(requestError({ mode: "post", pillar: "topic" })).toBe("Missing required fields: pillar, format, platform, ideaSource, ctaType");
+    expect(requestError(post("body", { chosenHook: " " }))).toBe("mode 'body' requires chosenHook");
   });
 });

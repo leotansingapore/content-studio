@@ -1,7 +1,13 @@
+// The post writer: Write, Batch and Your voice here, and the academy hub's Content Studio page (both signed in).
+// Every request is size-checked (logic.ts requestError, 400), then counts once against the signed-in user's
+// "write-post" day (401 with no user, 429 over the cap); a request OpenAI fails on is given back.
+// Secrets: OPENAI_API_KEY. Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { openaiFetch } from "../_shared/openaiChat.ts";
-import { buildSystemForVariant, hashtagsSystemPrompt, hashtagsUserPrompt, imagePromptSystemPrompt, imagePromptUserPrompt, userPrompt, voiceSummarySystemPrompt, voiceSummaryUserPrompt, type Mode, type RequestBody } from "./logic.ts";
+import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { buildSystemForVariant, hashtagsSystemPrompt, hashtagsUserPrompt, imagePromptSystemPrompt, imagePromptUserPrompt, requestError, userPrompt, voiceSummarySystemPrompt, voiceSummaryUserPrompt, type Mode, type RequestBody } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -174,6 +180,7 @@ async function handleNonStream(
   body: RequestBody,
   mode: Mode,
   n: number,
+  giveBack: () => Promise<unknown>,
 ): Promise<Response> {
   const userContent = userPrompt(body, mode);
   try {
@@ -191,6 +198,7 @@ async function handleNonStream(
     return jsonResponse({ mode, drafts: results });
   } catch (err) {
     console.error("non-stream error:", err);
+    await giveBack();
     return jsonResponse(
       { error: err instanceof Error ? err.message : "Unknown error" },
       500,
@@ -203,8 +211,10 @@ function handleStream(
   body: RequestBody,
   mode: Mode,
   n: number,
+  giveBack: () => Promise<unknown>,
 ): Response {
   const encoder = new TextEncoder();
+  let failed = 0;
   const abortController = new AbortController();
   const userContent = userPrompt(body, mode);
 
@@ -235,6 +245,7 @@ function handleStream(
           sendEvent({ type: "variant_complete", variantIndex: i, text });
         } catch (err) {
           console.error(`variant ${i} stream error:`, err);
+          failed++;
           sendEvent({
             type: "error",
             variantIndex: i,
@@ -251,7 +262,9 @@ function handleStream(
             message: err instanceof Error ? err.message : "Stream failed",
           });
         })
-        .finally(() => {
+        .finally(async () => {
+          // the use comes back only when no variant was written
+          if (failed === n) await giveBack();
           sendEvent({ type: "done" });
           try {
             controller.close();
@@ -276,13 +289,10 @@ function handleStream(
   });
 }
 
-async function handleVoiceSummary(apiKey: string, body: RequestBody): Promise<Response> {
+async function handleVoiceSummary(apiKey: string, body: RequestBody, giveBack: () => Promise<unknown>): Promise<Response> {
   const posts = (body.posts ?? []).filter(
     (p) => typeof p === "string" && p.trim().length >= 1,
   );
-  if (posts.length < 1) {
-    return jsonResponse({ error: "voice-summary requires at least 1 past post" }, 400);
-  }
   try {
     const text = await callOpenAINonStream(
       apiKey,
@@ -292,6 +302,7 @@ async function handleVoiceSummary(apiKey: string, body: RequestBody): Promise<Re
     return jsonResponse({ voiceSummary: text.trim() });
   } catch (err) {
     console.error("voice-summary error:", err);
+    await giveBack();
     return jsonResponse(
       { error: err instanceof Error ? err.message : "voice summary failed" },
       500,
@@ -299,10 +310,7 @@ async function handleVoiceSummary(apiKey: string, body: RequestBody): Promise<Re
   }
 }
 
-async function handleHashtags(apiKey: string, body: RequestBody): Promise<Response> {
-  if (!body.draft || body.draft.trim().length === 0) {
-    return jsonResponse({ error: "hashtags requires a draft" }, 400);
-  }
+async function handleHashtags(apiKey: string, body: RequestBody, giveBack: () => Promise<unknown>): Promise<Response> {
   try {
     const text = await callOpenAINonStream(
       apiKey,
@@ -321,6 +329,7 @@ async function handleHashtags(apiKey: string, body: RequestBody): Promise<Respon
     return jsonResponse({ hashtags });
   } catch (err) {
     console.error("hashtags error:", err);
+    await giveBack();
     return jsonResponse(
       { error: err instanceof Error ? err.message : "hashtags failed" },
       500,
@@ -328,10 +337,7 @@ async function handleHashtags(apiKey: string, body: RequestBody): Promise<Respon
   }
 }
 
-async function handleImagePrompt(apiKey: string, body: RequestBody): Promise<Response> {
-  if (!body.draft || body.draft.trim().length === 0) {
-    return jsonResponse({ error: "image-prompt requires a draft" }, 400);
-  }
+async function handleImagePrompt(apiKey: string, body: RequestBody, giveBack: () => Promise<unknown>): Promise<Response> {
   try {
     const text = await callOpenAINonStream(
       apiKey,
@@ -348,6 +354,7 @@ async function handleImagePrompt(apiKey: string, body: RequestBody): Promise<Res
     return jsonResponse({ prompt });
   } catch (err) {
     console.error("image-prompt error:", err);
+    await giveBack();
     return jsonResponse(
       { error: err instanceof Error ? err.message : "image-prompt failed" },
       500,
@@ -364,40 +371,36 @@ serve(async (req) => {
   } catch (_err) {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
   }
+  const bad = requestError(raw);
+  if (bad) return jsonResponse({ error: bad }, 400);
 
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
     return jsonResponse({ error: "OpenAI API key not configured" }, 500);
   }
 
+  // Every request counts once against the signed-in user's day, as the other writers do; a failed one is given back.
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const { data: userData } = await admin.auth.getUser(jwt);
+  const uid = userData?.user?.id;
+  if (!uid) return jsonResponse({ error: "Sign in to write a post." }, 401);
+  const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), read before it moves
+  const charged = await consumeUsage(admin, uid, "write-post");
+  if (!charged.allowed) {
+    const refusal = usageRefusal(charged);
+    return jsonResponse(refusal.body, refusal.status);
+  }
+  const giveBack = () => refundUsage(admin, uid, "write-post", day);
+
   const requestedMode: Mode = (raw.mode as Mode) ?? "post";
-
-  // Auxiliary modes have their own validation paths.
-  if (requestedMode === "voice-summary") {
-    return handleVoiceSummary(apiKey, raw);
-  }
-  if (requestedMode === "hashtags") {
-    return handleHashtags(apiKey, raw);
-  }
-  if (requestedMode === "image-prompt") {
-    return handleImagePrompt(apiKey, raw);
-  }
-
-  if (!raw.pillar || !raw.format || !raw.platform || !raw.ideaSource || !raw.ctaType) {
-    return jsonResponse(
-      { error: "Missing required fields: pillar, format, platform, ideaSource, ctaType" },
-      400,
-    );
-  }
+  if (requestedMode === "voice-summary") return handleVoiceSummary(apiKey, raw, giveBack);
+  if (requestedMode === "hashtags") return handleHashtags(apiKey, raw, giveBack);
+  if (requestedMode === "image-prompt") return handleImagePrompt(apiKey, raw, giveBack);
 
   const { body, mode, n, wantStream } = resolveRequest(req, raw);
-
-  if (mode === "body" && !body.chosenHook?.trim()) {
-    return jsonResponse({ error: "mode 'body' requires chosenHook" }, 400);
-  }
-
   if (wantStream) {
-    return handleStream(apiKey, body, mode, n);
+    return handleStream(apiKey, body, mode, n, giveBack);
   }
-  return handleNonStream(apiKey, body, mode, n);
+  return handleNonStream(apiKey, body, mode, n, giveBack);
 });
