@@ -33,6 +33,7 @@ import {
   type CaptionPlatform,
   type PlatformCaptionSet,
 } from "@/lib/platformCaptions";
+import { professionFor } from "@/lib/profession";
 
 const NAME: Record<CaptionPlatform, string> = { tiktok: "TikTok", linkedin: "LinkedIn", facebook: "Facebook", youtube: "YouTube", x: "X", threads: "Threads" };
 const n = (v: number) => v.toLocaleString("en-US");
@@ -76,7 +77,7 @@ export default function PlatformCaptions({
       // Leo only (brand-voice-memory): his facts and learnings after the brand rules, inside video-assist's 1,200 characters
       const rules = brandRulesLine(brand);
       const sent = leo ? [rules, memoryLine(userId, "posts", 1200 - rules.length - 1)].filter(Boolean).join(" ") : rules;
-      const written = await writePlatformCaptions(transcript.slice(0, 6000), instagram, title, sent);
+      const written = await writePlatformCaptions(transcript.slice(0, 6000), instagram, title, sent, professionFor(userId));
       for (const p of [...CAPTION_PLATFORMS, "youtubeTitle"] as const) if (written[p]) written[p] = applyBrandRules(written[p]!, brand);
       keep({ ...set, ...written, firstLine: written.firstLine });
     } catch (e) {

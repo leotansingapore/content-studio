@@ -13,6 +13,7 @@
 // (captions.test.ts); the app imports it too, so no lookbehind in a regex.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 
 export const CAPTION_PLATFORMS = ["tiktok", "linkedin", "facebook", "youtube", "x", "threads"] as const;
 export type CaptionPlatform = (typeof CAPTION_PLATFORMS)[number];
@@ -37,12 +38,16 @@ export const X_MAX_PARTS = 6;
 const MAX_TRANSCRIPT = 6000;
 const str = (v: unknown, n: number) => String(v ?? "").replace(/\r/g, "").trim().slice(0, n);
 
-export function parseCaptionsRequest(body: unknown): { ok: true; transcript: string; instagram: string; title: string; rules: string } | { ok: false; error: string } {
+export function parseCaptionsRequest(
+  body: unknown,
+): { ok: true; transcript: string; instagram: string; title: string; rules: string; profession?: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const transcript = str(b.transcript, MAX_TRANSCRIPT).replace(/\s+/g, " ");
   if (transcript.split(" ").length < 8) return { ok: false, error: "Caption the video first." };
   // rules: the brand kit's emoji, hashtag and offer-link rules, one line (src/lib/brandRules.ts)
-  return { ok: true, transcript, instagram: str(b.instagram, 2200), title: str(b.title, 90).replace(/\s+/g, " "), rules: str(b.rules, 1200).replace(/\s+/g, " ") };
+  // profession: the brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompts
+  const profession = professionOf(b.profession);
+  return { ok: true, transcript, instagram: str(b.instagram, 2200), title: str(b.title, 90).replace(/\s+/g, " "), rules: str(b.rules, 1200).replace(/\s+/g, " "), ...(profession ? { profession } : {}) };
 }
 
 export type Keyword = { word: string; verb: "comment" | "dm" };
@@ -60,14 +65,14 @@ export function keywordCandidates(transcript: string): Keyword[] {
 }
 
 /** Jev's one question: which of the words is the keyword the speaker asks for, or none. */
-export function keywordQuestion(cands: Keyword[]): Record<string, JevQuestion> {
+export function keywordQuestion(cands: Keyword[], profession = ""): Record<string, JevQuestion> {
   const criteria: Record<string, string> = {};
   for (const c of cands) criteria[c.word.toLowerCase()] = `"${c.word}" is the word the speaker asks viewers to ${c.verb === "comment" ? "comment or type in the comments" : "send them in a DM or message"}`;
   criteria.none = "None of these: the speaker does not ask viewers to comment or send a particular word";
   return {
     keyword: {
       type: "choice",
-      instructions: "A financial consultant says this in a short video. Some ask viewers to comment a word, or send it by DM, to get something (like PLAN in 'comment PLAN and I will send you the checklist'). Which word, if any, is that keyword?",
+      instructions: `${profession ? aOrAn(profession).replace(/^a/, "A") : "A financial consultant"} says this in a short video. Some ask viewers to comment a word, or send it by DM, to get something (like PLAN in 'comment PLAN and I will send you the checklist'). Which word, if any, is that keyword?`,
       criteria,
     },
   };
@@ -87,7 +92,23 @@ export function ctaLine(k: Keyword, raw: unknown): string {
   return offer ? `${ask} and I'll send you ${offer}.` : `${ask}${k.verb === "comment" ? " below" : ""}.`;
 }
 
-export function buildCaptionsMessages(transcript: string, instagram: string, title: string, rules = "", keyword: Keyword | null = null): { role: string; content: string }[] {
+/** The captions' lines for any other work: their work named, and the honesty everyone keeps in place of the adviser's rule. */
+const generalLine = (p: string) => (l: string) =>
+  l
+    .replace("a licensed financial consultant in Singapore filmed", `${aOrAn(p)} filmed`)
+    .replace("Never promise returns, name an insurer's product or a fund, or give a personal recommendation.", HONEST_LINE)
+    .replace("the consultant adds it", "they add it")
+    .replace('(like "my CPF top-up checklist")', '(like "my starter checklist")');
+
+export function buildCaptionsMessages(
+  transcript: string,
+  instagram: string,
+  title: string,
+  rules = "",
+  keyword: Keyword | null = null,
+  profession = "",
+): { role: string; content: string }[] {
+  const said = profession ? generalLine(profession) : (l: string) => l;
   return [
     {
       role: "system",
@@ -103,7 +124,9 @@ export function buildCaptionsMessages(transcript: string, instagram: string, tit
           : []),
         ...(rules ? [rules] : []),
         `Return JSON: {"tiktok": "...", "linkedin": "...", "facebook": "...", "youtube_title": "...", "youtube": "...", "x": ["..."], "threads": "..."${keyword ? ', "cta_offer": "..."' : ""}}.`,
-      ].join("\n"),
+      ]
+        .map(said)
+        .join("\n"),
     },
     {
       role: "user",
