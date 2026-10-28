@@ -55,6 +55,8 @@ const SIZES = ["4x5", "9x16"] as const;
 type Size = (typeof SIZES)[number];
 const SIZE_LABELS: Record<Size, string> = { "4x5": "4:5", "9x16": "9:16" };
 const WORDS_KEY = "cs-make-slideshow";
+/** The remix function's note cap (parseMakeRequest in supabase/functions/remix/logic.ts). */
+const STEER_MAX = 300;
 /** One heading style for every option on the setup cards. */
 const FIELD_LABEL = "text-xs font-semibold text-muted-foreground";
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -147,6 +149,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     remix && !source ? "Pick a slideshow to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type a topic first."
     : pictures === "mine" && !hasMedia ? "Add photos in Media first."
+    : words.note.trim().length > STEER_MAX ? `Cut the steer to ${STEER_MAX} characters.`
     : null;
 
   /** Starts a run on the setup as it is now; `changes` ride in the same URL write (two writes in a row keep only the last). */
@@ -196,6 +199,8 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     // the Remix sheet's own note for this post rides along; a steer typed here earlier for another post never does
     const note = source ? sheetNote(source.key) : words.note;
     if (note !== words.note) setWords({ ...words, note });
+    // a note over the cap would only fail: it waits in Steer it, with its count, for a cut and a press
+    if (note.trim().length > STEER_MAX) return;
     makeIt({ go: null }, { note });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -271,7 +276,20 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
           </Field>
           <div className="space-y-1.5">
             <Label htmlFor="make-steer" className={FIELD_LABEL}>Steer it (optional)</Label>
-            <Textarea id="make-steer" rows={2} value={words.note} maxLength={300} placeholder="What should this slideshow be about?" onChange={(e) => setWords({ ...words, note: e.target.value })} />
+            <Textarea
+              id="make-steer"
+              rows={2}
+              value={words.note}
+              maxLength={STEER_MAX}
+              aria-invalid={words.note.trim().length > STEER_MAX}
+              placeholder="What should this slideshow be about?"
+              onChange={(e) => setWords({ ...words, note: e.target.value })}
+            />
+            {words.note.length > STEER_MAX * 0.8 && (
+              <p className={cn("text-right text-[11px] tabular-nums", words.note.trim().length > STEER_MAX ? "font-semibold text-destructive" : "text-muted-foreground")} aria-live="polite">
+                {words.note.trim().length}/{STEER_MAX}
+              </p>
+            )}
           </div>
           <Field label="Size">
             {SIZES.map((s) => (
