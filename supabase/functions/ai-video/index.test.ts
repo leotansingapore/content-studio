@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { PEOPLE_RULE, jobToken, tokenSecret } from "../ai-image/logic";
 import { consentSecret, openSigned, signFor } from "../_shared/consent";
 import { EXPLAINER_LOOKS, READ_FAILED, SCRIPT_SYSTEM, partsSpent, presenterBody, scriptPrompt } from "./logic";
-import { fixedPrompt, templateById } from "./templates";
+import { fixedPrompt, templateById, templateSystem } from "./templates";
 
 // The handler's money path for a video: the adviser's cap, the studio's, and the uses given back when nothing is made.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -207,6 +207,11 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     expect((await send(UID, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "office" })).status).toBe(200);
     expect([used(UID, "ai-clip"), used(UID, "ai-image")]).toEqual([1, 1]);
     expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
+  });
+
+  it("write a template's prompt for the work the brand names", async () => {
+    expect((await send(UID, { mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" }, profession: "Coach" })).status).toBe(200);
+    expect(hf.openai[0].messages[0].content).toBe(templateSystem(templateById("food-asmr")!, 4, null, "coach"));
   });
 
   it("give the clip's use back and say try again shortly, with no writer or Higgsfield call, when the studio's counter can't be read", async () => {

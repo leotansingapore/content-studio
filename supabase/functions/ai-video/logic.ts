@@ -79,6 +79,8 @@ export type VideoRequest =
       fields: Partial<Record<FieldKey, string>>;
       /** At most one: a person goes in as the first frame, which leaves no room for a product reference. */
       photos: { role: PhotoRole; jpeg: string }[];
+      /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser and on a hidden or Leo-only template. */
+      profession?: string;
     }
   | { mode: "status"; tokens: string[]; refund?: string }
   | { mode: "talk-script"; talk: Talk; topic: string; offer?: { name: string }; source?: { text: string }; notes?: string }
@@ -205,7 +207,9 @@ export function parseVideoRequest(raw: unknown): Parsed {
       }
       if (photos.length > 1) return no("Add one photo: the person or the product.");
       if (t.needsPhoto && !photos.some((p) => p.role === t.needsPhoto)) return no("Add a photo first.");
-      return { ok: true, request: { mode: "template", template: t.id, seconds, quality, fields, photos } };
+      // Leo's own templates keep today's prompt
+      const profession = t.hidden || t.leoOnly ? "" : professionOf(b.profession);
+      return { ok: true, request: { mode: "template", template: t.id, seconds, quality, fields, photos, ...(profession ? { profession } : {}) } };
     }
     case "status": {
       const tokens = Array.isArray(b.tokens) ? b.tokens : [];

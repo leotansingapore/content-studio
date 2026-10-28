@@ -351,7 +351,7 @@ export async function makeTemplateClip(name: string, ask: TemplateAsk, more?: { 
   try {
     const ph = ask.photo;
     const photos = ph ? [{ role: ph.role, jpeg: await b64(await toJpeg(ph.file, ph.role === "person")) }] : [];
-    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos }, RETRY);
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos, profession: await profession() }, RETRY);
     p = { name, tokens, seconds: [ask.seconds], kind: "template", refund, extra: more?.extra, after: more?.after };
     keepPending(p);
   } catch (e) {

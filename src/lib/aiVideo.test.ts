@@ -75,6 +75,18 @@ describe("the brand's profession sent to ai-video", () => {
       { mode: "script", topic: "Why most people start too late" },
     ]);
   });
+
+  it("goes with a template clip, and not for an adviser's", async () => {
+    // refused at the start, so no clip is left being made for the next test
+    vi.mocked(callFn).mockRejectedValue(new Error("stop"));
+    kit("Real estate agent");
+    await makeTemplateClip("Laksa", ASK);
+    kit("");
+    await makeTemplateClip("Laksa", ASK);
+    const asks = vi.mocked(callFn).mock.calls.filter(([, b]) => (b as Body).mode === "template").map(([, b]) => JSON.parse(JSON.stringify(b)));
+    expect(asks.map((b) => b.profession)).toEqual(["real estate agent", undefined]);
+    expect(asks[1]).toEqual({ mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" }, photos: [] });
+  });
 });
 
 describe("a template clip that has been paid for", () => {
