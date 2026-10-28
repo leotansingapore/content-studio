@@ -44,8 +44,22 @@ export interface PreviewComment {
 // Pure helpers (previewLinks.test.ts)
 // ---------------------------------------------------------------------------
 
-export function previewUrl(origin: string, token: string): string {
-  return `${origin.replace(/\/+$/, "")}/review/${token}`;
+/** `author`: the sharing brand is not an adviser's (professionFor), so the page names them instead of "the adviser". */
+export function previewUrl(origin: string, token: string, author: boolean): string {
+  return `${origin.replace(/\/+$/, "")}/review/${token}${author ? "?role=author" : ""}`;
+}
+
+/**
+ * Who /review/<token> says shared the post. An adviser's link (no ?role=author, as every link before 28 Oct) reads as
+ * always; anyone else's names the brand that shared it (sender_name), or "the author" where the page has no post.
+ */
+export function reviewWords(author: boolean, sender = "") {
+  const who = author ? "the author" : "the adviser";
+  return {
+    who: author ? sender.trim() || who : who,
+    gone: `It expired or ${who} turned it off. Ask them to share the post again.`,
+    ownerTag: author ? " (author)" : " (adviser)",
+  };
 }
 
 export function isLinkLive(link: Pick<PreviewLink, "revoked_at" | "expires_at">, now = Date.now()): boolean {
@@ -148,6 +162,7 @@ export async function createPreviewLink(
   userId: string,
   input: ShareInput,
   origin: string,
+  author: boolean,
 ): Promise<{ id: string; url: string; expiresAt: string }> {
   const { data, error } = await supabase.rpc("cs_create_preview_link", {
     p_draft_id: input.draftId,
@@ -161,7 +176,7 @@ export async function createPreviewLink(
   if (error) fail(error);
   const r = data as { id: string; token: string; expires_at: string };
   saveToken(userId, r.id, r.token);
-  return { id: r.id, url: previewUrl(origin, r.token), expiresAt: r.expires_at };
+  return { id: r.id, url: previewUrl(origin, r.token, author), expiresAt: r.expires_at };
 }
 
 export async function revokePreviewLink(linkId: string): Promise<void> {

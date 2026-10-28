@@ -2,7 +2,7 @@
 // adviser shared and comments on it without signing in. Data comes from the
 // preview-link edge function; the token in the URL is the only credential.
 import { useEffect, useState, type FormEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, Loader2, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FORMAT_LABEL, PLATFORM_LABEL, formatWhen } from "@/components/team/shared";
-import { fetchPublicPreview, postPublicComment, type PublicPreview } from "@/lib/previewLinks";
+import { fetchPublicPreview, postPublicComment, reviewWords, type PublicPreview } from "@/lib/previewLinks";
 
 const NAME_KEY = "cs-review-name"; // device-only convenience
 
@@ -56,6 +56,7 @@ export default function PreviewReviewPage() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sent, setSent] = useState(false);
+  const words = reviewWords(useSearchParams()[0].get("role") === "author", post?.sender_name);
 
   const load = async () => {
     setState("loading");
@@ -78,7 +79,7 @@ export default function PreviewReviewPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return setSendError("Add your name so the adviser knows who commented.");
+    if (!name.trim()) return setSendError(`Add your name so ${words.who} knows who commented.`);
     if (!body.trim()) return setSendError("Write a comment first.");
     setSending(true);
     setSendError("");
@@ -115,7 +116,7 @@ export default function PreviewReviewPage() {
           <section className="space-y-2 rounded-xl border border-border/70 bg-card p-5 shadow-card">
             <h1 className="font-serif text-xl font-semibold">This link has ended</h1>
             <p className="text-sm text-muted-foreground">
-              It expired or the adviser turned it off. Ask them to share the post again.
+              {words.gone}
             </p>
           </section>
         ) : state === "error" || !post ? (
@@ -170,7 +171,7 @@ export default function PreviewReviewPage() {
                       <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
                         <span className="font-semibold text-foreground">
                           {c.author_name}
-                          {c.from_owner ? " (adviser)" : ""}
+                          {c.from_owner ? words.ownerTag : ""}
                         </span>
                         <span>{formatWhen(c.created_at)}</span>
                       </p>

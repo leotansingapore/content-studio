@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatWhen } from "@/components/team/shared";
 import { loadBrand } from "@/lib/carousel";
+import { professionFor } from "@/lib/profession";
 import type { DraftEntry } from "@/lib/draftHistory";
 import {
   PREVIEW_DAYS,
@@ -56,7 +57,9 @@ export default function PreviewLinkPanel({
     () => comments.filter((c) => linkIds.has(c.link_id)).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)),
     [comments, linkIds],
   );
-  const liveUrl = live && tokens[live.id] ? previewUrl(window.location.origin, tokens[live.id]) : null;
+  // anyone but an adviser gets a link whose page names their brand, not "the adviser"
+  const author = !!professionFor(userId);
+  const liveUrl = live && tokens[live.id] ? previewUrl(window.location.origin, tokens[live.id], author) : null;
 
   const copy = async (url: string) => {
     try {
@@ -80,7 +83,7 @@ export default function PreviewLinkPanel({
         content: text,
         senderName,
       };
-      const made = await createPreviewLink(userId, input, window.location.origin);
+      const made = await createPreviewLink(userId, input, window.location.origin, author);
       setTokens(loadTokens(userId));
       onLink({
         id: made.id,
