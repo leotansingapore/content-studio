@@ -531,6 +531,23 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(parseMakeRequest(body({ as: "slideshow", note: "x".repeat(301) })).ok).toBe(false);
   });
 
+  it("covers the steer note on a remix: the note is the content, the original only its shape (dogfood 28 Oct)", () => {
+    const steer = "Follow up now: CRM > Inbox, the wrench. Three groups: Needs a reply, Your call, Tidy up. Draft all, then Send all.";
+    for (const brand of [body().brand, BIZ]) {
+      const { system, user } = buildMakePrompt(make({ as: "slideshow", brand, note: steer }));
+      expect(system).toContain(`is what the slides cover: build the numbered slides from its facts, names and steps in place of the original's subject`);
+      expect(system.trimEnd().endsWith(`${steer}\n"""`)).toBe(true);
+      expect(system.indexOf(steer)).toBeGreaterThan(system.indexOf(COMPLIANCE_RULES[2]));
+      expect(user).toContain("Take only the shape from this original: the slides cover the");
+    }
+    // no note, a topic, or another format: the note stays the plain override it was
+    const plain = "The adviser's own note (it wins over the defaults above, never over the compliance rules):";
+    expect(buildMakePrompt(make({ as: "slideshow" })).user).not.toContain("Take only the shape");
+    expect(buildMakePrompt(make({ as: "post", note: steer })).system).toContain(plain);
+    expect(buildMakePrompt(topicReq({ note: steer })).system).toContain(plain);
+    expect(buildMakePrompt(make({ as: "post", note: steer })).user).not.toContain("Take only the shape");
+  });
+
   it("keeps the compliance block and 'never the words', and asks for the original's shape", () => {
     const { system, user } = buildMakePrompt(make({ as: "slideshow" }));
     expect(system).toContain(COMPLIANCE_RULES.join("\n"));
@@ -962,7 +979,8 @@ describe("today's formats write exactly today's prompts (phase 3 adds shapes, ne
       return [buildMakePrompt(m), responseFormat(m)];
     });
     expect(out).toHaveLength(109);
-    expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("ff9c83240017ac211de59299c9828885a3ec31be5eb645f6a5a84f8e277f36c5");
+    // 28 Oct: re-pinned when a slideshow remix's note became what the slides cover (STEER_HEAD); only its 3 requests with a note changed
+    expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("444a2128a159160705b6b5bad008216d5d0b738d52e785f2343c585d52830d6e");
   });
 
   // phase 6's remix-topic pin, taken before post, carousel and script could start from a topic: one hash per request, so a change names it

@@ -995,6 +995,14 @@ function voiceLines(voice: VoiceInput | null | undefined, speaker: Speaker): str
   return out;
 }
 
+const NOTE_HEAD = "The adviser's own note (it wins over the defaults above, never over the compliance rules):";
+/**
+ * A slideshow remix's note (/make/slideshow's Steer it) is what the slides cover, and the original gives only its shape
+ * (dogfood 28 Oct: a steer of a feature's facts came back as generic tips naming the product only on the last slide).
+ */
+const STEER_HEAD =
+  "The adviser's own note is what the slides cover: build the numbered slides from its facts, names and steps in place of the original's subject, and count its facts as given. Take only the shape and the hook style from the original. The note wins over the defaults above, never over the compliance rules:";
+
 /** System: rules, compliance, keep, close, brand, the MAS line, then the note. User: the original and the voice. */
 export function buildMakePrompt(req: MakeRequest): { system: string; user: string } {
   const src = req.source;
@@ -1011,7 +1019,7 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
     ...brandLines(req.brand),
     ...(req.fit?.reasons.includes("masSafe") ? ["", sp === "business" ? MAS_LINE_BUSINESS : MAS_LINE] : []),
     ...formulaLines(req),
-    ...(req.note ? ["", asSpeaker("The adviser's own note (it wins over the defaults above, never over the compliance rules):", sp), quote(req.note)] : []),
+    ...(req.note ? ["", asSpeaker(req.as === "slideshow" ? STEER_HEAD : NOTE_HEAD, sp), quote(req.note)] : []),
   ].join("\n");
   const dontReuse = dontReuseFor(req);
   const user = [
@@ -1032,6 +1040,7 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
         : ["", "Its beats, in order:", ...req.teardown.beats.map((b, i) => `${i + 1}. ${b}`)]
       : []),
     ...(dontReuse.length ? ["", `Do not reuse: ${dontReuse.join("; ")}`] : []),
+    ...(req.as === "slideshow" && req.note ? ["", asSpeaker("Take only the shape from this original: the slides cover the adviser's note.", sp)] : []),
     ...shapeLines(req),
     ...voiceLines(req.voice, req.brand.speaker),
   ].join("\n");
@@ -1055,7 +1064,7 @@ function buildTopicPrompt(req: MakeRequest): { system: string; user: string } {
     ...complianceFor(sp),
     ...brandLines(req.brand),
     ...formulaLines(req),
-    ...(req.note ? ["", asSpeaker("The adviser's own note (it wins over the defaults above, never over the compliance rules):", sp), quote(req.note)] : []),
+    ...(req.note ? ["", asSpeaker(NOTE_HEAD, sp), quote(req.note)] : []),
   ].join("\n");
   const user = ["The topic:", quote(req.topic ?? ""), ...shapeLines(req), ...voiceLines(req.voice, sp)].join("\n");
   return { system, user };
