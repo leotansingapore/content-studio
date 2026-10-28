@@ -17,6 +17,7 @@
 // exists for that user and no content-studio-mcprevoked-<hash>-<scope> row does.
 
 import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient } from "../_shared/usageCaps.ts";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic.ts";
 
@@ -117,6 +118,9 @@ function parseJson<T>(raw: string | null, fallback: T): T {
     return fallback;
   }
 }
+
+/** The brand kit get_brand reads; its `profession` sets what Claude is told (toldFor). */
+const brandKit = async (store: Store, scope: string) => parseJson<Record<string, unknown>>(await store.get(`content-studio-carousel-brand-${scope}`), {});
 
 async function drafts(store: Store, scope: string): Promise<Draft[]> {
   const list = parseJson<unknown>(await store.get(`content-studio-drafts-${scope}`), []);
@@ -455,7 +459,7 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
     }
     case "get_brand": {
       const pos = parseJson<Record<string, unknown>>(await store.get(`content-studio-positioning-${scope}`), {});
-      const brand = parseJson<Record<string, unknown>>(await store.get(`content-studio-carousel-brand-${scope}`), {});
+      const brand = await brandKit(store, scope);
       const voice = parseJson<Record<string, unknown>>(await store.get(`content-studio-voice-${scope}`), {});
       const pick = (o: Record<string, unknown>, keys: string[]) => Object.fromEntries(keys.filter((k) => o[k] !== undefined && o[k] !== "").map((k) => [k, o[k]]));
       const answer = {
@@ -578,6 +582,26 @@ interface RpcRequest {
 
 const INSTRUCTIONS =
   "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns.";
+
+/**
+ * Today's adviser text in the words of any other work (p from professionOf, put in by replacer functions so $& stays
+ * as typed): their work named, the honesty line in place of the MAS rules. The app runs the same wording check before
+ * posting for every brand, so it stays, unnamed. Facts about the app stay too: the calendar's today and scheduledFor
+ * are read in Singapore time.
+ */
+const forWork = (text: string, p: string) =>
+  text
+    .replace("a Singapore financial adviser's social media workspace", () => `${aOrAn(p)}'s social media workspace`)
+    .replace("Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns.", () => HONEST_LINE)
+    .replace("where MAS wording is checked", () => "where its wording is checked")
+    .replace(/\bthe adviser\b/g, () => `the ${p}`);
+
+/** What a link off the list is told for a brand whose owner does `p` (professionOf): "" is an adviser, today's text byte for byte. */
+export function toldFor(p: string) {
+  if (!p) return { instructions: INSTRUCTIONS, tools: TOOLS };
+  return { instructions: forWork(INSTRUCTIONS, p), tools: TOOLS.map((t) => ({ ...t, description: forWork(t.description, p) })) };
+}
+
 export const LEO_INSTRUCTIONS =
   "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. When you remix someone else's post, keep its structure and write new words: never copy its wording, brand or claims. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns, no named insurer products, no invented numbers. Run check_post before add_draft. If get_brand says the speaker is business, write as the business, with no adviser wording.";
 
@@ -625,6 +649,8 @@ export async function handleRpc(msg: RpcRequest, store: Store, link: Link, now =
   const error = (code: number, message: string) => ({ jsonrpc: "2.0", id, error: { code, message } });
   if (typeof msg.method !== "string") return error(-32600, "Invalid request");
   if (msg.id === undefined) return null; // notifications/initialized and friends
+  // Leo's links keep their own text whatever the brand does
+  const told = async () => toldFor(professionOf((await brandKit(store, link.scope))?.profession));
   if (caller.leo && msg.method === "prompts/list") {
     return reply({ prompts: (await promptsFor(store, link.scope)).map(({ text: _t, ...p }) => p) });
   }
@@ -648,13 +674,13 @@ export async function handleRpc(msg: RpcRequest, store: Store, link: Link, now =
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: caller.leo ? { tools: { listChanged: false }, prompts: { listChanged: false } } : { tools: { listChanged: false } },
         serverInfo: { name: "content-studio", version: "1.0.0" },
-        instructions: caller.leo ? LEO_INSTRUCTIONS : INSTRUCTIONS,
+        instructions: caller.leo ? LEO_INSTRUCTIONS : (await told()).instructions,
       });
     }
     case "ping":
       return reply({});
     case "tools/list":
-      return reply({ tools: toolsFor(caller) });
+      return reply({ tools: caller.leo ? LEO_TOOLS : (await told()).tools });
     case "tools/call": {
       const name = typeof msg.params?.name === "string" ? msg.params.name : "";
       const args = msg.params?.arguments && typeof msg.params.arguments === "object" ? (msg.params.arguments as Args) : {};

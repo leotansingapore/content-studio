@@ -1,0 +1,116 @@
+{
+  "instructions": "Postmosis is a Singapore financial adviser's social media workspace. Read get_brand before drafting. Posts must suit MAS advertising rules: no guarantees, no 'risk-free', no promises of returns.",
+  "tools": [
+    {
+      "name": "list_posts",
+      "description": "List the adviser's posts in Postmosis (newest first): drafts, scheduled and posted, with ids for get_post.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "all",
+              "draft",
+              "scheduled",
+              "posted"
+            ],
+            "description": "Default all."
+          },
+          "limit": {
+            "type": "number",
+            "description": "1 to 50, default 20."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_post",
+      "description": "The full text and details of one post, including its results when they were logged.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "get_calendar",
+      "description": "Posts scheduled from a date (YYYY-MM-DD, default today in Singapore) for a number of days (default 14, at most 90).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "days": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_results",
+      "description": "Results of posted posts the adviser logged: totals, engagement rate (reactions, comments and shares over impressions) and the best posts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_brand",
+      "description": "Who the adviser is and how they write: positioning (goal, audience, topics, edge, main platform, posts a week), brand kit (name, handle, role, sign-off) and voice summary. Read this before drafting.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "add_draft",
+      "description": "Save a post to the adviser's My posts as a draft, or scheduled when scheduledFor is given. It appears the next time Postmosis opens, where MAS wording is checked before posting. Write only facts the adviser gave you.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The post as it will be published."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short title or hook, up to 160 characters."
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "linkedin",
+              "instagram",
+              "facebook",
+              "tiktok"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "text-post",
+              "carousel",
+              "short-video",
+              "story"
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "YYYY-MM-DD, or YYYY-MM-DDTHH:MM in Singapore time."
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  ]
+}
