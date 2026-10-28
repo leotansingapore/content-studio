@@ -21,6 +21,8 @@ import { addDays, localDateKey, postedDay, scheduleAt } from "@/lib/dueDates";
 import { hasSavedLabels, loadLabels, pillarsFromLabels, type Label } from "@/lib/labels";
 import { getBreakdown, getDayOfWeekBreakdown, getTrackedPosts, MIN_GROUP_SAMPLE, postingTimeOn } from "@/lib/analytics";
 import { loadBrand } from "@/lib/carousel";
+import { professionFor } from "@/lib/profession";
+import { professionOf } from "../../supabase/functions/_shared/profession.ts";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -121,6 +123,16 @@ const BUSINESS_SUBJECTS = [
   "a value we won't compromise on",
   "who this is for, and who it is not for",
   "a question people ask before they start",
+];
+
+// Anyone but an adviser (the brand's profession): the same personal-trust subjects about their own work, no money.
+const PERSON_SUBJECTS = [
+  "a belief about your work most people in your field won't say out loud",
+  "something outside work that shaped how you work",
+  "a challenge you went through and what changed",
+  "why you got into this, the real reason",
+  "a value you refuse to compromise on with clients",
+  "a lesson from your first year that you'd tell your younger self",
 ];
 
 // A business's idea sources: no Budget hook, and no personal or client story (BUSINESS_VOICE forbids both).
@@ -276,6 +288,11 @@ export interface GeneratePlanOptions {
    * slot's angle names its campaign angle (`angles`) instead. Autopilot passes it; /plan never does.
    */
   speaker?: "person" | "business";
+  /**
+   * The brand's "What do you do?" (professionFor). None, or an adviser's, is today's plan; any other takes no adviser
+   * inspiration library (its seeds are finance hooks and topics): PERSON_SUBJECTS and neutral starters.
+   */
+  profession?: string;
 }
 
 /**
@@ -358,7 +375,9 @@ export function planOptionsFor(
 ): GeneratePlanOptions {
   const slots = loadBrand(userId)?.slots ?? [];
   const posts = getTrackedPosts(userId);
+  const profession = professionFor(userId);
   return {
+    ...(profession ? { profession } : {}),
     competitors: (o.competitors ?? []).map((c) => ({
       name: c.name,
       handle: c.handle,
@@ -399,7 +418,10 @@ export function generatePlan(
   const allTopics = positioning.topics.filter((t) => t.trim().length > 0);
   const topics = fresh(allTopics);
   const business = opts.speaker === "business";
-  const socialSubjects = fresh(business ? BUSINESS_SUBJECTS : SOCIAL_SUBJECTS);
+  // the inspiration library and the social subjects are an adviser's: a business takes its own, any other work neutral ones
+  const person = !business && !!professionOf(opts.profession);
+  const library = !business && !person;
+  const socialSubjects = fresh(business ? BUSINESS_SUBJECTS : person ? PERSON_SUBJECTS : SOCIAL_SUBJECTS);
   const ideaLabels = business ? BUSINESS_IDEA_LABELS : IDEA_SOURCE_LABELS;
   const formulaStart = opts.formulaStart ?? 0;
 
@@ -465,12 +487,12 @@ export function generatePlan(
         pillarDetail = topics[(authIndex + salt) % topics.length];
         authIndex++;
       } else {
-        pillarDetail = positioning.audienceDetail || (business ? "your core topic" : "your core financial topic");
+        pillarDetail = positioning.audienceDetail || (library ? "your core financial topic" : "your core topic");
       }
 
-      // the inspiration library is an adviser's (finance hooks and topics): a business takes none of it
-      const seed = business ? undefined : pickSeed(pillar, positioning.audience, globalIndex + salt);
-      const hint = business ? angles[globalIndex % (angles.length || 1)]?.title : seed?.topic;
+      // the inspiration library is an adviser's (finance hooks and topics): a business or any other work takes none of it
+      const seed = library ? pickSeed(pillar, positioning.audience, globalIndex + salt) : undefined;
+      const hint = library ? seed?.topic : angles[globalIndex % (angles.length || 1)]?.title;
 
       const ideaLabel = ideaLabels[ideaSource] ?? "a concrete angle";
       let angle: string;
@@ -490,7 +512,9 @@ export function generatePlan(
         (isSocial
           ? business
             ? "Here's what most people don't see about how we work."
-            : "Most people think advisors only care about closing. Here's what actually drives me."
+            : person
+              ? "Most people only see the finished work. Here's what actually drives me."
+              : "Most people think advisors only care about closing. Here's what actually drives me."
           : `If you ${pillarDetail.toLowerCase()}, there's one thing most people get wrong.`);
 
       const competitor =

@@ -395,3 +395,50 @@ describe("slot labels, rebuild and the pillar grid", () => {
     expect(pillarGrid(LABELS, [], null, now)[0].cells.carousel).toEqual({ posted: 0, planned: 0 });
   });
 });
+
+// ---- The brand's profession (supabase/functions/_shared/profession.ts): the inspiration library and the social subjects
+// are an adviser's; any other work takes neutral ones, an adviser's plan stays as pinned above.
+import { adviserWordsIn, PROFESSIONS } from "../../supabase/functions/_shared/adviserWords";
+
+describe("the plan for the brand's profession", () => {
+  const NEUTRAL = pos({ audience: "parent", audienceDetail: "Parents of under-5s", platform: "instagram", edge: "Ex-teacher", topics: ["Sleep routines", "First week back", "Picky eaters"] });
+  const plans = (extra: Partial<GeneratePlanOptions> = {}) =>
+    [3, 5, 7].flatMap((cadence) => [0, 1, 2].map((salt) => stable(generatePlan({ ...NEUTRAL, cadence }, { weeks: 2, salt, ...extra }))));
+  const written = (p: ReturnType<typeof stable>) => p.items.map((i) => ({ angle: i.angle, hook: i.hook, pillarDetail: i.pillarDetail, seedId: i.seedId }));
+
+  it("an adviser's brand, or none set, gets today's plan", () => {
+    for (const profession of ["", "Financial adviser", " financial ADVISOR "]) expect(plans({ profession })).toEqual(plans());
+    // today's plan draws on the adviser library (that is what changes for anyone else)
+    expect(plans().flatMap((p) => p.items).some((i) => i.seedId)).toBe(true);
+  });
+
+  it.each(PROFESSIONS)("$raw gets subjects and starter hooks with no adviser library and none of the adviser words", ({ raw }) => {
+    for (const p of plans({ profession: raw })) {
+      expect(p.items.every((i) => i.seedId === undefined)).toBe(true);
+      expect(adviserWordsIn(JSON.stringify(written(p)))).toEqual([]);
+      expect(JSON.stringify(written(p))).not.toContain("Why you got into this \u2014");
+    }
+    const social = plans({ profession: raw }).flatMap((p) => p.items).filter((i) => i.pillar === "identity" || i.pillar === "interest");
+    expect(social.length).toBeGreaterThan(0);
+    expect(new Set(social.map((i) => i.pillarDetail)).size).toBeGreaterThan(3);
+  });
+
+  it("with no topics the fallback is their core topic, not a financial one", () => {
+    const p = generatePlan({ ...NEUTRAL, topics: [], audienceDetail: "", cadence: 7 }, { weeks: 1, profession: "Coach" });
+    expect(p.items.filter((i) => i.pillar === "topic" || i.pillar === "market").map((i) => i.pillarDetail)).toContain("your core topic");
+  });
+
+  it("planOptionsFor carries the open brand's profession, and none for an adviser's", () => {
+    const UID = "0d80f027-3395-480c-86a1-8827d3d6cce3";
+    const mem = new Map<string, string>();
+    (globalThis as { window?: unknown }).window = { localStorage: { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => mem.set(k, v), removeItem: (k: string) => mem.delete(k), key: () => null, length: 0 }, dispatchEvent: () => true };
+    try {
+      mem.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ profession: "Real estate agent" }));
+      expect(planOptionsFor(UID, "instagram", { plan: null }).profession).toBe("real estate agent");
+      mem.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ profession: "Financial adviser" }));
+      expect("profession" in planOptionsFor(UID, "instagram", { plan: null })).toBe(false);
+    } finally {
+      delete (globalThis as { window?: unknown }).window;
+    }
+  });
+});
