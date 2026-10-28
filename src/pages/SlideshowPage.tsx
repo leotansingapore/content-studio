@@ -23,9 +23,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { draftLabel, draftsWithText, loadBrand, slideFileName } from "@/lib/carousel";
+import { draftLabel, draftsWithText, loadBrand, slideFileName, slidesZipName } from "@/lib/carousel";
 import { scanCompliance } from "@/lib/compliance";
-import { downloadBlob } from "@/lib/carouselRender";
+import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import { getDraftById, loadDrafts, upsertDraft } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
@@ -78,7 +78,6 @@ import { PER_PAGE as STOCK_PER_PAGE } from "../../supabase/functions/stock-media
 import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // where a new text box lands, so it doesn't cover the ones already there
 const NEW_BOX_Y = [0.5, 0.72, 0.28, 0.86, 0.14, 0.6];
 const EXPORT_FAILED = "Couldn't make the pictures. Try again, or try another browser.";
@@ -689,12 +688,9 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
     mine({ done: 0, total: n });
     try {
       const files = await slideshowPngs(userId, work, { signal: ctrl.signal, onProgress: (done, total) => mine({ done, total }) });
-      for (const [i, f] of files.entries()) {
-        if (ctrl.signal.aborted) return;
-        downloadBlob(f.file, slideFileName(work.title, i));
-        // browsers drop downloads that all start at the same moment
-        if (i < files.length - 1) await pause(400);
-      }
+      const zip = await zipBlob(files.map((f, i) => ({ file: f.file, name: slideFileName(work.title, i) })));
+      if (ctrl.signal.aborted) return;
+      downloadBlob(zip, slidesZipName(work.title));
       mine(null);
       toast({ title: "Slideshow downloaded" });
     } catch (e) {

@@ -599,6 +599,9 @@ export function slideFileName(base: string, index: number): string {
   return `${slugify(base)}-${String(index + 1).padStart(2, "0")}.png`;
 }
 
+/** The one file Download all saves: every slide, named as slideFileName names them. */
+export const slidesZipName = (base: string) => `${slugify(base)}-slides.zip`;
+
 /** Drafts with written text; board ideas that only have a hook can't make slides. */
 export function draftsWithText(drafts: DraftEntry[]): DraftEntry[] {
   return drafts.filter((d) => typeof d.draft === "string" && d.draft.trim().length > 0);

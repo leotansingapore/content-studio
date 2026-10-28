@@ -2,6 +2,7 @@
 // slide's SVG onto a 1080x1350 canvas and hands the PNG to the browser as a
 // download. The layout itself is pure and tested (carouselLayout.ts).
 
+import { zipSync, type Zippable } from "fflate";
 import { fontCss, SLIDE_HEIGHT, SLIDE_WIDTH, type Measure } from "@/lib/carouselLayout";
 
 export function createCanvasMeasure(): Measure {
@@ -58,6 +59,16 @@ async function svgToBlob(svg: string, type: string, quality?: number): Promise<B
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("The image couldn't be created."))), type, quality);
   });
+}
+
+/**
+ * Files in one .zip, stored as they are (PNGs are already compressed). One download, because Chrome blocks a site's
+ * automatic downloads after the first and only slide 1 of a slideshow arrived (dogfood 28 Oct 2026).
+ */
+export async function zipBlob(files: { file: Blob; name: string }[]): Promise<Blob> {
+  const entries: Zippable = {};
+  for (const f of files) entries[f.name] = [new Uint8Array(await f.file.arrayBuffer()), { level: 0 }];
+  return new Blob([zipSync(entries)], { type: "application/zip" });
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

@@ -21,8 +21,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBySlug } from "@/data/formats";
 import { useToast } from "@/hooks/use-toast";
-import { slideFileName } from "@/lib/carousel";
-import { downloadBlob } from "@/lib/carouselRender";
+import { slideFileName, slidesZipName } from "@/lib/carousel";
+import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import { scanCompliance } from "@/lib/compliance";
 import { draftsChanged, getDraftById, upsertDraft } from "@/lib/draftHistory";
 import { fromFollowPost, fromFormatTrend, fromTopPost, noteKey, rememberSource, type RemixSource } from "@/lib/remixSource";
@@ -59,7 +59,6 @@ const WORDS_KEY = "cs-make-slideshow";
 const STEER_MAX = 300;
 /** One heading style for every option on the setup cards. */
 const FIELD_LABEL = "text-xs font-semibold text-muted-foreground";
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function useJob(): SlideshowJob | null {
   const [job, setJob] = useState(slideshowJob);
@@ -465,12 +464,9 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
     mine({ done: 0, total: n });
     try {
       const files = await slideshowPngs(userId, show, { signal: ctrl.signal, onProgress: (done, total) => mine({ done, total }) });
-      for (const [i, f] of files.entries()) {
-        if (ctrl.signal.aborted) return;
-        downloadBlob(f.file, slideFileName(show.title, i));
-        // browsers drop downloads that all start at the same moment
-        if (i < files.length - 1) await pause(400);
-      }
+      const zip = await zipBlob(files.map((f, i) => ({ file: f.file, name: slideFileName(show.title, i) })));
+      if (ctrl.signal.aborted) return;
+      downloadBlob(zip, slidesZipName(show.title));
       mine(null);
       toast({ title: "Slideshow downloaded" });
     } catch (e) {
