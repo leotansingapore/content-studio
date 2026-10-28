@@ -133,6 +133,7 @@ export function TeamPostPanel({
   const done = status === "posted" || status === "skipped";
   const approvedHere = review?.approvedRev === post.rev;
   const img = safeExternalUrl(post.image);
+  const clientImg = safeExternalUrl(post.client?.image);
   const link = safeExternalUrl(post.postLink);
   const thread = threadOf(post, review);
 
@@ -158,9 +159,9 @@ export function TeamPostPanel({
     type("");
     decide(next, `Sent to Claude: ${post.title}. It comes back here reworked.`);
   };
-  const copy = async () => {
+  const copy = async (words = post.message) => {
     try {
-      await navigator.clipboard.writeText(post.message);
+      await navigator.clipboard.writeText(words);
       toast({ title: "Message copied" });
     } catch {
       toast({ title: "Copy failed", variant: "destructive" });
@@ -234,10 +235,27 @@ export function TeamPostPanel({
               <p className="whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
                 {post.message}
               </p>
-              <Button variant="outline" size="sm" onClick={copy} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => copy()} className="gap-1.5">
                 <Copy className="h-3.5 w-3.5" /> Copy
               </Button>
             </div>
+
+            {post.client && (
+              <section aria-label="For clients" className="space-y-2 border-t border-border/60 pt-4">
+                <h3 className="text-sm font-semibold text-foreground">For clients</h3>
+                {clientImg && (
+                  <a href={clientImg} target="_blank" rel="noopener noreferrer" title="Open full size" className="block w-32">
+                    <img src={clientImg} alt={`For clients: ${post.title}`} className="w-full rounded-lg border border-border/60 bg-muted object-contain" />
+                  </a>
+                )}
+                <p className="whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
+                  {post.client.message}
+                </p>
+                <Button variant="outline" size="sm" onClick={() => copy(post.client?.message)} className="gap-1.5">
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                </Button>
+              </section>
+            )}
 
             <section aria-label="Comments" className="space-y-2 border-t border-border/60 pt-4">
               {thread.map((c) => (
@@ -274,7 +292,9 @@ export function TeamPostPanel({
                   />
                   <div className="flex items-start gap-3">
                     <p className="flex-1 text-xs text-muted-foreground">
-                      Claude reworks the post from your comment and it comes back here for approval.
+                      {post.auto
+                        ? "Claude reworks the words from your comment, then it goes out on its day."
+                        : "Claude reworks the post from your comment and it comes back here for approval."}
                     </p>
                     <Button type="submit" variant="outline" size="sm" disabled={!text.trim()}>
                       Send
@@ -317,7 +337,7 @@ export function TeamPostPanel({
                   </>
                 ) : status === "approved" ? (
                   <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-success">
-                    <Check className="h-4 w-4" /> Approved on Telegram
+                    <Check className="h-4 w-4" /> {post.auto ? "Goes out on its own" : "Approved on Telegram"}
                   </span>
                 ) : (
                   <Button

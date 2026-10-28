@@ -243,14 +243,37 @@ describe("review queue", () => {
 });
 
 describe("teamHome", () => {
-  it("puts every team post, both groups, on ActivityTracker, and on the default brand until it exists", () => {
-    const fast = post({ id: "f" }), adv = post({ id: "a", channel: "advisoros" });
+  it("puts AdvisorOS posts on ActivityTracker and FASTRACK and memo posts on Leo's team, each falling back while its brand is missing", () => {
+    const fast = post({ id: "f" }), adv = post({ id: "a", channel: "advisoros" }), memo = post({ id: "m", channel: "memos" });
     expect(teamHome(UID)).toBe("me");
-    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["f", "a"]);
+    expect(teamPostsHere(UID, [fast, adv, memo]).map((p) => p.id)).toEqual(["f", "a", "m"]);
     const at = addProfile(UID, "ActivityTracker");
-    expect(teamHome(UID)).toBe(at.id);
-    expect(teamPostsHere(UID, [fast, adv])).toEqual([]);
+    expect(teamHome(UID, adv)).toBe(at.id);
+    expect(teamHome(UID, memo)).toBe(at.id); // no Leo's team yet
+    expect(teamPostsHere(UID, [fast, adv, memo])).toEqual([]);
+    const team = addProfile(UID, "Leo's team");
+    expect(teamHome(UID)).toBe(team.id);
+    expect(teamHome(UID, fast)).toBe(team.id);
+    expect(teamHome(UID, memo)).toBe(team.id);
+    expect(teamHome(UID, adv)).toBe(at.id);
     setActiveProfile(UID, at.id);
-    expect(teamPostsHere(UID, [fast, adv]).map((p) => p.id)).toEqual(["f", "a"]);
+    expect(teamPostsHere(UID, [fast, adv, memo]).map((p) => p.id)).toEqual(["a"]);
+    setActiveProfile(UID, team.id);
+    expect(teamPostsHere(UID, [fast, adv, memo]).map((p) => p.id)).toEqual(["f", "m"]);
+  });
+});
+
+describe("memo posts", () => {
+  it("names the memo topic and keeps a well-formed client part, dropping a broken one", () => {
+    expect(groupOf({ channel: "memos" })).toBe("FINTERNSHIP FASTRACK memos");
+    const client = { image: "https://x.supabase.co/a.png", message: "Hi [Client name]" };
+    window.localStorage.setItem(teamPostsKey(UID), JSON.stringify({ posts: [
+      { id: "tp1", day: "2026-10-29", rev: 1, channel: "memos", auto: true, client },
+      { id: "tp2", day: "2026-10-30", rev: 1, client: { image: 3 } },
+    ] }));
+    const [a, b] = readTeamPosts(UID);
+    expect(a.client).toEqual(client);
+    expect(a.auto).toBe(true);
+    expect(b.client).toBeUndefined();
   });
 });

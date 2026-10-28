@@ -13,12 +13,17 @@ export interface TeamComment {
   rev: number;
 }
 
-export type TeamChannel = "fastrack" | "advisoros";
-export const TEAM_GROUP: Record<TeamChannel, string> = { fastrack: "FINTERNSHIP FASTRACK", advisoros: "AdvisorOS" };
+export type TeamChannel = "fastrack" | "advisoros" | "memos";
+export const TEAM_GROUP: Record<TeamChannel, string> = {
+  fastrack: "FINTERNSHIP FASTRACK",
+  advisoros: "AdvisorOS",
+  memos: "FINTERNSHIP FASTRACK memos",
+};
 /** The group's name, as the job's CHANNELS spell it. */
 export const groupOf = (post: Pick<TeamPost, "channel">) => TEAM_GROUP[post.channel ?? "fastrack"] ?? TEAM_GROUP.fastrack;
 /** The group as a calendar chip names it: "FINTERNSHIP FASTRACK" wraps a letter at a time in a week column. */
-export const shortGroupOf = (post: Pick<TeamPost, "channel">) => (post.channel === "advisoros" ? "AdvisorOS" : "FASTRACK");
+export const shortGroupOf = (post: Pick<TeamPost, "channel">) =>
+  post.channel === "advisoros" ? "AdvisorOS" : post.channel === "memos" ? "Memos" : "FASTRACK";
 
 export interface TeamPost {
   id: string;
@@ -37,6 +42,10 @@ export interface TeamPost {
   skippedAt?: string | null; // ISO; older Telegram skips have none and count as the oldest time
   telegram: { approvedRev: number | null; comments: TeamComment[] };
   handled: string[];
+  /** Goes out on its day unless skipped (memo posts, Leo 2026-10-28); the job keeps it approved at every revision. */
+  auto?: boolean;
+  /** For advisers to send their clients, when the memo is client-facing: a picture and a message template. */
+  client?: { image: string; message: string };
 }
 
 export interface TeamReview {
@@ -49,10 +58,15 @@ export type TeamReviews = Record<string, TeamReview>;
 export type TeamStatus = "posted" | "skipped" | "approved" | "revising" | "waiting";
 export type ThreadComment = TeamComment & { source: "calendar" | "telegram" };
 
-/** The brand team posts sit on: ActivityTracker, for both groups (Leo 2026-10-23); the default brand until it exists. */
-export const teamHome = (uid: string) => profileForBusiness(uid, "ActivityTracker") ?? DEFAULT_PROFILE_ID;
+export const TEAM_BRAND = "Leo's team";
+/** The brand a team post sits on (Leo 2026-10-28): AdvisorOS on ActivityTracker, FASTRACK and its memos on Leo's team
+ *  (no post = FASTRACK). A brand that does not exist yet falls back to ActivityTracker, then the default brand. */
+export const teamHome = (uid: string, post?: Pick<TeamPost, "channel">) => {
+  const at = profileForBusiness(uid, "ActivityTracker") ?? DEFAULT_PROFILE_ID;
+  return post?.channel === "advisoros" ? at : (profileForBusiness(uid, TEAM_BRAND) ?? at);
+};
 /** The team posts on the open brand (docs/brand-isolation.md). */
-export const teamPostsHere = (uid: string, posts: TeamPost[]) => (teamHome(uid) === activeProfileId(uid) ? posts : []);
+export const teamPostsHere = (uid: string, posts: TeamPost[]) => posts.filter((p) => teamHome(uid, p) === activeProfileId(uid));
 
 export const teamPostsKey = (uid: string) => `content-studio-teamposts-${uid}`;
 export const teamReviewsKey = (uid: string) => `content-studio-teamreviews-${uid}`;
@@ -91,6 +105,7 @@ export function readTeamPosts(uid: string | null | undefined): TeamPost[] {
       time: String(p.time ?? "10:00"),
       telegram: { approvedRev: p.telegram?.approvedRev ?? null, comments: comments(p.telegram?.comments) },
       handled: Array.isArray(p.handled) ? p.handled : [],
+      client: p.client && typeof p.client.image === "string" && typeof p.client.message === "string" ? p.client : undefined,
     }));
 }
 

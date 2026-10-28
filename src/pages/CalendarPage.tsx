@@ -336,12 +336,14 @@ export default function CalendarPage() {
   };
   const closeTeam = () => setParams((prev) => withParam(prev, "teampost", null), { replace: true });
   const teamOpen = teamPosts.find((p) => p.id === teamOpenId) ?? null;
-  // Team posts sit on ActivityTracker (teamHome); every other brand's calendar has none.
-  const teamHere = Boolean(userId && profile && teamHome(userId) === profile.id);
-  const myTeam = useMemo(() => (teamHere ? teamPosts : []), [teamHere, teamPosts]);
+  // Each team post sits on its group's brand (teamHome); every other brand's calendar has none.
+  const myTeam = useMemo(
+    () => (userId && profile ? teamPosts.filter((p) => teamHome(userId, p) === profile.id) : []),
+    [userId, profile, teamPosts],
+  );
   // A ?teampost= link (Telegram) to another brand's post opens on that brand, so the queue and calendar behind it are its own.
   useEffect(() => {
-    if (userId && teamOpen && applyBrandLink(userId, teamHome(userId)) === "reload") window.location.reload();
+    if (userId && teamOpen && applyBrandLink(userId, teamHome(userId, teamOpen)) === "reload") window.location.reload();
   }, [userId, teamOpen]);
   // The review queue: arrows step through this brand's posts still to go out; Approve, Skip or a comment moves on to
   // the next one waiting, so reviewing a batch never means closing and reopening the panel.

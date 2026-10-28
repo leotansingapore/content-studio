@@ -11,7 +11,7 @@ import { useGoneItem, useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
-import { TEAM_TO_REVIEW, boardWaitingChanged, boardWaitingHere, postsToReview, teamReviewLine, waitingByBrand } from "@/lib/needsYou";
+import { TEAM_TO_REVIEW, boardWaitingChanged, boardWaitingHere, postsToReview, teamReviewLine, teamWaiting, waitingByBrand } from "@/lib/needsYou";
 import { readTeamPosts, readTeamReviews, teamHome } from "@/lib/teamPosts";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import {
@@ -80,7 +80,15 @@ export default function ReelsPage() {
   useGoneItem("card", board ? !!findCard(board.cards, openId) : undefined);
   // Team posts are approved on the calendar, not here: a line says how many wait, for the sign-ins Home lists them for
   const leo = useLeoUser();
-  const team = useMemo(() => (leo ? teamReviewLine(true, readTeamPosts(leo.id), readTeamReviews(leo.id), teamHome(leo.id)) : null), [leo]);
+  const team = useMemo(() => {
+    if (!leo) return null;
+    const posts = readTeamPosts(leo.id);
+    const reviews = readTeamReviews(leo.id);
+    // the brand the first one waiting sits on: AdvisorOS and FASTRACK posts live on different brands
+    const home = teamHome(leo.id, teamWaiting(posts, reviews)[0]);
+    const line = teamReviewLine(true, posts, reviews, home);
+    return line && { ...line, home };
+  }, [leo]);
 
   const reload = () => {
     setLoading(true);
@@ -301,7 +309,7 @@ export default function ReelsPage() {
           {/* a full load: a link to another brand switches on arrival; a plain click switches first, saving a reload */}
           <a
             href={team.all}
-            onClick={(e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && leo && setActiveProfile(leo.id, teamHome(leo.id))}
+            onClick={(e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && leo && setActiveProfile(leo.id, team.home)}
             className="inline-flex min-h-9 items-center text-sm font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
           >
             See all
