@@ -97,6 +97,7 @@ async function callOpenAIStreamToController(
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder,
   signal: AbortSignal,
+  onSent: () => void,
 ): Promise<string> {
   const response = await openaiFetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -150,6 +151,7 @@ async function callOpenAIStreamToController(
               variantIndex,
               text: delta,
             })}\n\n`;
+            onSent();
             controller.enqueue(encoder.encode(event));
           }
         } catch (err) {
@@ -214,7 +216,10 @@ function handleStream(
   giveBack: () => Promise<unknown>,
 ): Response {
   const encoder = new TextEncoder();
+  // the use comes back only when OpenAI failed before any token reached the client, and the client is still there
   let failed = 0;
+  let sent = false;
+  let cancelled = false;
   const abortController = new AbortController();
   const userContent = userPrompt(body, mode);
 
@@ -241,6 +246,7 @@ function handleStream(
             controller,
             encoder,
             abortController.signal,
+            () => (sent = true),
           );
           sendEvent({ type: "variant_complete", variantIndex: i, text });
         } catch (err) {
@@ -264,7 +270,7 @@ function handleStream(
         })
         .finally(async () => {
           // the use comes back only when no variant was written
-          if (failed === n) await giveBack();
+          if (failed > 0 && !sent && !cancelled) await giveBack();
           sendEvent({ type: "done" });
           try {
             controller.close();
@@ -274,6 +280,7 @@ function handleStream(
         });
     },
     cancel() {
+      cancelled = true;
       abortController.abort();
     },
   });

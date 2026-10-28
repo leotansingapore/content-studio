@@ -133,6 +133,28 @@ describe("generate-social-content: who may write and what it counts", () => {
     expect(used()).toBe(0);
   });
 
+  it("keeps the use when OpenAI fails after a token reached the client", async () => {
+    openai.mode = "breaks";
+    const r = await send({ ...BRIEF, mode: "post", n: 1 }, ME, "text/event-stream");
+    expect(r.text).toContain('"type":"token"');
+    expect(r.text).toContain('"type":"error"');
+    expect(used()).toBe(1);
+  });
+
+  it("keeps the use when the person stops the stream before OpenAI answers", async () => {
+    openai.mode = "hangs";
+    const r = await db.handler!(
+      new Request("http://x/generate-social-content", { method: "POST", headers: { Authorization: `Bearer ${ME}`, Accept: "text/event-stream" }, body: JSON.stringify({ ...BRIEF, mode: "post", n: 2 }) }),
+    );
+    const reader = r.body!.getReader();
+    await reader.read(); // the start event
+    await vi.waitFor(() => expect(openai.calls).toBe(2));
+    await reader.cancel();
+    await vi.waitFor(() => expect(openai.aborted).toBe(2));
+    for (let i = 0; i < 5; i++) await new Promise((t) => setTimeout(t, 0));
+    expect(used()).toBe(1);
+  });
+
   it("refuses a body over 64,000 characters, or one that isn't an object, before any count", async () => {
     const big = await send({ ...BRIEF, mode: "post", junk: "x".repeat(64_000) });
     expect(big.status).toBe(400);
