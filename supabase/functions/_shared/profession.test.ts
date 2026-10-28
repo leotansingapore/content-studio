@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PROFESSION_CHARS, professionOf } from "./profession";
+import { isAdviser, MAX_PROFESSION_CHARS, professionOf } from "./profession";
 
 describe("professionOf", () => {
   it("is empty for nothing set and for the adviser chip, in any case", () => {
     for (const raw of [undefined, null, 7, "", "   ", "Financial adviser", " financial ADVISER "]) expect(professionOf(raw)).toBe("");
+  });
+
+  it("reads both spellings of the adviser chip, in any case and trimmed, as an adviser, and nothing else", () => {
+    for (const raw of ["Financial adviser", "financial advisor", "FINANCIAL ADVISOR", "  Financial Adviser  ", "\tfinancial advisor\n"]) {
+      expect([raw, isAdviser(raw), professionOf(raw)]).toEqual([raw, true, ""]);
+    }
+    for (const raw of ["Financial advisors", "financial planner", "adviser", "Independent financial adviser", "financial  adviser"]) {
+      expect([raw, isAdviser(raw)]).toEqual([raw, false]);
+      expect(professionOf(raw)).not.toBe("");
+    }
   });
 
   it("keeps letters, digits, spaces and basic punctuation, and nothing that could start a new prompt line or a replace pattern", () => {

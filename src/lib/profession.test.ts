@@ -94,6 +94,10 @@ describe("What do you do?", () => {
     expect(pressed(html(""))).toEqual(["Financial adviser"]);
   });
 
+  it("picks the adviser chip for either spelling, typed in any case", () => {
+    for (const v of ["financial advisor", " Financial Adviser "]) expect(pressed(html(v))).toEqual(["Financial adviser"]);
+  });
+
   it("picks the chip that matches what was typed, and none for the person's own words", () => {
     expect(pressed(html("coach"))).toEqual(["Coach"]);
     expect(pressed(html("Wedding photographer"))).toEqual([]);

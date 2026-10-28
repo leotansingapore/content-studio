@@ -8,8 +8,11 @@ export const ADVISER = "Financial adviser";
 export const PROFESSION_CHOICES = [ADVISER, "Coach", "Consultant", "Real estate agent", "Freelancer", "Lawyer"] as const;
 export const MAX_PROFESSION_CHARS = 60;
 
-/** True for nothing set and for the adviser chip as typed in any case: both keep the adviser prompts. */
-export const isAdviser = (p: unknown) => typeof p !== "string" || !p.trim() || p.trim().toLowerCase() === ADVISER.toLowerCase();
+/** The adviser chip as typed, both spellings, lower case: an exact match after trimming, nothing looser. */
+const ADVISER_NAMES = ["financial adviser", "financial advisor"];
+
+/** True for nothing set and for the adviser chip as typed (either spelling, any case, trimmed): both keep the adviser prompts. */
+export const isAdviser = (p: unknown) => typeof p !== "string" || !p.trim() || ADVISER_NAMES.includes(p.trim().toLowerCase());
 
 /**
  * The profession a writer gets, as one plain line in the brand's words ("Real estate agent" reads "real estate agent"
