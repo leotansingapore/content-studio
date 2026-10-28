@@ -72,6 +72,7 @@ import {
   readReplies,
   readThread,
 } from "./logic.ts";
+import { professionOf } from "../_shared/profession.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,9 +87,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
-    const parsed = parseEngageRequest(await req.json().catch(() => ({})));
+    const body = await req.json().catch(() => ({}));
+    const parsed = parseEngageRequest(body);
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const r = parsed.request;
+    // the brand's "What do you do?": none, or an adviser's, keeps today's prompts and questions
+    const p = professionOf((body as { profession?: unknown } | null)?.profession);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -107,54 +111,54 @@ Deno.serve(async (req) => {
     const used = { used: usage.used, limit: usage.limit };
 
     if (r.mode === "connect") {
-      const { system, user } = buildConnectPrompt(r);
+      const { system, user } = buildConnectPrompt(r, p);
       const drafts = readConnect(await openAiJson(system, user, key, { temperature: 0.7, maxTokens: 700 }));
       if (!drafts) return json({ error: "Couldn't write the note right now. Try again in a minute." }, 502);
       return json({ drafts, usage: used });
     }
 
     if (r.mode === "thread") {
-      const questions = escalateQuestions([threadText(r.lines)], r.topics, "a direct message conversation (what the other person wrote)");
+      const questions = escalateQuestions([threadText(r.lines)], r.topics, "a direct message conversation (what the other person wrote)", p);
       const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist thread" }) : null;
-      const escalate = readEscalations(answers, 1, r.topics)[0];
+      const escalate = readEscalations(answers, 1, r.topics, p)[0];
       if (escalate) return json({ items: [readThread(null, r.lines, escalate)], usage: used });
-      const { system, user } = buildThreadPrompt(r.lines, r.goal);
+      const { system, user } = buildThreadPrompt(r.lines, r.goal, p);
       const content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 600 });
       if (content === null) return json({ error: "Couldn't write the reply right now. Try again in a minute." }, 502);
       return json({ items: [readThread(content, r.lines)], usage: used });
     }
 
     if (r.mode === "comments") {
-      const questions = typeQuestions(r.posts);
+      const questions = typeQuestions(r.posts, p);
       const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist comments" }) : null;
       const picks = readCommentTypes(answers, r.posts);
-      const { system, user } = buildCommentsPrompt(r.posts, picks);
+      const { system, user } = buildCommentsPrompt(r.posts, picks, p);
       const content = await openAiJson(system, user, key, { temperature: 0.7, maxTokens: 3000 });
       if (content === null) return json({ error: "Couldn't write the comments right now. Try again in a minute." }, 502);
       return json({ items: readComments(content, r.posts, picks), usage: used });
     }
 
     if (r.mode === "dms") {
-      const questions = { ...dmQuestions(r.messages), ...escalateQuestions(r.messages, r.topics, "a direct message on LinkedIn or Instagram") };
+      const questions = { ...dmQuestions(r.messages, p), ...escalateQuestions(r.messages, r.topics, "a direct message on LinkedIn or Instagram", p) };
       const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist dms" }) : null;
-      const escalated = readEscalations(answers, r.messages.length, r.topics);
+      const escalated = readEscalations(answers, r.messages.length, r.topics, p);
       const sorted = readDmKinds(answers, r.messages).map((x, i) => ({ ...x, escalate: escalated[i] }));
       let content: string | null = null;
       if (sorted.some((x) => !undrafted(x))) {
-        const { system, user } = buildDmsPrompt(r.messages, sorted, r.goal);
+        const { system, user } = buildDmsPrompt(r.messages, sorted, r.goal, p);
         content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
         if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
       }
       return json({ items: readDmReplies(content, r.messages, sorted), usage: used });
     }
 
-    const questions = { ...commentQuestions(r.comments), ...escalateQuestions(r.comments, r.topics, "a comment under their own post") };
+    const questions = { ...commentQuestions(r.comments, p), ...escalateQuestions(r.comments, r.topics, "a comment under their own post", p) };
     const answers = Object.keys(questions).length ? await askJev(commentState(r.post), questions, { who: "engage-assist replies" }) : null;
     const kinds = readCommentKinds(answers, r.comments);
-    const escalated = readEscalations(answers, r.comments.length, r.topics);
+    const escalated = readEscalations(answers, r.comments.length, r.topics, p);
     let content: string | null = null;
     if (kinds.some((k, i) => k !== "noise" && !escalated[i])) {
-      const { system, user } = buildRepliesPrompt(r.post, r.comments, kinds, escalated);
+      const { system, user } = buildRepliesPrompt(r.post, r.comments, kinds, escalated, p);
       content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
       if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
     }

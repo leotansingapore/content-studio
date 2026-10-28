@@ -62,6 +62,18 @@ describe("runs", () => {
     expect(loadRun("replies", "u1")).toMatchObject({ post: "My post", items });
   });
 
+  it("sends the open brand's profession with every tool, and none for an adviser's brand", async () => {
+    invoke.mockResolvedValue({ data: { items: [] }, error: null });
+    store.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Real estate agent" }));
+    await startRun("dms", "u1", { post: "", pasted: "Karen: Hi", posts: [], form: {} });
+    store.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "financial adviser" }));
+    await startRun("dms", "u1", { post: "", pasted: "Karen: Hi", posts: [], form: {} });
+    expect(invoke.mock.calls.map((c) => c[1].body)).toEqual([
+      { mode: "dms", messages: [{ name: "Karen", text: "Hi" }], goal: "call", topics: [], profession: "real estate agent" },
+      { mode: "dms", messages: [{ name: "Karen", text: "Hi" }], goal: "call", topics: [] },
+    ]);
+  });
+
   it("sends DMs as messages and keeps their run apart from the replies", async () => {
     invoke.mockResolvedValue({ data: { items: [{ i: 0 }] }, error: null });
     expect(await startRun("dms", "u1", { post: "", pasted: "Karen: Hi\n\nTom: Yo", posts: [], form: {} })).toEqual({ kind: "ok" });
