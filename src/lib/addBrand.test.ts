@@ -19,7 +19,12 @@ const dna: BrandDna = {
 describe("keptBrand", () => {
   it("puts back a site read and the cards already checked", () => {
     const raw = JSON.stringify({ address: "acme.sg", name: "", justName: false, dna, done: ["identity", "colour"] });
-    expect(keptBrand(raw, CARDS)).toEqual({ address: "acme.sg", name: "", justName: false, dna, done: ["identity", "colour"] });
+    expect(keptBrand(raw, CARDS)).toEqual({ address: "acme.sg", name: "", justName: false, profession: "", dna, done: ["identity", "colour"] });
+  });
+
+  it("puts back what the person said they do, even when nothing else was typed", () => {
+    expect(keptBrand(JSON.stringify({ profession: "Coach" }), CARDS)).toMatchObject({ profession: "Coach", dna: null });
+    expect(keptBrand(JSON.stringify({ address: "acme.sg", profession: 7 }), CARDS)).toMatchObject({ profession: "" });
   });
 
   it("keeps a typed address or name before any read", () => {

@@ -39,6 +39,8 @@ export interface KeptBrand {
   address: string;
   name: string;
   justName: boolean;
+  /** What the person picked or typed for "What do you do?". */
+  profession: string;
   dna: BrandDna | null;
   done: string[];
 }
@@ -71,10 +73,11 @@ export function keptBrand(raw: string | null, cards: readonly string[]): KeptBra
       address: typeof f.address === "string" ? f.address : "",
       name: typeof f.name === "string" ? f.name : "",
       justName: f.justName === true,
+      profession: typeof f.profession === "string" ? f.profession : "",
       dna: isDna(f.dna) ? f.dna : null,
       done: Array.isArray(f.done) ? f.done.filter((c: unknown): c is string => typeof c === "string" && cards.includes(c)) : [],
     };
-    return kept.address || kept.name || kept.dna ? kept : null;
+    return kept.address || kept.name || kept.profession || kept.dna ? kept : null;
   } catch {
     return null;
   }

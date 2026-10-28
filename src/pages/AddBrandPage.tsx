@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PriceChip from "@/components/PriceChip";
+import ProfessionField from "@/components/ProfessionField";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
-import { saveBrand } from "@/lib/carousel";
+import { DEFAULT_BRAND, saveBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
 import { addProfile, loadProfiles, setActiveProfile } from "@/lib/profiles";
@@ -17,6 +18,7 @@ import { saveVoiceProfile } from "@/lib/voiceProfile";
 import { supabase } from "@/lib/supabase";
 import { AUDIENCE_NAMES, keptBrand, keptBrandKey, NETWORKS, newBrandKit, readBody, type BrandDna as Dna } from "@/lib/addBrand";
 import { asPostLang, LANG_NAMES } from "@/lib/translate";
+import { ADVISER } from "@/lib/profession";
 
 // /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow).
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
@@ -39,6 +41,7 @@ export default function AddBrandPage() {
   const [done, setDone] = useState<Set<Card>>(new Set());
   const [justName, setJustName] = useState(false);
   const [name, setName] = useState("");
+  const [profession, setProfession] = useState("");
   const [created, setCreated] = useState("");
   const timer = useRef<number>();
   const leo = useLeoOnly();
@@ -71,6 +74,7 @@ export default function AddBrandPage() {
       setAddress(kept.address);
       setName(kept.name);
       setJustName(kept.justName);
+      setProfession(kept.profession);
       if (kept.dna) {
         setDna(kept.dna);
         setDone(new Set(kept.done as Card[]));
@@ -84,12 +88,12 @@ export default function AddBrandPage() {
   useEffect(() => {
     if (!uid || phase === "reading" || phase === "done") return;
     try {
-      if (!address && !name && !dna) sessionStorage.removeItem(keptBrandKey(uid));
-      else sessionStorage.setItem(keptBrandKey(uid), JSON.stringify({ address, name, justName, dna, done: [...done] }));
+      if (!address && !name && !dna && !profession) sessionStorage.removeItem(keptBrandKey(uid));
+      else sessionStorage.setItem(keptBrandKey(uid), JSON.stringify({ address, name, justName, profession, dna, done: [...done] }));
     } catch {
       // storage full or blocked: the form just isn't kept
     }
-  }, [uid, phase, address, name, justName, dna, done]);
+  }, [uid, phase, address, name, justName, profession, dna, done]);
 
   const read = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +141,7 @@ export default function AddBrandPage() {
     if (brand) {
       const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
       const postLang = siteLang(brand, leo);
-      saveBrand(uid, postLang ? { ...newBrandKit(brand, title), postLang } : newBrandKit(brand, title));
+      saveBrand(uid, { ...newBrandKit(brand, title), ...(postLang ? { postLang } : {}), ...(profession.trim() ? { profession } : {}) });
       savePositioning(uid, {
         ...EMPTY_POSITIONING,
         oneLiner: brand.oneLiner,
@@ -156,6 +160,8 @@ export default function AddBrandPage() {
       }
       saveSocialAccounts(uid, accounts);
       if (brand.voice) saveVoiceProfile(uid, { posts: [], voiceSummary: brand.voice, updatedAt: now });
+    } else if (profession.trim()) {
+      saveBrand(uid, { ...DEFAULT_BRAND, profession });
     }
     window.location.assign(`/brands/new?done=${encodeURIComponent(p.id)}`);
   };
@@ -216,6 +222,7 @@ export default function AddBrandPage() {
               <Button type="submit" disabled={!name.trim()}>Add brand</Button>
             </div>
           </label>
+          <ProfessionField value={profession} onChange={setProfession} />
           <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(false)}>Read its website instead</button>
         </form>
       )}
@@ -263,8 +270,9 @@ export default function AddBrandPage() {
               ))}
             </div>
           ))}
-          {row("offer", "What you do and for whom", dna.oneLiner || AUDIENCE_NAMES[dna.audience], (
+          {row("offer", "What you do and for whom", [profession.trim() || ADVISER, dna.oneLiner || AUDIENCE_NAMES[dna.audience]].join(", "), (
             <div className="space-y-2">
+              <ProfessionField value={profession} onChange={setProfession} />
               <Textarea rows={2} value={dna.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help ... so they can ..." className="text-sm" aria-label="One-line description" />
               <div className="flex flex-wrap gap-2">
                 <select value={dna.audience} onChange={(e) => patch({ audience: e.target.value as PlanAudience })} className="h-9 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" aria-label="Who it serves">

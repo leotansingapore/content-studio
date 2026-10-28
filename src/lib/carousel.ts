@@ -12,6 +12,7 @@ import { CAROUSEL_DESIGNS, type CarouselDesign, type PostLang } from "@/lib/link
 import type { SlideFont, SlidePaper } from "@/lib/carouselLayout";
 import { FACTOR_IDS, type FactorId } from "../../supabase/functions/post-score/logic.ts";
 import { SOCIAL_PLATFORMS, type SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
+import { MAX_PROFESSION_CHARS } from "../../supabase/functions/_shared/profession.ts";
 
 export const MAX_SLIDES = 10;
 export const MIN_SLIDES = 2;
@@ -625,6 +626,8 @@ export interface CarouselBrand {
   handle: string;
   /** "Financial adviser": the video name tag's second line. */
   role?: string;
+  /** "What do you do?" in the brand's words (src/lib/profession.ts); unset is a financial adviser. Every AI writer writes for it. */
+  profession?: string;
   /** Square headshot as a small JPEG data URL: carousel footers and the video end card. */
   photo?: string;
   /** Logo as a PNG/WebP data URL: the video watermark. */
@@ -753,6 +756,7 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     name: typeof r.name === "string" ? r.name.slice(0, MAX_NAME_CHARS) : fallback.name,
     handle: typeof r.handle === "string" ? r.handle.slice(0, MAX_HANDLE_CHARS) : fallback.handle,
     role: typeof r.role === "string" ? r.role.slice(0, MAX_ROLE_CHARS) : fallback.role,
+    profession: typeof r.profession === "string" ? r.profession.slice(0, MAX_PROFESSION_CHARS) : fallback.profession,
     photo: "photo" in r ? sanitizeImage(r.photo) : fallback.photo,
     logo: "logo" in r ? sanitizeImage(r.logo) : fallback.logo,
     signOff: typeof r.signOff === "string" ? r.signOff.slice(0, MAX_SIGNOFF_CHARS) : fallback.signOff,
