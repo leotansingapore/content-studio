@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { AUTOMATION_ACTIONS } from "./automations.ts";
 
 // The handler itself: who gets in, whose Zernio profile "me" is, and which daily cap an action spends.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -113,6 +114,40 @@ describe("the social function", () => {
     expect(zernio).toEqual([]);
   });
 
+  it("keeps Auto-DM to NORTH_STAR_USERS: a caller switched on for posting is refused every automation action before a use is counted or Zernio is called", async () => {
+    const ID = "0123456789abcdef0123456b";
+    const asks: Record<string, unknown>[] = [
+      { action: "automations", profileId: "me" },
+      { action: "account-posts", profileId: "me", accountId: ID },
+      { action: "automation-create", profileId: "me", accountId: ID, automation: { keywords: ["guide"], dm: "Here it is." } },
+      { action: "automation-create", profileId: "me", accountId: ID, automation: { trigger: "comment", everyComment: true, dm: "", reply: "Thanks!" } },
+      { action: "automation-update", profileId: "me", automationId: ID, active: true },
+      { action: "automation-delete", profileId: "me", automationId: ID },
+      { action: "automation-logs", profileId: "me", automationId: ID },
+    ];
+    // every automation action is asked once
+    expect([...new Set(asks.map((b) => b.action))].sort()).toEqual([...AUTOMATION_ACTIONS].sort());
+    for (const body of asks) {
+      const res = await call(UID, body);
+      expect(res.status, String(body.action)).toBe(403);
+      expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect(db.spent).toEqual([]);
+    expect(zernio).toEqual([]);
+    // the same caller still posts
+    const res = await call(UID, { action: "schedule", profileId: "me", accountIds: [ID], clientKey: UID, content: "Hi", mediaUrls: [], now: true });
+    expect(res.status).not.toBe(403);
+    expect(db.spent).toEqual(["social-schedule"]);
+  });
+
+  it("keeps Leo's own Auto-DM working (NORTH_STAR_USERS)", async () => {
+    env.NORTH_STAR_USERS = `${UID_B}, ${UID}`;
+    const res = await call(UID, { action: "automations", profileId: "me" });
+    expect(res.status).toBe(200);
+    expect(db.spent).toEqual(["social-read"]);
+    expect(zernio).toContain(`/api/v1/accounts?profileId=${MINE}&includeOverLimit=true`);
+  });
+
   it("counts real numbers against the read cap", async () => {
     await call(UID, { action: "metrics", profileId: "me" });
     await call(UID, { action: "followers", profileId: "me" });
@@ -125,6 +160,8 @@ describe("the social function", () => {
     await call(UID, { action: "presign", profileId: "me", filename: "slide-1.png", contentType: "image/png", size: 100 });
     await call(UID, { action: "schedule", profileId: "me", accountIds: [ID], clientKey: UID, content: "Hi", mediaUrls: [], now: true });
     await call(UID, { action: "retry", profileId: "me", postId: ID });
+    // Auto-DM is Leo's (NORTH_STAR_USERS)
+    env.NORTH_STAR_USERS = UID;
     await call(UID, { action: "automation-update", profileId: "me", automationId: ID, active: false });
     await call(UID, { action: "automation-delete", profileId: "me", automationId: ID });
     await call(UID, { action: "cancel", profileId: "me", postId: ID });
@@ -156,6 +193,9 @@ describe("the social function", () => {
     ];
     for (const [body, cap] of today) {
       db.spent.length = 0;
+      // Auto-DM is Leo's (NORTH_STAR_USERS); everything else is pinned for a caller off it
+      if ((AUTOMATION_ACTIONS as readonly string[]).includes(String(body.action))) env.NORTH_STAR_USERS = UID;
+      else delete env.NORTH_STAR_USERS;
       await call(UID, body);
       expect(db.spent, String(body.action)).toEqual([cap]);
     }

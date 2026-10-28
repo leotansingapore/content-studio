@@ -70,17 +70,20 @@ describe("nav", () => {
     }
   });
 
-  it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
+  it("shows Social accounts only once the server has said it is switched on, and Auto-DM only to Leo as well", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
-    const shown = () => ["settings", "recruit"].flatMap((id) => pages(id, ANYONE));
+    const shown = (email = ANYONE) => ["settings", "recruit"].flatMap((id) => pages(id, email));
     expect(shown()).not.toContain("/accounts");
-    expect(shown()).not.toContain("/recruit/auto-dm");
+    expect(shown(LEO)).not.toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: true, at: Date.now() }));
     expect(shown()).toContain("/accounts");
-    expect(shown()).toContain("/recruit/auto-dm");
+    // posting switched on for a customer never opens Auto-DM
+    expect(shown()).not.toContain("/recruit/auto-dm");
+    expect(shown(LEO)).toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: false, at: Date.now() }));
     expect(shown()).not.toContain("/accounts");
+    expect(shown(LEO)).not.toContain("/recruit/auto-dm");
     vi.unstubAllGlobals();
   });
 

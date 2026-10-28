@@ -3,6 +3,8 @@
 // automations.ts), Post it for me (posts.ts) and their real post numbers (Analytics, metrics.ts).
 // Scoping rules, caps and rollout: docs/zernio-connection.md.
 //
+// Auto-DM (automations.ts) also needs the caller on NORTH_STAR_USERS (Leo), whatever SOCIAL_CONNECT_USERS says.
+//
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
 // ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
 // the caller is listed (the bare status probe then answers 200 {enabled:false}, anything else 404).
@@ -53,6 +55,8 @@ Deno.serve(async (req) => {
   const posting = parsePostRequest(body, Date.now(), isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid));
   if (posting && !posting.ok) return json({ error: posting.error }, posting.status);
   const auto = posting ? null : parseAutomationRequest(body);
+  // Auto-DM (every automated DM and comment reply) is Leo's: posting switched on for a customer never opens it
+  if (auto && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
   if (auto && !auto.ok) return json({ error: auto.error }, auto.status);
   const metrics = posting || auto ? null : parseMetricsRequest(body);
   if (metrics && !metrics.ok) return json({ error: metrics.error }, metrics.status);

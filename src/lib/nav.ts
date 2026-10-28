@@ -162,7 +162,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/recruit/conversations", label: "Conversations" },
       { to: "/recruit/agent", label: "AI agent" },
       { to: "/recruit/engage", label: "Reply drafts" },
-      { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown },
+      { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown, owners: LEO_EMAILS },
     ],
   },
   {

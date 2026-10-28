@@ -4398,7 +4398,7 @@ export default function GeneratePage() {
                 />
               </div>
             )}
-            {(ctaType === "comment-keyword" || ctaType === "dm-keyword") && socialConnectShown() && (
+            {leo && (ctaType === "comment-keyword" || ctaType === "dm-keyword") && socialConnectShown() && (
               <p className="mb-3 text-xs">
                 <Link
                   to={`/recruit/auto-dm${ctaKeyword(draft) ? `?keyword=${encodeURIComponent(ctaKeyword(draft))}` : ""}`}

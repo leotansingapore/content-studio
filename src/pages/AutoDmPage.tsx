@@ -20,6 +20,8 @@ import { supabase } from "@/lib/supabase";
 import { timeAgo } from "@/lib/accountAudit";
 import { activeProfile, scoped } from "@/lib/profiles";
 import { isNotEnabled, platformName, rememberSocialConnect } from "@/lib/socialConnect";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import NotFoundPage from "@/pages/NotFoundPage";
 import {
   LIMITS,
   STARTERS,
@@ -85,7 +87,15 @@ function Switch({ on, label, busy, bare, onChange }: { on: boolean; label: strin
   );
 }
 
+/** Leo's only (NORTH_STAR_USERS on the server): posting switched on for a customer never opens Auto-DM. */
 export default function AutoDmPage() {
+  const leo = useLeoUser();
+  if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
+  if (!leo) return <NotFoundPage notOnAccount />;
+  return <AutoDm />;
+}
+
+function AutoDm() {
   const { toast } = useToast();
   const [params] = useSearchParams();
   // Who got it (?log=) and the editor (?edit=<id> or new) are in the URL, so Back closes them and a link
