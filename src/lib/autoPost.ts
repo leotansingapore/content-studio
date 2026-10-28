@@ -11,7 +11,7 @@ import { tagLinks, toPlainText, withCredit, withDisclosure, withSignOff, type Di
 import { keyToDate, timeLabel } from "@/lib/dueDates";
 import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
 import { platformName } from "@/lib/socialConnect";
-import { clockIn, formatter, instantIn, offsetAt } from "../../supabase/functions/_shared/zone.ts";
+import { clockIn, formatter, instantIn, offsetAt, postZone } from "../../supabase/functions/_shared/zone.ts";
 import {
   CAPTION_MAX,
   MAX_IMAGE_BYTES,
@@ -72,11 +72,11 @@ export const zoneName = (tz: string = TIMEZONE, at = Date.now()) =>
   formatter(`name ${tz}`, () => new Intl.DateTimeFormat("en-SG", { timeZone: tz, timeZoneName: "short" })).formatToParts(at).find((p) => p.type === "timeZoneName")?.value ?? tz;
 
 /**
- * The zone's short name a dated post goes out in, on its day: its Zernio post's zone (Singapore for one sent before
- * 28 Oct), else this browser's, which Post it for me would schedule it in.
+ * The zone's short name a dated post goes out in, and its phone alert fires in, on its day (postZone): its Zernio post's
+ * zone, else the one saved when its time was set, else Singapore (set in Singapore, or saved before 28 Oct).
  */
-export function draftZone(d: Pick<DraftEntry, "scheduledFor" | "zernio">): string {
-  const tz = d.zernio?.postId ? d.zernio.tz ?? TIMEZONE : browserTimeZone();
+export function draftZone(d: Pick<DraftEntry, "scheduledFor" | "zernio" | "tz">): string {
+  const tz = postZone(d);
   return zoneName(tz, Date.parse(zernioTime(d.scheduledFor, undefined, tz) ?? "") || Date.now());
 }
 

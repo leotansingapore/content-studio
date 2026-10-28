@@ -1012,7 +1012,7 @@ export default function CalendarPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[11px] text-muted-foreground">
                 {dayLabel(ghost)}
-                {time && `, ${timeLabel(time)} ${draftZone({ scheduledFor: `${ghost}T${time}` })}`} · repeats {REPEAT_LABEL[d.repeat!.every]}
+                {time && `, ${timeLabel(time)} ${draftZone({ scheduledFor: `${ghost}T${time}`, tz: d.tz })}`} · repeats {REPEAT_LABEL[d.repeat!.every]}
               </p>
               <p className="line-clamp-2 text-sm font-medium text-foreground">{titleOf(d)}</p>
             </div>
@@ -1257,7 +1257,7 @@ export default function CalendarPage() {
         {roomy ? (
           <>
             {PLATFORM_LABEL[e.platform] ?? e.platform}
-            {time && <> · <span className="whitespace-nowrap">{timeLabel(time)} {draftZone({ scheduledFor: `${day}T${time}` })}</span></>}
+            {time && <> · <span className="whitespace-nowrap">{timeLabel(time)} {draftZone({ scheduledFor: `${day}T${time}`, tz: e.tz })}</span></>}
             <span className="line-clamp-2">{titleOf(e)}</span>
           </>
         ) : (

@@ -9,8 +9,8 @@ import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { scoreAccount, times } from "../_shared/outlier.ts";
 import { median } from "../_shared/socialAudit.ts";
 import { realMetrics } from "../social/metrics.ts";
-import { isTimeZone } from "../social/posts.ts";
-import { instantIn } from "../_shared/zone.ts";
+import { TIMEZONE } from "../social/posts.ts";
+import { instantIn, postZone } from "../_shared/zone.ts";
 
 export const APP_URL = "https://app.postmosis.com";
 export const PREFS_PREFIX = "content-studio-notify-";
@@ -77,7 +77,7 @@ export interface Post {
   platform: string;
   status?: string;
   scheduledFor?: string;
-  /** The IANA zone its time is in (Post it for me saves the browser's, ZernioLink.tz); Singapore when absent. */
+  /** The IANA zone its time is in (_shared/zone.ts postZone: its Zernio post's, else the one saved with its time); Singapore when absent. */
   tz?: string;
   postedAt?: string;
   metrics?: Metrics;
@@ -161,7 +161,7 @@ function postsFrom(raw: string | undefined, linked: boolean): Post[] {
       platform: str(d.platform) ?? "",
       status: str(d.status),
       scheduledFor: str(d.scheduledFor),
-      ...(isTimeZone(d.zernio?.tz) ? { tz: d.zernio.tz } : {}),
+      ...(postZone(d) !== TIMEZONE ? { tz: postZone(d) } : {}),
       postedAt: str(d.postedAt),
       metrics:
         real ?? (m ? { impressions: num(m.impressions), reactions: num(m.reactions), comments: num(m.comments), shares: num(m.shares) } : undefined),

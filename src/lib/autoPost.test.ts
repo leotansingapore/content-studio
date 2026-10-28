@@ -187,7 +187,7 @@ describe("the draft as it goes out", () => {
     expect(zoneName("Europe/London", Date.parse("2026-07-01T00:00:00Z"))).toBe("GMT+1");
   });
 
-  it("names the zone a post on the calendar goes out in: its Zernio post's, else this browser's", () => {
+  it("names the zone a post on the calendar goes out in: its Zernio post's, else the one saved with its time, else Singapore", () => {
     const real = Intl.DateTimeFormat.prototype.resolvedOptions;
     const spy = vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockImplementation(function (this: Intl.DateTimeFormat) {
       return { ...real.call(this), timeZone: "Europe/London" };
@@ -198,9 +198,12 @@ describe("the draft as it goes out", () => {
       expect(draftZone({ scheduledFor: "2026-07-01T09:00", zernio: { key: "k", postId: "p", tz: "America/New_York" } })).toBe("GMT-4");
       // on its day: winter or summer time
       expect(draftZone({ scheduledFor: "2026-12-01T09:00", zernio: { key: "k", postId: "p", tz: "America/New_York" } })).toBe("GMT-5");
-      // not on Zernio: Post it for me would send it from here
-      expect(draftZone({ scheduledFor: "2026-07-01T09:00" })).toBe("GMT+1");
-      expect(draftZone({ scheduledFor: "2026-12-01T09:00", zernio: { key: "k" } })).toBe("GMT");
+      // not on Zernio: the zone saved when its time was set, where its alert fires (28 Oct: every time saves one)
+      expect(draftZone({ scheduledFor: "2026-07-01T09:00", tz: "Europe/London" })).toBe("GMT+1");
+      expect(draftZone({ scheduledFor: "2026-12-01T09:00", tz: "Europe/London", zernio: { key: "k" } })).toBe("GMT");
+      // none saved (set in Singapore, or before 28 Oct): Singapore, wherever it is looked at
+      expect(draftZone({ scheduledFor: "2026-07-01T09:00" })).toBe("SGT");
+      expect(draftZone({ scheduledFor: "2026-07-01T09:00", tz: "Mars/Base" })).toBe("SGT");
     } finally {
       spy.mockRestore();
     }

@@ -191,9 +191,19 @@ describe("a post's own time zone (Post it for me saves it; Singapore when none i
         { id: "junk", status: "scheduled", scheduledFor: "2026-10-08T09:00", zernio: { key: "k3", tz: "Mars/Olympus_Mons" } },
         { id: "odd", status: "scheduled", scheduledFor: "2026-10-08T09:00", zernio: { key: "k4", tz: 7 } },
         { id: "plain", status: "scheduled", scheduledFor: "2026-10-08T09:00" },
+        // the zone saved when the time was set on the calendar, Write or a plan (draftHistory saveDrafts)
+        { id: "set", status: "scheduled", scheduledFor: "2026-10-08T09:00", tz: "Europe/London" },
+        { id: "set-junk", status: "scheduled", scheduledFor: "2026-10-08T09:00", tz: "Nowhere/Land" },
+        // on Zernio, its post's zone is where it goes out
+        { id: "both", status: "scheduled", scheduledFor: "2026-10-08T09:00", tz: "Europe/London", zernio: { key: "k5", postId: "p5", tz: "America/Chicago" } },
+        { id: "both-sg", status: "scheduled", scheduledFor: "2026-10-08T09:00", tz: "Europe/London", zernio: { key: "k6", postId: "p6" } },
+        { id: "unsent", status: "scheduled", scheduledFor: "2026-10-08T09:00", tz: "Europe/London", zernio: { key: "k7", tz: "America/Chicago" } },
       ]),
     });
-    expect(me.posts.map((p) => [p.id, p.tz])).toEqual([["ny", "America/New_York"], ["sg", undefined], ["junk", undefined], ["odd", undefined], ["plain", undefined]]);
+    expect(me.posts.map((p) => [p.id, p.tz])).toEqual([
+      ["ny", "America/New_York"], ["sg", undefined], ["junk", undefined], ["odd", undefined], ["plain", undefined],
+      ["set", "Europe/London"], ["set-junk", undefined], ["both", "America/Chicago"], ["both-sg", undefined], ["unsent", "Europe/London"],
+    ]);
   });
 
   it("dueAt reads the day and time on that zone's clock, daylight saving included", () => {

@@ -2,6 +2,18 @@
 // notify's due alert fires (notify/logic.ts dueAt), so both read a post's day and time the same way.
 // No Deno or npm imports: the app imports this too.
 
+import { isTimeZone, TIMEZONE } from "../social/posts.ts";
+
+/**
+ * The zone a dated post's time is in: its Zernio post's (Singapore when that saved none), else the one saved when its
+ * time was set or changed (DraftEntry.tz, written by src/lib/draftHistory.ts saveDrafts), else Singapore, as for
+ * everything saved before 28 Oct. A name the runtime doesn't know reads as Singapore.
+ */
+export function postZone(d: { tz?: unknown; zernio?: { postId?: unknown; tz?: unknown } }): string {
+  const tz = d.zernio?.postId ? d.zernio.tz : d.tz;
+  return isTimeZone(tz) ? tz : TIMEZONE;
+}
+
 const HOUR_PARTS = { hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" } as const;
 
 // a formatter costs far more to make than to use, and the calendar asks for one per card

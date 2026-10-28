@@ -17,6 +17,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import { links, type PostLang } from "@/lib/links";
 import { logActivity } from "@/lib/activity";
 import { loadOutbox, queueCancel, saveOutbox, zernioHolds, zernioOps } from "@/lib/zernioOutbox";
+import { browserTimeZone, TIMEZONE } from "@/lib/autoPost";
 export const MAX_DRAFTS = 150;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -37,6 +38,11 @@ export interface DraftEntry {
   // Post tracking (optional for backwards compatibility with older saves).
   status?: DraftStatus;
   scheduledFor?: string;
+  /**
+   * The IANA zone scheduledFor was set or last changed in (this browser's, saved by saveDrafts), so its phone alert
+   * fires there; Singapore when absent (never written down), as for everything saved before 28 Oct.
+   */
+  tz?: string;
   postedAt?: string;
   // Self-reported performance (until a real platform integration lands).
   metrics?: PostMetrics;
@@ -379,6 +385,19 @@ function withoutZernio({ zernio: _, ...rest }: DraftEntry): DraftEntry {
   return rest;
 }
 
+/**
+ * A draft whose time is set or changed takes the zone it was set in, so its alert fires there: its Zernio post's (the
+ * outbox moves it in that zone), else this browser's. Singapore is never written down; an unchanged time keeps its own.
+ */
+function withZone(d: DraftEntry, before: string | undefined): DraftEntry {
+  if (!d.scheduledFor || d.scheduledFor === before) return d;
+  const tz = d.zernio?.postId ? d.zernio.tz ?? TIMEZONE : browserTimeZone();
+  if (tz !== TIMEZONE) return d.tz === tz ? d : { ...d, tz };
+  if (!("tz" in d)) return d;
+  const { tz: _, ...rest } = d;
+  return rest;
+}
+
 function parseList(raw: string | null): DraftEntry[] {
   try {
     const parsed = JSON.parse(raw ?? "[]");
@@ -397,9 +416,11 @@ export function saveDrafts(userId: string, drafts: DraftEntry[]): DraftEntry[] {
   if (!storage) return drafts;
   const key = `${KEY_PREFIX}${scoped(userId)}`;
   const box = loadOutbox(userId);
+  const before = parseList(storage.getItem(key));
+  const was = new Map(before.map((d) => [d.id, d.scheduledFor]));
   const unlinked = box.gone.length ? drafts.map((d) => (d.zernio?.postId && box.gone.includes(d.zernio.postId) ? withoutZernio(d) : d)) : drafts;
-  const next = trimDrafts(unlinked);
-  const ops = next.some(zernioHolds) ? zernioOps(parseList(storage.getItem(key)), next, box) : box;
+  const next = trimDrafts(unlinked.map((d) => withZone(d, was.get(d.id))));
+  const ops = next.some(zernioHolds) ? zernioOps(before, next, box) : box;
   storage.setItem(key, JSON.stringify(next));
   if (ops !== box) saveOutbox(userId, ops);
   return next;
@@ -428,6 +449,8 @@ export function upsertDraft(
   if (prev?.labels && !entry.labels) entry = { ...entry, labels: prev.labels };
   if (prev?.storyboard && !entry.storyboard) entry = { ...entry, storyboard: prev.storyboard };
   if (prev?.zernio && !entry.zernio) entry = { ...entry, zernio: prev.zernio };
+  // ...or the zone its time was set in, while the time is the same (saveDrafts takes the new one when it moves)
+  if (prev?.tz && !("tz" in entry) && prev.scheduledFor === entry.scheduledFor) entry = { ...entry, tz: prev.tz };
   if (prev?.media && !entry.media) entry = { ...entry, media: prev.media };
   if (prev?.attached && !entry.attached) entry = { ...entry, attached: prev.attached };
   // A writer that never heard of the source leaves the key out; Write always sets it (undefined clears it).

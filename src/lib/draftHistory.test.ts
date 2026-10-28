@@ -838,3 +838,70 @@ describe("the Zernio outbox from My posts' own actions (phase 7 decision 6)", ()
     expect(ops()).toEqual([]);
   });
 });
+
+// ---- A post's time zone (Leo, 28 Oct): a time set or changed here saves this browser's zone, so the phone alert
+// (notify) fires at that zone's clock; Singapore is never written down, and anything saved before keeps Singapore.
+describe("a dated post keeps the zone its time was set in", () => {
+  const inZone = (tz: string) => {
+    vi.restoreAllMocks(); // a spy on the spy would recurse, and browserTimeZone would quietly say Singapore
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions;
+    vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...real.call(this), timeZone: tz };
+    });
+  };
+  const saved = (id = "s") => loadDrafts(UID).find((d) => d.id === id)!;
+  // the file's fake timers fake Intl too, which hides the zone: fake the clock only
+  beforeEach(() => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 8, 10, 0));
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("saves the zone when a time is set, keeps it through edits, and takes the new one when the time moves", () => {
+    inZone("America/New_York");
+    upsertDraft(UID, post({ status: "scheduled", scheduledFor: "2026-10-20T09:00" }));
+    expect(saved().tz).toBe("America/New_York");
+    // Write rebuilds the entry from its own fields: the zone stays while the time does
+    inZone("Europe/London");
+    upsertDraft(UID, post({ status: "scheduled", scheduledFor: "2026-10-20T09:00", hook: "Edited" }));
+    expect(saved()).toMatchObject({ hook: "Edited", tz: "America/New_York" });
+    // a calendar move is a new time, set where the person is now
+    setDraftStatus(UID, "s", "scheduled", "2026-10-21T10:00");
+    expect(saved().tz).toBe("Europe/London");
+    // a day alone (due at 9am there) is a time set too
+    inZone("Asia/Kolkata");
+    setDraftStatus(UID, "s", "scheduled", "2026-10-22");
+    expect(saved().tz).toBe("Asia/Kolkata");
+    // set again in Singapore: no zone written down, which reads as Singapore
+    inZone("Asia/Singapore");
+    setDraftStatus(UID, "s", "scheduled", "2026-10-23T08:00");
+    expect("tz" in saved()).toBe(false);
+  });
+
+  it("leaves anything saved before alone until its time changes", () => {
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-20T09:00" })]);
+    inZone("America/New_York");
+    upsertDraft(UID, post({ status: "scheduled", scheduledFor: "2026-10-20T09:00", hook: "Edited" }));
+    expect("tz" in saved()).toBe(false);
+    setDraftStatus(UID, "s", "scheduled");
+    expect("tz" in saved()).toBe(false);
+  });
+
+  it("a repeating post takes the zone where its next occurrence is set", () => {
+    inZone("America/New_York");
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-08T09:00", repeat: { every: "week", start: "2026-10-08" } })]);
+    expect(saved().tz).toBe("America/New_York");
+    inZone("Europe/London");
+    setDraftStatus(UID, "s", "posted");
+    expect(saved()).toMatchObject({ scheduledFor: "2026-10-15T09:00", tz: "Europe/London" });
+  });
+
+  it("a post on Zernio keeps its Zernio post's zone, since that is where the outbox moves it", () => {
+    inZone("Europe/London");
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-20T09:00", zernio: { key: "k", postId: "p1", tz: "America/Chicago" } })]);
+    expect(saved().tz).toBe("America/Chicago");
+    setDraftStatus(UID, "s", "scheduled", "2026-10-21T09:00");
+    expect(saved().tz).toBe("America/Chicago");
+  });
+});
