@@ -1,7 +1,7 @@
 // The video editor's server side (/edit). Two jobs, one function:
 //   POST ?mode=transcribe, body = 16 kHz mono WAV (the browser extracts it, the
 //        video never leaves the device) -> word-timed transcript (Whisper).
-//   POST {mode:"vibe", instruction, settings, transcript, duration, frames?}
+//   POST {mode:"vibe", instruction, settings, transcript, duration, frames?, profession?}
 //        -> {patch, reply}: the change to the edit settings, in plain words.
 //        Frames are up to 3 stills from a reference video to match its look.
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language

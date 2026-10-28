@@ -1463,7 +1463,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     if (!instruction && !frames) return;
     setThinking(true);
     try {
-      const res = await vibeEdit({ instruction, settings, transcript, duration, frames });
+      const res = await vibeEdit({ instruction, settings, transcript, duration, frames }, userId);
       const { next, changed } = applyPatch(settings, res.patch);
       if (changed.length) change(next);
       setLog((l) => [...l, { me: label ?? (preset ? "Suggest a hook" : instruction || "Match my reference video"), it: changed.length ? res.reply : `${res.reply} (nothing changed)` }]);
@@ -1966,7 +1966,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     const off = registerEditTarget(videoTarget({
       title: () => vibeIn.current.name,
       settings: () => settingsRef.current,
-      vibe: (instruction, cur) => vibeEdit({ instruction, settings: cur, transcript: vibeIn.current.transcript, duration }),
+      vibe: (instruction, cur) => vibeEdit({ instruction, settings: cur, transcript: vibeIn.current.transcript, duration }, userId),
       set: (next) => {
         const cur = settingsRef.current;
         setHistory((h) => [...h.slice(-19), cur]);

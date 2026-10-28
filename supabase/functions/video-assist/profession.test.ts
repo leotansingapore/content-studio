@@ -8,11 +8,13 @@ import {
   buildClipsMessages,
   buildCutawaysMessages,
   buildPublishMessages,
+  buildVibeMessages,
   clipQuestions,
   clipViewer,
   parseClipsRequest,
   parseCutawaysRequest,
   parsePublishRequest,
+  parseVibeRequest,
 } from "./logic";
 import { buildMontageMessages, parseMontageRequest } from "./montage";
 import { buildPopupMessages, emojiState, keyState, parseMotionRequest } from "./motion";
@@ -246,5 +248,35 @@ describe("callouts, titles and the cover for the brand's profession", () => {
       expect(out[0].content).toContain(HONEST_LINE);
       expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
     }
+  });
+});
+
+describe("the vibe editor for the brand's profession", () => {
+  const FRAME = `data:image/jpeg;base64,${"A".repeat(40)}`;
+  const vibePrompts = (extra: Record<string, unknown> = {}) =>
+    [
+      { instruction: "bigger yellow captions at the top", settings: { style: "bold", size: 1 }, transcript: "Most people start too late.", duration: 12 },
+      { instruction: "", settings: {}, transcript: "", duration: 8, frames: [FRAME] },
+    ].map((b) => {
+      const r = parseVibeRequest({ ...b, ...extra });
+      if (!r.ok) throw new Error(r.error);
+      return buildVibeMessages(r.request);
+    });
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    const r = parseVibeRequest({ instruction: "bigger", settings: {}, transcript: "", duration: 5 });
+    if (!r.ok) throw new Error(r.error);
+    expect(buildVibeMessages({ ...r.request, profession: "$&-maker" })[0].content).toContain("a short-form video editor for a $&-maker.");
+  });
+
+  it("a caller that sends no profession, or an adviser's, gets today's prompt byte for byte", async () => {
+    await expect(JSON.stringify(vibePrompts(), null, 2)).toMatchFileSnapshot("./__pins__/vibe-adviser-prompts.json");
+    for (const profession of ["", "Financial adviser"]) expect(vibePrompts({ profession })).toEqual(vibePrompts());
+  });
+
+  it.each(PROFESSIONS)("$raw gets the editor working for them, with none of the adviser words", ({ raw, said }) => {
+    const out = vibePrompts({ profession: raw });
+    expect(String(out[0][0].content)).toContain(`a short-form video editor for a ${said}.`);
+    expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
   });
 });

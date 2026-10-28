@@ -288,17 +288,21 @@ export async function watchVideo(file: Blob, seconds: number): Promise<WatchFind
   return (await res.json()).findings;
 }
 
-export async function vibeEdit(req: {
-  instruction: string;
-  settings: EditSettings;
-  transcript: string;
-  duration: number;
-  frames?: string[];
-}): Promise<{ patch: Record<string, unknown>; reply: string }> {
+/** A change to the edit in plain words, made by an editor told the open brand's profession (`userId`'s; none for an adviser's). */
+export async function vibeEdit(
+  req: {
+    instruction: string;
+    settings: EditSettings;
+    transcript: string;
+    duration: number;
+    frames?: string[];
+  },
+  userId?: string,
+): Promise<{ patch: Record<string, unknown>; reply: string }> {
   const res = await call("", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "vibe", ...req }),
+    body: JSON.stringify({ mode: "vibe", ...req, profession: professionFor(userId) || undefined }),
   });
   return res.json();
 }

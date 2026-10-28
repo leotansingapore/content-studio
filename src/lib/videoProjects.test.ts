@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, suggestCutaways, swapSource, transcribe, type AiMark } from "./videoProjects";
+import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, suggestCutaways, swapSource, transcribe, vibeEdit, type AiMark } from "./videoProjects";
 import { callFn } from "@/lib/edgeFn";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { EdgeError } from "@/lib/edgeFn";
@@ -388,5 +388,15 @@ describe("the editor's writers for the brand's profession", () => {
     expect(sent[1]).not.toHaveProperty("profession");
     const published = vi.mocked(callFn).mock.calls.map(([, b]) => JSON.parse(JSON.stringify(b)));
     expect(published).toEqual([{ mode: "publish", sentences, duration: 60, profession: "coach" }, { mode: "publish", sentences, duration: 60 }]);
+  });
+
+  it("makes a vibe edit for the open brand's profession, and sends none for an adviser's brand or with no user", async () => {
+    const req = { instruction: "bigger captions", settings: {} as never, transcript: "Most people start too late.", duration: 2 };
+    brand("Coach");
+    await vibeEdit(req, "u1");
+    await vibeEdit(req);
+    brand("Financial adviser");
+    await vibeEdit(req, "u1");
+    expect(sent).toEqual([{ mode: "vibe", ...req, profession: "coach" }, { mode: "vibe", ...req }, { mode: "vibe", ...req }]);
   });
 });

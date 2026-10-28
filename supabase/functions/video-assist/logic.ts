@@ -83,6 +83,8 @@ export interface VibeRequest {
   transcript: string;
   duration: number;
   frames: string[];
+  /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt. */
+  profession?: string;
 }
 
 export function parseVibeRequest(body: unknown): { ok: true; request: VibeRequest } | { ok: false; error: string } {
@@ -92,7 +94,11 @@ export function parseVibeRequest(body: unknown): { ok: true; request: VibeReques
     .filter((f): f is string => typeof f === "string" && /^data:image\/(jpeg|png);base64,/.test(f) && f.length <= MAX_FRAME_CHARS)
     .slice(0, MAX_FRAMES);
   if (!instruction && !frames.length) return { ok: false, error: "Say what to change, or add a reference video." };
-  return { ok: true, request: { instruction, settings: cleanSettings(b.settings), transcript: String(b.transcript ?? "").slice(0, MAX_TRANSCRIPT), duration: Number(b.duration) || 0, frames } };
+  const profession = professionOf(b.profession);
+  return {
+    ok: true,
+    request: { instruction, settings: cleanSettings(b.settings), transcript: String(b.transcript ?? "").slice(0, MAX_TRANSCRIPT), duration: Number(b.duration) || 0, frames, ...(profession ? { profession } : {}) },
+  };
 }
 
 /**
@@ -111,6 +117,7 @@ export function cleanSettings(raw: unknown): Record<string, unknown> {
 }
 
 export function buildVibeMessages(r: VibeRequest): { role: string; content: unknown }[] {
+  const p = r.profession;
   const system = [
     "You are the editor inside a short-form video editor for Singapore financial advisers. The edit is a settings object; you change it to do what the person asks.",
     "Reply with JSON only: {\"patch\": {...only the keys that change...}, \"reply\": \"one short plain sentence saying what you changed\"}.",
@@ -119,7 +126,10 @@ export function buildVibeMessages(r: VibeRequest): { role: string; content: unkn
     "If something asked for is not possible with these keys (music, B-roll, stickers, transitions), change what you can and say plainly in the reply what you could not do.",
     "When reference frames are attached, match their caption look: style, position, colours, case and size. Say which look you matched.",
     "Never invent facts for a hook; use words from the transcript. No em dashes.",
-  ].join("\n");
+  ]
+    // any other work: the editor names their work
+    .map((l) => (p ? l.replace("for Singapore financial advisers.", () => `for ${aOrAn(p)}.`) : l))
+    .join("\n");
   const text = [
     `Current settings: ${JSON.stringify(r.settings)}`,
     `Video length: ${r.duration.toFixed(1)}s`,
