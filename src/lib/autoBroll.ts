@@ -10,6 +10,7 @@
 // clip as it lands; otherwise they go straight into the saved project.
 
 import { callFn } from "@/lib/edgeFn";
+import { professionFor } from "@/lib/profession";
 import { putFile } from "@/lib/deviceFiles";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { MAX_BROLL, MAX_OVERLAYS, newOverlay, type Broll, type Overlay, type Sentence } from "@/lib/videoEdit";
@@ -191,6 +192,8 @@ export async function startAutoBroll(userId: string, a: BrollAsk): Promise<void>
       hookSeconds: a.hookSeconds,
       taken: a.existing.map((b) => ({ s: b.from, e: b.to })),
       room: MAX_BROLL - a.existing.length,
+      // the open brand's profession; none for an adviser's
+      profession: professionFor(userId) || undefined,
     }, "Couldn't find B-roll right now. Try again in a minute.");
     if (!Array.isArray(reply?.picks)) throw new Error("Couldn't pick the lines this time (it reads videos in English). Add B-roll by hand below.");
     const picks = reply.picks.filter((p) => a.sentences[p.i]);

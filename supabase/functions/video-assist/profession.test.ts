@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { adviserWordsIn, PROFESSIONS } from "../_shared/adviserWords";
 import { HONEST_LINE } from "../_shared/profession";
+import { buildBrollMessages, kindQuestions, parseBrollRequest } from "./broll";
 import { buildCaptionsMessages, keywordCandidates, keywordQuestion, parseCaptionsRequest, type Keyword } from "./captions";
 import { buildHooksMessages, hooksState, parseHooksRequest } from "./hooks";
 import { buildMontageMessages, parseMontageRequest } from "./montage";
@@ -133,6 +134,38 @@ describe("pop-ups and key lines for the brand's profession", () => {
     expect(JSON.stringify(out[1])).toContain(`a short video a ${said} filmed.`);
     expect(JSON.stringify(out[1])).toContain(HONEST_LINE);
     expect(JSON.stringify(out[2])).toContain(`a short video by a ${said}.`);
+    expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+  });
+});
+
+describe("B-roll for the brand's profession", () => {
+  const SENTENCES = [
+    { s: 0, e: 3, text: "Most people start too late." },
+    { s: 3, e: 7, text: "My first client had no plan at all." },
+    { s: 7, e: 11, text: "We wrote down every bill on one page." },
+  ];
+  const KINDS_ASKED = { 1: "scene", 2: "idea" } as const;
+  const brollPrompts = (extra: Record<string, unknown> = {}) => {
+    const b = parseBrollRequest({ sentences: SENTENCES, duration: 11, hookSeconds: 2, taken: [], room: 5, ...extra });
+    if (!b.ok) throw new Error(b.error);
+    const r = b.request;
+    return [keyState(r.lines, r.profession), kindQuestions(r.lines, [1, 2], r.profession), buildBrollMessages(r.lines, [1, 2], KINDS_ASKED, r.profession)];
+  };
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(buildBrollMessages(SENTENCES, [1], KINDS_ASKED, "$&-maker")[0].content).toContain("a short video a $&-maker filmed.");
+  });
+
+  it("a caller that sends no profession, or an adviser's, gets today's prompt and Jev questions byte for byte", async () => {
+    await expect(JSON.stringify(brollPrompts(), null, 2)).toMatchFileSnapshot("./__pins__/broll-adviser-prompts.json");
+    for (const profession of ["", "Financial adviser"]) expect(brollPrompts({ profession })).toEqual(brollPrompts());
+  });
+
+  it.each(PROFESSIONS)("$raw gets B-roll written for them, with none of the adviser words", ({ raw, said }) => {
+    const out = brollPrompts({ profession: raw });
+    expect(JSON.stringify(out[0])).toContain(`filmed by a ${said}, as a transcript`);
+    expect(JSON.stringify(out[2])).toContain(`a short video a ${said} filmed.`);
+    expect(JSON.stringify(out[2])).toContain(HONEST_LINE);
     expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
   });
 });

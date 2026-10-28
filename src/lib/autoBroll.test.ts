@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
 vi.mock("@/lib/stockMedia", () => ({ searchStock: vi.fn(), downloadStock: vi.fn() }));
@@ -118,5 +118,24 @@ describe("AI clips when stock has nothing", () => {
     route((b) => (asked.push(b), { token: "t" }));
     await startAutoBroll("u1", ask(false));
     expect(asked).toEqual([]);
+  });
+});
+
+describe("B-roll for the brand's profession", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("sends the open brand's profession, and none for an adviser's brand", async () => {
+    const m = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) } });
+    vi.mocked(callFn).mockReset().mockResolvedValue({ picks: [] });
+    const ask = { projectId: "p9", sentences: [line(0, 3, "Hook."), line(6, 9, "Buy a home.")], total: 12, hookSeconds: 0, existing: [], stickers: 0, color: "#FFD92B", orientation: "portrait" as const };
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await startAutoBroll("u1", ask);
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await startAutoBroll("u1", ask);
+    const bodies = vi.mocked(callFn).mock.calls.map(([, b]) => JSON.parse(JSON.stringify(b)));
+    expect(bodies[0]).toMatchObject({ mode: "broll", profession: "coach" });
+    expect(bodies[1]).toMatchObject({ mode: "broll" });
+    expect(bodies[1]).not.toHaveProperty("profession");
   });
 });

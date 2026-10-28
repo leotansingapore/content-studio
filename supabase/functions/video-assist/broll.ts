@@ -8,6 +8,7 @@
 // the others a text card the LLM writes.
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
+import { aOrAn, HONEST_LINE } from "../_shared/profession.ts";
 import { KEY_CHUNK, MAX_KEY_LINES, parseMotionRequest, type MotionLine } from "./motion.ts";
 
 /** Jev's yes probability a line needs before it gets B-roll. */
@@ -29,6 +30,8 @@ export interface BrollRequest {
   taken: { s: number; e: number }[];
   /** How many more clips fit on the video. */
   room: number;
+  /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt. */
+  profession?: string;
 }
 
 export function parseBrollRequest(body: unknown): { ok: true; request: BrollRequest } | { ok: false; error: string } {
@@ -42,7 +45,7 @@ export function parseBrollRequest(body: unknown): { ok: true; request: BrollRequ
     .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s);
   const room = Number.isFinite(Number(b.room)) ? Math.min(MAX_PICKS, Math.max(0, Math.floor(Number(b.room)))) : MAX_PICKS;
   if (!room) return { ok: false, error: `This video already has ${MAX_PICKS} B-roll clips.` };
-  return { ok: true, request: { lines: m.lines, duration: m.duration, hookSeconds: m.hookSeconds, taken, room } };
+  return { ok: true, request: { lines: m.lines, duration: m.duration, hookSeconds: m.hookSeconds, taken, room, ...(m.profession ? { profession: m.profession } : {}) } };
 }
 
 /** The lines worth asking about: 3 words or more, past the hook, not the first line, clear of B-roll already there. */
@@ -111,14 +114,23 @@ export const KINDS = {
 export type LineKind = keyof typeof KINDS;
 export const CALLOUT_CHARS = 32;
 
+/** The same kinds for any other work: a product named without the adviser's examples. */
+const GENERAL_KINDS = {
+  ...KINDS,
+  product: KINDS.product.replace(
+    "plan, policy, scheme or app named in the line (a named insurance plan, MediShield Life, CPF LIFE, an app)",
+    () => "service, program or app named in the line (a named course, a tool, an app)",
+  ),
+};
+
 /** One Choice per picked line: a clip, an idea card or the named product. */
-export function kindQuestions(lines: MotionLine[], pick: number[]): Record<string, JevQuestion> {
+export function kindQuestions(lines: MotionLine[], pick: number[], profession = ""): Record<string, JevQuestion> {
   return Object.fromEntries(pick.map((i) => [
     `kind_${i}`,
     {
       type: "choice",
       instructions: { line: lines[i].text, line_before: i > 0 ? lines[i - 1].text : "", question: "While `line` is said, which visual fits it best?" },
-      criteria: { ...KINDS },
+      criteria: { ...(profession ? GENERAL_KINDS : KINDS) },
     } satisfies JevQuestion,
   ]));
 }
@@ -131,7 +143,12 @@ export function readKinds(answers: Record<string, JevAnswer> | null, pick: numbe
   }));
 }
 
-export function buildBrollMessages(lines: MotionLine[], pick: number[], kinds: Record<number, LineKind>): { role: string; content: string }[] {
+export function buildBrollMessages(lines: MotionLine[], pick: number[], kinds: Record<number, LineKind>, profession = ""): { role: string; content: string }[] {
+  // any other work: their work named, and the honesty everyone keeps in place of the adviser's rule
+  const said = (l: string) =>
+    profession
+      ? l.replace("a Singapore financial adviser filmed", () => `${aOrAn(profession)} filmed`).replace("Never promise returns or guarantees.", () => HONEST_LINE)
+      : l;
   return [
     {
       role: "system",
@@ -141,7 +158,9 @@ export function buildBrollMessages(lines: MotionLine[], pick: number[], kinds: R
         `For an [idea] line: callout, the point in at most ${CALLOUT_CHARS} characters, in sentence case. For a [product] line: callout, the product's name as said, at most ${CALLOUT_CHARS} characters.`,
         "Only facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.",
         'Reply with JSON only: {"items":[{"id":"L3","search":string},{"id":"L7","callout":string}]}',
-      ].join("\n"),
+      ]
+        .map(said)
+        .join("\n"),
     },
     { role: "user", content: pick.map((i) => `L${i} [${kinds[i] ?? "scene"}]: ${lines[i].text}${i > 0 ? `\n(said just before: ${lines[i - 1].text})` : ""}`).join("\n") },
   ];

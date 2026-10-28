@@ -1,0 +1,44 @@
+[
+  {
+    "video": "A short talking-head video filmed by a Singapore financial adviser, as a transcript line by line.",
+    "transcript": "L0| Most people start too late.\nL1| My first client had no plan at all.\nL2| We wrote down every bill on one page."
+  },
+  {
+    "kind_1": {
+      "type": "choice",
+      "instructions": {
+        "line": "My first client had no plan at all.",
+        "line_before": "Most people start too late.",
+        "question": "While `line` is said, which visual fits it best?"
+      },
+      "criteria": {
+        "scene": "A real-world moment a stock video can film: people, a place, an object or an everyday activity (a family at dinner, a hospital ward, a couple buying a home).",
+        "idea": "An abstract point, a rule, a figure or a comparison that reads best as a few words on screen (a percentage, a tip, a myth and the fact).",
+        "product": "A specific product, plan, policy, scheme or app named in the line (a named insurance plan, MediShield Life, CPF LIFE, an app), best shown by its name or a screenshot."
+      }
+    },
+    "kind_2": {
+      "type": "choice",
+      "instructions": {
+        "line": "We wrote down every bill on one page.",
+        "line_before": "My first client had no plan at all.",
+        "question": "While `line` is said, which visual fits it best?"
+      },
+      "criteria": {
+        "scene": "A real-world moment a stock video can film: people, a place, an object or an everyday activity (a family at dinner, a hospital ward, a couple buying a home).",
+        "idea": "An abstract point, a rule, a figure or a comparison that reads best as a few words on screen (a percentage, a tip, a myth and the fact).",
+        "product": "A specific product, plan, policy, scheme or app named in the line (a named insurance plan, MediShield Life, CPF LIFE, an app), best shown by its name or a screenshot."
+      }
+    }
+  },
+  [
+    {
+      "role": "system",
+      "content": "You write for the B-roll in a short video a Singapore financial adviser filmed. Each line below is tagged with what shows while it is said.\nFor a [scene] line: search, 1 to 3 English words a stock video library such as Pexels would match. Name something a camera can film (people, places, objects, actions), never an abstract word alone. Keep it general enough to find: family dinner, hospital bed, coins in jar, couple signing papers. Never a brand, a company, a person's name or words on screen. Keep the terms in the order of the lines: earlier terms show earlier moments.\nFor an [idea] line: callout, the point in at most 32 characters, in sentence case. For a [product] line: callout, the product's name as said, at most 32 characters.\nOnly facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.\nReply with JSON only: {\"items\":[{\"id\":\"L3\",\"search\":string},{\"id\":\"L7\",\"callout\":string}]}"
+    },
+    {
+      "role": "user",
+      "content": "L1 [scene]: My first client had no plan at all.\n(said just before: Most people start too late.)\nL2 [idea]: We wrote down every bill on one page.\n(said just before: My first client had no plan at all.)"
+    }
+  ]
+]

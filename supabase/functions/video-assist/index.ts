@@ -33,7 +33,7 @@
 //        that each line is a key line (null when Jev has no answer or the video is not in
 //        English), and pop-up text the LLM writes for the top few, with the emoji Jev picks
 //        ("motion-picks" cap).
-//   POST {mode:"broll", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds, taken:[{s,e}], room}
+//   POST {mode:"broll", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds, taken:[{s,e}], room, profession?}
 //        -> {picks:[{i,kind:"scene",search} | {i,kind:"idea"|"product",callout}] | null}: the lines Jev
 //        says a cutaway visual helps (a few a minute, never the hook, clear of B-roll already there) and
 //        what each needs (Jev again: a scene clip, an idea card or the named product); the LLM writes a
@@ -419,18 +419,18 @@ Deno.serve(async (req) => {
       const idx = brollLines(b.request);
       if (!idx.length) return json({ picks: [] });
       if (!mostlyEnglish(lines.map((x) => x.text).join(" "))) return json({ picks: null });
-      const state = keyState(lines);
+      const state = keyState(lines, b.request.profession);
       const parts = await Promise.all(brollQuestions(lines, idx).map((q) => askJev(state, q, { who: "video-assist broll", timeoutMs: 10_000 })));
       const probs = readBroll(parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) : null, idx);
       if (!probs) return json({ picks: null });
       const pick = pickBrollLines(lines, probs, b.request.duration, b.request.room);
       if (!pick.length) return json({ picks: [] });
       // Jev says what each line needs (a scene clip only when it says scene); the LLM writes the words only
-      const kinds = readKinds(await askJev(state, kindQuestions(lines, pick), { who: "video-assist broll kinds", timeoutMs: 10_000 }), pick);
+      const kinds = readKinds(await askJev(state, kindQuestions(lines, pick, b.request.profession), { who: "video-assist broll kinds", timeoutMs: 10_000 }), pick);
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 500, response_format: { type: "json_object" }, messages: buildBrollMessages(lines, pick, kinds) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 500, response_format: { type: "json_object" }, messages: buildBrollMessages(lines, pick, kinds, b.request.profession) }),
         signal: AbortSignal.timeout(45_000),
       }).catch(() => null);
       if (!res?.ok) {
