@@ -10,12 +10,15 @@ export const FORMAT_VALUES = ["carousel", "short-video", "text-post", "story"] a
 export const PLATFORM_VALUES = ["linkedin", "instagram", "facebook", "tiktok"] as const;
 export const CTA_VALUES = ["dm-keyword", "comment-keyword", "save-share", "book-call", "open-question"] as const;
 export const AUDIENCE_VALUES = ["young-adult", "working-adult", "parent", "pre-retiree", "general"] as const;
+/** Answer mode's two shapes: a reply under someone's question, or a long self-post (Reddit guide). */
+export const ANSWER_SHAPES = ["reply", "guide"] as const;
 export type Pillar = (typeof PILLAR_VALUES)[number];
 export type Format = (typeof FORMAT_VALUES)[number];
 export type Platform = (typeof PLATFORM_VALUES)[number];
 export type CtaType = (typeof CTA_VALUES)[number];
 export type Audience = (typeof AUDIENCE_VALUES)[number];
-export type Mode = "hooks" | "body" | "post" | "voice-summary" | "hashtags" | "image-prompt";
+export type AnswerShape = (typeof ANSWER_SHAPES)[number];
+export type Mode = "hooks" | "body" | "post" | "voice-summary" | "hashtags" | "image-prompt" | "answer";
 
 export interface RequestBody {
   pillar?: Pillar;
@@ -37,6 +40,11 @@ export interface RequestBody {
   draft?: string;
   /** The brand's "What do you do?" (../_shared/profession.ts): none, or an adviser's, keeps today's adviser prompts. */
   profession?: string;
+  /** Answer mode: where it will be posted ("r/SGExams", "a Facebook group for new agents"). The question is ideaContext. */
+  community?: string;
+  /** Answer mode: the community's rule on links and self-promotion, in the user's words. */
+  linkRule?: string;
+  answerShape?: AnswerShape;
 }
 
 export const PILLAR_GUIDE: Record<Pillar, string> = {
@@ -215,6 +223,7 @@ export function bodySystemPrompt(body: RequestBody, variantIndex: number, chosen
 }
 
 export function userPrompt(body: RequestBody, mode: Mode): string {
+  if (mode === "answer") return `Write my ${body.answerShape === "guide" ? "guide post" : "reply"} now, following the system instructions.`;
   if (mode === "hooks") {
     return `Produce one ${body.platform} hook for a ${body.format}, following the system instructions.`;
   }
@@ -297,11 +306,51 @@ export function imagePromptUserPrompt(body: RequestBody): string {
   ].join("\n");
 }
 
+// ---- Answer a question in a community (/generate/answer; Starter Story, 28 Oct 2026) ------------------------------
+// A reply the user posts themselves on Reddit, in a Facebook or Telegram group, or on Quora. Its own base lines, so
+// the post writer's mandatory CTA, hashtags and platform voice never reach it: the whole answer in the text, their work
+// named only when the question asks for it. An adviser's body keeps the general-information rule; everyone keeps
+// the honesty line.
+
+const ANSWER_OPENINGS = [
+  "Open with the direct answer in the first sentence.",
+  "Open with the mistake most people make here, then give the answer.",
+  "Open with a short, plain example of the situation (never an invented client), then give the answer.",
+];
+
+export function answerSystemPrompt(body: RequestBody, variantIndex: number): string {
+  const p = professionOf(body.profession);
+  const guide = body.answerShape === "guide";
+  const rule = body.linkRule?.trim();
+  const lines = [
+    `You draft ${guide ? "one long guide post" : "one reply"} for ${p ? aOrAn(p) : "a financial consultant in Singapore"} to post themselves in ${body.community?.trim() || "an online community"}.`,
+    "Rules:",
+    "- The question is below. Answer it fully inside the text, so a reader gets the whole answer without clicking anything.",
+    "- Sound like one person helping another: first person, plain words, no marketing voice, no hashtags, no emoji, no call to action.",
+    "- Do not pitch. Mention what they do or run only if the question asks for a tool, a service or a person, and then in one plain sentence that says it is theirs.",
+    `- Links: ${rule ? `follow the community's rule: ${rule}.` : "include none unless the question asks for one and the text below gives it."} Never more than one link.`,
+    `- ${HONEST_LINE}`,
+    p ? "" : "- Keep to general information: never recommend a specific product, insurer or fund, never state or promise a return, and say plainly when the answer depends on the person's own situation.",
+    "- If a good answer needs a fact you do not have, say what you would need to know instead of guessing.",
+    "",
+    guide
+      ? "## Shape: a long self-post of 500-1,200 words. First line: TITLE: and a plain, specific title. Then short sections with plain headings a reader can skim, the full method inside. Any mention of what they run goes at the very end, in one sentence."
+      : "## Shape: a reply of 60-220 words in short paragraphs: the answer, then the why, then one practical next step.",
+    "",
+    "## The question, and anything they added",
+    body.ideaContext?.trim() ?? "",
+  ];
+  if (body.voiceSummary?.trim()) lines.push("", "## Voice profile (match this person's tone)", body.voiceSummary.trim());
+  lines.push("", `## ${ANSWER_OPENINGS[variantIndex % ANSWER_OPENINGS.length]}`, "", "Output only the text, ready to paste. No preamble.");
+  return lines.filter(Boolean).join("\n");
+}
+
 export function buildSystemForVariant(
   body: RequestBody,
   mode: Mode,
   variantIndex: number,
 ): string {
+  if (mode === "answer") return answerSystemPrompt(body, variantIndex);
   if (mode === "hooks") return hooksSystemPrompt(body, variantIndex);
   if (mode === "body") {
     const hook = body.chosenHook?.trim();
@@ -327,6 +376,8 @@ export const MAX_CHARS: Partial<Record<keyof RequestBody, number>> = {
   profession: 200,
   chosenHook: 1_000,
   ideaSource: 1_000,
+  community: 200,
+  linkRule: 1_000,
 };
 export const MAX_POSTS = 10;
 export const MAX_POST_CHARS = 5_000;
@@ -340,6 +391,7 @@ const ALLOWED: Partial<Record<keyof RequestBody, readonly string[]>> = {
   platform: PLATFORM_VALUES,
   ctaType: CTA_VALUES,
   audience: AUDIENCE_VALUES,
+  answerShape: ANSWER_SHAPES,
 };
 
 /** Why the request can't be written from (400), or null. Checked before the user's daily count, so a refusal costs nothing. */
@@ -360,6 +412,7 @@ export function requestError(raw: RequestBody): string | null {
     if (raw.posts.some((p) => p.length > MAX_POST_CHARS)) return TOO_LONG;
   }
   const mode: Mode = raw.mode ?? "post";
+  if (mode === "answer") return raw.ideaContext?.trim() ? null : "Paste the question to answer.";
   if (mode === "voice-summary") {
     return (raw.posts ?? []).some((p) => typeof p === "string" && p.trim().length >= 1) ? null : "voice-summary requires at least 1 past post";
   }

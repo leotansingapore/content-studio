@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt", user: { id: UID, email: "someone@example.com" } } } }) } },
 }));
 
-import { streamOnePost, type GeneratePostPayload } from "./batchGenerate";
+import { ANSWER_COUNT, streamAnswers, streamOnePost, type GeneratePostPayload } from "./batchGenerate";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -139,5 +139,60 @@ describe("streamOnePost for Leo", () => {
     });
     sent.length = 0;
     expect(await write()).toEqual(await pinned());
+  });
+});
+
+describe("streamAnswers (/generate/answer)", () => {
+  const sse = (events: object[]) =>
+    new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode(events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("")));
+        c.close();
+      },
+    });
+  const reply = (events: object[], status = 200) =>
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      sent.push({ url, headers: init.headers as Record<string, string>, body: JSON.parse(String(init.body)) });
+      return status === 200 ? new Response(sse(events), { headers: { "Content-Type": "text/event-stream" } }) : new Response("Too many", { status });
+    });
+  const run = async () => {
+    const live: string[] = [];
+    const done: string[] = [];
+    const errors: [number | null, string][] = [];
+    await streamAnswers(
+      { ideaContext: "Is it worth it?", community: "r/SGExams", answerShape: "reply" },
+      { onToken: (i, t) => (live[i] = t), onComplete: (i, t) => (done[i] = t), onError: (i, m) => void errors.push([i, m]) },
+    );
+    return { live, done, errors };
+  };
+
+  it("asks answer mode for three answers in one streamed request, with no memory added", async () => {
+    as.user = { id: UID, email: "tanjunsing@gmail.com" };
+    seedMemory();
+    reply([]);
+    await run();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].body).toEqual({ ideaContext: "Is it worth it?", community: "r/SGExams", answerShape: "reply", mode: "answer", n: ANSWER_COUNT, stream: true });
+  });
+  it("keeps each answer apart as the tokens interleave, and a failed one does not stop the others", async () => {
+    reply([
+      { type: "start", totalVariants: 3, mode: "answer" },
+      { type: "token", variantIndex: 0, text: "Yes, " },
+      { type: "token", variantIndex: 2, text: "Most " },
+      { type: "token", variantIndex: 0, text: "if" },
+      { type: "error", variantIndex: 1, message: "Variant failed" },
+      { type: "variant_complete", variantIndex: 2, text: "Most people skip it." },
+      { type: "variant_complete", variantIndex: 0, text: "Yes, if you start early." },
+    ]);
+    const { live, done, errors } = await run();
+    expect(live[0]).toBe("Yes, if you start early.");
+    expect(done).toEqual(["Yes, if you start early.", undefined, "Most people skip it."]);
+    expect(errors).toEqual([[1, "Variant failed"]]);
+  });
+  it("reports a refusal before any answer starts with no index", async () => {
+    reply([], 429);
+    const { done, errors } = await run();
+    expect(done).toEqual([]);
+    expect(errors).toEqual([[null, "Generation failed (429) Too many"]]);
   });
 });

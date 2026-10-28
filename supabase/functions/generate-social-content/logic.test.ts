@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ANSWER_SHAPES,
   buildSystemForVariant,
   hashtagsSystemPrompt,
   hashtagsUserPrompt,
@@ -151,5 +152,55 @@ describe("generate-social-content for the brand's profession", () => {
   it("keeps the honesty rules for everyone", () => {
     const out = allPrompts({ ...BODIES[1], profession: "Coach" }, 1);
     expect(out.variants[0].system).toContain("Never invent a number, a result, a client story or a testimonial, and never promise an outcome.");
+  });
+});
+
+describe("answer mode (/generate/answer)", () => {
+  const ask = { mode: "answer" as const, ideaContext: "Is a finance internship worth it in year 2?", community: "r/SGExams" };
+  const system = (body: RequestBody, v = 0) => buildSystemForVariant(body, "answer", v);
+
+  it("never carries the post writer's mandatory CTA, hashtags or platform voice", () => {
+    for (const body of [ask, { ...ask, profession: "Coach" }, { ...ask, answerShape: "guide" as const }]) {
+      const s = system(body);
+      expect(s).not.toContain("The CTA is mandatory");
+      expect(s).not.toMatch(/## (Platform|Format|CTA style):/);
+      expect(s).toContain("no call to action");
+      expect(s).toContain("Answer it fully inside the text");
+      expect(s).toContain(ask.ideaContext);
+      expect(s).toContain("in r/SGExams.");
+    }
+  });
+  it("keeps an adviser to general information and never names the insurer; any other work gets no adviser words", () => {
+    expect(system(ask)).toContain("never recommend a specific product, insurer or fund");
+    expect(system(ask)).not.toContain("AIA");
+    // the user's own question may hold any word, so the words the prompt adds are checked around a neutral one
+    const plain = { ...ask, ideaContext: "How do I get my first client?" };
+    for (const { raw } of PROFESSIONS) {
+      expect(adviserWordsIn(system({ ...plain, profession: raw }))).toEqual([]);
+      expect(system({ ...plain, profession: raw })).not.toContain("never recommend a specific product");
+    }
+  });
+  it("keeps the honesty line for everyone", () => {
+    for (const body of [ask, { ...ask, profession: "Coach" }]) expect(system(body)).toContain("Never invent a number, a result, a client story or a testimonial");
+  });
+  it("follows the community's link rule when given, and allows no link otherwise", () => {
+    expect(system({ ...ask, linkRule: "No self-promotion; links only if asked" })).toContain("follow the community's rule: No self-promotion; links only if asked.");
+    expect(system(ask)).toContain("include none unless the question asks for one");
+  });
+  it("writes a titled long guide or a short reply, three different openings, and says which in the user line", () => {
+    expect(system({ ...ask, answerShape: "guide" })).toContain("First line: TITLE:");
+    expect(system(ask)).toContain("a reply of 60-220 words");
+    expect(new Set([0, 1, 2].map((v) => system(ask, v))).size).toBe(3);
+    expect(userPrompt({ ...ask, answerShape: "guide" }, "answer")).toBe("Write my guide post now, following the system instructions.");
+    expect(userPrompt(ask, "answer")).toBe("Write my reply now, following the system instructions.");
+  });
+  it("needs the question and nothing from a post's brief, and takes only its own shapes", () => {
+    expect(requestError(ask)).toBeNull();
+    expect(requestError({ mode: "answer", community: "r/SGExams" })).toBe("Paste the question to answer.");
+    expect(requestError({ ...ask, ideaContext: "   " })).toBe("Paste the question to answer.");
+    for (const answerShape of ANSWER_SHAPES) expect(requestError({ ...ask, answerShape })).toBeNull();
+    expect(requestError({ ...ask, answerShape: "thread" as never })).not.toBeNull();
+    expect(requestError({ ...ask, community: "x".repeat(201) })).not.toBeNull();
+    expect(requestError({ ...ask, linkRule: "x".repeat(1_001) })).not.toBeNull();
   });
 });

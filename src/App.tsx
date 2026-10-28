@@ -35,6 +35,7 @@ const DraftsPage = lazy(() => import("@/pages/DraftsPage"));
 const LibraryPage = lazy(() => import("@/pages/LibraryPage"));
 const BoardPage = lazy(() => import("@/pages/BoardPage"));
 const GeneratePage = lazy(() => import("@/pages/GeneratePage"));
+const AnswerPage = lazy(() => import("@/pages/AnswerPage"));
 const BatchPage = lazy(() => import("@/pages/BatchPage"));
 const CarouselPage = lazy(() => import("@/pages/CarouselPage"));
 const ImagePage = lazy(() => import("@/pages/ImagePage"));
@@ -145,6 +146,7 @@ export default function App() {
           <Route path="/agent/:thread" element={<AgentPage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/generate/batch" element={<BatchPage />} />
+          <Route path="/generate/answer" element={<AnswerPage />} />
           <Route path="/carousel" element={<CarouselPage />} />
           <Route path="/image" element={<ImagePage />} />
           <Route path="/slideshow" element={<SlideshowPage />} />

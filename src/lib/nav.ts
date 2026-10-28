@@ -121,6 +121,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Create" },
       { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },
+      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },

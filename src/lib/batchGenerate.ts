@@ -1,6 +1,7 @@
 // Shared streaming client for the generate-social-content edge function,
 // used by BatchPage to fire several single-post generations in parallel
-// (one per target platform) from a single shared topic.
+// (one per target platform) from a single shared topic, and by /generate/answer
+// for three answers to one question (answer mode).
 //
 // GeneratePage.tsx has its own inline copy of this same fetch+SSE pattern
 // (it also drives hooks-first mode and multi-variant re-rolls, which batch
@@ -10,7 +11,10 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase";
 import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
-import type { Audience, CtaType, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
+import type { AnswerShape, Audience, CtaType, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
+
+/** How many answers /generate/answer writes at once, each with its own opening. */
+export const ANSWER_COUNT = 3;
 
 /** The post writer's lists type every field it checks (generate-social-content requestError). */
 export interface GeneratePostPayload {
@@ -45,15 +49,17 @@ async function withMemory(payload: GeneratePostPayload): Promise<GeneratePostPay
   return memory ? { ...payload, ideaContext: [payload.ideaContext, memory].filter(Boolean).join("\n\n") } : payload;
 }
 
-export async function streamOnePost(
-  payload: GeneratePostPayload,
-  handlers: {
-    onToken?: (text: string) => void;
-    onComplete: (text: string) => void;
-    onError: (message: string) => void;
-  },
+/**
+ * POSTs one request to the writer and hands each server-sent event to `onEvent`, which returns false to stop reading.
+ * Resolves true when the stream ran to its end. An abort resolves false silently; any other failure is reported through
+ * `onError` first.
+ */
+async function readWriterStream(
+  body: Record<string, unknown>,
+  onEvent: (evt: Record<string, unknown>) => boolean | void,
+  onError: (message: string) => void,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<boolean> {
   const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
   const session = (await supabase.auth.getSession()).data.session;
   const token = session?.access_token ?? SUPABASE_ANON_KEY;
@@ -68,25 +74,24 @@ export async function streamOnePost(
         apikey: SUPABASE_ANON_KEY,
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ ...(await withMemory(payload)), mode: "post", n: 1, stream: true }),
+      body: JSON.stringify(body),
       signal,
     });
   } catch (err) {
-    if ((err as Error).name === "AbortError") return;
-    handlers.onError(err instanceof Error ? err.message : "Request failed");
-    return;
+    if ((err as Error).name === "AbortError") return false;
+    onError(err instanceof Error ? err.message : "Request failed");
+    return false;
   }
 
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");
-    handlers.onError(`Generation failed (${res.status}) ${text}`.trim());
-    return;
+    onError(`Generation failed (${res.status}) ${text}`.trim());
+    return false;
   }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let finalText = "";
 
   try {
     while (true) {
@@ -100,27 +105,20 @@ export async function streamOnePost(
         if (!line.startsWith("data:")) continue;
         const payloadStr = line.slice(5).trim();
         if (!payloadStr) continue;
+        let evt: Record<string, unknown>;
         try {
-          const evt = JSON.parse(payloadStr);
-          if (evt.type === "token") {
-            finalText += evt.text as string;
-            handlers.onToken?.(finalText);
-          } else if (evt.type === "variant_complete") {
-            finalText = evt.text as string;
-            handlers.onToken?.(finalText);
-          } else if (evt.type === "error") {
-            handlers.onError((evt.message as string) ?? "Stream error");
-            return;
-          }
+          evt = JSON.parse(payloadStr);
         } catch (err) {
           console.error("SSE parse error:", err, payloadStr);
+          continue;
         }
+        if (onEvent(evt) === false) return false;
       }
     }
   } catch (err) {
-    if ((err as Error).name === "AbortError") return;
-    handlers.onError(err instanceof Error ? err.message : "Stream failed");
-    return;
+    if ((err as Error).name === "AbortError") return false;
+    onError(err instanceof Error ? err.message : "Stream failed");
+    return false;
   } finally {
     try {
       reader.releaseLock();
@@ -128,6 +126,82 @@ export async function streamOnePost(
       // ignore
     }
   }
+  return true;
+}
 
-  handlers.onComplete(finalText);
+export async function streamOnePost(
+  payload: GeneratePostPayload,
+  handlers: {
+    onToken?: (text: string) => void;
+    onComplete: (text: string) => void;
+    onError: (message: string) => void;
+  },
+  signal?: AbortSignal,
+): Promise<void> {
+  let finalText = "";
+  const ran = await readWriterStream(
+    { ...(await withMemory(payload)), mode: "post", n: 1, stream: true },
+    (evt) => {
+      if (evt.type === "token") {
+        finalText += evt.text as string;
+        handlers.onToken?.(finalText);
+      } else if (evt.type === "variant_complete") {
+        finalText = evt.text as string;
+        handlers.onToken?.(finalText);
+      } else if (evt.type === "error") {
+        handlers.onError((evt.message as string) ?? "Stream error");
+        return false;
+      }
+    },
+    handlers.onError,
+    signal,
+  );
+  if (ran) handlers.onComplete(finalText);
+}
+
+/** /generate/answer's request: the question goes in ideaContext (generate-social-content answer mode). */
+export interface AnswerPayload {
+  ideaContext: string;
+  community?: string;
+  linkRule?: string;
+  answerShape: AnswerShape;
+  voiceSummary?: string;
+  /** The brand's "What do you do?" (professionFor); left out for an adviser. */
+  profession?: string;
+}
+
+/**
+ * Three answers to one question in one request, each with its own opening, streamed side by side. A failed answer
+ * reports its own index and the others carry on; a failure before any answer starts reports index null.
+ */
+export async function streamAnswers(
+  payload: AnswerPayload,
+  handlers: {
+    onToken: (index: number, text: string) => void;
+    onComplete: (index: number, text: string) => void;
+    onError: (index: number | null, message: string) => void;
+  },
+  signal?: AbortSignal,
+): Promise<void> {
+  const texts: string[] = [];
+  await readWriterStream(
+    { ...payload, mode: "answer", n: ANSWER_COUNT, stream: true },
+    (evt) => {
+      const i = typeof evt.variantIndex === "number" ? evt.variantIndex : null;
+      if (evt.type === "token" && i !== null) {
+        texts[i] = (texts[i] ?? "") + (evt.text as string);
+        handlers.onToken(i, texts[i]);
+      } else if (evt.type === "variant_complete" && i !== null) {
+        // the finished text wins over the tokens, as in streamOnePost
+        texts[i] = evt.text as string;
+        handlers.onToken(i, texts[i]);
+        handlers.onComplete(i, texts[i]);
+      } else if (evt.type === "error") {
+        handlers.onError(i, (evt.message as string) ?? "Stream error");
+        if (i === null) return false;
+      }
+    },
+    (message) => handlers.onError(null, message),
+    signal,
+  );
 }
