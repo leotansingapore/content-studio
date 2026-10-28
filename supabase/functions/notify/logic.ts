@@ -9,6 +9,8 @@ import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { scoreAccount, times } from "../_shared/outlier.ts";
 import { median } from "../_shared/socialAudit.ts";
 import { realMetrics } from "../social/metrics.ts";
+import { isTimeZone } from "../social/posts.ts";
+import { instantIn } from "../_shared/zone.ts";
 
 export const APP_URL = "https://app.postmosis.com";
 export const PREFS_PREFIX = "content-studio-notify-";
@@ -75,6 +77,8 @@ export interface Post {
   platform: string;
   status?: string;
   scheduledFor?: string;
+  /** The IANA zone its time is in (Post it for me saves the browser's, ZernioLink.tz); Singapore when absent. */
+  tz?: string;
   postedAt?: string;
   metrics?: Metrics;
   format?: string;
@@ -157,6 +161,7 @@ function postsFrom(raw: string | undefined, linked: boolean): Post[] {
       platform: str(d.platform) ?? "",
       status: str(d.status),
       scheduledFor: str(d.scheduledFor),
+      ...(isTimeZone(d.zernio?.tz) ? { tz: d.zernio.tz } : {}),
       postedAt: str(d.postedAt),
       metrics:
         real ?? (m ? { impressions: num(m.impressions), reactions: num(m.reactions), comments: num(m.comments), shares: num(m.shares) } : undefined),
@@ -330,20 +335,22 @@ export function postedDayOf(postedAt: string | undefined): string | null {
 }
 
 /**
- * When a scheduled post is due: "YYYY-MM-DDTHH:MM" is that Singapore time;
- * anything else starting with a day (a bare day, the board's older ISO
- * timestamps) counts as that day without a time, due at 9am.
+ * When a scheduled post is due: "YYYY-MM-DDTHH:MM" is that time on the clock in
+ * `tz` (the post's own zone, DST-safe as Zernio is sent it), Singapore when it
+ * has none; anything else starting with a day (a bare day, the board's older
+ * ISO timestamps) counts as that day without a time, due at 9am.
  */
-export function dueAt(scheduledFor: string | undefined): { at: number; day: string; time: string | null } | null {
+export function dueAt(scheduledFor: string | undefined, tz?: string): { at: number; day: string; time: string | null } | null {
   const timed = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)$/.exec(scheduledFor ?? "");
   if (timed) {
     const [, y, m, d, hh, mm] = timed.map(Number);
-    return { at: Date.UTC(y, m - 1, d, hh, mm) - SG_MS, day: scheduledFor!.slice(0, 10), time: scheduledFor!.slice(11, 16) };
+    const [day, time] = [scheduledFor!.slice(0, 10), scheduledFor!.slice(11, 16)];
+    return { at: tz ? instantIn(day, time, tz) : Date.UTC(y, m - 1, d, hh, mm) - SG_MS, day, time };
   }
   const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(scheduledFor ?? "");
   if (!day) return null;
   const [, y, m, d] = day.map(Number);
-  return { at: Date.UTC(y, m - 1, d, DAY_ONLY_HOUR) - SG_MS, day: day[0], time: null };
+  return { at: tz ? instantIn(day[0], `${String(DAY_ONLY_HOUR).padStart(2, "0")}:00`, tz) : Date.UTC(y, m - 1, d, DAY_ONLY_HOUR) - SG_MS, day: day[0], time: null };
 }
 
 /** "7:30pm", "9am", "12pm" (dueDates.ts timeLabel). */
@@ -426,7 +433,7 @@ export function duePosts(profiles: Profile[], now: number): DuePost[] {
   for (const p of profiles) {
     for (const post of p.posts) {
       if (post.status !== "scheduled") continue;
-      const due = dueAt(post.scheduledFor);
+      const due = dueAt(post.scheduledFor, post.tz);
       if (!due || due.at <= now - DUE_LATE_MS || due.at > now + DUE_AHEAD_MS) continue;
       out.push({
         item: `due:${p.id}:${post.id.slice(0, 80)}:${post.scheduledFor!.slice(0, 16)}`,
@@ -805,7 +812,7 @@ export function emailWeeks(profiles: Profile[], now: number, brief: Record<strin
       const coming = p.posts
         .filter((d) => d.status === "scheduled" && inRange(d.scheduledFor?.slice(0, 10), monday, sunday))
         .flatMap((d) => {
-          const due = dueAt(d.scheduledFor);
+          const due = dueAt(d.scheduledFor, d.tz);
           return due ? [{ d, due }] : [];
         })
         .sort((a, b) => a.due.at - b.due.at);

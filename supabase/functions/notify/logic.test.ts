@@ -34,6 +34,7 @@ import {
   dueAt,
   dueMessage,
   duePosts,
+  emailWeeks,
   goalAlert,
   isPushEndpoint,
   marketAlert,
@@ -176,6 +177,63 @@ describe("dueAt", () => {
     expect(dueAt("2026-10-08T24:00")).toEqual({ at: sg(2026, 10, 8, 9), day: "2026-10-08", time: null });
     expect(dueAt("2026-10-08T19:60")).toEqual({ at: sg(2026, 10, 8, 9), day: "2026-10-08", time: null });
     expect(dueAt("2026-10-08T23:59")).toMatchObject({ time: "23:59" });
+  });
+});
+
+describe("a post's own time zone (Post it for me saves it; Singapore when none is saved)", () => {
+  const utc = (y: number, m: number, d: number, h = 0, min = 0) => Date.UTC(y, m - 1, d, h, min);
+
+  it("profilesFrom keeps a draft's saved zone when it is a real one", () => {
+    const [me] = profilesFrom(UID, {
+      [`content-studio-drafts-${UID}`]: JSON.stringify([
+        { id: "ny", status: "scheduled", scheduledFor: "2026-10-08T09:00", zernio: { key: "k1", postId: "p1", tz: "America/New_York" } },
+        { id: "sg", status: "scheduled", scheduledFor: "2026-10-08T09:00", zernio: { key: "k2", postId: "p2" } },
+        { id: "junk", status: "scheduled", scheduledFor: "2026-10-08T09:00", zernio: { key: "k3", tz: "Mars/Olympus_Mons" } },
+        { id: "odd", status: "scheduled", scheduledFor: "2026-10-08T09:00", zernio: { key: "k4", tz: 7 } },
+        { id: "plain", status: "scheduled", scheduledFor: "2026-10-08T09:00" },
+      ]),
+    });
+    expect(me.posts.map((p) => [p.id, p.tz])).toEqual([["ny", "America/New_York"], ["sg", undefined], ["junk", undefined], ["odd", undefined], ["plain", undefined]]);
+  });
+
+  it("dueAt reads the day and time on that zone's clock, daylight saving included", () => {
+    expect(dueAt("2026-10-08T09:00", "America/New_York")).toEqual({ at: utc(2026, 10, 8, 13), day: "2026-10-08", time: "09:00" });
+    // the US clocks go back on 1 Nov 2026: 9am is an hour later in UTC from then on
+    expect(dueAt("2026-11-02T09:00", "America/New_York")?.at).toBe(utc(2026, 11, 2, 14));
+    // a time the clocks skip is the same hour later; one that happens twice is the first, as Zernio is sent it
+    expect(dueAt("2026-03-08T02:30", "America/New_York")?.at).toBe(utc(2026, 3, 8, 7, 30));
+    expect(dueAt("2026-11-01T01:30", "America/New_York")?.at).toBe(utc(2026, 11, 1, 5, 30));
+    expect(dueAt("2026-10-23T09:00", "Europe/London")?.at).toBe(utc(2026, 10, 23, 8));
+    expect(dueAt("2026-10-26T09:00", "Europe/London")?.at).toBe(utc(2026, 10, 26, 9));
+    expect(dueAt("2026-10-08T09:00", "Asia/Kolkata")?.at).toBe(utc(2026, 10, 8, 3, 30));
+    // a day alone is 9am there
+    expect(dueAt("2026-10-08", "America/New_York")).toEqual({ at: utc(2026, 10, 8, 13), day: "2026-10-08", time: null });
+    // no zone is Singapore, as before
+    expect(dueAt("2026-10-08T09:00")?.at).toBe(sg(2026, 10, 8, 9));
+    expect(dueAt("2026-10-08T09:00", "Asia/Singapore")?.at).toBe(sg(2026, 10, 8, 9));
+  });
+
+  it("a New York post's alert fires in the hour before its 9am New York time, not before 9am Singapore", () => {
+    const me = profile({
+      posts: [
+        post({ id: "ny", status: "scheduled", scheduledFor: "2026-10-08T09:00", tz: "America/New_York" }),
+        post({ id: "sg", status: "scheduled", scheduledFor: "2026-10-08T09:00" }),
+      ],
+    });
+    expect(duePosts([me], sg(2026, 10, 8, 8, 30)).map((d) => d.post.id)).toEqual(["sg"]);
+    expect(duePosts([me], utc(2026, 10, 8, 12, 30)).map((d) => d.post.id)).toEqual(["ny"]);
+    expect(dueMessage(duePosts([me], utc(2026, 10, 8, 12, 30)))?.title).toBe("Due at 9am");
+    expect(duePosts([me], utc(2026, 10, 8, 13, 11))).toEqual([]);
+  });
+
+  it("the Monday email lists the week's posts in the order they go out", () => {
+    const me = profile({
+      posts: [
+        post({ id: "ny-8am", status: "scheduled", scheduledFor: "2026-10-13T08:00", tz: "America/New_York" }),
+        post({ id: "sg-7pm", status: "scheduled", scheduledFor: "2026-10-13T19:00" }),
+      ],
+    });
+    expect(emailWeeks([me], MON_8AM)[0].coming.map((c) => c.d.id)).toEqual(["sg-7pm", "ny-8am"]);
   });
 });
 
