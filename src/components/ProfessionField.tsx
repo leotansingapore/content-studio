@@ -26,7 +26,7 @@ export default function ProfessionField({ value, onChange }: { value: string; on
           </button>
         ))}
       </div>
-      <Input id={`${id}-own`} value={value} maxLength={MAX_PROFESSION_CHARS} placeholder="Or in your own words, like wedding photographer" onChange={(e) => onChange(e.target.value)} />
+      <Input id={`${id}-own`} value={value} maxLength={MAX_PROFESSION_CHARS} placeholder="Or type your own, like photographer" onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

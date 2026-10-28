@@ -215,6 +215,7 @@ export default function AddBrandPage() {
 
       {phase === "url" && justName && (
         <form onSubmit={(e) => { e.preventDefault(); create(null); }} className="space-y-3 rounded-2xl border border-border/60 bg-card p-4 shadow-card">
+          <ProfessionField value={profession} onChange={setProfession} />
           <label className="block space-y-1.5 text-sm font-semibold">
             Brand name
             <div className="flex gap-2">
@@ -222,7 +223,6 @@ export default function AddBrandPage() {
               <Button type="submit" disabled={!name.trim()}>Add brand</Button>
             </div>
           </label>
-          <ProfessionField value={profession} onChange={setProfession} />
           <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(false)}>Read its website instead</button>
         </form>
       )}
