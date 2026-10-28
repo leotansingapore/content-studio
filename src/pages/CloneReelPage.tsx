@@ -92,6 +92,7 @@ import { cloneTalkHref } from "@/lib/talkingHead";
 import type { LinkedSource } from "@/lib/resolveSource";
 import { checkUpload, clearLinkRead, linkRead, onLinkRead, retryable, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
 import { LINK_COPY, notYet, parseRemixLink, siteName, type LinkKind } from "../../supabase/functions/remix-link/logic.ts";
+import { professionFor } from "@/lib/profession";
 
 type View =
   | { kind: "idle" }
@@ -1522,6 +1523,7 @@ export default function CloneReelPage() {
       const result = await cloneReel(parsed.url, voice, controller.signal, hookFormulaSet(hookSetRef.current++), {
         angle,
         positioning: positioningForClone(loadPositioning(uid)),
+        profession: professionFor(uid),
       });
       if (controller.signal.aborted) return;
       const clone: SavedClone = { id: cloneIdOf(result), savedAt: new Date().toISOString(), result };
