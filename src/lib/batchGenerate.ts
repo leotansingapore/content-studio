@@ -10,19 +10,23 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase";
 import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
+import type { Audience, CtaType, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
 
+/** The post writer's lists type every field it checks (generate-social-content requestError). */
 export interface GeneratePostPayload {
-  pillar: string;
+  pillar: Pillar;
   pillarDetail: string;
   ideaSource: string;
   ideaContext?: string;
-  format: string;
-  platform: string;
-  ctaType: string;
+  format: Format;
+  platform: Platform;
+  ctaType: CtaType;
   styleReference?: string;
-  audience: string;
+  audience: Audience;
   voiceSummary?: string;
   singlish?: boolean;
+  /** The brand's "What do you do?" (professionFor); left out for an adviser. */
+  profession?: string;
 }
 
 /**

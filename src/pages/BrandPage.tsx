@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
+import ProfessionField from "@/components/ProfessionField";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -587,6 +588,7 @@ export default function BrandPage() {
                 <Input id="brand-role" value={brand.role ?? ""} maxLength={MAX_ROLE_CHARS} placeholder="Financial adviser" onChange={(e) => update({ role: e.target.value })} />
               </div>
             </div>
+            <ProfessionField value={brand.profession ?? ""} onChange={(profession) => update({ profession })} />
           </section>
           {leo && userId && (
             <PeopleWhoSign brand={brand} setBrand={setKit} photoOf={(f) => shrinkImage(f, "photo")} onError={(title, description) => toast({ title, description, variant: "destructive" })} />

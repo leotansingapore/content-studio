@@ -8,6 +8,9 @@ export const DAILY_LIMITS = {
   "reel-concepts": 20,
   // A shot list for a short-video draft in Write (storyboard).
   storyboard: 30,
+  // Write, Batch and Your voice (generate-social-content): one per request; a heavy day of about 10 posts, each with
+  // its hooks, variations, re-rolls, rewrites, hashtags and image prompt, is about 130.
+  "write-post": 200,
   // The frames read after each Instagram clone (reel-visuals), and a reel's captions read for "Copy a reel's style".
   "reel-visuals": 20,
   // "Copy a reel's style" in the video editor: the post read through Apify (clone-reel style), no OpenAI.

@@ -517,11 +517,11 @@ Deno.serve(async (req) => {
       }
       // Jev picks the spoken keyword among the words said after comment / DM / message / type (a decision); none without an answer
       const cands = keywordCandidates(c.transcript);
-      const keyword = cands.length && mostlyEnglish(c.transcript) ? readKeyword(await askJev({ said: c.transcript }, keywordQuestion(cands), { who: "video-assist captions keyword" }), cands) : null;
+      const keyword = cands.length && mostlyEnglish(c.transcript) ? readKeyword(await askJev({ said: c.transcript }, keywordQuestion(cands, c.profession), { who: "video-assist captions keyword" }), cands) : null;
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 2400, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title, c.rules, keyword) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 2400, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title, c.rules, keyword, c.profession) }),
         signal: AbortSignal.timeout(45_000),
       }).catch(() => null);
       if (!res?.ok) {

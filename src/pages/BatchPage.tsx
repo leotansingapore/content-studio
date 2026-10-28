@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
+import { professionFor } from "@/lib/profession";
 import { stripDashes, tagLinks, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
@@ -41,14 +42,12 @@ import {
   Video,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
-
-type Pillar = "interest" | "identity" | "topic" | "market";
-type Audience = "general" | "young-adult" | "working-adult" | "parent" | "pre-retiree";
+import type { Audience, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
 
 interface BatchTarget {
   key: string;
-  platform: string;
-  format: string;
+  platform: Platform;
+  format: Format;
   label: string;
   icon: typeof Linkedin;
   defaultOn: boolean;
@@ -224,6 +223,7 @@ export default function BatchPage() {
               ctaType: "comment-keyword",
               audience: lifeStage,
               voiceSummary: usableVoice,
+              profession: professionFor(userId) || undefined,
               ideaContext: [brandRulesLine(kit, t.platform), audPick && userId ? audienceLine(audPick, speakerFor(userId)) : ""].filter(Boolean).join("\n\n") || undefined,
             },
             {

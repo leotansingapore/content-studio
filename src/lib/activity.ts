@@ -337,6 +337,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "montage-beats": "Montages",
   "montage-pick": "Montage clips",
   "cold-open": "Cold opens",
+  "write-post": "Posts written",
   "video-captions": "Video post captions",
   "video-watch": "Video watch-throughs",
   "ai-image": "Pictures",

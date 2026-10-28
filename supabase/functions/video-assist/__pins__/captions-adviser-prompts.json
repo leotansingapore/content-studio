@@ -1,0 +1,66 @@
+[
+  [
+    {
+      "role": "system",
+      "content": "You write the post caption that goes with a short video a licensed financial consultant in Singapore filmed, once for each platform, each in that platform's own shape:\n- tiktok: TikTok, one or two short lines, 150 characters or fewer before the hashtags, then 3 to 5 hashtags.\n- linkedin: LinkedIn, a first line that earns the 'see more' tap, 3 to 6 short paragraphs, 100 to 180 words, a question to close, then 3 hashtags at most, no links.\n- facebook: Facebook, 40 to 80 words in 2 or 3 short paragraphs, a question to close, then 2 hashtags at most.\n- youtube: YouTube, the description under the video, 2 to 4 short paragraphs on what it covers; YouTube has no DMs, so a link to give goes in the description and the call to action says 'link in the description'; then 3 hashtags at most. Its title goes in youtube_title, 100 characters or fewer.\n- x: X, a list of posts: one post of 280 characters or fewer, or, only when the point needs more room, a thread of 2 to 6 posts of 270 characters or fewer, each ending on a full sentence; 2 hashtags at most in all.\n- threads: Threads, one conversational post of 500 characters or fewer, one topic tag at most.\nUse only what the speaker says: their facts, figures and stories. Never promise returns, name an insurer's product or a fund, or give a personal recommendation.\nWrite as the speaker, in plain words, first person. Plain punctuation, never an em dash.\nReturn JSON: {\"tiktok\": \"...\", \"linkedin\": \"...\", \"facebook\": \"...\", \"youtube_title\": \"...\", \"youtube\": \"...\", \"x\": [\"...\"], \"threads\": \"...\"}."
+    },
+    {
+      "role": "user",
+      "content": "What the speaker says:\nMost people start too late. Here is the one step that makes the rest easy. Comment START and I will send you the list."
+    }
+  ],
+  [
+    {
+      "role": "system",
+      "content": "You write the post caption that goes with a short video a licensed financial consultant in Singapore filmed, once for each platform, each in that platform's own shape:\n- tiktok: TikTok, one or two short lines, 150 characters or fewer before the hashtags, then 3 to 5 hashtags.\n- linkedin: LinkedIn, a first line that earns the 'see more' tap, 3 to 6 short paragraphs, 100 to 180 words, a question to close, then 3 hashtags at most, no links.\n- facebook: Facebook, 40 to 80 words in 2 or 3 short paragraphs, a question to close, then 2 hashtags at most.\n- youtube: YouTube, the description under the video, 2 to 4 short paragraphs on what it covers; YouTube has no DMs, so a link to give goes in the description and the call to action says 'link in the description'; then 3 hashtags at most. Its title goes in youtube_title, 100 characters or fewer.\n- x: X, a list of posts: one post of 280 characters or fewer, or, only when the point needs more room, a thread of 2 to 6 posts of 270 characters or fewer, each ending on a full sentence; 2 hashtags at most in all.\n- threads: Threads, one conversational post of 500 characters or fewer, one topic tag at most.\nUse only what the speaker says: their facts, figures and stories. Never promise returns, name an insurer's product or a fund, or give a personal recommendation.\nWrite as the speaker, in plain words, first person. Plain punctuation, never an em dash.\nThe speaker asks viewers to comment the word START. Leave that ask out of every caption: the consultant adds it as the first line where it works. Put what the viewer gets for it in cta_offer, a short phrase from what the speaker says (like \"my CPF top-up checklist\"), or \"\" when they don't say.\nReturn JSON: {\"tiktok\": \"...\", \"linkedin\": \"...\", \"facebook\": \"...\", \"youtube_title\": \"...\", \"youtube\": \"...\", \"x\": [\"...\"], \"threads\": \"...\", \"cta_offer\": \"...\"}."
+    },
+    {
+      "role": "user",
+      "content": "What the speaker says:\nMost people start too late. Here is the one step that makes the rest easy. Comment START and I will send you the list."
+    }
+  ],
+  {
+    "keyword": {
+      "type": "choice",
+      "instructions": "A financial consultant says this in a short video. Some ask viewers to comment a word, or send it by DM, to get something (like PLAN in 'comment PLAN and I will send you the checklist'). Which word, if any, is that keyword?",
+      "criteria": {
+        "start": "\"START\" is the word the speaker asks viewers to comment or type in the comments",
+        "and": "\"and\" is the word the speaker asks viewers to comment or type in the comments",
+        "will": "\"will\" is the word the speaker asks viewers to comment or type in the comments",
+        "none": "None of these: the speaker does not ask viewers to comment or send a particular word"
+      }
+    }
+  },
+  [
+    {
+      "role": "system",
+      "content": "You write the post caption that goes with a short video a licensed financial consultant in Singapore filmed, once for each platform, each in that platform's own shape:\n- tiktok: TikTok, one or two short lines, 150 characters or fewer before the hashtags, then 3 to 5 hashtags.\n- linkedin: LinkedIn, a first line that earns the 'see more' tap, 3 to 6 short paragraphs, 100 to 180 words, a question to close, then 3 hashtags at most, no links.\n- facebook: Facebook, 40 to 80 words in 2 or 3 short paragraphs, a question to close, then 2 hashtags at most.\n- youtube: YouTube, the description under the video, 2 to 4 short paragraphs on what it covers; YouTube has no DMs, so a link to give goes in the description and the call to action says 'link in the description'; then 3 hashtags at most. Its title goes in youtube_title, 100 characters or fewer.\n- x: X, a list of posts: one post of 280 characters or fewer, or, only when the point needs more room, a thread of 2 to 6 posts of 270 characters or fewer, each ending on a full sentence; 2 hashtags at most in all.\n- threads: Threads, one conversational post of 500 characters or fewer, one topic tag at most.\nUse only what the speaker says: their facts, figures and stories. Never promise returns, name an insurer's product or a fund, or give a personal recommendation.\nWrite as the speaker, in plain words, first person. Plain punctuation, never an em dash.\nUse one emoji at most.\nReturn JSON: {\"tiktok\": \"...\", \"linkedin\": \"...\", \"facebook\": \"...\", \"youtube_title\": \"...\", \"youtube\": \"...\", \"x\": [\"...\"], \"threads\": \"...\"}."
+    },
+    {
+      "role": "user",
+      "content": "Video title: Start early\n\nThe Instagram caption already written for it:\nOne step today.\n\nWhat the speaker says:\nMost people start too late. Here is the one step that makes the rest easy. Comment START and I will send you the list."
+    }
+  ],
+  [
+    {
+      "role": "system",
+      "content": "You write the post caption that goes with a short video a licensed financial consultant in Singapore filmed, once for each platform, each in that platform's own shape:\n- tiktok: TikTok, one or two short lines, 150 characters or fewer before the hashtags, then 3 to 5 hashtags.\n- linkedin: LinkedIn, a first line that earns the 'see more' tap, 3 to 6 short paragraphs, 100 to 180 words, a question to close, then 3 hashtags at most, no links.\n- facebook: Facebook, 40 to 80 words in 2 or 3 short paragraphs, a question to close, then 2 hashtags at most.\n- youtube: YouTube, the description under the video, 2 to 4 short paragraphs on what it covers; YouTube has no DMs, so a link to give goes in the description and the call to action says 'link in the description'; then 3 hashtags at most. Its title goes in youtube_title, 100 characters or fewer.\n- x: X, a list of posts: one post of 280 characters or fewer, or, only when the point needs more room, a thread of 2 to 6 posts of 270 characters or fewer, each ending on a full sentence; 2 hashtags at most in all.\n- threads: Threads, one conversational post of 500 characters or fewer, one topic tag at most.\nUse only what the speaker says: their facts, figures and stories. Never promise returns, name an insurer's product or a fund, or give a personal recommendation.\nWrite as the speaker, in plain words, first person. Plain punctuation, never an em dash.\nThe speaker asks viewers to comment the word START. Leave that ask out of every caption: the consultant adds it as the first line where it works. Put what the viewer gets for it in cta_offer, a short phrase from what the speaker says (like \"my CPF top-up checklist\"), or \"\" when they don't say.\nUse one emoji at most.\nReturn JSON: {\"tiktok\": \"...\", \"linkedin\": \"...\", \"facebook\": \"...\", \"youtube_title\": \"...\", \"youtube\": \"...\", \"x\": [\"...\"], \"threads\": \"...\", \"cta_offer\": \"...\"}."
+    },
+    {
+      "role": "user",
+      "content": "Video title: Start early\n\nThe Instagram caption already written for it:\nOne step today.\n\nWhat the speaker says:\nMost people start too late. Here is the one step that makes the rest easy. Comment START and I will send you the list."
+    }
+  ],
+  {
+    "keyword": {
+      "type": "choice",
+      "instructions": "A financial consultant says this in a short video. Some ask viewers to comment a word, or send it by DM, to get something (like PLAN in 'comment PLAN and I will send you the checklist'). Which word, if any, is that keyword?",
+      "criteria": {
+        "start": "\"START\" is the word the speaker asks viewers to comment or type in the comments",
+        "and": "\"and\" is the word the speaker asks viewers to comment or type in the comments",
+        "will": "\"will\" is the word the speaker asks viewers to comment or type in the comments",
+        "none": "None of these: the speaker does not ask viewers to comment or send a particular word"
+      }
+    }
+  }
+]

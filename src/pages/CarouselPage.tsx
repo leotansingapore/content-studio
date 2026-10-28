@@ -52,6 +52,7 @@ import { activeProfile, scoped } from "@/lib/profiles";
 import { KIT_FEEDS, refreshKit, withKit } from "@/lib/brandKitFeed";
 import { loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { streamOnePost } from "@/lib/batchGenerate";
+import { professionFor } from "@/lib/profession";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { stripDashes } from "@/lib/plainText";
 import { textPostBetter } from "@/lib/writingJudge";
@@ -860,6 +861,7 @@ export default function CarouselPage() {
         ctaType: "comment-keyword",
         audience: "general",
         voiceSummary: loadVoiceProfile(userId)?.voiceSummary || undefined,
+        profession: professionFor(userId) || undefined,
       },
       {
         onToken: (t) => { text = t; },
@@ -1151,7 +1153,7 @@ export default function CarouselPage() {
     const old = snapshot.find((s) => s.recap);
     setAi({ status: "loading", fix });
     try {
-      const { slides: copy, recap } = await tightenSlides(base, platform, addsRecap(base, fix), brand.emojiPolicy);
+      const { slides: copy, recap } = await tightenSlides(base, platform, addsRecap(base, fix), brand.emojiPolicy, professionFor(userId));
       const next = withRecap(applyCopy(base, copy), recap ? { ...recap, id: old?.id } : old ?? null);
       setBeforeAi(snapshot);
       change(() => next);

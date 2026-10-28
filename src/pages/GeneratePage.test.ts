@@ -16,8 +16,10 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => f
 // the shared tab row reads the rails store, which has no server snapshot; it is not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
-const { default: GeneratePage, FIX_ASK, HOOK_FACTS_RULE, fixAsk, fixedText, hookBlank, hookFields, rewriteFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
+const { default: GeneratePage, optionsFor, FIX_ASK, HOOK_FACTS_RULE, fixAsk, fixedText, hookBlank, hookFields, rewriteFields, moveHashtagsToComment, newHookContext, rewriteLabel, versionOf, withOpening } = await import("./GeneratePage");
 const { BLANKS_RULE } = await import("@/lib/platformCounters");
+const { adviserWordsIn } = await import("../../supabase/functions/_shared/adviserWords");
+const { MAX_BODY_CHARS, MAX_CHARS, requestError } = await import("../../supabase/functions/generate-social-content/logic");
 const { hookFormula } = await import("@/lib/hookFormulas");
 const { FACTORS } = await import("@/lib/postScore");
 const { splitHook } = await import("@/lib/variants");
@@ -56,6 +58,39 @@ describe("Write for everyone else", () => {
 });
 
 // North star phase 7a (Leo only): the pieces Write's score fixes and new hooks are built from.
+describe("Write's examples for the brand's profession", () => {
+  const values = (o: ReturnType<typeof optionsFor>) => Object.values(o).map((list) => list.map((x: { value: string }) => x.value));
+  it("are today's for an adviser or a brand with nothing set", () => {
+    expect(JSON.stringify(optionsFor(false))).toContain("CPF SA top-ups");
+    expect(sha(JSON.stringify(optionsFor(false)))).toBe("4ef1c414378d32626b4c3a7095e286cd52100762f931d57fad14d941c211e8a3"); // today's lists, on 47e27562
+  });
+  it("offer the same choices in the same order, worded with none of the adviser words, for any other work", () => {
+    expect(values(optionsFor(true))).toEqual(values(optionsFor(false)));
+    expect(adviserWordsIn(JSON.stringify(optionsFor(true)))).toEqual([]);
+  });
+});
+
+// Drafts have no length cap (Facebook takes 63,206 characters; CSV import any), so this is a generous real one: a
+// 12,000-character post, a 1,000-character ask, a long voice summary and Leo's memory (at most 1,500) on the context.
+describe("Write's largest rewrite request", () => {
+  const fill = (n: number) => "word ".repeat(Math.ceil(n / 5)).slice(0, n);
+  it("passes the post writer's checks with at least a quarter of every cap to spare, and so do its hashtags and picture", () => {
+    const post = fill(12_000);
+    const base = { pillar: "topic", pillarDetail: fill(200), ideaSource: "A common mistake people make", format: "text-post", platform: "facebook", ctaType: "open-question", audience: "general", voiceSummary: fill(4000), singlish: true } as const;
+    const fields = rewriteFields(post, "ask", [], fill(1000));
+    const body = { ...base, ...fields, ideaContext: `${fields.ideaContext}\n\n${fill(1500)}`, mode: "post", n: 3, stream: true } as const;
+    expect(requestError(body)).toBeNull();
+    expect(body.ideaContext.length).toBeLessThanOrEqual(MAX_CHARS.ideaContext! * 0.75);
+    expect(body.styleReference.length).toBeLessThanOrEqual(MAX_CHARS.styleReference! * 0.75);
+    expect(JSON.stringify(body).length).toBeLessThanOrEqual(MAX_BODY_CHARS * 0.75);
+    for (const mode of ["hashtags", "image-prompt"] as const) {
+      const side = { ...base, draft: post, mode };
+      expect(requestError(side)).toBeNull();
+      expect(post.length).toBeLessThanOrEqual(MAX_CHARS.draft! * 0.75);
+    }
+  });
+});
+
 describe("Write's fix asks and new hooks", () => {
   it("titles a fix by its factor and keeps every other rewrite's title", () => {
     expect(rewriteLabel("ask", "First line")).toBe("Fix: First line");

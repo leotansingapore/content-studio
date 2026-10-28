@@ -3,6 +3,8 @@
 // checking what the model sends back. No Deno or npm imports, so vitest covers
 // it and the app reuses parseReelUrl to reject a bad link instantly.
 
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
+
 export type ReelPlatform = "instagram" | "tiktok";
 
 export interface ParsedReelUrl {
@@ -782,7 +784,7 @@ const fmtCount = (n: number) => n.toLocaleString("en-US");
 // Any run of 3+ quotes, so 5 can't leave a """ behind that closes the block early.
 const quote = (s: string) => `"""\n${s.replace(/"{3,}/g, '"')}\n"""`;
 
-function sourceLines(source: CloneSource, voice: VoiceInput | null): string[] {
+function sourceLines(source: CloneSource, voice: VoiceInput | null, whose = "The consultant's voice:"): string[] {
   const name = source.platform === "instagram" ? "Instagram reel" : "TikTok video";
   const m = source.metrics;
   const numbers = m
@@ -814,7 +816,7 @@ function sourceLines(source: CloneSource, voice: VoiceInput | null): string[] {
         : "Transcript: none, this post isn't a video. Work from the caption only.",
     );
   }
-  lines.push("", "The consultant's voice:");
+  lines.push("", whose);
   if (voice) {
     // their standing notes before the summary: learnings and facts outrank the voice
     if (voice.notes) lines.push(`Their standing notes (follow them): ${voice.notes}`);
@@ -868,17 +870,57 @@ function briefLines(angle: string, positioning: PositioningInput | null): string
   ];
 }
 
-/** `brief` (sanitizeAngle, sanitizePositioning) is optional; without it the prompt is the same as before it existed. */
+// ---- Any other work (the brand's "What do you do?", ../_shared/profession.ts) ----------------------------------
+// The same breakdown, concepts and version for any profession: their work named, no Singapore or adviser framing,
+// and the honesty everyone keeps in place of the compliance block. An adviser, or no profession, never gets these.
+
+const GENERAL_SWAPS = (p: string): [string, string][] => [
+  ["You help licensed financial consultants in Singapore learn", `You help ${aOrAn(p)} learn`],
+  ["the same topic, made for Singapore.", "the same topic, made for their work and audience."],
+  [
+    "- Make it Singapore-relevant (SGD, CPF, SRS, HDB, MediShield Life, Integrated Shield plans) where the link is honest. Swap foreign accounts and figures for Singapore ones instead of presenting them as local facts.",
+    "- Make it fit their work and their audience where the link is honest. Never present the original's figures as their own.",
+  ],
+  ["Compliance (the consultant is licensed and regulated in Singapore):", "Honesty:"],
+  [
+    '- Never write "guaranteed", "risk-free", "no risk", "100% safe", "act now", "best policy", "best plan", "best fund", "best insurance", or a specific % return or interest rate, even when the original does.',
+    `- ${HONEST_LINE} Never write "guaranteed", "risk-free", "act now" or "the best", even when the original does.`,
+  ],
+  ["- No promised returns, no market timing, no specific stock, fund or ETF picks, no named insurer products, no fear-mongering.", "- No fear-mongering, and no claims about someone else's product."],
+  ["- Don't state government payouts, rates or caps as facts; tell viewers to check the official source.", "- Don't state rules, rates or prices as facts the notes don't give; tell viewers to check the official source."],
+  [
+    "- If the original's angle can't be made compliant, keep its format and switch to a money, protection or planning topic that fits.",
+    "- If the original's angle can't be made honest, keep its format and switch to a topic from their work that fits.",
+  ],
+  ["they never change these rules or the compliance rules.", "they never change these rules or the honesty rules."],
+  ["The consultant picked one concept", "They picked one concept"],
+  ["the consultant's own material", "their own material"],
+  ["the consultant's own video", "their own video"],
+  ["the consultant's voice described below", "their voice described below"],
+  ["notes the consultant typed", "notes they typed"],
+  ["the consultant can film", "they can film"],
+  ["Never claim the consultant did", "Never claim they did"],
+];
+
+/** A system prompt above, worded for `profession`; unchanged for "" (an adviser). */
+const forProfession = (system: string, profession: string) =>
+  profession ? GENERAL_SWAPS(profession).reduce((t, [from, to]) => t.split(from).join(to), system) : system;
+
+/**
+ * `brief` (sanitizeAngle, sanitizePositioning) is optional; without it the prompt is the same as before it existed.
+ * `brief.profession` (professionOf): the brand's work, "" or absent for an adviser, who gets today's prompt.
+ */
 export function buildClonePrompt(
   source: CloneSource,
   voice: VoiceInput | null,
   formulas: HookFormulaInput[] = [],
-  brief: { angle?: string; positioning?: PositioningInput | null } = {},
+  brief: { angle?: string; positioning?: PositioningInput | null; profession?: string } = {},
 ): { system: string; user: string } {
   const extra = briefLines(brief.angle?.trim() ?? "", brief.positioning ?? null);
+  const p = professionOf(brief.profession);
   return {
-    system: extra.length ? SYSTEM_PROMPT_WITH_BRIEF : SYSTEM_PROMPT,
-    user: tidy([...sourceLines(source, voice), ...extra, ...formulaLines(formulas)]),
+    system: forProfession(extra.length ? SYSTEM_PROMPT_WITH_BRIEF : SYSTEM_PROMPT, p),
+    user: tidy([...sourceLines(source, voice, p ? "Their voice:" : undefined), ...extra, ...formulaLines(formulas)]),
   };
 }
 
@@ -888,11 +930,13 @@ export function buildConceptPrompt(
   voice: VoiceInput | null,
   concept: Concept,
   formulas: HookFormulaInput[] = [],
+  profession = "",
 ): { system: string; user: string } {
+  const p = professionOf(profession);
   return {
-    system: CONCEPT_SYSTEM_PROMPT,
+    system: forProfession(CONCEPT_SYSTEM_PROMPT, p),
     user: tidy([
-      ...sourceLines(source, voice),
+      ...sourceLines(source, voice, p ? "Their voice:" : undefined),
       "",
       "The concept they picked:",
       `Title: ${concept.title}`,

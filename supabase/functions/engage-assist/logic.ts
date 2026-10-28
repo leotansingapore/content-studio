@@ -32,6 +32,59 @@
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
+import { aOrAn } from "../_shared/profession.ts";
+
+// ---- Any other work (the brand's "What do you do?", ../_shared/profession.ts) ---------------------------------
+// Every prompt and Jev question below is written for an adviser. For any other work the same text is said for that
+// work: these adviser-only phrases swap first, then the consultant is named for what they do, the way the business
+// speaker's lines name the business (idea-dump buildLongPrompt's `who`). An adviser, or no profession, keeps it all.
+const GENERAL_SWAPS: [string, string][] = [
+  ["a general question about money, insurance, CPF or the post", "a general question about their work or the post"],
+  [
+    "An insurance claim or policy dispute: a claim turned down, delayed or argued over, or a policy lapsed, cancelled or changed against their wishes.",
+    "A dispute over something they say they are owed, a cancellation, or a contract changed against their wishes.",
+  ],
+  ["A parent asking how to cover their children is not this.", "A parent asking about their children is not this."],
+  [
+    "A possible client or recruit: they describe their own or their family's money, insurance, CPF or retirement situation or worry, ask how to get help with it or about joining the writer's team, or comment the keyword the post asked for to get something.",
+    "A possible client: they describe their own situation or a problem the writer's work helps with, ask how to get help with it or about working with the writer, or comment the keyword the post asked for to get something.",
+  ],
+  [
+    "Another professional in the same field, such as a fellow adviser, agency leader or finance writer, speaking as a colleague.",
+    "Another professional in the same field, speaking as a colleague.",
+  ],
+  ["another adviser inviting the readers", "someone in the same field inviting the readers"],
+  [
+    "A possible client or recruit: they describe their own or their family's money, insurance, CPF or retirement situation, ask for help with it or for something the writer offered in a post, ask about the writer's services, or are thinking about joining the writer's team or switching into this career.",
+    "A possible client: they describe their own situation or a problem the writer's work helps with, ask for help with it or for something the writer offered in a post, or ask about the writer's services.",
+  ],
+  ["a recruiter, headhunter, bank, insurer or another agency with a role or better terms.", "a recruiter, headhunter or another firm with a role or better terms."],
+  [
+    "Never promise returns or results, never say guaranteed, risk-free or best, and never name an insurer, a fund or a product.",
+    "Never promise results or outcomes, and never say guaranteed or best.",
+  ],
+  ["(a possible client or recruit)", "(a possible client)"],
+  ["(a fellow adviser or professional)", "(someone in the same field)"],
+  [
+    "- Asked which insurer or product to pick: offer to compare options with them in a DM, without saying what you are not allowed to say.",
+    "- Asked which option suits their own situation: offer to go through it with them in a DM.",
+  ],
+  ["a thoughtful adviser could", "a thoughtful professional in the field could"],
+  ["- Never runs down another adviser, company or the author.", "- Never runs down another professional, company or the author."],
+];
+
+/** `text` said for `profession`; unchanged for "" (an adviser). Only ever run on the fixed wording, never on pasted text. */
+export function forWork(text: string, profession: string): string {
+  if (!profession) return text;
+  const a = aOrAn(profession);
+  return GENERAL_SWAPS.reduce((t, [from, to]) => t.split(from).join(to), text)
+    .split("A Singapore financial consultant").join(a[0].toUpperCase() + a.slice(1))
+    .split("a Singapore financial consultant").join(a)
+    .replace(/\bconsultant\b/g, () => profession);
+}
+
+const mapValues = (o: Record<string, string>, f: (v: string) => string): Record<string, string> =>
+  Object.fromEntries(Object.entries(o).map(([k, v]) => [k, f(v)]));
 
 export const MODES = ["replies", "dms", "thread", "comments", "connect"] as const;
 export type EngageMode = (typeof MODES)[number];
@@ -155,9 +208,9 @@ function topicList(v: unknown): string[] {
   return out.slice(0, MAX_TOPICS);
 }
 
-/** Every topic as a Choice option: the built-in ones, then the consultant's as u0, u1... */
-const topicOptions = (topics: string[]): Record<string, string> => ({
-  ...TOPIC_CRITERIA,
+/** Every topic as a Choice option: the built-in ones (worded for the brand's work), then the consultant's as u0, u1... */
+const topicOptions = (topics: string[], profession = ""): Record<string, string> => ({
+  ...mapValues(TOPIC_CRITERIA, (t) => forWork(t, profession)),
   ...Object.fromEntries(topics.map((t, i) => [`u${i}`, `About ${t}.`])),
 });
 
@@ -184,9 +237,10 @@ export const ESCALATE_MIN = 0.8;
  * which topic, read only when the Noul says yes, as the one-line reason.
  * `where` says what the text is, e.g. "a comment under their post".
  */
-export function escalateQuestions(texts: Pasted[], topics: string[], where: string): Record<string, JevQuestion> {
+export function escalateQuestions(texts: Pasted[], topics: string[], where: string, profession = ""): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
-  const options = topicOptions(topics);
+  const w = (t: string) => forWork(t, profession);
+  const options = topicOptions(topics, profession);
   const list = Object.values(options);
   texts.forEach((x, i) => {
     if (!jevReads(x.text)) return;
@@ -196,16 +250,16 @@ export function escalateQuestions(texts: Pasted[], topics: string[], where: stri
       instructions: {
         ...about,
         topics: list,
-        question: `A Singapore financial consultant got \`text\` as ${where}. Does it raise any of \`topics\`, so the consultant should handle it personally instead of answering with a drafted reply?`,
+        question: w(`A Singapore financial consultant got \`text\` as ${where}. Does it raise any of \`topics\`, so the consultant should handle it personally instead of answering with a drafted reply?`),
       },
       criteria: {
         true: "It raises one of the topics, even in passing or as a question.",
-        false: "None of the topics: a general question about money, insurance, CPF or the post, someone asking for help with their own or their family's plans, praise, a peer, a recruiter, spam or a sales pitch.",
+        false: w("None of the topics: a general question about money, insurance, CPF or the post, someone asking for help with their own or their family's plans, praise, a peer, a recruiter, spam or a sales pitch."),
       },
     };
     q[`t${i}`] = {
       type: "choice",
-      instructions: { ...about, question: `A Singapore financial consultant got \`text\` as ${where}. Which topic does it raise most?` },
+      instructions: { ...about, question: w(`A Singapore financial consultant got \`text\` as ${where}. Which topic does it raise most?`) },
       criteria: options,
     };
   });
@@ -213,8 +267,9 @@ export function escalateQuestions(texts: Pasted[], topics: string[], where: stri
 }
 
 /** Each text's reason to handle it yourself, or null: not escalated, or Jev did not answer. */
-export function readEscalations(answers: Record<string, JevAnswer> | null, count: number, topics: string[]): (string | null)[] {
-  const labels: Record<string, string> = { ...TOPIC_LABEL, ...Object.fromEntries(topics.map((t, i) => [`u${i}`, t])) };
+export function readEscalations(answers: Record<string, JevAnswer> | null, count: number, topics: string[], profession = ""): (string | null)[] {
+  const builtIn: Record<string, string> = profession ? { ...TOPIC_LABEL, claim: "A dispute" } : TOPIC_LABEL;
+  const labels: Record<string, string> = { ...builtIn, ...Object.fromEntries(topics.map((t, i) => [`u${i}`, t])) };
   return Array.from({ length: count }, (_, i) => {
     const p = noulOf(answers, `e${i}`);
     if (p === null || p < ESCALATE_MIN) return null;
@@ -261,7 +316,7 @@ const COMMENT_CRITERIA: Record<(typeof COMMENT_KINDS)[number], string> = {
 export const commentState = (post: string) => ({ post: post || "(the post was not pasted)" });
 
 /** One Choice per comment Jev reads, keyed c<index>. */
-export function commentQuestions(comments: Pasted[]): Record<string, JevQuestion> {
+export function commentQuestions(comments: Pasted[], profession = ""): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
   comments.forEach((c, i) => {
     if (!jevReads(c.text)) return;
@@ -270,9 +325,9 @@ export function commentQuestions(comments: Pasted[]): Record<string, JevQuestion
       instructions: {
         comment: c.text,
         commenter: c.name || "(no name)",
-        question: "This comment was left under `post`, which a Singapore financial consultant wrote. Which kind of comment is `comment`?",
+        question: forWork("This comment was left under `post`, which a Singapore financial consultant wrote. Which kind of comment is `comment`?", profession),
       },
-      criteria: COMMENT_CRITERIA,
+      criteria: mapValues(COMMENT_CRITERIA, (t) => forWork(t, profession)),
     };
   });
   return q;
@@ -320,7 +375,7 @@ const KIND_BRIEF: Record<CommentKind, string> = {
   noise: "",
 };
 
-export function buildRepliesPrompt(post: string, comments: Pasted[], kinds: CommentKind[], escalated: (string | null)[] = []): { system: string; user: string } {
+export function buildRepliesPrompt(post: string, comments: Pasted[], kinds: CommentKind[], escalated: (string | null)[] = [], profession = ""): { system: string; user: string } {
   const system = [
     "You draft replies a Singapore financial consultant will paste under their own social post. They read each draft and post it themselves.",
     "Each comment comes with its kind. Write for each:",
@@ -332,9 +387,11 @@ export function buildRepliesPrompt(post: string, comments: Pasted[], kinds: Comm
     "- Gives no advice on their own situation in public: no product, no amount, no 'you should'. General facts are fine; their situation goes to the DM.",
     "- Asked which insurer or product to pick: offer to compare options with them in a DM, without saying what you are not allowed to say.",
     ...COMPLIANCE_LINES.map((l) => `- ${l}`),
-    ...houseLines(),
+    ...(profession ? [] : houseLines()),
     'Reply with JSON only: {"replies":[{"id":"c0","reply":"...","dm":"..."}]}, one per comment id given, dm only for client.',
-  ].join("\n");
+  ]
+    .map((l) => forWork(l, profession))
+    .join("\n");
   const lines = comments.flatMap((c, i) => (kinds[i] === "noise" || escalated[i] ? [] : [`[c${i}] ${kinds[i]} | ${c.name || "(no name)"}: ${c.text.replace(/\s+/g, " ")}`]));
   const user = [`The post:\n${post || "(not pasted)"}`, "", "The comments:", ...lines].join("\n");
   return { system, user };
@@ -438,15 +495,15 @@ const DM_CRITERIA: Record<(typeof DM_KINDS)[number], string> = {
 };
 
 /** A Choice (k<index>) and an automated Noul (a<index>) per message Jev reads. */
-export function dmQuestions(messages: Pasted[]): Record<string, JevQuestion> {
+export function dmQuestions(messages: Pasted[], profession = ""): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
   messages.forEach((m, i) => {
     if (!jevReads(m.text)) return;
     const about = { message: m.text, sender: m.name || "(no name)" };
     q[`k${i}`] = {
       type: "choice",
-      instructions: { ...about, question: "A Singapore financial consultant received `message` as a direct message on LinkedIn or Instagram. Which kind of message is it?" },
-      criteria: DM_CRITERIA,
+      instructions: { ...about, question: forWork("A Singapore financial consultant received `message` as a direct message on LinkedIn or Instagram. Which kind of message is it?", profession) },
+      criteria: mapValues(DM_CRITERIA, (t) => forWork(t, profession)),
     };
     q[`a${i}`] = {
       type: "noul",
@@ -507,7 +564,7 @@ export type DmSort = { kind: DmKind; automated: boolean; escalate?: string | nul
 /** No draft for spam, automated or escalated messages. */
 export const undrafted = (x: DmSort) => x.kind === "spam" || x.automated || Boolean(x.escalate);
 
-export function buildDmsPrompt(messages: Pasted[], sorted: DmSort[], goal: DmGoal = "call"): { system: string; user: string } {
+export function buildDmsPrompt(messages: Pasted[], sorted: DmSort[], goal: DmGoal = "call", profession = ""): { system: string; user: string } {
   const brief = (k: DmKind) => (k === "lead" ? `${DM_BRIEF.lead}${GOAL_ASK[goal]} Nothing personal is advised before you have met.` : DM_BRIEF[k]);
   const system = [
     "You draft direct-message replies for a Singapore financial consultant. They read each draft and send it themselves.",
@@ -517,9 +574,11 @@ export function buildDmsPrompt(messages: Pasted[], sorted: DmSort[], goal: DmGoa
     "- Is 2 to 4 sentences, starts with their first name once, with no exclamation mark after it. No name given: no name.",
     "- Matches their energy: a short message gets a short reply. Plain, warm, everyday words.",
     ...DM_RULES,
-    ...houseLines(),
+    ...(profession ? [] : houseLines()),
     'Reply with JSON only: {"replies":[{"id":"m0","reply":"..."}]}, one per message id given.',
-  ].join("\n");
+  ]
+    .map((l) => forWork(l, profession))
+    .join("\n");
   const lines = messages.flatMap((m, i) =>
     undrafted(sorted[i]) ? [] : [`[m${i}] ${sorted[i].kind} | ${m.name || "(no name)"}: ${m.text.replace(/\s+/g, " ")}`],
   );
@@ -565,7 +624,7 @@ export interface ThreadLine extends Pasted {
 /** Their name: the first one given on their side of the conversation. */
 const theirName = (lines: ThreadLine[]) => lines.find((l) => !l.me && l.name)?.name ?? "";
 
-export function buildThreadPrompt(lines: ThreadLine[], goal: DmGoal): { system: string; user: string } {
+export function buildThreadPrompt(lines: ThreadLine[], goal: DmGoal, profession = ""): { system: string; user: string } {
   const system = [
     "You draft one direct-message reply for a Singapore financial consultant, in a conversation they are having with one person. They read the draft and send it themselves.",
     "The conversation comes oldest first. Them: the other person. You: the consultant.",
@@ -576,9 +635,11 @@ export function buildThreadPrompt(lines: ThreadLine[], goal: DmGoal): { system: 
     "- Uses their first name at most once, with no exclamation mark after it, and only when it is given.",
     "- Gives no advice on their own situation in writing: no product, no amount, no 'you should'. General facts are fine.",
     ...DM_RULES,
-    ...houseLines(),
+    ...(profession ? [] : houseLines()),
     'Reply with JSON only: {"reply":"..."}',
-  ].join("\n");
+  ]
+    .map((l) => forWork(l, profession))
+    .join("\n");
   const name = theirName(lines);
   const said = lines.slice(-MAX_THREAD).map((l) => `${l.me ? "You" : "Them"}: ${l.text.replace(/\s+/g, " ")}`);
   return { system, user: [...(name ? [`Their name: ${name}`] : []), "The conversation:", ...said].join("\n") };
@@ -630,16 +691,16 @@ const TYPE_CRITERIA: Record<CommentType, string> = {
 // posts and the top one on 8. No threshold: the likeliest kinds are taken as
 // they come. About 290 Jev input tokens a post per order.
 /** A Choice per post in written order (f<i>) and reversed (r<i>). */
-export function typeQuestions(posts: Pasted[]): Record<string, JevQuestion> {
+export function typeQuestions(posts: Pasted[], profession = ""): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
   const ask = (p: Pasted, order: CommentType[]): JevQuestion => ({
     type: "choice",
     instructions: {
       post: p.text,
       author: p.name || "(no name)",
-      question: "A Singapore financial consultant wants to leave a comment under `post` that the author and their readers find useful. Which kind of comment would add the most?",
+      question: forWork("A Singapore financial consultant wants to leave a comment under `post` that the author and their readers find useful. Which kind of comment would add the most?", profession),
     },
-    criteria: Object.fromEntries(order.map((t) => [t, TYPE_CRITERIA[t]])),
+    criteria: Object.fromEntries(order.map((t) => [t, forWork(TYPE_CRITERIA[t], profession)])),
   });
   posts.forEach((p, i) => {
     if (!jevReads(p.text)) return;
@@ -691,7 +752,7 @@ const TYPE_BRIEF: Record<CommentType, string> = {
   result: "result: what happened with the consultant's own clients, in two sentences, as [your result] or [your example] where the detail goes, never a story of your own.",
 };
 
-export function buildCommentsPrompt(posts: Pasted[], picks: { types: CommentType[] }[]): { system: string; user: string } {
+export function buildCommentsPrompt(posts: Pasted[], picks: { types: CommentType[] }[], profession = ""): { system: string; user: string } {
   const system = [
     "You draft comments a Singapore financial consultant will post under other people's LinkedIn or Instagram posts. They read each draft and post it themselves.",
     "Each post comes with the kinds of comment to write, one comment per kind:",
@@ -704,7 +765,9 @@ export function buildCommentsPrompt(posts: Pasted[], picks: { types: CommentType
     "- Is in the post's own language.",
     ...COMPLIANCE_LINES.map((l) => `- ${l}`),
     'Reply with JSON only: {"comments":[{"id":"p0","type":"number","text":"..."}]}, one per post id and kind given.',
-  ].join("\n");
+  ]
+    .map((l) => forWork(l, profession))
+    .join("\n");
   const blocks = posts.map((p, i) => `[p${i}] kinds: ${picks[i].types.join(", ")} | by ${p.name || "(no name)"}\n${p.text}`);
   return { system, user: ["The posts:", ...blocks].join("\n\n") };
 }
@@ -753,7 +816,7 @@ const GOAL_BRIEF: Record<ConnectGoal, string> = {
  */
 export const SEND_TEN = "Hi [name]! I'm working on a content series about career crossroads for [your ONE candidate], speaking to 10 people with real stories. I've always found yours interesting. Could I borrow 20 minutes, purely to hear your story, no business talk? This week or next?";
 
-export function buildConnectPrompt(r: { name: string; about: string; reason: string; goal: ConnectGoal }): { system: string; user: string } {
+export function buildConnectPrompt(r: { name: string; about: string; reason: string; goal: ConnectGoal }, profession = ""): { system: string; user: string } {
   const system = [
     "You write LinkedIn outreach for a Singapore financial consultant: a connection note, the first message after they accept, and two follow-ups. They send each one themselves.",
     `- note: under ${NOTE_MAX - 20} characters including spaces. One specific line about them from the reason given, one line on who the consultant is, and no ask.`,
@@ -765,9 +828,11 @@ export function buildConnectPrompt(r: { name: string; about: string; reason: str
     "- Never put income or earnings figures in writing.",
     ...COMPLIANCE_LINES.map((l) => `- ${l}`),
     'Reply with JSON only: {"note":"...","first":"...","follow4":"...","follow10":"..."}',
-  ].join("\n");
-  const goal = r.goal === "recruit" ? `${GOAL_BRIEF.recruit} "${SEND_TEN}"` : GOAL_BRIEF[r.goal];
-  const user = [`To: ${r.name}${r.about ? `, ${r.about}` : ""}`, `Why them, why now: ${r.reason}`, `What the consultant wants (never said outright): ${goal}`].join("\n");
+  ]
+    .map((l) => forWork(l, profession))
+    .join("\n");
+  const goal = forWork(r.goal === "recruit" ? `${GOAL_BRIEF.recruit} "${SEND_TEN}"` : GOAL_BRIEF[r.goal], profession);
+  const user = [`To: ${r.name}${r.about ? `, ${r.about}` : ""}`, `Why them, why now: ${r.reason}`, `${forWork("What the consultant wants", profession)} (never said outright): ${goal}`].join("\n");
   return { system, user };
 }
 

@@ -277,6 +277,33 @@ describe("the voice sent to clone-reel for everyone else", () => {
   });
 });
 
+describe("the brand's profession sent to clone-reel", () => {
+  beforeEach(() => {
+    const storage = memoryStorage();
+    vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true });
+    vi.stubGlobal("localStorage", storage);
+    invoke.mockResolvedValue({ data: result(), error: null });
+  });
+
+  it("goes with a clone when the page passes one", async () => {
+    await cloneReel("u", null, undefined, [], { profession: "coach" });
+    await cloneReel("u", null, undefined, [], { profession: "" });
+    expect(invoke.mock.calls.map((c) => c[1].body)).toEqual([{ url: "u", voice: null, profession: "coach" }, { url: "u", voice: null }]);
+  });
+
+  it("goes with a concept from the open brand's kit, and not for an adviser's", async () => {
+    const clone: SavedClone = { id: "c-p", savedAt: "2026-10-20T03:00:00.000Z", result: { ...result(), concepts: [{ title: "a", keeps: "b", changes: "c" }] } };
+    invoke.mockResolvedValue({ data: { myVersion: { ...result().myVersion, beats: ["x"] } }, error: null });
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Real estate agent" }));
+    await startConceptBuild("u1", clone, 0, null).catch(() => null);
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await startConceptBuild("u1", clone, 0, null).catch(() => null);
+    const bodies = invoke.mock.calls.map((c) => JSON.parse(JSON.stringify(c[1].body)));
+    expect(bodies[0].profession).toBe("real estate agent");
+    expect("profession" in bodies[1]).toBe(false);
+  });
+});
+
 describe("the voice sent to clone-reel for Leo", () => {
   const post = "I started my CPF top-ups at 25 because my dad never had the chance to, and here is what I learned along the way.";
   const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];

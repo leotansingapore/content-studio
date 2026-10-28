@@ -22,6 +22,7 @@
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
+import { professionFor } from "@/lib/profession";
 import { addDays, localDateKey, weekOf } from "@/lib/dueDates";
 import { DM_GOALS, MAX_ITEMS, MAX_POSTS, MAX_THREAD, MAX_THREAD_SCAN, MAX_TOPICS, MAX_TOPIC_CHARS, type DmGoal, type Pasted, type ThreadLine } from "../../supabase/functions/engage-assist/logic.ts";
 
@@ -177,7 +178,9 @@ export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" |
 /** Sorts and drafts what was pasted; the result is saved even if the page was left meanwhile. */
 export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">): Promise<EngageOutcome> {
   const key = keyFor(tool, userId);
-  const body = requestBody(tool, input, { goal: loadGoal(userId), topics: loadTopics(userId) });
+  // the brand's "What do you do?": every draft and sort is written for it; left out for an adviser
+  const profession = professionFor(userId);
+  const body = { ...requestBody(tool, input, { goal: loadGoal(userId), topics: loadTopics(userId) }), ...(profession ? { profession } : {}) };
   const job = callFn<{ items?: unknown[]; drafts?: unknown }>("engage-assist", body, FAILED)
     .then((res): EngageOutcome => {
       // connect answers with one set of drafts, the rest with a list

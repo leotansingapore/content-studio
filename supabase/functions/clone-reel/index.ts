@@ -54,6 +54,7 @@ import {
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { isAllowed } from "../market/logic.ts";
 import { CloneFailure, fetchSource, findSource, keepRunning, withinBudget } from "./source.ts";
+import { professionOf } from "../_shared/profession.ts";
 
 const OPENAI_MODEL = "gpt-4.1";
 
@@ -175,7 +176,9 @@ Deno.serve(async (req) => {
     // standing notes (brand-voice-memory) only for NORTH_STAR_USERS: anyone else's prompt is today's
     const voice = sanitizeVoice(body?.voice, isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid));
     const formulas = sanitizeFormulas(body?.formulas);
-    const brief = { angle: sanitizeAngle(body?.angle), positioning: sanitizePositioning(body?.positioning) };
+    // profession: the brand's "What do you do?"; none, or an adviser's, keeps today's prompt
+    const profession = professionOf(body?.profession);
+    const brief = { angle: sanitizeAngle(body?.angle), positioning: sanitizePositioning(body?.positioning), profession };
     const concept = body?.concept === undefined ? null : cleanConcept(body.concept);
     if (body?.concept !== undefined && !concept) {
       return json({ code: "bad_request", error: "Pick one of the concepts first." }, 400);
@@ -238,7 +241,7 @@ Deno.serve(async (req) => {
     const source = toCloneSource(row!);
     if (concept) {
       const myVersion = await write(
-        buildConceptPrompt(source, voice, concept, formulas),
+        buildConceptPrompt(source, voice, concept, formulas, profession),
         { format: CONCEPT_RESPONSE_FORMAT, maxTokens: 1800, validate: validateConceptOutput },
         openaiKey,
         aiMs,

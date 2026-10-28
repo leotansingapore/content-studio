@@ -5,6 +5,7 @@
 // vitest covers it.
 
 import { BEAT_SCHEMA, DELIVERY_RULE, cleanBeats, oneLineText, parseObject, type ShotBeat } from "../clone-reel/logic.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 
 export const MAX_SCRIPT_CHARS = 3000;
 const MIN_SCRIPT_WORDS = 8;
@@ -14,6 +15,8 @@ export interface StoryboardRequest {
   script: string;
   /** What the post is about, to help plan the shots. May be empty. */
   topic: string;
+  /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt. */
+  profession?: string;
 }
 
 /** The request, or the reason it was refused. */
@@ -28,7 +31,8 @@ export function parseStoryboardRequest(
   if (script.length > MAX_SCRIPT_CHARS) {
     return { ok: false, error: "That script is too long for one reel. Cut it under 3,000 characters." };
   }
-  return { ok: true, value: { script, topic: oneLineText(r.topic, 200) } };
+  const profession = professionOf(r.profession);
+  return { ok: true, value: { script, topic: oneLineText(r.topic, 200), ...(profession ? { profession } : {}) } };
 }
 
 const SYSTEM_PROMPT = [
@@ -48,9 +52,18 @@ const SYSTEM_PROMPT = [
   "Use plain punctuation with no em dashes. Return only the JSON object.",
 ].join("\n");
 
+/** The same shot list for any other work: their words, and the honesty everyone keeps in place of the MAS line. */
+const generalPrompt = (p: string) =>
+  SYSTEM_PROMPT.replace("a licensed Singapore financial consultant's short-video script", () => `${aOrAn(p)}'s short-video script`)
+    .replace("the consultant's own words", "their own words")
+    .replace(
+      'Compliance: the text on screen and the shots add no claim the script doesn\'t make. Never write "guaranteed", "risk-free", a specific % return or interest rate, or a named insurer\'s product.',
+      `Honesty: the text on screen and the shots add no claim the script doesn't make. ${HONEST_LINE}`,
+    );
+
 export function buildStoryboardPrompt(req: StoryboardRequest): { system: string; user: string } {
   return {
-    system: SYSTEM_PROMPT,
+    system: req.profession ? generalPrompt(req.profession) : SYSTEM_PROMPT,
     user: [req.topic ? `Topic: ${req.topic}` : "", "Script:", `"""\n${req.script.replace(/"""/g, '"')}\n"""`]
       .filter(Boolean)
       .join("\n"),

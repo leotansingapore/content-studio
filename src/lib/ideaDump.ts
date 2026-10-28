@@ -32,6 +32,7 @@ import {
   type SplitResult,
 } from "../../supabase/functions/idea-dump/logic.ts";
 import { scoped } from "@/lib/profiles";
+import { professionFor } from "@/lib/profession";
 
 export { MAX_IDEAS, MAX_NOTES_CHARS, NO_IDEAS_MESSAGE, splitIdeas };
 export type { SkippedNote, SplitResult };
@@ -182,7 +183,9 @@ export function buildIdeaDumpContext(userId: string | null | undefined): IdeaDum
     .filter((p): p is BriefPlatform => (BRIEF_PLATFORMS as readonly string[]).includes(p))
     .slice(0, 3);
 
-  return { voice: voice.slice(0, 1500), positioning, platforms };
+  // the brand's "What do you do?": Idea Dump and One long piece write for it; left out for an adviser
+  const profession = professionFor(userId);
+  return { voice: voice.slice(0, 1500), positioning, platforms, ...(profession ? { profession } : {}) };
 }
 
 /** The consultant's audience from positioning, as a Write audience value. */

@@ -28,6 +28,7 @@ import { scoped } from "@/lib/profiles";
 import { getTrackedPosts } from "@/lib/analytics";
 import { sampleReelFrames } from "@/lib/reelFrames";
 import type { RemixSource } from "@/lib/remixSource";
+import { professionFor } from "@/lib/profession";
 
 export { LINK_MESSAGES, MAX_ANGLE_CHARS, parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
 export type {
@@ -172,7 +173,8 @@ export async function cloneReel(
   voice: VoiceInput | null,
   signal?: AbortSignal,
   formulas: HookFormula[] = [],
-  brief: { angle?: string; positioning?: PositioningInput | null } = {},
+  /** `profession`: the brand's "What do you do?" (professionFor), "" or absent for an adviser. */
+  brief: { angle?: string; positioning?: PositioningInput | null; profession?: string } = {},
 ): Promise<CloneResponse> {
   const angle = brief.angle?.trim() ?? "";
   const data = await invokeFunction(
@@ -183,6 +185,7 @@ export async function cloneReel(
       ...(formulas.length ? { formulas: formulaInput(formulas) } : {}),
       ...(angle ? { angle } : {}),
       ...(brief.positioning ? { positioning: brief.positioning } : {}),
+      ...(brief.profession ? { profession: brief.profession } : {}),
     },
     signal,
   );
@@ -583,7 +586,7 @@ export function startConceptBuild(
   const concept = clone.result.concepts?.[index];
   if (!concept) return Promise.resolve(clone);
   const promise = withMemory(voice)
-    .then((v) => invokeFunction("clone-reel", { url: clone.result.source.url, voice: v, formulas: formulaInput(formulas), concept }))
+    .then((v) => invokeFunction("clone-reel", { url: clone.result.source.url, voice: v, formulas: formulaInput(formulas), concept, profession: professionFor(userId) || undefined }))
     .then((data) => {
       const v = (data as { myVersion?: MyVersion } | null)?.myVersion;
       if (typeof v?.script !== "string" || typeof v?.caption !== "string" || !v.beats?.length) {

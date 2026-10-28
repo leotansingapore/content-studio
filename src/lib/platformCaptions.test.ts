@@ -4,7 +4,8 @@ vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(async () => ({ disconnected: 0 })) }));
 vi.mock("@/lib/videoMedia", () => ({ deleteFile: () => Promise.resolve() }));
 
-import { loadPlatformCaptions, savePlatformCaptions } from "./platformCaptions";
+import { loadPlatformCaptions, savePlatformCaptions, writePlatformCaptions } from "./platformCaptions";
+import { callFn } from "@/lib/edgeFn";
 import { isSyncedKeyFor } from "./cloudSync";
 import { removeProject, saveProject } from "./videoProjects";
 import { addProfile, removeProfile, setActiveProfile } from "./profiles";
@@ -61,5 +62,20 @@ describe("a video's captions for other platforms", () => {
     expect(captionKeys()).toEqual([`content-studio-video-captions-v2-${ME}~${mb.id}`]);
     await removeProfile(ME, mb.id);
     expect(captionKeys()).toEqual([]);
+  });
+});
+
+describe("writing a video's captions for the brand's profession", () => {
+  it("sends the profession for any other work and today's body for an adviser", async () => {
+    const call = callFn as unknown as ReturnType<typeof vi.fn>;
+    call.mockClear();
+    call.mockResolvedValue({ captions: { tiktok: "a", linkedin: "b", facebook: "c", youtube: "d", x: "e", threads: "f" } });
+    await writePlatformCaptions("what they say", "", "", "", "coach");
+    await writePlatformCaptions("what they say", "", "");
+    const bodies = call.mock.calls.map((c) => JSON.parse(JSON.stringify(c[1])));
+    expect(bodies).toEqual([
+      { mode: "captions", transcript: "what they say", instagram: "", title: "", profession: "coach" },
+      { mode: "captions", transcript: "what they say", instagram: "", title: "" },
+    ]);
   });
 });

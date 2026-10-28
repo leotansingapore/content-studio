@@ -7,6 +7,7 @@ import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { usageRefusal, type UsageResult } from "../_shared/usageCaps.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { hookQuestions, hookState, readHookPick } from "../writing-judge/logic.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 
 export const OPENAI_MODEL = "gpt-4.1";
 export const MIN_SLIDES = 2;
@@ -32,6 +33,8 @@ export interface CarouselRequest {
   platform: CarouselPlatform;
   /** Also write a recap slide: asked for, two points or more, and room for one more slide. */
   recap: boolean;
+  /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt. */
+  profession?: string;
 }
 
 export type ParsedRequest = { ok: true; request: CarouselRequest } | { ok: false; error: string };
@@ -62,6 +65,7 @@ export function parseCarouselRequest(body: unknown): ParsedRequest {
       slides,
       platform: b?.platform === "linkedin" ? "linkedin" : "instagram",
       recap: b?.recap === true && slides.length >= 4 && slides.length < MAX_SLIDES,
+      ...(professionOf(b?.profession) ? { profession: professionOf(b?.profession) } : {}),
     },
   };
 }
@@ -75,9 +79,19 @@ function roleOf(index: number, total: number): string {
   return index === total - 1 ? "call to action" : "point";
 }
 
+/** Tighten's lines for any other work: their words and the honesty everyone keeps, in place of the adviser's. */
+const generalLines = (p: string): Record<string, string> => ({
+  "- Keep each slide's meaning and the consultant's voice. Don't add facts, numbers, statistics, product names or insurer names that aren't in the original.":
+    "- Keep each slide's meaning and their voice. Don't add facts, numbers, statistics or names that aren't in the original.",
+  [MAS_RULE]: `- ${HONEST_LINE} Never say "act now", and make no "best" or "number one" claims.`,
+  "- Use Singapore English spelling.": "- Keep the spelling the slides already use.",
+  [`for a licensed financial consultant in Singapore.`]: `for ${aOrAn(p)}.`,
+});
+
 export function buildCarouselPrompt(req: CarouselRequest): { system: string; user: string } {
   const n = req.slides.length;
   const platform = req.platform === "linkedin" ? "LinkedIn" : "Instagram";
+  const general = req.profession ? generalLines(req.profession) : null;
   const system = [
     `You edit ${platform} carousel slides for a licensed financial consultant in Singapore.`,
     "Tighten every slide so it reads fast on a phone: a short, punchy title and a plain-language body.",
@@ -92,7 +106,9 @@ export function buildCarouselPrompt(req: CarouselRequest): { system: string; use
       ? `- recap: one more slide that goes just before the call to action, the one people screenshot. Title: at most 8 words. Body: one line per point slide, in order, each starting with "• " and at most ${RECAP_LINE_WORDS} words. It must make sense on its own. Use only what the slides say.`
       : "- recap: an empty title and body.",
     'Reply with JSON only: {"slides":[{"title":"...","body":"..."}],"recap":{"title":"...","body":"..."}}.',
-  ].join("\n");
+  ]
+    .map((l) => (general ? Object.entries(general).reduce((t, [from, to]) => t.replace(from, () => to), l) : l))
+    .join("\n");
   const user = `Tighten these slides:\n${JSON.stringify(
     req.slides.map((s, i) => ({ slide: i + 1, role: roleOf(i, n), title: s.title, body: s.body })),
     null,
