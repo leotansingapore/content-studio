@@ -205,7 +205,12 @@ export async function startMontage(a: MontageAsk): Promise<void> {
   set({ state: "writing", done: 0, of: 0 });
   try {
     // planned for the signed-in brand's profession (none sent for an adviser's); the panel holds no user id, so the session says
-    const profession = professionFor((await supabase.auth.getSession()).data.session?.user.id);
+    let profession = "";
+    try {
+      profession = professionFor((await supabase.auth.getSession()).data.session?.user.id);
+    } catch {
+      // no session read: today's prompt, never a failed plan
+    }
     const plan = await callFn<{ beats: Beat[]; grade: FilterId }>(
       "video-assist",
       { mode: "montage", theme: a.theme, seconds: a.seconds, profession: profession || undefined },

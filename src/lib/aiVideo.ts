@@ -588,7 +588,13 @@ export function takeRemake(projectId: string): Remake | null {
 // ---------- explainer ----------
 
 /** The open brand's "What do you do?" for the writers, from this device's sign-in; none for an adviser (today's prompts). */
-const profession = async () => professionFor((await supabase.auth.getSession()).data.session?.user.id) || undefined;
+const profession = async () => {
+  try {
+    return professionFor((await supabase.auth.getSession()).data.session?.user.id) || undefined;
+  } catch {
+    return undefined; // no session read: today's prompt, never a failed order
+  }
+};
 
 export async function writeExplainer(topic: string): Promise<Scene[]> {
   const { scenes } = await callFn<{ scenes: Scene[] }>("ai-video", { mode: "script", topic, profession: await profession() }, "Couldn't write the explainer. Try again in a minute.");

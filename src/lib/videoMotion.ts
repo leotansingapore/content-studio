@@ -526,7 +526,12 @@ export function keyLinesFrom(reply: MotionReply | null | undefined, sent: Senten
  * profession (none sent for an adviser's; its callers hold no user id, so the session says).
  */
 export async function pickKeyLines(sent: Sentence[], duration: number, hookSeconds: number): Promise<MotionReply> {
-  const profession = professionFor((await supabase.auth.getSession()).data.session?.user.id);
+  let profession = "";
+  try {
+    profession = professionFor((await supabase.auth.getSession()).data.session?.user.id);
+  } catch {
+    // no session read: today's prompt, never a failed pick
+  }
   return callFn<MotionReply>(
     "video-assist",
     { mode: "motion", sentences: sent, duration, hookSeconds, profession: profession || undefined },
