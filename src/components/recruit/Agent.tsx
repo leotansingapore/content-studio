@@ -22,10 +22,11 @@ import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { upsertDraft } from "@/lib/draftHistory";
 import { scoped } from "@/lib/profiles";
 import { CopyButton, Flags, Part } from "./shared";
+import type { CtaType } from "../../../supabase/functions/generate-social-content/logic.ts";
 
 type Update = (fn: (b: RecruitBrain) => RecruitBrain) => void;
 
-const CTA_FOR_STAGE: Record<RecruitStage, string> = { tofu: "save-share", mofu: "open-question", bofu: "book-call" };
+const CTA_FOR_STAGE: Record<RecruitStage, CtaType> = { tofu: "save-share", mofu: "open-question", bofu: "book-call" };
 
 export function recruitDraftLabel(stage: RecruitStage, formula: FormulaId | null): string {
   const f = formula ? FORMULAS.find((x) => x.id === formula)?.label : "Best-fit formula";

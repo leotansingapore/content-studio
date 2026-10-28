@@ -41,14 +41,12 @@ import {
   Video,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
-
-type Pillar = "interest" | "identity" | "topic" | "market";
-type Audience = "general" | "young-adult" | "working-adult" | "parent" | "pre-retiree";
+import type { Audience, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
 
 interface BatchTarget {
   key: string;
-  platform: string;
-  format: string;
+  platform: Platform;
+  format: Format;
   label: string;
   icon: typeof Linkedin;
   defaultOn: boolean;

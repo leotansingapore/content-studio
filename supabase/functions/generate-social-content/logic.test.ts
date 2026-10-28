@@ -6,6 +6,11 @@ import {
   imagePromptSystemPrompt,
   imagePromptUserPrompt,
   requestError,
+  AUDIENCE_VALUES,
+  CTA_VALUES,
+  FORMAT_VALUES,
+  PILLAR_VALUES,
+  PLATFORM_VALUES,
   userPrompt,
   voiceSummarySystemPrompt,
   voiceSummaryUserPrompt,
@@ -98,5 +103,29 @@ describe("request sizes", () => {
     expect(requestError({ mode: "image-prompt", draft: "  " })).toBe("image-prompt requires a draft");
     expect(requestError({ mode: "post", pillar: "topic" })).toBe("Missing required fields: pillar, format, platform, ideaSource, ctaType");
     expect(requestError(post("body", { chosenHook: " " }))).toBe("mode 'body' requires chosenHook");
+  });
+
+  const UNREADABLE = "Couldn't read that request. Reload the page and try again.";
+
+  it.each(["ideaContext", "styleReference", "voiceSummary", "draft", "pillarDetail", "chosenHook", "ideaSource"])(
+    "refuses %s when it is there but isn't text",
+    (field) => {
+      for (const v of [123, null, ["a"], { a: 1 }]) expect(requestError(post("post", { [field]: v }))).toBe(UNREADABLE);
+    },
+  );
+
+  it("refuses past posts that aren't a list of text", () => {
+    expect(requestError({ mode: "voice-summary", posts: "A past post." as unknown as string[] })).toBe(UNREADABLE);
+    expect(requestError({ mode: "voice-summary", posts: ["A past post.", 7 as unknown as string] })).toBe(UNREADABLE);
+  });
+
+  it("takes every pillar, format, platform, CTA and audience the app's types allow, and nothing else", () => {
+    const lists = { pillar: PILLAR_VALUES, format: FORMAT_VALUES, platform: PLATFORM_VALUES, ctaType: CTA_VALUES, audience: AUDIENCE_VALUES };
+    for (const [field, values] of Object.entries(lists)) {
+      for (const v of values) expect(requestError(post("post", { [field]: v }))).toBeNull();
+      expect(requestError(post("post", { [field]: "nope" }))).toBe(UNREADABLE);
+      expect(requestError(post("hashtags", { draft: "A post.", [field]: "nope" }))).toBe(UNREADABLE);
+    }
+    expect(requestError(post("post", { audience: undefined }))).toBeNull();
   });
 });

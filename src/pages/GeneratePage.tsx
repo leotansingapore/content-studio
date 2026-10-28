@@ -200,22 +200,9 @@ import {
   saveTemplate,
   type BriefTemplate,
 } from "@/lib/templates";
+// the post writer's own lists, so every brief Write sends is one it takes
+import type { Audience, CtaType, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
 
-type Pillar = "interest" | "identity" | "topic" | "market";
-type Format = "carousel" | "short-video" | "text-post" | "story";
-type Platform = "linkedin" | "instagram" | "facebook" | "tiktok";
-type CtaType =
-  | "dm-keyword"
-  | "comment-keyword"
-  | "save-share"
-  | "book-call"
-  | "open-question";
-type Audience =
-  | "young-adult"
-  | "working-adult"
-  | "parent"
-  | "pre-retiree"
-  | "general";
 // newHooks (Leo only): the hooks panel's rows, new openings for a finished post
 type StreamingMode = "idle" | "hooks" | "variants" | "newHooks";
 type StreamTarget = Exclude<StreamingMode, "idle">;

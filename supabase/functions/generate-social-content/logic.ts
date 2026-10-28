@@ -1,11 +1,18 @@
 // The post writer's prompts (Write, Batch, Your voice), moved out of index.ts unchanged so vitest covers them.
 // No Deno or npm imports.
 
-export type Pillar = "interest" | "identity" | "topic" | "market";
-export type Format = "carousel" | "short-video" | "text-post" | "story";
-export type Platform = "linkedin" | "instagram" | "facebook" | "tiktok";
-export type CtaType = "dm-keyword" | "comment-keyword" | "save-share" | "book-call" | "open-question";
-export type Audience = "young-adult" | "working-adult" | "parent" | "pre-retiree" | "general";
+// The app's own types for these fields (GeneratePage, BatchPage, batchGenerate) are these lists, so every request it
+// makes passes requestError.
+export const PILLAR_VALUES = ["interest", "identity", "topic", "market"] as const;
+export const FORMAT_VALUES = ["carousel", "short-video", "text-post", "story"] as const;
+export const PLATFORM_VALUES = ["linkedin", "instagram", "facebook", "tiktok"] as const;
+export const CTA_VALUES = ["dm-keyword", "comment-keyword", "save-share", "book-call", "open-question"] as const;
+export const AUDIENCE_VALUES = ["young-adult", "working-adult", "parent", "pre-retiree", "general"] as const;
+export type Pillar = (typeof PILLAR_VALUES)[number];
+export type Format = (typeof FORMAT_VALUES)[number];
+export type Platform = (typeof PLATFORM_VALUES)[number];
+export type CtaType = (typeof CTA_VALUES)[number];
+export type Audience = (typeof AUDIENCE_VALUES)[number];
 export type Mode = "hooks" | "body" | "post" | "voice-summary" | "hashtags" | "image-prompt";
 
 export interface RequestBody {
@@ -305,17 +312,34 @@ export const MAX_CHARS: Partial<Record<keyof RequestBody, number>> = {
 };
 export const MAX_POSTS = 10;
 export const MAX_POST_CHARS = 5_000;
-const TOO_LONG = "That's too long to write from. Shorten it and try again.";
+/** The whole body as sent: every field at its cap, or 10 past posts at theirs, with room for JSON's escapes. */
+export const MAX_BODY_CHARS = 64_000;
+export const TOO_LONG = "That's too long to write from. Shorten it and try again.";
+const UNREADABLE = "Couldn't read that request. Reload the page and try again.";
+const ALLOWED: Partial<Record<keyof RequestBody, readonly string[]>> = {
+  pillar: PILLAR_VALUES,
+  format: FORMAT_VALUES,
+  platform: PLATFORM_VALUES,
+  ctaType: CTA_VALUES,
+  audience: AUDIENCE_VALUES,
+};
 
 /** Why the request can't be written from (400), or null. Checked before the user's daily count, so a refusal costs nothing. */
 export function requestError(raw: RequestBody): string | null {
   for (const [field, max] of Object.entries(MAX_CHARS)) {
     const v = raw[field as keyof RequestBody];
-    if (typeof v === "string" && v.length > max!) return TOO_LONG;
+    if (v === undefined) continue;
+    if (typeof v !== "string") return UNREADABLE;
+    if (v.length > max!) return TOO_LONG;
   }
-  if (Array.isArray(raw.posts)) {
+  for (const [field, values] of Object.entries(ALLOWED)) {
+    const v = raw[field as keyof RequestBody];
+    if (v !== undefined && !values!.includes(v as string)) return UNREADABLE;
+  }
+  if (raw.posts !== undefined) {
+    if (!Array.isArray(raw.posts) || raw.posts.some((p) => typeof p !== "string")) return UNREADABLE;
     if (raw.posts.length > MAX_POSTS) return `Send at most ${MAX_POSTS} past posts.`;
-    if (raw.posts.some((p) => typeof p === "string" && p.length > MAX_POST_CHARS)) return TOO_LONG;
+    if (raw.posts.some((p) => p.length > MAX_POST_CHARS)) return TOO_LONG;
   }
   const mode: Mode = raw.mode ?? "post";
   if (mode === "voice-summary") {

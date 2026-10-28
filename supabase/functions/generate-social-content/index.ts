@@ -7,7 +7,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { buildSystemForVariant, hashtagsSystemPrompt, hashtagsUserPrompt, imagePromptSystemPrompt, imagePromptUserPrompt, requestError, userPrompt, voiceSummarySystemPrompt, voiceSummaryUserPrompt, type Mode, type RequestBody } from "./logic.ts";
+import { buildSystemForVariant, hashtagsSystemPrompt, hashtagsUserPrompt, imagePromptSystemPrompt, imagePromptUserPrompt, MAX_BODY_CHARS, requestError, TOO_LONG, userPrompt, voiceSummarySystemPrompt, voiceSummaryUserPrompt, type Mode, type RequestBody } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -365,12 +365,15 @@ async function handleImagePrompt(apiKey: string, body: RequestBody, giveBack: ()
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const text = await req.text();
+  if (text.length > MAX_BODY_CHARS) return jsonResponse({ error: TOO_LONG }, 400);
   let raw: RequestBody;
   try {
-    raw = (await req.json()) as RequestBody;
+    raw = JSON.parse(text) as RequestBody;
   } catch (_err) {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
   }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return jsonResponse({ error: "Invalid JSON body" }, 400);
   const bad = requestError(raw);
   if (bad) return jsonResponse({ error: bad }, 400);
 

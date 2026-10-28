@@ -37,8 +37,9 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => d
 vi.mock("https://deno.land/x/xhr@0.1.0/mod.ts", () => ({}));
 vi.mock("https://deno.land/std@0.168.0/http/server.ts", () => ({ serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn) }));
 
-// OpenAI: "down" answers 500, "ok" answers one line (as JSON for the side modes, as a stream when asked)
-const openai = { mode: "ok" as "ok" | "down", calls: 0 };
+// OpenAI: "down" answers 500, "ok" answers one line (as JSON for the side modes, as a stream when asked), "breaks"
+// streams one token and then drops, "hangs" never answers until the call is aborted
+const openai = { mode: "ok" as "ok" | "down" | "breaks" | "hangs", calls: 0, aborted: 0 };
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
@@ -49,6 +50,18 @@ beforeAll(async () => {
     if (!String(u).includes("openai")) throw new Error(`unexpected fetch ${u}`);
     openai.calls++;
     if (openai.mode === "down") return new Response("{}", { status: 500 });
+    if (openai.mode === "hangs") {
+      return new Promise<Response>((_, reject) =>
+        init?.signal?.addEventListener("abort", () => {
+          openai.aborted++;
+          reject(new DOMException("aborted", "AbortError"));
+        }),
+      );
+    }
+    if (openai.mode === "breaks") {
+      const token = new TextEncoder().encode(`data: ${JSON.stringify({ choices: [{ delta: { content: "A li" } }] })}\n\n`);
+      return new Response(new ReadableStream({ start: (c) => { c.enqueue(token); setTimeout(() => c.error(new TypeError("connection lost")), 0); } }));
+    }
     const content = '{"hashtags":["growth"],"prompt":"A desk by a window"}';
     if (JSON.parse(String(init?.body)).stream) {
       return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: "A line." } }] })}\n\ndata: [DONE]\n\n`);
@@ -69,6 +82,7 @@ beforeEach(() => {
   db.rows.clear();
   openai.mode = "ok";
   openai.calls = 0;
+  openai.aborted = 0;
 });
 
 const BRIEF = { pillar: "topic", format: "text-post", platform: "linkedin", ideaSource: "A common mistake", ctaType: "open-question" };
@@ -116,6 +130,19 @@ describe("generate-social-content: who may write and what it counts", () => {
     expect((await send({ mode: "image-prompt", draft: "A post." })).status).toBe(500);
     const streamed = await send({ ...BRIEF, mode: "post", n: 2 }, ME, "text/event-stream");
     expect(streamed.text).toContain('"type":"error"');
+    expect(used()).toBe(0);
+  });
+
+  it("refuses a body over 64,000 characters, or one that isn't an object, before any count", async () => {
+    const big = await send({ ...BRIEF, mode: "post", junk: "x".repeat(64_000) });
+    expect(big.status).toBe(400);
+    expect(JSON.parse(big.text).error).toBe("That's too long to write from. Shorten it and try again.");
+    for (const body of [null, 7, "post", []]) expect((await send(body)).status).toBe(400);
+    expect([used(), openai.calls]).toEqual([0, 0]);
+  });
+
+  it("refuses an unknown pillar with a 400 before any count", async () => {
+    expect((await send({ ...BRIEF, mode: "post", pillar: "nope" })).status).toBe(400);
     expect(used()).toBe(0);
   });
 
