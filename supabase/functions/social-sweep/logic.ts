@@ -77,6 +77,8 @@ export interface Env {
   teamCap: number;
   /** One adviser's cap across their brands; social's default when left out. */
   userCap?: number;
+  /** Each owner's cap (social's ownerCapOf: 3 for a customer, ZERNIO_MAX_PER_USER for Leo); userCap for everyone when left out. */
+  capOf?: (owner: string) => number;
   allowlist: string | undefined;
 }
 
@@ -85,8 +87,8 @@ const short = (a: ZAccount) => ({ id: a._id, platform: a.platform, profileId: re
 /** M5, team-wide: social's recount, or on a dry run the accounts it would disconnect. */
 async function recountJob(z: Zernio, env: Env, dryRun: boolean) {
   const rows = await env.loadRows();
-  const c = { ownerOf: new Map(rows.map((r) => [r.zernio_profile_id, r.owner_id])), teamCap: env.teamCap, userCap: env.userCap };
-  if (dryRun) return { wouldDisconnect: overCapTeam(await teamAccounts(z), c.ownerOf, c.teamCap, c.userCap).map(short) };
+  const c = { ownerOf: new Map(rows.map((r) => [r.zernio_profile_id, r.owner_id])), teamCap: env.teamCap, userCap: env.userCap, capOf: env.capOf };
+  if (dryRun) return { wouldDisconnect: overCapTeam(await teamAccounts(z), c.ownerOf, c.teamCap, c.capOf ?? c.userCap).map(short) };
   return { accountsLeft: (await recount(z, c)).filter(billed).length };
 }
 

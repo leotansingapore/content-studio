@@ -178,7 +178,7 @@ export async function disconnectBrand(profileId: string): Promise<void> {
 
 /** The line under the connect buttons when no account can be added, or null. */
 export function capLine(s: Pick<SocialStatus, "team" | "teamCap" | "user" | "userCap">): string | null {
-  if (s.user >= s.userCap) return `${s.user} of ${s.userCap} accounts connected, the most one adviser can have. Disconnect one to connect another.`;
+  if (s.user >= s.userCap) return `You can have ${s.userCap} accounts connected. Disconnect one to connect another.`;
   if (s.team >= s.teamCap) return `${s.team} of ${s.teamCap} accounts connected. Disconnect one to connect another.`;
   return null;
 }

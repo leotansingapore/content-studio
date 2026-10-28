@@ -6,7 +6,8 @@
 // Auto-DM (automations.ts) also needs the caller on NORTH_STAR_USERS (Leo), whatever SOCIAL_CONNECT_USERS says.
 //
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
-// ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
+// ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset), ZERNIO_MAX_PER_USER (the cap for NORTH_STAR_USERS; every other
+// owner holds CUSTOMER_ACCOUNT_CAP, 3). Off, with no Zernio call, unless the key is set and
 // the caller is listed (the bare status probe then answers 200 {enabled:false}, anything else 404).
 // Removing a brand is the exception: it disconnects for any owner, and with no key it is refused
 // while the brand has a Zernio profile.
@@ -17,7 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
-import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, removalOf, status, teamCapOf, userCapOf, type Caller } from "./logic.ts";
+import { connect, disconnect, errorReply, isAllowed, offReply, ownerCapOf, parseRequest, removalOf, status, teamCapOf, type Caller } from "./logic.ts";
 import { metricsErrorReply, parseMetricsRequest, runMetrics } from "./metrics.ts";
 import { northStarOnly, parsePostRequest, postErrorReply, runPost } from "./posts.ts";
 
@@ -87,6 +88,8 @@ Deno.serve(async (req) => {
     const { data: all, error } = await admin.from("cs_social_profiles").select("owner_id, profile_id, zernio_profile_id");
     if (error || !Array.isArray(all)) throw new Error(`cs_social_profiles read: ${error?.message}`);
     const rows = all.filter((x) => x.owner_id === uid);
+    // a customer holds 3 accounts, Leo (NORTH_STAR_USERS) ZERNIO_MAX_PER_USER; the team cap holds everyone
+    const capOf = ownerCapOf(Deno.env.get("NORTH_STAR_USERS"), Deno.env.get("ZERNIO_MAX_PER_USER"));
     const caller: Caller = {
       uid,
       profileId,
@@ -94,7 +97,8 @@ Deno.serve(async (req) => {
       userProfiles: new Set(rows.map((x) => x.zernio_profile_id)),
       ownerOf: new Map(all.map((x) => [x.zernio_profile_id, x.owner_id])),
       teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
-      userCap: userCapOf(Deno.env.get("ZERNIO_MAX_PER_USER")),
+      userCap: capOf(uid),
+      capOf,
     };
     const row: ProfileRow = {
       get: async () => {

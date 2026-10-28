@@ -110,7 +110,8 @@ describe("words on the page", () => {
   it("says when no account can be added, and why", () => {
     expect(capLine({ team: 1, teamCap: 2, user: 1, userCap: 6 })).toBeNull();
     expect(capLine({ team: 2, teamCap: 2, user: 1, userCap: 6 })).toBe("2 of 2 accounts connected. Disconnect one to connect another.");
-    expect(capLine({ team: 6, teamCap: 50, user: 6, userCap: 6 })).toMatch(/^6 of 6 accounts connected, the most one adviser can have/);
+    // a customer's 4th: the same plain line the server refuses with (social/logic.ts connect)
+    expect(capLine({ team: 6, teamCap: 10, user: 3, userCap: 3 })).toBe("You can have 3 accounts connected. Disconnect one to connect another.");
   });
 
   it("reads Zernio's redirect back", () => {

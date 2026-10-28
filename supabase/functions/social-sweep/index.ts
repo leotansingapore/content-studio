@@ -6,14 +6,15 @@
 // Every run answers its counts and the writes that went through (done); logs carry counts only.
 //
 // Secrets: SOCIAL_SWEEP_SECRET (the same value is in Vault as cs_social_sweep_secret), ZERNIO_API_KEY
-// (unset: answers {enabled:false} and does nothing), SOCIAL_CONNECT_USERS, ZERNIO_MAX_ACCOUNTS.
+// (unset: answers {enabled:false} and does nothing), SOCIAL_CONNECT_USERS, ZERNIO_MAX_ACCOUNTS, ZERNIO_MAX_PER_USER and
+// NORTH_STAR_USERS (who keeps ZERNIO_MAX_PER_USER; every other owner holds 3).
 // Deploy with --no-verify-jwt: the secret header is the auth.
 //   supabase functions deploy social-sweep --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
 
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { ZernioError, zernioClient } from "../_shared/zernio.ts";
-import { teamCapOf, userCapOf } from "../social/logic.ts";
+import { ownerCapOf, teamCapOf } from "../social/logic.ts";
 import { doneCounts, parseSweep, readAllRows, runSweep, secretMatches, sweepZernio, type MappingRow } from "./logic.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
@@ -49,7 +50,8 @@ Deno.serve(async (req) => {
       return !data?.user && error?.status === 404;
     },
     teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
-    userCap: userCapOf(Deno.env.get("ZERNIO_MAX_PER_USER")),
+    // a customer holds 3, Leo (NORTH_STAR_USERS) ZERNIO_MAX_PER_USER, as social's own recount does
+    capOf: ownerCapOf(Deno.env.get("NORTH_STAR_USERS"), Deno.env.get("ZERNIO_MAX_PER_USER")),
     allowlist: Deno.env.get("SOCIAL_CONNECT_USERS"),
   });
   // a dry run (by hand) answers its report

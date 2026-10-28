@@ -227,6 +227,21 @@ describe("recount (M5)", () => {
   });
 });
 
+describe("recount with a customer's cap", () => {
+  it("names only a customer's newest past 3 on a dry run, never one of Leo's", async () => {
+    const LEO = "0f8fad5b-d9cb-469f-a165-70867728950f";
+    const LEO_P = "0123456789abcdef0123456c";
+    const rows: MappingRow[] = [...ROWS, { owner_id: LEO, profile_id: "me", zernio_profile_id: LEO_P }];
+    const leos = Array.from({ length: 5 }, (_, i) => acct(`6500000000000000000000b${i}`, LEO_P));
+    const mine = Array.from({ length: 4 }, (_, i) => acct(`6500000000000000000000a${i}`, i % 2 ? "0123456789abcdef0123456f" : LIVE));
+    const f = fake({ "GET /accounts": { accounts: [...leos, ...mine] } });
+    const capOf = (owner: string) => (owner === LEO ? 10 : 3);
+    const out = await runSweep(f.z, { job: "recount", dryRun: true }, env({ teamCap: 10, loadRows: async () => rows, capOf }));
+    expect(out).toEqual({ wouldDisconnect: [{ id: "6500000000000000000000a3", platform: "instagram", profileId: "0123456789abcdef0123456f" }] });
+    expect(f.writes()).toEqual([]);
+  });
+});
+
 describe("review021: a live owner is never cleared", () => {
   it("leaves a profile with no row alone while auth still has its owner (an empty or short rows read, a racing first connect)", async () => {
     const f = team();

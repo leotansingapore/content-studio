@@ -48,6 +48,20 @@ export function userCapOf(raw: string | undefined): number {
   return Number.isInteger(n) && n >= 0 ? n : USER_ACCOUNT_CAP;
 }
 
+/** One customer's cap across all their brands (Leo, 28 Oct: each customer may connect up to 3 accounts). */
+export const CUSTOMER_ACCOUNT_CAP = 3;
+
+/**
+ * Each owner's cap: NORTH_STAR_USERS (Leo) keep ZERNIO_MAX_PER_USER, everyone else CUSTOMER_ACCOUNT_CAP. With
+ * NORTH_STAR_USERS unset or empty nobody can be told apart, so everyone keeps ZERNIO_MAX_PER_USER as before:
+ * a missing secret must never shrink Leo to 3, because the recount would then disconnect his accounts.
+ */
+export function ownerCapOf(northStar: string | undefined, maxPerUser: string | undefined): (owner: string) => number {
+  const exempt = userCapOf(maxPerUser);
+  if (!(northStar ?? "").split(",").some((s) => s.trim())) return () => exempt;
+  return (owner) => (isAllowed(northStar, owner) ? exempt : CUSTOMER_ACCOUNT_CAP);
+}
+
 export type SocialRequest =
   | { action: "status"; profileId: string | null }
   | { action: "connect"; profileId: string; platform: SocialPlatform; reconnectAccountId: string | null }
@@ -101,8 +115,10 @@ export interface Caller {
   /** Every mapped Zernio profile -> its owner (all of cs_social_profiles), for the team-wide recount. */
   ownerOf: Map<string, string>;
   teamCap: number;
-  /** One adviser's cap across their brands; USER_ACCOUNT_CAP when left out. */
+  /** The caller's own cap across their brands; USER_ACCOUNT_CAP when left out. */
   userCap?: number;
+  /** Every owner's cap for the team-wide recount (ownerCapOf); userCap for everyone when left out. */
+  capOf?: (owner: string) => number;
 }
 
 export type Reply = { status: number; body: Record<string, unknown> };
@@ -175,12 +191,12 @@ export const withRemovalNotes = (description: unknown, added: RemovedNote[], now
 const byAge = (a: ZAccount, b: ZAccount) => (a._id < b._id ? -1 : a._id > b._id ? 1 : 0);
 
 /**
- * M5, team-wide: which billed accounts to disconnect, newest first, whoever owns them. Each adviser is held
- * to 6 across all their brands first, then the team to its cap over what is left, so no more goes than
- * either cap needs. A Zernio id is a MongoDB ObjectId, which starts with its creation second, so a larger
+ * M5, team-wide: which billed accounts to disconnect, newest first, whoever owns them. Each owner is held
+ * to their cap across all their brands first (userCap, or userCap(owner): 3 for a customer), then the team to
+ * its cap over what is left, so no more goes than either cap needs. A Zernio id is a MongoDB ObjectId, which starts with its creation second, so a larger
  * id is a newer account.
  */
-export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, teamCap: number, userCap = USER_ACCOUNT_CAP): ZAccount[] {
+export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, teamCap: number, userCap: number | ((owner: string) => number) = USER_ACCOUNT_CAP): ZAccount[] {
   const list = team.filter(billed).sort(byAge);
   const over = new Set<string>();
   const perOwner = new Map<string, ZAccount[]>();
@@ -188,7 +204,7 @@ export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, team
     const owner = ownerOf.get(refId(a.profileId));
     if (owner) perOwner.set(owner, [...(perOwner.get(owner) ?? []), a]);
   }
-  for (const mine of perOwner.values()) for (const a of mine.slice(userCap)) over.add(a._id);
+  for (const [owner, mine] of perOwner) for (const a of mine.slice(typeof userCap === "number" ? userCap : userCap(owner))) over.add(a._id);
   for (const a of list.filter((x) => !over.has(x._id)).slice(Math.max(0, teamCap))) over.add(a._id);
   return list.filter((a) => over.has(a._id)).reverse();
 }
@@ -198,9 +214,9 @@ export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, team
  * reconnect that came back as a new account, never keep billing past the next call by anyone. Each
  * affected adviser's Zernio profile gets a note. Returns the team as it stands after.
  */
-export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap" | "userCap">, now = Date.now()): Promise<ZAccount[]> {
+export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap" | "userCap" | "capOf">, now = Date.now()): Promise<ZAccount[]> {
   const team = await teamAccounts(z);
-  const over = overCapTeam(team, c.ownerOf, c.teamCap, c.userCap);
+  const over = overCapTeam(team, c.ownerOf, c.teamCap, c.capOf ?? c.userCap);
   if (!over.length) return team;
   const at = new Date(now).toISOString();
   const byProfile = new Map<string, RemovedNote[]>();
@@ -263,7 +279,7 @@ export async function connect(z: Zernio, c: Caller, row: ProfileRow, platform: S
   }
   const counts = capCounts(team, c.userProfiles, c.teamCap, c.userCap);
   if (counts.user >= counts.userCap) {
-    return { status: 409, body: { code: "account_cap", error: `You have ${counts.user} accounts connected, the most one adviser can have.`, ...counts } };
+    return { status: 409, body: { code: "account_cap", error: `You can have ${counts.userCap} accounts connected. Disconnect one to connect another.`, ...counts } };
   }
   if (counts.team >= counts.teamCap) {
     return { status: 409, body: { code: "account_cap", error: `All ${counts.teamCap} account places are in use. Disconnect one first.`, ...counts } };

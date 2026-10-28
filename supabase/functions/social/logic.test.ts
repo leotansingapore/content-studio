@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ProfileRow, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { connect, disconnect, errorReply, isAllowed, offReply, overCapTeam, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, userCapOf, withRemovalNotes, type Caller } from "./logic";
+import { CUSTOMER_ACCOUNT_CAP, connect, disconnect, errorReply, isAllowed, offReply, overCapTeam, ownerCapOf, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, userCapOf, withRemovalNotes, type Caller } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const UID_B = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -208,6 +208,58 @@ describe("the team-wide recount (M5)", () => {
     expect(removalNotes(d2, NOW).map((n) => n.username)).toEqual(["new"]);
     expect(removalNotes(withRemovalNotes(d2, [{ platform: "tiktok", username: "x", at: "2026-10-11T08:00:00Z" }], NOW), NOW).map((n) => n.username)).toEqual(["x", "new"]);
     for (const junk of [null, "Marketing team", "cs-removed:{", 'cs-removed:{"a":1}', 'cs-removed:[{"platform":1}]']) expect(removalNotes(junk, NOW)).toEqual([]);
+  });
+});
+
+describe("a customer's cap (Leo 28 Oct: up to 3 accounts each; NORTH_STAR_USERS keep ZERNIO_MAX_PER_USER)", () => {
+  const LEO = UID_B;
+  const capOf = ownerCapOf(LEO, "10");
+  const leos = Array.from({ length: 5 }, (_, i) => acct(`6500000000000000000000b${i}`, THEIRS));
+  const mine = (n: number) => Array.from({ length: n }, (_, i) => acct(`6500000000000000000000a${i}`, i % 2 ? "0123456789abcdef01234562" : MINE));
+  const ownerOf = new Map([[MINE, UID], ["0123456789abcdef01234562", UID], [THEIRS, LEO]]);
+
+  it("is 3 for a customer and ZERNIO_MAX_PER_USER for NORTH_STAR_USERS; with NORTH_STAR_USERS unset nobody is told apart", () => {
+    expect(CUSTOMER_ACCOUNT_CAP).toBe(3);
+    expect(capOf(UID)).toBe(3);
+    expect(capOf(LEO)).toBe(10);
+    expect(ownerCapOf(` ${UID_B} , ${MINE}`, "10")(LEO)).toBe(10);
+    expect(ownerCapOf(LEO, undefined)(LEO)).toBe(6);
+    // a missing or empty secret never shrinks Leo to 3 (the recount would disconnect his accounts)
+    for (const unset of [undefined, "", " , "]) {
+      expect(ownerCapOf(unset, "10")(LEO), String(unset)).toBe(10);
+      expect(ownerCapOf(unset, "10")(UID), String(unset)).toBe(10);
+    }
+    expect(ownerCapOf("*", "10")(UID)).toBe(10);
+  });
+
+  it("disconnects a customer's newest account past 3 across their brands, and none of Leo's 5", () => {
+    expect(overCapTeam([...leos, ...mine(3)], ownerOf, 10, capOf)).toEqual([]);
+    expect(overCapTeam([...leos, ...mine(4)], ownerOf, 10, capOf).map((a) => a._id)).toEqual(["6500000000000000000000a3"]);
+    // a plain number still holds everyone to it, as before
+    expect(overCapTeam([...leos, ...mine(4)], ownerOf, 10, 3).map((a) => a._id)).toEqual(["6500000000000000000000b4", "6500000000000000000000b3", "6500000000000000000000a3"]);
+  });
+
+  it("still holds everyone, Leo included, to the shared ZERNIO_MAX_ACCOUNTS", () => {
+    // 5 + 3 = 8 on a team cap of 7: the newest goes, whoever owns it
+    expect(overCapTeam([...leos, ...mine(3)], ownerOf, 7, capOf).map((a) => a._id)).toEqual(["6500000000000000000000b4"]);
+    expect(overCapTeam([...mine(3), ...leos], ownerOf, 6, capOf).map((a) => a._id)).toEqual(["6500000000000000000000b4", "6500000000000000000000b3"]);
+  });
+
+  it("a customer's own recount (status) never disconnects Leo's accounts", async () => {
+    const f = fake({ "GET /accounts": accounts([...leos, ...mine(1)]), [`GET /profiles/${MINE}`]: { profile: { _id: MINE } }, "GET /accounts/health": { accounts: [] } });
+    const r = await status(f.z, caller({ ownerOf, teamCap: 10, userCap: capOf(UID), capOf }));
+    expect(f.keys().filter((k) => !k.startsWith("GET"))).toEqual([]);
+    expect(r.body).toMatchObject({ team: 6, user: 1, userCap: 3 });
+  });
+
+  it("refuses a customer's 4th with one plain line, before making a profile; Leo connects his 6th", async () => {
+    const f = fake({ "GET /accounts": accounts([...leos, ...mine(3)]) });
+    const r = await connect(f.z, caller({ mapped: null, userProfiles: new Set([MINE, "0123456789abcdef01234562"]), ownerOf, teamCap: 10, userCap: capOf(UID), capOf }), { get: async () => null, insert: async () => {} }, "instagram", null);
+    expect(r).toEqual({ status: 409, body: { code: "account_cap", error: "You can have 3 accounts connected. Disconnect one to connect another.", team: 8, teamCap: 10, user: 3, userCap: 3 } });
+    expect(f.keys()).toEqual(["GET /accounts"]);
+    const leo = fake({ "GET /accounts": accounts([...leos, ...mine(3)]), "GET /connect/instagram": { authUrl: "https://zernio.com/connect/abc" } });
+    const ok = await connect(leo.z, caller({ uid: LEO, mapped: THEIRS, userProfiles: new Set([THEIRS]), ownerOf, teamCap: 10, userCap: capOf(LEO), capOf }), { get: async () => THEIRS, insert: async () => {} }, "instagram", null);
+    expect(ok).toEqual({ status: 200, body: { authUrl: "https://zernio.com/connect/abc" } });
   });
 });
 

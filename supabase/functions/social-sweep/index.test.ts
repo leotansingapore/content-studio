@@ -5,8 +5,17 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const h = vi.hoisted(() => ({
   clients: 0,
   handler: null as null | ((r: Request) => Promise<Response>),
+  rows: [] as { owner_id: string; profile_id: string; zernio_profile_id: string }[],
+  team: [] as Record<string, unknown>[],
 }));
-vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => (h.clients++, {}) }));
+vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
+  createClient: () => {
+    h.clients++;
+    // cs_social_profiles in pages: the rows, then an empty page
+    const q = (after: string | null) => ({ order: () => q(after), limit: () => q(after), gt: (_c: string, v: string) => q(v), then: (ok: (r: unknown) => void) => ok({ data: after ? [] : h.rows, error: null }) });
+    return { from: () => ({ select: () => q(null) }) };
+  },
+}));
 
 const SECRET = "sweep-secret-for-tests-only";
 const env: Record<string, string | undefined> = {};
@@ -14,7 +23,7 @@ const zernio: string[] = [];
 
 beforeAll(async () => {
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (h.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string) => (zernio.push(String(u)), new Response("{}")));
+  vi.stubGlobal("fetch", async (u: string) => (zernio.push(String(u)), new Response(new URL(String(u)).pathname.endsWith("/accounts") ? JSON.stringify({ accounts: h.team }) : "{}")));
   await import("./index.ts");
 }, 30_000);
 
@@ -47,5 +56,26 @@ describe("the social sweep's gate", () => {
     expect((await call({ job: "delete-everything" })).status).toBe(400);
     expect(h.clients).toBe(0);
     expect(zernio).toEqual([]);
+  });
+});
+
+describe("the daily recount's caps", () => {
+  it("holds a customer to 3 and Leo (NORTH_STAR_USERS) to ZERNIO_MAX_PER_USER, from the function's own secrets", async () => {
+    const LEO = "40f07a18-0000-4000-8000-000000000001";
+    const CUSTOMER = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+    h.rows = [
+      { owner_id: LEO, profile_id: "me", zernio_profile_id: "0123456789abcdef0123456c" },
+      { owner_id: CUSTOMER, profile_id: "me", zernio_profile_id: "0123456789abcdef01234561" },
+    ];
+    h.team = [
+      ...Array.from({ length: 5 }, (_, i) => ({ _id: `6500000000000000000000b${i}`, platform: "instagram", profileId: "0123456789abcdef0123456c" })),
+      ...Array.from({ length: 4 }, (_, i) => ({ _id: `6500000000000000000000a${i}`, platform: "tiktok", profileId: "0123456789abcdef01234561" })),
+    ];
+    Object.assign(env, { NORTH_STAR_USERS: LEO, ZERNIO_MAX_PER_USER: "10", ZERNIO_MAX_ACCOUNTS: "10" });
+    const res = await call({ job: "recount", dryRun: true });
+    expect(await res.json()).toMatchObject({ wouldDisconnect: [{ id: "6500000000000000000000a3" }] });
+    // with NORTH_STAR_USERS unset nobody is told apart: everyone keeps ZERNIO_MAX_PER_USER, so Leo's never go
+    env.NORTH_STAR_USERS = undefined;
+    expect(await (await call({ job: "recount", dryRun: true })).json()).toMatchObject({ wouldDisconnect: [] });
   });
 });
