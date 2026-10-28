@@ -21,6 +21,7 @@ import {
   type Platform,
   type RequestBody,
 } from "./logic";
+import { adviserWordsIn, PROFESSIONS } from "../_shared/adviserWords";
 
 const PILLARS: Pillar[] = ["interest", "identity", "topic", "market"];
 const FORMATS: Format[] = ["carousel", "short-video", "text-post", "story"];
@@ -127,5 +128,28 @@ describe("request sizes", () => {
       expect(requestError(post("hashtags", { draft: "A post.", [field]: "nope" }))).toBe(UNREADABLE);
     }
     expect(requestError(post("post", { audience: undefined }))).toBeNull();
+  });
+});
+
+describe("generate-social-content for the brand's profession", () => {
+  it("an adviser's brand, or one with nothing set, gets the same pinned prompts as a caller that sends none", () => {
+    const today = JSON.stringify(BODIES.map(allPrompts));
+    for (const profession of ["", "  ", "Financial adviser", "financial ADVISER"]) {
+      expect(JSON.stringify(BODIES.map((b, i) => allPrompts({ ...b, profession }, i)))).toBe(today);
+    }
+  });
+
+  it.each(PROFESSIONS)("$raw gets every prompt written for them, with none of the adviser words", ({ raw, said }) => {
+    BODIES.forEach((b, i) => {
+      const out = allPrompts({ ...b, profession: raw }, i);
+      for (const v of out.variants) expect(v.system).toContain(`assistant for a ${said}.`);
+      expect(out.hashtags[0]).toContain(`for a ${said}.`);
+      expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+    });
+  });
+
+  it("keeps the honesty rules for everyone", () => {
+    const out = allPrompts({ ...BODIES[1], profession: "Coach" }, 1);
+    expect(out.variants[0].system).toContain("Never invent a number, a result, a client story or a testimonial, and never promise an outcome.");
   });
 });

@@ -178,6 +178,7 @@ import { canCredit, dayMonth, draftLine, earlierRemix, rememberSource, sourceChi
 import { speakerFor } from "@/lib/remixBrand";
 import { reusedItems, sharedRuns } from "../../supabase/functions/remix/overlap.ts";
 import { loadBrand } from "@/lib/carousel";
+import { professionFor } from "@/lib/profession";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -377,6 +378,41 @@ const AUDIENCES: { value: Audience; label: string; sub: string }[] = [
   { value: "parent", label: "Parent", sub: "Kids under 16, family-first" },
   { value: "pre-retiree", label: "Pre-retiree", sub: "50-62, retirement runway" },
 ];
+
+// The same choices worded for a brand whose owner isn't a financial adviser (the brand kit's "What do you do?").
+const GENERAL_PILLARS: Record<Pillar, { sub: string; placeholder: string }> = {
+  interest: { sub: "A hobby/passion that humanises you", placeholder: "e.g. weekend running, photography, gaming, cooking" },
+  identity: { sub: "A life-stage or role you share with the audience", placeholder: "e.g. parent of two, fresh grad, late-30s career-switcher" },
+  topic: { sub: "A specific area of your work you teach", placeholder: "e.g. a method you use, a question clients always ask" },
+  market: { sub: "A specific client segment you serve", placeholder: "e.g. first-time buyers, new managers, small studio owners" },
+};
+const GENERAL_IDEAS: Record<string, { label: string; example: string }> = {
+  "real-question": { label: "A real question from a client this week", example: "e.g. 'How long until I see a difference?'" },
+  "common-mistake": { label: "A common mistake people make", example: "e.g. waiting too long to ask for help" },
+  "news-hook": { label: "A news hook", example: "e.g. a change in your field, something everyone is talking about" },
+  "personal-story": { label: "A personal story or lesson learned", example: "e.g. first rejection, first client, what I'd tell my younger self" },
+  "before-after": { label: "A before-and-after / case study", example: "e.g. how a client's week changed after one small fix" },
+  "three-things": { label: "'3 things you didn't know about ___'", example: "e.g. 3 things nobody tells you before you start" },
+  "myth-bust": { label: "Myth-busting", example: "e.g. 'You need a big following to get clients'" },
+};
+const GENERAL_CTA_SUBS: Partial<Record<CtaType, string>> = {
+  "dm-keyword": "'DM me GUIDE for the checklist.'",
+  "save-share": "'Save this for the next time you need it.'",
+  "book-call": "'DM me if you'd like a no-pressure 15-min chat.'",
+  "open-question": "'What's the one question you've never had answered?'",
+};
+const GENERAL_AUDIENCE_SUBS: Partial<Record<Audience, string>> = { general: "Broad working/family adults", "pre-retiree": "50-62, planning what's next" };
+
+/** The option lists as an adviser sees them today, or worded for any other work. Values never change, only the words. */
+export function optionsFor(general: boolean) {
+  if (!general) return { pillars: PILLARS, ideaSources: IDEA_SOURCES, ctas: CTAS, audiences: AUDIENCES };
+  return {
+    pillars: PILLARS.map((p) => ({ ...p, ...GENERAL_PILLARS[p.value] })),
+    ideaSources: IDEA_SOURCES.map((s) => ({ ...s, ...GENERAL_IDEAS[s.value] })),
+    ctas: CTAS.map((c) => ({ ...c, sub: GENERAL_CTA_SUBS[c.value] ?? c.sub })),
+    audiences: AUDIENCES.map((a) => ({ ...a, sub: GENERAL_AUDIENCE_SUBS[a.value] ?? a.sub })),
+  };
+}
 
 const PILLAR_FROM_INSPIRATION: Record<
   InspirationEntry["pillar"],
@@ -742,6 +778,7 @@ interface BasePayload {
   audience: Audience;
   voiceSummary?: string;
   singlish?: boolean;
+  profession?: string;
 }
 
 // A remixed post's original beside it (Leo only). Lazy: it reads the top posts and ads drops.
@@ -868,6 +905,9 @@ export default function GeneratePage() {
 
   // Voice profile + nudge.
   const [userId, setUserId] = useState<string | null>(null);
+  // what the open brand's owner does: "" keeps today's adviser writer and examples
+  const profession = useMemo(() => professionFor(userId), [userId]);
+  const { pillars, ideaSources, ctas, audiences } = useMemo(() => optionsFor(profession !== ""), [profession]);
   const savedAudiences = useSavedAudiences(leo ? userId : null);
   // the pick holds while the life stage is still its own: a life-stage chip, a loaded draft or a template drops it
   const audPick = (audId && savedAudiences.find((a) => a.id === audId && a.lifeStage === audience)) || null;
@@ -1406,12 +1446,12 @@ export default function GeneratePage() {
   };
 
   const pillarMeta = useMemo(
-    () => PILLARS.find((p) => p.value === pillar)!,
-    [pillar],
+    () => pillars.find((p) => p.value === pillar)!,
+    [pillar, pillars],
   );
   const ideaMeta = useMemo(
-    () => IDEA_SOURCES.find((s) => s.value === ideaSource)!,
-    [ideaSource],
+    () => ideaSources.find((s) => s.value === ideaSource)!,
+    [ideaSource, ideaSources],
   );
 
   // Debounced compliance scan on draft (500ms).
@@ -1499,7 +1539,7 @@ export default function GeneratePage() {
     pickPendingRef.current = false;
     const hooks = hookOptions.map((h) => h.text.trim());
     if (hooks.length < 2 || hookOptions.some((h) => !h.complete || !h.text.trim())) return;
-    const aud = AUDIENCES.find((a) => a.value === audience);
+    const aud = audiences.find((a) => a.value === audience);
     void pickHook(hooks, aud ? `${aud.label}: ${aud.sub}` : "", pillarDetail.trim(), platformLabel(platform)).then((index) => {
       if (index !== null) setHookPick({ key: hooks.join("\n"), index });
     });
@@ -1653,6 +1693,7 @@ export default function GeneratePage() {
       audience,
       voiceSummary: voiceSummary && voiceSummary.trim().length > 0 ? voiceSummary.trim() : undefined,
       singlish: singlish ? true : undefined,
+      profession: profession || undefined,
     };
   };
 
@@ -2030,6 +2071,7 @@ export default function GeneratePage() {
         draft: trimmed,
         voiceSummary: voiceSummary ?? undefined,
         singlish: singlish ? true : undefined,
+        profession: profession || undefined,
       };
 
       setHashtagsLoading(true);
@@ -2441,7 +2483,7 @@ export default function GeneratePage() {
     newPickPendingRef.current = false;
     const hooks = newHookRows.map((h) => h.text.trim());
     if (hooks.length < 2 || newHookRows.some((h) => !h.complete || !h.text.trim())) return;
-    const aud = AUDIENCES.find((a) => a.value === audience);
+    const aud = audiences.find((a) => a.value === audience);
     void pickHook(hooks, aud ? `${aud.label}: ${aud.sub}` : "", pillarDetail.trim(), platformLabel(platform)).then((index) => {
       if (index !== null) setHookPanel((p) => (p ? { ...p, pick: { key: hooks.join("\n"), index } } : p));
     });
@@ -3390,7 +3432,7 @@ export default function GeneratePage() {
             onValueChange={(v) => setPillar(v as Pillar)}
             className="grid gap-3 sm:grid-cols-2"
           >
-            {PILLARS.map((p) => {
+            {pillars.map((p) => {
               const Icon = p.icon;
               return (
                 <Label
@@ -3451,7 +3493,7 @@ export default function GeneratePage() {
               }
             >
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {AUDIENCES.map((a) => (
+              {audiences.map((a) => (
                 <button
                   key={a.value}
                   type="button"
@@ -3608,7 +3650,7 @@ export default function GeneratePage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {IDEA_SOURCES.map((s) => (
+              {ideaSources.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
                   {s.label}
                 </SelectItem>
@@ -3701,7 +3743,7 @@ export default function GeneratePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CTAS.map((c) => (
+                {ctas.map((c) => (
                   <SelectItem key={c.value} value={c.value}>
                     {c.label}
                   </SelectItem>
@@ -3709,7 +3751,7 @@ export default function GeneratePage() {
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              {CTAS.find((c) => c.value === ctaType)!.sub}
+              {ctas.find((c) => c.value === ctaType)!.sub}
             </p>
           </div>
           {leo && userId && (

@@ -61,6 +61,7 @@ import {
   VOICE_MIN_FILLED,
   type VoiceProfile,
 } from "@/lib/voiceProfile";
+import { professionFor } from "@/lib/profession";
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ?? "https://hgdbflprrficdoyxmdxe.supabase.co";
@@ -197,7 +198,7 @@ export default function VoicePage() {
           Authorization: `Bearer ${token}`,
           apikey: SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ mode: "voice-summary", posts: filled }),
+        body: JSON.stringify({ mode: "voice-summary", posts: filled, profession: professionFor(userId) || undefined }),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");

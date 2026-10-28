@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
+import { professionFor } from "@/lib/profession";
 import { stripDashes, tagLinks, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
@@ -222,6 +223,7 @@ export default function BatchPage() {
               ctaType: "comment-keyword",
               audience: lifeStage,
               voiceSummary: usableVoice,
+              profession: professionFor(userId) || undefined,
               ideaContext: [brandRulesLine(kit, t.platform), audPick && userId ? audienceLine(audPick, speakerFor(userId)) : ""].filter(Boolean).join("\n\n") || undefined,
             },
             {

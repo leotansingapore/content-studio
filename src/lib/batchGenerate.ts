@@ -25,6 +25,8 @@ export interface GeneratePostPayload {
   audience: Audience;
   voiceSummary?: string;
   singlish?: boolean;
+  /** The brand's "What do you do?" (professionFor); left out for an adviser. */
+  profession?: string;
 }
 
 /**

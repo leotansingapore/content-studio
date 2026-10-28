@@ -1,6 +1,8 @@
 // The post writer's prompts (Write, Batch, Your voice), moved out of index.ts unchanged so vitest covers them.
 // No Deno or npm imports.
 
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
+
 // The app's own types for these fields (GeneratePage, BatchPage, batchGenerate) are these lists, so every request it
 // makes passes requestError.
 export const PILLAR_VALUES = ["interest", "identity", "topic", "market"] as const;
@@ -33,6 +35,8 @@ export interface RequestBody {
   singlish?: boolean;
   posts?: string[];
   draft?: string;
+  /** The brand's "What do you do?" (../_shared/profession.ts): none, or an adviser's, keeps today's adviser prompts. */
+  profession?: string;
 }
 
 export const PILLAR_GUIDE: Record<Pillar, string> = {
@@ -116,6 +120,8 @@ export function audienceLine(audience?: Audience): string {
 }
 
 export function basePromptLines(body: RequestBody): string[] {
+  const p = professionOf(body.profession);
+  if (p) return generalBaseLines(body, p);
   const lines = [
     "You are a content drafting assistant for an AIA financial consultant in Singapore.",
     "You produce one social-media post draft at a time, using the framework taught in Day 40-42 of their training:",
@@ -170,14 +176,16 @@ export function basePromptLines(body: RequestBody): string[] {
 
 export function postSystemPrompt(body: RequestBody, variantIndex: number): string {
   const lines = basePromptLines(body);
-  const nudge = VARIANT_NUDGES[variantIndex % VARIANT_NUDGES.length];
+  const nudges = professionOf(body.profession) ? GENERAL_VARIANT_NUDGES : VARIANT_NUDGES;
+  const nudge = nudges[variantIndex % nudges.length];
   lines.push("", `## ${nudge}`, "", "Now produce the draft.");
   return lines.filter(Boolean).join("\n");
 }
 
 export function hooksSystemPrompt(body: RequestBody, variantIndex: number): string {
   const lines = basePromptLines(body);
-  const nudge = HOOK_NUDGES[variantIndex % HOOK_NUDGES.length];
+  const nudges = professionOf(body.profession) ? GENERAL_HOOK_NUDGES : HOOK_NUDGES;
+  const nudge = nudges[variantIndex % nudges.length];
   lines.push(
     "",
     "## Output mode: HOOK ONLY",
@@ -191,7 +199,8 @@ export function hooksSystemPrompt(body: RequestBody, variantIndex: number): stri
 
 export function bodySystemPrompt(body: RequestBody, variantIndex: number, chosenHook: string): string {
   const lines = basePromptLines(body);
-  const nudge = VARIANT_NUDGES[variantIndex % VARIANT_NUDGES.length];
+  const nudges = professionOf(body.profession) ? GENERAL_VARIANT_NUDGES : VARIANT_NUDGES;
+  const nudge = nudges[variantIndex % nudges.length];
   lines.push(
     "",
     "## Required opening",
@@ -213,6 +222,7 @@ export function userPrompt(body: RequestBody, mode: Mode): string {
 }
 
 export function voiceSummarySystemPrompt(body: RequestBody): string {
+  if (professionOf(body.profession)) return generalVoiceSummaryPrompt(body);
   const lines = [
     "You are a writing-voice analyst. You receive several past social-media posts written by one consultant.",
     "Distil the consultant's voice into TWO short paragraphs.",
@@ -232,10 +242,12 @@ export function voiceSummaryUserPrompt(body: RequestBody): string {
   const numbered = posts
     .map((p, i) => `--- Past post ${i + 1} ---\n${p.trim()}`)
     .join("\n\n");
-  return `Here are the consultant's past posts. Distil their voice.\n\n${numbered}`;
+  return `Here are ${professionOf(body.profession) ? "their" : "the consultant's"} past posts. Distil their voice.\n\n${numbered}`;
 }
 
 export function hashtagsSystemPrompt(body: RequestBody): string {
+  const p = professionOf(body.profession);
+  if (p) return generalHashtagsPrompt(p);
   const lines = [
     "You generate hashtag suggestions for an AIA financial consultant in Singapore.",
     "Return strict JSON of the form: {\"hashtags\": [\"...\", \"...\"]} with 5-8 entries.",
@@ -261,7 +273,8 @@ export function hashtagsUserPrompt(body: RequestBody): string {
   ].join("\n");
 }
 
-export function imagePromptSystemPrompt(_body: RequestBody): string {
+export function imagePromptSystemPrompt(body: RequestBody): string {
+  if (professionOf(body.profession)) return generalImagePrompt();
   return [
     "You write a 1-2 line image-generation prompt that the consultant can paste into Canva, Midjourney, or kie.ai.",
     "Return strict JSON: {\"prompt\": \"...\"}.",
@@ -307,6 +320,7 @@ export const MAX_CHARS: Partial<Record<keyof RequestBody, number>> = {
   voiceSummary: 6_000,
   draft: 10_000,
   pillarDetail: 1_000,
+  profession: 200,
   chosenHook: 1_000,
   ideaSource: 1_000,
 };
@@ -351,4 +365,151 @@ export function requestError(raw: RequestBody): string | null {
   }
   if (mode === "body" && !raw.chosenHook?.trim()) return "mode 'body' requires chosenHook";
   return null;
+}
+
+// ---- Any other work (the brand's "What do you do?", ../_shared/profession.ts) -------------------------------------
+// The same brief, modes and output for any profession, worded without CPF, MAS, insurers or Singapore, with the
+// honesty everyone keeps. A body with no profession, or an adviser's, never reaches anything below.
+
+const GENERAL_PILLAR_GUIDE: Record<Pillar, string> = {
+  interest:
+    "Centre on a hobby or passion of theirs (e.g. running, gaming, photography). Open with a personal moment from that interest, then bridge to a point from their work. Humanises them; attracts people who share the interest.",
+  identity:
+    "Centre on a life-stage or role they share with their audience (e.g. parent of two, fresh grad, career-switcher). Speak in a 'us, not them' voice. People engage because they 'get them'.",
+  topic:
+    "Centre on one specific area of their work. They become known for THIS topic. Be concrete: real situations, real steps, plain words.",
+  market:
+    "Centre on a specific group of clients they serve. Prospects in that group self-select. Use language and pain-points that group recognises instantly.",
+};
+
+const GENERAL_AUDIENCE_GUIDE: Record<Audience, string> = {
+  "young-adult": "Audience: young adults aged 21-27. Fresh grads, early-career, often in a first job. Voice: relatable, peer-to-peer, no jargon, no parent-talk.",
+  "working-adult": "Audience: working adults aged 28-40. Mid-career, busy, building something. Voice: peer, practical, specific.",
+  parent: "Audience: parents with kids under 16. Voice: empathetic, family-first, no scare tactics.",
+  "pre-retiree": "Audience: adults aged 50-62 planning their next chapter. Voice: respectful, concrete, unhurried.",
+  general: "Audience: general adults. Don't over-narrow; speak to a broad working/family audience.",
+};
+
+const GENERAL_PLATFORM_VOICE: Record<Platform, string> = {
+  ...PLATFORM_VOICE,
+  instagram:
+    "Voice: warm, personal, magazine-feel. Emojis OK but sparing. Visual-first: assume the photo/graphic does heavy lifting. Hashtags: 8-15, mix of broad + niche tags.",
+  facebook: "Voice: conversational, family-living-room. No emoji-spam. Shareable angle. Local references welcome. Hashtags: 0-3.",
+};
+
+const GENERAL_FORMAT_GUIDE: Record<Format, string> = {
+  ...FORMAT_GUIDE,
+  "short-video":
+    "Output a 30-60 second face-to-camera script. Include: HOOK (first 3 seconds, must stop the scroll), BODY (one tight teaching point with a concrete example), CTA (one ask). Add suggested CAPTION for the video post separately. Burned-in caption suggestions optional.",
+};
+
+const GENERAL_CTA_GUIDE: Record<CtaType, string> = {
+  ...CTA_GUIDE,
+  "save-share": "End with a save/share CTA. Example pattern: 'Save this for the next time you need it' or 'Share with a friend who's stuck on this.'",
+  "book-call": "End with a soft 15-min call CTA. Example pattern: 'If you'd like a no-pressure 15-min chat about your own situation, DM me.' Avoid hard pitches.",
+  "open-question": "End with an open question that invites comments. Example pattern: 'What's the one question about this you've never had answered? Drop it below.'",
+};
+
+const GENERAL_VARIANT_NUDGES = [
+  VARIANT_NUDGES[0],
+  "Variant tone: lean toward story framing - open with a real moment from their work that the context gives (never an invented one; with none, a situation the reader will recognise), then teach.",
+  VARIANT_NUDGES[2],
+  "Variant tone: lean toward detail-led framing - open with one concrete detail from the context that reframes the issue, then unpack it.",
+  VARIANT_NUDGES[4],
+];
+
+const GENERAL_HOOK_NUDGES = [
+  HOOK_NUDGES[0],
+  HOOK_NUDGES[1],
+  "Hook style: a concrete detail that reframes the issue.",
+  "Hook style: a situation the reader recognises, told in one line.",
+  HOOK_NUDGES[4],
+];
+
+function generalBaseLines(body: RequestBody, p: string): string[] {
+  const lines = [
+    `You are a content drafting assistant for ${aOrAn(p)}.`,
+    "You produce one social-media post draft at a time:",
+    "- Every post must hit Authority + Social + a soft CTA. The CTA is mandatory.",
+    "- Authority = demonstrate competence. Social = demonstrate humanity. CTA = invite interaction.",
+    "- Audience starts as a 'Skeptical Stranger'. The post's job is to move them one step toward 'Curious Follower' or 'Trusted Choice'. No hard pitches.",
+    "- No political opinions. No religious proselytising. No naming competitors in a disparaging way.",
+    "- Concrete > abstract. Use real situations and plain detail. Avoid platitudes.",
+    `- ${HONEST_LINE}`,
+    "- Their voice should sound human, not corporate. Match the platform.",
+    "- Output the draft as ready-to-paste copy. No preamble, no 'Here is your post:'. Just the post. If multiple slides/frames, label them clearly.",
+    "",
+    `## Audience`,
+    GENERAL_AUDIENCE_GUIDE[body.audience ?? "general"] ?? GENERAL_AUDIENCE_GUIDE.general,
+    "",
+    `## Pillar: ${body.pillar ?? "topic"}`,
+    GENERAL_PILLAR_GUIDE[body.pillar ?? "topic"],
+    body.pillarDetail ? `Specific pillar detail: ${body.pillarDetail}` : "",
+    "",
+    `## Idea source: ${body.ideaSource ?? ""}`,
+    body.ideaContext
+      ? `Context from them: ${body.ideaContext}`
+      : "If no context provided, write about a situation common in their work, without inventing facts about them or their clients.",
+    "",
+    `## Platform: ${body.platform ?? "linkedin"}`,
+    GENERAL_PLATFORM_VOICE[body.platform ?? "linkedin"],
+    "",
+    `## Format: ${body.format ?? "text-post"}`,
+    GENERAL_FORMAT_GUIDE[body.format ?? "text-post"],
+    "",
+    `## CTA style: ${body.ctaType ?? "open-question"}`,
+    GENERAL_CTA_GUIDE[body.ctaType ?? "open-question"],
+    body.styleReference ? `\n## Style reference (match the structural pattern, don't copy verbatim)\n${body.styleReference}` : "",
+  ];
+  if (body.voiceSummary && body.voiceSummary.trim().length > 0) {
+    lines.push("", "## Voice profile (match this person's tone/structure)", "Their voice profile (match this tone/structure):", body.voiceSummary.trim());
+  }
+  if (body.singlish === true) {
+    lines.push(
+      "",
+      "## Singlish",
+      "Use light Singlish where it lands naturally - 'lah', 'leh', 'can?', 'shiok' - but keep the post readable for everyone. Don't overdo it; aim for 1-3 Singlish moments per post max.",
+    );
+  }
+  return lines;
+}
+
+function generalVoiceSummaryPrompt(body: RequestBody): string {
+  const lines = [
+    "You are a writing-voice analyst. You receive several past social-media posts written by one person.",
+    "Distil their voice into TWO short paragraphs.",
+    "Paragraph 1: tone and voice traits - formality level, warmth, signature words, recurring phrases, level of vulnerability, how they handle authority vs personal.",
+    "Paragraph 2: structural patterns - how they open hooks, paragraph length, line-break habits, list usage, typical post length, how they close / CTA, any repeating frameworks.",
+    "Be specific and quotable. Reference 1-2 short patterns verbatim if they recur. No bullet points; flowing prose.",
+    "Output ONLY the two paragraphs. No preamble. No headers like 'Paragraph 1'. Just the prose.",
+  ];
+  if (body.singlish === true) lines.push("Note: they have Singlish ON - call out any local flavour you notice.");
+  return lines.join("\n");
+}
+
+function generalHashtagsPrompt(p: string): string {
+  return [
+    `You generate hashtag suggestions for ${aOrAn(p)}.`,
+    'Return strict JSON of the form: {"hashtags": ["...", "..."]} with 5-8 entries.',
+    "Rules:",
+    "- Do NOT include the # prefix; just the word(s).",
+    "- Mix 1-2 broad tags + 3-5 niche tags that fit their work and the draft.",
+    "- Match the platform tone: LinkedIn = professional. Instagram = visual. Facebook = sparse. TikTok = trend-aware.",
+    "- No spammy unrelated tags. No competitor brand tags. No #ad #sponsored unless marked.",
+    "- Camel-case multi-word tags (smallBusiness).",
+    "- Output ONLY the JSON. No markdown fences.",
+  ].join("\n");
+}
+
+function generalImagePrompt(): string {
+  return [
+    "You write a 1-2 line image-generation prompt that they can paste into Canva, Midjourney, or kie.ai.",
+    'Return strict JSON: {"prompt": "..."}.',
+    "Rules:",
+    "- 1-2 lines maximum. No quotes inside the prompt itself.",
+    "- Describe a clean, modern, brand-safe scene that fits the draft.",
+    "- No real people's faces, no logos, no text overlays unless they are short and obviously fake numbers.",
+    "- Lean editorial / lifestyle / minimal-graphic, not stock-cheesy.",
+    "- Output ONLY the JSON. No markdown fences.",
+  ].join("\n");
 }

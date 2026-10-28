@@ -94,6 +94,15 @@ describe("streamOnePost for everyone else", () => {
   });
 });
 
+describe("streamOnePost for a brand that says what it does", () => {
+  it("sends the profession with the brief, and nothing else changes", async () => {
+    const pinned = JSON.parse((await import("./__pins__/stream-one-post-everyone.json?raw")).default);
+    seedMemory();
+    const req = await write({ ...PAYLOAD, profession: "coach" });
+    expect(req.body).toEqual({ ...pinned.body, profession: "coach" });
+  });
+});
+
 describe("streamOnePost for Leo", () => {
   const LEO = { id: UID, email: "leo@example.com" };
   const pinned = async () => JSON.parse((await import("./__pins__/stream-one-post-everyone.json?raw")).default);
