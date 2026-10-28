@@ -639,7 +639,7 @@ export function PostItForMePanel({
 
       {error && <p role="alert" className="text-destructive">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={() => void send()} disabled={!!reason || !!busy} className={`h-9 gap-1.5 ${TOUCH}`}>
+        <Button size="sm" onClick={() => void send()} disabled={!!reason || !!busy} className={`h-auto min-h-9 gap-1.5 whitespace-normal py-1.5 text-left ${TOUCH}`}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           {busyLabel ?? (goesNow ? "Post now" : at ? `Schedule for ${whenLabel(day, time, tz)}` : "Schedule")}
         </Button>

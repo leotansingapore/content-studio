@@ -1154,7 +1154,7 @@ export default function CalendarPage() {
             <span className="block text-[10px] opacity-80">
               {e.repeat && <RepeatIcon className="mr-1 inline h-2.5 w-2.5 align-[-1px]" aria-label="Repeats" />}
               {PLATFORM_LABEL[e.platform] ?? e.platform}
-              {time && ` · ${timeLabel(time)} ${draftZone(e)}`}
+              {time && <> · <span className="whitespace-nowrap">{timeLabel(time)} {draftZone(e)}</span></>}
             </span>
             <span className="line-clamp-2">{titleOf(e)}</span>
             {e.zernio?.postId && (
@@ -1257,7 +1257,7 @@ export default function CalendarPage() {
         {roomy ? (
           <>
             {PLATFORM_LABEL[e.platform] ?? e.platform}
-            {time && ` · ${timeLabel(time)} ${draftZone({ scheduledFor: `${day}T${time}` })}`}
+            {time && <> · <span className="whitespace-nowrap">{timeLabel(time)} {draftZone({ scheduledFor: `${day}T${time}` })}</span></>}
             <span className="line-clamp-2">{titleOf(e)}</span>
           </>
         ) : (
@@ -1544,7 +1544,9 @@ export default function CalendarPage() {
               ) : late ? (
                 <span className="font-medium text-warning">{overdueLabel(daysOverdue(date, todayKey))}</span>
               ) : time ? (
-                `Scheduled ${timeLabel(time)} ${draftZone(e)}`
+                <>
+                  Scheduled <span className="whitespace-nowrap">{timeLabel(time)} {draftZone(e)}</span>
+                </>
               ) : (
                 "Scheduled"
               )}
@@ -2165,7 +2167,8 @@ export default function CalendarPage() {
 
           {view === "week" && (
             <Card className="overflow-hidden border-border/60 shadow-card">
-              <div className="grid sm:grid-cols-7">
+              {/* grid-cols-1 (minmax(0, 1fr)): an open post's wide row can't stretch the day past the phone's width */}
+              <div className="grid grid-cols-1 sm:grid-cols-7">
                 {week.map((key) => {
                   const isToday = key === todayKey;
                   const events = byDate.get(key) ?? [];

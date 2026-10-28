@@ -1,6 +1,7 @@
 // Post it for me's first frame, pinned on today's code for any session that is not Leo's (and while the sign-in is
 // still being read): the schedule steps (publish-schedule) are Leo's only. Never update the pinned file with vitest -u.
-// 28 Oct: the button names the time zone it goes out in (SGT here), by design; the browser is pinned to Singapore.
+// 28 Oct: the button names the time zone it goes out in (SGT here) and wraps on a phone, by design; the browser is
+// pinned to Singapore.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
