@@ -263,7 +263,8 @@ const PILLARS: {
   },
 ];
 
-const IDEA_SOURCES: { value: string; label: string; example: string }[] = [
+// prompt: what the writer is told when the label alone would not say how to use the context (sent in its place).
+const IDEA_SOURCES: { value: string; label: string; example: string; prompt?: string }[] = [
   {
     value: "real-question",
     label: "A real question from a client this week",
@@ -300,6 +301,13 @@ const IDEA_SOURCES: { value: string; label: string; example: string }[] = [
     value: "myth-bust",
     label: "Myth-busting",
     example: "e.g. 'Insurance is a scam' / 'CPF is just government money'",
+  },
+  {
+    // Starter Story, Go Tall: replying to comments on camera was the first format that went viral.
+    value: "reply-comment",
+    label: "Reply to a comment on your post",
+    example: "Paste the comment below. The post opens by quoting it, then answers it.",
+    prompt: "Reply to a comment someone left on my post. Open by quoting the comment from the context word for word, then answer it plainly.",
   },
 ];
 
@@ -394,6 +402,7 @@ const GENERAL_IDEAS: Record<string, { label: string; example: string }> = {
   "before-after": { label: "A before-and-after / case study", example: "e.g. how a client's week changed after one small fix" },
   "three-things": { label: "'3 things you didn't know about ___'", example: "e.g. 3 things nobody tells you before you start" },
   "myth-bust": { label: "Myth-busting", example: "e.g. 'You need a big following to get clients'" },
+  "reply-comment": { label: "Reply to a comment on your post", example: "Paste the comment below. The post opens by quoting it, then answers it." },
 };
 const GENERAL_CTA_SUBS: Partial<Record<CtaType, string>> = {
   "dm-keyword": "'DM me GUIDE for the checklist.'",
@@ -1453,6 +1462,7 @@ export default function GeneratePage() {
     () => ideaSources.find((s) => s.value === ideaSource)!,
     [ideaSource, ideaSources],
   );
+  const ideaLine = ideaMeta.prompt ?? ideaMeta.label;
 
   // Debounced compliance scan on draft (500ms).
   const [complianceFlags, setComplianceFlags] = useState<ComplianceFlag[]>([]);
@@ -1684,7 +1694,7 @@ export default function GeneratePage() {
     return {
       pillar,
       pillarDetail: pillarDetail.trim(),
-      ideaSource: ideaMeta.label,
+      ideaSource: ideaLine,
       ideaContext: ctxParts.join("\n\n") || undefined,
       format,
       platform,
@@ -1912,7 +1922,7 @@ export default function GeneratePage() {
       if (!ideaAskedRef.current.has(key)) {
         ideaAskedRef.current.add(key);
         setCheckingIdea(true);
-        const thin = await ideaIsThin(pillarDetail.trim(), ideaContext.trim(), ideaMeta.label);
+        const thin = await ideaIsThin(pillarDetail.trim(), ideaContext.trim(), ideaLine);
         setCheckingIdea(false);
         if (thin) {
           setIdeaAsk({ answer: "" });
@@ -2067,7 +2077,7 @@ export default function GeneratePage() {
         audience,
         format,
         ctaType,
-        ideaSource: ideaMeta.label,
+        ideaSource: ideaLine,
         draft: trimmed,
         voiceSummary: voiceSummary ?? undefined,
         singlish: singlish ? true : undefined,
@@ -2131,7 +2141,7 @@ export default function GeneratePage() {
       audience,
       ctaType,
       format,
-      ideaMeta.label,
+      ideaLine,
       pillar,
       pillarDetail,
       platform,
@@ -3640,7 +3650,7 @@ export default function GeneratePage() {
               What&apos;s the spark?
             </CardTitle>
             <InfoTip label="About idea sources">
-              Day 41&apos;s seven idea sources; real conversations make the strongest posts.
+              Real questions, comments and moments from your work make the strongest posts.
             </InfoTip>
           </div>
         </CardHeader>
@@ -3663,16 +3673,16 @@ export default function GeneratePage() {
           )}
           <div className="space-y-1.5">
             <Label htmlFor="idea-context" className="flex items-center gap-1.5">
-              Context{" "}
+              {ideaSource === "reply-comment" ? "The comment" : "Context"}{" "}
               <span className="text-xs font-normal text-muted-foreground">
-                (optional, but better drafts)
+                {ideaSource === "reply-comment" ? "(word for word)" : "(optional, but better drafts)"}
               </span>
             </Label>
             <Textarea
               id="idea-context"
               value={ideaContext}
               onChange={(e) => setIdeaContext(e.target.value)}
-              placeholder="The actual question, mistake, story, or numbers. Specific beats generic every time."
+              placeholder={ideaSource === "reply-comment" ? "Paste the comment exactly as it was written." : "The actual question, mistake, story, or numbers. Specific beats generic every time."}
               rows={3}
               autoResize
             />

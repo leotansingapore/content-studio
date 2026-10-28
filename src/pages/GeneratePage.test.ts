@@ -60,9 +60,21 @@ describe("Write for everyone else", () => {
 // North star phase 7a (Leo only): the pieces Write's score fixes and new hooks are built from.
 describe("Write's examples for the brand's profession", () => {
   const values = (o: ReturnType<typeof optionsFor>) => Object.values(o).map((list) => list.map((x: { value: string }) => x.value));
+  // Idea sources added after 47e27562 (Starter Story, 28 Oct 2026). The pin below still holds every older entry.
+  const ADDED = ["reply-comment"];
   it("are today's for an adviser or a brand with nothing set", () => {
-    expect(JSON.stringify(optionsFor(false))).toContain("CPF SA top-ups");
-    expect(sha(JSON.stringify(optionsFor(false)))).toBe("4ef1c414378d32626b4c3a7095e286cd52100762f931d57fad14d941c211e8a3"); // today's lists, on 47e27562
+    const today = optionsFor(false);
+    expect(JSON.stringify(today)).toContain("CPF SA top-ups");
+    const before = { ...today, ideaSources: today.ideaSources.filter((s) => !ADDED.includes(s.value)) };
+    expect(sha(JSON.stringify(before))).toBe("4ef1c414378d32626b4c3a7095e286cd52100762f931d57fad14d941c211e8a3"); // today's lists, on 47e27562
+    expect(today.ideaSources.slice(-ADDED.length).map((s) => s.value)).toEqual(ADDED);
+  });
+  it("tell the writer how to use a pasted comment, in words with no adviser framing", () => {
+    for (const general of [false, true]) {
+      const reply = optionsFor(general).ideaSources.find((s) => s.value === "reply-comment")!;
+      expect(reply.prompt).toMatch(/quoting the comment .* word for word, then answer it/);
+      expect(adviserWordsIn(`${reply.label} ${reply.example} ${reply.prompt}`)).toEqual([]);
+    }
   });
   it("offer the same choices in the same order, worded with none of the adviser words, for any other work", () => {
     expect(values(optionsFor(true))).toEqual(values(optionsFor(false)));
