@@ -21,7 +21,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
-import { VISUALS_RESPONSE_FORMAT, buildVisualsPrompt, parseVisualsRequest, validateVisuals } from "./logic.ts";
+import { buildVisualsPrompt, parseVisualsRequest, validateVisuals, visualsFormat, type VisualsRequest } from "./logic.ts";
 import { STYLE_RESPONSE_FORMAT, buildStylePrompt, parseStyleRequest, readLook, styleQuestions, styleState, validateStyle } from "./style.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { isAllowed } from "../market/logic.ts";
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
           model: OPENAI_MODEL,
           temperature: 0.4,
           max_tokens: editMode ? 3000 : styleMode ? 900 : 1500,
-          response_format: editMode ? EDIT_RESPONSE_FORMAT : styleMode ? STYLE_RESPONSE_FORMAT : VISUALS_RESPONSE_FORMAT,
+          response_format: editMode ? EDIT_RESPONSE_FORMAT : styleMode ? STYLE_RESPONSE_FORMAT : visualsFormat((parsed.value as VisualsRequest).profession),
           messages: [
             { role: "system", content: system },
             { role: "user", content: parts },

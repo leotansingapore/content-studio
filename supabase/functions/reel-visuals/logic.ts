@@ -7,6 +7,8 @@
 // consultant's version, so the model reads the original's look and plans the
 // shots for the new one.
 
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
+
 export interface FrameInput {
   /** Seconds into the video. */
   t: number;
@@ -27,6 +29,8 @@ export interface VisualsRequest {
   pacing: Pacing;
   /** The spoken lines of the consultant's version, one per beat. */
   beats: string[];
+  /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt. */
+  profession?: string;
 }
 
 export interface OnScreenLine {
@@ -96,6 +100,7 @@ export function parseVisualsRequest(raw: unknown, maxFrames = MAX_FRAMES): { ok:
 
   const beats = (Array.isArray(r.beats) ? r.beats : []).map((b) => line(b, 300)).filter(Boolean).slice(0, MAX_BEATS);
   if (beats.length === 0) return { ok: false, error: "Send the beats of your version." };
+  const profession = professionOf(r.profession);
 
   return {
     ok: true,
@@ -108,6 +113,7 @@ export function parseVisualsRequest(raw: unknown, maxFrames = MAX_FRAMES): { ok:
         cutsFirst3s: Math.round(cutsFirst3s),
       },
       beats,
+      ...(profession ? { profession } : {}),
     },
   };
 }
@@ -130,6 +136,15 @@ const SYSTEM_PROMPT = [
   "Use plain punctuation with no em dashes. Return only the JSON object.",
 ].join("\n");
 
+/** The same shot plan for any other work: their work named, and the honesty everyone keeps in place of the compliance line. */
+const generalPrompt = (p: string) =>
+  SYSTEM_PROMPT.replace("You help licensed financial consultants in Singapore learn", () => `You help ${aOrAn(p)} learn`)
+    .replace(
+      "Compliance: never suggest showing a specific % return, a named insurer product, or a fund, stock or ETF pick on screen.",
+      () => `Honesty: the shots add no claim their version doesn't make. ${HONEST_LINE}`,
+    )
+    .replace(/the consultant's/g, "their");
+
 type Part = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "high" } };
 
 /**
@@ -150,9 +165,9 @@ export function buildVisualsPrompt(req: VisualsRequest): { system: string; parts
   }
   parts.push({
     type: "text",
-    text: ["For myVisuals only, the consultant's version, one beat per line:", ...req.beats.map((b, i) => `${i + 1}. ${b}`)].join("\n"),
+    text: [`For myVisuals only, ${req.profession ? "their" : "the consultant's"} version, one beat per line:`, ...req.beats.map((b, i) => `${i + 1}. ${b}`)].join("\n"),
   });
-  return { system: SYSTEM_PROMPT, parts };
+  return { system: req.profession ? generalPrompt(req.profession) : SYSTEM_PROMPT, parts };
 }
 
 const str = (description: string) => ({ type: "string", description });
@@ -187,6 +202,10 @@ export const VISUALS_RESPONSE_FORMAT = {
     },
   },
 } as const;
+
+/** The schema for `profession` (VisualsRequest): today's for an adviser, else the same with their version named. */
+export const visualsFormat = (profession = ""): typeof VISUALS_RESPONSE_FORMAT =>
+  profession ? JSON.parse(JSON.stringify(VISUALS_RESPONSE_FORMAT).replace("the consultant's version", "their version")) : VISUALS_RESPONSE_FORMAT;
 
 function parseObject(raw: unknown): Item | null {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw as Item;

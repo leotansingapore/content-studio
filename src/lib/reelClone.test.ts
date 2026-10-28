@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } } }));
 const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
 vi.mock("@/lib/useLeoOnly", () => ({ leoUser: vi.fn(async () => as.user) }));
+const PACING = { durationSec: 9, cuts: 1, avgShotSec: 4.5, cutsFirst3s: 0 };
+vi.mock("@/lib/reelFrames", async (orig) => ({ ...(await orig<typeof import("./reelFrames")>()), sampleReelFrames: async () => ({ frames: [], pacing: PACING }) }));
 
 import { supabase } from "@/lib/supabase";
 import { loadStages } from "./board";
@@ -17,6 +19,7 @@ import {
   ReelCloneError,
   buildCloneDraft,
   canReadVideo,
+  startVisualsJob,
   cloneDraftText,
   cloneLinkFor,
   cloneReel,
@@ -301,6 +304,19 @@ describe("the brand's profession sent to clone-reel", () => {
     const bodies = invoke.mock.calls.map((c) => JSON.parse(JSON.stringify(c[1].body)));
     expect(bodies[0].profession).toBe("real estate agent");
     expect("profession" in bodies[1]).toBe(false);
+  });
+
+  it("goes with the shot plan after a clone from the open brand's kit, and not for an adviser's", async () => {
+    const clone: SavedClone = { id: "c-v", savedAt: "2026-10-20T03:00:00.000Z", result: { ...result({ videoUrl: "https://cdn.example/reel.mp4" }), myVersion: { ...result().myVersion, beats: [{ say: "Start small" }] as never } } };
+    invoke.mockResolvedValue({ data: { visuals: { format: "f", hookVisual: "h", onScreenText: [], pacing: "p", visualMoves: [], myVisuals: ["x"] } }, error: null });
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await startVisualsJob("u1", clone);
+    window.localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await startVisualsJob("u1", clone);
+    expect(invoke.mock.calls.map((c) => JSON.parse(JSON.stringify(c[1].body)))).toEqual([
+      { frames: [], pacing: PACING, beats: ["Start small"], profession: "coach" },
+      { frames: [], pacing: PACING, beats: ["Start small"] },
+    ]);
   });
 });
 

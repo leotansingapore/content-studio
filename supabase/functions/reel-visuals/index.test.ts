@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { visualsFormat } from "./logic";
 
 // The handler as the app calls it: sign-in, the cap, OpenAI's read and Jev's look pick.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -104,6 +105,14 @@ describe("today's breakdown and style read (pinned)", () => {
     expect(ai.sent).toHaveLength(1);
     expect(ai.sent[0]).toMatchObject({ model: "gpt-6-luna", max_completion_tokens: 5500, response_format: { json_schema: { name: "reel_visuals" } } });
     expect(ai.asked).toEqual([]);
+  });
+
+  it("plan a clone's shots for the work the brand names", async () => {
+    ai.replies.push(VISUALS);
+    expect((await send(UID, { frames, pacing, beats: ["Start small", "Comment START"], profession: "Coach" })).status).toBe(200);
+    const sent = ai.sent[0] as { messages: { content: unknown }[]; response_format: unknown };
+    expect(sent.messages[0].content).toContain("You help a coach learn how short videos");
+    expect(sent.response_format).toEqual(visualsFormat("coach"));
   });
 
   it("read a reel's style for anyone signed in, on the same cap, with Jev's look", async () => {

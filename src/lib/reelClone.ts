@@ -519,7 +519,7 @@ export async function startVisualsJob(userId: string, clone: SavedClone): Promis
     const { frames, pacing } = await sampleReelFrames(url, (phase, fraction) => set({ phase, progress: fraction }));
     set({ phase: "read", progress: 1, frames: frames.map((f) => f.image) });
     const { data, error } = await supabase.functions.invoke("reel-visuals", {
-      body: { frames, pacing, beats },
+      body: { frames, pacing, beats, profession: professionFor(userId) || undefined },
       timeout: 90_000,
     });
     if (error) {
