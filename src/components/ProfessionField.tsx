@@ -3,10 +3,13 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { ADVISER, MAX_PROFESSION_CHARS, PROFESSION_CHOICES, isAdviser } from "@/lib/profession";
 
-/** "What do you do?": a few common answers, or the person's own words. Nothing set reads as a financial adviser. */
-export default function ProfessionField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+/**
+ * "What do you do?": a few common answers, or the person's own words. On a brand that exists, nothing set reads as a
+ * financial adviser and shows that chip picked; a new brand (`emptyIsAdviser` false) starts with none picked.
+ */
+export default function ProfessionField({ value, onChange, emptyIsAdviser = true }: { value: string; onChange: (v: string) => void; emptyIsAdviser?: boolean }) {
   const id = useId();
-  const picked = (c: string) => (c === ADVISER ? isAdviser(value) : value.trim().toLowerCase() === c.toLowerCase());
+  const picked = (c: string) => (c === ADVISER ? (emptyIsAdviser || value.trim() !== "") && isAdviser(value) : value.trim().toLowerCase() === c.toLowerCase());
   return (
     <div className="space-y-1.5" data-testid="profession">
       <div className="flex items-center gap-1">

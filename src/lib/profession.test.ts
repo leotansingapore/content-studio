@@ -94,6 +94,13 @@ describe("What do you do?", () => {
     expect(pressed(html(""))).toEqual(["Financial adviser"]);
   });
 
+  it("picks nothing for a new brand that has not answered yet", () => {
+    const fresh = (value: string) => renderToStaticMarkup(createElement(ProfessionField, { value, onChange: () => undefined, emptyIsAdviser: false }));
+    expect(pressed(fresh(""))).toEqual([]);
+    expect(pressed(fresh("Coach"))).toEqual(["Coach"]);
+    expect(pressed(fresh("financial advisor"))).toEqual(["Financial adviser"]);
+  });
+
   it("picks the adviser chip for either spelling, typed in any case", () => {
     for (const v of ["financial advisor", " Financial Adviser "]) expect(pressed(html(v))).toEqual(["Financial adviser"]);
   });
