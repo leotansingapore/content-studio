@@ -93,10 +93,13 @@ function times(ratio: number): string {
 
 export default function AccountAudit({
   accounts,
+  profession,
   onSaveAccount,
   zernioFollowers = [],
 }: {
   accounts: SocialAccounts;
+  /** The open brand's "What do you do?" (professionFor), "" for an adviser: the advice, ideas and profile score are written for it. */
+  profession: string;
   onSaveAccount: (platform: AuditPlatform, handle: string) => void;
   /** Daily follower counts of the brand's connected accounts, from Use my real numbers. */
   zernioFollowers?: FollowerSeries[];
@@ -119,6 +122,7 @@ export default function AccountAudit({
           key={`${a.platform}:${a.handle}`}
           platform={a.platform}
           handle={a.handle}
+          profession={profession}
           onRemove={() => onSaveAccount(a.platform, "")}
           zernio={connectedFor(zernioFollowers, a.platform, a.handle)?.series}
         />
@@ -220,11 +224,13 @@ function AddAccount({
 function AuditPanel({
   platform,
   handle,
+  profession,
   onRemove,
   zernio,
 }: {
   platform: AuditPlatform;
   handle: string;
+  profession: string;
   onRemove: () => void;
   zernio?: FollowerSeries["series"];
 }) {
@@ -242,7 +248,7 @@ function AuditPanel({
     setNotice(null);
     setStalled(false);
     try {
-      const res = await openAudit(platform, handle);
+      const res = await openAudit(platform, handle, profession);
       setAudit(res.audit);
       setNotice(res.notice);
     } catch (e) {
@@ -250,7 +256,7 @@ function AuditPanel({
     } finally {
       setLoading(false);
     }
-  }, [platform, handle]);
+  }, [platform, handle, profession]);
 
   useEffect(() => {
     void open();
@@ -435,10 +441,11 @@ function AuditPanel({
                 link={profile.link ?? null}
                 pinned={posts.filter((p) => p.pinned)}
                 best={stats.topIds.map((id) => byId.get(id)).filter((p): p is RatedPost => p !== undefined)}
+                profession={profession}
               />
             )}
             {stats.postsAnalyzed >= MIN_POSTS_FOR_IDEAS && (
-              <PostIdeas auditId={audit.id} platform={platform} handle={handle} byId={byId} />
+              <PostIdeas auditId={audit.id} platform={platform} handle={handle} byId={byId} profession={profession} />
             )}
             <BestPosts platform={platform} handle={handle} audit={audit} stats={stats} byId={byId} />
             <details className="group rounded-xl border border-border/60">
@@ -856,11 +863,13 @@ function PostIdeas({
   platform,
   handle,
   byId,
+  profession,
 }: {
   auditId: string;
   platform: AuditPlatform;
   handle: string;
   byId: Map<string, RatedPost>;
+  profession: string;
 }) {
   const [ideas, setIdeas] = useState<IdeaRow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -889,7 +898,7 @@ function PostIdeas({
     setWorking(true);
     setError(null);
     try {
-      setIdeas(await requestIdeas(auditId));
+      setIdeas(await requestIdeas(auditId, profession));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't get ideas. Try again.");
     } finally {

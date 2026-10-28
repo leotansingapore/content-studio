@@ -67,13 +67,17 @@ export interface AuditSnapshot {
   posts_per_week: number | null;
 }
 
-/** Returns the saved audit, starting a refresh on the server when it's due. */
+/**
+ * Returns the saved audit, starting a refresh on the server when it's due. `profession`: the open brand's
+ * (professionFor), "" for an adviser; always sent, so the server reads the brand kit only for the weekly job.
+ */
 export async function openAudit(
   platform: AuditPlatform,
   handle: string,
+  profession: string,
 ): Promise<{ audit: AuditRow; notice: string | null }> {
   const { data, error } = await supabase.functions.invoke("audit-social-account", {
-    body: { platform, handle },
+    body: { platform, handle, profession },
   });
   if (error) {
     // FunctionsHttpError hides the JSON body behind error.context.
@@ -312,10 +316,10 @@ export async function loadLatestIdeas(auditId: string): Promise<IdeaRow[]> {
   return rows.filter((r) => r.batch === rows[0]?.batch);
 }
 
-/** Asks the server for a new batch that repeats nothing shown or posted before. */
-export async function requestIdeas(auditId: string): Promise<IdeaRow[]> {
+/** Asks the server for a new batch that repeats nothing shown or posted before, written for `profession` ("" for an adviser). */
+export async function requestIdeas(auditId: string, profession: string): Promise<IdeaRow[]> {
   const { data, error } = await supabase.functions.invoke("suggest-post-ideas", {
-    body: { auditId },
+    body: { auditId, profession: profession || undefined },
   });
   if (error) {
     const ctx = (error as { context?: Response }).context;

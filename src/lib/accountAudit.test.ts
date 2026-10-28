@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { auditedHandles, captionsForVoice, connectedFor, followerSeries, growthSeries, loadAuditFor, loadLatestIdeas, openAudit, remixUrl, shortDate, type AuditSnapshot, type RatedPost } from "@/lib/accountAudit";
+import { auditedHandles, captionsForVoice, connectedFor, followerSeries, growthSeries, loadAuditFor, loadLatestIdeas, openAudit, remixUrl, requestIdeas, shortDate, type AuditSnapshot, type RatedPost } from "@/lib/accountAudit";
 
 const hub = vi.hoisted(() => ({ invoke: vi.fn(), rows: [] as unknown[], row: null as unknown, read: [] as unknown[][] }));
 vi.mock("@/lib/supabase", () => {
@@ -111,16 +111,34 @@ describe("openAudit", () => {
   it("shows the audit service's own reason when it refuses, and a connection line when it says nothing", async () => {
     const refused = (body: unknown) => ({ data: null, error: { context: new Response(JSON.stringify(body), { status: 422 }) } });
     hub.invoke.mockResolvedValueOnce(refused({ error: "@ada.tan is private, so the audit can't read its posts." }));
-    await expect(openAudit("instagram", "ada.tan")).rejects.toThrow("@ada.tan is private, so the audit can't read its posts.");
+    await expect(openAudit("instagram", "ada.tan", "")).rejects.toThrow("@ada.tan is private, so the audit can't read its posts.");
     hub.invoke.mockResolvedValueOnce(refused({}));
-    await expect(openAudit("instagram", "ada.tan")).rejects.toThrow("Couldn't reach the audit service. Check your connection and try again.");
+    await expect(openAudit("instagram", "ada.tan", "")).rejects.toThrow("Couldn't reach the audit service. Check your connection and try again.");
     hub.invoke.mockResolvedValueOnce({ data: null, error: new Error("Failed to send a request") });
-    await expect(openAudit("instagram", "ada.tan")).rejects.toThrow("Couldn't reach the audit service.");
+    await expect(openAudit("instagram", "ada.tan", "")).rejects.toThrow("Couldn't reach the audit service.");
     hub.invoke.mockResolvedValueOnce({ data: {}, error: null });
-    await expect(openAudit("instagram", "ada.tan")).rejects.toThrow("The audit service sent nothing back. Try again.");
+    await expect(openAudit("instagram", "ada.tan", "")).rejects.toThrow("The audit service sent nothing back. Try again.");
     hub.invoke.mockResolvedValueOnce({ data: { audit: { id: "a1" }, notice: "Refreshing in the background." }, error: null });
-    expect(await openAudit("instagram", "ada.tan")).toEqual({ audit: { id: "a1" }, notice: "Refreshing in the background." });
-    expect(hub.invoke).toHaveBeenLastCalledWith("audit-social-account", { body: { platform: "instagram", handle: "ada.tan" } });
+    expect(await openAudit("instagram", "ada.tan", "")).toEqual({ audit: { id: "a1" }, notice: "Refreshing in the background." });
+    expect(hub.invoke).toHaveBeenLastCalledWith("audit-social-account", { body: { platform: "instagram", handle: "ada.tan", profession: "" } });
+  });
+
+  it("sends the open brand's profession, and an empty one for an adviser's so the server never reads the brand kit", async () => {
+    hub.invoke.mockResolvedValue({ data: { audit: { id: "a1" } }, error: null });
+    await openAudit("instagram", "ada.tan", "coach");
+    expect(hub.invoke).toHaveBeenLastCalledWith("audit-social-account", { body: { platform: "instagram", handle: "ada.tan", profession: "coach" } });
+    await openAudit("tiktok", "ada.tan", "");
+    expect(hub.invoke).toHaveBeenLastCalledWith("audit-social-account", { body: { platform: "tiktok", handle: "ada.tan", profession: "" } });
+  });
+});
+
+describe("requestIdeas", () => {
+  it("sends the open brand's profession, and none for an adviser's (today's body)", async () => {
+    hub.invoke.mockResolvedValue({ data: { ideas: [] }, error: null });
+    await requestIdeas("a1", "real estate agent");
+    expect(hub.invoke).toHaveBeenLastCalledWith("suggest-post-ideas", { body: { auditId: "a1", profession: "real estate agent" } });
+    await requestIdeas("a1", "");
+    expect(JSON.parse(JSON.stringify(hub.invoke.mock.lastCall))).toEqual(["suggest-post-ideas", { body: { auditId: "a1" } }]);
   });
 });
 

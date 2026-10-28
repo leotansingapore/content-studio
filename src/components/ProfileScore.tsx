@@ -27,6 +27,7 @@ export default function ProfileScore({
   link,
   pinned,
   best,
+  profession,
 }: {
   platform: AuditPlatform;
   name: string;
@@ -36,6 +37,8 @@ export default function ProfileScore({
   pinned: RatedPost[];
   /** Best posts first, for the pin suggestion and the rewrite. */
   best: RatedPost[];
+  /** The open brand's (professionFor), "" for an adviser. */
+  profession: string;
 }) {
   const { toast } = useToast();
   const [result, setResult] = useState<Score | null>(null);
@@ -58,6 +61,7 @@ export default function ProfileScore({
           link,
           pinned: pinned.map((p) => p.caption.slice(0, 400)),
           top: best.slice(0, 3).map((p) => p.caption.slice(0, 300)),
+          profession,
         }),
       );
     } catch (e) {

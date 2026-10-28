@@ -78,6 +78,7 @@ import ScoreCheck from "@/components/analytics/ScoreCheck";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { auditedHandles, normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
+import { professionFor } from "@/lib/profession";
 import type { FollowerSeries } from "@/lib/realNumbers";
 import {
   SOCIAL_PLATFORMS,
@@ -723,7 +724,7 @@ export default function AnalyticsPage() {
 
       <RecruitNumbers />
 
-      {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
+      {userId && <AccountAudit accounts={accounts} profession={professionFor(userId)} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
 
       <CreatorLookup />
 

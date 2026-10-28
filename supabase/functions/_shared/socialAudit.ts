@@ -10,6 +10,7 @@
 // - Posts younger than two days are still collecting views, so they aren't judged.
 
 import { COMPLIANCE_FLAGS } from "./compliance.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "./profession.ts";
 
 export type AuditPlatform = "instagram" | "tiktok";
 export type PostFormat = "video" | "carousel" | "image";
@@ -458,15 +459,27 @@ export function oneLine(text: string, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
 }
 
+/** The advice for any other work: their work named, and the honesty everyone keeps in place of the adviser's rule. */
+const generalAdvice = (system: string, p: string) =>
+  system
+    .replace("account of a licensed financial consultant in Singapore.", () => `account of ${aOrAn(p)}.`)
+    .replace(
+      "- Stay compliant for a licensed financial consultant: never suggest guaranteed or risk-free returns, specific return percentages, pressure like 'act now', or calling a product 'the best'.",
+      `- Stay honest: ${HONEST_LINE}`,
+    )
+    .replace("- Write for the consultant:", "- Write for them:");
+
 export function buildAdvicePrompt(input: {
   platform: AuditPlatform;
   profile: AuditProfile;
   stats: AuditStats;
   posts: RatedPost[];
+  /** The brand's "What do you do?" (./profession.ts); none, or an adviser's, gets today's prompt. */
+  profession?: string;
 }): { system: string; user: string } {
   const { platform, profile, stats, posts } = input;
   const name = platform === "instagram" ? "Instagram" : "TikTok";
-  const system = [
+  const adviserSystem = [
     `You audit the ${name} account of a licensed financial consultant in Singapore. You get their recent posts with real numbers.`,
     "Rules:",
     "- Base every point on the numbers given, and cite the ids of the posts that prove it. Never invent numbers, posts or trends.",
@@ -481,6 +494,8 @@ export function buildAdvicePrompt(input: {
     "- Write for the consultant: plain English, short sentences, no jargon, no hashtags, no em dashes. Keep each detail under 45 words.",
     'Return JSON only, in this shape: {"summary": "at most 2 sentences", "doubleDown": [{"title": "...", "detail": "...", "postIds": ["..."]}], "fix": [same shape], "stop": [same shape], "remix": [{"postId": "...", "why": "...", "newAngle": "..."}]}',
   ].join("\n");
+  const profession = professionOf(input.profession);
+  const system = profession ? generalAdvice(adviserSystem, profession) : adviserSystem;
 
   const fmtNum = (n: number) => n.toLocaleString("en-US");
   const basis = stats.engagementBasis === "followers" ? "followers" : "views";

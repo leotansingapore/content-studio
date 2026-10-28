@@ -1,5 +1,5 @@
 // "Post ideas in your style" on the account audit. A signed-in consultant sends
-// {auditId}; this studies what went furthest on that account and returns up to
+// {auditId, profession?}; this studies what went furthest on that account and returns up to
 // 5 fresh post ideas that repeat nothing they've posted or been shown before.
 // Every idea is stored in cs_social_ideas so later batches can avoid it.
 //
@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
         posts,
         previous: [...accepted.map((i) => ({ hook: i.hook, idea: i.idea, status: "new" as const })), ...previous],
         count: IDEAS_REQUESTED,
+        // the open brand's "What do you do?"; none (an adviser, an older app) keeps today's prompt
+        profession: typeof body?.profession === "string" ? body.profession : "",
       });
       const content = await openAiJson(system, user, apiKey, { temperature: 0.9, maxTokens: 2200 });
       if (!content) continue;

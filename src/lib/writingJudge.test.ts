@@ -60,11 +60,20 @@ describe("Jev's calls in Write fall back to no recommendation", () => {
   });
 
   it("refuses a profile score that comes back without a number and its items", async () => {
-    const input = { platform: "instagram" as const, name: "Jun", bio: "", pinned: [], top: [], link: null };
+    const input = { platform: "instagram" as const, name: "Jun", bio: "", pinned: [], top: [], link: null, profession: "" };
     call.mockResolvedValueOnce({ score: "80", items: [] });
     await expect(scoreProfile(input)).rejects.toThrow("Couldn't score your profile right now. Try again in a minute.");
     const good = { score: 72, items: [] } as unknown as ProfileScore;
     call.mockResolvedValueOnce(good);
     expect(await scoreProfile(input)).toEqual(good);
+  });
+
+  it("sends the brand's profession with the profile, and none for an adviser's (today's body)", async () => {
+    const input = { platform: "tiktok" as const, name: "Jun", bio: "Hi", pinned: [], top: [], link: null };
+    call.mockResolvedValue({ score: 72, items: [] });
+    await scoreProfile({ ...input, profession: "coach" });
+    expect(call.mock.calls[0][1]).toEqual({ mode: "profile", ...input, profession: "coach" });
+    await scoreProfile({ ...input, profession: "" });
+    expect(JSON.parse(JSON.stringify(call.mock.calls[1][1]))).toEqual({ mode: "profile", ...input });
   });
 });

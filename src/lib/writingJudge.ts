@@ -39,8 +39,14 @@ export async function scoreProfile(input: {
   pinned: string[];
   top: string[];
   link: string | null;
+  /** The open brand's (professionFor), "" for an adviser. */
+  profession: string;
 }): Promise<ProfileScore> {
-  const res = await callFn<ProfileScore>("writing-judge", { mode: "profile", ...input }, "Couldn't score your profile right now. Try again in a minute.");
+  const res = await callFn<ProfileScore>(
+    "writing-judge",
+    { mode: "profile", ...input, profession: input.profession || undefined },
+    "Couldn't score your profile right now. Try again in a minute.",
+  );
   if (typeof res?.score !== "number" || !Array.isArray(res.items)) throw new Error("Couldn't score your profile right now. Try again in a minute.");
   return res;
 }

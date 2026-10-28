@@ -1,5 +1,5 @@
 // "Your account audit" on the Analytics page. A signed-in consultant sends
-// {platform, handle}; this returns their saved audit and, when it is stale
+// {platform, handle, profession?}; this returns their saved audit and, when it is stale
 // (at most once every 20 hours), starts a refresh in the background. The app
 // then polls its cs_social_audits row until the refresh finishes.
 //
@@ -128,6 +128,8 @@ Deno.serve(async (req) => {
       audit: claimed,
       apifyKey,
       openaiKey: Deno.env.get("OPENAI_API_KEY"),
+      // the open brand's "What do you do?" ("" for an adviser); an older app sends none and the brand kit is read
+      ...(typeof body?.profession === "string" ? { profession: body.profession } : {}),
     });
     if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
     else await work;

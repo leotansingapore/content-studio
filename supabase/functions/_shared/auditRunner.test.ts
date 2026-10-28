@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuditError, apifyItems, claimAudit, runAudit, type AuditTarget } from "./auditRunner";
+import { AuditError, apifyItems, claimAudit, professionFromRows, runAudit, type AuditTarget } from "./auditRunner";
 
 // The account audit's network half (Analytics' audit card) with Apify and the database faked. Nothing here reaches a network.
 // Node builds its fetch classes the first time one is used: build them while this file loads.
@@ -59,13 +59,15 @@ describe("apifyItems: what the consultant reads when Apify fails", () => {
   });
 });
 
-/** The service-role client: records each update and insert, and fails the ones named in `failing`. */
-function admin(failing: { update?: boolean } = {}) {
+/** The service-role client: records each update and insert, and fails the ones named in `failing`. `synced`: cs_user_data rows. */
+function admin(failing: { update?: boolean } = {}, synced: { key: string; data: string }[] = []) {
   const updates: Record<string, unknown>[] = [];
   const inserts: { table: string; row: Record<string, unknown> }[] = [];
+  const reads: string[] = [];
   let failed = false;
   const db = {
     from: (table: string) => ({
+      select: () => ({ eq: () => ({ or: async (f: string) => (reads.push(`${table} ${f}`), { data: synced, error: null }) }) }),
       update: (v: Record<string, unknown>) => ({
         eq: async () => {
           updates.push(v);
@@ -77,7 +79,7 @@ function admin(failing: { update?: boolean } = {}) {
       insert: async (row: Record<string, unknown>) => (inserts.push({ table, row }), { error: null }),
     }),
   };
-  return { db, updates, inserts };
+  return { db, updates, inserts, reads };
 }
 
 const AUDIT: AuditTarget = { id: "a1", user_id: "u1", platform: "instagram", handle: "acmewealth" };
@@ -155,5 +157,60 @@ describe("claimAudit", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("the advice is written for the brand that holds the account", () => {
+  const U = AUDIT.user_id;
+  const row = (key: string, v: unknown) => ({ key, data: JSON.stringify(v) });
+  const kit = (scope: string, profession?: string) => row(`content-studio-carousel-brand-${scope}`, { color: "#000", ...(profession ? { profession } : {}) });
+  const accounts = (scope: string, instagram: string) => row(`content-studio-socialaccounts-${scope}`, { instagram: { handle: instagram, connectedAt: "x" } });
+
+  it("reads the profession of the brand whose saved account is the audited handle, else the first brand's", () => {
+    const rows = [kit(U, "Coach"), kit(`${U}~pb2`, "Real estate agent"), accounts(U, "@someone.else"), accounts(`${U}~pb2`, "https://www.instagram.com/AcmeWealth/")];
+    expect(professionFromRows(AUDIT, rows)).toBe("Real estate agent");
+    expect(professionFromRows({ ...AUDIT, handle: "nobody" }, rows)).toBe("Coach");
+    // another user's rows never count, and an unreadable kit is an adviser's
+    expect(professionFromRows(AUDIT, [kit("u2", "Lawyer"), accounts("u2", "acmewealth")])).toBe("");
+    expect(professionFromRows(AUDIT, [{ key: `content-studio-carousel-brand-${U}`, data: "{not json" }])).toBe("");
+    expect(professionFromRows(AUDIT, [kit(U)])).toBe("");
+  });
+
+  /** Apify reads 6 posts, OpenAI's system prompts are kept. */
+  function apifyAndOpenAi() {
+    const systems: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: URL | string, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("https://api.openai.com/")) {
+        systems.push(JSON.parse(String(init?.body)).messages[0].content);
+        return new Response("down", { status: 503 });
+      }
+      const actor = url.split("/acts/")[1]?.split("/")[0] ?? "";
+      if (actor === "apify~instagram-profile-scraper") return new Response(JSON.stringify([{ username: "acmewealth", followersCount: 900 }]));
+      if (actor === "apify~instagram-post-scraper") return new Response(JSON.stringify(igPosts(6)));
+      throw new Error(`unexpected fetch ${url}`);
+    }));
+    return systems;
+  }
+
+  it("uses the profession the app sent without reading the brand kit, and reads it when none came (the weekly job)", async () => {
+    const synced = [kit(U, "Real estate agent")];
+    let systems = apifyAndOpenAi();
+    let a = admin({}, synced);
+    await runAudit({ admin: a.db, audit: AUDIT, apifyKey: "t", openaiKey: "k", profession: "Coach" });
+    expect(systems[0]).toContain("You audit the Instagram account of a coach.");
+    expect(a.reads).toEqual([]);
+
+    systems = apifyAndOpenAi();
+    a = admin({}, synced);
+    await runAudit({ admin: a.db, audit: AUDIT, apifyKey: "t", openaiKey: "k", profession: "" });
+    expect(systems[0]).toContain("You audit the Instagram account of a licensed financial consultant in Singapore.");
+    expect(a.reads).toEqual([]);
+
+    systems = apifyAndOpenAi();
+    a = admin({}, synced);
+    await runAudit({ admin: a.db, audit: AUDIT, apifyKey: "t", openaiKey: "k" });
+    expect(systems[0]).toContain("You audit the Instagram account of a real estate agent.");
+    expect(a.reads).toEqual([`cs_user_data key.like.content-studio-socialaccounts-${U}*,key.like.content-studio-carousel-brand-${U}*`]);
   });
 });

@@ -1,5 +1,5 @@
 // Network side of the own-account audit: read the account with Apify, ask
-// OpenAI for advice, write the result. Used by audit-social-account (when a
+// OpenAI for advice (written for the brand's profession), write the result. Used by audit-social-account (when a
 // consultant opens Analytics) and refresh-social-audits (the weekly job).
 // All the judging logic lives in socialAudit.ts, which is unit tested.
 
@@ -10,6 +10,7 @@ import {
   buildAdvicePrompt,
   computeAudit,
   igProfile,
+  normalizeHandle,
   normalizeIgPost,
   normalizeTiktokPost,
   snapshotFields,
@@ -170,7 +171,7 @@ export async function openAiJson(
 }
 
 export async function writeAdvice(
-  input: { platform: AuditPlatform; profile: AuditProfile; stats: AuditStats; posts: RatedPost[] },
+  input: { platform: AuditPlatform; profile: AuditProfile; stats: AuditStats; posts: RatedPost[]; profession?: string },
   apiKey: string,
 ): Promise<AuditAdvice | null> {
   const { system, user } = buildAdvicePrompt(input);
@@ -214,12 +215,56 @@ export async function claimAudit(admin: Admin, auditId: string): Promise<AuditTa
   return ours ? data : null;
 }
 
-/** Reads the account, writes the audit and a snapshot. Never throws. */
+const ACCOUNTS_KEY = "content-studio-socialaccounts-";
+const BRAND_KEY = "content-studio-carousel-brand-";
+
+/**
+ * The "What do you do?" of the brand whose saved accounts hold this handle (the synced keys
+ * content-studio-socialaccounts-<uid>[~<brand>] and content-studio-carousel-brand-<same>), else the first brand's,
+ * as typed: socialAudit.ts cleans it.
+ */
+export function professionFromRows(audit: Pick<AuditTarget, "user_id" | "platform" | "handle">, rows: { key: string; data: string }[]): string {
+  const read = (key: string) => {
+    try {
+      return JSON.parse(rows.find((r) => r.key === key)?.data ?? "null");
+    } catch {
+      return null;
+    }
+  };
+  const mine = (scope: string) => scope === audit.user_id || scope.startsWith(`${audit.user_id}~`);
+  const owner = rows
+    .map((r) => (r.key.startsWith(ACCOUNTS_KEY) ? r.key.slice(ACCOUNTS_KEY.length) : ""))
+    .filter(mine)
+    .find((scope) => {
+      const typed = read(ACCOUNTS_KEY + scope)?.[audit.platform]?.handle;
+      return typeof typed === "string" && normalizeHandle(audit.platform, typed) === audit.handle;
+    });
+  const p = read(BRAND_KEY + (owner ?? audit.user_id))?.profession;
+  return typeof p === "string" ? p : "";
+}
+
+/** The audited brand's profession from the synced brand kit, for a refresh no app asked for (the weekly job); "" when unreadable. */
+async function brandProfession(admin: Admin, audit: AuditTarget): Promise<string> {
+  const uid = audit.user_id;
+  const { data, error } = await admin
+    .from("cs_user_data")
+    .select("key,data")
+    .eq("user_id", uid)
+    .or(`key.like.${ACCOUNTS_KEY}${uid}*,key.like.${BRAND_KEY}${uid}*`);
+  if (error) console.error("brand profession read failed", audit.id, error);
+  return professionFromRows(audit, (data ?? []) as { key: string; data: string }[]);
+}
+
+/**
+ * Reads the account, writes the audit and a snapshot. Never throws. `profession`: what the app sent from the open
+ * brand ("" for an adviser); absent (the weekly job, an older app) reads it from the brand that holds the handle.
+ */
 export async function runAudit(opts: {
   admin: Admin;
   audit: AuditTarget;
   apifyKey: string;
   openaiKey?: string | null;
+  profession?: string;
 }): Promise<void> {
   const { admin, audit } = opts;
   try {
@@ -230,7 +275,10 @@ export async function runAudit(opts: {
     const { posts: rated, stats } = computeAudit(posts, audit.platform, profile.followers, Date.now());
     const advice =
       opts.openaiKey && stats.postsAnalyzed >= MIN_POSTS_FOR_ADVICE
-        ? await writeAdvice({ platform: audit.platform, profile, stats, posts: rated }, opts.openaiKey)
+        ? await writeAdvice(
+            { platform: audit.platform, profile, stats, posts: rated, profession: opts.profession ?? (await brandProfession(admin, audit)) },
+            opts.openaiKey,
+          )
         : null;
     const fetchedAt = new Date().toISOString();
     const { error } = await admin

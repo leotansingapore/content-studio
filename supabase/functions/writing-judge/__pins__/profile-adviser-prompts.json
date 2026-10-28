@@ -1,0 +1,83 @@
+[
+  {
+    "state": {
+      "platform": "Instagram",
+      "role": "a financial consultant in Singapore",
+      "name": "Jane Tan",
+      "bio": "Helping you start",
+      "pinned_posts": [
+        "My story"
+      ]
+    },
+    "questions": {
+      "name": {
+        "type": "score",
+        "instructions": "On `platform` the name field shows beside the photo and is searchable. How well does `name` tell a visitor what this consultant (`role`) does and for whom?",
+        "criteria": [
+          "Only a personal name, a nickname or a handle.",
+          "A name plus a job title or industry only, such as 'Jane Tan | Financial Consultant'.",
+          "Says who they help or with what, such as 'Jane | Retirement plans for SG parents'.",
+          "Says who they help and what changes for them, with a proof point such as years, clients helped or a credential."
+        ]
+      },
+      "bio": {
+        "type": "score",
+        "instructions": "How well does `bio` tell a first-time visitor who this consultant (`role`) helps, why to follow, and what to do next?",
+        "criteria": [
+          "Empty, or only a quote, emojis or personal hobbies.",
+          "Describes the writer (job title, company, credentials) but not who they help.",
+          "Says who they help and with what.",
+          "Says who they help and what changes for them, gives one proof point, and tells the reader what to do next (DM, tap the link, book)."
+        ]
+      },
+      "pinned": {
+        "type": "score",
+        "instructions": "`pinned_posts` are the posts pinned to the top of this consultant's profile. How well do they show a first-time visitor who this consultant helps, proof that it works, and how to work with them?",
+        "criteria": [
+          "Off-topic or personal posts that say nothing about the work.",
+          "About the work, but generic tips with no proof and no way to get in touch.",
+          "Shows the work with proof (a client story, a result, a number) or a clear way to work with them.",
+          "Together they cover who they help, proof that it works, and how to work with them."
+        ]
+      }
+    },
+    "rewrite": {
+      "system": "You rewrite the profile of a financial consultant in Singapore on Instagram.\nName field: keep their own name if they have one, then say who they help or with what.\nBio: who they help, what changes for them, one proof point, and what to do next (DM, tap the link).\nUse only facts given here. Where a fact is missing, leave a blank in square brackets, like [years] or [number] families.\nRules: no promised or guaranteed returns, no named insurers or products, no hashtags, no em dashes, plain words.\nLimits: name at most 30 characters, bio at most 150 characters.\nReply with JSON only: {\"name\": \"...\", \"bio\": \"...\"}",
+      "user": "Name now: Jane Tan\n\nBio now: Helping you start\n\nTheir best posts start:\n- Three things to try"
+    }
+  },
+  {
+    "state": {
+      "platform": "TikTok",
+      "role": "a financial consultant in Singapore",
+      "name": "",
+      "bio": ""
+    },
+    "questions": {
+      "name": {
+        "type": "score",
+        "instructions": "On `platform` the name field shows beside the photo and is searchable. How well does `name` tell a visitor what this consultant (`role`) does and for whom?",
+        "criteria": [
+          "Only a personal name, a nickname or a handle.",
+          "A name plus a job title or industry only, such as 'Jane Tan | Financial Consultant'.",
+          "Says who they help or with what, such as 'Jane | Retirement plans for SG parents'.",
+          "Says who they help and what changes for them, with a proof point such as years, clients helped or a credential."
+        ]
+      },
+      "bio": {
+        "type": "score",
+        "instructions": "How well does `bio` tell a first-time visitor who this consultant (`role`) helps, why to follow, and what to do next?",
+        "criteria": [
+          "Empty, or only a quote, emojis or personal hobbies.",
+          "Describes the writer (job title, company, credentials) but not who they help.",
+          "Says who they help and with what.",
+          "Says who they help and what changes for them, gives one proof point, and tells the reader what to do next (DM, tap the link, book)."
+        ]
+      }
+    },
+    "rewrite": {
+      "system": "You rewrite the profile of a financial consultant in Singapore on TikTok.\nName field: keep their own name if they have one, then say who they help or with what.\nBio: who they help, what changes for them, one proof point, and what to do next (DM, tap the link).\nUse only facts given here. Where a fact is missing, leave a blank in square brackets, like [years] or [number] families.\nRules: no promised or guaranteed returns, no named insurers or products, no hashtags, no em dashes, plain words.\nLimits: name at most 30 characters, bio at most 80 characters.\nReply with JSON only: {\"name\": \"...\", \"bio\": \"...\"}",
+      "user": "Name now: (empty)\n\nBio now: (empty)"
+    }
+  }
+]

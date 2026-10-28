@@ -15,6 +15,7 @@ import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { TAG_MIN } from "../_shared/tags.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { FORMULAS } from "../remix-patterns/logic.ts";
 
 export { mostlyEnglish };
@@ -80,6 +81,7 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
         pinned: list(b.pinned, 400),
         top: list(b.top, 300),
         link: b.link === null || b.link === undefined ? null : str(b.link, 300),
+        ...(professionOf(b.profession) ? { profession: professionOf(b.profession) } : {}),
       },
     };
   }
@@ -373,7 +375,7 @@ export function readIdeaThin(answers: Record<string, JevAnswer> | null): boolean
 }
 
 // ---- Mode "profile" ---------------------------------------------------------
-// The consultant's own Instagram or TikTok profile out of 100, from what the
+// The account owner's Instagram or TikTok profile out of 100, for the brand's profession, from what the
 // account audit already read. Name field, bio and pinned posts are Jev score
 // questions; the contact link is measured. The photo is not scored: Jev reads
 // text only. Rubric after Jakeschincariol/linkedin-agent-skill li-profile,
@@ -390,6 +392,8 @@ export interface ProfileRequest {
   top: string[];
   /** The profile's link; null when the audit predates reading it. */
   link: string | null;
+  /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's questions and prompt. */
+  profession?: string;
 }
 
 export const PROFILE_ITEMS = { name: 25, bio: 35, pinned: 20, contact: 20 } as const;
@@ -419,7 +423,7 @@ const PINNED_LEVELS = [
 export function profileState(r: ProfileRequest) {
   return {
     platform: r.platform === "tiktok" ? "TikTok" : "Instagram",
-    role: "a financial consultant in Singapore",
+    role: r.profession ? aOrAn(r.profession) : "a financial consultant in Singapore",
     name: r.name,
     bio: r.bio,
     ...(r.pinned.length ? { pinned_posts: r.pinned } : {}),
@@ -427,23 +431,26 @@ export function profileState(r: ProfileRequest) {
 }
 
 export function profileQuestions(r: ProfileRequest): Record<string, JevQuestion> {
+  // any other work: the same levels without the adviser examples, asked about this person (thresholds as set on advisers')
+  const who = (s: string) => (r.profession ? s.replace(/this consultant/g, "this person") : s);
+  const levels = (l: string[]) => (r.profession ? l.map((c) => c.replace(/, such as '[^']*'\.$/, ".")) : l);
   const q: Record<string, JevQuestion> = {
     name: {
       type: "score",
-      instructions: "On `platform` the name field shows beside the photo and is searchable. How well does `name` tell a visitor what this consultant (`role`) does and for whom?",
-      criteria: NAME_LEVELS,
+      instructions: who("On `platform` the name field shows beside the photo and is searchable. How well does `name` tell a visitor what this consultant (`role`) does and for whom?"),
+      criteria: levels(NAME_LEVELS),
     },
     bio: {
       type: "score",
-      instructions: "How well does `bio` tell a first-time visitor who this consultant (`role`) helps, why to follow, and what to do next?",
-      criteria: BIO_LEVELS,
+      instructions: who("How well does `bio` tell a first-time visitor who this consultant (`role`) helps, why to follow, and what to do next?"),
+      criteria: levels(BIO_LEVELS),
     },
   };
   if (r.pinned.length) {
     q.pinned = {
       type: "score",
-      instructions: "`pinned_posts` are the posts pinned to the top of this consultant's profile. How well do they show a first-time visitor who this consultant helps, proof that it works, and how to work with them?",
-      criteria: PINNED_LEVELS,
+      instructions: who("`pinned_posts` are the posts pinned to the top of this consultant's profile. How well do they show a first-time visitor who this consultant helps, proof that it works, and how to work with them?"),
+      criteria: levels(PINNED_LEVELS),
     };
   }
   return q;
@@ -518,12 +525,17 @@ export function buildProfileRewritePrompt(r: ProfileRequest, want: ("name" | "bi
     `Limits: name at most ${lim.name} characters, bio at most ${lim.bio} characters.`,
     `Reply with JSON only: {${want.map((w) => `"${w}": "..."`).join(", ")}}`,
   ].join("\n");
+  const general = (p: string) =>
+    system
+      .replace("the profile of a financial consultant in Singapore on", () => `the profile of ${aOrAn(p)} on`)
+      .replace("[number] families.", "[number] clients.")
+      .replace("Rules: no promised or guaranteed returns, no named insurers or products, no hashtags,", `Rules: ${HONEST_LINE} No hashtags,`);
   const user = [
     `Name now: ${r.name || "(empty)"}`,
     `Bio now: ${r.bio || "(empty)"}`,
     r.top.length ? `Their best posts start:\n${r.top.map((t) => `- ${t.slice(0, 200)}`).join("\n")}` : "",
   ].filter(Boolean).join("\n\n");
-  return { system, user };
+  return { system: r.profession ? general(r.profession) : system, user };
 }
 
 /** The rewrites that are usable: within the limits, compliant, dashes made plain. */

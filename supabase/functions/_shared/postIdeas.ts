@@ -16,6 +16,7 @@ import {
   type PostFormat,
   type RatedPost,
 } from "./socialAudit.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "./profession.ts";
 
 export const IDEAS_PER_BATCH = 5;
 /** Ask for more than we show, so a few can be dropped as repeats. */
@@ -94,6 +95,16 @@ export function seenTexts(posts: RatedPost[], previous: PreviousIdea[]): string[
 
 // ---- Prompt -------------------------------------------------------------------
 
+/** The ideas for any other work: their work named, the honesty everyone keeps, and no Singapore unless their posts bring it. */
+const generalIdeas = (system: string, p: string) =>
+  system
+    .replace("strategist for a licensed financial consultant in Singapore.", () => `strategist for ${aOrAn(p)}.`)
+    .replace(
+      "- Stay compliant: no guaranteed or risk-free returns, no specific return percentages, no pressure like 'act now', no calling a product the best.",
+      `- Stay honest: ${HONEST_LINE}`,
+    )
+    .replace(" Only bring in Singapore context if their posts do.", "");
+
 export function buildIdeasPrompt(input: {
   platform: AuditPlatform;
   profile: AuditProfile | null;
@@ -101,6 +112,8 @@ export function buildIdeasPrompt(input: {
   posts: RatedPost[];
   previous: PreviousIdea[];
   count?: number;
+  /** The brand's "What do you do?" (./profession.ts); none, or an adviser's, gets today's prompt. */
+  profession?: string;
 }): { system: string; user: string } {
   const { platform, profile, stats, posts, previous } = input;
   const count = input.count ?? IDEAS_REQUESTED;
@@ -124,7 +137,7 @@ export function buildIdeasPrompt(input: {
       .filter(Boolean)
       .join(" | ");
 
-  const system = [
+  const adviserSystem = [
     `You are a short-form content strategist for a licensed financial consultant in Singapore. You study what went furthest on their own ${name} account and write new post ideas in that same style.`,
     "Step 1: work out their winning formula from their best posts: the hook style, the topic angle, the format and the length. Write it in \"formula\" as one short plain sentence of at most 25 words.",
     `Step 2: write ${count} post ideas that use that formula. Each idea is either a new topic told in their winning style, or a fresh twist on a winning topic (a new angle, example or audience). Mix both kinds.`,
@@ -138,6 +151,8 @@ export function buildIdeasPrompt(input: {
     "- Plain English. No hashtags, no emojis, no em dashes.",
     'Return JSON only: {"formula": "...", "ideas": [{"hook": "...", "idea": "...", "format": "video", "basedOn": "...", "why": "..."}]}',
   ].join("\n");
+  const profession = professionOf(input.profession);
+  const system = profession ? generalIdeas(adviserSystem, profession) : adviserSystem;
 
   const sections = [
     [
