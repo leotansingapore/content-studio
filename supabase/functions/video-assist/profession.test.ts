@@ -8,12 +8,14 @@ import {
   buildClipsMessages,
   buildCutawaysMessages,
   buildPublishMessages,
+  buildTranslateMessages,
   buildVibeMessages,
   clipQuestions,
   clipViewer,
   parseClipsRequest,
   parseCutawaysRequest,
   parsePublishRequest,
+  parseTranslateRequest,
   parseVibeRequest,
 } from "./logic";
 import { buildMontageMessages, parseMontageRequest } from "./montage";
@@ -277,6 +279,36 @@ describe("the vibe editor for the brand's profession", () => {
   it.each(PROFESSIONS)("$raw gets the editor working for them, with none of the adviser words", ({ raw, said }) => {
     const out = vibePrompts({ profession: raw });
     expect(String(out[0][0].content)).toContain(`a short-form video editor for a ${said}.`);
+    expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+  });
+});
+
+describe("caption translation for the brand's profession", () => {
+  const LINES = ["Most people start too late.", "Here is the one step."];
+  const translatePrompts = (extra: Record<string, unknown> = {}) =>
+    ["zh", "ta"].map((lang) => {
+      const t = parseTranslateRequest({ lang, lines: LINES, ...extra });
+      if (!t.ok) throw new Error(t.error);
+      return buildTranslateMessages(t.lang, t.lines, t.profession);
+    });
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(buildTranslateMessages("ms", LINES, "$&-maker")[0].content).toContain("captions spoken by a $&-maker into Malay");
+  });
+
+  it("a caller that sends no profession, or an adviser's, gets today's prompt byte for byte", async () => {
+    await expect(JSON.stringify(translatePrompts(), null, 2)).toMatchFileSnapshot("./__pins__/translate-adviser-prompts.json");
+    for (const profession of ["", "Financial adviser"]) expect(translatePrompts({ profession })).toEqual(translatePrompts());
+  });
+
+  it("a post's translation (Leo's) is today's whatever the profession", () => {
+    const t = parseTranslateRequest({ kind: "post", lang: "zh", lines: LINES, profession: "Coach" });
+    expect(t).toEqual({ ok: true, kind: "post", lang: "zh", lines: LINES });
+  });
+
+  it.each(PROFESSIONS)("$raw gets captions translated as theirs, with none of the adviser words", ({ raw, said }) => {
+    const out = translatePrompts({ profession: raw });
+    expect(out[0][0].content).toContain(`captions spoken by a ${said} into Simplified Chinese`);
     expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
   });
 });

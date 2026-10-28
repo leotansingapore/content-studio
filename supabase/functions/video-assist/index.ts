@@ -4,7 +4,7 @@
 //   POST {mode:"vibe", instruction, settings, transcript, duration, frames?, profession?}
 //        -> {patch, reply}: the change to the edit settings, in plain words.
 //        Frames are up to 3 stills from a reference video to match its look.
-//   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
+//   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...], profession?} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
 //   POST {mode:"translate", kind:"post", back:true, lang, lines:[...] (a post's lines, at most 60, 1,500 each, 5,000 in all)}
 //        -> {lines, back, same: number | null}: a post in Chinese, Malay or Tamil with its English meaning line by line, and
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.2, max_tokens: 4000, response_format: { type: "json_object" }, messages: buildTranslateMessages(t.lang, t.lines) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.2, max_tokens: 4000, response_format: { type: "json_object" }, messages: buildTranslateMessages(t.lang, t.lines, t.profession) }),
         signal: AbortSignal.timeout(60_000),
       });
       if (!res.ok) {

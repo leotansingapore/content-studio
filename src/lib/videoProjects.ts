@@ -324,8 +324,10 @@ export async function suggestCutaways(userId: string, sentences: Sentence[], dur
   return (await res.json()).sections;
 }
 
-export async function translateCaptions(lang: string, lines: string[]): Promise<string[]> {
-  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "translate", lang, lines }) });
+/** Second-language caption lines, translated as the open brand's words (its profession; none sent for an adviser's). */
+export async function translateCaptions(userId: string, lang: string, lines: string[]): Promise<string[]> {
+  const body = { mode: "translate", lang, lines, profession: professionFor(userId) || undefined };
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return (await res.json()).lines;
 }
 

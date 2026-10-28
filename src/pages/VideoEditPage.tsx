@@ -1309,7 +1309,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     try {
       const cues = outputCues(words, plan.segs, settings.removeFillers, speed);
       if (!cues.length) throw new Error("Caption the video first.");
-      const lines = await translateCaptions(dubLang, cues.map((c) => c.text));
+      const lines = await translateCaptions(userId, dubLang, cues.map((c) => c.text));
       setDubBusy("Making the voice...");
       const { audio, spans } = await speakDub(lines, ttsVoice, dubLang, ttsHow);
       const place = dubPlacement(spans, cues, plan.total);
@@ -1665,7 +1665,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     if (subsReady(lang, keys)) return patch({ subLang: lang });
     setTranslating(lang);
     try {
-      const lines = await translateCaptions(lang, keys);
+      const lines = await translateCaptions(userId, lang, keys);
       setSubs((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), ...Object.fromEntries(keys.map((k, i) => [k, lines[i]])) } }));
       patch({ subLang: lang });
     } catch (e) {
@@ -3621,11 +3621,11 @@ export function fromTranslated(b: Pick<Version, "lines" | "texts" | "caption">, 
 }
 
 /** A language's lines, on-screen texts and caption translated in one call, for review before anything is paid. */
-async function translateVersion(b: VersionBase, lang: PostLang): Promise<void> {
+async function translateVersion(userId: string, b: VersionBase, lang: PostLang): Promise<void> {
   if (vstate.translating) return;
   setV({ translating: `${b.plan.id}:${lang}`, error: undefined });
   try {
-    const out = await translateCaptions(lang, toTranslate(b.base));
+    const out = await translateCaptions(userId, lang, toTranslate(b.base));
     const d = loadVersionsDraft(b.plan.id);
     saveVersionsDraft(b.plan.id, { ...d, langs: { ...d.langs, [lang]: fromTranslated(b.base, out) } });
   } catch (e) {
@@ -4015,7 +4015,7 @@ const VersionsCard = memo(function VersionsCard({ userId, project, settings, onL
                     const t = draft.langs[l];
                     if (!t) return (
                       <div key={l} className="flex flex-wrap items-center gap-2">
-                        <Button size="sm" variant="outline" className={btn} disabled={!!vs.translating || working} onClick={() => void translateVersion(b, l)}>
+                        <Button size="sm" variant="outline" className={btn} disabled={!!vs.translating || working} onClick={() => void translateVersion(userId, b, l)}>
                           {vs.translating === `${planId}:${l}` ? "Translating..." : `Translate to ${LANG_NAMES[l]}`}
                         </Button>
                         <PriceChip feature="video-translate" left={left("video-translate")} />

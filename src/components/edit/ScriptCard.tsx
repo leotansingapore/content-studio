@@ -224,7 +224,7 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
     setTranslating(true);
     setTransError("");
     try {
-      const lines = await translateCaptions(l, base);
+      const lines = await translateCaptions(userId, l, base);
       patchDraft({ review: { lang: l, lines: base.map((_, i) => lines[i] ?? "") } });
     } catch (e) {
       setTransError((e as Error).message);

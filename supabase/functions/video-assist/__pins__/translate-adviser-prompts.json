@@ -1,0 +1,22 @@
+[
+  [
+    {
+      "role": "system",
+      "content": "Translate short video captions spoken by a Singapore financial adviser into Simplified Chinese as subtitles.\nKeep each line short and natural for on-screen subtitles, keep numbers and dollar amounts exact, keep CPF, MediShield, HDB and other Singapore terms as locals write them.\nReturn JSON only: {\"lines\":[...]} with exactly one translation per input line, in the same order."
+    },
+    {
+      "role": "user",
+      "content": "{\"lines\":[\"Most people start too late.\",\"Here is the one step.\"]}"
+    }
+  ],
+  [
+    {
+      "role": "system",
+      "content": "Translate short video captions spoken by a Singapore financial adviser into Tamil as subtitles.\nKeep each line short and natural for on-screen subtitles, keep numbers and dollar amounts exact, keep CPF, MediShield, HDB and other Singapore terms as locals write them.\nReturn JSON only: {\"lines\":[...]} with exactly one translation per input line, in the same order."
+    },
+    {
+      "role": "user",
+      "content": "{\"lines\":[\"Most people start too late.\",\"Here is the one step.\"]}"
+    }
+  ]
+]

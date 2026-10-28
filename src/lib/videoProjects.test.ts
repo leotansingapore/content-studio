@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, suggestCutaways, swapSource, transcribe, vibeEdit, type AiMark } from "./videoProjects";
+import { AI_LINE, aiChips, aiOf, findClips, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, suggestCutaways, swapSource, transcribe, translateCaptions, vibeEdit, type AiMark } from "./videoProjects";
 import { callFn } from "@/lib/edgeFn";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { EdgeError } from "@/lib/edgeFn";
@@ -398,5 +398,13 @@ describe("the editor's writers for the brand's profession", () => {
     brand("Financial adviser");
     await vibeEdit(req, "u1");
     expect(sent).toEqual([{ mode: "vibe", ...req, profession: "coach" }, { mode: "vibe", ...req }, { mode: "vibe", ...req }]);
+  });
+
+  it("translates captions for the open brand's profession, and sends none for an adviser's brand", async () => {
+    brand("Coach");
+    await translateCaptions("u1", "zh", []);
+    brand("Financial adviser");
+    await translateCaptions("u1", "zh", []);
+    expect(sent).toEqual([{ mode: "translate", lang: "zh", lines: [], profession: "coach" }, { mode: "translate", lang: "zh", lines: [] }]);
   });
 });

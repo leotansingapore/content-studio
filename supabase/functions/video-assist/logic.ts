@@ -820,7 +820,9 @@ export const POST_MAX_TOKENS = 12_000;
  * kind "captions" (anything but "post") is today's request: 400 lines at most, each cut to 300. kind "post" keeps every
  * line whole (empty ones too, so the line breaks come back) and refuses a post over 60 lines, a line over 1,500 or 5,000 in all.
  */
-export function parseTranslateRequest(body: unknown): { ok: true; kind: "captions" | "post"; lang: string; lines: string[] } | { ok: false; error: string } {
+export function parseTranslateRequest(
+  body: unknown,
+): { ok: true; kind: "captions" | "post"; lang: string; lines: string[]; profession?: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const lang = String(b.lang ?? "");
   if (!(lang in TRANSLATE_LANGS)) return { ok: false, error: "Pick Chinese, Malay or Tamil." };
@@ -833,7 +835,8 @@ export function parseTranslateRequest(body: unknown): { ok: true; kind: "caption
   }
   const lines = (Array.isArray(b.lines) ? b.lines : []).slice(0, MAX_TRANSLATE_LINES).map((l) => String(l ?? "").slice(0, 300));
   if (!lines.length) return { ok: false, error: "Caption the video first." };
-  return { ok: true, kind: "captions", lang, lines };
+  // captions only: a post's translation (Leo's) stays today's
+  return { ok: true, kind: "captions", lang, lines, ...professionField(body) };
 }
 
 /** The post's words in another language with their English meaning (edit-translate). MAS: the translation adds nothing. */
@@ -887,7 +890,10 @@ export const SAME_QUESTION: JevQuestion = {
   },
 };
 
-export function buildTranslateMessages(lang: string, lines: string[]): { role: string; content: string }[] {
+export function buildTranslateMessages(lang: string, lines: string[], profession = ""): { role: string; content: string }[] {
+  // any other work: their work named, and local terms kept without the adviser's examples
+  const said = (l: string) =>
+    profession ? asThem(l, profession).replace("keep CPF, MediShield, HDB and other Singapore terms as locals write them.", () => "keep names and local terms as locals write them.") : l;
   return [
     {
       role: "system",
@@ -895,7 +901,9 @@ export function buildTranslateMessages(lang: string, lines: string[]): { role: s
         `Translate short video captions spoken by a Singapore financial adviser into ${TRANSLATE_LANGS[lang]} as subtitles.`,
         "Keep each line short and natural for on-screen subtitles, keep numbers and dollar amounts exact, keep CPF, MediShield, HDB and other Singapore terms as locals write them.",
         'Return JSON only: {"lines":[...]} with exactly one translation per input line, in the same order.',
-      ].join("\n"),
+      ]
+        .map(said)
+        .join("\n"),
     },
     { role: "user", content: JSON.stringify({ lines }) },
   ];
