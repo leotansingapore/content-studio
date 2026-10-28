@@ -8,6 +8,8 @@
 
 import { readableOn } from "@/lib/carouselLayout";
 import { callFn } from "@/lib/edgeFn";
+import { professionFor } from "@/lib/profession";
+import { supabase } from "@/lib/supabase";
 import { STYLES, frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
 import { outWithin, segLength } from "@/lib/fastPauses";
 import { CHART, chartAnim, chartSize, newChart, paintChart, sanitizeCharts, shownRows, sideSpot, WIDE_MIN, type Chart } from "@/lib/videoCharts";
@@ -519,9 +521,17 @@ export function keyLinesFrom(reply: MotionReply | null | undefined, sent: Senten
   });
 }
 
-/** Asks Jev which lines are key, with pop-up text for the top few (one "motion-picks" use). */
+/**
+ * Asks Jev which lines are key, with pop-up text for the top few (one "motion-picks" use), for the signed-in brand's
+ * profession (none sent for an adviser's; its callers hold no user id, so the session says).
+ */
 export async function pickKeyLines(sent: Sentence[], duration: number, hookSeconds: number): Promise<MotionReply> {
-  return callFn<MotionReply>("video-assist", { mode: "motion", sentences: sent, duration, hookSeconds }, "Couldn't pick the key lines right now. Try again in a minute.");
+  const profession = professionFor((await supabase.auth.getSession()).data.session?.user.id);
+  return callFn<MotionReply>(
+    "video-assist",
+    { mode: "motion", sentences: sent, duration, hookSeconds, profession: profession || undefined },
+    "Couldn't pick the key lines right now. Try again in a minute.",
+  );
 }
 
 // ---------- drawing (browser only) ----------

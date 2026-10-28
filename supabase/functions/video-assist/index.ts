@@ -28,7 +28,7 @@
 //        -> {titles:[3], cover, at}: post titles and the cover text, written by the LLM,
 //        and the cover moment, picked by Jev (null when Jev has no answer or the
 //        video is not in English) ("video-publish" cap).
-//   POST {mode:"motion", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds}
+//   POST {mode:"motion", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds, profession?}
 //        -> {lines:[{i,p}] | null, popups:[{i,text,key,emoji}] | null}: Jev's yes probability
 //        that each line is a key line (null when Jev has no answer or the video is not in
 //        English), and pop-up text the LLM writes for the top few, with the emoji Jev picks
@@ -95,7 +95,7 @@ import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, 
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { keywordQuestions, keywordsState, parseKeywordsRequest, readKeywords } from "./keywords.ts";
 import { buildOwnMessages, ownQuestions, ownState, parseOwnReply, parseOwnRequest, pickOwnHook } from "./own.ts";
-import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
+import { buildPopupMessages, eligibleLines, emojiQuestions, emojiState, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { MAX_WATCH_BYTES, MAX_WATCH_SECONDS, watchSeconds, watchType, watchVideo } from "./watch.ts";
 import { filmMode, isFilmMode } from "./film.ts";
@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
       // Jev picks the key lines (Leo's rule: a pick is a decision); the editor lays them out
       const idx = eligibleLines(m.lines, m.hookSeconds);
       if (!idx.length || !mostlyEnglish(m.lines.map((x) => x.text).join(" "))) return json({ lines: null });
-      const state = keyState(m.lines);
+      const state = keyState(m.lines, m.profession);
       const parts = await Promise.all(keyQuestions(m.lines, idx).map((q) => askJev(state, q, { who: "video-assist motion", timeoutMs: 10_000 })));
       const answers = parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) : null;
       const lines = readKeyLines(answers, idx);
@@ -396,12 +396,12 @@ Deno.serve(async (req) => {
         const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 500, response_format: { type: "json_object" }, messages: buildPopupMessages(m.lines, pick) }),
+          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 500, response_format: { type: "json_object" }, messages: buildPopupMessages(m.lines, pick, m.profession) }),
           signal: AbortSignal.timeout(45_000),
         }).catch(() => null);
         if (!res?.ok) console.error("video-assist motion popups", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
         const written = res?.ok ? parsePopupReply((await res.json())?.choices?.[0]?.message?.content ?? null, pick) : [];
-        if (written.length) popups = withEmoji(await askJev({ video: "Pop-up text on a short video by a Singapore financial adviser." }, emojiQuestions(m.lines, written), { who: "video-assist motion emoji" }), written);
+        if (written.length) popups = withEmoji(await askJev(emojiState(m.profession), emojiQuestions(m.lines, written), { who: "video-assist motion emoji" }), written);
       }
       return json({ lines, popups });
     }

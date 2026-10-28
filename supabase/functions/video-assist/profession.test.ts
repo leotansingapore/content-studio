@@ -4,6 +4,7 @@ import { HONEST_LINE } from "../_shared/profession";
 import { buildCaptionsMessages, keywordCandidates, keywordQuestion, parseCaptionsRequest, type Keyword } from "./captions";
 import { buildHooksMessages, hooksState, parseHooksRequest } from "./hooks";
 import { buildMontageMessages, parseMontageRequest } from "./montage";
+import { buildPopupMessages, emojiState, keyState, parseMotionRequest } from "./motion";
 
 const SAID = "Most people start too late. Here is the one step that makes the rest easy. Comment START and I will send you the list.";
 const KEYWORD: Keyword = { word: "START", verb: "comment" };
@@ -100,5 +101,38 @@ describe("the montage for the brand's profession", () => {
       expect(system.content).toMatch(PICTURES);
       expect(adviserWordsIn(JSON.stringify([system.content.replace(PICTURES, ""), user]))).toEqual([]);
     }
+  });
+});
+
+describe("pop-ups and key lines for the brand's profession", () => {
+  const SENTENCES = [
+    { s: 0, e: 3, text: "Most people start too late." },
+    { s: 3, e: 7, text: "Here is the one step that makes the rest easy." },
+    { s: 7, e: 11, text: "Write down the three things you spend on every week." },
+  ];
+  const motionPrompts = (extra: Record<string, unknown> = {}) => {
+    const m = parseMotionRequest({ sentences: SENTENCES, duration: 11, hookSeconds: 2, ...extra });
+    if (!m.ok) throw new Error(m.error);
+    return [keyState(m.lines, m.profession), buildPopupMessages(m.lines, [1, 2], m.profession), emojiState(m.profession)];
+  };
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(buildPopupMessages(SENTENCES, [1], "$&-maker")[0].content).toContain("a short video a $&-maker filmed.");
+    expect(keyState(SENTENCES, "$&-maker").video).toContain("filmed by a $&-maker,");
+    expect(emojiState("$&-maker").video).toContain("a short video by a $&-maker.");
+  });
+
+  it("a caller that sends no profession, or an adviser's, gets today's prompt and Jev states byte for byte", async () => {
+    await expect(JSON.stringify(motionPrompts(), null, 2)).toMatchFileSnapshot("./__pins__/motion-adviser-prompts.json");
+    for (const profession of ["", "Financial adviser"]) expect(motionPrompts({ profession })).toEqual(motionPrompts());
+  });
+
+  it.each(PROFESSIONS)("$raw gets pop-ups and key lines read for them, with none of the adviser words", ({ raw, said }) => {
+    const out = motionPrompts({ profession: raw });
+    expect(JSON.stringify(out[0])).toContain(`filmed by a ${said}, as a transcript`);
+    expect(JSON.stringify(out[1])).toContain(`a short video a ${said} filmed.`);
+    expect(JSON.stringify(out[1])).toContain(HONEST_LINE);
+    expect(JSON.stringify(out[2])).toContain(`a short video by a ${said}.`);
+    expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
   });
 });

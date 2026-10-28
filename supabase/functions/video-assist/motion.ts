@@ -6,6 +6,7 @@
 // later cuts. Pure, so vitest covers it (motion.test.ts).
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 
 export interface MotionLine {
   s: number;
@@ -18,7 +19,9 @@ export const MAX_KEY_LINES = 120;
 export const KEY_CHUNK = 30;
 const MAX_STATE_CHARS = 8000;
 
-export function parseMotionRequest(body: unknown): { ok: true; lines: MotionLine[]; duration: number; hookSeconds: number } | { ok: false; error: string } {
+export function parseMotionRequest(
+  body: unknown,
+): { ok: true; lines: MotionLine[]; duration: number; hookSeconds: number; profession?: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const duration = Number(b.duration);
   const hook = Number(b.hookSeconds);
@@ -29,7 +32,9 @@ export function parseMotionRequest(body: unknown): { ok: true; lines: MotionLine
     .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s && x.text);
   if (!Number.isFinite(duration) || duration < 5) return { ok: false, error: "The video is too short for key lines." };
   if (lines.length < 2) return { ok: false, error: "Caption the video first." };
-  return { ok: true, lines, duration, hookSeconds: Number.isFinite(hook) ? Math.min(10, Math.max(0, hook)) : 0 };
+  // profession: the brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompts
+  const profession = professionOf(b.profession);
+  return { ok: true, lines, duration, hookSeconds: Number.isFinite(hook) ? Math.min(10, Math.max(0, hook)) : 0, ...(profession ? { profession } : {}) };
 }
 
 /** The lines worth asking about: 3 words or more, starting once the hook card is gone. Indexes into `lines`. */
@@ -41,11 +46,14 @@ export function eligibleLines(lines: MotionLine[], hookSeconds: number): number[
   return out;
 }
 
+/** Who filmed it, in the words any other work gets in place of the adviser's (Jev states and the pop-up prompt). */
+const filmedBy = (text: string, p: string) => (p ? text.replace("a Singapore financial adviser", () => aOrAn(p)) : text);
+
 /** What Jev reads: the whole video, each line tagged, so a line is judged against the rest. */
-export function keyState(lines: MotionLine[]) {
+export function keyState(lines: MotionLine[], profession = "") {
   let chars = 0;
   return {
-    video: "A short talking-head video filmed by a Singapore financial adviser, as a transcript line by line.",
+    video: filmedBy("A short talking-head video filmed by a Singapore financial adviser, as a transcript line by line.", profession),
     transcript: lines.map((l, i) => `L${i}| ${l.text}`).filter((t) => (chars += t.length + 1) <= MAX_STATE_CHARS).join("\n"),
   };
 }
@@ -99,7 +107,9 @@ export function popupLines(lines: MotionLine[], picks: { i: number; p: number }[
   return out.sort((a, b) => a - b);
 }
 
-export function buildPopupMessages(lines: MotionLine[], pick: number[]): { role: string; content: string }[] {
+export function buildPopupMessages(lines: MotionLine[], pick: number[], profession = ""): { role: string; content: string }[] {
+  // any other work keeps the honesty everyone keeps in place of the adviser's rule
+  const said = (l: string) => (profession ? filmedBy(l, profession).replace("Never promise returns or guarantees.", () => HONEST_LINE) : l);
   return [
     {
       role: "system",
@@ -108,7 +118,9 @@ export function buildPopupMessages(lines: MotionLine[], pick: number[]): { role:
         `For each line: text, ONE line of at most ${POPUP_CHARS} characters that lands the point of what is said (not a quote of the whole line), in sentence case; and key, the 1 to 3 words of text to show in the highlight colour, copied exactly from text.`,
         "Only facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags. Plain words.",
         'Reply with JSON only: {"popups":[{"id":"L3","text":string,"key":string}]}',
-      ].join("\n"),
+      ]
+        .map(said)
+        .join("\n"),
     },
     { role: "user", content: pick.map((i) => `L${i}: ${lines[i].text}${i > 0 ? `\n(said just before: ${lines[i - 1].text})` : ""}`).join("\n") },
   ];
@@ -152,6 +164,9 @@ export const EMOJI: Record<string, { emoji: string; when: string }> = {
   question: { emoji: "❓", when: "A question put to the viewer" },
   hot: { emoji: "\u{1F525}", when: "A strong opinion or a hot take" },
 };
+
+/** What Jev reads to pick a pop-up's emoji. */
+export const emojiState = (profession = "") => ({ video: filmedBy("Pop-up text on a short video by a Singapore financial adviser.", profession) });
 
 export function emojiQuestions(lines: MotionLine[], written: { i: number; text: string }[]): Record<string, JevQuestion> {
   return Object.fromEntries(

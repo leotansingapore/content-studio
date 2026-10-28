@@ -1,0 +1,19 @@
+[
+  {
+    "video": "A short talking-head video filmed by a Singapore financial adviser, as a transcript line by line.",
+    "transcript": "L0| Most people start too late.\nL1| Here is the one step that makes the rest easy.\nL2| Write down the three things you spend on every week."
+  },
+  [
+    {
+      "role": "system",
+      "content": "You write the pop-up text for key moments of a short video a Singapore financial adviser filmed. It shows on screen for 3 seconds while they say the line, above the captions.\nFor each line: text, ONE line of at most 28 characters that lands the point of what is said (not a quote of the whole line), in sentence case; and key, the 1 to 3 words of text to show in the highlight colour, copied exactly from text.\nOnly facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags. Plain words.\nReply with JSON only: {\"popups\":[{\"id\":\"L3\",\"text\":string,\"key\":string}]}"
+    },
+    {
+      "role": "user",
+      "content": "L1: Here is the one step that makes the rest easy.\n(said just before: Most people start too late.)\nL2: Write down the three things you spend on every week.\n(said just before: Here is the one step that makes the rest easy.)"
+    }
+  ],
+  {
+    "video": "Pop-up text on a short video by a Singapore financial adviser."
+  }
+]

@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })) } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
+vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
+
+import { callFn } from "@/lib/edgeFn";
+import { supabase } from "@/lib/supabase";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
-import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, dropGain, faceBand, findFigures, fitBlock, hookTop, popupBeats, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, dropGain, faceBand, findFigures, fitBlock, hookTop, popupBeats, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, pickKeyLines, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
 import { PRESETS, applyRecipe } from "./stylePresets";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
@@ -283,5 +289,25 @@ describe("pop-up text", () => {
     expect(sanitizeMotion({ lines: [{ s: 1, e: 2, p: 0.5, pop: { text: "Hi", key: "Hi", emoji: "x" } }, { s: 3, e: 4, p: 0.5, pop: { text: "" } }] })).toEqual({
       lines: [{ s: 1, e: 2, p: 0.5, pop: { text: "Hi", key: "Hi", emoji: "x" } }, { s: 3, e: 4, p: 0.5 }],
     });
+  });
+});
+
+describe("key lines for the brand's profession", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("sends the signed-in brand's profession, and none for an adviser's brand", async () => {
+    const m = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) } });
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: { id: "u1" } } } } as never);
+    vi.mocked(callFn).mockReset().mockResolvedValue({ lines: null });
+    const sent = [{ s: 0, e: 2, text: "Most people start too late." }];
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await pickKeyLines(sent, 2, 0);
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await pickKeyLines(sent, 2, 0);
+    expect(vi.mocked(callFn).mock.calls.map(([, b]) => JSON.parse(JSON.stringify(b)))).toEqual([
+      { mode: "motion", sentences: sent, duration: 2, hookSeconds: 0, profession: "coach" },
+      { mode: "motion", sentences: sent, duration: 2, hookSeconds: 0 },
+    ]);
   });
 });
