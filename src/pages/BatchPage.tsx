@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import type { Audience, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
+import { adviserBrand } from "@/lib/profession";
 
 interface BatchTarget {
   key: string;
@@ -319,7 +320,7 @@ export default function BatchPage() {
               id="batch-topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. Why topping up your CPF SA before 35 matters more than people think"
+              placeholder={adviserBrand() ? "e.g. Why topping up your CPF SA before 35 matters more than people think" : "e.g. Why the first 10 minutes of a client call matter more than people think"}
               rows={2}
             />
           </div>

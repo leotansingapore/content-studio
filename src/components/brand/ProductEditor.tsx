@@ -18,6 +18,7 @@ import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLi
 import { ensurePicture, onProducts, PICTURE_FAILED, pictureState, PRODUCTS_FOLDER } from "@/lib/productScan";
 import { kindOf, LIMITS, loadProducts, MAX_PICTURES, MAX_PRODUCTS, newProductId, type Product, saveProducts } from "@/lib/products";
 import { scoped } from "@/lib/profiles";
+import { adviserBrand } from "@/lib/profession";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 
@@ -204,7 +205,7 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
           <div className="space-y-1.5">
             <Label htmlFor="product-name">{service ? "Service name" : "Product name"}</Label>
-            <Input id="product-name" ref={first} value={draft.name} maxLength={LIMITS.name} onChange={(e) => set({ name: e.target.value })} placeholder={service ? "Retirement plan review" : "Activity Tracker app"} />
+            <Input id="product-name" ref={first} value={draft.name} maxLength={LIMITS.name} onChange={(e) => set({ name: e.target.value })} placeholder={service ? (adviserBrand() ? "Retirement plan review" : "First consultation") : "Activity Tracker app"} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="product-what">What it is</Label>

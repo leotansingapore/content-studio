@@ -15,6 +15,7 @@ import {
   type Label,
 } from "@/lib/labels";
 import type { DraftEntry } from "@/lib/draftHistory";
+import { adviserBrand } from "@/lib/profession";
 
 export function LabelChip({ label }: { label: Label }) {
   return (
@@ -51,7 +52,7 @@ function NewLabelForm({ userId, labels, onAdded }: { userId: string; labels: Lab
             setError("");
           }}
           maxLength={30}
-          placeholder="New label, e.g. CPF"
+          placeholder={adviserBrand() ? "New label, e.g. CPF" : "New label, e.g. Client stories"}
           aria-label="New label name"
           aria-invalid={!!error}
           className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -20,6 +20,7 @@ import { PRESETS, presetLabel } from "@/lib/stylePresets";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { fmtTime } from "@/lib/videoEdit";
 import { defaultSkill, loadSkills } from "@/lib/videoSkills";
+import { adviserBrand } from "@/lib/profession";
 
 /** Clip finding reads at least this much (video-assist clips). */
 const MIN_SECONDS = 45;
@@ -111,7 +112,7 @@ export default function ClipsPanel({ userId, busy, onStart, onClose }: {
       {note && <p className="text-xs text-muted-foreground" role="status">{note}</p>}
       <label className="block space-y-1 text-xs font-semibold">
         <span className="block">What should the clips be about? (optional)</span>
-        <Input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={200} placeholder="e.g. hospital bills" className="h-11 text-sm font-normal sm:h-10" />
+        <Input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={200} placeholder={adviserBrand() ? "e.g. hospital bills" : "e.g. client questions"} className="h-11 text-sm font-normal sm:h-10" />
       </label>
       <div className="space-y-1">
         <p className="text-xs font-semibold" id="clips-length">Length</p>

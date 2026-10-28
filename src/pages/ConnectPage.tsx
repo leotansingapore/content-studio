@@ -23,8 +23,10 @@ import { links as to } from "@/lib/links";
 import { logActivity } from "@/lib/activity";
 import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
 import { LEO_TOOLS, TOOL_LINES } from "../../supabase/functions/content-studio-mcp/logic.ts";
+import { adviserBrand } from "@/lib/profession";
 
 const TRY = ["What's on my calendar this week?", "Which of my posts did best, and why?", "Write a LinkedIn post about CPF top-ups in my voice and save it as a draft."];
+const TRY_ANY = [...TRY.slice(0, 2), "Write a LinkedIn post about a question a client asked me this week, in my voice, and save it as a draft."];
 
 export default function ConnectPage() {
   const { toast } = useToast();
@@ -177,7 +179,7 @@ export default function ConnectPage() {
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">Then try asking Claude</h2>
         <ul className="space-y-1.5">
-          {TRY.map((t) => (
+          {(adviserBrand() ? TRY : TRY_ANY).map((t) => (
             <li key={t} className="rounded-lg border border-border/60 px-3 py-2 text-sm">{t}</li>
           ))}
         </ul>

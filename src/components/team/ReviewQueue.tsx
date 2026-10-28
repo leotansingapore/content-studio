@@ -37,6 +37,7 @@ import {
   type ReviewSubmission,
   type TeamMember,
 } from "@/lib/teamReview";
+import { adviserBrand } from "@/lib/profession";
 
 const TABS: { key: ReviewStatus; label: string; empty: string }[] = [
   { key: "pending", label: "Pending", empty: "Nothing waiting for review." },
@@ -300,8 +301,8 @@ function SubmissionCard({
               onChange={(e) => setComment(e.target.value)}
               placeholder={
                 asking === "rejected"
-                  ? "e.g. We can't promise returns in any version of this post."
-                  : "e.g. Remove 'guaranteed' and add the illustrated-returns disclaimer."
+                  ? adviserBrand() ? "e.g. We can't promise returns in any version of this post." : "e.g. We can't promise results in any version of this post."
+                  : adviserBrand() ? "e.g. Remove 'guaranteed' and add the illustrated-returns disclaimer." : "e.g. Remove 'guaranteed' and say where the number comes from."
               }
               maxLength={2000}
               autoResize

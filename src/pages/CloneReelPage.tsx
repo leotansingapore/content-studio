@@ -93,6 +93,7 @@ import type { LinkedSource } from "@/lib/resolveSource";
 import { checkUpload, clearLinkRead, linkRead, onLinkRead, retryable, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
 import { LINK_COPY, notYet, parseRemixLink, siteName, type LinkKind } from "../../supabase/functions/remix-link/logic.ts";
 import { professionFor } from "@/lib/profession";
+import { adviserBrand } from "@/lib/profession";
 
 type View =
   | { kind: "idle" }
@@ -141,7 +142,7 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
   const steps = [
     { title: "What it says", body: "The caption, a transcript of the video and its public numbers." },
     { title: "Why it worked", body: "The hook, the beats, the payoff and, for Instagram reels, what's on screen and how fast it cuts." },
-    { title: "Your version", body: "3 concepts to pick from, then hooks, a shot list and a caption in your voice, made for Singapore and checked for compliance." },
+    { title: "Your version", body: `3 concepts to pick from, then hooks, a shot list and a caption in your voice, ${adviserBrand() ? "made for Singapore and checked for compliance" : "made for your work and audience"}.` },
   ];
   return (
     <Card className="border-border/60 shadow-card">
@@ -1720,7 +1721,7 @@ export default function CloneReelPage() {
                 maxLength={MAX_ANGLE_CHARS}
                 value={angle}
                 onChange={(e) => setAngle(e.target.value)}
-                placeholder="e.g. Why I almost skipped my own hospital plan at 25"
+                placeholder={adviserBrand() ? "e.g. Why I almost skipped my own hospital plan at 25" : "e.g. Why I almost quit in my first year"}
                 disabled={loading}
                 aria-describedby={angle.length > MAX_ANGLE_CHARS - 50 ? "reel-angle-left" : undefined}
                 className="min-h-0"

@@ -39,6 +39,7 @@ import {
   type BioPage,
   type ClickRow,
 } from "@/lib/bioPage";
+import { adviserBrand } from "@/lib/profession";
 
 type Form = { slug: string; name: string; headline: string; showPhoto: boolean; links: BioLink[]; published: boolean };
 
@@ -297,7 +298,7 @@ export default function LinkInBioPage() {
                       id="bio-headline"
                       value={form.headline}
                       maxLength={MAX_HEADLINE}
-                      placeholder="Financial adviser, Singapore"
+                      placeholder={adviserBrand() ? "Financial adviser, Singapore" : "Business coach for first-time founders"}
                       onChange={(e) => edit({ headline: e.target.value })}
                     />
                   </div>

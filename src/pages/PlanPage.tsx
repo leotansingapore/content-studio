@@ -88,6 +88,7 @@ import {
   ChevronDown,
   TrendingUp,
 } from "lucide-react";
+import { adviserBrand } from "@/lib/profession";
 
 const AUDIENCE_LABEL: Record<PlanAudience, string> = {
   "young-adult": "Young adult (21-27)",
@@ -495,7 +496,7 @@ export default function PlanPage() {
               id="this-week"
               value={thisWeek}
               onChange={(e) => setThisWeek(e.target.value)}
-              placeholder="e.g. A client asked if her company insurance is enough. 3 of my 5 reviews found no will in place."
+              placeholder={adviserBrand() ? "e.g. A client asked if her company insurance is enough. 3 of my 5 reviews found no will in place." : "e.g. A client asked how long results take. 3 of my 5 calls this week started with the same question."}
               rows={3}
               maxLength={1000}
             />
@@ -598,7 +599,9 @@ export default function PlanPage() {
               value={fadsPaste}
               onChange={(e) => setFadsPaste(e.target.value)}
               placeholder={
-                "e.g.\nI help young families with kids under 7 protect their income without overpaying.\nTopics: critical illness, hospital plans, CPF for parents, term vs whole life\nEdge: ex-nurse turned FC, I've seen what underinsurance does up close"
+                adviserBrand()
+                  ? "e.g.\nI help young families with kids under 7 protect their income without overpaying.\nTopics: critical illness, hospital plans, CPF for parents, term vs whole life\nEdge: ex-nurse turned FC, I've seen what underinsurance does up close"
+                  : "e.g.\nI help first-time founders land their first 10 customers without paid ads.\nTopics: pricing, cold outreach, saying no, first hires\nEdge: ran two agencies before going solo"
               }
               rows={4}
             />
@@ -682,7 +685,7 @@ export default function PlanPage() {
                 id="topics"
                 value={topicsRaw}
                 onChange={(e) => setTopicsRaw(e.target.value)}
-                placeholder={"CPF SA top-ups\ncritical illness\nhospital plans\nretirement income"}
+                placeholder={adviserBrand() ? "CPF SA top-ups\ncritical illness\nhospital plans\nretirement income" : "pricing\nclient onboarding\ncommon mistakes\nbehind the scenes"}
                 rows={3}
               />
             </div>
@@ -694,7 +697,7 @@ export default function PlanPage() {
                 onChange={(e) =>
                   setPositioning((p) => ({ ...p, edge: e.target.value }))
                 }
-                placeholder="Why you, not the next advisor? A background, a result, a way of working."
+                placeholder={adviserBrand() ? "Why you, not the next advisor? A background, a result, a way of working." : "Why you, not the next one? A background, a result, a way of working."}
                 rows={2}
               />
             </div>

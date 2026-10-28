@@ -38,6 +38,7 @@ import {
   type Mine,
 } from "@/lib/trackedLinks";
 import { sgDay } from "@/lib/bioPage";
+import { adviserBrand } from "@/lib/profession";
 
 const EMPTY: LinkInput = { slug: "", label: "", url: "", campaign: "" };
 const DRAFT_PREFIX = "cs-track-draft-"; // the half-made link, this device only
@@ -258,7 +259,7 @@ export default function TrackedLinksPage() {
                 </div>
                 <div className="min-w-0 space-y-1.5">
                   <Label htmlFor="tl-label">Label</Label>
-                  <Input id="tl-label" value={form.label} maxLength={MAX_LABEL} placeholder="Free retirement review" onChange={(e) => edit({ label: e.target.value })} />
+                  <Input id="tl-label" value={form.label} maxLength={MAX_LABEL} placeholder={adviserBrand() ? "Free retirement review" : "Free 20-minute call"} onChange={(e) => edit({ label: e.target.value })} />
                 </div>
                 <div className="min-w-0 space-y-1.5">
                   <Label htmlFor="tl-campaign">

@@ -25,6 +25,7 @@ import {
   type CoachHistoryEntry,
 } from "@/lib/coach";
 import {
+  ANY_PLACEHOLDERS,
   COACH_FIELDS,
   loadCoachProfile,
   updateCoachProfile,
@@ -65,6 +66,7 @@ import {
   Save,
   BookOpen,
 } from "lucide-react";
+import { adviserBrand } from "@/lib/profession";
 
 // Profile answers not saved yet and posts pasted for review, kept for this tab
 // so leaving the page doesn't throw them away. sessionStorage, outside the
@@ -418,7 +420,7 @@ export default function CoachPage() {
                     setDirty(true);
                   }}
                   rows={2}
-                  placeholder={f.placeholder}
+                  placeholder={adviserBrand() ? f.placeholder : ANY_PLACEHOLDERS[f.key] ?? f.placeholder}
                   className="resize-none"
                 />
               </div>

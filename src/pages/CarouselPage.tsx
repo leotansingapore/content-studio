@@ -112,6 +112,7 @@ import { registerEditTarget, type EditTarget, type Proposal } from "@/lib/editTa
 import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 import { carouselScoreText, currentScore, labelFor, loadScores, saveScore, scorePost, textKey, tipFor, type SavedScore } from "@/lib/postScore";
 import { MIN_TEXT } from "../../supabase/functions/post-score/logic.ts";
+import { adviserBrand } from "@/lib/profession";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -1397,7 +1398,7 @@ export default function CarouselPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 disabled={!!writing}
-                placeholder={"3 CPF moves for people in their 30s\n\nOr paste a news article or your notes and the slides will stick to what it says."}
+                placeholder={`${adviserBrand() ? "3 CPF moves for people in their 30s" : "3 mistakes new clients make"}\n\nOr paste a news article or your notes and the slides will stick to what it says.`}
               />
               <div className="flex flex-wrap items-center gap-2">
                 {(["instagram", "linkedin"] as const).map((p) => (

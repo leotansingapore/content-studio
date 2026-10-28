@@ -104,6 +104,14 @@ export const COACH_FIELDS: CoachField[] = [
   },
 ];
 
+/** The examples worded for a brand whose owner isn't a financial adviser; a field not listed keeps its own. */
+export const ANY_PLACEHOLDERS: Partial<Record<CoachTextKey, string>> = {
+  origin: "e.g. I started after a bad experience as a client myself...",
+  struggles: "e.g. finding clients with two young kids at home; feeling awkward on camera...",
+  audience: "e.g. first-time founders, 28-40, running it on their own...",
+  whatWorked: "e.g. a story about a client's first win; my 60-second explainer reel...",
+};
+
 const TEXT_KEYS: CoachTextKey[] = COACH_FIELDS.map((f) => f.key);
 
 export function emptyProfile(): CoachProfile {

@@ -15,6 +15,7 @@ import { useCopy } from "@/components/recruit/shared";
 import { useToast } from "@/hooks/use-toast";
 import { scanCompliance } from "@/lib/compliance";
 import { KIND_NAME, MAX_PER_KIND, MAX_SNIPPET_NAME, MAX_TEXT, loadForm, loadSnippets, ofKind, removeSnippet, saveForm, saveSnippet, type SnippetForm, type SnippetKind } from "@/lib/replySnippets";
+import { adviserBrand } from "@/lib/profession";
 
 // The form's words per kind; a reply's are today's Engage words.
 const FORM: Record<SnippetKind, { label: string; save: string; name: string; text: string }> = {
@@ -24,6 +25,11 @@ const FORM: Record<SnippetKind, { label: string; save: string; name: string; tex
   ending: { label: "Ending", save: "Save ending", name: "WhatsApp me", text: "Questions on yours? WhatsApp me here: {whatsapp}" },
   hook: { label: "Hook", save: "Save hook", name: "Client question", text: "A client asked me this week: [question]" },
   post: { label: "Post", save: "Save post template", name: "Myth and fact", text: "Myth: [myth]\n\nFact: [fact]\n\nWhat I tell clients: [your advice]" },
+};
+// The examples worded for a brand whose owner isn't a financial adviser
+const ANY_FORM: Partial<Record<SnippetKind, { name: string; text: string }>> = {
+  reply: { name: "Free guide", text: "Happy to send you my 2-page guide. Which email should it go to?" },
+  hashtags: { name: "Work posts", text: "#smallbusiness #tips" },
 };
 
 const small = "inline-flex h-11 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11";
@@ -40,7 +46,7 @@ export default function Snippets({ userId, kind = "reply", focusName = false }: 
   const editing = Boolean(form.id && list.some((s) => s.id === form.id));
   const full = !editing && list.length >= MAX_PER_KIND;
   const reply = kind === "reply";
-  const words = FORM[kind];
+  const words = adviserBrand() ? FORM[kind] : { ...FORM[kind], ...ANY_FORM[kind] };
   useEffect(() => {
     if (focusName) nameBox.current?.focus();
   }, [focusName]);

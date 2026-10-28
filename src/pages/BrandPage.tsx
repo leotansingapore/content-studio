@@ -61,6 +61,7 @@ import { KIT_FEEDS, cachedKit, refreshKit, withKit, type KitRefresh } from "@/li
 import { activeProfile } from "@/lib/profiles";
 import { loadDrafts } from "@/lib/draftHistory";
 import { platformName, SOCIAL_PLATFORMS, socialConnectShown, socialStatus } from "@/lib/socialConnect";
+import { isAdviser } from "@/lib/profession";
 
 /** Reads an image file into a small data URL: a centred square for the photo, a fitted box for the logo. */
 async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> {
@@ -585,7 +586,7 @@ export default function BrandPage() {
               </div>
               <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="brand-role">Role</Label>
-                <Input id="brand-role" value={brand.role ?? ""} maxLength={MAX_ROLE_CHARS} placeholder="Financial adviser" onChange={(e) => update({ role: e.target.value })} />
+                <Input id="brand-role" value={brand.role ?? ""} maxLength={MAX_ROLE_CHARS} placeholder={isAdviser(brand.profession) ? "Financial adviser" : brand.profession!.trim()} onChange={(e) => update({ role: e.target.value })} />
               </div>
             </div>
             <ProfessionField value={brand.profession ?? ""} onChange={(profession) => update({ profession })} />
@@ -619,7 +620,7 @@ export default function BrandPage() {
                 {offers.map((o, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                      <Input value={o.name} maxLength={MAX_OFFER_NAME} aria-label={`Offer ${i + 1}: what it is`} placeholder="Free retirement review" onChange={(e) => setOffer(i, { name: e.target.value })} />
+                      <Input value={o.name} maxLength={MAX_OFFER_NAME} aria-label={`Offer ${i + 1}: what it is`} placeholder={isAdviser(brand.profession) ? "Free retirement review" : "Free 20-minute call"} onChange={(e) => setOffer(i, { name: e.target.value })} />
                       <div className="min-w-0 space-y-1">
                         <Input
                           value={o.url}
@@ -742,7 +743,7 @@ export default function BrandPage() {
               value={brand.signOff ?? ""}
               maxLength={MAX_SIGNOFF_CHARS}
               onChange={(e) => update({ signOff: e.target.value })}
-              placeholder={"DM me PLAN for a free review.\nFor information only, not financial advice.\n#financialplanning #singapore"}
+              placeholder={isAdviser(brand.profession) ? "DM me PLAN for a free review.\nFor information only, not financial advice.\n#financialplanning #singapore" : "DM me START for a free first call.\n#smallbusiness"}
             />
             <p className="text-xs text-muted-foreground">Added to the end of a post when you copy it. Hashtags already in the post aren't repeated.</p>
             <label className="flex min-h-9 cursor-pointer items-center gap-2 pt-1 text-sm [@media(pointer:coarse)]:min-h-11">

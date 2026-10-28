@@ -18,6 +18,7 @@ import { speakerFor } from "@/lib/remixBrand";
 import { withCredit, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
 import type { RemixSource } from "@/lib/remixSource";
 import { blankRanges, foldAt, MAX_CHARS, type PlatformId } from "@/lib/platformCounters";
+import { isAdviser } from "@/lib/profession";
 
 // A lightweight, platform-flavoured preview of a draft so the consultant can
 // see roughly how the post will land as they edit. Not pixel-perfect — enough
@@ -188,8 +189,9 @@ export default function PostPreview({
   const script = split.script;
   const caption = withCredit(withDisclosure(withSignOff(split.caption, brand?.signOff), disclosure), source);
   const handle = (brand?.handle ?? "").replace(/^@/, "").trim() || "your_handle";
-  // a business has no job title: no line rather than the adviser's (live-p5w4 N2: "Financial Consultant" under ActivityTracker)
-  const role = brand?.role?.trim() || (business ? "" : "Financial Consultant");
+  // a business has no job title: no line rather than the adviser's (live-p5w4 N2: "Financial Consultant" under ActivityTracker);
+  // a person who isn't an adviser gets what they do, in their words
+  const role = brand?.role?.trim() || (business ? "" : isAdviser(brand?.profession) ? "Financial Consultant" : brand!.profession!.trim());
   const mediaLabel = MEDIA_LABELS[format ?? ""] ?? "Your image / carousel";
 
   if (platform === "instagram") {

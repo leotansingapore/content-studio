@@ -241,6 +241,7 @@ import { pickHook } from "@/lib/writingJudge";
 import type { AiPart } from "@/lib/videoEdit";
 import type { AiMark } from "@/lib/videoProjects";
 import type { EditResult } from "../../supabase/functions/remix/logic.ts";
+import { adviserBrand } from "@/lib/profession";
 
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
 // then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
@@ -631,7 +632,7 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
       <label className="block space-y-1 text-xs font-semibold">
         <span className="block">Your words</span>
         <Textarea rows={4} maxLength={400} value={text} onChange={(e) => write(e.target.value)}
-          placeholder="POV: it's year-end and you finally check what your CPF is doing" className="text-sm font-normal" />
+          placeholder={adviserBrand() ? "POV: it's year-end and you finally check what your CPF is doing" : "POV: it's Friday and you finally answer every client message"} className="text-sm font-normal" />
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <Button className="h-10 [@media(pointer:coarse)]:min-h-11" disabled={!ready || !!busy} onClick={() => clip && onMake(clip, text.trim())}>Make it</Button>
@@ -2386,7 +2387,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
             {log.slice(-3).map((m, i) => (
               <p key={i} className="text-xs"><span className="text-muted-foreground">{m.me}</span><br />{m.it}</p>
             ))}
-            <Textarea rows={2} value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Bigger yellow captions at the top, cut the pauses tighter, hook: 3 CPF mistakes"
+            <Textarea rows={2} value={ask} onChange={(e) => setAsk(e.target.value)} placeholder={adviserBrand() ? "Bigger yellow captions at the top, cut the pauses tighter, hook: 3 CPF mistakes" : "Bigger yellow captions at the top, cut the pauses tighter, hook: 3 mistakes I see every week"}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), runVibe())} />
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim() || none("vibe-edit")} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${thinking ? "disabled:opacity-100" : ""}`}>
@@ -2909,7 +2910,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
             <div className="space-y-3">
               <label className="block space-y-1 text-xs font-semibold">
                 Hook on screen
-                <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder="3 CPF mistakes I see every week"
+                <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder={adviserBrand() ? "3 CPF mistakes I see every week" : "3 mistakes I see every week"}
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
               </label>
               <HookOptions userId={userId} projectId={project.id} words={words} segs={plan.segs} total={plan.total} speed={speed} hook={settings.hook}
@@ -2925,7 +2926,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                 </label>
                 <label className="block space-y-1 text-xs font-semibold">
                   Role
-                  <input value={settings.roleTag ?? ""} maxLength={50} onChange={(e) => patch({ roleTag: e.target.value })} placeholder="Financial adviser"
+                  <input value={settings.roleTag ?? ""} maxLength={50} onChange={(e) => patch({ roleTag: e.target.value })} placeholder={adviserBrand() ? "Financial adviser" : "Business coach"}
                     className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
                 </label>
               </div>
@@ -3158,7 +3159,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
             <div className="space-y-3">
               {brollSearch ? (
                 <StockSearch kind="video" orientation={settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait"}
-                  placeholder="Singapore skyline, family at home, hospital" onPick={addBroll} onClose={() => setBrollSearch(false)} />
+                  placeholder={adviserBrand() ? "Singapore skyline, family at home, hospital" : "City skyline, family at home, office"} onPick={addBroll} onClose={() => setBrollSearch(false)} />
               ) : (
                 <>
                 <AutoBroll userId={userId} projectId={project.id} settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} seek={seekOut}
@@ -3298,9 +3299,9 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     </ul>
                   )}
                   <form className="flex flex-wrap items-center gap-1.5" onSubmit={(e) => { e.preventDefault(); const fix = fixFromEdit(heard, should); if (fix) { remember(fix); setHeard(""); setShould(""); } }}>
-                    <input value={heard} maxLength={40} onChange={(e) => setHeard(e.target.value)} placeholder="Heard as: medi shield" aria-label="What the captions write"
+                    <input value={heard} maxLength={40} onChange={(e) => setHeard(e.target.value)} placeholder={adviserBrand() ? "Heard as: medi shield" : "Heard as: linked in"} aria-label="What the captions write"
                       className="h-9 min-w-0 flex-1 basis-32 rounded-md border border-input bg-background px-2 text-sm" />
-                    <input value={should} maxLength={40} onChange={(e) => setShould(e.target.value)} placeholder="Should be: MediShield" aria-label="What it should say"
+                    <input value={should} maxLength={40} onChange={(e) => setShould(e.target.value)} placeholder={adviserBrand() ? "Should be: MediShield" : "Should be: LinkedIn"} aria-label="What it should say"
                       className="h-9 min-w-0 flex-1 basis-32 rounded-md border border-input bg-background px-2 text-sm" />
                     <Button type="submit" size="sm" variant="outline" className="h-9" disabled={!fixFromEdit(heard, should)}>Add</Button>
                   </form>

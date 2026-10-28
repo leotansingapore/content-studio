@@ -23,6 +23,7 @@ import {
   MAX_LABELS,
   type Label,
 } from "@/lib/labels";
+import { adviserBrand } from "@/lib/profession";
 
 const GRID_FORMATS = ["text-post", "carousel", "short-video"] as const;
 
@@ -190,7 +191,7 @@ export default function PillarsSection({
                 setAddError("");
               }}
               maxLength={30}
-              placeholder="New pillar, e.g. CPF"
+              placeholder={adviserBrand() ? "New pillar, e.g. CPF" : "New pillar, e.g. Client stories"}
               aria-label="New pillar name"
               aria-invalid={!!addError}
               className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11"

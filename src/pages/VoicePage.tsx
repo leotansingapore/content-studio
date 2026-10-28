@@ -62,6 +62,7 @@ import {
   type VoiceProfile,
 } from "@/lib/voiceProfile";
 import { professionFor } from "@/lib/profession";
+import { adviserBrand } from "@/lib/profession";
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ?? "https://hgdbflprrficdoyxmdxe.supabase.co";
@@ -708,7 +709,7 @@ function FactsSection({ userId }: { userId: string }) {
               value={text}
               maxLength={FACT_CHARS}
               onChange={(e) => (setText(e.target.value), setLine(null))}
-              placeholder="12 years as an adviser"
+              placeholder={adviserBrand() ? "12 years as an adviser" : "12 years in my field"}
               disabled={full}
               className="min-w-0 flex-1"
             />

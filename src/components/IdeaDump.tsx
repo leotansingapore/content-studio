@@ -58,6 +58,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import { adviserBrand } from "@/lib/profession";
 
 // ---- Display helpers ----------------------------------------------------------
 
@@ -87,6 +88,13 @@ const PLACEHOLDER = [
   "CPF top-ups before December, what people get wrong",
   "the day I quit engineering to become an advisor",
   "a client who thought her company insurance was enough",
+].join("\n");
+const PLACEHOLDER_ANY = [
+  "e.g.",
+  "why so many people wait too long to ask for help",
+  "the question every new client asks me first",
+  "the day I quit my job to work for myself",
+  "a client who thought she had to figure it all out alone",
 ].join("\n");
 
 const CHIP = "rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground";
@@ -489,7 +497,7 @@ export default function IdeaDump() {
             readOnly={loading}
             rows={6}
             maxLength={MAX_NOTES_CHARS}
-            placeholder={PLACEHOLDER}
+            placeholder={adviserBrand() ? PLACEHOLDER : PLACEHOLDER_ANY}
             aria-describedby="idea-dump-help"
           />
           {listening && (
@@ -582,8 +590,9 @@ export default function IdeaDump() {
               <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> {notice.message}
             </p>
             <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-              Say who it's for or what the point is. “hospital plans” becomes “why fresh grads put off
-              hospital plans”.
+              {adviserBrand()
+                ? "Say who it's for or what the point is. “hospital plans” becomes “why fresh grads put off hospital plans”."
+                : "Say who it's for or what the point is. \"pricing\" becomes \"why new clients ask about pricing first\"."}
             </p>
             {notice.thin.length > 0 && (
               <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">

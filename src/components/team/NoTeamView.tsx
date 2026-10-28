@@ -19,6 +19,7 @@ import {
   isWellFormedInviteCode,
   joinTeam,
 } from "@/lib/teamReview";
+import { adviserBrand } from "@/lib/profession";
 
 export default function NoTeamView({
   defaultName,
@@ -160,7 +161,7 @@ export default function NoTeamView({
               id="team-name"
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
-              placeholder="e.g. Lee & Partners Advisory"
+              placeholder={adviserBrand() ? "e.g. Lee & Partners Advisory" : "e.g. Lee & Partners"}
               maxLength={80}
             />
           </div>

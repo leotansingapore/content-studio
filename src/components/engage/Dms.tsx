@@ -31,6 +31,7 @@ import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { reasonText } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
+import { adviserBrand } from "@/lib/profession";
 
 const KINDS: { kind: DmKind; label: string; tip?: string }[] = [
   { kind: "lead", label: "Leads", tip: "Reply today. Nothing personal is advised before you meet." },
@@ -128,7 +129,7 @@ export default function Dms({ userId }: { userId: string }) {
                   onChange={(e) => thread.edit(newThreadPaste(thread.run, e.target.value))}
                   readOnly={thread.busy}
                   rows={6}
-                  placeholder={"Karen: Hi, saw your post on hospital plans\nThanks Karen, what made you look into it?\nKaren: My dad's premium just jumped"}
+                  placeholder={adviserBrand() ? "Karen: Hi, saw your post on hospital plans\nThanks Karen, what made you look into it?\nKaren: My dad's premium just jumped" : "Karen: Hi, saw your post on first sessions\nThanks Karen, what made you look into it?\nKaren: I've put it off for a year"}
                 />
               </div>
               {lines.length > 0 && (

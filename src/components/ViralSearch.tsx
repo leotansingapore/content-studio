@@ -23,6 +23,7 @@ import {
 import {
   inPeriod, platformName, type Posted, POSTED, Q_MAX, Q_MIN, SEARCH_SORTS, type SearchPlatform, type SearchSort, sortFound, splitRelevant,
 } from "../../supabase/functions/viral-search/logic.ts";
+import { adviserBrand } from "@/lib/profession";
 
 // slideshow: TikTok photo slideshows only, the posts a slideshow remix starts from
 const PLATFORM_CHIPS = ["all", "tiktok", "youtube", "slideshow"] as const;
@@ -183,7 +184,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
                 value={text}
                 maxLength={Q_MAX}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Search TikTok and YouTube (e.g. CPF, first job, insurance myths)"
+                placeholder={adviserBrand() ? "Search TikTok and YouTube (e.g. CPF, first job, insurance myths)" : "Search TikTok and YouTube (e.g. first job, pricing, burnout)"}
                 aria-label="Search public posts"
                 className="pl-9 [@media(pointer:coarse)]:h-11"
               />
