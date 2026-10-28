@@ -19,7 +19,7 @@ export const ORIGIN = APP_ORIGIN;
 export const SITE_NAME = "Postmosis";
 // index.html's own description, so a page card says what the home page says
 export const SITE_DESCRIPTION =
-  "Turn your positioning into a week of posts. Plan a funnel-balanced calendar - Attraction, Building Trust, Conversion - then draft each post in 60 seconds.";
+  "Plan, write, design, edit and schedule your week's posts in one place.";
 export const SITE_CARD = "/og/site.jpg";
 
 /** Each page's name as the nav shows it (src/lib/nav.ts, a page's title else its label); the test keeps them equal. */

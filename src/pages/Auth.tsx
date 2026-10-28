@@ -117,7 +117,7 @@ export default function Auth() {
                 Postmosis
               </span>
               <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                for advisors
+                content studio
               </span>
             </span>
           </div>
@@ -125,7 +125,7 @@ export default function Auth() {
             Sign in to your studio
           </h1>
           <p className="text-sm text-muted-foreground">
-            Use your Academy email.
+            Use the email your account is under.
           </p>
         </div>
 
@@ -134,7 +134,7 @@ export default function Auth() {
             <CardTitle className="font-serif text-xl">Sign in</CardTitle>
             <CardDescription>
               {mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
-                : mode === "email" ? "We'll email you a sign-in link. No password needed." : "Use your Academy email and password."}
+                : mode === "email" ? "We'll email you a sign-in link. No password needed." : "Use your email and password."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -206,9 +206,9 @@ export default function Auth() {
               {mode === "password" && <button type="button" onClick={() => setMode("email")}>Email me a link instead</button>}
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              Heads up: if you only have a financial-app account and have never
-              signed in to the Academy, sign in to the Academy first so your
-              account gets provisioned. Then come back here.
+              Joined through the FINternship Academy? If you have never signed
+              in there, sign in to the Academy first so your account is set up,
+              then come back here.
             </p>
           </CardContent>
         </Card>

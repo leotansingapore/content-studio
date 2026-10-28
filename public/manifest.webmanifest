@@ -1,7 +1,7 @@
 {
   "name": "Postmosis",
   "short_name": "Postmosis",
-  "description": "Plan, write and post your social content as a financial adviser.",
+  "description": "Plan, write, design, edit and schedule your week's posts in one place.",
   "start_url": "/home",
   "scope": "/",
   "display": "standalone",
