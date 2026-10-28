@@ -1,0 +1,17 @@
+[
+  [
+    {
+      "role": "system",
+      "content": "You write the hook card for a short video a Singapore financial adviser filmed: the line set large on screen for the first seconds, read before the viewer decides to stay.\nWrite one hook for each formula given, in that formula's shape, using only what the speaker says: their facts, figures, claims and stories.\nAt most 10 words: it is read in two seconds, so compress the formula's shape, shorter is better. Sentence case, plain words. Never invent a number, a client or a result; if a formula needs a number the speaker never says, keep its shape without one.\nNever promise returns or guarantees and never name an insurer or a product. No em dashes, hashtags, emoji or quote marks.\nReply with JSON only: {\"hooks\":[{\"id\":\"<formula id>\",\"text\":string}]}"
+    },
+    {
+      "role": "user",
+      "content": "Formulas:\n- warning (Warning). Shape: Stop doing {thing} before it costs you. Example of the shape only, never its facts: Stop doing this before it costs you. Avoid: A vague threat\n- list (List). Shape: {N} ways to {thing} Example of the shape only, never its facts: 3 ways to start Avoid: Too many points\n\nWhat they say:\nMost people start too late. Here is the one step that makes the rest easy."
+    }
+  ],
+  {
+    "platform": "Instagram Reels, TikTok and YouTube Shorts",
+    "audience": "Singapore working adults",
+    "topic": "Most people start too late. Here is the one step that makes the rest easy."
+  }
+]

@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { CARD_SETS, cardFormulas, sanitizeIdeas } from "./hookCard";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
+vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
+
+import { callFn } from "@/lib/edgeFn";
+import { CARD_SETS, cardFormulas, sanitizeIdeas, writeHooks } from "./hookCard";
 
 describe("hook card formulas", () => {
   it("every set is three real, different formulas, and no formula repeats across sets", () => {
@@ -23,5 +28,26 @@ describe("the reply from the server", () => {
     expect(sanitizeIdeas({ hooks: [{ formula: "a", text: "One" }, { formula: "b", text: "Two" }], pick: 2 })?.pick).toBeNull();
     expect(sanitizeIdeas({ hooks: [{ formula: "a", text: "One" }, { formula: "b", text: "  " }] })).toBeNull();
     expect(sanitizeIdeas(null)).toBeNull();
+  });
+});
+
+describe("writing hooks for the brand's profession", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("sends the open brand's profession, and none for an adviser's brand", async () => {
+    const m = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) } });
+    const call = callFn as unknown as ReturnType<typeof vi.fn>;
+    call.mockReset();
+    call.mockResolvedValue({ hooks: [{ formula: "warning", text: "Start now" }, { formula: "list", text: "One step" }], pick: 0 });
+    const sentences = [{ s: 0, e: 2, text: "Most people start too late." }];
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await writeHooks("u1", sentences, 2, 0);
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await writeHooks("u1", sentences, 2, 0);
+    const bodies = call.mock.calls.map((c) => JSON.parse(JSON.stringify(c[1])));
+    expect(bodies[0]).toMatchObject({ mode: "hooks", sentences, duration: 2, profession: "coach" });
+    expect(bodies[1]).not.toHaveProperty("profession");
+    expect(bodies[1]).toMatchObject({ mode: "hooks", sentences, duration: 2 });
   });
 });

@@ -2912,7 +2912,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                 <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder="3 CPF mistakes I see every week"
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
               </label>
-              <HookOptions projectId={project.id} words={words} segs={plan.segs} total={plan.total} speed={speed} hook={settings.hook}
+              <HookOptions userId={userId} projectId={project.id} words={words} segs={plan.segs} total={plan.total} speed={speed} hook={settings.hook}
                 onUse={(hook) => { const cur = settingsRef.current; if (cur.hook === hook) return; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, hook }); }} />
               <ColdOpenControl settings={settings} words={words} duration={duration} segs={plan.segs} speed={speed} seek={seekOut}
                 apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />

@@ -7,6 +7,7 @@
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { hookQuestions, hookState, readHookPick } from "../writing-judge/logic.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 
 export interface FormulaIn {
   id: string;
@@ -30,7 +31,9 @@ const MAX_CHARS = 6000;
 
 const str = (v: unknown, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
-export function parseHooksRequest(body: unknown): { ok: true; lines: HookLine[]; duration: number; formulas: FormulaIn[] } | { ok: false; error: string } {
+export function parseHooksRequest(
+  body: unknown,
+): { ok: true; lines: HookLine[]; duration: number; formulas: FormulaIn[]; profession?: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   let chars = 0;
   const lines = (Array.isArray(b.sentences) ? b.sentences : [])
@@ -48,21 +51,27 @@ export function parseHooksRequest(body: unknown): { ok: true; lines: HookLine[];
   if (!Number.isFinite(duration) || duration < 3) return { ok: false, error: "The video is too short for a hook." };
   if (!lines.length) return { ok: false, error: "Caption the video first." };
   if (formulas.length < 2 || new Set(formulas.map((f) => f.id)).size !== formulas.length) return { ok: false, error: "Send two or three hook formulas." };
-  return { ok: true, lines, duration, formulas };
+  // profession: the brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt
+  const profession = professionOf(b.profession);
+  return { ok: true, lines, duration, formulas, ...(profession ? { profession } : {}) };
 }
 
-export function buildHooksMessages(lines: HookLine[], formulas: FormulaIn[]): { role: string; content: string }[] {
+/** The hook card's system prompt for any other work: their work named, and the honesty everyone keeps in place of the adviser's rule. */
+const generalHooks = (system: string, p: string) =>
+  system
+    .replace("a Singapore financial adviser filmed", () => `${aOrAn(p)} filmed`)
+    .replace("Never promise returns or guarantees and never name an insurer or a product.", () => HONEST_LINE);
+
+export function buildHooksMessages(lines: HookLine[], formulas: FormulaIn[], profession = ""): { role: string; content: string }[] {
+  const system = [
+    "You write the hook card for a short video a Singapore financial adviser filmed: the line set large on screen for the first seconds, read before the viewer decides to stay.",
+    "Write one hook for each formula given, in that formula's shape, using only what the speaker says: their facts, figures, claims and stories.",
+    `At most ${HOOK_WORDS} words: it is read in two seconds, so compress the formula's shape, shorter is better. Sentence case, plain words. Never invent a number, a client or a result; if a formula needs a number the speaker never says, keep its shape without one.`,
+    "Never promise returns or guarantees and never name an insurer or a product. No em dashes, hashtags, emoji or quote marks.",
+    'Reply with JSON only: {"hooks":[{"id":"<formula id>","text":string}]}',
+  ].join("\n");
   return [
-    {
-      role: "system",
-      content: [
-        "You write the hook card for a short video a Singapore financial adviser filmed: the line set large on screen for the first seconds, read before the viewer decides to stay.",
-        "Write one hook for each formula given, in that formula's shape, using only what the speaker says: their facts, figures, claims and stories.",
-        `At most ${HOOK_WORDS} words: it is read in two seconds, so compress the formula's shape, shorter is better. Sentence case, plain words. Never invent a number, a client or a result; if a formula needs a number the speaker never says, keep its shape without one.`,
-        "Never promise returns or guarantees and never name an insurer or a product. No em dashes, hashtags, emoji or quote marks.",
-        'Reply with JSON only: {"hooks":[{"id":"<formula id>","text":string}]}',
-      ].join("\n"),
-    },
+    { role: "system", content: profession ? generalHooks(system, profession) : system },
     {
       role: "user",
       content: [
@@ -111,9 +120,12 @@ export function parseHooksReply(content: string | null, formulas: FormulaIn[]): 
   return out.length >= 2 ? out : null;
 }
 
-/** What Jev reads: where the card shows, who scrolls past, and what the video is about (its opening lines). */
-export function hooksState(texts: string[], lines: HookLine[]) {
-  return hookState({ hooks: texts, audience: "", topic: lines.map((l) => l.text).join(" ").slice(0, 400), platform: "Instagram Reels, TikTok and YouTube Shorts" });
+/**
+ * What Jev reads: where the card shows, who scrolls past, and what the video is about (its opening lines). Who scrolls
+ * past is hookState's Singapore working adults for an adviser, working adults for any other work.
+ */
+export function hooksState(texts: string[], lines: HookLine[], profession = "") {
+  return hookState({ hooks: texts, audience: profession ? "working adults" : "", topic: lines.map((l) => l.text).join(" ").slice(0, 400), platform: "Instagram Reels, TikTok and YouTube Shorts" });
 }
 
 export function hooksQuestions(texts: string[]): Record<string, JevQuestion> {

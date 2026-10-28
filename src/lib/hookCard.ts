@@ -4,6 +4,7 @@
 
 import { callFn } from "@/lib/edgeFn";
 import { hookFormula, type HookFormula } from "@/lib/hookFormulas";
+import { professionFor } from "@/lib/profession";
 import type { Sentence } from "@/lib/videoEdit";
 
 /** Formulas that work as a few words on screen over a talking head, three at a time, mixed. */
@@ -38,9 +39,10 @@ export function sanitizeIdeas(raw: unknown): HookIdeas | null {
   return { hooks, pick };
 }
 
-export async function writeHooks(sentences: Sentence[], duration: number, set: number): Promise<HookIdeas> {
+/** Written for the open brand's profession (professionFor; none sent for an adviser). */
+export async function writeHooks(userId: string, sentences: Sentence[], duration: number, set: number): Promise<HookIdeas> {
   const formulas = cardFormulas(set).map(({ id, name, template, example, trap }) => ({ id, name, template, example, trap }));
-  const res = sanitizeIdeas(await callFn("video-assist", { mode: "hooks", sentences, duration, formulas }, "Couldn't write hooks right now. Try again in a minute."));
+  const res = sanitizeIdeas(await callFn("video-assist", { mode: "hooks", sentences, duration, formulas, profession: professionFor(userId) || undefined }, "Couldn't write hooks right now. Try again in a minute."));
   if (!res) throw new Error("The hooks came back incomplete. Try again.");
   return res;
 }

@@ -18,7 +18,8 @@ import { editedSentences, type Segment, type Word } from "@/lib/videoEdit";
 // kept while the page is open, so switching tabs doesn't lose them
 const kept = new Map<string, { ideas: HookIdeas; set: number }>();
 
-export default function HookOptions({ projectId, words, segs, total, speed, hook, onUse }: {
+export default function HookOptions({ userId, projectId, words, segs, total, speed, hook, onUse }: {
+  userId: string;
   projectId: string;
   words: Word[];
   segs: Segment[];
@@ -40,7 +41,7 @@ export default function HookOptions({ projectId, words, segs, total, speed, hook
     const set = state ? state.set + 1 : 0;
     setBusy(true);
     try {
-      const ideas = await writeHooks(editedSentences(words, segs, speed), total, set);
+      const ideas = await writeHooks(userId, editedSentences(words, segs, speed), total, set);
       const next = { ideas, set };
       kept.set(projectId, next);
       setState(next);

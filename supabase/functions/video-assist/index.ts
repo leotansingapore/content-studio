@@ -45,7 +45,7 @@
 //        the stock clip (or, with noun "photo", the slideshow's stock photo) Jev says shows each beat, -1 when none
 //        does, null with no answer ("montage-pick" cap). set (a media set's files, up to 12 a beat) is read only for
 //        NORTH_STAR_USERS, and adds scores:[[p per candidate] | null] from the same answer; anyone else's request is today's.
-//   POST {mode:"hooks", sentences:[{s,e,text}] on the edited timeline, duration, formulas:[{id,name,template,example,trap}] x2-3}
+//   POST {mode:"hooks", sentences:[{s,e,text}] on the edited timeline, duration, formulas:[{id,name,template,example,trap}] x2-3, profession?}
 //        -> {hooks:[{formula,text}], pick: index | null}: hook card lines the LLM writes, one per formula, and the
 //        one Jev would start with (Write's hook question; null on no answer, a tie or a video not in English)
 //        (hooks.ts, "vibe-edit" cap, as the single suggested hook before it).
@@ -492,7 +492,7 @@ Deno.serve(async (req) => {
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 300, response_format: { type: "json_object" }, messages: buildHooksMessages(h.lines, h.formulas) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 300, response_format: { type: "json_object" }, messages: buildHooksMessages(h.lines, h.formulas, h.profession) }),
         signal: AbortSignal.timeout(45_000),
       }).catch(() => null);
       if (!res?.ok) {
@@ -503,7 +503,7 @@ Deno.serve(async (req) => {
       if (!hooks) return json({ error: "The hooks came back incomplete. Try again." }, 502);
       // Jev picks the one to start with (Leo's rule: a pick is a decision); without an answer none is picked
       const texts = hooks.map((x) => x.text);
-      const answers = mostlyEnglish(h.lines.map((x) => x.text).join(" ")) ? await askJev(hooksState(texts, h.lines), hooksQuestions(texts), { who: "video-assist hooks" }) : null;
+      const answers = mostlyEnglish(h.lines.map((x) => x.text).join(" ")) ? await askJev(hooksState(texts, h.lines, h.profession), hooksQuestions(texts), { who: "video-assist hooks" }) : null;
       return json({ hooks, pick: hooksPick(answers, hooks.length) });
     }
 
