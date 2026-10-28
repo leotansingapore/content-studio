@@ -9,6 +9,7 @@ import {
   commentQuestions,
   dmQuestions,
   escalateQuestions,
+  forWork,
   readEscalations,
   typeQuestions,
   type CommentKind,
@@ -48,6 +49,11 @@ describe("Reply drafts for the brand's profession", () => {
     expect(JSON.stringify(out.dms)).toContain(`A ${said} received`);
     expect(out.replies.system).not.toContain("Is this sales?");
     expect(adviserWordsIn(JSON.stringify(out))).toEqual([]);
+  });
+
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(forWork("You: the consultant.", "$&-maker")).toBe("You: the $&-maker.");
+    expect(forWork("A Singapore financial consultant got it.", "$1 coach")).toBe("A $1 coach got it.");
   });
 
   it("names an escalated claim as a dispute for any other work", () => {

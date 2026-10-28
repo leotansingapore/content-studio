@@ -80,7 +80,7 @@ export function forWork(text: string, profession: string): string {
   return GENERAL_SWAPS.reduce((t, [from, to]) => t.split(from).join(to), text)
     .split("A Singapore financial consultant").join(a[0].toUpperCase() + a.slice(1))
     .split("a Singapore financial consultant").join(a)
-    .replace(/\bconsultant\b/g, profession);
+    .replace(/\bconsultant\b/g, () => profession);
 }
 
 const mapValues = (o: Record<string, string>, f: (v: string) => string): Record<string, string> =>

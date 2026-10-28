@@ -95,7 +95,7 @@ export function ctaLine(k: Keyword, raw: unknown): string {
 /** The captions' lines for any other work: their work named, and the honesty everyone keeps in place of the adviser's rule. */
 const generalLine = (p: string) => (l: string) =>
   l
-    .replace("a licensed financial consultant in Singapore filmed", `${aOrAn(p)} filmed`)
+    .replace("a licensed financial consultant in Singapore filmed", () => `${aOrAn(p)} filmed`)
     .replace("Never promise returns, name an insurer's product or a fund, or give a personal recommendation.", HONEST_LINE)
     .replace("the consultant adds it", "they add it")
     .replace('(like "my CPF top-up checklist")', '(like "my starter checklist")');

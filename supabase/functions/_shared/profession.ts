@@ -13,11 +13,12 @@ export const isAdviser = (p: unknown) => typeof p !== "string" || !p.trim() || p
 
 /**
  * The profession a writer gets, as one plain line in the brand's words ("Real estate agent" reads "real estate agent"
- * mid-sentence; "CPA" stays), or "" for an adviser.
+ * mid-sentence; "CPA" stays), or "" for an adviser. Only letters, digits, spaces and . , ' & ( ) / + - are kept, so it
+ * can't open a new prompt line or a replace pattern ($&); writers still put it in with a replacer function.
  */
 export function professionOf(raw: unknown): string {
   if (isAdviser(raw)) return "";
-  const p = (raw as string).replace(/[\p{Cc}\p{Cf}"`]+/gu, " ").replace(/\s+/g, " ").trim().slice(0, MAX_PROFESSION_CHARS).trim();
+  const p = (raw as string).replace(/[^\p{L}\p{M}\p{N} .,'&()/+-]+/gu, " ").replace(/\s+/g, " ").trim().slice(0, MAX_PROFESSION_CHARS).trim();
   return /^\p{Lu}\p{Ll}/u.test(p) ? p[0].toLowerCase() + p.slice(1) : p;
 }
 

@@ -54,7 +54,7 @@ const SYSTEM_PROMPT = [
 
 /** The same shot list for any other work: their words, and the honesty everyone keeps in place of the MAS line. */
 const generalPrompt = (p: string) =>
-  SYSTEM_PROMPT.replace("a licensed Singapore financial consultant's short-video script", `${aOrAn(p)}'s short-video script`)
+  SYSTEM_PROMPT.replace("a licensed Singapore financial consultant's short-video script", () => `${aOrAn(p)}'s short-video script`)
     .replace("the consultant's own words", "their own words")
     .replace(
       'Compliance: the text on screen and the shots add no claim the script doesn\'t make. Never write "guaranteed", "risk-free", a specific % return or interest rate, or a named insurer\'s product.',

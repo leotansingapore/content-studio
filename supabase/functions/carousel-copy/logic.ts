@@ -107,7 +107,7 @@ export function buildCarouselPrompt(req: CarouselRequest): { system: string; use
       : "- recap: an empty title and body.",
     'Reply with JSON only: {"slides":[{"title":"...","body":"..."}],"recap":{"title":"...","body":"..."}}.',
   ]
-    .map((l) => (general ? Object.entries(general).reduce((t, [from, to]) => t.replace(from, to), l) : l))
+    .map((l) => (general ? Object.entries(general).reduce((t, [from, to]) => t.replace(from, () => to), l) : l))
     .join("\n");
   const user = `Tighten these slides:\n${JSON.stringify(
     req.slides.map((s, i) => ({ slide: i + 1, role: roleOf(i, n), title: s.title, body: s.body })),

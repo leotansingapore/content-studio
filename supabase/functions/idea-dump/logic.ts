@@ -280,7 +280,7 @@ export function buildIdeaDumpPrompt(input: Pick<IdeaDumpRequest, "ideas" | "cont
   const { ideas, context } = input;
   const p = context.profession ?? "";
   // any other work: the business speaker's way (buildLongPrompt's `who`), naming the profession where the adviser's names the consultant
-  const who = (l: string) => (p ? l.replace(/\bconsultant\b/g, p).replace("breaking the compliance rules", "breaking the honesty rules") : l);
+  const who = (l: string) => (p ? l.replace(/\bconsultant\b/g, () => p).replace("breaking the compliance rules", "breaking the honesty rules") : l);
   const system = [
     p
       ? `You are a content strategist for ${aOrAn(p)}. They have dumped rough, half-formed post ideas. Turn each one into a post brief they can write from today.`
@@ -590,10 +590,10 @@ export function buildLongPrompt(
   // any other work speaks as a person, named for what they do (the brand's profession)
   const p = sp === "person" ? (req.context.profession ?? "") : "";
   // a business never reads as a consultant: the shared lines name the business instead, as remix's asSpeaker does
-  const who = (l: string) => (sp === "business" ? l.replace(/\bconsultant\b/g, "business") : p ? l.replace(/\bconsultant\b/g, p) : l);
+  const who = (l: string) => (sp === "business" ? l.replace(/\bconsultant\b/g, "business") : p ? l.replace(/\bconsultant\b/g, () => p) : l);
   const opening = LONG_OPENING[sp][req.source ?? "text"];
   const system = [
-    p ? opening.replace("licensed financial consultants in Singapore. A consultant", `${aOrAn(p)}. The consultant`) : opening,
+    p ? opening.replace("licensed financial consultants in Singapore. A consultant", () => `${aOrAn(p)}. The consultant`) : opening,
     "",
     "First, extract, do not summarise. List from the piece:",
     "- claims: every sentence that would start an argument;",

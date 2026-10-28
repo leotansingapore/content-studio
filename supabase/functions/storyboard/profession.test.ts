@@ -12,6 +12,10 @@ const prompts = (extra: Record<string, unknown> = {}) =>
   });
 
 describe("storyboard for the brand's profession", () => {
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    expect(buildStoryboardPrompt({ script: SCRIPT, topic: "", profession: "$&-maker" }).system).toContain("You turn a $&-maker's short-video script");
+  });
+
   it("a caller that sends no profession, or an adviser's, gets today's prompt byte for byte", async () => {
     await expect(JSON.stringify(prompts(), null, 2)).toMatchFileSnapshot("./__pins__/adviser-prompts.json");
     for (const profession of ["", "Financial adviser"]) expect(prompts({ profession })).toEqual(prompts());

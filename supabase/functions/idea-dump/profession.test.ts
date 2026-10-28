@@ -21,6 +21,16 @@ const prompts = (extra: Record<string, unknown> = {}) =>
   });
 
 describe("Idea Dump and One long piece for the brand's profession", () => {
+  it("puts the profession in as typed, never read as a replace pattern", () => {
+    const brief = parseIdeaDumpRequest({ notes: NOTES, ...CONTEXT });
+    const long = parseLongRequest({ mode: "long", text: PIECE, formulas: FORMULAS, ...CONTEXT });
+    if (!brief.ok || !long.ok) throw new Error("bad fixture");
+    const context = { ...brief.request.context, profession: "$&-maker" };
+    expect(buildIdeaDumpPrompt({ ...brief.request, context }).system).toContain("Develop what the $&-maker meant.");
+    const week = buildLongPrompt({ ...long.request, context, source: "text", speaker: "person" }).system;
+    expect(week).toContain("You are a content writer for a $&-maker. The $&-maker has pasted");
+  });
+
   it("a caller that sends no profession, or an adviser's, gets today's prompts byte for byte", async () => {
     await expect(JSON.stringify(prompts(), null, 2)).toMatchFileSnapshot("./__pins__/adviser-prompts.json");
     for (const profession of ["", "Financial adviser"]) expect(prompts({ profession })).toEqual(prompts());
