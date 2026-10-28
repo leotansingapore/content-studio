@@ -10,6 +10,8 @@
 // The job lives outside React, so it carries on while the adviser uses other pages.
 
 import { callFn } from "@/lib/edgeFn";
+import { professionFor } from "@/lib/profession";
+import { supabase } from "@/lib/supabase";
 import { getFile, putFile } from "@/lib/deviceFiles";
 import { chooseClips } from "@/lib/autoBroll";
 import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
@@ -202,7 +204,13 @@ export async function startMontage(a: MontageAsk): Promise<void> {
   if (montageBusy()) return;
   set({ state: "writing", done: 0, of: 0 });
   try {
-    const plan = await callFn<{ beats: Beat[]; grade: FilterId }>("video-assist", { mode: "montage", theme: a.theme, seconds: a.seconds }, "Couldn't plan the montage right now. Try again in a minute.");
+    // planned for the signed-in brand's profession (none sent for an adviser's); the panel holds no user id, so the session says
+    const profession = professionFor((await supabase.auth.getSession()).data.session?.user.id);
+    const plan = await callFn<{ beats: Beat[]; grade: FilterId }>(
+      "video-assist",
+      { mode: "montage", theme: a.theme, seconds: a.seconds, profession: profession || undefined },
+      "Couldn't plan the montage right now. Try again in a minute.",
+    );
     if (!Array.isArray(plan?.beats) || !plan.beats.length) throw new Error("Couldn't plan the montage. Try again.");
     const beats = plan.beats;
 

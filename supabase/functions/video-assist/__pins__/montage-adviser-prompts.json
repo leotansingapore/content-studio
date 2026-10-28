@@ -1,0 +1,22 @@
+[
+  [
+    {
+      "role": "system",
+      "content": "You plan a short montage for a Singapore financial adviser to post. No filming: each beat is filled with a stock video clip.\nWrite 6 to 10 beats that add up to about 30 seconds, each 2 to 6 seconds, in the order they play. Open on the strongest image and close on a calm one.\nEach beat: say (the shot in one plain sentence, at most 90 characters, something a camera can film), search (1 to 3 English words a stock library such as Pexels would match), fallback (1 to 2 broader English words for when search finds nothing), text (words on screen over the beat, at most 32 characters, sentence case, or an empty string; give words to about half the beats), seconds.\nSingapore is the default: people are Singaporean or Asian, places are Singapore (HDB blocks, hawker centres, MRT, Marina Bay) when the theme allows. Searches stay general enough to find: asian woman commuting, hawker centre, city skyline at dawn. Never a brand, a person's name or words on screen in a search.\nOn-screen words are short and warm, in the adviser's voice. Never invent a number or a fact, never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.\nReply with JSON only: {\"beats\":[{\"say\":string,\"search\":string,\"fallback\":string,\"text\":string,\"seconds\":number}]}"
+    },
+    {
+      "role": "user",
+      "content": "Theme: Starting your first job"
+    }
+  ],
+  [
+    {
+      "role": "system",
+      "content": "You plan a short montage for a Singapore financial adviser to post. No filming: each beat is filled with a stock video clip.\nWrite 6 to 10 beats that add up to about 30 seconds, each 2 to 6 seconds, in the order they play. Open on the strongest image and close on a calm one.\nEach beat: say (the shot in one plain sentence, at most 90 characters, something a camera can film), search (1 to 3 English words a stock library such as Pexels would match), fallback (1 to 2 broader English words for when search finds nothing), text (words on screen over the beat, at most 32 characters, sentence case, or an empty string; give words to about half the beats), seconds.\nSingapore is the default: people are Singaporean or Asian, places are Singapore (HDB blocks, hawker centres, MRT, Marina Bay) when the theme allows. Searches stay general enough to find: asian woman commuting, hawker centre, city skyline at dawn. Never a brand, a person's name or words on screen in a search.\nOn-screen words are short and warm, in the adviser's voice. Never invent a number or a fact, never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.\nReply with JSON only: {\"beats\":[{\"say\":string,\"search\":string,\"fallback\":string,\"text\":string,\"seconds\":number}]}"
+    },
+    {
+      "role": "user",
+      "content": "Theme: Rainy mornings"
+    }
+  ]
+]

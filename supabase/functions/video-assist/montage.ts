@@ -10,6 +10,7 @@
 // (a slug like "woman-walking-on-street"), the only words a stock video carries; Jev reads text only.
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
+import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 
 /** The colour looks of the editor (src/lib/videoEdit.ts FILTERS); montage.test.ts keeps the two lists equal. */
 export const GRADES = {
@@ -44,28 +45,37 @@ export interface Beat {
   seconds: number;
 }
 
-export function parseMontageRequest(body: unknown): { ok: true; theme: string; seconds: number } | { ok: false; error: string } {
+export function parseMontageRequest(body: unknown): { ok: true; theme: string; seconds: number; profession?: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const theme = typeof b.theme === "string" ? b.theme.replace(/\s+/g, " ").trim() : "";
   if (theme.length < 3) return { ok: false, error: "Type a theme for the montage." };
   if (theme.length > MAX_THEME) return { ok: false, error: `Keep the theme under ${MAX_THEME} characters.` };
   const n = Number(b.seconds);
-  return { ok: true, theme, seconds: Math.min(LEN_MAX, Math.max(LEN_MIN, Number.isFinite(n) ? Math.round(n) : 30)) };
+  // profession: the brand's "What do you do?" (../_shared/profession.ts); absent for an adviser, who gets today's prompt
+  const profession = professionOf(b.profession);
+  return { ok: true, theme, seconds: Math.min(LEN_MAX, Math.max(LEN_MIN, Number.isFinite(n) ? Math.round(n) : 30)), ...(profession ? { profession } : {}) };
 }
 
-export function buildMontageMessages(theme: string, seconds: number): { role: string; content: string }[] {
+/**
+ * The montage's system prompt for any other work: their work named and their voice, and the honesty everyone keeps in
+ * place of the adviser's rule. The Singapore picture default stays (Leo's rule: stock people are Singaporean by default).
+ */
+const generalMontage = (system: string, p: string) =>
+  system
+    .replace("for a Singapore financial adviser to post.", () => `for ${aOrAn(p)} to post.`)
+    .replace("in the adviser's voice. Never invent a number or a fact, never promise returns or guarantees.", () => `in their voice. ${HONEST_LINE}`);
+
+export function buildMontageMessages(theme: string, seconds: number, profession = ""): { role: string; content: string }[] {
+  const system = [
+    "You plan a short montage for a Singapore financial adviser to post. No filming: each beat is filled with a stock video clip.",
+    `Write ${MIN_BEATS} to ${MAX_BEATS} beats that add up to about ${seconds} seconds, each ${BEAT_MIN} to ${BEAT_MAX} seconds, in the order they play. Open on the strongest image and close on a calm one.`,
+    "Each beat: say (the shot in one plain sentence, at most 90 characters, something a camera can film), search (1 to 3 English words a stock library such as Pexels would match), fallback (1 to 2 broader English words for when search finds nothing), text (words on screen over the beat, at most 32 characters, sentence case, or an empty string; give words to about half the beats), seconds.",
+    "Singapore is the default: people are Singaporean or Asian, places are Singapore (HDB blocks, hawker centres, MRT, Marina Bay) when the theme allows. Searches stay general enough to find: asian woman commuting, hawker centre, city skyline at dawn. Never a brand, a person's name or words on screen in a search.",
+    "On-screen words are short and warm, in the adviser's voice. Never invent a number or a fact, never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.",
+    'Reply with JSON only: {"beats":[{"say":string,"search":string,"fallback":string,"text":string,"seconds":number}]}',
+  ].join("\n");
   return [
-    {
-      role: "system",
-      content: [
-        "You plan a short montage for a Singapore financial adviser to post. No filming: each beat is filled with a stock video clip.",
-        `Write ${MIN_BEATS} to ${MAX_BEATS} beats that add up to about ${seconds} seconds, each ${BEAT_MIN} to ${BEAT_MAX} seconds, in the order they play. Open on the strongest image and close on a calm one.`,
-        "Each beat: say (the shot in one plain sentence, at most 90 characters, something a camera can film), search (1 to 3 English words a stock library such as Pexels would match), fallback (1 to 2 broader English words for when search finds nothing), text (words on screen over the beat, at most 32 characters, sentence case, or an empty string; give words to about half the beats), seconds.",
-        "Singapore is the default: people are Singaporean or Asian, places are Singapore (HDB blocks, hawker centres, MRT, Marina Bay) when the theme allows. Searches stay general enough to find: asian woman commuting, hawker centre, city skyline at dawn. Never a brand, a person's name or words on screen in a search.",
-        "On-screen words are short and warm, in the adviser's voice. Never invent a number or a fact, never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.",
-        'Reply with JSON only: {"beats":[{"say":string,"search":string,"fallback":string,"text":string,"seconds":number}]}',
-      ].join("\n"),
-    },
+    { role: "system", content: profession ? generalMontage(system, profession) : system },
     { role: "user", content: `Theme: ${theme}` },
   ];
 }

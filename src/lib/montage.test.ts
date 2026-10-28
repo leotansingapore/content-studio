@@ -1,11 +1,13 @@
 import { afterEach, describe as suite, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
+vi.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })) } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 vi.mock("@/lib/stockMedia", () => ({ searchStock: vi.fn(), downloadStock: vi.fn() }));
 vi.mock("@/lib/deviceFiles", () => ({ putFile: vi.fn(async () => {}), getFile: vi.fn(async () => undefined) }));
 vi.mock("@/lib/videoMedia", () => ({ currentJoin: vi.fn(() => null), monoPcm: vi.fn(), startJoin: vi.fn(async () => {}) }));
 
 import { callFn } from "@/lib/edgeFn";
+import { supabase } from "@/lib/supabase";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
 import { getFile } from "@/lib/deviceFiles";
 import { currentJoin, startJoin } from "@/lib/videoMedia";
@@ -266,5 +268,29 @@ suite("the montage job", () => {
     await run;
     expect(startJoin).toHaveBeenCalledTimes(1);
     expect(montageJob()).toMatchObject({ state: "done" });
+  });
+});
+
+suite("the montage for the brand's profession", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("sends the signed-in brand's profession, and none for an adviser's brand", async () => {
+    const m = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) } });
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: { id: "u1" } } } } as never);
+    const beats = ["coffee morning", "train commute"].map((q) => ({ say: q, search: q, fallback: q, text: "", seconds: 4 }));
+    vi.mocked(callFn).mockReset().mockImplementation(async (_fn, body) => ((body as { mode: string }).mode === "montage" ? { beats, grade: "warm" } : { picks: [0, 0] }));
+    vi.mocked(searchStock).mockReset().mockImplementation(async (_k, q) => ({ items: [{ ...item(q, q.replace(/ /g, "-")), src: `https://p/${q}.mp4` }], more: false }));
+    vi.mocked(downloadStock).mockReset().mockImplementation(async (src: string) => new Blob([src]));
+    vi.mocked(startJoin).mockReset().mockResolvedValue(undefined);
+    const planned = () => vi.mocked(callFn).mock.calls.filter(([, b]) => (b as { mode: string }).mode === "montage").map(([, b]) => JSON.parse(JSON.stringify(b)));
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }));
+    await startMontage({ theme: "Rainy mornings", seconds: 20, words: false, music: null });
+    m.set("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Financial adviser" }));
+    await startMontage({ theme: "Rainy mornings", seconds: 20, words: false, music: null });
+    expect(planned()).toEqual([
+      { mode: "montage", theme: "Rainy mornings", seconds: 20, profession: "coach" },
+      { mode: "montage", theme: "Rainy mornings", seconds: 20 },
+    ]);
   });
 });

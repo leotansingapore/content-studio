@@ -39,7 +39,7 @@
 //        what each needs (Jev again: a scene clip, an idea card or the named product); the LLM writes a
 //        1-3 word stock search for a scene and the card text for the rest; null when Jev has no answer or
 //        the video is not in English (broll.ts, "broll-picks" cap).
-//   POST {mode:"montage", theme, seconds?} -> {beats:[{say,search,fallback,text,seconds}], grade}: 6-10 beats for a
+//   POST {mode:"montage", theme, seconds?, profession?} -> {beats:[{say,search,fallback,text,seconds}], grade}: 6-10 beats for a
 //        montage from a theme (LLM) and the one colour grade over all of them (Jev) (montage.ts, "montage-beats" cap).
 //   POST {mode:"montage-pick", theme, beats:[{say, candidates:[{desc}]}], noun?: "photo", set?: true} -> {picks:[index | -1 | null]}:
 //        the stock clip (or, with noun "photo", the slideshow's stock photo) Jev says shows each beat, -1 when none
@@ -453,7 +453,7 @@ Deno.serve(async (req) => {
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 900, response_format: { type: "json_object" }, messages: buildMontageMessages(m.theme, m.seconds) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 900, response_format: { type: "json_object" }, messages: buildMontageMessages(m.theme, m.seconds, m.profession) }),
         signal: AbortSignal.timeout(45_000),
       }).catch(() => null);
       if (!res?.ok) {
