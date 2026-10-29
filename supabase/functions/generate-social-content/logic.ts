@@ -18,7 +18,7 @@ export type Platform = (typeof PLATFORM_VALUES)[number];
 export type CtaType = (typeof CTA_VALUES)[number];
 export type Audience = (typeof AUDIENCE_VALUES)[number];
 export type AnswerShape = (typeof ANSWER_SHAPES)[number];
-export type Mode = "hooks" | "body" | "post" | "voice-summary" | "hashtags" | "image-prompt" | "answer";
+export type Mode = "hooks" | "body" | "post" | "voice-summary" | "hashtags" | "image-prompt" | "answer" | "vsl";
 
 export interface RequestBody {
   pillar?: Pillar;
@@ -224,6 +224,7 @@ export function bodySystemPrompt(body: RequestBody, variantIndex: number, chosen
 
 export function userPrompt(body: RequestBody, mode: Mode): string {
   if (mode === "answer") return `Write my ${body.answerShape === "guide" ? "guide post" : "reply"} now, following the system instructions.`;
+  if (mode === "vsl") return "Write my video sales letter script now, following the system instructions.";
   if (mode === "hooks") {
     return `Produce one ${body.platform} hook for a ${body.format}, following the system instructions.`;
   }
@@ -345,12 +346,79 @@ export function answerSystemPrompt(body: RequestBody, variantIndex: number): str
   return lines.filter(Boolean).join("\n");
 }
 
+// ---- A video sales letter (/generate/vsl, 29 Oct 2026) ---------------------------------------------------------
+// The owner's answers to the hormozi-vsl skill's intake (~/.claude/skills/hormozi-vsl, section 2) edited into spoken
+// lines in its order: promise, pain, proof, the plan, the named method, each objection in four moves, one next step.
+// It edits their words and never writes proof they did not give: a gap becomes a [Need: ...] line, not a guess.
+
+export const VSL_QUESTIONS = [
+  { key: "offer", label: "What you sell, and who it's for", placeholder: "e.g. a 12-week program for new managers who just got their first team" },
+  { key: "promise", label: "What people get when you're done", placeholder: "e.g. they run a weekly 1:1 that their team actually looks forward to" },
+  { key: "pain", label: "What they say on the first call", placeholder: "What are they stuck on, worried about or embarrassed by? Their words, not yours." },
+  { key: "proof", label: "Three results you'd show first", placeholder: "Real ones only: a client like them, what changed, the number or the review in their words." },
+  { key: "method", label: "How you do it, step by step", placeholder: "Walk through what you do, in order. What do you call it?" },
+  { key: "objections", label: "What stops people buying", placeholder: "3-5 of them. For each: what they think, why it's wrong, what's actually true, and the result that proves it." },
+  { key: "next", label: "The one next step", placeholder: "e.g. book a 20-minute call. What happens after they do?" },
+] as const;
+export type VslKey = (typeof VSL_QUESTIONS)[number]["key"];
+
+/** The answers as ideaContext: one heading per answered question, in the intake's order. */
+export function vslBrief(answers: Partial<Record<VslKey, string>>): string {
+  return VSL_QUESTIONS.filter((q) => answers[q.key]?.trim())
+    .map((q) => `## ${q.label}\n${answers[q.key]!.trim()}`)
+    .join("\n\n");
+}
+
+/** Version A and B: the skill's first A/B test is the opening (proof first or promise first both work). */
+const VSL_OPENINGS = [
+  "Open on the promise: the first line says what the viewer gets, to the person it is for.",
+  "Open on proof: the first lines give one result from their answers, from someone just like the viewer, then the promise.",
+];
+
+export function vslSystemPrompt(body: RequestBody, variantIndex: number): string {
+  const p = professionOf(body.profession);
+  const lines = [
+    `You edit the spoken script of one video sales letter for ${p ? aOrAn(p) : "a financial consultant in Singapore"}, from their own answers below. They will read it to camera or record it as a voice-over.`,
+    "Rules:",
+    "- Edit their words, do not rewrite them. Cut filler, keep their phrasing, and use only what their answers say.",
+    `- ${HONEST_LINE} Every result, number, review and name comes from their answers.`,
+    "- When a part needs something their answers do not give (a result, a review, a step, the proof for an objection), write one line in square brackets saying what is needed, like [Need: one result from a client like this, with the number]. Never fill the gap yourself.",
+    "- One idea per line and at most 9 words a line, each on its own line. Short sentences and small words, said the way they would say it on a sales call.",
+    "- One big idea for the whole video. Every proof and every answer to a worry backs it up.",
+    "- A specific moment beats a category: 'the Sunday night you dread Monday', not 'stress'.",
+    "- Say who it is for, and who it is not for, when their answers say.",
+    "- One call to action: one thing to do, a reason to do it now only if their answers give a real one, and what happens after. No second offer, no discount, and no price unless their answers give one.",
+    "- Spoken lines never name the parts of the video ('framework', 'road map', 'part one', 'objection'). Say it as a person would: 'First, how it works. Then the questions everyone asks.'",
+    "- No hashtags, no emoji, no famous names or catchphrases.",
+    p ? "" : "- Keep to general information: never recommend a specific product, insurer or fund, never state or promise a return, and use no client testimonials or return figures as proof; use their process, credentials and plain facts instead.",
+    "",
+    "## Shape, in this order. Each part starts with its heading in capitals on its own line; headings are not spoken.",
+    "INTRO: the promise (what they get from watching), the pain (where they are now, in their customers' words), proof (up to three results from their answers: 'this one, and this one'), then one spoken line on how the video goes.",
+    "HOW IT WORKS: the method by its name, as their own way, step by step.",
+    "OBJECTION 1, OBJECTION 2 and on: each thing that stops people buying, in four moves: what they think ('A lot of people think...'), why that is wrong, what is actually true, and the proof.",
+    "NEXT STEP: the one action, the reason to do it now, and what happens after they do it.",
+    "P.S.: one closing line: a recap, or who this is not for.",
+    "",
+    "## Length: 750-1,050 spoken words (5-7 minutes at a calm pace) when their answers hold enough, shorter when they hold less. Never pad.",
+    "",
+    "## Their answers",
+    body.ideaContext?.trim() ?? "",
+  ];
+  if (body.voiceSummary?.trim()) lines.push("", "## Voice profile (match this person's tone)", body.voiceSummary.trim());
+  lines.push("", `## ${VSL_OPENINGS[variantIndex % VSL_OPENINGS.length]}`, "", "Output only the script with its headings. No preamble.");
+  return lines.filter(Boolean).join("\n");
+}
+
+/** A VSL runs about 1,050 words plus headings; everything else fits the post writer's 1,400. */
+export const maxTokensFor = (mode: Mode) => (mode === "vsl" ? 3000 : 1400);
+
 export function buildSystemForVariant(
   body: RequestBody,
   mode: Mode,
   variantIndex: number,
 ): string {
   if (mode === "answer") return answerSystemPrompt(body, variantIndex);
+  if (mode === "vsl") return vslSystemPrompt(body, variantIndex);
   if (mode === "hooks") return hooksSystemPrompt(body, variantIndex);
   if (mode === "body") {
     const hook = body.chosenHook?.trim();
@@ -413,6 +481,7 @@ export function requestError(raw: RequestBody): string | null {
   }
   const mode: Mode = raw.mode ?? "post";
   if (mode === "answer") return raw.ideaContext?.trim() ? null : "Paste the question to answer.";
+  if (mode === "vsl") return raw.ideaContext?.trim() ? null : "Say what you sell first.";
   if (mode === "voice-summary") {
     return (raw.posts ?? []).some((p) => typeof p === "string" && p.trim().length >= 1) ? null : "voice-summary requires at least 1 past post";
   }

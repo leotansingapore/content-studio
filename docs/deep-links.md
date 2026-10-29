@@ -284,6 +284,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /generate | panel | shortcuts (keyboard shortcuts dialog), post (Post it for me, on a scheduled post) | none | push | /generate?panel=shortcuts |
 | /generate/batch | pillar | topic, market, identity, interest | the tab's unfinished batch, else topic | replace | /generate/batch?pillar=market |
 | /generate/batch | audience | general, young-adult, working-adult, parent, pre-retiree | the tab's unfinished batch, else general | replace | /generate/batch?audience=parent |
+| /generate/vsl | offer, promise, pain, proof, method, objections, next | the intake answers as typed (VSL_QUESTIONS in generate-social-content/logic.ts); offer is needed to write | empty | replace | /generate/vsl?offer=Coaching%20for%20new%20managers&next=Book%20a%20call |
 | /carousel | tab | drafts, paste, topic, saved (where the post comes from) | the tab's unfinished carousel, else drafts; drafts when there are no saved carousels | replace | /carousel?tab=topic |
 | /carousel | draft | a post id: fresh slides from that post | none | replace | /carousel?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /carousel | carousel | a saved carousel id (d:<post id> or p:<time>): reopens it with its edits; beats draft; the address takes it once an edit is kept | none | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |

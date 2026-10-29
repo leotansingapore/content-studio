@@ -15,6 +15,8 @@ import {
   userPrompt,
   voiceSummarySystemPrompt,
   voiceSummaryUserPrompt,
+  VSL_QUESTIONS,
+  vslBrief,
   type Audience,
   type CtaType,
   type Format,
@@ -202,5 +204,50 @@ describe("answer mode (/generate/answer)", () => {
     expect(requestError({ ...ask, answerShape: "thread" as never })).not.toBeNull();
     expect(requestError({ ...ask, community: "x".repeat(201) })).not.toBeNull();
     expect(requestError({ ...ask, linkRule: "x".repeat(1_001) })).not.toBeNull();
+  });
+});
+
+describe("vsl mode (/generate/vsl)", () => {
+  const brief = vslBrief({ offer: "A 12-week program for new managers", method: "Week one we fix the 1:1.", next: "Book a 20-minute call." });
+  const ask = { mode: "vsl" as const, ideaContext: brief };
+  const system = (body: RequestBody, v = 0) => buildSystemForVariant(body, "vsl", v);
+
+  it("puts the answered questions under their own headings, in the intake's order, and skips the blank ones", () => {
+    expect(brief).toBe("## What you sell, and who it's for\nA 12-week program for new managers\n\n## How you do it, step by step\nWeek one we fix the 1:1.\n\n## The one next step\nBook a 20-minute call.");
+    expect(vslBrief({ offer: "  ", pain: "Stuck" })).toBe("## What they say on the first call\nStuck");
+    expect(VSL_QUESTIONS.map((q) => q.key)).toEqual(["offer", "promise", "pain", "proof", "method", "objections", "next"]);
+  });
+  it("edits their answers in the skill's order, marks gaps instead of inventing proof, and keeps one call to action", () => {
+    for (const body of [ask, { ...ask, profession: "Coach" }]) {
+      const s = system(body);
+      expect(s).toContain(brief);
+      expect(s).toContain("Edit their words, do not rewrite them.");
+      expect(s).toContain("Never invent a number, a result, a client story or a testimonial");
+      expect(s).toContain("[Need: one result from a client like this, with the number]");
+      expect(s).toContain("at most 9 words a line");
+      expect(s).toContain("One call to action");
+      expect(s.indexOf("INTRO:")).toBeLessThan(s.indexOf("HOW IT WORKS:"));
+      expect(s.indexOf("HOW IT WORKS:")).toBeLessThan(s.indexOf("OBJECTION 1"));
+      expect(s.indexOf("OBJECTION 1")).toBeLessThan(s.indexOf("NEXT STEP:"));
+      expect(s).not.toContain("The CTA is mandatory");
+      expect(s).not.toMatch(/hormozi/i);
+    }
+  });
+  it("keeps an adviser off testimonials and returns; any other work gets no adviser words", () => {
+    expect(system(ask)).toContain("use no client testimonials or return figures as proof");
+    for (const { raw } of PROFESSIONS) {
+      expect(adviserWordsIn(system({ ...ask, profession: raw }))).toEqual([]);
+      expect(system({ ...ask, profession: raw })).not.toContain("testimonials or return figures");
+    }
+  });
+  it("opens version A on the promise and version B on proof", () => {
+    expect(system(ask, 0)).toContain("Open on the promise");
+    expect(system(ask, 1)).toContain("Open on proof");
+    expect(userPrompt(ask, "vsl")).toBe("Write my video sales letter script now, following the system instructions.");
+  });
+  it("needs what they sell and nothing from a post's brief", () => {
+    expect(requestError(ask)).toBeNull();
+    expect(requestError({ mode: "vsl" })).toBe("Say what you sell first.");
+    expect(requestError({ mode: "vsl", ideaContext: "  " })).toBe("Say what you sell first.");
   });
 });

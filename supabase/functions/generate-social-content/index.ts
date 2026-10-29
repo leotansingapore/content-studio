@@ -7,7 +7,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { buildSystemForVariant, hashtagsSystemPrompt, hashtagsUserPrompt, imagePromptSystemPrompt, imagePromptUserPrompt, MAX_BODY_CHARS, requestError, TOO_LONG, userPrompt, voiceSummarySystemPrompt, voiceSummaryUserPrompt, type Mode, type RequestBody } from "./logic.ts";
+import { buildSystemForVariant, hashtagsSystemPrompt, hashtagsUserPrompt, imagePromptSystemPrompt, imagePromptUserPrompt, MAX_BODY_CHARS, maxTokensFor, requestError, TOO_LONG, userPrompt, voiceSummarySystemPrompt, voiceSummaryUserPrompt, type Mode, type RequestBody } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +62,7 @@ async function callOpenAINonStream(
   apiKey: string,
   systemContent: string,
   userContent: string,
+  maxTokens = 1400,
 ): Promise<string> {
   const response = await openaiFetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -76,7 +77,7 @@ async function callOpenAINonStream(
         { role: "user", content: userContent },
       ],
       temperature: 0.85,
-      max_tokens: 1400,
+      max_tokens: maxTokens,
     }),
   });
 
@@ -98,6 +99,7 @@ async function callOpenAIStreamToController(
   encoder: TextEncoder,
   signal: AbortSignal,
   onSent: () => void,
+  maxTokens = 1400,
 ): Promise<string> {
   const response = await openaiFetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -112,7 +114,7 @@ async function callOpenAIStreamToController(
         { role: "user", content: userContent },
       ],
       temperature: 0.85,
-      max_tokens: 1400,
+      max_tokens: maxTokens,
       stream: true,
     }),
     signal,
@@ -187,7 +189,7 @@ async function handleNonStream(
   const userContent = userPrompt(body, mode);
   try {
     const calls = Array.from({ length: n }, (_, i) =>
-      callOpenAINonStream(apiKey, buildSystemForVariant(body, mode, i), userContent),
+      callOpenAINonStream(apiKey, buildSystemForVariant(body, mode, i), userContent, maxTokensFor(mode)),
     );
     const results = await Promise.all(calls);
     if (n === 1 && mode === "post") {
@@ -247,6 +249,7 @@ function handleStream(
             encoder,
             abortController.signal,
             () => (sent = true),
+            maxTokensFor(mode),
           );
           sendEvent({ type: "variant_complete", variantIndex: i, text });
         } catch (err) {

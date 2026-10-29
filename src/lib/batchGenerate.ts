@@ -15,6 +15,8 @@ import type { AnswerShape, Audience, CtaType, Format, Pillar, Platform } from ".
 
 /** How many answers /generate/answer writes at once, each with its own opening. */
 export const ANSWER_COUNT = 3;
+/** /generate/vsl writes version A and B of one script, each with its own opening. */
+export const VSL_COUNT = 2;
 
 /** The post writer's lists type every field it checks (generate-social-content requestError). */
 export interface GeneratePostPayload {
@@ -171,11 +173,11 @@ export interface AnswerPayload {
 }
 
 /**
- * Three answers to one question in one request, each with its own opening, streamed side by side. A failed answer
- * reports its own index and the others carry on; a failure before any answer starts reports index null.
+ * Several versions in one request, each with its own opening, streamed side by side. A failed version
+ * reports its own index and the others carry on; a failure before any version starts reports index null.
  */
-export async function streamAnswers(
-  payload: AnswerPayload,
+async function streamVariants(
+  payload: Record<string, unknown>,
   handlers: {
     onToken: (index: number, text: string) => void;
     onComplete: (index: number, text: string) => void;
@@ -185,7 +187,7 @@ export async function streamAnswers(
 ): Promise<void> {
   const texts: string[] = [];
   await readWriterStream(
-    { ...payload, mode: "answer", n: ANSWER_COUNT, stream: true },
+    { ...payload, stream: true },
     (evt) => {
       const i = typeof evt.variantIndex === "number" ? evt.variantIndex : null;
       if (evt.type === "token" && i !== null) {
@@ -205,3 +207,21 @@ export async function streamAnswers(
     signal,
   );
 }
+
+type VariantHandlers = Parameters<typeof streamVariants>[1];
+
+/** Three answers to one question (/generate/answer). */
+export const streamAnswers = (payload: AnswerPayload, handlers: VariantHandlers, signal?: AbortSignal) =>
+  streamVariants({ ...payload, mode: "answer", n: ANSWER_COUNT }, handlers, signal);
+
+/** /generate/vsl's request: the intake answers as vslBrief() in ideaContext (generate-social-content vsl mode). */
+export interface VslPayload {
+  ideaContext: string;
+  voiceSummary?: string;
+  /** The brand's "What do you do?" (professionFor); left out for an adviser. */
+  profession?: string;
+}
+
+/** Version A and B of one VSL script (/generate/vsl). */
+export const streamVsl = (payload: VslPayload, handlers: VariantHandlers, signal?: AbortSignal) =>
+  streamVariants({ ...payload, mode: "vsl", n: VSL_COUNT }, handlers, signal);

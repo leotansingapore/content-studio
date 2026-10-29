@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, sectionTabs, visiblePages } from "./nav";
 
 const routes = [
-  "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
+  "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
@@ -56,14 +56,14 @@ describe("nav", () => {
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan"]);
-    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
+    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/ideas"]);
-      expect(pages("write", email).slice(0, 9), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/generate/answer", "/carousel", "/image", "/slideshow", "/edit"]);
+      expect(pages("write", email).slice(0, 10), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(6, 8), email).toEqual(["/competitors", "/saved"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
@@ -115,7 +115,7 @@ describe("nav", () => {
       const leo = sectionTabs("/carousel", LEO);
       expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Approvals", "Faces and voices"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
-      expect(labels(leo.chips)).toEqual(["Post", "Formats", "Batch", "Answer", "Carousel", "Image", "Slideshow", "Video"]);
+      expect(labels(leo.chips)).toEqual(["Post", "Formats", "Batch", "Answer", "VSL", "Carousel", "Image", "Slideshow", "Video"]);
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
       // each group tab opens the group's first page this sign-in sees
       expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/library", "/team", "/people"]);

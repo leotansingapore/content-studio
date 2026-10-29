@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt", user: { id: UID, email: "someone@example.com" } } } }) } },
 }));
 
-import { ANSWER_COUNT, streamAnswers, streamOnePost, type GeneratePostPayload } from "./batchGenerate";
+import { ANSWER_COUNT, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, type GeneratePostPayload } from "./batchGenerate";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -173,6 +173,13 @@ describe("streamAnswers (/generate/answer)", () => {
     await run();
     expect(sent).toHaveLength(1);
     expect(sent[0].body).toEqual({ ideaContext: "Is it worth it?", community: "r/SGExams", answerShape: "reply", mode: "answer", n: ANSWER_COUNT, stream: true });
+  });
+  it("asks vsl mode for version A and B in one streamed request (/generate/vsl)", async () => {
+    reply([]);
+    await streamVsl({ ideaContext: "## What you sell\nCoaching", profession: "Coach" }, { onToken: () => {}, onComplete: () => {}, onError: () => {} });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].body).toEqual({ ideaContext: "## What you sell\nCoaching", profession: "Coach", mode: "vsl", n: VSL_COUNT, stream: true });
+    expect(VSL_COUNT).toBe(2);
   });
   it("keeps each answer apart as the tokens interleave, and a failed one does not stop the others", async () => {
     reply([

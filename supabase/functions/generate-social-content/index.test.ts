@@ -39,7 +39,7 @@ vi.mock("https://deno.land/std@0.168.0/http/server.ts", () => ({ serve: (fn: (r:
 
 // OpenAI: "down" answers 500, "ok" answers one line (as JSON for the side modes, as a stream when asked), "breaks"
 // streams one token and then drops, "hangs" never answers until the call is aborted
-const openai = { mode: "ok" as "ok" | "down" | "breaks" | "hangs", calls: 0, aborted: 0 };
+const openai = { mode: "ok" as "ok" | "down" | "breaks" | "hangs", calls: 0, aborted: 0, maxTokens: [] as number[] };
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
@@ -49,6 +49,7 @@ beforeAll(async () => {
   vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     if (!String(u).includes("openai")) throw new Error(`unexpected fetch ${u}`);
     openai.calls++;
+    openai.maxTokens.push(JSON.parse(String(init?.body)).max_completion_tokens);
     if (openai.mode === "down") return new Response("{}", { status: 500 });
     if (openai.mode === "hangs") {
       return new Promise<Response>((_, reject) =>
@@ -107,6 +108,18 @@ describe("generate-social-content: who may write and what it counts", () => {
     expect((await send({ mode: "hashtags", draft: "A post." })).status).toBe(200);
     expect((await send({ mode: "voice-summary", posts: ["A past post."] })).status).toBe(200);
     expect(used()).toBe(4);
+  });
+
+  // the cap plus openaiChat's 4,000 reasoning headroom
+  it("gives a VSL room for 5-7 minutes of script, and every other mode the post writer's 1,400 tokens", async () => {
+    openai.maxTokens.length = 0;
+    expect((await send({ mode: "vsl", ideaContext: "## What you sell\nCoaching", n: 2 }, ME, "text/event-stream")).status).toBe(200);
+    expect((await send({ mode: "vsl", ideaContext: "## What you sell\nCoaching" })).status).toBe(200);
+    expect(openai.maxTokens).toEqual([7000, 7000, 7000]);
+    openai.maxTokens.length = 0;
+    expect((await send({ ...BRIEF, mode: "post" })).status).toBe(200);
+    expect((await send({ ...BRIEF, mode: "hooks", n: 2 }, ME, "text/event-stream")).status).toBe(200);
+    expect(openai.maxTokens).toEqual([5400, 5400, 5400]);
   });
 
   it("is refused over the day's 200 without calling OpenAI", async () => {
