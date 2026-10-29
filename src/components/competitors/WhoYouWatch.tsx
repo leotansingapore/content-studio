@@ -18,6 +18,7 @@ import {
   nameKey, noneOfThese, pickChoice, readEdit, readState, removeCompetitor, restoreCompetitor, runRead, runSuggest, updateCompetitor, type CompetitorsState,
 } from "@/lib/competitors";
 import { links } from "@/lib/links";
+import { adviserBrand } from "@/lib/profession";
 import { reasonText } from "@/lib/prices";
 import { useScrollToItem } from "@/lib/urlState";
 
@@ -232,7 +233,8 @@ function Suggested({ userId, state, primary }: { userId: string; state: Competit
         </div>
       </div>
       {why === "noBrand" ? (
-        <p className="text-xs text-muted-foreground">Say what you sell and who you serve in <Link to="/fads" className="font-medium text-primary hover:underline">F.A.D.S.</Link> first.</p>
+        // F.A.D.S. is an adviser brand's tool; any other brand says it in Plan's positioning
+        <p className="text-xs text-muted-foreground">Say what you sell and who you serve in {adviserBrand() ? <Link to="/fads" className="font-medium text-primary hover:underline">F.A.D.S.</Link> : <Link to={links.plan({ view: "setup" })} className="font-medium text-primary hover:underline">Plan</Link>} first.</p>
       ) : why && <p className="text-xs text-destructive">{why}</p>}
       {result && !busy && (result.suggestions.length === 0 ? (
         <p className="text-sm text-muted-foreground">{result.note ?? "No clear competitors found. Add one you know."}</p>

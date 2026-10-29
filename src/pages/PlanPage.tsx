@@ -566,14 +566,21 @@ export default function PlanPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm">
             <p className="text-foreground/90">
               <span className="font-semibold text-success">Positioning set.</span>{" "}
-              Tweak the fields below, or refine it in the{" "}
-              <Link to="/fads" className="font-semibold text-primary hover:underline">
-                F.A.D.S. tool
-              </Link>{" "}
-              and hit Send to Plan again.
+              {/* F.A.D.S. is an adviser brand's tool (Singapore client profiles) */}
+              {adviserBrand() ? (
+                <>
+                  Tweak the fields below, or refine it in the{" "}
+                  <Link to="/fads" className="font-semibold text-primary hover:underline">
+                    F.A.D.S. tool
+                  </Link>{" "}
+                  and hit Send to Plan again.
+                </>
+              ) : (
+                "Tweak the fields below."
+              )}
             </p>
           </div>
-        ) : (
+        ) : adviserBrand() && (
         <Card className="border-border/60 shadow-card">
           <CardHeader>
             <div className="flex items-center gap-1">
@@ -598,11 +605,7 @@ export default function PlanPage() {
             <Textarea
               value={fadsPaste}
               onChange={(e) => setFadsPaste(e.target.value)}
-              placeholder={
-                adviserBrand()
-                  ? "e.g.\nI help young families with kids under 7 protect their income without overpaying.\nTopics: critical illness, hospital plans, CPF for parents, term vs whole life\nEdge: ex-nurse turned FC, I've seen what underinsurance does up close"
-                  : "e.g.\nI help first-time founders land their first 10 customers without paid ads.\nTopics: pricing, cold outreach, saying no, first hires\nEdge: ran two agencies before going solo"
-              }
+              placeholder={"e.g.\nI help young families with kids under 7 protect their income without overpaying.\nTopics: critical illness, hospital plans, CPF for parents, term vs whole life\nEdge: ex-nurse turned FC, I've seen what underinsurance does up close"}
               rows={4}
             />
             <Button

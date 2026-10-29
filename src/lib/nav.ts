@@ -188,7 +188,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
-      { to: "/fads", label: "F.A.D.S.", subTabs: true },
+      { to: "/fads", label: "F.A.D.S.", subTabs: true, show: () => adviserBrand() },
     ],
   },
   {

@@ -43,6 +43,8 @@ import { brandDevice } from "@/test/brandDevice";
 import { QUESTIONS } from "@/lib/diagnosis";
 import CoachPage from "./CoachPage";
 import HomePage from "./HomePage";
+import PlanPage from "./PlanPage";
+import WhoYouWatch from "@/components/competitors/WhoYouWatch";
 
 const ADVISER = "Financial adviser";
 const COACH = "Coach";
@@ -141,5 +143,40 @@ describe("the diagnosis quiz", () => {
     const taken = await loaded(HomePage, "/home");
     expect(taken).not.toContain("Your next move");
     expect(taken).not.toContain("Start mission");
+  });
+});
+
+describe("F.A.D.S.", () => {
+  const POSITIONED = { "content-studio-positioning-u1": { oneLiner: "I help new parents sleep better.", topics: ["Naps"], audienceDetail: "", edge: "" } };
+  const competitors = { list: [], dismissed: [] } as unknown as Parameters<typeof WhoYouWatch>[0]["state"];
+  const watch = () => draw(createElement(WhoYouWatch, { userId: "u1", state: competitors, edit: null, openEdit: () => {}, closeEdit: () => {} }), "/competitors");
+
+  it("is where an adviser brand's plan and competitor search send it", async () => {
+    device(ADVISER);
+    const plan = draw(createElement(PlanPage), "/plan");
+    expect(plan).toContain('href="/fads"');
+    expect(plan).toContain("Paste your F.A.D.S. output");
+    device(ADVISER, POSITIONED);
+    expect(await loaded(PlanPage, "/plan")).toMatch(/Positioning set\.<\/span> Tweak the fields below, or refine it in the <a[^>]*href="\/fads"/);
+    device(ADVISER);
+    as.user = { id: "u1", email: "tanjunsing@gmail.com" };
+    expect(watch()).toMatch(/serve in <a[^>]*href="\/fads"[^>]*>F\.A\.D\.S\.<\/a> first/);
+  });
+
+  it("is named nowhere on another brand's plan, and its competitor search sends it to the plan's setup", async () => {
+    device(COACH);
+    const plan = draw(createElement(PlanPage), "/plan");
+    expect(plan).toContain("Build my content plan");
+    expect(plan).not.toContain("/fads");
+    expect(plan).not.toContain("F.A.D.S.");
+    device(COACH, POSITIONED);
+    const set = await loaded(PlanPage, "/plan");
+    expect(set).toContain("Positioning set.</span> Tweak the fields below.</p>");
+    expect(set).not.toContain("F.A.D.S.");
+    device(COACH);
+    as.user = { id: "u1", email: "tanjunsing@gmail.com" };
+    const out = watch();
+    expect(out).not.toContain("/fads");
+    expect(out).toMatch(/serve in <a[^>]*href="\/plan\?view=setup"[^>]*>Plan<\/a> first/);
   });
 });

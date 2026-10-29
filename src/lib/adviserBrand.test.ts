@@ -50,19 +50,22 @@ describe("adviserBrand", () => {
 
 describe("the Singapore personal-finance libraries", () => {
   const radar = () => visiblePages(section("find").pages, "someone@example.com").map((p) => p.to);
+  const brandPages = () => visiblePages(section("playbook").pages, "someone@example.com").map((p) => p.to);
   const ideasWeakest: DiagnosisResult = {
     overall: 10, levelLabel: "", areas: [{ id: "ideas", label: "Ideas", score: 10 }], weaknesses: [{ id: "ideas", label: "Ideas", score: 10 }], strengths: [],
   };
 
-  it("stay in an adviser brand's nav, and its ideas mission opens Inspiration", () => {
+  it("stay in an adviser brand's nav with F.A.D.S., and its ideas mission opens Inspiration", () => {
     brandDevice("u1", "Financial adviser");
     expect(radar()).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
+    expect(brandPages()).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(nextAction(ideasWeakest).mission?.to).toBe("/inspiration");
   });
 
-  it("leave any other brand's nav, and its ideas mission opens the weekly plan", () => {
+  it("leave any other brand's nav with F.A.D.S., and its ideas mission opens the weekly plan", () => {
     brandDevice("u1", "Coach");
     expect(radar()).toEqual(["/swipe", "/trends", "/clone", "/following"]);
+    expect(brandPages()).toEqual(["/playbook", "/voice", "/brand"]);
     expect(nextAction(ideasWeakest).mission?.to).toBe("/plan");
   });
 });
