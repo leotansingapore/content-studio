@@ -1,11 +1,10 @@
 // The open brand is one per device (profiles.ts ACTIVE_PREFIX). When another tab opens a different brand, through the
 // switcher or a ?profile= link, this tab would save into that brand while still showing its own (Leo, 29 Oct: a test
-// post written under "Me" landed in ActivityTracker). This bar stops the tab until it follows the other tab's brand.
-// A "Stay on this brand" choice waits on a fix: a tab on another brand re-applies its own brand and reloads whenever
-// the device's brand changes (seen on the live app, 29 Oct), so putting this tab's brand back would be undone at once.
+// post written under "Me" landed in ActivityTracker). This bar stops the tab until the person picks: open this page on
+// the other brand, or put this tab's brand back, which then asks in the other tab instead.
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { activeProfileId, brandAddress, brandChange, loadProfiles } from "@/lib/profiles";
+import { activeProfileId, brandAddress, brandChange, loadProfiles, setActiveProfile } from "@/lib/profiles";
 
 export default function BrandTabWatch({ userId }: { userId: string | null }) {
   const [tabBrand, setTabBrand] = useState<string | null>(null);
@@ -43,7 +42,7 @@ export default function BrandTabWatch({ userId }: { userId: string | null }) {
         <p id="brand-tab-why" className="mt-1 text-sm text-muted-foreground">
           Anything you save here would go to {name(other)}, not {name(tabBrand)}.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           {/* open this address on the other brand: a plain reload would re-apply the ?profile= it still names and switch
               the device back. Write keeps the brief being typed (sessionStorage) */}
           <Button
@@ -55,6 +54,16 @@ export default function BrandTabWatch({ userId }: { userId: string | null }) {
             }}
           >
             Switch to {name(other)}
+          </Button>
+          <Button
+            variant="outline"
+            className="min-h-11"
+            onClick={() => {
+              setActiveProfile(userId, tabBrand);
+              setOther(null);
+            }}
+          >
+            Stay on {name(tabBrand)}
           </Button>
         </div>
       </div>
