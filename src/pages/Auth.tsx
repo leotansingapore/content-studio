@@ -132,10 +132,12 @@ export default function Auth() {
         <Card>
           <CardHeader>
             <CardTitle className="font-serif text-xl">Sign in</CardTitle>
-            <CardDescription>
-              {mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
-                : mode === "email" ? "We'll email you a sign-in link. No password needed." : "Use your email and password."}
-            </CardDescription>
+            {mode !== "password" && (
+              <CardDescription>
+                {mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
+                  : "We'll email you a sign-in link. No password needed."}
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent>
             {mode === "password" ? (
