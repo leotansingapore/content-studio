@@ -11,6 +11,7 @@ import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
 import { checkMe, fetchBoard, forgetMe, ownerShown, reelsShown, seesBoard, sharedBoard, waitsOnMe } from "@/lib/reelsBoard";
 import { activeProfile, applyBrandLink, profileForBusiness, rememberUser, useBrandAddress } from "@/lib/profiles";
+import BrandTabWatch from "@/components/BrandTabWatch";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { setActivityOn } from "@/lib/activity";
@@ -756,6 +757,10 @@ export default function StudioLayout() {
           </Suspense>
         </ErrorBoundary>
       )}
+      {/* another tab opened a different brand: stop this one until the person picks */}
+      <ErrorBoundary>
+        <BrandTabWatch userId={uid} />
+      </ErrorBoundary>
       {/* the tour: the agent's on Leo's sign-ins, the studio's on everyone else's */}
       <ErrorBoundary>
         <TourPopover />

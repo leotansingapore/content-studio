@@ -117,6 +117,17 @@ export function activeProfileId(userId: string | null | undefined): string {
   return id && loadProfiles(userId).some((p) => p.id === id) ? id : DEFAULT_PROFILE_ID;
 }
 
+/**
+ * What a `storage` event says about the open brand, for a tab that opened on `tabBrand`. The event fires only in the
+ * OTHER tabs of this device, after a switch or a ?profile= link there moved the one open brand (ACTIVE_PREFIX, one per
+ * device). undefined: not about the open brand. null: back on this tab's brand. Else the brand another tab opened.
+ */
+export function brandChange(userId: string, key: string | null, newValue: string | null, tabBrand: string): string | null | undefined {
+  if (key !== ACTIVE_PREFIX + userId) return undefined;
+  const now = newValue && loadProfiles(userId).some((p) => p.id === newValue) ? newValue : DEFAULT_PROFILE_ID;
+  return now === tabBrand ? null : now;
+}
+
 export function activeProfile(userId: string | null | undefined): Profile {
   const id = activeProfileId(userId);
   return loadProfiles(userId).find((p) => p.id === id) ?? loadProfiles(userId)[0];
