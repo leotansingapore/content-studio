@@ -208,7 +208,8 @@ export default function HomePage() {
       setGoals(loadGoals(id));
       const diag = loadResult(id);
       setContentScore(diag?.overall ?? null);
-      setNextAct(nextAction(diag));
+      // the diagnosis is an adviser brand's (MAS and AIA questions): another brand's Home has no next move from it
+      setNextAct(adviserBrand(id) ? nextAction(diag) : null);
       // After the first-run check. checkMe shares the shell's call on a first sign-in, so Today shows then too;
       // the board call is the one the shell already made for its count.
       const me = await checkMe().catch(() => null);

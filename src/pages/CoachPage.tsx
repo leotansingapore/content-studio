@@ -240,8 +240,9 @@ export default function CoachPage() {
     }
   }, [userId, dirty, fields, text]);
 
-  // No diagnosis yet → run it first. A report link to a run this account no longer has opens the page.
-  const showQuiz = !diag || view === "quiz";
+  // No diagnosis yet: run it first, on an adviser's brand (its questions are MAS, AIA and adviser roles); ?view=quiz
+  // still opens it on any brand. A report link to a run this account no longer has opens the page.
+  const showQuiz = (!diag && adviserBrand(userId)) || view === "quiz";
   useEffect(() => {
     if (ready && reportId && !history.some((h) => h.id === reportId && h.report)) closeReport();
   }, [ready, reportId, history, closeReport]);
@@ -376,8 +377,8 @@ export default function CoachPage() {
         </div>
       </header>
 
-      {/* ---- Coach diagnosis: where you stand + the one thing to do next -- */}
-      {diag && (
+      {/* ---- Coach diagnosis: where you stand + the one thing to do next (an adviser brand's) -- */}
+      {diag && adviserBrand(userId) && (
         <section className="space-y-4">
           <h2 className="font-serif text-lg font-semibold text-foreground">
             Coach diagnosis
