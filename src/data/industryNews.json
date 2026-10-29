@@ -1,5 +1,41 @@
 [
   {
+    "id": "1c2bdf10833c",
+    "title": "High inflation to persist globally into next year, Reuters poll shows",
+    "gist": "A Reuters poll of more than 500 economists published on Oct 27 showed that high inflation will persist into next year, with crude oil prices hitting a six-month high of over $117 last week. Economists raised 2027 inflation forecasts for 31 of 50 economies surveyed. For ordinary people, the report states that cost of living pressures are squeezing households and affecting household budgets globally.",
+    "talkingPoint": "Clients may care because persistent inflation and high energy prices continue to put pressure on household budgets. You can ask clients how these ongoing price pressures affect their goals and offer to review their current financial plan together.",
+    "clientMessage": "Hi [Client name], a recent global economic poll showed that high inflation will persist well into next year. Economists raised inflation forecasts for 31 of 50 economies surveyed, with price pressures continuing to squeeze household budgets globally. With price pressures staying high, this news might matter for your own budget. If you want, we can look at your current plan together to see how things stand. Let me know if you would like to connect. [Your name]",
+    "source": "CNA",
+    "url": "https://channelnewsasia.com/business/high-inflation-persist-globally-next-year-reuters-poll-shows-6496826",
+    "publishedAt": "2026-10-27T13:40:04+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/1c2bdf10833c.jpg"
+  },
+  {
+    "id": "ddd2c54c97ab",
+    "title": "World Bank sees commodity prices up 23% in 2026 due to Middle East war, other shocks",
+    "gist": "On Oct 28, the World Bank stated that global commodity prices are set to surge 23 per cent in 2026 due to energy costs, shipping disruptions, and other shocks. The bank's deputy chief economist, Ayhan Kose, said these higher prices threaten to worsen inflation, food insecurity, and economic growth.",
+    "talkingPoint": "Clients may be concerned about how forecast price increases and inflation risks could impact their savings plans. You can ask how they feel about rising costs and offer to look over their existing cash allocations together.",
+    "clientMessage": "Hi [Client name], an international development agency reported that global commodity prices are set to surge 23 per cent in 2026 because of conflict and shipping disruptions. The report warned that this price pressure threatens to worsen inflation and economic growth. Shifting economic conditions can affect everyday expenses and personal financial timelines. If you like, we can review your current plan together to see how it aligns with your goals. [Your name]",
+    "source": "CNA",
+    "url": "https://channelnewsasia.com/business/world-bank-sees-commodity-prices-up-23-in-2026-due-middle-east-war-other-shocks-6500161",
+    "publishedAt": "2026-10-28T13:37:07+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/ddd2c54c97ab.jpg"
+  },
+  {
+    "id": "b955d659d6c9",
+    "title": "SkillsFuture Level-Up Programme to cover 140 more courses, including in finance and tech",
+    "gist": "From Dec 1, about 140 additional courses will be added to the SkillsFuture Level-Up Programme in sectors such as financial services, tech, and maritime. Singaporeans aged 40 and above can use their S$4,000 credit to offset fees for these courses. This gives mid-career workers more options to retrain and prepare for new roles.",
+    "talkingPoint": "Clients aged 40 and above may consider taking time away from work or switching industries using this S$4,000 credit. You can ask if they have any upskilling plans and review how their current savings buffer supports potential study periods.",
+    "clientMessage": "Hi [Client name], from Dec 1, the government is expanding the mid-career training programme to cover about 140 more courses in areas like tech and finance. Eligible Singaporeans aged 40 and above can use their S$4,000 credit for them. If you plan to take time for upgrading, it might touch on your cash flow. We can look at your current plan together if you want to see where things stand. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/singapore/economy-policy/skillsfuture-level-programme-cover-140-more-courses-including-finance-and-tech",
+    "publishedAt": "2026-10-28T07:08:00+00:00",
+    "topic": "Government schemes",
+    "clipping": "/news/b955d659d6c9.jpg"
+  },
+  {
     "id": "27931de461be",
     "title": "S’pore to raise retirement age to 65, re-employment age to 70 in 2029; expand flexi work for seniors",
     "gist": "Singapore will raise the retirement age to 65 and the re-employment age to 70 on Jan 1, 2029. The Tripartite Workgroup on Senior Employment said this gives senior workers greater assurance to continue working if they wish to. The changes will take effect one year ahead of the original target.",
@@ -425,18 +461,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "5e4ceccda4ff",
-    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
-    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
-    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
-    "clientMessage": null,
-    "source": "CNBC",
-    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/5e4ceccda4ff.jpg"
-  },
-  {
     "id": "eab7f642835b",
     "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
     "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
@@ -447,6 +471,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/eab7f642835b.jpg"
+  },
+  {
+    "id": "5e4ceccda4ff",
+    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
+    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
+    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
+    "clientMessage": null,
+    "source": "CNBC",
+    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/5e4ceccda4ff.jpg"
   },
   {
     "id": "cc5c9a27e256",
@@ -509,18 +545,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "6d46dc1c57d8",
-    "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
-    "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
-    "talkingPoint": "Every client privately wonders whether the company will actually pay. This is the answer with a number on it, and it is the insurer's own published figure, so they can check it. Careful: This is AIA's own release, not an independent audit, and a payout total is not a claims-approval rate. Never let it imply a particular claim will be paid; that turns on the policy wording.",
-    "clientMessage": "Hi [Client name],\n\nOver the last ten years AIA Singapore paid out more than S$40 billion in claims and maturity proceeds. That is the part of a policy you never see until you need it.\n\nSource: AIA Singapore, 12 Feb 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-singapore-surpasses-40-billion-in-payouts-over-the-last-decade",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/6d46dc1c57d8.jpg"
-  },
-  {
     "id": "146ce01a9327",
     "title": "Budget 2026 Highlights",
     "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
@@ -543,6 +567,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Cost of living",
     "clipping": "/news/38d77cf6f8ef.jpg"
+  },
+  {
+    "id": "6d46dc1c57d8",
+    "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
+    "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
+    "talkingPoint": "Every client privately wonders whether the company will actually pay. This is the answer with a number on it, and it is the insurer's own published figure, so they can check it. Careful: This is AIA's own release, not an independent audit, and a payout total is not a claims-approval rate. Never let it imply a particular claim will be paid; that turns on the policy wording.",
+    "clientMessage": "Hi [Client name],\n\nOver the last ten years AIA Singapore paid out more than S$40 billion in claims and maturity proceeds. That is the part of a policy you never see until you need it.\n\nSource: AIA Singapore, 12 Feb 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-singapore-surpasses-40-billion-in-payouts-over-the-last-decade",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/6d46dc1c57d8.jpg"
   },
   {
     "id": "e98550debf11",
