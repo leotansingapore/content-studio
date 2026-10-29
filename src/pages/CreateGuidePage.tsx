@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { GuideStep } from "@/lib/links";
+import { links, type GuideStep } from "@/lib/links";
 import { useScrollToHash } from "@/lib/urlState";
 import {
   Card,
@@ -24,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { adviserBrand } from "@/lib/profession";
+import { socialConnectShown } from "@/lib/socialConnect";
 
 // Stable deep links. Tutorials point at a YouTube search so they never rot to a
 // dead video, and stay current as creators re-publish.
@@ -107,6 +108,8 @@ export default function CreateGuidePage() {
   useScrollToHash();
   // Top posts is an adviser brand's library (Singapore finance creators): another brand's guide starts at the draft
   const top = adviserBrand();
+  // Post it for me only shows once posting is switched on for this sign-in (Leo does it at onboarding)
+  const posting = socialConnectShown();
   const n = (step: number) => (top ? step : step - 1);
   useEffect(() => {
     document.title = "Create the post - Postmosis";
@@ -134,13 +137,23 @@ export default function CreateGuidePage() {
       </Step>}
 
       <Step n={n(2)} id="draft" icon={Wand2} title="Turn it into your draft">
-        <p>
-          Hit <span className="font-semibold">Remix in Write</span> on any post.
-          That opens <Link to="/generate" className="font-semibold text-primary hover:underline">Write</Link>{" "}
-          pre-filled with the angle, context and that advisor as a style
-          reference. Generate hooks, pick one, then generate the full post in
-          your own voice. Tune the audience, format and call-to-action.
-        </p>
+        {top ? (
+          <p>
+            Hit <span className="font-semibold">Remix in Write</span> on any post.
+            That opens <Link to="/generate" className="font-semibold text-primary hover:underline">Write</Link>{" "}
+            pre-filled with the angle, context and that advisor as a style
+            reference. Generate hooks, pick one, then generate the full post in
+            your own voice. Tune the audience, format and call-to-action.
+          </p>
+        ) : (
+          <p>
+            Open <Link to={links.generate()} className="font-semibold text-primary hover:underline">Write</Link> and give it
+            something from your week: a question someone asked you, a mistake you
+            keep seeing, a result you are proud of. Generate hooks, pick one, then
+            generate the full post in your own voice. Tune the audience, format and
+            call-to-action.
+          </p>
+        )}
         <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground">
           Tip: set up <Link to="/voice" className="font-semibold text-primary hover:underline">Your voice</Link>{" "}
           first so every draft sounds like you, not like AI.
@@ -149,47 +162,22 @@ export default function CreateGuidePage() {
 
       <Step n={n(3)} id="carousel" icon={LayoutGrid} title="Build a carousel">
         <p>
-          Carousels are the workhorse for advisors: one idea, one slide at a
-          time, ending on a clear takeaway. Write already gives you the
-          slide-by-slide text - paste each line onto a slide.
-        </p>
-        <div className="space-y-2">
-          <ToolRow
-            tool={{
-              name: "Canva",
-              what: "Easiest carousel builder. Use a 1080x1350 Instagram template, one point per slide.",
-              url: "https://www.canva.com/instagram-posts/templates/",
-              tutorial: tut("canva instagram carousel tutorial 2025"),
-            }}
-          />
-          <ToolRow
-            tool={{
-              name: "ChatGPT",
-              what: "Yes - paste your slide text and ask it to design each slide as an image (1080x1350), or generate a Canva-ready layout. Great for a first draft you then tidy up.",
-              url: "https://chatgpt.com",
-              tutorial: tut("chatgpt instagram carousel images tutorial"),
-            }}
-          />
-          <ToolRow
-            tool={{
-              name: "Higgsfield",
-              what: "Generate on-brand background images or an AI presenter for slides.",
-              url: "https://higgsfield.ai",
-              tutorial: tut("higgsfield ai image generation tutorial"),
-            }}
-          />
-        </div>
-        <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground">
-          Using ChatGPT? Paste the slide-by-slide text from Write and prompt:
-          "Design these as a 6-slide Instagram carousel, 1080x1350, bold heading
-          per slide, consistent colours, minimal icons." Then export and post, or
-          drop the images into Canva for final tweaks. Always re-check figures and
-          add your advisory disclaimer before publishing.
+          {top ? "Carousels are the workhorse for advisors: one idea" : "One idea"}, one slide at a
+          time, ending on a clear takeaway. Open{" "}
+          <Link to={links.carousel({ tab: "drafts" })} className="font-semibold text-primary hover:underline">Carousel</Link>, pick
+          the draft you just wrote, and it lays the post out as 2 to 10 slides in
+          your brand colours, with your headshot or logo. Download the slides as
+          pictures, or as one PDF for LinkedIn.
         </p>
         <p className="text-[12px] text-muted-foreground">
           Keep it to 6-10 slides, big text, one idea per slide, brand colour on
           the cover, and a save/share prompt on the last slide.
         </p>
+        {top && (
+          <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground">
+            Always re-check figures and add your advisory disclaimer before publishing.
+          </p>
+        )}
       </Step>
 
       <Step n={n(4)} id="reel" icon={Video} title="Film a reel">
@@ -197,60 +185,43 @@ export default function CreateGuidePage() {
           For talking-head reels, use the script from Write as your teleprompter.
           Hook in the first 2 seconds, keep it under 45 seconds, add captions.
         </p>
-        <div className="space-y-2">
-          <ToolRow
-            tool={{
-              name: "CapCut",
-              what: "Free editor with auto-captions and trending templates.",
-              url: "https://www.capcut.com",
-              tutorial: tut("capcut instagram reels editing tutorial beginners"),
-            }}
-          />
-          <ToolRow
-            tool={{
-              name: "Higgsfield",
-              what: "Generate a UGC-style or AI-presenter video if you are not filming yourself.",
-              url: "https://higgsfield.ai",
-              tutorial: tut("higgsfield ai video ugc tutorial"),
-            }}
-          />
-        </div>
+        <p>
+          Then open <Link to={links.edit()} className="font-semibold text-primary hover:underline">Video</Link> and upload the
+          take. It cuts the pauses and filler words, adds captions in one of 6
+          styles, keeps your face in frame and exports four sizes at once.
+        </p>
+        <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground">
+          Not filming today?{" "}
+          <Link to={links.edit({ panel: ["ai"] })} className="font-semibold text-primary hover:underline">Make a video without filming</Link>{" "}
+          from a template, stock clips or a photo of you, up to 2 a day.
+        </p>
       </Step>
 
       <Step n={n(5)} id="reverse-engineer" icon={FileText} title="Reverse-engineer a video you love">
         <p>
-          If a top post is a reel, get its transcript to study the exact hook and
-          structure, then rebuild it in your own words.
-        </p>
-        <div className="space-y-2">
-          <ToolRow
-            tool={{
-              name: "Descript",
-              what: "Paste a video to get an editable transcript.",
-              url: "https://www.descript.com",
-              tutorial: tut("descript transcript tutorial"),
-            }}
-          />
-          <ToolRow
-            tool={{
-              name: "iGram / reel downloader",
-              what: "Download the reel first if you need the file for transcription.",
-              url: "https://igram.world",
-            }}
-          />
-        </div>
-        <p className="text-[12px] text-muted-foreground">
-          Then paste the transcript into the context box in Write and remix it.
+          {top ? "If a top post is a reel" : "Seen a reel that works"}, paste its Instagram or TikTok
+          link into <Link to={links.clone()} className="font-semibold text-primary hover:underline">Clone a reel</Link>. You get a
+          breakdown of its hook and structure, three concepts, your own script, a
+          shot list and a caption, written for your work.
         </p>
       </Step>
 
-      <Step n={n(6)} id="compliance" icon={ShieldCheck} title="Compliance check before you post">
-        <p>
-          Write flags risky claims automatically. As a licensed advisor, avoid
-          guarantees and unbalanced return claims, add the usual advisory
-          disclaimer, and keep to your company and MAS guidelines. When in doubt,
-          run it past your compliance team.
-        </p>
+      <Step n={n(6)} id="compliance" icon={ShieldCheck} title={top ? "Compliance check before you post" : "Check it before you post"}>
+        {top ? (
+          <p>
+            Write flags risky claims automatically. As a licensed advisor, avoid
+            guarantees and unbalanced return claims, add the usual advisory
+            disclaimer, and keep to your company and MAS guidelines. When in doubt,
+            run it past your compliance team.
+          </p>
+        ) : (
+          <p>
+            Before a post goes out, check that it sounds human (one tap clears the
+            usual AI tells) and that it fits each network&apos;s character count. The
+            writers are told never to invent a number, a result or a client story,
+            so any figure in the post is one you added: check it against its source.
+          </p>
+        )}
       </Step>
 
       <Step n={n(7)} id="schedule" icon={CalendarClock} title="Schedule and track">
@@ -259,24 +230,25 @@ export default function CreateGuidePage() {
           <Link to="/plan" className="font-semibold text-primary hover:underline">Plan a week</Link>,
           then schedule them.
         </p>
-        <div className="space-y-2">
-          <ToolRow
-            tool={{
-              name: "Meta Business Suite",
-              what: "Free scheduling for Instagram and Facebook.",
-              url: "https://business.facebook.com",
-              tutorial: tut("meta business suite schedule instagram reels"),
-            }}
-          />
-          <ToolRow
-            tool={{
-              name: "Later / Buffer",
-              what: "Visual planner and auto-poster with best-time suggestions.",
-              url: "https://later.com",
-              tutorial: tut("later instagram scheduling tutorial"),
-            }}
-          />
-        </div>
+        {posting ? (
+          <p>
+            On the <Link to={links.calendar()} className="font-semibold text-primary hover:underline">Calendar</Link>, use{" "}
+            <span className="font-semibold">Post it for me</span> to send a post to
+            Instagram, Facebook, TikTok, LinkedIn, YouTube or Threads at the time
+            you pick, in your own time zone.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <ToolRow
+              tool={{
+                name: "Meta Business Suite",
+                what: "Free scheduling for Instagram and Facebook.",
+                url: "https://business.facebook.com",
+                tutorial: tut("meta business suite schedule instagram reels"),
+              }}
+            />
+          </div>
+        )}
       </Step>
 
       <div className="flex flex-wrap gap-2 pt-1">

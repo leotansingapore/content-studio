@@ -252,3 +252,40 @@ describe("the stock photo search", () => {
     expect(box()).toContain('placeholder="Family dinner, office, city skyline"');
   });
 });
+
+describe("Create guide", () => {
+  const guide = () => draw(createElement(CreateGuidePage), "/create-guide");
+  const OUTSIDE = ["CapCut", "Descript", "igram", "Later / Buffer", "Canva", "ChatGPT", "Higgsfield"];
+
+  it("points every step at Postmosis's own tools, for any brand", () => {
+    for (const who of [ADVISER, COACH]) {
+      device(who);
+      const out = guide();
+      expect(out, who).toContain('href="/carousel"');
+      expect(out, who).toContain('href="/edit"');
+      expect(out, who).toContain('href="/edit?panel=ai"');
+      expect(out, who).toContain('href="/clone"');
+      for (const tool of OUTSIDE) expect(out, `${who}: ${tool}`).not.toContain(tool);
+    }
+  });
+
+  it("keeps an adviser's lines and leaves them off another brand's guide", () => {
+    device(ADVISER);
+    const adviser = guide();
+    for (const line of ["advisors like you", "advisory disclaimer", "MAS guidelines", "Compliance check before you post"]) expect(adviser).toContain(line);
+    device(COACH);
+    const coach = guide();
+    expect(coach).toContain("Check it before you post");
+    for (const word of ["advisor", "MAS", "disclaimer", "Compliance", "licensed"]) expect(coach, word).not.toContain(word);
+  });
+
+  it("offers Post it for me once posting is on, and a free scheduler until then", () => {
+    device(COACH);
+    expect(guide()).toContain("Meta Business Suite");
+    expect(guide()).not.toContain("Post it for me");
+    device(COACH, { "cs-social-connect": { on: true, at: Date.now() } });
+    expect(guide()).toContain("Post it for me");
+    expect(guide()).toContain('href="/calendar"');
+    expect(guide()).not.toContain("Meta Business Suite");
+  });
+});
