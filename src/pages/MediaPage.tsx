@@ -211,7 +211,7 @@ export default function MediaPage() {
         userId && <SetsView userId={userId} sets={counted} urls={urls} onChange={reload} />
       ) : (
       <>
-      {stock && <StockSearch kind="photo" placeholder="Family dinner, office, Singapore skyline" onPick={addStock} onClose={() => setStock(false)} />}
+      {stock && <StockSearch kind="photo" onPick={addStock} onClose={() => setStock(false)} />}
       {leo && <MediaDropzone userId={userId} folder={folder !== "-" ? folder : ""} onChange={() => userId && setItems(loadMedia(userId, { videos: true }))} />}
 
       {items.length > 0 && (

@@ -4782,7 +4782,7 @@ export default function GeneratePage() {
                     }}
                   />
                 </div>
-                {stockOpen && <StockSearch kind="photo" placeholder="Family dinner, office, Singapore skyline" onPick={attachStock} onClose={() => setStockOpen(false)} />}
+                {stockOpen && <StockSearch kind="photo" onPick={attachStock} onClose={() => setStockOpen(false)} />}
                 {attachedMedia.missing > 0 && (
                   <p className="text-xs text-muted-foreground">
                     {attachedMedia.missing === 1 ? "1 file was" : `${attachedMedia.missing} files were`} attached on another device. Post from there, or add {attachedMedia.missing === 1 ? "it" : "them"} again here.

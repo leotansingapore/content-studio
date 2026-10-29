@@ -6,11 +6,13 @@ import { useState } from "react";
 import { Check, Loader2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { searchStock, type StockItem } from "@/lib/stockMedia";
+import { adviserBrand } from "@/lib/profession";
 
 export default function StockSearch({ kind, orientation, placeholder, onPick, onClose }: {
   kind: "photo" | "video";
   orientation?: "portrait" | "landscape" | "square";
-  placeholder: string;
+  /** Left out: the photo hint for Write and Media, a Singapore skyline on an adviser brand's only. */
+  placeholder?: string;
   /** Resolves once the item is kept; a throw shows its message on the tile. */
   onPick: (item: StockItem, query: string) => Promise<void>;
   onClose: () => void;
@@ -61,7 +63,7 @@ export default function StockSearch({ kind, orientation, placeholder, onPick, on
       <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void run(query, 1); }}>
         <label className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <input autoFocus value={query} maxLength={80} onChange={(e) => setQuery(e.target.value)} placeholder={placeholder} aria-label={`Search free ${noun}`}
+          <input autoFocus value={query} maxLength={80} onChange={(e) => setQuery(e.target.value)} placeholder={placeholder ?? (adviserBrand() ? "Family dinner, office, Singapore skyline" : "Family dinner, office, city skyline")} aria-label={`Search free ${noun}`}
             className="h-10 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm" />
         </label>
         <Button type="submit" className="h-10" disabled={!query.trim() || state === "searching"}>

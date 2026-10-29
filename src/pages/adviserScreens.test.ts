@@ -48,6 +48,7 @@ import StudioPage from "./StudioPage";
 import CreateGuidePage from "./CreateGuidePage";
 import CloneReelPage from "./CloneReelPage";
 import SwipeFilePage from "./SwipeFilePage";
+import StockSearch from "@/components/StockSearch";
 import WhoYouWatch from "@/components/competitors/WhoYouWatch";
 import { ADS } from "@/lib/adsSwipe";
 
@@ -238,5 +239,16 @@ describe("Top posts, the Singapore ads and Trends", () => {
   it("still open from a deep link on another brand", () => {
     device(COACH);
     expect(draw(createElement(SwipeFilePage), "/swipe?tab=ads")).toContain("Paid ads running in Singapore");
+  });
+});
+
+describe("the stock photo search", () => {
+  const box = () => draw(createElement(StockSearch, { kind: "photo", onPick: async () => {}, onClose: () => {} }));
+
+  it("hints a Singapore skyline to an adviser brand, a city skyline to any other", () => {
+    device(ADVISER);
+    expect(box()).toContain('placeholder="Family dinner, office, Singapore skyline"');
+    device(COACH);
+    expect(box()).toContain('placeholder="Family dinner, office, city skyline"');
   });
 });
