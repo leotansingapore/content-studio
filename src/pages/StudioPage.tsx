@@ -10,6 +10,7 @@ import { ADS, daysRunning } from "@/lib/adsSwipe";
 import { draftsOfBrand, draftStatus } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
 import { buildCreatorAverages, enrich, sortPosts, type ScoredPost } from "@/lib/postInsights";
+import { adviserBrand } from "@/lib/profession";
 import { activeProfile } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { getAllTopPosts, TOTAL_TOP_POSTS } from "@/lib/topPosts";
@@ -69,6 +70,8 @@ export default function StudioPage() {
   const mine = userId ? draftsOfBrand(userId, activeProfile(userId).id) : [];
   const latest = mine.slice(0, ROW);
   const formats = leo ? READY.slice(0, 10) : null;
+  // the ads and top posts are Singapore personal finance: an adviser brand's rows only
+  const adviser = adviserBrand(userId);
 
   return (
     <div className="space-y-10">
@@ -88,8 +91,7 @@ export default function StudioPage() {
           {/* each chip counts everything behind its row, as Fastlane's do; the row shows the first few */}
           {[
             ["#formats", "Formats", formats ? READY.length : WRITE.length],
-            ["#ads", "Ads running now", ADS.length],
-            ["#trending", "Trending", TOTAL_TOP_POSTS],
+            ...(adviser ? [["#ads", "Ads running now", ADS.length], ["#trending", "Trending", TOTAL_TOP_POSTS]] : []),
             ["#latest", "Your latest", mine.length],
           ].map(([href, label, n]) => (
             <a key={href} href={String(href)} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border/70 px-3 text-sm text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
@@ -120,6 +122,7 @@ export default function StudioPage() {
             ))}
       </Row>
 
+      {adviser && <>
       <Row id="ads" title="Ads running now" seeAll={{ to: links.swipe({ tab: "ads" }), label: `All ${ADS.length} ads` }}>
         {TOP_ADS.map((ad) => (
           <Link key={ad.adId} to={links.swipe({ tab: "ads", ad: ad.adId })} className="group min-w-0 space-y-1.5">
@@ -137,6 +140,7 @@ export default function StudioPage() {
           <ReelCard key={item.post.advisorId + item.post.shortCode} item={item} href={links.swipe({ post: `${item.post.advisorId}-${item.post.shortCode}` })} />
         ))}
       </Row>
+      </>}
 
       <Row id="latest" title="Your latest" seeAll={{ to: leo ? "/library" : "/drafts", label: leo ? "Library" : "All posts" }}>
         {latest.length === 0 ? (

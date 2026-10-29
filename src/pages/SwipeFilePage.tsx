@@ -123,7 +123,10 @@ export default function SwipeFilePage() {
     };
   }, [leo]);
   const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
-  const [tab] = useUrlState<Tab>("tab", "posts", {
+  // Top posts and the Singapore ads are Singapore personal finance: another brand's page opens on News, and its ads
+  // tab opens only from a link (Leo's ads tab is his own library and stays)
+  const adviser = adviserBrand();
+  const [tab] = useUrlState<Tab>("tab", adviser ? "posts" : "news", {
     allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search", "hooks"] as const) : [])],
   });
   const isLeo = Boolean(leo);
@@ -186,7 +189,7 @@ export default function SwipeFilePage() {
   );
 
   useEffect(() => {
-    document.title = "Top posts - Postmosis";
+    document.title = adviser ? "Top posts - Postmosis" : "News - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
@@ -251,32 +254,34 @@ export default function SwipeFilePage() {
   // The posts are bundled, so an id that is not among them is gone: open the page without it, saying so.
   useGoneItem("post", !!openItem);
 
+  const tabs = [
+    ...(adviser ? [{ id: "posts" as const, label: "Posts", n: TOTAL_TOP_POSTS }] : []),
+    ...(leo ? [{ id: "foryou" as const, label: "For you", n: null }] : []),
+    adviser ? { id: "news" as const, label: "Industry news", n: NEWS.length } : { id: "news" as const, label: "News", n: null },
+    // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
+    ...(adsTab && (adviser || leo) ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
+    ...(leo ? [{ id: "search" as const, label: "Search", n: null }, { id: "hooks" as const, label: "Hooks", n: null }] : []),
+  ];
+
   return (
     <div className="space-y-5">
       <header className="space-y-1.5">
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <TrendingUp className="h-6 w-6 text-primary" />
-          Top posts to swipe
+          {adviser ? "Top posts to swipe" : "News"}
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
+        {adviser && <p className="max-w-2xl text-sm text-muted-foreground">
           Real high-performing posts from {ADVISOR_COUNT} SG finance creators.
-        </p>
+        </p>}
       </header>
 
-      <div
+      {tabs.length > 1 && <div
         ref={tabsRef}
         role="tablist"
         aria-label="Swipe file"
         className={`flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
       >
-        {[
-          { id: "posts" as const, label: "Posts", n: TOTAL_TOP_POSTS },
-          ...(leo ? [{ id: "foryou" as const, label: "For you", n: null }] : []),
-          adviserBrand(userId) ? { id: "news" as const, label: "Industry news", n: NEWS.length } : { id: "news" as const, label: "News", n: null },
-          // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
-          ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
-          ...(leo ? [{ id: "search" as const, label: "Search", n: null }, { id: "hooks" as const, label: "Hooks", n: null }] : []),
-        ].map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -291,7 +296,7 @@ export default function SwipeFilePage() {
             {t.label} {t.n !== null && <span className={`text-xs text-muted-foreground ${leo ? "hidden sm:inline" : ""}`}>{t.n}</span>}
           </button>
         ))}
-      </div>
+      </div>}
 
       {leoTabLoading ? (
         <div className="min-h-[40vh]" aria-busy="true" />
@@ -318,7 +323,7 @@ export default function SwipeFilePage() {
       ) : tab === "news" ? (
         <>
           {/* the bulletin's picks are Singapore personal-finance news: an adviser's brand only; feeds and mentions are anyone's */}
-          {adviserBrand(userId) && <section className="space-y-3">
+          {adviser && <section className="space-y-3">
             <div className="flex items-center gap-1.5">
               <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
               <InfoTip label="About industry news">The ActivityTracker bulletin's Industry picks, synced every morning.</InfoTip>

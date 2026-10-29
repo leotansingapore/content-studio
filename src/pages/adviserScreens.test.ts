@@ -44,7 +44,12 @@ import { QUESTIONS } from "@/lib/diagnosis";
 import CoachPage from "./CoachPage";
 import HomePage from "./HomePage";
 import PlanPage from "./PlanPage";
+import StudioPage from "./StudioPage";
+import CreateGuidePage from "./CreateGuidePage";
+import CloneReelPage from "./CloneReelPage";
+import SwipeFilePage from "./SwipeFilePage";
 import WhoYouWatch from "@/components/competitors/WhoYouWatch";
+import { ADS } from "@/lib/adsSwipe";
 
 const ADVISER = "Financial adviser";
 const COACH = "Coach";
@@ -178,5 +183,60 @@ describe("F.A.D.S.", () => {
     const out = watch();
     expect(out).not.toContain("/fads");
     expect(out).toMatch(/serve in <a[^>]*href="\/plan\?view=setup"[^>]*>Plan<\/a> first/);
+  });
+});
+
+describe("Top posts, the Singapore ads and Trends", () => {
+  const steps = (html: string) => [...html.matchAll(/bg-gradient-primary text-\[12px\] font-bold text-primary-foreground">(\d+)<\/span>/g)].map((m) => Number(m[1]));
+
+  it("keep every way in on an adviser brand's pages", () => {
+    device(ADVISER);
+    expect(ADS.length).toBeGreaterThan(0);
+    const studio = draw(createElement(StudioPage), "/studio");
+    expect(studio).toContain('id="ads"');
+    expect(studio).toContain('href="/swipe?tab=ads"');
+    expect(studio).toContain('id="trending"');
+    expect(studio).toContain(">All top posts");
+    const guide = draw(createElement(CreateGuidePage), "/create-guide");
+    expect(guide).toContain("Find an idea that already works");
+    expect(guide.match(/href="\/swipe"/g)).toHaveLength(2);
+    expect(steps(guide)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    const clone = draw(createElement(CloneReelPage), "/clone");
+    expect(clone).toContain('href="/trends"');
+    expect(clone).toContain('href="/swipe"');
+    const swipe = draw(createElement(SwipeFilePage), "/swipe");
+    expect(swipe).toContain("Top posts to swipe");
+    expect(swipe).toContain("SG finance creators");
+    expect(swipe).toMatch(/aria-selected="true"[^>]*>Posts /);
+    expect(swipe).toContain(">Industry news ");
+    expect(swipe).toContain(">Ads ");
+  });
+
+  it("leave another brand's pages, and its Top posts page opens on News: feeds and mentions", () => {
+    device(COACH);
+    const studio = draw(createElement(StudioPage), "/studio");
+    expect(studio).toContain('id="formats"');
+    expect(studio).toContain('id="latest"');
+    for (const gone of ["/swipe", 'id="ads"', 'id="trending"', "Ads running now", "Trending"]) expect(studio, gone).not.toContain(gone);
+    const guide = draw(createElement(CreateGuidePage), "/create-guide");
+    expect(guide).not.toContain("/swipe");
+    expect(guide).not.toContain("Find an idea that already works");
+    expect(steps(guide)).toEqual([1, 2, 3, 4, 5, 6]);
+    const clone = draw(createElement(CloneReelPage), "/clone");
+    expect(clone).toContain("What to paste:");
+    expect(clone).not.toContain("/trends");
+    expect(clone).not.toContain("/swipe");
+    const swipe = draw(createElement(SwipeFilePage), "/swipe");
+    expect(swipe).toMatch(/<h1[^>]*>.*News<\/h1>/);
+    expect(swipe).not.toContain("SG finance creators");
+    expect(swipe).not.toContain('role="tablist"');
+    expect(swipe).toContain("Your feeds");
+    expect(swipe).not.toContain("Industry news to talk about");
+    expect(swipe).not.toContain("Formats working now");
+  });
+
+  it("still open from a deep link on another brand", () => {
+    device(COACH);
+    expect(draw(createElement(SwipeFilePage), "/swipe?tab=ads")).toContain("Paid ads running in Singapore");
   });
 });

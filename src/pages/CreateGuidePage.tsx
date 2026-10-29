@@ -23,6 +23,7 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
+import { adviserBrand } from "@/lib/profession";
 
 // Stable deep links. Tutorials point at a YouTube search so they never rot to a
 // dead video, and stay current as creators re-publish.
@@ -104,6 +105,9 @@ function Step({
 
 export default function CreateGuidePage() {
   useScrollToHash();
+  // Top posts is an adviser brand's library (Singapore finance creators): another brand's guide starts at the draft
+  const top = adviserBrand();
+  const n = (step: number) => (top ? step : step - 1);
   useEffect(() => {
     document.title = "Create the post - Postmosis";
     return () => {
@@ -120,16 +124,16 @@ export default function CreateGuidePage() {
         </h1>
       </header>
 
-      <Step n={1} id="idea" icon={TrendingUp} title="Find an idea that already works">
+      {top && <Step n={1} id="idea" icon={TrendingUp} title="Find an idea that already works">
         <p>
           Open <Link to="/swipe" className="font-semibold text-primary hover:underline">Top posts</Link>{" "}
           and browse the best-performing posts from advisors like you. Each card
           shows the hook, why it worked, and how to adapt it. Pick one that fits
           your niche.
         </p>
-      </Step>
+      </Step>}
 
-      <Step n={2} id="draft" icon={Wand2} title="Turn it into your draft">
+      <Step n={n(2)} id="draft" icon={Wand2} title="Turn it into your draft">
         <p>
           Hit <span className="font-semibold">Remix in Write</span> on any post.
           That opens <Link to="/generate" className="font-semibold text-primary hover:underline">Write</Link>{" "}
@@ -143,7 +147,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={3} id="carousel" icon={LayoutGrid} title="Build a carousel">
+      <Step n={n(3)} id="carousel" icon={LayoutGrid} title="Build a carousel">
         <p>
           Carousels are the workhorse for advisors: one idea, one slide at a
           time, ending on a clear takeaway. Write already gives you the
@@ -188,7 +192,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={4} id="reel" icon={Video} title="Film a reel">
+      <Step n={n(4)} id="reel" icon={Video} title="Film a reel">
         <p>
           For talking-head reels, use the script from Write as your teleprompter.
           Hook in the first 2 seconds, keep it under 45 seconds, add captions.
@@ -213,7 +217,7 @@ export default function CreateGuidePage() {
         </div>
       </Step>
 
-      <Step n={5} id="reverse-engineer" icon={FileText} title="Reverse-engineer a video you love">
+      <Step n={n(5)} id="reverse-engineer" icon={FileText} title="Reverse-engineer a video you love">
         <p>
           If a top post is a reel, get its transcript to study the exact hook and
           structure, then rebuild it in your own words.
@@ -240,7 +244,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={6} id="compliance" icon={ShieldCheck} title="Compliance check before you post">
+      <Step n={n(6)} id="compliance" icon={ShieldCheck} title="Compliance check before you post">
         <p>
           Write flags risky claims automatically. As a licensed advisor, avoid
           guarantees and unbalanced return claims, add the usual advisory
@@ -249,7 +253,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={7} id="schedule" icon={CalendarClock} title="Schedule and track">
+      <Step n={n(7)} id="schedule" icon={CalendarClock} title="Schedule and track">
         <p>
           Batch a week of posts in{" "}
           <Link to="/plan" className="font-semibold text-primary hover:underline">Plan a week</Link>,
@@ -276,11 +280,11 @@ export default function CreateGuidePage() {
       </Step>
 
       <div className="flex flex-wrap gap-2 pt-1">
-        <Button asChild size="lg" className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
+        {top && <Button asChild size="lg" className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
           <Link to="/swipe">
             <TrendingUp className="h-4 w-4" /> Browse top posts
           </Link>
-        </Button>
+        </Button>}
         <Button asChild size="lg" variant="outline" className="gap-2">
           <Link to="/generate">
             Start writing <ArrowRight className="h-4 w-4" />

@@ -54,6 +54,8 @@ export type NavPage = {
   owners?: string[];
   /** Its label on Leo's sign-ins, where the page is a different tool for them (/clone is Remix a post). */
   leoLabel?: string;
+  /** Its label on a brand that isn't an adviser's, where the page keeps only what isn't for advisers (/swipe is News). */
+  anyLabel?: string;
   /** Shown only while this says so (what this device remembers: an answer from the server, the open brand). */
   show?: () => boolean;
   /** Browser tab title when it should differ from the label. */
@@ -143,8 +145,9 @@ export const SECTIONS: NavSection[] = [
     icon: Radar,
     to: "/swipe",
     pages: [
-      { to: "/swipe", label: "Top posts", icon: TrendingUp },
-      { to: "/trends", label: "Trends", icon: Flame },
+      // Top posts, the Singapore ads and the trend kits are Singapore personal finance: an adviser brand's only
+      { to: "/swipe", label: "Top posts", anyLabel: "News", icon: TrendingUp },
+      { to: "/trends", label: "Trends", icon: Flame, show: () => adviserBrand() },
       { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
       { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
@@ -244,7 +247,7 @@ export const pathMatches = (pathname: string, to: string, end = false) =>
 export const visiblePages = (pages: NavPage[], email: string) =>
   pages
     .filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()))
-    .map((p) => (p.leoLabel && leoOnly(email) ? { ...p, label: p.leoLabel } : p));
+    .map((p) => (p.leoLabel && leoOnly(email) ? { ...p, label: p.leoLabel } : p.anyLabel && !adviserBrand() ? { ...p, label: p.anyLabel } : p));
 
 /** Each page carries the group (tab) it sits under, so a group survives its first page being hidden. */
 export function groupedPages(pages: NavPage[]): NavPage[] {
@@ -265,7 +268,7 @@ export const sectionFor = (pathname: string) => pageFor(pathname)?.section ?? nu
 
 export const pageTitle = (pathname: string) => {
   const hit = pageFor(pathname);
-  return hit ? `${hit.page.title ?? hit.page.label} - Postmosis` : "Postmosis";
+  return hit ? `${hit.page.title ?? (hit.page.anyLabel && !adviserBrand() ? hit.page.anyLabel : hit.page.label)} - Postmosis` : "Postmosis";
 };
 
 export type Tab = { to: string; label: string; end?: boolean; active: boolean };

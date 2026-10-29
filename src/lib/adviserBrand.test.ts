@@ -7,8 +7,10 @@ import { adviserBrand } from "./profession";
 import { addProfile, setActiveProfile } from "./profiles";
 import { BRAND_KEY_PREFIX } from "./carousel";
 import { brandDevice } from "@/test/brandDevice";
-import { section, visiblePages } from "./nav";
+import { pageTitle, section, visiblePages } from "./nav";
 import { nextAction, type DiagnosisResult } from "./diagnosis";
+import { studioTour } from "./useTourUser";
+import { STUDIO_TOUR } from "./tour";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -49,23 +51,29 @@ describe("adviserBrand", () => {
 });
 
 describe("the Singapore personal-finance libraries", () => {
-  const radar = () => visiblePages(section("find").pages, "someone@example.com").map((p) => p.to);
+  const radar = () => visiblePages(section("find").pages, "someone@example.com").map((p) => `${p.to} ${p.label}`);
   const brandPages = () => visiblePages(section("playbook").pages, "someone@example.com").map((p) => p.to);
   const ideasWeakest: DiagnosisResult = {
     overall: 10, levelLabel: "", areas: [{ id: "ideas", label: "Ideas", score: 10 }], weaknesses: [{ id: "ideas", label: "Ideas", score: 10 }], strengths: [],
   };
 
-  it("stay in an adviser brand's nav with F.A.D.S., and its ideas mission opens Inspiration", () => {
-    brandDevice("u1", "Financial adviser");
-    expect(radar()).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
-    expect(brandPages()).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
-    expect(nextAction(ideasWeakest).mission?.to).toBe("/inspiration");
+  it("stay in an adviser brand's nav and tour, and its ideas mission opens Inspiration", () => {
+    for (const p of [undefined, "Financial adviser"]) {
+      brandDevice("u1", p);
+      expect(radar()).toEqual(["/swipe Top posts", "/trends Trends", "/clone Clone a reel", "/inspiration Inspiration", "/profiles Creators", "/following Following"]);
+      expect(brandPages()).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
+      expect(pageTitle("/swipe")).toBe("Top posts - Postmosis");
+      expect(studioTour("u1")).toBe(STUDIO_TOUR);
+      expect(nextAction(ideasWeakest).mission?.to).toBe("/inspiration");
+    }
   });
 
-  it("leave any other brand's nav with F.A.D.S., and its ideas mission opens the weekly plan", () => {
+  it("leave any other brand's nav and tour: Top posts holds only its News, and its ideas mission opens the weekly plan", () => {
     brandDevice("u1", "Coach");
-    expect(radar()).toEqual(["/swipe", "/trends", "/clone", "/following"]);
+    expect(radar()).toEqual(["/swipe News", "/clone Clone a reel", "/following Following"]);
     expect(brandPages()).toEqual(["/playbook", "/voice", "/brand"]);
+    expect(pageTitle("/swipe")).toBe("News - Postmosis");
+    expect(studioTour("u1").map((s) => s.path)).toEqual(["/home", "/generate", "/calendar", "/brand", "/analytics"]);
     expect(nextAction(ideasWeakest).mission?.to).toBe("/plan");
   });
 });

@@ -176,7 +176,8 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
               https://vt.tiktok.com/ZSabc1234/
             </li>
           </ul>
-          <p className="text-xs">
+          {/* Trends and Top posts are an adviser brand's libraries (Singapore personal finance) */}
+          {adviserBrand() && <p className="text-xs">
             Need one that's working right now? Browse{" "}
             <Link to="/trends" className="font-semibold text-primary hover:underline">
               Trends
@@ -186,7 +187,7 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
               Top posts
             </Link>{" "}
             and tap Clone on any reel.
-          </p>
+          </p>}
         </div>
 
         {!hasVoice && (
