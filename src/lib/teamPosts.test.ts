@@ -269,6 +269,8 @@ describe("memo posts", () => {
     expect(groupOf({ channel: "memos" })).toBe("FINTERNSHIP FASTRACK memos");
     expect(groupOf({ channel: "industry" })).toBe("FINTERNSHIP FASTRACK industry");
     expect(shortGroupOf({ channel: "industry" })).toBe("Industry");
+    expect(groupOf({ channel: "subscribers" })).toBe("FINTERNSHIP FASTRACK subscribers");
+    expect(shortGroupOf({ channel: "subscribers" })).toBe("Subscribers");
     const client = { image: "https://x.supabase.co/a.png", message: "Hi [Client name]" };
     window.localStorage.setItem(teamPostsKey(UID), JSON.stringify({ posts: [
       { id: "tp1", day: "2026-10-29", rev: 1, channel: "memos", auto: true, client },

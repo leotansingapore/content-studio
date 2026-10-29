@@ -13,18 +13,19 @@ export interface TeamComment {
   rev: number;
 }
 
-export type TeamChannel = "fastrack" | "advisoros" | "memos" | "industry";
+export type TeamChannel = "fastrack" | "advisoros" | "memos" | "industry" | "subscribers";
 export const TEAM_GROUP: Record<TeamChannel, string> = {
   fastrack: "FINTERNSHIP FASTRACK",
   advisoros: "AdvisorOS",
   memos: "FINTERNSHIP FASTRACK memos",
   industry: "FINTERNSHIP FASTRACK industry",
+  subscribers: "FINTERNSHIP FASTRACK subscribers",
 };
 /** The group's name, as the job's CHANNELS spell it. */
 export const groupOf = (post: Pick<TeamPost, "channel">) => TEAM_GROUP[post.channel ?? "fastrack"] ?? TEAM_GROUP.fastrack;
 /** The group as a calendar chip names it: "FINTERNSHIP FASTRACK" wraps a letter at a time in a week column. */
 export const shortGroupOf = (post: Pick<TeamPost, "channel">) =>
-  post.channel === "advisoros" ? "AdvisorOS" : post.channel === "memos" ? "Memos" : post.channel === "industry" ? "Industry" : "FASTRACK";
+  post.channel === "advisoros" ? "AdvisorOS" : post.channel === "memos" ? "Memos" : post.channel === "industry" ? "Industry" : post.channel === "subscribers" ? "Subscribers" : "FASTRACK";
 
 export interface TeamPost {
   id: string;
