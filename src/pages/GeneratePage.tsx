@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import LinkedInCheck from "@/components/LinkedInCheck";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -5262,6 +5263,8 @@ export default function GeneratePage() {
                 )}
               </div>
             )}
+            {/* the LinkedIn post check (everyone): only for a LinkedIn draft in English, beside the score */}
+            {craftCheck && !isStreaming && platform === "linkedin" && !draftLang && <LinkedInCheck userId={userId} draft={draft} />}
             {/* a version in another language is never scored: Malay passes the score's Latin-letter check */}
             {leo && draftLang && draft.trim() && !isStreaming && (
               <p id="score" className="mt-3 scroll-mt-24 rounded-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
