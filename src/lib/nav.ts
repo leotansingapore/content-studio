@@ -8,6 +8,7 @@ import {
   Bookmark,
   Clapperboard,
   Flame,
+  GalleryHorizontalEnd,
   Gauge,
   GraduationCap,
   History,
@@ -148,6 +149,8 @@ export const SECTIONS: NavSection[] = [
     pages: [
       // Top posts, the Singapore ads and the trend kits are Singapore personal finance: an adviser brand's only
       { to: "/swipe", label: "Top posts", anyLabel: "News", icon: TrendingUp },
+      // the carousel library (Top Carousels' outliers, every niche): for every brand
+      { to: "/carousels", label: "Carousels", icon: GalleryHorizontalEnd },
       { to: "/trends", label: "Trends", icon: Flame, show: () => adviserBrand() },
       { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },

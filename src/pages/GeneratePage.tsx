@@ -1118,7 +1118,7 @@ export default function GeneratePage() {
   // Read once at mount: the prefill effects strip their params from the URL
   // before the async user lookup below resolves.
   const [arrivedWithBrief] = useState(() =>
-    ["draft", "platform", "format", "vibe", "pillar", "detail", "funnel", "idea", "ctx", "source"].some(
+    ["draft", "platform", "format", "vibe", "carousel", "pillar", "detail", "funnel", "idea", "ctx", "source"].some(
       (k) => new URLSearchParams(window.location.search).has(k),
     ),
   );
@@ -1244,6 +1244,37 @@ export default function GeneratePage() {
     }, 50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("vibe")]);
+
+  // ?carousel=<id> from the carousel library (Make it your own): a carousel for Instagram, with the library
+  // carousel's slides as the structure to match. Its words stay a reference; the writer is told not to copy them.
+  useEffect(() => {
+    const id = searchParams.get("carousel");
+    if (!id) return;
+    let live = true;
+    void supabase
+      .from("cs_carousels")
+      .select("title, slide_text, slides")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!live) return;
+        setSearchParams((prev) => withParam(prev, "carousel", ""), { replace: true });
+        if (!data) return;
+        const slides = ((data.slide_text as string[] | null) ?? []).map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 10);
+        setFormat("carousel");
+        setPlatform("instagram");
+        setStyleReference(
+          [`A ${data.slides}-slide Instagram carousel: ${data.title}`, ...slides.map((t, i) => `Slide ${i + 1}: ${t.slice(0, 160)}`)].join("\n"),
+        );
+        setWizardStep(IDEA_STEP);
+        setIdeaContext((prev) => (prev.trim() ? prev : `Style reference (do not copy verbatim, match the pattern): ${data.title}`));
+        toast({ title: "Carousel loaded", description: "Its slides are the structure to match. Add your own topic and generate." });
+      });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("carousel")]);
 
   // Restore a draft into the form when ?draft=<id> arrives.
   useEffect(() => {

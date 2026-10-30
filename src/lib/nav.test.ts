@@ -4,7 +4,7 @@ import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFo
 const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
-  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
+  "/swipe", "/carousels", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
   "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/adlauncher",
 ];
@@ -57,7 +57,7 @@ describe("nav", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan"]);
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/slideshow", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
-    expect(pages("find", ANYONE)).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
+    expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
@@ -65,7 +65,7 @@ describe("nav", () => {
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/ideas"]);
       expect(pages("write", email).slice(0, 10), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
-      expect(pages("find", email).slice(6, 8), email).toEqual(["/competitors", "/saved"]);
+      expect(pages("find", email).slice(7, 9), email).toEqual(["/competitors", "/saved"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
     }
   });
@@ -100,13 +100,13 @@ describe("nav", () => {
   describe("tab row", () => {
     it("lists a plain section's pages, the open one lit", () => {
       const { tabs, chips } = sectionTabs("/trends", ANYONE);
-      expect(labels(tabs)).toEqual(["Top posts", "Trends", "Clone a reel", "Inspiration", "Creators", "Following"]);
+      expect(labels(tabs)).toEqual(["Top posts", "Carousels", "Trends", "Clone a reel", "Inspiration", "Creators", "Following"]);
       // Leo's /clone is Remix a post, so its tab says so
       expect(sectionTabs("/trends", LEO).tabs.find((t) => t.to === "/clone")?.label).toBe("Remix a post");
       expect(tabs.filter((t) => t.active).map((t) => t.to)).toEqual(["/trends"]);
       expect(chips).toEqual([]);
       // a detail page has its own way back: no row over a creator, a campaign or a format; F.A.D.S.'s own tabs keep it
-      for (const p of ["/profiles/abc", "/campaigns/new", "/campaigns/c1", "/make/slideshow", "/inspiration/i1"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
+      for (const p of ["/profiles/abc", "/campaigns/new", "/campaigns/c1", "/make/slideshow", "/inspiration/i1", "/carousels/c1"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
       expect(sectionTabs("/fads/positioning", ANYONE).tabs.find((t) => t.active)?.to).toBe("/fads");
       expect(sectionTabs("/drafts/", ANYONE).tabs.find((t) => t.active)?.to).toBe("/drafts");
     });

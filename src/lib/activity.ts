@@ -392,6 +392,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "post-tags": "Post tags",
   "brief-pick": "What moved picks",
   "creator-fit": "Creator fit checks",
+  "carousel-fit": "Carousel rankings for your brand",
   "search-topics": "Search checks",
   "search-topics-global": "Search checks, everyone",
   "remix-patterns": "What worked reads",

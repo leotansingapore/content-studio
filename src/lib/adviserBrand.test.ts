@@ -60,7 +60,7 @@ describe("the Singapore personal-finance libraries", () => {
   it("stay in an adviser brand's nav and tour, and its ideas mission opens Inspiration", () => {
     for (const p of [undefined, "Financial adviser"]) {
       brandDevice("u1", p);
-      expect(radar()).toEqual(["/swipe Top posts", "/trends Trends", "/clone Clone a reel", "/inspiration Inspiration", "/profiles Creators", "/following Following"]);
+      expect(radar()).toEqual(["/swipe Top posts", "/carousels Carousels", "/trends Trends", "/clone Clone a reel", "/inspiration Inspiration", "/profiles Creators", "/following Following"]);
       expect(brandPages()).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
       expect(pageTitle("/swipe")).toBe("Top posts - Postmosis");
       expect(studioTour("u1")).toBe(STUDIO_TOUR);
@@ -70,7 +70,8 @@ describe("the Singapore personal-finance libraries", () => {
 
   it("leave any other brand's nav and tour: Top posts holds only its News, and its ideas mission opens the weekly plan", () => {
     brandDevice("u1", "Coach");
-    expect(radar()).toEqual(["/swipe News", "/clone Clone a reel", "/following Following"]);
+    // the carousel library covers every niche, so it stays for every brand
+    expect(radar()).toEqual(["/swipe News", "/carousels Carousels", "/clone Clone a reel", "/following Following"]);
     expect(brandPages()).toEqual(["/playbook", "/voice", "/brand"]);
     expect(pageTitle("/swipe")).toBe("News - Postmosis");
     expect(studioTour("u1").map((s) => s.path)).toEqual(["/home", "/generate", "/calendar", "/brand", "/analytics"]);

@@ -23,6 +23,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/fads/:tab": "a tab of /fads",
   "/recruit/:tab": "the tabs of /recruit (Conversations, AI agent)",
   "/inspiration/:id": "one inspiration, opened from /inspiration",
+  "/carousels/:id": "one carousel, opened from /carousels",
   "/profiles/:id": "one creator, opened from /profiles",
   "/make/:format": "a format's create page, opened from Remix buttons and the /make gallery",
   "/campaigns/new": "reached from /campaigns",

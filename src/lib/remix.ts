@@ -10,7 +10,7 @@ import { loadFollowing } from "@/lib/following";
 import type { Positioning } from "@/lib/positioning";
 import { AVATAR_MAX, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 import { loadSavedClones } from "@/lib/reelClone";
-import { sourceKey, sourceNoun, type RemixSource } from "@/lib/remixSource";
+import { sourceKey, sourceNoun, sourceText, type RemixSource } from "@/lib/remixSource";
 import { adFor, loadLinkedSources } from "@/lib/resolveSource";
 import { getAllTopPosts } from "@/lib/topPosts";
 import { TRENDS } from "@/lib/trends";
@@ -163,6 +163,8 @@ export function fullText(s: RemixSource, userId: string): string {
     text = i ? joined([i.hook, i.content]) : "";
   }
   if (prefix === "link" || prefix === "upload") text = loadLinkedSources(userId).find((x) => x.key === s.key)?.text ?? "";
+  // a library carousel: every slide's words, which the page that opened the sheet kept for this tab
+  if (prefix === "carousel") text = sourceText(s.key);
   return (joined([text]) || joined([s.caption]) || joined([s.title])).slice(0, 2000);
 }
 

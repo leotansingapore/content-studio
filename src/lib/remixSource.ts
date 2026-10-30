@@ -14,6 +14,7 @@ import type { InspirationEntry } from "@/components/Inspiration";
 import type { AuditPlatform, RatedPost } from "@/lib/accountAudit";
 import type { SavedClone } from "@/lib/reelClone";
 import type { FormatTrend } from "@/lib/formatTrends";
+import type { CarouselRow } from "@/lib/carouselLibrary";
 
 export type RemixSourceKind = "top-post" | "follow" | "ad" | "clone" | "own" | "trend" | "inspiration" | "link" | "upload" | "pattern" | "format";
 export type SourceFormat = "video" | "carousel" | "image" | "text";
@@ -64,6 +65,8 @@ export const sourceKey = {
   pattern: (platform: string, handle: string, n: number) => `pattern:${platform}:${handle}:${n}`,
   /** A trending format from the weekly format scout (/trends?view=formats): format:tiktok-<post id>. */
   format: (id: string) => `format:${id}`,
+  /** kind 'top-post': a carousel in the carousel library (/carousels, cs_carousels): carousel:<id>. */
+  carousel: (id: string) => `carousel:${id}`,
 };
 
 export type SourceNoun = "reel" | "video" | "carousel" | "post" | "ad" | "Short" | "trend" | "upload";
@@ -287,6 +290,24 @@ export function fromFormatTrend(t: FormatTrend): RemixSource {
   });
 }
 
+/** A library carousel; `cover` is its public cover address (the page knows the bucket, this file imports no client). */
+export function fromCarousel(c: CarouselRow, cover?: string): RemixSource {
+  return snap({
+    key: sourceKey.carousel(c.id),
+    kind: "top-post",
+    format: "carousel",
+    platform: "instagram",
+    url: safeUrl(c.ig_url),
+    author: handle(c.creator),
+    title: clip(c.title, 120) ?? firstLine(c.caption),
+    caption: clip(c.caption, 400),
+    cover: safeCover(cover),
+    numbers: { likes: c.likes, comments: c.comments, ratio: c.multiple },
+    teardown: { hook: firstLine(c.slide_text[0], 200), structure: `${c.format ?? "Carousel"}, ${c.slides} slides` },
+    remixedAt: "",
+  });
+}
+
 export function fromDraft(d: DraftEntry): RemixSource {
   return snap({
     key: sourceKey.own(d.id),
@@ -362,6 +383,11 @@ export function rememberSource(s: RemixSource, userId: string): void {
     // full or blocked storage: the key just won't resolve, and Write carries on without a source
   }
 }
+
+/** Whole words for a source whose record lives on the server (a library carousel's every slide), for this tab. */
+const sourceTexts = new Map<string, string>();
+export const rememberSourceText = (key: string, text: string) => void sourceTexts.set(key, text.slice(0, 2000));
+export const sourceText = (key: string) => sourceTexts.get(key) ?? "";
 
 /** The sheet's typed note, kept on this device until the remix is done. */
 export const noteKey = (key: string) => `cs-remix-note-${key}`;

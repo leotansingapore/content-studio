@@ -114,7 +114,8 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
       return { ...s, remixedAt: "" };
     }
     case "audit":
-    case "hubtrend": {
+    case "hubtrend":
+    case "carousel": {
       // server rows the device doesn't keep: only this tab's registry, for this brand, has them
       const seen = seenSources(userId).find((s) => s.key === key);
       return seen ? { ...seen, remixedAt: "" } : null;
