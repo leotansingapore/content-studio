@@ -161,6 +161,8 @@ export const DAILY_LIMITS = {
   "brief-pick": 10,
   // Which hand-picked creators fit the brand (remix creator-fit): Jev 6 creators at a time, 70 at most.
   "creator-fit": 5,
+  // Best for your brand on /carousels (carousel-fit): one Jev call for the topics, then a Jev score for up to 240 carousels.
+  "carousel-fit": 6,
   // What people search for (market searches): 5 DataForSEO Labs tasks plus 10 YouTube pages, one a week per brand.
   "search-topics": 2,
   // Those search checks across everyone on GLOBAL_COUNTER_USER.

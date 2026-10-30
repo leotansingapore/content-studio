@@ -151,7 +151,7 @@ export const AVATAR_MAX: Price = upTo(creditsUsd(avatarCredits(Array<number>(MAX
 export const NO_PRICE: UsageFeature[] = [
   // Jev only
   "post-score", "writing-judge", "fact-check", "cold-open", "motion-picks", "montage-pick", "music-mood", "week-pick",
-  "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "caption-keywords",
+  "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "carousel-fit", "caption-keywords",
   "agent-act", "winner-check", "post-match", "post-grade", "post-angles",
   // one capped page fetch and one Jev question
   "page-read",
