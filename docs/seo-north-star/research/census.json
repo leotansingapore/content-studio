@@ -1,0 +1,2589 @@
+{
+ "buffer.com": {
+  "sitemaps": [
+   "https://buffer.com/sitemap.xml",
+   "https://buffer.com/es/sitemap.xml",
+   "https://buffer.com/fr/sitemap.xml",
+   "https://buffer.com/de/sitemap.xml",
+   "https://buffer.com/it/sitemap.xml",
+   "https://buffer.com/nl/sitemap.xml",
+   "https://buffer.com/pt/sitemap.xml",
+   "https://buffer.com/resources/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 11,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:22:11Z",
+  "unique_urls": 3443,
+  "hosts": {
+   "buffer.com": 3443
+  },
+  "languages": {
+   "en": 3045,
+   "es": 68,
+   "fr": 68,
+   "it": 67,
+   "de": 65,
+   "nl": 65,
+   "pt": 65
+  },
+  "buckets": {
+   "blog_posts": 2413,
+   "blog_taxonomy": 398,
+   "free_tools": 17,
+   "programmatic_tool_pages": 11,
+   "templates": 1,
+   "glossary": 104,
+   "comparison": 13,
+   "integrations": 26,
+   "audience_pages": 6,
+   "platform_pages": 12,
+   "academy": 0,
+   "research_data": 11,
+   "features_product": 14,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 2,
+   "company": 16,
+   "other": 1,
+   "translated": 398
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 2413,
+   "blog_taxonomy": 400,
+   "free_tools": 17,
+   "programmatic_tool_pages": 11,
+   "templates": 1,
+   "glossary": 104,
+   "comparison": 19,
+   "integrations": 182,
+   "audience_pages": 40,
+   "platform_pages": 78,
+   "academy": 0,
+   "research_data": 11,
+   "features_product": 95,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 14,
+   "company": 52,
+   "other": 6
+  },
+  "prefixes": {
+   "/resources/": 2822,
+   "/social-media-terms/": 104,
+   "/es/": 68,
+   "/fr/": 68,
+   "/it/": 67,
+   "/de/": 65,
+   "/nl/": 65,
+   "/pt/": 65,
+   "/free-tools/": 27,
+   "/integrations/": 26,
+   "/state-of-remote-work/": 7,
+   "/made-for/": 4,
+   "/social-media-benchmarks/": 4,
+   "/ai-assistant/": 2,
+   "/features/": 2,
+   "/newsletter/": 2,
+   "/partners/": 2,
+   "/": 1,
+   "/2step/": 1,
+   "/about/": 1,
+   "/accessibility/": 1,
+   "/antler/": 1,
+   "/api/": 1,
+   "/bluesky/": 1,
+   "/books/": 1
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://buffer.com",
+     "status": 200,
+     "title": "Buffer: Social media management for everyone"
+    },
+    {
+     "url": "https://buffer.com/features/social-media-content-planner",
+     "status": 200,
+     "title": "Content Planner: Turn Ideas Into Scheduled Posts | Buffer"
+    },
+    {
+     "url": "https://buffer.com/transparent-pricing",
+     "status": 200,
+     "title": "Transparent Pricing | Buffer"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://buffer.com/2step",
+     "status": 200,
+     "title": "Buffer | 2-Step Login"
+    },
+    {
+     "url": "https://buffer.com/newsletter/success",
+     "status": 200,
+     "title": "You\u2019re on the list! | The Weekly Scroll Newsletter | Buffer"
+    },
+    {
+     "url": "https://buffer.com/timeoff",
+     "status": 200,
+     "title": "Transparent Time Off Dashboard | Buffer"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://buffer.com/ai-assistant/social-media-post-creator",
+     "status": 200,
+     "title": "Free AI Social Media Post Generator by Buffer"
+    },
+    {
+     "url": "https://buffer.com/free-tools/instagram-name-generator",
+     "status": 200,
+     "title": "Instagram Name Generator"
+    },
+    {
+     "url": "https://buffer.com/free-tools/youtube-name-generator",
+     "status": 200,
+     "title": "YouTube Channel Name Generator"
+    }
+   ],
+   "platform_pages": [
+    {
+     "url": "https://buffer.com/bluesky",
+     "status": 200,
+     "title": "Schedule your Bluesky posts with Buffer | Build an Authentic Community"
+    },
+    {
+     "url": "https://buffer.com/pinterest",
+     "status": 200,
+     "title": "Schedule Your Pinterest Posts with Buffer | Drive More Traffic"
+    },
+    {
+     "url": "https://buffer.com/youtube",
+     "status": 200,
+     "title": "Schedule YouTube Shorts with Buffer | Grow Your Channel"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://buffer.com/compare",
+     "status": 200,
+     "title": "Compare Buffer to Other Social Media Management Tools"
+    },
+    {
+     "url": "https://buffer.com/resources/buffer-vs-loomly/",
+     "status": 200,
+     "title": "Buffer vs. Loomly (2026)\u2014How Do They Compare?"
+    },
+    {
+     "url": "https://buffer.com/resources/buffer-vs-tailwind/",
+     "status": 200,
+     "title": "Buffer vs. Tailwind: A Comprehensive Comparison"
+    }
+   ],
+   "integrations": [
+    {
+     "url": "https://buffer.com/integrations",
+     "status": 200,
+     "title": "Buffer Integrations - Connect Design, Storage, AI, and Automation Tools to Your Social Workflow | Buffer"
+    },
+    {
+     "url": "https://buffer.com/integrations/make",
+     "status": 200,
+     "title": "Make and Buffer Integration | Connect your favorite apps to Buffer"
+    },
+    {
+     "url": "https://buffer.com/integrations/zapier",
+     "status": 200,
+     "title": "Zapier and Buffer Integration | Connect your favorite apps to Buffer"
+    }
+   ],
+   "blog_taxonomy": [
+    {
+     "url": "https://buffer.com/library",
+     "status": 200,
+     "title": "Buffer\u2019s Social Media and Marketing Library"
+    },
+    {
+     "url": "https://buffer.com/resources/author/kelly/",
+     "status": 200,
+     "title": "Kelly Phillips - Buffer Blog Posts"
+    },
+    {
+     "url": "https://buffer.com/resources/youtube/",
+     "status": 200,
+     "title": "YouTube - Buffer Blog Posts"
+    }
+   ],
+   "audience_pages": [
+    {
+     "url": "https://buffer.com/made-for/creators",
+     "status": 200,
+     "title": "Social Media Management for Creators | Buffer"
+    },
+    {
+     "url": "https://buffer.com/made-for/small-business",
+     "status": 200,
+     "title": "Social Media Management for Small Business | Buffer"
+    },
+    {
+     "url": "https://buffer.com/partners/agencies",
+     "status": 200,
+     "title": "Buffer for Agencies | Social media management built for agencies"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://buffer.com/resources/1-million-business-playbook/",
+     "status": 200,
+     "title": "My New Business Hit $1 Million in Sales in One Year: Here\u2019s My Playbook"
+    },
+    {
+     "url": "https://buffer.com/resources/instagram-reels-six-figures-business/",
+     "status": 200,
+     "title": "How Instagram Reels Helped Me Hit 6 Figures in My First Year in Business"
+    },
+    {
+     "url": "https://buffer.com/resources/zingermans-open-book-management/",
+     "status": 200,
+     "title": "Why Zingerman\u2019s Teaches All Employees About Cash Flow, Revenue, Depreciation, and Expense Management"
+    }
+   ],
+   "research_data": [
+    {
+     "url": "https://buffer.com/social-media-benchmarks",
+     "status": 200,
+     "title": "Social Media Benchmarks \u2014 Data, Insights and Research, Powered by Buffer"
+    },
+    {
+     "url": "https://buffer.com/state-of-remote-work/2018",
+     "status": 200,
+     "title": "Buffer | State Of Remote Work 2018"
+    },
+    {
+     "url": "https://buffer.com/state-of-remote-work/2023",
+     "status": 200,
+     "title": "Buffer | 2023 State Of Remote Work"
+    }
+   ],
+   "glossary": [
+    {
+     "url": "https://buffer.com/social-media-terms",
+     "status": 200,
+     "title": "Social Media Terms: A Comprehensive Glossary by Buffer"
+    },
+    {
+     "url": "https://buffer.com/social-media-terms/kol-key-opinion-leader",
+     "status": 200,
+     "title": "What does KOL (Key Opinion Leader) mean?"
+    },
+    {
+     "url": "https://buffer.com/social-media-terms/zapier",
+     "status": 200,
+     "title": "What is Zapier?"
+    }
+   ],
+   "programmatic_tool_pages": [
+    {
+     "url": "https://buffer.com/free-tools/image-resizer/bluesky",
+     "status": 200,
+     "title": "Free Bluesky Image Resizer & Size Guide | Buffer"
+    },
+    {
+     "url": "https://buffer.com/free-tools/image-resizer/mastodon",
+     "status": 200,
+     "title": "Free Mastodon Image Resizer & Size Guide | Buffer"
+    },
+    {
+     "url": "https://buffer.com/free-tools/image-resizer/youtube",
+     "status": 200,
+     "title": "Free YouTube Thumbnail Resizer & Size Guide | Buffer"
+    }
+   ],
+   "translated": [
+    {
+     "url": "https://buffer.com/de",
+     "status": 200,
+     "title": "Buffer \u2013 das Social-Media-Management-Tool f\u00fcr alle"
+    },
+    {
+     "url": "https://buffer.com/fr/x",
+     "status": 200,
+     "title": "Programmer vos tweets sur X (Twitter) | Buffer"
+    },
+    {
+     "url": "https://buffer.com/pt/youtube",
+     "status": 200,
+     "title": "Agende posts e Shorts no YouTube | Buffer"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://developers.buffer.com/llms.txt",
+    "lines": 88
+   },
+   "llms-full.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://developers.buffer.com/llms-full.txt",
+    "lines": 10976
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 20,
+    "source": "https://buffer.com/free-tools",
+    "date": "2026-10-30",
+    "note": "15 tools plus 5 image-resizer network variants; all are in the sitemap"
+   },
+   "compare_hub": {
+    "links": 10,
+    "source": "https://buffer.com/compare",
+    "date": "2026-10-30",
+    "note": "links to /resources/buffer-vs-<x>/ blog posts"
+   },
+   "templates_hub": {
+    "cards": 183,
+    "source": "https://buffer.com/templates",
+    "date": "2026-10-30",
+    "note": "h2/h3 template headings on the rendered page minus 4 filter headings; cards have no own URL"
+   }
+  },
+  "notes": "robots.txt lists 8 sitemaps: the site in 7 language folders (en, es, fr, de, it, nl, pt) plus a Ghost blog index at /resources/sitemap.xml (posts, authors, tags). 11 files walked. The blog lives at /resources/<slug>/: 2,413 English posts, plus 12 'Buffer vs <x>' posts counted as comparison. 330 author pages and 68 tag pages (/resources/<tag>/, typed by their sitemap file) are blog_taxonomy. Translations cover the site pages only (about 66 per language: 26 integrations, 11 platform pages, product and company pages); the blog is English only. free_tools = 15 tools under /free-tools/ plus the hub and /ai-assistant/social-media-post-creator. programmatic_tool_pages = 11 /free-tools/image-resizer/<network> pages (bluesky, facebook, google-business, instagram, linkedin, mastodon, pinterest, threads, tiktok, x, youtube). glossary = 103 /social-media-terms/<term> pages plus the hub. platform_pages = 12 one-per-network landing pages (/instagram, /linkedin, /tiktok, /x, /threads, /bluesky, /substack and others). research_data = /social-media-benchmarks (4) and /state-of-remote-work yearly reports (7). /templates is one page holding about 183 post prompt cards with no URL each (rendered with DynamicFetcher). /compare links 10 of the 12 'Buffer vs' blog posts. llms.txt redirects to developers.buffer.com/llms.txt, which covers the API docs only, not the marketing site."
+ },
+ "later.com": {
+  "sitemaps": [
+   "https://later.com/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 2,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:22:00Z",
+  "unique_urls": 1834,
+  "hosts": {
+   "later.com": 1834
+  },
+  "languages": {
+   "en": 1834
+  },
+  "buckets": {
+   "blog_posts": 683,
+   "blog_taxonomy": 249,
+   "free_tools": 2,
+   "programmatic_tool_pages": 0,
+   "templates": 65,
+   "glossary": 290,
+   "comparison": 17,
+   "integrations": 0,
+   "audience_pages": 19,
+   "platform_pages": 16,
+   "academy": 146,
+   "research_data": 12,
+   "features_product": 42,
+   "help_docs": 2,
+   "video_webinars": 200,
+   "community": 0,
+   "company": 80,
+   "other": 11,
+   "translated": 0
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 683,
+   "blog_taxonomy": 249,
+   "free_tools": 2,
+   "programmatic_tool_pages": 0,
+   "templates": 65,
+   "glossary": 290,
+   "comparison": 17,
+   "integrations": 0,
+   "audience_pages": 19,
+   "platform_pages": 16,
+   "academy": 146,
+   "research_data": 12,
+   "features_product": 42,
+   "help_docs": 2,
+   "video_webinars": 200,
+   "community": 0,
+   "company": 80,
+   "other": 11
+  },
+  "prefixes": {
+   "/blog/": 873,
+   "/resources/": 291,
+   "/social-media-glossary/": 282,
+   "/creator-academy-by-later/": 89,
+   "/case-studies/": 58,
+   "/beyond-influence-podcast/": 58,
+   "/instagram-captions-ideas/": 29,
+   "/influencer-marketing-tools/": 10,
+   "/instagram-scheduler/": 9,
+   "/training/": 7,
+   "/emoji-meanings/": 7,
+   "/creator-evidence-index/": 6,
+   "/events/": 6,
+   "/thank-you/": 5,
+   "/newsroom/": 4,
+   "/influencer-marketing-platform/": 2,
+   "/influencer-marketing-services/": 2,
+   "/product-training/": 2,
+   "/careers/": 2,
+   "/creator/": 2,
+   "/industries/": 1,
+   "/affiliate-marketing/": 1,
+   "/hootsuite-alternative/": 1,
+   "/buffer-alternative/": 1,
+   "/social-media-inbox/": 1
+  },
+  "spot_check_samples": {
+   "audience_pages": [
+    {
+     "url": "https://later.com/agencies-freelancers/",
+     "status": 200,
+     "title": "Influencer Marketing Platform for Agencies | Later"
+    },
+    {
+     "url": "https://later.com/home-decor-lp/",
+     "status": 200,
+     "title": "Home Creators \u2013 Later"
+    },
+    {
+     "url": "https://later.com/youtubers/",
+     "status": 200,
+     "title": "YouTube Influencer Marketing Platform for Brands | Later"
+    }
+   ],
+   "academy": [
+    {
+     "url": "https://later.com/creator-academy-by-later/",
+     "status": 200,
+     "title": "Influencer Marketing and Social Media Management | Later"
+    },
+    {
+     "url": "https://later.com/creator-academy-by-later/myshop-tutorial-web-app/",
+     "status": 200,
+     "title": "Getting Started with MyShop - Web App"
+    },
+    {
+     "url": "https://later.com/training/tiktok-for-business/",
+     "status": 200,
+     "title": "TikTok for Business: A Free Marketing Course from Later"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://later.com/about/",
+     "status": 200,
+     "title": "Influencer Marketing and Social Media Management | Later"
+    },
+    {
+     "url": "https://later.com/case-studies/kroger-precision-marketing/",
+     "status": 200,
+     "title": "Kroger Performance Marketing: Influencer Case Study | Later"
+    },
+    {
+     "url": "https://later.com/terms/",
+     "status": 200,
+     "title": "Later | Terms of Service & Influencer Terms of Use"
+    }
+   ],
+   "research_data": [
+    {
+     "url": "https://later.com/creator-evidence-index/",
+     "status": 200,
+     "title": "The Creator Evidence Index | Later"
+    },
+    {
+     "url": "https://later.com/influencer-marketing-insights/",
+     "status": 200,
+     "title": "Later Influencer Marketing Insights"
+    },
+    {
+     "url": "https://later.com/resources/report/state-of-influencer/",
+     "status": 200,
+     "title": "2025 State of Influencer Marketing Report | Later"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://later.com/buffer-alternative/",
+     "status": 200,
+     "title": "Buffer Alternative: Try Later for Visual-first Scheduling"
+    },
+    {
+     "url": "https://later.com/later-vs-shopmy/",
+     "status": 200,
+     "title": "Later vs ShopMy"
+    },
+    {
+     "url": "https://later.com/tailwind-alternative/",
+     "status": 200,
+     "title": "Tailwind Alternative With Smarter Scheduling & Analytics"
+    }
+   ],
+   "features_product": [
+    {
+     "url": "https://later.com/",
+     "status": 200,
+     "title": "Later: Influencer Marketing and Social Media Management"
+    },
+    {
+     "url": "https://later.com/influencer-marketing-tools/influencer-payments/",
+     "status": 200,
+     "title": "Influencer Payment Platform That Automates Payouts | Later"
+    },
+    {
+     "url": "https://later.com/trend-score/",
+     "status": 200,
+     "title": "Alpha Access: Later Trend Score"
+    }
+   ],
+   "video_webinars": [
+    {
+     "url": "https://later.com/beyond-influence-podcast/",
+     "status": 200,
+     "title": "Beyond Influence Podcast with Kwame Appiah & Scott Sutton | Later"
+    },
+    {
+     "url": "https://later.com/resources/videos/9-instagram-marketing-trends-2023/",
+     "status": 200,
+     "title": "9 Instagram Marketing Trends to Help You Grow in 2023 (Video)"
+    },
+    {
+     "url": "https://later.com/resources/webinar/the-drop/2025-q4/",
+     "status": 200,
+     "title": "The Drop: What's New at Later Q4 2025"
+    }
+   ],
+   "templates": [
+    {
+     "url": "https://later.com/instagram-captions-ideas/",
+     "status": 200,
+     "title": "Instagram Captions Ideas Library | Later"
+    },
+    {
+     "url": "https://later.com/resources/downloadable/business-goals/",
+     "status": 200,
+     "title": "Free Worksheet: Setting Business Goals | Later"
+    },
+    {
+     "url": "https://later.com/resources/template/2/",
+     "status": 200,
+     "title": "Free Marketing Templates for Social Media Managers | Page 2 of 2"
+    }
+   ],
+   "platform_pages": [
+    {
+     "url": "https://later.com/facebook-scheduler/",
+     "status": 200,
+     "title": "Facebook Scheduler: Plan and Publish Posts Automatically | Later"
+    },
+    {
+     "url": "https://later.com/instagram-scheduler/schedule-instagram-stories/",
+     "status": 200,
+     "title": "Schedule Instagram Stories Automatically With Later"
+    },
+    {
+     "url": "https://later.com/youtube-scheduler/",
+     "status": 200,
+     "title": "YouTube Scheduler: Plan and Auto Publish Videos | Later"
+    }
+   ],
+   "glossary": [
+    {
+     "url": "https://later.com/emoji-meanings/",
+     "status": 200,
+     "title": "Emoji Meanings Library"
+    },
+    {
+     "url": "https://later.com/social-media-glossary/instagram-carousel/",
+     "status": 200,
+     "title": "What is an Instagram Carousel? | Later Social Media Glossary"
+    },
+    {
+     "url": "https://later.com/social-media-glossary/youtube-shorts/",
+     "status": 200,
+     "title": "What are YouTube Shorts? | Later Social Media Glossary"
+    }
+   ],
+   "other": [
+    {
+     "url": "https://later.com/creator/",
+     "status": 200,
+     "title": ""
+    },
+    {
+     "url": "https://later.com/sitemap/",
+     "status": 200,
+     "title": "Later Sitemap | Explore Our Site Directory"
+    },
+    {
+     "url": "https://later.com/thank-you/social/",
+     "status": 200,
+     "title": "You\u2019re all set!"
+    }
+   ],
+   "blog_taxonomy": [
+    {
+     "url": "https://later.com/blog/",
+     "status": 200,
+     "title": "Later Blog: Expert Social Media & Influencer Marketing Tips"
+    },
+    {
+     "url": "https://later.com/blog/author/moniquethomas/",
+     "status": 200,
+     "title": "Monique Thomas Author Bio and Latest Articles at Later"
+    },
+    {
+     "url": "https://later.com/resources/youtube/",
+     "status": 200,
+     "title": "Explore Free Resources for YouTubers from Later"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://later.com/blog/10-creator-campaign-metrics-your-ceo-actually-cares-about/",
+     "status": 200,
+     "title": "10 Creator Campaign Metrics Your CEO Actually Cares About"
+    },
+    {
+     "url": "https://later.com/blog/instagram-reels-remix/",
+     "status": 200,
+     "title": "How to Use Instagram Reels\u2019 New Remix Feature"
+    },
+    {
+     "url": "https://later.com/blog/youtube-tips/",
+     "status": 200,
+     "title": "8 Things to Know Before You Publish Your First YouTube Video"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://later.com/llms.txt",
+    "lines": null
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://later.com/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 1,
+    "source": "https://later.com/resources/tool/",
+    "date": "2026-10-30",
+    "note": "one tool linked: /resources/tool/instagram-engagement-rate-calculator"
+   },
+   "templates_hub": {
+    "links": 19,
+    "source": "https://later.com/resources/template/ and /resources/template/2/",
+    "date": "2026-10-30",
+    "note": "unique /resources/downloadable/ links across the 2 hub pages"
+   }
+  },
+  "notes": "robots.txt points to /sitemap.xml, an index of one file (/marketing/sitemap-0.xml, 1,834 URLs). English only. /blog/sitemap.xml and similar return 404. Blog: 683 posts; 76 /blog/<n>/ pagination pages (the blog shows 'Page 1 of 76'), 69 authors, 36 categories, 8 grid pages and the /resources/<topic>/ archives are blog_taxonomy. glossary = 281 /social-media-glossary/<term> pages plus the hub, 7 /emoji-meanings/ pages and /resources/glossary/. templates = 28 /instagram-captions-ideas/<theme> caption lists plus the hub, 34 /resources/downloadable/ templates and worksheets, and 2 template hub pages. video_webinars = 97 /resources/videos/, 57 Beyond Influence podcast episodes, webinars, expert sessions and events. academy = 89 /creator-academy-by-later/ lessons, 39 /resources/guide/ long guides, courses and /training/ pages. 52 lesson and webinar URLs are duplicates with a numeric suffix (/ai-for-creators/ and /ai-for-creators-960/). comparison = 14 /<x>-alternative/ pages (buffer, hootsuite, planoly, sprout-social, linktree, canva and others) and 3 /later-vs-<x>/. platform_pages = 8 /<network>-scheduler/ pages plus 8 Instagram scheduler sub-pages. audience_pages = 19 (agencies-freelancers, small-business-owners, social-media-managers, youtubers, niche influencer and '-lp' industry pages). Free tools are thin: /resources/tool/ links one tool (instagram-engagement-rate-calculator). /caption-writer/ is an in-app feature page, so it is counted as product. company includes 57 case studies."
+ },
+ "taplio.com": {
+  "sitemaps": [
+   "https://taplio.com/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 1,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:22:00Z",
+  "unique_urls": 426,
+  "hosts": {
+   "taplio.com": 426
+  },
+  "languages": {
+   "en": 424,
+   "de": 1,
+   "fr": 1
+  },
+  "buckets": {
+   "blog_posts": 227,
+   "blog_taxonomy": 23,
+   "free_tools": 34,
+   "programmatic_tool_pages": 27,
+   "templates": 33,
+   "glossary": 15,
+   "comparison": 11,
+   "integrations": 0,
+   "audience_pages": 6,
+   "platform_pages": 0,
+   "academy": 4,
+   "research_data": 23,
+   "features_product": 12,
+   "help_docs": 0,
+   "video_webinars": 1,
+   "community": 0,
+   "company": 7,
+   "other": 1,
+   "translated": 2
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 227,
+   "blog_taxonomy": 23,
+   "free_tools": 34,
+   "programmatic_tool_pages": 27,
+   "templates": 33,
+   "glossary": 15,
+   "comparison": 11,
+   "integrations": 0,
+   "audience_pages": 6,
+   "platform_pages": 0,
+   "academy": 4,
+   "research_data": 23,
+   "features_product": 14,
+   "help_docs": 0,
+   "video_webinars": 1,
+   "community": 0,
+   "company": 7,
+   "other": 1
+  },
+  "prefixes": {
+   "/blog/": 228,
+   "/linkedin-headline-generator/": 28,
+   "/author/": 22,
+   "/claude-skills/": 17,
+   "/glossary/": 15,
+   "/influencers/": 14,
+   "/posts/": 11,
+   "/competitors-pages/": 10,
+   "/trending/": 8,
+   "/linkedin-post-generator/": 7,
+   "/find-linkedin-posts-ideas/": 5,
+   "/profile-optimization/": 5,
+   "/use-cases/": 4,
+   "/carousel/": 2,
+   "/resources/": 2,
+   "/": 1,
+   "/affiliate-playbook/": 1,
+   "/affiliates/": 1,
+   "/affiliates-agencies/": 1,
+   "/affiliates-influencers/": 1,
+   "/agencies/": 1,
+   "/amanda-goetz-5-day-course/": 1,
+   "/amanda-goetz-linkedin-template/": 1,
+   "/ambassador/": 1,
+   "/charles-miller-lead-magnet/": 1
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://taplio.com/",
+     "status": 200,
+     "title": "Taplio | AI tool to grow on LinkedIn in 10 min/day"
+    },
+    {
+     "url": "https://taplio.com/linkedin-post-idea",
+     "status": 200,
+     "title": "LinkedIn Post Ideas: Never Run Out of Content | Taplio"
+    },
+    {
+     "url": "https://taplio.com/taplio-linkedin-mcp",
+     "status": 200,
+     "title": "LinkedIn MCP Server for AI Assistants | Taplio"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://taplio.com/affiliate-playbook",
+     "status": 200,
+     "title": "Affiliate Playbook | Taplio"
+    },
+    {
+     "url": "https://taplio.com/affiliates-influencers",
+     "status": 200,
+     "title": "Taplio Affiliates - Influencers \u2022 Grow Your Personal Brand on LinkedIn"
+    },
+    {
+     "url": "https://taplio.com/terms-of-service",
+     "status": 200,
+     "title": "Terms of service \u2022 Grow Your Personal Brand On LinkedIn"
+    }
+   ],
+   "audience_pages": [
+    {
+     "url": "https://taplio.com/agencies",
+     "status": 200,
+     "title": "LinkedIn management for agencies: every client, one place | Taplio"
+    },
+    {
+     "url": "https://taplio.com/use-cases/for-corporate-influencers",
+     "status": 200,
+     "title": "The Employee Generated Content Tool for LinkedIn | Taplio"
+    },
+    {
+     "url": "https://taplio.com/use-cases/for-personal-branding",
+     "status": 200,
+     "title": "LinkedIn personal branding tool for creators and founders | Taplio"
+    }
+   ],
+   "academy": [
+    {
+     "url": "https://taplio.com/amanda-goetz-5-day-course",
+     "status": 200,
+     "title": "Amanda Goetz lead magnet \u2022 Grow Your Personal Brand On LinkedIn"
+    },
+    {
+     "url": "https://taplio.com/resources",
+     "status": 200,
+     "title": "Best LinkedIn Growth Resources (2026)"
+    },
+    {
+     "url": "https://taplio.com/resources/linkedin-dos-and-donts-for-lead-generation",
+     "status": 200,
+     "title": "The Do's and Don'ts of LinkedIn Lead Generation (2022 Guide)"
+    }
+   ],
+   "templates": [
+    {
+     "url": "https://taplio.com/amanda-goetz-linkedin-template",
+     "status": 200,
+     "title": "Amanda Goetz Linkedin Template with Taplio"
+    },
+    {
+     "url": "https://taplio.com/claude-skills/story-extractor",
+     "status": 200,
+     "title": "LinkedIn Storytelling: Free Story Claude Skill"
+    },
+    {
+     "url": "https://taplio.com/posts/best-linkedin-posts-about-web-design",
+     "status": 200,
+     "title": "Best LinkedIn posts about Web Design"
+    }
+   ],
+   "blog_taxonomy": [
+    {
+     "url": "https://taplio.com/author",
+     "status": 200,
+     "title": "Authors \u2022 Grow Your Personal Brand On LinkedIn"
+    },
+    {
+     "url": "https://taplio.com/author/luke-matthews",
+     "status": 200,
+     "title": "Luke Matthews, Author at Grow Your Personal Brand On LinkedIn"
+    },
+    {
+     "url": "https://taplio.com/blog",
+     "status": 200,
+     "title": "Posts \u2022 Grow Your Personal Brand On LinkedIn"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://taplio.com/competitors-pages/competitors-authoredup",
+     "status": 200,
+     "title": "Best AuthoredUp Alternative: Taplio | Free Trial"
+    },
+    {
+     "url": "https://taplio.com/competitors-pages/competitors-perfectpost",
+     "status": 200,
+     "title": "Best PerfectPost Alternative: Taplio | Free Trial"
+    },
+    {
+     "url": "https://taplio.com/taplio-vs-aware",
+     "status": 200,
+     "title": "Taplio vs Aware : Best Aware Alternative After Shutdown"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://taplio.com/best-time-to-post-linkedin",
+     "status": 200,
+     "title": "What & When to Post on LinkedIn \u2013 Taplio"
+    },
+    {
+     "url": "https://taplio.com/linkedin-post-generator/body-helper",
+     "status": 200,
+     "title": "LinkedIn Post Body Writer - Free AI Tool | Taplio"
+    },
+    {
+     "url": "https://taplio.com/viral-post-generator",
+     "status": 200,
+     "title": "Free LinkedIn Viral Post Generator: Create Viral Posts in Seconds"
+    }
+   ],
+   "research_data": [
+    {
+     "url": "https://taplio.com/influencers",
+     "status": 200,
+     "title": "The 100 Best Linkedin Influencers"
+    },
+    {
+     "url": "https://taplio.com/influencers/money",
+     "status": 200,
+     "title": "The 100 Best Linkedin Influencers about money"
+    },
+    {
+     "url": "https://taplio.com/trending/writing",
+     "status": 200,
+     "title": "Top trending Linkedin posts about writing"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://taplio.com/blog/101-linkedin-accounts-to-follow",
+     "status": 200,
+     "title": ""
+    },
+    {
+     "url": "https://taplio.com/blog/linkedin-for-law-firms",
+     "status": 200,
+     "title": "LinkedIn for Law Firms: 7 Tactics to Grow Your Online Presence"
+    },
+    {
+     "url": "https://taplio.com/blog/write-linedkin-posts-people-share",
+     "status": 200,
+     "title": "Going Viral: Write LinkedIn Posts People Share \u2022 Grow Your Personal Brand On LinkedIn"
+    }
+   ],
+   "glossary": [
+    {
+     "url": "https://taplio.com/glossary/click-through-rate",
+     "status": 200,
+     "title": "What Is CTR on LinkedIn? Click-Through Rate Explained"
+    },
+    {
+     "url": "https://taplio.com/glossary/follower-growth-rate",
+     "status": 200,
+     "title": "What Is Follower Growth Rate on LinkedIn? How to Calculate It"
+    },
+    {
+     "url": "https://taplio.com/glossary/reactions",
+     "status": 200,
+     "title": "LinkedIn Reactions Explained: All 6 Types and What They Mean"
+    }
+   ],
+   "programmatic_tool_pages": [
+    {
+     "url": "https://taplio.com/linkedin-headline-generator/accountants",
+     "status": 200,
+     "title": "LinkedIn Headlines for Accountants & CPAs (2026) | Taplio"
+    },
+    {
+     "url": "https://taplio.com/linkedin-headline-generator/growth-marketing",
+     "status": 200,
+     "title": "LinkedIn Headlines for Growth Marketers (2026) | Taplio"
+    },
+    {
+     "url": "https://taplio.com/linkedin-headline-generator/ux-and-product-designers",
+     "status": 200,
+     "title": "LinkedIn Headlines for UX & Product Designers (2026) | Taplio"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://taplio.com/llms.txt",
+    "lines": 71
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://taplio.com/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 10,
+    "source": "https://taplio.com/free-tools",
+    "date": "2026-10-30",
+    "note": "tool cards in the page body above the footer; 1 (linkedin-ai-slop-detector) is not in the sitemap"
+   },
+   "claude_skills_hub": {
+    "links": 26,
+    "source": "https://taplio.com/claude-skills-for-linkedin",
+    "date": "2026-10-30",
+    "note": "26 skill pages linked; 17 are in the sitemap"
+   }
+  },
+  "notes": "One Webflow urlset, 426 URLs. /de and /fr are home pages only; everything else is English. programmatic_tool_pages = 27 /linkedin-headline-generator/<audience or goal> pages, e.g. coaches, consultants, freelancers, real-estate-agents, finance-professionals, accountants, nurses, plus goals such as getting-clients and building-a-personal-brand ('LinkedIn Headlines for Accountants & CPAs (2026)'). free_tools = 34 URLs: the /free-tools hub lists 10 tools, and the sitemap adds sub-tool pages under /linkedin-post-generator/ (6, e.g. hook-checker), /find-linkedin-posts-ideas/ (4) and /profile-optimization/ (4). /linkedin-ai-slop-detector is on the hub but not in the sitemap. templates = 17 /claude-skills/<skill> pages (the hub /claude-skills-for-linkedin links 26), 10 /posts/best-linkedin-posts-about-<topic> example galleries plus the hub, and creator template lead magnets (Amanda Goetz, Holly Crawshaw, Charles Miller). research_data = 13 /influencers/<topic> pages ('The 100 Best LinkedIn Influencers about marketing') plus the hub, 7 /trending/<topic> pages plus the hub, and /linkedin-benchmark. comparison = 10 /competitors-pages/competitors-<x> ('Best AuthoredUp Alternative') plus /taplio-vs-aware. glossary = 15 /glossary/<term> LinkedIn metric pages with no hub (/glossary returns 404). audience_pages = 4 /use-cases/for-<x> plus /agencies and /individual-creators. llms.txt answers 200 but the file is RTF (a TextEdit export starting '{\\rtf1'), so a crawler reads formatting codes around the text."
+ },
+ "supergrow.ai": {
+  "sitemaps": [
+   "https://www.supergrow.ai/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 1,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:21:59Z",
+  "unique_urls": 157,
+  "hosts": {
+   "www.supergrow.ai": 157
+  },
+  "languages": {
+   "en": 157
+  },
+  "buckets": {
+   "blog_posts": 99,
+   "blog_taxonomy": 5,
+   "free_tools": 9,
+   "programmatic_tool_pages": 0,
+   "templates": 0,
+   "glossary": 0,
+   "comparison": 12,
+   "integrations": 0,
+   "audience_pages": 1,
+   "platform_pages": 0,
+   "academy": 0,
+   "research_data": 0,
+   "features_product": 19,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 11,
+   "other": 1,
+   "translated": 0
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 99,
+   "blog_taxonomy": 5,
+   "free_tools": 9,
+   "programmatic_tool_pages": 0,
+   "templates": 0,
+   "glossary": 0,
+   "comparison": 12,
+   "integrations": 0,
+   "audience_pages": 1,
+   "platform_pages": 0,
+   "academy": 0,
+   "research_data": 0,
+   "features_product": 19,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 11,
+   "other": 1
+  },
+  "prefixes": {
+   "/blog/": 104,
+   "/tools/": 9,
+   "/compare/": 9,
+   "/features/": 7,
+   "/case-studies/": 5,
+   "/employee-advocacy/": 4,
+   "/affiliate-program/": 2,
+   "/": 1,
+   "/linkedin-post-ideas/": 1,
+   "/post-generated-for-you/": 1,
+   "/content-style/": 1,
+   "/supergrow-vs-chatgpt/": 1,
+   "/aware-alternative/": 1,
+   "/shield-alternative/": 1,
+   "/ltd/": 1,
+   "/best-offer/": 1,
+   "/pricing/": 1,
+   "/about-us/": 1,
+   "/agency/": 1,
+   "/wall-of-love/": 1,
+   "/changelog/": 1,
+   "/privacy/": 1,
+   "/tos/": 1,
+   "/page/": 1
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://www.supergrow.ai",
+     "status": 200,
+     "title": "Supergrow: LinkedIn Content Platform for Teams & Individuals"
+    },
+    {
+     "url": "https://www.supergrow.ai/features/linkedin-carousel-maker",
+     "status": 200,
+     "title": "LinkedIn Carousel Maker | 15-Min Carousels, Not 2 Hours | Supergrow"
+    },
+    {
+     "url": "https://www.supergrow.ai/pricing",
+     "status": 200,
+     "title": "Supergrow: LinkedIn Content Platform for Teams & Individuals"
+    }
+   ],
+   "blog_taxonomy": [
+    {
+     "url": "https://www.supergrow.ai/blog",
+     "status": 200,
+     "title": "Supergrow: LinkedIn Content Platform for Teams & Individuals"
+    },
+    {
+     "url": "https://www.supergrow.ai/blog/author/devenbhooshan",
+     "status": 200,
+     "title": "Deven Bhooshan | Supergrow"
+    },
+    {
+     "url": "https://www.supergrow.ai/blog/category/product-updates",
+     "status": 200,
+     "title": "Product Updates \u2014 Blog | Supergrow"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://www.supergrow.ai/tools",
+     "status": 200,
+     "title": "Supergrow: LinkedIn Content Platform for Teams & Individuals"
+    },
+    {
+     "url": "https://www.supergrow.ai/tools/linkedin-meme-generator",
+     "status": 200,
+     "title": "LinkedIn Meme Generator - Supergrow"
+    },
+    {
+     "url": "https://www.supergrow.ai/tools/linkedin-video-downloader",
+     "status": 200,
+     "title": "LinkedIn Video Downloader - Supergrow"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://www.supergrow.ai/aware-alternative",
+     "status": 200,
+     "title": "Aware Alternative \u2013 Safe LinkedIn Growth with Supergrow"
+    },
+    {
+     "url": "https://www.supergrow.ai/compare/supergrow-vs-ordinal",
+     "status": 200,
+     "title": "Supergrow vs Ordinal: LinkedIn Advocacy & Team Pricing"
+    },
+    {
+     "url": "https://www.supergrow.ai/supergrow-vs-chatgpt",
+     "status": 200,
+     "title": "Supergrow vs. ChatGPT: Learn how Supergrow is different"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://www.supergrow.ai/about-us",
+     "status": 200,
+     "title": "About us | Supergrow"
+    },
+    {
+     "url": "https://www.supergrow.ai/case-studies/genius-scout",
+     "status": 200,
+     "title": "Genius Scout Cuts Admin Time by 30% with Supergrow | Supergrow Case Study"
+    },
+    {
+     "url": "https://www.supergrow.ai/wall-of-love",
+     "status": 200,
+     "title": "Testimonials for Supergrow | Our Wall of Love \ud83d\udc99"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://www.supergrow.ai/blog/7-linkedin-content-templates-for-higher-engagement",
+     "status": 200,
+     "title": "7 LinkedIn Content Templates for Higher Engagement"
+    },
+    {
+     "url": "https://www.supergrow.ai/blog/linkedin-add-collaborators",
+     "status": 200,
+     "title": "How to Add a Collaborator on LinkedIn Post to Reach More People"
+    },
+    {
+     "url": "https://www.supergrow.ai/blog/whats-new-in-supergrow-september-2026",
+     "status": 200,
+     "title": "What's new in Supergrow: September 2026"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://www.supergrow.ai/llms.txt",
+    "lines": null
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://www.supergrow.ai/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 8,
+    "source": "https://www.supergrow.ai/tools",
+    "date": "2026-10-30"
+   },
+   "compare_hub": {
+    "links": 8,
+    "source": "https://www.supergrow.ai/compare",
+    "date": "2026-10-30"
+   }
+  },
+  "notes": "One Next.js urlset on www.supergrow.ai, 157 URLs, English only. 99 blog posts. free_tools = 8 LinkedIn tools under /tools/ plus the hub (carousel, meme, hook, summary and headline generators, text formatter, post preview, video downloader); the hub links the same 8. comparison = 8 /compare/supergrow-vs-<x> pages (taplio, authoredup, typefully, ordinal and others) plus the hub, 2 /<x>-alternative pages (aware, shield) and /supergrow-vs-chatgpt. features_product includes 4 /employee-advocacy/ pages and /changelog. audience_pages = /agency only. No llms.txt."
+ },
+ "predis.ai": {
+  "sitemaps": [
+   "https://predis.ai/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 40,
+  "sitemap_failures": [
+   {
+    "sitemap": "https://predis.ai/cs/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/da/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/nl/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/fi/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/no/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/pl/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/ro/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/sv/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/id/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/hu/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/tr/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   },
+   {
+    "sitemap": "https://predis.ai/ms/sitemap1.xml",
+    "status": 410,
+    "kind": null
+   }
+  ],
+  "fetched_at": "2026-10-30T02:22:20Z",
+  "unique_urls": 68179,
+  "hosts": {
+   "predis.ai": 68179
+  },
+  "languages": {
+   "en": 1642,
+   "pt": 1588,
+   "de": 1588,
+   "it": 1588,
+   "fr": 1588,
+   "es": 1586,
+   "az": 1128,
+   "bg": 1128,
+   "bs": 1128,
+   "ca": 1128,
+   "ceb": 1128,
+   "co": 1128,
+   "cs": 1128,
+   "da": 1128,
+   "el": 1128,
+   "eo": 1128,
+   "et": 1128,
+   "fi": 1128,
+   "fy": 1128,
+   "ga": 1128,
+   "gd": 1128,
+   "gl": 1128,
+   "ha": 1128,
+   "haw": 1128,
+   "hmn": 1128,
+   "hr": 1128,
+   "ht": 1128,
+   "hu": 1128,
+   "ig": 1128,
+   "is": 1128,
+   "ky": 1128,
+   "lb": 1128,
+   "lt": 1128,
+   "lv": 1128,
+   "mg": 1128,
+   "mi": 1128,
+   "mt": 1128,
+   "my": 1128,
+   "no": 1128,
+   "ny": 1128,
+   "pl": 1128,
+   "sk": 1128,
+   "sl": 1128,
+   "sm": 1128,
+   "st": 1128,
+   "sv": 1128,
+   "sw": 1128,
+   "tr": 1128,
+   "yo": 1128,
+   "eu": 1127,
+   "jw": 1127,
+   "ku": 1127,
+   "su": 1127,
+   "tl": 1127,
+   "ro": 1126,
+   "ms": 1121,
+   "nl": 1110,
+   "id": 1103
+  },
+  "buckets": {
+   "blog_posts": 1407,
+   "blog_taxonomy": 1,
+   "free_tools": 35,
+   "programmatic_tool_pages": 6,
+   "templates": 0,
+   "glossary": 0,
+   "comparison": 16,
+   "integrations": 27,
+   "audience_pages": 4,
+   "platform_pages": 12,
+   "academy": 0,
+   "research_data": 0,
+   "features_product": 79,
+   "help_docs": 48,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 7,
+   "other": 0,
+   "translated": 66537
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 9426,
+   "blog_taxonomy": 7,
+   "free_tools": 347,
+   "programmatic_tool_pages": 6,
+   "templates": 0,
+   "glossary": 0,
+   "comparison": 1608,
+   "integrations": 232,
+   "audience_pages": 25,
+   "platform_pages": 108,
+   "academy": 0,
+   "research_data": 0,
+   "features_product": 3301,
+   "help_docs": 56,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 125,
+   "other": 52938
+  },
+  "prefixes": {
+   "/pt/": 1588,
+   "/de/": 1588,
+   "/it/": 1588,
+   "/fr/": 1588,
+   "/es/": 1586,
+   "/resources/": 1408,
+   "/az/": 1128,
+   "/bg/": 1128,
+   "/bs/": 1128,
+   "/ca/": 1128,
+   "/ceb/": 1128,
+   "/co/": 1128,
+   "/cs/": 1128,
+   "/da/": 1128,
+   "/el/": 1128,
+   "/eo/": 1128,
+   "/et/": 1128,
+   "/fi/": 1128,
+   "/fy/": 1128,
+   "/ga/": 1128,
+   "/gd/": 1128,
+   "/gl/": 1128,
+   "/ha/": 1128,
+   "/haw/": 1128,
+   "/hmn/": 1128
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://predis.ai",
+     "status": 200,
+     "title": "Free AI Ad Generator - Create High-Converting Ads & Videos in Seconds"
+    },
+    {
+     "url": "https://predis.ai/create/youtube-banner/",
+     "status": 200,
+     "title": "Design YouTube Banners for Free - Make and edit Channel Banner online"
+    },
+    {
+     "url": "https://predis.ai/use-cases/youtube-shorts-maker/",
+     "status": 200,
+     "title": "Free AI YouTube Shorts Maker - Create Shorts with AI"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://predis.ai/compare/content-generators/",
+     "status": 200,
+     "title": "Predis.ai vs Top AI Content Generators"
+    },
+    {
+     "url": "https://predis.ai/review/arcads/",
+     "status": 200,
+     "title": "Arcads AI Review (2026): Pricing, Cost Per Video & How It Compares"
+    },
+    {
+     "url": "https://predis.ai/review/zeely/",
+     "status": 200,
+     "title": "Zeely AI Review (2026): Is It Legit, Does It Work & What It Costs"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://predis.ai/free-ai-tool/blog-title-generator/",
+     "status": 200,
+     "title": "Free Blog Title Generator - AI based, No Login"
+    },
+    {
+     "url": "https://predis.ai/free-ai-tool/product-description-generator/",
+     "status": 200,
+     "title": "Free Product Description Generator - AI based, No Login"
+    },
+    {
+     "url": "https://predis.ai/free-hashtag-generator/",
+     "status": 200,
+     "title": "AI Instagram Hashtag Generator - 100% Free, No login"
+    }
+   ],
+   "audience_pages": [
+    {
+     "url": "https://predis.ai/business-coach-social-media-tool/",
+     "status": 200,
+     "title": "Manage your social media like a boss with Predis"
+    },
+    {
+     "url": "https://predis.ai/predis-for-enterprise/",
+     "status": 200,
+     "title": "Free Online Instagram Post Maker | Design Custom Posts"
+    },
+    {
+     "url": "https://predis.ai/social-media-agency-tool/",
+     "status": 200,
+     "title": "AI Tool for Agencies | Predis.ai"
+    }
+   ],
+   "platform_pages": [
+    {
+     "url": "https://predis.ai/auto-post-facebook/",
+     "status": 200,
+     "title": "Auto Post to Facebook - Schedule Posts and Videos"
+    },
+    {
+     "url": "https://predis.ai/integrations/predis-for-linkedin/",
+     "status": 200,
+     "title": "LinkedIn | Predis.ai"
+    },
+    {
+     "url": "https://predis.ai/tiktok-scheduler/",
+     "status": 200,
+     "title": "Free TikTok Scheduler - Plan & Auto Publish Posts"
+    }
+   ],
+   "integrations": [
+    {
+     "url": "https://predis.ai/ai-models/",
+     "status": 200,
+     "title": "AI Video & Image Models in Predis.ai (2026) | Predis.ai"
+    },
+    {
+     "url": "https://predis.ai/ai-models/runway-aleph-2/",
+     "status": 200,
+     "title": "Runway Aleph 2.0: AI Video Editor"
+    },
+    {
+     "url": "https://predis.ai/mcp/seedance/",
+     "status": 200,
+     "title": "Seedance MCP for Claude & ChatGPT"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://predis.ai/about-us/",
+     "status": 200,
+     "title": "About Us | Predis.ai"
+    },
+    {
+     "url": "https://predis.ai/contact/",
+     "status": 200,
+     "title": "Get in Touch | Predis.ai"
+    },
+    {
+     "url": "https://predis.ai/termsandconditions/",
+     "status": 200,
+     "title": "Terms & Conditions | Predis"
+    }
+   ],
+   "help_docs": [
+    {
+     "url": "https://predis.ai/developers/",
+     "status": 200,
+     "title": "Add Content Generation to your App! | Add Content Generation to your App!"
+    },
+    {
+     "url": "https://predis.ai/developers/docs/predis-api/Examples/custom-headlines/",
+     "status": 200,
+     "title": "Create Posts using Custom Headlines / Subheadings | Add Content Generation to your App!"
+    },
+    {
+     "url": "https://predis.ai/developers/markdown-page/",
+     "status": 200,
+     "title": "Markdown page example | Add Content Generation to your App!"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://predis.ai/resources/10-amazing-earth-day-social-media-post-ideas/",
+     "status": 410,
+     "title": ""
+    },
+    {
+     "url": "https://predis.ai/resources/influencer-marketing-guide-for-landscapers/",
+     "status": 200,
+     "title": "Instagram Influencer Marketing Guide for Landscapers"
+    },
+    {
+     "url": "https://predis.ai/resources/youtube-video-format/",
+     "status": 200,
+     "title": "Eight Best YouTube Video Format To Choose From"
+    }
+   ],
+   "translated": [
+    {
+     "url": "https://predis.ai/az/%C5%9F%C9%99kil-videoya/",
+     "status": 410,
+     "title": "404 - Page Not Found | Predis AI"
+    },
+    {
+     "url": "https://predis.ai/is/au%C3%B0lindir/bestu-hashtags-fyrir-fer%C3%B0al%C3%B6g/",
+     "status": 410,
+     "title": "404 - Page Not Found | Predis AI"
+    },
+    {
+     "url": "https://predis.ai/yo/ugc-ad-alagidi/",
+     "status": 410,
+     "title": "404 - Page Not Found | Predis AI"
+    }
+   ],
+   "programmatic_tool_pages": [
+    {
+     "url": "https://predis.ai/free-ai-tools/background-color-changer/keyword1/",
+     "status": 200,
+     "title": "Free AI tools | Predis.ai",
+     "final_url": "https://predis.ai/free-ai-tools/background-color-changer/"
+    },
+    {
+     "url": "https://predis.ai/free-ai-tools/background-remover/keyword2/",
+     "status": 200,
+     "title": "Free AI tools | Predis.ai",
+     "final_url": "https://predis.ai/free-ai-tools/background-remover/"
+    },
+    {
+     "url": "https://predis.ai/free-ai-tools/stock-image-search/keyword2/",
+     "status": 200,
+     "title": "Free AI tools | Predis.ai",
+     "final_url": "https://predis.ai/free-ai-tools/stock-image-search/"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://predis.ai/llms.txt",
+    "lines": 147
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://predis.ai/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 51,
+    "source": "https://predis.ai/free-ai-tools/ (rendered with DynamicFetcher)",
+    "date": "2026-10-30",
+    "note": "51 /free-ai-tools/<tool> links; 34 are in the sitemap as /free-ai-tool/<tool>/"
+   },
+   "compare_hub": {
+    "links": 4,
+    "source": "https://predis.ai/compare/",
+    "date": "2026-10-30",
+    "note": "4 category pages (content generators, image editors, schedulers, hashtag generators)"
+   },
+   "robots_disallow": {
+    "total": 1577,
+    "free_ai_tools_variants": 1442,
+    "source": "https://predis.ai/robots.txt",
+    "date": "2026-10-30"
+   },
+   "liveness_sample": {
+    "method": "random sample of 30 per group (seed 7), no redirects followed, fetched 2026-10-30",
+    "groups": {
+     "en_site_pages": {
+      "urls_in_group": 238,
+      "sampled": 30,
+      "status_counts": {
+       "200": 29,
+       "301": 1
+      },
+      "examples_non_200": [
+       "https://predis.ai/free-ai-tools/background-remover/keyword2/"
+      ]
+     },
+     "en_blog_posts": {
+      "urls_in_group": 1408,
+      "sampled": 30,
+      "status_counts": {
+       "200": 20,
+       "410": 10
+      },
+      "examples_non_200": [
+       "https://predis.ai/resources/steps-to-executre-a-social-media-crisis-management/",
+       "https://predis.ai/resources/alternatives-to-fotor/",
+       "https://predis.ai/resources/keywordtoolio-vs-sistrix-hashtag-generator/"
+      ]
+     },
+     "main_5_language_mirrors": {
+      "urls_in_group": 7933,
+      "sampled": 30,
+      "status_counts": {
+       "200": 25,
+       "410": 5
+      },
+      "examples_non_200": [
+       "https://predis.ai/it/resources/how-to-write-a-good-instagram-bio/",
+       "https://predis.ai/fr/resources/bio-ideas-for-instagram/",
+       "https://predis.ai/de/resources/how-much-does-youtube-pay-for-shorts/"
+      ]
+     },
+     "prune_machine_translated": {
+      "urls_in_group": 58742,
+      "sampled": 30,
+      "status_counts": {
+       "410": 30
+      },
+      "examples_non_200": [
+       "https://predis.ai/mt/ri%C5%BCorsi/daqsijiet-tar-reklami-tal-karu%C5%BCell-ta%27-facebook/",
+       "https://predis.ai/ceb/Mga-kapanguhaan/gidak-on-sa-facebook-banner/",
+       "https://predis.ai/cs/zdroje/sn%C3%AD%C5%BEit-m%C3%ADru-okam%C5%BEit%C3%A9ho-opu%C5%A1t%C4%9Bn%C3%AD-na-shopify/"
+      ]
+     }
+    }
+   }
+  },
+  "notes": "Index of 44 sitemaps; 40 files walked. 12 language sitemaps (cs, da, nl, fi, no, pl, ro, sv, id, hu, tr, ms sitemap1.xml) return 410, but those languages still appear in the prune files. 68,179 unique URLs in 58 languages, but English is 1,642. The rest: es, pt, de, it, fr mirrors (1,586 to 1,588 each, 7,938 total) and 52 machine-translated languages (Corsican, Hawaiian, Hmong, Esperanto and others; 1,103 to 1,128 URLs each, 58,599 total) listed in 5 files named sitemap-prune-1 to 5.xml. A random sample of 30 per group (seed 7, no redirects) found 30 of 30 prune URLs return 410, 10 of 30 English blog posts return 410, 5 of 30 main-mirror URLs return 410, and 29 of 30 English site pages return 200. So the machine-translated set is being removed, and part of the English blog with it. robots.txt has 1,577 Disallow lines: 1,442 for /free-ai-tools/ variant pages by occasion or niche (/free-ai-tools/baking/, /free-ai-tools/background-remover/<x>/<y>/) and the rest for per-language and per-niche hashtag generator pages. A pruned programmatic set. English: 1,407 blog posts at /resources/<slug>/. free_tools = 34 /free-ai-tool/<tool>/ generators plus /free-hashtag-generator/, a network by tool grid (bio generators for 8 networks, caption for 5, username for 9). The rendered /free-ai-tools/ hub links 51 tools at /free-ai-tools/<tool>, which redirect to /free-ai-tool/<tool>/. programmatic_tool_pages = 6 leftover /free-ai-tools/<tool>/keyword1 and keyword2 placeholder pages that redirect to the hub. features_product = 79, mostly per-network and per-format maker pages: 21 /create/<x> (youtube-thumbnail, linkedin-banner), 15 /use-cases/<x>-maker, 6 /api/ pages and root makers. integrations = 16 /ai-models/<model> pages plus the hub (Kling, Veo, Seedance and others), 8 /mcp/<x> pages plus the hub, and Shopify. comparison = 7 /compare/ pages (4 category roundups) and 9 /review/<competitor> pages. platform_pages = 6 /integrations/predis-for-<network>, 4 /<network>-scheduler and 2 auto-post pages. help_docs = 48 developer docs. buckets_all_languages: machine-translated paths use translated folder names (/az/resurslar.../), so most non-English URLs fall in other there; the primary-language table is not affected."
+ },
+ "feedhive.com": {
+  "sitemaps": [
+   "https://www.feedhive.com/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 1,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:22:00Z",
+  "unique_urls": 238,
+  "hosts": {
+   "www.feedhive.com": 238
+  },
+  "languages": {
+   "en": 238
+  },
+  "buckets": {
+   "blog_posts": 59,
+   "blog_taxonomy": 1,
+   "free_tools": 13,
+   "programmatic_tool_pages": 0,
+   "templates": 0,
+   "glossary": 0,
+   "comparison": 128,
+   "integrations": 11,
+   "audience_pages": 0,
+   "platform_pages": 11,
+   "academy": 0,
+   "research_data": 0,
+   "features_product": 13,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 2,
+   "other": 0,
+   "translated": 0
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 59,
+   "blog_taxonomy": 1,
+   "free_tools": 13,
+   "programmatic_tool_pages": 0,
+   "templates": 0,
+   "glossary": 0,
+   "comparison": 128,
+   "integrations": 11,
+   "audience_pages": 0,
+   "platform_pages": 11,
+   "academy": 0,
+   "research_data": 0,
+   "features_product": 13,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 2,
+   "other": 0
+  },
+  "prefixes": {
+   "/alternatives/": 64,
+   "/comparison/": 64,
+   "/blog/": 60,
+   "/features/": 21,
+   "/tools/": 13,
+   "/socials/": 11,
+   "/": 1,
+   "/pricing/": 1,
+   "/integrations/": 1,
+   "/privacy/": 1,
+   "/terms/": 1
+  },
+  "spot_check_samples": {
+   "comparison": [
+    {
+     "url": "https://www.feedhive.com/alternatives",
+     "status": 200,
+     "title": "Social media tool alternatives in 2026 | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/comparison",
+     "status": 200,
+     "title": "FeedHive vs. the alternatives: social media tool comparisons"
+    },
+    {
+     "url": "https://www.feedhive.com/comparison/zernio",
+     "status": 200,
+     "title": "FeedHive vs Zernio (2026): AI Content and Approvals vs an API"
+    }
+   ],
+   "features_product": [
+    {
+     "url": "https://www.feedhive.com/",
+     "status": 200,
+     "title": "FeedHive | AI Social Media Management & Automation"
+    },
+    {
+     "url": "https://www.feedhive.com/features/feedhive-cli",
+     "status": 200,
+     "title": "FeedHive CLI | Social Media from Your Terminal"
+    },
+    {
+     "url": "https://www.feedhive.com/pricing",
+     "status": 200,
+     "title": "FeedHive Pricing: Creator, Brand, Business and Agency Plans"
+    }
+   ],
+   "integrations": [
+    {
+     "url": "https://www.feedhive.com/features/chatgpt",
+     "status": 200,
+     "title": "ChatGPT + FeedHive | Plan and publish social content"
+    },
+    {
+     "url": "https://www.feedhive.com/features/make",
+     "status": 200,
+     "title": "Make + FeedHive | Automation"
+    },
+    {
+     "url": "https://www.feedhive.com/integrations",
+     "status": 200,
+     "title": "AI Agents and Integrations | FeedHive"
+    }
+   ],
+   "platform_pages": [
+    {
+     "url": "https://www.feedhive.com/socials",
+     "status": 200,
+     "title": "Social Media Scheduler for Every Platform | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/socials/linkedin",
+     "status": 200,
+     "title": "LinkedIn Post Scheduler: Plan and Publish LinkedIn Posts | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/socials/youtube",
+     "status": 200,
+     "title": "YouTube Shorts Scheduler: Plan and Publish Shorts | FeedHive"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://www.feedhive.com/tools",
+     "status": 200,
+     "title": "Free Social Media Tools | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/tools/linkedin-headline-generator",
+     "status": 200,
+     "title": "Free LinkedIn Headline Generator (220 Characters) | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/tools/youtube-channel-name-generator",
+     "status": 200,
+     "title": "Free YouTube Channel Name Generator (with Handles) | FeedHive"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://www.feedhive.com/blog/10-simplified-ways-of-using-chatgpt-to-write-social-media-content",
+     "status": 200,
+     "title": "10 Simplified Ways Of Using ChatGPT To Write Social Media Content | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/blog/how-to-use-ai-to-create-social-media-content-that-sounds-like-you",
+     "status": 200,
+     "title": "How to Use AI to Create Social Media Content That Actually Sounds Like You | FeedHive"
+    },
+    {
+     "url": "https://www.feedhive.com/blog/unleashing-the-power-of-twitter-affiliate-marketing-with-feedhive",
+     "status": 200,
+     "title": "Unleashing The Power of Twitter Affiliate Marketing With FeedHive | FeedHive"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://www.feedhive.com/llms.txt",
+    "lines": 54
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://www.feedhive.com/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 12,
+    "source": "https://www.feedhive.com/tools",
+    "date": "2026-10-30"
+   },
+   "alternatives_hub": {
+    "links": 63,
+    "source": "https://www.feedhive.com/alternatives",
+    "date": "2026-10-30"
+   },
+   "comparison_hub": {
+    "links": 63,
+    "source": "https://www.feedhive.com/comparison",
+    "date": "2026-10-30"
+   }
+  },
+  "notes": "One urlset on www.feedhive.com, 238 URLs, English only. comparison = 128: the same 63 competitors each get an /alternatives/<x> page and a /comparison/<x> page (buffer, hootsuite, later, publer, postiz, metricool, zernio and others), plus 2 hubs. Both hubs link all 63. free_tools = 12 tools plus the hub (bio, username and font generators, LinkedIn headline generator, text formatters, AI slop detector). platform_pages = 10 /socials/<network> scheduler pages plus the hub. integrations = 10 /features/<x> pages for AI and automation tools (ChatGPT, Claude, Claude Code, Make, Manus, n8n, Zapier, OpenClaw skills, Hermes, Grok bot) plus /integrations. 59 blog posts."
+ },
+ "authoredup.com": {
+  "sitemaps": [
+   "https://authoredup.com/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 1,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:21:59Z",
+  "unique_urls": 210,
+  "hosts": {
+   "authoredup.com": 210
+  },
+  "languages": {
+   "en": 210
+  },
+  "buckets": {
+   "blog_posts": 164,
+   "blog_taxonomy": 1,
+   "free_tools": 13,
+   "programmatic_tool_pages": 0,
+   "templates": 1,
+   "glossary": 0,
+   "comparison": 10,
+   "integrations": 0,
+   "audience_pages": 0,
+   "platform_pages": 0,
+   "academy": 2,
+   "research_data": 0,
+   "features_product": 9,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 9,
+   "other": 1,
+   "translated": 0
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 164,
+   "blog_taxonomy": 1,
+   "free_tools": 13,
+   "programmatic_tool_pages": 0,
+   "templates": 1,
+   "glossary": 0,
+   "comparison": 10,
+   "integrations": 0,
+   "audience_pages": 0,
+   "platform_pages": 0,
+   "academy": 2,
+   "research_data": 0,
+   "features_product": 9,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 9,
+   "other": 1
+  },
+  "prefixes": {
+   "/blog/": 161,
+   "/tools/": 13,
+   "/alternatives/": 10,
+   "/product/": 7,
+   "/newsletter/": 4,
+   "/resource/": 3,
+   "/": 1,
+   "/about-us/": 1,
+   "/affiliate-program/": 1,
+   "/contact/": 1,
+   "/contact-response/": 1,
+   "/cookie-policy/": 1,
+   "/made-with-authoredup/": 1,
+   "/pricing/": 1,
+   "/privacy/": 1,
+   "/terms-and-conditions/": 1,
+   "/affiliate-program-agreement/": 1,
+   "/jobs/": 1
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://authoredup.com",
+     "status": 200,
+     "title": "AuthoredUp - All-in-one LinkedIn Content Creation Tool"
+    },
+    {
+     "url": "https://authoredup.com/product/dashboard",
+     "status": 200,
+     "title": "Dashboard | AuthoredUp"
+    },
+    {
+     "url": "https://authoredup.com/product/saved-posts",
+     "status": 200,
+     "title": "Saved posts | AuthoredUp"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://authoredup.com/about-us",
+     "status": 200,
+     "title": "About Us - The Story Behind AuthoredUp"
+    },
+    {
+     "url": "https://authoredup.com/cookie-policy",
+     "status": 200,
+     "title": "Cookie Policy - AuthoredUp"
+    },
+    {
+     "url": "https://authoredup.com/terms-and-conditions",
+     "status": 200,
+     "title": "Terms and Conditions - AuthoredUp"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://authoredup.com/tools",
+     "status": 200,
+     "title": "Free LinkedIn Tools | AuthoredUp"
+    },
+    {
+     "url": "https://authoredup.com/tools/linkedin-hiring-post-audit",
+     "status": 200,
+     "title": "LinkedIn Hiring Post Audit - Free LinkedIn Tool | AuthoredUp"
+    },
+    {
+     "url": "https://authoredup.com/tools/text-staircase",
+     "status": 200,
+     "title": "Text Staircase Generator - Free LinkedIn Tool | AuthoredUp"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://authoredup.com/alternatives/hypefury-alternative",
+     "status": 200,
+     "title": "The Best Hypefury Alternative for LinkedIn Content Creators"
+    },
+    {
+     "url": "https://authoredup.com/alternatives/shield-analytics-alternative",
+     "status": 200,
+     "title": "The Best Shield Analytics Alternative for LinkedIn Content Creators"
+    },
+    {
+     "url": "https://authoredup.com/alternatives/taplio-alternative",
+     "status": 200,
+     "title": "The Best Taplio Alternative for LinkedIn Content Creators"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://authoredup.com/blog/advanced-linkedin-analytics",
+     "status": 200,
+     "title": "Understand LinkedIn Performance with AuthoredUp Analytics"
+    },
+    {
+     "url": "https://authoredup.com/blog/linkedin-employee-advocacy",
+     "status": 200,
+     "title": "LinkedIn Employee Advocacy - Everything You Need to Know"
+    },
+    {
+     "url": "https://authoredup.com/newsletter/uplogic-issue-4-finding-the-right-balance",
+     "status": 200,
+     "title": "Finding the right balance"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://authoredup.com/llms.txt",
+    "lines": 60
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 404,
+    "final_url": "https://authoredup.com/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 13,
+    "source": "https://authoredup.com/tools",
+    "date": "2026-10-30",
+    "note": "1 tool (linkedin-character-counter) is not in the sitemap"
+   },
+   "alternatives_linked_from_tools_page": {
+    "links": 8,
+    "source": "https://authoredup.com/tools",
+    "date": "2026-10-30"
+   }
+  },
+  "notes": "One Webflow urlset, 210 URLs, English only. 160 blog posts plus 4 /newsletter/ issues (counted as blog posts). free_tools = 12 LinkedIn tools plus the hub (text formatter, post preview, best times to post, engagement rate calculator, industry finder, hiring post audit and others); the hub links 13, and /tools/linkedin-character-counter is not in the sitemap. comparison = 9 /alternatives/<x>-alternative pages (taplio, supergrow, shield, hypefury, kleo, stanley and others) plus /alternatives/migrate-from-shield. There is no /alternatives hub (404); the /tools page links 8 of them. features_product = 7 /product/<feature> pages. templates = /resource/free-linkedin-post-templates."
+ },
+ "typefully.com": {
+  "sitemaps": [
+   "https://typefully.com/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 1,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:21:59Z",
+  "unique_urls": 229,
+  "hosts": {
+   "typefully.com": 229
+  },
+  "languages": {
+   "en": 229
+  },
+  "buckets": {
+   "blog_posts": 76,
+   "blog_taxonomy": 1,
+   "free_tools": 8,
+   "programmatic_tool_pages": 0,
+   "templates": 0,
+   "glossary": 1,
+   "comparison": 8,
+   "integrations": 0,
+   "audience_pages": 0,
+   "platform_pages": 4,
+   "academy": 1,
+   "research_data": 0,
+   "features_product": 126,
+   "help_docs": 1,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 2,
+   "other": 1,
+   "translated": 0
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 76,
+   "blog_taxonomy": 1,
+   "free_tools": 8,
+   "programmatic_tool_pages": 0,
+   "templates": 0,
+   "glossary": 1,
+   "comparison": 8,
+   "integrations": 0,
+   "audience_pages": 0,
+   "platform_pages": 4,
+   "academy": 1,
+   "research_data": 0,
+   "features_product": 126,
+   "help_docs": 1,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 2,
+   "other": 1
+  },
+  "prefixes": {
+   "/changelog/": 118,
+   "/blog/": 85,
+   "/tools/": 8,
+   "/": 1,
+   "/pricing/": 1,
+   "/ai/": 1,
+   "/academy/": 1,
+   "/ai-agents/": 1,
+   "/announcements/": 1,
+   "/bluesky/": 1,
+   "/content-ideas/": 1,
+   "/docs/": 1,
+   "/jobs/": 1,
+   "/linkedin/": 1,
+   "/schedule-threads-posts/": 1,
+   "/shortcuts/": 1,
+   "/social-media-analytics/": 1,
+   "/social-media-glossary/": 1,
+   "/social-media-scheduling/": 1,
+   "/x-twitter/": 1,
+   "/refunds/": 1
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://typefully.com",
+     "status": 200,
+     "title": "Typefully: Best social media tool for creators & businesses"
+    },
+    {
+     "url": "https://typefully.com/changelog/new-typefully-grow-tab-25",
+     "status": 200,
+     "title": "New Typefully \"Grow\" Tab | Typefully Changelog"
+    },
+    {
+     "url": "https://typefully.com/social-media-scheduling",
+     "status": 200,
+     "title": "Social Media Scheduling And Management Software | Typefully"
+    }
+   ],
+   "platform_pages": [
+    {
+     "url": "https://typefully.com/bluesky",
+     "status": 200,
+     "title": "Write and Schedule Your Bluesky Posts with Typefully"
+    },
+    {
+     "url": "https://typefully.com/schedule-threads-posts",
+     "status": 200,
+     "title": "Write and Schedule Your Threads Posts with Typefully"
+    },
+    {
+     "url": "https://typefully.com/x-twitter",
+     "status": 200,
+     "title": "Write and Schedule Your X (Twitter) Posts with Typefully"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://typefully.com/tools",
+     "status": 200,
+     "title": "Typefully Tools"
+    },
+    {
+     "url": "https://typefully.com/tools/linkedin-post-preview",
+     "status": 200,
+     "title": "Free LinkedIn Post Preview Tool & Generator | Typefully"
+    },
+    {
+     "url": "https://typefully.com/tools/twitter-character-counter",
+     "status": 200,
+     "title": "Twitter Character Counter | Free X Post & Bio Counter"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://typefully.com/blog/ai-writing-tools",
+     "status": 200,
+     "title": "The 7 Best AI Writing Tools to Help You Create Better Content | Typefully"
+    },
+    {
+     "url": "https://typefully.com/blog/top-10-twitter-extensions",
+     "status": 200,
+     "title": "Top 10 Twitter Extensions To Boost Your Twitter Experience"
+    },
+    {
+     "url": "https://typefully.com/blog/x-twitter-monetization-how-to-make-money-on-x-twitter",
+     "status": 200,
+     "title": "X (Twitter) Monetization Guide: How to Make Money on X/Twitter"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://typefully.com/blog/authoredup-review-alternative",
+     "status": 200,
+     "title": "The Best AuthoredUp Alternative & Review For LinkedIn Growth | Typefully"
+    },
+    {
+     "url": "https://typefully.com/blog/hypefury-review-alternative",
+     "status": 200,
+     "title": "Typefully vs Hypefury: Why Typefully Is the Best Alternative"
+    },
+    {
+     "url": "https://typefully.com/blog/typefully-vs-ordinal-review-alternative",
+     "status": 200,
+     "title": "Typefully vs Ordinal: Why Typefully Is the Best Alternative"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://typefully.com/llms.txt",
+    "lines": 26
+   },
+   "llms-full.txt": {
+    "served": false,
+    "status": 200,
+    "final_url": "https://typefully.com/llms-full.txt",
+    "lines": null
+   }
+  },
+  "supplements": {
+   "free_tools_hub": {
+    "links": 12,
+    "source": "https://typefully.com/tools",
+    "date": "2026-10-30",
+    "note": "12 links = 11 tools plus the /tools/ai hub; 6 AI tools are not in the sitemap"
+   },
+   "glossary_hub": {
+    "links": 77,
+    "source": "https://typefully.com/social-media-glossary",
+    "date": "2026-10-30",
+    "note": "77 terms, none in the sitemap"
+   }
+  },
+  "notes": "One Next.js urlset, 229 URLs, English only. features_product = 126, of which 118 are /changelog/ entries and pagination. 84 blog posts: 76 counted as blog posts and 8 /blog/<x>-review-alternative comparison posts (buffer, hootsuite, hypefury, authoredup, sprout social and others). free_tools = 8 URLs. The /tools hub links 11 tools: 5 tools plus 6 AI writers under /tools/ai/ (ai-writer, chat-gpt-alternative, ai-paragraph-generator and others) that are not in the sitemap. glossary: only the hub is in the sitemap, and it links 77 /social-media-glossary/<term> pages; 54 of the 77 slugs match Buffer's /social-media-terms/ slugs. platform_pages = /x-twitter, /linkedin, /bluesky, /schedule-threads-posts. /llms-full.txt answers 200 with an HTML page, so only /llms.txt (26 lines) is real."
+ },
+ "postmosis.com": {
+  "sitemaps": [
+   "https://postmosis.com/sitemap.xml"
+  ],
+  "sitemap_seed_source": "robots.txt",
+  "sitemap_files_walked": 1,
+  "sitemap_failures": [],
+  "fetched_at": "2026-10-30T02:21:59Z",
+  "unique_urls": 111,
+  "hosts": {
+   "postmosis.com": 111
+  },
+  "languages": {
+   "en": 111
+  },
+  "buckets": {
+   "blog_posts": 18,
+   "blog_taxonomy": 1,
+   "free_tools": 10,
+   "programmatic_tool_pages": 0,
+   "templates": 8,
+   "glossary": 13,
+   "comparison": 6,
+   "integrations": 0,
+   "audience_pages": 7,
+   "platform_pages": 0,
+   "academy": 32,
+   "research_data": 0,
+   "features_product": 12,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 4,
+   "other": 0,
+   "translated": 0
+  },
+  "buckets_note": "Primary-language (en) URLs by page type; every non-en URL is counted once under translated. buckets_all_languages types every URL regardless of language.",
+  "buckets_all_languages": {
+   "blog_posts": 18,
+   "blog_taxonomy": 1,
+   "free_tools": 10,
+   "programmatic_tool_pages": 0,
+   "templates": 8,
+   "glossary": 13,
+   "comparison": 6,
+   "integrations": 0,
+   "audience_pages": 7,
+   "platform_pages": 0,
+   "academy": 32,
+   "research_data": 0,
+   "features_product": 12,
+   "help_docs": 0,
+   "video_webinars": 0,
+   "community": 0,
+   "company": 4,
+   "other": 0
+  },
+  "prefixes": {
+   "/vault/": 32,
+   "/guides/": 19,
+   "/glossary/": 13,
+   "/features/": 10,
+   "/tools/": 10,
+   "/templates/": 8,
+   "/for/": 7,
+   "/compare/": 6,
+   "/": 1,
+   "/plans/": 1,
+   "/about/": 1,
+   "/privacy/": 1,
+   "/terms/": 1,
+   "/data-deletion/": 1
+  },
+  "spot_check_samples": {
+   "features_product": [
+    {
+     "url": "https://postmosis.com",
+     "status": 200,
+     "title": "Content creation tool for solo professionals | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/features/content-calendar",
+     "status": 200,
+     "title": "Social media content calendar and weekly planner | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/plans",
+     "status": 200,
+     "title": "Plans: what's included in every account | Postmosis"
+    }
+   ],
+   "audience_pages": [
+    {
+     "url": "https://postmosis.com/for",
+     "status": 200,
+     "title": "Who it's for: people who post as themselves | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/for/financial-advisers",
+     "status": 200,
+     "title": "Social media for financial advisers | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/for/real-estate-agents",
+     "status": 200,
+     "title": "Social media for realtors and real estate agents | Postmosis"
+    }
+   ],
+   "comparison": [
+    {
+     "url": "https://postmosis.com/compare",
+     "status": 200,
+     "title": "Compare Buffer, Hootsuite, Later and Metricool | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/compare/hootsuite-alternative",
+     "status": 200,
+     "title": "Hootsuite alternative for one person, not a team | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/compare/metricool-alternative",
+     "status": 200,
+     "title": "Metricool alternative: make posts, not charts | Postmosis"
+    }
+   ],
+   "free_tools": [
+    {
+     "url": "https://postmosis.com/tools",
+     "status": 200,
+     "title": "Free social media tools that run in your browser | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/tools/instagram-grid-planner",
+     "status": 200,
+     "title": "Instagram grid planner: preview your feed | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/tools/teleprompter",
+     "status": 200,
+     "title": "Free online teleprompter at your speaking pace | Postmosis"
+    }
+   ],
+   "templates": [
+    {
+     "url": "https://postmosis.com/templates",
+     "status": 200,
+     "title": "Free social media templates for one person | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/templates/linkedin-post-ideas",
+     "status": 200,
+     "title": "LinkedIn post ideas: 40 for when you're stuck | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/templates/video-script",
+     "status": 200,
+     "title": "Video script template: Reels, TikTok, Shorts | Postmosis"
+    }
+   ],
+   "blog_posts": [
+    {
+     "url": "https://postmosis.com/guides/best-time-to-post-on-facebook",
+     "status": 200,
+     "title": "Best time to post on Facebook and how to test it | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/guides/how-to-schedule-instagram-posts",
+     "status": 200,
+     "title": "How to schedule Instagram posts: three ways | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/guides/talking-head-video",
+     "status": 200,
+     "title": "Talking head video: film and edit one on a phone | Postmosis"
+    }
+   ],
+   "academy": [
+    {
+     "url": "https://postmosis.com/vault",
+     "status": 200,
+     "title": "Free social media playbooks and prompts | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/vault/kallaway-reels",
+     "status": 200,
+     "title": "Kallaway hooks: his best Reels, decoded | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/vault/video-hooks",
+     "status": 200,
+     "title": "TikTok hooks: formulas and a short script | Postmosis"
+    }
+   ],
+   "glossary": [
+    {
+     "url": "https://postmosis.com/glossary",
+     "status": 200,
+     "title": "Social media glossary in plain English | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/glossary/engagement-rate",
+     "status": 200,
+     "title": "Engagement rate: meaning, formula and an example | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/glossary/vanity-metrics",
+     "status": 200,
+     "title": "Vanity metrics and what to track instead | Postmosis"
+    }
+   ],
+   "company": [
+    {
+     "url": "https://postmosis.com/about",
+     "status": 200,
+     "title": "About: who builds it and why | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/privacy",
+     "status": 200,
+     "title": "Privacy policy | Postmosis"
+    },
+    {
+     "url": "https://postmosis.com/terms",
+     "status": 200,
+     "title": "Terms of service | Postmosis"
+    }
+   ]
+  },
+  "llms_txt": {
+   "llms.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://postmosis.com/llms.txt",
+    "lines": 132
+   },
+   "llms-full.txt": {
+    "served": true,
+    "status": 200,
+    "final_url": "https://postmosis.com/llms-full.txt",
+    "lines": 11703
+   }
+  },
+  "supplements": {
+   "tools": {
+    "links": 9,
+    "source": "https://postmosis.com/tools",
+    "date": "2026-10-30"
+   },
+   "templates": {
+    "links": 7,
+    "source": "https://postmosis.com/templates",
+    "date": "2026-10-30"
+   },
+   "compare": {
+    "links": 5,
+    "source": "https://postmosis.com/compare",
+    "date": "2026-10-30"
+   },
+   "glossary": {
+    "links": 12,
+    "source": "https://postmosis.com/glossary",
+    "date": "2026-10-30"
+   },
+   "guides": {
+    "links": 18,
+    "source": "https://postmosis.com/guides",
+    "date": "2026-10-30"
+   },
+   "vault": {
+    "links": 31,
+    "source": "https://postmosis.com/vault",
+    "date": "2026-10-30"
+   }
+  },
+  "notes": "Our site. One urlset, 111 URLs, English only: home, /features plus 9 features, /plans, /for plus 6 audiences, /compare plus 5, /tools plus 9, /templates plus 7, /guides plus 18, /glossary plus 12, /vault plus 31, about, privacy, terms, data-deletion. Bucket calls: /guides/<slug> counts as blog_posts, because competitors publish the same articles ('best time to post on Instagram', 'Instagram post size') in their blogs. /vault/<slug> counts as academy: 31 long playbook pages ('Kallaway hooks: his best Reels, decoded'), closest to Later's /resources/guide/ library. Every hub links exactly what the sitemap lists (tools 9, templates 7, compare 5, glossary 12, guides 18, vault 31). Serves llms.txt (132 lines) and llms-full.txt (11,703 lines)."
+ }
+}

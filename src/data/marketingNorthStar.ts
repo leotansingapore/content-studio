@@ -14,7 +14,7 @@ export type MkStatus = "done" | "started" | "todo";
 
 export type MkArea = "leaks" | "loop" | "position" | "faces" | "creators" | "scale";
 
-export type MkApp = "all" | "finternship" | "at" | "sb" | "cmfas";
+export type MkApp = "all" | "finternship" | "at" | "sb" | "cmfas" | "postmosis";
 
 export type MkOwner = "Leo" | "Claude" | "Leo + Claude" | "VA";
 
@@ -65,18 +65,20 @@ export const MK_APPS: Record<MkApp, string> = {
   at: "ActivityTracker",
   sb: "SearchBlueprint",
   cmfas: "CMFAS Prep",
+  postmosis: "Postmosis",
 };
 
-/** Each app's own marketing north star, in its own repo (Leo, 26 Oct: "for each repo we will use /marketing-north-star").
+/** Each app's own marketing north star, in its own repo (Postmosis's lives in this one), (Leo, 26 Oct: "for each repo we will use /marketing-north-star").
  *  Flip `live` once the page is deployed. */
 export const MK_APP_PAGES: { app: Exclude<MkApp, "all">; label: string; url: string; live: boolean; note: string }[] = [
   { app: "finternship", label: "FINternship and MoneyBees", url: "https://themoneybees.co/marketing-north-star", live: true, note: "The 30-day creator pilot and the career funnel." },
   { app: "at", label: "ActivityTracker", url: "https://activity-tracker.io/marketing-north-star", live: true, note: "Customer stories, a pack to forward to leaders, customer creators, ads once the account is back." },
   { app: "sb", label: "SearchBlueprint", url: "https://searchblueprint.io/marketing-north-star", live: true, note: "Trials into paid first, then creators abroad and newsletters." },
+  { app: "postmosis", label: "Postmosis", url: "/marketing-north-star/postmosis", live: true, note: "postmosis.com: every booking held, proof from the first customers, then reach. Its SEO plan is at /seo-north-star." },
 ];
 
 export const MK_THESIS: string[] = [
-  "This is the hub. Each app's own marketing lives on its own /marketing-north-star: FINternship and MoneyBees (where the 30-day creator pilot runs), ActivityTracker and SearchBlueprint. What sits here is shared by all of them: the leaks that waste money anywhere, the weekly loop that sees what won, Leo on camera, and creator operations once the pilot pays.",
+  "This is the hub. Each app's own marketing lives on its own /marketing-north-star: FINternship and MoneyBees (where the 30-day creator pilot runs), ActivityTracker, SearchBlueprint and Postmosis. What sits here is shared by all of them: the leaks that waste money anywhere, the weekly loop that sees what won, Leo on camera, and creator operations once the pilot pays.",
   "We publish a lot without anyone touching it: about forty scheduled jobs write, post and report. All four videos Leo sent, and the StartStory teardown, say reach now comes from real people on camera plus a weekly loop that turns organic winners into ads. Today we have neither.",
   "So the order is: stop the leaks, make the loop able to see, put Leo on camera, run the FINternship pilot on its own page, then scale what won here.",
 ];
@@ -522,7 +524,7 @@ export const MK_SOURCES: { label: string; url: string }[] = [
   { label: "Laura Roeder on whether Wispr's ads are profitable", url: "https://x.com/lkr/status/2109242841968849171" },
 ];
 
-export function rollupMk(items: MkItem[]): Record<MkStatus, number> {
+export function rollupMk(items: { status: MkStatus }[]): Record<MkStatus, number> {
   const r: Record<MkStatus, number> = { done: 0, started: 0, todo: 0 };
   for (const i of items) r[i.status] += 1;
   return r;
@@ -531,7 +533,7 @@ export function rollupMk(items: MkItem[]): Record<MkStatus, number> {
 export const mkSpecUrl = (id: string) => `https://github.com/leotansingapore/content-studio/blob/main/docs/marketing-north-star/items/${id}.md`;
 
 /** What a Claude session needs to do one card, pasted as its first message. */
-export const mkBuildPrompt = (i: MkItem) =>
+export const mkBuildPrompt = (i: Pick<MkItem, "id" | "title">) =>
   [
     `Do app-marketing card "${i.title}" (${i.id}).`,
     `1. Read docs/marketing-north-star/README.md and docs/marketing-north-star/items/${i.id}.md in content-studio (github.com/leotansingapore/content-studio), then ~/Documents/App Growth Playbook/03-strategy-and-workflow.md and private-notes.md on Leo's Mac.`,
