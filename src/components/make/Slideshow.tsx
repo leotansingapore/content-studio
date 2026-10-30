@@ -2,7 +2,7 @@
 // made into photo slides with words on them. The run is src/lib/slideshowJob.ts (outside React, so leaving the page
 // keeps it going); the result is a Slideshow that /slideshow edits.
 //
-// URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), from=topic|remix, mention=no,
+// URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), from=topic|remix, mention=inside|no,
 // size=9x16, pictures=mine, tab=original, pick=open and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
 // show=<slideshow id> pushes.
 
@@ -123,7 +123,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const busy = !!job && slideshowBusy();
   const gone = !!params.get("source") && !source;
   const [from] = useUrlState<ShowFrom>("from", startFrom(source), { allowed: ["topic", "remix"] });
-  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
+  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "inside", "no"] });
   const [size] = useUrlState<Size>("size", "4x5", { allowed: SIZES });
   const [pictures] = useUrlState<ShowPictures>("pictures", "stock", { allowed: ["stock", "mine"] });
   const [tab] = useUrlState<"result" | "original">("tab", "result", { allowed: ["result", "original"] });
@@ -143,7 +143,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   };
 
   const remix = from === "remix";
-  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", note: words.note, size, pictures };
+  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures };
   const reason =
     remix && !source ? "Pick a slideshow to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type a topic first."
@@ -269,8 +269,9 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
       </Card>
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-4 pt-4 sm:pt-5">
-          <Field label={`Mention ${brand}`} hint={`Yes works ${brand} into the slides. No keeps it as pure value content.`}>
-            <FilterChip active={mention !== "no"} onClick={() => set("mention", null)}>Yes</FilterChip>
+          <Field label={`Mention ${brand}`} hint={`Once, inside names ${brand} in passing on slide 3 or 4, then ends on a save or follow ask.`}>
+            <FilterChip active={mention === "yes"} onClick={() => set("mention", null)}>On the last slide</FilterChip>
+            <FilterChip active={mention === "inside"} onClick={() => set("mention", "inside")}>Once, inside</FilterChip>
             <FilterChip active={mention === "no"} onClick={() => set("mention", "no")}>No</FilterChip>
           </Field>
           <div className="space-y-1.5">

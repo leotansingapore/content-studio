@@ -363,4 +363,13 @@ describe("links and params", () => {
     expect(links.makeFormat("slideshow", askParams({ ...ASK, mention: false, size: "9x16", pictures: "mine" }))).toBe(`/make/slideshow?source=${encodeURIComponent(SOURCE.key)}&mention=no&size=9x16&pictures=mine`);
     expect(links.makeFormat("slideshow", askParams({ ...ASK, source: null }))).toBe("/make/slideshow?from=topic");
   });
+
+  it("keeps Once, inside in the link and sends it only with mention on, only for a slideshow", () => {
+    expect(askParams({ ...ASK, inside: true }).mention).toBe("inside");
+    expect(askParams({ ...ASK, mention: false, inside: true }).mention).toBe("no");
+    expect(makeBody(UID, { ...ASK, inside: true }).brandAt).toBe("inside");
+    expect(makeBody(UID, { ...ASK, mention: false, inside: true }).brandAt).toBeUndefined();
+    expect(makeBody(UID, { ...ASK, inside: true }, "wall").brandAt).toBeUndefined();
+    expect(makeBody(UID, ASK).brandAt).toBeUndefined();
+  });
 });

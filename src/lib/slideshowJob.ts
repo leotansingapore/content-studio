@@ -33,6 +33,8 @@ export interface SlideshowAsk {
   source: RemixSource | null;
   topic: string;
   mention: boolean;
+  /** With mention on: the brand once on slide 3 or 4 and a save or follow ask last, not a brand slide at the end. */
+  inside?: boolean;
   note: string;
   size: Extract<ShowSize, "4x5" | "9x16">;
   pictures: ShowPictures;
@@ -71,7 +73,7 @@ export function askParams(a: SlideshowAsk): Record<string, string | undefined> {
   return {
     source: a.source?.key,
     from: a.source ? undefined : "topic",
-    mention: a.mention ? undefined : "no",
+    mention: !a.mention ? "no" : a.inside ? "inside" : undefined,
     size: a.size === "9x16" ? "9x16" : undefined,
     pictures: a.pictures === "mine" ? "mine" : undefined,
   };
@@ -112,7 +114,7 @@ export function failure(e: unknown, fallback = WRITE_FAILED): Pick<SlideshowJob,
  */
 export function makeBody(
   userId: string,
-  a: Pick<SlideshowAsk, "source" | "topic" | "mention" | "note" | "size">,
+  a: Pick<SlideshowAsk, "source" | "topic" | "mention" | "inside" | "note" | "size">,
   as: RemixAs = "slideshow",
   more: Partial<Pick<MakeRequest, "seconds" | "scene" | "maxWords" | "formulas" | "demo" | "layout" | "shows" | "versions">> = {},
 ): MakeRequest {
@@ -135,6 +137,7 @@ export function makeBody(
     voice: voiceForClone(loadVoiceProfile(userId), winnersFor(userId)),
     brand: brandPack(userId, { platform: a.size === "9x16" ? "tiktok" : "instagram", mention: a.mention, offer: null, speaker: loadRemixPrefs(userId).speaker }),
     teardown,
+    ...(as === "slideshow" && a.mention && a.inside ? { brandAt: "inside" as const } : {}),
     ...more,
   };
 }

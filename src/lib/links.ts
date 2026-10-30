@@ -602,7 +602,7 @@ export const links = {
   /** Everything made (Leo only): format, status and q replace; panel=making opens the Making now sheet on phones (push). */
   library: (o: { format?: LibraryFormat; status?: LibraryStatus; q?: string; panel?: "making" } = {}) =>
     `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
-  /** A format's create page (Leo only, src/data/formats.ts): source, from, mention=no and the format's own params. Making on arrival is navigation state { go: true }, never a param. */
+  /** A format's create page (Leo only but the `everyone` ones, src/data/formats.ts): source, from, mention=inside|no and the format's own params. Making on arrival is navigation state { go: true }, never a param. */
   makeFormat: (slug: string, p: Record<string, string | number | undefined> = {}) => `/make/${encodeURIComponent(slug)}${qs(p)}`,
   /** The format gallery (Leo only): kind (all left out) and needs=none replace. */
   make: (o: { kind?: FormatKind | "all"; needsNone?: boolean } = {}) => `/make${qs({ kind: o.kind !== "all" && o.kind, needs: o.needsNone && "none" })}`,

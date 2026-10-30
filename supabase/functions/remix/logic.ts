@@ -268,6 +268,8 @@ export interface MakeRequest {
   formula?: string;
   /** edit only, and always sent there. */
   edit?: EditBrief;
+  /** slideshow only, read with mention on: the brand once on slide 3 or 4 and a save or follow ask last (30 Oct account teardowns). */
+  brandAt?: "inside";
 }
 
 export type MakeResult =
@@ -565,6 +567,9 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
     const shows = line(r.shows, 800);
     return { layout, versions: ids as string[], ...(shows ? { shows } : {}) };
   }
+  if (as === "slideshow" && r.brandAt != null) {
+    return r.brandAt === "inside" ? { brandAt: "inside" } : "Pick where the brand goes: inside, or the last slide.";
+  }
   return {};
 }
 
@@ -653,11 +658,19 @@ const FORMAT_RULES: Record<"post" | "carousel" | "script" | "speaking" | "explai
  */
 function slideshowRules(req: MakeRequest): string[] {
   const b = req.brand;
+  // inside: how the 30 Oct slideshow accounts place a product, once mid-way as something in use, then a save or follow ask
   const brandSlide = !b.mention
     ? "- No brand slide: end on the reframe."
-    : b.speaker === "business"
-      ? `- The last slide names ${b.name} and says in one sentence what it does, from the facts given.`
-      : `- The last slide works in ${b.name} once: who is speaking, or what to do next.`;
+    : req.brandAt === "inside"
+      ? [
+        b.speaker === "business"
+          ? `- Name ${b.name} exactly once, in passing, on slide 3 or 4: the tool that does that slide's step, with what it does in a few words from the facts given. Never on the hook slide or the last slide.`
+          : `- Work ${b.name} in exactly once, in passing, on slide 3 or 4: something you use or did, never an ad, and never on the hook slide or the last slide.`,
+        "- The last slide asks the viewer to save this or follow for the next part, in one short line.",
+      ].join("\n")
+      : b.speaker === "business"
+        ? `- The last slide names ${b.name} and says in one sentence what it does, from the facts given.`
+        : `- The last slide works in ${b.name} once: who is speaking, or what to do next.`;
   return [
     "",
     "Write a photo slideshow for Instagram and TikTok: short words in boxes over full-bleed stock photos.",
@@ -1561,7 +1574,7 @@ export interface MakeProblem {
  * with mention on, a business has a slide that names it and says what it does; with mention off, no slide or caption
  * names the brand. index.ts gives one fixing pass, then refuses with `error` and keeps the use (the model answered, so it was billed).
  */
-export function slideshowProblem(r: MadeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
+export function slideshowProblem(r: MadeResult, req: Pick<MakeRequest, "brand" | "brandAt">): MakeProblem | null {
   if (r.as !== "slideshow") return null;
   const n = hookCount(r.slides[0]?.title ?? "");
   const nums = slideNumbers(r.slides);
@@ -1593,12 +1606,21 @@ export function slideshowProblem(r: MadeResult, req: Pick<MakeRequest, "brand">)
       error: `The slides named ${b.name} after you picked No. Try again.`,
     };
   }
+  const inside = b.mention && req.brandAt === "inside";
+  const at = r.slides.flatMap((s, i) => (named(slideText(s)) ? [i] : []));
+  if (inside && (at.length !== 1 || at[0] === 0 || at[0] === r.slides.length - 1)) {
+    return {
+      kind: "mention",
+      fix: `Name ${b.name} on exactly one slide, slide 3 or 4, and never on the first or the last slide. Return the whole JSON object again with that change.`,
+      error: `The slides didn't name ${b.name} once, inside. Try again.`,
+    };
+  }
   // the slide that names it says something about it too: at least 5 more words than the name
   const shown = r.slides.some((s) => named(slideText(s)) && wordCount(slideText(s)) - wordCount(b.name) >= 5);
   if (b.mention && b.speaker === "business" && !shown) {
     return {
       kind: "product",
-      fix: `No slide names ${b.name} and says what it does. Return the whole JSON object again with the last slide naming ${b.name} and saying in one sentence what it does, from the facts given.`,
+      fix: `No slide names ${b.name} and says what it does. Return the whole JSON object again with ${inside ? "slide 3 or 4" : "the last slide"} naming ${b.name} and saying in one sentence what it does, from the facts given.`,
       error: `The slides didn't say what ${b.name} does. Try again.`,
     };
   }
@@ -1857,7 +1879,7 @@ export function editLength(r: MadeResult, req: Pick<MakeRequest, "edit">): strin
 }
 
 /** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's and the edit's. */
-export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds" | "words" | "edit">) =>
+export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "brandAt" | "source" | "seconds" | "words" | "edit">) =>
   slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r) ?? editProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */

@@ -712,6 +712,45 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(fields).toContain("You might not see it yet.");
     expect(fields.join(" ")).not.toContain("coffee on a desk");
   });
+
+  // the 30 Oct slideshow accounts: the product once on slide 3 or 4 as something in use, then a save or follow ask
+  it("parses brandAt inside for a slideshow only, and refuses any other place", () => {
+    expect(make({ as: "slideshow", brandAt: "inside" }).brandAt).toBe("inside");
+    expect(make({ as: "slideshow" }).brandAt).toBeUndefined();
+    expect(make({ as: "post", brandAt: "inside" }).brandAt).toBeUndefined();
+    expect(parseMakeRequest(body({ as: "slideshow", brandAt: "middle" }))).toEqual({ ok: false, error: "Pick where the brand goes: inside, or the last slide." });
+  });
+
+  it("writes the brand in once on slide 3 or 4 and ends on a save or follow ask with brandAt inside", () => {
+    const person = buildMakePrompt(make({ as: "slideshow", brandAt: "inside" })).system;
+    expect(person).toContain("- Work MoneyBees in exactly once, in passing, on slide 3 or 4: something you use or did");
+    expect(person).toContain("- The last slide asks the viewer to save this or follow for the next part, in one short line.");
+    expect(person).not.toContain("The last slide works in MoneyBees once");
+    expect(buildMakePrompt(make({ as: "slideshow", brand: BIZ, brandAt: "inside" })).system).toContain("- Name ActivityTracker exactly once, in passing, on slide 3 or 4: the tool that does that slide's step");
+    // mention off wins: no brand anywhere
+    const off = buildMakePrompt(make({ as: "slideshow", brand: { ...BIZ, mention: false }, brandAt: "inside" })).system;
+    expect(off).toContain("- No brand slide: end on the reframe.");
+    expect(off).not.toContain("slide 3 or 4");
+    // the same number of numbered slides fits: the ask slide takes the brand slide's place
+    expect(buildMakePrompt(make({ as: "slideshow", brandAt: "inside" })).system).toContain("That number is at most 7 so every slide fits");
+  });
+
+  it("checks brandAt inside names the brand on exactly one slide, never the first or the last", () => {
+    const req = make({ as: "slideshow", brand: BIZ, brandAt: "inside" });
+    const ask = slide("Save this for your next slow week", "Follow for part 2.");
+    const named = (title: string) => slide(title, "ActivityTracker logs every call and follow-up in one place.");
+    const inside = result({ slides: [SLIDES[0], SLIDES[1], named("2. Follow-ups slip to next week"), SLIDES[3], SLIDES[4], ask] });
+    expect(slideshowProblem(inside, req)).toBeNull();
+    // today's shape, the brand on the last slide, is sent back with the fix
+    const last = result({ slides: [...SLIDES.slice(0, 5), named("Try ActivityTracker")] });
+    const p = slideshowProblem(last, req);
+    expect(p?.kind).toBe("mention");
+    expect(p?.fix).toContain("slide 3 or 4");
+    expect(slideshowProblem(result({ slides: [named("3 signs ActivityTracker can help"), ...SLIDES.slice(1, 5), ask] }), req)?.kind).toBe("mention");
+    expect(slideshowProblem(result({ slides: [SLIDES[0], named("1. You only reach out when it's slow"), named("2. Follow-ups slip"), SLIDES[3], SLIDES[4], ask] }), req)?.kind).toBe("mention");
+    // without brandAt, the last slide is where it belongs
+    expect(slideshowProblem(last, make({ as: "slideshow", brand: BIZ }))).toBeNull();
+  });
 });
 
 describe("the wall of text (formats-wall-of-text)", () => {
