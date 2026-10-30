@@ -429,7 +429,7 @@ describe("keep the cover", () => {
     const { id, ...first } = show.slides[0];
     expect(id).not.toBe("c1");
     expect(first).toEqual({ photo: kept.slides[0].photo, boxes: kept.slides[0].boxes });
-    expect(show.title).toBe(coverWords(kept));
+    expect(show.title).toBe("5 viral theories that will ACTUALLY change your life");
     expect(show.slides).toHaveLength(SLIDES.length);
     expect(askParams({ ...ASK, keep: "old" }).keep).toBe("old");
   });

@@ -365,7 +365,8 @@ export function buildShow(a: { slides: { title: string; sub: string }[]; caption
   const fill = a.fill && HEX.test(a.fill) ? a.fill : undefined;
   return {
     ...blankSlideshow({}, a.now),
-    title: ((a.cover && coverWords({ slides: [a.cover] })) || a.slides[0]?.title || "Slideshow").slice(0, 120),
+    // a kept cover names it by its first line (its title box), not every line run together
+    title: ((a.cover?.boxes[0]?.text ?? "").replace(/\s+/g, " ").trim() || a.slides[0]?.title || "Slideshow").slice(0, 120),
     size: a.ask.size,
     slides: a.slides.map((s, i) => {
       if (i === 0 && a.cover) return { ...a.cover, id: newId("s") };
