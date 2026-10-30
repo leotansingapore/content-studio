@@ -199,6 +199,15 @@ export function changeSlide(s: Slideshow, slideId: string, fn: (slide: ShowSlide
   return { ...s, slides: s.slides.map((x) => (x.id === slideId ? fn(x) : x)) };
 }
 
+/** A plain colour behind the words, for the flat text slides some slideshow accounts post (30 Oct teardowns). */
+export const PLAIN_FILL = "#DBEAFE";
+
+/** The slide's picture gone and `fill` behind its words; a colour that isn't #rrggbb leaves the slide as it was. */
+export function plainSlide(s: Slideshow, slideId: string, fill: string): Slideshow {
+  if (!HEX.test(fill)) return s;
+  return changeSlide(s, slideId, ({ image: _image, photo: _photo, ...rest }) => ({ ...rest, fill }));
+}
+
 export function addBox(s: Slideshow, slideId: string, box: TextBox): Slideshow {
   return changeSlide(s, slideId, (x) => (x.boxes.length >= MAX_BOXES ? x : { ...x, boxes: [...x.boxes, clampBox(box)] }));
 }

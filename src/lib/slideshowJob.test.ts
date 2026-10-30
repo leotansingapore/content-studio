@@ -171,6 +171,11 @@ describe("the made slideshow", () => {
     expect(show.source).toEqual({ ...SOURCE, remixedAt: "2026-10-20T00:00:00.000Z" });
     expect(show.title).toBe("3 signs your week went quiet");
     expect(buildShow({ slides: SLIDES, caption: "", ask: { ...ASK, source: null, topic: "x" }, pictures: [], fill: "red", measure, now: new Date() }).slides[0].fill).toBeUndefined();
+    // the device's last style carries over to a made slideshow (the slideshow accounts' look after one edit); the fit keeps the sizes
+    const native = buildShow({ slides: SLIDES, caption: "", ask: ASK, pictures: [], measure, now: new Date(), look: { font: "clean", bg: "none", color: "#FFFFFF", size: 20 } });
+    expect(native.slides.flatMap((x) => x.boxes).every((b) => b.font === "clean" && b.bg === "none" && b.color === "#FFFFFF")).toBe(true);
+    expect(native.slides[0].boxes[0].size).toBe(buildShow({ slides: SLIDES, caption: "", ask: ASK, pictures: [], measure, now: new Date() }).slides[0].boxes[0].size);
+    expect(buildShow({ slides: SLIDES, caption: "", ask: ASK, pictures: [], measure, now: new Date() }).slides[0].boxes[0]).toMatchObject({ font: "heavy", bg: "white", color: "#111111" });
   });
 });
 

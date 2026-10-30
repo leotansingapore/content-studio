@@ -41,7 +41,6 @@ import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import NotFoundPage from "@/pages/NotFoundPage";
 import {
-  NEW_WORDS,
   addBox,
   addSlide,
   ago,
@@ -53,13 +52,16 @@ import {
   deleteSlide,
   duplicateSlide,
   emptyHistory,
+  frameHeight,
   fromPost,
   loadSlideshows,
   loadStyleHint,
   makeBox,
   moveSlide,
+  NEW_WORDS,
   onSlideshowsChanged,
   pickStyle,
+  plainSlide,
   redo,
   remember,
   removeSlideshow,
@@ -69,7 +71,6 @@ import {
   saveStyleHint,
   slideshowToDraft,
   undo,
-  frameHeight,
   type BoxStyle,
   type ShowSlide,
   type Slideshow,
@@ -594,6 +595,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
     swap: () => void swapPicture(),
     media: (key) => setPicture(slide.id, key, null),
     upload: (file) => void upload(file),
+    plain: (fill) => commit(plainSlide(workRef.current, slide.id, fill)),
     addSlide: () => {
       commit(addSlide(work, index, loadStyleHint()));
       go(index + 1);
@@ -745,7 +747,8 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
           className="min-w-0 flex-1 basis-40 rounded-md border border-transparent bg-transparent px-1.5 py-1 font-serif text-xl font-semibold hover:border-border focus:border-input focus:outline-none sm:text-2xl"
         />
         <span className="text-xs text-muted-foreground" aria-live="polite">Saved {ago(savedAt)}</span>
-        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
+        {/* its own row at every width: beside the name it squeezed a long one to a few letters (dogfood 30 Oct) */}
+        <div className="flex w-full flex-wrap items-center gap-1.5">
           <Button size="icon" variant="ghost" onClick={() => step("undo")} disabled={!hist.past.length} aria-label="Undo" title="Undo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
             <Undo2 className="h-4 w-4" />
           </Button>

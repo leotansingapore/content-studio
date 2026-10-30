@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { links } from "@/lib/links";
 import {
   MAX_HISTORY,
+  PLAIN_FILL,
+  plainSlide,
   addBox,
   addSlide,
   ago,
@@ -86,6 +88,17 @@ describe("sanitize", () => {
     expect(s.size).toBe("4x5");
     expect(one.slides).toHaveLength(2);
     expect(sanitizeSlideshows("nope")).toEqual([]);
+  });
+});
+
+describe("a plain colour slide", () => {
+  it("drops the picture and puts the colour behind the words, and ignores a colour that isn't #rrggbb", () => {
+    const show = { ...blankSlideshow(), slides: [{ id: "s1", photo: { src: "https://images.pexels.com/photos/1/p.jpeg", by: "A", byUrl: "" }, image: "cimg-1", boxes: [] }, { id: "s2", boxes: [] }] };
+    const plain = plainSlide(show, "s1", PLAIN_FILL);
+    expect(plain.slides[0]).toEqual({ id: "s1", boxes: [], fill: PLAIN_FILL });
+    expect(plain.slides[1]).toBe(show.slides[1]);
+    expect(plainSlide(plain, "s1", "#123abc").slides[0].fill).toBe("#123abc");
+    expect(plainSlide(show, "s1", "red")).toBe(show);
   });
 });
 

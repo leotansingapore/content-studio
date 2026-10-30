@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Copy, ImagePlus, Images, Loader2, Plus, Shuffle, Trash2, Type } from "lucide-react";
+import { Copy, ImagePlus, Images, Loader2, PaintBucket, Plus, Shuffle, Trash2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { scanCompliance } from "@/lib/compliance";
@@ -18,6 +18,7 @@ import {
   MAX_BOX_CHARS,
   MAX_SLIDES,
   MIN_SLIDES,
+  PLAIN_FILL,
   SIZES,
   SIZE_MAX,
   SIZE_MIN,
@@ -42,6 +43,8 @@ export interface InspectorActs {
   swap: () => void;
   media: (key: string) => void;
   upload: (file: File) => void;
+  /** The picture gone, this colour behind the words. */
+  plain: (fill: string) => void;
   addSlide: () => void;
   duplicate: () => void;
   deleteSlide: () => void;
@@ -234,6 +237,20 @@ export default function SlideInspector({
                   }}
                 />
               </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => act.plain(slide.fill ?? PLAIN_FILL)} disabled={!slide.image && !slide.photo} className={outline("flex-1")}>
+                <PaintBucket className="h-3.5 w-3.5" /> Plain colour
+              </Button>
+              {!slide.image && !slide.photo && (
+                <input
+                  type="color"
+                  aria-label="Slide colour"
+                  value={slide.fill ?? PLAIN_FILL}
+                  onChange={(e) => act.plain(e.target.value)}
+                  className={cn("h-9 w-11 cursor-pointer rounded-md border border-input bg-background p-1", TOUCH)}
+                />
+              )}
             </div>
             {swap.note && <p role="status" className="text-xs text-muted-foreground">{swap.note}</p>}
             {slide.photo?.by && (

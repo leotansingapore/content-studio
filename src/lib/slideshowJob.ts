@@ -18,7 +18,7 @@ import { fullText, requestMake, type MakeRequest, type RemixAs } from "@/lib/rem
 import { brandPack, loadRemixPrefs } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
 import { localTeardown } from "@/lib/remixTeardown";
-import { blankSlideshow, frameHeight, makeBox, newId, saveSlideshow, type ShowSize, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
+import { blankSlideshow, frameHeight, loadStyleHint, makeBox, newId, saveSlideshow, type BoxStyle, type ShowSize, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
 import { layoutBoxes, screenMeasure, type Measure } from "@/lib/slideshowDraw";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
@@ -175,6 +175,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
       flags: res.flags,
       measure: screenMeasure(),
       now: new Date(),
+      look: loadStyleHint(),
     });
     saveSlideshow(userId, show);
     const ids = pictures.flatMap((p) => (p?.stockId ? [p.stockId] : []));
@@ -302,15 +303,17 @@ const LOOK = { font: "heavy", bg: "white", color: "#111111", stroke: 0, strokeCo
 const SCALES = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
 
 /**
- * A title box and a sub box in the white-box look, the title's middle in the top third and the sub under it. The
- * sizes step down until both sit inside the frame (4:5 or 9:16), so no word is ever cut off.
+ * A title box and a sub box in the white-box look (or `look`, the device's last style, its size left out), the title's
+ * middle in the top third and the sub under it. The sizes step down until both sit inside the frame (4:5 or 9:16), so
+ * no word is ever cut off.
  */
-export function fitSlide(text: { title: string; sub: string }, hook: boolean, size: ShowSize, measure: Measure): TextBox[] {
+export function fitSlide(text: { title: string; sub: string }, hook: boolean, size: ShowSize, measure: Measure, look: Partial<BoxStyle> = {}): TextBox[] {
   const H = frameHeight(size);
   const gap = 0.025 * H;
   let boxes: TextBox[] = [];
   for (const k of SCALES) {
-    boxes = [makeBox(text.title, { ...LOOK, size: Math.round((hook ? 72 : 60) * k) }), ...(text.sub ? [makeBox(text.sub, { ...LOOK, size: Math.round(40 * k) })] : [])];
+    const style = { ...LOOK, ...look };
+    boxes = [makeBox(text.title, { ...style, size: Math.round((hook ? 72 : 60) * k) }), ...(text.sub ? [makeBox(text.sub, { ...style, size: Math.round(40 * k) })] : [])];
     const [t, s] = layoutBoxes({ id: "fit", boxes }, size, measure).boxes;
     const total = t.rect.h + (s ? gap + s.rect.h : 0);
     const top = Math.max(0.06 * H, Math.min(H / 3 - t.rect.h / 2, 0.92 * H - total));
@@ -324,7 +327,10 @@ export function fitSlide(text: { title: string; sub: string }, hook: boolean, si
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /** The made slideshow: one slide per written slide, its picture or the brand colour, the caption, source and flags. */
-export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date }): Slideshow {
+export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date; look?: Partial<BoxStyle> }): Slideshow {
+  // the device's last text style carries over (Clean, no box and white for the slideshow accounts' look); the fit sets sizes
+  const look: Partial<BoxStyle> = { ...a.look };
+  delete look.size;
   const fill = a.fill && HEX.test(a.fill) ? a.fill : undefined;
   return {
     ...blankSlideshow({}, a.now),
@@ -337,7 +343,7 @@ export function buildShow(a: { slides: { title: string; sub: string }[]; caption
         ...(p?.image ? { image: p.image } : {}),
         ...(p?.photo ? { photo: p.photo } : {}),
         ...(!p && fill ? { fill } : {}),
-        boxes: fitSlide(s, i === 0, a.ask.size, a.measure),
+        boxes: fitSlide(s, i === 0, a.ask.size, a.measure, look),
       };
     }),
     caption: a.caption,
