@@ -18,7 +18,7 @@ import { fullText, requestMake, type MakeRequest, type RemixAs } from "@/lib/rem
 import { brandPack, loadRemixPrefs } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
 import { localTeardown } from "@/lib/remixTeardown";
-import { blankSlideshow, frameHeight, loadStyleHint, makeBox, newId, saveSlideshow, type BoxStyle, type ShowSize, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
+import { blankSlideshow, frameHeight, loadSlideshows, loadStyleHint, makeBox, newId, saveSlideshow, type BoxStyle, type ShowSize, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
 import { layoutBoxes, screenMeasure, type Measure } from "@/lib/slideshowDraw";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
@@ -35,6 +35,8 @@ export interface SlideshowAsk {
   mention: boolean;
   /** With mention on: the brand once on slide 3 or 4 and a save or follow ask last, not a brand slide at the end. */
   inside?: boolean;
+  /** A saved slideshow whose first slide this one keeps as it is; the writer writes new slides after it. */
+  keep?: string;
   note: string;
   size: Extract<ShowSize, "4x5" | "9x16">;
   pictures: ShowPictures;
@@ -74,6 +76,7 @@ export function askParams(a: SlideshowAsk): Record<string, string | undefined> {
     source: a.source?.key,
     from: a.source ? undefined : "topic",
     mention: !a.mention ? "no" : a.inside ? "inside" : undefined,
+    keep: a.keep,
     size: a.size === "9x16" ? "9x16" : undefined,
     pictures: a.pictures === "mine" ? "mine" : undefined,
   };
@@ -142,6 +145,28 @@ export function makeBody(
   };
 }
 
+// ---- keep the cover (the slideshow accounts' move: one cover that worked, new slides each time) ----
+
+/** The words on a slideshow's first slide, its boxes in order: the hook a kept cover is made from. */
+export const coverWords = (show: Pick<Slideshow, "slides">) => (show.slides[0]?.boxes ?? []).map((b) => b.text.replace(/\s+/g, " ").trim()).filter(Boolean).join(" ");
+
+/** The server's steer limit (remix make `note`). */
+export const NOTE_MAX = 300;
+
+/** The steer plus the kept slideshow's old points as ones to leave out, as many as fit in NOTE_MAX; the steer always comes whole. */
+export function keptNote(note: string, kept: Pick<Slideshow, "slides">): string {
+  const own = note.trim();
+  const head = "Keep the hook as typed. Write new points, not these:";
+  const old = kept.slides.slice(1).map((s) => (s.boxes[0]?.text ?? "").replace(/\s+/g, " ").trim().slice(0, 60)).filter(Boolean);
+  let list = "";
+  for (const t of old) {
+    const next = `${list}${list ? ";" : ""} "${t}"`;
+    if ((own ? own.length + 1 : 0) + head.length + next.length + 1 > NOTE_MAX) break;
+    list = next;
+  }
+  return list ? `${own ? `${own} ` : ""}${head}${list}.` : own;
+}
+
 /** A campaign's own media so far: every picture key its made slideshows used (repeats count), and where to start in media order. */
 export interface MediaSpread {
   used: string[];
@@ -155,14 +180,19 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
   set({ id, state: "writing", done: 0, of: 0, ask });
   let wrote = false;
   try {
-    const res = await requestMake(makeBody(userId, ask));
+    // a kept cover: its slideshow's first slide comes over as it is, and its old points are ones to leave out
+    const kept = ask.keep ? loadSlideshows(userId).find((s) => s.id === ask.keep) : undefined;
+    const res = await requestMake(makeBody(userId, kept ? { ...ask, note: keptNote(ask.note, kept) } : ask));
     if (res?.result?.as !== "slideshow") throw new Error(WRITE_FAILED);
     wrote = true;
     const slides = res.result.slides.map((s) => ({ ...s, title: stripDashes(s.title).trim(), sub: stripDashes(s.sub).trim() }));
-    mine({ state: "finding", done: 0, of: slides.length });
+    // the kept cover has its picture already: no search for it
+    const fresh = kept ? slides.slice(1) : slides;
+    mine({ state: "finding", done: 0, of: fresh.length });
     const progress = (n: number) => mine({ done: n });
-    const pictures = ask.pictures === "mine" ? await minePictures(loadMedia(userId), slides, spread) : await stockPictures(userId, slides, progress);
-    progress(slides.length);
+    const found = ask.pictures === "mine" ? await minePictures(loadMedia(userId), fresh, spread) : await stockPictures(userId, fresh, progress);
+    const pictures = kept ? [null, ...found] : found;
+    progress(fresh.length);
     mine({ state: "drawing" });
     await ensureCaptionFonts();
     const kit = loadBrand(userId);
@@ -176,6 +206,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
       measure: screenMeasure(),
       now: new Date(),
       look: loadStyleHint(),
+      cover: kept?.slides[0],
     });
     saveSlideshow(userId, show);
     const ids = pictures.flatMap((p) => (p?.stockId ? [p.stockId] : []));
@@ -327,16 +358,17 @@ export function fitSlide(text: { title: string; sub: string }, hook: boolean, si
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /** The made slideshow: one slide per written slide, its picture or the brand colour, the caption, source and flags. */
-export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date; look?: Partial<BoxStyle> }): Slideshow {
+export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date; look?: Partial<BoxStyle>; cover?: ShowSlide }): Slideshow {
   // the device's last text style carries over (Clean, no box and white for the slideshow accounts' look); the fit sets sizes
   const look: Partial<BoxStyle> = { ...a.look };
   delete look.size;
   const fill = a.fill && HEX.test(a.fill) ? a.fill : undefined;
   return {
     ...blankSlideshow({}, a.now),
-    title: (a.slides[0]?.title || "Slideshow").slice(0, 120),
+    title: ((a.cover && coverWords({ slides: [a.cover] })) || a.slides[0]?.title || "Slideshow").slice(0, 120),
     size: a.ask.size,
     slides: a.slides.map((s, i) => {
+      if (i === 0 && a.cover) return { ...a.cover, id: newId("s") };
       const p = a.pictures[i];
       return {
         id: newId("s"),

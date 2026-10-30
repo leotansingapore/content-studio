@@ -323,6 +323,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /make/slideshow | source | a remix source key (the same keys as /generate?source= below): the slideshow to remix. Leo's sign-ins only (src/lib/leoOnly.ts); anyone else, and any /make/<slug> not in src/data/formats.ts, gets the not-found page. A key that no longer resolves says so and starts from a topic | none | replace | /make/slideshow?source=top%3Agrace-koh-instagram-C931K |
 | /make/slideshow | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/slideshow?from=remix |
 | /make/slideshow | mention | inside: the brand once on slide 3 or 4, then a save or follow ask; no: the slides leave the brand out | yes (its own last slide) | replace | /make/slideshow?from=topic&mention=inside |
+| /make/slideshow | keep | a saved slideshow's id: its first slide comes over as it is, the topic fills from its words, and the writer writes new slides after it (the editor's Same cover, new slides); an id this device doesn't have is ignored | none | replace | /make/slideshow?from=topic&keep=ssmvunhz880w7c&mention=inside |
 | /make/slideshow | size | 9x16 | 4x5 | replace | /make/slideshow?size=9x16 |
 | /make/slideshow | pictures | mine: the brand's own Media photos instead of Pexels stock | stock | replace | /make/slideshow?pictures=mine |
 | /make/slideshow | tab | original: the source's snapshot in place of the result | your result | replace | /make/slideshow?source=top%3Agrace-koh-instagram-C931K&tab=original |

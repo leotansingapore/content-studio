@@ -54,6 +54,8 @@ describe("/slideshow for every sign-in", () => {
     expect(html(path)).not.toContain('aria-label="Change every slide"');
     who.user = who.leo = LEO;
     expect(html(path)).toContain('aria-label="Change every slide"');
+    // Same cover, new slides opens the make with this slideshow's cover kept, the accounts' format and its size
+    expect(html(path)).toContain('href="/make/slideshow?from=topic&amp;keep=show1&amp;mention=inside"');
   });
 });
 

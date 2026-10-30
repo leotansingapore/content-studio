@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Download, FilePlus2, Images, Loader2, Redo2, Save, Shuffle, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, CopyPlus, Download, FilePlus2, Images, Loader2, Redo2, Save, Shuffle, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { FlagList } from "@/components/carousel/SlideFields";
@@ -762,6 +762,14 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
           <Button variant="outline" size="sm" onClick={saveToPosts} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
             <Save className="h-4 w-4" /> Save to My posts
           </Button>
+          {/* the slideshow accounts' move: one cover that worked, new slides after it (the make's sizes only) */}
+          {(work.size === "4x5" || work.size === "9x16") && (
+            <Button variant="outline" size="sm" asChild className={`gap-1.5 ${TOUCH}`}>
+              <Link to={links.makeFormat("slideshow", { from: "topic", keep: work.id, mention: "inside", size: work.size === "9x16" ? "9x16" : undefined })}>
+                <CopyPlus className="h-4 w-4" /> Same cover, new slides
+              </Link>
+            </Button>
+          )}
           {canSchedule && (
             <Button size="sm" onClick={schedule} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
               <CalendarClock className="h-4 w-4" /> Schedule

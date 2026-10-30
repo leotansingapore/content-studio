@@ -34,6 +34,7 @@ import { brandName } from "@/lib/remixBrand";
 import { FRAME_W, frameHeight, loadSlideshows, onSlideshowsChanged, saveSlideshow, slideshowToDraft, type Slideshow as Show } from "@/lib/slideshow";
 import { MissingPictureError, bitmapOf, logoOf, lookOf, paintSlide, slidePicture, slideshowPngs, type SlideLook } from "@/lib/slideshowDraw";
 import {
+  coverWords,
   onSlideshowJob,
   slideshowBusy,
   slideshowJob,
@@ -126,10 +127,22 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "inside", "no"] });
   const [size] = useUrlState<Size>("size", "4x5", { allowed: SIZES });
   const [pictures] = useUrlState<ShowPictures>("pictures", "stock", { allowed: ["stock", "mine"] });
+  // keep=<slideshow id>: its first slide comes over as it is and the writer writes new slides after it
+  const [keepId] = useUrlState("keep", "");
   const [tab] = useUrlState<"result" | "original">("tab", "result", { allowed: ["result", "original"] });
   const [picking, setPicking] = useUrlFlag("pick", "open");
   const [showId, openShow] = useUrlItem("show");
   const [words, setWords] = useWords();
+  const kept = useMemo(() => (keepId ? loadSlideshows(userId).find((s) => s.id === keepId) : undefined), [keepId, userId]);
+  // a kept cover's words are the topic, set once per cover so a change typed after stays
+  const filledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!kept || filledFor.current === kept.id) return;
+    filledFor.current = kept.id;
+    const hook = coverWords(kept).slice(0, 200);
+    if (hook) setWords({ ...words, topic: hook });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kept]);
   const brand = useMemo(() => brandName(userId), [userId]);
   const hasMedia = useMemo(() => loadMedia(userId).length > 0, [userId]);
   // only show= opens a result, so Back from a fresh one returns to the empty setup
@@ -143,7 +156,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   };
 
   const remix = from === "remix";
-  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures };
+  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures, ...(!remix && kept ? { keep: kept.id } : {}) };
   const reason =
     remix && !source ? "Pick a slideshow to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type a topic first."
@@ -260,6 +273,16 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
             </div>
           ) : (
             <div className="space-y-1.5">
+              {kept && (
+                <div className="mb-2 flex items-center gap-2 rounded-lg border border-border/60 p-2 text-sm">
+                  <span className="min-w-0 flex-1">
+                    Keeps the cover of <span className="font-medium">{kept.title}</span> and writes new slides after it.
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => set("keep", null)} className="shrink-0">
+                    Don&apos;t keep it
+                  </Button>
+                </div>
+              )}
               <Label htmlFor="make-topic" className={FIELD_LABEL}>Topic</Label>
               <Input id="make-topic" value={words.topic} maxLength={200} placeholder="Like 5 things to check before you buy a hospital plan" onChange={(e) => setWords({ ...words, topic: e.target.value })} />
               <p className="text-xs text-muted-foreground">Writes slides on your topic over stock photos.</p>

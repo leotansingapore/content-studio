@@ -27,6 +27,9 @@ import {
   askParams,
   buildShow,
   clearSlideshowJob,
+  coverWords,
+  keptNote,
+  NOTE_MAX,
   fitSlide,
   freshPhotos,
   loadUsed,
@@ -203,6 +206,24 @@ describe("the job", () => {
     expect(make.mock.calls[0][0]).toMatchObject({ mode: "make", as: "slideshow", source: { key: SOURCE.key, text: expect.stringContaining("") } });
   });
 
+  it("keeps a saved slideshow's cover: no search for it, its old points sent as ones to leave out, the cover saved as slide 1", async () => {
+    answer(pages, [0, 1]);
+    const { saveSlideshow, blankSlideshow, makeBox } = await import("./slideshow");
+    const cover = { id: "c1", fill: "#1E293B", boxes: [{ ...makeBox("5 viral theories that will ACTUALLY change your life"), id: "b1" }] };
+    const old = { ...blankSlideshow(), id: "old", slides: [cover, { id: "o2", boxes: [{ ...makeBox("1. the let them theory."), id: "b2" }] }] };
+    saveSlideshow(UID, old);
+    const j = await run({ ...ASK, source: null, topic: "5 viral theories", keep: "old" });
+    expect(j.state).toBe("done");
+    // two searches for the two new slides, none for the cover
+    expect(stock.search.mock.calls.map((c) => c[1])).toEqual(["phone on desk", "calendar"]);
+    expect(make.mock.calls[0][0].note).toBe('Keep the hook as typed. Write new points, not these: "1. the let them theory.".');
+    const made = madeShow(j);
+    expect(made.slides[0]).toMatchObject({ fill: "#1E293B", boxes: cover.boxes });
+    expect(made.slides[0].id).not.toBe("c1");
+    expect(srcs(j)).toEqual([null, "20", "31"]);
+    expect(made.title).toBe("5 viral theories that will ACTUALLY change your life");
+  });
+
   it("takes the first portrait result when Jev has no answer", async () => {
     answer(pages, null);
     expect(srcs(await run())).toEqual(["10", "20", "30"]);
@@ -376,5 +397,40 @@ describe("links and params", () => {
     expect(makeBody(UID, { ...ASK, mention: false, inside: true }).brandAt).toBeUndefined();
     expect(makeBody(UID, { ...ASK, inside: true }, "wall").brandAt).toBeUndefined();
     expect(makeBody(UID, ASK).brandAt).toBeUndefined();
+  });
+});
+
+describe("keep the cover", () => {
+  const box = (text: string) => ({ id: `b-${text.length}`, text, x: 0.5, y: 0.3, w: 0.84, font: "clean" as const, size: 60, color: "#FFFFFF", stroke: 0, strokeColor: "#FFFFFF", bg: "none" as const });
+  const kept = {
+    slides: [
+      { id: "c1", photo: { src: "https://images.pexels.com/photos/9/p.jpeg", by: "A", byUrl: "" }, boxes: [box("5 viral theories that will ACTUALLY change your life"), box("(from an extreme trend skeptic)")] },
+      { id: "s2", boxes: [box("1. the let them theory.")] },
+      { id: "s3", boxes: [box("2. the two-minute rule.")] },
+    ],
+  };
+
+  it("reads the cover's words in order as the hook", () => {
+    expect(coverWords(kept)).toBe("5 viral theories that will ACTUALLY change your life (from an extreme trend skeptic)");
+    expect(coverWords({ slides: [] })).toBe("");
+  });
+
+  it("asks for new points, not the old ones, after the steer, and never runs past the server's limit", () => {
+    expect(keptNote("lowercase.", kept)).toBe('lowercase. Keep the hook as typed. Write new points, not these: "1. the let them theory."; "2. the two-minute rule.".');
+    expect(keptNote("", kept)).toBe('Keep the hook as typed. Write new points, not these: "1. the let them theory."; "2. the two-minute rule.".');
+    const long = "x".repeat(280);
+    expect(keptNote(long, kept)).toBe(long);
+    const many = { slides: [kept.slides[0], ...Array.from({ length: 9 }, (_, i) => ({ id: `s${i}`, boxes: [box(`${i + 1}. ${"word ".repeat(11)}`)] }))] };
+    expect(keptNote("short steer.", many).length).toBeLessThanOrEqual(NOTE_MAX);
+  });
+
+  it("puts the kept cover in as slide 1, as it was, and names the slideshow after it", () => {
+    const show = buildShow({ slides: SLIDES, caption: "Cap.", ask: { ...ASK, keep: "old" }, pictures: [null, null, null], measure, now: new Date(), cover: kept.slides[0] });
+    const { id, ...first } = show.slides[0];
+    expect(id).not.toBe("c1");
+    expect(first).toEqual({ photo: kept.slides[0].photo, boxes: kept.slides[0].boxes });
+    expect(show.title).toBe(coverWords(kept));
+    expect(show.slides).toHaveLength(SLIDES.length);
+    expect(askParams({ ...ASK, keep: "old" }).keep).toBe("old");
   });
 });
