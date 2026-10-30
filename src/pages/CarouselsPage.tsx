@@ -361,7 +361,7 @@ function FitLine({ fit }: { fit: { state: string; answer?: FitAnswer; note?: str
   if (fit.state === "ranking")
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-        <Loader2 className="h-4 w-4 animate-spin" /> Ranking the library for your brand. This takes about 15 seconds.
+        <Loader2 className="h-4 w-4 animate-spin" /> Ranking the library for your brand. This takes a few seconds.
       </p>
     );
   if (fit.state === "needs-audience")
