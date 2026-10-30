@@ -397,6 +397,8 @@ export const links = {
       detail?: string;
       audience?: string;
       format?: string;
+      /** A short video's format from the library (src/data/videoFormats.ts id); it makes the format short-video. */
+      vformat?: string;
       platform?: string;
       cta?: string;
       funnel?: string;

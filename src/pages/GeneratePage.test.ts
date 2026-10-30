@@ -239,3 +239,15 @@ describe("Fix this changes only what its factor is about (Leo only)", () => {
     expect(fixAsk("cta", "business")).toContain("Keep every other line word for word.");
   });
 });
+
+describe("the short video's format picker (loop-format-library)", () => {
+  it("shows the picked format's why, and nothing extra for Any format", async () => {
+    const { VideoFormatPicker } = await import("./GeneratePage");
+    const { videoFormatById } = await import("@/data/videoFormats");
+    const why = videoFormatById("the-dull-truth")!.why;
+    const draw = (value: string | null) => renderToStaticMarkup(createElement(VideoFormatPicker, { value, onChange: () => undefined }));
+    expect(draw("the-dull-truth")).toContain(why);
+    expect(draw(null)).not.toContain(why);
+    expect(draw("not-a-format")).not.toContain("text-[11px]");
+  });
+});

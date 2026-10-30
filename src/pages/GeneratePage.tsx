@@ -29,10 +29,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VIDEO_FORMAT_GROUPS, VIDEO_FORMATS, videoFormatById, videoFormatRule } from "@/data/videoFormats";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
@@ -780,6 +783,35 @@ function ReelLengthPicker({ value, onChange }: { value: ReelLength; onChange: (s
   );
 }
 
+// Write's format library (north star loop-format-library): a short video's shape from the vault's 92 formats.
+// "Any format" leaves the writer's prompt as it was.
+export function VideoFormatPicker({ value, onChange }: { value: string | null; onChange: (id: string | null) => void }) {
+  const picked = videoFormatById(value);
+  return (
+    <div className="space-y-1">
+      <Select value={picked?.id ?? "any"} onValueChange={(v) => onChange(v === "any" ? null : v)}>
+        <SelectTrigger aria-label="Video format" className="h-11 sm:h-9 [@media(pointer:coarse)]:h-11">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="any">Any format</SelectItem>
+          {VIDEO_FORMAT_GROUPS.map((g) => (
+            <SelectGroup key={g.id}>
+              <SelectLabel>{g.label}</SelectLabel>
+              {VIDEO_FORMATS.filter((f) => f.group === g.id).map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
+      {picked && <p className="text-[11px] text-muted-foreground">{picked.why}</p>}
+    </div>
+  );
+}
+
 type StreamRequest = BasePayload & {
   mode: "hooks" | "body" | "post";
   n: number;
@@ -835,6 +867,8 @@ export default function GeneratePage() {
   const [singlish, setSinglish] = useState<boolean>(false);
   // How long a short video runs: the script is written and counted for it.
   const [reelSeconds, setReelSeconds] = useState<ReelLength>(30);
+  // the short video's format from the library, kept in this tab's brief (vformat= links pick one)
+  const [videoFormat, setVideoFormat] = useState<string | null>(null);
   // Saved brief templates (per profile), and the save-as-template form.
   const [templates, setTemplates] = useState<BriefTemplate[]>([]);
   const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(null);
@@ -1124,6 +1158,7 @@ export default function GeneratePage() {
             if (PLATFORMS.some((p) => p.value === brief.platform)) setPlatform(brief.platform);
             if (FORMATS.some((f) => f.value === brief.format)) setFormat(brief.format);
             if (isReelLength(brief.reelSeconds)) setReelSeconds(brief.reelSeconds);
+            if (videoFormatById(brief.videoFormat)) setVideoFormat(brief.videoFormat);
             if (CTAS.some((c) => c.value === brief.ctaType)) setCtaType(brief.ctaType);
             // a lang the link carried wins over the one this tab's brief had
             if (brief.postLang === null || asPostLang(brief.postLang)) setPostLang((cur) => (cur === undefined ? brief.postLang : cur));
@@ -1316,7 +1351,7 @@ export default function GeneratePage() {
   }, [pendingAsk, currentDraftId, draft]);
 
   // Prefill from a Plan deep-link: /generate?pillar=&detail=&audience=&format=
-  // &platform=&cta=&funnel=&idea=&ctx=&ref=&formula=  (runs once, then strips params).
+  // &platform=&cta=&funnel=&idea=&ctx=&ref=&formula=&vformat=  (runs once, then strips params).
   useEffect(() => {
     if (prefillAppliedRef.current) return;
     const filled =
@@ -1325,7 +1360,7 @@ export default function GeneratePage() {
       searchParams.has("funnel") ||
       searchParams.has("idea") ||
       searchParams.has("ctx");
-    if (!filled && !["source", "lang", "aud", "label"].some((k) => searchParams.has(k))) return;
+    if (!filled && !["source", "lang", "aud", "label", "vformat"].some((k) => searchParams.has(k))) return;
     prefillAppliedRef.current = true;
 
     const pillarParam = searchParams.get("pillar");
@@ -1346,6 +1381,12 @@ export default function GeneratePage() {
     const platformParam = searchParams.get("platform");
     if (platformParam && PLATFORMS.some((p) => p.value === platformParam)) {
       setPlatform(platformParam as Platform);
+    }
+    // a format from the library makes it a short video
+    const vformatParam = videoFormatById(searchParams.get("vformat"));
+    if (vformatParam) {
+      setFormat("short-video");
+      setVideoFormat(vformatParam.id);
     }
     const ctaParam = searchParams.get("cta");
     if (ctaParam && CTAS.some((c) => c.value === ctaParam)) {
@@ -1381,7 +1422,7 @@ export default function GeneratePage() {
     if (labelParam) setLabelId(labelParam.slice(0, 60));
 
     const next = new URLSearchParams(searchParams);
-    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang", "aud", "label"].forEach(
+    ["pillar", "detail", "audience", "format", "vformat", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source", "lang", "aud", "label"].forEach(
       (k) => next.delete(k),
     );
     // Every step is filled in: open the one with Generate (in this same write, or the strip would undo it). The
@@ -1626,6 +1667,7 @@ export default function GeneratePage() {
             platform,
             format,
             reelSeconds,
+            videoFormat,
             ctaType,
             wizardStep,
             disclosure,
@@ -1656,6 +1698,7 @@ export default function GeneratePage() {
     platform,
     format,
     reelSeconds,
+    videoFormat,
     ctaType,
     wizardStep,
     disclosure,
@@ -1689,7 +1732,11 @@ export default function GeneratePage() {
     const trimmedCtx = ideaContext.trim();
     if (trimmedCtx) ctxParts.push(trimmedCtx);
     if (answered?.trim()) ctxParts.push(answered.trim());
-    if (format === "short-video") ctxParts.push(reelLengthRule(reelSeconds));
+    if (format === "short-video") {
+      ctxParts.push(reelLengthRule(reelSeconds));
+      const vf = videoFormatById(videoFormat);
+      if (vf) ctxParts.push(videoFormatRule(vf));
+    }
     ctxParts.push(BLANKS_RULE);
     const rules = brandRulesLine(brandKit, platform);
     if (rules) ctxParts.push(rules);
@@ -3786,6 +3833,7 @@ export default function GeneratePage() {
               {FORMATS.find((f) => f.value === format)!.sub}
             </p>
             {format === "short-video" && <ReelLengthPicker value={reelSeconds} onChange={setReelSeconds} />}
+            {format === "short-video" && <VideoFormatPicker value={videoFormat} onChange={setVideoFormat} />}
           </div>
           <div className="space-y-1.5">
             <Label>CTA style</Label>

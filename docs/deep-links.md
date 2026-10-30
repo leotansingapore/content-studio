@@ -347,6 +347,9 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   id), idea= (the idea source: real-question, common-mistake, news-hook, personal-story, before-after,
   three-things, myth-bust; not the idea text), ctx= (context text), ref= (a competitor handle), formula=
   (a hook formula id): Plan, Coach, Carousel and the assistant pre-fill the brief this way.
+- /generate?vformat=<video format id> (src/data/videoFormats.ts, e.g. the-dull-truth): a short video in that
+  format from the library, read once like the other pre-fills (it starts the pre-fill on its own and sets
+  format=short-video); an unknown id is ignored.
 - /generate?aud=<audience id> and label=<label id> (Leo only): a saved audience and a label, read once with the
   other pre-fills (aud starts the pre-fill on its own); see "Plans and campaigns" below.
 - /generate?vibe=<inspiration id>: loads that example as the style reference.
