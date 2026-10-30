@@ -269,7 +269,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
       </Card>
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-4 pt-4 sm:pt-5">
-          <Field label={`Mention ${brand}`} hint={`Once, inside names ${brand} in passing on slide 3 or 4, then ends on a save or follow ask.`}>
+          <Field label={`Mention ${brand}`} hint={`Once, inside posts the way slideshow accounts do: your hook as typed, five points, ${brand} once on slide 3 or 4, then a save or follow ask.`}>
             <FilterChip active={mention === "yes"} onClick={() => set("mention", null)}>On the last slide</FilterChip>
             <FilterChip active={mention === "inside"} onClick={() => set("mention", "inside")}>Once, inside</FilterChip>
             <FilterChip active={mention === "no"} onClick={() => set("mention", "no")}>No</FilterChip>

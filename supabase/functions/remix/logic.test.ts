@@ -731,8 +731,16 @@ describe("the slideshow (formats-slideshow)", () => {
     const off = buildMakePrompt(make({ as: "slideshow", brand: { ...BIZ, mention: false }, brandAt: "inside" })).system;
     expect(off).toContain("- No brand slide: end on the reframe.");
     expect(off).not.toContain("slide 3 or 4");
-    // the same number of numbered slides fits: the ask slide takes the brand slide's place
-    expect(buildMakePrompt(make({ as: "slideshow", brandAt: "inside" })).system).toContain("That number is at most 7 so every slide fits");
+    // the accounts' whole shape (dogfood 30 Oct): the hook as typed, 5 points by default, no reframe, so 8 numbered fit
+    const shape = buildMakePrompt(make({ as: "slideshow", source: undefined, topic: "5 viral theories that will ACTUALLY change your life (from a skeptic)", brandAt: "inside" })).system;
+    expect(shape).toContain("When the topic reads as a hook, keep its words, capitals and brackets as typed");
+    expect(shape).toContain("numbered from 1; when it names none, write 5. That number is at most 8 so every slide fits");
+    expect(shape).not.toContain("reframe slide");
+    // on the last slide, the default, is as it was
+    const end = buildMakePrompt(make({ as: "slideshow", source: undefined, topic: "Signs your week is too full" })).system;
+    expect(end).toContain("- Then one reframe slide: what it all means for the reader.");
+    expect(end).toContain("numbered from 1. That number is at most 7 so every slide fits");
+    expect(end).not.toContain("as typed");
   });
 
   it("checks brandAt inside names the brand on exactly one slide, never the first or the last", () => {

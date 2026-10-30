@@ -663,7 +663,9 @@ const FORMAT_RULES: Record<"post" | "carousel" | "script" | "speaking" | "explai
  */
 function slideshowRules(req: MakeRequest): string[] {
   const b = req.brand;
-  // inside: how the 30 Oct slideshow accounts place a product, once mid-way as something in use, then a save or follow ask
+  // inside: the 30 Oct slideshow accounts' whole format (dogfood 30 Oct): the hook as typed, five points by default, the
+  // product once mid-way as something in use, no reframe, then a save or follow ask
+  const inside = b.mention && req.brandAt === "inside";
   const brandSlide = !b.mention
     ? "- No brand slide: end on the reframe."
     : req.brandAt === "inside"
@@ -682,9 +684,11 @@ function slideshowRules(req: MakeRequest): string[] {
     "- slides: 3 to 10 slides in order. For each slide: title (at most 12 words), sub (at most 25 words in one or two complete sentences, or empty), search (2 to 4 plain English words a stock photo library would match: a scene or an object, with no text, logos, brands or close-up faces).",
     req.source
       ? `- Slide 1 is the hook slide, in the same hook formula as ${req.teardown?.hookPattern ? "the original's hook (quoted in the message)" : "the original's first line"}: a number of signs, ways or mistakes stays a number, a question stays a question.`
-      : "- Slide 1 is the hook slide, in a proven shape: a number of signs, ways or mistakes, a question, POV, the mistake, or a quoted objection.",
-    `- Then the numbered slides, one idea each. Start each numbered title with its number and a full stop, like '1. You only reach out when it's quiet'. When the hook names a number, write exactly that many numbered slides, numbered from 1. That number is at most ${maxNumbered(b.mention)} so every slide fits; when the original's number is bigger, use a smaller one.`,
-    "- Then one reframe slide: what it all means for the reader.",
+      : inside
+        ? "- Slide 1 is the hook slide. When the topic reads as a hook, keep its words, capitals and brackets as typed; otherwise write one in a proven shape: a number of signs, ways or mistakes, a question, POV, the mistake, or a quoted objection."
+        : "- Slide 1 is the hook slide, in a proven shape: a number of signs, ways or mistakes, a question, POV, the mistake, or a quoted objection.",
+    `- Then the numbered slides, one idea each. Start each numbered title with its number and a full stop, like '1. You only reach out when it's quiet'. When the hook names a number, write exactly that many numbered slides, numbered from 1${inside ? "; when it names none, write 5" : ""}. That number is at most ${maxNumbered(b.mention, inside)} so every slide fits; when the original's number is bigger, use a smaller one.`,
+    ...(inside ? [] : ["- Then one reframe slide: what it all means for the reader."]),
     brandSlide,
     "- caption: 2 to 4 complete sentences for the post caption that add to the slides, never the slides' own words cut short. No hashtags.",
     "- cta: one complete sentence asking the reader to do one thing: save it, follow, or comment.",
@@ -1569,8 +1573,8 @@ export function hookCount(hook: string): number | null {
   return n >= 2 && n <= 20 ? n : null;
 }
 
-/** Numbered slides that fit in 10 beside the hook slide, the reframe and, with mention on, the brand slide. */
-export const maxNumbered = (mention: boolean) => 10 - 2 - (mention ? 1 : 0);
+/** Numbered slides that fit in 10 beside the hook slide, the reframe and, with mention on, the brand slide; once inside, beside the hook and the ask. */
+export const maxNumbered = (mention: boolean, inside = false) => 10 - 2 - (mention && !inside ? 1 : 0);
 
 /** The brand name in a text, spaces and punctuation inside it optional, never inside another word ("Kai" in "ask AI"). */
 function nameMatcher(name: string): RegExp | null {
@@ -1602,7 +1606,7 @@ export function slideshowProblem(r: MadeResult, req: Pick<MakeRequest, "brand" |
   if (r.as !== "slideshow") return null;
   const n = hookCount(r.slides[0]?.title ?? "");
   const nums = slideNumbers(r.slides);
-  const max = maxNumbered(req.brand.mention);
+  const max = maxNumbered(req.brand.mention, req.brand.mention && req.brandAt === "inside");
   if (n !== null && n > max) {
     return {
       kind: "count",
