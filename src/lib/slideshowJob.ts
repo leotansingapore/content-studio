@@ -153,8 +153,8 @@ export function makeBody(
 /** Each mood's searches, taken in turn by the slides so the photos vary but share one look. */
 export const PHOTO_MOODS = {
   sunset: { label: "Sunset sky", queries: ["sunset sky", "golden hour clouds", "pink sky at dusk", "sunset over hills"] },
-  sea: { label: "Sea and beach", queries: ["calm sea", "beach at dusk", "ocean horizon", "waves on sand"] },
-  dark: { label: "Dark and moody", queries: ["city at night", "black and white street", "rain on window at night", "moody shadows"] },
+  sea: { label: "Sea and beach", queries: ["calm sea", "beach at dusk", "ocean horizon", "waves at sunset"] },
+  dark: { label: "Dark and moody", queries: ["city at night", "black and white street", "rain on window at night", "dark street at night"] },
 } as const;
 export type PhotoMood = keyof typeof PHOTO_MOODS;
 export const PHOTO_MOOD_IDS = Object.keys(PHOTO_MOODS) as PhotoMood[];
