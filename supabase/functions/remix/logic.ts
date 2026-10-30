@@ -1388,7 +1388,13 @@ export function validateMake(as: MakeAs, raw: unknown, req: MakeOpts = {}): Made
     if (r.refuse === true) return null;
     const rows = Array.isArray(r.slides) ? r.slides : [];
     const slides = rows
-      .map((x) => ({ title: words(line(obj(x).title, 300), 12), sub: words(line(obj(x).sub, 400), 25), search: words(String(obj(x).search ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " "), 4) }))
+      .map((x, i) => {
+        const title = line(obj(x).title, 300);
+        const sub = line(obj(x).sub, 400);
+        // the hook slide never loses its end: words past 12 open its sub (dogfood 30 Oct cut a typed hook mid-phrase)
+        const over = i === 0 ? title.split(/\s+/).slice(12).join(" ") : "";
+        return { title: words(title, 12), sub: words(over ? `${over} ${sub}`.trim() : sub, 25), search: words(String(obj(x).search ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " "), 4) };
+      })
       .filter((x) => x.title && x.search);
     if (slides.length < 3 || slides.length > 10 || slides.length !== rows.length) return null;
     const caption = slideshowCaption(r, slides);

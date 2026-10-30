@@ -586,6 +586,16 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(buildMakePrompt(make({ as: "post", teardown: { hookPattern: "x" } })).user).not.toContain("Its hook:");
   });
 
+  it("moves a long hook's end into the cover's sub instead of cutting it, and cuts any other long title", () => {
+    const hook = "money habits i thought were red flags that turned out to be green flags";
+    const r = result({ slides: [slide(hook, ""), slide(`1. ${"word ".repeat(14)}`), ...SLIDES.slice(2)] });
+    if (r.as !== "slideshow") throw new Error("not a slideshow");
+    expect(`${r.slides[0].title} ${r.slides[0].sub}`).toBe(hook);
+    expect(r.slides[0].title.split(" ")).toHaveLength(12);
+    expect(r.slides[1].title.split(" ")).toHaveLength(12);
+    expect(r.slides[1].sub).toBe("One short line about it.");
+  });
+
   it("keeps 3 to 10 slides, cuts long titles and subs at a word, strips em dashes and cleans the search", () => {
     const r = result({ slides: [slide(`1. ${"word ".repeat(20)}`, "a ".repeat(40), "Coffee, LAPTOP & desk at dawn!"), slide("Two \u2014 dashes"), slide("Three")] });
     expect(r.as).toBe("slideshow");
