@@ -34,6 +34,8 @@ import { brandName } from "@/lib/remixBrand";
 import { FRAME_W, frameHeight, loadSlideshows, onSlideshowsChanged, saveSlideshow, slideshowToDraft, type Slideshow as Show } from "@/lib/slideshow";
 import { MissingPictureError, bitmapOf, logoOf, lookOf, paintSlide, slidePicture, slideshowPngs, type SlideLook } from "@/lib/slideshowDraw";
 import {
+  PHOTO_MOOD_IDS,
+  PHOTO_MOODS,
   coverWords,
   onSlideshowJob,
   slideshowBusy,
@@ -42,6 +44,7 @@ import {
   startSlideshow,
   stepText,
   type ShowFrom,
+  type PhotoMood,
   type ShowPictures,
   type SlideshowAsk,
   type SlideshowJob,
@@ -127,6 +130,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "inside", "no"] });
   const [size] = useUrlState<Size>("size", "4x5", { allowed: SIZES });
   const [pictures] = useUrlState<ShowPictures>("pictures", "stock", { allowed: ["stock", "mine"] });
+  const [mood] = useUrlState<"match" | PhotoMood>("mood", "match", { allowed: ["match", ...PHOTO_MOOD_IDS] });
   // keep=<slideshow id>: its first slide comes over as it is and the writer writes new slides after it
   const [keepId] = useUrlState("keep", "");
   const [tab] = useUrlState<"result" | "original">("tab", "result", { allowed: ["result", "original"] });
@@ -156,7 +160,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   };
 
   const remix = from === "remix";
-  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures, ...(!remix && kept ? { keep: kept.id } : {}) };
+  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures, ...(!remix && kept ? { keep: kept.id } : {}), ...(pictures === "stock" && mood !== "match" ? { mood } : {}) };
   const reason =
     remix && !source ? "Pick a slideshow to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type a topic first."
@@ -325,6 +329,14 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
             <FilterChip active={pictures === "stock"} onClick={() => set("pictures", null)}>Stock photos for me</FilterChip>
             <FilterChip active={pictures === "mine"} onClick={() => set("pictures", "mine")}>From my media</FilterChip>
           </Field>
+          {pictures === "stock" && (
+            <Field label="Photo mood">
+              <FilterChip active={mood === "match"} onClick={() => set("mood", null)}>One for each point</FilterChip>
+              {PHOTO_MOOD_IDS.map((m) => (
+                <FilterChip key={m} active={mood === m} onClick={() => set("mood", m)}>{PHOTO_MOODS[m].label}</FilterChip>
+              ))}
+            </Field>
+          )}
           {pictures === "mine" && !hasMedia && (
             <p className="text-xs text-muted-foreground">
               <Link to={links.media()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">Add photos in Media</Link> to use your own.

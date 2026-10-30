@@ -29,6 +29,8 @@ import {
   clearSlideshowJob,
   coverWords,
   keptNote,
+  moodSearches,
+  PHOTO_MOODS,
   NOTE_MAX,
   fitSlide,
   freshPhotos,
@@ -222,6 +224,16 @@ describe("the job", () => {
     expect(made.slides[0].id).not.toBe("c1");
     expect(srcs(j)).toEqual([null, "20", "31"]);
     expect(made.title).toBe("5 viral theories that will ACTUALLY change your life");
+  });
+
+  it("searches one photo mood for every slide, in turn, in place of the writer's search", async () => {
+    answer({ "sunset sky|1": [photo("40")], "golden hour clouds|1": [photo("41")], "pink sky at dusk|1": [photo("42")] }, [0, 0, 0]);
+    const j = await run({ ...ASK, mood: "sunset" });
+    expect(stock.search.mock.calls.map((c) => c[1])).toEqual(["sunset sky", "golden hour clouds", "pink sky at dusk"]);
+    expect(srcs(j)).toEqual(["40", "41", "42"]);
+    // more slides than searches: they come round again
+    expect(moodSearches(Array.from({ length: 6 }, () => ({ search: "x" })), "sea").map((x) => x.search)).toEqual([...PHOTO_MOODS.sea.queries, PHOTO_MOODS.sea.queries[0], PHOTO_MOODS.sea.queries[1]]);
+    expect(askParams({ ...ASK, mood: "dark" }).mood).toBe("dark");
   });
 
   it("takes the first portrait result when Jev has no answer", async () => {

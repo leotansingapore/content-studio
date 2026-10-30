@@ -37,6 +37,8 @@ export interface SlideshowAsk {
   inside?: boolean;
   /** A saved slideshow whose first slide this one keeps as it is; the writer writes new slides after it. */
   keep?: string;
+  /** Stock photos only: every slide's picture from one kind of scene, in place of a photo per point. */
+  mood?: PhotoMood;
   note: string;
   size: Extract<ShowSize, "4x5" | "9x16">;
   pictures: ShowPictures;
@@ -77,6 +79,7 @@ export function askParams(a: SlideshowAsk): Record<string, string | undefined> {
     from: a.source ? undefined : "topic",
     mention: !a.mention ? "no" : a.inside ? "inside" : undefined,
     keep: a.keep,
+    mood: a.mood,
     size: a.size === "9x16" ? "9x16" : undefined,
     pictures: a.pictures === "mine" ? "mine" : undefined,
   };
@@ -145,6 +148,21 @@ export function makeBody(
   };
 }
 
+// ---- one photo mood (the slideshow accounts' sunsets, sea or dark streets, not a photo per point) ----
+
+/** Each mood's searches, taken in turn by the slides so the photos vary but share one look. */
+export const PHOTO_MOODS = {
+  sunset: { label: "Sunset sky", queries: ["sunset sky", "golden hour clouds", "pink sky at dusk", "sunset over hills"] },
+  sea: { label: "Sea and beach", queries: ["calm sea", "beach at dusk", "ocean horizon", "waves on sand"] },
+  dark: { label: "Dark and moody", queries: ["city at night", "black and white street", "rain on window at night", "moody shadows"] },
+} as const;
+export type PhotoMood = keyof typeof PHOTO_MOODS;
+export const PHOTO_MOOD_IDS = Object.keys(PHOTO_MOODS) as PhotoMood[];
+
+/** The slides with the mood's searches in place of the writer's own, in turn. */
+export const moodSearches = <T extends { search: string }>(slides: T[], mood: PhotoMood): T[] =>
+  slides.map((s, i) => ({ ...s, search: PHOTO_MOODS[mood].queries[i % PHOTO_MOODS[mood].queries.length] }));
+
 // ---- keep the cover (the slideshow accounts' move: one cover that worked, new slides each time) ----
 
 /** The words on a slideshow's first slide, its boxes in order: the hook a kept cover is made from. */
@@ -190,7 +208,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
     const fresh = kept ? slides.slice(1) : slides;
     mine({ state: "finding", done: 0, of: fresh.length });
     const progress = (n: number) => mine({ done: n });
-    const found = ask.pictures === "mine" ? await minePictures(loadMedia(userId), fresh, spread) : await stockPictures(userId, fresh, progress);
+    const found = ask.pictures === "mine" ? await minePictures(loadMedia(userId), fresh, spread) : await stockPictures(userId, ask.mood ? moodSearches(fresh, ask.mood) : fresh, progress);
     const pictures = kept ? [null, ...found] : found;
     progress(fresh.length);
     mine({ state: "drawing" });
