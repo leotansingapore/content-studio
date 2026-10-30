@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { links } from "@/lib/links";
 import {
   MAX_HISTORY,
+  PLAIN_DARK,
   PLAIN_FILL,
+  plainFillFor,
   plainSlide,
   addBox,
   addSlide,
@@ -99,6 +101,14 @@ describe("a plain colour slide", () => {
     expect(plain.slides[1]).toBe(show.slides[1]);
     expect(plainSlide(plain, "s1", "#123abc").slides[0].fill).toBe("#123abc");
     expect(plainSlide(show, "s1", "red")).toBe(show);
+  });
+
+  it("starts from dark under light words with no box, pale blue otherwise, and keeps a fill the slide already has", () => {
+    const box = (color: string, bg: "none" | "white") => ({ ...makeBox("Words", { color, bg }), id: "b" });
+    expect(plainFillFor({ id: "s", boxes: [box("#FFFFFF", "none")] })).toBe(PLAIN_DARK);
+    expect(plainFillFor({ id: "s", boxes: [box("#FFFFFF", "white")] })).toBe(PLAIN_FILL);
+    expect(plainFillFor({ id: "s", boxes: [box("#111111", "none")] })).toBe(PLAIN_FILL);
+    expect(plainFillFor({ id: "s", fill: "#123ABC", boxes: [box("#FFFFFF", "none")] })).toBe("#123ABC");
   });
 });
 

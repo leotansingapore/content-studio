@@ -201,6 +201,17 @@ export function changeSlide(s: Slideshow, slideId: string, fn: (slide: ShowSlide
 
 /** A plain colour behind the words, for the flat text slides some slideshow accounts post (30 Oct teardowns). */
 export const PLAIN_FILL = "#DBEAFE";
+/** The same for light words with no box behind them, which pale blue would swallow. */
+export const PLAIN_DARK = "#1E293B";
+
+const light = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5;
+};
+
+/** The colour Plain colour starts from: the slide's own fill, else dark under light unboxed words, else pale blue. */
+export const plainFillFor = (slide: ShowSlide): string =>
+  slide.fill ?? (slide.boxes.some((b) => b.bg === "none" && HEX.test(b.color) && light(b.color)) ? PLAIN_DARK : PLAIN_FILL);
 
 /** The slide's picture gone and `fill` behind its words; a colour that isn't #rrggbb leaves the slide as it was. */
 export function plainSlide(s: Slideshow, slideId: string, fill: string): Slideshow {

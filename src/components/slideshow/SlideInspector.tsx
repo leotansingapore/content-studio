@@ -18,7 +18,7 @@ import {
   MAX_BOX_CHARS,
   MAX_SLIDES,
   MIN_SLIDES,
-  PLAIN_FILL,
+  plainFillFor,
   SIZES,
   SIZE_MAX,
   SIZE_MIN,
@@ -239,14 +239,14 @@ export default function SlideInspector({
               </label>
             </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => act.plain(slide.fill ?? PLAIN_FILL)} disabled={!slide.image && !slide.photo} className={outline("flex-1")}>
+              <Button type="button" variant="outline" size="sm" onClick={() => act.plain(plainFillFor(slide))} disabled={!slide.image && !slide.photo} className={outline("flex-1")}>
                 <PaintBucket className="h-3.5 w-3.5" /> Plain colour
               </Button>
               {!slide.image && !slide.photo && (
                 <input
                   type="color"
                   aria-label="Slide colour"
-                  value={slide.fill ?? PLAIN_FILL}
+                  value={plainFillFor(slide)}
                   onChange={(e) => act.plain(e.target.value)}
                   className={cn("h-9 w-11 cursor-pointer rounded-md border border-input bg-background p-1", TOUCH)}
                 />
