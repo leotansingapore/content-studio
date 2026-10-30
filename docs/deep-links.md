@@ -100,6 +100,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
 | /plan | view | plan, setup (the positioning form over a built plan) | plan; setup when there is no plan | replace | /plan?view=setup |
+| /linkedin | step | 1, 2, 3, 4 (the interview's steps) or strategy (the written strategy) | strategy once one is written, else 1 | replace | /linkedin?step=3 |
 | /calendar | view | month, week, upcoming | remembered, else month | replace | /calendar?view=upcoming |
 | /calendar | business | all, team-posts, or a business chip's label as a slug (leo, moneybees, finternship) | remembered (shared with /board), else all; team-posts when the link has teampost | replace | /calendar?business=team-posts |
 | /calendar | business=team-posts with profile | the brand team posts sit on (teamHome, ActivityTracker): every team post on its calendar. The posts board's "Team posts to review" line links it as See all, beside Review (the first waiting, ?teampost=) | | push | /calendar?business=team-posts&profile=pmg2k1x9ab |

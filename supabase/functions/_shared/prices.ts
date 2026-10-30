@@ -116,6 +116,7 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "post-tags": about(0.01), // teardown OpenAI + Jev, unverified
   "search-topics": upTo(0.098), // 5 Labs tasks + 30 items each + 10 YouTube pages
   "remix-patterns": about(0.01), // Jev on 12 posts + one OpenAI call, unverified
+  "linkedin-strategy": about(0.02), // one OpenAI call, about 2,000 words in and 1,500 out, unverified
   // North star phase 3 (phase3-build-brief.md, vendors).
   "own-words": about(0.01), // one short LLM call plus one Jev pick, unverified
   "thread-copy": about(0.01), // one LLM call, unverified

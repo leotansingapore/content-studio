@@ -84,6 +84,8 @@ export const DAILY_LIMITS = {
   "music-mood": 30,
   // Predicted engagement score in Write (post-score, Jev); the browser caches it per draft text.
   "post-score": 40,
+  // A LinkedIn strategy written from the interview's answers (linkedin-strategy, one OpenAI call).
+  "linkedin-strategy": 5,
   // Jev's judgment calls in Write (writing-judge): the sounds-human check and the rest.
   "writing-judge": 60,
   // Profile score out of 100 with name and bio rewrites (writing-judge mode "profile", Jev + OpenAI).

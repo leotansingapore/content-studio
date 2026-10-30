@@ -55,14 +55,14 @@ describe("nav", () => {
 
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
-    expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan"]);
+    expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/linkedin"]);
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/slideshow", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
-      expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/ideas"]);
+      expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/linkedin", "/ideas"]);
       expect(pages("write", email).slice(0, 10), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(7, 9), email).toEqual(["/competitors", "/saved"]);

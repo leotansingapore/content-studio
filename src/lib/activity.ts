@@ -396,6 +396,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "search-topics": "Search checks",
   "search-topics-global": "Search checks, everyone",
   "remix-patterns": "What worked reads",
+  "linkedin-strategy": "LinkedIn strategies",
   "own-words": "Words for your video",
   "page-read": "Articles read",
   "thread-copy": "Threads",
