@@ -28,16 +28,17 @@ function devAsLeo(): boolean {
   }
 }
 
-const asLeo = (u: { id?: string; email?: string } | undefined): LeoUser | null =>
-  u?.id && (leoOnly(u.email) || devAsLeo()) ? { id: u.id, email: u.email ?? "" } : null;
+type SessionUser = { id?: string; email?: string } | undefined;
+const asUser = (u: SessionUser): LeoUser | null => (u?.id ? { id: u.id, email: u.email ?? "" } : null);
+const asLeo = (u: SessionUser): LeoUser | null => (u?.id && (leoOnly(u.email) || devAsLeo()) ? asUser(u) : null);
 
 // The session supabase-js keeps on this device (its default storage key), read without the auth lock. getSession
 // can take a second or more on load, and Leo's cards would show today's link until then and jump to Remix.
-function storedLeo(): LeoUser | null | undefined {
+function storedUser(): SessionUser {
   try {
     const raw = globalThis.localStorage?.getItem(`sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`);
     const user = raw ? JSON.parse(raw)?.user : undefined;
-    return user?.id ? asLeo(user) : undefined;
+    return user?.id ? user : undefined;
   } catch {
     return undefined;
   }
@@ -45,7 +46,10 @@ function storedLeo(): LeoUser | null | undefined {
 
 let pending: Promise<LeoUser | null | undefined> | null = null;
 // The last answer, so a hook paints the right state on its first frame: the stored session's until getSession confirms.
-let known: LeoUser | null | undefined = storedLeo();
+const stored = storedUser();
+let known: LeoUser | null | undefined = stored ? asLeo(stored) : undefined;
+// The same read's answer for any sign-in, for pages that are on for everyone.
+let signedIn: LeoUser | null | undefined = stored ? asUser(stored) : undefined;
 let watching = false;
 
 function readLeo(): Promise<LeoUser | null | undefined> {
@@ -53,13 +57,14 @@ function readLeo(): Promise<LeoUser | null | undefined> {
     watching = true;
     // A sign-in or sign-out reads the session again on the next hook mount.
     supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") known = undefined;
+      if (event === "SIGNED_OUT") known = signedIn = undefined;
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") pending = null;
     });
   }
   const read = () =>
     supabase.auth.getSession().then(({ data }) => {
       known = asLeo(data.session?.user);
+      signedIn = asUser(data.session?.user);
       return known;
     });
   // A read that loses the auth lock to another call on page load is not an answer: answering null there drops
@@ -80,6 +85,19 @@ export function useLeoUser(): LeoUser | null | undefined {
   useEffect(() => {
     let live = true;
     readLeo().then((u) => live && setUser(u));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return user;
+}
+
+/** Any signed-in user, from the same one session read; null when signed out; undefined while it is still being read. */
+export function useSignedInUser(): LeoUser | null | undefined {
+  const [user, setUser] = useState<LeoUser | null | undefined>(signedIn);
+  useEffect(() => {
+    let live = true;
+    readLeo().then(() => live && setUser(signedIn));
     return () => {
       live = false;
     };

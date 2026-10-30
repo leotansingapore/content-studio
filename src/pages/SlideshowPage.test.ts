@@ -1,13 +1,15 @@
-// /slideshow is Leo's only: everyone else gets the not-found page, with or without ?ask= (pinned on today's code at
-// 4403dedf; its heading hand-edited 27 Oct to the not-on-your-account card). Never update the pinned file with vitest -u.
+// /slideshow is on for every sign-in (Leo, 30 Oct); signed out gets the not-found page (pinned on 4403dedf's code; its
+// heading hand-edited 27 Oct to the not-on-your-account card). Never update the pinned file with vitest -u.
+// ?ask= (carousel-copy mode ask, NORTH_STAR_USERS) opens its box on Leo's sign-ins only.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Slideshow } from "@/lib/slideshow";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false }));
+const who = vi.hoisted(() => ({ leo: null as { id: string; email: string } | null, user: null as { id: string; email: string } | null }));
+vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => who.leo, useLeoOnly: () => !!who.leo, useSignedInUser: () => who.user }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   SUPABASE_ANON_KEY: "",
@@ -18,12 +20,40 @@ const { default: SlideshowPage, slideshowTarget } = await import("./SlideshowPag
 const { blankSlideshow, makeBox } = await import("@/lib/slideshow");
 const html = (path = "/slideshow") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(SlideshowPage)));
 
-describe("/slideshow for everyone else", () => {
-  it("draws today's not-found page", async () => {
-    await expect(html()).toMatchFileSnapshot("./__pins__/slideshow-page-everyone.html");
+describe("/slideshow for every sign-in", () => {
+  const ANYONE = { id: "u2", email: "someone@example.com" };
+  const LEO = { id: "u1", email: "tanjunsing@gmail.com" };
+  afterEach(() => {
+    who.leo = who.user = null;
+    vi.unstubAllGlobals();
   });
-  it("draws the same with an open slideshow and ?ask=", () => {
+
+  it("draws today's not-found page when signed out, with or without ?ask=", async () => {
+    await expect(html()).toMatchFileSnapshot("./__pins__/slideshow-page-everyone.html");
     expect(html("/slideshow?s=show1&ask=make%20it%20shorter")).toBe(html());
+  });
+
+  it("opens the start card for anyone signed in", () => {
+    who.user = ANYONE;
+    const page = html();
+    expect(page).toContain("A blank slideshow");
+    expect(page).not.toContain("on your account yet");
+  });
+
+  // ?ask= fills the box in an effect, which a static render never runs; the tab's kept words fill it on the first frame
+  it("opens the ask box (?ask=, kept for the tab) on Leo's sign-ins only", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) } });
+    const kept = JSON.stringify({ id: "show1", text: "make it shorter" });
+    vi.stubGlobal("sessionStorage", { getItem: (k: string) => (k === "cs-slideshow-ask" ? kept : null), setItem: () => undefined, removeItem: () => undefined });
+    const show = { ...blankSlideshow(), id: "show1" };
+    const { saveSlideshow } = await import("@/lib/slideshow");
+    for (const u of [ANYONE, LEO]) saveSlideshow(u.id, show);
+    const path = "/slideshow?s=show1";
+    who.user = ANYONE;
+    expect(html(path)).not.toContain('aria-label="Change every slide"');
+    who.user = who.leo = LEO;
+    expect(html(path)).toContain('aria-label="Change every slide"');
   });
 });
 

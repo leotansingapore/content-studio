@@ -42,6 +42,8 @@ export interface FormatDef {
   Component?: LazyExoticComponent<ComponentType<{ userId: string; source: RemixSource | null }>>;
   /** Listed in the Remix sheet's "Also make" row. */
   alsoMake?: true;
+  /** Its /make page opens for every sign-in, not only Leo's (the server's remix OPEN_MAKES says the same). */
+  everyone?: true;
   /** Integrator only. */
   ready: boolean;
   /** public/formats/<slug>.webp and .mp4 exist. Integrator only. */
@@ -103,6 +105,8 @@ export const FORMATS: FormatDef[] = [
     price: () => priceOf("remix-make"),
     Component: lazy(() => import("@/components/make/Slideshow")),
     alsoMake: true,
+    // on for everyone (Leo, 30 Oct: "Slideshows for everyone")
+    everyone: true,
     ready: true,
   },
   {

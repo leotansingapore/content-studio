@@ -1,6 +1,7 @@
 // Slideshow (/slideshow): photo slides with free text boxes, the editor every slideshow opens in
 // (docs/north-star/items/edit-slideshow.md). The model is src/lib/slideshow.ts and the drawing
-// src/lib/slideshowDraw.ts; this page holds the edits, Undo and the URL. Leo's sign-ins only for now.
+// src/lib/slideshowDraw.ts; this page holds the edits, Undo and the URL. On for every sign-in (Leo, 30 Oct); the
+// agent's edit-by-chat and ?ask= (carousel-copy mode ask, NORTH_STAR_USERS) stay on Leo's, as on CarouselPage.
 //
 // URL (docs/deep-links.md): ?s=<id> opens one (push); ?slide=<n> (1-based), ?panel=text|overlay, ?box=<id> and
 // ?view=original (a remixed slideshow's Original tab) replace. Unknown values fall back to the start card, slide 1,
@@ -31,7 +32,7 @@ import { links } from "@/lib/links";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { callFn } from "@/lib/edgeFn";
 import { registerEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
@@ -254,10 +255,11 @@ function AskBox(p: { text: string; left: number | null; target: () => EditTarget
 }
 
 export default function SlideshowPage() {
+  const user = useSignedInUser();
   const leo = useLeoUser();
-  if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage notOnAccount />;
-  return <Slideshows userId={leo.id} />;
+  if (user === undefined || leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
+  if (!user) return <NotFoundPage notOnAccount />;
+  return <Slideshows userId={user.id} leo={!!leo} />;
 }
 
 function useFontsReady() {
@@ -272,7 +274,7 @@ function useFontsReady() {
   return ready;
 }
 
-function Slideshows({ userId }: { userId: string }) {
+function Slideshows({ userId, leo }: { userId: string; leo: boolean }) {
   const [shows, setShows] = useState(() => loadSlideshows(userId));
   // a slideshow saved outside this page (a job finishing) shows in the list, and its ?s= link opens it
   useEffect(() => onSlideshowsChanged(() => setShows(loadSlideshows(userId))), [userId]);
@@ -285,7 +287,7 @@ function Slideshows({ userId }: { userId: string }) {
   return (
     <div className="space-y-6">
       {show ? (
-        <Editor key={show.id} userId={userId} show={show} ready={ready} onSaved={setShows} onBack={close} />
+        <Editor key={show.id} userId={userId} leo={leo} show={show} ready={ready} onSaved={setShows} onBack={close} />
       ) : (
         <Start userId={userId} shows={shows} ready={ready} onShows={setShows} onOpen={openShow} />
       )}
@@ -401,7 +403,7 @@ function Start({ userId, shows, ready, onShows, onOpen }: { userId: string; show
 /** Preparing slides n of N, or the line a failed export shows. */
 type Prep = { done: number; total: number } | string | null;
 
-function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show: Slideshow; ready: boolean; onSaved: (s: Slideshow[]) => void; onBack: () => void }) {
+function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string; leo: boolean; show: Slideshow; ready: boolean; onSaved: (s: Slideshow[]) => void; onBack: () => void }) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -490,6 +492,7 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   editIn.current = { index, commit };
   const editTarget = useRef<EditTarget | null>(null);
   useEffect(() => {
+    if (!leo) return;
     let live = true;
     const off = registerEditTarget(editTarget.current = slideshowTarget({
       show: () => workRef.current,
@@ -502,14 +505,14 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
       editTarget.current = null;
       off();
     };
-  }, []);
+  }, [leo]);
   // ?ask=: fills the box once and leaves the address; nothing is written until Rewrite
-  const [pageAsk, setPageAsk] = useState(() => keptAsk(show.id));
+  const [pageAsk, setPageAsk] = useState(() => (leo ? keptAsk(show.id) : null));
   const setAskBox = (text: string | null) => {
     setPageAsk(text);
     keepAsk(show.id, text);
   };
-  const linkAsk = params.get("ask");
+  const linkAsk = leo ? params.get("ask") : null;
   useEffect(() => {
     if (linkAsk === null) return;
     setAskBox(linkAsk.trim().slice(0, ASK_MAX_CHARS));

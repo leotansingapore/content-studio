@@ -269,12 +269,39 @@ describe("phase 3's shapes", () => {
       { as: "image", source: AD },
       { as: "meme", layout: "pov", topic: "Payday" },
       { as: "speaking", seconds: 15, topic: "Why I review cover yearly" },
+      { as: "post", topic: "Overspending" },
+      { mode: "teardown", source: AD },
+      { mode: "fit", as: "slideshow", source: AD },
     ]) {
       const r = await db.handler!(new Request("http://x/remix", { method: "POST", headers: { Authorization: "Bearer someone-else" }, body: JSON.stringify({ mode: "make", brand: BRAND, ...b }) }));
       expect(r.status, b.as).toBe(403);
       expect(await r.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
     }
     expect([db.rows.size, openai.calls, jev.states.length]).toEqual([0, 0, 0]);
+  });
+
+  it("makes a slideshow for anyone signed in (on for everyone 30 Oct), on their own remix-make count", async () => {
+    openai.mode = "queue";
+    const slide = (title: string, sub = "One short line about it.") => ({ title, sub, search: "coffee on a desk" });
+    openai.answers = [{
+      refuse: false, reason: "",
+      slides: [
+        slide("3 signs your spending has gone quiet", "You might not see it yet."),
+        slide("1. You only check your account when it's low"),
+        slide("2. Small buys slip past the budget"),
+        slide("3. You can't say where last month went"),
+        slide("Busy isn't the same as saving", "The habit that fills next month starts today."),
+        slide("MoneyBees shows where it went", "One look a week at what you spent."),
+      ],
+      ...CAP,
+    }];
+    const r = await db.handler!(new Request("http://x/remix", {
+      method: "POST", headers: { Authorization: "Bearer someone-else" },
+      body: JSON.stringify({ mode: "make", as: "slideshow", topic: "Signs your spending is off", brand: BRAND }),
+    }));
+    expect(r.status).toBe(200);
+    expect((await r.json()).result.as).toBe("slideshow");
+    expect(db.rows.get(`someone-else|remix-make|${db.today()}`)).toBe(1);
   });
 
   it("picks an image's layout with Jev inside the make's one use, and writes for that layout", async () => {

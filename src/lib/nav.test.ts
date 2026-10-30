@@ -56,7 +56,7 @@ describe("nav", () => {
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan"]);
-    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
+    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/slideshow", "/edit", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);

@@ -15,7 +15,7 @@
 // (remix-format-clone), its [[k]] markers checked in code with one fixing pass in the use, the copy floor over its lines
 // and on-screen text, and the MAS question for a person's brand though it has a source.
 //
-// Order: JWT, NORTH_STAR_USERS, validate, the cached transcript of a reel or TikTok (cs_reel_sources, never a new read),
+// Order: JWT, NORTH_STAR_USERS (a slideshow make is on for everyone signed in, logic.ts OPEN_MAKES), validate, the cached transcript of a reel or TikTok (cs_reel_sources, never a new read),
 // consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
 // the model never answered (OpenAI down, a timeout) gives the use back; an answer that was refused, unusable or failed
 // the checks was billed and keeps it, so refusals can't be repeated past the daily cap (security review, 20 Oct).
@@ -64,6 +64,7 @@ import {
   memeQuestions,
   memeState,
   memeVerdict,
+  openToAll,
   parseMakeRequest,
   pickAdLayout,
   refusalOf,
@@ -160,9 +161,8 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return fail("unauthorized", "Sign in to remix.", 401);
-    if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return fail("not_enabled", "This isn't switched on for your account yet.", 403);
-
     const body = await req.json().catch(() => null);
+    if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid) && !openToAll(body)) return fail("not_enabled", "This isn't switched on for your account yet.", 403);
     const mode = (body as { mode?: unknown } | null)?.mode;
     if (mode === "fit") return await fit(admin, uid, body);
     if (mode === "teardown") return await teardown(admin, uid, body);

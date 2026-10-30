@@ -128,7 +128,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
-      { to: "/slideshow", label: "Slideshow", owners: LEO_EMAILS },
+      { to: "/slideshow", label: "Slideshow" },
       { to: "/edit", label: "Video" },
       { to: "/library", label: "Everything", title: "Library", owners: LEO_EMAILS, group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },

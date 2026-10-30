@@ -53,3 +53,25 @@ describe("useLeoUser's first frame", () => {
   });
 });
 
+
+describe("useSignedInUser's first frame", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function firstFrame(stored: unknown) {
+    vi.stubGlobal("localStorage", { getItem: (k: string) => (k === "sb-abc-auth-token" && stored ? JSON.stringify(stored) : null) });
+    vi.resetModules();
+    const { useSignedInUser } = await import("./useLeoOnly");
+    return renderToStaticMarkup(
+      createElement(() => {
+        const u = useSignedInUser();
+        return u ? `${u.id} ${u.email}` : String(u);
+      }),
+    );
+  }
+
+  it("is any stored sign-in, Leo's or not, for pages that are on for everyone; unknown with none", async () => {
+    expect(await firstFrame({ user: { id: "u2", email: "someone@example.com" } })).toBe("u2 someone@example.com");
+    expect(await firstFrame({ user: { id: "u1", email: "tanjunsing@gmail.com" } })).toBe("u1 tanjunsing@gmail.com");
+    expect(await firstFrame(null)).toBe("undefined");
+  });
+});

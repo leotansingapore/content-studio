@@ -413,6 +413,13 @@ export function withSpoken(s: SourceIn, transcript: string | null | undefined): 
   return { ...s, text: blockText(`${said}\n\n${s.text}`, 2000) };
 }
 
+/** Makes on for everyone signed in (Leo, 30 Oct: "Slideshows for everyone"); every other make and mode stays on NORTH_STAR_USERS. */
+export const OPEN_MAKES: readonly RemixAs[] = ["slideshow"];
+export const openToAll = (raw: unknown): boolean => {
+  const r = obj(raw);
+  return r.mode === "make" && OPEN_MAKES.includes(r.as as RemixAs);
+};
+
 /** The request as sent, cleaned, or the 400 message. Nothing here counts a use. */
 export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest } | { ok: false; error: string } {
   const r = obj(raw);
