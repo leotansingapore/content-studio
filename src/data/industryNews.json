@@ -1,5 +1,17 @@
 [
   {
+    "id": "6a3b5d037e29",
+    "title": "At least $1.3m lost in October to scammers posing as Simba staff and government officials",
+    "gist": "At least $1.3 million was lost in October across 59 cases to scammers posing as Simba staff and government officials, police said on Oct 29. Fraudsters told victims their details were misused before transferring them to fake officials who told them to hand over money or valuables. StarHub and M1 also warned customers on Oct 29 to be on alert for calls from people claiming to be their staff.",
+    "talkingPoint": "Clients may worry about protecting their family savings since seniors aged 65 and above suffer the highest losses on average. A good way to bring this up is to ask how their family secures liquid assets and offer to review how their emergency cash reserves are set up.",
+    "clientMessage": "Hi [Client name], the police warned that scammers posing as telco workers and government officials took over $1.3 million in October alone. Scams remain common, and seniors suffer the highest average losses. Protecting your hard-earned savings is always important. If you want, we can look at your current financial plan together to see how your liquid cash and reserves are arranged. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/at-least-1-3m-lost-in-october-to-scammers-posing-as-simba-staff-and-government-officials",
+    "publishedAt": "2026-10-29T07:08:00+00:00",
+    "topic": "Scams",
+    "clipping": "/news/6a3b5d037e29.jpg"
+  },
+  {
     "id": "1c2bdf10833c",
     "title": "High inflation to persist globally into next year, Reuters poll shows",
     "gist": "A Reuters poll of more than 500 economists published on Oct 27 showed that high inflation will persist into next year, with crude oil prices hitting a six-month high of over $117 last week. Economists raised 2027 inflation forecasts for 31 of 50 economies surveyed. For ordinary people, the report states that cost of living pressures are squeezing households and affecting household budgets globally.",
@@ -461,18 +473,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "eab7f642835b",
-    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
-    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
-    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
-    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/eab7f642835b.jpg"
-  },
-  {
     "id": "5e4ceccda4ff",
     "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
     "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
@@ -483,6 +483,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/5e4ceccda4ff.jpg"
+  },
+  {
+    "id": "eab7f642835b",
+    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
+    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
+    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
+    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/eab7f642835b.jpg"
   },
   {
     "id": "cc5c9a27e256",
@@ -545,6 +557,18 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
+    "id": "6d46dc1c57d8",
+    "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
+    "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
+    "talkingPoint": "Every client privately wonders whether the company will actually pay. This is the answer with a number on it, and it is the insurer's own published figure, so they can check it. Careful: This is AIA's own release, not an independent audit, and a payout total is not a claims-approval rate. Never let it imply a particular claim will be paid; that turns on the policy wording.",
+    "clientMessage": "Hi [Client name],\n\nOver the last ten years AIA Singapore paid out more than S$40 billion in claims and maturity proceeds. That is the part of a policy you never see until you need it.\n\nSource: AIA Singapore, 12 Feb 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-singapore-surpasses-40-billion-in-payouts-over-the-last-decade",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/6d46dc1c57d8.jpg"
+  },
+  {
     "id": "146ce01a9327",
     "title": "Budget 2026 Highlights",
     "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
@@ -567,18 +591,6 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Cost of living",
     "clipping": "/news/38d77cf6f8ef.jpg"
-  },
-  {
-    "id": "6d46dc1c57d8",
-    "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
-    "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
-    "talkingPoint": "Every client privately wonders whether the company will actually pay. This is the answer with a number on it, and it is the insurer's own published figure, so they can check it. Careful: This is AIA's own release, not an independent audit, and a payout total is not a claims-approval rate. Never let it imply a particular claim will be paid; that turns on the policy wording.",
-    "clientMessage": "Hi [Client name],\n\nOver the last ten years AIA Singapore paid out more than S$40 billion in claims and maturity proceeds. That is the part of a policy you never see until you need it.\n\nSource: AIA Singapore, 12 Feb 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-singapore-surpasses-40-billion-in-payouts-over-the-last-decade",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/6d46dc1c57d8.jpg"
   },
   {
     "id": "e98550debf11",

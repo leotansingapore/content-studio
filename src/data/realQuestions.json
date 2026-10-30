@@ -1,6 +1,48 @@
 {
-  "fetched": "2026-10-29",
+  "fetched": "2026-10-30",
   "questions": [
+    {
+      "question": "Should you max out Singlife insurance?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xj060b/should_you_max_out_singlife_insurance/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-29T23:48:26.000Z",
+      "audience": "parent"
+    },
+    {
+      "question": "Question regarding Poems",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xim3u8/question_regarding_poems/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-29T14:50:55.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "IBKR for DCA",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xikvp8/ibkr_for_dca/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-29T14:03:29.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "all advice appreciated",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xi9sc1/all_advice_appreciated/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-29T03:56:53.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "how can i get $3000 urgently? with bad credit.",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xi9fjf/how_can_i_get_3000_urgently_with_bad_credit/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-29T03:37:54.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Taking up loan $60k bank loan to pay off HDB.",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xi76ap/taking_up_loan_60k_bank_loan_to_pay_off_hdb/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-29T01:46:53.000Z",
+      "audience": "young-adult"
+    },
     {
       "question": "Interactive Brokers - SGD now available for funding - Part 2",
       "url": "https://forums.hardwarezone.com.sg/threads/interactive-brokers-sgd-now-available-for-funding-part-2.6411054/",
@@ -209,7 +251,7 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1xdenss/withdrawn_pruextrashield_plus/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-23T13:52:36.000Z",
-      "audience": "general"
+      "audience": "pre-retiree"
     },
     {
       "question": "Fresh Grad looking for advice: Invest in stocks or property?",
@@ -378,48 +420,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-20T08:51:36.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "Invest CPF-OA Poems Cash Management vs Cash Plus Vs Endowus",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xamhs6/invest_cpfoa_poems_cash_management_vs_cash_plus/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-20T08:21:51.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "31f advise for housing/retirement planning",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x9yc87/31f_advise_for_housingretirement_planning/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-19T14:26:27.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Im workaholic but....",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x9vjel/im_workaholic_but/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-19T12:27:23.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Do I need to top up my CPF?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x9ryf9/do_i_need_to_top_up_my_cpf/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-19T09:09:03.000Z",
-      "audience": "parent"
-    },
-    {
-      "question": "best way to spend and convert currencies back in my home country Malaysia, as a Singapore student",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x9rgjq/best_way_to_spend_and_convert_currencies_back_in/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-19T08:37:42.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Anyone here is an offshore customer of another country?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x9nlgl/anyone_here_is_an_offshore_customer_of_another/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-19T04:40:10.000Z",
-      "audience": "pre-retiree"
     }
   ]
 }
