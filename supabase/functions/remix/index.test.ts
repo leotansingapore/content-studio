@@ -304,6 +304,23 @@ describe("phase 3's shapes", () => {
     expect(db.rows.get(`someone-else|remix-make|${db.today()}`)).toBe(1);
   });
 
+  it("writes a coach's slideshow as the coach, with no adviser framing, and asks Jev about the coach", async () => {
+    const { adviserWordsIn } = await import("../_shared/adviserWords");
+    openai.mode = "queue";
+    const slide = (title: string, sub = "One short line about it.") => ({ title, sub, search: "coffee on a desk" });
+    openai.answers = [{ refuse: false, reason: "", slides: [slide("3 signs your week is too full"), slide("1. Lunch at your desk"), slide("2. Email at midnight"), slide("3. No time to move"), slide("Rest is part of the work"), slide("Jane Tan runs a 6am class")], ...CAP }];
+    jev.answers = { copied_claim: { noul: 0.1 }, invented_self: { noul: 0.1 } } as never;
+    const r = await db.handler!(new Request("http://x/remix", {
+      method: "POST", headers: { Authorization: "Bearer someone-else" },
+      body: JSON.stringify({ mode: "make", as: "slideshow", topic: "Signs your week is too full", brand: { name: "Jane Tan", audience: "busy parents", profession: "Coach" } }),
+    }));
+    expect(r.status).toBe(200);
+    const sent = openai.sent[0].messages.map((m: { content: string }) => m.content).join("\n");
+    expect(sent).toContain("You help a coach write a new post");
+    expect(adviserWordsIn(sent)).toEqual([]);
+    expect(jev.sent.join("\n")).toContain("about the coach, their clients");
+  });
+
   it("picks an image's layout with Jev inside the make's one use, and writes for that layout", async () => {
     openai.mode = "queue";
     openai.answers = [{ refuse: false, reason: "", words: { ...words, statLabel: "of reps say follow-ups slip" }, ...CAP }];

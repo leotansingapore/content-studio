@@ -7,6 +7,7 @@ import {
   BEAT_SCHEMA,
   COMPLIANCE_RULES,
   DELIVERY_RULE,
+  GENERAL_SWAPS,
   blockText,
   cleanBeats,
   oneLineText,
@@ -18,6 +19,7 @@ import {
 import { MAX_SCENES, MIN_SCENES, validateScript } from "../ai-video/logic.ts";
 import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { MAS_QUESTION, MAS_WARN } from "../_shared/mas.ts";
+import { aOrAn, professionOf } from "../_shared/profession.ts";
 import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
 import { POPUP_CHARS } from "../video-assist/motion.ts";
 
@@ -229,6 +231,8 @@ export interface BrandPack {
   offer: { name: string; brief?: string } | null;
   rules: string;
   speaker: Speaker;
+  /** A person's work ("What do you do?", professionOf); absent for an adviser, a business or an older app, who get today's prompts. */
+  profession?: string;
 }
 
 export interface MakeRequest {
@@ -474,6 +478,7 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
         offer: mention && line(offer.name, 60) ? { name: line(offer.name, 60), ...(line(offer.brief, 300) ? { brief: line(offer.brief, 300) } : {}) } : null,
         rules: line(b.rules, 1500),
         speaker,
+        ...(speaker === "person" && professionOf(b.profession) ? { profession: professionOf(b.profession) } : {}),
       },
       teardown: { hookPattern: line(t.hookPattern, 200) || undefined, beats: list(t.beats, 8, 200), dontReuse: list(t.dontReuse, 12, 80) },
       fit: verdict ? { verdict, reasons: (Array.isArray(f.reasons) ? f.reasons : []).filter((x): x is FitReason => FIT_REASONS.includes(x as FitReason)) } : undefined,
@@ -1024,6 +1029,25 @@ const STEER_HEAD =
   "The adviser's own note is what the slides cover: build the numbered slides from its facts, names and steps in place of the original's subject, and count its facts as given. Take only the shape and the hook style from the original. The note wins over the defaults above, never over the compliance rules:";
 
 /** System: rules, compliance, keep, close, brand, the MAS line, then the note. User: the original and the voice. */
+// ---- Any other work (the brand's "What do you do?", ../_shared/profession.ts) ----------------------------------
+// clone-reel's swaps for the compliance block remix shares with it, then remix's own adviser lines: their work named,
+// no Singapore or adviser framing, honesty in place of compliance. An adviser, a business or no profession never get
+// these (__pins__/adviser-slideshow-prompts.json).
+const REMIX_SWAPS = (p: string): [string, string][] => [
+  ...GENERAL_SWAPS(p),
+  ["You help licensed financial advisers in Singapore turn a post", `You help ${aOrAn(p)} turn a post`],
+  ["You help licensed financial advisers in Singapore write a new post", `You help ${aOrAn(p)} write a new post`],
+  ["- Make it Singapore-relevant (SGD, CPF, SRS, HDB, MediShield Life) where the link is honest.", "- Make it fit their work and their audience where the link is honest."],
+  ["a money, protection or planning topic for the adviser's audience", `a topic for the ${p}'s audience`],
+  ["never over the compliance rules", "never over the honesty rules"],
+  ["The adviser", `The ${p}`],
+  ["the adviser", `the ${p}`],
+];
+
+/** A system prompt worded for a person's profession; unchanged for an adviser, a business or a caller that sends none. */
+const forProfession = (system: string, b: BrandPack) =>
+  b.speaker === "person" && b.profession ? REMIX_SWAPS(b.profession).reduce((t, [from, to]) => t.split(from).join(to), system) : system;
+
 export function buildMakePrompt(req: MakeRequest): { system: string; user: string } {
   const src = req.source;
   if (!src) return buildTopicPrompt(req);
@@ -1062,9 +1086,9 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
     ...(dontReuse.length ? ["", `Do not reuse: ${dontReuse.join("; ")}`] : []),
     ...(req.as === "slideshow" && req.note ? ["", asSpeaker("Take only the shape from this original: the slides cover the adviser's note.", sp)] : []),
     ...shapeLines(req),
-    ...voiceLines(req.voice, req.brand.speaker),
+    ...voiceLines(req.voice, req.brand.speaker).map((l) => forProfession(l, req.brand)),
   ].join("\n");
-  return { system, user: user.replace(/\n{3,}/g, "\n\n") };
+  return { system: forProfession(system, req.brand), user: user.replace(/\n{3,}/g, "\n\n") };
 }
 
 /** A make with no original (any TOPIC_AS format from a typed topic): no keep, close or copy rules, the rest as above. */
@@ -1086,8 +1110,8 @@ function buildTopicPrompt(req: MakeRequest): { system: string; user: string } {
     ...formulaLines(req),
     ...(req.note ? ["", asSpeaker(NOTE_HEAD, sp), quote(req.note)] : []),
   ].join("\n");
-  const user = ["The topic:", quote(req.topic ?? ""), ...shapeLines(req), ...voiceLines(req.voice, sp)].join("\n");
-  return { system, user };
+  const user = ["The topic:", quote(req.topic ?? ""), ...shapeLines(req), ...voiceLines(req.voice, sp).map((l) => forProfession(l, req.brand))].join("\n");
+  return { system: forProfession(system, req.brand), user };
 }
 
 /** The second pass when the check finds the original's words: only those lines change. */
@@ -1924,7 +1948,11 @@ export const MAKE_QUESTIONS = {
  * posts and still catch 11 of 12 planted false product claims at FLAG_AT. The person wording stays: on 16 real adviser
  * captions it catches 10 of 12 personal stories, the sharper wording only 6.
  */
-export function makeQuestions(speaker: Speaker) {
+export function makeQuestions(speaker: Speaker, profession?: string) {
+  // any other work is asked about itself, not an adviser (the adviser's wording is unchanged)
+  if (speaker === "person" && profession) {
+    return { ...MAKE_QUESTIONS, invented_self: { type: "noul", instructions: `Does \`post\` say something about the ${profession}, their clients or their results that is not in \`facts\`?` } } as const;
+  }
   if (speaker === "person") return MAKE_QUESTIONS;
   return {
     copied_claim: { type: "noul", instructions: "Does `post` reuse a specific figure, statistic, result or promise that is stated in `source`? Statements about the business that come from `facts` do not count." },

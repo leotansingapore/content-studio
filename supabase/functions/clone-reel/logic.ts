@@ -874,7 +874,7 @@ function briefLines(angle: string, positioning: PositioningInput | null): string
 // The same breakdown, concepts and version for any profession: their work named, no Singapore or adviser framing,
 // and the honesty everyone keeps in place of the compliance block. An adviser, or no profession, never gets these.
 
-const GENERAL_SWAPS = (p: string): [string, string][] => [
+export const GENERAL_SWAPS = (p: string): [string, string][] => [
   ["You help licensed financial consultants in Singapore learn", `You help ${aOrAn(p)} learn`],
   ["the same topic, made for Singapore.", "the same topic, made for their work and audience."],
   [

@@ -30,6 +30,15 @@ const kit = (scope: string, extra: Record<string, unknown> = {}) =>
   set(`content-studio-carousel-brand-${scope}`, { color: "#1E3A8A", name: "", handle: "", ...extra });
 
 describe("brandPack", () => {
+  it("sends the brand's profession for any other work, and none for an adviser or nothing set", () => {
+    kit(UID, { name: "Jane Tan", profession: "Coach" });
+    expect(brandPack(UID, { platform: "instagram", mention: true, offer: null }).profession).toBe("coach");
+    for (const profession of ["Financial adviser", "", undefined]) {
+      kit(UID, { name: "Jane Tan", profession });
+      expect(brandPack(UID, { platform: "instagram", mention: true, offer: null })).not.toHaveProperty("profession");
+    }
+  });
+
   it("reads the kit, positioning and coach profile of the open brand only", () => {
     kit(UID, { name: "Leo Tan", offers: [{ name: "Free money check", url: "x.sg/check" }], emojiPolicy: "none" });
     set(`content-studio-positioning-${UID}`, { oneLiner: "I help fresh grads", audience: "young-adult", audienceDetail: "earning $4K", topics: ["CPF", " "], platform: "linkedin" });

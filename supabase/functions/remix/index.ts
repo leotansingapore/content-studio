@@ -284,7 +284,7 @@ Deno.serve(async (req) => {
       ask: async (state) => {
         // ad versions are read one by one below, so one flag never lands on the whole set
         if (make.as === "ads") return null;
-        const answers = await askJev({ ...(state as object), facts: jevFacts(make.brand) }, makeQuestions(make.brand.speaker), { who: "remix make" });
+        const answers = await askJev({ ...(state as object), facts: jevFacts(make.brand) }, makeQuestions(make.brand.speaker, make.brand.profession), { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
     }, floorOf(make));
@@ -308,8 +308,8 @@ Deno.serve(async (req) => {
     }
     // a topic's post, carousel or script too (the agent's makes), and an edit's script; a source's keep today's answer, with no mas
     if (result.as === "image" || result.as === "meme" || result.as === "edit" || (!make.source && (result.as === "post" || result.as === "carousel" || result.as === "script"))) {
-      // the shared MAS question warns and never blocks; a business isn't a licensed adviser, so it isn't asked
-      const text = make.brand.speaker === "person" ? masText(result) : null;
+      // the shared MAS question warns and never blocks; a business, or a person in any other work, isn't a licensed adviser, so isn't asked
+      const text = make.brand.speaker === "person" && !make.brand.profession ? masText(result) : null;
       const answers = text ? await askJev({ post: text }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: `remix ${result.as} mas` }) : null;
       flags = { ...flags, mas: masWarn(noulOf(answers, "mas")) };
     }

@@ -7,6 +7,7 @@ import { loadBrand } from "@/lib/carousel";
 import { coachContext, loadCoachProfile } from "@/lib/coachProfile";
 import { brandFacts } from "@/lib/competitors";
 import { loadPositioning } from "@/lib/positioning";
+import { professionFor } from "@/lib/profession";
 import { DEFAULT_PROFILE_ID, activeProfile, activeProfileId, scoped } from "@/lib/profiles";
 import { VOICE_IDS, type VoiceId } from "@/lib/textVoice";
 import type { BrandPack, Speaker } from "../../supabase/functions/remix/logic.ts";
@@ -99,6 +100,7 @@ export function brandPack(userId: string, o: { platform: string; mention: boolea
   const name = ownBrandName(userId);
   const mention = o.mention && name !== "";
   const offer = mention && o.offer && offerNames(userId).includes(o.offer) ? { name: o.offer } : null;
+  const profession = professionFor(userId);
   return {
     name,
     oneLiner: p?.oneLiner.trim() ?? "",
@@ -109,6 +111,8 @@ export function brandPack(userId: string, o: { platform: string; mention: boolea
     offer,
     rules: brandRulesLine(kit, o.platform),
     speaker: o.speaker ?? speakerFor(userId),
+    // "What do you do?": the writer names the work and drops the adviser framing; left out for an adviser or nothing set
+    ...(profession ? { profession } : {}),
   };
 }
 
