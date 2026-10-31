@@ -24,6 +24,12 @@ import {
   loadSlideshows,
   loadStyleHint,
   makeBox,
+  makeSticker,
+  isSticker,
+  STICKERS,
+  STICKER_SIZE,
+  W_MIN,
+  slideWords,
   moveSlide,
   redo,
   remember,
@@ -210,6 +216,30 @@ describe("slides and boxes", () => {
     for (const b of s.slides.flatMap((x) => x.boxes)) expect(b).toMatchObject({ font: "serif", color: "#ff0000", bg: "bar" });
     expect(s.slides.map((x) => x.boxes.map((b) => [b.text, b.x, b.y]))).toEqual(words);
     expect(applyToAll(s, { font: "comic" }).slides[0].boxes[0].font).toBe("serif");
+  });
+});
+
+describe("stickers", () => {
+  it("knows a sticker by its having no letters or digits", () => {
+    for (const s of STICKERS) expect(isSticker({ text: s.glyph })).toBe(true);
+    expect(isSticker({ text: "\u{1F449}\n\u{1F449}\n\u{1F449}" })).toBe(true);
+    for (const text of ["Hi \u2705", "100%", "Step 1", "", "  "]) expect(isSticker({ text })).toBe(false);
+  });
+
+  it("makes a big borderless sticker, narrow enough to sit beside the words", () => {
+    expect(makeSticker("\u2728", 0.72)).toMatchObject({ text: "\u2728", bg: "none", size: STICKER_SIZE, stroke: 0, w: W_MIN, x: 0.5, y: 0.72 });
+  });
+
+  it("keeps a sticker's own style through apply to all, and out of the slide's words", () => {
+    let s = fromPost("Three things.\n\nFirst point here.");
+    const sid = s.slides[0].id;
+    const tick = makeSticker("\u2705");
+    s = addBox(s, sid, tick);
+    s = applyToAll(s, { size: 40, bg: "white" });
+    expect(s.slides[0].boxes.find((b) => b.id === tick.id)).toMatchObject({ size: STICKER_SIZE, bg: "none" });
+    expect(s.slides[0].boxes.find((b) => b.id !== tick.id)).toMatchObject({ size: 40, bg: "white" });
+    expect(slideWords(s)).not.toContain("\u2705");
+    expect(slideWords(s)).toContain("First point here");
   });
 });
 

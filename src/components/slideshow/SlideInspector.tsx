@@ -20,6 +20,7 @@ import {
   MIN_SLIDES,
   plainFillFor,
   SIZES,
+  STICKERS,
   SIZE_MAX,
   SIZE_MIN,
   STROKE_MAX,
@@ -53,6 +54,8 @@ export interface InspectorActs {
   duplicate: () => void;
   deleteSlide: () => void;
   addText: () => void;
+  /** Adds a sticker (one of STICKERS' glyphs) to the slide and picks it. */
+  sticker: (glyph: string) => void;
   words: (text: string) => void;
   style: (patch: Partial<BoxStyle>) => void;
   overlay: (patch: Partial<Slideshow["overlay"]>) => void;
@@ -198,8 +201,27 @@ export default function SlideInspector({
       <Button type="button" variant="outline" size="sm" onClick={act.addText} disabled={slide.boxes.length >= MAX_BOXES} className={outline("w-full")}>
         <Type className="h-3.5 w-3.5" /> Add text
       </Button>
-      {slide.boxes.length >= MAX_BOXES && <p className="text-[11px] text-muted-foreground">6 text boxes is the most a slide holds.</p>}
+      {slide.boxes.length >= MAX_BOXES && <p className="text-[11px] text-muted-foreground">6 text boxes and stickers is the most a slide holds.</p>}
     </div>
+  );
+  const stickers = (
+    <Group label="Stickers">
+      <div className="grid grid-cols-8 gap-1">
+        {STICKERS.map((s) => (
+          <button
+            key={s.name}
+            type="button"
+            aria-label={`Add ${s.name} sticker`}
+            title={s.name}
+            onClick={() => act.sticker(s.glyph)}
+            disabled={slide.boxes.length >= MAX_BOXES}
+            className={cn("flex aspect-square min-h-9 items-center justify-center rounded-md border border-input bg-background text-lg hover:border-primary/40 disabled:opacity-40", TOUCH)}
+          >
+            {s.glyph}
+          </button>
+        ))}
+      </div>
+    </Group>
   );
 
   return (
@@ -341,6 +363,7 @@ export default function SlideInspector({
               <p className="text-sm text-muted-foreground">Tap the words on a slide to change them.</p>
               {chips}
               {addText}
+              {stickers}
               {allBox}
               <p className="text-xs text-muted-foreground">Pick a text box to change its style.</p>
             </>
@@ -353,6 +376,7 @@ export default function SlideInspector({
               </label>
               {chips}
               {addText}
+              {stickers}
               {allBox}
               <Group label="Font">
                 <Choices label="Font" value={box.font} options={["heavy", "clean", "serif"] as BoxFont[]} labels={FONT_LABELS} onPick={(font) => act.style({ font })} />

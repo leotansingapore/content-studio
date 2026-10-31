@@ -7,15 +7,15 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", SUPABASE_ANON_KEY: "", supabase: { auth: {}, functions: { invoke: vi.fn() } } }));
 
 const { default: SlideInspector } = await import("./SlideInspector");
-const { blankSlideshow } = await import("@/lib/slideshow");
+const { blankSlideshow, STICKERS } = await import("@/lib/slideshow");
 
 const noop = () => undefined;
-const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, words: noop, style: noop, overlay: noop };
-const draw = (slide: Record<string, unknown>, cell = 0) =>
+const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, words: noop, style: noop, overlay: noop };
+const draw = (slide: Record<string, unknown>, cell = 0, panel = "slide") =>
   renderToStaticMarkup(
     createElement(MemoryRouter, null,
       createElement(SlideInspector, {
-        userId: "u1", show: { ...blankSlideshow(), slides: [slide as never, { id: "s2", boxes: [] }] }, slide: slide as never, box: null, panel: "slide",
+        userId: "u1", show: { ...blankSlideshow(), slides: [slide as never, { id: "s2", boxes: [] }] }, slide: slide as never, box: null, panel: panel as never,
         onPanel: noop, allBoxes: false, onAllBoxes: noop, swap: { busy: false, note: null }, cell, brand: { handle: false, logo: false }, act,
       })),
   );
@@ -38,5 +38,15 @@ describe("the Slide tab's pictures", () => {
     expect(html).toMatch(/aria-label="Collage picture 1" aria-pressed="false"/);
     expect(html).toContain("Bea Lim");
     expect(html).not.toContain(">Ann<");
+  });
+});
+
+describe("the Text tab's stickers", () => {
+  it("offers every sticker, and none once the slide holds 6 boxes", () => {
+    const html = draw({ id: "s1", boxes: [] }, 0, "text");
+    for (const s of STICKERS) expect(html).toMatch(new RegExp(`aria-label="Add ${s.name} sticker"(?![^>]*disabled="")`));
+    const box = (i: number) => ({ id: `b${i}`, text: "x", x: 0.5, y: 0.5, w: 0.8, font: "clean", size: 40, color: "#111111", stroke: 0, strokeColor: "#FFFFFF", bg: "white" });
+    const full = draw({ id: "s1", boxes: [0, 1, 2, 3, 4, 5].map(box) }, 0, "text");
+    expect(full.match(/sticker" title="[^"]+" disabled=""/g)).toHaveLength(STICKERS.length);
   });
 });

@@ -57,7 +57,9 @@ import {
   fromPost,
   loadSlideshows,
   loadStyleHint,
+  isSticker,
   makeBox,
+  makeSticker,
   moveSlide,
   NEW_WORDS,
   onSlideshowsChanged,
@@ -542,9 +544,11 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
 
   const style = (patch: Partial<BoxStyle>) => {
     const key = Object.keys(patch)[0];
-    if (allBoxes) commit(applyToAll(work, patch), `all:${key}`);
+    // a sticker restyles alone: "Apply to all" and the style new text boxes carry are for words
+    const sticker = !!box && isSticker(box);
+    if (allBoxes && !sticker) commit(applyToAll(work, patch), `all:${key}`);
     else if (box) commit(changeBox(work, slide.id, box.id, patch), `style:${box.id}:${key}`);
-    if (box) saveStyleHint({ ...pickStyle(box), ...patch });
+    if (box && !sticker) saveStyleHint({ ...pickStyle(box), ...patch });
   };
 
   // async picks land on the slide they were made for, on the slideshow as it is by then
@@ -644,6 +648,11 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
     },
     addText: () => {
       const b = makeBox(NEW_WORDS, { ...loadStyleHint(), y: NEW_BOX_Y[slide.boxes.length] ?? 0.5 });
+      commit(addBox(work, slide.id, b));
+      pick(b.id);
+    },
+    sticker: (glyph) => {
+      const b = makeSticker(glyph, NEW_BOX_Y[slide.boxes.length] ?? 0.5);
       commit(addBox(work, slide.id, b));
       pick(b.id);
     },

@@ -124,6 +124,32 @@ export function makeBox(text: string, o: Partial<TextBox> = {}): TextBox {
   return clampBox({ id: newId("b"), text, x: 0.5, y: 0.5, w: 0.84, ...DEFAULT_STYLE, ...o });
 }
 
+/** The sticker row (30 Oct teardowns: red X and green tick, pointing hands, sparkles, a REC dot, an alarm). */
+export const STICKERS: { glyph: string; name: string }[] = [
+  { glyph: "❌", name: "Red cross" },
+  { glyph: "✅", name: "Green tick" },
+  { glyph: "⚠️", name: "Warning" },
+  { glyph: "\u{1F449}", name: "Pointing right" },
+  { glyph: "\u{1F447}", name: "Pointing down" },
+  { glyph: "➡️", name: "Arrow right" },
+  { glyph: "⬇️", name: "Arrow down" },
+  { glyph: "✨", name: "Sparkles" },
+  { glyph: "⭐", name: "Star" },
+  { glyph: "\u{1F525}", name: "Fire" },
+  { glyph: "\u{1F4AF}", name: "Hundred" },
+  { glyph: "❤️", name: "Red heart" },
+  { glyph: "\u{1F62D}", name: "Crying face" },
+  { glyph: "\u{1F480}", name: "Skull" },
+  { glyph: "\u{1F534}", name: "Red dot" },
+  { glyph: "⏰", name: "Alarm clock" },
+];
+export const STICKER_SIZE = 120;
+
+/** A box of emoji or symbols with no letters or digits. "Apply to all", the carried style and the slide's words pass it by. */
+export const isSticker = (b: Pick<TextBox, "text">) => !!b.text.trim() && !/[\p{L}\p{N}]/u.test(b.text);
+
+export const makeSticker = (glyph: string, y = 0.5): TextBox => makeBox(glyph, { bg: "none", size: STICKER_SIZE, stroke: 0, w: W_MIN, y });
+
 /** Only the style keys of `o`, each one valid; text, place and id never come through. */
 export function styleOf(o: Partial<Record<string, unknown>>): Partial<BoxStyle> {
   const out: Partial<BoxStyle> = {};
@@ -270,10 +296,10 @@ export function restoreBox(s: Slideshow, slideId: string, box: TextBox, at: numb
   );
 }
 
-/** "Apply to all text boxes": the style keys in `patch` on every box of every slide; the words stay. */
+/** "Apply to all text boxes": the style keys in `patch` on every box of every slide; the words stay, stickers keep theirs. */
 export function applyToAll(s: Slideshow, patch: Partial<Record<string, unknown>>): Slideshow {
   const style = styleOf(patch);
-  return { ...s, slides: s.slides.map((x) => ({ ...x, boxes: x.boxes.map((b) => ({ ...b, ...style })) })) };
+  return { ...s, slides: s.slides.map((x) => ({ ...x, boxes: x.boxes.map((b) => (isSticker(b) ? b : { ...b, ...style })) })) };
 }
 
 export const pickStyle = (b: TextBox): BoxStyle => ({ font: b.font, size: b.size, color: b.color, stroke: b.stroke, strokeColor: b.strokeColor, bg: b.bg });
@@ -281,7 +307,7 @@ export const pickStyle = (b: TextBox): BoxStyle => ({ font: b.font, size: b.size
 /** Every word on the slides, slide by slide: the caption a saved slideshow gets. */
 export const slideWords = (s: Slideshow) =>
   s.slides
-    .map((x) => x.boxes.map((b) => b.text.trim()).filter(Boolean).join("\n"))
+    .map((x) => x.boxes.filter((b) => !isSticker(b)).map((b) => b.text.trim()).filter(Boolean).join("\n"))
     .filter(Boolean)
     .join("\n\n");
 
