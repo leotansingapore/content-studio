@@ -167,6 +167,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   };
 
   const remix = from === "remix";
+  const overWhat = pictures === "mine" ? "your own photos" : pictures === "ai" ? "AI pictures in one look" : "stock photos";
   const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures, ...(!remix && kept ? { keep: kept.id } : {}), ...(pictures === "stock" && mood !== "match" ? { mood } : {}), ...(pictures === "ai" ? { look } : {}) };
   const reason =
     remix && !source ? "Pick a slideshow to remix first."
@@ -280,7 +281,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
                   }}
                 />
               )}
-              <p className="text-xs text-muted-foreground">Keeps the shape of a slideshow that did well and writes new words for {brand} over stock photos. Never its words.</p>
+              <p className="text-xs text-muted-foreground">Keeps the shape of a slideshow that did well and writes new words for {brand} over {overWhat}. Never its words.</p>
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -296,7 +297,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
               )}
               <Label htmlFor="make-topic" className={FIELD_LABEL}>Topic</Label>
               <Input id="make-topic" value={words.topic} maxLength={200} placeholder="Like 5 things to check before you buy a hospital plan" onChange={(e) => setWords({ ...words, topic: e.target.value })} />
-              <p className="text-xs text-muted-foreground">Writes slides on your topic over stock photos.</p>
+              <p className="text-xs text-muted-foreground">Writes slides on your topic over {overWhat}.</p>
             </div>
           )}
         </CardContent>
