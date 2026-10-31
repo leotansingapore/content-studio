@@ -216,6 +216,53 @@ export async function drawSlide(
   paintSlide(ctx, slide, size, picture, mark, logo);
 }
 
+// ---- the 2x2 collage (the 30 Oct teardowns: male_aestheticcc and the.atomic.reset post four photos a slide) ----
+
+export const CELL_GAP = 6;
+
+/** The four cells of a 2x2 collage in a W x H frame, left to right then down, with CELL_GAP between them. */
+export function cellRects(W: number, H: number, gap = CELL_GAP): { x: number; y: number; w: number; h: number }[] {
+  const w = (W - gap) / 2;
+  const h = (H - gap) / 2;
+  return [0, 1, 2, 3].map((i) => ({ x: (i % 2) * (w + gap), y: Math.floor(i / 2) * (h + gap), w, h }));
+}
+
+/**
+ * Four pictures drawn into one, a 2x2 grid at the slideshow's size, each cropped to fill its cell from the centre; an
+ * empty or unreadable cell is the empty grey. The slide then holds this one picture, so every other path is unchanged.
+ * shortcut: drawn at the size it was made at; a later size change crops the grid until a cell is swapped (which draws it again).
+ */
+export async function composeCollage(cells: (Blob | null)[], size: Slideshow["size"]): Promise<Blob> {
+  const W = FRAME_W;
+  const H = frameHeight(size);
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("This browser can't draw images.");
+  try {
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
+    for (const [i, r] of cellRects(W, H).entries()) {
+      const blob = cells[i];
+      const bmp = blob ? await bitmapOf(blob) : null;
+      if (!bmp) {
+        ctx.fillStyle = EMPTY_BG;
+        ctx.fillRect(r.x, r.y, r.w, r.h);
+        continue;
+      }
+      const k = Math.max(r.w / bmp.width, r.h / bmp.height);
+      const sw = r.w / k;
+      const sh = r.h / k;
+      ctx.drawImage(bmp, (bmp.width - sw) / 2, (bmp.height - sh) / 2, sw, sh, r.x, r.y, r.w, r.h);
+    }
+    return await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("The collage couldn't be drawn."))), "image/jpeg", 0.9));
+  } finally {
+    c.width = 0;
+    c.height = 0;
+  }
+}
+
 /** A slide whose picture can't be had here: drawing it anyway would post a plain grey slide. */
 export class MissingPictureError extends Error {
   constructor(slide: number, stock: boolean) {

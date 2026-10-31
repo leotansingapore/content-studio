@@ -47,6 +47,7 @@ import {
   applyToAll,
   blankSlideshow,
   changeBox,
+  CELLS,
   changeSlide,
   deleteBox,
   deleteSlide,
@@ -69,13 +70,17 @@ import {
   restoreSlide,
   saveSlideshow,
   saveStyleHint,
+  singlePicture,
   slideshowToDraft,
+  startCells,
   undo,
+  withCell,
   type BoxStyle,
+  type CellPicture,
   type ShowSlide,
   type Slideshow,
 } from "@/lib/slideshow";
-import { MissingPictureError, layoutBoxes, lookOf, pictureKey, screenMeasure, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
+import { MissingPictureError, composeCollage, layoutBoxes, lookOf, pictureKey, screenMeasure, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
 import { PER_PAGE as STOCK_PER_PAGE } from "../../supabase/functions/stock-media/logic.ts";
 import { ASK_FAILED, ASK_MAX_CHARS } from "../../supabase/functions/carousel-copy/logic.ts";
 
@@ -436,7 +441,10 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
   const [view, setView] = useUrlState<"slides" | "original">("view", "slides", { allowed: ["slides", "original"] });
   const showOriginal = view === "original" && !!work.source;
   const box = slide.boxes.find((b) => b.id === params.get("box")) ?? null;
-  const go = (i: number) => update({ slide: i > 0 ? String(i + 1) : null, box: null });
+  // a collage's picked cell (1 to 4): Swap, My pictures and Upload change that one
+  const cellParam = Number(params.get("cell") ?? "1");
+  const cell = Number.isInteger(cellParam) && cellParam >= 1 && cellParam <= CELLS ? cellParam - 1 : 0;
+  const go = (i: number) => update({ slide: i > 0 ? String(i + 1) : null, box: null, cell: null });
   const pick = (id: string | null) => update(id ? { box: id, panel: "text" } : { box: null });
   const setPanel = (p: Panel) => update({ panel: p === "slide" ? null : p });
 
@@ -540,7 +548,22 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
   };
 
   // async picks land on the slide they were made for, on the slideshow as it is by then
+  // the collage's four pictures drawn into one and kept on this device; the slide's cells say what it was built from
+  const drawCollage = async (slideId: string, cells: CellPicture[], fresh?: { at: number; blob: Blob }) => {
+    try {
+      const blobs = await Promise.all(cells.map((c, i) => (fresh?.at === i ? fresh.blob : c ? slidePicture({ id: "", boxes: [], ...c }) : null)));
+      const composed = await composeCollage(blobs, workRef.current.size);
+      const pic = await storePicture(composed);
+      setPics((p) => ({ ...p, [pic.key]: composed }));
+      commit(changeSlide(workRef.current, slideId, ({ photo: _old, ...rest }) => ({ ...rest, image: pic.key, cells })));
+    } catch (e) {
+      toast({ title: "Couldn't draw the collage", description: (e as Error).message, variant: "destructive" });
+    }
+  };
+
   const setPicture = (slideId: string, key: string, blob: Blob | null, photo?: ShowSlide["photo"]) => {
+    const target = workRef.current.slides.find((s) => s.id === slideId);
+    if (target?.cells) return void drawCollage(slideId, withCell(target.cells, cell, { image: key, ...(photo ? { photo } : {}) }), blob ? { at: cell, blob } : undefined);
     if (blob) setPics((p) => ({ ...p, [key]: blob }));
     commit(changeSlide(workRef.current, slideId, ({ photo: _old, ...rest }) => ({ ...rest, image: key, ...(photo ? { photo } : {}) })));
   };
@@ -596,6 +619,8 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
     media: (key) => setPicture(slide.id, key, null),
     upload: (file) => void upload(file),
     plain: (fill) => commit(plainSlide(workRef.current, slide.id, fill)),
+    collage: (on) => (on ? void drawCollage(slide.id, startCells(slide)) : commit(singlePicture(workRef.current, slide.id))),
+    cell: (i) => update({ cell: i > 0 ? String(i + 1) : null }),
     addSlide: () => {
       commit(addSlide(work, index, loadStyleHint()));
       go(index + 1);
@@ -909,6 +934,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
               allBoxes={allBoxes}
               onAllBoxes={setAllBoxes}
               swap={swap.slide === slide.id ? swap : { busy: false, note: null }}
+              cell={cell}
               brand={brand}
               act={act}
             />

@@ -38,9 +38,18 @@ export interface ShowSlide {
   photo?: { src: string; by: string; byUrl: string };
   /** #rrggbb behind the words when the slide has no picture (a made slideshow's brand colour). */
   fill?: string;
+  /**
+   * A 2x2 collage: the four pictures it is built from, left to right then down, null for an empty one. The slide's
+   * `image` is the four drawn together (collage.ts composeCollage), so every drawing and download reads one picture.
+   */
+  cells?: CellPicture[];
   /** At most 6. */
   boxes: TextBox[];
 }
+
+/** One picture of a collage: a device key, a Pexels pick, or both, as a slide holds them. */
+export type CellPicture = { image?: string; photo?: ShowSlide["photo"] } | null;
+export const CELLS = 4;
 
 export interface Slideshow {
   id: string;
@@ -199,6 +208,21 @@ export function changeSlide(s: Slideshow, slideId: string, fn: (slide: ShowSlide
   return { ...s, slides: s.slides.map((x) => (x.id === slideId ? fn(x) : x)) };
 }
 
+/** The slide's picture as a collage cell, or null when it has none. */
+export const cellOf = (slide: Pick<ShowSlide, "image" | "photo">): CellPicture =>
+  slide.image || slide.photo ? { ...(slide.image ? { image: slide.image } : {}), ...(slide.photo ? { photo: slide.photo } : {}) } : null;
+
+/** A collage's cells with `pic` in cell `at` (0 to 3); its picture is drawn again by the caller. */
+export const withCell = (cells: CellPicture[], at: number, pic: CellPicture): CellPicture[] => cells.map((c, i) => (i === at ? pic : c));
+
+/** The four cells a slide starts a collage with: its own picture first, the other three empty. */
+export const startCells = (slide: ShowSlide): CellPicture[] => [cellOf(slide), ...Array<CellPicture>(CELLS - 1).fill(null)];
+
+/** Back to one picture: the collage's first, and the cells gone. */
+export function singlePicture(s: Slideshow, slideId: string): Slideshow {
+  return changeSlide(s, slideId, ({ image: _image, photo: _photo, cells, ...rest }) => ({ ...rest, ...(cells?.[0] ?? {}) }));
+}
+
 /** A plain colour behind the words, for the flat text slides some slideshow accounts post (30 Oct teardowns). */
 export const PLAIN_FILL = "#DBEAFE";
 /** The same for light words with no box behind them, which pale blue would swallow. */
@@ -216,7 +240,7 @@ export const plainFillFor = (slide: ShowSlide): string =>
 /** The slide's picture gone and `fill` behind its words; a colour that isn't #rrggbb leaves the slide as it was. */
 export function plainSlide(s: Slideshow, slideId: string, fill: string): Slideshow {
   if (!HEX.test(fill)) return s;
-  return changeSlide(s, slideId, ({ image: _image, photo: _photo, ...rest }) => ({ ...rest, fill }));
+  return changeSlide(s, slideId, ({ image: _image, photo: _photo, cells: _cells, ...rest }) => ({ ...rest, fill }));
 }
 
 export function addBox(s: Slideshow, slideId: string, box: TextBox): Slideshow {
@@ -333,15 +357,26 @@ function sanitizePhoto(raw: unknown): ShowSlide["photo"] | undefined {
   return { src: r.src, by: typeof r.by === "string" ? r.by.slice(0, 80) : "", byUrl: typeof r.byUrl === "string" && PEXELS_PAGE.test(r.byUrl) ? r.byUrl : "" };
 }
 
+function sanitizeCell(raw: unknown): CellPicture {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const photo = sanitizePhoto(r.photo);
+  const image = typeof r.image === "string" && SLIDE_IMAGE_KEY.test(r.image) ? r.image : undefined;
+  return image || photo ? { ...(image ? { image } : {}), ...(photo ? { photo } : {}) } : null;
+}
+
 function sanitizeSlide(raw: unknown): ShowSlide | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const photo = sanitizePhoto(r.photo);
+  // a collage is kept only whole: four cells, each a picture or null
+  const cells = Array.isArray(r.cells) && r.cells.length === CELLS ? r.cells.map(sanitizeCell) : undefined;
   return {
     id: typeof r.id === "string" && r.id ? r.id.slice(0, 40) : newId("s"),
     ...(typeof r.image === "string" && SLIDE_IMAGE_KEY.test(r.image) ? { image: r.image } : {}),
     ...(photo ? { photo } : {}),
     ...(typeof r.fill === "string" && HEX.test(r.fill) ? { fill: r.fill } : {}),
+    ...(cells ? { cells } : {}),
     boxes: (Array.isArray(r.boxes) ? r.boxes : []).map(sanitizeBox).filter((b): b is TextBox => !!b).slice(0, MAX_BOXES),
   };
 }

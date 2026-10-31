@@ -2,6 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { links } from "@/lib/links";
 import {
   MAX_HISTORY,
+  CELLS,
+  cellOf,
+  singlePicture,
+  startCells,
+  withCell,
   PLAIN_DARK,
   PLAIN_FILL,
   plainFillFor,
@@ -90,6 +95,41 @@ describe("sanitize", () => {
     expect(s.size).toBe("4x5");
     expect(one.slides).toHaveLength(2);
     expect(sanitizeSlideshows("nope")).toEqual([]);
+  });
+});
+
+describe("the 2x2 collage", () => {
+  const photo = { src: "https://images.pexels.com/photos/1/p.jpeg", by: "A", byUrl: "" };
+  const slide = { id: "s1", image: "cimg-a1b2c3d4", photo, boxes: [] };
+
+  it("starts from the slide's own picture in the first cell and three empty ones", () => {
+    expect(startCells(slide)).toEqual([{ image: "cimg-a1b2c3d4", photo }, null, null, null]);
+    expect(startCells({ id: "s2", boxes: [] })).toEqual([null, null, null, null]);
+    expect(cellOf({ photo })).toEqual({ photo });
+    expect(withCell(startCells(slide), 2, { image: "cimg-zzzz1111" })).toEqual([{ image: "cimg-a1b2c3d4", photo }, null, { image: "cimg-zzzz1111" }, null]);
+  });
+
+  it("goes back to one picture: the first cell's, and the cells gone", () => {
+    const show = { ...blankSlideshow(), slides: [{ id: "s1", image: "cimg-composed1", cells: [{ photo }, { image: "cimg-zzzz1111" }, null, null], boxes: [] }, { id: "s2", boxes: [] }] };
+    expect(singlePicture(show, "s1").slides[0]).toEqual({ id: "s1", photo, boxes: [] });
+    // a plain colour slide is not a collage either
+    expect(plainSlide(show, "s1", PLAIN_FILL).slides[0]).toEqual({ id: "s1", fill: PLAIN_FILL, boxes: [] });
+  });
+
+  it("keeps a synced collage only whole, each cell a picture or null", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) } });
+    const bad = { src: "https://evil.example/p.jpg", by: "", byUrl: "" };
+    const show = { ...blankSlideshow(), id: "c1", slides: [
+      { id: "a", image: "cimg-composed1", cells: [{ photo }, { photo: bad }, "x", { image: "cimg-zzzz1111" }], boxes: [] },
+      { id: "b", cells: [{ photo }], boxes: [] },
+    ] };
+    store.set("content-studio-slideshows-u1", JSON.stringify([show]));
+    const [loaded] = loadSlideshows("u1");
+    expect(loaded.slides[0].cells).toEqual([{ photo }, null, null, { image: "cimg-zzzz1111" }]);
+    expect(loaded.slides[0].cells).toHaveLength(CELLS);
+    expect(loaded.slides[1].cells).toBeUndefined();
+    vi.unstubAllGlobals();
   });
 });
 

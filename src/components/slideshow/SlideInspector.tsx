@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Copy, ImagePlus, Images, Loader2, PaintBucket, Plus, Shuffle, Trash2, Type } from "lucide-react";
+import { Copy, ImagePlus, Images, LayoutGrid, Loader2, PaintBucket, Plus, Shuffle, Trash2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { scanCompliance } from "@/lib/compliance";
@@ -45,6 +45,10 @@ export interface InspectorActs {
   upload: (file: File) => void;
   /** The picture gone, this colour behind the words. */
   plain: (fill: string) => void;
+  /** On: the slide becomes a 2x2 collage, its picture first. Off: back to the collage's first picture. */
+  collage: (on: boolean) => void;
+  /** Picks the collage cell (0 to 3) that Swap, My pictures and Upload change. */
+  cell: (i: number) => void;
   addSlide: () => void;
   duplicate: () => void;
   deleteSlide: () => void;
@@ -141,6 +145,7 @@ export default function SlideInspector({
   allBoxes,
   onAllBoxes,
   swap,
+  cell,
   brand,
   act,
 }: {
@@ -154,6 +159,8 @@ export default function SlideInspector({
   onAllBoxes: (on: boolean) => void;
   /** Swap picture: searching, and the line under it (nothing found, or the server's words). */
   swap: { busy: boolean; note: string | null };
+  /** The picked collage cell, 0 to 3. */
+  cell: number;
   brand: { handle: boolean; logo: boolean };
   act: InspectorActs;
 }) {
@@ -161,6 +168,8 @@ export default function SlideInspector({
   const [media, setMedia] = useState<MediaItem[]>([]);
   const full = show.slides.length >= MAX_SLIDES;
   const least = show.slides.length <= MIN_SLIDES;
+  // a collage credits the picked cell's photographer
+  const credit = slide.cells ? slide.cells[cell]?.photo : slide.photo;
   // every box on the slide, picked or not, so a flagged phrase never hides in a box nobody tapped
   const flags = scanCompliance(slide.boxes.map((b) => b.text).join("\n\n"));
 
@@ -216,6 +225,22 @@ export default function SlideInspector({
             <Choices label="Size" value={show.size} options={Object.keys(SIZES) as ShowSize[]} labels={Object.fromEntries(Object.entries(SIZES).map(([k, v]) => [k, v.label])) as Record<ShowSize, string>} onPick={act.size} />
           </Group>
           <Group label="Picture">
+            {slide.cells && (
+              <div role="group" aria-label="Collage pictures" className="grid w-28 grid-cols-2 gap-1">
+                {slide.cells.map((c, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Collage picture ${i + 1}`}
+                    aria-pressed={cell === i}
+                    onClick={() => act.cell(i)}
+                    className={cn("flex h-11 items-center justify-center rounded-md border text-xs font-semibold", cell === i ? "border-primary bg-primary/10 text-primary" : "border-input text-muted-foreground hover:border-primary/40", !c && "border-dashed")}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 lg:grid-cols-1">
               <Button type="button" variant="outline" size="sm" onClick={act.swap} disabled={swap.busy} className={outline()}>
                 {swap.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shuffle className="h-3.5 w-3.5" />}
@@ -239,6 +264,9 @@ export default function SlideInspector({
               </label>
             </div>
             <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => act.collage(!slide.cells)} aria-pressed={!!slide.cells} className={outline("flex-1")}>
+                <LayoutGrid className="h-3.5 w-3.5" /> {slide.cells ? "One picture" : "2x2 collage"}
+              </Button>
               <Button type="button" variant="outline" size="sm" onClick={() => act.plain(plainFillFor(slide))} disabled={!slide.image && !slide.photo} className={outline("flex-1")}>
                 <PaintBucket className="h-3.5 w-3.5" /> Plain colour
               </Button>
@@ -253,13 +281,13 @@ export default function SlideInspector({
               )}
             </div>
             {swap.note && <p role="status" className="text-xs text-muted-foreground">{swap.note}</p>}
-            {slide.photo?.by && (
+            {credit?.by && (
               <p className="text-[11px] text-muted-foreground">
                 Photo by{" "}
-                {slide.photo.byUrl ? (
-                  <a href={slide.photo.byUrl} target="_blank" rel="noreferrer" className="font-semibold hover:underline">{slide.photo.by}</a>
+                {credit.byUrl ? (
+                  <a href={credit.byUrl} target="_blank" rel="noreferrer" className="font-semibold hover:underline">{credit.by}</a>
                 ) : (
-                  slide.photo.by
+                  credit.by
                 )}{" "}
                 on Pexels
               </p>

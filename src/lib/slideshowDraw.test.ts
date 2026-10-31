@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { LINE_HEIGHT, MissingPictureError, layoutBoxes, lookOf, pictureKey, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
+import { CELL_GAP, LINE_HEIGHT, MissingPictureError, cellRects, layoutBoxes, lookOf, pictureKey, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
 import { blankSlideshow, makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
 
 // slideshowPngs on a device that has none of the pictures and no network: it must stop before drawing anything
@@ -118,5 +118,16 @@ describe("lookOf", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("cellRects", () => {
+  it("splits the frame into four equal cells, left to right then down, with the gap between and none at the edges", () => {
+    const [a, b, c, d] = cellRects(1080, 1350);
+    expect(a).toEqual({ x: 0, y: 0, w: (1080 - CELL_GAP) / 2, h: (1350 - CELL_GAP) / 2 });
+    expect(b.x).toBe(a.w + CELL_GAP);
+    expect(c).toMatchObject({ x: 0, y: a.h + CELL_GAP });
+    expect(d.x + d.w).toBe(1080);
+    expect(d.y + d.h).toBe(1350);
   });
 });

@@ -317,6 +317,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /slideshow | slide | the open slide, 1-based, with s; out of range reads as 1 | 1 | replace | /slideshow?s=ssmh2k9x01ab&slide=4 |
 | /slideshow | panel | text, overlay: the editor's Text or Overlay tab, with s | slide (the Slide tab) | replace | /slideshow?s=ssmh2k9x01ab&panel=text |
 | /slideshow | box | a text box id on the open slide: that box picked; one not on the slide is ignored | none | replace | /slideshow?s=ssmh2k9x01ab&slide=2&panel=text&box=bmh2k9x02cd |
+| /slideshow | cell | 1 to 4 on a 2x2 collage slide: the picked cell, which Swap picture, My pictures and Upload change; out of range reads as 1 | 1 | replace | /slideshow?s=ssmh2k9x01ab&slide=3&cell=2 |
 | /generate | compare | original, more: on a remixed post (Leo's sign-ins only), phones open the compare strip's Original or More like this tab and large screens scroll to that part; a draft with no source ignores it | your version | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=original |
 | /carousel | compare | original, more: the same strip above the slides of a remixed post, with draft or carousel=d:<post id> | your version | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=more |
 | /slideshow | view | original: a remixed slideshow's Original tab (the source's snapshot) in place of the slide, with s; a slideshow with no source shows its slides | the slides | replace | /slideshow?s=ssmh2k9x01ab&view=original |
