@@ -132,6 +132,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/slideshow", label: "Slideshow" },
+      // the layer editor and its templates (Volume, folded in 31 Oct)
+      { to: "/design", label: "Design", title: "Design slides" },
       { to: "/edit", label: "Video" },
       { to: "/library", label: "Everything", title: "Library", owners: LEO_EMAILS, group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },

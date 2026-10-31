@@ -62,6 +62,7 @@ const KEYWORDS: Record<string, string> = {
   "/media": "library pictures images photos",
   "/edit": "reel clip captions subtitles",
   "/slideshow": "slideshow photo carousel tiktok photos",
+  "/design": "design slides editor templates layers canva tiktok slideshow instagram carousel",
   "/make": "make slideshow wall of text talking head green screen hook",
   "/image": "static ad quote card stat testimonial graphic design",
   "/audiences": "audience avatar persona who buys",

@@ -42,6 +42,8 @@ const BatchPage = lazy(() => import("@/pages/BatchPage"));
 const CarouselPage = lazy(() => import("@/pages/CarouselPage"));
 const ImagePage = lazy(() => import("@/pages/ImagePage"));
 const SlideshowPage = lazy(() => import("@/pages/SlideshowPage"));
+const DesignPage = lazy(() => import("@/pages/DesignPage"));
+const DesignEditorPage = lazy(() => import("@/pages/DesignEditorPage"));
 const MakePage = lazy(() => import("@/pages/MakePage"));
 const MakeFormatPage = lazy(() => import("@/pages/MakeFormatPage"));
 const SwipeFilePage = lazy(() => import("@/pages/SwipeFilePage"));
@@ -157,6 +159,8 @@ export default function App() {
           <Route path="/carousel" element={<CarouselPage />} />
           <Route path="/image" element={<ImagePage />} />
           <Route path="/slideshow" element={<SlideshowPage />} />
+          <Route path="/design" element={<DesignPage />} />
+          <Route path="/design/:id" element={<DesignEditorPage />} />
           <Route path="/make" element={<MakePage />} />
           <Route path="/make/:format" element={<MakeFormatPage />} />
           <Route path="/edit" element={<VideoEditPage />} />

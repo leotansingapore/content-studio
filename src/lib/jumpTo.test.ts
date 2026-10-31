@@ -150,7 +150,7 @@ describe("the format gallery", () => {
   it("finds only Slideshow (on for everyone 30 Oct) for anyone else, and never offers Formats as a recent page", () => {
     const other = [...CREATE_ITEMS, ...pageItems("user@demo.com")];
     expect(other.map((i) => i.to)).not.toContain("/make");
-    expect(searchJump(other, "slideshow").map((i) => i.to)).toEqual(["/slideshow"]);
+    expect(searchJump(other, "slideshow").map((i) => i.to)).toEqual(["/slideshow", "/design"]);
     for (const q of WORDS) expect(searchJump(other, q).map((i) => i.to), q).not.toContain("/make");
     pushRecent("/make/slideshow");
     expect(loadRecent()).toEqual(["/make"]);
