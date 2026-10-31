@@ -5,7 +5,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, runPlan, sanitizeSchedule, sanitizeSpec, slotKey, writerPrompt, type Role } from "../_shared/slideCampaign.ts";
-import { renderSlide } from "../_shared/slideRender.ts";
+import type { SlideInput } from "../_shared/slideDraw.ts";
 import { zernioClient } from "../_shared/zernio.ts";
 import { checkSchedule, runPost } from "../social/posts.ts";
 
@@ -58,28 +58,30 @@ async function write(spec: ReturnType<typeof sanitizeSpec>, hook: string, brief:
   throw new RunError("The writer didn't answer in time. Try again in a minute.");
 }
 
-const b64 = (bytes: Uint8Array) => {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-};
-/** A library picture as a data URL Satori can draw: a Pexels photo at 1080 wide, or the owner's upload. */
-async function pictureData(admin: SupabaseClient, uid: string, src: string): Promise<string | null> {
-  try {
-    // only a Pexels photo or this owner's own upload, checked again here whatever the table holds
-    if (!PEXELS_SRC.test(src) && !ownUpload(uid, src)) return null;
-    if (PEXELS_SRC.test(src)) {
-      const u = new URL(src);
-      u.searchParams.set("w", "1080");
-      const r = await fetch(u);
-      if (!r.ok) return null;
-      return `data:${r.headers.get("content-type") ?? "image/jpeg"};base64,${b64(new Uint8Array(await r.arrayBuffer()))}`;
-    }
-    const { data } = await admin.storage.from(BUCKET).download(src);
-    return data ? `data:${data.type || "image/jpeg"};base64,${b64(new Uint8Array(await data.arrayBuffer()))}` : null;
-  } catch {
-    return null;
+/** Where a library picture is drawn from: a Pexels photo at 1080 wide, or a short signed link to the owner's upload. */
+async function pictureSrc(admin: SupabaseClient, uid: string, src: string): Promise<string | null> {
+  // only a Pexels photo or this owner's own upload, checked again here whatever the table holds
+  if (PEXELS_SRC.test(src)) {
+    const u = new URL(src);
+    u.searchParams.set("w", "1080");
+    return u.toString();
   }
+  if (!ownUpload(uid, src)) return null;
+  const { data } = await admin.storage.from(BUCKET).createSignedUrl(src, 600);
+  return data?.signedUrl ?? null;
+}
+
+/** One slide's PNG: drawn on Vercel (api/slide-render.ts) when SLIDE_RENDER_URL is set, else here (tests). */
+async function draw(s: SlideInput): Promise<Uint8Array> {
+  const url = Deno.env.get("SLIDE_RENDER_URL");
+  const secret = Deno.env.get("SLIDE_RENDER_SECRET");
+  if (url && secret) {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-slide-render-secret": secret }, body: JSON.stringify({ slide: s }) });
+    if (!r.ok || r.headers.get("content-type") !== "image/png") throw new Error(`draw ${r.status}`);
+    return new Uint8Array(await r.arrayBuffer());
+  }
+  const { renderSlide } = await import("../_shared/slideRender.ts");
+  return renderSlide(s);
 }
 
 export interface MadeRun {
@@ -107,7 +109,7 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
     if (!lib || !at.length) continue;
     const { data } = await admin.from("cs_library_images").select("src").eq("library_id", lib).eq("owner_id", uid).limit(300);
     const chosen = pickImages((data ?? []).map((r) => r.src as string), at.length, spec.images.per_slide);
-    const loaded = await Promise.all(chosen.map((src) => pictureData(admin, uid, src)));
+    const loaded = await Promise.all(chosen.map((src) => pictureSrc(admin, uid, src)));
     at.forEach((slide, k) => (pics[slide] = loaded[k] ?? null));
   }
 
@@ -116,19 +118,14 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   const files = plan.map((_, i) => `${uid}/runs/${runId}/${i + 1}.png`);
   const ins = await admin.from("cs_slide_campaign_runs").insert({ id: runId, campaign_id: c.id, owner_id: uid, kind, status: "failed", error: "Not finished.", hook, caption: w.caption, slides: plan, files });
   if (ins.error) throw new Error(`run insert: ${ins.error.message}`);
-  for (let i = 0; i < plan.length; i++) {
-    const s = plan[i];
-    const png = await renderSlide({
-      format: spec.format,
-      photo: pics[i],
-      text: s.text,
-      style: spec.text_style[s.role],
-      look: spec.look,
-      lookStrength: spec.look_strength,
-      overlay: spec.overlay,
-      badge: s.role === "cta" && spec.cta.badge,
-    });
-    const up = await admin.storage.from(BUCKET).upload(files[i], png, { contentType: "image/png", upsert: false });
+  // every slide drawn at once (each is its own request to the drawer), then kept
+  const pngs = await Promise.all(
+    plan.map((s, i) =>
+      draw({ format: spec.format, photo: pics[i], text: s.text, style: spec.text_style[s.role], look: spec.look, lookStrength: spec.look_strength, overlay: spec.overlay, badge: s.role === "cta" && spec.cta.badge }),
+    ),
+  );
+  for (let i = 0; i < pngs.length; i++) {
+    const up = await admin.storage.from(BUCKET).upload(files[i], pngs[i], { contentType: "image/png", upsert: false });
     if (up.error) throw new Error(`upload: ${up.error.message}`);
   }
   await admin.from("cs_slide_campaign_runs").update({ status: "made", error: null }).eq("id", runId);
