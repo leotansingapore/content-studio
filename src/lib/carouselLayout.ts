@@ -121,7 +121,9 @@ function breakWord(word: string, maxWidth: number, font: FontSpec, measure: Meas
   const pieces: string[] = [];
   let current = "";
   for (const ch of Array.from(word)) {
-    if (current && measure(current + ch, font) > maxWidth) {
+    // a mark (an emoji's variation selector too), a skin tone, a joiner and what follows it stay with the character before
+    const joined = /[\p{M}\p{Emoji_Modifier}\u200D]/u.test(ch) || current.endsWith("\u200D");
+    if (current && !joined && measure(current + ch, font) > maxWidth) {
       pieces.push(current);
       current = ch;
     } else {

@@ -44,6 +44,8 @@ describe("wrapText", () => {
   it("keeps line breaks, drops blank lines and splits words wider than the line", () => {
     expect(wrapText("one\n\ntwo", 500, font, measure)).toEqual(["one", "two"]);
     expect(wrapText("abcdefghijklmnopqrstuvwxyz", 48, font, measure)).toEqual(["abcdefghij", "klmnopqrst", "uvwxyz"]);
+    // an emoji wider than its line keeps its variation selector, skin tone and joined parts on that line
+    for (const e of ["\u26A0\uFE0F", "\u{1F44D}\u{1F3FD}", "\u{1F469}\u200D\u{1F4BB}"]) expect(wrapText(e, 1, font, measure)).toEqual([e]);
     expect(wrapText("", 48, font, measure)).toEqual([]);
   });
 
