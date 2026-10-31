@@ -1,6 +1,62 @@
 {
-  "fetched": "2026-10-30",
+  "fetched": "2026-10-31",
   "questions": [
+    {
+      "question": "Standchart eSaver",
+      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-30T23:51:00.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "How :/",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xjigkq/how/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T15:29:21.000Z",
+      "audience": "parent"
+    },
+    {
+      "question": "Currently 21 and would like some financial advice from the 长辈 here.",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xjhfz8/currently_21_and_would_like_some_financial_advice/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T14:50:29.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Advice on portfolio",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xj51tb/advice_on_portfolio/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T03:41:49.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "43yrs old, $4m, thinking to retire back in Sg. What property with this budget should I buy to profit?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xj4uqc/43yrs_old_4m_thinking_to_retire_back_in_sg_what/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T03:31:32.000Z",
+      "audience": "pre-retiree"
+    },
+    {
+      "question": "Advice on my Policy",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xj4c0z/advice_on_my_policy/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T03:05:22.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Why to rich people buy from FAs",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xj3hpi/why_to_rich_people_buy_from_fas/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T02:23:32.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "May I know if my cashback+miles credit card strategy is viable?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xj3b1o/may_i_know_if_my_cashbackmiles_credit_card/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-30T02:14:26.000Z",
+      "audience": "young-adult"
+    },
     {
       "question": "Should you max out Singlife insurance?",
       "url": "https://www.reddit.com/r/singaporefi/comments/1xj060b/should_you_max_out_singlife_insurance/",
@@ -251,7 +307,7 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1xdenss/withdrawn_pruextrashield_plus/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-23T13:52:36.000Z",
-      "audience": "pre-retiree"
+      "audience": "general"
     },
     {
       "question": "Fresh Grad looking for advice: Invest in stocks or property?",
@@ -259,13 +315,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-23T09:15:24.000Z",
       "audience": "young-adult"
-    },
-    {
-      "question": "Standchart eSaver",
-      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-23T04:24:33.000Z",
-      "audience": "working-adult"
     },
     {
       "question": "Help needed in deciding which bank to go for",
@@ -371,55 +420,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-21T03:05:26.000Z",
       "audience": "general"
-    },
-    {
-      "question": "Looking for advice (Compliance)",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xbbhza/looking_for_advice_compliance/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-21T02:39:06.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Investment spread/ diversifying",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xbbf9x/investment_spread_diversifying/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-21T02:35:16.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Singles in their 50s, what’s your end game?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xba8ju/singles_in_their_50s_whats_your_end_game/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-21T01:36:51.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Stashaway allows SRS to VWRA",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xavipv/stashaway_allows_srs_to_vwra/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-20T15:41:16.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Does it matter which insurance provider?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xaqlww/does_it_matter_which_insurance_provider/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-20T12:18:07.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Balancing an $800k–$900k resale HDB with Barista FIRE — how much should we spend on our home?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xaq4t0/balancing_an_800k900k_resale_hdb_with_barista/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-20T11:55:53.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "IBKR automatically converting USD back to SGD?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xamxxy/ibkr_automatically_converting_usd_back_to_sgd/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-20T08:51:36.000Z",
-      "audience": "working-adult"
     }
   ]
 }

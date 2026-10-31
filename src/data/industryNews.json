@@ -1,5 +1,27 @@
 [
   {
+    "id": "9fdf221e483e",
+    "title": "Singapore Q3 retrenchments rise to 4,800; resident unemployment edges up to 3%: flash data",
+    "gist": "Singapore retrenchments rose to 4,800 in the third quarter from 4,620 in the second quarter, based on Ministry of Manpower (MOM) flash data released on Friday (Oct 30). Resident unemployment inched up to 3 per cent in September, while citizen unemployment ticked up to 3.1 per cent. For ordinary workers, MOM noted that employers remained cautious about hiring and wage increases amid global economic uncertainty.",
+    "talkingPoint": "Clients may care about this update because rising retrenchments and cautious hiring could impact income stability. You can ask them how prepared they feel for potential job changes and offer to look at their emergency cash buffer together.",
+    "clientMessage": "Hi [Client name], the Ministry of Manpower released new data showing retrenchments rose to 4,800 in the third quarter, while resident unemployment inched up to 3 per cent. With companies remaining cautious about hiring and business restructuring ongoing, having a financial safety net is top of mind for many people. If you would like to review your current financial plan or emergency funds together, feel free to reach out anytime. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/singapore/economy-policy/singapore-q3-retrenchments-rise-4800-resident-unemployment-edges-3-flash-data",
+    "publishedAt": "2026-10-30T02:30:48+00:00",
+    "topic": "Rates and markets"
+  },
+  {
+    "id": "84132a93bbd8",
+    "title": "askST: Should I install solar panels at home? How much can I save on electricity?",
+    "gist": "There were around 8,086 private homes in Singapore with solar panels in the first half of 2026, up from 5,817 at the end of June 2025. Thomas Reindl from the Solar Energy Research Institute of Singapore stated that self-generated solar electricity costs around 15 cents per kWh over 20 years or more. The Energy Market Authority estimates that the investment usually pays off for landed homeowners in five years.",
+    "talkingPoint": "Clients with landed homes may be interested in how fluctuating electricity rates and solar installation costs affect their recurring household spending. You can ask how energy expenses fit into their cash flow or review their ongoing provisions for home maintenance.",
+    "clientMessage": "Hi [Client name], more private homeowners in Singapore are installing solar panels on their properties to manage fluctuating electricity tariffs and sell extra power back to the grid. Energy authorities estimate these systems usually pay off in about five years for landed homes. As utility bills and household running costs change, it can impact monthly cash flows. If you would like, we can look at your current living expenses and cash flow plan together. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/environment/askst-should-i-install-solar-panels-at-home-how-much-can-i-save-on-electricity",
+    "publishedAt": "2026-10-30T20:00:00+00:00",
+    "topic": "Cost of living"
+  },
+  {
     "id": "6a3b5d037e29",
     "title": "At least $1.3m lost in October to scammers posing as Simba staff and government officials",
     "gist": "At least $1.3 million was lost in October across 59 cases to scammers posing as Simba staff and government officials, police said on Oct 29. Fraudsters told victims their details were misused before transferring them to fake officials who told them to hand over money or valuables. StarHub and M1 also warned customers on Oct 29 to be on alert for calls from people claiming to be their staff.",
@@ -473,18 +495,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "5e4ceccda4ff",
-    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
-    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
-    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
-    "clientMessage": null,
-    "source": "CNBC",
-    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/5e4ceccda4ff.jpg"
-  },
-  {
     "id": "eab7f642835b",
     "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
     "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
@@ -495,6 +505,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/eab7f642835b.jpg"
+  },
+  {
+    "id": "5e4ceccda4ff",
+    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
+    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
+    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
+    "clientMessage": null,
+    "source": "CNBC",
+    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/5e4ceccda4ff.jpg"
   },
   {
     "id": "cc5c9a27e256",
