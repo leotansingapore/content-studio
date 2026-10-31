@@ -9,15 +9,24 @@ import { downloadStock } from "@/lib/stockMedia";
 import { FONTS } from "@/lib/videoEdit";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import type { MediaFile } from "@/lib/autoPost";
-import { FRAME_W, frameHeight, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
+import { FRAME_W, frameHeight, type BoxFont, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
 
 export const LINE_HEIGHT = 1.25;
 /** Grey under the words while a picture loads, and on a slide with none. */
 export const EMPTY_BG = "#52525B";
 
 export type Measure = (text: string, css: string) => number;
-/** The canvas font for a box: FONTS' template at the box's size. */
-export const boxCss = (b: Pick<TextBox, "font" | "size">) => FONTS[b.font].css.replace("{px}", String(b.size));
+// the caption fonts, then the faces the 30 Oct teardowns asked for (ensureCaptionFonts loads them all)
+const BOX_CSS: Record<BoxFont, string> = {
+  heavy: FONTS.heavy.css,
+  clean: FONTS.clean.css,
+  serif: FONTS.serif.css,
+  classic: '700 {px}px "TikTok Sans", "DM Sans", system-ui, sans-serif',
+  condensed: '400 {px}px Anton, Impact, "Arial Narrow", sans-serif',
+  italic: 'italic 800 {px}px Poppins, "Arial Black", system-ui, sans-serif',
+};
+/** The canvas font for a box: its font's template at the box's size. */
+export const boxCss = (b: Pick<TextBox, "font" | "size">) => BOX_CSS[b.font].replace("{px}", String(b.size));
 // sticker padding, as shares of the font size
 const PAD_X = 0.35;
 const PAD_Y = 0.15;
@@ -178,6 +187,11 @@ export function paintSlide(
         ctx.fillStyle = "#FFFFFF";
         rounded(ctx, cx - tw / 2 - PAD_X * lay.px, cy - step / 2, tw + 2 * PAD_X * lay.px, step, lay.px * 0.28);
       }
+      if (b.shadow) {
+        ctx.shadowColor = "rgba(0,0,0,0.55)";
+        ctx.shadowBlur = lay.px * 0.2;
+        ctx.shadowOffsetY = lay.px * 0.04;
+      }
       if (b.stroke > 0) {
         ctx.lineWidth = b.stroke * 2;
         ctx.strokeStyle = b.strokeColor;
@@ -185,6 +199,8 @@ export function paintSlide(
       }
       ctx.fillStyle = b.color;
       ctx.fillText(line, cx, cy);
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
     });
   }
   if (look.handle) {

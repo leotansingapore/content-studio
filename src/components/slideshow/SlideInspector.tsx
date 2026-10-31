@@ -12,6 +12,7 @@ import { links } from "@/lib/links";
 import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
 import {
   BG_LABELS,
+  BOX_FONTS,
   DARKEN_MAX,
   FONT_LABELS,
   MAX_BOXES,
@@ -25,7 +26,6 @@ import {
   SIZE_MIN,
   STROKE_MAX,
   type BoxBg,
-  type BoxFont,
   type BoxStyle,
   type ShowSize,
   type ShowSlide,
@@ -379,12 +379,16 @@ export default function SlideInspector({
               {stickers}
               {allBox}
               <Group label="Font">
-                <Choices label="Font" value={box.font} options={["heavy", "clean", "serif"] as BoxFont[]} labels={FONT_LABELS} onPick={(font) => act.style({ font })} />
+                <Choices label="Font" value={box.font} options={BOX_FONTS} labels={FONT_LABELS} onPick={(font) => act.style({ font })} />
               </Group>
               <Range label="Size" value={box.size} min={SIZE_MIN} max={SIZE_MAX} shown={`${box.size}px`} onChange={(size) => act.style({ size })} />
               <Colour label="Colour" value={box.color} onChange={(color) => act.style({ color })} />
               <Range label="Outline" value={box.stroke} min={0} max={STROKE_MAX} shown={`${box.stroke}px`} onChange={(stroke) => act.style({ stroke })} />
               <Colour label="Outline colour" value={box.strokeColor} onChange={(strokeColor) => act.style({ strokeColor })} />
+              <label className={cn("flex min-h-9 items-center gap-2 text-xs font-semibold text-foreground", TOUCH)}>
+                <input type="checkbox" checked={!!box.shadow} onChange={(e) => act.style({ shadow: e.target.checked })} className="h-4 w-4 accent-primary" />
+                Soft shadow
+              </label>
               <Group label="Background">
                 <Choices label="Background" value={box.bg} options={["white", "none", "bar"] as BoxBg[]} labels={BG_LABELS} onPick={(bg) => act.style({ bg })} />
               </Group>

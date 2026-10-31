@@ -258,15 +258,18 @@ export { putFile, getFile, deleteFile } from "@/lib/deviceFiles";
 
 // ---------- caption fonts ----------
 
-// The caption styles name Archivo Black, DM Sans and Fraunces. They load only
-// here (the rest of the app never needs them), and drawing waits for them, so
-// the canvas never paints a fallback face into an export.
+// The caption styles name Archivo Black, DM Sans and Fraunces; slideshow text
+// boxes add TikTok Sans, Anton and Poppins italic (the same files /design uses).
+// They load only here, and drawing waits for them, so the canvas never paints a
+// fallback face into an export.
 let fontsReady: Promise<void> | null = null;
 export function ensureCaptionFonts(): Promise<void> {
   if (fontsReady) return fontsReady;
   fontsReady = (async () => {
     if (typeof document === "undefined") return;
-    const href = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@500;600;700&family=Fraunces:wght@600&display=swap";
+    const href =
+      "https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@500;600;700&family=Fraunces:wght@600" +
+      "&family=TikTok+Sans:wght@700&family=Anton&family=Poppins:ital,wght@1,800&display=swap";
     if (!document.querySelector(`link[href="${href}"]`)) {
       const l = document.createElement("link");
       l.rel = "stylesheet";
@@ -275,7 +278,9 @@ export function ensureCaptionFonts(): Promise<void> {
       await new Promise((r) => { l.onload = r; l.onerror = r; });
     }
     await Promise.all(
-      ['900 64px "Archivo Black"', '600 64px "DM Sans"', '700 64px "DM Sans"', '600 64px Fraunces'].map((f) => document.fonts.load(f).catch(() => [])),
+      ['900 64px "Archivo Black"', '600 64px "DM Sans"', '700 64px "DM Sans"', '600 64px Fraunces', '700 64px "TikTok Sans"', "400 64px Anton", "italic 800 64px Poppins"].map((f) =>
+        document.fonts.load(f).catch(() => []),
+      ),
     );
   })();
   return fontsReady;

@@ -9,7 +9,7 @@ import { MAX_SLIDES, MIN_SLIDES, SLIDE_IMAGE_KEY, splitDraftIntoSlides } from "@
 import { newDraftId, type DraftEntry } from "@/lib/draftHistory";
 import type { RemixSource } from "@/lib/remixSource";
 
-export type BoxFont = "heavy" | "clean" | "serif";
+export type BoxFont = "heavy" | "clean" | "serif" | "classic" | "condensed" | "italic";
 export type BoxBg = "white" | "none" | "bar";
 export type ShowSize = "1x1" | "4x5" | "3x4" | "9x16";
 
@@ -28,6 +28,8 @@ export interface TextBox {
   stroke: number;
   strokeColor: string;
   bg: BoxBg;
+  /** A soft drop shadow under the words, the classic white-text look. */
+  shadow?: boolean;
 }
 
 export interface ShowSlide {
@@ -76,7 +78,8 @@ export const SIZES: Record<ShowSize, { label: string; h: number }> = {
   "9x16": { label: "9:16", h: 1920 },
 };
 export const frameHeight = (size: ShowSize) => SIZES[size].h;
-export const FONT_LABELS: Record<BoxFont, string> = { heavy: "Heavy", clean: "Clean", serif: "Serif" };
+export const FONT_LABELS: Record<BoxFont, string> = { heavy: "Heavy", clean: "Clean", serif: "Serif", classic: "Classic", condensed: "Condensed", italic: "Italic" };
+export const BOX_FONTS = Object.keys(FONT_LABELS) as BoxFont[];
 export const BG_LABELS: Record<BoxBg, string> = { white: "White", none: "None", bar: "Dark bar" };
 
 export const MAX_BOXES = 6;
@@ -91,8 +94,8 @@ export const W_MIN = 0.2;
 export const DARKEN_MAX = 0.8;
 export { MAX_SLIDES, MIN_SLIDES };
 
-export type BoxStyle = Pick<TextBox, "font" | "size" | "color" | "stroke" | "strokeColor" | "bg">;
-export const STYLE_KEYS = ["font", "size", "color", "stroke", "strokeColor", "bg"] as const;
+export type BoxStyle = Pick<TextBox, "font" | "size" | "color" | "stroke" | "strokeColor" | "bg" | "shadow">;
+export const STYLE_KEYS = ["font", "size", "color", "stroke", "strokeColor", "bg", "shadow"] as const;
 export const DEFAULT_STYLE: BoxStyle = { font: "clean", size: 48, color: "#111111", stroke: 0, strokeColor: "#FFFFFF", bg: "white" };
 export const NEW_WORDS = "Your words here";
 
@@ -153,12 +156,13 @@ export const makeSticker = (glyph: string, y = 0.5): TextBox => makeBox(glyph, {
 /** Only the style keys of `o`, each one valid; text, place and id never come through. */
 export function styleOf(o: Partial<Record<string, unknown>>): Partial<BoxStyle> {
   const out: Partial<BoxStyle> = {};
-  if (o.font === "heavy" || o.font === "clean" || o.font === "serif") out.font = o.font;
+  if (BOX_FONTS.includes(o.font as BoxFont)) out.font = o.font as BoxFont;
   if (typeof o.size === "number" && Number.isFinite(o.size)) out.size = Math.round(clamp(o.size, SIZE_MIN, SIZE_MAX));
   if (typeof o.color === "string" && HEX.test(o.color)) out.color = o.color;
   if (typeof o.stroke === "number" && Number.isFinite(o.stroke)) out.stroke = Math.round(clamp(o.stroke, 0, STROKE_MAX));
   if (typeof o.strokeColor === "string" && HEX.test(o.strokeColor)) out.strokeColor = o.strokeColor;
   if (o.bg === "white" || o.bg === "none" || o.bg === "bar") out.bg = o.bg;
+  if (typeof o.shadow === "boolean") out.shadow = o.shadow;
   return out;
 }
 
@@ -302,7 +306,7 @@ export function applyToAll(s: Slideshow, patch: Partial<Record<string, unknown>>
   return { ...s, slides: s.slides.map((x) => ({ ...x, boxes: x.boxes.map((b) => (isSticker(b) ? b : { ...b, ...style })) })) };
 }
 
-export const pickStyle = (b: TextBox): BoxStyle => ({ font: b.font, size: b.size, color: b.color, stroke: b.stroke, strokeColor: b.strokeColor, bg: b.bg });
+export const pickStyle = (b: TextBox): BoxStyle => ({ font: b.font, size: b.size, color: b.color, stroke: b.stroke, strokeColor: b.strokeColor, bg: b.bg, shadow: b.shadow });
 
 /** Every word on the slides, slide by slide: the caption a saved slideshow gets. */
 export const slideWords = (s: Slideshow) =>

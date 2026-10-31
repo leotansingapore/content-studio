@@ -25,6 +25,8 @@ import {
   loadStyleHint,
   makeBox,
   makeSticker,
+  BOX_FONTS,
+  styleOf,
   isSticker,
   STICKERS,
   STICKER_SIZE,
@@ -216,6 +218,18 @@ describe("slides and boxes", () => {
     for (const b of s.slides.flatMap((x) => x.boxes)) expect(b).toMatchObject({ font: "serif", color: "#ff0000", bg: "bar" });
     expect(s.slides.map((x) => x.boxes.map((b) => [b.text, b.x, b.y]))).toEqual(words);
     expect(applyToAll(s, { font: "comic" }).slides[0].boxes[0].font).toBe("serif");
+  });
+});
+
+describe("fonts and shadow", () => {
+  it("keeps the six fonts and a shadow switch through a sync, and nothing else", () => {
+    const [s] = sanitizeSlideshows([
+      { id: "ss1", slides: [{ id: "s1", boxes: BOX_FONTS.map((font, i) => box({ id: `b${i}`, font, shadow: i % 2 === 0 })) }, { id: "s2", boxes: [] }] },
+    ]);
+    expect(s.slides[0].boxes.map((b) => [b.font, !!b.shadow])).toEqual(BOX_FONTS.map((f, i) => [f, i % 2 === 0]));
+    for (const font of ["comic", "toString", 1]) expect(styleOf({ font })).toEqual({});
+    expect(styleOf({ shadow: "yes" })).toEqual({});
+    expect(styleOf({ font: "condensed", shadow: false })).toEqual({ font: "condensed", shadow: false });
   });
 });
 

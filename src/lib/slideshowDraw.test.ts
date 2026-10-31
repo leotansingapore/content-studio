@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { CELL_GAP, LINE_HEIGHT, MissingPictureError, cellRects, layoutBoxes, lookOf, pictureKey, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
-import { blankSlideshow, makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
+import { CELL_GAP, LINE_HEIGHT, MissingPictureError, boxCss, cellRects, paintSlide, layoutBoxes, lookOf, pictureKey, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
+import { BOX_FONTS, blankSlideshow, makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
 
 // slideshowPngs on a device that has none of the pictures and no network: it must stop before drawing anything
 const media = vi.hoisted(() => ({
@@ -129,5 +129,37 @@ describe("cellRects", () => {
     expect(c).toMatchObject({ x: 0, y: a.h + CELL_GAP });
     expect(d.x + d.w).toBe(1080);
     expect(d.y + d.h).toBe(1350);
+  });
+});
+
+describe("boxCss", () => {
+  it("draws each font with its own face at the box's size", () => {
+    const faces = BOX_FONTS.map((font) => boxCss({ font, size: 72 }));
+    for (const css of faces) expect(css).toMatch(/ 72px /);
+    expect(new Set(faces.map((css) => css.match(/72px "?([^",]+)/)![1])).size).toBe(BOX_FONTS.length);
+    expect(boxCss({ font: "classic", size: 40 })).toContain('"TikTok Sans"');
+    expect(boxCss({ font: "condensed", size: 40 })).toContain("Anton");
+    expect(boxCss({ font: "italic", size: 40 })).toMatch(/^italic 800 40px Poppins/);
+  });
+});
+
+describe("paintSlide shadow", () => {
+  it("puts a soft shadow under a shadowed box's words only", () => {
+    const fills: { text: string; blur: number }[] = [];
+    const state: Record<string | symbol, unknown> = {};
+    const ctx = new Proxy(state, {
+      get: (t, k) =>
+        k in t
+          ? t[k]
+          : k === "measureText"
+            ? (text: string) => ({ width: text.length * 20 })
+            : k === "fillText"
+              ? (text: string) => fills.push({ text, blur: Number(t.shadowBlur ?? 0) })
+              : () => undefined,
+      set: (t, k, v) => ((t[k] = v), true),
+    }) as unknown as CanvasRenderingContext2D;
+    paintSlide(ctx, slide(makeBox("Soft", { shadow: true, bg: "none" }), makeBox("Flat", { y: 0.8, bg: "none" })), "9x16", null);
+    expect(fills.find((f) => f.text === "Soft")!.blur).toBeGreaterThan(0);
+    expect(fills.find((f) => f.text === "Flat")!.blur).toBe(0);
   });
 });
