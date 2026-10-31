@@ -40,19 +40,22 @@ const db = vi.hoisted(() => {
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
-// Higgsfield: a status read answers `status`; every other call is a submit, kept in `submits`
-const hf: { submits: string[]; status: unknown } = { submits: [], status: null };
+// Higgsfield: a status read answers `status`, a cancel is kept in `cancels`; every other call is a submit, kept in
+// `submits`, and the one numbered `failAt` is refused
+const hf: { submits: string[]; cancels: string[]; failAt: number; status: unknown } = { submits: [], cancels: [], failAt: 0, status: null };
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
 
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, HF_API_KEY: "k", HF_API_SECRET: "s", AI_BROLL_ENABLED: "1" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, HF_API_KEY: "k", HF_API_SECRET: "s", AI_BROLL_ENABLED: "1", NORTH_STAR_USERS: UID };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: string) => {
     if (String(u).endsWith("/status")) return answer(hf.status);
+    if (String(u).endsWith("/cancel")) return (hf.cancels.push(String(u)), answer({}));
     hf.submits.push(String(u));
+    if (hf.submits.length === hf.failAt) return answer({}, 500);
     return answer({ request_id: "1f2e3d4c-5b6a-4978-8a9b-0c1d2e3f4a5b" });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -67,6 +70,8 @@ beforeEach(() => {
   db.rows.clear();
   db.down.clear();
   hf.submits.length = 0;
+  hf.cancels.length = 0;
+  hf.failAt = 0;
   hf.status = { status: "completed", images: [{ url: "https://cdn.higgsfield.ai/pic.png" }] };
 });
 
@@ -130,5 +135,33 @@ describe("an AI B-roll clip", () => {
     expect(res.status).toBe(429);
     expect([used(UID, "ai-broll"), used(GLOBAL_COUNTER_USER, "ai-broll-global")]).toEqual([0, 20]);
     expect(hf.submits).toEqual([]);
+  });
+});
+
+describe("a slideshow's AI pictures", () => {
+  const ask = { mode: "slides", pictures: ["a calm desk", "a planner", "a phone face down"], look: "clay", aspect: "9:16" };
+
+  it("is refused for anyone not on the list, with nothing counted or asked for", async () => {
+    const res = await db.handler!(new Request("http://x/ai-image", { method: "POST", headers: { Authorization: "Bearer someone-else" }, body: JSON.stringify(ask) }));
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "not_enabled" });
+    expect(used("someone-else", "slide-pictures")).toBe(0);
+    expect(hf.submits).toEqual([]);
+  });
+
+  it("asks for one picture a slide and counts the slideshow once on each cap", async () => {
+    const res = await call(ask);
+    expect(res.status).toBe(200);
+    expect((await res.json()).tokens).toHaveLength(3);
+    expect(hf.submits).toHaveLength(3);
+    expect([used(UID, "slide-pictures"), used(GLOBAL_COUNTER_USER, "slide-pictures-global")]).toEqual([1, 1]);
+  });
+
+  it("cancels what it queued and gives both uses back when Higgsfield refuses a picture", async () => {
+    hf.failAt = 2;
+    const res = await call(ask);
+    expect(res.status).toBe(502);
+    expect(hf.cancels).toHaveLength(1);
+    expect([used(UID, "slide-pictures"), used(GLOBAL_COUNTER_USER, "slide-pictures-global")]).toEqual([0, 0]);
   });
 });

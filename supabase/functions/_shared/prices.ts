@@ -57,6 +57,7 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // Qwen Image 3 edit at 2k on Higgsfield: US$0.04 at 1k, US$0.075 at 2k (open.higgsfield.ai/models/alibaba/qwen-image-3/edit, read 2026-10-21)
   "ai-image-fix": about(0.075),
   "ai-broll": about(0.13), // Soul v2 picture + DoP lite 5 s (ai-image/broll.ts)
+  "slide-pictures": about(0.06), // up to 10 Soul v2 pictures at 0.09 credits each (ai-image/slides.ts)
   // Eleven Music at about US$0.15 a minute, and tracks stop at 2 minutes (usageCaps.ts, text-voice MAX_MUSIC_SECONDS).
   "ai-music": (o) => (o.minutes && o.minutes > 0 ? about(0.15 * Math.min(2, o.minutes)) : null),
   // ElevenLabs turbo v2.5: Turbo and Flash US$0.04 per 1,000 characters (elevenlabs.io/pricing/api, read 2026-10-21), and a
@@ -165,7 +166,7 @@ export const NO_PRICE: UsageFeature[] = [
   // free or a relay; a capped public picture fetch
   "stock-search", "reel-video", "brand-image",
   // across everyone
-  "market-check-global", "ai-image-fix-global", "ai-broll-global", "ai-music-global", "ai-video-global", "ai-clip-global",
+  "market-check-global", "ai-image-fix-global", "ai-broll-global", "slide-pictures-global", "ai-music-global", "ai-video-global", "ai-clip-global",
   "competitor-ads-global", "competitor-posts-global", "space-ads-global", "viral-search-global", "search-topics-global",
   "ai-presenter-global",
   // social reads and writes, team comments

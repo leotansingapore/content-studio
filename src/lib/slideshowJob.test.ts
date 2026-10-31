@@ -394,6 +394,69 @@ describe("the job", () => {
   });
 });
 
+describe("AI pictures in one look", () => {
+  const AI: SlideshowAsk = { ...ASK, pictures: "ai", look: "clay" };
+  /** ai-image answers: three tokens for "slides", then each token's status (t2's picture fails). */
+  const studio = (slides: () => unknown = () => ({ tokens: ["t1", "t2", "t3"] })) =>
+    fn.mockImplementation(async (name: string, body: { mode: string; token?: string }) => {
+      if (name !== "ai-image") throw new Error(name);
+      if (body.mode === "slides") return slides();
+      return body.token === "t2" ? { state: "failed", error: "blocked" } : { state: "done", url: `https://cdn.higgsfield.ai/${body.token}.png` };
+    });
+  const runFake = async (ask: SlideshowAsk) => {
+    vi.useFakeTimers();
+    try {
+      const done = startSlideshow(UID, ask);
+      await vi.runAllTimersAsync();
+      await done;
+    } finally {
+      vi.useRealTimers();
+    }
+    return slideshowJob()!;
+  };
+
+  it("makes every slide's picture in the look, at the slideshow's shape, and leaves a failed one on the brand colour", async () => {
+    local.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1D4ED8", name: "MoneyBees", handle: "" }));
+    studio();
+    vi.stubGlobal("fetch", async () => new Response(new Blob(["png"])));
+    const steps: string[] = [];
+    const off = onSlideshowJob((j) => j && steps.push(stepText(j)));
+    const j = await runFake(AI);
+    off();
+    expect(j.state).toBe("done");
+    expect(fn.mock.calls[0]).toEqual(["ai-image", { mode: "slides", pictures: SLIDES.map((x) => x.search), look: "clay", aspect: "3:4" }]);
+    expect(steps).toContain("Making pictures, 1 of 3...");
+    const made = madeShow(j).slides;
+    expect(made[0].image).toMatch(/^cimg-/);
+    expect(made[1]).toMatchObject({ fill: "#1D4ED8" });
+    expect(made[1].image).toBeUndefined();
+    expect(made[2].image).toMatch(/^cimg-/);
+    // no stock search and no Jev pick for AI pictures
+    expect(stock.search).not.toHaveBeenCalled();
+    expect(j.note).toBeUndefined();
+  });
+
+  it("keeps the written slides with stock photos, and says why, when the AI pictures are refused", async () => {
+    answer({ "empty office|1": [photo("10")], "phone on desk|1": [photo("20")], "calendar|1": [photo("30")] }, [0, 0, 0]);
+    const jev = fn.getMockImplementation()!;
+    fn.mockImplementation(async (name: string, body: unknown) => {
+      if (name === "ai-image") throw new EdgeError("Today's slideshow pictures for the whole studio are made.", 429, "daily_limit");
+      return jev(name, body);
+    });
+    const j = await run(AI);
+    expect(j.state).toBe("done");
+    expect(srcs(j)).toEqual(["10", "20", "30"]);
+    expect(j.note).toBe("Today's slideshow pictures for the whole studio are made. These are stock photos.");
+    expect(make).toHaveBeenCalledTimes(1);
+  });
+
+  it("puts AI pictures and a look other than Photo in the link", () => {
+    expect(askParams(AI)).toMatchObject({ pictures: "ai", look: "clay" });
+    expect(askParams({ ...AI, look: "photo" }).look).toBeUndefined();
+    expect(askParams(ASK)).toMatchObject({ pictures: undefined, look: undefined });
+  });
+});
+
 describe("links and params", () => {
   it("builds /make/<slug> with the shared params, defaults left out", () => {
     expect(links.makeFormat("slideshow")).toBe("/make/slideshow");

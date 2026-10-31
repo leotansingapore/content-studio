@@ -9,6 +9,8 @@
 //        for (broll.ts): a Soul v2 picture, waited for here, then DoP lite moves it; the token is the
 //        motion job's, read with "status". Counts once against "ai-broll" and "ai-broll-global".
 //        Refused unless the AI_BROLL_ENABLED secret is "1" (set 2026-10-10, when the Higgsfield pool was topped up).
+//   POST {mode:"slides", pictures, look, aspect} -> {tokens}: a made slideshow's pictures in one look (slides.ts),
+//        NORTH_STAR_USERS only; counts once against "slide-pictures" and "slide-pictures-global" for up to 10.
 // The token is the Higgsfield request id signed for the adviser who started it
 // (logic.ts jobToken), so nobody else can read the job.
 // The browser polls status, then downloads the picture straight from Higgsfield's
@@ -19,9 +21,11 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isAllowed } from "../market/logic.ts";
 import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
+import { parseSlides, slidePictureBody } from "./slides.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +45,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const broll = body?.mode === "broll" ? parseAiBroll(body) : null;
     if (broll && !broll.ok) return json({ error: broll.error }, 400);
-    const parsed = broll ? null : parseImageRequest(body);
+    const slides = body?.mode === "slides" ? parseSlides(body) : null;
+    if (slides && !slides.ok) return json({ error: slides.error }, 400);
+    const parsed = broll || slides ? null : parseImageRequest(body);
     if (parsed && !parsed.ok) return json({ error: parsed.error }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -108,6 +114,34 @@ Deno.serve(async (req) => {
       const vid = await submit(MOTION_MODEL, motionBody(url));
       if (typeof vid !== "string") return refuse(vid);
       return json({ token: await jobToken(signing, uid, vid) });
+    }
+    if (slides?.ok) {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "AI pictures for slideshows aren't switched on for your account yet." }, 403);
+      // the adviser's own cap first, so someone at their limit can't use up everyone's
+      const mine = await consumeUsage(admin, uid, "slide-pictures");
+      if (!mine.allowed) {
+        const r = usageRefusal(mine);
+        return json(r.body, r.status);
+      }
+      const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "slide-pictures-global");
+      if (!everyone.allowed) {
+        await refundUsage(admin, uid, "slide-pictures", day);
+        if (everyone.reason === "limit") return json({ code: "daily_limit", error: "Today's slideshow pictures for the whole studio are made. Try again after 8am Singapore time." }, 429);
+        const refusal = usageRefusal(everyone);
+        return json(refusal.body, refusal.status);
+      }
+      const ids: string[] = [];
+      for (const picture of slides.request.pictures) {
+        const id = await submit(HF_MODEL, slidePictureBody(picture, slides.request.look, slides.request.aspect));
+        if (typeof id !== "string") {
+          // nothing half made: what is queued is cancelled and both uses come back (as ai-video's presenters)
+          await Promise.all(ids.map((q) => fetch(`${HF_BASE}/requests/${q}/cancel`, { method: "POST", headers: auth }).catch(() => null)));
+          await Promise.all([refundUsage(admin, uid, "slide-pictures", day), refundUsage(admin, GLOBAL_COUNTER_USER, "slide-pictures-global", day)]);
+          return json({ error: id === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
+        }
+        ids.push(id);
+      }
+      return json({ tokens: await Promise.all(ids.map((id) => jobToken(signing, uid, id))), usage: { used: mine.used, limit: mine.limit } });
     }
     if (!parsed?.ok) return json({ error: "Say what to make." }, 400);
 

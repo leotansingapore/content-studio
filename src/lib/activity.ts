@@ -345,6 +345,8 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "ai-image-fix-global": "Picture fixes, everyone",
   "ai-broll": "AI B-roll clips",
   "ai-broll-global": "AI B-roll clips, everyone",
+  "slide-pictures": "AI slideshow pictures",
+  "slide-pictures-global": "AI slideshow pictures, everyone",
   "ai-voice": "Voiceovers",
   "ai-music": "Music tracks",
   "ai-music-global": "Music tracks, everyone",

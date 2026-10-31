@@ -1,7 +1,8 @@
 // Make a slideshow (/make/slideshow, docs/north-star/items/formats-slideshow.md) outside React, so leaving the page
 // keeps it going (montage.ts's shape). One remix make (as "slideshow") writes the slides, a stock search per slide
 // and the caption; Pexels finds photos, or the brand's own media stands in; Jev picks one per slide (video-assist
-// montage-pick, noun "photo"); the words are sized to fit the frame and the result is saved as a Slideshow
+// montage-pick, noun "photo"), or for Leo every slide gets an AI picture in one look (ai-image "slides", about
+// US$0.06 a slideshow); the words are sized to fit the frame and the result is saved as a Slideshow
 // (src/lib/slideshow.ts) that /slideshow edits. In memory only: a reload mid-make loses the run, and the server has
 // given back the use of any write the model never answered.
 //   synced: content-studio-slideshow-photos-${scoped(userId)}: the Pexels ids each of this brand's last 5 made
@@ -22,11 +23,13 @@ import { blankSlideshow, frameHeight, loadSlideshows, loadStyleHint, makeBox, ne
 import { layoutBoxes, screenMeasure, type Measure } from "@/lib/slideshowDraw";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
+import type { JobState } from "../../supabase/functions/ai-image/logic.ts";
+import { LOOK_IDS, type LookId } from "../../supabase/functions/ai-video/logic.ts";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { MAX_CANDIDATES } from "../../supabase/functions/video-assist/montage.ts";
 
 export type ShowFrom = "topic" | "remix";
-export type ShowPictures = "stock" | "mine";
+export type ShowPictures = "stock" | "mine" | "ai";
 
 export interface SlideshowAsk {
   /** null: made from `topic`. */
@@ -42,6 +45,8 @@ export interface SlideshowAsk {
   note: string;
   size: Extract<ShowSize, "4x5" | "9x16">;
   pictures: ShowPictures;
+  /** AI pictures only: the explainer's look every slide's picture is made in. */
+  look?: LookId;
   /** The agent's chat that asked for it: Activity logs the run as the agent's (live-p6replay D6). */
   agent?: { thread: string; msg: string };
 }
@@ -58,6 +63,8 @@ export interface SlideshowJob {
   refused?: boolean;
   /** Today's uses are gone (429 daily_limit): Try again would only hit the cap again. */
   capped?: boolean;
+  /** Said under a made slideshow: why its AI pictures came from stock instead. */
+  note?: string;
 }
 
 export const WRITE_FAILED = "Couldn't write the slides. Try again in a minute.";
@@ -66,9 +73,9 @@ export const FINISH_FAILED = "Couldn't finish the slides. Try again in a minute.
 /** A source opens on Remix a trending one, no source on A topic. */
 export const startFrom = (source: RemixSource | null): ShowFrom => (source ? "remix" : "topic");
 
-export function stepText(j: Pick<SlideshowJob, "state" | "done" | "of">): string {
+export function stepText(j: Pick<SlideshowJob, "state" | "done" | "of"> & { ask?: Pick<SlideshowAsk, "pictures"> }): string {
   if (j.state === "writing") return "Writing the slides...";
-  if (j.state === "finding") return `Finding pictures, ${j.done} of ${j.of}...`;
+  if (j.state === "finding") return `${j.ask?.pictures === "ai" ? "Making" : "Finding"} pictures, ${j.done} of ${j.of}...`;
   return j.state === "drawing" ? "Drawing the slides..." : "";
 }
 
@@ -81,7 +88,8 @@ export function askParams(a: SlideshowAsk): Record<string, string | undefined> {
     keep: a.keep,
     mood: a.mood,
     size: a.size === "9x16" ? "9x16" : undefined,
-    pictures: a.pictures === "mine" ? "mine" : undefined,
+    pictures: a.pictures === "stock" ? undefined : a.pictures,
+    look: a.pictures === "ai" && a.look !== "photo" ? a.look : undefined,
   };
 }
 
@@ -208,7 +216,15 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
     const fresh = kept ? slides.slice(1) : slides;
     mine({ state: "finding", done: 0, of: fresh.length });
     const progress = (n: number) => mine({ done: n });
-    const found = ask.pictures === "mine" ? await minePictures(loadMedia(userId), fresh, spread) : await stockPictures(userId, ask.mood ? moodSearches(fresh, ask.mood) : fresh, progress);
+    let found: (Picture | null)[] | null = null;
+    if (ask.pictures === "ai") {
+      found = await aiPictures(fresh, ask.look ?? "photo", ask.size, progress).catch((e) => {
+        // the slides are written and their use spent: a refusal here keeps them, with stock photos and the reason
+        mine({ note: `${e instanceof EdgeError ? e.message : "Couldn't make the AI pictures."} These are stock photos.` });
+        return null;
+      });
+    }
+    found ??= ask.pictures === "mine" ? await minePictures(loadMedia(userId), fresh, spread) : await stockPictures(userId, ask.mood ? moodSearches(fresh, ask.mood) : fresh, progress);
     const pictures = kept ? [null, ...found] : found;
     progress(fresh.length);
     mine({ state: "drawing" });
@@ -337,6 +353,46 @@ export function mediaWindows<T extends { key: string }>(media: T[], slides: numb
   // a stable sort, so equal uses keep the rotated media order
   const order = media.map((_, k) => media[(spread.start + k) % media.length]).sort((a, b) => uses(a) - uses(b));
   return Array.from({ length: slides }, (_, i) => Array.from({ length: Math.min(MAX_CANDIDATES, order.length) }, (_, k) => order[(i + k) % order.length]));
+}
+
+const POLL_MS = 2500;
+const GIVE_UP_MS = 4 * 60_000;
+
+/**
+ * Leo's AI pictures: one ai-image "slides" call for every slide (its stock search words say what to show), each
+ * picture in the look, then each job read until it lands and kept on this device. One that fails or never lands
+ * leaves its slide on the brand colour, as a stock search with no results does.
+ * shortcut: a reload mid-make loses pictures already paid for (aiImage.ts keeps its token to resume); add that if it bites.
+ */
+async function aiPictures(slides: SlideCopy[], look: LookId, size: ShowSize, progress: (n: number) => void): Promise<(Picture | null)[]> {
+  const { tokens } = await callFn<{ tokens: string[] }>("ai-image", {
+    mode: "slides",
+    pictures: slides.map((s) => (s.search || s.title).slice(0, 200)),
+    look: LOOK_IDS.includes(look) ? look : "photo",
+    aspect: size === "9x16" ? "9:16" : "3:4",
+  });
+  let done = 0;
+  return Promise.all(
+    tokens.map(async (token) => {
+      const pic = await landed(token).catch(() => null);
+      progress(++done);
+      return pic;
+    }),
+  );
+}
+
+async function landed(token: string): Promise<Picture | null> {
+  for (const until = Date.now() + GIVE_UP_MS; Date.now() < until; ) {
+    await new Promise((r) => setTimeout(r, POLL_MS));
+    // a dropped status check is retried on the next round, not a failure
+    const s = await callFn<JobState>("ai-image", { mode: "status", token }).catch((): JobState => ({ state: "working" }));
+    if (s.state === "failed") return null;
+    if (s.state === "done") {
+      const res = await fetch(s.url);
+      return res.ok ? { image: (await storePicture(await res.blob())).key } : null;
+    }
+  }
+  return null;
 }
 
 /** The brand's own media: Jev picks per slide from its window (mediaWindows). */

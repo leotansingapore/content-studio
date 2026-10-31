@@ -3,7 +3,7 @@
 // keeps it going); the result is a Slideshow that /slideshow edits.
 //
 // URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), from=topic|remix, mention=inside|no,
-// size=9x16, pictures=mine, tab=original, pick=open and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
+// size=9x16, pictures=mine|ai (ai: Leo only), look=<explainer look id>, tab=original, pick=open and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
 // show=<slideshow id> pushes.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -52,7 +52,11 @@ import {
 import { socialConnectShown } from "@/lib/socialConnect";
 import { getAllTopPosts } from "@/lib/topPosts";
 import { useUrlFlag, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useLeoOnly } from "@/lib/useLeoOnly";
+import { PRICES, priceText, type Price } from "@/lib/prices";
 import { cn } from "@/lib/utils";
+import { EXPLAINER_LOOKS, LOOK_IDS, type LookId } from "../../../supabase/functions/ai-video/logic.ts";
+import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 
 const SIZES = ["4x5", "9x16"] as const;
@@ -129,7 +133,10 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const [from] = useUrlState<ShowFrom>("from", startFrom(source), { allowed: ["topic", "remix"] });
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "inside", "no"] });
   const [size] = useUrlState<Size>("size", "4x5", { allowed: SIZES });
-  const [pictures] = useUrlState<ShowPictures>("pictures", "stock", { allowed: ["stock", "mine"] });
+  // AI pictures are Leo's (the server refuses anyone else): the choice and its link work only for him
+  const leo = useLeoOnly();
+  const [pictures] = useUrlState<ShowPictures>("pictures", "stock", { allowed: leo ? ["stock", "mine", "ai"] : ["stock", "mine"] });
+  const [look] = useUrlState<LookId>("look", "photo", { allowed: LOOK_IDS });
   const [mood] = useUrlState<"match" | PhotoMood>("mood", "match", { allowed: ["match", ...PHOTO_MOOD_IDS] });
   // keep=<slideshow id>: its first slide comes over as it is and the writer writes new slides after it
   const [keepId] = useUrlState("keep", "");
@@ -160,7 +167,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   };
 
   const remix = from === "remix";
-  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures, ...(!remix && kept ? { keep: kept.id } : {}), ...(pictures === "stock" && mood !== "match" ? { mood } : {}) };
+  const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", inside: mention === "inside", note: words.note, size, pictures, ...(!remix && kept ? { keep: kept.id } : {}), ...(pictures === "stock" && mood !== "match" ? { mood } : {}), ...(pictures === "ai" ? { look } : {}) };
   const reason =
     remix && !source ? "Pick a slideshow to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type a topic first."
@@ -328,7 +335,20 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
           <Field label="Pictures">
             <FilterChip active={pictures === "stock"} onClick={() => set("pictures", null)}>Stock photos for me</FilterChip>
             <FilterChip active={pictures === "mine"} onClick={() => set("pictures", "mine")}>From my media</FilterChip>
+            {leo && <FilterChip active={pictures === "ai"} onClick={() => set("pictures", "ai")}>AI pictures, one look</FilterChip>}
           </Field>
+          {pictures === "ai" && (
+            <Field label="Look">
+              {LOOK_IDS.map((l) => (
+                <FilterChip key={l} active={look === l} onClick={() => set("look", l === "photo" ? null : l)}>{EXPLAINER_LOOKS[l].label}</FilterChip>
+              ))}
+            </Field>
+          )}
+          {pictures === "ai" && (
+            <p className="text-xs text-muted-foreground">
+              {priceText(PRICES["slide-pictures"] as Price)} of picture credit a slideshow, {DAILY_LIMITS["slide-pictures"]} a day.
+            </p>
+          )}
           {pictures === "stock" && (
             <Field label="Photo mood">
               <FilterChip active={mood === "match"} onClick={() => set("mood", null)}>One for each point</FilterChip>
@@ -382,7 +402,10 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
           </div>
         </div>
       ) : shown ? (
-        <Result userId={userId} show={shown} onAgain={() => makeIt()} canAgain={!reason && !busy} />
+        <>
+          {job?.note && job.showId === shown.id && <p role="status" className="text-xs text-muted-foreground">{job.note}</p>}
+          <Result userId={userId} show={shown} onAgain={() => makeIt()} canAgain={!reason && !busy} />
+        </>
       ) : (
         <Placeholder size={size}>Your result shows here once you make it.</Placeholder>
       )}

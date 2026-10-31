@@ -73,6 +73,10 @@ export const DAILY_LIMITS = {
   // each): per adviser, and across everyone on GLOBAL_COUNTER_USER so the prepaid pool can't be drained.
   "ai-broll": 3,
   "ai-broll-global": 20,
+  // A made slideshow's AI pictures in one look (ai-image mode "slides": up to 10 Soul v2 pictures, about USD 0.06):
+  // per adviser, and across everyone on GLOBAL_COUNTER_USER so the prepaid pool can't be drained.
+  "slide-pictures": 5,
+  "slide-pictures-global": 30,
   // "Voiceover from text" in the video editor (text-voice, ElevenLabs turbo v2.5).
   "ai-voice": 10,
   // "Music for me" in the video editor (text-voice mode "music", Eleven Music at about USD 0.15 a minute,
