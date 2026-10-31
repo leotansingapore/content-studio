@@ -75,10 +75,13 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
         if (!/^image\/(png|jpeg|webp)$/.test(f.type)) throw new Error("Pick PNG, JPEG or WebP pictures.");
         if (f.size > 10 * 1024 * 1024) throw new Error("Pictures up to 10 MB.");
         const ext = f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg";
-        const u = await callFn<{ path: string; token: string }>("slide-campaigns", { action: "upload-url", ext });
+        // the library row comes with the upload link; a failed upload takes its row back out
+        const u = await callFn<{ path: string; token: string; id: string }>("slide-campaigns", { action: "upload-url", library_id: l.id, ext });
         const put = await supabase.storage.from("cs-slide-campaigns").uploadToSignedUrl(u.path, u.token, f, { contentType: f.type });
-        if (put.error) throw new Error("Couldn't upload that picture. Try again.");
-        await callFn("slide-campaigns", { action: "library-add", library_id: l.id, items: [{ src: u.path }] });
+        if (put.error) {
+          await callFn("slide-campaigns", { action: "library-remove", id: u.id }).catch(() => undefined);
+          throw new Error("Couldn't upload that picture. Try again.");
+        }
       }
       await refresh(l.id);
     });

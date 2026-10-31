@@ -25,10 +25,9 @@ export interface Schedule {
   times: { at: string; days: number[] }[];
 }
 export interface Publish {
-  /** direct: straight to the profile; inbox: to the account's TikTok drafts to finish in the app. */
-  mode: "direct" | "inbox";
-  auto_music: boolean;
-  ai_label: boolean;
+  /** inbox: to the account's TikTok drafts, where the person adds a sound and posts it. The only mode today: posting
+   *  straight to the profile would tell TikTok the person saw each post (posts.ts), which a schedule can't. */
+  mode: "inbox";
 }
 
 export const MAX_HOOKS = 30;
@@ -99,10 +98,20 @@ export function sanitizeSchedule(raw: unknown): Schedule {
     .slice(0, MAX_TIMES);
   return { tz, times };
 }
-export const sanitizePublish = (raw: unknown): Publish => {
-  const r = obj(raw) ? raw : {};
-  return { mode: pick(r.mode, ["direct", "inbox"] as const, "inbox"), auto_music: r.auto_music !== false, ai_label: r.ai_label === true };
-};
+export const sanitizePublish = (_raw: unknown): Publish => ({ mode: "inbox" });
+
+/** An upload in a library: the owner's folder, a fresh id, a picture ending. Nothing else is read or deleted. */
+export const ownUpload = (uid: string, src: string) => new RegExp(`^${uid}/lib/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(src);
+export const PEXELS_SRC = /^https:\/\/images\.pexels\.com\/[A-Za-z0-9/._?=&%-]+$/;
+
+/** A fixed UUID for one campaign's one posting time, so a repeat for the same slot is the same Zernio post. */
+export async function slotKey(campaignId: string, at: Date): Promise<string> {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${campaignId}|${at.toISOString()}`)));
+  h[6] = (h[6] & 0x0f) | 0x50;
+  h[8] = (h[8] & 0x3f) | 0x80;
+  const x = [...h.slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20, 32)}`;
+}
 
 /** The wall-clock parts of an instant in a zone. */
 function partsIn(t: Date, tz: string) {

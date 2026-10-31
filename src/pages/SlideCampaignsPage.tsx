@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { callFn } from "@/lib/edgeFn";
 import { activeProfileId } from "@/lib/profiles";
+import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import { postsPerWeek, sanitizeSchedule } from "../../supabase/functions/_shared/slideCampaign.ts";
@@ -52,6 +53,7 @@ export default function SlideCampaignsPage() {
   const [rows, setRows] = useState<CampaignRowView[] | null>(null);
   const [making, setMaking] = useState(false);
   const profile = activeProfileId(user?.id);
+  const canPost = socialConnectShown();
 
   useEffect(() => {
     if (!user) return;
@@ -85,10 +87,11 @@ export default function SlideCampaignsPage() {
           <h1 className="text-2xl font-semibold">Campaigns</h1>
           {rows && <p className="text-sm text-muted-foreground">{`${rows.length} campaign${rows.length === 1 ? "" : "s"}, ${rows.filter((r) => r.status === "live").length} live`}</p>}
         </div>
-        <Button onClick={() => void create()} disabled={making} className="gap-1.5">
+        <Button onClick={() => void create()} disabled={making || !canPost} className="gap-1.5">
           {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} New campaign
         </Button>
       </header>
+      {!canPost && <p className="text-sm text-muted-foreground">Campaigns send posts to your TikTok drafts, so they need posting switched on for your account. It's set up at your walkthrough.</p>}
       {!rows && <p className="text-sm text-muted-foreground">Loading your campaigns</p>}
       {rows?.length === 0 && (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">

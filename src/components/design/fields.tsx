@@ -28,14 +28,14 @@ export function ColorField({ value, onChange, swatches = [] }: { value: string; 
 }
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: readonly { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <span className="flex rounded-md border border-input p-0.5" role="group">
+    <span className="flex flex-wrap rounded-md border border-input p-0.5" role="group">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded px-2 py-1 text-xs ${value === o.value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          className={`flex-1 whitespace-nowrap rounded px-2 py-1 text-xs ${value === o.value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
         >
           {o.label}
         </button>

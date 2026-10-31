@@ -4,7 +4,7 @@
 --
 -- Tables
 --   cs_image_libraries     a named set of pictures, per owner and brand (profile_id)
---   cs_library_images      one picture: a Pexels link, or an upload in cs-slide-campaigns at <owner>/lib/<file>
+--   cs_library_images      one picture: a Pexels link, or an upload in cs-slide-campaigns at <owner>/lib/<uuid>.<ext>
 --   cs_slide_campaigns     the formula (spec), the posting times (schedule), where it posts and when next
 --   cs_slide_campaign_runs one made slideshow: its words, its PNGs at <owner>/runs/<run>/<n>.png, what Zernio said
 --
@@ -14,7 +14,10 @@
 --     only, so a client can't set a campaign live or point it at an account it doesn't hold.
 --   * cs-slide-campaigns is a private bucket (10 MB, png/jpeg/webp). No storage.objects policy: nobody lists or
 --     reads it directly; the function hands out short signed links.
---   * Deleting a user removes their rows (on delete cascade); their files are removed by the function's sweep.
+--   * Files: a run's row (with its PNG paths) is written before the PNGs, and an upload's row before the upload, so
+--     every file has a row. Each cron tick deletes example runs older than 7 days and posted runs older than 14 with
+--     their files. Deleting a user removes their rows (on delete cascade) but not their files: remove the
+--     <owner>/ folder by hand when an account is deleted.
 --
 -- Grants
 --   all four tables: revoke all from public, anon, authenticated; grant select to authenticated;
@@ -45,9 +48,10 @@ create table if not exists public.cs_library_images (
   credit jsonb check (credit is null or pg_column_size(credit) <= 1000),
   created_at timestamptz not null default now(),
   unique (library_id, src),
-  constraint cs_library_images_src_check check (char_length(src) <= 500 and (src ~ '^https://images\.pexels\.com/[A-Za-z0-9/._?=&%-]+$' or src like owner_id::text || '/lib/%'))
+  constraint cs_library_images_src_check check (char_length(src) <= 500 and (src ~ '^https://images\.pexels\.com/[A-Za-z0-9/._?=&%-]+$' or src ~ ('^' || owner_id::text || '/lib/[0-9a-f-]{36}\.(jpg|png|webp)$')))
 );
 create index if not exists cs_library_images_library on public.cs_library_images (library_id);
+create index if not exists cs_library_images_owner on public.cs_library_images (owner_id);
 
 create table if not exists public.cs_slide_campaigns (
   id uuid primary key default gen_random_uuid(),
@@ -59,8 +63,8 @@ create table if not exists public.cs_slide_campaigns (
   spec jsonb not null default '{}' check (pg_column_size(spec) <= 32000),
   -- {"tz": IANA zone, "times": [{"at": "HH:MM", "days": [0..6]}]}
   schedule jsonb not null default '{"tz": "Asia/Singapore", "times": [{"at": "09:00", "days": [0,1,2,3,4,5,6]}]}' check (pg_column_size(schedule) <= 4000),
-  -- {"mode": "inbox" | "direct", "auto_music": bool, "ai_label": bool}
-  publish jsonb not null default '{"mode": "inbox", "auto_music": true, "ai_label": false}' check (pg_column_size(publish) <= 1000),
+  -- {"mode": "inbox"}: to the account's TikTok drafts (the only mode today)
+  publish jsonb not null default '{"mode": "inbox"}' check (pg_column_size(publish) <= 1000),
   -- the Zernio account it posts to (checked against the owner's own Zernio profile when set)
   account_id text check (account_id ~ '^[0-9a-f]{24}$'),
   account_name text check (char_length(account_name) <= 120),
@@ -95,6 +99,8 @@ create table if not exists public.cs_slide_campaign_runs (
   created_at timestamptz not null default now()
 );
 create index if not exists cs_slide_campaign_runs_campaign on public.cs_slide_campaign_runs (campaign_id, created_at desc);
+create index if not exists cs_slide_campaign_runs_owner on public.cs_slide_campaign_runs (owner_id);
+create index if not exists cs_slide_campaign_runs_age on public.cs_slide_campaign_runs (created_at);
 
 do $$
 declare t text;

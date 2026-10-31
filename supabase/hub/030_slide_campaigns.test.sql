@@ -37,7 +37,7 @@ insert into public.cs_image_libraries (id, owner_id, profile_id, name) values
   ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000b002', 'me', 'Theirs');
 insert into public.cs_library_images (library_id, owner_id, src) values
   ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000a001', 'https://images.pexels.com/photos/1/pexels-photo-1.jpeg?auto=compress&w=1080'),
-  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a001/lib/abc.jpg');
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a001/lib/11111111-2222-3333-4444-555555555555.jpg');
 insert into public.cs_slide_campaigns (id, owner_id, profile_id, name) values
   ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-00000000a001', 'me', 'Golf hacks'),
   ('40000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000b002', 'me', 'Theirs');
@@ -51,6 +51,9 @@ select public.cs_test_expect_error(
 select public.cs_test_expect_error(
   $$insert into public.cs_library_images (library_id, owner_id, src) values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000b002/lib/theirs.jpg')$$,
   '%cs_library_images_src_check%', '2 an upload in another owner''s folder');
+select public.cs_test_expect_error(
+  $$insert into public.cs_library_images (library_id, owner_id, src) values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000a001', '00000000-0000-0000-0000-00000000a001/lib/../../00000000-0000-0000-0000-00000000b002/runs/x/1.png')$$,
+  '%cs_library_images_src_check%', '2b a path that climbs out of the owner''s folder');
 select public.cs_test_expect_error(
   $$update public.cs_slide_campaigns set status = 'live' where id = '30000000-0000-0000-0000-000000000003'$$,
   '%cs_slide_campaigns_live_check%', '3 live with no account or next time');

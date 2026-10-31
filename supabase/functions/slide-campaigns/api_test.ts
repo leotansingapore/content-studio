@@ -162,6 +162,9 @@ db.cs_social_profiles.push({ owner_id: A, profile_id: "me", zernio_profile_id: Z
 db.cs_user_data.push({ user_id: A, key: `content-studio-carousel-brand-${A}`, data: JSON.stringify({ name: "Scratch AI", profession: "Golf coaching app" }) });
 
 Deno.test("a campaign from the studio to TikTok drafts", async () => {
+  // building one needs posting switched on
+  assertEquals((await call("jwt-a", { action: "library-save", profile_id: "me", name: "x" })).body.code, "not_enabled");
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
   // a library of two Pexels photos, and a campaign that uses it for every role
   const lib = await call("jwt-a", { action: "library-save", profile_id: "me", name: "Golf courses" });
   assertEquals(lib.status, 200);
@@ -173,9 +176,16 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
       { src: "https://images.pexels.com/photos/1325735/pexels-photo-1325735.jpeg?auto=compress&cs=tinysrgb&w=1400", credit: { by: "a", url: "u" } },
       { src: "https://images.pexels.com/photos/914682/pexels-photo-914682.jpeg?auto=compress&cs=tinysrgb&w=1400" },
       { src: "https://evil.example/x.jpg" },
+      { src: `${A}/lib/../../${B}/runs/x/1.png` },
     ],
   });
   assertEquals(add.body.added, 2);
+  // an upload gets its row with its link, in the owner's folder under a fresh id
+  const up = await call("jwt-a", { action: "upload-url", library_id: libId, ext: "png" });
+  assert(new RegExp(`^${A}/lib/[0-9a-f-]{36}\\.png$`).test(up.body.path), up.body.path);
+  assertEquals(db.cs_library_images.filter((r) => r.library_id === libId).length, 3);
+  assertEquals((await call("jwt-a", { action: "library-remove", id: up.body.id })).status, 200);
+  assertEquals((await call("jwt-b", { action: "upload-url", library_id: libId })).status, 403, "B has no posting switch");
   const saved = await call("jwt-a", {
     action: "save",
     campaign: {
@@ -190,8 +200,10 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
   const id = saved.body.campaign.id;
   assertEquals(saved.body.campaign.publish.mode, "inbox", "direct posting is not offered yet");
 
-  // someone else can't touch it
+  // someone else can't touch it, even with posting on
+  Deno.env.set("SOCIAL_CONNECT_USERS", `${A},${B}`);
   assertEquals((await call("jwt-b", { action: "preview", id })).status, 404);
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
 
   // Generate: the slides are drawn and kept
   const pre = await call("jwt-a", { action: "preview", id });
@@ -205,9 +217,7 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
     if (out) await Deno.writeFile(`${out}/${f.split("/").pop()}`, png);
   }
 
-  // Start needs the posting switch, then an account
-  assertEquals((await call("jwt-a", { action: "start", id })).body.code, "not_enabled");
-  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  // Start needs an account
   assertEquals((await call("jwt-a", { action: "start", id })).body.error, "Pick the TikTok account it posts to.");
   assertEquals((await call("jwt-a", { action: "account", id, account_id: "ffffffffffffffffffffffff" })).status, 400);
   assertEquals((await call("jwt-a", { action: "account", id, account_id: ACCOUNT })).status, 200);
@@ -232,9 +242,10 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
   assert(String(c.next_run_at) > slot, "moved to the next posting time");
   assertEquals(c.last_error, null);
 
-  // a slot the tick missed is skipped, not posted late
+  // a slot the tick missed is skipped, not posted late, and said so
   c.next_run_at = new Date(Date.now() - 5 * 60_000).toISOString();
-  assertEquals(await tick(admin as never), { made: 0, failed: 0 });
+  assertEquals(await tick(admin as never), { made: 0, failed: 1 });
+  assertEquals(c.last_error, "Missed a posting time. It posts at the next one.");
   assertEquals(posts.length, 1);
   assert(new Date(String(c.next_run_at)) > new Date(), "skipped to a later slot");
 
@@ -247,6 +258,30 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
   // deleting the campaign removes its files
   assertEquals((await call("jwt-a", { action: "delete", id })).status, 200);
   assertEquals([...files.keys()].filter((k) => k.includes("/runs/")).length, 0);
+});
+
+Deno.test("two ticks at once make one post for a slot", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  const before = posts.length;
+  const slot = new Date(Date.now() + 10 * 60_000).toISOString();
+  db.cs_slide_campaigns.push({
+    id: crypto.randomUUID(), owner_id: A, profile_id: "me", name: "Twice", status: "live", account_id: ACCOUNT, next_run_at: slot, last_hook: null,
+    spec: { hooks: ["One hook"], content: { slides: 3 }, cta: { placement: "none" } },
+    schedule: { tz: "Asia/Singapore", times: [{ at: "09:00", days: [0, 1, 2, 3, 4, 5, 6] }] },
+  });
+  const [a, b] = await Promise.all([tick(admin as never), tick(admin as never)]);
+  assertEquals(a.made + b.made, 1);
+  assertEquals(posts.length, before + 1);
+});
+
+Deno.test("the tick sweeps old example runs and their files", async () => {
+  const runId = crypto.randomUUID();
+  const path = `${A}/runs/${runId}/1.png`;
+  files.set(path, new Uint8Array([1]));
+  db.cs_slide_campaign_runs.push({ id: runId, kind: "preview", files: [path], created_at: new Date(Date.now() - 8 * 24 * 3600_000).toISOString() });
+  await tick(admin as never);
+  assertEquals(db.cs_slide_campaign_runs.some((r) => r.id === runId), false);
+  assertEquals(files.has(path), false);
 });
 
 Deno.test("the cron needs its secret", async () => {

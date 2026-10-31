@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextRunAt, parseWriter, pickHook, pickImages, postsPerWeek, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, writerPrompt } from "./slideCampaign.ts";
+import { nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, slotKey, writerPrompt } from "./slideCampaign.ts";
 import { lookFilterSvg, overlayCss } from "./slideStyle.ts";
 
 describe("slideshow campaigns", () => {
@@ -22,9 +22,26 @@ describe("slideshow campaigns", () => {
     expect(s.format).toBe("tiktok");
   });
 
-  it("publishing defaults to TikTok drafts", () => {
-    expect(sanitizePublish({})).toEqual({ mode: "inbox", auto_music: true, ai_label: false });
-    expect(sanitizePublish({ mode: "direct" }).mode).toBe("direct");
+  it("publishing is TikTok drafts only, whatever is sent", () => {
+    expect(sanitizePublish({})).toEqual({ mode: "inbox" });
+    expect(sanitizePublish({ mode: "direct" })).toEqual({ mode: "inbox" });
+  });
+
+  it("uploads: only the owner's folder, a fresh id and a picture ending", () => {
+    const uid = "00000000-0000-4000-8000-00000000000a";
+    expect(ownUpload(uid, `${uid}/lib/11111111-2222-3333-4444-555555555555.jpg`)).toBe(true);
+    expect(ownUpload(uid, `${uid}/lib/../../00000000-0000-4000-8000-00000000000b/runs/x/1.png`)).toBe(false);
+    expect(ownUpload(uid, `${uid}/lib/11111111-2222-3333-4444-555555555555.svg`)).toBe(false);
+    expect(ownUpload(uid, `00000000-0000-4000-8000-00000000000b/lib/11111111-2222-3333-4444-555555555555.jpg`)).toBe(false);
+  });
+
+  it("slot keys: one UUID per campaign and posting time", async () => {
+    const at = new Date("2026-11-01T01:00:00Z");
+    const k = await slotKey("c1", at);
+    expect(k).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(await slotKey("c1", at)).toBe(k);
+    expect(await slotKey("c1", new Date("2026-11-02T01:00:00Z"))).not.toBe(k);
+    expect(await slotKey("c2", at)).not.toBe(k);
   });
 
   it("schedule: keeps good times, drops bad ones, falls back to Singapore", () => {

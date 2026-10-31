@@ -7,7 +7,7 @@
 // owner on SOCIAL_CONNECT_USERS, the switch Leo turns on per customer.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
-import { nextRunAt, sanitizePublish, sanitizeSchedule, sanitizeSpec } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, nextRunAt, ownUpload, sanitizePublish, sanitizeSchedule, sanitizeSpec } from "../_shared/slideCampaign.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { callerAccounts, zernioClient } from "../_shared/zernio.ts";
 import { isAllowed } from "../social/logic.ts";
@@ -20,8 +20,13 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 export const MAX_CAMPAIGNS = 20;
 export const MAX_LIBRARIES = 30;
 export const MAX_LIBRARY_IMAGES = 300;
-/** Runs the cron takes per tick, so one tick stays inside the function's time. */
+/** Runs the cron takes per tick, and the time after which a tick starts no new run, so it ends inside its limit. */
 const PER_TICK = 4;
+const TICK_BUDGET_MS = 90_000;
+/** How long example runs and posted runs (with their PNGs) are kept; posted ones outlive Zernio's 7-day links. */
+const KEEP_PREVIEW_MS = 7 * 24 * 3600_000;
+const KEEP_POST_MS = 14 * 24 * 3600_000;
+const SWEEP_PER_TICK = 40;
 /** A run is made this long before its posting time and handed to Zernio for the time itself. */
 const LEAD_MS = 20 * 60_000;
 
@@ -39,6 +44,11 @@ async function own<T>(admin: SupabaseClient, table: string, id: unknown, uid: st
 
 export async function userAction(admin: SupabaseClient, uid: string, b: Record<string, unknown>): Promise<Response> {
   const now = new Date();
+  // campaigns post to TikTok, so building one is for owners with posting switched on; anyone keeps reading, pausing
+  // and deleting what they have
+  if (!posting(uid) && !["runs", "pause", "delete", "library-delete", "library-remove", "library-urls"].includes(String(b.action))) {
+    return json({ code: "not_enabled", error: "Posting isn't switched on for your account yet." }, 403);
+  }
   switch (b.action) {
     case "save": {
       const c = (b.campaign ?? {}) as Record<string, unknown>;
@@ -47,7 +57,7 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
         name: (typeof c.name === "string" && c.name.trim().slice(0, 120)) || "Untitled campaign",
         spec: sanitizeSpec(c.spec),
         schedule: sanitizeSchedule(c.schedule),
-        publish: { ...sanitizePublish(c.publish), mode: "inbox" },
+        publish: sanitizePublish(c.publish),
         updated_at: now.toISOString(),
       };
       if (c.id) {
@@ -158,7 +168,7 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       const lib = await own<{ id: string }>(admin, "cs_image_libraries", b.id, uid, "id");
       if (!lib) return json({ error: "Not found." }, 404);
       const { data: imgs } = await admin.from("cs_library_images").select("src").eq("library_id", lib.id);
-      const uploads = (imgs ?? []).map((i) => i.src as string).filter((s) => s.startsWith(`${uid}/lib/`));
+      const uploads = (imgs ?? []).map((i) => i.src as string).filter((src) => ownUpload(uid, src));
       if (uploads.length) await admin.storage.from(BUCKET).remove(uploads);
       await admin.from("cs_image_libraries").delete().eq("id", lib.id);
       return json({ deleted: true });
@@ -169,14 +179,14 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       const items = (Array.isArray(b.items) ? b.items : []).slice(0, 60) as { src?: unknown; credit?: unknown }[];
       const { count } = await admin.from("cs_library_images").select("id", { count: "exact", head: true }).eq("library_id", lib.id);
       if ((count ?? 0) + items.length > MAX_LIBRARY_IMAGES) return json({ error: `A library holds up to ${MAX_LIBRARY_IMAGES} pictures.` }, 400);
+      // stock photos only: an upload gets its row from upload-url
       const rows = items
-        .filter((it) => typeof it.src === "string" && (/^https:\/\/images\.pexels\.com\/[A-Za-z0-9/._?=&%-]+$/.test(it.src) || (it.src as string).startsWith(`${uid}/lib/`)))
-        .map((it) => ({
-          library_id: lib.id,
-          owner_id: uid,
-          src: (it.src as string).slice(0, 500),
-          credit: it.credit && typeof it.credit === "object" ? { by: String((it.credit as { by?: unknown }).by ?? "").slice(0, 80), url: String((it.credit as { url?: unknown }).url ?? "").slice(0, 300) } : null,
-        }));
+        .filter((it) => typeof it.src === "string" && PEXELS_SRC.test(it.src))
+        .map((it) => {
+          const cr = it.credit && typeof it.credit === "object" ? (it.credit as { by?: unknown; url?: unknown }) : null;
+          const url = typeof cr?.url === "string" && /^https:\/\/[^\s]{1,290}$/.test(cr.url) ? cr.url : "";
+          return { library_id: lib.id, owner_id: uid, src: (it.src as string).slice(0, 500), credit: cr ? { by: String(cr.by ?? "").slice(0, 80), url } : null };
+        });
       if (!rows.length) return json({ error: "Pick a picture to add." }, 400);
       const { error } = await admin.from("cs_library_images").upsert(rows, { onConflict: "library_id,src", ignoreDuplicates: true });
       if (error) throw error;
@@ -185,17 +195,23 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
     case "library-remove": {
       const img = await own<{ id: string; src: string }>(admin, "cs_library_images", b.id, uid, "id, src");
       if (!img) return json({ error: "Not found." }, 404);
-      if (img.src.startsWith(`${uid}/lib/`)) await admin.storage.from(BUCKET).remove([img.src]);
+      if (ownUpload(uid, img.src)) await admin.storage.from(BUCKET).remove([img.src]);
       await admin.from("cs_library_images").delete().eq("id", img.id);
       return json({ deleted: true });
     }
     case "upload-url": {
-      // a signed link to put one picture in the owner's library folder; library-add files it afterwards
+      // a signed link to put one picture in a library; its row is written first, so no file is ever without one
+      const lib = await own<{ id: string }>(admin, "cs_image_libraries", b.library_id, uid, "id");
+      if (!lib) return json({ error: "Not found." }, 404);
+      const { count } = await admin.from("cs_library_images").select("id", { count: "exact", head: true }).eq("library_id", lib.id);
+      if ((count ?? 0) >= MAX_LIBRARY_IMAGES) return json({ error: `A library holds up to ${MAX_LIBRARY_IMAGES} pictures.` }, 400);
       const ext = b.ext === "png" || b.ext === "webp" ? b.ext : "jpg";
       const path = `${uid}/lib/${crypto.randomUUID()}.${ext}`;
       const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
       if (error || !data) throw error ?? new Error("no upload link");
-      return json({ path, token: data.token, signedUrl: data.signedUrl });
+      const ins = await admin.from("cs_library_images").insert({ library_id: lib.id, owner_id: uid, src: path }).select("id").single();
+      if (ins.error) throw ins.error;
+      return json({ path, token: data.token, id: ins.data.id });
     }
     case "library-urls": {
       // links to show a library's uploads (stock photos show from Pexels)
@@ -203,7 +219,7 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       if (!lib) return json({ error: "Not found." }, 404);
       const { data } = await admin.from("cs_library_images").select("id, src").eq("library_id", lib.id).order("created_at");
       const imgs = data ?? [];
-      const ups = imgs.filter((i) => !i.src.startsWith("https://"));
+      const ups = imgs.filter((i) => ownUpload(uid, i.src));
       const links = await signed(admin, ups.map((i) => i.src));
       const byPath = new Map(ups.map((i, k) => [i.src, links[k]]));
       return json({ images: imgs.map((i) => ({ id: i.id, src: i.src, url: i.src.startsWith("https://") ? i.src : (byPath.get(i.src) ?? null) })) });
@@ -220,9 +236,19 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
   let failed = 0;
   for (const c of (data ?? []) as CampaignRow[]) {
     const at = new Date(c.next_run_at!);
-    // a slot already passed (the tick was late): skip to the next one rather than post at the wrong time
-    const due = at.getTime() > now.getTime() + 60_000;
     const next = nextRunAt(sanitizeSchedule(c.schedule), new Date(Math.max(at.getTime(), now.getTime())))?.toISOString() ?? null;
+    if (Date.now() - now.getTime() > TICK_BUDGET_MS) break;
+    // claim the slot first: a second tick that read the same row finds next_run_at moved and leaves it
+    const { data: claimed } = await admin
+      .from("cs_slide_campaigns")
+      .update({ next_run_at: next, ...(next ? {} : { status: "paused" }) })
+      .eq("id", c.id)
+      .eq("status", "live")
+      .eq("next_run_at", c.next_run_at)
+      .select("id");
+    if (!claimed?.length) continue;
+    // a slot already passed (the tick was late) is skipped rather than posted at the wrong time
+    const due = at.getTime() > now.getTime() + 60_000;
     let error: string | null = null;
     if (!posting(c.owner_id)) error = "Posting was switched off for this account.";
     else if (due) {
@@ -236,14 +262,27 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
           error = e instanceof RunError ? e.message : "Something went wrong making the post. It tries again next time.";
           if (!(e instanceof RunError)) console.error("slide-campaigns tick", c.id, e);
         }
-    }
+    } else error = "Missed a posting time. It posts at the next one.";
     if (error) failed++;
     await admin
       .from("cs_slide_campaigns")
-      .update({ next_run_at: next, last_run_at: due ? now.toISOString() : c.next_run_at, last_error: error, ...(next && posting(c.owner_id) ? {} : { status: "paused", next_run_at: null }) })
+      .update({ ...(due ? { last_run_at: now.toISOString() } : {}), last_error: error, ...(posting(c.owner_id) ? {} : { status: "paused", next_run_at: null }) })
       .eq("id", c.id);
   }
+  await sweep(admin, now);
   return { made, failed };
+}
+
+/** Deletes example runs older than a week and posted runs older than two, with their PNGs, a few at a time. */
+async function sweep(admin: SupabaseClient, now: Date): Promise<void> {
+  for (const [kind, keep] of [["preview", KEEP_PREVIEW_MS], ["post", KEEP_POST_MS]] as const) {
+    const { data } = await admin.from("cs_slide_campaign_runs").select("id, files").eq("kind", kind).lte("created_at", new Date(now.getTime() - keep).toISOString()).limit(SWEEP_PER_TICK);
+    const old = data ?? [];
+    if (!old.length) continue;
+    const files = old.flatMap((r) => r.files as string[]);
+    if (files.length) await admin.storage.from(BUCKET).remove(files);
+    for (const r of old) await admin.from("cs_slide_campaign_runs").delete().eq("id", r.id);
+  }
 }
 
 /** The whole request: the cron with its secret, else a signed-in user. */

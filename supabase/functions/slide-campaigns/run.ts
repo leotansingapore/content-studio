@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
-import { parseWriter, pickHook, pickImages, runPlan, sanitizeSchedule, sanitizeSpec, writerPrompt, type Role } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, runPlan, sanitizeSchedule, sanitizeSpec, slotKey, writerPrompt, type Role } from "../_shared/slideCampaign.ts";
 import { renderSlide } from "../_shared/slideRender.ts";
 import { zernioClient } from "../_shared/zernio.ts";
 import { checkSchedule, runPost } from "../social/posts.ts";
@@ -25,6 +25,7 @@ export interface CampaignRow {
   publish: unknown;
   account_id: string | null;
   next_run_at: string | null;
+  last_run_at?: string | null;
   last_hook: string | null;
 }
 export class RunError extends Error {}
@@ -63,9 +64,11 @@ const b64 = (bytes: Uint8Array) => {
   return btoa(s);
 };
 /** A library picture as a data URL Satori can draw: a Pexels photo at 1080 wide, or the owner's upload. */
-async function pictureData(admin: SupabaseClient, src: string): Promise<string | null> {
+async function pictureData(admin: SupabaseClient, uid: string, src: string): Promise<string | null> {
   try {
-    if (src.startsWith("https://images.pexels.com/")) {
+    // only a Pexels photo or this owner's own upload, checked again here whatever the table holds
+    if (!PEXELS_SRC.test(src) && !ownUpload(uid, src)) return null;
+    if (PEXELS_SRC.test(src)) {
       const u = new URL(src);
       u.searchParams.set("w", "1080");
       const r = await fetch(u);
@@ -104,12 +107,15 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
     if (!lib || !at.length) continue;
     const { data } = await admin.from("cs_library_images").select("src").eq("library_id", lib).eq("owner_id", uid).limit(300);
     const chosen = pickImages((data ?? []).map((r) => r.src as string), at.length, spec.images.per_slide);
-    const loaded = await Promise.all(chosen.map((src) => pictureData(admin, src)));
+    const loaded = await Promise.all(chosen.map((src) => pictureData(admin, uid, src)));
     at.forEach((slide, k) => (pics[slide] = loaded[k] ?? null));
   }
 
   const runId = crypto.randomUUID();
-  const files: string[] = [];
+  // the row and its PNG paths go in first, as unfinished, so the sweep finds the files of a run that dies part way
+  const files = plan.map((_, i) => `${uid}/runs/${runId}/${i + 1}.png`);
+  const ins = await admin.from("cs_slide_campaign_runs").insert({ id: runId, campaign_id: c.id, owner_id: uid, kind, status: "failed", error: "Not finished.", hook, caption: w.caption, slides: plan, files });
+  if (ins.error) throw new Error(`run insert: ${ins.error.message}`);
   for (let i = 0; i < plan.length; i++) {
     const s = plan[i];
     const png = await renderSlide({
@@ -122,15 +128,10 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
       overlay: spec.overlay,
       badge: s.role === "cta" && spec.cta.badge,
     });
-    const path = `${uid}/runs/${runId}/${i + 1}.png`;
-    const up = await admin.storage.from(BUCKET).upload(path, png, { contentType: "image/png", upsert: false });
+    const up = await admin.storage.from(BUCKET).upload(files[i], png, { contentType: "image/png", upsert: false });
     if (up.error) throw new Error(`upload: ${up.error.message}`);
-    files.push(path);
   }
-
-  const row = { id: runId, campaign_id: c.id, owner_id: uid, kind, status: "made", hook, caption: w.caption, slides: plan, files };
-  const ins = await admin.from("cs_slide_campaign_runs").insert(row);
-  if (ins.error) throw new Error(`run insert: ${ins.error.message}`);
+  await admin.from("cs_slide_campaign_runs").update({ status: "made", error: null }).eq("id", runId);
   await admin.from("cs_slide_campaigns").update({ last_hook: hook, updated_at: new Date().toISOString() }).eq("id", c.id);
   if (kind === "post") await schedule(admin, c, { id: runId, hook, caption: w.caption, slides: plan, files }, at!);
   return { id: runId, hook, caption: w.caption, slides: plan, files };
@@ -149,7 +150,8 @@ async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at:
   if (urls.length !== run.files.length) return fail("The slides couldn't be shared with TikTok.");
   const tz = sanitizeSchedule(c.schedule).tz;
   const input = checkSchedule({
-    clientKey: run.id,
+    // one key per campaign and posting time: Zernio answers a repeat for the same slot with the same post
+    clientKey: await slotKey(c.id, at),
     content: run.caption,
     mediaUrls: urls,
     scheduledFor: at.toISOString().replace(/\.\d{3}Z$/, "Z"),
@@ -166,7 +168,10 @@ async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at:
     console.error("slide-campaigns schedule", c.id, e);
     return fail(e instanceof Error && e.name === "NotYours" ? "That TikTok account isn't on this brand any more. Pick it again." : "TikTok couldn't take the post right now. It tries again next time.");
   }
-  if (reply.status !== 200) return fail(String((reply.body as { error?: string })?.error ?? "Zernio refused the post."));
+  if (reply.status !== 200) {
+    console.error("slide-campaigns zernio refused", c.id, reply.status, reply.body);
+    return fail("TikTok didn't take the post. Check the account on Social accounts; it tries again next time.");
+  }
   const postId = (reply.body as { post?: { id?: string } })?.post?.id ?? null;
   await admin.from("cs_slide_campaign_runs").update({ status: "scheduled", scheduled_for: at.toISOString(), zernio_post_id: postId }).eq("id", run.id);
 }
