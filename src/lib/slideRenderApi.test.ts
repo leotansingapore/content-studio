@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { POST } from "./slide-render";
+import { POST } from "../../api/slide-render";
 
 const slide = { format: "tiktok", photo: null, text: "Hi", style: { v: "middle", h: "center", size: "md", font: "Inter", italic: false, caps: false, bg: "none", color: "#ffffff" }, overlay: { kind: "none", strength: 0 } };
 const call = (body: unknown, secret?: string) =>

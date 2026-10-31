@@ -7,7 +7,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import satori from "satori";
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
-import { FRAME_W, slideSvg, type Satori, type SlideInput } from "../supabase/functions/_shared/slideDraw";
+import { FRAME_W, slideSvg, type Satori, type SlideInput } from "../supabase/functions/_shared/slideDraw.js";
 
 export const config = { maxDuration: 30 };
 
