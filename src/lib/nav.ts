@@ -133,7 +133,9 @@ export const SECTIONS: NavSection[] = [
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/slideshow", label: "Slideshow" },
       // the layer editor and its templates (Volume, folded in 31 Oct)
-      { to: "/design", label: "Design", title: "Design slides" },
+      { to: "/design", label: "Design", title: "Design slides", end: true },
+      // slideshow campaigns: a new slideshow on a schedule, sent to TikTok drafts (Volume, folded in 31 Oct)
+      { to: "/design/campaigns", label: "Campaigns", title: "Slideshow campaigns" },
       { to: "/edit", label: "Video" },
       { to: "/library", label: "Everything", title: "Library", owners: LEO_EMAILS, group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },

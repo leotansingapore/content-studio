@@ -115,6 +115,11 @@ export const DAILY_LIMITS = {
   // Post it for me (social posts.ts): scheduling a post or trying a failed one again, and each file's upload link.
   "social-schedule": 30,
   "social-presign": 30,
+  // Slideshow campaigns (slide-campaigns): Generate in the studio (one writer call and up to 12 slides drawn), the
+  // posts the schedule makes per owner (several campaigns, several times a day), and every studio save or read.
+  "slide-campaign-make": 20,
+  "slide-campaign-post": 12,
+  "slide-campaign-write": 500,
   // Telegram (telegram, Leo only, NORTH_STAR_USERS): a connect code, a queued post, and a post's file upload links.
   "telegram-connect": 5,
   "telegram-schedule": 30,

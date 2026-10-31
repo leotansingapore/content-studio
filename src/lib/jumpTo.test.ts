@@ -150,7 +150,7 @@ describe("the format gallery", () => {
   it("finds only Slideshow (on for everyone 30 Oct) for anyone else, and never offers Formats as a recent page", () => {
     const other = [...CREATE_ITEMS, ...pageItems("user@demo.com")];
     expect(other.map((i) => i.to)).not.toContain("/make");
-    expect(searchJump(other, "slideshow").map((i) => i.to)).toEqual(["/slideshow", "/design"]);
+    expect(searchJump(other, "slideshow").map((i) => i.to)).toEqual(["/slideshow", "/design/campaigns", "/design"]);
     for (const q of WORDS) expect(searchJump(other, q).map((i) => i.to), q).not.toContain("/make");
     pushRecent("/make/slideshow");
     expect(loadRecent()).toEqual(["/make"]);
@@ -183,7 +183,8 @@ describe("Campaigns, Ideas and Audiences", () => {
     expect(searchJump(leo, "post ideas")[0].to).toBe("/inspiration");
     const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
     for (const to of ["/campaigns", "/ideas", "/audiences"]) expect(other.map((i) => i.to)).not.toContain(to);
-    expect(searchJump(other, "campaign")).toEqual([]);
+    // slideshow campaigns (/design/campaigns, 31 Oct) are everyone's; the plan of that name stays Leo's
+    expect(searchJump(other, "campaign").map((i) => i.to)).toEqual(["/design/campaigns"]);
     expect(searchJump(other, "ideas")[0].to).toBe("/inspiration");
   });
 });

@@ -25,6 +25,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/inspiration/:id": "one inspiration, opened from /inspiration",
   "/carousels/:id": "one carousel, opened from /carousels",
   "/design/:id": "one design, opened from /design",
+  "/design/campaigns/:id": "one slideshow campaign, opened from /design/campaigns",
   "/profiles/:id": "one creator, opened from /profiles",
   "/make/:format": "a format's create page, opened from Remix buttons and the /make gallery",
   "/campaigns/new": "reached from /campaigns",

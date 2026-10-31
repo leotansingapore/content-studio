@@ -37,6 +37,7 @@ export const PAGES: Record<string, string> = {
   "/image": "Image",
   "/slideshow": "Slideshow",
   "/design": "Design slides",
+  "/design/campaigns": "Slideshow campaigns",
   "/edit": "Video",
   "/media": "Media",
   "/plan": "Plan",
