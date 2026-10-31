@@ -187,6 +187,7 @@ import { starterChips } from "@/lib/agentStarters";
 import { loadThreads, newMsg, newThread, type AgentMsg } from "@/lib/agentThreads";
 import { UNDONE, estimateScript, type AgentPick } from "@/lib/agentCards";
 import { loadActivity, setActivityOn } from "@/lib/activity";
+import { localDateKey } from "@/lib/dueDates";
 import { confirmAngles } from "@/lib/angles";
 import { saveAudience } from "@/lib/audiences";
 import { loadShadow, saveAutonomy } from "@/lib/autonomy";
@@ -418,7 +419,7 @@ describe("nothing priced runs before its card's press", () => {
     expect(cardMsg(t2).card).toMatchObject({ status: "failed", error: "No remixes left today. They reset at 8am Singapore time." });
     expect(cardMsg(t2).go?.map((g) => g.label)).toEqual(["Write it in Write"]);
     // the failed make, and only it, goes in Activity's Corrections
-    const fixes = loadActivity(UID, [new Date().toISOString().slice(0, 7)]).filter((e) => e.kind === "correction");
+    const fixes = loadActivity(UID, [localDateKey().slice(0, 7)]).filter((e) => e.kind === "correction");
     expect(fixes).toEqual([expect.objectContaining({ who: "agent", title: `"${cardMsg(t2).card!.title}" wasn't made`, detail: "No remixes left today. They reset at 8am Singapore time." })]);
   });
 
@@ -487,7 +488,7 @@ describe("nothing priced runs before its card's press", () => {
     expect(cardMsg(id).receipt).toMatchObject({ title: "Competitor added", line: "Finch is on your list." });
     expect(await undoReceipt(UID, id, cardMsg(id).id)).toBe(UNDONE);
     expect(loadCompetitors(UID).list.map((c) => c.name)).toEqual(["finchcare"]);
-    expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).map((e) => [e.who, e.title])).toEqual(
+    expect(loadActivity(UID, [localDateKey().slice(0, 7)]).map((e) => [e.who, e.title])).toEqual(
       expect.arrayContaining([["agent", 'Added "Finch" as a competitor'], ["you", 'Undid "Competitor added"']]),
     );
   });
@@ -545,7 +546,7 @@ describe("nothing priced runs before its card's press", () => {
     await approve(id);
     expect(page.text).toBe("new");
     // the log names what changed, not the page's "Done."
-    expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).some((e) => e.title === "Slide 3 changed")).toBe(true);
+    expect(loadActivity(UID, [localDateKey().slice(0, 7)]).some((e) => e.title === "Slide 3 changed")).toBe(true);
     expect(await undoReceipt(UID, id, cardMsg(id).id)).toBe(UNDONE);
     expect(page.undone).toBe(true);
     // the item closed before the press
@@ -946,7 +947,7 @@ describe("the 25 Oct replay: what the agent started logs as the agent's (D6, the
     expect(fake.imageAgent).toEqual(at(pic));
     const talk = await say("make a talking video about CPF LIFE", { act: "make", format: "speaking" });
     await approve(talk);
-    expect(loadActivity(UID, [new Date().toISOString().slice(0, 7)]).find((e) => e.title === "Wrote a talking video script")).toMatchObject({ who: "agent", detail: SCRIPT });
+    expect(loadActivity(UID, [localDateKey().slice(0, 7)]).find((e) => e.title === "Wrote a talking video script")).toMatchObject({ who: "agent", detail: SCRIPT });
     await approve(talk);
     expect(fake.talkAsk?.agent).toEqual(at(talk));
     const explainer = await say("make an explainer about CPF LIFE", { act: "make", format: "explainer" });
