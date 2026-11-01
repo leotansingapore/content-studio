@@ -4,6 +4,13 @@ import type { SimilarAccount } from "../../supabase/functions/competitors/logic.
 
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
+// the cloud's newer copy, as another tab or device saved it: a refresh writes it here (null: nothing newer)
+let cloud: string | null = null;
+vi.mock("@/lib/cloudSync", () => ({
+  refreshCloudKeys: async (keys: string[]) => {
+    if (cloud !== null) for (const k of keys) if (k.startsWith("content-studio-similar-")) localStorage.setItem(k, cloud);
+  },
+}));
 
 const s = await import("./similarAccounts");
 
@@ -269,3 +276,28 @@ describe("Apps like yours: covers, on this device only", () => {
     expect(s.loadMedia(U)).toEqual({ "tiktok:a": { x: { cover: "https://p16.tiktokcdn.com/x.jpeg" }, z: { slides: 6 } } });
   });
 });
+
+describe("Apps like yours: another tab or device", () => {
+  afterEach(() => {
+    cloud = null;
+  });
+
+  it("keeps what another device saved while a read ran: the read starts from the cloud's newer list", async () => {
+    s.saveSimilar(U, { accounts: [{ ...found("a", { platform: "tiktok" }), addedAt: "x" }], posts: {}, dismissed: [], month: null });
+    // elsewhere, a find added b and c while this tab was reading a
+    cloud = JSON.stringify({ accounts: ["a", "b", "c"].map((h) => ({ ...found(h, { platform: "tiktok" }), addedAt: "x" })), posts: {}, dismissed: [], month: { spent: 3, cap: 40 } });
+    callFn.mockResolvedValueOnce(read("a", [post("p1", 2)]));
+    await s.runSimilarPosts(U, "tiktok", "a");
+    expect(s.loadSimilar(U).accounts.map((x) => x.handle)).toEqual(["a", "b", "c"]);
+    expect(s.loadSimilar(U).posts["tiktok:a"].posts.map((x) => x.id)).toEqual(["p1"]);
+  });
+
+  it("folds a find into the cloud's newer list too, never this tab's stale copy", async () => {
+    s.saveSimilar(U, { accounts: [], posts: {}, dismissed: [], month: null });
+    cloud = JSON.stringify({ accounts: [{ ...found("kept", { platform: "instagram" }), via: "added", addedAt: "x" }], posts: {}, dismissed: [], month: null });
+    callFn.mockResolvedValueOnce({ accounts: [found("new1")], month: { spent: 1.1, cap: 40 } });
+    await s.runFind(U);
+    expect(s.loadSimilar(U).accounts.map((x) => x.handle)).toEqual(["kept", "new1"]);
+  });
+});
+

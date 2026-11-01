@@ -334,6 +334,7 @@ export async function runBuild(userId: string): Promise<void> {
     saveSocialNs(userId, { ...ns, triedAt: new Date(now).toISOString() });
     const r = await callFn<PlaysAnswer>("social-plays", { posts: refs.map(wire), own: own.map(wire) }, BUILD_FAILED);
     const keep = new Set([...refs, ...own].map((p) => p.key));
+    await refreshCloudKeys([socialNsKey(userId)]); // written whole: start from the newest copy, not this tab's
     const fresh = loadSocialNs(userId);
     const sent = Object.fromEntries([...refs, ...own].flatMap((p) => (p.label ? [[p.key, p.label]] : [])));
     const got = Object.fromEntries(Object.entries(r.labels ?? {}).flatMap(([k, l]) => (keep.has(k) && cleanLabel(l) ? [[k, cleanLabel(l)!]] : [])));

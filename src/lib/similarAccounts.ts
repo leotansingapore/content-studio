@@ -6,6 +6,7 @@
 // Each read's covers, which expire within days, stay on this device (cs-similar-media-) for the social north star.
 
 import { auditedHandles } from "@/lib/accountAudit";
+import { refreshCloudKeys } from "@/lib/cloudSync";
 import { checkJobs } from "@/lib/competitorAds";
 import { postsDue } from "@/lib/competitorPosts";
 import { brandFacts, loadCompetitors, parseInput } from "@/lib/competitors";
@@ -94,6 +95,12 @@ export function saveSimilar(userId: string, s: SimilarState): SimilarState {
   }
   globalThis.dispatchEvent?.(new Event(CHANGED));
   return saved;
+}
+
+/** The newest list from the cloud, then a redraw: for a page coming back into view after other tabs or devices saved. */
+export async function refreshSimilar(userId: string): Promise<void> {
+  await refreshCloudKeys([similarKey(userId)]);
+  globalThis.dispatchEvent?.(new Event(CHANGED));
 }
 
 export function onSimilarChanged(cb: () => void): () => void {
@@ -208,6 +215,7 @@ export async function runFind(userId: string): Promise<void> {
   emit();
   try {
     const r = await callFn<FindAnswer>("competitors", findRequest(userId), FIND_FAILED);
+    await refreshCloudKeys([similarKey(userId)]); // the newest list, so a stale tab never writes over one saved elsewhere
     const s = loadSimilar(userId);
     const next = mergeFound(s, Array.isArray(r.accounts) ? r.accounts : []);
     const added = next.accounts.length - s.accounts.length;
@@ -304,7 +312,10 @@ export function runSimilarPosts(userId: string, platform: FollowPlatform, handle
     const r = await callFn<TrackResult & { checkedAt: string; month?: { spent: number; cap: number } }>(
       "competitors", { mode: "posts", platform, handle, scope: "similar", limit: first ? POSTS_KEPT : SIMILAR_REFRESH }, POSTS_FAILED,
     );
-    // read again: the list may have changed while the read ran
+    // read again, from the cloud first: the list may have changed while the read ran, here or in another tab or device.
+    // A tab only pulls when it starts, and this key is written whole, so a long-open tab saving its own copy undid
+    // finds made elsewhere (1 Nov: 19 found accounts lost to a tab open since the first find).
+    await refreshCloudKeys([similarKey(userId)]);
     const s = loadSimilar(userId);
     if (!s.accounts.some((a) => accountKey(a) === key)) return;
     saveSimilar(userId, {

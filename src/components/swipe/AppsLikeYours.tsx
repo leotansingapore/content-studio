@@ -19,7 +19,7 @@ import { links } from "@/lib/links";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { fromFollowPost } from "@/lib/remixSource";
 import {
-  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadMedia, loadSimilar, onSimilar, onSimilarChanged,
+  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadMedia, loadSimilar, onSimilar, onSimilarChanged, refreshSimilar,
   readAddInput, readFailure, readingAny, readsStopped, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarFeed, similarKey,
 } from "@/lib/similarAccounts";
 import { useGoneItem, useUrlItem, useUrlState } from "@/lib/urlState";
@@ -47,6 +47,12 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   // opening the tab reads whatever is 7+ days old, the newest 10 posts each, and starts the brand's first find
   useEffect(() => {
     void runDueSimilar(userId);
+  }, [userId]);
+  // coming back to the tab: take the list other tabs or devices saved meanwhile, before anything here writes over it
+  useEffect(() => {
+    const back = () => document.visibilityState === "visible" && void refreshSimilar(userId);
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
   }, [userId]);
 
   const [f, setF] = useUrlState<SimilarFilter>("f", "all", { allowed: SIMILAR_FILTERS });
