@@ -61,6 +61,7 @@ function Campaigns({ userId }: { userId: string }) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const [showDone, setShowDone] = useUrlFlag("show", "done");
   useEffect(() => {
+    document.title = "Campaigns - Postmosis";
     const offs = [onCampaignsChanged(redraw), onCampaignJob(redraw), onAudiencesChanged(redraw)];
     return () => offs.forEach((off) => off());
   }, []);
