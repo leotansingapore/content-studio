@@ -6,7 +6,7 @@ Design is where you build a slideshow slide by slide. Every slide is a stack of 
 
 To start one:
 
-1. Go to `Studio` → `Design`.
+1. Go to `Studio` → `Slideshows` → `Design`.
 2. Pick a template under `Start from a template`, or select `New TikTok slideshow` or `Instagram carousel` for a blank one.
 3. Switch between `TikTok 9:16` and `Instagram 4:5` to see each template in that size.
 

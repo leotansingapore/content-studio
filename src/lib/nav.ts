@@ -136,14 +136,15 @@ export const SECTIONS: NavSection[] = [
       { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
-      { to: "/slideshow", label: "Slideshow" },
+      { to: "/edit", label: "Video" },
+      // its own tab, so Create stays a short choice and these Campaigns can't be read as Strategy's
+      { to: "/slideshow", label: "Slideshow", group: "Slideshows" },
       // the layer editor and its templates (Volume, folded in 31 Oct)
       { to: "/design", label: "Design", title: "Design slides", end: true },
-      // slideshow campaigns: a new slideshow on a schedule, sent to TikTok drafts (Volume, folded in 31 Oct)
+      // slideshow campaigns: a new slideshow on a schedule, sent to TikTok (Volume, folded in 31 Oct)
       { to: "/design/campaigns", label: "Campaigns", title: "Slideshow campaigns" },
       // the pictures campaigns draw from (Volume's Library, folded in 1 Nov)
       { to: "/design/libraries", label: "Libraries", title: "Image libraries" },
-      { to: "/edit", label: "Video" },
       { to: "/library", label: "Everything", title: "Library", owners: LEO_EMAILS, group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },
       { to: "/board", label: "Board", icon: Columns3 },

@@ -10,7 +10,7 @@ Campaigns post to TikTok, so they need posting switched on for your account. We 
 
 To create one:
 
-1. Go to `Studio` → `Campaigns`.
+1. Go to `Studio` → `Slideshows` → `Campaigns`.
 2. Select `New campaign`.
 3. Under `Hook`, add a few hooks. Each post opens with one picked at random. Paste a list to add many at once.
 4. Under `Content`, write what the posts are about. Select `Say it` to dictate, or `Optimize` to sharpen what you wrote.
@@ -24,7 +24,7 @@ Turn on `Search the web first` to have each post look up its hook before writing
 
 Each kind of slide (hook, content, CTA) takes its pictures from a library. Choose a library from the menu under each tab, or select `New library…`.
 
-A library can hold free Pexels photos, AI pictures, your uploads and app shots (a screenshot of your app in a phone over a scene). Go to `Studio` → `Libraries` to see and edit all of them. You can keep **30** libraries of up to **300** pictures each.
+A library can hold free Pexels photos, AI pictures, your uploads and app shots (a screenshot of your app in a phone over a scene). Go to `Studio` → `Slideshows` → `Libraries` to see and edit all of them. You can keep **30** libraries of up to **300** pictures each.
 
 ## Style the slides
 

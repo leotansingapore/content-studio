@@ -2,7 +2,8 @@
 // today's code). Never update the pinned file with vitest -u. Updated once on purpose, 1 Nov 2026: the Design,
 // campaigns and Claude-in-Design guides were added as three cards before Hard rules; with them cut out, the new pin
 // equals the old one byte for byte. Updated again 1 Nov: one sentence of the campaigns guide (sources show on examples
-// and drafts only), nothing else.
+// and drafts only), nothing else. Again 1 Nov: the Design and campaigns guides' three directions gain the new
+// Slideshows tab (Studio -> Slideshows -> ...), nothing else.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
