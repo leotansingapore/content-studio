@@ -25,11 +25,11 @@ import { useZernioOutbox } from "@/lib/useZernioOutbox";
 import { readTeamPosts, readTeamReviews, teamPostsHere } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
-import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
+import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
-import { applyTheme, readTheme, saveTheme, type Theme } from "@/lib/theme";
+import { applyTheme, readTheme, resolveTheme, saveTheme, type ThemePick } from "@/lib/theme";
 import {
   SECTIONS,
   mobileTabs,
@@ -174,16 +174,30 @@ function FootLink({ s, to, active, wide = false }: { s: NavSection; to: string; 
 }
 
 /** The account card at the foot: who is signed in, with Settings and Sign out in its menu. */
-/** The theme switch's words: what a tap turns it into. */
-function ThemeSwitchLabel({ theme }: { theme: Theme }) {
-  return theme === "dark" ? (
-    <>
-      <Sun className="h-4 w-4 text-muted-foreground" /> Light mode
-    </>
-  ) : (
-    <>
-      <Moon className="h-4 w-4 text-muted-foreground" /> Dark mode
-    </>
+const THEMES = [
+  ["light", Sun, "Light"],
+  ["dark", Moon, "Dark"],
+  ["system", Monitor, "System"],
+] as const;
+
+/** Light, Dark or System (the device's setting), the picked one pressed. A tap keeps the account menu open. */
+function ThemeSwitch({ theme, onTheme }: { theme: ThemePick; onTheme: (t: ThemePick) => void }) {
+  return (
+    <div role="group" aria-label="Theme" onClick={(e) => e.stopPropagation()} className="grid grid-cols-3 gap-0.5 rounded-lg border border-border/70 p-0.5">
+      {THEMES.map(([t, Icon, label]) => (
+        <button
+          key={t}
+          type="button"
+          aria-pressed={theme === t}
+          onClick={() => onTheme(t)}
+          className={`flex min-h-8 min-w-0 items-center justify-center gap-1 rounded-md px-1 text-xs font-medium [@media(pointer:coarse)]:min-h-11 ${
+            theme === t ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Icon className="h-3.5 w-3.5 shrink-0" /> {label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -200,8 +214,8 @@ function AccountMenu({
   settingsTo: string;
   northStar: boolean;
   active: boolean;
-  theme: Theme;
-  onTheme: () => void;
+  theme: ThemePick;
+  onTheme: (t: ThemePick) => void;
   onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -237,9 +251,9 @@ function AccountMenu({
           <Link role="menuitem" to={settingsTo} className={item}>
             <Settings className="h-4 w-4 text-muted-foreground" /> Settings
           </Link>
-          <button role="menuitem" type="button" onClick={onTheme} className={item}>
-            <ThemeSwitchLabel theme={theme} />
-          </button>
+          <div className="px-1 py-1">
+            <ThemeSwitch theme={theme} onTheme={onTheme} />
+          </div>
           <button role="menuitem" type="button" onClick={onSignOut} className={item}>
             <LogOut className="h-4 w-4 text-muted-foreground" /> Sign out
           </button>
@@ -322,16 +336,22 @@ export default function StudioLayout() {
   // Moves and cancels of auto-posts, sent to Zernio for every sign-in that can auto-post (publish-calendar)
   useZernioOutbox(uid);
 
-  // Dark unless this device chose light; public pages outside this shell go back to light (src/lib/theme.ts).
-  const [theme, setTheme] = useState<Theme>(readTheme);
+  // Dark unless this device chose light or System, which follows the device's setting as it changes; public pages
+  // outside this shell go back to light (src/lib/theme.ts).
+  const [theme, setTheme] = useState<ThemePick>(readTheme);
   useLayoutEffect(() => {
-    applyTheme(theme);
-    return () => applyTheme(null);
+    const os = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const draw = () => applyTheme(resolveTheme(theme, os?.matches ?? true));
+    draw();
+    os?.addEventListener?.("change", draw);
+    return () => {
+      os?.removeEventListener?.("change", draw);
+      applyTheme(null);
+    };
   }, [theme]);
-  const switchTheme = () => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    saveTheme(next);
-    setTheme(next);
+  const switchTheme = (t: ThemePick) => {
+    saveTheme(t);
+    setTheme(t);
   };
 
   const leo = useLeoUser();
@@ -656,14 +676,14 @@ export default function StudioLayout() {
               <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
             ))}
           </div>
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-3">
+          <div className="mt-5 border-t border-border/70 pt-3">
+            <ThemeSwitch theme={theme} onTheme={switchTheme} />
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
             <p className="min-w-0 truncate text-xs text-muted-foreground" title={email}>
               {email}
             </p>
             <div className="flex shrink-0 items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={switchTheme} className="h-11 gap-1.5 text-muted-foreground">
-                <ThemeSwitchLabel theme={theme} />
-              </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="h-11 gap-1.5 text-muted-foreground">
                 <LogOut className="h-3.5 w-3.5" /> Sign out
               </Button>
