@@ -7,6 +7,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
 import ImagePicker, { pictureTag } from "@/components/design/ImagePicker";
 import { ColorField, Segmented, field } from "@/components/design/fields";
+import { BRAND_FAMILIES } from "@/lib/brandFont";
 import {
   BRAND_FONT,
   FONT_NAMES,
@@ -30,7 +31,10 @@ export interface InspectorProps {
   slide: DesignSlide;
   layer: Layer | null;
   brandColors: string[];
-  brandFont: boolean;
+  /** The brand's uploaded fonts, by family and name. */
+  fonts: { family: string; name: string }[];
+  /** The palette's heading and body fonts. */
+  brandFonts: { heading: string | null; body: string | null };
   onSlide: (patch: Partial<DesignSlide>, tag?: string) => void;
   onCaption: (caption: string) => void;
   onLayer: (id: string, patch: Partial<Layer>, tag?: string) => void;
@@ -101,8 +105,46 @@ function Toggle({ label, on, onChange, children }: { label: string; on: boolean;
   );
 }
 
-function TextPanel({ l, set, swatches, brandFont }: { l: TextLayer; set: (p: Partial<TextLayer>, tag?: string) => void; swatches: string[]; brandFont: boolean }) {
-  const fonts = brandFont ? [BRAND_FONT, ...FONT_NAMES] : FONT_NAMES;
+type FontChoices = { fonts: InspectorProps["fonts"]; brandFonts: InspectorProps["brandFonts"] };
+
+/** The font picker's options, grouped as Volume's: Brand fonts (the palette's picks), Your fonts, Built in. */
+function FontOptions({ fonts, brandFonts, current }: FontChoices & { current?: string }) {
+  const name = (f: string) => fonts.find((u) => u.family === f)?.name ?? (f === BRAND_FONT ? "Your brand font" : f);
+  const known = (f: string) => FONT_NAMES.includes(f) || fonts.some((u) => u.family === f);
+  const picks = (["heading", "body"] as const).flatMap((k) => (brandFonts[k] && known(brandFonts[k]!) ? [[k, brandFonts[k]!] as const] : []));
+  return (
+    <>
+      {current && !known(current) && <option value={current}>{BRAND_FAMILIES.includes(current) ? "A removed font" : current}</option>}
+      {picks.length > 0 && (
+        <optgroup label="Brand fonts">
+          {picks.map(([k, f]) => (
+            <option key={k} value={f}>
+              {k === "heading" ? "Headings" : "Body text"}: {name(f)}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {fonts.length > 0 && (
+        <optgroup label="Your fonts">
+          {fonts.map((u) => (
+            <option key={u.family} value={u.family}>
+              {u.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      <optgroup label="Built in">
+        {FONT_NAMES.map((f) => (
+          <option key={f} value={f}>
+            {f}
+          </option>
+        ))}
+      </optgroup>
+    </>
+  );
+}
+
+function TextPanel({ l, set, swatches, fonts, brandFonts }: { l: TextLayer; set: (p: Partial<TextLayer>, tag?: string) => void; swatches: string[] } & FontChoices) {
   const weights = FONTS[l.font]?.weights ?? [400, 700];
   return (
     <Section title="Text">
@@ -113,11 +155,7 @@ function TextPanel({ l, set, swatches, brandFont }: { l: TextLayer; set: (p: Par
       <Textarea value={l.text} maxLength={MAX_TEXT} rows={3} onChange={(e) => set({ text: e.target.value, name: plainText(e.target.value).split("\n")[0].slice(0, 40) || "Text" }, "text")} />
       <Row label="Font">
         <select className={field} value={l.font} onChange={(e) => set({ font: e.target.value })}>
-          {(fonts.includes(l.font) ? fonts : [l.font, ...fonts]).map((f) => (
-            <option key={f} value={f}>
-              {f === BRAND_FONT ? "Your brand font" : f}
-            </option>
-          ))}
+          <FontOptions fonts={fonts} brandFonts={brandFonts} current={l.font} />
         </select>
       </Row>
       <Row label="Weight">
@@ -173,11 +211,7 @@ function TextPanel({ l, set, swatches, brandFont }: { l: TextLayer; set: (p: Par
             <Row label="Font">
               <select className={field} value={l.accent.font ?? ""} onChange={(e) => set({ accent: { ...l.accent!, font: e.target.value || undefined } })}>
                 <option value="">Same as text</option>
-                {fonts.map((f) => (
-                  <option key={f} value={f}>
-                    {f === BRAND_FONT ? "Your brand font" : f}
-                  </option>
-                ))}
+                <FontOptions fonts={fonts} brandFonts={brandFonts} current={l.accent.font} />
               </select>
             </Row>
           </>
@@ -458,7 +492,7 @@ export default function Inspector(p: InspectorProps) {
           </Section>
         </>
       )}
-      {l?.type === "text" && <TextPanel l={l} set={set} swatches={p.brandColors} brandFont={p.brandFont} />}
+      {l?.type === "text" && <TextPanel l={l} set={set} swatches={p.brandColors} fonts={p.fonts} brandFonts={p.brandFonts} />}
       {l?.type === "image" && <ImagePanel userId={p.userId} designId={p.design.id} l={l} set={set} onLookAll={p.onLookAll} format={p.design.format} />}
       {l?.type === "shape" && <ShapePanel l={l} set={set} swatches={p.brandColors} />}
       {l?.type === "gradient" && <FadePanel l={l} set={set} />}

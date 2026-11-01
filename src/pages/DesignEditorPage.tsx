@@ -13,7 +13,7 @@ import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { loadBrandFont, loadBrandFonts, registerBrandFonts } from "@/lib/brandFont";
+import { loadBrandFonts, registerBrandFonts } from "@/lib/brandFont";
 import { loadBrand, slideFileName, slidesZipName } from "@/lib/carousel";
 import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import {
@@ -113,13 +113,13 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const [chosen, setChosen] = useState<Set<number>>(new Set());
   const [phone, setPhone] = useState<{ url: string; expiresAt: string; qr?: string } | null>(null);
   const [typing, setTyping] = useState<string | null>(null);
+  const fonts = useMemo(() => loadBrandFonts(userId), [userId]);
   const [palette, setPalette] = useState(() => loadPalette(userId));
   const [tour, setTour] = useState(() => !pageTourDone(userId, "design-editor"));
   const [swatch, setSwatch] = useState("#ffd21f");
   const editPalette = (p: Partial<typeof palette>) => setPalette(savePalette(userId, { ...palette, ...p }));
   const abort = useRef<AbortController | null>(null);
   const brand = useMemo(() => loadBrand(userId), [userId]);
-  const brandFont = useMemo(() => !!loadBrandFont(userId)?.data, [userId]);
 
   const index = Math.min(work.slides.length - 1, Math.max(0, (Number(params.get("slide")) || 1) - 1));
   const slide = work.slides[index];
@@ -129,8 +129,8 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   useEffect(() => {
     ensureDesignFonts();
     setBrandPictures({ logo: brand?.logo, photo: brand?.photo });
-    void registerBrandFonts(loadBrandFonts(userId));
-  }, [brand, userId]);
+    void registerBrandFonts(fonts);
+  }, [brand, fonts]);
 
   // autosave half a second after the last change (Claude's own version is already saved), and at once on leaving
   const keep = (d: Design) => {
@@ -698,7 +698,8 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
             slide={slide}
             layer={layer}
             brandColors={brandColors}
-            brandFont={brandFont}
+            fonts={fonts}
+            brandFonts={palette}
             onSlide={patchSlide}
             onCaption={(caption) => commit({ ...workRef.current, caption }, "caption")}
             onLayer={patchLayer}
