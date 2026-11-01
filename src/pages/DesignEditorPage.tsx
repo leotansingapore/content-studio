@@ -376,7 +376,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       // the QR library loads only here, the one place it's used
       const { toDataURL } = await import("qrcode");
       // a caption full of emoji can outgrow a QR code: the link still shows, to open or copy
-      setPhone({ ...sent, qr: await toDataURL(sent.url, { margin: 1, width: 240 }).catch(() => undefined) });
+      setPhone({ ...sent, qr: await toDataURL(sent.url, { margin: 1, width: 320 }).catch(() => undefined) });
     } catch (e) {
       toast({ title: "Couldn't send it to your phone", description: (e as Error).message, variant: "destructive" });
     }
@@ -512,7 +512,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       </header>
       {phone && (
         <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-          {phone.qr ? <img src={phone.qr} alt="QR code: scan it with your phone's camera" className="hidden h-28 w-28 rounded bg-white p-1 sm:block" /> : null}
+          {phone.qr ? <img src={phone.qr} alt="QR code: scan it with your phone's camera" className="hidden h-40 w-40 rounded bg-white p-1 sm:block" /> : null}
           <Smartphone className="h-4 w-4 shrink-0" />
           <span>Open this on your phone until {new Date(phone.expiresAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}:</span>
           <a href={phone.url} target="_blank" rel="noreferrer" className="min-w-0 truncate text-primary hover:underline">

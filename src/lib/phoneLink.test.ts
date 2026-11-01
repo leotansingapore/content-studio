@@ -20,7 +20,7 @@ describe("the phone link's fragment", () => {
   });
 
   it("keeps a caption of exactly the cap, counted in characters, and drops a longer one with long=1", () => {
-    const atCap = "🙌".repeat(MAX_LINK_CAPTION); // 2,000 UTF-16 units, 1,000 characters
+    const atCap = "🙌".repeat(MAX_LINK_CAPTION); // 1,000 UTF-16 units, 500 characters
     expect(readPhoneFragment(phoneFragment(atCap, "tiktok")).caption).toBe(atCap);
     const over = "a".repeat(MAX_LINK_CAPTION + 1);
     expect(phoneFragment(over, "tiktok")).toBe("#long=1&f=tiktok");

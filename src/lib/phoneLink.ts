@@ -8,7 +8,7 @@ import type { DesignFormat } from "@/lib/design";
 import { supabase } from "@/lib/supabase";
 
 /** The longest caption the link carries; a longer one stays out and the phone page says to copy it in the editor. */
-export const MAX_LINK_CAPTION = 1000;
+export const MAX_LINK_CAPTION = 500;
 
 /** "#c=<caption>&f=tiktok": the caption when it fits (long=1 when it doesn't), then the slide size. */
 export function phoneFragment(caption: string, format: DesignFormat): string {
