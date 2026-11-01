@@ -103,7 +103,7 @@ export function homeToday(me: Me | null, board: Board | null, drafts: DraftEntry
 export interface NextUpItem {
   /** Stable per thing, so hiding one never hides another. */
   id: string;
-  kind: "card" | "failed" | "overdue" | "today" | "team" | "unscheduled" | "autopilot" | "campaign" | "ideas" | "market" | "setup";
+  kind: "card" | "failed" | "overdue" | "today" | "team" | "unscheduled" | "autopilot" | "campaign" | "ideas" | "social" | "market" | "setup";
   title: string;
   /** The post's or card's own words. */
   quote?: string;
@@ -130,6 +130,8 @@ export interface NextUpInput {
   autopilot?: number;
   campaigns?: Pick<Campaign, "id" | "name" | "audienceName" | "posts">[];
   ideas?: number;
+  /** The open brand's social north star play to make next (socialNorthStar.homePlay); done is left out when its posts aren't counted. */
+  play?: { id: string; name: string; done?: number; target: number } | null;
   /** The open brand's connected channels as last read on this device; undefined or null when unknown. */
   channels?: number | null;
   /** The first undone "Get set up" step. */
@@ -150,8 +152,8 @@ export const heldOrLive = (d: Pick<DraftEntry, "zernio" | "live" | "status">) =>
 
 /**
  * Leo's Next up, in a fixed order (a product rule, so no Jev): agent cards waiting, failures, overdue, today, team
- * posts and the board's reviews and notes, unscheduled made posts, autopilot, campaigns, today's ideas, Your market,
- * then setup (connecting a channel first). A snoozed item drops out through its last day; a dismissed one until its words
+ * posts and the board's reviews and notes, unscheduled made posts, autopilot, campaigns, today's ideas, the social north
+ * star's next play, Your market, then setup (connecting a channel first). A snoozed item drops out through its last day; a dismissed one until its words
  * change. Plain URLs, as homeToday's.
  */
 export function needsYouItems(input: NextUpInput, today: string, now = Date.now()): NextUpItem[] {
@@ -237,6 +239,12 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
     });
   }
   if (input.ideas) items.push({ id: "ideas", kind: "ideas", title: "Today's ideas", n: input.ideas, actions: [{ label: "Open", to: "/ideas" }] });
+  const play = input.play;
+  if (play)
+    items.push({
+      id: "social-ns", kind: "social", title: `Social north star: ${play.name}${play.done === undefined ? "" : `, ${play.done} of ${play.target} this month`}`,
+      actions: [{ label: "Open", to: `/social-north-star#${play.id}` }],
+    });
   if (input.market && input.me?.owner) items.push({ id: "market", kind: "market", title: "Your market", actions: [{ label: "Open", to: "/market" }] });
   if (input.channels === 0) items.push({ id: "channels", kind: "setup", title: "Connect a channel to post from here", actions: [{ label: "Connect", to: "/accounts" }] });
   if (input.setup) items.push({ id: "setup", kind: "setup", title: input.setup.label, actions: [{ label: "Open", to: input.setup.to }] });

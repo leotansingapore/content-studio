@@ -106,6 +106,25 @@ describe("social north star: plays and progress", () => {
     expect([0, 0.1, 0.4, 1, 1.6].map(n.targetOf)).toEqual([1, 1, 2, 4, 6]);
   });
 
+  it("hands Home the open brand's next play: short of its target once counted, the best one when not, and nothing with no plan", () => {
+    expect(n.homePlay(U)).toBeNull();
+    const plays = [{ id: "meme", target: 2, examples: [] }, { id: "screen-demo", target: 3, examples: [] }];
+    const ns = (o: object = {}) => storage.setItem(n.socialNsKey(U), JSON.stringify({ ...n.loadSocialNs(U), plays, ...o }));
+    ns();
+    // no account of the brand's own is counted: the best play, with no count
+    expect(n.homePlay(U)).toEqual({ id: "meme", name: "Meme or reaction", target: 2 });
+    storage.setItem("content-studio-socialaccounts-u1", JSON.stringify({ instagram: { handle: "@brand", connectedAt: iso(9) } }));
+    const own = (ids: string[]) => ({ labels: Object.fromEntries(ids.map((id) => [`instagram:${id}`, label("meme")])), own: [{ platform: "instagram", handle: "brand", checkedAt: iso(1), posts: ids.map((id) => post(id, 2)) }] });
+    ns(own(["A"]));
+    expect(n.homePlay(U)).toEqual({ id: "meme", name: "Meme or reaction", done: 1, target: 2 });
+    ns(own(["A", "B"]));
+    expect(n.homePlay(U)).toMatchObject({ id: "screen-demo", done: 0, target: 3 });
+    // another brand open on this device has its own plan, none here
+    storage.setItem("content-studio-profiles-u1", JSON.stringify([{ id: "me", name: "One" }, { id: "p2", name: "Two" }]));
+    storage.setItem("cs-active-profile-u1", "p2");
+    expect(n.homePlay(U)).toBeNull();
+  });
+
   it("reads how many weeks each account's posts span, a week at least", () => {
     const sim = { ...SIM, posts: { "tiktok:aa": { posts: [post("1", 1), post("2", 22)] } as FollowedAccount, "tiktok:bb": { posts: [post("3", 1)] } as FollowedAccount } };
     expect(n.weeksOf(sim)).toEqual({ "tiktok:aa": 3, "tiktok:bb": 1 });

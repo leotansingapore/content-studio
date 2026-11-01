@@ -2,7 +2,7 @@
 // "Ask the agent for" tiles, Agent now and the agent's composer, in place of the due card, the Today rows, "Your next
 // move", the three buttons and "Get set up". HomePage loads it lazily, so the agent engine never loads for anyone else.
 
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import AgentNow from "@/components/home/AgentNow";
@@ -19,6 +19,7 @@ import type { Campaign } from "@/lib/campaigns";
 import { draftsOfBrand, type DraftEntry } from "@/lib/draftHistory";
 import { sgDay } from "@/lib/goals";
 import { links } from "@/lib/links";
+import type { NextUpInput } from "@/lib/needsYou";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
 import { refreshIfStale } from "@/lib/realNumbers";
 import type { Board, Me } from "@/lib/reelsBoard";
@@ -50,6 +51,25 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
   const composer = useRef<ComposerHandle>(null);
   const channels = useBrandChannels(userId);
   useScrollToHash();
+  // the open brand's social north star (Next up's play row): its module loads after Home paints, as HomePage's plan rows'
+  const [play, setPlay] = useState<NextUpInput["play"]>(null);
+  useEffect(() => {
+    let active = true;
+    let off = () => {};
+    void import("@/lib/socialNorthStar").then(
+      (ns) => {
+        if (!active) return;
+        const read = () => setPlay(ns.homePlay(userId));
+        read();
+        off = ns.onSocialNsChanged(read);
+      },
+      () => {}, // a chunk gone after a deploy: no play row until the next load
+    );
+    return () => {
+      active = false;
+      off();
+    };
+  }, [userId]);
   // Home's open asks for the real numbers, at most every 6 hours and outside React; each pull also records Pace
   useEffect(() => {
     if (socialConnectShown()) refreshIfStale(userId);
@@ -108,6 +128,7 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
             autopilot: plan?.autopilot,
             campaigns: plan?.list,
             ideas: plan?.ideas,
+            play,
             // known 0 only: a brand never read on this device gets no row
             channels: socialConnectShown() ? channels?.channels.length : undefined,
             setup,

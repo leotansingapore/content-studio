@@ -99,7 +99,8 @@ Next up, from `needsYouItems`. A fixed order is a product rule, not a judgment o
 | 5 | team | team posts waiting (Leo's account) | "<n> team posts wait for you" | "Approve or skip each one." | "Review" to `/calendar?business=team-posts&teampost=<first id>` |
 | 6 | unscheduled | a draft with `agent` or `remix` made in the last 7 days, still a draft | "A post is made and not scheduled" | "Schedule it, or leave it in My posts." | "Open", "Schedule" (`/generate?draft=<id>&panel=post`) |
 | 7 | campaign | a campaign with posts not made (plan-campaign) | "Keep making your campaign" | "<m> of <n> made \| <k> drafts waiting for you" | "Open" to `/campaigns/<id>` |
-| 8 | setup | the first undone item of today's "Get set up" list | its label ("Set your voice") | none | "Open" to its page |
+| 8 | social | the open brand has a social north star plan (socialNorthStar.homePlay), and a play is still short of its target this month | "Social north star: <play name>, <done> of <target> this month" (no count when the brand's own posts aren't counted) | none | "Open" to `/social-north-star#<play id>` |
+| 9 | setup | the first undone item of today's "Get set up" list | its label ("Set your voice") | none | "Open" to its page |
 
 - The label reads "NEXT UP | THE 1 THING THAT NEEDS YOU" with one item and "NEXT UP | 1 OF <n> THAT NEED YOU" with more.
 - The first item is drawn large, with its title as the card's h2, the line under it and its buttons on the right, while the next two sit below it as rows and the rest hide behind "+<k> more waiting". Opened, that toggle reads "Show fewer" and the URL gains `?waiting=all`.

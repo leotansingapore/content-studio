@@ -21,7 +21,7 @@ import { byOutlier, type Outlier, scoreAccount } from "../../supabase/functions/
 import { median } from "../../supabase/functions/_shared/socialAudit.ts";
 import { POSTS_KEPT, SIMILAR_REFRESH } from "../../supabase/functions/competitors/logic.ts";
 import {
-  accountOf, bestExamples, cleanLabel, type Family, FAMILY_IDS, groupPlays, type Hook, PLAY_MIN_ACCOUNTS, PLAYS_POSTS, type PlayPost, type PostLabel, type Recipe,
+  accountOf, bestExamples, cleanLabel, type Family, FAMILY_IDS, FAMILY_NAME, groupPlays, type Hook, PLAY_MIN_ACCOUNTS, PLAYS_POSTS, type PlayPost, type PostLabel, type Recipe,
 } from "../../supabase/functions/social-plays/logic.ts";
 import type { TrackResult } from "../../supabase/functions/track-accounts/logic.ts";
 
@@ -235,6 +235,18 @@ export function progressOf(plays: Play[], counts: Partial<Record<Family, number>
 
 /** What to make next: the best play still short of its target. */
 export const nextUp = (plays: Play[], counts: Partial<Record<Family, number>>) => plays.find((p) => (counts[p.id] ?? 0) < p.target) ?? null;
+
+/**
+ * The open brand's next play for Home's Next up, as the page marks it: with the brand's own posts counted, the best
+ * play short of its target (none once every one is met), else the best play with no count. null with no plan.
+ */
+export function homePlay(userId: string, now = Date.now()): { id: Family; name: string; done?: number; target: number } | null {
+  const ns = loadSocialNs(userId);
+  const counts = ownCounts(ns, now);
+  const counted = auditedHandles(loadSocialAccounts(userId)).length > 0;
+  const p = counted ? nextUp(ns.plays, counts) : ns.plays[0];
+  return p ? { id: p.id, name: FAMILY_NAME[p.id], ...(counted ? { done: counts[p.id] ?? 0 } : {}), target: p.target } : null;
+}
 
 // ---- When to build ---------------------------------------------------------------------------------------------------
 

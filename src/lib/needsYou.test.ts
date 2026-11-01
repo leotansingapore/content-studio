@@ -228,6 +228,19 @@ describe("needsYouItems", () => {
     expect(by.setup).toEqual({ id: "setup", kind: "setup", title: "Set your voice", actions: [{ label: "Open", to: "/voice" }] });
   });
 
+  it("adds the social north star's next play after today's ideas, with this month's count when the brand's posts are counted, and nothing with no plan", () => {
+    const play = { id: "faceless-slideshow", name: "Faceless slideshow", done: 1, target: 4 };
+    const items = needsYouItems({ ...full, play }, TODAY, NOW);
+    expect(items.map((i) => i.id).slice(-4)).toEqual(["ideas", "social-ns", "market", "setup"]);
+    expect(items.find((i) => i.id === "social-ns")).toEqual({
+      id: "social-ns", kind: "social", title: "Social north star: Faceless slideshow, 1 of 4 this month", actions: [{ label: "Open", to: links.socialNorthStar({ play: "faceless-slideshow" }) }],
+    });
+    // not counted: no count it can't know
+    expect(needsYouItems({ drafts: [], play: { ...play, done: undefined } }, TODAY, NOW)[0].title).toBe("Social north star: Faceless slideshow");
+    expect(needsYouItems({ drafts: [], play: null }, TODAY, NOW)).toEqual([]);
+    expect(needsYouItems({ drafts: [] }, TODAY, NOW)).toEqual([]);
+  });
+
   it("adds one Connect a channel row before setup, only when the open brand is known to have no channels", () => {
     const ids = (channels?: number | null) => needsYouItems({ drafts: [], setup: full.setup, channels }, TODAY, NOW).map((i) => i.id);
     expect(ids(0)).toEqual(["channels", "setup"]);
