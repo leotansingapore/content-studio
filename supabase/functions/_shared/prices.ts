@@ -123,6 +123,12 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // With fewer than 3 seeds, one more OpenAI call names the brand's rivals, priced as suggest's are: US$0.01, unverified.
   "similar-find": upTo(1.1),
   "similar-posts": upTo(0.123), // as competitor-posts; a weekly 10-post refresh costs less but is priced the same
+  // The social north star (social-north-star.md). Jev labels up to 150 references and 60 of the brand's own posts:
+  // about 4,600 input tokens a cover (real requests, jev-images-api memory, 26 Oct) plus about 600 for the words and the
+  // two questions, at US$0.042 per million (docs.typesafe.ai), 210 x 5,200 = 1.09M tokens, US$0.046; one gpt-6-luna
+  // recipe call of about 4,000 in and 1,500 out at US$0.10 / US$0.50 per million, US$0.0012. A weekly rebuild labels only
+  // the new posts. How many covers Jev can take (280 to 1568 px a side) is unverified until the first build.
+  "social-plays": upTo(0.05),
   "space-ads": upTo(0.522), // 90 ads x US$5.80 per 1,000
   "viral-search": about(0.077), // 20 TikTok results + one YouTube block + Jev
   "post-tags": about(0.01), // teardown OpenAI + Jev, unverified
@@ -174,7 +180,7 @@ export const NO_PRICE: UsageFeature[] = [
   "stock-search", "reel-video", "brand-image",
   // across everyone
   "market-check-global", "ai-image-fix-global", "ai-broll-global", "slide-pictures-global", "ai-music-global", "ai-video-global", "ai-clip-global",
-  "competitor-ads-global", "competitor-posts-global", "space-ads-global", "similar-find-global", "similar-posts-global", "viral-search-global", "search-topics-global",
+  "competitor-ads-global", "competitor-posts-global", "space-ads-global", "similar-find-global", "similar-posts-global", "social-plays-global", "viral-search-global", "search-topics-global",
   "ai-presenter-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",

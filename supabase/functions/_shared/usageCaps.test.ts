@@ -119,6 +119,10 @@ describe("Apps like yours caps", () => {
   it("holds the 4 limits the build brief set (find-similar-accounts.md)", () => {
     expect(DAILY_LIMITS).toMatchObject({ "similar-find": 3, "similar-find-global": 6, "similar-posts": 130, "similar-posts-global": 200 });
   });
+
+  it("caps the social north star's builds a user and across everyone (social-north-star.md)", () => {
+    expect(DAILY_LIMITS).toMatchObject({ "social-plays": 10, "social-plays-global": 30 });
+  });
 });
 
 describe("north-star phase-3 caps", () => {

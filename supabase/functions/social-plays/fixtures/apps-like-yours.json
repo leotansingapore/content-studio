@@ -1,0 +1,449 @@
+{
+ "_about": "Build social-plays/fixtures/apps-like-yours.json: 20 real posts in the Apps like yours store's shape.\nInstagram: three planner and habit apps' carousels, 4 each (labelled2.json, read 1 Nov). TikTok: two productivity creators, 4 each\n(raw-video-tab-only.json, TikTok search, 30 Oct). Handles and @mentions are replaced; captions, numbers, formats and cover paths are real. media is the\ncs-similar-media- cache's shape (account, then post id); labelPy holds label.py's real Jev hook answers for the Instagram posts.\nInstagram dates are not in labelled2.json, so they are spaced 3 days apart back from 28 Oct; likes and the lift are real.",
+ "accounts": [
+  {
+   "platform": "instagram",
+   "handle": "app_one",
+   "name": "Habit app",
+   "followers": null,
+   "kind": "app_or_brand",
+   "via": "fixture",
+   "addedAt": "2026-11-01T00:00:00.000Z"
+  },
+  {
+   "platform": "instagram",
+   "handle": "app_two",
+   "name": "Planner app",
+   "followers": null,
+   "kind": "app_or_brand",
+   "via": "fixture",
+   "addedAt": "2026-11-01T00:00:00.000Z"
+  },
+  {
+   "platform": "instagram",
+   "handle": "app_three",
+   "name": "Day planner app",
+   "followers": null,
+   "kind": "app_or_brand",
+   "via": "fixture",
+   "addedAt": "2026-11-01T00:00:00.000Z"
+  },
+  {
+   "platform": "tiktok",
+   "handle": "creator_one",
+   "name": "Productivity creator",
+   "followers": null,
+   "kind": "creator",
+   "via": "fixture",
+   "addedAt": "2026-11-01T00:00:00.000Z"
+  },
+  {
+   "platform": "tiktok",
+   "handle": "creator_two",
+   "name": "Study creator",
+   "followers": null,
+   "kind": "creator",
+   "via": "fixture",
+   "addedAt": "2026-11-01T00:00:00.000Z"
+  }
+ ],
+ "posts": {
+  "instagram:app_one": {
+   "platform": "instagram",
+   "handle": "app_one",
+   "addedAt": "2026-11-01T00:00:00.000Z",
+   "checkedAt": "2026-11-01T00:00:00.000Z",
+   "history": [],
+   "posts": [
+    {
+     "id": "De9qvYcDCKS",
+     "url": "https://www.instagram.com/p/De9qvYcDCKS/",
+     "format": "carousel",
+     "caption": "Subscribe before October 31st to receive this month\u2019s exclusive gear, the Optical Illusionist Set! Don\u2019t forget, subscribers also can buy Gems with Go",
+     "postedAt": "2026-10-28T09:00:00.000Z",
+     "views": null,
+     "likes": 22,
+     "comments": 0
+    },
+    {
+     "id": "DewzNzcl0oo",
+     "url": "https://www.instagram.com/p/DewzNzcl0oo/",
+     "format": "carousel",
+     "caption": "Stop into the Market and browse this month\u2019s Magic Hatching Potions! From now until November 21 you can snag the Ghost, Vampire, and Spooky Magic Hatc",
+     "postedAt": "2026-10-25T09:00:00.000Z",
+     "views": null,
+     "likes": 13,
+     "comments": 0
+    },
+    {
+     "id": "DerpC5Vl31o",
+     "url": "https://www.instagram.com/p/DerpC5Vl31o/",
+     "format": "carousel",
+     "caption": "There will be a new shipment of Magic Hatching Potions coming to the Market on October 21st! If you\u2019ve had your eye on Autumn Leaf, Glow, or Shadow Po",
+     "postedAt": "2026-10-22T09:00:00.000Z",
+     "views": null,
+     "likes": 11,
+     "comments": 0
+    },
+    {
+     "id": "Dee4L5hgEAM",
+     "url": "https://www.instagram.com/p/Dee4L5hgEAM/",
+     "format": "carousel",
+     "caption": "There\u2019s even more fun to discover in the Quest Shop! Along with this month\u2019s Pet and Magic Hatching Potion Quests, there is a new discounted Pet Quest",
+     "postedAt": "2026-10-19T09:00:00.000Z",
+     "views": null,
+     "likes": 12,
+     "comments": 0
+    }
+   ],
+   "seen": [],
+   "fresh": []
+  },
+  "instagram:app_two": {
+   "platform": "instagram",
+   "handle": "app_two",
+   "addedAt": "2026-11-01T00:00:00.000Z",
+   "checkedAt": "2026-11-01T00:00:00.000Z",
+   "history": [],
+   "posts": [
+    {
+     "id": "DeeB4HiCK_v",
+     "url": "https://www.instagram.com/p/DeeB4HiCK_v/",
+     "format": "carousel",
+     "caption": "New widgets on the block \ud83d\udc9c\n\nGreat news for our Android users: Tiimo widgets have moved in!\n\nHere\u2019s what you can do today:\n\u2022 Start a focus timer right ",
+     "postedAt": "2026-10-28T09:00:00.000Z",
+     "views": null,
+     "likes": 45,
+     "comments": 0
+    },
+    {
+     "id": "DdtbaLSiBRe",
+     "url": "https://www.instagram.com/p/DdtbaLSiBRe/",
+     "format": "carousel",
+     "caption": "One of your most-requested features is here \ud83d\udc9c\n\nYou can now add a timer to individual subtasks, helping you keep track of time, move more smoothly betw",
+     "postedAt": "2026-10-25T09:00:00.000Z",
+     "views": null,
+     "likes": 83,
+     "comments": 0
+    },
+    {
+     "id": "DdTFZP7iKoS",
+     "url": "https://www.instagram.com/p/DdTFZP7iKoS/",
+     "format": "carousel",
+     "caption": "iOS 27 is out! \n\nDiscover the 5 updates that make Tiimo work even closer to how your brain does on version 3.64.0 \ud83d\udc9c\n\nAdd a task, peek at what\u2019s next, ",
+     "postedAt": "2026-10-22T09:00:00.000Z",
+     "views": null,
+     "likes": 152,
+     "comments": 0
+    },
+    {
+     "id": "DbIa3fsCD6o",
+     "url": "https://www.instagram.com/p/DbIa3fsCD6o/",
+     "format": "carousel",
+     "caption": "It\u2019s been a minute without a general app update, and a lot has happened over the last few months! \n\nSwipe through to discover some of the newest featu",
+     "postedAt": "2026-10-19T09:00:00.000Z",
+     "views": null,
+     "likes": 144,
+     "comments": 0
+    }
+   ],
+   "seen": [],
+   "fresh": []
+  },
+  "instagram:app_three": {
+   "platform": "instagram",
+   "handle": "app_three",
+   "addedAt": "2026-11-01T00:00:00.000Z",
+   "checkedAt": "2026-11-01T00:00:00.000Z",
+   "history": [],
+   "posts": [
+    {
+     "id": "De860APjsSR",
+     "url": "https://www.instagram.com/p/De860APjsSR/",
+     "format": "carousel",
+     "caption": "More space for what matters\u2728\ud83d\udcf1\n\nMeet Structured on the new iPhone Duo!\ud83d\udc97\n\nMore room to plan, organize, and see your entire day at a glance. Stay on top ",
+     "postedAt": "2026-10-28T09:00:00.000Z",
+     "views": null,
+     "likes": 88,
+     "comments": 0
+    },
+    {
+     "id": "DdbQh1yDnqG",
+     "url": "https://www.instagram.com/p/DdbQh1yDnqG/",
+     "format": "carousel",
+     "caption": "Planning your day just got a little easier \ud83e\ude84\n\nWith iOS 27, you can use Siri AI to create, find, reschedule, edit, and delete tasks in Structured. All ",
+     "postedAt": "2026-10-25T09:00:00.000Z",
+     "views": null,
+     "likes": 81,
+     "comments": 0
+    },
+    {
+     "id": "DdRaTEnjShA",
+     "url": "https://www.instagram.com/p/DdRaTEnjShA/",
+     "format": "carousel",
+     "caption": "\u2728 iOS 27 is almost here and Structured is ready \u2728\n\nA fresh look, smarter suggestions, Siri AI and more to make planning your day even smoother. \ud83d\udc85",
+     "postedAt": "2026-10-22T09:00:00.000Z",
+     "views": null,
+     "likes": 151,
+     "comments": 0
+    },
+    {
+     "id": "DcgZLiGjcQB",
+     "url": "https://www.instagram.com/p/DcgZLiGjcQB/",
+     "format": "carousel",
+     "caption": "\u2728Your Structured plan just got a little smarter\u2728\nStructured is now available in the Claude Connector Directory, making it easier to connect Claude wit",
+     "postedAt": "2026-10-19T09:00:00.000Z",
+     "views": null,
+     "likes": 156,
+     "comments": 0
+    }
+   ],
+   "seen": [],
+   "fresh": []
+  },
+  "tiktok:creator_one": {
+   "platform": "tiktok",
+   "handle": "creator_one",
+   "addedAt": "2026-11-01T00:00:00.000Z",
+   "checkedAt": "2026-11-01T00:00:00.000Z",
+   "history": [],
+   "posts": [
+    {
+     "id": "7615399558381571358",
+     "url": "https://www.tiktok.com/@creator_one/video/7615399558381571358",
+     "format": "video",
+     "caption": "3 productivity tools to be outrageously productive in 2026 \ud83d\udc68\u200d\ud83d\udcbb\ud83d\udcc8 Comment TOOLS and I\u2019ll send you my complete list!\n\n(how to be more productive)\n#produc",
+     "postedAt": "2026-03-09T23:19:54.000Z",
+     "views": 224300,
+     "likes": 34300,
+     "comments": 361
+    },
+    {
+     "id": "7621687465870396703",
+     "url": "https://www.tiktok.com/@creator_one/video/7621687465870396703",
+     "format": "video",
+     "caption": "How to manage your time in the \u201creal world\u201d \ud83d\udcc5\u231a\ufe0f. Comment barely adulting and I\u2019ll send you the podcast!\n\n#timemanagement #productivity #career ",
+     "postedAt": "2026-03-26T22:00:07.000Z",
+     "views": 11700,
+     "likes": 1108,
+     "comments": 29
+    },
+    {
+     "id": "7593766497147735326",
+     "url": "https://www.tiktok.com/@creator_one/video/7593766497147735326",
+     "format": "video",
+     "caption": "How to be productive in 2026 (how to be more productive) \ud83e\udd33\ud83d\udc68\ud83c\udfff\u200d\ud83d\udcbb\ud83d\uddd3\ufe0f\n\n#productivity #habits #tips #discipline #productive ",
+     "postedAt": "2026-01-10T16:12:43.000Z",
+     "views": 37500,
+     "likes": 4644,
+     "comments": 75
+    },
+    {
+     "id": "7594259548228128031",
+     "url": "https://www.tiktok.com/@creator_one/video/7594259548228128031",
+     "format": "video",
+     "caption": "How to be productive when overwhelmed (how to be more productive) \ud83d\udc68\u200d\ud83d\udcbb\ud83e\udd33\ud83d\udcda\n\n#productivity #motivation #tips #discipline #sundayreset ",
+     "postedAt": "2026-01-12T00:05:55.000Z",
+     "views": 23700,
+     "likes": 2566,
+     "comments": 55
+    }
+   ],
+   "seen": [],
+   "fresh": []
+  },
+  "tiktok:creator_two": {
+   "platform": "tiktok",
+   "handle": "creator_two",
+   "addedAt": "2026-11-01T00:00:00.000Z",
+   "checkedAt": "2026-11-01T00:00:00.000Z",
+   "history": [],
+   "posts": [
+    {
+     "id": "7701945248003476766",
+     "url": "https://www.tiktok.com/@creator_two/video/7701945248003476766",
+     "format": "video",
+     "caption": "step 1: build a study workspace that sets you up for success! get rid of distractions with @someone Spaces! \n\n#studytok #studytips #studymotivation #p",
+     "postedAt": "2026-10-29T04:41:37.000Z",
+     "views": 49200,
+     "likes": 12900,
+     "comments": 42
+    },
+    {
+     "id": "7675950878460808479",
+     "url": "https://www.tiktok.com/@creator_two/video/7675950878460808479",
+     "format": "video",
+     "caption": "ep. 7 we ALL procrastinate. even me! here are some methods I use to snap out of it \ud83e\udd2d\n\n#studytok #studytips #backtoschool #backtoschoolseason #procrast",
+     "postedAt": "2026-08-20T03:30:01.000Z",
+     "views": 273600,
+     "likes": 53400,
+     "comments": 366
+    },
+    {
+     "id": "7698222298288934175",
+     "url": "https://www.tiktok.com/@creator_two/video/7698222298288934175",
+     "format": "video",
+     "caption": "i love doing the \u2018studying until\u2019 trends \ud83e\udd29 just gotta pair it with @someone Spaces to get rid of distractions and \ud83d\ude1a\ud83d\udc4c\n\n#studytok #studytips #studyhacks",
+     "postedAt": "2026-10-19T03:54:30.000Z",
+     "views": 108600,
+     "likes": 21500,
+     "comments": 84
+    },
+    {
+     "id": "7657059891877547295",
+     "url": "https://www.tiktok.com/@creator_two/video/7657059891877547295",
+     "format": "video",
+     "caption": "it happens to all of us\u2026 but it\u2019s okay! here\u2019s how to save those half wasted days :)\n\n#studytok #studytips #studyhacks #studymotivation #productivityt",
+     "postedAt": "2026-06-30T05:43:24.000Z",
+     "views": 773900,
+     "likes": 134200,
+     "comments": 318
+    }
+   ],
+   "seen": [],
+   "fresh": []
+  }
+ },
+ "media": {
+  "instagram:app_one": {
+   "De9qvYcDCKS": {
+    "cover": "https://scontent-waw2-1.cdninstagram.com/v/t51.82787-15/869228675_18596100514068068_3193569131349188681_n.jpg"
+   },
+   "DewzNzcl0oo": {
+    "cover": "https://scontent-waw2-2.cdninstagram.com/v/t51.82787-15/858955673_18594556738068068_4401296768284511431_n.jpg"
+   },
+   "DerpC5Vl31o": {
+    "cover": "https://scontent-waw2-2.cdninstagram.com/v/t51.82787-15/850668352_18593959552068068_4817895782514873720_n.jpg"
+   },
+   "Dee4L5hgEAM": {
+    "cover": "https://scontent-waw2-2.cdninstagram.com/v/t51.82787-15/848814810_18592320193068068_4627922850286272233_n.jpg"
+   }
+  },
+  "instagram:app_two": {
+   "DeeB4HiCK_v": {
+    "cover": "https://scontent-ber1-1.cdninstagram.com/v/t51.82787-15/846909717_18408762733094966_6173517626638520407_n.jpg"
+   },
+   "DdtbaLSiBRe": {
+    "cover": "https://scontent-ber1-1.cdninstagram.com/v/t51.82787-15/819987313_18406152715094966_8588172570356627060_n.jpg"
+   },
+   "DdTFZP7iKoS": {
+    "cover": "https://scontent-ber1-1.cdninstagram.com/v/t51.82787-15/811203228_18404743381094966_1468251823140523208_n.jpg"
+   },
+   "DbIa3fsCD6o": {
+    "cover": "https://scontent-ber1-1.cdninstagram.com/v/t51.82787-15/753306478_18397497001094966_4370394482429988442_n.jpg"
+   }
+  },
+  "instagram:app_three": {
+   "De860APjsSR": {
+    "cover": "https://scontent-mad1-1.cdninstagram.com/v/t51.82787-15/869208706_18100659698387125_2098769152688516994_n.jpg"
+   },
+   "DdbQh1yDnqG": {
+    "cover": "https://scontent-mad1-1.cdninstagram.com/v/t51.82787-15/814535216_18096564539387125_3669809352485630656_n.jpg"
+   },
+   "DdRaTEnjShA": {
+    "cover": "https://scontent-mad1-1.cdninstagram.com/v/t51.82787-15/810051818_18096169358387125_2048439875380169548_n.jpg"
+   },
+   "DcgZLiGjcQB": {
+    "cover": "https://scontent-mad1-1.cdninstagram.com/v/t51.82787-15/787769319_18094116923387125_4397287594928215133_n.jpg"
+   }
+  },
+  "tiktok:creator_one": {
+   "7615399558381571358": {
+    "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast8-p-0068-tx2/o4AAOniIEiA0Mm1f4ViKvYCKiZr6rCA5BB6IAx~tplv-tiktokx-origin.image",
+    "seconds": 63
+   },
+   "7621687465870396703": {
+    "cover": "https://p16-common-sign.tiktokcdn.com/tos-useast8-p-0068-tx2/oIGIaivQaDZAM66EWYTlA8ERABA0cFOUrsAiB~tplv-tiktokx-origin.image",
+    "seconds": 70
+   },
+   "7593766497147735326": {
+    "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast8-p-0068-tx2/o8AfIInSqIHPujmgP8EeCLexTGY2ZPgWCsEhvA~tplv-tiktokx-origin.image",
+    "seconds": 93
+   },
+   "7594259548228128031": {
+    "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast8-p-0068-tx2/oMIvkE4RWIAkAAlBz0A66A2iBWHQaBOuiviEk~tplv-tiktokx-origin.image",
+    "seconds": 77
+   }
+  },
+  "tiktok:creator_two": {
+   "7701945248003476766": {
+    "cover": "https://p16-common-sign.tiktokcdn.com/tos-useast8-p-0068-tx2/oYVN5dIQQIAVdBxeNzLqiWfe4omZdIAYGCZjX1~tplv-tiktokx-origin.image",
+    "seconds": 49
+   },
+   "7675950878460808479": {
+    "cover": "https://p19-common-sign.tiktokcdn-eu.com/tos-useast8-p-0068-tx2/oMdLaICtQejq8b9x6eK5MQOfVYw62GQtDYIAAI~tplv-tiktokx-origin.image",
+    "seconds": 78
+   },
+   "7698222298288934175": {
+    "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast8-p-0068-tx2/o4HaE9VERVSfLHPClAHZ0Iv1IA9qyeDRFyHEFB~tplv-tiktokx-origin.image",
+    "seconds": 51
+   },
+   "7657059891877547295": {
+    "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast8-p-0068-tx2/oE1EeQP5wFMqABVFxqppRBAcWEIWfEsDIDV4Mc~tplv-tiktokx-origin.image",
+    "seconds": 62
+   }
+  }
+ },
+ "labelPy": {
+  "instagram:De9qvYcDCKS": {
+   "hook": "quote_question",
+   "hookConfidence": 0.43,
+   "style": "cartoon"
+  },
+  "instagram:DewzNzcl0oo": {
+   "hook": "quote_question",
+   "hookConfidence": 0.1,
+   "style": "cartoon"
+  },
+  "instagram:DerpC5Vl31o": {
+   "hook": "quote_question",
+   "hookConfidence": 0.22,
+   "style": "screenshot"
+  },
+  "instagram:Dee4L5hgEAM": {
+   "hook": "quote_question",
+   "hookConfidence": 0.43,
+   "style": "cartoon"
+  },
+  "instagram:DeeB4HiCK_v": {
+   "hook": "relatable_pov",
+   "hookConfidence": 0.52,
+   "style": "product"
+  },
+  "instagram:DdtbaLSiBRe": {
+   "hook": "relatable_pov",
+   "hookConfidence": 0.48,
+   "style": "screenshot"
+  },
+  "instagram:DdTFZP7iKoS": {
+   "hook": "quote_question",
+   "hookConfidence": 0.65,
+   "style": "product"
+  },
+  "instagram:DbIa3fsCD6o": {
+   "hook": "quote_question",
+   "hookConfidence": 0.5,
+   "style": "text_card"
+  },
+  "instagram:De860APjsSR": {
+   "hook": "how_to",
+   "hookConfidence": 0.95,
+   "style": "product"
+  },
+  "instagram:DdbQh1yDnqG": {
+   "hook": "quote_question",
+   "hookConfidence": 0.38,
+   "style": "product"
+  },
+  "instagram:DdRaTEnjShA": {
+   "hook": "quote_question",
+   "hookConfidence": 1.0,
+   "style": "infographic"
+  },
+  "instagram:DcgZLiGjcQB": {
+   "hook": "hot_take",
+   "hookConfidence": 0.23,
+   "style": "text_card"
+  }
+ }
+}

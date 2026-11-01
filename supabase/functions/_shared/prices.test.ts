@@ -45,6 +45,11 @@ describe("the price table", () => {
     expect(priceOf("similar-posts-global")).toBeNull();
   });
 
+  it("prices a social north star build from Jev's measured image tokens, its across-everyone counter free", () => {
+    expect(priceOf("social-plays")).toEqual({ usd: 0.05, kind: "upTo" });
+    expect(priceOf("social-plays-global")).toBeNull();
+  });
+
   it("prices the phase-3 caps and the two corrected lines from the brief's vendor table", () => {
     expect(priceOf("own-words")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("thread-copy")).toEqual({ usd: 0.01, kind: "about" });

@@ -392,6 +392,8 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "similar-find-global": "Apps like yours searches, everyone",
   "similar-posts": "Apps like yours post reads",
   "similar-posts-global": "Apps like yours post reads, everyone",
+  "social-plays": "Social north star builds",
+  "social-plays-global": "Social north star builds, everyone",
   "space-ads": "Ads in your space",
   "space-ads-global": "Ads in your space, everyone",
   "ad-labels": "Ad labels",

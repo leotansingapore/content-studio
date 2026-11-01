@@ -161,6 +161,11 @@ export const DAILY_LIMITS = {
   // Those accounts' posts (competitors posts with scope "similar"): 30 on the first read, the newest 10 each week.
   "similar-posts": 130,
   "similar-posts-global": 200,
+  // The social north star (social-plays): Jev labels a brand's best Apps like yours posts and its own posts, looking at
+  // each cover it can read, and one OpenAI call writes the plays' recipes. Built weekly per brand, and again as more
+  // references are read; a build that labels nothing and writes nothing goes back.
+  "social-plays": 10,
+  "social-plays-global": 30,
   // Ads in your space (competitors space): 3 Meta Ad Library searches of 30 ads each.
   "space-ads": 2,
   // Those space runs across everyone on GLOBAL_COUNTER_USER.
