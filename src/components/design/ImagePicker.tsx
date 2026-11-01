@@ -1,5 +1,5 @@
 // Where an image layer's picture comes from: a free stock search (Pexels), an upload, Media on this device, an AI
-// picture, or the brand kit's logo and headshot. Uploads and AI pictures go into Media like everywhere else.
+// picture, a link to a picture on the web, or the brand kit's logo and headshot. Uploads and AI pictures go into Media like everywhere else.
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Search, Upload } from "lucide-react";
@@ -13,12 +13,13 @@ import type { DesignFormat } from "@/lib/design";
 import { addMedia, loadMedia, storePicture } from "@/lib/mediaLibrary";
 import { searchStock, type StockItem } from "@/lib/stockMedia";
 
-type Source = "search" | "upload" | "media" | "generate";
+type Source = "search" | "upload" | "media" | "generate" | "link";
 const SOURCES = [
   { value: "search", label: "Search" },
   { value: "upload", label: "Upload" },
   { value: "media", label: "Media" },
   { value: "generate", label: "Generate" },
+  { value: "link", label: "Link" },
 ] as const;
 
 function Thumb({ src, label, onPick }: { src: string; label: string; onPick: () => void }) {
@@ -38,6 +39,7 @@ export default function ImagePicker({ userId, format, onPick }: { userId: string
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [link, setLink] = useState("");
   const [making, setMaking] = useState(imageBusy());
   const file = useRef<HTMLInputElement>(null);
   const usesLeft = useUsesLeft(making);
@@ -112,6 +114,30 @@ export default function ImagePicker({ userId, format, onPick }: { userId: string
           )}
           <p className="text-[11px] text-muted-foreground">Free photos from Pexels.</p>
         </>
+      )}
+      {source === "link" && (
+        <form
+          className="space-y-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setNote(null);
+            const url = link.trim();
+            if (!/^https:\/\/\S+$/.test(url)) return setNote("Paste a link that starts with https://");
+            setBusy(true);
+            // the slides are drawn from the picture later, so check now that its site lets it be fetched
+            const ok = await fetch(url, { mode: "cors" })
+              .then((r) => r.ok && (r.headers.get("content-type") ?? "").startsWith("image/"))
+              .catch(() => false);
+            setBusy(false);
+            if (!ok) return setNote("That site doesn't let its pictures be used here. Save the picture and upload it instead.");
+            onPick(url);
+          }}
+        >
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." aria-label="Picture link" className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm" />
+          <Button type="submit" size="sm" disabled={busy || !link.trim()} className="w-full gap-1.5">
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Use this picture
+          </Button>
+        </form>
       )}
       {source === "upload" && (
         <>

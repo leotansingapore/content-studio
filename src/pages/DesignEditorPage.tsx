@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CalendarClock, ChevronLeft, Copy, Download, Image as ImageIcon, Loader2, Palette, Plus, Redo2, Save, Square, SunDim, Trash2, Type, Undo2 } from "lucide-react";
+import { CalendarClock, ChevronLeft, Copy, Download, Image as ImageIcon, Loader2, Palette, Plus, Redo2, Save, Smartphone, Square, SunDim, Trash2, Type, Undo2, X } from "lucide-react";
 import Inspector from "@/components/design/Inspector";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
@@ -16,21 +16,25 @@ import { loadBrandFont, registerBrandFont } from "@/lib/brandFont";
 import { loadBrand, slideFileName, slidesZipName } from "@/lib/carousel";
 import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import {
+  FONT_NAMES,
   FORMAT_H,
   FORMAT_LABEL,
   FRAME_W,
   MAX_LAYERS,
+  MAX_PALETTE,
   MAX_SLIDES,
   designById,
   designsKey,
   ensureDesignFonts,
   followStep,
   freshSlide,
+  loadPalette,
   newLayer,
   newSlide,
   plainText,
   saveDesign,
   saveOwnTemplate,
+  savePalette,
   type Design,
   type DesignSlide,
   type Layer,
@@ -41,6 +45,7 @@ import { ExportPictureError, designPngs } from "@/lib/designExport";
 import { putFile } from "@/lib/deviceFiles";
 import { getDraftById, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
+import { sendToPhone } from "@/lib/phoneLink";
 import { ago } from "@/lib/slideshow";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
@@ -102,7 +107,13 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const [claudeAt, setClaudeAt] = useState(0);
   const [offer, setOffer] = useState<Design | null>(null);
   const [prep, setPrep] = useState<{ done: number; total: number } | string | null>(null);
-  const [menu, setMenu] = useState<"download" | "brand" | null>(null);
+  const [menu, setMenu] = useState<"download" | "choose" | "brand" | null>(null);
+  const [chosen, setChosen] = useState<Set<number>>(new Set());
+  const [phone, setPhone] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [typing, setTyping] = useState<string | null>(null);
+  const [palette, setPalette] = useState(() => loadPalette(userId));
+  const [swatch, setSwatch] = useState("#ffd21f");
+  const editPalette = (p: Partial<typeof palette>) => setPalette(savePalette(userId, { ...palette, ...p }));
   const abort = useRef<AbortController | null>(null);
   const brand = useMemo(() => loadBrand(userId), [userId]);
   const brandFont = useMemo(() => !!loadBrandFont(userId)?.data, [userId]);
@@ -341,6 +352,16 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     else downloadBlob(await zipBlob(files.map((file, i) => ({ file, name: slideFileName(d.title, i) }))), slidesZipName(d.title));
     toast({ title: files.length === 1 ? "Slide downloaded" : "Slides downloaded" });
   };
+  const toPhone = async () => {
+    setMenu(null);
+    const files = await run((signal) => designPngs(userId, workRef.current, progress(signal)));
+    if (!files) return;
+    try {
+      setPhone(await sendToPhone(files));
+    } catch (e) {
+      toast({ title: "Couldn't send it to your phone", description: (e as Error).message, variant: "destructive" });
+    }
+  };
   const toPosts = async (): Promise<string | null> => {
     const files = await run((signal) => designPngs(userId, workRef.current, progress(signal)));
     if (!files) return null;
@@ -363,7 +384,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     if (post) navigate(`${links.calendar({ post })}&view=month`);
   };
   const busy = prep !== null && typeof prep !== "string";
-  const brandColors = brand?.color ? [brand.color] : [];
+  const brandColors = [...new Set([...(brand?.color ? [brand.color.toLowerCase()] : []), ...palette.colors])];
 
   const tool = (label: string, Icon: typeof Type, onClick: () => void, pressed?: boolean) => (
     <button type="button" onClick={onClick} aria-pressed={pressed} className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm hover:bg-muted ${pressed ? "bg-muted" : ""} ${TOUCH}`}>
@@ -417,6 +438,12 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
               <button role="menuitem" type="button" className="flex w-full justify-between rounded px-2 py-1.5 text-sm hover:bg-muted" onClick={() => void downloadSlides()}>
                 All slides <span className="text-muted-foreground">{work.slides.length}, as a zip</span>
               </button>
+              <button role="menuitem" type="button" className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => (setChosen(new Set([index])), setMenu("choose"))}>
+                Choose slides
+              </button>
+              <button role="menuitem" type="button" className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => void toPhone()}>
+                <Smartphone className="h-4 w-4" /> Send to phone
+              </button>
               <button
                 role="menuitem"
                 type="button"
@@ -431,6 +458,26 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
               </button>
             </div>
           )}
+          {menu === "choose" && (
+            <div role="dialog" aria-label="Choose slides" className="absolute right-0 z-30 mt-1 w-64 space-y-2 rounded-md border border-border bg-popover p-2 shadow-lg">
+              <div className="grid grid-cols-5 gap-1">
+                {work.slides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-pressed={chosen.has(i)}
+                    onClick={() => setChosen((c) => (c.delete(i) || c.add(i), new Set(c)))}
+                    className={`h-9 rounded border text-sm ${chosen.has(i) ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <Button size="sm" className="w-full" disabled={!chosen.size} onClick={() => void downloadSlides([...chosen].sort((a, b) => a - b))}>
+                Download {chosen.size} slide{chosen.size === 1 ? "" : "s"}
+              </Button>
+            </div>
+          )}
         </div>
         <Button variant={socialConnectShown() ? "outline" : "default"} size="sm" onClick={() => void saveToPosts()} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
           <Save className="h-4 w-4" /> Save to My posts
@@ -441,6 +488,21 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           </Button>
         )}
       </header>
+      {phone && (
+        <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+          <Smartphone className="h-4 w-4 shrink-0" />
+          <span>Open this on your phone until {new Date(phone.expiresAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}:</span>
+          <a href={phone.url} target="_blank" rel="noreferrer" className="min-w-0 truncate text-primary hover:underline">
+            {phone.url}
+          </a>
+          <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(phone.url).then(() => toast({ title: "Link copied" }))}>
+            Copy link
+          </Button>
+          <button type="button" aria-label="Close" onClick={() => setPhone(null)} className="ml-auto rounded p-1 text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {prep !== null && (
         <p role="status" className={`flex items-center gap-2 text-sm ${typeof prep === "string" ? "text-destructive" : "text-muted-foreground"}`}>
           {typeof prep === "string" ? (
@@ -457,14 +519,51 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       )}
 
       <nav aria-label="Add to the slide" className="flex flex-wrap items-center gap-0.5 border-y border-border py-1">
-        {tool("Text", Type, () => addLayer("text"))}
+        {tool("Text", Type, () => addLayer("text", palette.body ? { font: palette.body } : {}))}
         {tool("Image", ImageIcon, () => addLayer("image"))}
         {tool("Shape", Square, () => addLayer("shape"))}
         {tool("Fade", SunDim, () => addLayer("gradient"))}
         <div className="relative">
           {tool("Brand", Palette, () => setMenu(menu === "brand" ? null : "brand"), menu === "brand")}
           {menu === "brand" && (
-            <div role="menu" className="absolute left-0 z-30 mt-1 w-60 rounded-md border border-border bg-popover p-1 shadow-lg">
+            <div role="menu" className="absolute left-0 z-30 mt-1 w-72 rounded-md border border-border bg-popover p-1 shadow-lg">
+              <div className="space-y-2 border-b border-border p-2">
+                <p className="text-xs font-medium text-muted-foreground">Palette, {palette.colors.length} of {MAX_PALETTE}</p>
+                <div className="flex flex-wrap gap-1">
+                  {palette.colors.map((c) => (
+                    <button key={c} type="button" aria-label={`Remove ${c}`} title={`${c}, click to remove`} onClick={() => editPalette({ colors: palette.colors.filter((x) => x !== c) })} className="group relative h-7 w-7 rounded-full border border-border" style={{ background: c }}>
+                      <X className="absolute inset-1.5 hidden h-4 w-4 text-white mix-blend-difference group-hover:block" />
+                    </button>
+                  ))}
+                </div>
+                {palette.colors.length < MAX_PALETTE && (
+                  <div className="flex items-center gap-2">
+                    <input type="color" aria-label="Pick a colour" value={swatch} onChange={(e) => setSwatch(e.target.value)} className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent" />
+                    <Button size="sm" variant="outline" onClick={() => editPalette({ colors: [...palette.colors, swatch] })}>
+                      Add colour
+                    </Button>
+                  </div>
+                )}
+                {(["heading", "body"] as const).map((k) => (
+                  <label key={k} className="grid grid-cols-[4.5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                    {k === "heading" ? "Headings" : "Body text"}
+                    <select value={palette[k] ?? ""} onChange={(e) => editPalette({ [k]: e.target.value || null })} className="h-8 rounded-md border border-input bg-background px-1 text-sm text-foreground">
+                      <option value="">Inter (default)</option>
+                      {FONT_NAMES.map((f) => (
+                        <option key={f}>{f}</option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => (setMenu(null), addLayer("text", { name: "Heading", text: "Your heading", size: 96, weight: 800, ...(palette.heading ? { font: palette.heading } : {}) }))}>
+                    Add a heading
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => (setMenu(null), addLayer("text", { name: "Body", text: "Your text", size: 48, weight: 500, ...(palette.body ? { font: palette.body } : {}) }))}>
+                    Add body text
+                  </Button>
+                </div>
+              </div>
               {brand?.logo && (
                 <button role="menuitem" type="button" className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => (setMenu(null), addLayer("image", { name: "Logo", src: "brand:logo", fit: "contain", x: 800, y: 80, w: 200, h: 200 }))}>
                   Add your logo
@@ -533,9 +632,23 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           </div>
         </aside>
 
-        <div ref={stage} className={`relative flex min-h-[60vh] flex-1 select-none items-center justify-center lg:min-h-0 ${layer ? "touch-none" : ""}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        <div ref={stage} className={`relative flex min-h-[60vh] flex-1 select-none items-center justify-center lg:min-h-0 ${layer ? "touch-none" : ""}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={() => layer?.type === "text" && !layer.locked && setTyping(layer.id)}>
           <div data-slide-box="" className="relative shadow-xl" style={{ width: FRAME_W * k, height: H * k }}>
             <SlideView slide={slide} format={work.format} width={FRAME_W * k} />
+            {layer?.type === "text" && typing === layer.id && (
+              // type on the slide: an edit box over the words (double-click a text to open it, Escape or click away to close)
+              <textarea
+                autoFocus
+                aria-label="Type the words"
+                value={layer.text}
+                onChange={(e) => patchLayer(layer.id, { text: e.target.value }, "text")}
+                onBlur={() => setTyping(null)}
+                onKeyDown={(e) => e.key === "Escape" && setTyping(null)}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="absolute z-10 resize-none rounded border-2 border-primary bg-black/75 p-1 text-white outline-none"
+                style={{ left: layer.x * k, top: layer.y * k, width: layer.w * k, height: Math.max(layer.h * k, 48), fontFamily: layer.font, fontSize: Math.max(12, layer.size * k), lineHeight: layer.line_height, textAlign: layer.align }}
+              />
+            )}
             {layer && !layer.hidden && (
               <div
                 className="pointer-events-none absolute outline outline-2 outline-primary"

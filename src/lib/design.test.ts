@@ -171,3 +171,17 @@ describe("following Claude in the open editor", () => {
     expect(followStep(open, reordered, at(60_000))).toBe("ignore");
   });
 });
+
+describe("palette", () => {
+  it("keeps up to 16 distinct hex colours and only the editor's fonts", async () => {
+    const { sanitizePalette, MAX_PALETTE } = await import("@/lib/design");
+    const many = Array.from({ length: 20 }, (_, i) => `#0000${(10 + i).toString(16).padStart(2, "0")}`);
+    const p = sanitizePalette({ colors: ["#FFAA00", "#ffaa00", "red", 3, ...many], heading: "Anton", body: "Comic Sans" });
+    expect(p.colors[0]).toBe("#ffaa00");
+    expect(p.colors).toHaveLength(MAX_PALETTE);
+    expect(new Set(p.colors).size).toBe(MAX_PALETTE);
+    expect(p.heading).toBe("Anton");
+    expect(p.body).toBeNull();
+    expect(sanitizePalette(null)).toEqual({ colors: [], heading: null, body: null });
+  });
+});

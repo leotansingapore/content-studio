@@ -7,7 +7,7 @@
 //   synced: content-studio-design-templates-${scoped(userId)}, the "Save as template" ones
 
 import { scoped } from "@/lib/profiles";
-import { FONTS_CSS, MAX_DESIGNS, MAX_TEMPLATES, newId, parseTemplates, sanitizeDesign, type Design, type DesignTemplate } from "../../supabase/functions/_shared/design.ts";
+import { FONT_NAMES, FONTS_CSS, MAX_DESIGNS, MAX_TEMPLATES, newId, parseTemplates, sanitizeDesign, type Design, type DesignTemplate } from "../../supabase/functions/_shared/design.ts";
 
 export * from "../../supabase/functions/_shared/design.ts";
 
@@ -52,6 +52,37 @@ export function saveDesign(userId: string, d: Design, now = new Date()): Design[
   return write(PREFIX + scoped(userId), [{ ...d, updatedAt: now.toISOString() }, ...loadDesigns(userId).filter((x) => x.id !== d.id)].slice(0, MAX_DESIGNS));
 }
 export const removeDesign = (userId: string, id: string) => write(PREFIX + scoped(userId), loadDesigns(userId).filter((x) => x.id !== id));
+
+// ---- the palette (Volume's brand kit): up to 16 colours, a heading and a body font, synced per brand ----
+export interface Palette {
+  colors: string[];
+  heading: string | null;
+  body: string | null;
+}
+export const MAX_PALETTE = 16;
+const PALETTE_PREFIX = "content-studio-design-palette-";
+export function sanitizePalette(raw: unknown): Palette {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const colors = (Array.isArray(r.colors) ? r.colors : []).filter((c): c is string => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).map((c) => c.toLowerCase());
+  const font = (f: unknown) => (typeof f === "string" && FONT_NAMES.includes(f) ? f : null);
+  return { colors: [...new Set(colors)].slice(0, MAX_PALETTE), heading: font(r.heading), body: font(r.body) };
+}
+export function loadPalette(userId: string): Palette {
+  try {
+    return sanitizePalette(JSON.parse(storage()?.getItem(PALETTE_PREFIX + scoped(userId)) ?? "{}"));
+  } catch {
+    return sanitizePalette({});
+  }
+}
+export function savePalette(userId: string, p: Palette): Palette {
+  const clean = sanitizePalette(p);
+  try {
+    storage()?.setItem(PALETTE_PREFIX + scoped(userId), JSON.stringify(clean));
+  } catch {
+    // storage full or blocked: the palette still shows for this visit
+  }
+  return clean;
+}
 
 export const loadOwnTemplates = (userId: string | null | undefined): Design[] => (userId ? read(TEMPLATES_PREFIX + scoped(userId)) : []);
 /** "Save as template": a copy anyone on this account can start from. */
