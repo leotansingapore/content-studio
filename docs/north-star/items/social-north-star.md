@@ -78,7 +78,7 @@ Each play card has one action, Make one like this, which opens Remix over the pa
 - Heading "Social north star", tip "The formats that win for accounts like yours, rebuilt weekly from Apps like yours."
 - "This month", "{done} of {target} posts", "Next up: {play}"
 - Card: "{n} accounts use it, {x}x their usual", "{done} of {target} this month", rows Hook, Slides or Scenes, Length, Caption, Call to action, How often ("About {target} a month at the accounts that use it"), "The rest of the recipe comes with the next build.", button "Make one like this"
-- Example tile: cover, "@handle", "{x}x usual", opens the post
+- Example tile: plays in place as Apps like yours' cards do (VideoEmbed, the cover behind its play button, the tile taking the whole row while it plays), "@handle", "{x}x usual" and a small link that opens the post
 - Footer "Built {date} from {n} accounts on Apps like yours. It rebuilds weekly, and as more are read."
 
 ### Data
@@ -139,7 +139,7 @@ Prices (`_shared/prices.ts`):
 - `social-plays/logic.test.ts`: the request from 20 real Apps like yours posts (`fixtures/apps-like-yours.json`), Jev's questions with and without a cover, label.py's hook list, the answers' cuts, JPEG and PNG sizes and Jev's limits, play grouping and ranking, and recipe parsing.
 - `social-plays/index.test.ts`: the gate, one label a new post, the cover sent only when Jev can take it, a refused picture asked again on the words, refunds when Jev or both providers answer nothing, and the across-everyone cap.
 - `src/lib/socialNorthStar.test.ts`: what a build sends from the fixture, plays with pace and target, progress maths, when a build is due, the first find, the build and its failure, the brand's own reads and the key size.
-- `src/lib/similarAccounts.test.ts`: covers stay off the synced store and on this device for the best posts. `src/pages/SocialNorthStarPage.test.tsx`: the gate, anchors, progress, the marked example and the no-handle line. `src/lib/nav.test.ts`: the page in Strategy for Leo only.
+- `src/lib/similarAccounts.test.ts`: covers stay off the synced store and on this device for the best posts. `src/pages/SocialNorthStarPage.test.tsx`: the gate, anchors, progress, the marked example, the tile playing in place and the no-handle line. `src/lib/nav.test.ts`: the page in Strategy for Leo only.
 
 ## Open questions
 

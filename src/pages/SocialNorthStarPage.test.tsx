@@ -96,8 +96,22 @@ describe("the social north star", () => {
     seed();
     const h = html("/social-north-star?example=tiktok:74118");
     const at = h.indexOf("ring-primary/30");
-    expect(h.slice(at, at + 600)).toContain("@app_one");
+    expect(h.slice(at, h.indexOf("</li>", at))).toContain("@app_one");
     expect(h.match(/ring-primary\/30/g)).toHaveLength(1);
+  });
+
+  it("plays each example in place, its cover behind the play button, with the handle, the multiple and a small link to the original under it", () => {
+    as.user = LEO;
+    seed();
+    const h = html();
+    const at = h.indexOf('aria-label="Best faceless slideshow posts"');
+    const tile = h.slice(at, h.indexOf("</li>", at));
+    expect(tile).toMatch(/<button type="button"[^>]*>.*src="https:\/\/p16.tiktokcdn.com\/1.jpeg".*Watch the slideshow<\/button>/);
+    expect(tile.indexOf("Watch the slideshow")).toBeLessThan(tile.indexOf("@app_one"));
+    expect(tile).toContain("6.2x usual");
+    expect(tile).toMatch(/<a href="https:\/\/www.tiktok.com\/@app_one\/video\/741" target="_blank" rel="noopener noreferrer" aria-label="Open @app_one&#x27;s post on TikTok"/);
+    // the tile itself no longer leaves the page
+    expect(tile).not.toContain('aria-label="Open @app_one&#x27;s post, ');
   });
 
   it("says where to add the brand's own account when it has none, and counts nothing", () => {

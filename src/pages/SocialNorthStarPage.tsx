@@ -6,16 +6,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Shuffle } from "lucide-react";
+import { ExternalLink, Loader2, Shuffle } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
+import VideoEmbed from "@/components/VideoEmbed";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { auditedHandles } from "@/lib/accountAudit";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { safeExternalUrl } from "@/lib/embed";
-import { remixUrl } from "@/lib/following";
+import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
+import { remixUrl, watchText } from "@/lib/following";
 import { links } from "@/lib/links";
 import { reasonText } from "@/lib/prices";
 import { dayMonth, fromFollowPost } from "@/lib/remixSource";
@@ -238,8 +239,11 @@ function ExampleTile({ e, cover, linked }: { e: PlayExample; cover: string | und
   const [broken, setBroken] = useState(false);
   const open = safeExternalUrl(e.post.url);
   return (
-    <li ref={ref} className={cn("min-w-0 overflow-hidden rounded-lg border bg-muted/30", linked ? "border-primary ring-2 ring-primary/30" : "border-border/60")}>
-      <a href={open ?? undefined} target="_blank" rel="noopener noreferrer" className="block" aria-label={`Open @${e.handle}'s post, ${times(e.ratio)} their usual`}>
+    // it plays in place as Apps like yours' cards do, taking the whole row while it plays so the player can be watched
+    <li ref={ref} className={cn("min-w-0 overflow-hidden rounded-lg border bg-muted/30 has-[iframe]:col-span-3", linked ? "border-primary ring-2 ring-primary/30" : "border-border/60")}>
+      {embedUrlFor(e.post.url) ? (
+        <VideoEmbed url={e.post.url} label={`@${e.handle}'s post`} poster={cover} text={watchText(e.platform, e.post.format)} className="rounded-none border-0" />
+      ) : (
         <div className="aspect-[3/4] w-full bg-muted">
           {cover && !broken ? (
             // cover links expire within days; a broken one shows the format instead
@@ -248,11 +252,24 @@ function ExampleTile({ e, cover, linked }: { e: PlayExample; cover: string | und
             <span className="flex h-full items-center justify-center text-[11px] text-muted-foreground">{FORMAT[e.post.format]}</span>
           )}
         </div>
-        <div className="space-y-0.5 p-1.5">
+      )}
+      <div className="flex items-start gap-1 p-1.5">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <p className="truncate text-[11px] font-medium">@{e.handle}</p>
           <p className="text-[11px] tabular-nums text-muted-foreground">{times(e.ratio)} usual</p>
         </div>
-      </a>
+        {open && (
+          <a
+            href={open}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open @${e.handle}'s post on ${e.platform === "tiktok" ? "TikTok" : "Instagram"}`}
+            className="-m-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
+      </div>
     </li>
   );
 }
