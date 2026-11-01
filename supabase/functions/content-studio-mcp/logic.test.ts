@@ -689,6 +689,12 @@ describe("design tools", () => {
     expect(saved(s, P1)).toMatchObject([{ title: "My deck", format: "tiktok", slides: [{ background: "#000000", layers: [] }] }]);
   });
 
+  it("never writes over a designs row it can't read", async () => {
+    const s = memoryStore({ [designsKey(UID)]: "{not json" });
+    await expect(call("create_design", {}, s)).rejects.toThrow("designs row unreadable");
+    expect(s.rows.get(designsKey(UID))).toBe("{not json");
+  });
+
   it("refuses an unknown template or format, a format the template lacks, and a 41st slideshow, saving nothing", async () => {
     const s = memoryStore({});
     for (const args of [{ template: "nope" }, { format: "square" }, { template: "classic-tiktok", format: "instagram" }]) expect((await call("create_design", args, s)).error).toBe(true);

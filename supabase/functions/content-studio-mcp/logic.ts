@@ -492,8 +492,11 @@ export const designsKey = (scope: string) => `content-studio-designs-${scope}`;
 export const designLink = (id: string, link: Link) => `https://app.postmosis.com/design/${encodeURIComponent(id)}?profile=${link.scope.split("~")[1] ?? "me"}`;
 
 async function designs(store: Store, scope: string): Promise<Design[]> {
-  const list = parseJson<unknown>(await store.get(designsKey(scope)), []);
-  return (Array.isArray(list) ? list : []).map((d) => sanitizeDesign(d)).filter((d): d is Design => !!d);
+  const raw = await store.get(designsKey(scope));
+  const list = parseJson<unknown>(raw, null);
+  // a row that won't read is never treated as empty: the next save would write over every slideshow in it
+  if (raw && !Array.isArray(list)) throw new Error("designs row unreadable");
+  return ((list ?? []) as unknown[]).map((d) => sanitizeDesign(d)).filter((d): d is Design => !!d);
 }
 
 // read on first use, so /connect (the app imports this file for TOOL_LINES) never loads the 370 KB file
