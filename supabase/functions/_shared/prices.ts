@@ -120,7 +120,8 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // Apps like yours (find-similar-accounts.md). A find: up to 12 + 60 Instagram profiles at US$2.60 per 1,000 (Free
   // plan, apify.com/apify/instagram-profile-scraper, read 2026-11-01) US$0.187, 8 TikTok searches of 30 results at
   // US$3.70 per 1,000 + US$0.001 a run US$0.896, one gpt-6-luna call and up to about 300 Jev questions under US$0.01.
-  "similar-find": upTo(1.09),
+  // With fewer than 3 seeds, one more OpenAI call names the brand's rivals, priced as suggest's are: US$0.01, unverified.
+  "similar-find": upTo(1.1),
   "similar-posts": upTo(0.123), // as competitor-posts; a weekly 10-post refresh costs less but is priced the same
   "space-ads": upTo(0.522), // 90 ads x US$5.80 per 1,000
   "viral-search": about(0.077), // 20 TikTok results + one YouTube block + Jev

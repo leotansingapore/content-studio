@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import FB_ADS from "./fixtures/facebook-ads.json";
 import TIIMO from "./fixtures/ig-profile-tiimo.json";
 import TT_SEARCH from "./fixtures/tiktok-search.json";
+import { RIVAL_PROPOSE_MS, RIVAL_SITES_MS } from "./logic";
 
 // The handler with every provider faked (DataForSEO, the sites, OpenAI, Jev): which counters move, which come back.
 const db = vi.hoisted(() => ({
@@ -46,6 +47,12 @@ let serp: "ok" | "down" = "ok";
 let jevMode: "up" | "down" = "up";
 let site: { choice: string; probabilities: Record<string, number> } = { choice: "r1", probabilities: { r1: 0.9 } };
 let openai: "ok" | "down" | "why-down" = "ok";
+/** What OpenAI proposes as competitors (suggest, and the similar mode's rivals step); proposeHangs never answers until aborted. */
+const SPOTIO = [{ name: "Spotio", site: "spotio.com" }, { name: "Made Up", site: "invented.sg" }];
+let proposals = SPOTIO;
+let proposeHangs = false;
+/** The schema name of every OpenAI call, in order. */
+const openaiAsked: string[] = [];
 let apify: "ok" | "down" | "timeout" | "missing" | "empty" | "private" | "full" = "ok";
 /** 40 distinct ads, for a read that comes back as full as it asked. */
 const MANY_ADS = Array.from({ length: 40 }, (_, k) => ({ ...FB_ADS[k % FB_ADS.length], adArchiveID: String(5_000_000_000 + k), collationId: String(7_000_000 + k) }));
@@ -75,6 +82,7 @@ beforeAll(async () => {
     // inside.sg points into a network; invented.sg doesn't exist
     resolveDns: async (host: string, type: string) => {
       if (host === "invented.sg") throw new Error("NXDOMAIN");
+      if (host === "hang.sg") return new Promise(() => undefined); // a name server that never answers: no signal stops it
       return type === "AAAA" ? [] : host === "inside.sg" ? ["10.0.0.7"] : ["151.101.1.69"];
     },
   });
@@ -111,15 +119,17 @@ beforeAll(async () => {
     }
     if (url.startsWith("https://api.openai.com/")) {
       const req = JSON.parse(String(init?.body));
+      openaiAsked.push(req.response_format.json_schema.name);
       if (req.response_format.json_schema.name === "tiktok_searches") {
         if (openai === "down") return new Response("down", { status: 500 });
         return Response.json({ model: "m", choices: [{ message: { content: JSON.stringify({ phrases: ["adhd planner", "#adhd tips", "day in the life adhd"] }) } }] });
       }
       const why = req.response_format.json_schema.name === "competitor_whys";
       if (openai === "down" || (why && openai === "why-down")) return new Response("down", { status: 500 });
+      if (!why && proposeHangs) return new Promise<Response>((_, no) => init!.signal!.addEventListener("abort", () => no(init!.signal!.reason)));
       const content = why
         ? { whys: req.messages[1].content.split("\n").filter((l: string) => l.startsWith("- key ")).map((l: string) => ({ key: l.slice(6, l.indexOf(":")), why: "Sales teams weigh both for the same job." })) }
-        : { competitors: [{ name: "Spotio", site: "spotio.com" }, { name: "Made Up", site: "invented.sg" }] };
+        : { competitors: proposals };
       return Response.json({ model: "m", choices: [{ message: { content: JSON.stringify(content) } }] });
     }
     if (url.startsWith("https://api.apify.com/")) {
@@ -160,6 +170,11 @@ beforeAll(async () => {
       return new Response(body, { headers: { "content-type": "text/html" } });
     }
     if (url === "https://down.sg/") throw new TypeError("error sending request");
+    // a rival linking its Instagram and TikTok; one whose home page links no profile at all
+    if (url === "https://akiflow.com/") {
+      return new Response(`<meta name="description" content="Time blocking for busy people">${PAGE("Akiflow")}<a href="https://www.tiktok.com/@akiflow">tt</a>`, { headers: { "content-type": "text/html" } });
+    }
+    if (url === "https://plain.sg/") return new Response("<title>Plain | Home</title><p>Plans for teams</p>", { headers: { "content-type": "text/html" } });
     if (url === "https://gone.sg/") return new Response("missing", { status: 404 });
     const host = new URL(url).hostname.replace(/^www\./, "").split(".")[0];
     return new Response(PAGE(host[0].toUpperCase() + host.slice(1)), { headers: { "content-type": "text/html" } });
@@ -181,6 +196,9 @@ beforeEach(() => {
   jevAccounts.length = 0;
   jevLiked.length = 0;
   searchDown = [];
+  proposals = SPOTIO;
+  proposeHangs = false;
+  openaiAsked.length = 0;
   db.month = [];
   env = { NORTH_STAR_USERS: `someone-else,${LEO}`, DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "t", APIFY_API_KEY: "a" };
   serp = "ok";
@@ -620,7 +638,9 @@ describe("competitors match", () => {
 });
 
 describe("competitors similar", () => {
-  const body = { mode: "similar", brand, seeds: { instagram: ["@TiimoApp"], tiktok: ["thedoapp"] }, exclude: ["instagram:todoistofficial", "tiktok:samfreeflow"] };
+  // three seeds, as a brand with references sends: no rivals step (it runs under 3, see below)
+  const body = { mode: "similar", brand, seeds: { instagram: ["@TiimoApp"], tiktok: ["thedoapp", "routinesieapp"] }, exclude: ["instagram:todoistofficial", "tiktok:samfreeflow"] };
+  const noSeeds = { ...body, seeds: { instagram: [], tiktok: [] } };
 
   it("refuses anyone not listed and a bad body before any counter or provider", async () => {
     expect((await call(body, "not-listed")).body.code).toBe("not_enabled");
@@ -660,12 +680,78 @@ describe("competitors similar", () => {
     expect(jevAccounts).toContain("thedoapp"); // the TikTok seed, on its name alone
     // every question carries the seeds as examples: the Instagram one with the bio its read gave, the TikTok one by name
     expect(jevLiked.every((l) => JSON.stringify(l) === JSON.stringify(jevLiked[0]))).toBe(true);
-    expect(jevLiked[0]).toEqual([{ handle: "@tiimoapp", name: expect.any(String), bio: expect.stringMatching(/\S/) }, { handle: "@thedoapp", name: "thedoapp", bio: "" }]);
-    expect(r.body.month).toEqual({ spent: 1.09, cap: 40 });
+    expect(jevLiked[0]).toEqual([
+      { handle: "@tiimoapp", name: expect.any(String), bio: expect.stringMatching(/\S/) }, { handle: "@thedoapp", name: "thedoapp", bio: "" },
+      { handle: "@routinesieapp", name: "routinesieapp", bio: "" },
+    ]);
+    expect(r.body.month).toEqual({ spent: 1.1, cap: 40 });
+  });
+
+  it("with fewer than 3 seeds finds the brand's rivals first: their home pages' handles become seeds, their accounts come back as rivals", async () => {
+    proposals = [{ name: "Akiflow", site: "akiflow.com" }, { name: "Made Up", site: "invented.sg" }, { name: "Plain", site: "plain.sg" }, { name: "ActivityTracker", site: "activity-tracker.io" }];
+    const logs = vi.spyOn(console, "log");
+    const r = await call(noSeeds);
+    expect(r.status).toBe(200);
+    expect([...openaiAsked].sort()).toEqual(["competitors", "tiktok_searches"]);
+    expect(db.spent).toEqual(["similar-find", "similar-find-global"]); // the same caps, nothing more
+    // an invented site never opens and the brand's own is never read; a home page with no profile links adds nothing
+    expect(seen).toContain("https://akiflow.com/");
+    expect(seen).toContain("https://plain.sg/");
+    expect(seen.some((u) => /invented\.sg|activity-tracker\.io/.test(u))).toBe(false);
+    expect(apifyRuns.filter((x) => x.actor === "apify~instagram-profile-scraper").map((x) => x.input)).toEqual([{ usernames: ["akiflow"] }]);
+    expect(r.body.accounts.filter((a: { via: string }) => a.via.startsWith("rival: "))).toEqual([
+      expect.objectContaining({ platform: "instagram", handle: "akiflow", bio: "Time blocking for busy people", via: "rival: Akiflow", kind: "app_or_brand" }),
+      expect.objectContaining({ platform: "tiktok", handle: "akiflow", name: "Akiflow", bio: "Time blocking for busy people", via: "rival: Akiflow", kind: "app_or_brand" }),
+    ]);
+    // judged by Jev like the rest, with no examples (rivals are not the user's picks), and logged as rivals
+    expect(jevAccounts.filter((h) => h === "akiflow")).toHaveLength(2);
+    expect(jevLiked.every((l) => JSON.stringify(l) === "[]")).toBe(true);
+    const lines = logs.mock.calls.map((c) => String(c[0]));
+    logs.mockRestore();
+    expect(lines).toContain("competitors similar: rivals Akiflow (ig akiflow, tt akiflow), Plain (ig -, tt -)");
+    expect(lines.some((l) => l.startsWith("competitors similar: tiktok:akiflow (rival: Akiflow) | Time blocking"))).toBe(true);
+    expect(r.body.month).toEqual({ spent: 1.1, cap: 40 });
+  });
+
+  it("finds no rivals with 3 seeds or more, and does with 2", async () => {
+    await call(body);
+    expect(openaiAsked).toEqual(["tiktok_searches"]);
+    expect(seen.some((u) => u.includes("spotio.com"))).toBe(false);
+    openaiAsked.length = 0;
+    await call({ ...body, seeds: { instagram: ["tiimoapp"], tiktok: ["thedoapp"] } });
+    expect([...openaiAsked].sort()).toEqual(["competitors", "tiktok_searches"]);
+    // Spotio's home page links instagram.com/spotio
+    expect(apifyRuns.filter((x) => x.actor === "apify~instagram-profile-scraper").map((x) => x.input)).toContainEqual({ usernames: ["tiimoapp", "spotio"] });
+  });
+
+  it("holds the rivals step to its limits, OpenAI's then the home pages', and goes on without whatever didn't answer", async () => {
+    const real = AbortSignal.timeout.bind(AbortSignal);
+    const asked: number[] = [];
+    // the step's two limits run at 200 ms here; every other one as written
+    const spy = vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) => (asked.push(ms), real(ms === RIVAL_PROPOSE_MS || ms === RIVAL_SITES_MS ? 200 : ms)));
+    try {
+      // hang.sg's name never resolves, which no signal stops: the race does
+      proposals = [{ name: "Akiflow", site: "akiflow.com" }, { name: "Hang", site: "hang.sg" }];
+      const r = await call(noSeeds);
+      expect(r.status).toBe(200);
+      expect(asked).toEqual(expect.arrayContaining([RIVAL_PROPOSE_MS, RIVAL_SITES_MS]));
+      expect(apifyRuns.find((x) => x.actor === "apify~instagram-profile-scraper")?.input).toEqual({ usernames: ["akiflow"] });
+      expect(seen.some((u) => u.includes("hang.sg"))).toBe(false);
+      // OpenAI never answers the rivals call: no rivals, the searches go on alone
+      apifyRuns.length = 0;
+      proposeHangs = true;
+      const slow = await call(noSeeds);
+      expect(slow.status).toBe(200);
+      expect(slow.body.phrases).toHaveLength(3);
+      expect(apifyRuns.map((x) => x.actor)).toEqual(Array(3).fill("clockworks~tiktok-scraper"));
+      expect(db.refunded).toEqual([]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("never judges an account the app already shows or added: it comes in as a seed and as exclude", async () => {
-    const r = await call({ ...body, seeds: { instagram: ["tiimoapp"], tiktok: ["thedoapp"] }, exclude: ["instagram:tiimoapp", "tiktok:thedoapp"] });
+    const r = await call({ ...body, seeds: { instagram: ["tiimoapp"], tiktok: ["thedoapp", "routinesieapp"] }, exclude: ["instagram:tiimoapp", "tiktok:thedoapp"] });
     expect(r.status).toBe(200);
     expect(apifyRuns[0].input).toEqual({ usernames: ["tiimoapp"] }); // still read for Instagram's similar accounts
     expect(jevAccounts).not.toContain("tiimoapp");
@@ -702,10 +788,10 @@ describe("competitors similar", () => {
   });
 
   it("stops at Leo's US$40 a month before any counter or provider, and fails closed when the month can't be read", async () => {
-    db.month = [{ feature: "similar-find-global", count: 10 }, { feature: "similar-posts-global", count: 230 }]; // US$39.19, and a find is 1.09
+    db.month = [{ feature: "similar-find-global", count: 10 }, { feature: "similar-posts-global", count: 230 }]; // US$39.29, and a find is 1.10
     const r = await call(body);
     expect(r.status).toBe(429);
-    expect(r.body).toEqual({ code: "month_limit", error: expect.stringMatching(/^Apps like yours has used this month's US\$40\. It starts again on 1 [A-Z][a-z]+\.$/), month: { spent: 39.19, cap: 40 } });
+    expect(r.body).toEqual({ code: "month_limit", error: expect.stringMatching(/^Apps like yours has used this month's US\$40\. It starts again on 1 [A-Z][a-z]+\.$/), month: { spent: 39.29, cap: 40 } });
     expect(db.spent).toEqual([]);
     expect(seen).toEqual([]);
     db.month = "down";
@@ -715,10 +801,10 @@ describe("competitors similar", () => {
   });
 
   it("counts a similar posts read on its own caps, 10 posts on a refresh, up to exactly US$40", async () => {
-    db.month = [{ feature: "similar-posts-global", count: 210 }, { feature: "similar-find-global", count: 13 }]; // 25.83 + 14.17 = 40
+    db.month = [{ feature: "similar-posts-global", count: 200 }, { feature: "similar-find-global", count: 14 }]; // 24.6 + 15.4 = 40
     const r = await call({ mode: "posts", platform: "instagram", handle: "acme", scope: "similar", limit: 10 });
     expect(r.status).toBe(429); // at 40 already, so one more read passes it
-    db.month = [{ feature: "similar-posts-global", count: 209 }, { feature: "similar-find-global", count: 13 }]; // 39.877 + 0.123 = 40
+    db.month = [{ feature: "similar-posts-global", count: 199 }, { feature: "similar-find-global", count: 14 }]; // 39.877 + 0.123 = 40
     const ok = await call({ mode: "posts", platform: "instagram", handle: "acme", scope: "similar", limit: 10 });
     expect(ok.status).toBe(200);
     expect(ok.body.posts).toHaveLength(10);

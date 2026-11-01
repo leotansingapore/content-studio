@@ -13,6 +13,11 @@
 - "whatever it is, please suggest. we should have alot of references"
 - "for example, I think the structured.app is pretty good, saw what they have on tiktok"
 
+Later on 1 Nov, after two real finds, on a brand with no references:
+
+- "do try to dogfood the competitor search. e.g assume I didn't give any references, how would the function search for competitors on its own"
+- "somehow, we managed to do so on the /seo-north-star."
+
 He set a monthly cap of US$40 for the whole feature, and keeps naming accounts he likes as references (for ActivityTracker: structured.app, thedoapp, @megrow_app, @routinesieapp), so they can be added by hand.
 
 ## How the best do it
@@ -39,7 +44,7 @@ A tab "Apps like yours" on `/swipe` (`?tab=similar`) for brands that aren't an a
 
 ```
 Apps like yours  44                                        US$7.21 of US$40 this month
-[ Find apps like yours ]  Up to US$6.01 | 2 left after this
+[ Find apps like yours ]  Up to US$6.02 | 2 left after this
 [ Add an account you like: @handle or profile link ] [Add]
 +------------------+ +------------------+ +------------------+
 | Structured       | | Tiimo            | | Dr. Tish         |   (scrolls sideways)
@@ -105,6 +110,7 @@ Mode `similar` of `supabase/functions/competitors/index.ts`, body `{ mode: "simi
 
 1. Gate (`NORTH_STAR_USERS`), the month guard, then `similar-find` (3 a day) and `similar-find-global` (6 a day) on `GLOBAL_COUNTER_USER`.
 2. OpenAI (`OPENAI_MODEL`) writes up to 8 short TikTok searches from the brand's facts (words only).
+   Beside it, when the request has fewer than 3 seeds in all, the rivals step: OpenAI proposes up to 8 apps or businesses a buyer compares with the brand (suggest's `proposeMessages`), each site is opened (`readHome`; an invented one doesn't open and is dropped, as is the brand's own), and the Instagram and TikTok handles each home page links to join the seeds. A rival's own accounts are judged by Jev like the rest and come back with via `rival: <name>` and kind `app_or_brand`; they are never Jev's examples (`liked` stays the accounts the user picked). Why: find 2 on ActivityTracker (1 Nov) had no seeds, so Instagram's similar accounts had nothing to start from and only the TikTok searches ran (money and sales creators, one kept, no apps); /seo-north-star starts from the rivals a customer compares, and so does this now. Limits: OpenAI 15 s, then every home page at once 8 s. It runs beside the searches' call, so Apify starts at most 5 s later, and the Apify and Jev deadlines moved 5 s (120 s and 140 s of the ~150 s).
 3. In parallel: `apify~instagram-profile-scraper` on up to 12 seed Instagram usernames for their `relatedProfiles`, then a second read of up to 60 of those (public, deduped, minus exclude, one from each seed in turn) for bio, followers, category and link; and `clockworks~tiktok-scraper` once per search, 30 results each, Top search (the "/video" tab returns no slideshows, measured 30 Oct). Each TikTok result's `authorMeta` is a candidate; the TikTok seeds are candidates too.
 4. Private accounts, accounts under 1,000 followers, the brand's own name as a handle and anything in `exclude` are dropped before Jev.
 5. Jev (`jev-1.13.0`), one call per candidate, text only: noul `similar` and choice `kind` (`app_or_brand`, `creator`). Every decision is logged (handle, bio's first 80 characters, score, kind) so the first real run sets the cut, which starts at 0.6. Top 40 kept.
@@ -116,7 +122,7 @@ Month guard: before any similar call, this calendar month's `similar-find-global
 
 Prices (`_shared/prices.ts`, Free-plan Apify rates, the dearest):
 
-- `similar-find` up to US$1.09: 72 Instagram profiles at US$2.60 per 1,000 (apify.com/apify/instagram-profile-scraper, read 1 Nov) US$0.187; 8 TikTok searches of 30 at US$3.70 per 1,000 plus US$0.001 a run US$0.896; one gpt-6-luna call and up to about 300 Jev questions, under US$0.01.
+- `similar-find` up to US$1.10: 72 Instagram profiles at US$2.60 per 1,000 (apify.com/apify/instagram-profile-scraper, read 1 Nov) US$0.187; 8 TikTok searches of 30 at US$3.70 per 1,000 plus US$0.001 a run US$0.896; one gpt-6-luna call and up to about 300 Jev questions, under US$0.01; with fewer than 3 seeds, the rivals step's OpenAI call, priced as suggest's are (US$0.01, unverified).
 - `similar-posts` up to US$0.123: TikTok 33 x US$3.70 per 1,000 + US$0.001; Instagram 33 posts and a profile, US$0.092 (phase2-build-brief.md, read 20 Oct). A 10-post refresh costs less but is priced the same, so the guard stops early, never late.
 - A first find with its 40 post reads is up to about US$6; a brand's weekly refresh is 40 reads, up to about US$4.92. US$40 covers about one brand found and refreshed for a month plus a second brand's find.
 
@@ -139,8 +145,8 @@ Prices (`_shared/prices.ts`, Free-plan Apify rates, the dearest):
 
 ## Tests
 
-- `competitors/logic.test.ts`: candidates from the Tiimo profile and from TikTok results (both real), dedupe and exclude, the follower and private filters, Jev null handling and the 0.6 cut, posts scope routing, and the month guard at, under and over US$40.
-- `competitors/index.test.ts`: the similar mode end to end with every provider faked (counters, the two Instagram reads, one TikTok run per search, judged once each, excluded and added accounts never judged, refunds when Apify or Jev never answers), the month guard refusing before any counter, and similar posts on their own caps with 10 posts on a refresh.
+- `competitors/logic.test.ts`: candidates from the Tiimo profile and from TikTok results (both real), dedupe and exclude, the follower and private filters, Jev null handling and the 0.6 cut, posts scope routing, the month guard at, under and over US$40, rival handles joining the seeds after the request's (12 a platform at most), and a rival's account marked `rival: <name>` and `app_or_brand` whatever Jev's kind.
+- `competitors/index.test.ts`: the similar mode end to end with every provider faked (counters, the two Instagram reads, one TikTok run per search, judged once each, excluded and added accounts never judged, refunds when Apify or Jev never answers), the month guard refusing before any counter, and similar posts on their own caps with 10 posts on a refresh. The rivals step: no seeds runs it, 3 seeds don't, an invented site and the brand's own are never read, a home page with no profile links adds nothing, and a host that never resolves or an OpenAI call that never answers stops at the step's limits.
 - `src/lib/similarAccounts.test.ts`: the key, the 40-found cap, the size of 40 accounts of 30 posts, the merge of a weekly read by post id, 30 then 10, due after 7 days, the filters, each added-account rule, Not this one, and a find's note and refusal.
 - `src/pages/adviserScreens.test.ts`: Leo's non-adviser brand opens on Apps like yours; an adviser's never shows it.
 
@@ -149,7 +155,7 @@ Prices (`_shared/prices.ts`, Free-plan Apify rates, the dearest):
 - The cut: 0.6 is a start. Read the first run's logged decisions and move it.
 - A TikTok seed that no search returns is judged on its name alone, and may fall under the cut. Reading one post per TikTok seed for its bio would cost about US$0.004 each.
 - Posts are read one account at a time, about 40 minutes for a first find. Reading two or three at once would finish sooner; say if that matters.
-- When Jev answers nothing the uses are given back although Apify was paid, so the month's count can sit under the real spend by up to US$1.09 a time.
+- When Jev answers nothing the uses are given back although Apify was paid, so the month's count can sit under the real spend by up to US$1.10 a time.
 
 ## Related
 

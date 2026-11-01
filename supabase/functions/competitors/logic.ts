@@ -707,8 +707,13 @@ export const matchScores = (items: MatchItem[], scores: (number | null)[]): Reco
 export type SimilarPlatform = "instagram" | "tiktok";
 export type SimilarKind = "app_or_brand" | "creator";
 export interface SimilarRequest { brand: Brand; seeds: Record<SimilarPlatform, string[]>; exclude: string[] }
-/** One account to judge. via: the seed whose similar accounts listed it, the search phrase that found it, or "competitor". */
-export interface SimilarCandidate { platform: SimilarPlatform; handle: string; name: string; bio: string; followers: number | null; private: boolean; via: string }
+/**
+ * One account to judge. via: the seed whose similar accounts listed it, the search phrase that found it, "competitor",
+ * or "rival: <name>". kind: known before Jev (a rival's own account is an app or brand).
+ */
+export interface SimilarCandidate { platform: SimilarPlatform; handle: string; name: string; bio: string; followers: number | null; private: boolean; via: string; kind?: SimilarKind }
+/** A rival the rivals step found: a business OpenAI proposed whose home page opened, with the handles it links to. */
+export interface Rival { name: string; about: string; handles: Handles }
 export interface SimilarAccount { platform: SimilarPlatform; handle: string; name: string; bio: string; followers: number | null; kind: SimilarKind | null; score: number; via: string }
 
 export const IG_PROFILE_ACTOR = "apify~instagram-profile-scraper";
@@ -737,6 +742,14 @@ export const SIMILAR_REFRESH = 10;
 export const SIMILAR_MONTH_USD = 40;
 export const SIMILAR_MONTH_FEATURES = ["similar-find-global", "similar-posts-global"] as const;
 const SIMILAR_KINDS: SimilarKind[] = ["app_or_brand", "creator"];
+/**
+ * A find with fewer seeds than this first finds the brand's rivals as suggest does, for their accounts (Leo 1 Nov:
+ * "assume I didn't give any references"; with no seeds only the TikTok searches ran, and kept no app).
+ */
+export const RIVALS_UNDER = 3;
+/** The rivals step's limits, 23 s of the 25 s it has: OpenAI's list, then every home page at once. */
+export const RIVAL_PROPOSE_MS = 15_000;
+export const RIVAL_SITES_MS = 8_000;
 
 /** "platform:handle", the key exclude and the app use for one account. */
 export const accountKey = (a: { platform: SimilarPlatform; handle: string }) => `${a.platform}:${a.handle}`;
@@ -851,6 +864,30 @@ export function tiktokCandidates(items: unknown[]): SimilarCandidate[] {
 }
 
 /**
+ * The seeds a find reads: the request's, then each rival's Instagram and TikTok handles from its home page, once each,
+ * SIMILAR_SEEDS a platform at most; and the rival behind each added handle, by accountKey.
+ */
+export function rivalSeeds(seeds: Record<SimilarPlatform, string[]>, rivals: Rival[]): { seeds: Record<SimilarPlatform, string[]>; rivalOf: Map<string, Rival> } {
+  const out = { instagram: [...seeds.instagram], tiktok: [...seeds.tiktok] };
+  const rivalOf = new Map<string, Rival>();
+  for (const rv of rivals) {
+    for (const p of ["instagram", "tiktok"] as const) {
+      const h = rv.handles[p] ? normalizeHandle(p, rv.handles[p]!) : null;
+      if (!h || out[p].includes(h) || out[p].length >= SIMILAR_SEEDS) continue;
+      out[p].push(h);
+      rivalOf.set(accountKey({ platform: p, handle: h }), rv);
+    }
+  }
+  return { seeds: out, rivalOf };
+}
+
+/** A rival's own account: found as "rival: <name>", an app or brand, with its home page's words when its profile says nothing. */
+export function asRival(c: SimilarCandidate, rv: Rival | undefined): SimilarCandidate {
+  if (!rv) return c;
+  return { ...c, name: c.name === c.handle ? rv.name : c.name, bio: c.bio || rv.about, via: `rival: ${rv.name}`.slice(0, 60), kind: "app_or_brand" };
+}
+
+/**
  * Candidates in the order they are judged (what is cut by the time limit is the tail), once each: minus exclude, private
  * accounts, accounts under SIMILAR_MIN_FOLLOWERS (an unknown count stays) and the brand's own name as a handle.
  */
@@ -903,7 +940,7 @@ export function similarKeep(cands: SimilarCandidate[], answers: (Record<string, 
     .flatMap((c, k) => {
       const score = answers[k]?.similar?.noul;
       if (typeof score !== "number" || score < SIMILAR_FIT) return [];
-      return [{ c, kind: choiceOf(answers[k], "kind", SIMILAR_KINDS), score }];
+      return [{ c, kind: c.kind ?? choiceOf(answers[k], "kind", SIMILAR_KINDS), score }];
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, max)

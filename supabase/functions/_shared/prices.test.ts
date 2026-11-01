@@ -39,7 +39,7 @@ describe("the price table", () => {
   });
 
   it("prices Apps like yours from the Apify unit costs, its across-everyone counters free", () => {
-    expect(priceOf("similar-find")).toEqual({ usd: 1.09, kind: "upTo" });
+    expect(priceOf("similar-find")).toEqual({ usd: 1.1, kind: "upTo" }); // 1.09 plus the rivals step's OpenAI call
     expect(priceOf("similar-posts")).toEqual(priceOf("competitor-posts"));
     expect(priceOf("similar-find-global")).toBeNull();
     expect(priceOf("similar-posts-global")).toBeNull();

@@ -7,8 +7,8 @@ import {
   type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, ldOrganization, mergeSpace, organicResults, readCompetitorSite,
   MATCH_MAX, matchAsk, matchScores, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, postsFailure, sgDay, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter,
   spaceUrl, suggestFilter, type SpaceAd,
-  cleanSimilar, igCandidate, monthLine, monthStart, parsePhrases, passesMonth, pickCandidates, postsScope, relatedOf, type SimilarCandidate, similarAsk, similarKeep,
-  SIMILAR_KEEP, SIMILAR_RELATED, SIMILAR_SEEDS, similarSearchInput, similarSpent, similarUsd, tiktokCandidates,
+  asRival, cleanSimilar, igCandidate, monthLine, monthStart, parsePhrases, passesMonth, pickCandidates, postsScope, relatedOf, type Rival, rivalSeeds, type SimilarCandidate,
+  similarAsk, similarKeep, SIMILAR_KEEP, SIMILAR_RELATED, SIMILAR_SEEDS, similarSearchInput, similarSpent, similarUsd, tiktokCandidates,
 } from "./logic";
 
 describe("what the add bar reads", () => {
@@ -530,6 +530,33 @@ describe("similar: accounts like the brand (find-similar-accounts.md)", () => {
     expect(similarKeep(cands.slice(0, 3), [null, null, ans(0.45, "nope")])?.[0]).toMatchObject({ handle: "a2", kind: null });
     expect(similarKeep(cands.slice(0, 2), [null, null])).toBeNull();
     expect(similarKeep([], [])).toBeNull();
+    // a rival's kind is known before Jev: an app or brand, whatever Jev picks
+    expect(similarKeep([cand("akiflow", { kind: "app_or_brand" })], [ans(0.9, "creator")])?.[0]).toMatchObject({ handle: "akiflow", kind: "app_or_brand" });
+  });
+
+  it("adds each rival's Instagram and TikTok handles after the request's seeds, once each, 12 a platform at most", () => {
+    const akiflow: Rival = { name: "Akiflow", about: "Time blocking for busy people", handles: { instagram: "Akiflow", tiktok: "akiflow", facebook: "akiflowapp" } };
+    const plain: Rival = { name: "Plain", about: "", handles: {} };
+    const tiimo: Rival = { name: "Tiimo", about: "", handles: { instagram: "tiimoapp", tiktok: "bad handle!" } };
+    const { seeds, rivalOf } = rivalSeeds({ instagram: ["tiimoapp"], tiktok: [] }, [akiflow, plain, tiimo]);
+    expect(seeds).toEqual({ instagram: ["tiimoapp", "akiflow"], tiktok: ["akiflow"] });
+    // the request's own tiimoapp stays the request's: not marked as a rival
+    expect([...rivalOf.keys()]).toEqual(["instagram:akiflow", "tiktok:akiflow"]);
+    expect(rivalOf.get("tiktok:akiflow")).toBe(akiflow);
+    const full = rivalSeeds({ instagram: Array.from({ length: SIMILAR_SEEDS }, (_, k) => `s${k}`), tiktok: [] }, [akiflow]);
+    expect(full.seeds).toEqual({ instagram: expect.not.arrayContaining(["akiflow"]), tiktok: ["akiflow"] });
+    expect(full.seeds.instagram).toHaveLength(SIMILAR_SEEDS);
+    expect(rivalSeeds({ instagram: [], tiktok: [] }, [])).toEqual({ seeds: { instagram: [], tiktok: [] }, rivalOf: new Map() });
+  });
+
+  it("marks a rival's own account: found as rival: <name>, an app or brand, its home page's words when the profile says nothing", () => {
+    const rv: Rival = { name: "Akiflow", about: "Time blocking for busy people", handles: {} };
+    expect(asRival(cand("akiflow", { platform: "tiktok", bio: "", via: "competitor" }), rv))
+      .toEqual({ platform: "tiktok", handle: "akiflow", name: "Akiflow", bio: "Time blocking for busy people", followers: 5000, private: false, via: "rival: Akiflow", kind: "app_or_brand" });
+    expect(asRival(cand("akiflow", { name: "Akiflow HQ", bio: "Plan your day" }), rv)).toMatchObject({ name: "Akiflow HQ", bio: "Plan your day", via: "rival: Akiflow" });
+    expect(asRival(cand("x"), { ...rv, name: "N".repeat(80) }).via).toHaveLength(60);
+    const plain = cand("tiimoapp", { via: "competitor" });
+    expect(asRival(plain, undefined)).toBe(plain);
   });
 
   it("parses the searches: 8 at most, no # or quotes, no repeats", () => {
@@ -548,14 +575,14 @@ describe("similar: accounts like the brand (find-similar-accounts.md)", () => {
   });
 
   it("prices the month from the across-everyone rows and stops a call that would pass US$40", () => {
-    expect(similarUsd).toEqual({ find: 1.09, posts: 0.123 });
+    expect(similarUsd).toEqual({ find: 1.1, posts: 0.123 });
     const rows = [{ feature: "similar-find-global", count: 10 }, { feature: "similar-posts-global", count: 200 }, { feature: "competitor-posts-global", count: 99 }, { feature: "similar-find-global", count: "x" }];
-    expect(similarSpent(rows)).toBe(35.5); // 10 x 1.09 + 200 x 0.123
+    expect(similarSpent(rows)).toBe(35.6); // 10 x 1.1 + 200 x 0.123
     expect(similarSpent(null)).toBe(0);
     expect(passesMonth(39.877, 0.123)).toBe(false); // lands exactly on 40
     expect(passesMonth(39, 0.123)).toBe(false);
     expect(passesMonth(39.878, 0.123)).toBe(true);
-    expect(passesMonth(38.92, 1.09)).toBe(true);
+    expect(passesMonth(38.91, 1.1)).toBe(true);
     expect(monthStart(new Date("2026-11-30T23:00:00Z"))).toBe("2026-11-01");
     expect(monthLine(new Date("2026-11-15T00:00:00Z"))).toBe("Apps like yours has used this month's US$40. It starts again on 1 December.");
     expect(monthLine(new Date("2026-12-31T12:00:00Z"))).toMatch(/1 January\.$/);
