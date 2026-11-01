@@ -132,7 +132,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     void registerBrandFont(loadBrandFont(userId));
   }, [brand, userId]);
 
-  // autosave half a second after the last change (Claude's own version is already saved)
+  // autosave half a second after the last change (Claude's own version is already saved), and at once on leaving
   const keep = (d: Design) => {
     const now = new Date();
     saveDesign(userId, d, now);
@@ -151,6 +151,12 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [work, userId]);
+  useEffect(() => {
+    const flush = () => workRef.current !== saved.current.doc && keep(workRef.current);
+    window.addEventListener("pagehide", flush);
+    return () => (window.removeEventListener("pagehide", flush), flush());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const commit = useCallback((next: Design, tag?: string, fromClaude = false) => {
     const prev = workRef.current;
