@@ -62,6 +62,8 @@ describe("filters from the address", () => {
 describe("niche names", () => {
   it("capitalises the first word only, keeps and lower case, and writes AI tools", () => {
     expect(nicheLabel("ai_tools")).toBe("AI tools");
+    expect(nicheLabel("nutrition")).toBe("Food and nutrition");
+    expect(nicheLabel("creative")).toBe("Photography and design");
     expect(nicheLabel("business")).toBe("Business");
     expect(nicheLabel("home_and_garden")).toBe("Home and garden");
     expect(nicheLabel("mental_health")).toBe("Mental health");
@@ -103,7 +105,7 @@ describe("numbers and addresses", () => {
 describe("the agent prompt", () => {
   it("describes the format: slide count, hook, structure, summary, the proof and the original", () => {
     const p = agentPrompt(row());
-    expect(p).toContain('A 6-slide TikTok photo slideshow (classic text) in Nutrition.');
+    expect(p).toContain('A 6-slide TikTok photo slideshow (classic text) in Food and nutrition.');
     expect(p).toContain('Hook: list, the cover reads "5 foods I never skip".');
     expect(p).toContain("Structure: one item per slide.");
     expect(p).toContain("What it says: Five foods a dietitian eats every week.");
@@ -116,7 +118,7 @@ describe("the agent prompt", () => {
   it("leaves out what the row doesn't have, and never carries the slides' words", () => {
     const p = agentPrompt(row({ hook: null, hook_text: "", structure: null, summary: "", format: null, ratio: null, views: 0, slide_text: ["secret words"] }));
     expect(p).not.toMatch(/Hook:|Structure:|What it says:|saved|secret words/);
-    expect(p).toContain("A 6-slide TikTok photo slideshow in Nutrition.");
+    expect(p).toContain("A 6-slide TikTok photo slideshow in Food and nutrition.");
     expect(p).toContain("It got 0 views.");
     expect(formatLines(row({ hook: null }))[1]).toBe('Hook: the cover reads "5 foods I never skip".');
   });

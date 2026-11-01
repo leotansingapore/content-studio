@@ -77,8 +77,24 @@ export interface WorkingRow extends WorkingCard {
   posted_at: string | null;
 }
 
-/** "ai_tools" is "AI tools", "home_and_garden" "Home and garden": the first word capitalised, nothing else. */
+/** Volume's names for its niches, read off its /working chips on 1 Nov 2026. */
+const NICHE_NAMES: Record<string, string> = {
+  business_marketing: "Business and marketing",
+  nutrition: "Food and nutrition",
+  self_improvement: "Self-improvement",
+  ai_tools: "AI tools",
+  tech: "Apps and tech",
+  language: "Language learning",
+  mental_health: "Mental health",
+  skincare: "Skincare and beauty",
+  home_garden: "Home and garden",
+  gaming: "Gaming and collectibles",
+  creative: "Photography and design",
+};
+
+/** A niche's name: Volume's where it differs from the slug, else "ai_tools" style slugs read as "AI tools". */
 export function nicheLabel(slug: string): string {
+  if (NICHE_NAMES[slug]) return NICHE_NAMES[slug];
   if (!NICHE.test(slug)) return slug.replace(/_/g, " ");
   const words = slug.split("_").filter(Boolean).map((w) => (w === "ai" ? "AI" : w));
   const text = words.join(" ");
