@@ -261,22 +261,23 @@ function ExampleTile({ e, cover, linked }: { e: PlayExample; cover: string | und
           )}
         </div>
       )}
-      <div className="flex items-start gap-1 p-1.5">
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="truncate text-[11px] font-medium">@{e.handle}</p>
-          <p className="text-[11px] tabular-nums text-muted-foreground">{times(e.ratio)} usual</p>
-        </div>
-        {open && (
-          <a
-            href={open}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open @${e.handle}'s post on ${e.platform === "tiktok" ? "TikTok" : "Instagram"}`}
-            className="-m-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
+      <div className="space-y-0.5 p-1.5">
+        <p className="truncate text-[11px] font-medium">@{e.handle}</p>
+        <p className="flex items-center justify-between gap-1 text-[11px] tabular-nums text-muted-foreground">
+          {times(e.ratio)} usual
+          {open && (
+            // the handle keeps the tile's width; the way out sits beside the multiple, its touch target reaching past the row
+            <a
+              href={open}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open @${e.handle}'s post on ${e.platform === "tiktok" ? "TikTok" : "Instagram"}`}
+              className="-my-1 -mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:text-primary [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </p>
       </div>
     </li>
   );
