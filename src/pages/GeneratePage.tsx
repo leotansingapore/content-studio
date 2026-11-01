@@ -1288,14 +1288,19 @@ export default function GeneratePage() {
       .select("slides, format, niche, hook, hook_text, structure, summary, slide_text")
       .eq("id", id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (!live) return;
         // one write: a second setSearchParams in the same tick would undo the first (React Router 6.30)
         setSearchParams((prev) => {
           const p = withParam(prev, "working", null);
           return data ? withParam(p, "step", WRITE_STEPS[IDEA_STEP], "topic") : p;
         }, { replace: true });
-        if (!data) return;
+        if (!data)
+          return void toast(
+            error
+              ? { title: "Couldn't load that slideshow", description: "Check your connection and open it from What's working again.", variant: "destructive" }
+              : { title: "That slideshow is no longer in What's working" },
+          );
         const row = data as Parameters<typeof formatLines>[0] & { slide_text: string[] | null };
         const slides = (row.slide_text ?? []).map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 10);
         setFormat("carousel");
