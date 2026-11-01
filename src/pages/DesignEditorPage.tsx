@@ -114,10 +114,10 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const [phone, setPhone] = useState<{ url: string; expiresAt: string; qr?: string } | null>(null);
   const [typing, setTyping] = useState<string | null>(null);
   const fonts = useMemo(() => loadBrandFonts(userId), [userId]);
-  const [palette, setPalette] = useState(() => loadPalette(userId));
+  const [palette, setPalette] = useState(() => loadPalette(userId, fonts.map((f) => f.family)));
   const [tour, setTour] = useState(() => !pageTourDone(userId, "design-editor"));
   const [swatch, setSwatch] = useState("#ffd21f");
-  const editPalette = (p: Partial<typeof palette>) => setPalette(savePalette(userId, { ...palette, ...p }));
+  const editPalette = (p: Partial<typeof palette>) => setPalette(savePalette(userId, { ...palette, ...p }, fonts.map((f) => f.family)));
   const abort = useRef<AbortController | null>(null);
   const brand = useMemo(() => loadBrand(userId), [userId]);
 
@@ -572,9 +572,20 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
                     {k === "heading" ? "Headings" : "Body text"}
                     <select value={palette[k] ?? ""} onChange={(e) => editPalette({ [k]: e.target.value || null })} className="h-8 rounded-md border border-input bg-background px-1 text-sm text-foreground">
                       <option value="">Inter (default)</option>
-                      {FONT_NAMES.map((f) => (
-                        <option key={f}>{f}</option>
-                      ))}
+                      {fonts.length > 0 && (
+                        <optgroup label="Your fonts">
+                          {fonts.map((f) => (
+                            <option key={f.family} value={f.family}>
+                              {f.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Built in">
+                        {FONT_NAMES.map((f) => (
+                          <option key={f}>{f}</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </label>
                 ))}

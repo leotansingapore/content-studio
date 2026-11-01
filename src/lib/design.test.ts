@@ -207,4 +207,12 @@ describe("palette", () => {
     expect(p.body).toBeNull();
     expect(sanitizePalette(null)).toEqual({ colors: [], heading: null, body: null });
   });
+
+  it("takes an uploaded font's family only when the brand has that font, never any other name", async () => {
+    const { sanitizePalette } = await import("@/lib/design");
+    expect(sanitizePalette({ heading: "BrandFont2", body: "Lora" }, ["BrandFont", "BrandFont2"])).toMatchObject({ heading: "BrandFont2", body: "Lora" });
+    // removed or never uploaded: dropped, as is any other string
+    expect(sanitizePalette({ heading: "BrandFont3", body: "Comic Sans" }, ["BrandFont", "BrandFont2"])).toMatchObject({ heading: null, body: null });
+    expect(sanitizePalette({ heading: "BrandFont" })).toMatchObject({ heading: null });
+  });
 });

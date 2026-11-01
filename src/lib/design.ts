@@ -56,6 +56,7 @@ export function saveDesign(userId: string, d: Design, now = new Date()): Design[
 export const removeDesign = (userId: string, id: string) => write(PREFIX + scoped(userId), loadDesigns(userId).filter((x) => x.id !== id));
 
 // ---- the palette (Volume's brand kit): up to 16 colours, a heading and a body font, synced per brand ----
+// The fonts are built-in ones or the families of the brand's uploaded fonts (brandFont.ts), passed in as `uploaded`.
 export interface Palette {
   colors: string[];
   heading: string | null;
@@ -63,21 +64,21 @@ export interface Palette {
 }
 export const MAX_PALETTE = 16;
 const PALETTE_PREFIX = "content-studio-design-palette-";
-export function sanitizePalette(raw: unknown): Palette {
+export function sanitizePalette(raw: unknown, uploaded: string[] = []): Palette {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const colors = (Array.isArray(r.colors) ? r.colors : []).filter((c): c is string => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).map((c) => c.toLowerCase());
-  const font = (f: unknown) => (typeof f === "string" && FONT_NAMES.includes(f) ? f : null);
+  const font = (f: unknown) => (typeof f === "string" && (FONT_NAMES.includes(f) || uploaded.includes(f)) ? f : null);
   return { colors: [...new Set(colors)].slice(0, MAX_PALETTE), heading: font(r.heading), body: font(r.body) };
 }
-export function loadPalette(userId: string): Palette {
+export function loadPalette(userId: string, uploaded: string[] = []): Palette {
   try {
-    return sanitizePalette(JSON.parse(storage()?.getItem(PALETTE_PREFIX + scoped(userId)) ?? "{}"));
+    return sanitizePalette(JSON.parse(storage()?.getItem(PALETTE_PREFIX + scoped(userId)) ?? "{}"), uploaded);
   } catch {
     return sanitizePalette({});
   }
 }
-export function savePalette(userId: string, p: Palette): Palette {
-  const clean = sanitizePalette(p);
+export function savePalette(userId: string, p: Palette, uploaded: string[] = []): Palette {
+  const clean = sanitizePalette(p, uploaded);
   try {
     storage()?.setItem(PALETTE_PREFIX + scoped(userId), JSON.stringify(clean));
   } catch {
