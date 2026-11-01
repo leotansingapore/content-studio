@@ -38,7 +38,7 @@ He set a monthly cap of US$40 for the whole feature, and keeps naming accounts h
 
 ## Build
 
-A tab "Apps like yours" on `/swipe` (`?tab=similar`) for brands that aren't an adviser's, Leo's sign-ins only, and the default tab there. Adviser brands keep Top posts as they are.
+A tab "Apps like yours" on `/swipe` (`?tab=similar`) for brands that aren't an adviser's, Leo's sign-ins only, and the default tab there. Adviser brands keep Top posts as they are. On a brand that isn't an adviser's, Leo's page heading and browser title name the open tab, and his Radar tab reads Apps like yours (it said News, which is also one of the page's tabs); everyone else's page keeps News or Top posts.
 
 ### Screens and states
 
@@ -148,7 +148,7 @@ Prices (`_shared/prices.ts`, Free-plan Apify rates, the dearest):
 - `competitors/logic.test.ts`: candidates from the Tiimo profile and from TikTok results (both real), dedupe and exclude, the follower and private filters, Jev null handling and the 0.6 cut, posts scope routing, the month guard at, under and over US$40, rival handles joining the seeds after the request's (12 a platform at most), and a rival's account marked `rival: <name>` and `app_or_brand` whatever Jev's kind.
 - `competitors/index.test.ts`: the similar mode end to end with every provider faked (counters, the two Instagram reads, one TikTok run per search, judged once each, excluded and added accounts never judged, refunds when Apify or Jev never answers), the month guard refusing before any counter, and similar posts on their own caps with 10 posts on a refresh. The rivals step: no seeds runs it, 3 seeds don't, an invented site and the brand's own are never read, a home page with no profile links adds nothing, and a host that never resolves or an OpenAI call that never answers stops at the step's limits.
 - `src/lib/similarAccounts.test.ts`: the key, the 40-found cap, the size of 40 accounts of 30 posts, the merge of a weekly read by post id, 30 then 10, due after 7 days, the filters, each added-account rule, Not this one, and a find's note and refusal.
-- `src/pages/adviserScreens.test.ts`: Leo's non-adviser brand opens on Apps like yours; an adviser's never shows it.
+- `src/pages/adviserScreens.test.ts`: Leo's non-adviser brand opens on Apps like yours, headed by the open tab, while everyone else's heading stays; an adviser's never shows it. `src/lib/adviserBrand.test.ts`: Leo's Radar tab for /swipe reads Apps like yours there and Top posts on an adviser's brand.
 
 ## Open questions
 

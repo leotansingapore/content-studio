@@ -195,7 +195,6 @@ export default function SwipeFilePage() {
   );
 
   useEffect(() => {
-    document.title = adviser ? "Top posts - Postmosis" : "News - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
@@ -206,7 +205,6 @@ export default function SwipeFilePage() {
     });
     return () => {
       active = false;
-      document.title = "Postmosis";
     };
   }, []);
 
@@ -270,13 +268,22 @@ export default function SwipeFilePage() {
     ...(adsTab && (adviser || leo) ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
     ...(leo ? [{ id: "search" as const, label: "Search", n: null }, { id: "hooks" as const, label: "Hooks", n: null }] : []),
   ];
+  // another brand's page is whichever tab is open (Leo's open on Apps like yours; everyone else has News alone)
+  const heading = adviser ? "Top posts to swipe" : tabs.find((t) => t.id === tab)?.label ?? "News";
+  const title = adviser ? "Top posts" : heading;
+  useEffect(() => {
+    document.title = `${title} - Postmosis`;
+    return () => {
+      document.title = "Postmosis";
+    };
+  }, [title]);
 
   return (
     <div className="space-y-5">
       <header className="space-y-1.5">
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <TrendingUp className="h-6 w-6 text-primary" />
-          {adviser ? "Top posts to swipe" : "News"}
+          {heading}
         </h1>
         {adviser && <p className="max-w-2xl text-sm text-muted-foreground">
           Real high-performing posts from {ADVISOR_COUNT} SG finance creators.

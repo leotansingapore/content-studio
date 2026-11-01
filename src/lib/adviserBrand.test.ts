@@ -77,4 +77,12 @@ describe("the Singapore personal-finance libraries", () => {
     expect(studioTour("u1").map((s) => s.path)).toEqual(["/home", "/generate", "/calendar", "/brand", "/analytics"]);
     expect(nextAction(ideasWeakest).mission?.to).toBe("/plan");
   });
+
+  it("name /swipe after what opens on Leo's sign-ins: Apps like yours on another brand, Top posts on an adviser's", () => {
+    const leo = () => visiblePages(section("find").pages, "tanjunsing@gmail.com").filter((p) => ["/swipe", "/clone"].includes(p.to)).map((p) => p.label);
+    brandDevice("u1", "Coach");
+    expect(leo()).toEqual(["Apps like yours", "Remix a post"]);
+    brandDevice("u1", "Financial adviser");
+    expect(leo()).toEqual(["Top posts", "Remix a post"]);
+  });
 });

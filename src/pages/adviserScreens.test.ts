@@ -252,6 +252,22 @@ describe("Top posts, the Singapore ads and Trends", () => {
     expect(draw(createElement(SwipeFilePage), "/swipe?tab=similar")).toMatch(/aria-selected="true"[^>]*>Apps like yours/);
   });
 
+  it("head another brand's page with the open tab on Leo's sign-ins, and keep everyone else's heading", () => {
+    const h1 = (html: string) => html.match(/<h1[^>]*>[\s\S]*?([^<>]*)<\/h1>/)?.[1];
+    as.user = { id: "u1", email: "tanjunsing@gmail.com" };
+    device(COACH);
+    expect(h1(draw(createElement(SwipeFilePage), "/swipe"))).toBe("Apps like yours");
+    expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=news"))).toBe("News");
+    expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=foryou"))).toBe("For you");
+    device(ADVISER);
+    expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=similar"))).toBe("Top posts to swipe");
+    as.user = null;
+    for (const [brand, path, heading] of [[COACH, "/swipe", "News"], [COACH, "/swipe?tab=ads", "News"], [ADVISER, "/swipe", "Top posts to swipe"], [ADVISER, "/swipe?tab=news", "Top posts to swipe"]]) {
+      device(brand);
+      expect(h1(draw(createElement(SwipeFilePage), path)), `${brand} ${path}`).toBe(heading);
+    }
+  });
+
   it("never show Apps like yours to anyone else, on any brand", () => {
     for (const brand of [ADVISER, COACH]) {
       device(brand);

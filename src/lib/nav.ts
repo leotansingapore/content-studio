@@ -59,6 +59,8 @@ export type NavPage = {
   leoLabel?: string;
   /** Its label on a brand that isn't an adviser's, where the page keeps only what isn't for advisers (/swipe is News). */
   anyLabel?: string;
+  /** Its label on Leo's sign-ins on a brand that isn't an adviser's, where it opens on a tool of his (/swipe on Apps like yours). */
+  leoAnyLabel?: string;
   /** Shown only while this says so (what this device remembers: an answer from the server, the open brand). */
   show?: () => boolean;
   /** Browser tab title when it should differ from the label. */
@@ -157,7 +159,7 @@ export const SECTIONS: NavSection[] = [
     to: "/swipe",
     pages: [
       // Top posts, the Singapore ads and the trend kits are Singapore personal finance: an adviser brand's only
-      { to: "/swipe", label: "Top posts", anyLabel: "News", icon: TrendingUp },
+      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Apps like yours", icon: TrendingUp },
       // the carousel library (Top Carousels' outliers, every niche): for every brand
       { to: "/carousels", label: "Carousels", icon: GalleryHorizontalEnd },
       // TikTok slideshows that beat their creator's usual views (Volume's library, every niche): for every brand
@@ -262,7 +264,10 @@ export const pathMatches = (pathname: string, to: string, end = false) =>
 export const visiblePages = (pages: NavPage[], email: string) =>
   pages
     .filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()))
-    .map((p) => (p.leoLabel && leoOnly(email) ? { ...p, label: p.leoLabel } : p.anyLabel && !adviserBrand() ? { ...p, label: p.anyLabel } : p));
+    .map((p) =>
+      p.leoAnyLabel && leoOnly(email) && !adviserBrand() ? { ...p, label: p.leoAnyLabel }
+      : p.leoLabel && leoOnly(email) ? { ...p, label: p.leoLabel }
+      : p.anyLabel && !adviserBrand() ? { ...p, label: p.anyLabel } : p);
 
 /** Each page carries the group (tab) it sits under, so a group survives its first page being hidden. */
 export function groupedPages(pages: NavPage[]): NavPage[] {
