@@ -9,7 +9,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { pool } from "../_shared/pool.ts";
-import { PEXELS_SRC, nextRunAt, ownUpload, publishMode, sanitizePublish, sanitizeSchedule, sanitizeSpec, type Publish } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, nextRunAt, ownUpload, publishTikTok, sanitizePublish, sanitizeSchedule, sanitizeSpec, type Publish } from "../_shared/slideCampaign.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { callerAccounts, zernioClient } from "../_shared/zernio.ts";
 import { isAllowed } from "../social/logic.ts";
@@ -94,10 +94,13 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
         publish: sanitizePublish(c.publish, was?.publish, now),
         updated_at: now.toISOString(),
       };
+      const pub = row.publish as Publish;
+      // TikTok refuses branded content only the owner can see (docs.zernio.com/platforms/tiktok/posts.mdx)
+      if (pub.commercial === "brand_content" && pub.privacy === "SELF_ONLY") return json({ error: "A paid partnership can't be set to Only me." }, 400);
       if (was) {
-        // straight to the profile turned off, or the mode changed: what Zernio holds for later was sent the old way
-        const pub = row.publish as Publish;
-        if (publishMode(was.publish) !== pub.mode || ((was.publish as Partial<Publish> | null)?.consent_at && !pub.consent_at)) {
+        // straight to the profile turned off, or the mode or its TikTok settings changed: what Zernio holds for later
+        // was sent the old way
+        if (JSON.stringify(publishTikTok(was.publish)) !== JSON.stringify(publishTikTok(pub)) || ((was.publish as Partial<Publish> | null)?.consent_at && !pub.consent_at)) {
           const stuck = await stopHandedPosts(admin, was, "Cancelled: the campaign's posting settings changed.");
           if (stuck) return json({ error: stuck }, 502);
         }

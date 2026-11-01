@@ -196,6 +196,22 @@ describe("what each platform takes", () => {
     expect(data(postBody(input({ tiktok: { ...tiktok, autoAddMusic: false } }), [{ _id: TT, platform: "tiktok" }], NOW))).not.toHaveProperty("autoAddMusic");
   });
 
+  it("discloses a direct TikTok post's commercial content when asked, never on a draft or with anything else sent", () => {
+    const tiktok = { privacyLevel: "FOLLOWER_OF_CREATOR", allowComment: false, allowDuet: false, allowStitch: false };
+    const data = (b: Record<string, unknown>) => (b.platforms as { platformSpecificData: Record<string, unknown> }[])[0].platformSpecificData;
+    const sched = (extra: Record<string, unknown>) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: LATER, tiktok: { ...tiktok, ...extra } }, NOW) as { value: ScheduleInput };
+    for (const type of ["brand_organic", "brand_content"] as const) {
+      const r = sched({ commercialContentType: type });
+      expect(r.value.tiktok).toEqual({ ...tiktok, commercialContentType: type });
+      expect(data(postBody(r.value, [{ _id: TT, platform: "tiktok" }], NOW))).toMatchObject({ privacyLevel: "FOLLOWER_OF_CREATOR", allowComment: false, commercialContentType: type });
+      expect(data(postBody(sched({ commercialContentType: type, mode: "inbox" }).value, [{ _id: TT, platform: "tiktok" }], NOW)).tiktokSettings).not.toHaveProperty("commercialContentType");
+    }
+    for (const type of ["none", "BRAND_CONTENT", true, undefined]) {
+      expect(sched({ commercialContentType: type }).value.tiktok, String(type)).toEqual(tiktok);
+      expect(data(postBody(sched({ commercialContentType: type }).value, [{ _id: TT, platform: "tiktok" }], NOW))).not.toHaveProperty("commercialContentType");
+    }
+  });
+
   it("sends the post's own time zone to Zernio, Singapore when it has none", () => {
     expect(postBody(input({ scheduledFor: "2026-11-02T09:00:00-05:00", timezone: "America/New_York" }), [{ _id: LI, platform: "linkedin" }], NOW)).toMatchObject({ scheduledFor: "2026-11-02T09:00:00-05:00", timezone: "America/New_York" });
     expect(postBody(input({}), [{ _id: LI, platform: "linkedin" }], NOW)).toMatchObject({ timezone: "Asia/Singapore" });

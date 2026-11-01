@@ -350,11 +350,36 @@ Deno.test("Send to TikTok now: straight to the profile once the owner consents, 
   const p = posts.at(-1) as { content: string; platforms: { platformSpecificData: Row }[] };
   assertEquals(p.platforms[0].platformSpecificData.tiktokSettings, undefined, "not a draft");
   assertEquals(p.platforms[0].platformSpecificData.expressConsentGiven, true);
+  // no settings picked: what every post went out with before there were any
+  assertEquals([p.platforms[0].platformSpecificData.privacyLevel, p.platforms[0].platformSpecificData.allowComment, "commercialContentType" in p.platforms[0].platformSpecificData], ["PUBLIC_TO_EVERYONE", true, false]);
   assertEquals(p.content, "Edited caption #golf");
   assertEquals((await call("jwt-a", { action: "send", id, run_id: pre.body.run.id })).body.error, "That one's already sent.");
   // unticking consent goes back to drafts
   const back = await call("jwt-a", { action: "save", campaign: { id, name: "Now", spec: made.body.campaign.spec, schedule: made.body.campaign.schedule, publish: { mode: "direct", consent: false } } });
-  assertEquals(back.body.campaign.publish, { mode: "inbox", consent_at: null, music: false });
+  assertEquals(back.body.campaign.publish, { mode: "inbox", consent_at: null, music: false, privacy: "PUBLIC_TO_EVERYONE", comments: true, commercial: "none" });
+});
+
+Deno.test("who sees it, comments and disclosure reach TikTok on a post straight to the profile, never on a draft", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  const settings = { privacy: "FOLLOWER_OF_CREATOR", comments: false, commercial: "brand_organic" };
+  const sendNow = async (publish: Row) => {
+    const made = await call("jwt-a", { action: "save", campaign: { profile_id: "me", name: "Settings", spec: { hooks: ["Settings hook"], content: { slides: 1 }, cta: { placement: "none" } }, schedule: { tz: "Asia/Singapore", times: [] }, publish } });
+    assertEquals(made.status, 200, JSON.stringify(made.body));
+    const id = made.body.campaign.id;
+    assertEquals((await call("jwt-a", { action: "account", id, account_id: ACCOUNT })).status, 200);
+    const pre = await call("jwt-a", { action: "preview", id });
+    assertEquals((await call("jwt-a", { action: "send", id, run_id: pre.body.run.id })).body, { sent: true });
+    // the owner keeps up to 20 campaigns, and later tests make theirs
+    assertEquals((await call("jwt-a", { action: "delete", id })).status, 200);
+    return (posts.at(-1) as { platforms: { platformSpecificData: Row }[] }).platforms[0].platformSpecificData;
+  };
+  const direct = await sendNow({ mode: "direct", consent: true, ...settings });
+  assertEquals([direct.privacyLevel, direct.allowComment, direct.commercialContentType, direct.tiktokSettings], ["FOLLOWER_OF_CREATOR", false, "brand_organic", undefined]);
+  const draft = (await sendNow({ mode: "inbox", ...settings })).tiktokSettings as Row;
+  assertEquals([draft.draft, draft.privacyLevel, draft.allowComment, "commercialContentType" in draft], [true, "PUBLIC_TO_EVERYONE", true, false], "drafts keep TikTok's own editor");
+  // TikTok refuses a paid partnership only the owner can see
+  const bad = await call("jwt-a", { action: "save", campaign: { profile_id: "me", name: "Bad", spec: {}, schedule: {}, publish: { mode: "direct", consent: true, privacy: "SELF_ONLY", commercial: "brand_content" } } });
+  assertEquals([bad.status, bad.body.error], [400, "A paid partnership can't be set to Only me."]);
 });
 
 Deno.test("Send to phone: links for a day, read without signing in, swept by the next one, 30 a day", async () => {
@@ -588,6 +613,15 @@ Deno.test("a post handed to Zernio for later is taken back by a pause, a delete,
   const k = await handed({ mode: "direct", consent_at: new Date().toISOString(), music: false });
   assertEquals((await call("jwt-a", { action: "save", campaign: { id: k.id, name: "Handed", spec, schedule, publish: { mode: "direct", consent: false } } })).status, 200);
   cancelled(k, "Cancelled: the campaign's posting settings changed.");
+
+  // straight to the profile, then who can see it changed: the post Zernio holds was sent with the old setting
+  const w = await handed({ mode: "direct", consent_at: new Date().toISOString(), music: false });
+  const kept = cancels.length;
+  assertEquals((await call("jwt-a", { action: "save", campaign: { id: w.id, name: "Handed", spec, schedule, publish: { mode: "direct", consent: true, privacy: "PUBLIC_TO_EVERYONE", comments: true, commercial: "none" } } })).status, 200);
+  assertEquals(cancels.length, kept, "the same settings as before leave it alone");
+  assertEquals((await call("jwt-a", { action: "save", campaign: { id: w.id, name: "Handed", spec, schedule, publish: { mode: "direct", consent: true, privacy: "SELF_ONLY" } } })).status, 200);
+  cancelled(w, "Cancelled: the campaign's posting settings changed.");
+  assertEquals((await call("jwt-a", { action: "delete", id: w.id })).status, 200, "room for the next tests' campaigns");
 });
 
 Deno.test("the tick sweeps old example runs and their files", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { domainsIn, memoryBlock, nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, withSources, writerPrompt } from "./slideCampaign.ts";
+import { domainsIn, memoryBlock, nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, publishSettings, publishTikTok, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, withSources, writerPrompt } from "./slideCampaign.ts";
 import { DEFAULT_STYLE, lookFilterSvg, overlayCss } from "./slideStyle.ts";
 import { FACTS_LEAD, KEEP_LEAD, MEMORY_HEADER } from "../../../src/lib/voiceMemory";
 
@@ -25,18 +25,34 @@ describe("slideshow campaigns", () => {
 
   it("publishing: drafts unless the owner consents to straight to the profile, and the consent time is kept", () => {
     const now = new Date("2026-11-01T03:00:00Z");
-    expect(sanitizePublish({}, null, now)).toEqual({ mode: "inbox", consent_at: null, music: false });
-    expect(sanitizePublish({ mode: "direct" }, null, now)).toEqual({ mode: "inbox", consent_at: null, music: false });
+    const usual = { privacy: "PUBLIC_TO_EVERYONE", comments: true, commercial: "none" };
+    expect(sanitizePublish({}, null, now)).toEqual({ mode: "inbox", consent_at: null, music: false, ...usual });
+    expect(sanitizePublish({ mode: "direct" }, null, now)).toEqual({ mode: "inbox", consent_at: null, music: false, ...usual });
     expect(sanitizePublish({ mode: "direct", consent_at: "2020-01-01T00:00:00Z" }, null, now).mode).toBe("inbox");
     const first = sanitizePublish({ mode: "direct", consent: true }, null, now);
-    expect(first).toEqual({ mode: "direct", consent_at: "2026-11-01T03:00:00.000Z", music: false });
+    expect(first).toEqual({ mode: "direct", consent_at: "2026-11-01T03:00:00.000Z", music: false, ...usual });
     expect(sanitizePublish({ mode: "direct", consent: true }, first, new Date("2026-11-05T00:00:00Z")).consent_at).toBe(first.consent_at);
-    expect(sanitizePublish({ mode: "direct", consent: false }, first, now)).toEqual({ mode: "inbox", consent_at: null, music: false });
+    expect(sanitizePublish({ mode: "direct", consent: false }, first, now)).toEqual({ mode: "inbox", consent_at: null, music: false, ...usual });
     expect(publishMusic(sanitizePublish({ mode: "direct", consent: true, music: true }, null, now))).toBe(true);
     expect(publishMusic(sanitizePublish({ mode: "inbox", consent: true, music: true }, null, now))).toBe(false);
     expect(publishMode(first)).toBe("direct");
     expect(publishMode({ mode: "direct", consent_at: null })).toBe("inbox");
     expect(publishMode(null)).toBe("inbox");
+  });
+
+  it("publishing: who sees it, comments and disclosure are kept, odd values fall back, old rows read as before", () => {
+    const now = new Date("2026-11-01T03:00:00Z");
+    const set = sanitizePublish({ mode: "direct", consent: true, privacy: "FOLLOWER_OF_CREATOR", comments: false, commercial: "brand_content" }, null, now);
+    expect(publishSettings(set)).toEqual({ privacy: "FOLLOWER_OF_CREATOR", comments: false, commercial: "brand_content" });
+    expect(publishTikTok(set)).toEqual({ privacyLevel: "FOLLOWER_OF_CREATOR", allowComment: false, commercialContentType: "brand_content" });
+    expect(publishTikTok({ ...set, commercial: "brand_organic" })?.commercialContentType).toBe("brand_organic");
+    expect(publishSettings({ privacy: "EVERYONE", comments: "no", commercial: "ad" })).toEqual({ privacy: "PUBLIC_TO_EVERYONE", comments: true, commercial: "none" });
+    // a row from before these settings: what every post went out with, and no disclosure field at all
+    const old = { mode: "direct", consent_at: "2026-10-31T00:00:00Z", music: true };
+    expect(publishTikTok(old)).toEqual({ privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true });
+    // drafts carry none: TikTok's editor sets them
+    expect(publishTikTok({ ...set, mode: "inbox" })).toBeNull();
+    expect(publishTikTok({ ...set, consent_at: null })).toBeNull();
   });
 
   it("text style: older top/bottom and sizes become y and px; numbers are clamped", () => {

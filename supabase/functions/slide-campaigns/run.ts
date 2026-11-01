@@ -5,7 +5,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { dfs, dfsAuth, SINGAPORE } from "../_shared/dataforseo.ts";
-import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, memoryBlock, publishMode, publishMusic, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, withSources, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, memoryBlock, publishMode, publishMusic, publishTikTok, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, withSources, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
 import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
 import { PhotoError, type SlideInput } from "../_shared/slideDraw.ts";
 import { zernioClient } from "../_shared/zernio.ts";
@@ -207,14 +207,15 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
     mediaUrls: urls,
     ...(at ? { scheduledFor: at.toISOString().replace(/\.\d{3}Z$/, "Z") } : { now: true }),
     timezone: tz,
-    // a draft: the person finishes and posts it in the TikTok app, where they can change who sees it; direct posts it
-    tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode, ...(mode === "direct" && publishMusic(c.publish) ? { autoAddMusic: true } : {}) },
+    // a draft: the person finishes and posts it in the TikTok app, where they set who sees it, comments and disclosure;
+    // direct posts it with the owner's own settings
+    tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode, ...(mode === "direct" ? publishTikTok(c.publish) : {}), ...(mode === "direct" && publishMusic(c.publish) ? { autoAddMusic: true } : {}) },
   });
   if ("error" in input) return fail(input.error);
   if (at) {
     // the tick made this post: a pause, delete or change made while it was being made stops it here, before TikTok has it
     const { data: now } = await admin.from("cs_slide_campaigns").select("status, account_id, publish").eq("id", c.id).maybeSingle();
-    if (!now || now.status !== "live" || now.account_id !== c.account_id || publishMode(now.publish) !== publishMode(c.publish)) {
+    if (!now || now.status !== "live" || now.account_id !== c.account_id || JSON.stringify(publishTikTok(now.publish)) !== JSON.stringify(publishTikTok(c.publish))) {
       return fail("Cancelled: the campaign changed while this post was being made.");
     }
   }

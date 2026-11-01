@@ -90,6 +90,8 @@ export interface TikTokInput {
   mode?: "inbox" | "direct";
   /** TikTok adds a recommended sound (photo posts only; Zernio's auto_add_music). */
   autoAddMusic?: boolean;
+  /** A direct post's commercial disclosure: the creator's own business, or a paid partnership. Absent: nothing to disclose. */
+  commercialContentType?: "brand_organic" | "brand_content";
 }
 
 export interface YouTubeInput {
@@ -230,7 +232,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   if (b.tiktok && typeof b.tiktok === "object") {
     const t = b.tiktok as Record<string, unknown>;
     if (typeof t.privacyLevel !== "string" || !PRIVACY.test(t.privacyLevel)) return refuse("Pick who can see it on TikTok.");
-    tiktok = { privacyLevel: t.privacyLevel, allowComment: t.allowComment === true, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true, ...(t.mode === "inbox" ? { mode: "inbox" as const } : {}), ...(t.autoAddMusic === true ? { autoAddMusic: true } : {}) };
+    tiktok = { privacyLevel: t.privacyLevel, allowComment: t.allowComment === true, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true, ...(t.mode === "inbox" ? { mode: "inbox" as const } : {}), ...(t.autoAddMusic === true ? { autoAddMusic: true } : {}), ...(t.commercialContentType === "brand_organic" || t.commercialContentType === "brand_content" ? { commercialContentType: t.commercialContentType } : {}) };
   }
   let youtube: YouTubeInput | null = null;
   if (b.youtube && typeof b.youtube === "object") {
@@ -332,6 +334,8 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
     // a photo post's content becomes a 90-character title; the full caption goes in description
     else t.description = captionFor(input, platform);
     if (!video && input.tiktok.autoAddMusic) t.autoAddMusic = true;
+    // a draft's disclosure is set in TikTok's editor
+    if (!inbox && input.tiktok.commercialContentType) t.commercialContentType = input.tiktok.commercialContentType;
     // direct stays flat, the shape that published live on 17 Oct; a draft goes where Zernio's TikTok pages put it
     if (inbox) data.tiktokSettings = { draft: true, ...t };
     else Object.assign(data, t);

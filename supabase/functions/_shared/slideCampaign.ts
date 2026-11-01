@@ -36,7 +36,15 @@ export interface Publish {
   consent_at: string | null;
   /** TikTok adds a recommended sound to posts that go straight to the profile (drafts: the person picks one). */
   music: boolean;
+  /** Who sees a post that goes straight to the profile, whether it takes comments, and what it discloses: nothing,
+   *  the owner's own business (brand_organic) or a paid partnership with a brand. Drafts set these in TikTok's editor. */
+  privacy: (typeof PRIVACY_LEVELS)[number];
+  comments: boolean;
+  commercial: (typeof COMMERCIAL)[number];
 }
+/** Zernio's TikTok privacy_level and commercialContentType values (docs.zernio.com/platforms/tiktok/fields.mdx). */
+export const PRIVACY_LEVELS = ["PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY"] as const;
+export const COMMERCIAL = ["none", "brand_organic", "brand_content"] as const;
 
 export const MAX_HOOKS = 30;
 export const MAX_SLIDES = 10;
@@ -99,11 +107,24 @@ export function sanitizePublish(raw: unknown, was: unknown = null, now = new Dat
   const r = obj(raw) ? raw : {};
   const before = obj(was) && typeof was.consent_at === "string" && !Number.isNaN(Date.parse(was.consent_at)) ? was.consent_at : null;
   const consent_at = r.consent === true ? (before ?? now.toISOString()) : null;
-  return { mode: r.mode === "direct" && consent_at ? "direct" : "inbox", consent_at, music: r.music === true };
+  return { mode: r.mode === "direct" && consent_at ? "direct" : "inbox", consent_at, music: r.music === true, ...publishSettings(r) };
+}
+/** Who sees it, comments and disclosure, as sent or stored; rows from before they were kept read as what every post
+ *  went out with then: everyone, comments on, nothing to disclose. */
+export function publishSettings(stored: unknown): Pick<Publish, "privacy" | "comments" | "commercial"> {
+  const r = obj(stored) ? stored : {};
+  return { privacy: pick(r.privacy, PRIVACY_LEVELS, "PUBLIC_TO_EVERYONE"), comments: r.comments !== false, commercial: pick(r.commercial, COMMERCIAL, "none") };
 }
 /** A stored campaign's mode (rows are only written through sanitizePublish): direct needs its consent time. */
 export const publishMusic = (stored: unknown): boolean => publishMode(stored) === "direct" && obj(stored) && stored.music === true;
 export const publishMode = (stored: unknown): Publish["mode"] => (obj(stored) && stored.mode === "direct" && typeof stored.consent_at === "string" ? "direct" : "inbox");
+/** The TikTok fields a stored campaign's posts carry to Zernio (posts.ts TikTokInput): the owner's settings when they
+ *  go straight to the profile, null for drafts. A change to it is a change to what Zernio was handed. */
+export function publishTikTok(stored: unknown): { privacyLevel: Publish["privacy"]; allowComment: boolean; commercialContentType?: "brand_organic" | "brand_content" } | null {
+  if (publishMode(stored) !== "direct") return null;
+  const s = publishSettings(stored);
+  return { privacyLevel: s.privacy, allowComment: s.comments, ...(s.commercial === "none" ? {} : { commercialContentType: s.commercial }) };
+}
 
 /** An upload in a library: the owner's folder, a fresh id, a picture ending. Nothing else is read or deleted. */
 export const ownUpload = (uid: string, src: string) => new RegExp(`^${uid}/lib/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(src);
