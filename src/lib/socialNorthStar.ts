@@ -14,7 +14,7 @@ import type { FollowPlatform, TrackedPost } from "@/lib/following";
 import { scoped } from "@/lib/profiles";
 import {
   accountKey, autoFindDue, bestPostIds, loadMedia, loadSimilar, mergePosts, onSimilar, type PostMedia, rememberMedia, runDueSimilar, runFind, similarBusy,
-  similarKey, type SimilarState,
+  type SimilarEntry, similarKey, type SimilarState,
 } from "@/lib/similarAccounts";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { byOutlier, type Outlier, scoreAccount } from "../../supabase/functions/_shared/outlier.ts";
@@ -139,7 +139,7 @@ function playPost(platform: FollowPlatform, handle: string, kind: PlayPost["kind
  */
 export function topRefs(s: SimilarState, media: Record<string, Record<string, PostMedia>>, labels: Record<string, PostLabel>, now = Date.now()): RefPost[] {
   const out: { ref: RefPost; o: Outlier }[] = [];
-  for (const e of s.accounts) {
+  for (const e of s.accounts.filter(isAppRef)) {
     const key = accountKey(e);
     const a = s.posts[key];
     if (!a) continue;
@@ -161,8 +161,14 @@ export function ownPosts(ns: SocialNs, media: Record<string, Record<string, Post
     o.posts.filter((p) => inMonth(p, now)).map((p) => playPost(o.platform, o.handle, null, p, media[accountKey(o)]?.[p.id], ns.labels[`${o.platform}:${p.id}`], 0)));
 }
 
-/** Accounts on the list whose posts have been read. */
-export const readCount = (s: SimilarState) => s.accounts.filter((e) => s.posts[accountKey(e)]?.checkedAt).length;
+/**
+ * The plays come from apps and brands, and from any account the user added. Creators the find turned up (property agents,
+ * sales coaches) post about their own job, not about marketing an app (Leo, 2 Nov: "I am marketing an app").
+ */
+export const isAppRef = (e: Pick<SimilarEntry, "kind" | "via">) => e.via === "added" || e.kind !== "creator";
+
+/** Reference accounts (isAppRef) whose posts have been read. */
+export const readCount = (s: SimilarState) => s.accounts.filter((e) => isAppRef(e) && s.posts[accountKey(e)]?.checkedAt).length;
 
 /** The weeks each account's stored posts span (1 at least), for how often it posts. */
 export function weeksOf(s: SimilarState): Record<string, number> {
@@ -259,7 +265,8 @@ export function buildDue(ns: SocialNs, o: { read: number; ownUnlabelled: number;
   if (o.busy || o.read < PLAY_MIN_ACCOUNTS) return false;
   if (ns.triedAt && now - Date.parse(ns.triedAt) < HOUR) return false;
   if (!ns.builtAt || !(now - Date.parse(ns.builtAt) < WEEK)) return true;
-  return o.read > ns.basis || o.ownUnlabelled > 0 || ns.plays.some((p) => !p.recipe);
+  // a different count rebuilds: more read, or fewer once an account is removed or stops counting as a reference
+  return o.read !== ns.basis || o.ownUnlabelled > 0 || ns.plays.some((p) => !p.recipe);
 }
 
 /** The brand's first Apps like yours find starts here too, by the same rule as on /swipe, when uses are left. */

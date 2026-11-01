@@ -52,7 +52,11 @@ describe("social north star: what a build sends", () => {
     for (const r of refs) byAccount.set(r.handle, (byAccount.get(r.handle) ?? 0) + 1);
     expect(Math.max(...byAccount.values())).toBeLessThanOrEqual(8);
     expect(refs.find((r) => r.key === "instagram:DdTFZP7iKoS")?.label).toEqual(label("tips-carousel"));
-    expect(refs.find((r) => r.platform === "tiktok")).toMatchObject({ kind: "creator", seconds: expect.any(Number), name: expect.any(String) });
+    // the fixture's two TikTok creators are not references; the same accounts added by hand are
+    expect(refs.some((r) => r.kind === "creator")).toBe(false);
+    const added = { ...SIM, accounts: SIM.accounts.map((e) => (e.kind === "creator" ? { ...e, via: "added" } : e)) };
+    expect(n.topRefs(added, MEDIA, {}, NOW).find((r) => r.platform === "tiktok")).toMatchObject({ kind: "creator", seconds: expect.any(Number), name: expect.any(String) });
+    expect(n.readCount(added) - n.readCount(SIM)).toBe(2);
     // what goes over the wire is what the function takes, with captions on one line
     const wire = refs.map(({ name: _n, post: _p, ...p }) => p);
     const clean = cleanPlays({ posts: wire, own: [] });
@@ -140,11 +144,12 @@ describe("social north star: when to build", () => {
     expect(n.buildDue(base(), ready, NOW)).toBe(true);
   });
 
-  it("rebuilds a week on, when more references were read, when its own posts wait for labels, or a play has no recipe; never within the hour of a try", () => {
+  it("rebuilds a week on, when a different number of references was read, when its own posts wait for labels, or a play has no recipe; never within the hour of a try", () => {
     const built = { ...base(), builtAt: iso(2), triedAt: iso(2), basis: 12, plays: [{ recipe: { hook: "h" } } as never] };
     expect(n.buildDue(built, ready, NOW)).toBe(false);
     expect(n.buildDue({ ...built, builtAt: iso(7) }, ready, NOW)).toBe(true);
     expect(n.buildDue(built, { ...ready, read: 13 }, NOW)).toBe(true);
+    expect(n.buildDue(built, { ...ready, read: 11 }, NOW)).toBe(true);
     expect(n.buildDue(built, { ...ready, ownUnlabelled: 2 }, NOW)).toBe(true);
     expect(n.buildDue({ ...built, plays: [{ recipe: null } as never] }, ready, NOW)).toBe(true);
     expect(n.buildDue({ ...built, builtAt: iso(7), triedAt: new Date(NOW - 30 * 60_000).toISOString() }, ready, NOW)).toBe(false);
@@ -179,7 +184,8 @@ describe("social north star: the build", () => {
     expect(body.posts.every((p) => !("name" in p) && !("post" in p))).toBe(true);
     expect(Object.keys(ns.labels).sort()).toEqual(body.posts.map((p) => p.key).sort());
     expect(ns.plays.length).toBeGreaterThan(0);
-    expect(ns).toMatchObject({ builtAt: new Date(NOW).toISOString(), triedAt: new Date(NOW).toISOString(), basis: 5 });
+    // the 3 apps; the 2 creators are not references
+    expect(ns).toMatchObject({ builtAt: new Date(NOW).toISOString(), triedAt: new Date(NOW).toISOString(), basis: 3 });
     expect(n.lastNote()).toEqual({ text: "Couldn't write the recipes right now. They come with the next build.", error: false });
     // the next build sends the labels back, so Jev isn't asked again
     await n.runBuild(U);
