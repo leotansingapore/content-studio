@@ -108,6 +108,9 @@ export default function WorkingPage() {
               {nicheLabel(n.niche)}
             </FilterChip>
           ))}
+          <Link to="/feedback" className="flex shrink-0 items-center whitespace-nowrap px-1 text-xs text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+            Ask for a niche
+          </Link>
         </div>
       )}
 
