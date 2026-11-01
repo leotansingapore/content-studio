@@ -42,7 +42,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const [svg] = await Promise.all([slideSvg(s, satori as unknown as Satori), ensureWasm()]);
     const png = new Resvg(svg, { fitTo: { mode: "width", value: FRAME_W } }).render().asPng();
-    return new Response(png, { headers: { "content-type": "image/png", "cache-control": "no-store" } });
+    return new Response(png.slice(), { headers: { "content-type": "image/png", "cache-control": "no-store" } });
   } catch (e) {
     console.error("slide-render", e);
     return new Response("Couldn't draw the slide", { status: 500 });
