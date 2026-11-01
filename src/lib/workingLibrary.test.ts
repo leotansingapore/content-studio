@@ -7,6 +7,7 @@ import {
   formatLines,
   missingTable,
   nicheLabel,
+  tagLabel,
   saveRate,
   saveRateLabel,
   slideUrl,
@@ -62,6 +63,9 @@ describe("filters from the address", () => {
 describe("niche names", () => {
   it("capitalises the first word only, keeps and lower case, and writes AI tools", () => {
     expect(nicheLabel("ai_tools")).toBe("AI tools");
+    expect(tagLabel("classic_tiktok")).toBe("Classic text");
+    expect(tagLabel("bold_captions")).toBe("Bold captions");
+    expect(tagLabel(null)).toBe("");
     expect(nicheLabel("nutrition")).toBe("Food and nutrition");
     expect(nicheLabel("creative")).toBe("Photography and design");
     expect(nicheLabel("business")).toBe("Business");

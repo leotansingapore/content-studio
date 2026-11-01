@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { compact, multipleLabel } from "@/lib/carouselLibrary";
 import { supabase } from "@/lib/supabase";
-import { DETAIL_COLUMNS, TABLE, agentPrompt, nicheLabel, saveRateLabel, slideUrl, type WorkingRow } from "@/lib/workingLibrary";
+import { DETAIL_COLUMNS, TABLE, agentPrompt, nicheLabel, saveRateLabel, slideUrl, tagLabel, type WorkingRow } from "@/lib/workingLibrary";
 
 export default function WorkingDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -53,9 +53,9 @@ export default function WorkingDetailPage() {
   const rate = saveRateLabel(row.saves, row.views);
   const hookText = row.hook_text.trim();
   const about = [
-    ["Hook", [row.hook, hookText && `"${hookText}"`].filter(Boolean).join(": ")],
-    ["Format", row.format],
-    ["Structure", row.structure],
+    ["Hook", [tagLabel(row.hook), hookText && `"${hookText}"`].filter(Boolean).join(": ")],
+    ["Format", tagLabel(row.format)],
+    ["Structure", tagLabel(row.structure)],
   ].filter((x): x is [string, string] => Boolean(x[1]));
   const copyPrompt = () =>
     navigator.clipboard.writeText(agentPrompt(row)).then(

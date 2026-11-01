@@ -101,6 +101,24 @@ export function nicheLabel(slug: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/** Volume's names for its formats, hook kinds and structures, where the slug alone reads badly. */
+const TAG_NAMES: Record<string, string> = {
+  classic_tiktok: "Classic text",
+  item_per_slide: "One item per slide",
+  story_photos: "Story in photos",
+  tweet_style: "Tweet style",
+  story_pov: "Story or POV",
+  how_to: "How-to",
+  before_after: "Before and after",
+};
+/** A format, hook kind or structure slug as words: "bold_captions" is "Bold captions". */
+export function tagLabel(slug: string | null | undefined): string {
+  if (!slug) return "";
+  if (TAG_NAMES[slug]) return TAG_NAMES[slug];
+  const text = slug.replace(/_/g, " ").trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** Each niche with its slideshows, most first; the same count goes by name. */
 export function countNiches(rows: { niche: string }[]): { niche: string; count: number }[] {
   const counts = new Map<string, number>();
@@ -128,9 +146,9 @@ const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 export function formatLines(r: Pick<WorkingRow, "slides" | "format" | "niche" | "hook" | "hook_text" | "structure" | "summary">): string[] {
   const hookText = oneLine(r.hook_text);
   return [
-    `A ${r.slides}-slide TikTok photo slideshow${r.format ? ` (${r.format})` : ""} in ${nicheLabel(r.niche)}.`,
-    (r.hook || hookText) && `Hook: ${[r.hook, hookText && `the cover reads "${hookText}"`].filter(Boolean).join(", ")}.`,
-    r.structure && `Structure: ${r.structure}.`,
+    `A ${r.slides}-slide TikTok photo slideshow${r.format ? ` (${tagLabel(r.format).toLowerCase()})` : ""} in ${nicheLabel(r.niche)}.`,
+    (r.hook || hookText) && `Hook: ${[tagLabel(r.hook).toLowerCase(), hookText && `the cover reads "${hookText}"`].filter(Boolean).join(", ")}.`,
+    r.structure && `Structure: ${tagLabel(r.structure).toLowerCase()}.`,
     oneLine(r.summary) && `What it says: ${oneLine(r.summary)}`,
   ].filter((l): l is string => Boolean(l));
 }

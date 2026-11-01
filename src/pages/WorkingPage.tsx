@@ -20,6 +20,7 @@ import {
   nicheLabel,
   saveRateLabel,
   slideUrl,
+  tagLabel,
   type WorkingCard,
 } from "@/lib/workingLibrary";
 
@@ -168,7 +169,7 @@ function WorkingCardView({ c, back }: { c: WorkingCard; back: string }) {
       <div className="space-y-1 pt-2">
         <p className="flex items-center justify-between gap-2 text-xs">
           <span className="min-w-0 truncate font-medium text-foreground">@{c.author}</span>
-          {c.format && <span className="min-w-0 truncate rounded-full border border-border/60 px-2 py-px text-[10px] text-muted-foreground">{c.format}</span>}
+          {c.format && <span className="min-w-0 truncate rounded-full border border-border/60 px-2 py-px text-[10px] text-muted-foreground">{tagLabel(c.format)}</span>}
         </p>
         <p className="flex items-center gap-2.5 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" aria-hidden /> {compact(c.views)}<span className="sr-only"> views</span></span>
