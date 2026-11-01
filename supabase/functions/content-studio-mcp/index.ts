@@ -112,6 +112,11 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return (data ?? []).map((r) => ({ key: r.key, data: r.data }));
       },
+      async put(key, data, updatedAt) {
+        // updated_at has no trigger (004): stamped here, so the app's sync sees the row as newer than its last write
+        const { error } = await table().upsert({ user_id: link.userId, key, data, updated_at: updatedAt }, { onConflict: "user_id,key" });
+        if (error) throw error;
+      },
     };
 
     const raw = await readLimited(req, MAX_BODY);

@@ -11,10 +11,10 @@ const OTHER_SECRET = "z".repeat(43);
 const DEAD = "This connection link isn't active. Make a new one in Postmosis > Connect Claude.";
 
 const h = vi.hoisted(() => {
-  type Row = { user_id: string; key: string; data: string };
+  type Row = { user_id: string; key: string; data: string; updated_at?: string };
   const rows: Row[] = [];
   const state = { clients: 0, fail: null as null | string, rpc: [] as Record<string, unknown>[], handler: null as null | ((r: Request) => Promise<Response>) };
-  // a tiny stand-in for supabase-js over cs_user_data: select with eq / in / like (a prefix and %), maybeSingle, insert
+  // a tiny stand-in for supabase-js over cs_user_data: select with eq / in / like (a prefix and %), maybeSingle, insert, upsert
   function query(table: string) {
     if (table !== "cs_user_data") throw new Error(`unexpected table ${table}`);
     const where: ((r: Row) => boolean)[] = [];
@@ -43,6 +43,14 @@ const h = vi.hoisted(() => {
         if (state.fail) return { error: { code: "42501", message: state.fail } };
         if (rows.some((r) => r.user_id === row.user_id && r.key === row.key)) return { error: { code: "23505", message: "duplicate key" } };
         rows.push(row);
+        return { error: null };
+      },
+      upsert: async (row: Row, o: { onConflict?: string }) => {
+        if (state.fail) return { error: { code: "42501", message: state.fail } };
+        if (o?.onConflict !== "user_id,key") return { error: { code: "42P10", message: "no conflict target" } };
+        const at = rows.findIndex((r) => r.user_id === row.user_id && r.key === row.key);
+        if (at >= 0) rows[at] = row;
+        else rows.push(row);
         return { error: null };
       },
     }),
@@ -161,10 +169,26 @@ describe("a live connection link", () => {
     for (const list of [undefined, "", " , ", B]) {
       env.NORTH_STAR_USERS = list;
       const r = await post(`${A}.${SECRET}`, { jsonrpc: "2.0", id: 1, method: "tools/list" });
-      expect(JSON.parse(r.text).result.tools, String(list)).toHaveLength(6);
+      expect(JSON.parse(r.text).result.tools, String(list)).toHaveLength(11);
       expect(JSON.parse((await post(`${A}.${SECRET}`, rpc("get_activity"))).text).error, String(list)).toEqual({ code: -32602, message: "Unknown tool get_activity" });
     }
     expect(h.state.rpc).toEqual([]);
+  });
+
+  it("writes a slideshow from Claude to its own user's row only, stamped so other devices take it", async () => {
+    const theirs = { user_id: B, key: `content-studio-designs-${A}`, data: "[]", updated_at: "2026-01-01T00:00:00.000Z" };
+    h.rows.push(linkRow(A, A), theirs);
+    const r = await post(`${A}.${SECRET}`, rpc("create_design", { template: "blank" }));
+    const made = answer(r.text);
+    expect(made).toMatchObject({ created: true, link: `https://app.postmosis.com/design/${made.id}?profile=me` });
+    const mine = h.rows.filter((x) => x.key === `content-studio-designs-${A}` && x.user_id === A);
+    expect(mine).toHaveLength(1);
+    expect(JSON.parse(mine[0].data)).toMatchObject([{ id: made.id, updatedAt: mine[0].updated_at }]);
+    expect(Date.parse(mine[0].updated_at!)).toBeGreaterThan(Date.now() - 60_000);
+    expect(h.rows).toContainEqual(theirs);
+    // and the next edit replaces that row rather than adding one
+    await post(`${A}.${SECRET}`, rpc("update_design", { id: made.id, design: { title: "Renamed" } }));
+    expect(h.rows.filter((x) => x.key === `content-studio-designs-${A}` && x.user_id === A).map((x) => JSON.parse(x.data)[0].title)).toEqual(["Renamed"]);
   });
 
   it("says try again, without the database's own words, when a read fails", async () => {

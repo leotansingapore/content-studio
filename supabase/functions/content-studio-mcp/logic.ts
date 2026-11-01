@@ -1,7 +1,9 @@
 // Content Studio as an MCP server for Claude: the protocol (JSON-RPC over
 // plain HTTP POST, no streaming, no sessions) and six tools over one adviser's
-// synced data. Pure: storage comes in as a Store, so it is all unit-tested
-// (logic.test.ts) and index.ts only wires HTTP and Supabase.
+// synced data, plus five Design tools (1 Nov 2026, Volume's agent workflow) that
+// build and edit the brand's slideshows, which the open editor follows. Pure:
+// storage comes in as a Store, so it is all unit-tested (logic.test.ts) and
+// index.ts only wires HTTP and Supabase.
 //
 // North star phase 6 (agent-mcp-api): a link whose user is on NORTH_STAR_USERS
 // (index.ts sets Caller.leo) also gets seven read tools, three prompts plus one
@@ -17,6 +19,7 @@
 // exists for that user and no content-studio-mcprevoked-<hash>-<scope> row does.
 
 import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
+import { BRAND_FONT, FONT_NAMES, FORMAT_H, FRAME_W, LOOKS, MAX_CAPTION, MAX_DESIGNS, MAX_LAYERS, MAX_SLIDES, newDesign, parseTemplates, sanitizeDesign, type Design, type DesignSlide, type DesignTemplate } from "../_shared/design.ts";
 import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient } from "../_shared/usageCaps.ts";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic.ts";
@@ -74,6 +77,8 @@ export interface Store {
   insert(key: string, data: string): Promise<boolean>;
   /** Every row whose key starts with `prefix`, a fixed literal of this file's (no % or _). */
   all(prefix: string): Promise<{ key: string; data: string }[]>;
+  /** Writes the row whole, new or not, stamped `updatedAt`: other devices' sync takes a row newer than their last write (cloudSync.ts decideSync). */
+  put(key: string, data: string, updatedAt: string): Promise<void>;
 }
 
 /** What index.ts knows about the link: its user is on NORTH_STAR_USERS, its name, and the client that counts uses. */
@@ -244,8 +249,66 @@ export const NEW_TOOLS = [
     inputSchema: { type: "object", properties: { days: { type: "number", description: "1 to 30, default 7." } } },
   },
 ] as const;
-export const LEO_TOOLS = [...TOOLS, ...NEW_TOOLS];
-const toolsFor = (caller: Caller): readonly { name: string }[] => (caller.leo ? LEO_TOOLS : TOOLS);
+// ---------- Design: slideshows Claude builds and edits (every link) ----------
+
+const LAYERS_NOTE =
+  `Slides are drawn on a frame ${FRAME_W} wide and ${FORMAT_H.tiktok} high (tiktok, 9:16) or ${FORMAT_H.instagram} high (instagram, 4:5): a layer's x, y, w and h are pixels on it from the top left, and layers draw in list order, the last on top. ` +
+  "A slide is {id, background, layers}. Every layer has id, type, name, x, y, w, h, rotation (degrees), opacity (0 to 1), hidden and locked. " +
+  `text: text (words between [[ and ]] take the accent), font (${FONT_NAMES.join(", ")}, or ${BRAND_FONT} for the brand's own), weight (100 to 900), italic, size (px), color, align (left, center, right), valign (top, middle, bottom), line_height, letter_spacing (em), caps, auto_fit (fits the words to the box, size then being the largest), and stroke {color, width}, shadow {color, x, y, blur}, fill {color, padding, radius} (a highlight behind each line), underline {color}, strike {color} and accent {color, font, weight, italic, underline}, each null for none. ` +
+  `image: src, fit (cover, contain), focus_x and focus_y (0 to 100), mask (none, ellipse, rounded), radius, border {color, width} or null, look (${LOOKS.map((l) => l.value).join(", ")}) and look_strength (0 to 100). ` +
+  "src is an https picture address (Pexels photos, https://images.pexels.com/photos/..., download cleanly), a /templates/... path a template uses, brand:logo or brand:photo for the brand kit's logo and headshot, or empty for a placeholder the user fills in the editor; anything else is left empty. Keep cimg-... sources as they are: they are pictures on the user's device. " +
+  "shape: shape (rect, ellipse, line), color, radius, border. gradient (a fade): angle (degrees, 180 runs top to bottom) and stops [{at (0 to 100), color, opacity}]. " +
+  "Colours are hex, #rrggbb. Fields left out take defaults, and numbers out of range are clamped.";
+
+export const DESIGN_TOOLS = [
+  {
+    name: "list_design_templates",
+    description: "The ready-made slideshow templates in Postmosis Design: id, name, what each looks like and its slide count per format. Start one with create_design.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "list_designs",
+    description: `The brand's slideshows in Design, newest first (at most ${MAX_DESIGNS}): id, title, format, slide count, when each last changed and the link that opens it in the editor.`,
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_design",
+    description: "One slideshow in full: title, caption, format and every slide with its layers, in the shape update_design takes. Read it before you edit.",
+    inputSchema: { type: "object", properties: { id: { type: "string", description: "The slideshow's id, from list_designs or create_design." } }, required: ["id"] },
+  },
+  {
+    name: "create_design",
+    description: `Start a slideshow in Design from a template (list_design_templates) or blank, and get its id and the link that opens it in the editor. Fill it in with update_design. At most ${MAX_DESIGNS} are kept: at that many, ask the user to delete one in Design first.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        template: { type: "string", description: "A template id. Leave out for one empty black slide." },
+        format: { type: "string", enum: ["tiktok", "instagram"], description: `tiktok is ${FRAME_W} by ${FORMAT_H.tiktok} (9:16), instagram ${FRAME_W} by ${FORMAT_H.instagram} (4:5). Default tiktok.` },
+        title: { type: "string", description: "Up to 120 characters. Default the template's name." },
+      },
+    },
+  },
+  {
+    name: "update_design",
+    description:
+      "Change a slideshow. Send its id and one of design, slide or layer: the fields you send replace those fields, and everything you leave out stays. design takes any of title, caption, format and slides (the whole list: send it to add, remove or reorder slides). slide is one slide, found by its id (send its whole layers list to add, remove or reorder layers). layer is one layer, found by its id on any slide. If the user has the slideshow open, the editor shows the change within seconds. Returns the slideshow as saved. " +
+      LAYERS_NOTE,
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The slideshow's id." },
+        design: { type: "object", description: `Any of title, caption (the post's text, up to ${MAX_CAPTION} characters), format and slides (up to ${MAX_SLIDES}).` },
+        slide: { type: "object", description: `One slide with its id, and background or layers (up to ${MAX_LAYERS}).` },
+        layer: { type: "object", description: "One layer with its id, and the fields to change." },
+      },
+      required: ["id"],
+    },
+  },
+] as const;
+
+export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS];
+export const LEO_TOOLS = [...TOOLS, ...NEW_TOOLS, ...DESIGN_TOOLS];
+const toolsFor = (caller: Caller): readonly { name: string }[] => (caller.leo ? LEO_TOOLS : EVERYONE_TOOLS);
 
 /** One plain line per tool for Connect Claude's "What Claude can do" list, read from the same list the server answers. */
 export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
@@ -262,6 +325,11 @@ export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
   list_competitor_ads: "Your competitors' newest ads",
   list_skills: "Your skills, ready-made and saved",
   get_activity: "What ran lately, and who ran it",
+  list_design_templates: "The slideshow templates in Design",
+  list_designs: "Your slideshows in Design",
+  get_design: "One slideshow, every slide and layer",
+  create_design: "Starts a slideshow from a template",
+  update_design: "Edits a slideshow, live in the editor",
 };
 
 type Args = Record<string, unknown>;
@@ -416,9 +484,94 @@ async function recentActivity(store: Store, scope: string, days: number, now: Da
   return [...byId.values()].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 100).map(({ id: _id, ...e }) => e);
 }
 
+// ---------- the design tools ----------
+
+/** The brand's slideshows: one synced row, newest first, at most MAX_DESIGNS (src/lib/design.ts designsKey). */
+export const designsKey = (scope: string) => `content-studio-designs-${scope}`;
+/** The editor on the link's own brand: ?profile= switches to it first (profiles.ts applyBrandLink). */
+export const designLink = (id: string, link: Link) => `https://app.postmosis.com/design/${encodeURIComponent(id)}?profile=${link.scope.split("~")[1] ?? "me"}`;
+
+async function designs(store: Store, scope: string): Promise<Design[]> {
+  const list = parseJson<unknown>(await store.get(designsKey(scope)), []);
+  return (Array.isArray(list) ? list : []).map((d) => sanitizeDesign(d)).filter((d): d is Design => !!d);
+}
+
+// read on first use, so /connect (the app imports this file for TOOL_LINES) never loads the 370 KB file
+let templateList: Promise<DesignTemplate[]> | undefined;
+const designTemplates = () => (templateList ??= import("../_shared/designTemplates.json", { with: { type: "json" } }).then((m) => parseTemplates(m.default)));
+
+const isObj = (v: unknown): v is Args => !!v && typeof v === "object" && !Array.isArray(v);
+/** Layers, and pictures with a src, in slides as sent or as saved: the difference is what the sanitizer dropped. */
+function tally(slides: unknown) {
+  const layers = (Array.isArray(slides) ? slides : []).flatMap((s) => (isObj(s) && Array.isArray(s.layers) ? s.layers : []));
+  return { layers: layers.length, pictures: layers.filter((l) => isObj(l) && l.type === "image" && typeof l.src === "string" && l.src).length };
+}
+
+/** The design tools' answers: list, read, start and change the brand's slideshows. */
+async function designTool(name: string, args: Args, store: Store, link: Link, now: Date): Promise<ToolResult> {
+  const scope = link.scope;
+  if (name === "list_design_templates") {
+    const list = await designTemplates();
+    return ok({ templates: list.map((t) => ({ id: t.id, name: t.name, blurb: t.blurb, slides: Object.fromEntries(Object.entries(t.docs).map(([f, d]) => [f, d?.slides.length ?? 0])) })) });
+  }
+  const list = await designs(store, scope);
+  if (name === "list_designs") {
+    return ok({ count: list.length, max: MAX_DESIGNS, designs: list.map((d) => ({ id: d.id, title: d.title, format: d.format, slides: d.slides.length, updatedAt: d.updatedAt, link: designLink(d.id, link) })) });
+  }
+  const save = async (d: Design) => store.put(designsKey(scope), JSON.stringify([d, ...list.filter((x) => x.id !== d.id)]), d.updatedAt);
+  if (name === "create_design") {
+    const format = args.format ?? "tiktok";
+    if (format !== "tiktok" && format !== "instagram") return fail("format must be tiktok or instagram.");
+    // the app keeps the newest MAX_DESIGNS and drops the oldest; Claude never drops the user's work
+    if (list.length >= MAX_DESIGNS) return fail(`This brand has ${MAX_DESIGNS} slideshows, the most Design keeps. Ask the user to delete one in Design, then try again.`);
+    let slides: DesignSlide[] | undefined;
+    let named = "Untitled slideshow";
+    if (args.template !== undefined) {
+      const t = (await designTemplates()).find((x) => x.id === args.template);
+      if (!t) return fail("No template with that id. Use list_design_templates for ids.");
+      slides = t.docs[format]?.slides;
+      if (!slides) return fail(`${t.name} has no ${format} version. It comes in ${Object.keys(t.docs).join(" and ")}.`);
+      if (t.id !== "blank") named = t.name;
+    }
+    const title = (typeof args.title === "string" && args.title.trim() ? args.title.trim() : named).slice(0, 120);
+    const d: Design = { ...newDesign(format, title, slides), updatedAt: now.toISOString() };
+    await save(d);
+    return ok({ created: true, id: d.id, link: designLink(d.id, link), slides: d.slides.length, note: "Read it with get_design, then change it with update_design." });
+  }
+  const cur = list.find((x) => x.id === args.id);
+  if (!cur) return fail("No slideshow with that id. Use list_designs for ids.");
+  if (name === "get_design") return ok({ ...cur, link: designLink(cur.id, link) });
+  // update_design: what was sent goes over the current version, then the app's own sanitizer decides what stays
+  const sent = (["design", "slide", "layer"] as const).filter((k) => args[k] !== undefined);
+  const part = args[sent[0]];
+  if (sent.length !== 1 || !isObj(part)) return fail("Send exactly one of design, slide or layer, as an object.");
+  let slides: unknown;
+  if (sent[0] === "design") {
+    slides = part.slides ?? cur.slides;
+  } else if (sent[0] === "slide") {
+    if (!cur.slides.some((s) => s.id === part.id)) return fail("No slide with that id here. get_design lists them; to add a slide, send design with the whole slides list.");
+    slides = cur.slides.map((s) => (s.id === part.id ? { ...s, ...part } : s));
+  } else {
+    if (!cur.slides.some((s) => s.layers.some((l) => l.id === part.id))) return fail("No layer with that id here. get_design lists them; to add a layer, send its slide with the whole layers list.");
+    slides = cur.slides.map((s) => ({ ...s, layers: s.layers.map((l) => (l.id === part.id ? { ...l, ...part } : l)) }));
+  }
+  if (Array.isArray(slides) && slides.length > MAX_SLIDES) return fail(`A slideshow holds up to ${MAX_SLIDES} slides.`);
+  if ((Array.isArray(slides) ? slides : []).some((s) => isObj(s) && Array.isArray(s.layers) && s.layers.length > MAX_LAYERS)) return fail(`A slide holds up to ${MAX_LAYERS} layers.`);
+  const d = sanitizeDesign({ ...cur, ...(sent[0] === "design" ? part : {}), slides, id: cur.id, draftId: cur.draftId, updatedAt: now.toISOString() });
+  if (!d) return fail("A slideshow needs at least one slide.");
+  await save(d);
+  const [before, after] = [tally(slides), tally(d.slides)];
+  const notes = [
+    ...(after.layers < before.layers ? [`${before.layers - after.layers} layer(s) were dropped: a layer's type is text, image, shape or gradient.`] : []),
+    ...(after.pictures < before.pictures ? [`${before.pictures - after.pictures} picture(s) were left empty: src must be https, /templates/..., brand:logo or brand:photo.`] : []),
+  ];
+  return ok({ saved: true, link: designLink(d.id, link), ...(notes.length ? { notes } : {}), design: d });
+}
+
 export async function callTool(name: string, args: Args, store: Store, link: Link, now = new Date(), caller: Caller = EVERYONE): Promise<ToolResult> {
   const scope = link.scope;
   if (!toolsFor(caller).some((t) => t.name === name)) return fail(`Unknown tool ${name}.`);
+  if (DESIGN_TOOLS.some((t) => t.name === name)) return designTool(name, args, store, link, now);
   switch (name) {
     case "list_posts": {
       const status = typeof args.status === "string" ? args.status : "all";
@@ -598,8 +751,8 @@ const forWork = (text: string, p: string) =>
 
 /** What a link off the list is told for a brand whose owner does `p` (professionOf): "" is an adviser, today's text byte for byte. */
 export function toldFor(p: string) {
-  if (!p) return { instructions: INSTRUCTIONS, tools: TOOLS };
-  return { instructions: forWork(INSTRUCTIONS, p), tools: TOOLS.map((t) => ({ ...t, description: forWork(t.description, p) })) };
+  if (!p) return { instructions: INSTRUCTIONS, tools: EVERYONE_TOOLS };
+  return { instructions: forWork(INSTRUCTIONS, p), tools: EVERYONE_TOOLS.map((t) => ({ ...t, description: forWork(t.description, p) })) };
 }
 
 export const LEO_INSTRUCTIONS =

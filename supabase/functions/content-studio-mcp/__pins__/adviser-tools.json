@@ -111,6 +111,91 @@
           "text"
         ]
       }
+    },
+    {
+      "name": "list_design_templates",
+      "description": "The ready-made slideshow templates in Postmosis Design: id, name, what each looks like and its slide count per format. Start one with create_design.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_designs",
+      "description": "The brand's slideshows in Design, newest first (at most 40): id, title, format, slide count, when each last changed and the link that opens it in the editor.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_design",
+      "description": "One slideshow in full: title, caption, format and every slide with its layers, in the shape update_design takes. Read it before you edit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The slideshow's id, from list_designs or create_design."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "create_design",
+      "description": "Start a slideshow in Design from a template (list_design_templates) or blank, and get its id and the link that opens it in the editor. Fill it in with update_design. At most 40 are kept: at that many, ask the user to delete one in Design first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "type": "string",
+            "description": "A template id. Leave out for one empty black slide."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "tiktok",
+              "instagram"
+            ],
+            "description": "tiktok is 1080 by 1920 (9:16), instagram 1080 by 1350 (4:5). Default tiktok."
+          },
+          "title": {
+            "type": "string",
+            "description": "Up to 120 characters. Default the template's name."
+          }
+        }
+      }
+    },
+    {
+      "name": "update_design",
+      "description": "Change a slideshow. Send its id and one of design, slide or layer: the fields you send replace those fields, and everything you leave out stays. design takes any of title, caption, format and slides (the whole list: send it to add, remove or reorder slides). slide is one slide, found by its id (send its whole layers list to add, remove or reorder layers). layer is one layer, found by its id on any slide. If the user has the slideshow open, the editor shows the change within seconds. Returns the slideshow as saved. Slides are drawn on a frame 1080 wide and 1920 high (tiktok, 9:16) or 1350 high (instagram, 4:5): a layer's x, y, w and h are pixels on it from the top left, and layers draw in list order, the last on top. A slide is {id, background, layers}. Every layer has id, type, name, x, y, w, h, rotation (degrees), opacity (0 to 1), hidden and locked. text: text (words between [[ and ]] take the accent), font (Inter, Inter Tight, DM Sans, Poppins, Montserrat, Nunito, Open Sans, Oswald, Anton, Bebas Neue, League Gothic, Archivo Black, Playfair Display, Lora, Merriweather, PT Serif, Caveat, Courier Prime, or BrandFont for the brand's own), weight (100 to 900), italic, size (px), color, align (left, center, right), valign (top, middle, bottom), line_height, letter_spacing (em), caps, auto_fit (fits the words to the box, size then being the largest), and stroke {color, width}, shadow {color, x, y, blur}, fill {color, padding, radius} (a highlight behind each line), underline {color}, strike {color} and accent {color, font, weight, italic, underline}, each null for none. image: src, fit (cover, contain), focus_x and focus_y (0 to 100), mask (none, ellipse, rounded), radius, border {color, width} or null, look (none, warm, golden, grainy, film, cinematic, matte, faded, bleach, nordic, moody, vivid, bw, noir) and look_strength (0 to 100). src is an https picture address (Pexels photos, https://images.pexels.com/photos/..., download cleanly), a /templates/... path a template uses, brand:logo or brand:photo for the brand kit's logo and headshot, or empty for a placeholder the user fills in the editor; anything else is left empty. Keep cimg-... sources as they are: they are pictures on the user's device. shape: shape (rect, ellipse, line), color, radius, border. gradient (a fade): angle (degrees, 180 runs top to bottom) and stops [{at (0 to 100), color, opacity}]. Colours are hex, #rrggbb. Fields left out take defaults, and numbers out of range are clamped.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The slideshow's id."
+          },
+          "design": {
+            "type": "object",
+            "description": "Any of title, caption (the post's text, up to 2200 characters), format and slides (up to 20)."
+          },
+          "slide": {
+            "type": "object",
+            "description": "One slide with its id, and background or layers (up to 60)."
+          },
+          "layer": {
+            "type": "object",
+            "description": "One layer with its id, and the fields to change."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
     }
   ]
 }

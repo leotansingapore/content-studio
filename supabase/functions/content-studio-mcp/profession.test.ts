@@ -15,6 +15,7 @@ const brands = (kits: Record<string, Record<string, unknown>> = {}): Store => ({
   },
   insert: async () => false,
   all: async () => [],
+  put: async () => {},
 });
 
 /** What Claude is told when it connects through a link: the instructions and the tool list. */
@@ -29,6 +30,7 @@ const KEPT = ["default today in Singapore", "in Singapore time"];
 const withoutKept = (text: string) => KEPT.reduce((t, k) => t.replaceAll(k, ""), text);
 
 describe("Connect Claude for the brand's profession", () => {
+  // 1 Nov 2026: the five design tools were appended to the pinned list by hand; the six before them are untouched
   it("a brand with no profession set gets today's tools and instructions byte for byte", async () => {
     await expect(JSON.stringify(await told(brands()), null, 2)).toMatchFileSnapshot("./__pins__/adviser-tools.json");
   });

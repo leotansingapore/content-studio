@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BUSY_LINE, CHECK_NOTE, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, TOOL_LINES, TOOLS, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
+import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
+import { MAX_DESIGNS, newDesign, newLayer, sanitizeDesign, type Design, type ImageLayer, type TextLayer } from "../_shared/design";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
@@ -7,10 +8,16 @@ const SECRET = "a".repeat(40) + "b-_";
 const link: Link = { userId: UID, scope: UID, secret: SECRET };
 const now = new Date("2026-10-08T02:00:00Z"); // 10am Thursday in Singapore
 
-function memoryStore(rows: Record<string, unknown>): Store & { rows: Map<string, string> } {
+function memoryStore(rows: Record<string, unknown>): Store & { rows: Map<string, string>; stamps: Map<string, string> } {
   const map = new Map(Object.entries(rows).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]));
+  const stamps = new Map<string, string>();
   return {
     rows: map,
+    stamps,
+    put: async (k, v, at) => {
+      map.set(k, v);
+      stamps.set(k, at);
+    },
     get: async (k) => map.get(k) ?? null,
     insert: async (k, v) => {
       if (map.has(k)) return false;
@@ -194,7 +201,7 @@ describe("JSON-RPC", () => {
     const odd = (await handleRpc({ jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "1999-01-01" } }, s, link)) as { result: { protocolVersion: string } };
     expect(odd.result.protocolVersion).toBe("2025-06-18");
     const list = (await handleRpc({ jsonrpc: "2.0", id: 3, method: "tools/list" }, s, link)) as { result: { tools: { name: string }[] } };
-    expect(list.result.tools.map((t) => t.name)).toEqual(["list_posts", "get_post", "get_calendar", "get_results", "get_brand", "add_draft"]);
+    expect(list.result.tools.map((t) => t.name)).toEqual(["list_posts", "get_post", "get_calendar", "get_results", "get_brand", "add_draft", "list_design_templates", "list_designs", "get_design", "create_design", "update_design"]);
   });
 
   it("gives notifications no reply and unknown methods or tools an error", async () => {
@@ -206,6 +213,7 @@ describe("JSON-RPC", () => {
 
 // Every answer a link off NORTH_STAR_USERS gets, pinned on 22 Oct 2026 (a9d04b4e) before phase 6's tools: the
 // protocol, all six tools with their refusals, and the rows add_draft writes. Never update the file with vitest -u.
+// 1 Nov 2026: the five design tools joined tools/list by hand, appended after the six; nothing else in it changed.
 const EVERYONE_STORE = {
   [`content-studio-drafts-${UID}`]: posts,
   [`content-studio-positioning-${UID}`]: { goal: "More reviews booked", goalKind: "clients", audience: "parent", topics: ["CPF"], platform: "instagram", cadence: 3, edge: "" },
@@ -323,7 +331,7 @@ describe("a link off the list, with everything index.ts passes", () => {
 });
 
 describe("tools and instructions on a listed link", () => {
-  it("lists 13 tools, today's six first, and every one has a line for /connect", async () => {
+  it("lists 18 tools, today's six first and the design tools last, and every one has a line for /connect", async () => {
     const list = (await handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/list" }, memoryStore({}), link, now, leo())) as { result: { tools: { name: string }[] } };
     expect(list.result.tools.map((t) => t.name)).toEqual([
       ...TOOLS.map((t) => t.name),
@@ -334,6 +342,7 @@ describe("tools and instructions on a listed link", () => {
       "list_competitor_ads",
       "list_skills",
       "get_activity",
+      ...DESIGN_TOOLS.map((t) => t.name),
     ]);
     expect(Object.keys(TOOL_LINES).sort()).toEqual(LEO_TOOLS.map((t) => t.name).sort());
   });
@@ -626,5 +635,127 @@ describe("the mcp-calls cap", () => {
     await expect(handleRpc(call("list_posts"), s, link, new Date(), leo(usage))).rejects.toThrow("timeout");
     expect(usage.calls).toEqual(["mcp-calls"]);
     expect(used(usage)).toBe(0);
+  });
+});
+
+// ---------- Design: every link builds and edits the brand's slideshows ----------
+
+describe("design tools", () => {
+  const at = now.toISOString();
+  const doc = (id: string, updatedAt: string): Design => {
+    const d = newDesign("tiktok", `Deck ${id}`);
+    d.slides[0].layers.push({ ...newLayer("text", "tiktok"), id: `txt_${id}`, text: "Hello [[you]]" } as TextLayer, { ...newLayer("image", "tiktok"), id: `img_${id}`, src: "brand:photo" } as ImageLayer);
+    return { ...d, id, slides: [{ ...d.slides[0], id: `sld_${id}` }], updatedAt };
+  };
+  const withDecks = (...ds: Design[]) => memoryStore({ [designsKey(UID)]: ds });
+  const saved = (s: ReturnType<typeof memoryStore>, scope = UID) => JSON.parse(s.rows.get(designsKey(scope)) ?? "[]") as Design[];
+  const call = async (name: string, args: Record<string, unknown>, s: Store, l: Link = link) => {
+    const r = await callTool(name, args, s, l, now);
+    return { error: r.isError === true, out: r.isError ? r.content[0].text : JSON.parse(r.content[0].text) };
+  };
+
+  it("are listed for every link, after the six, and need no adviser words", () => {
+    expect(EVERYONE_TOOLS.map((t) => t.name)).toEqual([...TOOLS.map((t) => t.name), "list_design_templates", "list_designs", "get_design", "create_design", "update_design"]);
+    const told = JSON.stringify(DESIGN_TOOLS);
+    for (const fact of ["1080 wide", "1920 high", "1350 high", "[[ and ]]", "images.pexels.com", "/templates/", "brand:logo", "brand:photo"]) expect(told).toContain(fact);
+  });
+
+  it("lists the 16 templates with their slide counts per format", async () => {
+    const { out } = await call("list_design_templates", {}, memoryStore({}));
+    expect(out.templates).toHaveLength(16);
+    expect(out.templates.find((t: { id: string }) => t.id === "blank")).toEqual({ id: "blank", name: "Blank", blurb: "One empty slide.", slides: { tiktok: 1, instagram: 1 } });
+    expect(out.templates.find((t: { id: string }) => t.id === "classic-tiktok").slides).toEqual({ tiktok: 5 });
+  });
+
+  it("starts one from a template, newest first, with fresh ids, the link's stamp and a link to the editor", async () => {
+    const s = withDecks(doc("dsg_old", "2026-10-01T00:00:00.000Z"));
+    const { out } = await call("create_design", { template: "fade-cover", format: "instagram" }, s);
+    expect(out).toMatchObject({ created: true, slides: 4, link: `https://app.postmosis.com/design/${out.id}?profile=me` });
+    const [made, old] = saved(s);
+    expect(old.id).toBe("dsg_old");
+    expect(made).toMatchObject({ id: out.id, title: "Fade cover", format: "instagram", updatedAt: at });
+    expect(s.stamps.get(designsKey(UID))).toBe(at);
+    const { out: tpl } = await call("list_design_templates", {}, s);
+    expect(tpl.templates.find((t: { id: string }) => t.id === "fade-cover").slides.instagram).toBe(made.slides.length);
+    // what was stored is already what the app's sanitizer makes of it
+    expect(sanitizeDesign(made)).toEqual(made);
+  });
+
+  it("starts a blank one, named as asked, and saves a second brand's under that brand", async () => {
+    const s = memoryStore({});
+    const { out } = await call("create_design", { title: "  My deck " }, s, p1Link);
+    expect(out.link).toBe(`https://app.postmosis.com/design/${out.id}?profile=p1`);
+    expect(s.rows.has(designsKey(UID))).toBe(false);
+    expect(saved(s, P1)).toMatchObject([{ title: "My deck", format: "tiktok", slides: [{ background: "#000000", layers: [] }] }]);
+  });
+
+  it("refuses an unknown template or format, a format the template lacks, and a 41st slideshow, saving nothing", async () => {
+    const s = memoryStore({});
+    for (const args of [{ template: "nope" }, { format: "square" }, { template: "classic-tiktok", format: "instagram" }]) expect((await call("create_design", args, s)).error).toBe(true);
+    expect(s.rows.size).toBe(0);
+    const full = withDecks(...Array.from({ length: MAX_DESIGNS }, (_, i) => doc(`dsg_${i}`, at)));
+    const before = full.rows.get(designsKey(UID));
+    const r = await call("create_design", {}, full);
+    expect(r).toMatchObject({ error: true, out: expect.stringContaining("40 slideshows") });
+    expect(full.rows.get(designsKey(UID))).toBe(before);
+  });
+
+  it("lists the slideshows and reads one in full", async () => {
+    const s = withDecks(doc("dsg_a", "2026-10-02T00:00:00.000Z"), doc("dsg_b", "2026-10-01T00:00:00.000Z"));
+    const { out } = await call("list_designs", {}, s);
+    expect(out).toMatchObject({ count: 2, max: 40, designs: [{ id: "dsg_a", title: "Deck dsg_a", format: "tiktok", slides: 1 }, { id: "dsg_b" }] });
+    const { out: one } = await call("get_design", { id: "dsg_b" }, s);
+    expect(one).toMatchObject({ id: "dsg_b", link: "https://app.postmosis.com/design/dsg_b?profile=me", slides: [{ id: "sld_dsg_b", layers: [{ id: "txt_dsg_b", text: "Hello [[you]]" }, { id: "img_dsg_b" }] }] });
+    expect((await call("get_design", { id: "zz" }, s)).error).toBe(true);
+  });
+
+  it("changes one layer by id, keeping every field it wasn't sent, and moves the slideshow to the top", async () => {
+    const s = withDecks(doc("dsg_a", "2026-10-02T00:00:00.000Z"), doc("dsg_b", "2026-10-01T00:00:00.000Z"));
+    const { out } = await call("update_design", { id: "dsg_b", layer: { id: "txt_dsg_b", text: "New [[words]]", size: 99999 } }, s);
+    expect(out).toMatchObject({ saved: true, link: "https://app.postmosis.com/design/dsg_b?profile=me" });
+    expect(out.notes).toBeUndefined();
+    const [b, a] = saved(s);
+    expect([b.id, a.id]).toEqual(["dsg_b", "dsg_a"]);
+    expect(b.updatedAt).toBe(at);
+    expect(b.slides[0].layers[0]).toMatchObject({ id: "txt_dsg_b", type: "text", text: "New [[words]]", size: 600, font: "Inter" });
+    expect((b.slides[0].layers[1] as ImageLayer).src).toBe("brand:photo");
+    expect(out.design).toEqual(b);
+  });
+
+  it("changes one slide by id, and says what the sanitizer dropped", async () => {
+    const s = withDecks(doc("dsg_a", at));
+    const { out } = await call("update_design", { id: "dsg_a", slide: { id: "sld_dsg_a", background: "#ff0000", layers: [{ type: "video" }, { type: "image", src: "javascript:alert(1)" }, { type: "image", src: "https://images.pexels.com/photos/1/pexels-photo-1.jpeg" }] } }, s);
+    const [a] = saved(s);
+    expect(a.slides[0].background).toBe("#ff0000");
+    expect(a.slides[0].layers.map((l) => (l as ImageLayer).src)).toEqual(["", "https://images.pexels.com/photos/1/pexels-photo-1.jpeg"]);
+    expect(out.notes).toEqual(["1 layer(s) were dropped: a layer's type is text, image, shape or gradient.", "1 picture(s) were left empty: src must be https, /templates/..., brand:logo or brand:photo."]);
+  });
+
+  it("replaces the whole document's fields, but never its id or the post it was saved as", async () => {
+    const s = withDecks({ ...doc("dsg_a", at), draftId: "d1" });
+    const slides = [{ id: "s1", background: "#111111", layers: [] }, { id: "s2", background: "#222222", layers: [] }];
+    await call("update_design", { id: "dsg_a", design: { id: "dsg_other", draftId: "d9", title: "Renamed", caption: "Words", format: "instagram", slides } }, s);
+    expect(saved(s)).toMatchObject([{ id: "dsg_a", draftId: "d1", title: "Renamed", caption: "Words", format: "instagram", slides }]);
+  });
+
+  it("refuses unknown ids, two parts at once, too many slides or layers and an empty slideshow, saving nothing", async () => {
+    const s = withDecks(doc("dsg_a", at));
+    const before = s.rows.get(designsKey(UID));
+    const many = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `s${i}`, layers: [] }));
+    for (const args of [
+      { id: "zz", layer: { id: "txt_dsg_a" } },
+      { id: "dsg_a" },
+      { id: "dsg_a", layer: "text" },
+      { id: "dsg_a", layer: { id: "txt_dsg_a" }, slide: { id: "sld_dsg_a" } },
+      { id: "dsg_a", layer: { id: "nope", text: "x" } },
+      { id: "dsg_a", slide: { id: "nope" } },
+      { id: "dsg_a", design: { slides: many(21) } },
+      { id: "dsg_a", slide: { id: "sld_dsg_a", layers: Array.from({ length: 61 }, () => ({ type: "shape" })) } },
+      { id: "dsg_a", design: { slides: [] } },
+    ]) {
+      expect((await call("update_design", args, s)).error, JSON.stringify(args).slice(0, 80)).toBe(true);
+    }
+    expect(s.rows.get(designsKey(UID))).toBe(before);
+    expect(s.stamps.size).toBe(0);
   });
 });

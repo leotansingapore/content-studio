@@ -98,6 +98,8 @@ export interface CloudSync {
   flush(): Promise<void>;
   /** Pull these keys again after the first pull, for rows a server job rewrites while the app is open. */
   refresh(keys: string[]): Promise<void>;
+  /** The stamp of the key's row this device last wrote or took, or null: a cloud row with that stamp is nothing new. */
+  syncedAt(key: string): string | null;
   /** Send what's pending once, then stop. Anything unsent stays saved on the device. */
   stop(): Promise<void>;
 }
@@ -306,6 +308,7 @@ export function createCloudSync(
     userId,
     start: pullUntilDone,
     refresh,
+    syncedAt: (key) => meta[key] ?? null,
     noteWrite,
     retryNow: () => {
       if (pulled) {
@@ -407,6 +410,9 @@ export function initCloudSync(userId: string): Promise<void> {
 export function refreshCloudKeys(keys: string[]): Promise<void> {
   return active?.refresh(keys) ?? Promise.resolve();
 }
+
+/** This device's stamp for a synced key (CloudSync.syncedAt), or null before sync starts. */
+export const cloudSyncedAt = (key: string): string | null => active?.syncedAt(key) ?? null;
 
 /** Send pending changes (briefly) and detach sync from the signed-out user. */
 export function stopCloudSync(): Promise<void> {

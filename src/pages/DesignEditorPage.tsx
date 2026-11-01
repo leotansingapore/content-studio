@@ -1,6 +1,8 @@
 // /design/:id: the layer editor (Volume's, folded in). Slides on the left, the slide in the middle with its
 // selection box, the panel on the right. Edits autosave; undo keeps 50 steps (typing or dragging one control
-// within a second is one step). ?slide=N opens a slide.
+// within a second is one step). ?slide=N opens a slide. While it shows, it follows Claude's edits (Connect Claude's
+// update_design): each one lands as one undo step under a "Claude is editing" pill, or waits behind "Load its
+// version" when the user edited in the last few seconds; "Take over" stops following for the visit.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -20,7 +22,9 @@ import {
   MAX_LAYERS,
   MAX_SLIDES,
   designById,
+  designsKey,
   ensureDesignFonts,
+  followStep,
   freshSlide,
   newLayer,
   newSlide,
@@ -32,17 +36,22 @@ import {
   type Layer,
   type LayerType,
 } from "@/lib/design";
+import { cloudSyncedAt, refreshCloudKeys } from "@/lib/cloudSync";
 import { ExportPictureError, designPngs } from "@/lib/designExport";
 import { putFile } from "@/lib/deviceFiles";
 import { getDraftById, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
 import { ago } from "@/lib/slideshow";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const MAX_HISTORY = 50;
 const MERGE_MS = 1000;
+const FOLLOW_MS = 4000;
+/** The pill stays this long after Claude's last change. */
+const CLAUDE_MS = 30_000;
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 const HANDLES: Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
@@ -86,6 +95,12 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const [hist, setHist] = useState<{ past: Design[]; future: Design[]; tag?: string; at: number }>({ past: [], future: [], at: 0 });
   const [selected, setSelected] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState(initial.updatedAt);
+  // the last version this editor saved or took from Claude, and when the user last changed something
+  const saved = useRef({ at: initial.updatedAt, doc: initial });
+  const editedAt = useRef(0);
+  const [follow, setFollow] = useState(true);
+  const [claudeAt, setClaudeAt] = useState(0);
+  const [offer, setOffer] = useState<Design | null>(null);
   const [prep, setPrep] = useState<{ done: number; total: number } | string | null>(null);
   const [menu, setMenu] = useState<"download" | "brand" | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -103,18 +118,23 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     void registerBrandFont(loadBrandFont(userId));
   }, [brand, userId]);
 
-  // autosave half a second after the last change
+  // autosave half a second after the last change (Claude's own version is already saved)
+  const keep = (d: Design) => {
+    const now = new Date();
+    saveDesign(userId, d, now);
+    saved.current = { at: now.toISOString(), doc: d };
+    setSavedAt(now.toISOString());
+  };
   useEffect(() => {
-    if (work === initial) return;
-    const t = setTimeout(() => {
-      saveDesign(userId, workRef.current);
-      setSavedAt(new Date().toISOString());
-    }, 500);
+    if (work === saved.current.doc) return;
+    const t = setTimeout(() => keep(workRef.current), 500);
     return () => clearTimeout(t);
-  }, [work, initial, userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [work, userId]);
 
-  const commit = useCallback((next: Design, tag?: string) => {
+  const commit = useCallback((next: Design, tag?: string, fromClaude = false) => {
     const prev = workRef.current;
+    if (!fromClaude) editedAt.current = Date.now();
     workRef.current = next;
     setWork(next);
     setHist((h) => {
@@ -129,10 +149,60 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       if (!from.length) return h;
       const to = from[from.length - 1];
       const cur = workRef.current;
+      editedAt.current = Date.now();
       workRef.current = to;
       setWork(to);
       return dir === "undo" ? { past: h.past.slice(0, -1), future: [...h.future, cur], at: 0 } : { past: [...h.past, cur], future: h.future.slice(0, -1), at: 0 };
     });
+  };
+
+  // follow Claude: while this tab shows, read the row's stamp every few seconds and pull the row only when another
+  // writer changed it (refreshCloudKeys puts it in localStorage, so the sync never pushes the stale copy back)
+  useEffect(() => {
+    if (!follow) return;
+    const key = designsKey(userId);
+    let seen = "";
+    let busy = false;
+    const tick = async () => {
+      setClaudeAt((t) => (t && Date.now() - t > CLAUDE_MS ? 0 : t));
+      if (busy || document.visibilityState !== "visible") return;
+      busy = true;
+      try {
+        const { data } = await supabase.from("cs_user_data").select("updated_at").eq("user_id", userId).eq("key", key).maybeSingle();
+        const at = data?.updated_at;
+        if (!at || at === seen) return;
+        seen = at;
+        if (Date.parse(at) === Date.parse(cloudSyncedAt(key) ?? "")) return; // this device's own write, or one it has
+        await refreshCloudKeys([key]);
+        const stored = designById(userId, workRef.current.id);
+        const next = followStep(workRef.current, stored, { savedAt: saved.current.at, editedAt: editedAt.current, now: Date.now() });
+        if (!stored || next === "ignore") return;
+        if (next === "apply") {
+          saved.current = { at: stored.updatedAt, doc: stored };
+          setSavedAt(stored.updatedAt);
+          commit(stored, undefined, true);
+          setOffer(null);
+          setClaudeAt(Date.now());
+        } else {
+          // the sync just stored Claude's copy: keep what the user is looking at saved, Claude's waits for the button
+          keep(workRef.current);
+          setOffer(stored);
+        }
+      } catch {
+        // offline: the next tick tries again
+      } finally {
+        busy = false;
+      }
+    };
+    const t = setInterval(() => void tick(), FOLLOW_MS);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [follow, userId, commit]);
+  const takeOver = () => (setFollow(false), setClaudeAt(0), setOffer(null));
+  const loadOffer = () => {
+    if (offer) commit(offer, undefined, true);
+    setOffer(null);
+    setClaudeAt(Date.now());
   };
 
   const goSlide = (i: number) => {
@@ -322,6 +392,19 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
         <span className="text-xs text-muted-foreground" aria-live="polite">
           Saved {ago(savedAt)}
         </span>
+        {follow && (offer || claudeAt > 0) && (
+          <span role="status" className="flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs">
+            {offer ? "Claude changed this slideshow." : "Claude is editing"}
+            {offer && (
+              <button type="button" onClick={loadOffer} className={`font-semibold text-primary hover:underline ${TOUCH}`}>
+                Load its version
+              </button>
+            )}
+            <button type="button" onClick={takeOver} className={`font-semibold text-primary hover:underline ${TOUCH}`}>
+              Take over
+            </button>
+          </span>
+        )}
         <div className="relative">
           <Button variant="outline" size="sm" onClick={() => setMenu(menu === "download" ? null : "download")} disabled={busy} aria-expanded={menu === "download"} className={`gap-1.5 ${TOUCH}`}>
             <Download className="h-4 w-4" /> Download

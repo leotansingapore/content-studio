@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import templatesRaw from "@/data/designTemplates.json";
+import templatesRaw from "../../supabase/functions/_shared/designTemplates.json" with { type: "json" };
 import { staleCutout } from "@/components/design/SlideView";
 import {
   FORMAT_H,
@@ -19,6 +19,8 @@ import {
   type ImageLayer,
 } from "@/lib/design";
 import { designToDraft } from "@/pages/DesignEditorPage";
+import { FOLLOW_QUIET_MS, followStep } from "@/lib/design";
+import * as shared from "../../supabase/functions/_shared/design.ts";
 
 describe("accent words", () => {
   it("splits [[ ]] runs and keeps the rest", () => {
@@ -135,5 +137,37 @@ describe("saving to My posts", () => {
   });
   it("sizes: TikTok 1920 tall, Instagram 1350", () => {
     expect(FORMAT_H).toEqual({ tiktok: 1920, instagram: 1350 });
+  });
+});
+
+describe("one model for the app and Connect Claude", () => {
+  it("re-exports the shared sanitizer itself, so Claude's edits are cleaned by the same rules", () => {
+    expect(sanitizeDesign).toBe(shared.sanitizeDesign);
+    expect(sanitizeLayer).toBe(shared.sanitizeLayer);
+  });
+});
+
+describe("following Claude in the open editor", () => {
+  const open = { ...newDesign("tiktok", "Deck"), updatedAt: "2026-11-01T10:00:00.000Z" };
+  const claude = { ...open, title: "Claude's deck", updatedAt: "2026-11-01T10:00:08.000Z" };
+  const t0 = Date.parse("2026-11-01T10:00:10.000Z");
+  const at = (editedAgo: number) => ({ savedAt: open.updatedAt, editedAt: t0 - editedAgo, now: t0 });
+
+  it("applies a newer, different copy when the user has been still a while", () => {
+    expect(followStep(open, claude, at(FOLLOW_QUIET_MS))).toBe("apply");
+    expect(followStep(open, claude, { ...at(0), editedAt: 0 })).toBe("apply");
+  });
+  it("offers it instead while the user edited in the last few seconds", () => {
+    expect(followStep(open, claude, at(FOLLOW_QUIET_MS - 1))).toBe("offer");
+    expect(followStep(open, claude, at(0))).toBe("offer");
+  });
+  it("ignores a missing copy, one no newer than the editor's last save, and one that only differs in its stamp", () => {
+    expect(followStep(open, null, at(60_000))).toBe("ignore");
+    expect(followStep(open, { ...claude, updatedAt: open.updatedAt }, at(60_000))).toBe("ignore");
+    expect(followStep(open, { ...claude, updatedAt: "2026-11-01T09:00:00.000Z" }, at(60_000))).toBe("ignore");
+    expect(followStep(open, { ...open, updatedAt: claude.updatedAt }, at(60_000))).toBe("ignore");
+    // the same document with its keys in another order is the same document
+    const reordered = { updatedAt: claude.updatedAt, slides: open.slides, format: open.format, caption: open.caption, title: open.title, id: open.id };
+    expect(followStep(open, reordered, at(60_000))).toBe("ignore");
   });
 });

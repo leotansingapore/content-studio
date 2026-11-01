@@ -44,11 +44,11 @@ describe("/connect for Leo", () => {
     expect(out).toMatch(/<input[^>]*maxLength="30"[^>]*value="Claude"|<input[^>]*value="Claude"[^>]*maxLength="30"/);
     expect(out).toContain('id="tools"');
     expect(out).toContain("What Claude can do");
-    for (const [tool, line] of [["list_posts", "Your posts, newest first"], ["check_post", "MAS wording check on any text"], ["get_activity", "What ran lately, and who ran it"]]) {
+    for (const [tool, line] of [["list_posts", "Your posts, newest first"], ["check_post", "MAS wording check on any text"], ["get_activity", "What ran lately, and who ran it"], ["update_design", "Edits a slideshow, live in the editor"]]) {
       expect(out).toContain(`>${tool}</code>`);
       expect(out).toContain(line);
     }
-    expect(out.match(/<code class="font-mono/g)).toHaveLength(13);
+    expect(out.match(/<code class="font-mono/g)).toHaveLength(18);
     // the curl line shows only beside a fresh link
     expect(out).not.toContain("Use it from Zapier");
   });
