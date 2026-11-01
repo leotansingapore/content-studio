@@ -111,14 +111,16 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   );
 
   return (
-    <section className="min-w-0 space-y-4" aria-labelledby="apps-like-yours">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 id="apps-like-yours" className="font-serif text-lg font-semibold tracking-tight">Apps like yours</h2>
-        {state.accounts.length > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">{state.accounts.length}</span>}
-        {state.month && (
-          <span className="ml-auto text-xs tabular-nums text-muted-foreground">US${state.month.spent.toFixed(2)} of US${state.month.cap} this month</span>
-        )}
-      </div>
+    // the page's h1 names the tab, so its top row is the count and the month's spend
+    <section className="min-w-0 space-y-4" aria-label="Apps like yours">
+      {(state.accounts.length > 0 || state.month) && (
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          {state.accounts.length > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">{state.accounts.length} {state.accounts.length === 1 ? "account" : "accounts"}</span>}
+          {state.month && (
+            <span className="ml-auto text-xs tabular-nums text-muted-foreground">US${state.month.spent.toFixed(2)} of US${state.month.cap} this month</span>
+          )}
+        </div>
+      )}
 
       {!state.accounts.length && <p className="text-sm text-muted-foreground">See how apps and creators like yours post on Instagram and TikTok, then remix their best.</p>}
       {find}
