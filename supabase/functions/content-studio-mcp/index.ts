@@ -12,7 +12,11 @@
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { isAllowed } from "../market/logic.ts";
-import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, type Caller, type Store } from "./logic.ts";
+import templates from "../_shared/designTemplates.json" with { type: "json" };
+import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, setDesignTemplates, type Caller, type Store } from "./logic.ts";
+
+// static, so the deploy bundles the file (it left the lazy import in logic.ts out, 1 Nov)
+setDesignTemplates(templates);
 
 const MAX_BODY = 64 * 1024;
 const headers = {

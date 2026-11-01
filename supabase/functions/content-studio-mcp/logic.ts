@@ -501,7 +501,13 @@ async function designs(store: Store, scope: string): Promise<Design[]> {
 
 // read on first use, so /connect (the app imports this file for TOOL_LINES) never loads the 370 KB file
 let templateList: Promise<DesignTemplate[]> | undefined;
-const designTemplates = () => (templateList ??= import("../_shared/designTemplates.json", { with: { type: "json" } }).then((m) => parseTemplates(m.default)));
+let templateSource = (): Promise<unknown> => import("../_shared/designTemplates.json", { with: { type: "json" } }).then((m) => m.default);
+/** index.ts hands over the templates it imports statically: the deploy bundler leaves a lazy JSON import out. */
+export function setDesignTemplates(raw: unknown): void {
+  templateSource = () => Promise.resolve(raw);
+  templateList = undefined;
+}
+const designTemplates = () => (templateList ??= templateSource().then(parseTemplates));
 
 const isObj = (v: unknown): v is Args => !!v && typeof v === "object" && !Array.isArray(v);
 /** Layers, and pictures with a src, in slides as sent or as saved: the difference is what the sanitizer dropped. */
