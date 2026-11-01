@@ -566,8 +566,9 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
               )}
               {publish.mode === "direct" && (
                 <>
-                  <label className="grid grid-cols-[6rem_1fr] items-center gap-2 text-xs">
-                    Who can see it
+                  {/* the label sits over the menu: "Paid partnership with a brand" is cut beside it at 1440 and 390 */}
+                  <label className="block space-y-1 text-xs">
+                    <span>Who can see it</span>
                     <select className={field} value={publish.privacy} onChange={(e) => setPublish((p) => ({ ...p, privacy: e.target.value as Publish["privacy"] }))}>
                       {WHO.map(([v, label]) => (
                         // TikTok refuses a paid partnership only the owner can see
@@ -580,8 +581,8 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                   <label className="flex items-center gap-1.5 text-xs">
                     <input type="checkbox" className="accent-primary" checked={publish.comments} onChange={(e) => setPublish((p) => ({ ...p, comments: e.target.checked }))} /> Allow comments
                   </label>
-                  <label className="grid grid-cols-[6rem_1fr] items-center gap-2 text-xs">
-                    This post
+                  <label className="block space-y-1 text-xs">
+                    <span>This post</span>
                     <select className={field} value={publish.commercial} onChange={(e) => setPublish((p) => ({ ...p, commercial: e.target.value as Publish["commercial"] }))}>
                       {DISCLOSE.map(([v, label]) => (
                         <option key={v} value={v} disabled={v === "brand_content" && publish.privacy === "SELF_ONLY"}>
