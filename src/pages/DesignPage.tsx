@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Copy, GalleryHorizontalEnd, Plus, Trash2 } from "lucide-react";
+import { Copy, GalleryHorizontalEnd, Plug, Plus, Trash2 } from "lucide-react";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -149,9 +149,14 @@ export default function DesignPage() {
             );
           })}
         </ul>
-        <Link to="/carousels" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-          <GalleryHorizontalEnd className="h-4 w-4" /> Find a format that's working in your niche
-        </Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          <Link to="/carousels" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+            <GalleryHorizontalEnd className="h-4 w-4" /> Find a format that's working in your niche
+          </Link>
+          <Link to="/connect" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+            <Plug className="h-4 w-4" /> Have Claude build one with you
+          </Link>
+        </div>
       </section>
 
       {own.length > 0 && (
