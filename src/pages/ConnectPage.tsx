@@ -28,6 +28,14 @@ import { adviserBrand } from "@/lib/profession";
 const TRY = ["What's on my calendar this week?", "Which of my posts did best, and why?", "Write a LinkedIn post about CPF top-ups in my voice and save it as a draft."];
 const TRY_ANY = [...TRY.slice(0, 2), "Write a LinkedIn post about a question a client asked me this week, in my voice, and save it as a draft."];
 
+/** What each client takes to add the link (each checked against its docs on 1 Nov 2026: Claude Code, Cursor's mcp.json, Codex's mcp add). */
+export const clientSnippets = (url: string) => ({
+  cli: `claude mcp add --transport http content-studio ${url}`,
+  cursor: JSON.stringify({ mcpServers: { postmosis: { url } } }, null, 2),
+  codex: `codex mcp add postmosis --url ${url}`,
+});
+type Copied = "" | "url" | "api" | keyof ReturnType<typeof clientSnippets>;
+
 export default function ConnectPage() {
   const { toast } = useToast();
   const leo = useLeoUser();
@@ -35,7 +43,7 @@ export default function ConnectPage() {
   const [links, setLinks] = useState<ClaudeLink[]>([]);
   const [fresh, setFresh] = useState<{ url: string; state: "checking" | "ready" | "offline" } | null>(null);
   const [making, setMaking] = useState(false);
-  const [copied, setCopied] = useState<"" | "url" | "cli" | "api">("");
+  const [copied, setCopied] = useState<Copied>("");
   const [name, setName] = useState("Claude");
   useScrollToHash(Boolean(leo) && userId !== null);
 
@@ -68,7 +76,7 @@ export default function ConnectPage() {
     }
   };
 
-  const copy = (text: string, which: "url" | "cli" | "api") =>
+  const copy = (text: string, which: Copied) =>
     navigator.clipboard.writeText(text).then(
       () => {
         setCopied(which);
@@ -95,7 +103,7 @@ export default function ConnectPage() {
   };
 
   const profile = activeProfile(userId);
-  const cli = fresh ? `claude mcp add --transport http content-studio ${fresh.url}` : "";
+  const snippets = clientSnippets(fresh?.url ?? "");
   const curl = fresh
     ? `curl -X POST ${fresh.url} -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"add_draft","arguments":{"text":"..."}}}'`
     : "";
@@ -104,6 +112,15 @@ export default function ConnectPage() {
     <Button onClick={make} disabled={making} className="h-11 gap-2">
       <Link2 className="h-4 w-4" /> {making ? "Making the link..." : "Make a connection link"}
     </Button>
+  );
+  // one line truncates (Copy takes it whole); Cursor's JSON wraps
+  const snippet = (text: string, which: Copied) => (
+    <div className="flex gap-2">
+      <code className={`min-w-0 flex-1 rounded-md border border-border/60 bg-background px-2 py-2 text-xs ${text.includes("\n") ? "whitespace-pre-wrap break-all" : "truncate"}`}>{text}</code>
+      <Button size="sm" variant="outline" onClick={() => copy(text, which)} className="h-9 shrink-0 gap-1.5 self-start">
+        {copied === which ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied === which ? "Copied" : "Copy"}
+      </Button>
+    </div>
   );
   const turnOff = (l: ClaudeLink) => (
     <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => remove(l)}>
@@ -140,12 +157,19 @@ export default function ConnectPage() {
             </li>
             <li className="space-y-1.5">
               <span className="font-semibold">Claude Code:</span>
-              <div className="flex gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-md border border-border/60 bg-background px-2 py-2 text-xs">{cli}</code>
-                <Button size="sm" variant="outline" onClick={() => copy(cli, "cli")} className="h-9 shrink-0 gap-1.5">
-                  {copied === "cli" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied === "cli" ? "Copied" : "Copy"}
-                </Button>
-              </div>
+              {snippet(snippets.cli, "cli")}
+            </li>
+            <li>
+              <span className="font-semibold">ChatGPT on the web (Business, Enterprise or Edu):</span> Plugins, the plus button, Add custom MCP server. Name it
+              Postmosis, paste the link as the Server URL, pick No authentication, then Create as a plugin and install it.
+            </li>
+            <li className="space-y-1.5">
+              <span className="font-semibold">Cursor:</span> add this to ~/.cursor/mcp.json.
+              {snippet(snippets.cursor, "cursor")}
+            </li>
+            <li className="space-y-1.5">
+              <span className="font-semibold">Codex:</span>
+              {snippet(snippets.codex, "codex")}
             </li>
           </ol>
         </section>

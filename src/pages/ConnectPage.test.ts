@@ -15,7 +15,7 @@ vi.mock("@/lib/supabase", () => ({
 // the shared tab row reads the rails store, which has no server snapshot; it is not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), PLAYBOOK_TABS: [] }));
 
-import ConnectPage from "./ConnectPage";
+import ConnectPage, { clientSnippets } from "./ConnectPage";
 
 const html = (path = "/connect") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(ConnectPage)));
 
@@ -51,5 +51,16 @@ describe("/connect for Leo", () => {
     expect(out.match(/<code class="font-mono/g)).toHaveLength(18);
     // the curl line shows only beside a fresh link
     expect(out).not.toContain("Use it from Zapier");
+  });
+});
+
+describe("each client's setup line", () => {
+  it("carries the link whole", () => {
+    const url = "https://abc.supabase.co/functions/v1/content-studio-mcp/s1.Ab-c_9";
+    const s = clientSnippets(url);
+    expect(Object.keys(s).sort()).toEqual(["cli", "codex", "cursor"]);
+    for (const text of Object.values(s)) expect(text).toContain(url);
+    expect(JSON.parse(s.cursor)).toEqual({ mcpServers: { postmosis: { url } } });
+    expect(s.codex).toBe(`codex mcp add postmosis --url ${url}`);
   });
 });
