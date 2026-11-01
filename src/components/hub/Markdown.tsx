@@ -30,6 +30,7 @@ export default function Markdown({ children }: { children: string }) {
           />
         ),
         strong: (p) => <strong className="font-semibold text-foreground" {...p} />,
+        hr: (p) => <hr className="my-4 border-border" {...p} />,
       }}
     >
       {children}

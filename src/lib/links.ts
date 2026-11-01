@@ -688,7 +688,7 @@ export type BrandSection =
   // north star phase 4, Leo only
   | "website" | "products" | "demo-videos" | "people" | "font" | "on-every-post" | "language";
 export type GuideStep = "idea" | "draft" | "carousel" | "reel" | "reverse-engineer" | "compliance" | "schedule";
-export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs" | "rules" | "rhythm" | "first-action";
+export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs" | "design" | "campaigns" | "claude-design" | "rules" | "rhythm" | "first-action";
 /** A remixed post's compare strip on Write and the carousel maker (?compare=); version is the default, left out. */
 export const COMPARE_TABS = ["version", "original", "more"] as const;
 export type CompareView = Exclude<(typeof COMPARE_TABS)[number], "version">;

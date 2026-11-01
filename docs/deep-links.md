@@ -319,7 +319,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
 | /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
-| /tutorial | #section | why, voice, guided-flow, after, tabs, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
+| /tutorial | #section | why, voice, guided-flow, after, tabs, design, campaigns, claude-design, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
 | /voice | (none) | the past posts are typed text, kept for this tab until Save; Leo's sections and learnings are under "Faces, voices and brand" below | | | /voice |
 | /playbook | (none) | a summary page with no state of its own | | | /playbook |
 | /slideshow | s | a slideshow id: that slideshow in the editor; an unknown id shows the start card. Leo's sign-ins only (src/lib/leoOnly.ts) | none (the start card) | push | /slideshow?s=ssmh2k9x01ab |

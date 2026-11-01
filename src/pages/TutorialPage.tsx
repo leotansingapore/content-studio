@@ -1,4 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
+import Markdown from "@/components/hub/Markdown";
+import designGuide from "@/data/guides/design.md?raw";
+import campaignsGuide from "@/data/guides/campaigns.md?raw";
+import claudeDesignGuide from "@/data/guides/claude-design.md?raw";
 import { Button } from "@/components/ui/button";
 import { useTourUser } from "@/lib/useTourUser";
 import { startTour } from "@/lib/tour";
@@ -29,6 +33,13 @@ import {
   Compass,
 } from "lucide-react";
 import { adviserBrand } from "@/lib/profession";
+
+/** The help guides for Design, slideshow campaigns and Claude in Design (Volume's features, folded in 1 Nov). */
+export const GUIDES = [
+  { id: "design", title: "Design slideshows", body: designGuide },
+  { id: "campaigns", title: "Run a slideshow campaign", body: campaignsGuide },
+  { id: "claude-design", title: "Let Claude build slideshows in Design", body: claudeDesignGuide },
+] as const;
 
 export default function TutorialPage() {
   // /tutorial#tabs and the other section ids (docs/deep-links.md) land on that card
@@ -456,6 +467,17 @@ export default function TutorialPage() {
       </Card>
 
       {/* Hard rules */}
+      {GUIDES.map((g) => (
+        <Card key={g.id} id={g.id} className="scroll-mt-20 border-border/60 shadow-card">
+          <CardHeader>
+            <CardTitle className="font-serif text-xl">{g.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Markdown>{g.body}</Markdown>
+          </CardContent>
+        </Card>
+      ))}
+
       <Card id="rules" className="scroll-mt-20 border-destructive/30 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">Hard rules</CardTitle>

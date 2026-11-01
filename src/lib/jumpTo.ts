@@ -58,7 +58,7 @@ const KEYWORDS: Record<string, string> = {
   "/recruit/engage": "replies comments dms",
   "/academy": "lessons course",
   "/create-guide": "how to post guide",
-  "/tutorial": "help how it works",
+  "/tutorial": "help how it works guide",
   "/feedback": "requests bugs roadmap feature",
   "/media": "library pictures images photos",
   "/edit": "reel clip captions subtitles",
