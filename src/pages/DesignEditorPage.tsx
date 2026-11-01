@@ -371,11 +371,12 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     const files = await run((signal) => designPngs(userId, workRef.current, progress(signal)));
     if (!files) return;
     try {
-      const sent = await sendToPhone(files);
+      const sent = await sendToPhone(files, workRef.current);
       setPhone(sent);
       // the QR library loads only here, the one place it's used
       const { toDataURL } = await import("qrcode");
-      setPhone({ ...sent, qr: await toDataURL(sent.url, { margin: 1, width: 240 }) });
+      // a caption full of emoji can outgrow a QR code: the link still shows, to open or copy
+      setPhone({ ...sent, qr: await toDataURL(sent.url, { margin: 1, width: 240 }).catch(() => undefined) });
     } catch (e) {
       toast({ title: "Couldn't send it to your phone", description: (e as Error).message, variant: "destructive" });
     }
