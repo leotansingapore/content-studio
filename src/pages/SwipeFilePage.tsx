@@ -125,9 +125,10 @@ export default function SwipeFilePage() {
   }, [leo]);
   const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
   // Top posts and the Singapore ads are Singapore personal finance: another brand's page opens on News, and its ads
-  // tab opens only from a link (Leo's ads tab is his own library and stays). Leo's open on Apps like yours there.
+  // tab opens only from a link (Leo's ads tab is his own library and stays). Leo's open on Apps like yours there, and
+  // an adviser brand offers it as a tab too (Leo 1 Nov: competitor accounts for any brand).
   const adviser = adviserBrand();
-  const similarTab = Boolean(leo) && !adviser;
+  const similarTab = Boolean(leo);
   const [tab] = useUrlState<Tab>("tab", adviser ? "posts" : similarTab ? "similar" : "news", {
     allowed: [
       ...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search", "hooks"] as const) : []),

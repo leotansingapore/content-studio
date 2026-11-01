@@ -241,15 +241,22 @@ describe("Top posts, the Singapore ads and Trends", () => {
     expect(draw(createElement(SwipeFilePage), "/swipe?tab=ads")).toContain("Paid ads running in Singapore");
   });
 
-  it("open on Apps like yours for Leo on another brand, and never show it on an adviser's", () => {
+  it("open on Apps like yours for Leo on another brand, and offer it as a tab on an adviser's", () => {
     as.user = { id: "u1", email: "tanjunsing@gmail.com" };
     device(COACH);
     expect(draw(createElement(SwipeFilePage), "/swipe")).toMatch(/aria-selected="true"[^>]*>Apps like yours/);
     expect(draw(createElement(SwipeFilePage), "/swipe?tab=news")).toMatch(/aria-selected="false"[^>]*>Apps like yours/);
     device(ADVISER);
-    const adviser = draw(createElement(SwipeFilePage), "/swipe?tab=similar");
-    expect(adviser).not.toContain("Apps like yours");
-    expect(adviser).toMatch(/aria-selected="true"[^>]*>Posts /);
+    expect(draw(createElement(SwipeFilePage), "/swipe")).toMatch(/aria-selected="true"[^>]*>Posts /);
+    expect(draw(createElement(SwipeFilePage), "/swipe")).toMatch(/aria-selected="false"[^>]*>Apps like yours/);
+    expect(draw(createElement(SwipeFilePage), "/swipe?tab=similar")).toMatch(/aria-selected="true"[^>]*>Apps like yours/);
+  });
+
+  it("never show Apps like yours to anyone else, on any brand", () => {
+    for (const brand of [ADVISER, COACH]) {
+      device(brand);
+      expect(draw(createElement(SwipeFilePage), "/swipe?tab=similar")).not.toContain("Apps like yours");
+    }
   });
 });
 
