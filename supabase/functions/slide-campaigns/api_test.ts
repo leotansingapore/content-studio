@@ -155,9 +155,21 @@ let zernioRefuses = false;
 
 // canned writer and Zernio; everything else (fonts, the resvg wasm, Pexels) goes to the network
 const realFetch = globalThis.fetch;
+// a stand-in for the Vercel drawer (api/slide-render.ts), for tests that set SLIDE_RENDER_URL to it
+const DRAWER = "https://drawer.test/api/slide-render";
+const drawn: Row[] = [];
+// writer calls in flight now and at most, to see runs made at once
+const writer = { now: 0, most: 0 };
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  if (url === DRAWER) {
+    drawn.push(JSON.parse(String(init?.body)).slide);
+    return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), { headers: { "content-type": "image/png" } });
+  }
   if (url.includes("api.openai.com")) {
+    writer.most = Math.max(writer.most, ++writer.now);
+    await new Promise((ok) => setTimeout(ok, 20));
+    writer.now--;
     const content = JSON.stringify({ slides: ["Walk the course before you play it.", "Count your putts for a week.", "Practise the shot you avoid."], cta: "", caption: "Three habits that cut strokes. #golf #golftips" });
     return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200, headers: { "content-type": "application/json" } });
   }
@@ -359,6 +371,34 @@ Deno.test("two ticks at once make one post for a slot", async () => {
   const [a, b] = await Promise.all([tick(admin as never), tick(admin as never)]);
   assertEquals(a.made + b.made, 1);
   assertEquals(posts.length, before + 1);
+});
+
+Deno.test("a tick makes a dozen campaigns due at the same time, several at once", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  Deno.env.set("SLIDE_RENDER_URL", DRAWER);
+  Deno.env.set("SLIDE_RENDER_SECRET", "s");
+  try {
+    for (const c of db.cs_slide_campaigns) c.status = "paused";
+    usage.clear();
+    writer.most = 0;
+    const slot = new Date(Date.now() + 10 * 60_000).toISOString();
+    const ids: string[] = Array.from({ length: 12 }, () => crypto.randomUUID());
+    for (const id of ids) {
+      db.cs_slide_campaigns.push({
+        id, owner_id: A, profile_id: "me", name: "Busy", status: "live", account_id: ACCOUNT, next_run_at: slot, last_hook: null,
+        spec: { hooks: ["One hook"], content: { slides: 1 }, cta: { placement: "none" } },
+        schedule: { tz: "Asia/Singapore", times: [{ at: "09:00", days: [0, 1, 2, 3, 4, 5, 6] }] },
+      });
+    }
+    assertEquals(await tick(admin as never), { made: 12, failed: 0 });
+    assertEquals(writer.most, 6, "six runs at a time");
+    for (const id of ids) assertEquals(db.cs_slide_campaign_runs.filter((r) => r.campaign_id === id && r.status === "scheduled").length, 1, id);
+    assert(db.cs_slide_campaigns.filter((c) => ids.includes(c.id as string)).every((c) => c.last_error === null && String(c.next_run_at) > slot));
+  } finally {
+    Deno.env.delete("SLIDE_RENDER_URL");
+    for (const c of db.cs_slide_campaigns) c.status = "paused";
+    usage.clear();
+  }
 });
 
 Deno.test("a post handed to Zernio for later is taken back by a pause, a delete, an account change or consent withdrawn", async () => {

@@ -8,6 +8,7 @@
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
+import { pool } from "../_shared/pool.ts";
 import { PEXELS_SRC, nextRunAt, ownUpload, publishMode, sanitizePublish, sanitizeSchedule, sanitizeSpec, type Publish } from "../_shared/slideCampaign.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { callerAccounts, zernioClient } from "../_shared/zernio.ts";
@@ -22,8 +23,10 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 export const MAX_CAMPAIGNS = 20;
 export const MAX_LIBRARIES = 30;
 export const MAX_LIBRARY_IMAGES = 300;
-/** Runs the cron takes per tick, and the time after which a tick starts no new run, so it ends inside its limit. */
-const PER_TICK = 4;
+/** Campaigns the cron takes per tick, how many runs it makes at once, and the time after which a tick starts no new
+ *  run, so it ends inside its limit. 12 a tick, 4 ticks inside the 20-minute lead: about 48 campaigns per posting time. */
+const PER_TICK = 12;
+const AT_ONCE = 6;
 const TICK_BUDGET_MS = 90_000;
 /** How long example runs and posted runs (with their PNGs) are kept; posted ones outlive Zernio's 7-day links. */
 const KEEP_PREVIEW_MS = 7 * 24 * 3600_000;
@@ -370,10 +373,10 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
   const { data } = await admin.from("cs_slide_campaigns").select("*").eq("status", "live").lte("next_run_at", new Date(now.getTime() + LEAD_MS).toISOString()).order("next_run_at").limit(PER_TICK);
   let made = 0;
   let failed = 0;
-  for (const c of (data ?? []) as CampaignRow[]) {
+  await pool((data ?? []) as CampaignRow[], AT_ONCE, async (c) => {
     const at = new Date(c.next_run_at!);
     const next = nextRunAt(sanitizeSchedule(c.schedule), new Date(Math.max(at.getTime(), now.getTime())))?.toISOString() ?? null;
-    if (Date.now() - now.getTime() > TICK_BUDGET_MS) break;
+    if (Date.now() - now.getTime() > TICK_BUDGET_MS) return;
     // claim the slot first: a second tick that read the same row finds next_run_at moved and leaves it
     const { data: claimed } = await admin
       .from("cs_slide_campaigns")
@@ -382,7 +385,7 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
       .eq("status", "live")
       .eq("next_run_at", c.next_run_at)
       .select("id");
-    if (!claimed?.length) continue;
+    if (!claimed?.length) return;
     // a slot already passed (the tick was late) is skipped rather than posted at the wrong time
     const due = at.getTime() > now.getTime() + 60_000;
     let error: string | null = null;
@@ -404,7 +407,7 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
       .from("cs_slide_campaigns")
       .update({ ...(due ? { last_run_at: now.toISOString() } : {}), last_error: error, ...(posting(c.owner_id) ? {} : { status: "paused", next_run_at: null }) })
       .eq("id", c.id);
-  }
+  });
   await sweep(admin, now);
   return { made, failed };
 }
