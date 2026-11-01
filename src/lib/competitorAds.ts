@@ -1,7 +1,8 @@
 // Their ads (/competitors, Leo only; docs/north-star/items/find-competitor-ads.md): each competitor's Meta ads, read
 // by the competitors edge function (mode "ads") and kept per brand in one synced key written whole. Checks run outside
 // React, one at a time: opening the view checks whatever is 7+ days old (phase2-build-brief.md decision 8), and
-// leaving the page keeps a check going. The job plumbing below is shared with Their posts (competitorPosts.ts).
+// leaving the page keeps a check going. The job plumbing below is shared with Their posts (competitorPosts.ts) and
+// Apps like yours (similarAccounts.ts).
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { AdLike } from "@/lib/adsSwipe";
@@ -143,7 +144,7 @@ export function toAdLike(ad: CompetitorAd, advertiser: string): AdLike {
 const STOP = [403, 429, 503];
 
 /** One feed's checks: one per target at a time, failures kept for the screen, and the weekly round. */
-export function checkJobs(kind: "ads" | "posts") {
+export function checkJobs(kind: "ads" | "posts" | "similar") {
   const running = new Set<string>();
   const failures = new Map<string, EdgeError>();
   const listeners = new Set<() => void>();

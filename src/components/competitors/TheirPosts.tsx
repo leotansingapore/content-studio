@@ -2,7 +2,7 @@
 // Instagram and TikTok posts, ranked by the outlier score (each post against its own account's usual), with a pace
 // table per account and the weekly check (opening the view checks whatever is 7+ days old). Checks run outside React
 // in src/lib/competitorPosts.ts. ?c= is the pill, ?platform= and ?sort= the filters, ?post= marks one post.
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Loader2, RefreshCw, Shuffle } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -189,7 +189,7 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
       {(shown.length > 0 || skeletons) && (
         <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {skeletons && Array.from({ length: 3 }, (_, k) => <SkeletonCard key={`s${k}`} />)}
-          {shown.map((f) => <PostCard key={f.key} f={f} linked={f.key === linked} />)}
+          {shown.map((f) => <PostCard key={f.key} f={f} name={f.competitor.name} path={links.competitors({ view: "posts", post: f.key })} linked={f.key === linked} />)}
         </div>
       )}
       {feed.length > shown.length && (
@@ -224,7 +224,7 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
   );
 }
 
-function SkeletonCard() {
+export function SkeletonCard() {
   return (
     <div aria-hidden className="space-y-2 rounded-xl border border-border/60 p-3">
       <div className="h-4 w-24 animate-pulse rounded-full bg-muted" />
@@ -234,9 +234,17 @@ function SkeletonCard() {
   );
 }
 
-function PostCard({ f, linked }: { f: FeedPost; linked: boolean }) {
+/** One post with its outlier badge, Remix and Open; also Apps like yours' card (`children` adds to the buttons). */
+export function PostCard({ f, name, path, linked, children }: {
+  f: Pick<FeedPost, "account" | "post" | "outlier" | "fresh">;
+  name: string;
+  /** The post's own link, for Copy link. */
+  path: string;
+  linked: boolean;
+  children?: ReactNode;
+}) {
   const ref = useScrollToItem<HTMLElement>(linked);
-  const { post: p, account: a, competitor: c } = f;
+  const { post: p, account: a } = f;
   const kind = p.format === "video" ? (a.platform === "instagram" ? "Reel" : "Video") : p.format === "carousel" ? "Carousel" : "Photo";
   const numbers = [p.views !== null ? `${fmt(p.views)} views` : "", `${fmt(p.likes)} likes`, `${fmt(p.comments)} comments`].filter(Boolean).join(", ");
   const open = safeExternalUrl(p.url);
@@ -245,14 +253,14 @@ function PostCard({ f, linked }: { f: FeedPost; linked: boolean }) {
       <div className="flex items-center gap-1.5">
         <OutlierBadge outlier={f.outlier} />
         {f.fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">New</span>}
-        <CopyLinkButton path={links.competitors({ view: "posts", post: f.key })} label={`Copy link to ${c.name}'s post`} className="-my-2 -mr-2 ml-auto" />
+        <CopyLinkButton path={path} label={`Copy link to ${name}'s post`} className="-my-2 -mr-2 ml-auto" />
       </div>
       <p className="text-[11px] text-muted-foreground">{[kind, p.postedAt ? dayMonth(p.postedAt) : "", NAME[a.platform]].filter(Boolean).join(", ")}</p>
-      <p className="truncate text-[11px] font-medium">{c.name} <span className="font-normal text-muted-foreground">@{a.handle}</span></p>
+      <p className="truncate text-[11px] font-medium">{name} <span className="font-normal text-muted-foreground">@{a.handle}</span></p>
       <p className="line-clamp-2 text-xs">{p.caption || "No caption"}</p>
       <p className="text-[11px] tabular-nums text-muted-foreground">{numbers}</p>
       <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
-        <RemixButton source={fromFollowPost(a, p)} label={`${c.name}'s post`}>
+        <RemixButton source={fromFollowPost(a, p)} label={`${name}'s post`}>
           <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
             <Link to={remixUrl(a, p)}><Shuffle className="h-3.5 w-3.5" /> Remix</Link>
           </Button>
@@ -262,6 +270,7 @@ function PostCard({ f, linked }: { f: FeedPost; linked: boolean }) {
             <a href={open} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
           </Button>
         )}
+        {children}
       </div>
     </article>
   );

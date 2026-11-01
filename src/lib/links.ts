@@ -161,10 +161,12 @@ export const links = {
     `/profiles${qs({ q: o.q?.trim(), company: list(o.company), platform: list(o.platform), audience: list(o.audience), niche: list(o.niche), saved: o.saved && "only", sort: o.sort })}`,
   /** works: scrolls to "What works for them" (#works). */
   profile: (id: string, o: { works?: boolean } = {}) => `/profiles/${encodeURIComponent(id)}${o.works ? "#works" : ""}`,
-  /** foryou, search and hooks are Leo's tabs (phase 2); each tab reads the shared params with its own allowed list. */
+  /** foryou, search, hooks and similar are Leo's tabs; each tab reads the shared params with its own allowed list. */
   swipe: (
     o: {
-      tab?: "posts" | "news" | "ads" | "foryou" | "search" | "hooks";
+      tab?: "posts" | "news" | "ads" | "foryou" | "search" | "hooks" | "similar";
+      /** Apps like yours: slideshows, carousels, reels or ugc (all is left out). */
+      f?: string;
       q?: string;
       format?: string;
       from?: string;
@@ -206,6 +208,7 @@ export const links = {
   ) =>
     `/swipe${qs({
       tab: o.tab !== "posts" && o.tab,
+      f: o.f !== "all" && o.f,
       q: o.q?.trim(),
       format: o.format !== "all" && o.format,
       from: o.from !== "all" && o.from,

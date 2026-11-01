@@ -41,6 +41,7 @@ import {
 const AdLibrary = lazy(() => import("@/components/AdLibrary"));
 const ForYou = lazy(() => import("@/components/swipe/ForYou"));
 const HookBank = lazy(() => import("@/components/swipe/HookBank"));
+const AppsLikeYours = lazy(() => import("@/components/swipe/AppsLikeYours"));
 
 // Static data → enrich once at module load.
 const ALL = getAllTopPosts();
@@ -65,9 +66,9 @@ const KIND_OPTIONS = [
 
 const PAGE_SIZE = 12;
 
-type Tab = "posts" | "foryou" | "news" | "ads" | "search" | "hooks";
+type Tab = "posts" | "foryou" | "news" | "ads" | "search" | "hooks" | "similar";
 // Leo's tabs (phase 2): a link naming one waits for the session rather than flashing Top posts first.
-const LEO_TABS = ["search", "foryou", "hooks"];
+const LEO_TABS = ["search", "foryou", "hooks", "similar"];
 
 const postKey = (p: ScoredPost) => p.post.advisorId + "-" + p.post.shortCode;
 
@@ -124,10 +125,14 @@ export default function SwipeFilePage() {
   }, [leo]);
   const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
   // Top posts and the Singapore ads are Singapore personal finance: another brand's page opens on News, and its ads
-  // tab opens only from a link (Leo's ads tab is his own library and stays)
+  // tab opens only from a link (Leo's ads tab is his own library and stays). Leo's open on Apps like yours there.
   const adviser = adviserBrand();
-  const [tab] = useUrlState<Tab>("tab", adviser ? "posts" : "news", {
-    allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search", "hooks"] as const) : [])],
+  const similarTab = Boolean(leo) && !adviser;
+  const [tab] = useUrlState<Tab>("tab", adviser ? "posts" : similarTab ? "similar" : "news", {
+    allowed: [
+      ...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search", "hooks"] as const) : []),
+      ...(similarTab ? (["similar"] as const) : []),
+    ],
   });
   const isLeo = Boolean(leo);
   const enriched = useMemo(() => (isLeo ? tagged() : ENRICHED), [isLeo]);
@@ -150,7 +155,7 @@ export default function SwipeFilePage() {
     update({
       tab: t === "posts" ? null : t, q: null, format: null, from: null, topic: null, angle: null, audience: null, sort: null, saved: null, post: null,
       industry: null, story: null, ad: null, kind: null, hidden: null, scope: null, hook: null, running: null, run: null, platform: null, emotion: null,
-      posted: null, why: null, formula: null,
+      posted: null, why: null, formula: null, f: null,
     });
   const [userId, setUserId] = useState<string | null>(null);
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
@@ -251,11 +256,13 @@ export default function SwipeFilePage() {
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
   const openItem = openKey ? enriched.find((p) => postKey(p) === openKey) ?? null : null;
-  // The posts are bundled, so an id that is not among them is gone: open the page without it, saying so.
-  useGoneItem("post", !!openItem);
+  // The posts are bundled, so an id that is not among them is gone: open the page without it, saying so. Apps like
+  // yours checks its own ?post=.
+  useGoneItem("post", tab === "similar" ? undefined : !!openItem);
 
   const tabs = [
     ...(adviser ? [{ id: "posts" as const, label: "Posts", n: TOTAL_TOP_POSTS }] : []),
+    ...(similarTab ? [{ id: "similar" as const, label: "Apps like yours", n: null }] : []),
     ...(leo ? [{ id: "foryou" as const, label: "For you", n: null }] : []),
     adviser ? { id: "news" as const, label: "Industry news", n: NEWS.length } : { id: "news" as const, label: "News", n: null },
     // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
@@ -300,6 +307,10 @@ export default function SwipeFilePage() {
 
       {leoTabLoading ? (
         <div className="min-h-[40vh]" aria-busy="true" />
+      ) : tab === "similar" && leo && similarTab ? (
+        <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
+          <AppsLikeYours userId={leo.id} />
+        </Suspense>
       ) : tab === "search" && leo ? (
         <ViralSearch userId={leo.id} />
       ) : (tab === "foryou" || tab === "hooks") && leo ? (

@@ -240,6 +240,17 @@ describe("Top posts, the Singapore ads and Trends", () => {
     device(COACH);
     expect(draw(createElement(SwipeFilePage), "/swipe?tab=ads")).toContain("Paid ads running in Singapore");
   });
+
+  it("open on Apps like yours for Leo on another brand, and never show it on an adviser's", () => {
+    as.user = { id: "u1", email: "tanjunsing@gmail.com" };
+    device(COACH);
+    expect(draw(createElement(SwipeFilePage), "/swipe")).toMatch(/aria-selected="true"[^>]*>Apps like yours/);
+    expect(draw(createElement(SwipeFilePage), "/swipe?tab=news")).toMatch(/aria-selected="false"[^>]*>Apps like yours/);
+    device(ADVISER);
+    const adviser = draw(createElement(SwipeFilePage), "/swipe?tab=similar");
+    expect(adviser).not.toContain("Apps like yours");
+    expect(adviser).toMatch(/aria-selected="true"[^>]*>Posts /);
+  });
 });
 
 describe("the stock photo search", () => {
