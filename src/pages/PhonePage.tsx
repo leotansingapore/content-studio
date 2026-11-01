@@ -15,26 +15,26 @@ const fileOf = async (url: string, i: number) => new File([await blobOf(url)], `
 export default function PhonePage() {
   const { token } = useParams();
   const [got, setGot] = useState<Got | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<File[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     void callFn<{ urls: string[]; expires_at: string }>("slide-campaigns", { action: "phone-get", token }, "Couldn't open the slides. Try the link again.")
-      .then(setGot)
+      .then((g) => {
+        setGot(g);
+        // fetched now, not on the tap: iOS Safari only opens the share sheet straight from the tap
+        void Promise.all(g.urls.map(fileOf)).then(setFiles, (e) => setNote((e as Error).message));
+      })
       .catch((e) => setGot({ error: (e as Error).message }));
   }, [token]);
 
-  const share = async (urls: string[]) => {
-    setBusy(true);
+  const share = async (files: File[]) => {
     setNote(null);
     try {
-      const files = await Promise.all(urls.map(fileOf));
       if (navigator.canShare?.({ files })) await navigator.share({ files });
       else setNote("This browser can't share pictures. Save each slide instead.");
     } catch (e) {
       if ((e as Error).name !== "AbortError") setNote((e as Error).message);
-    } finally {
-      setBusy(false);
     }
   };
   const save = async (url: string, i: number) => {
@@ -56,8 +56,8 @@ export default function PhonePage() {
       {got && "error" in got && <p className="text-sm text-destructive">{got.error}</p>}
       {got && "urls" in got && (
         <>
-          <Button size="lg" className="w-full gap-2" disabled={busy} onClick={() => void share(got.urls)}>
-            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />} Share all {got.urls.length}
+          <Button size="lg" className="w-full gap-2" disabled={!files} onClick={() => files && void share(files)}>
+            {files ? <Share2 className="h-5 w-5" /> : <Loader2 className="h-5 w-5 animate-spin" />} Share all {got.urls.length}
           </Button>
           {note && <p className="text-sm text-destructive">{note}</p>}
           <ol className="space-y-3">
