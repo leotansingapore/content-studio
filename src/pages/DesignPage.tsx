@@ -7,10 +7,12 @@ import { Copy, Images, Plug, Plus, Trash2 } from "lucide-react";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
   DESIGNS_CHANGED,
   FORMAT_LABEL,
+  MAX_DESIGNS,
   ensureDesignFonts,
   loadDesigns,
   loadOwnTemplates,
@@ -42,6 +44,7 @@ function Cover({ d, onOpen, children }: { d: Pick<Design, "format" | "slides">; 
 export default function DesignPage() {
   const user = useSignedInUser();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [params, setParams] = useSearchParams();
   const format: DesignFormat = params.get("format") === "instagram" ? "instagram" : "tiktok";
   const [templates, setTemplates] = useState<DesignTemplate[] | null>(null);
@@ -63,7 +66,8 @@ export default function DesignPage() {
 
   if (!userId) return null;
   const open = (d: Design) => {
-    saveDesign(userId, d);
+    // New, Duplicate and the templates all start here; Design keeps MAX_DESIGNS and never drops one to make room
+    if (!saveDesign(userId, d)) return toast({ title: `You have ${MAX_DESIGNS} slideshows, the most Design keeps`, description: "Delete one to start another." });
     navigate(`/design/${d.id}`);
   };
   const shown = (templates ?? []).filter((t) => t.docs[format]);

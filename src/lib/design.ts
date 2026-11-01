@@ -47,9 +47,11 @@ function write(key: string, list: Design[]): Design[] {
 
 export const loadDesigns = (userId: string | null | undefined): Design[] => (userId ? read(PREFIX + scoped(userId)) : []);
 export const designById = (userId: string | null | undefined, id: string | undefined) => (id ? (loadDesigns(userId).find((d) => d.id === id) ?? null) : null);
-/** Saves (or replaces) one design, newest first, keeping the latest MAX_DESIGNS. */
-export function saveDesign(userId: string, d: Design, now = new Date()): Design[] {
-  return write(PREFIX + scoped(userId), [{ ...d, updatedAt: now.toISOString() }, ...loadDesigns(userId).filter((x) => x.id !== d.id)].slice(0, MAX_DESIGNS));
+/** Saves (or replaces) one design, newest first. A new one past MAX_DESIGNS is refused (null): nothing is dropped for it. */
+export function saveDesign(userId: string, d: Design, now = new Date()): Design[] | null {
+  const list = loadDesigns(userId);
+  if (list.length >= MAX_DESIGNS && !list.some((x) => x.id === d.id)) return null;
+  return write(PREFIX + scoped(userId), [{ ...d, updatedAt: now.toISOString() }, ...list.filter((x) => x.id !== d.id)].slice(0, MAX_DESIGNS));
 }
 export const removeDesign = (userId: string, id: string) => write(PREFIX + scoped(userId), loadDesigns(userId).filter((x) => x.id !== id));
 

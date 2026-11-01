@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import templatesRaw from "../../supabase/functions/_shared/designTemplates.json" with { type: "json" };
 import { staleCutout } from "@/components/design/SlideView";
 import {
@@ -19,7 +19,7 @@ import {
   type ImageLayer,
 } from "@/lib/design";
 import { designToDraft } from "@/pages/DesignEditorPage";
-import { FOLLOW_QUIET_MS, followStep } from "@/lib/design";
+import { FOLLOW_QUIET_MS, MAX_DESIGNS, followStep, loadDesigns, saveDesign } from "@/lib/design";
 import * as shared from "../../supabase/functions/_shared/design.ts";
 
 describe("accent words", () => {
@@ -172,6 +172,26 @@ describe("following Claude in the open editor", () => {
     // the same document with its keys in another order is the same document
     const reordered = { updatedAt: claude.updatedAt, slides: open.slides, format: open.format, caption: open.caption, title: open.title, id: open.id };
     expect(followStep(open, reordered, at(60_000))).toBe("ignore");
+  });
+});
+
+describe("saving slideshows", () => {
+  const UID = "11111111-2222-4333-8444-555555555555";
+  beforeEach(() => {
+    const m = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
+  });
+  afterEach(() => delete (globalThis as { localStorage?: unknown }).localStorage);
+
+  it("refuses a new one past MAX_DESIGNS instead of dropping the oldest, and still saves the ones it has", () => {
+    const decks = Array.from({ length: MAX_DESIGNS }, (_, i) => ({ ...newDesign("tiktok", `Deck ${i}`), id: `dsg_${i}` }));
+    for (const d of decks) expect(saveDesign(UID, d)).not.toBeNull();
+    expect(saveDesign(UID, newDesign("tiktok", "One too many"))).toBeNull();
+    expect(loadDesigns(UID)).toHaveLength(MAX_DESIGNS);
+    expect(loadDesigns(UID).some((d) => d.id === "dsg_0")).toBe(true);
+    // the editor's own save of a design it has goes through
+    expect(saveDesign(UID, { ...decks[0], title: "Renamed" })?.[0]).toMatchObject({ id: "dsg_0", title: "Renamed" });
+    expect(loadDesigns(UID)).toHaveLength(MAX_DESIGNS);
   });
 });
 
