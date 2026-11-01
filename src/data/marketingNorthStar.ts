@@ -12,7 +12,7 @@
 
 export type MkStatus = "done" | "started" | "todo";
 
-export type MkArea = "leaks" | "loop" | "position" | "faces" | "creators" | "scale";
+export type MkArea = "leaks" | "loop" | "position" | "faces" | "creators" | "referral" | "scale";
 
 export type MkApp = "all" | "finternship" | "at" | "sb" | "cmfas" | "postmosis";
 
@@ -48,7 +48,7 @@ export interface MkAsk {
 
 export const MK_STATUS_ORDER: MkStatus[] = ["todo", "started", "done"];
 
-export const MK_AREA_ORDER: MkArea[] = ["leaks", "loop", "position", "faces", "creators", "scale"];
+export const MK_AREA_ORDER: MkArea[] = ["leaks", "loop", "position", "faces", "creators", "referral", "scale"];
 
 export const MK_AREAS: Record<MkArea, { label: string; hint: string }> = {
   leaks: { label: "Stop the leaks", hint: "Things that would waste money on any app until they are fixed." },
@@ -56,6 +56,7 @@ export const MK_AREAS: Record<MkArea, { label: string; hint: string }> = {
   position: { label: "Positioning", hint: "One sentence per app that every ad, post and page comes back to." },
   faces: { label: "Leo on camera", hint: "The founder as the face across the adviser apps." },
   creators: { label: "Creators", hint: "Real people who post for an app that has no page of its own yet." },
+  referral: { label: "Referrals and team buyers", hint: "People who already know an app bring the next buyer, through a link we can count." },
   scale: { label: "Scale what won", hint: "More creators and less of Leo's time, once the pilot works." },
 };
 
@@ -359,6 +360,32 @@ export const MK_ITEMS: MkItem[] = [
     why: "Kenyon (21:58): narrow niches convert better and their formats last longer.",
     ours: "CMFAS Prep sells exam passes but records nobody who passed the real exam. Every user has a /referral link (10% off for a friend, 10% credit back). FINternship interns sit the exams.",
     build: "Ask pass holders and interns for a short 'how I passed' video with their own link; organic only, pointing at the starter bundle.",
+  },
+  {
+    id: "cmfas-leaders-recruits",
+    area: "referral",
+    title: "District leaders Leo already knows hear once about team passes for their new recruits",
+    status: "todo",
+    phase: 4,
+    app: "cmfas",
+    owner: "Leo",
+    why: "Excel Exercises' founder says part of the growth from $10K to $30K a month came from bosses who asked to sign up a whole group, about 50 people at a time (Starter Story, pwvnH9S4j60 at 8:01). On 1 Nov 2026 its homepage claimed 50+ partner organisations, and its paywall sends teachers to the founder by email. The person who pays for a recruit's exam prep is their leader, and Leo already talks to leaders through ActivityTracker and FINternship.",
+    ours: "CMFAS Prep sells team passes: a manager picks My team on the buy page, pays once, assigns each pass by email from /team, and gets a Monday progress email and a buy prompt when a candidate passes or lapses (examprep-app fe477b75; the walkthrough is cmfas-exams-prep.com/manager-guide). No leader has been told about it.",
+    build: "Claude lists the district and agency leaders Leo already works with through ActivityTracker and FINternship, from his own records, adding nobody from outside. Leo writes to each once, personally, about team passes for the recruits they bring on before their papers, with the manager guide link tagged utm_source=leader-note. No second message to anyone who does not answer. The Monday read-back counts team passes bought from that tag. Waits on leaks-cmfas-mail, so replies reach someone.",
+    question: "Write to ActivityTracker's customers too, or only to leaders Leo knows personally?",
+  },
+  {
+    id: "cmfas-tell-manager",
+    area: "referral",
+    title: "A candidate can send their manager the team-pass page from inside CMFAS Prep",
+    status: "todo",
+    phase: 4,
+    app: "cmfas",
+    owner: "Claude",
+    why: "Excel Exercises' founder says its team deals started with a user who liked the training telling a boss, and the boss asking to sign up about 50 people (Starter Story, pwvnH9S4j60 at 8:01). On 1 Nov 2026 its dashboard had a group admin portal and the line 'Earn points and help your colleagues learn Excel!'. A CMFAS candidate usually sits the paper for an agency, and the agency's manager buys for the next recruits.",
+    ours: "Managers who already bought team passes get a Monday progress email and a buy prompt (examprep-app fe477b75). A candidate who bought their own pass has a /referral link that gives a friend 10% off and them 10% credit, but nothing asks them to show their manager the team passes.",
+    build: "After a candidate's second mock, and on the dashboard after that, one button: Send my manager the team page. It opens the candidate's own WhatsApp or email with a two-line message they can edit and the manager guide link carrying their referral code, so a team purchase through it is counted. CMFAS Prep sends nothing itself and never reminds anyone. A test proves the button only opens the candidate's own share sheet.",
+    question: "Does a team purchase through a candidate's link earn them the usual 10% credit?",
   },
   {
     id: "scale-va-ops",
