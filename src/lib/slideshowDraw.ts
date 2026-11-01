@@ -164,6 +164,21 @@ export function paintSlide(
       ctx.fillRect(0, 0, W, H);
     }
   }
+  if (slide.rows) {
+    // the row lines sit under the words: dark on a plain slide, light over a picture
+    ctx.save();
+    ctx.strokeStyle = picture ? "rgba(255,255,255,0.7)" : "rgba(17,24,39,0.35)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([22, 16]);
+    for (const k of [1, 2]) {
+      const y = Math.round((H * k) / 3);
+      ctx.beginPath();
+      ctx.moveTo(60, y);
+      ctx.lineTo(W - 60, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   const measure = canvasMeasure(ctx);
   const { boxes } = layoutBoxes(slide, size, measure);
   ctx.textAlign = "center";

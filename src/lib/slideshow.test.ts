@@ -25,6 +25,9 @@ import {
   loadStyleHint,
   makeBox,
   makeSticker,
+  addThreeRowSlide,
+  setRows,
+  ROWS_FILL,
   BOX_FONTS,
   styleOf,
   isSticker,
@@ -230,6 +233,33 @@ describe("fonts and shadow", () => {
     for (const font of ["comic", "toString", 1]) expect(styleOf({ font })).toEqual({});
     expect(styleOf({ shadow: "yes" })).toEqual({});
     expect(styleOf({ font: "condensed", shadow: false })).toEqual({ font: "condensed", shadow: false });
+  });
+});
+
+describe("three-row slides", () => {
+  it("adds a light problem, fix and result slide after the current one, with its row lines, and keeps it through a sync", () => {
+    const s = blankSlideshow();
+    const t = addThreeRowSlide(s, 0);
+    expect(t.slides).toHaveLength(s.slides.length + 1);
+    const row = t.slides[1];
+    expect(row).toMatchObject({ fill: ROWS_FILL, rows: true });
+    expect(row.boxes).toHaveLength(6);
+    expect(row.boxes.filter((_, i) => i % 2 === 0).map((b) => b.text.slice(2))).toEqual(["The problem", "The fix", "The result"]);
+    expect(row.boxes.map((b) => b.y)).toEqual([...row.boxes.map((b) => b.y)].sort((a, b) => a - b));
+    const [back] = sanitizeSlideshows([t]);
+    expect(back.slides[1].rows).toBe(true);
+    expect(sanitizeSlideshows([{ ...t, slides: t.slides.map((x) => ({ ...x, rows: "yes" })) }])[0].slides[1].rows).toBeUndefined();
+  });
+
+  it("adds nothing to a full slideshow, and turns the row lines on and off on any slide", () => {
+    let full = blankSlideshow();
+    while (full.slides.length < 10) full = addThreeRowSlide(full, 0);
+    expect(addThreeRowSlide(full, 0)).toBe(full);
+    const s = blankSlideshow();
+    const id = s.slides[0].id;
+    const on = setRows(s, id, true);
+    expect(on.slides[0].rows).toBe(true);
+    expect("rows" in setRows(on, id, false).slides[0]).toBe(false);
   });
 });
 

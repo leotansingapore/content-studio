@@ -45,6 +45,8 @@ export interface ShowSlide {
    * `image` is the four drawn together (collage.ts composeCollage), so every drawing and download reads one picture.
    */
   cells?: CellPicture[];
+  /** Dashed lines between three rows: the problem, fix and result infographic (30 Oct teardowns, glowuptrickz). */
+  rows?: true;
   /** At most 6. */
   boxes: TextBox[];
 }
@@ -213,6 +215,31 @@ export function addSlide(s: Slideshow, after: number, style: Partial<BoxStyle> =
   slides.splice(clamp(after + 1, 0, slides.length), 0, slideWith([{ text: NEW_WORDS, y: 0.5, size: style.size ?? 48 }], style));
   return { ...s, slides };
 }
+
+/** The three-row slide's light background and its rows: a heading with its icon, then a line under it, per third. */
+export const ROWS_FILL = "#F3F4F6";
+const ROWS = [
+  ["\u274C The problem", "What goes wrong, in one line"],
+  ["\u2705 The fix", "What to do instead"],
+  ["\u2728 The result", "What changes for them"],
+];
+
+/** A new slide after `after` laid out as three rows, its words ready to replace; 6 boxes, the most a slide holds. */
+export function addThreeRowSlide(s: Slideshow, after: number): Slideshow {
+  if (s.slides.length >= MAX_SLIDES) return s;
+  const look = { bg: "none" as const, stroke: 0, w: 0.84 };
+  const boxes = ROWS.flatMap(([head, body], i) => [
+    makeBox(head, { ...look, font: "heavy", size: 46, color: "#111111", y: i / 3 + 0.1 }),
+    makeBox(body, { ...look, font: "clean", size: 34, color: "#374151", y: i / 3 + 0.2 }),
+  ]);
+  const slides = [...s.slides];
+  slides.splice(clamp(after + 1, 0, slides.length), 0, { id: newId("s"), fill: ROWS_FILL, rows: true, boxes });
+  return { ...s, slides };
+}
+
+/** The row lines on or off, on any slide. */
+export const setRows = (s: Slideshow, slideId: string, on: boolean): Slideshow =>
+  changeSlide(s, slideId, ({ rows: _rows, ...rest }) => (on ? { ...rest, rows: true } : rest));
 
 export function duplicateSlide(s: Slideshow, i: number): Slideshow {
   if (s.slides.length >= MAX_SLIDES || !s.slides[i]) return s;
@@ -407,6 +434,7 @@ function sanitizeSlide(raw: unknown): ShowSlide | null {
     ...(photo ? { photo } : {}),
     ...(typeof r.fill === "string" && HEX.test(r.fill) ? { fill: r.fill } : {}),
     ...(cells ? { cells } : {}),
+    ...(r.rows === true ? { rows: true as const } : {}),
     boxes: (Array.isArray(r.boxes) ? r.boxes : []).map(sanitizeBox).filter((b): b is TextBox => !!b).slice(0, MAX_BOXES),
   };
 }

@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Copy, ImagePlus, Images, LayoutGrid, Loader2, PaintBucket, Plus, Shuffle, Trash2, Type } from "lucide-react";
+import { Copy, ImagePlus, Images, LayoutGrid, Loader2, PaintBucket, Plus, Rows3, Shuffle, Trash2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { scanCompliance } from "@/lib/compliance";
@@ -51,6 +51,10 @@ export interface InspectorActs {
   /** Picks the collage cell (0 to 3) that Swap, My pictures and Upload change. */
   cell: (i: number) => void;
   addSlide: () => void;
+  /** Adds a three-row slide (problem, fix, result) after this one and opens it. */
+  threeRows: () => void;
+  /** Dashed row lines on this slide, on or off. */
+  rows: (on: boolean) => void;
   duplicate: () => void;
   deleteSlide: () => void;
   addText: () => void;
@@ -350,6 +354,13 @@ export default function SlideInspector({
                 <Trash2 className="h-3.5 w-3.5" /> Delete slide
               </Button>
             </div>
+            <Button type="button" variant="outline" size="sm" onClick={act.threeRows} disabled={full} className={outline("w-full")}>
+              <Rows3 className="h-3.5 w-3.5" /> Three-row slide
+            </Button>
+            <label className={cn("flex min-h-9 items-center gap-2 text-xs font-medium", TOUCH)}>
+              <input type="checkbox" checked={!!slide.rows} onChange={(e) => act.rows(e.target.checked)} className="h-4 w-4 accent-primary" />
+              Row lines on this slide
+            </label>
             {full && <p className="text-[11px] text-muted-foreground">10 slides is the most Post it for me can send.</p>}
             {least && <p className="text-[11px] text-muted-foreground">A slideshow needs at least 2 slides.</p>}
           </Group>

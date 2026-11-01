@@ -163,3 +163,20 @@ describe("paintSlide shadow", () => {
     expect(fills.find((f) => f.text === "Flat")!.blur).toBe(0);
   });
 });
+
+describe("paintSlide row lines", () => {
+  const strokes = (rows: boolean) => {
+    let n = 0;
+    const state: Record<string | symbol, unknown> = {};
+    const ctx = new Proxy(state, {
+      get: (t, k) => (k in t ? t[k] : k === "measureText" ? (text: string) => ({ width: text.length * 20 }) : k === "stroke" ? () => void n++ : () => undefined),
+      set: (t, k, v) => ((t[k] = v), true),
+    }) as unknown as CanvasRenderingContext2D;
+    paintSlide(ctx, { ...slide(makeBox("Words", { bg: "none" })), ...(rows ? { rows: true as const } : {}) }, "9x16", null);
+    return n;
+  };
+  it("draws two dashed lines on a three-row slide and none on any other", () => {
+    expect(strokes(true)).toBe(2);
+    expect(strokes(false)).toBe(0);
+  });
+});

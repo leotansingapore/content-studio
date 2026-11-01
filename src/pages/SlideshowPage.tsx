@@ -43,6 +43,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import {
   addBox,
   addSlide,
+  addThreeRowSlide,
   ago,
   applyToAll,
   blankSlideshow,
@@ -72,6 +73,7 @@ import {
   restoreSlide,
   saveSlideshow,
   saveStyleHint,
+  setRows,
   singlePicture,
   slideshowToDraft,
   startCells,
@@ -633,6 +635,11 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
       commit(duplicateSlide(work, index));
       go(index + 1);
     },
+    threeRows: () => {
+      commit(addThreeRowSlide(work, index));
+      go(index + 1);
+    },
+    rows: (on) => commit(setRows(workRef.current, slide.id, on)),
     deleteSlide: () => {
       const gone = slide;
       const at = index;

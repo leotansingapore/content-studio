@@ -10,7 +10,7 @@ const { default: SlideInspector } = await import("./SlideInspector");
 const { blankSlideshow, STICKERS } = await import("@/lib/slideshow");
 
 const noop = () => undefined;
-const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, words: noop, style: noop, overlay: noop };
+const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, threeRows: noop, rows: noop, words: noop, style: noop, overlay: noop };
 const draw = (slide: Record<string, unknown>, cell = 0, panel = "slide") =>
   renderToStaticMarkup(
     createElement(MemoryRouter, null,
@@ -48,5 +48,13 @@ describe("the Text tab's stickers", () => {
     const box = (i: number) => ({ id: `b${i}`, text: "x", x: 0.5, y: 0.5, w: 0.8, font: "clean", size: 40, color: "#111111", stroke: 0, strokeColor: "#FFFFFF", bg: "white" });
     const full = draw({ id: "s1", boxes: [0, 1, 2, 3, 4, 5].map(box) }, 0, "text");
     expect(full.match(/sticker" title="[^"]+" disabled=""/g)).toHaveLength(STICKERS.length);
+  });
+});
+
+describe("the Slide tab's three-row slide", () => {
+  it("offers a three-row slide and shows whether this slide has row lines", () => {
+    expect(draw({ id: "s1", boxes: [] })).toContain("Three-row slide");
+    expect(draw({ id: "s1", boxes: [] })).not.toMatch(/type="checkbox"[^>]*checked=""[^>]*\/>Row lines/);
+    expect(draw({ id: "s1", rows: true, boxes: [] })).toMatch(/type="checkbox"[^>]*checked=""[^>]*\/>Row lines/);
   });
 });
