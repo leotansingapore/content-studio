@@ -562,7 +562,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                 {runs.slice(0, 8).map((r) => (
                   <li key={r.id}>
                     <button type="button" className="w-full truncate text-left hover:underline" onClick={() => setPreview(r)}>
-                      {r.kind === "post" ? (r.status === "scheduled" && r.scheduled_for ? `To drafts ${when(r.scheduled_for)}` : r.status === "failed" ? "Failed" : "Made") : "Example"}: {r.hook}
+                      {r.kind === "post" ? (r.status === "scheduled" && r.scheduled_for ? `To TikTok ${when(r.scheduled_for)}` : r.status === "failed" ? "Failed" : "Made") : "Example"}: {r.hook}
                     </button>
                   </li>
                 ))}
@@ -571,7 +571,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
           )}
           {confirmDelete ? (
             <p className="flex flex-wrap items-center gap-2 text-xs">
-              Delete it and its posts' pictures? Posts already in your TikTok drafts stay there.
+              Delete it and its posts' pictures? Posts already on TikTok stay there.
               <button
                 type="button"
                 disabled={!!busy}
