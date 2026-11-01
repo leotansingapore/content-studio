@@ -7,9 +7,10 @@
 // No Jev answer (or a message mostly not in English) means no action, and the
 // assistant answers in words as before.
 //
-// Phase 4 brand-voice-memory, on for everyone from 1 Nov 2026: a "remember" act for
-// a lasting preference, with a second question for what it applies to (pinned in
-// fixtures/).
+// Leo only (NORTH_STAR_USERS, phase 4 brand-voice-memory): a "remember" act for a
+// lasting preference, with a second question for what it applies to. Adding an
+// option changes Jev's routing for every message, so everyone else gets exactly
+// today's questions (pinned in fixtures/).
 //
 // Agent mode (phase 6, Leo only, `agent: true`): the same one Jev request picks the
 // agent's act and fills its fixed slots (format, length, who, audience, weeks,
@@ -60,7 +61,7 @@ export interface ActPick {
   day: string | null;
   /** "HH:MM", for move. */
   time: string | null;
-  /** What a remember act applies to. */
+  /** What a remember act applies to (Leo only). */
   scope?: Scope;
 }
 
@@ -121,8 +122,9 @@ function postLine(p: ActPost): string {
 }
 
 /**
- * Jev's questions over the message: the action, and, when there are posts, which post, day and time, then what a
- * remember act applies to. `leo` (the north-star gate, set by index.ts after sign-in) reads agent mode's fields.
+ * Jev's questions over the message: the action, and, when there are posts, which post, day and time. `leo`
+ * (the north-star gate, set by index.ts after sign-in) adds the remember act and the scope question; without
+ * it the questions are today's exactly.
  */
 export function actAsk(body: ActBody, leo = false): { state: Record<string, string>; questions: Record<string, JevQuestion> } {
   const today = utc(body.today)!;
@@ -140,7 +142,7 @@ export function actAsk(body: ActBody, leo = false): { state: Record<string, stri
         engage_dms: "Help them reply to several separate direct messages from different people. The message contains those messages.",
         engage_thread: "Help them reply in one back-and-forth direct message conversation with one person. The message contains that conversation.",
         engage_comment: "Help them write a comment to leave on someone else's post. The message contains that post.",
-        remember: REMEMBER,
+        ...(leo ? { remember: REMEMBER } : {}),
         ...(a ? agentActs(a) : {}),
         none: "Anything else: a question about how the app works, an idea, a problem or bug, a feature request, a message for the team, small talk, or something the app cannot do.",
       },
@@ -168,7 +170,7 @@ export function actAsk(body: ActBody, leo = false): { state: Record<string, stri
       criteria: { ...Object.fromEntries(TIMES.map((t) => [t, timeWords(t)])), none: "The message names no time." },
     };
   }
-  questions.scope = SCOPE_QUESTION;
+  if (leo) questions.scope = SCOPE_QUESTION;
   const more = a ? agentAsk(a, body.message) : { state: {}, questions: {} };
   return { state: { today: longDay(today), message: body.message, ...more.state }, questions: { ...questions, ...more.questions } };
 }
@@ -193,10 +195,10 @@ function sure<T extends string>(answers: Record<string, JevAnswer> | null, id: s
   return c && typeof p === "number" && p >= min ? c : null;
 }
 
-/** What the message asks for, or null: no answer, not sure enough, or nothing the app does. */
-export function actPick(answers: Record<string, JevAnswer> | null, body: ActBody): ActPick | null {
+/** What the message asks for, or null: no answer, not sure enough, or nothing the app does. Remember only for `leo`. */
+export function actPick(answers: Record<string, JevAnswer> | null, body: ActBody, leo = false): ActPick | null {
   const act = sure(answers, "act", ACTS, ACT_MIN);
-  if (!act || act === "none") return null;
+  if (!act || act === "none" || (act === "remember" && !leo)) return null;
   if (act === "remember") return { act, post: null, day: null, time: null, scope: sure(answers, "scope", SCOPES, PICK_MIN) ?? "all" };
   const keys = body.posts.map((_, i) => `p${i + 1}`);
   const onPost = act === "move" || act === "write";

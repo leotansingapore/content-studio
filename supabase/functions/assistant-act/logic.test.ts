@@ -48,14 +48,14 @@ describe("the days and times on offer", () => {
 });
 
 describe("actAsk", () => {
-  it("asks only for the action and a remember act's scope when there are no posts", () => {
+  it("asks only for the action when there are no posts", () => {
     const ask = actAsk(actBody({ message: "how did my week go", today: "2026-10-11" })!);
-    expect(Object.keys(ask.questions)).toEqual(["act", "scope"]);
+    expect(Object.keys(ask.questions)).toEqual(["act"]);
     expect(ask.state).toEqual({ today: "Sunday 11 October 2026", message: "how did my week go" });
   });
   it("names each post, the days from today and the times", () => {
     const q = actAsk(body).questions as Record<string, { criteria: Record<string, string> }>;
-    expect(Object.keys(q)).toEqual(["act", "post", "day", "time", "scope"]);
+    expect(Object.keys(q)).toEqual(["act", "post", "day", "time"]);
     expect(q.post.criteria).toMatchObject({
       p1: '"Three CPF myths" (scheduled for Wed 14 Oct 2026, 9am, linkedin)',
       p2: '"Why I stopped selling ILPs" (a draft, instagram)',
@@ -68,19 +68,13 @@ describe("actAsk", () => {
   });
 });
 
-// The questions pinned before the remember act joined (phase 4 memory-core). From 1 Nov 2026 everyone is also asked
-// remember and scope, and nothing else moves. Never update these files with vitest -u.
-function withoutRemember(ask: ReturnType<typeof actAsk>) {
-  const { scope: _s, ...questions } = ask.questions;
-  const { remember: _r, ...criteria } = questions.act.criteria as Record<string, string>;
-  return { ...ask, questions: { ...questions, act: { ...questions.act, criteria } } };
-}
+// Today's questions, pinned before the remember act joined (phase 4 memory-core): every account not on
+// NORTH_STAR_USERS must keep getting exactly these. Never update these files with vitest -u.
 describe("actAsk, pinned for everyone", () => {
-  it("asks the pinned questions plus remember and scope, with no posts and with posts", async () => {
+  it("asks today's questions with no posts and with posts", async () => {
     const none = actAsk(actBody({ message: "how did my week go", today: "2026-10-11" })!);
-    expect(Object.keys(none.questions)).toEqual(["act", "scope"]);
-    await expect(JSON.stringify(withoutRemember(none), null, 2)).toMatchFileSnapshot("./fixtures/act-ask-no-posts.json");
-    await expect(JSON.stringify(withoutRemember(actAsk(body)), null, 2)).toMatchFileSnapshot("./fixtures/act-ask-posts.json");
+    await expect(JSON.stringify(none, null, 2)).toMatchFileSnapshot("./fixtures/act-ask-no-posts.json");
+    await expect(JSON.stringify(actAsk(body), null, 2)).toMatchFileSnapshot("./fixtures/act-ask-posts.json");
   });
 });
 
@@ -111,26 +105,35 @@ describe("actPick", () => {
   });
 });
 
-describe("the remember act (everyone from 1 Nov 2026)", () => {
+describe("the remember act (Leo only)", () => {
   const msg = actBody({ message: "from now on never use emoji in my posts", today: "2026-10-11", posts })!;
   type Q = Record<string, { instructions: string; criteria: Record<string, string> }>;
-  it("is offered to every account, with the scope question, the same as Leo's", () => {
-    const q = actAsk(msg).questions as Q;
-    expect(actAsk(msg, true)).toEqual(actAsk(msg));
-    expect(Object.keys(q)).toEqual(["act", "post", "day", "time", "scope"]);
-    expect(q.act.criteria.remember).toMatch(/^Tell the app a lasting preference/);
-    expect(Object.keys(q.act.criteria).slice(-2)).toEqual(["remember", "none"]);
-    expect(q.scope.instructions).toBe("Which kind of content does the preference in `message` apply to?");
-    expect(Object.keys(q.scope.criteria)).toEqual(["posts", "videos", "pictures", "all"]);
+  it("is offered, with the scope question, only when leo is true", () => {
+    const off = actAsk(msg).questions as Q;
+    expect(off.act.criteria.remember).toBeUndefined();
+    expect(off.scope).toBeUndefined();
+    expect(actAsk(msg, false)).toEqual(actAsk(msg));
+    const on = actAsk(msg, true).questions as Q;
+    expect(Object.keys(on)).toEqual(["act", "post", "day", "time", "scope"]);
+    expect(on.act.criteria.remember).toMatch(/^Tell the app a lasting preference/);
+    expect(Object.keys(on.act.criteria).slice(-2)).toEqual(["remember", "none"]);
+    expect(on.scope.instructions).toBe("Which kind of content does the preference in `message` apply to?");
+    expect(Object.keys(on.scope.criteria)).toEqual(["posts", "videos", "pictures", "all"]);
+    // everything else Leo is asked is everyone's question
+    const { scope: _s, ...rest } = on;
+    expect({ ...rest, act: { ...rest.act, criteria: Object.fromEntries(Object.entries(rest.act.criteria).filter(([k]) => k !== "remember")) } }).toEqual(off);
+    expect(Object.keys(actAsk(actBody({ message: "remember this", today: "2026-10-11" })!, true).questions)).toEqual(["act", "scope"]);
   });
   it("reads the scope at PICK_MIN, else everything", () => {
-    expect(actPick({ act: choice("remember"), scope: choice("posts") }, msg)).toEqual({ act: "remember", post: null, day: null, time: null, scope: "posts" });
-    expect(actPick({ act: choice("remember"), scope: choice("videos", PICK_MIN - 0.01) }, msg)!.scope).toBe("all");
-    expect(actPick({ act: choice("remember"), scope: choice("music") }, msg)!.scope).toBe("all");
-    expect(actPick({ act: choice("remember") }, msg)!.scope).toBe("all");
+    expect(actPick({ act: choice("remember"), scope: choice("posts") }, msg, true)).toEqual({ act: "remember", post: null, day: null, time: null, scope: "posts" });
+    expect(actPick({ act: choice("remember"), scope: choice("videos", PICK_MIN - 0.01) }, msg, true)!.scope).toBe("all");
+    expect(actPick({ act: choice("remember"), scope: choice("music") }, msg, true)!.scope).toBe("all");
+    expect(actPick({ act: choice("remember") }, msg, true)!.scope).toBe("all");
   });
-  it("needs the act at ACT_MIN", () => {
-    expect(actPick({ act: choice("remember", ACT_MIN - 0.01), scope: choice("posts") }, msg)).toBeNull();
+  it("needs the act at ACT_MIN, and never reaches an account not on the list", () => {
+    expect(actPick({ act: choice("remember", ACT_MIN - 0.01), scope: choice("posts") }, msg, true)).toBeNull();
+    expect(actPick({ act: choice("remember"), scope: choice("posts") }, msg)).toBeNull();
+    expect(actPick({ act: choice("remember"), scope: choice("posts") }, msg, false)).toBeNull();
   });
 });
 
