@@ -1,4 +1,4 @@
-// An image library for slideshow campaigns: add free stock photos (Pexels), AI pictures, an app shot (your app's
+// An image library for slideshow campaigns: add free stock photos (Pexels), AI pictures (one, or a set of 3 in one style), an app shot (your app's
 // screen in a phone over a scene) or your own, see and remove what's in it. Pictures live on the server
 // (cs_library_images, cs-slide-campaigns) so the schedule can draw from them.
 
@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Search, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { Segmented } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
-import { imageBusy, makeImage, onImageJob } from "@/lib/aiImage";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { imageBusy, imageJob, makeImage, type ImageJob } from "@/lib/aiImage";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { callFn } from "@/lib/edgeFn";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -65,6 +66,31 @@ export function oneLibrary(have: Library | null, make: () => Promise<Library>): 
 type Img = { id: string; src: string; url: string | null };
 type Source = "search" | "generate" | "app";
 
+/** Generate's looks (Volume's Style step): each adds its phrase to the description, so a set shares one look. */
+export const STYLES = [
+  { label: "Photo", phrase: "realistic photo, natural light" },
+  { label: "Film", phrase: "35mm film photo, soft grain, warm tones" },
+  { label: "Illustration", phrase: "flat digital illustration, clean shapes" },
+  { label: "3D render", phrase: "3D render, soft studio lighting" },
+] as const;
+
+/**
+ * Makes `of` pictures one after another (one AI picture runs at a time), keeping each as it lands. Stops before one
+ * past `left` (today's uses; null when unread, then the server's refusal stops it) or at the first failure, and says
+ * why. null when every one was made, or when `make` gives null (the dialog closed).
+ */
+export async function makeSet(of: number, left: number | null, make: (n: number) => Promise<ImageJob | null>, keep: (j: ImageJob) => Promise<void>): Promise<string | null> {
+  for (let n = 1; n <= of; n++) {
+    const made = n > 1 ? `Made ${n - 1} of ${of}. ` : "";
+    if (left !== null && n > left) return `${made}That's all your AI pictures for today. They reset at 8am Singapore time.`;
+    const j = await make(n);
+    if (!j) return null;
+    if (j.state !== "done" || !j.preview) return `${made}${j.error ?? "Couldn't make the picture."}`;
+    await keep(j);
+  }
+  return null;
+}
+
 /** A picture as PNG or JPEG: those pass as they are, anything else (WebP) is redrawn as a JPEG. */
 export async function asPngOrJpeg(b: Blob): Promise<Blob> {
   if (b.type === "image/png" || b.type === "image/jpeg") return b;
@@ -90,7 +116,10 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
   const user = useSignedInUser();
   const [source, setSource] = useState<Source>("search");
   const [prompt, setPrompt] = useState("");
-  const [making, setMaking] = useState<string | null>(null);
+  const [look, setLook] = useState<string | null>(null);
+  const [count, setCount] = useState<"1" | "3">("1");
+  const [making, setMaking] = useState<{ n: number; of: number } | null>(null);
+  const live = useRef(true);
   const left = useUsesLeft(!!making)("ai-image");
   const [screen, setScreen] = useState<File | null>(null);
   const [scene, setScene] = useState<File | null>(null);
@@ -99,6 +128,10 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
 
   useEffect(() => {
     ref.current?.showModal();
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
   }, []);
   const refresh = async (id: string) => setImages((await callFn<{ images: Img[] }>("slide-campaigns", { action: "library-urls", library_id: id })).images);
   useEffect(() => {
@@ -162,26 +195,26 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
       }
       await refresh(l.id);
     });
-  // an AI picture lands in Media like everywhere else, then goes up into this library
-  useEffect(
-    () =>
-      onImageJob((j) => {
-        if (!making || !j || j.prompt !== making) return;
-        if (j.state === "failed") (setMaking(null), setNote(j.error ?? "Couldn't make the picture."));
-        if (j.state === "done" && j.preview) {
-          setMaking(null);
-          void fetch(j.preview)
-            .then((r) => r.blob())
-            .then((b) => upload([b]));
-        }
-      }),
-    [making], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const generate = () => {
+  // each AI picture lands in Media like everywhere else, then goes up into this library; closing the dialog stops a set
+  const generate = async () => {
     if (!user || !prompt.trim() || imageBusy() || !canPost) return;
+    const style = STYLES.find((s) => s.label === look);
+    const ask = style ? `${prompt.trim()}, ${style.phrase}` : prompt.trim();
     setNote(null);
-    setMaking(prompt.trim());
-    void makeImage(user.id, prompt.trim(), prompt.trim().slice(0, 60));
+    const stop = await makeSet(
+      Number(count),
+      left,
+      async (n) => {
+        if (!live.current) return null;
+        setMaking({ n, of: Number(count) });
+        await makeImage(user.id, ask, prompt.trim().slice(0, 60));
+        const j = imageJob();
+        return live.current && j?.prompt === ask ? j : null;
+      },
+      async (j) => upload([await (await fetch(j.preview!)).blob()]),
+    );
+    setMaking(null);
+    if (stop) setNote(stop);
   };
   const buildShot = () =>
     run("app", async () => {
@@ -204,9 +237,21 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
           {source === "generate" && (
             <div className="space-y-2">
               <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3} maxLength={600} placeholder="A golfer lining up a putt at sunrise, soft film grain" aria-label="Describe the picture" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" />
-              <Button size="sm" onClick={generate} disabled={!!making || !prompt.trim() || left === 0 || !canPost} className="gap-1.5">
-                {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {making ? "Making the picture" : "Generate into the library"}
-              </Button>
+              <div role="group" aria-label="Style" className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Style</span>
+                {STYLES.map((s) => (
+                  <FilterChip key={s.label} active={look === s.label} disabled={!!making} onClick={() => setLook(look === s.label ? null : s.label)}>
+                    {s.label}
+                  </FilterChip>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Segmented<"1" | "3"> value={count} options={[{ value: "1", label: "1 picture" }, { value: "3", label: "Make 3" }] as const} onChange={(v) => !making && setCount(v)} />
+                <Button size="sm" onClick={() => void generate()} disabled={!!making || !prompt.trim() || left === 0 || !canPost} className="gap-1.5">
+                  {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}{" "}
+                  {making ? (making.of > 1 ? `Making ${making.n} of ${making.of}` : "Making the picture") : count === "3" ? "Generate 3 into the library" : "Generate into the library"}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">{!canPost ? "Posting isn't switched on for your account yet." : left === null ? "Also saved to Media under AI images." : `${left} left today. Also saved to Media under AI images.`}</p>
             </div>
           )}
