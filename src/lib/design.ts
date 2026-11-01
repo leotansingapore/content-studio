@@ -97,7 +97,7 @@ export const designsKey = (userId: string) => PREFIX + scoped(userId);
 
 /** The built-in templates, loaded when the gallery opens. */
 export async function loadTemplates(): Promise<DesignTemplate[]> {
-  return parseTemplates((await import("../../supabase/functions/_shared/designTemplates.json", { with: { type: "json" } })).default);
+  return parseTemplates((await import("../../supabase/functions/_shared/designTemplates.json")).default);
 }
 
 // ---- following Claude's edits in the open editor (Volume's "Claude is editing") ----
