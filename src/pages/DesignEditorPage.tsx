@@ -109,7 +109,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const [prep, setPrep] = useState<{ done: number; total: number } | string | null>(null);
   const [menu, setMenu] = useState<"download" | "choose" | "brand" | null>(null);
   const [chosen, setChosen] = useState<Set<number>>(new Set());
-  const [phone, setPhone] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [phone, setPhone] = useState<{ url: string; expiresAt: string; qr?: string } | null>(null);
   const [typing, setTyping] = useState<string | null>(null);
   const [palette, setPalette] = useState(() => loadPalette(userId));
   const [swatch, setSwatch] = useState("#ffd21f");
@@ -357,7 +357,11 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     const files = await run((signal) => designPngs(userId, workRef.current, progress(signal)));
     if (!files) return;
     try {
-      setPhone(await sendToPhone(files));
+      const sent = await sendToPhone(files);
+      setPhone(sent);
+      // the QR library loads only here, the one place it's used
+      const { toDataURL } = await import("qrcode");
+      setPhone({ ...sent, qr: await toDataURL(sent.url, { margin: 1, width: 240 }) });
     } catch (e) {
       toast({ title: "Couldn't send it to your phone", description: (e as Error).message, variant: "destructive" });
     }
@@ -490,6 +494,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       </header>
       {phone && (
         <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+          {phone.qr ? <img src={phone.qr} alt="QR code: scan it with your phone's camera" className="hidden h-28 w-28 rounded bg-white p-1 sm:block" /> : null}
           <Smartphone className="h-4 w-4 shrink-0" />
           <span>Open this on your phone until {new Date(phone.expiresAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}:</span>
           <a href={phone.url} target="_blank" rel="noreferrer" className="min-w-0 truncate text-primary hover:underline">
