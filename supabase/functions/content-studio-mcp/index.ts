@@ -8,12 +8,13 @@
 // A link whose user is on NORTH_STAR_USERS gets phase 6's tools, prompts and
 // daily cap (logic.ts Caller); every other link answers as it always has.
 //   supabase functions deploy content-studio-mcp --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
+// Secrets the picture tools use, read as their own functions read them: PEXELS_API_KEY (stock-media).
 
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { isAllowed } from "../market/logic.ts";
 import templates from "../_shared/designTemplates.json" with { type: "json" };
-import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, setDesignTemplates, type Caller, type Store } from "./logic.ts";
+import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, setDesignTemplates, type Caller, type Media, type Store } from "./logic.ts";
 
 // static, so the deploy bundles the file (it left the lazy import in logic.ts out, 1 Nov)
 setDesignTemplates(templates);
@@ -96,7 +97,8 @@ Deno.serve(async (req) => {
     } catch {
       // an older or odd row: the link works without a name
     }
-    const caller: Caller = { leo: isAllowed(Deno.env.get("NORTH_STAR_USERS"), link.userId), name, usage: admin };
+    const media: Media = { pexelsKey: Deno.env.get("PEXELS_API_KEY") || undefined };
+    const caller: Caller = { leo: isAllowed(Deno.env.get("NORTH_STAR_USERS"), link.userId), name, usage: admin, media };
 
     const store: Store = {
       async get(key) {

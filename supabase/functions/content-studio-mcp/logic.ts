@@ -1,7 +1,8 @@
 // Content Studio as an MCP server for Claude: the protocol (JSON-RPC over
 // plain HTTP POST, no streaming, no sessions) and six tools over one adviser's
 // synced data, plus five Design tools (1 Nov 2026, Volume's agent workflow) that
-// build and edit the brand's slideshows, which the open editor follows. Pure:
+// build and edit the brand's slideshows, which the open editor follows, and the
+// picture tools for their layers (MEDIA_TOOLS, 1 Nov 2026, Volume's agent again). Pure:
 // storage comes in as a Store, so it is all unit-tested (logic.test.ts) and
 // index.ts only wires HTTP and Supabase.
 //
@@ -21,8 +22,9 @@
 import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
 import { BRAND_FONT, FONT_NAMES, FORMAT_H, FRAME_W, LOOKS, MAX_CAPTION, MAX_DESIGNS, MAX_LAYERS, MAX_SLIDES, newDesign, parseTemplates, sanitizeDesign, type Design, type DesignSlide, type DesignTemplate } from "../_shared/design.ts";
 import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
-import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient } from "../_shared/usageCaps.ts";
+import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient, type UsageFeature } from "../_shared/usageCaps.ts";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic.ts";
+import { MAX_QUERY, normalizePhotos, parseStockRequest, PER_PAGE, pexelsUrl } from "../stock-media/logic.ts";
 
 export const LINK_PREFIX = "content-studio-mcplink-";
 /** Drafts Claude adds: one row per slot, merged into My posts by the app (draftHistory.ts). */
@@ -92,6 +94,13 @@ export interface Caller {
   leo: boolean;
   name?: string;
   usage?: UsageClient;
+  media?: Media;
+}
+
+/** What the picture tools reach beyond the synced rows; index.ts wires it from the function's secrets. */
+export interface Media {
+  /** PEXELS_API_KEY, sent as stock-media sends it. */
+  pexelsKey?: string;
 }
 const EVERYONE: Caller = { leo: false };
 
@@ -312,8 +321,25 @@ export const DESIGN_TOOLS = [
   },
 ] as const;
 
-export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS];
-export const LEO_TOOLS = [...TOOLS, ...NEW_TOOLS, ...DESIGN_TOOLS];
+// ---------- pictures for the slides (every link), after the design tools ----------
+
+export const MEDIA_TOOLS = [
+  {
+    name: "search_photos",
+    description: `Search free Pexels stock photos for a slideshow's image layers: up to ${PER_PAGE} results, each with id, src (about 1080 wide: use it as an image layer's src with update_design), thumb (a small preview), alt, w and h, url (its Pexels page), and by and byUrl, the photographer's credit, which Pexels asks you to give. Each search counts against the user's ${DAILY_LIMITS["stock-search"]} free photo searches a day.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: `What to look for, in a few words, up to ${MAX_QUERY} characters.` },
+        orientation: { type: "string", enum: ["portrait", "landscape", "square"], description: "portrait suits tiktok and instagram slides. Default any." },
+      },
+      required: ["query"],
+    },
+  },
+] as const;
+
+export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
+export const LEO_TOOLS = [...TOOLS, ...NEW_TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
 const toolsFor = (caller: Caller): readonly { name: string }[] => (caller.leo ? LEO_TOOLS : EVERYONE_TOOLS);
 
 /** One plain line per tool for Connect Claude's "What Claude can do" list, read from the same list the server answers. */
@@ -336,6 +362,7 @@ export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
   get_design: "One slideshow, every slide and layer",
   create_design: "Starts a slideshow from a template",
   update_design: "Edits a slideshow, live in the editor",
+  search_photos: "Free stock photos for your slides",
 };
 
 type Args = Record<string, unknown>;
@@ -590,10 +617,34 @@ async function designToolOnce(name: string, args: Args, store: Store, link: Link
   return ok({ saved: true, link: designLink(d.id, link), ...(notes.length ? { notes } : {}), design: d });
 }
 
+// ---------- the picture tools ----------
+
+/** One use of the user's own daily cap, counted as the app's function counts it: the use, or the refusal to answer. */
+async function spend(caller: Caller, userId: string, feature: UsageFeature, what: string): Promise<{ used: number; limit: number } | ToolResult> {
+  const use = caller.usage ? await consumeUsage(caller.usage, userId, feature) : null;
+  if (use?.allowed) return use;
+  return fail(use?.allowed === false && use.reason === "limit" ? `The user's ${DAILY_LIMITS[feature]} ${what} for today are used. More at 8am Singapore time.` : BUSY_LINE);
+}
+
+async function mediaTool(name: string, args: Args, link: Link, caller: Caller): Promise<ToolResult> {
+  const media = caller.media;
+  if (!media) return fail(BUSY_LINE);
+  // search_photos: stock-media's search, its key and its "stock-search" cap
+  const parsed = parseStockRequest({ kind: "photo", query: args.query, orientation: args.orientation });
+  if (!parsed.ok) return fail(parsed.error);
+  if (!media.pexelsKey) return fail("Free photo search isn't switched on yet.");
+  const use = await spend(caller, link.userId, "stock-search", "free photo searches");
+  if ("content" in use) return use;
+  const res = await fetch(pexelsUrl(parsed.request), { headers: { Authorization: media.pexelsKey }, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+  if (!res?.ok) return fail(res?.status === 429 ? "The photo library is busy. Try again in a few minutes." : "Couldn't search right now. Try again in a minute.");
+  return ok({ photos: normalizePhotos(await res.json().catch(() => null)) });
+}
+
 export async function callTool(name: string, args: Args, store: Store, link: Link, now = new Date(), caller: Caller = EVERYONE): Promise<ToolResult> {
   const scope = link.scope;
   if (!toolsFor(caller).some((t) => t.name === name)) return fail(`Unknown tool ${name}.`);
   if (DESIGN_TOOLS.some((t) => t.name === name)) return designTool(name, args, store, link, now);
+  if (MEDIA_TOOLS.some((t) => t.name === name)) return mediaTool(name, args, link, caller);
   switch (name) {
     case "list_posts": {
       const status = typeof args.status === "string" ? args.status : "all";
@@ -873,7 +924,8 @@ export async function handleRpc(msg: RpcRequest, store: Store, link: Link, now =
       const name = typeof msg.params?.name === "string" ? msg.params.name : "";
       const args = msg.params?.arguments && typeof msg.params.arguments === "object" ? (msg.params.arguments as Args) : {};
       if (!toolsFor(caller).some((t) => t.name === name)) return error(-32602, `Unknown tool ${name}`);
-      if (!caller.leo) return reply(await callTool(name, args, store, link, now));
+      // the caller goes along for the picture tools' keys and caps; the other tools read only its leo, false here
+      if (!caller.leo) return reply(await callTool(name, args, store, link, now, caller));
       // one mcp-calls use per call on a listed link, before anything is read or saved; the counter's day is UTC
       const day = now.toISOString().slice(0, 10);
       const use = caller.usage ? await consumeUsage(caller.usage, link.userId, "mcp-calls") : null;

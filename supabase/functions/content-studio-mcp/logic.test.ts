@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
+import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type Store } from "./logic";
 import { MAX_DESIGNS, newDesign, newLayer, sanitizeDesign, type Design, type ImageLayer, type TextLayer } from "../_shared/design";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic";
 
@@ -227,7 +227,7 @@ describe("JSON-RPC", () => {
     const odd = (await handleRpc({ jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "1999-01-01" } }, s, link)) as { result: { protocolVersion: string } };
     expect(odd.result.protocolVersion).toBe("2025-06-18");
     const list = (await handleRpc({ jsonrpc: "2.0", id: 3, method: "tools/list" }, s, link)) as { result: { tools: { name: string }[] } };
-    expect(list.result.tools.map((t) => t.name)).toEqual(["list_posts", "get_post", "get_calendar", "get_results", "get_brand", "add_draft", "list_design_templates", "list_designs", "get_design", "create_design", "update_design"]);
+    expect(list.result.tools.map((t) => t.name)).toEqual(["list_posts", "get_post", "get_calendar", "get_results", "get_brand", "add_draft", "list_design_templates", "list_designs", "get_design", "create_design", "update_design", ...MEDIA_TOOLS.map((t) => t.name)]);
   });
 
   it("gives notifications no reply and unknown methods or tools an error", async () => {
@@ -240,6 +240,7 @@ describe("JSON-RPC", () => {
 // Every answer a link off NORTH_STAR_USERS gets, pinned on 22 Oct 2026 (a9d04b4e) before phase 6's tools: the
 // protocol, all six tools with their refusals, and the rows add_draft writes. Never update the file with vitest -u.
 // 1 Nov 2026: the five design tools joined tools/list by hand, appended after the six; nothing else in it changed.
+// 1 Nov 2026, later: the picture tools (MEDIA_TOOLS) were appended after the design tools by hand, the same way.
 const EVERYONE_STORE = {
   [`content-studio-drafts-${UID}`]: posts,
   [`content-studio-positioning-${UID}`]: { goal: "More reviews booked", goalKind: "clients", audience: "parent", topics: ["CPF"], platform: "instagram", cadence: 3, edge: "" },
@@ -359,7 +360,7 @@ describe("a link off the list, with everything index.ts passes", () => {
 });
 
 describe("tools and instructions on a listed link", () => {
-  it("lists 18 tools, today's six first and the design tools last, and every one has a line for /connect", async () => {
+  it("lists today's six first, then phase 6's, the design tools and the picture tools, and every one has a line for /connect", async () => {
     const list = (await handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/list" }, memoryStore({}), link, now, leo())) as { result: { tools: { name: string }[] } };
     expect(list.result.tools.map((t) => t.name)).toEqual([
       ...TOOLS.map((t) => t.name),
@@ -371,6 +372,7 @@ describe("tools and instructions on a listed link", () => {
       "list_skills",
       "get_activity",
       ...DESIGN_TOOLS.map((t) => t.name),
+      ...MEDIA_TOOLS.map((t) => t.name),
     ]);
     expect(Object.keys(TOOL_LINES).sort()).toEqual(LEO_TOOLS.map((t) => t.name).sort());
   });
@@ -684,7 +686,7 @@ describe("design tools", () => {
   };
 
   it("are listed for every link, after the six, and need no adviser words", () => {
-    expect(EVERYONE_TOOLS.map((t) => t.name)).toEqual([...TOOLS.map((t) => t.name), "list_design_templates", "list_designs", "get_design", "create_design", "update_design"]);
+    expect(EVERYONE_TOOLS.map((t) => t.name)).toEqual([...TOOLS.map((t) => t.name), "list_design_templates", "list_designs", "get_design", "create_design", "update_design", ...MEDIA_TOOLS.map((t) => t.name)]);
     const told = JSON.stringify(DESIGN_TOOLS);
     for (const fact of ["1080 wide", "1920 high", "1350 high", "[[ and ]]", "images.pexels.com", "/templates/", "brand:logo", "brand:photo"]) expect(told).toContain(fact);
   });
@@ -820,5 +822,95 @@ describe("design tools", () => {
     }
     expect(s.rows.get(designsKey(UID))).toBe(before);
     expect(s.stamps.size).toBe(0);
+  });
+});
+
+// ---------- pictures for the slides: every link, each counted on the user's own cap as the app counts it ----------
+
+describe("picture tools", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+  /** fetch answering each request with `reply(url, init)` as JSON (a number is a bare status), and every request made. */
+  const fakeFetch = (reply: (url: string, init?: RequestInit) => unknown) => {
+    const seen: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal("fetch", async (u: string | URL, init?: RequestInit) => {
+      seen.push({ url: String(u), init });
+      const r = reply(String(u), init);
+      return typeof r === "number" ? new Response("no", { status: r }) : new Response(JSON.stringify(r), { status: 200 });
+    });
+    return seen;
+  };
+  const everyone = (usage = fakeUsage(), media: Media = { pexelsKey: "px-key" }) => ({ leo: false, usage, media });
+  const run = async (name: string, args: Record<string, unknown>, caller: Caller, l: Link = link) => {
+    const r = await callTool(name, args, memoryStore({}), l, now, caller);
+    return { error: r.isError === true, out: r.isError ? r.content[0].text : JSON.parse(r.content[0].text) };
+  };
+
+  describe("search_photos", () => {
+    const pexels = {
+      photos: [
+        {
+          id: 38060679,
+          width: 2879,
+          height: 3838,
+          url: "https://www.pexels.com/photo/skyline-38060679/",
+          photographer: "Shlok Rana",
+          photographer_url: "https://www.pexels.com/@shlok-rana",
+          alt: "A skyline",
+          src: { original: "https://images.pexels.com/photos/38060679/pexels-photo-38060679.png", medium: "https://images.pexels.com/photos/38060679/pexels-photo-38060679.png?h=350" },
+        },
+      ],
+    };
+
+    it("answers Pexels' photos 1080 wide with the credit, searched with the key, and counts one stock-search", async () => {
+      const seen = fakeFetch(() => pexels);
+      const usage = fakeUsage();
+      const { out } = await run("search_photos", { query: "  city   night ", orientation: "portrait" }, everyone(usage));
+      expect(out.photos).toEqual([
+        {
+          id: "38060679",
+          w: 2879,
+          h: 3838,
+          alt: "A skyline",
+          thumb: pexels.photos[0].src.medium,
+          src: "https://images.pexels.com/photos/38060679/pexels-photo-38060679.png?auto=compress&cs=tinysrgb&w=1080",
+          by: "Shlok Rana",
+          byUrl: "https://www.pexels.com/@shlok-rana",
+          url: "https://www.pexels.com/photo/skyline-38060679/",
+        },
+      ]);
+      expect(seen.map((r) => r.url)).toEqual(["https://api.pexels.com/v1/search?query=city+night&page=1&per_page=24&orientation=portrait"]);
+      expect(seen[0].init?.headers).toEqual({ Authorization: "px-key" });
+      expect(usage.calls).toEqual(["stock-search"]);
+    });
+
+    it("refuses the 101st search of the day without asking Pexels", async () => {
+      const seen = fakeFetch(() => pexels);
+      expect(await run("search_photos", { query: "city" }, everyone(fakeUsage({ start: 100 })))).toEqual({ error: true, out: "The user's 100 free photo searches for today are used. More at 8am Singapore time." });
+      expect(seen).toEqual([]);
+    });
+
+    it("counts nothing for an empty search or a missing key, and says so when Pexels is busy", async () => {
+      const seen = fakeFetch(() => 429);
+      const usage = fakeUsage();
+      expect((await run("search_photos", { query: " " }, everyone(usage))).error).toBe(true);
+      expect(await run("search_photos", { query: "city" }, everyone(usage, {}))).toEqual({ error: true, out: "Free photo search isn't switched on yet." });
+      expect(usage.calls).toEqual([]);
+      expect(seen).toEqual([]);
+      expect(await run("search_photos", { query: "city" }, everyone(usage))).toEqual({ error: true, out: "The photo library is busy. Try again in a few minutes." });
+      // a counter that can't be read blocks the search, as stock-media does
+      expect(await run("search_photos", { query: "city" }, everyone(fakeUsage({ fail: true })))).toEqual({ error: true, out: BUSY_LINE });
+      expect(seen).toHaveLength(1);
+    });
+
+    it("reaches a link off the list through tools/call, counting stock-search and never mcp-calls", async () => {
+      fakeFetch(() => pexels);
+      const usage = fakeUsage();
+      const r = await handleRpc(call("search_photos", { query: "city" }), memoryStore({}), link, now, { ...everyone(usage), name: "Zapier" });
+      expect(answer(r).photos).toHaveLength(1);
+      expect(usage.calls).toEqual(["stock-search"]);
+    });
   });
 });

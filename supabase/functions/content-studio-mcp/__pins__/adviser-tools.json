@@ -196,6 +196,31 @@
           "id"
         ]
       }
+    },
+    {
+      "name": "search_photos",
+      "description": "Search free Pexels stock photos for a slideshow's image layers: up to 24 results, each with id, src (about 1080 wide: use it as an image layer's src with update_design), thumb (a small preview), alt, w and h, url (its Pexels page), and by and byUrl, the photographer's credit, which Pexels asks you to give. Each search counts against the user's 100 free photo searches a day.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "What to look for, in a few words, up to 80 characters."
+          },
+          "orientation": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ],
+            "description": "portrait suits tiktok and instagram slides. Default any."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
     }
   ]
 }
