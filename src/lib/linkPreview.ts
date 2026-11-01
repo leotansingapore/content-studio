@@ -45,6 +45,7 @@ export const PAGES: Record<string, string> = {
   "/linkedin": "LinkedIn strategy",
   "/campaigns": "Campaigns",
   "/ideas": "Ideas",
+  "/social-north-star": "Social north star",
   "/calendar": "Calendar",
   "/board": "Board",
   "/drafts": "All posts",

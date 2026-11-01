@@ -5,7 +5,7 @@ const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
-  "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/audiences",
+  "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/social-north-star", "/audiences",
   "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/adlauncher",
 ];
 const LEO = "tanjunsing@gmail.com";
@@ -62,7 +62,7 @@ describe("nav", () => {
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
-      expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/linkedin", "/ideas"]);
+      expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/linkedin", "/ideas", "/social-north-star"]);
       expect(pages("write", email).slice(0, 12), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/design", "/design/campaigns", "/design/libraries"]);
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(8, 10), email).toEqual(["/competitors", "/saved"]);

@@ -20,11 +20,16 @@ export default function RemixButton({
   size = "sm",
   label,
   note,
+  text = "Remix",
+  variant = "outline",
 }: {
   source: RemixSource;
   children: ReactNode;
   className?: string;
   size?: ButtonProps["size"];
+  /** The button's words and look on a card where Remix is the one action (the social north star's "Make one like this"). */
+  text?: string;
+  variant?: ButtonProps["variant"];
   /** The card's item, so a screen reader can tell one card's Remix from the next ("Remix: @handle's post"). */
   label?: string;
   /** A suggestion the card shows beside the button, put in the sheet's note when that is empty. */
@@ -59,9 +64,9 @@ export default function RemixButton({
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1", className)}>
       {/* never narrower than its own label, so the Remixed tag wraps under it instead of sitting on it (a min-w-0 slot) */}
-      <Button type="button" variant="outline" size={size} onClick={open} disabled={opening} aria-label={label && `Remix: ${label}`} className={cn("gap-1.5", className, "min-w-fit")}>
+      <Button type="button" variant={variant} size={size} onClick={open} disabled={opening} aria-label={label && `${text}: ${label}`} className={cn("gap-1.5", className, "min-w-fit")}>
         <Shuffle className="h-3.5 w-3.5" />
-        {opening && !up ? "Opening..." : "Remix"}
+        {opening && !up ? "Opening..." : text}
       </Button>
       {remixed && <span className="whitespace-nowrap text-[11px] text-muted-foreground">Remixed {dayMonth(remixed)}</span>}
     </span>

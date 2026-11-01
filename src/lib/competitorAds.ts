@@ -178,6 +178,8 @@ export function checkJobs(kind: "ads" | "posts" | "similar") {
   return {
     isRunning: (k: string) => running.has(k),
     anyRunning: () => running.size > 0,
+    /** A check or a round is under way (anyRunning is false for a moment between a round's checks). */
+    busy: () => round || running.size > 0,
     failure: (k: string) => failures.get(k),
     /** The refusal that ended the last round (403, a spent cap), until a check goes through. */
     stopped: () => stopped,

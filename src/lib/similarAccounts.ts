@@ -287,6 +287,8 @@ export function bestPostIds(posts: TrackedPost[], now = Date.now(), max = MEDIA_
 
 const jobs = checkJobs("similar");
 export const isReading = (key: string) => jobs.isRunning(key);
+/** A find, a read or a round of reads is under way: the social north star waits for it before it builds. */
+export const similarBusy = () => finding || jobs.busy();
 export const readingAny = () => jobs.anyRunning();
 export const readFailure = (key: string) => jobs.failure(key);
 export const readsStopped = () => jobs.stopped();

@@ -327,6 +327,8 @@ export const links = {
    */
   home: (o: { section?: "what-moved" | "next-up" | "ask" | "agent-now" | "pace"; goal?: "change"; waiting?: "all"; tour?: string } = {}) =>
     `/home${qs({ goal: o.goal, waiting: o.waiting, tour: o.tour })}${o.section ? `#${o.section}` : ""}`,
+  /** The social north star (Leo only): play scrolls to that play's card (#faceless-slideshow), example marks one of its examples. */
+  socialNorthStar: (o: { play?: string; example?: string } = {}) => `/social-north-star${qs({ example: o.example })}${o.play ? `#${o.play}` : ""}`,
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
     `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,

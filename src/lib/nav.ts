@@ -118,6 +118,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/plan", label: "Plan", icon: Target },
       { to: "/linkedin", label: "LinkedIn", title: "LinkedIn strategy", icon: Linkedin },
       { to: "/ideas", label: "Ideas", icon: Lightbulb, owners: LEO_EMAILS },
+      // the formats that win among the brand's Apps like yours references, and this month's progress on them
+      { to: "/social-north-star", label: "Social north star", icon: Star, owners: LEO_EMAILS },
     ],
   },
   {

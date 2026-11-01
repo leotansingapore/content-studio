@@ -63,6 +63,7 @@ const NorthStarPage = lazy(() => import("@/pages/NorthStarPage"));
 const MarketingNorthStarPage = lazy(() => import("@/pages/MarketingNorthStarPage"));
 const PostmosisMarketingNorthStarPage = lazy(() => import("@/pages/PostmosisMarketingNorthStarPage"));
 const SeoNorthStarPage = lazy(() => import("@/pages/SeoNorthStarPage"));
+const SocialNorthStarPage = lazy(() => import("@/pages/SocialNorthStarPage"));
 const InspirationDetailPage = lazy(() => import("@/pages/InspirationDetailPage"));
 const CarouselsPage = lazy(() => import("@/pages/CarouselsPage"));
 const CarouselDetailPage = lazy(() => import("@/pages/CarouselDetailPage"));
@@ -188,6 +189,7 @@ export default function App() {
           <Route path="/campaigns/new" element={<CampaignWizardPage />} />
           <Route path="/campaigns/:id" element={<CampaignPage />} />
           <Route path="/ideas" element={<IdeasPage />} />
+          <Route path="/social-north-star" element={<SocialNorthStarPage />} />
           <Route path="/fads" element={<FadsPage />} />
           <Route path="/fads/:tab" element={<FadsPage />} />
           <Route path="/recruit" element={<RecruitPage />} />
