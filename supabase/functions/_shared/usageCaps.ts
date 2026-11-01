@@ -230,7 +230,8 @@ export const DAILY_LIMITS = {
   "ideas-daily": 15,
   // North star phase 6, declared up front (Leo only, NORTH_STAR_USERS). One agent message (assistant-act agent mode): one Jev call, given back when Jev has no answer.
   "agent-act": 100,
-  // Claude's tool calls on a switched-on Connect Claude link (content-studio-mcp tools/call): reads and add_draft, no paid work.
+  // Claude's tool calls on a switched-on Connect Claude link (content-studio-mcp tools/call). Paid work inside a call
+  // (a photo search, an AI picture) also counts against its own cap, as in the app.
   "mcp-calls": 500,
   // Three angles to answer a competitor's new ad (idea-dump answer): one Jev pick and one short OpenAI call.
   "skill-answer": 10,

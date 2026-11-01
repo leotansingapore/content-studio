@@ -242,6 +242,7 @@ describe("JSON-RPC", () => {
 // protocol, all six tools with their refusals, and the rows add_draft writes. Never update the file with vitest -u.
 // 1 Nov 2026: the five design tools joined tools/list by hand, appended after the six; nothing else in it changed.
 // 1 Nov 2026, later: the picture tools (MEDIA_TOOLS) were appended after the design tools by hand, the same way.
+// 1 Nov 2026, later still: update_design's font list names the brand's uploaded fonts BrandFont2 to BrandFont5 (one phrase).
 const EVERYONE_STORE = {
   [`content-studio-drafts-${UID}`]: posts,
   [`content-studio-positioning-${UID}`]: { goal: "More reviews booked", goalKind: "clients", audience: "parent", topics: ["CPF"], platform: "instagram", cadence: 3, edge: "" },
