@@ -15,8 +15,8 @@ import {
   SORTS,
   TABLE,
   applyFilters,
-  countNiches,
   filtersFrom,
+  loadNiches,
   missingTable,
   nicheLabel,
   pageFetch,
@@ -26,9 +26,6 @@ import {
   tagLabel,
   type WorkingCard,
 } from "@/lib/workingLibrary";
-
-// shortcut: the niche counts read every row's niche (about 4 requests at 3,500 rows); a grouped view or RPC past ~20k
-const MAX_COUNT_ROWS = 20_000;
 
 type Load = { rows: WorkingCard[]; total: number | null; error: string | null; loading: boolean };
 
@@ -46,16 +43,7 @@ export default function WorkingPage() {
 
   useEffect(() => {
     let live = true;
-    (async () => {
-      const all: { niche: string }[] = [];
-      // advances by what came back, so a server row cap below 1000 still counts every row
-      while (all.length < MAX_COUNT_ROWS) {
-        const { data: rows, error } = await supabase.from(TABLE).select("niche").order("id").range(all.length, all.length + 999);
-        if (error || !rows?.length) break;
-        all.push(...(rows as { niche: string }[]));
-      }
-      if (live) setNiches(countNiches(all));
-    })();
+    void loadNiches().then((n) => live && setNiches(n));
     return () => {
       live = false;
     };
@@ -162,7 +150,7 @@ function Grid({ children }: { children: ReactNode }) {
   return <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{children}</div>;
 }
 
-function WorkingCardView({ c, back }: { c: WorkingCard; back: string }) {
+export function WorkingCardView({ c, back }: { c: WorkingCard; back: string }) {
   const rate = saveRateLabel(c.saves, c.views);
   return (
     <Link to={`/working/${c.id}`} state={{ back }} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

@@ -4,6 +4,7 @@
 // make, the niche names, the save rate and the prompt an agent rebuilds a format from.
 
 import { PAGE_SIZE, compact, likeTerm, multipleLabel, type Query } from "@/lib/carouselLibrary";
+import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 
 export const SORTS = [
@@ -139,6 +140,41 @@ export function countNiches(rows: { niche: string }[]): { niche: string; count: 
   const counts = new Map<string, number>();
   for (const r of rows) counts.set(r.niche, (counts.get(r.niche) ?? 0) + 1);
   return [...counts].map(([niche, count]) => ({ niche, count })).sort((a, b) => b.count - a.count || nicheLabel(a.niche).localeCompare(nicheLabel(b.niche)));
+}
+
+// shortcut: reads every row's niche (about 4 requests at 3,500 rows); a grouped view or RPC past ~20k
+const MAX_COUNT_ROWS = 20_000;
+
+/** Each niche with its slideshows, most first (only the working-now ones with `now`); none when the table is missing. */
+export async function loadNiches(now = false): Promise<{ niche: string; count: number }[]> {
+  const all: { niche: string }[] = [];
+  // advances by what came back, so a server row cap below 1000 still counts every row
+  while (all.length < MAX_COUNT_ROWS) {
+    const q = supabase.from(TABLE).select("niche");
+    const { data: rows, error } = await (now ? q.eq("working_now", true) : q).order("id").range(all.length, all.length + 999);
+    if (error || !rows?.length) break;
+    all.push(...(rows as { niche: string }[]));
+  }
+  return countNiches(all);
+}
+
+/** Design's Working right now row keeps its niche per brand ("" for All), synced; "" when unset or unreadable. */
+const NOW_NICHE_PREFIX = "content-studio-working-now-niche-";
+export function loadNowNiche(userId: string): string {
+  try {
+    const n = localStorage.getItem(NOW_NICHE_PREFIX + scoped(userId)) ?? "";
+    return NICHE.test(n) ? n : "";
+  } catch {
+    return "";
+  }
+}
+/** All is stored as "", never removed: the sync has no tombstones and would bring a removed key back. */
+export function saveNowNiche(userId: string, niche: string): void {
+  try {
+    localStorage.setItem(NOW_NICHE_PREFIX + scoped(userId), niche);
+  } catch {
+    // storage blocked (private mode): the choice lasts this visit only
+  }
 }
 
 /** Saves per view, or null with no views. */

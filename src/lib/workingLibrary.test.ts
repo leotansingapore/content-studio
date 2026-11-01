@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   agentPrompt,
   applyFilters,
   countNiches,
   filtersFrom,
   formatLines,
+  loadNowNiche,
   MAX_PAGES,
   missingTable,
   nicheLabel,
@@ -12,6 +13,7 @@ import {
   pagesFrom,
   tagLabel,
   saveRate,
+  saveNowNiche,
   saveRateLabel,
   slideUrl,
   type WorkingQuery,
@@ -153,5 +155,34 @@ describe("the agent prompt", () => {
     expect(p).toContain("A 6-slide TikTok photo slideshow in Food and nutrition.");
     expect(p).toContain("It got 0 views.");
     expect(formatLines(row({ hook: null }))[1]).toBe('Hook: the cover reads "5 foods I never skip".');
+  });
+});
+
+describe("Design's Working right now niche", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const store = new Map<string, string>();
+  const stub = () => vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) });
+
+  it("remembers a niche per sign-in under a synced key, and All as an empty string rather than a removal", () => {
+    store.clear();
+    stub();
+    expect(loadNowNiche("u1")).toBe("");
+    saveNowNiche("u1", "nutrition");
+    expect(loadNowNiche("u1")).toBe("nutrition");
+    expect(loadNowNiche("u2")).toBe("");
+    expect([...store.keys()]).toEqual(["content-studio-working-now-niche-u1"]);
+    saveNowNiche("u1", "");
+    expect(store.get("content-studio-working-now-niche-u1")).toBe("");
+    expect(loadNowNiche("u1")).toBe("");
+  });
+
+  it("drops a stored value that isn't a niche slug, and works with storage blocked", () => {
+    store.clear();
+    stub();
+    store.set("content-studio-working-now-niche-u1", "Robert'); drop");
+    expect(loadNowNiche("u1")).toBe("");
+    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } });
+    expect(loadNowNiche("u1")).toBe("");
+    expect(() => saveNowNiche("u1", "nutrition")).not.toThrow();
   });
 });

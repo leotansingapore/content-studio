@@ -1,5 +1,6 @@
-// /design: your slideshows, then the templates to start from (Volume's 16, folded in), then the ones you saved.
-// ?format=instagram shows the templates at 4:5.
+// /design: your slideshows, then the templates to start from (Volume's 16, folded in), then the ones you saved, then
+// six of What's working's working-now slideshows in a niche (Volume's editor home). ?format=instagram shows the
+// templates at 4:5.
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -7,6 +8,7 @@ import { Copy, Images, Plug, Plus, Trash2 } from "lucide-react";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
@@ -26,7 +28,10 @@ import {
   type DesignTemplate,
 } from "@/lib/design";
 import { ago } from "@/lib/slideshow";
+import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
+import { CARD_COLUMNS, TABLE, applyFilters, loadNiches, loadNowNiche, nicheLabel, saveNowNiche, type WorkingCard } from "@/lib/workingLibrary";
+import { WorkingCardView } from "@/pages/WorkingPage";
 
 const CARD_W = 160;
 
@@ -53,6 +58,11 @@ export default function DesignPage() {
   const userId = user?.id ?? null;
   const designs = useMemo(() => loadDesigns(userId), [userId, tick]);
   const own = useMemo(() => loadOwnTemplates(userId), [userId, tick]);
+  const [niche, setNiche] = useState("");
+  const [niches, setNiches] = useState<{ niche: string; count: number }[] | null>(null);
+  const [working, setWorking] = useState<WorkingCard[]>([]);
+  // a remembered niche with nothing working now any more falls back to All
+  const nowNiche = niches && !niches.some((n) => n.niche === niche) ? "" : niche;
 
   useEffect(() => {
     ensureDesignFonts();
@@ -63,6 +73,30 @@ export default function DesignPage() {
     window.addEventListener(DESIGNS_CHANGED, bump);
     return () => window.removeEventListener(DESIGNS_CHANGED, bump);
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    setNiche(loadNowNiche(userId));
+    let live = true;
+    void loadNiches(true).then((n) => live && setNiches(n));
+    return () => {
+      live = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    // a missing table or a failed read leaves the row out
+    const base = supabase.from(TABLE).select(CARD_COLUMNS);
+    applyFilters(base, { q: "", niche: nowNiche, sort: "working" })
+      .eq("working_now", true)
+      .limit(6)
+      .then(({ data }) => live && setWorking((data as WorkingCard[] | null) ?? []), () => live && setWorking([]));
+    return () => {
+      live = false;
+    };
+  }, [userId, nowNiche]);
 
   if (!userId) return null;
   const open = (d: Design) => {
@@ -181,6 +215,42 @@ export default function DesignPage() {
               </Cover>
             ))}
           </ul>
+        </section>
+      )}
+
+      {niches && niches.length > 0 && working.length > 0 && (
+        <section aria-labelledby="working-now" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="working-now" className="text-lg font-semibold">
+              Working right now
+            </h2>
+            <div className="flex items-center gap-3">
+              <Select value={nowNiche || "all"} onValueChange={(v) => (setNiche(v === "all" ? "" : v), saveNowNiche(userId, v === "all" ? "" : v))}>
+                <SelectTrigger className="h-9 w-auto min-w-[120px] gap-2" aria-label="Niche">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All niches</SelectItem>
+                  {niches.map((n) => (
+                    <SelectItem key={n.niche} value={n.niche}>
+                      {nicheLabel(n.niche)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Link to={nowNiche ? `/working?niche=${nowNiche}` : "/working"} className="text-sm text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
+                See all
+              </Link>
+            </div>
+          </div>
+          {/* a row: scrolls sideways on a phone, six across on a wide screen */}
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
+            {working.map((c) => (
+              <div key={c.id} className="w-36 shrink-0 sm:w-auto">
+                <WorkingCardView c={c} back="/design" />
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </div>
