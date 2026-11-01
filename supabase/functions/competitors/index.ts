@@ -12,10 +12,14 @@
 //            tracked competitors' pages, judged by Jev against the brand; 60 kept.
 //   label    hook family, feeling and audience for up to 60 ads (Jev only, from _shared/tags.ts).
 //   match    which of up to 80 pooled posts and ads fit the brand, for /swipe's For you (Jev only).
+//   similar  about 40 Instagram and TikTok accounts like the brand, for /swipe's Apps like yours: OpenAI writes TikTok
+//            searches, Apify reads Instagram's similar accounts of the seeds and the searches, Jev keeps the ones that
+//            fit. Their posts come through posts with scope "similar", on caps of their own. Both stop at Leo's US$40 a
+//            month, counted from the across-everyone rows (find-similar-accounts.md).
 //
 // Leo only while NORTH_STAR_USERS lists the caller. Caps "competitor-read", "competitor-suggest", "competitor-ads",
-// "competitor-posts", "space-ads", "ad-labels" and "niche-match" per user; ads, posts and space also across everyone on
-// GLOBAL_COUNTER_USER. A use goes back only
+// "competitor-posts", "space-ads", "ad-labels", "niche-match", "similar-find" and "similar-posts" per user; ads, posts,
+// space and similar also across everyone on GLOBAL_COUNTER_USER. A use goes back only
 // when a provider never answered (502/503); "not found", "private" and an empty list keep it (phase2-build-brief.md).
 //
 // Secrets (all set already): NORTH_STAR_USERS, DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD, OPENAI_API_KEY, TYPESAFE_API_KEY,
@@ -35,10 +39,12 @@ import { siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
 import { isAllowed, newsFailed } from "../market/logic.ts";
 import { parseTrackRequest, shapeResult } from "../track-accounts/logic.ts";
 import {
-  ADS_ACTOR, ADS_MAX, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, compareAsk, excluded,
-  firstHttpsLogo, type Handles, hostOf, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput,
-  parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, readCompetitorSite, shapeAds, shapeSpaceAds, siteAsk, SITE_BYTES,
-  siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter, WHY_FORMAT, whyMessages,
+  accountKey, ADS_ACTOR, ADS_MAX, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanMatch, cleanSimilar, cleanSpace, cleanSuggest,
+  compareAsk, excluded, firstHttpsLogo, type Handles, hostOf, IG_PROFILE_ACTOR, igCandidate, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, monthLine,
+  monthStart, nameTask, organicResults, pageMissing, pageOf, parseInput, parsePhrases, parseProposals, parseWhys, passesMonth, PHRASES_FORMAT, phrasesMessages,
+  pickCandidates, pickSite, postsFailure, postsScope, PROPOSE_FORMAT, proposeMessages, readCompetitorSite, relatedOf, shapeAds, shapeSpaceAds, type SimilarCandidate,
+  similarAsk, similarKeep, similarSearchInput, SIMILAR_MONTH_FEATURES, SIMILAR_MONTH_USD, SIMILAR_RELATED, similarSpent, similarUsd, siteAsk, SITE_BYTES,
+  siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter, TIKTOK_ACTOR, tiktokCandidates, WHY_FORMAT, whyMessages,
 } from "./logic.ts";
 
 const headers = {
@@ -58,8 +64,13 @@ const ADS_FAILED = "Couldn't read Meta's ad library right now. Try again in a fe
 const ADS_PAUSED = "Ad checks are paused for today. They resume at 8am Singapore time.";
 const POSTS_PAUSED = "Account checks are paused for today. They resume at 8am Singapore time.";
 const LABELS_FAILED = "Couldn't sort these ads right now. Try again in a few minutes.";
+const SIMILAR_FAILED = "Couldn't look for accounts right now. Try again in a few minutes.";
+const SIMILAR_PAUSED = "Finding accounts is paused for today. It resumes at 8am Singapore time.";
 // The Apify runs take up to ~105 s of the function's ~150 s; Jev questions not asked by then come back as fit null.
 const SPACE_JEV_UNTIL_MS = 130_000;
+// Apps like yours: the Apify runs finish by this point of the ~150 s, Jev asks until the next, the rest stays unjudged.
+const SIMILAR_APIFY_UNTIL_MS = 115_000;
+const SIMILAR_JEV_UNTIL_MS = 135_000;
 // An ads read from a handle alone: the page-id probe's run limit, then the time both runs share.
 const PROBE_SECS = 40;
 const ADS_BUDGET_MS = 135_000;
@@ -248,25 +259,133 @@ async function posts(admin: Admin, uid: string, body: unknown): Promise<Response
   const token = Deno.env.get("APIFY_API_KEY");
   if (!token) return fail(503, "failed", "Post checks aren't switched on yet.");
 
+  const scope = postsScope(body);
+  const mineCap = scope.similar ? "similar-posts" : "competitor-posts";
+  const everyoneCap = scope.similar ? "similar-posts-global" : "competitor-posts-global";
+  const month = scope.similar ? await monthGuard(admin, similarUsd.posts) : null;
+  if (month && !month.ok) return month.res;
   const day = new Date().toISOString().slice(0, 10);
-  const mine = await consumeUsage(admin, uid, "competitor-posts");
+  const mine = await consumeUsage(admin, uid, mineCap);
   if (!mine.allowed) return refusal(mine);
-  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "competitor-posts-global");
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, everyoneCap);
   if (!everyone.allowed) {
-    await refundUsage(admin, uid, "competitor-posts", day);
+    await refundUsage(admin, uid, mineCap, day);
     return everyone.reason === "limit" ? fail(429, "global_limit", POSTS_PAUSED) : refusal(everyone);
   }
 
   try {
-    const read = await scrapeAccount(r.platform, r.handle, token, POSTS_READ);
-    return json({ ...shapeResult(r.platform, read.profile, read.posts, POSTS_KEPT), checkedAt: new Date().toISOString() });
+    const read = await scrapeAccount(r.platform, r.handle, token, scope.read);
+    return json({ ...shapeResult(r.platform, read.profile, read.posts, scope.kept), checkedAt: new Date().toISOString(), ...(month ? { month: month.after } : {}) });
   } catch (e) {
     if (!(e instanceof AuditError)) throw e;
     const f = postsFailure(e.message, r.handle);
     console.warn("competitors posts:", r.platform, r.handle, f.code, msg(e));
-    if (f.refund) await Promise.all([refundUsage(admin, uid, "competitor-posts", day), refundUsage(admin, GLOBAL_COUNTER_USER, "competitor-posts-global", day)]);
+    if (f.refund) await Promise.all([refundUsage(admin, uid, mineCap, day), refundUsage(admin, GLOBAL_COUNTER_USER, everyoneCap, day)]);
     return fail(f.status, f.code, f.error);
   }
+}
+
+type MonthGuard = { ok: true; after: { spent: number; cap: number } } | { ok: false; res: Response };
+
+/**
+ * Leo's US$40 a month for Apps like yours, checked before any of its paid calls: this month's across-everyone counts
+ * priced at their units, plus this call. Fails closed when the counter can't be read, as consumeUsage does.
+ */
+async function monthGuard(admin: Admin, add: number): Promise<MonthGuard> {
+  let spent: number;
+  try {
+    const { data, error } = await admin.from("cs_ai_usage").select("feature, count").eq("user_id", GLOBAL_COUNTER_USER)
+      .in("feature", [...SIMILAR_MONTH_FEATURES]).gte("day", monthStart());
+    if (error) throw new Error(String(error.message ?? error));
+    spent = similarSpent(data);
+  } catch (e) {
+    console.error("competitors similar: month", msg(e));
+    const r = usageRefusal({ allowed: false, limit: 0, reason: "unavailable" });
+    return { ok: false, res: json(r.body, r.status) };
+  }
+  const cap = SIMILAR_MONTH_USD;
+  if (passesMonth(spent, add)) return { ok: false, res: json({ code: "month_limit", error: monthLine(), month: { spent: Math.round(spent * 100) / 100, cap } }, 429) };
+  return { ok: true, after: { spent: Math.round((spent + add) * 100) / 100, cap } };
+}
+
+async function similar(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const r = cleanSimilar(body);
+  if (typeof r === "string") return fail(400, "bad_request", r);
+  const token = Deno.env.get("APIFY_API_KEY");
+  if (!token || !Deno.env.get("OPENAI_API_KEY")) return fail(503, "failed", "Finding accounts isn't switched on yet.");
+
+  const started = Date.now();
+  const month = await monthGuard(admin, similarUsd.find);
+  if (!month.ok) return month.res;
+  const day = new Date().toISOString().slice(0, 10);
+  const mine = await consumeUsage(admin, uid, "similar-find");
+  if (!mine.allowed) return refusal(mine);
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "similar-find-global");
+  if (!everyone.allowed) {
+    await refundUsage(admin, uid, "similar-find", day);
+    return everyone.reason === "limit" ? fail(429, "global_limit", SIMILAR_PAUSED) : refusal(everyone);
+  }
+  const giveBack = () => Promise.all([refundUsage(admin, uid, "similar-find", day), refundUsage(admin, GLOBAL_COUNTER_USER, "similar-find-global", day)]);
+
+  let phrases: string[] = [];
+  try {
+    const res = await openaiChat({ model: OPENAI_MODEL, max_tokens: 300, response_format: PHRASES_FORMAT, messages: phrasesMessages(r.brand) }, { signal: AbortSignal.timeout(20_000) });
+    if (res.ok) phrases = parsePhrases((await res.json())?.choices?.[0]?.message?.content);
+    else console.error("competitors similar: openai", res.status, (await res.text().catch(() => "")).slice(0, 200));
+  } catch (e) {
+    console.error("competitors similar: openai", msg(e));
+  }
+  // with no searches the seeds still have Instagram's similar accounts; with neither there is nothing to read
+  if (!phrases.length && !r.seeds.instagram.length && !r.seeds.tiktok.length) {
+    await giveBack();
+    return fail(502, "failed", SIMILAR_FAILED);
+  }
+
+  // in parallel, as space does: each Apify run waits up to ~105 s; the second Instagram read gets what the first left
+  const left = () => Math.min(60, Math.floor((SIMILAR_APIFY_UNTIL_MS - (Date.now() - started)) / 1000) - 15);
+  const instagram = async () => {
+    if (!r.seeds.instagram.length) return { seeds: [] as SimilarCandidate[], related: [] as SimilarCandidate[], ran: false };
+    const seedItems = await apifyItems(IG_PROFILE_ACTOR, { usernames: r.seeds.instagram }, token, 40);
+    const related = relatedOf(seedItems, r.exclude, r.seeds.instagram);
+    const via = new Map(related.map((x) => [x.handle, x.via]));
+    const items = related.length && left() >= 10
+      ? await apifyItems(IG_PROFILE_ACTOR, { usernames: related.map((x) => x.handle).slice(0, SIMILAR_RELATED) }, token, left()).catch((e) => {
+        console.error("competitors similar: related", msg(e));
+        return [];
+      })
+      : [];
+    return {
+      seeds: seedItems.map((i) => igCandidate(i, "competitor")).filter((c): c is SimilarCandidate => c !== null),
+      related: items.map((i) => igCandidate(i, via.get(String(i.username ?? "").toLowerCase()) ?? "")).filter((c): c is SimilarCandidate => c !== null),
+      ran: true,
+    };
+  };
+  const [ig, ...tt] = await Promise.allSettled([instagram(), ...phrases.map((p) => apifyItems(TIKTOK_ACTOR, similarSearchInput(p), token, 75))]);
+  const answered = (ig.status === "fulfilled" && ig.value.ran) || tt.some((x) => x.status === "fulfilled");
+  if (!answered) {
+    console.error("competitors similar: apify", [ig, ...tt].map((x) => (x.status === "rejected" ? msg(x.reason) : "")).join(" | "));
+    await giveBack();
+    return fail(502, "failed", SIMILAR_FAILED);
+  }
+  // Apify answered (and billed): from here the uses are kept, unless Jev answers nothing
+  const found = tiktokCandidates(tt.flatMap((x) => (x.status === "fulfilled" ? x.value : [])));
+  const igv = ig.status === "fulfilled" ? ig.value : { seeds: [], related: [] };
+  // a TikTok seed is judged on what a search said about it, else on its name alone
+  const ttSeeds = r.seeds.tiktok.map((h): SimilarCandidate =>
+    ({ ...(found.find((c) => c.handle === h) ?? { platform: "tiktok", handle: h, name: h, bio: "", followers: null, private: false }), via: "competitor" }));
+  const cands = pickCandidates([igv.seeds, igv.related, ttSeeds, found], r.exclude, r.brand);
+
+  const answers = await pool(cands, 12, async (c) => (Date.now() - started < SIMILAR_JEV_UNTIL_MS ? await jev(similarAsk(r.brand, c), "competitors similar") : null));
+  // every decision, so the first real run can be read and SIMILAR_FIT set from it
+  cands.forEach((c, k) =>
+    console.log(`competitors similar: ${accountKey(c)} | ${c.bio.replace(/\s+/g, " ").slice(0, 80)} | ${answers[k]?.similar?.noul ?? "unjudged"} | ${answers[k]?.kind?.choice ?? "-"}`));
+  const kept = similarKeep(cands, answers);
+  const failed = tt.filter((x) => x.status === "rejected").length + (ig.status === "rejected" ? 1 : 0);
+  if (kept === null) {
+    await giveBack();
+    return json({ accounts: [], phrases, failed, note: "Couldn't judge the accounts right now, so nothing new was kept. This run wasn't counted.", checkedAt: new Date().toISOString() });
+  }
+  return json({ accounts: kept, phrases, failed, month: month.after, checkedAt: new Date().toISOString() });
 }
 
 async function space(admin: Admin, uid: string, body: unknown): Promise<Response> {
@@ -352,6 +471,7 @@ Deno.serve(async (req) => {
     if (body?.mode === "space") return await space(admin, uid, body);
     if (body?.mode === "label") return await label(admin, uid, body);
     if (body?.mode === "match") return await match(admin, uid, body);
+    if (body?.mode === "similar") return await similar(admin, uid, body);
     return fail(400, "bad_request", "Unknown mode.");
   } catch (e) {
     console.error("competitors failed", msg(e));

@@ -117,6 +117,11 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "competitor-suggest": upTo(0.02), // two OpenAI calls plus up to 88 Jev questions, unverified
   "competitor-ads": upTo(0.174), // 30 ads x US$5.80 per 1,000
   "competitor-posts": upTo(0.123), // TikTok 33 x US$3.70 per 1,000 + US$0.001; Instagram US$0.092
+  // Apps like yours (find-similar-accounts.md). A find: up to 12 + 60 Instagram profiles at US$2.60 per 1,000 (Free
+  // plan, apify.com/apify/instagram-profile-scraper, read 2026-11-01) US$0.187, 8 TikTok searches of 30 results at
+  // US$3.70 per 1,000 + US$0.001 a run US$0.896, one gpt-6-luna call and up to about 300 Jev questions under US$0.01.
+  "similar-find": upTo(1.09),
+  "similar-posts": upTo(0.123), // as competitor-posts; a weekly 10-post refresh costs less but is priced the same
   "space-ads": upTo(0.522), // 90 ads x US$5.80 per 1,000
   "viral-search": about(0.077), // 20 TikTok results + one YouTube block + Jev
   "post-tags": about(0.01), // teardown OpenAI + Jev, unverified
@@ -168,7 +173,7 @@ export const NO_PRICE: UsageFeature[] = [
   "stock-search", "reel-video", "brand-image",
   // across everyone
   "market-check-global", "ai-image-fix-global", "ai-broll-global", "slide-pictures-global", "ai-music-global", "ai-video-global", "ai-clip-global",
-  "competitor-ads-global", "competitor-posts-global", "space-ads-global", "viral-search-global", "search-topics-global",
+  "competitor-ads-global", "competitor-posts-global", "space-ads-global", "similar-find-global", "similar-posts-global", "viral-search-global", "search-topics-global",
   "ai-presenter-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",

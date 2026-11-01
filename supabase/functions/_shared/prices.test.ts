@@ -38,6 +38,13 @@ describe("the price table", () => {
     }
   });
 
+  it("prices Apps like yours from the Apify unit costs, its across-everyone counters free", () => {
+    expect(priceOf("similar-find")).toEqual({ usd: 1.09, kind: "upTo" });
+    expect(priceOf("similar-posts")).toEqual(priceOf("competitor-posts"));
+    expect(priceOf("similar-find-global")).toBeNull();
+    expect(priceOf("similar-posts-global")).toBeNull();
+  });
+
   it("prices the phase-3 caps and the two corrected lines from the brief's vendor table", () => {
     expect(priceOf("own-words")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("thread-copy")).toEqual({ usd: 0.01, kind: "about" });

@@ -2,7 +2,9 @@
 // the app imports parseInput from here: the app and the server agree on what is a link (added on the device, free),
 // a site (read by the server, free apart from the daily cap) and a bare name (one DataForSEO search).
 
-import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
+import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { priceOf } from "../_shared/prices.ts";
+import { normalizeHandle } from "../_shared/socialAudit.ts";
 import { AUDIENCE_TAGS, FEELINGS, HOOK_FAMILIES, pickTag } from "../_shared/tags.ts";
 import { handleOf, meta, PLATFORMS, readSite, type SiteFacts, siteUrl } from "../brand-dna/logic.ts";
 
@@ -699,3 +701,240 @@ export function matchAsk(brand: MatchRequest["brand"], item: MatchItem): Ask {
 /** Jev's answers by item id, to 2 places; a null answer is left out, so the app asks it again next time. */
 export const matchScores = (items: MatchItem[], scores: (number | null)[]): Record<string, number> =>
   Object.fromEntries(items.flatMap((it, k) => (typeof scores[k] === "number" ? [[it.id, Math.round(scores[k]! * 100) / 100]] : [])));
+
+// ---- similar: Instagram and TikTok accounts like the brand (find-similar-accounts.md) -----------------------------
+
+export type SimilarPlatform = "instagram" | "tiktok";
+export type SimilarKind = "app_or_brand" | "creator";
+export interface SimilarRequest { brand: Brand; seeds: Record<SimilarPlatform, string[]>; exclude: string[] }
+/** One account to judge. via: the seed whose similar accounts listed it, the search phrase that found it, or "competitor". */
+export interface SimilarCandidate { platform: SimilarPlatform; handle: string; name: string; bio: string; followers: number | null; private: boolean; via: string }
+export interface SimilarAccount { platform: SimilarPlatform; handle: string; name: string; bio: string; followers: number | null; kind: SimilarKind | null; score: number; via: string }
+
+export const IG_PROFILE_ACTOR = "apify~instagram-profile-scraper";
+export const TIKTOK_ACTOR = "clockworks~tiktok-scraper";
+/** Seed Instagram accounts read for Instagram's own similar-accounts list, then that many of the list read for bio and followers. */
+export const SIMILAR_SEEDS = 12;
+export const SIMILAR_RELATED = 60;
+export const SIMILAR_PHRASES = 8;
+export const SIMILAR_PER_PHRASE = 30;
+export const SIMILAR_KEEP = 40;
+/** Start cut (build brief): set it from the first real run's logged decisions. */
+export const SIMILAR_FIT = 0.6;
+export const SIMILAR_MIN_FOLLOWERS = 1000;
+/** A weekly re-read of an account's posts: the newest 10 (the first read takes POSTS_KEPT). */
+export const SIMILAR_REFRESH = 10;
+/** Leo's monthly cap for the whole feature (1 Nov 2026), in US$. */
+export const SIMILAR_MONTH_USD = 40;
+export const SIMILAR_MONTH_FEATURES = ["similar-find-global", "similar-posts-global"] as const;
+const SIMILAR_KINDS: SimilarKind[] = ["app_or_brand", "creator"];
+
+/** "platform:handle", the key exclude and the app use for one account. */
+export const accountKey = (a: { platform: SimilarPlatform; handle: string }) => `${a.platform}:${a.handle}`;
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
+
+/** The similar body, cleaned, or the reason it can't be used (400, before anything is counted). */
+export function cleanSimilar(body: unknown): SimilarRequest | string {
+  const b = rec(body);
+  const clean = cleanSuggest({ brand: b.brand });
+  if (typeof clean === "string") return clean;
+  const seeds = rec(b.seeds);
+  const list = (p: SimilarPlatform) =>
+    [...new Set((Array.isArray(seeds[p]) ? seeds[p] : []).map((h) => normalizeHandle(p, String(h ?? ""))).filter((h): h is string => Boolean(h)))].slice(0, SIMILAR_SEEDS);
+  const exclude = (Array.isArray(b.exclude) ? b.exclude : []).map((x) => text(x, 80).toLowerCase()).filter((x) => /^(instagram|tiktok):[a-z0-9._]{2,30}$/.test(x)).slice(0, 400);
+  return { brand: clean.brand, seeds: { instagram: list("instagram"), tiktok: list("tiktok") }, exclude };
+}
+
+export const PHRASES_FORMAT = {
+  type: "json_schema",
+  json_schema: {
+    name: "tiktok_searches",
+    strict: true,
+    schema: { type: "object", additionalProperties: false, required: ["phrases"], properties: { phrases: { type: "array", items: { type: "string" } } } },
+  },
+};
+
+export function phrasesMessages(brand: Brand) {
+  return [
+    { role: "system", content: `You write short TikTok searches. Answer in JSON only. ${FENCE}` },
+    {
+      role: "user",
+      content: [
+        "<brand>",
+        brandLines(brand).replace(/<\/?brand>/gi, ""),
+        "</brand>",
+        `phrases: 6 to ${SIMILAR_PHRASES} TikTok searches of 2 to 5 words that would find apps or businesses selling something like this to the same buyers, and creators who post for these buyers (UGC, day in the life, tips).`,
+        "Plain words people type. No hashtags, no brand names, no quotes.",
+      ].join("\n"),
+    },
+  ];
+}
+
+/** Up to SIMILAR_PHRASES searches, # and quotes stripped, repeats dropped; a bad answer gives []. */
+export function parsePhrases(content: unknown): string[] {
+  try {
+    const out: string[] = [];
+    for (const raw of JSON.parse(String(content))?.phrases ?? []) {
+      const t = text(raw, 60).replace(/[#"]/g, "").trim();
+      if (t.length >= 3 && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+    }
+    return out.slice(0, SIMILAR_PHRASES);
+  } catch {
+    return [];
+  }
+}
+
+/** One TikTok Top search (no searchSection: the "/video" tab returns no slideshows, measured 30 Oct). */
+export const similarSearchInput = (phrase: string) => ({ searchQueries: [phrase], resultsPerPage: SIMILAR_PER_PHRASE });
+
+/**
+ * Instagram's own similar-accounts lists of the seeds, one from each seed in turn so every seed is heard, public
+ * ones only, once each, minus the seeds and exclude: up to SIMILAR_RELATED usernames with the seed that listed each.
+ */
+export function relatedOf(seedItems: unknown[], exclude: string[], seeds: string[]): { handle: string; via: string }[] {
+  const skip = new Set([...exclude, ...seeds.map((h) => `instagram:${h}`)]);
+  const lists = seedItems.map((raw) => {
+    const i = rec(raw);
+    const via = `@${text(i.username, 30).toLowerCase()}`;
+    return (Array.isArray(i.relatedProfiles) ? i.relatedProfiles : []).map(rec).filter((r) => r.is_private !== true)
+      .map((r) => ({ handle: normalizeHandle("instagram", text(r.username, 30)) ?? "", via }));
+  });
+  const out: { handle: string; via: string }[] = [];
+  for (let k = 0; lists.some((l) => k < l.length) && out.length < SIMILAR_RELATED; k++) {
+    for (const l of lists) {
+      const r = l[k];
+      if (!r?.handle || skip.has(`instagram:${r.handle}`) || out.length >= SIMILAR_RELATED) continue;
+      skip.add(`instagram:${r.handle}`);
+      out.push(r);
+    }
+  }
+  return out;
+}
+
+/** An instagram-profile-scraper item as a candidate; null for an error item or a bad username. */
+export function igCandidate(raw: unknown, via: string): SimilarCandidate | null {
+  const i = rec(raw);
+  const handle = typeof i.error === "undefined" ? normalizeHandle("instagram", text(i.username, 30)) : null;
+  if (!handle) return null;
+  const site = text(i.externalUrl, 120);
+  return {
+    platform: "instagram", handle, name: text(i.fullName, 80) || handle,
+    bio: [text(i.biography, 300), text(i.businessCategoryName, 60), site].filter(Boolean).join(". "),
+    followers: count(i.followersCount), private: i.private === true, via,
+  };
+}
+
+/** Each search result's author as a candidate, once per handle, found by the result's search phrase. */
+export function tiktokCandidates(items: unknown[]): SimilarCandidate[] {
+  const out = new Map<string, SimilarCandidate>();
+  for (const raw of Array.isArray(items) ? items : []) {
+    const i = rec(raw);
+    const a = rec(i.authorMeta);
+    const handle = normalizeHandle("tiktok", text(a.name, 24));
+    if (!handle || out.has(handle)) continue;
+    out.set(handle, {
+      platform: "tiktok", handle, name: text(a.nickName, 80) || handle, bio: text(a.signature, 300),
+      followers: count(a.fans), private: a.privateAccount === true, via: text(i.searchQuery, 60),
+    });
+  }
+  return [...out.values()];
+}
+
+/**
+ * Candidates in the order they are judged (what is cut by the time limit is the tail), once each: minus exclude, private
+ * accounts, accounts under SIMILAR_MIN_FOLLOWERS (an unknown count stays) and the brand's own name as a handle.
+ */
+export function pickCandidates(lists: SimilarCandidate[][], exclude: string[], brand: Brand): SimilarCandidate[] {
+  const skip = new Set(exclude);
+  const own = squash(brand.name);
+  const out: SimilarCandidate[] = [];
+  for (const c of lists.flat()) {
+    const k = accountKey(c);
+    if (skip.has(k) || c.private || (c.followers !== null && c.followers < SIMILAR_MIN_FOLLOWERS) || (own.length >= 3 && squash(c.handle) === own)) continue;
+    skip.add(k);
+    out.push(c);
+  }
+  return out;
+}
+
+export function similarAsk(brand: Brand, c: SimilarCandidate): Ask {
+  return {
+    state: {
+      brand: brand.name || "this business", sells: brand.sells, serves: brand.serves,
+      account: { platform: c.platform, handle: `@${c.handle}`, name: c.name, bio: c.bio, followers: c.followers },
+    },
+    questions: {
+      similar: {
+        type: "noul",
+        instructions: "Is `account` worth following to see how others market to the people `brand` serves?",
+        criteria: {
+          true: "An app or business selling something like what `brand` sells to the same buyers, or a creator whose posts are made for the people `brand` serves (UGC, day in the life, tips).",
+          false: "Unrelated, a different audience, a podcast or an agency selling services, or spam.",
+        },
+      },
+      kind: {
+        type: "choice",
+        instructions: "What kind of account is `account`?",
+        criteria: { app_or_brand: "An app, product or business posting as itself.", creator: "A person making content: UGC, day in the life, tips." },
+      },
+    },
+  };
+}
+
+/**
+ * Jev's keepers: SIMILAR_FIT and up, best first, SIMILAR_KEEP at most. A candidate Jev never answered is not kept (the
+ * Apify reads are paid for, but nothing unjudged reaches the feed); null when Jev answered none.
+ */
+export function similarKeep(cands: SimilarCandidate[], answers: (Record<string, JevAnswer> | null)[], max = SIMILAR_KEEP): SimilarAccount[] | null {
+  if (!answers.some((a) => typeof a?.similar?.noul === "number")) return null;
+  return cands
+    .flatMap((c, k) => {
+      const score = answers[k]?.similar?.noul;
+      if (typeof score !== "number" || score < SIMILAR_FIT) return [];
+      return [{ c, kind: choiceOf(answers[k], "kind", SIMILAR_KINDS), score }];
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max)
+    .map(({ c, kind, score }) => ({ platform: c.platform, handle: c.handle, name: c.name, bio: c.bio, followers: c.followers, via: c.via, kind, score: Math.round(score * 100) / 100 }));
+}
+
+/** How many posts a read keeps: competitors' 30, or Apps like yours' (`similar`, on caps of its own) 30 then 10 a week. */
+export function postsScope(body: unknown): { kept: number; read: number; similar: boolean } {
+  const b = rec(body);
+  if (b.scope !== "similar") return { kept: POSTS_KEPT, read: POSTS_READ, similar: false };
+  const kept = b.limit === SIMILAR_REFRESH ? SIMILAR_REFRESH : POSTS_KEPT;
+  // a few over, for pinned posts, as POSTS_READ does
+  return { kept, read: kept + POSTS_READ - POSTS_KEPT, similar: true };
+}
+
+// shortcut: every use is priced at its cap's dearest (a 10-post refresh as a 30-post read), so the guard stops early, never late
+const unitUsd = (f: "similar-find" | "similar-posts") => {
+  const p = priceOf(f);
+  return p && p !== "pick" ? p.usd : 0;
+};
+export const similarUsd = { find: unitUsd("similar-find"), posts: unitUsd("similar-posts") };
+
+/** The first UTC day of `now`'s month, as cs_ai_usage.day holds it. */
+export const monthStart = (now = new Date()) => `${now.toISOString().slice(0, 7)}-01`;
+
+/** This month's spend from the across-everyone rows (cs_ai_usage: feature, count). */
+export function similarSpent(rows: unknown): number {
+  let usd = 0;
+  for (const raw of Array.isArray(rows) ? rows : []) {
+    const r = rec(raw);
+    const n = count(r.count) ?? 0;
+    if (r.feature === "similar-find-global") usd += n * similarUsd.find;
+    if (r.feature === "similar-posts-global") usd += n * similarUsd.posts;
+  }
+  return Math.round(usd * 1e6) / 1e6;
+}
+
+/** Whether a call costing `add` takes the month past the cap (reaching it exactly is allowed). */
+export const passesMonth = (spent: number, add: number, cap = SIMILAR_MONTH_USD) => Math.round((spent + add) * 1e6) / 1e6 > cap;
+
+/** "Apps like yours has used this month's US$40. It starts again on 1 December." */
+export function monthLine(now = new Date()): string {
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return `Apps like yours has used this month's US$${SIMILAR_MONTH_USD}. It starts again on 1 ${next.toLocaleString("en-GB", { month: "long", timeZone: "UTC" })}.`;
+}

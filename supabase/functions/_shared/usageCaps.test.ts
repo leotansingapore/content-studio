@@ -115,6 +115,12 @@ describe("the north-star phase-2 caps", () => {
   });
 });
 
+describe("Apps like yours caps", () => {
+  it("holds the 4 limits the build brief set (find-similar-accounts.md)", () => {
+    expect(DAILY_LIMITS).toMatchObject({ "similar-find": 3, "similar-find-global": 6, "similar-posts": 130, "similar-posts-global": 200 });
+  });
+});
+
 describe("north-star phase-3 caps", () => {
   // Declared up front so no later phase-3 task edits this file (phase3-build-brief.md, usage caps and prices).
   it("holds the 5 limits the build brief set", () => {

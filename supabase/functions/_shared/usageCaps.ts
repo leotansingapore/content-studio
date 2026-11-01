@@ -154,6 +154,13 @@ export const DAILY_LIMITS = {
   "competitor-posts": 30,
   // Those post reads across everyone on GLOBAL_COUNTER_USER.
   "competitor-posts-global": 60,
+  // Apps like yours (competitors similar): OpenAI's TikTok searches, Instagram's similar accounts and TikTok search
+  // through Apify, then Jev on each account. Under Leo's US$40 a month for the feature (find-similar-accounts.md).
+  "similar-find": 3,
+  "similar-find-global": 6,
+  // Those accounts' posts (competitors posts with scope "similar"): 30 on the first read, the newest 10 each week.
+  "similar-posts": 130,
+  "similar-posts-global": 200,
   // Ads in your space (competitors space): 3 Meta Ad Library searches of 30 ads each.
   "space-ads": 2,
   // Those space runs across everyone on GLOBAL_COUNTER_USER.

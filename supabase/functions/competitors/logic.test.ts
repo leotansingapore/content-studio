@@ -7,6 +7,8 @@ import {
   type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, ldOrganization, mergeSpace, organicResults, readCompetitorSite,
   MATCH_MAX, matchAsk, matchScores, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, postsFailure, sgDay, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter,
   spaceUrl, suggestFilter, type SpaceAd,
+  cleanSimilar, igCandidate, monthLine, monthStart, parsePhrases, passesMonth, pickCandidates, postsScope, relatedOf, type SimilarCandidate, similarAsk, similarKeep,
+  SIMILAR_KEEP, SIMILAR_RELATED, SIMILAR_SEEDS, similarSearchInput, similarSpent, similarUsd, tiktokCandidates,
 } from "./logic";
 
 describe("what the add bar reads", () => {
@@ -436,5 +438,122 @@ describe("match: which pooled posts fit the brand", () => {
   it("leaves null answers out of the scores, so they are asked again", () => {
     const items = [0, 1, 2].map((k) => ({ ...item(k), kind: "organic" as const }));
     expect(matchScores(items, [0.734, null, 0])).toEqual({ "cp:instagram:0": 0.73, "cp:instagram:2": 0 });
+  });
+});
+
+describe("similar: accounts like the brand (find-similar-accounts.md)", () => {
+  const brand = { name: "ActivityTracker", site: "", sells: "A daily planner app for people with ADHD", serves: "Adults with ADHD", topics: [] };
+  // real output: Tiimo's Instagram profile with Instagram's own similar accounts (36), and 10 TikTok search results (30 Oct)
+  const tiimo: Record<string, unknown>[] = JSON.parse(readFileSync(new URL("./fixtures/ig-profile-tiimo.json", import.meta.url), "utf8"));
+  const tiktok: Record<string, unknown>[] = JSON.parse(readFileSync(new URL("./fixtures/tiktok-search.json", import.meta.url), "utf8"));
+  const cand = (handle: string, o: Partial<SimilarCandidate> = {}): SimilarCandidate =>
+    ({ platform: "instagram", handle, name: handle, bio: "", followers: 5000, private: false, via: "@tiimoapp", ...o });
+
+  it("cleans the request: the brand as suggest does, seeds normalised and capped, exclude as platform:handle", () => {
+    const r = cleanSimilar({
+      brand, seeds: { instagram: ["@TiimoApp", "https://www.instagram.com/structured.app/", "tiimoapp", "bad handle", ...Array.from({ length: 20 }, (_, k) => `seed${k}`)], tiktok: ["@thedoapp"] },
+      exclude: ["instagram:sunsamahq", "TikTok:ThedoApp", "nope", "youtube:x"],
+    });
+    if (typeof r === "string") throw new Error(r);
+    expect(r.seeds.instagram.slice(0, 3)).toEqual(["tiimoapp", "structured.app", "seed0"]);
+    expect(r.seeds.instagram).toHaveLength(SIMILAR_SEEDS);
+    expect(r.seeds.tiktok).toEqual(["thedoapp"]);
+    expect(r.exclude).toEqual(["instagram:sunsamahq", "tiktok:thedoapp"]);
+    expect(cleanSimilar({ brand: { name: "X" } })).toBe("Say what you sell or who you serve first.");
+  });
+
+  it("reads Instagram's similar accounts from the seed, public ones once each, minus the seeds and exclude", () => {
+    const related = relatedOf(tiimo, ["instagram:todoistofficial"], ["tiimoapp", "sunsamahq"]);
+    expect(related).toHaveLength(34); // 36, minus todoist (excluded) and sunsama (a seed); none is private
+    expect(related[0]).toEqual({ handle: "adhd_womenswellbeing_pod", via: "@tiimoapp" });
+    expect(related.map((r) => r.handle)).toContain("structured.app");
+    const withPrivate = [{ ...tiimo[0], relatedProfiles: (tiimo[0].relatedProfiles as Record<string, unknown>[]).map((p, k) => (k === 0 ? { ...p, is_private: true } : p)) }];
+    expect(relatedOf(withPrivate, [], ["tiimoapp"]).map((r) => r.handle)).not.toContain("adhd_womenswellbeing_pod");
+  });
+
+  it("takes each seed's list in turn, 60 at most", () => {
+    const seed = (name: string, n: number) => ({ username: name, relatedProfiles: Array.from({ length: n }, (_, k) => ({ username: `${name}_r${k}`, is_private: false })) });
+    const related = relatedOf([seed("a", 50), seed("b", 50)], [], ["a", "b"]);
+    expect(related).toHaveLength(SIMILAR_RELATED);
+    expect(related.slice(0, 4)).toEqual([{ handle: "a_r0", via: "@a" }, { handle: "b_r0", via: "@b" }, { handle: "a_r1", via: "@a" }, { handle: "b_r1", via: "@b" }]);
+  });
+
+  it("reads a profile as a candidate: bio with its category and link, followers, private", () => {
+    expect(igCandidate(tiimo[0], "competitor")).toEqual({
+      platform: "instagram", handle: "tiimoapp", name: "Tiimo | AI planner & To-do",
+      bio: "The planning sidekick for brains that think differently. Designed by and for neurodivergent, better for everyone 💜. https://linktr.ee/tiimoapp",
+      followers: 43124, private: false, via: "competitor",
+    });
+    expect(igCandidate({ username: "x_y", private: true, followersCount: 10 }, "@a")).toMatchObject({ handle: "x_y", private: true, followers: 10, name: "x_y" });
+    expect(igCandidate({ error: "not_found", username: "gone" }, "@a")).toBeNull();
+  });
+
+  it("reads each TikTok author once, with the phrase that found them", () => {
+    const found = tiktokCandidates(tiktok);
+    expect(found).toHaveLength(9); // 10 results, coffeeandcontracts twice
+    expect(found[0]).toMatchObject({ platform: "tiktok", handle: "isobellorna_", name: "Isobel Lorna", followers: 1_500_000, private: false, via: "productivity tips" });
+    expect(found[0].bio).toMatch(/^Save the pennies/);
+    expect(found.filter((c) => c.handle === "coffeeandcontracts")).toHaveLength(1);
+  });
+
+  it("drops private accounts, under 1,000 followers, the brand's own handle and exclude; keeps an unknown count", () => {
+    const found = tiktokCandidates(tiktok);
+    const kept = pickCandidates([
+      [cand("activity.tracker"), cand("shy", { private: true }), cand("unknown", { followers: null })],
+      found, [{ ...found[0], via: "again" }],
+    ], ["tiktok:samfreeflow"], brand);
+    const handles = kept.map((c) => c.handle);
+    expect(handles).toEqual(["unknown", "isobellorna_", "neilcousins", "coffeeandcontracts", "dallascaroline", "hyggediaryy", "brookedant"]);
+    for (const gone of ["activity.tracker", "shy", "samfreeflow", "anne_tso", "productivitytoday"]) expect(handles, gone).not.toContain(gone);
+    expect(kept.find((c) => c.handle === "isobellorna_")?.via).toBe("productivity tips"); // the first one found stays
+  });
+
+  it("asks one noul and one choice about the account against the brand", () => {
+    const a = similarAsk(brand, cand("structured.app", { bio: "Daily planner" }));
+    expect(a.state).toMatchObject({ brand: "ActivityTracker", account: { platform: "instagram", handle: "@structured.app", bio: "Daily planner", followers: 5000 } });
+    expect(a.questions.similar.type).toBe("noul");
+    expect(a.questions.kind).toMatchObject({ type: "choice", criteria: { app_or_brand: expect.any(String), creator: expect.any(String) } });
+  });
+
+  it("keeps 0.6 and up, best first, 40 at most; an unanswered one is not kept; null when Jev answered none", () => {
+    const cands = Array.from({ length: 45 }, (_, k) => cand(`a${k}`));
+    const ans = (noul: number, choice = "creator") => ({ similar: { type: "noul" as const, noul }, kind: { type: "choice" as const, choice } });
+    const kept = similarKeep(cands, cands.map((_, k) => (k === 3 ? null : ans(k === 0 ? 0.59 : 0.6 + k / 1000, k === 1 ? "podcast" : "creator"))));
+    expect(kept).toHaveLength(SIMILAR_KEEP);
+    expect(kept![0]).toEqual({ platform: "instagram", handle: "a44", name: "a44", bio: "", followers: 5000, via: "@tiimoapp", kind: "creator", score: 0.64 });
+    expect(kept!.map((a) => a.handle)).not.toContain("a0");
+    expect(kept!.map((a) => a.handle)).not.toContain("a3");
+    expect(similarKeep(cands.slice(0, 3), [null, null, ans(0.6, "nope")])?.[0]).toMatchObject({ handle: "a2", kind: null });
+    expect(similarKeep(cands.slice(0, 2), [null, null])).toBeNull();
+    expect(similarKeep([], [])).toBeNull();
+  });
+
+  it("parses the searches: 8 at most, no # or quotes, no repeats", () => {
+    expect(parsePhrases(JSON.stringify({ phrases: ["#adhd planner", "ADHD planner", "\"day in the life adhd\"", "x", ...Array.from({ length: 10 }, (_, k) => `tip ${k}`)] })))
+      .toEqual(["adhd planner", "day in the life adhd", "tip 0", "tip 1", "tip 2", "tip 3", "tip 4", "tip 5"]);
+    expect(parsePhrases("not json")).toEqual([]);
+    expect(similarSearchInput("adhd planner")).toEqual({ searchQueries: ["adhd planner"], resultsPerPage: 30 });
+  });
+
+  it("routes a posts read as similar only with scope similar: 30 first, 10 on a refresh (index.test.ts checks the caps)", () => {
+    expect(postsScope({ platform: "instagram", handle: "x" })).toEqual({ kept: 30, read: 33, similar: false });
+    expect(postsScope({ scope: "similar" })).toEqual({ kept: 30, read: 33, similar: true });
+    expect(postsScope({ scope: "similar", limit: 10 })).toEqual({ kept: 10, read: 13, similar: true });
+    expect(postsScope({ scope: "similar", limit: 500 })).toMatchObject({ kept: 30 });
+    expect(postsScope({ scope: "other", limit: 10 })).toEqual({ kept: 30, read: 33, similar: false });
+  });
+
+  it("prices the month from the across-everyone rows and stops a call that would pass US$40", () => {
+    expect(similarUsd).toEqual({ find: 1.09, posts: 0.123 });
+    const rows = [{ feature: "similar-find-global", count: 10 }, { feature: "similar-posts-global", count: 200 }, { feature: "competitor-posts-global", count: 99 }, { feature: "similar-find-global", count: "x" }];
+    expect(similarSpent(rows)).toBe(35.5); // 10 x 1.09 + 200 x 0.123
+    expect(similarSpent(null)).toBe(0);
+    expect(passesMonth(39.877, 0.123)).toBe(false); // lands exactly on 40
+    expect(passesMonth(39, 0.123)).toBe(false);
+    expect(passesMonth(39.878, 0.123)).toBe(true);
+    expect(passesMonth(38.92, 1.09)).toBe(true);
+    expect(monthStart(new Date("2026-11-30T23:00:00Z"))).toBe("2026-11-01");
+    expect(monthLine(new Date("2026-11-15T00:00:00Z"))).toBe("Apps like yours has used this month's US$40. It starts again on 1 December.");
+    expect(monthLine(new Date("2026-12-31T12:00:00Z"))).toMatch(/1 January\.$/);
   });
 });
