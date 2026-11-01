@@ -6,8 +6,8 @@ import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import SlideView, { pictureUrl } from "@/components/design/SlideView";
-import { loadBrandFont } from "@/lib/brandFont";
-import { BRAND_FONT, FONTS_CSS, FORMAT_H, FRAME_W, ensureDesignFonts, type Design, type DesignSlide } from "@/lib/design";
+import { brandFontFaces, loadBrandFonts } from "@/lib/brandFont";
+import { FONTS_CSS, FORMAT_H, FRAME_W, ensureDesignFonts, type Design, type DesignSlide } from "@/lib/design";
 
 const toDataUrl = (blob: Blob) =>
   new Promise<string>((resolve, reject) => {
@@ -52,11 +52,7 @@ async function fontCss(userId: string, families: Set<string>): Promise<string> {
       return css;
     }),
   );
-  if (families.has(BRAND_FONT)) {
-    const own = loadBrandFont(userId);
-    if (own?.data) out.push(`@font-face{font-family:'${BRAND_FONT}';src:url(${own.data})}`);
-  }
-  return out.join("\n");
+  return [...out, ...brandFontFaces(loadBrandFonts(userId), families)].join("\n");
 }
 
 const familiesOf = (slides: DesignSlide[]) =>

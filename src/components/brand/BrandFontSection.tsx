@@ -5,10 +5,10 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BRAND_FONT_FAMILY, FONT_TYPE_ERROR, loadBrandFont, readFont, registerBrandFont, saveBrandFont, type BrandFont } from "@/lib/brandFont";
+import { FONT_TYPE_ERROR, addBrandFont, loadBrandFont, loadBrandFonts, readFont, registerBrandFonts, removeBrandFont, type UploadedFont } from "@/lib/brandFont";
 
 export default function BrandFontSection({ userId }: { userId: string }) {
-  const [font, setFont] = useState<BrandFont | null>(() => loadBrandFont(userId));
+  const [font, setFont] = useState<UploadedFont | null>(() => loadBrandFont(userId));
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -18,7 +18,7 @@ export default function BrandFontSection({ userId }: { userId: string }) {
     let live = true;
     const saved = loadBrandFont(userId);
     setFont(saved);
-    void registerBrandFont(saved).then((ok) => live && setReady(ok));
+    void registerBrandFonts(loadBrandFonts(userId)).then((ok) => live && setReady(!!saved && ok.has(saved.family)));
     return () => {
       live = false;
     };
@@ -31,27 +31,20 @@ export default function BrandFontSection({ userId }: { userId: string }) {
     try {
       const read = await readFont(file);
       if ("error" in read) return setError(read.error);
-      // first bytes can pass and the file still not load: nothing is saved then
-      if (!(await registerBrandFont(read.font))) {
-        await registerBrandFont(font);
-        return setError(FONT_TYPE_ERROR);
-      }
-      const saved = saveBrandFont(userId, read.font);
-      if ("error" in saved) {
-        await registerBrandFont(font);
-        return setError(saved.error);
-      }
-      setFont(read.font);
-      setReady(true);
+      if (font) removeBrandFont(userId, font.family);
+      const saved = addBrandFont(userId, read.font);
+      if ("error" in saved) return setError(saved.error);
+      setFont(saved.font);
+      setReady((await registerBrandFonts(loadBrandFonts(userId))).has(saved.font.family));
     } finally {
       setBusy(false);
     }
   };
 
   const remove = () => {
-    const saved = saveBrandFont(userId, null);
+    const saved = font ? removeBrandFont(userId, font.family) : ({ ok: true } as const);
     if ("error" in saved) return setError(saved.error);
-    void registerBrandFont(null);
+    void registerBrandFonts(loadBrandFonts(userId));
     setFont(null);
     setReady(false);
     setError("");
@@ -68,7 +61,7 @@ export default function BrandFontSection({ userId }: { userId: string }) {
           <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground [@media(pointer:coarse)]:h-11" onClick={remove}>
             <Trash2 className="h-3.5 w-3.5" /> Remove
           </Button>
-          <p className="w-full break-words text-2xl leading-snug" style={{ fontFamily: ready ? `${BRAND_FONT_FAMILY}, system-ui, sans-serif` : undefined }}>
+          <p className="w-full break-words text-2xl leading-snug" style={{ fontFamily: ready && font ? `${font.family}, system-ui, sans-serif` : undefined }}>
             Three CPF moves for your 30s
           </p>
         </div>

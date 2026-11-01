@@ -13,7 +13,7 @@ import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { loadBrandFont, registerBrandFont } from "@/lib/brandFont";
+import { loadBrandFont, loadBrandFonts, registerBrandFonts } from "@/lib/brandFont";
 import { loadBrand, slideFileName, slidesZipName } from "@/lib/carousel";
 import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import {
@@ -129,7 +129,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   useEffect(() => {
     ensureDesignFonts();
     setBrandPictures({ logo: brand?.logo, photo: brand?.photo });
-    void registerBrandFont(loadBrandFont(userId));
+    void registerBrandFonts(loadBrandFonts(userId));
   }, [brand, userId]);
 
   // autosave half a second after the last change (Claude's own version is already saved), and at once on leaving
