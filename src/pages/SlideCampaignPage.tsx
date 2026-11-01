@@ -561,7 +561,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
               ) : (
                 <label className="flex items-start gap-1.5 text-xs">
                   <input type="checkbox" className="mt-0.5 accent-primary" checked={publish.consent} onChange={(e) => setPublish((p) => ({ ...p, consent: e.target.checked }))} />
-                  <span>I agree each post goes public on my TikTok without me seeing it first. {!publish.consent && <span className="text-destructive">Until you tick this, posts go to your drafts.</span>}</span>
+                  <span>I agree each post goes out on my TikTok without me seeing it first. {!publish.consent && <span className="text-destructive">Until you tick this, posts go to your drafts.</span>}</span>
                 </label>
               )}
               {publish.mode === "direct" && (
