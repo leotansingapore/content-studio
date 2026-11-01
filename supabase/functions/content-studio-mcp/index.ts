@@ -116,10 +116,24 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return (data ?? []).map((r) => ({ key: r.key, data: r.data }));
       },
-      async put(key, data, updatedAt) {
-        // updated_at has no trigger (004): stamped here, so the app's sync sees the row as newer than its last write
-        const { error } = await table().upsert({ user_id: link.userId, key, data, updated_at: updatedAt }, { onConflict: "user_id,key" });
+      async read(key) {
+        const { data, error } = await table().select("data, updated_at").eq("user_id", link.userId).eq("key", key).maybeSingle();
         if (error) throw error;
+        return data ? { data: data.data, updatedAt: data.updated_at } : null;
+      },
+      async put(key, data, was) {
+        // updated_at has no trigger (004): stamped here when written, so the app's sync sees the row as newer than its last write
+        const updated_at = new Date().toISOString();
+        if (was === null) {
+          const { error } = await table().insert({ user_id: link.userId, key, data, updated_at });
+          if (error?.code === "23505") return false; // made in between
+          if (error) throw error;
+          return true;
+        }
+        // compare-and-swap: written only while the row is still the version read
+        const { data: rows, error } = await table().update({ data, updated_at }).eq("user_id", link.userId).eq("key", key).eq("updated_at", was).select("key");
+        if (error) throw error;
+        return (rows ?? []).length > 0;
       },
     };
 

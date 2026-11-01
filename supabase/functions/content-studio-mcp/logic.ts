@@ -73,12 +73,18 @@ export function linkIsLive(keysFound: string[], hash: string, scope: string): bo
 /** One adviser's synced rows. Implementations must stay inside that adviser's user id. */
 export interface Store {
   get(key: string): Promise<string | null>;
+  /** The row with its updated_at, the version a put compares against. */
+  read(key: string): Promise<{ data: string; updatedAt: string } | null>;
   /** Inserts a new row; false when the key is already taken (the primary key decides, so it is atomic). */
   insert(key: string, data: string): Promise<boolean>;
   /** Every row whose key starts with `prefix`, a fixed literal of this file's (no % or _). */
   all(prefix: string): Promise<{ key: string; data: string }[]>;
-  /** Writes the row whole, new or not, stamped `updatedAt`: other devices' sync takes a row newer than their last write (cloudSync.ts decideSync). */
-  put(key: string, data: string, updatedAt: string): Promise<void>;
+  /**
+   * Writes the row whole only while it is still at `was` (its updated_at when read, null when there was no row),
+   * stamped with the time of the write: other devices' sync takes a row newer than their last write (cloudSync.ts
+   * decideSync). False when someone else wrote it in between.
+   */
+  put(key: string, data: string, was: string | null): Promise<boolean>;
 }
 
 /** What index.ts knows about the link: its user is on NORTH_STAR_USERS, its name, and the client that counts uses. */
@@ -491,12 +497,14 @@ export const designsKey = (scope: string) => `content-studio-designs-${scope}`;
 /** The editor on the link's own brand: ?profile= switches to it first (profiles.ts applyBrandLink). */
 export const designLink = (id: string, link: Link) => `https://app.postmosis.com/design/${encodeURIComponent(id)}?profile=${link.scope.split("~")[1] ?? "me"}`;
 
-async function designs(store: Store, scope: string): Promise<Design[]> {
-  const raw = await store.get(designsKey(scope));
+/** The slideshows, and the row's version for the write that follows. */
+async function designs(store: Store, scope: string): Promise<{ list: Design[]; was: string | null }> {
+  const row = await store.read(designsKey(scope));
+  const raw = row?.data ?? null;
   const list = parseJson<unknown>(raw, null);
   // a row that won't read is never treated as empty: the next save would write over every slideshow in it
   if (raw && !Array.isArray(list)) throw new Error("designs row unreadable");
-  return ((list ?? []) as unknown[]).map((d) => sanitizeDesign(d)).filter((d): d is Design => !!d);
+  return { list: ((list ?? []) as unknown[]).map((d) => sanitizeDesign(d)).filter((d): d is Design => !!d), was: row?.updatedAt ?? null };
 }
 
 // read on first use, so /connect (the app imports this file for TOOL_LINES) never loads the 370 KB file
@@ -516,18 +524,23 @@ function tally(slides: unknown) {
   return { layers: layers.length, pictures: layers.filter((l) => isObj(l) && l.type === "image" && typeof l.src === "string" && l.src).length };
 }
 
-/** The design tools' answers: list, read, start and change the brand's slideshows. */
+/** The design tools' answers. A save that lost to another write (a second call, the app's autosave) is made once more on the newer row. */
 async function designTool(name: string, args: Args, store: Store, link: Link, now: Date): Promise<ToolResult> {
+  return (await designToolOnce(name, args, store, link, now)) ?? (await designToolOnce(name, args, store, link, now)) ?? fail("Someone else changed this slideshow just now. Try again.");
+}
+
+/** List, read, start and change the brand's slideshows; null when the save found the row changed since it was read. */
+async function designToolOnce(name: string, args: Args, store: Store, link: Link, now: Date): Promise<ToolResult | null> {
   const scope = link.scope;
   if (name === "list_design_templates") {
     const list = await designTemplates();
     return ok({ templates: list.map((t) => ({ id: t.id, name: t.name, blurb: t.blurb, slides: Object.fromEntries(Object.entries(t.docs).map(([f, d]) => [f, d?.slides.length ?? 0])) })) });
   }
-  const list = await designs(store, scope);
+  const { list, was } = await designs(store, scope);
   if (name === "list_designs") {
     return ok({ count: list.length, max: MAX_DESIGNS, designs: list.map((d) => ({ id: d.id, title: d.title, format: d.format, slides: d.slides.length, updatedAt: d.updatedAt, link: designLink(d.id, link) })) });
   }
-  const save = async (d: Design) => store.put(designsKey(scope), JSON.stringify([d, ...list.filter((x) => x.id !== d.id)]), d.updatedAt);
+  const save = (d: Design) => store.put(designsKey(scope), JSON.stringify([d, ...list.filter((x) => x.id !== d.id)]), was);
   if (name === "create_design") {
     const format = args.format ?? "tiktok";
     if (format !== "tiktok" && format !== "instagram") return fail("format must be tiktok or instagram.");
@@ -544,7 +557,7 @@ async function designTool(name: string, args: Args, store: Store, link: Link, no
     }
     const title = (typeof args.title === "string" && args.title.trim() ? args.title.trim() : named).slice(0, 120);
     const d: Design = { ...newDesign(format, title, slides), updatedAt: now.toISOString() };
-    await save(d);
+    if (!(await save(d))) return null;
     return ok({ created: true, id: d.id, link: designLink(d.id, link), slides: d.slides.length, note: "Read it with get_design, then change it with update_design." });
   }
   const cur = list.find((x) => x.id === args.id);
@@ -568,7 +581,7 @@ async function designTool(name: string, args: Args, store: Store, link: Link, no
   if ((Array.isArray(slides) ? slides : []).some((s) => isObj(s) && Array.isArray(s.layers) && s.layers.length > MAX_LAYERS)) return fail(`A slide holds up to ${MAX_LAYERS} layers.`);
   const d = sanitizeDesign({ ...cur, ...(sent[0] === "design" ? part : {}), slides, id: cur.id, draftId: cur.draftId, updatedAt: now.toISOString() });
   if (!d) return fail("A slideshow needs at least one slide.");
-  await save(d);
+  if (!(await save(d))) return null;
   const [before, after] = [tally(slides), tally(d.slides)];
   const notes = [
     ...(after.layers < before.layers ? [`${before.layers - after.layers} layer(s) were dropped: a layer's type is text, image, shape or gradient.`] : []),

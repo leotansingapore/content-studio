@@ -13,8 +13,9 @@ const DEAD = "This connection link isn't active. Make a new one in Postmosis > C
 const h = vi.hoisted(() => {
   type Row = { user_id: string; key: string; data: string; updated_at?: string };
   const rows: Row[] = [];
-  const state = { clients: 0, fail: null as null | string, rpc: [] as Record<string, unknown>[], handler: null as null | ((r: Request) => Promise<Response>) };
-  // a tiny stand-in for supabase-js over cs_user_data: select with eq / in / like (a prefix and %), maybeSingle, insert, upsert
+  const state = { clients: 0, fail: null as null | string, rpc: [] as Record<string, unknown>[], handler: null as null | ((r: Request) => Promise<Response>), beforeUpdate: null as null | (() => void) };
+  // a tiny stand-in for supabase-js over cs_user_data: select with eq / in / like (a prefix and %), maybeSingle, insert,
+  // and update with eq filters returning the rows it changed
   function query(table: string) {
     if (table !== "cs_user_data") throw new Error(`unexpected table ${table}`);
     const where: ((r: Row) => boolean)[] = [];
@@ -45,13 +46,20 @@ const h = vi.hoisted(() => {
         rows.push(row);
         return { error: null };
       },
-      upsert: async (row: Row, o: { onConflict?: string }) => {
-        if (state.fail) return { error: { code: "42501", message: state.fail } };
-        if (o?.onConflict !== "user_id,key") return { error: { code: "42P10", message: "no conflict target" } };
-        const at = rows.findIndex((r) => r.user_id === row.user_id && r.key === row.key);
-        if (at >= 0) rows[at] = row;
-        else rows.push(row);
-        return { error: null };
+      update: (patch: Partial<Row>) => {
+        const where: ((r: Row) => boolean)[] = [];
+        const u = {
+          eq: (c: keyof Row, v: string) => (where.push((r) => r[c] === v), u),
+          select: async () => {
+            if (state.fail) return { data: null, error: { code: "42501", message: state.fail } };
+            // someone else's write landing between Claude's read and this one
+            state.beforeUpdate?.();
+            const hit = rows.filter((r) => where.every((w) => w(r)));
+            hit.forEach((r) => Object.assign(r, patch));
+            return { data: hit.map((r) => ({ key: r.key })), error: null };
+          },
+        };
+        return u;
       },
     }),
     rpc: async (fn: string, a: Record<string, unknown>) => (state.rpc.push({ fn, ...a }), { data: 1, error: null }),
@@ -71,6 +79,7 @@ beforeEach(() => {
   h.state.clients = 0;
   h.state.fail = null;
   h.state.rpc.length = 0;
+  h.state.beforeUpdate = null;
   for (const k of Object.keys(env)) delete env[k];
   Object.assign(env, { SUPABASE_URL: "https://db.test", SUPABASE_SERVICE_ROLE_KEY: "service-key-for-tests" });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -183,12 +192,32 @@ describe("a live connection link", () => {
     expect(made).toMatchObject({ created: true, link: `https://app.postmosis.com/design/${made.id}?profile=me` });
     const mine = h.rows.filter((x) => x.key === `content-studio-designs-${A}` && x.user_id === A);
     expect(mine).toHaveLength(1);
-    expect(JSON.parse(mine[0].data)).toMatchObject([{ id: made.id, updatedAt: mine[0].updated_at }]);
+    expect(JSON.parse(mine[0].data)).toMatchObject([{ id: made.id }]);
+    // stamped when written, not when the request began
+    expect(Date.parse(mine[0].updated_at!)).toBeGreaterThanOrEqual(Date.parse(JSON.parse(mine[0].data)[0].updatedAt));
     expect(Date.parse(mine[0].updated_at!)).toBeGreaterThan(Date.now() - 60_000);
     expect(h.rows).toContainEqual(theirs);
     // and the next edit replaces that row rather than adding one
     await post(`${A}.${SECRET}`, rpc("update_design", { id: made.id, design: { title: "Renamed" } }));
     expect(h.rows.filter((x) => x.key === `content-studio-designs-${A}` && x.user_id === A).map((x) => JSON.parse(x.data)[0].title)).toEqual(["Renamed"]);
+  });
+
+  it("writes only over the version it read: the app's autosave in between keeps its slideshow and Claude's edit lands on top", async () => {
+    const key = `content-studio-designs-${A}`;
+    h.rows.push(linkRow(A, A));
+    const made = answer((await post(`${A}.${SECRET}`, rpc("create_design", { template: "blank" }))).text);
+    const row = h.rows.find((x) => x.key === key)!;
+    let raced = 0;
+    h.state.beforeUpdate = () => {
+      if (raced++) return;
+      // the app adds a slideshow and stamps the row with its own write time
+      row.data = JSON.stringify([...JSON.parse(row.data), { ...JSON.parse(row.data)[0], id: "dsg_app", title: "From the app" }]);
+      row.updated_at = new Date(Date.now() + 5_000).toISOString();
+    };
+    const r = answer((await post(`${A}.${SECRET}`, rpc("update_design", { id: made.id, design: { title: "Renamed" } }))).text);
+    expect(r.saved).toBe(true);
+    expect(JSON.parse(row.data).map((d: { id: string; title: string }) => [d.id, d.title])).toEqual([[made.id, "Renamed"], ["dsg_app", "From the app"]]);
+    expect(raced).toBe(2);
   });
 
   it("says try again, without the database's own words, when a read fails", async () => {

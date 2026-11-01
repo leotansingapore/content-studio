@@ -13,9 +13,10 @@ const brands = (kits: Record<string, Record<string, unknown>> = {}): Store => ({
     const scope = k.startsWith("content-studio-carousel-brand-") ? k.slice("content-studio-carousel-brand-".length) : "";
     return kits[scope] ? JSON.stringify(kits[scope]) : null;
   },
+  read: async () => null,
   insert: async () => false,
   all: async () => [],
-  put: async () => {},
+  put: async () => true,
 });
 
 /** What Claude is told when it connects through a link: the instructions and the tool list. */

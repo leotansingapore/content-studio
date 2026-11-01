@@ -11,14 +11,22 @@ const now = new Date("2026-10-08T02:00:00Z"); // 10am Thursday in Singapore
 function memoryStore(rows: Record<string, unknown>): Store & { rows: Map<string, string>; stamps: Map<string, string> } {
   const map = new Map(Object.entries(rows).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]));
   const stamps = new Map<string, string>();
+  // a row's version: its stamp once written here, "seed" for one it started with, null for none
+  const version = (k: string) => (map.has(k) ? (stamps.get(k) ?? "seed") : null);
+  let last = 0;
   return {
     rows: map,
     stamps,
-    put: async (k, v, at) => {
+    // a compare-and-swap on the version, stamped with the time of the write (each write a later one)
+    put: async (k, v, was) => {
+      if (version(k) !== was) return false;
       map.set(k, v);
-      stamps.set(k, at);
+      last = Math.max(Date.now(), last + 1);
+      stamps.set(k, new Date(last).toISOString());
+      return true;
     },
     get: async (k) => map.get(k) ?? null,
+    read: async (k) => (map.has(k) ? { data: map.get(k)!, updatedAt: version(k)! } : null),
     insert: async (k, v) => {
       if (map.has(k)) return false;
       map.set(k, v);
@@ -688,14 +696,14 @@ describe("design tools", () => {
     expect(out.templates.find((t: { id: string }) => t.id === "classic-tiktok").slides).toEqual({ tiktok: 5 });
   });
 
-  it("starts one from a template, newest first, with fresh ids, the link's stamp and a link to the editor", async () => {
+  it("starts one from a template, newest first, with fresh ids, stamped when written and with a link to the editor", async () => {
     const s = withDecks(doc("dsg_old", "2026-10-01T00:00:00.000Z"));
     const { out } = await call("create_design", { template: "fade-cover", format: "instagram" }, s);
     expect(out).toMatchObject({ created: true, slides: 4, link: `https://app.postmosis.com/design/${out.id}?profile=me` });
     const [made, old] = saved(s);
     expect(old.id).toBe("dsg_old");
     expect(made).toMatchObject({ id: out.id, title: "Fade cover", format: "instagram", updatedAt: at });
-    expect(s.stamps.get(designsKey(UID))).toBe(at);
+    expect(Date.parse(s.stamps.get(designsKey(UID))!)).toBeGreaterThan(now.getTime());
     const { out: tpl } = await call("list_design_templates", {}, s);
     expect(tpl.templates.find((t: { id: string }) => t.id === "fade-cover").slides.instagram).toBe(made.slides.length);
     // what was stored is already what the app's sanitizer makes of it
@@ -763,6 +771,34 @@ describe("design tools", () => {
     const slides = [{ id: "s1", background: "#111111", layers: [] }, { id: "s2", background: "#222222", layers: [] }];
     await call("update_design", { id: "dsg_a", design: { id: "dsg_other", draftId: "d9", title: "Renamed", caption: "Words", format: "instagram", slides } }, s);
     expect(saved(s)).toMatchObject([{ id: "dsg_a", draftId: "d1", title: "Renamed", caption: "Words", format: "instagram", slides }]);
+  });
+
+  it("never loses an edit to a write in between: two at once both land, and the app's autosave keeps its slideshow", async () => {
+    const s = withDecks(doc("dsg_a", at), doc("dsg_b", at));
+    const [one, two] = await Promise.all([
+      call("update_design", { id: "dsg_a", layer: { id: "txt_dsg_a", text: "From one" } }, s),
+      call("update_design", { id: "dsg_b", layer: { id: "txt_dsg_b", text: "From two" } }, s),
+    ]);
+    expect([one.error, two.error]).toEqual([false, false]);
+    expect(saved(s).map((d) => (d.slides[0].layers[0] as TextLayer).text).sort()).toEqual(["From one", "From two"]);
+    // the app saves a new slideshow between Claude's read and its write: the edit is made again on the app's row
+    const app = withDecks(doc("dsg_a", at));
+    const read = app.read;
+    let raced = false;
+    app.read = async (k) => {
+      const r = await read(k);
+      if (!raced && r) raced = await app.put(k, JSON.stringify([doc("dsg_new", at), ...saved(app)]), r.updatedAt);
+      return r;
+    };
+    expect((await call("update_design", { id: "dsg_a", layer: { id: "txt_dsg_a", text: "Edited" } }, app)).error).toBe(false);
+    expect(saved(app).map((d) => [d.id, (d.slides[0].layers[0] as TextLayer).text])).toEqual([["dsg_a", "Edited"], ["dsg_new", "Hello [[you]]"]]);
+    // a row that changes again on the retry: Claude says so and writes nothing
+    const busy = withDecks(doc("dsg_a", at));
+    const before = busy.rows.get(designsKey(UID));
+    busy.put = async () => false;
+    expect(await call("update_design", { id: "dsg_a", layer: { id: "txt_dsg_a", text: "x" } }, busy)).toEqual({ error: true, out: "Someone else changed this slideshow just now. Try again." });
+    expect(await call("create_design", {}, busy)).toEqual({ error: true, out: "Someone else changed this slideshow just now. Try again." });
+    expect(busy.rows.get(designsKey(UID))).toBe(before);
   });
 
   it("refuses unknown ids, two parts at once, too many slides or layers and an empty slideshow, saving nothing", async () => {
