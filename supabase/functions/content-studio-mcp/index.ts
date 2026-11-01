@@ -8,7 +8,8 @@
 // A link whose user is on NORTH_STAR_USERS gets phase 6's tools, prompts and
 // daily cap (logic.ts Caller); every other link answers as it always has.
 //   supabase functions deploy content-studio-mcp --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
-// Secrets the picture tools use, read as their own functions read them: PEXELS_API_KEY (stock-media).
+// Secrets the picture tools use, read as their own functions read them: PEXELS_API_KEY (stock-media), HF_API_KEY
+// and HF_API_SECRET (ai-image).
 
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
@@ -97,8 +98,11 @@ Deno.serve(async (req) => {
     } catch {
       // an older or odd row: the link works without a name
     }
+    const [hfKey, hfSecret] = [Deno.env.get("HF_API_KEY"), Deno.env.get("HF_API_SECRET")];
     const media: Media = {
       pexelsKey: Deno.env.get("PEXELS_API_KEY") || undefined,
+      higgsfield: hfKey && hfSecret ? { key: hfKey, secret: hfSecret } : undefined,
+      serverKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       supabaseUrl: Deno.env.get("SUPABASE_URL")!,
       async rows(t, q) {
         // logic.ts scopes every query it makes (the link's user and brand, or What's working's hidden = false)

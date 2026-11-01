@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type RowQuery, type Store } from "./logic";
+import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, PICTURE_NOTE, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type RowQuery, type Store } from "./logic";
+import { buildImageBody, jobToken, openJobToken, tokenSecret } from "../ai-image/logic";
 import { MAX_DESIGNS, newDesign, newLayer, sanitizeDesign, type Design, type ImageLayer, type TextLayer } from "../_shared/design";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic";
 
@@ -854,7 +855,15 @@ describe("picture tools", () => {
     };
     return { rows, queries };
   };
-  const media = (o: Partial<Media> = {}): Media => ({ pexelsKey: "px-key", supabaseUrl: "https://db.test", rows: fakeRows().rows, signed: async (_b, paths) => paths.map(() => null), ...o });
+  const media = (o: Partial<Media> = {}): Media => ({
+    pexelsKey: "px-key",
+    supabaseUrl: "https://db.test",
+    rows: fakeRows().rows,
+    signed: async (_b, paths) => paths.map(() => null),
+    higgsfield: { key: "hf-key", secret: "hf-secret" },
+    serverKey: "service-key-for-tests",
+    ...o,
+  });
   const everyone = (usage = fakeUsage(), m: Media = media()) => ({ leo: false, usage, media: m });
   const run = async (name: string, args: Record<string, unknown>, caller: Caller, l: Link = link) => {
     const r = await callTool(name, args, memoryStore({}), l, now, caller);
@@ -1044,6 +1053,86 @@ describe("picture tools", () => {
       const { out } = await run("get_library", { id: L1 }, everyone(fakeUsage(), media({ rows: db().rows })));
       expect(out.uploads).toEqual([]);
       expect(out.stock).toHaveLength(2);
+    });
+  });
+
+  describe("AI pictures", () => {
+    const JOB = "0f8fad5b-d9cb-469f-a165-70867728950e";
+    const PROMPT = "A calm desk by a window at sunrise, coffee and a notebook";
+    const done = { status: "completed", images: [{ url: "https://d3u0tzju9qaucj.cloudfront.net/a/b.png" }] };
+
+    it("starts ai-image's job for the link's user on one ai-image use, with a token the app's ai-image opens too", async () => {
+      const seen = fakeFetch(() => ({ request_id: JOB }));
+      const usage = fakeUsage();
+      const { out } = await run("make_ai_picture", { prompt: `  ${PROMPT} ` }, everyone(usage));
+      expect(usage.calls).toEqual(["ai-image"]);
+      expect(out).toEqual({ token: await jobToken(await tokenSecret("service-key-for-tests"), UID, JOB), used: 1, limit: 5, note: "Call picture_status with this token every few seconds." });
+      expect(await openJobToken(await tokenSecret("service-key-for-tests"), UID, out.token)).toBe(JOB);
+      expect(seen).toHaveLength(1);
+      expect(seen[0].url).toBe("https://api.higgsfield.ai/higgsfield-ai/soul/v2/standard");
+      expect(seen[0].init).toMatchObject({ method: "POST", headers: { Authorization: "Key hf-key:hf-secret", "Content-Type": "application/json" }, body: JSON.stringify(buildImageBody(PROMPT)) });
+    });
+
+    it("refuses the 6th picture of the day without asking Higgsfield", async () => {
+      const seen = fakeFetch(() => ({ request_id: JOB }));
+      const usage = fakeUsage({ start: 5 });
+      expect(await run("make_ai_picture", { prompt: PROMPT }, everyone(usage))).toEqual({ error: true, out: "The user's 5 AI pictures for today are used. More at 8am Singapore time." });
+      expect(usage.calls).toEqual(["ai-image"]);
+      expect(seen).toEqual([]);
+      // and on a listed link the mcp-calls use is counted first, then the same refusal
+      const listed = fakeUsage({ start: 5 });
+      const r = result(await handleRpc(call("make_ai_picture", { prompt: PROMPT }), memoryStore({}), link, now, { ...leo(listed), media: media() }));
+      expect(r).toEqual({ content: [{ type: "text", text: "The user's 5 AI pictures for today are used. More at 8am Singapore time." }], isError: true });
+      expect(listed.calls).toEqual(["mcp-calls", "ai-image"]);
+      expect(seen).toEqual([]);
+    });
+
+    it("spends nothing without the keys, a usable prompt or a counter that answers", async () => {
+      const seen = fakeFetch(() => ({ request_id: JOB }));
+      const usage = fakeUsage();
+      expect(await run("make_ai_picture", { prompt: PROMPT }, everyone(usage, media({ higgsfield: undefined })))).toEqual({ error: true, out: "Making pictures isn't switched on yet." });
+      for (const prompt of [undefined, "short", "x".repeat(1201)]) expect((await run("make_ai_picture", { prompt }, everyone(usage))).error).toBe(true);
+      expect(usage.calls).toEqual([]);
+      expect(await run("make_ai_picture", { prompt: PROMPT }, everyone(fakeUsage({ fail: true })))).toEqual({ error: true, out: BUSY_LINE });
+      expect(await run("make_ai_picture", { prompt: PROMPT }, { leo: false, media: media() })).toEqual({ error: true, out: BUSY_LINE });
+      expect(seen).toEqual([]);
+    });
+
+    it("says so when Higgsfield refuses the job, keeping the use spent as ai-image does", async () => {
+      fakeFetch(() => 403);
+      const usage = fakeUsage();
+      expect(await run("make_ai_picture", { prompt: PROMPT }, everyone(usage))).toEqual({ error: true, out: "Picture credits have run out. Tell the studio admin." });
+      expect(used(usage)).toBe(1);
+    });
+
+    it("reads a job's state: done with Higgsfield's link and how long it lasts, working, or failed", async () => {
+      const token = await jobToken(await tokenSecret("service-key-for-tests"), UID, JOB);
+      let answerWith: unknown = done;
+      const seen = fakeFetch(() => answerWith);
+      expect((await run("picture_status", { token }, everyone())).out).toEqual({ state: "done", url: "https://d3u0tzju9qaucj.cloudfront.net/a/b.png", note: PICTURE_NOTE });
+      expect(seen[0]).toMatchObject({ url: `https://api.higgsfield.ai/requests/${JOB}/status`, init: { headers: { Authorization: "Key hf-key:hf-secret" } } });
+      expect(PICTURE_NOTE).toContain("at least 7 days");
+      expect(JSON.stringify(MEDIA_TOOLS)).toContain("kept at least 7 days by its docs but not for good");
+      answerWith = { status: "in_progress" };
+      expect((await run("picture_status", { token }, everyone())).out).toEqual({ state: "working" });
+      answerWith = { status: "nsfw" };
+      expect((await run("picture_status", { token }, everyone())).out).toMatchObject({ state: "failed", error: expect.stringContaining("safety filter") });
+      answerWith = 404;
+      expect((await run("picture_status", { token }, everyone())).out).toEqual({ state: "failed", error: "That picture job isn't known." });
+      answerWith = 500;
+      expect((await run("picture_status", { token }, everyone())).out).toEqual({ state: "working" });
+    });
+
+    it("never reads another user's job, and counts no use for a status", async () => {
+      const B = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+      const theirs = await jobToken(await tokenSecret("service-key-for-tests"), B, JOB);
+      const seen = fakeFetch(() => done);
+      const usage = fakeUsage();
+      for (const token of [theirs, `${JOB}.${"0".repeat(64)}`, "x", undefined]) {
+        expect(await run("picture_status", { token }, everyone(usage))).toEqual({ error: true, out: "That picture job isn't known. Use the token make_ai_picture gave." });
+      }
+      expect(seen).toEqual([]);
+      expect(usage.calls).toEqual([]);
     });
   });
 });

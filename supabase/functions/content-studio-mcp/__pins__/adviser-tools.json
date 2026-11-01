@@ -271,6 +271,38 @@
           "id"
         ]
       }
+    },
+    {
+      "name": "make_ai_picture",
+      "description": "Make one AI picture from a prompt, for an image layer: a polished 3:4 photo at 1080p with no words or logos (put words in text layers). It spends one of the user's 5 AI pictures a day, the same ones Make the image in Postmosis spends, so use it only when stock photos won't do, and make one at a time. Returns a token: call picture_status with it every few seconds until the picture is done, usually within a minute.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "What the picture shows: subject, setting, light and mood, 10 to 1200 characters."
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      }
+    },
+    {
+      "name": "picture_status",
+      "description": "Whether a picture from make_ai_picture is ready: state is working, done (with its url) or failed (with why). The url is on Higgsfield's storage, kept at least 7 days by its docs but not for good, and the picture is not saved in the user's Media: put it in an image layer (update_design) promptly, and tell the user to download it to keep it, since a layer that uses it goes blank once the link stops working.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The token make_ai_picture gave."
+          }
+        },
+        "required": [
+          "token"
+        ]
+      }
     }
   ]
 }

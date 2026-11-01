@@ -26,6 +26,7 @@ import { ownUpload, PEXELS_SRC } from "../_shared/slideCampaign.ts";
 import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient, type UsageFeature } from "../_shared/usageCaps.ts";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic.ts";
 import { MAX_QUERY, normalizePhotos, parseStockRequest, PER_PAGE, pexelsUrl } from "../stock-media/logic.ts";
+import { buildImageBody, HF_BASE, HF_MODEL, jobToken, MAX_PROMPT, MIN_PROMPT, openJobToken, parseImageRequest, readStatus, tokenSecret } from "../ai-image/logic.ts";
 
 export const LINK_PREFIX = "content-studio-mcplink-";
 /** Drafts Claude adds: one row per slot, merged into My posts by the app (draftHistory.ts). */
@@ -108,6 +109,10 @@ export interface Media {
   rows(table: string, q: RowQuery): Promise<Record<string, unknown>[]>;
   /** Signed links to files in a private bucket, in the order of `paths`, null where one couldn't be made. */
   signed(bucket: string, paths: string[], seconds: number): Promise<(string | null)[]>;
+  /** HF_API_KEY and HF_API_SECRET, sent as ai-image sends them. */
+  higgsfield?: { key: string; secret: string };
+  /** SUPABASE_SERVICE_ROLE_KEY: ai-image signs its job tokens with a secret derived from it (tokenSecret), so a token works in either. */
+  serverKey: string;
 }
 export interface RowQuery {
   cols: string;
@@ -374,6 +379,17 @@ export const MEDIA_TOOLS = [
     description: `One image library's pictures. stock are Pexels photos: each src goes straight into an image layer's src (update_design), with the photographer's credit. uploads are the user's own pictures as signed links that expire in an hour, so they are for looking at only: a layer that uses one goes blank when the link expires. Use the stock pictures in slideshow layers.`,
     inputSchema: { type: "object", properties: { id: { type: "string", description: "The library's id, from list_libraries." } }, required: ["id"] },
   },
+  {
+    name: "make_ai_picture",
+    description: `Make one AI picture from a prompt, for an image layer: a polished 3:4 photo at 1080p with no words or logos (put words in text layers). It spends one of the user's ${DAILY_LIMITS["ai-image"]} AI pictures a day, the same ones Make the image in Postmosis spends, so use it only when stock photos won't do, and make one at a time. Returns a token: call picture_status with it every few seconds until the picture is done, usually within a minute.`,
+    inputSchema: { type: "object", properties: { prompt: { type: "string", description: `What the picture shows: subject, setting, light and mood, ${MIN_PROMPT} to ${MAX_PROMPT} characters.` } }, required: ["prompt"] },
+  },
+  {
+    name: "picture_status",
+    description:
+      "Whether a picture from make_ai_picture is ready: state is working, done (with its url) or failed (with why). The url is on Higgsfield's storage, kept at least 7 days by its docs but not for good, and the picture is not saved in the user's Media: put it in an image layer (update_design) promptly, and tell the user to download it to keep it, since a layer that uses it goes blank once the link stops working.",
+    inputSchema: { type: "object", properties: { token: { type: "string", description: "The token make_ai_picture gave." } }, required: ["token"] },
+  },
 ] as const;
 
 export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
@@ -404,6 +420,8 @@ export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
   find_working_formats: "Slideshows working now, to rebuild",
   list_libraries: "Your campaign image libraries",
   get_library: "One image library's pictures",
+  make_ai_picture: "Makes an AI picture, from your 5 a day",
+  picture_status: "Whether an AI picture is ready",
 };
 
 type Args = Record<string, unknown>;
@@ -678,9 +696,43 @@ const UPLOAD_LINK_SECONDS = 3600;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_LIBRARY = "No library with that id. Use list_libraries for ids.";
 
+export const PICTURE_NOTE = "This link is on Higgsfield's storage for at least 7 days, not for good, and the picture isn't in the user's Media. Use it now, and tell the user to download it to keep it.";
+
+/** ai-image's start and status for the link's user: its model, its signed tokens and its "ai-image" cap, counted before Higgsfield is asked. */
+async function aiPicture(name: string, args: Args, link: Link, caller: Caller, media: Media): Promise<ToolResult> {
+  if (!media.higgsfield) return fail("Making pictures isn't switched on yet.");
+  const auth = { Authorization: `Key ${media.higgsfield.key}:${media.higgsfield.secret}` };
+  const signing = await tokenSecret(media.serverKey);
+  if (name === "picture_status") {
+    const id = typeof args.token === "string" ? await openJobToken(signing, link.userId, args.token) : null;
+    if (!id) return fail("That picture job isn't known. Use the token make_ai_picture gave.");
+    const res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+    if (res?.status === 404) return ok({ state: "failed", error: "That picture job isn't known." });
+    if (!res?.ok) return ok({ state: "working" }); // a blip: Claude asks again
+    const st = readStatus(await res.json().catch(() => null));
+    return ok(st.state === "done" ? { ...st, note: PICTURE_NOTE } : st);
+  }
+  const parsed = parseImageRequest({ prompt: args.prompt });
+  if (!parsed.ok) return fail(parsed.error);
+  if (parsed.request.mode !== "start") return fail("Say what to make.");
+  const use = await spend(caller, link.userId, "ai-image", "AI pictures");
+  if ("content" in use) return use;
+  // as ai-image's start: a refused or failed submit keeps the use spent
+  const res = await fetch(`${HF_BASE}/${HF_MODEL}`, {
+    method: "POST",
+    headers: { ...auth, "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+    body: JSON.stringify(buildImageBody(parsed.request.prompt)),
+    signal: AbortSignal.timeout(30_000),
+  }).catch(() => null);
+  const id = res?.ok ? (await res.json().catch(() => null))?.request_id : null;
+  if (typeof id !== "string") return fail(res?.status === 403 ? "Picture credits have run out. Tell the studio admin." : "Couldn't make the picture right now. Try again in a minute.");
+  return ok({ token: await jobToken(signing, link.userId, id), used: use.used, limit: use.limit, note: "Call picture_status with this token every few seconds." });
+}
+
 async function mediaTool(name: string, args: Args, link: Link, caller: Caller): Promise<ToolResult> {
   const media = caller.media;
   if (!media) return fail(BUSY_LINE);
+  if (name === "make_ai_picture" || name === "picture_status") return aiPicture(name, args, link, caller, media);
   if (name === "list_libraries" || name === "get_library") {
     // the link's own user and brand, as the Libraries page asks for its profile ("me" is the main brand)
     const mine = { owner_id: link.userId, profile_id: link.scope.split("~")[1] ?? "me" };
