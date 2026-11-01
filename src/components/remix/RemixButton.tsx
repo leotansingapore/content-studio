@@ -6,6 +6,13 @@ import { dayMonth, rememberSource, remixedKeys, seedNote, type RemixSource } fro
 import { withParam } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { cn } from "@/lib/utils";
+import type { Keep } from "../../../supabase/functions/remix/logic.ts";
+
+/** The address that opens the sheet on `key` (?remix=), on the card's Keep choice when it names one (?keep=, as the sheet's own chips set it). */
+export function remixParams(prev: URLSearchParams, key: string, keep?: Keep): URLSearchParams {
+  const next = withParam(prev, "remix", key);
+  return keep ? withParam(next, "keep", keep, "structure") : next;
+}
 
 /**
  * The one Remix button on a card (docs/north-star/items/remix-everywhere.md). Everyone but Leo sees `children`,
@@ -22,6 +29,7 @@ export default function RemixButton({
   note,
   text = "Remix",
   variant = "outline",
+  keep,
 }: {
   source: RemixSource;
   children: ReactNode;
@@ -34,6 +42,8 @@ export default function RemixButton({
   label?: string;
   /** A suggestion the card shows beside the button, put in the sheet's note when that is empty. */
   note?: string;
+  /** The sheet's Keep choice to start on (a social north star play is a format: "topic" keeps it and writes about the brand). */
+  keep?: Keep;
 }) {
   const leo = useLeoUser();
   const [params, setParams] = useSearchParams();
@@ -59,7 +69,7 @@ export default function RemixButton({
     // audit: and hubtrend: keys have no data drop: the sheet finds them in this tab's registry
     rememberSource(source, leo.id);
     if (note) seedNote(source.key, note);
-    setParams((prev) => withParam(prev, "remix", source.key));
+    setParams((prev) => remixParams(prev, source.key, keep));
   };
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1", className)}>

@@ -21,6 +21,12 @@ const as = vi.hoisted(() => {
   return { user: null as null | undefined | { id: string; email: string }, store };
 });
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user, useLeoOnly: () => !!as.user }));
+// the real button, inside a mark of the Keep choice it opens the sheet on
+vi.mock("@/components/remix/RemixButton", async (actual) => {
+  const real = await actual<typeof import("@/components/remix/RemixButton")>();
+  const { createElement: h } = await import("react");
+  return { ...real, default: (p: Parameters<typeof real.default>[0]) => h("span", { "data-keep": p.keep ?? "" }, h(real.default, p)) };
+});
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
@@ -102,6 +108,14 @@ describe("the social north star", () => {
     // before the first build there is nothing it was built from
     seed({ builtAt: null });
     expect(html()).not.toContain("Built from your");
+  });
+
+  it("opens Remix from Make one like this on Make it about my topic, keeping the play's format whatever its example is about", () => {
+    as.user = LEO;
+    seed();
+    const marks = html().match(/<span data-keep="[^"]*">(?:(?!<span data-keep).)*?Make one like this/g) ?? [];
+    expect(marks).toHaveLength(2);
+    expect(marks.every((m) => m.startsWith('<span data-keep="topic">'))).toBe(true);
   });
 
   it("marks the example a link names", () => {

@@ -230,7 +230,8 @@ function PlayCard({ play: p, media, done, counted, next, linked }: {
 
       {best && (
         <div className="mt-auto pt-1">
-          <RemixButton source={fromFollowPost(best, best.post)} label={`${name}, from @${best.handle}'s post`} note={note} text="Make one like this" variant={next ? "default" : "outline"} size="default">
+          {/* a play is a format: Remix keeps it and writes about the brand, whatever the example's own topic */}
+          <RemixButton source={fromFollowPost(best, best.post)} label={`${name}, from @${best.handle}'s post`} note={note} keep="topic" text="Make one like this" variant={next ? "default" : "outline"} size="default">
             <Button asChild variant={next ? "default" : "outline"} className={cn("gap-1.5", TOUCH)}>
               <Link to={remixUrl(best, best.post)}><Shuffle className="h-4 w-4" /> Make one like this</Link>
             </Button>

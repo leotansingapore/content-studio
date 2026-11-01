@@ -99,6 +99,13 @@ describe("the Remix sheet for Leo", () => {
     expect(out.replace(AGENT_LINK, "").replace(VERSIONS_ROW, "")).toBe(pinned);
   });
 
+  it("starts on the Keep choice its address names, as Make one like this opens it on Make it about my topic", () => {
+    leo();
+    expect(html("/social-north-star", "&keep=topic")).toMatch(/aria-pressed="true"[^>]*>Make it about my topic</);
+    expect(html("/social-north-star", "&keep=topic")).toContain("Keeps: the format and hook style. New: the topic.");
+    expect(html()).toMatch(/aria-pressed="true"[^>]*>Keep the structure</);
+  });
+
   it("picks 1 version by default, and versions=3 reads Remix 3 versions; nobody else gets the row or the label", () => {
     leo();
     const one = html();

@@ -72,7 +72,7 @@ States:
 - Jev down: the last plays stay, with "Couldn't sort the posts right now. Try again in a few minutes.", a Try again button and its price chip.
 - OpenAI down: the plays build without new recipes and say "Couldn't write the recipes right now. They come with the next build."; a play keeps last week's recipe when it had one.
 
-Each play card has one action, Make one like this, which opens Remix over the page with the best example and the recipe as the note (RemixButton, `?remix=`; everyone else's fallback is the /clone?url= or Write link Apps like yours uses). The first play still short of its target is Next up: its button is the page's one filled button.
+Each play card has one action, Make one like this, which opens Remix over the page with the best example, the recipe as the note and Keep on Make it about my topic (`?keep=topic`: a play is a format, so the remix keeps it and writes about the brand, however far the example's own topic is) (RemixButton, `?remix=`; everyone else's fallback is the /clone?url= or Write link Apps like yours uses). The first play still short of its target is Next up: its button is the page's one filled button.
 
 ### Copy
 
