@@ -271,9 +271,15 @@ export function memoryBlock(facts: string[], learnings: string[], max = 1200): s
 }
 
 const LINK = /https?:\/\/|www\./i;
-/** Domain-shaped text (a site a post would send people to), lower case and without www. */
-const DOMAIN = /\b[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|sg|net|org|io|co|app|ai|gov|edu|info|biz|me|ly|tv|xyz)\b/gi;
-const domainsIn = (t: string) => (t.match(DOMAIN) ?? []).map((d) => d.toLowerCase().replace(/^www\./, ""));
+/** Site-shaped text (a site a post would send people to), lower case, without www, with any ending: written plainly
+ *  ("claim-cpf.sg"), with look-alike dots ("claim-cpf．sg") or spelled out ("claim-cpf [.] sg", "claim-cpf dot sg"). */
+const DOMAIN = /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b/gi;
+const SPELLED = /\b([a-z0-9-]+)\s*(?:\[\.\]|\(\.\)|\[dot\]|\(dot\)|\s+dot\s+)\s*([a-z]{2,})\b/gi;
+export const domainsIn = (t: string) => {
+  const plain = t.replace(/[。．｡․﹒]/g, ".");
+  const spelled = [...plain.matchAll(SPELLED)].map((m) => `${m[1]}.${m[2]}`);
+  return [...(plain.match(DOMAIN) ?? []), ...spelled].map((d) => d.toLowerCase().replace(/^www\./, ""));
+};
 
 /** The caption with the search results' sites after it, at most 3, each once: written here, never by the writer. */
 export function withSources(caption: string, found: SearchHit[]): string {

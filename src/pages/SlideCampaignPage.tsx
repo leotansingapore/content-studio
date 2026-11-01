@@ -370,7 +370,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                   <label className="flex items-center gap-1.5 text-xs">
                     <input type="checkbox" className="accent-primary" checked={spec.research} onChange={(e) => setSpec((s) => ({ ...s, research: e.target.checked }))} /> Search the web first
                   </label>
-                  <InfoTip>Each post looks up its hook on Google and names its sources in the caption.</InfoTip>
+                  <InfoTip>Each post looks up its hook on Google. Drafts name their sources in the caption.</InfoTip>
                 </div>
                 {dictation.error && <p className="text-xs text-destructive">{dictation.error}</p>}
                 <div className="grid gap-3 sm:grid-cols-2">

@@ -89,7 +89,7 @@ async function write(spec: ReturnType<typeof sanitizeSpec>, hook: string, brief:
     if (!res.ok) continue;
     const j = await res.json().catch(() => null);
     const w = parseWriter(j?.choices?.[0]?.message?.content ?? "", spec, `${brief}\n${memory}`);
-    if (w) return { ...w, caption: withSources(w.caption, found) };
+    if (w) return { ...w, found };
   }
   throw new RunError("The writer didn't answer in time. Try again in a minute.");
 }
@@ -139,6 +139,8 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   if (!hook) throw new RunError("Add a hook first.");
   const [brief, memory] = await Promise.all([brandBrief(admin, uid, c.profile_id), brandMemory(admin, uid, c.profile_id)]);
   const w = await write(spec, hook, brief, memory);
+  // the search results' sites show on an example and on a post that waits in drafts, never on one that goes out unseen
+  const caption = kind === "preview" ? withSources(w.caption, w.found) : w.caption;
   const plan = runPlan(spec, hook, w);
 
   // each role's pictures from its library (none: the slide's plain background)
@@ -157,7 +159,7 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   const runId = crypto.randomUUID();
   // the row and its PNG paths go in first, as unfinished, so the sweep finds the files of a run that dies part way
   const files = plan.map((_, i) => `${uid}/runs/${runId}/${i + 1}.png`);
-  const ins = await admin.from("cs_slide_campaign_runs").insert({ id: runId, campaign_id: c.id, owner_id: uid, kind, status: "failed", error: "Not finished.", hook, caption: w.caption, slides: plan, files });
+  const ins = await admin.from("cs_slide_campaign_runs").insert({ id: runId, campaign_id: c.id, owner_id: uid, kind, status: "failed", error: "Not finished.", hook, caption, slides: plan, files });
   if (ins.error) throw new Error(`run insert: ${ins.error.message}`);
   // every slide drawn at once (each is its own request to the drawer), then kept
   const pngs = await Promise.all(
@@ -175,14 +177,14 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   }
   await admin.from("cs_slide_campaign_runs").update({ status: "made", error: null }).eq("id", runId);
   await admin.from("cs_slide_campaigns").update({ last_hook: hook, updated_at: new Date().toISOString() }).eq("id", c.id);
-  const review = kind === "post" ? await schedule(admin, c, { id: runId, hook, caption: w.caption, slides: plan, files }, at!) : null;
-  return { id: runId, hook, caption: w.caption, slides: plan, files, review };
+  const review = kind === "post" ? await schedule(admin, c, { id: runId, hook, caption, slides: plan, files }, at!, w.found) : null;
+  return { id: runId, hook, caption, slides: plan, files, review };
 }
 
 /** Sends a made run to the campaign's TikTok account (drafts, or straight to the profile with the owner's consent)
  *  at `at`, or now when `at` is null, through the same code Post it for me uses. Answers why a post meant for the
  *  profile went to drafts instead, or null. */
-export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at: Date | null): Promise<string | null> {
+export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at: Date | null, sources: SearchHit[] = []): Promise<string | null> {
   const fail = async (error: string) => {
     await admin.from("cs_slide_campaign_runs").update({ status: "failed", error: error.slice(0, 500) }).eq("id", run.id);
     throw new RunError(error);
@@ -197,10 +199,11 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
   const flags = scanCompliance([...run.slides.map((s) => s.text), run.caption].join("\n"));
   const review = publishMode(c.publish) === "direct" && hasComplianceErrors(flags) ? `Sent to drafts for review: ${flags.find((f) => f.severity === "error")!.message}` : null;
   const mode = review ? "inbox" : publishMode(c.publish);
+  const caption = mode === "inbox" ? withSources(run.caption, sources) : run.caption;
   const input = checkSchedule({
     // one key per campaign and posting time (or per run, sent now): Zernio answers a repeat with the same post
     clientKey: at ? await slotKey(c.id, at) : run.id,
-    content: run.caption,
+    content: caption,
     mediaUrls: urls,
     ...(at ? { scheduledFor: at.toISOString().replace(/\.\d{3}Z$/, "Z") } : { now: true }),
     timezone: tz,
@@ -208,6 +211,13 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
     tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode, ...(mode === "direct" && publishMusic(c.publish) ? { autoAddMusic: true } : {}) },
   });
   if ("error" in input) return fail(input.error);
+  if (at) {
+    // the tick made this post: a pause, delete or change made while it was being made stops it here, before TikTok has it
+    const { data: now } = await admin.from("cs_slide_campaigns").select("status, account_id, publish").eq("id", c.id).maybeSingle();
+    if (!now || now.status !== "live" || now.account_id !== c.account_id || publishMode(now.publish) !== publishMode(c.publish)) {
+      return fail("Cancelled: the campaign changed while this post was being made.");
+    }
+  }
   const z = zernioClient(Deno.env.get("ZERNIO_API_KEY")!);
   let reply: Awaited<ReturnType<typeof runPost>>;
   try {
@@ -221,6 +231,6 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
     return fail("TikTok didn't take the post. Check the account on Social accounts; it tries again next time.");
   }
   const postId = (reply.body as { post?: { id?: string } })?.post?.id ?? null;
-  await admin.from("cs_slide_campaign_runs").update({ status: "scheduled", scheduled_for: (at ?? new Date()).toISOString(), zernio_post_id: postId, caption: run.caption }).eq("id", run.id);
+  await admin.from("cs_slide_campaign_runs").update({ status: "scheduled", scheduled_for: (at ?? new Date()).toISOString(), zernio_post_id: postId, caption }).eq("id", run.id);
   return review;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { memoryBlock, nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, withSources, writerPrompt } from "./slideCampaign.ts";
+import { domainsIn, memoryBlock, nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, withSources, writerPrompt } from "./slideCampaign.ts";
 import { DEFAULT_STYLE, lookFilterSvg, overlayCss } from "./slideStyle.ts";
 import { FACTS_LEAD, KEEP_LEAD, MEMORY_HEADER } from "../../../src/lib/voiceMemory";
 
@@ -163,6 +163,18 @@ describe("slideshow campaigns", () => {
     expect(withSources("x".repeat(2200), hits)).toHaveLength(2200);
     expect(withSources("x".repeat(2200), hits).endsWith("Sources: site0.sg, site1.sg, site2.sg")).toBe(true);
     expect(writerPrompt(sanitizeSpec({}), "h", "", "", hits).system).not.toContain("sources");
+  });
+
+  it("finds a site however it's written, and leaves ordinary slide text alone", () => {
+    expect(domainsIn("visit claim-cpf.sg now")).toEqual(["claim-cpf.sg"]);
+    expect(domainsIn("go to claim-cpf [.] sg")).toEqual(["claim-cpf.sg"]);
+    expect(domainsIn("claim-cpf dot sg has it")).toEqual(["claim-cpf.sg"]);
+    expect(domainsIn("claim-cpf\uff0esg")).toEqual(["claim-cpf.sg"]);
+    expect(domainsIn("rich.example.website today")).toEqual(["rich.example.website"]);
+    expect(domainsIn("Step 1. Save first. Grow 3.5x, e.g. with a.m. habits")).toEqual([]);
+    const spec = sanitizeSpec({ content: { slides: 1 } });
+    expect(parseWriter('{"slides":["Read claim-cpf dot sg"],"cta":"","caption":"c"}', spec)).toBeNull();
+    expect(parseWriter('{"slides":["Step 1. Save first"],"cta":"","caption":"c"}', spec)).not.toBeNull();
   });
 
   it("memory: facts then learnings, worded like the app's writers, trimmed from the end, nothing when empty", () => {

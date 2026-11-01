@@ -163,6 +163,8 @@ const drawn: Row[] = [];
 // in turn before the usual one
 const writer = { now: 0, most: 0, prompt: "" };
 const writerSays: Row[] = [];
+// runs once while the next writer call is in flight (to change the campaign mid-run)
+let onWrite: (() => void) | null = null;
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   if (url === DRAWER) {
@@ -177,6 +179,11 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (stored) return files.has(stored) ? new Response(files.get(stored)!.slice(), { headers: { "content-type": stored.endsWith(".webp") ? "image/webp" : "image/png" } }) : new Response("", { status: 404 });
   if (url.includes("api.openai.com")) {
     writer.most = Math.max(writer.most, ++writer.now);
+    if (onWrite) {
+      const f = onWrite;
+      onWrite = null;
+      f();
+    }
     await new Promise((ok) => setTimeout(ok, 20));
     writer.now--;
     writer.prompt = JSON.parse(String(init?.body)).messages[0].content;
@@ -454,6 +461,50 @@ Deno.test("search the web: the writer can't name a site, the sources line is our
     assertEquals(db.cs_slide_campaigns.find((x) => x.id === id)!.last_error, "Sent to drafts for review: 'Risk-free' is non-compliant for any market-linked product.");
   } finally {
     for (const k of ["DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD", "SLIDE_RENDER_URL"]) Deno.env.delete(k);
+    for (const c of db.cs_slide_campaigns) c.status = "paused";
+  }
+});
+
+Deno.test("a post going straight to the profile names no search sites, and a pause while it's being made stops it before TikTok", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  Deno.env.set("DATAFORSEO_LOGIN", "l");
+  Deno.env.set("DATAFORSEO_PASSWORD", "p");
+  Deno.env.set("SLIDE_RENDER_URL", DRAWER);
+  Deno.env.set("SLIDE_RENDER_SECRET", "s");
+  try {
+    for (const c of db.cs_slide_campaigns) c.status = "paused";
+    const live = (name: string) => {
+      const id = crypto.randomUUID();
+      db.cs_slide_campaigns.push({
+        id, owner_id: A, profile_id: "me", name, status: "live", account_id: ACCOUNT, next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(), last_hook: null,
+        spec: { hooks: ["3 CPF facts"], research: true, content: { slides: 2 }, cta: { placement: "none" } },
+        schedule: { tz: "Asia/Singapore", times: [{ at: "09:00", days: [0, 1, 2, 3, 4, 5, 6] }] },
+        publish: { mode: "direct", consent_at: new Date().toISOString() },
+      });
+      return id;
+    };
+    const direct = live("Direct");
+    writerSays.push({ slides: ["CPF pays up to 4%", "Check your statement yearly"], cta: "", caption: "CPF facts. #cpf" });
+    const before = posts.length;
+    assertEquals(await tick(admin as never), { made: 1, failed: 0 });
+    const p = posts.at(-1) as { content: string; platforms: { platformSpecificData: Row }[] };
+    assertEquals(posts.length, before + 1);
+    assertEquals(p.content, "CPF facts. #cpf", "no sources line on a post nobody reviews");
+    assertEquals(p.platforms[0].platformSpecificData.tiktokSettings, undefined, "straight to the profile");
+    db.cs_slide_campaigns.find((c) => c.id === direct)!.status = "paused";
+
+    const paused = live("Paused mid-run");
+    onWrite = () => (db.cs_slide_campaigns.find((c) => c.id === paused)!.status = "paused");
+    const n = posts.length;
+    assertEquals(await tick(admin as never), { made: 0, failed: 1 });
+    assertEquals(posts.length, n, "nothing handed to TikTok");
+    const run = db.cs_slide_campaign_runs.find((r) => r.campaign_id === paused)!;
+    assertEquals([run.status, run.error], ["failed", "Cancelled: the campaign changed while this post was being made."]);
+  } finally {
+    onWrite = null;
+    for (const k of ["DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD", "SLIDE_RENDER_URL"]) Deno.env.delete(k);
+    // the two campaigns made here go, so later tests stay under the 20-campaign limit
+    db.cs_slide_campaigns = db.cs_slide_campaigns.filter((c) => c.name !== "Direct" && c.name !== "Paused mid-run");
     for (const c of db.cs_slide_campaigns) c.status = "paused";
   }
 });

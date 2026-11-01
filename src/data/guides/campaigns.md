@@ -18,7 +18,7 @@ To create one:
 
 A campaign holds up to **30** hooks and **10** content slides. You can keep **20** campaigns.
 
-Turn on `Search the web first` to have each post look up its hook before writing. The post names its sources at the end of the caption.
+Turn on `Search the web first` to have each post look up its hook before writing. Examples and posts that go to your drafts name their sources at the end of the caption; posts that go straight to your profile don't.
 
 ## Pick the pictures
 
