@@ -25,6 +25,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/recruit/:tab": "the tabs of /recruit (Conversations, AI agent)",
   "/inspiration/:id": "one inspiration, opened from /inspiration",
   "/carousels/:id": "one carousel, opened from /carousels",
+  "/working/:id": "one slideshow, opened from /working",
   "/design/:id": "one design, opened from /design",
   "/design/campaigns/:id": "one slideshow campaign, opened from /design/campaigns",
   "/profiles/:id": "one creator, opened from /profiles",

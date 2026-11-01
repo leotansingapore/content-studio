@@ -62,6 +62,7 @@ export const PAGES: Record<string, string> = {
   "/team": "Leader approvals",
   "/swipe": "Top posts",
   "/carousels": "Carousels",
+  "/working": "What's working",
   "/trends": "Trends",
   "/clone": "Clone a reel",
   "/inspiration": "Inspiration",

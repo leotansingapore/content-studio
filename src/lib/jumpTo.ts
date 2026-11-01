@@ -45,6 +45,7 @@ const KEYWORDS: Record<string, string> = {
   "/analytics": "results numbers stats insights performance",
   "/team": "team review approval approve leader",
   "/swipe": "top posts examples trending",
+  "/working": "tiktok slideshows photo viral formats niches examples volume",
   "/trends": "trending videos hashtags",
   "/clone": "copy a reel reels style",
   "/inspiration": "ideas examples posts",

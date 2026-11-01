@@ -13,6 +13,7 @@ import {
   GraduationCap,
   History,
   Home,
+  Images,
   Lightbulb,
   Linkedin,
   MessageSquare,
@@ -159,6 +160,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/swipe", label: "Top posts", anyLabel: "News", icon: TrendingUp },
       // the carousel library (Top Carousels' outliers, every niche): for every brand
       { to: "/carousels", label: "Carousels", icon: GalleryHorizontalEnd },
+      // TikTok slideshows that beat their creator's usual views (Volume's library, every niche): for every brand
+      { to: "/working", label: "What's working", icon: Images },
       { to: "/trends", label: "Trends", icon: Flame, show: () => adviserBrand() },
       { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },

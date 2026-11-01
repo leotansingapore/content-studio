@@ -156,6 +156,10 @@ so one that is gone shows everything.
 | /inspiration | audience | general, parent, pre-retiree, working-adult, young-adult (comma list) | all | replace | /inspiration?audience=parent |
 | /inspiration | saved | only | off | replace | /inspiration?saved=only |
 | /inspiration/:id | (path) | an example's id; has Copy link | | push | /inspiration/linkedin-cpf-myth-young-adult-001 |
+| /working | q | search text (slides' words, captions, creators) | empty | replace | /working?q=protein |
+| /working | niche | a niche slug from the data (nutrition, ai_tools...) | all | replace | /working?niche=ai_tools |
+| /working | sort | working, views, saves | working | replace | /working?sort=saves |
+| /working/:id | (path) | a slideshow's TikTok post id; has Copy link | | push | /working/7412345678901234567 |
 | /profiles | q | search text (name, handle, company, niche) | empty | replace | /profiles?q=retirement |
 | /profiles | company | aia, prudential, great-eastern, manulife, independent-fee-only, other, none (comma list) | all | replace | /profiles?company=aia,none |
 | /profiles | platform | linkedin, instagram, facebook, tiktok, youtube (comma list) | all | replace | /profiles?platform=tiktok |
@@ -285,6 +289,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /generate | draft | a post id: that post open in Write; the address follows the post as it is saved | none | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /generate | step | topic, funnel, idea, format: the brief step shown | the tab's unfinished brief, else topic; format when the link pre-fills `detail` | replace | /generate?step=format |
 | /generate | panel | shortcuts (keyboard shortcuts dialog), post (Post it for me, on a scheduled post) | none | push | /generate?panel=shortcuts |
+| /generate | working | a What's working slideshow id (Make one like this): a TikTok carousel brief with its hook and structure as the pattern; read once, then removed | none | replace | /generate?working=7412345678901234567 |
 | /generate/batch | pillar | topic, market, identity, interest | the tab's unfinished batch, else topic | replace | /generate/batch?pillar=market |
 | /generate/batch | audience | general, young-adult, working-adult, parent, pre-retiree | the tab's unfinished batch, else general | replace | /generate/batch?audience=parent |
 | /generate/vsl | offer, promise, pain, proof, method, objections, next | the intake answers as typed (VSL_QUESTIONS in generate-social-content/logic.ts); offer is needed to write | empty | replace | /generate/vsl?offer=Coaching%20for%20new%20managers&next=Book%20a%20call |

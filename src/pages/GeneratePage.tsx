@@ -38,6 +38,7 @@ import {
 import { VIDEO_FORMAT_GROUPS, VIDEO_FORMATS, videoFormatById, videoFormatRule } from "@/data/videoFormats";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { formatLines } from "@/lib/workingLibrary";
 import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
@@ -1118,7 +1119,7 @@ export default function GeneratePage() {
   // Read once at mount: the prefill effects strip their params from the URL
   // before the async user lookup below resolves.
   const [arrivedWithBrief] = useState(() =>
-    ["draft", "platform", "format", "vibe", "carousel", "pillar", "detail", "funnel", "idea", "ctx", "source"].some(
+    ["draft", "platform", "format", "vibe", "carousel", "working", "pillar", "detail", "funnel", "idea", "ctx", "source"].some(
       (k) => new URLSearchParams(window.location.search).has(k),
     ),
   );
@@ -1275,6 +1276,39 @@ export default function GeneratePage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("carousel")]);
+
+  // ?working=<id> from What's working (Make one like this): a TikTok slideshow, written as a carousel for TikTok, with
+  // the library slideshow's hook, structure and slides as the pattern to match. Its words stay a reference.
+  useEffect(() => {
+    const id = searchParams.get("working");
+    if (!id) return;
+    let live = true;
+    void supabase
+      .from("cs_working_slideshows")
+      .select("slides, format, niche, hook, hook_text, structure, summary, slide_text")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!live) return;
+        // one write: a second setSearchParams in the same tick would undo the first (React Router 6.30)
+        setSearchParams((prev) => {
+          const p = withParam(prev, "working", null);
+          return data ? withParam(p, "step", WRITE_STEPS[IDEA_STEP], "topic") : p;
+        }, { replace: true });
+        if (!data) return;
+        const row = data as Parameters<typeof formatLines>[0] & { slide_text: string[] | null };
+        const slides = (row.slide_text ?? []).map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 10);
+        setFormat("carousel");
+        setPlatform("tiktok");
+        setStyleReference([...formatLines(row), ...slides.map((t, i) => `Slide ${i + 1}: ${t.slice(0, 160)}`)].join("\n"));
+        setIdeaContext((prev) => (prev.trim() ? prev : `Style reference (do not copy verbatim, match the pattern): ${formatLines(row)[0]}`));
+        toast({ title: "Slideshow loaded", description: "Its hook and structure are the pattern to match. Add your own topic and generate." });
+      });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("working")]);
 
   // Restore a draft into the form when ?draft=<id> arrives.
   useEffect(() => {
