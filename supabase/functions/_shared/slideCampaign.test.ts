@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, writerPrompt } from "./slideCampaign.ts";
+import { memoryBlock, nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, writerPrompt } from "./slideCampaign.ts";
 import { DEFAULT_STYLE, lookFilterSvg, overlayCss } from "./slideStyle.ts";
+import { FACTS_LEAD, KEEP_LEAD, MEMORY_HEADER } from "../../../src/lib/voiceMemory";
 
 describe("slideshow campaigns", () => {
   it("spec: defaults, clamps and drops what it can't use", () => {
@@ -146,6 +147,20 @@ describe("slideshow campaigns", () => {
     expect(parseWriter('{"slides":["a","b"],"cta":"","caption":"Go https://x.co #a"}', spec)).toBeNull();
     expect(parseWriter('{"slides":["a","b"],"cta":"","caption":"Sources: cpf.gov.sg #a"}', spec)).not.toBeNull();
     expect(writerPrompt(sanitizeSpec({}), "h", "", "", hits).system).not.toContain("Sources:");
+  });
+
+  it("memory: facts then learnings, worded like the app's writers, trimmed from the end, nothing when empty", () => {
+    expect(memoryBlock([], [])).toBe("");
+    expect(memoryBlock(["a"], ["b"])).toBe([MEMORY_HEADER, `${FACTS_LEAD}a`, `${KEEP_LEAD}b`].join("\n"));
+    const m = memoryBlock(["12 years advising"], ["Never use emoji"]);
+    expect(m).toContain("Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years advising");
+    expect(m).toContain("- Keep doing or avoid: Never use emoji");
+    const long = memoryBlock(["fact"], Array.from({ length: 50 }, (_, i) => `learning number ${i} `.repeat(3)), 400);
+    expect(long.length).toBeLessThanOrEqual(400);
+    expect(long).toContain("fact");
+    const p = writerPrompt(sanitizeSpec({}), "h", "", "", [], m);
+    expect(p.user).toContain("Never use emoji");
+    expect(writerPrompt(sanitizeSpec({}), "h", "", "").user).not.toContain("ABOUT ME");
   });
 
   it("looks and overlays match the editor's maths", () => {

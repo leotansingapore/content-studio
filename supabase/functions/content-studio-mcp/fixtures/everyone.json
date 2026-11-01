@@ -360,7 +360,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\n  \"positioning\": {\n    \"goal\": \"More reviews booked\",\n    \"goalKind\": \"clients\",\n    \"audience\": \"parent\",\n    \"topics\": [\n      \"CPF\"\n    ],\n    \"platform\": \"instagram\",\n    \"cadence\": 3\n  },\n  \"brandKit\": {\n    \"name\": \"Jane\",\n    \"handle\": \"@jane\",\n    \"role\": \"Financial adviser\",\n    \"signOff\": \"DM me\"\n  },\n  \"voiceSummary\": \"Warm, plain\"\n}"
+            "text": "{\n  \"positioning\": {\n    \"goal\": \"More reviews booked\",\n    \"goalKind\": \"clients\",\n    \"audience\": \"parent\",\n    \"topics\": [\n      \"CPF\"\n    ],\n    \"platform\": \"instagram\",\n    \"cadence\": 3\n  },\n  \"brandKit\": {\n    \"name\": \"Jane\",\n    \"handle\": \"@jane\",\n    \"role\": \"Financial adviser\",\n    \"signOff\": \"DM me\"\n  },\n  \"voiceSummary\": \"Warm, plain\",\n  \"learnings\": [\n    {\n      \"text\": \"No emoji\",\n      \"scope\": \"all\"\n    }\n  ],\n  \"memoryRule\": \"Follow every learning. facts are the only facts, numbers or results about the adviser you may state.\"\n}"
           }
         ]
       }

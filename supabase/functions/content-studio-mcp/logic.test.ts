@@ -114,6 +114,24 @@ describe("tools", () => {
     });
   });
 
+  it("gives every link the brand's memory: its learnings to follow and the only facts Claude may state", async () => {
+    const s = memoryStore({
+      [`content-studio-learnings-${UID}`]: [
+        { id: "l1", text: "Never use emoji", scope: "all", source: "typed", createdAt: "2026-10-01T00:00:00Z" },
+        { id: "l2", text: "Old note", scope: "posts", source: "typed", createdAt: "2026-10-01T00:00:00Z", offAt: "2026-10-02T00:00:00Z" },
+      ],
+      [`content-studio-facts-${UID}`]: [
+        { id: "f1", text: "12 years advising young families", createdAt: "2026-10-01T00:00:00Z" },
+        { id: "f2", text: "Removed fact", createdAt: "2026-10-01T00:00:00Z", offAt: "2026-10-03T00:00:00Z" },
+      ],
+    });
+    const b = text(await callTool("get_brand", {}, s, link));
+    expect(b.learnings).toEqual([{ text: "Never use emoji", scope: "all" }]);
+    expect(b.facts).toEqual(["12 years advising young families"]);
+    expect(b.memoryRule).toContain("only facts");
+    expect(text(await callTool("get_brand", {}, memoryStore({}), link))).not.toHaveProperty("memoryRule");
+  });
+
   // Pinned before the goal fields joined get_brand (phase 5): a brand that never set a goal answers byte for byte as
   // it did on 0d23f6a6. Never update this literal to make a change pass.
   it("answers a brand with no goal fields exactly as before (pinned)", async () => {
@@ -265,6 +283,8 @@ async function everyoneTranscript(run: (m: Record<string, unknown>, s: Store) =>
 describe("a link off the list (pinned)", () => {
   afterEach(() => vi.restoreAllMocks());
 
+  // Updated once on purpose, 1 Nov 2026: Leo opened Your voice memory to everyone, so get_brand now hands an off-list
+  // link the brand's learnings and memoryRule (the one line that changed in everyone.json).
   it("answers every call exactly as before phase 6", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0.123456789);
     await expect(await everyoneTranscript((m, s) => handleRpc(m, s, link, now))).toMatchFileSnapshot("./fixtures/everyone.json");
@@ -487,6 +507,7 @@ describe("get_brand on a listed link", () => {
       voiceSummary: "Warm",
       speaker: "person",
       learnings: [{ text: "No emoji in my posts", scope: "posts" }, { text: "Use an older man as my presenter", scope: "videos" }],
+      memoryRule: "Follow every learning. facts are the only facts, numbers or results about the adviser you may state.",
     });
   });
 

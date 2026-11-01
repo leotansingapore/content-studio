@@ -189,7 +189,7 @@ const STYLE: Record<CampaignSpec["content"]["style"], string> = {
 };
 
 /** The writer's instructions for one run. `brief` is what the brand does and for whom; `honest` the house honesty rule. */
-export function writerPrompt(spec: CampaignSpec, hook: string, brief: string, honest: string, found: SearchHit[] = []): { system: string; user: string } {
+export function writerPrompt(spec: CampaignSpec, hook: string, brief: string, honest: string, found: SearchHit[] = [], memory = ""): { system: string; user: string } {
   const n = spec.content.slides;
   const system = [
     "You write TikTok and Instagram photo slideshows. The first slide (the hook) is given. You write the slides after it, then the caption.",
@@ -216,6 +216,7 @@ export function writerPrompt(spec: CampaignSpec, hook: string, brief: string, ho
     `About the brand: ${brief || "a solo professional"}`,
     `What the posts are about: ${spec.topic || "useful, practical advice for the brand's audience"}`,
     `Hook (slide 1): ${hook}`,
+    ...(memory ? [memory] : []),
     ...(found.length ? ["<search_results>", ...found.map((f, i) => `${i + 1}. ${f.title} (${f.site}): ${f.text}`), "</search_results>"] : []),
   ].join("\n");
   return { system, user };
@@ -246,6 +247,25 @@ export function runPlan(spec: CampaignSpec, hook: string, w: { slides: string[];
   // mid-deck: after the first half of the content, rounded up (with one content slide it lands last)
   const cut = spec.cta.placement === "middle" ? Math.ceil(content.length / 2) : content.length;
   return [{ role: "hook" as const, text: hook }, ...content.slice(0, cut), ...cta, ...content.slice(cut)];
+}
+
+/** Your voice memory for a post writer, worded as src/lib/voiceMemory.ts memoryLine words it: the facts, then the
+ *  learnings, whole items dropped from the end (learnings first) to stay under `max`. "" when there are none. */
+export function memoryBlock(facts: string[], learnings: string[], max = 1200): string {
+  const f = [...facts];
+  const l = [...learnings];
+  const text = () =>
+    [
+      "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):",
+      ...(f.length ? ["- Facts you may state about me (state no other facts, numbers, awards or results about me): " + f.join("; ")] : []),
+      ...(l.length ? ["- Keep doing or avoid: " + l.join("; ")] : []),
+    ].join("\n");
+  while (f.length || l.length) {
+    if (text().length <= max) return text();
+    if (l.length) l.pop();
+    else f.pop();
+  }
+  return "";
 }
 
 const LINK = /https?:\/\/|www\./i;

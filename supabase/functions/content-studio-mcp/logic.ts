@@ -629,9 +629,8 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
         brandKit: pick(brand, ["name", "handle", "role", "signOff", "color"]),
         voiceSummary: typeof voice.voiceSummary === "string" ? voice.voiceSummary : null,
       };
-      if (!caller.leo) return ok(answer);
-      // remixBrand.ts speakerFor: the main brand is a person, another speaks as one only with a role or a photo
-      const person = scope === link.userId || !!str(brand.role)?.trim() || !!brand.photo;
+      // Your voice memory (src/lib/voiceMemory.ts), on for everyone since 1 Nov: standing notes to follow, and the
+      // only facts about the adviser Claude may state. A brand with none answers exactly as before.
       const learned = parseJson<unknown>(await store.get(`content-studio-learnings-${scope}`), []);
       const learnings = (Array.isArray(learned) ? learned : []).flatMap((raw) => {
         const l = raw as Record<string, unknown> | null;
@@ -639,7 +638,21 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
         const on = l && !l.offAt && ["posts", "videos", "pictures", "all"].includes(l.scope as string);
         return text && on ? [{ text, scope: l.scope as string }] : [];
       });
-      return ok({ ...answer, speaker: person ? "person" : "business", learnings: learnings.slice(0, 30) });
+      const known = parseJson<unknown>(await store.get(`content-studio-facts-${scope}`), []);
+      const facts = (Array.isArray(known) ? known : []).flatMap((raw) => {
+        const f = raw as Record<string, unknown> | null;
+        const text = str(f?.text)?.replace(/\s+/g, " ").trim().slice(0, 160);
+        return text && !f?.offAt ? [text] : [];
+      }).slice(0, 20);
+      const memory = {
+        ...(facts.length ? { facts } : {}),
+        ...(learnings.length && !caller.leo ? { learnings: learnings.slice(0, 30) } : {}),
+        ...(facts.length || learnings.length ? { memoryRule: "Follow every learning. facts are the only facts, numbers or results about the adviser you may state." } : {}),
+      };
+      if (!caller.leo) return ok({ ...answer, ...memory });
+      // remixBrand.ts speakerFor: the main brand is a person, another speaks as one only with a role or a photo
+      const person = scope === link.userId || !!str(brand.role)?.trim() || !!brand.photo;
+      return ok({ ...answer, speaker: person ? "person" : "business", learnings: learnings.slice(0, 30), ...memory });
     }
     case "add_draft": {
       const text = typeof args.text === "string" ? args.text.trim() : "";

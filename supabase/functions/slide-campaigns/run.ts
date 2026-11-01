@@ -5,7 +5,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { dfs, dfsAuth, SINGAPORE } from "../_shared/dataforseo.ts";
-import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, publishMode, publishMusic, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, memoryBlock, publishMode, publishMusic, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
 import type { SlideInput } from "../_shared/slideDraw.ts";
 import { zernioClient } from "../_shared/zernio.ts";
 import { checkSchedule, runPost } from "../social/posts.ts";
@@ -59,8 +59,28 @@ async function research(hook: string, topic: string): Promise<SearchHit[]> {
   }
 }
 
-async function write(spec: ReturnType<typeof sanitizeSpec>, hook: string, brief: string) {
-  const p = writerPrompt(spec, hook, brief, HONEST_LINE, spec.research ? await research(hook, spec.topic.slice(0, 80)) : []);
+/** The brand's Your voice memory (src/lib/voiceMemory.ts): facts on, and learnings on for posts or all, newest first. */
+async function brandMemory(admin: SupabaseClient, uid: string, profile: string): Promise<string> {
+  const scope = scopedKey(uid, profile);
+  const { data } = await admin.from("cs_user_data").select("key, data").eq("user_id", uid).in("key", [`content-studio-facts-${scope}`, `content-studio-learnings-${scope}`]);
+  const rows = (key: string): Record<string, unknown>[] => {
+    try {
+      const v = JSON.parse((data ?? []).find((r) => r.key === key)?.data ?? "[]");
+      return Array.isArray(v) ? v.filter((x) => x && typeof x === "object" && !x.offAt && typeof x.text === "string") : [];
+    } catch {
+      return [];
+    }
+  };
+  const facts = rows(`content-studio-facts-${scope}`).map((f) => String(f.text).trim().slice(0, 160));
+  const learnings = rows(`content-studio-learnings-${scope}`)
+    .filter((l) => l.scope === "posts" || l.scope === "all")
+    .reverse()
+    .map((l) => String(l.text).trim().slice(0, 140));
+  return memoryBlock(facts.filter(Boolean), learnings.filter(Boolean));
+}
+
+async function write(spec: ReturnType<typeof sanitizeSpec>, hook: string, brief: string, memory: string) {
+  const p = writerPrompt(spec, hook, brief, HONEST_LINE, spec.research ? await research(hook, spec.topic.slice(0, 80)) : [], memory);
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await openaiChat({ model: OPENAI_MODEL, response_format: { type: "json_object" }, max_tokens: 1200, messages: [{ role: "system", content: p.system }, { role: "user", content: p.user }] });
     if (!res.ok) continue;
@@ -111,7 +131,8 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   const spec = sanitizeSpec(c.spec);
   const hook = pickHook(spec.hooks, c.last_hook);
   if (!hook) throw new RunError("Add a hook first.");
-  const w = await write(spec, hook, await brandBrief(admin, uid, c.profile_id));
+  const [brief, memory] = await Promise.all([brandBrief(admin, uid, c.profile_id), brandMemory(admin, uid, c.profile_id)]);
+  const w = await write(spec, hook, brief, memory);
   const plan = runPlan(spec, hook, w);
 
   // each role's pictures from its library (none: the slide's plain background)
