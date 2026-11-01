@@ -191,6 +191,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
     async (kind: "generate" | "start" | "pause" | "send", body: Record<string, unknown>) => {
       setBusy(kind);
       try {
+        await saver.now(); // the server works from the saved campaign: send an edit still waiting first
         const r = await callFn<{ run?: Run; status?: CampaignRowView["status"]; next_run_at?: string }>("slide-campaigns", body);
         if (r.run) {
           setPreview(r.run);
@@ -210,7 +211,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
         setBusy(null);
       }
     },
-    [toast, row.publish],
+    [toast, row.publish, saver],
   );
   const setAccount = async (account_id: string | null) => {
     try {
