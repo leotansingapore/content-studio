@@ -3,7 +3,7 @@
 // that already does the work. Reads only what this device and the bundled drops hold; calls no AI.
 import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight, Clapperboard, FileText, Image as ImageIcon, Layers, PenLine, Type, Video, type LucideIcon } from "lucide-react";
+import { CalendarClock, ChevronRight, Clapperboard, FileText, Image as ImageIcon, Images, Layers, LayoutTemplate, PenLine, Type, Video, type LucideIcon } from "lucide-react";
 import ReelCard from "@/components/ReelCard";
 import { FORMATS, formatHref, type FormatKind } from "@/data/formats";
 import { ADS, daysRunning } from "@/lib/adsSwipe";
@@ -21,11 +21,14 @@ const Composer = lazy(() => import("@/components/agent/Composer"));
 
 const ROW = 5;
 const KIND_ICONS: Record<FormatKind, LucideIcon> = { video: Clapperboard, slides: Layers, text: Type, image: ImageIcon };
-// Everyone else's ways to make, the pages under Create they can open.
+// Everyone else's ways to make, from the Create and Slideshows tabs.
 const WRITE: { to: string; name: string; blurb: string; icon: LucideIcon }[] = [
   { to: "/generate", name: "Post", blurb: "A post in your voice, from a topic", icon: PenLine },
   { to: "/generate/batch", name: "Batch", blurb: "Several posts in one go", icon: FileText },
   { to: "/carousel", name: "Carousel", blurb: "Slides from a post or your notes", icon: Layers },
+  { to: "/slideshow", name: "Slideshow", blurb: "Photo slides with your words on them", icon: Images },
+  { to: "/design", name: "Design", blurb: "TikTok and Instagram slides from 16 templates", icon: LayoutTemplate },
+  { to: "/design/campaigns", name: "Campaign", blurb: "A new TikTok slideshow on a schedule", icon: CalendarClock },
   { to: "/edit", name: "Video", blurb: "Cut and caption a video you filmed", icon: Video },
 ];
 
