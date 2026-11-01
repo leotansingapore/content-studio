@@ -155,6 +155,18 @@ export function removeBrandFont(userId: string, family: string, now = new Date()
 export const brandFontFaces = (fonts: UploadedFont[], families: Set<string>): string[] =>
   fonts.filter((f) => families.has(f.family)).map((f) => `@font-face{font-family:'${f.family}';src:url(${f.data})}`);
 
+/** Whether this browser can draw a read font: its first bytes can pass and the file still not load. */
+export async function fontLoads(font: BrandFont): Promise<boolean> {
+  if (typeof FontFace === "undefined") return false;
+  try {
+    // never added to the page, so it draws nothing
+    await new FontFace("BrandFontCheck", await (await fetch(font.data)).arrayBuffer()).load();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const faces = new Map<string, { data: string; face: FontFace }>();
 
 /**
