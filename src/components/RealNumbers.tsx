@@ -27,8 +27,8 @@ import {
   numbersJob,
   numbersLine,
   onNumbers,
+  pullBrand,
   pullFollowers,
-  pullNumbers,
   realNumbersOn,
   refreshIfStale,
   refreshNumbers,
@@ -88,7 +88,7 @@ function TodayNumbers({ userId, audited, onChange, onFollowers }: Props) {
     setState({ at: "pulling" });
     try {
       const profileId = activeProfileId(userId);
-      const { accounts, posts } = await pullNumbers(profileId);
+      const { accounts, posts } = await pullBrand(userId);
       if (!accounts.length) {
         onFollowers([]);
         return setState({ at: "none" });

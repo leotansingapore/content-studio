@@ -67,7 +67,9 @@ import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
 import RealNumbers from "@/components/RealNumbers";
-import { extraLine } from "@/lib/realNumbers";
+import { accountRows, extraLine, lastPull, postsInDays, viewsByDay } from "@/lib/realNumbers";
+import { postViews } from "@/lib/pace";
+import { browserTimeZone } from "@/lib/autoPost";
 import { gradePost } from "@/lib/postGrade";
 import { fromDraft } from "@/lib/remixSource";
 import RemixButton from "@/components/remix/RemixButton";
@@ -76,7 +78,7 @@ import WinnerCard from "@/components/analytics/WinnerCard";
 import WhatWins from "@/components/analytics/WhatWins";
 import ScoreCheck from "@/components/analytics/ScoreCheck";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
-import { socialConnectShown } from "@/lib/socialConnect";
+import { platformName, socialConnectShown } from "@/lib/socialConnect";
 import { auditedHandles, normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
 import { professionFor } from "@/lib/profession";
 import type { FollowerSeries } from "@/lib/realNumbers";
@@ -203,6 +205,10 @@ const INSIGHT_STYLE: Record<
     icon_: "bg-muted text-muted-foreground",
   },
 };
+
+/** "3 Nov" for a YYYY-MM-DD day. */
+const dayName = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-SG", { day: "numeric", month: "short", timeZone: "UTC" });
+const countText = (n: number) => n.toLocaleString();
 
 // On the cards the period pills don't filter.
 function AllTimeTag() {
@@ -653,6 +659,29 @@ export default function AnalyticsPage() {
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
 
+  // Your real numbers' last pull (posting sign-ins), read for the period in this browser's time zone: views by day
+  // posted, the most viewed posts and, with more than one account, a row per account. Every post on the accounts counts,
+  // campaign slideshows and posts made outside the app included.
+  const pulled = useMemo(() => (userId ? lastPull(userId) : null), [userId, metricsVersion, zernioFollowers]);
+  const real = useMemo(() => {
+    if (!pulled?.posts.length) return null;
+    const tz = browserTimeZone();
+    const posts = postsInDays(pulled.posts, period, tz);
+    const points: TrendChartPoint[] = viewsByDay(pulled.posts, period, tz).map((d) => ({
+      id: d.day,
+      label: dayName(d.day),
+      value: d.views,
+      detail: d.posts ? `${d.posts} ${d.posts === 1 ? "post" : "posts"}` : "no posts",
+    }));
+    return {
+      points,
+      viewed: points.some((p) => p.value > 0),
+      top: posts.filter((p) => postViews(p) > 0).sort((a, b) => postViews(b) - postViews(a)).slice(0, 5),
+      accounts: pulled.accounts.length > 1 ? accountRows(pulled.accounts, posts, zernioFollowers) : [],
+      none: period ? `No views on posts from the last ${period} days.` : "No views yet.",
+    };
+  }, [pulled, period, zernioFollowers]);
+
   const insights = useMemo(() => getInsights(userId), [userId, metricsVersion]);
 
   const trendPoints: TrendChartPoint[] = useMemo(
@@ -901,7 +930,7 @@ export default function AnalyticsPage() {
         </Card>
       )}
 
-      {(hasData || showMix) && (
+      {(hasData || showMix || !!real) && (
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
             {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
@@ -945,6 +974,103 @@ export default function AnalyticsPage() {
             delta={cmp?.change.rate}
           />
         </section>
+      )}
+      {real && (
+        <>
+          {real.accounts.length > 0 && (
+            <Card className="border-border/60 shadow-card">
+              <CardHeader>
+                <CardTitle className="font-serif text-lg">By account</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* a table from sm up; on phones the account, then its four numbers */}
+                <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
+                  <span className="text-left">Account</span>
+                  <span>Followers</span>
+                  <span>Posts</span>
+                  <span>Views</span>
+                  <span>Eng. rate</span>
+                </div>
+                {real.accounts.map((a) => (
+                  <div key={a.id} className="grid grid-cols-4 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-2">
+                    <p className="col-span-4 truncate text-sm font-medium text-foreground sm:col-span-1">
+                      {platformName(a.platform)}
+                      {a.username ? `: ${a.username}` : ""}
+                    </p>
+                    {(
+                      [
+                        ["Followers", a.followers === null ? "-" : countText(a.followers)],
+                        ["Posts", countText(a.posts)],
+                        ["Views", countText(a.views)],
+                        ["Eng. rate", a.rate === null ? "-" : `${a.rate}%`],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <div key={label} className="min-w-0 sm:text-right">
+                        <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">{label}</span>
+                        <span className="text-sm tabular-nums text-foreground">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="min-w-0 border-border/60 shadow-card">
+              <CardHeader>
+                <CardTitle className="font-serif text-lg">Views by day posted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {real.viewed ? (
+                  <TrendChart points={real.points} dots={false} format={countText} measure="views" title="Views by the day posts went out" width={400} height={160} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">{real.none}</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="min-w-0 border-border/60 shadow-card">
+              <CardHeader>
+                <CardTitle className="font-serif text-lg">Most viewed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {real.top.length ? (
+                  <ul className="space-y-2">
+                    {real.top.map((p) => {
+                      const lines = (
+                        <>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-foreground">{p.text.split("\n").find((l) => l.trim()) || "A post"}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {[platformName(p.platform), p.publishedAt && new Date(p.publishedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short" })].filter(Boolean).join(", ")}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="font-serif text-lg font-semibold text-foreground">{countText(postViews(p))}</div>
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">views</div>
+                          </div>
+                        </>
+                      );
+                      const row = "flex min-h-11 items-center gap-3 rounded-lg border border-border/60 px-3 py-2";
+                      return (
+                        <li key={p.id}>
+                          {p.url ? (
+                            <a href={p.url} target="_blank" rel="noopener noreferrer" className={`${row} transition-colors hover:border-primary/40`}>
+                              {lines}
+                            </a>
+                          ) : (
+                            <div className={row}>{lines}</div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{real.none}</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
       {showMix && userId && (
         <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />

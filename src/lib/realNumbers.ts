@@ -14,9 +14,10 @@ import { activeProfileId, scoped } from "@/lib/profiles";
 import { draftStatus, loadDrafts, saveDrafts, setDraftNumbers, type DraftEntry } from "@/lib/draftHistory";
 import { wordOverlap } from "@/lib/nearDuplicate";
 import { toPlainText } from "@/lib/plainText";
-import { loadPace, recordPull, savePace } from "@/lib/pace";
+import { loadPace, postViews, recordPull, savePace } from "@/lib/pace";
 import { SAVE_FAILED } from "@/lib/voiceMemory";
-import { MAX_DAYS, type AccountRef, type FollowerSeries, type MetricsPost, type Numbers } from "../../supabase/functions/social/metrics.ts";
+import { MAX_DAYS, realMetrics, type AccountRef, type FollowerSeries, type MetricsPost, type Numbers } from "../../supabase/functions/social/metrics.ts";
+import { clockIn } from "../../supabase/functions/_shared/zone.ts";
 
 export type { AccountRef, FollowerSeries, MetricsPost, Numbers };
 
@@ -42,6 +43,104 @@ export async function pullNumbers(profileId: string, now = Date.now()): Promise<
     pages = r.pages;
   }
   return { accounts, posts };
+}
+
+// The last pull of each brand, in memory for this page load: Home's Last 30 days and Analytics' views by day, most
+// viewed and accounts read it. Every pull goes through pullBrand, so Home, the job and today's card share one.
+const pulls = new Map<string, Pulled>();
+const pulling = new Map<string, Promise<Pulled>>();
+
+/** The open brand's last pull on this page load, or null before one. */
+export const lastPull = (userId: string): Pulled | null => pulls.get(scoped(userId)) ?? null;
+
+/** pullNumbers for the open brand, one at a time; what lands is kept for lastPull. */
+export function pullBrand(userId: string, now = Date.now()): Promise<Pulled> {
+  const scope = scoped(userId);
+  const going = pulling.get(scope);
+  if (going) return going;
+  const p = pullNumbers(activeProfileId(userId), now)
+    .then((r) => {
+      pulls.set(scope, r);
+      return r;
+    })
+    .finally(() => pulling.delete(scope));
+  pulling.set(scope, p);
+  return p;
+}
+
+// ---- a pull read for a range of days, in the person's own time zone ----
+
+const dayIn = (tz: string, at: number) => clockIn(tz, at).wall.slice(0, 10);
+const addDays = (day: string, n: number) => new Date(Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10) + n)).toISOString().slice(0, 10);
+const postedIn = (tz: string, p: MetricsPost) => {
+  const t = Date.parse(p.publishedAt ?? "");
+  return Number.isFinite(t) ? dayIn(tz, t) : null;
+};
+
+/** Posts published in the last `days` calendar days in `tz`, today included; 0 days is every dated post up to today. */
+export function postsInDays(posts: MetricsPost[], days: number, tz: string, now = Date.now()): MetricsPost[] {
+  const today = dayIn(tz, now);
+  const first = days ? addDays(today, 1 - days) : "";
+  return posts.filter((p) => {
+    const day = postedIn(tz, p);
+    return !!day && day >= first && day <= today;
+  });
+}
+
+/** Views by the day posted in `tz`, every day of the range oldest first, empty days as 0; 0 days starts at the first post. */
+export function viewsByDay(posts: MetricsPost[], days: number, tz: string, now = Date.now()): { day: string; views: number; posts: number }[] {
+  const today = dayIn(tz, now);
+  const dated = postsInDays(posts, days, tz, now).map((p) => ({ day: postedIn(tz, p)!, views: postViews(p) }));
+  const first = days ? addDays(today, 1 - days) : dated.reduce((m, x) => (x.day < m ? x.day : m), today);
+  const out: { day: string; views: number; posts: number }[] = [];
+  for (let d = first; d <= today; d = addDays(d, 1)) out.push({ day: d, views: 0, posts: 0 });
+  const at = new Map(out.map((x, i) => [x.day, i]));
+  for (const x of dated) {
+    const row = out[at.get(x.day)!];
+    row.views += x.views;
+    row.posts++;
+  }
+  return out;
+}
+
+export interface RealTotals {
+  posts: number;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+/** The posts' summed views (postViews: views, else impressions, else reach), likes, comments and shares. */
+export const realTotals = (posts: MetricsPost[]): RealTotals =>
+  posts.reduce(
+    (s, p) => ({ posts: s.posts + 1, views: s.views + postViews(p), likes: s.likes + p.numbers.likes, comments: s.comments + p.numbers.comments, shares: s.shares + p.numbers.shares }),
+    { posts: 0, views: 0, likes: 0, comments: 0, shares: 0 },
+  );
+
+export interface AccountRow extends AccountRef {
+  followers: number | null;
+  posts: number;
+  views: number;
+  /** Likes, comments and shares over impressions, in % to one place, as the page's other rates; null with no impressions. */
+  rate: number | null;
+}
+
+/** One row per connected account: its follower count, and its posts, views and engagement rate among `posts`. */
+export function accountRows(accounts: AccountRef[], posts: MetricsPost[], followers: FollowerSeries[]): AccountRow[] {
+  return accounts.map((a) => {
+    const mine = posts.filter((p) => p.accountId === a.id);
+    const m = mine.map((p) => realMetrics(p.numbers));
+    const seen = m.reduce((s, x) => s + x.impressions, 0);
+    const engaged = m.reduce((s, x) => s + x.reactions + x.comments + x.shares, 0);
+    return {
+      ...a,
+      followers: followers.find((f) => f.id === a.id)?.followers ?? null,
+      posts: mine.length,
+      views: realTotals(mine).views,
+      rate: seen ? Math.round((engaged / seen) * 1000) / 10 : null,
+    };
+  });
 }
 
 /** Each connected account's daily follower counts, a year back (as far as Zernio has them). */
@@ -331,7 +430,7 @@ async function pullAndMatch(userId: string, scope: string, now: () => number): P
   set({ running: true, error: null });
   try {
     const profileId = activeProfileId(userId);
-    const { accounts, posts } = await pullNumbers(profileId, now());
+    const { accounts, posts } = await pullBrand(userId, now());
     // the post numbers still show when the follower counts can't be read
     const followers = accounts.length ? await pullFollowers(profileId).catch(() => [] as FollowerSeries[]) : [];
     if (moved()) return set({ running: false });

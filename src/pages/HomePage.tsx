@@ -51,6 +51,10 @@ import {
   Minus,
   Plus,
   Inbox,
+  Eye,
+  Heart,
+  MessageCircle,
+  Share2,
 } from "lucide-react";
 import { loadBrand } from "@/lib/carousel";
 import { adviserBrand } from "@/lib/profession";
@@ -63,6 +67,10 @@ import WhatMovedCard from "@/components/WhatMovedCard";
 import PaceCard from "@/components/home/PaceCard";
 import GoalLine from "@/components/GoalLine";
 import type { Campaign } from "@/lib/campaigns";
+import { lastPull, onNumbers, postsInDays, pullBrand, realNumbersOn, realTotals, type Pulled } from "@/lib/realNumbers";
+import { socialConnectShown } from "@/lib/socialConnect";
+import { browserTimeZone } from "@/lib/autoPost";
+import { nextRunAt, sanitizeSchedule } from "../../supabase/functions/_shared/slideCampaign.ts";
 
 // Leo's Home (agent-home): its own chunk, so the agent engine never loads for anyone else.
 const AgentHome = lazy(() => import("@/components/home/AgentHome"));
@@ -84,6 +92,25 @@ const STATUS_LABEL: Record<string, string> = {
   scheduled: "Scheduled",
   draft: "Draft",
 };
+
+export interface CampaignTime {
+  id: string;
+  name: string;
+  at: Date;
+}
+
+/** Coming up's campaign rows: each live campaign's next posting time after `now` in its own zone, soonest first, at most `n`. */
+export function campaignTimes(rows: { id: string; name: string; status: string; schedule: unknown }[], now: Date, n = 3): CampaignTime[] {
+  return rows
+    .flatMap((r) => {
+      const at = r.status === "live" ? nextRunAt(sanitizeSchedule(r.schedule), now) : null;
+      return at ? [{ id: r.id, name: r.name, at }] : [];
+    })
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(0, n);
+}
+
+const comingDay = (at: Date) => at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -113,7 +140,7 @@ function StatCard({
         </span>
         <div className="min-w-0">
           <div className="font-serif text-2xl font-semibold leading-none text-foreground">
-            {value}
+            {value.toLocaleString()}
           </div>
           <div className="mt-1 text-xs leading-tight text-muted-foreground">{label}</div>
         </div>
@@ -245,6 +272,47 @@ export default function HomePage() {
       .sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? -1 : 1))
       .slice(0, 3);
   }, [drafts]);
+
+  // Coming up also lists the open brand's live slideshow campaigns' next posting times (owner-only select, as on
+  // /design/campaigns). Campaigns need posting on, so nobody else is asked.
+  const [campaigns, setCampaigns] = useState<CampaignTime[]>([]);
+  useEffect(() => {
+    if (!uid || !socialConnectShown()) return;
+    let active = true;
+    void supabase
+      .from("cs_slide_campaigns")
+      .select("id, name, status, schedule")
+      .eq("profile_id", activeProfileId(uid))
+      .eq("status", "live")
+      .then(({ data, error }) => active && !error && setCampaigns(campaignTimes(data ?? [], new Date())));
+    return () => {
+      active = false;
+    };
+  }, [uid]);
+  const comingUp = useMemo(() => {
+    const at = (d: DraftEntry) => new Date(scheduleTime(d.scheduledFor) ? d.scheduledFor! : `${d.scheduledFor!.slice(0, 10)}T00:00`).getTime();
+    return [
+      ...upcoming.map((d) => ({ draft: d, campaign: undefined, t: at(d) })),
+      ...campaigns.map((c) => ({ draft: undefined, campaign: c, t: c.at.getTime() })),
+    ].sort((a, b) => a.t - b.t);
+  }, [upcoming, campaigns]);
+
+  // Last 30 days (Volume's Home): Your real numbers' last pull on this page load, else one pull, for sign-ins that use them
+  const [pulled, setPulled] = useState<Pulled | null>(null);
+  useEffect(() => {
+    if (!uid || !socialConnectShown() || !realNumbersOn(uid)) return;
+    let active = true;
+    const read = () => active && setPulled(lastPull(uid));
+    read();
+    // a failed pull shows no strip, as with no numbers
+    if (!lastPull(uid)) pullBrand(uid).then(read, () => {});
+    const off = onNumbers(read);
+    return () => {
+      active = false;
+      off();
+    };
+  }, [uid]);
+  const last30 = useMemo(() => (pulled ? realTotals(postsInDays(pulled.posts, 30, browserTimeZone())) : null), [pulled]);
 
   // Posts due today or overdue — the in-app reminder that drives the habit.
   // Most recently due first, each with how late it is.
@@ -617,8 +685,23 @@ export default function HomePage() {
       {/* What moved this week (Leo only; /home#what-moved) */}
       {userId && <WhatMovedCard userId={userId} />}
 
-      {/* Coming up (scheduled) */}
-      {upcoming.length > 0 && (
+      {/* Last 30 days of real numbers; none at all shows nothing rather than zeros */}
+      {last30 && last30.views + last30.likes + last30.comments + last30.shares > 0 && (
+        <section aria-labelledby="home-last-30" className="space-y-3">
+          <h2 id="home-last-30" className="font-serif text-lg font-semibold text-foreground">
+            Last 30 days
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard icon={Eye} value={last30.views} label="Views" tint="bg-primary/10 text-primary" />
+            <StatCard icon={Heart} value={last30.likes} label="Likes" tint="bg-brand/10 text-brand" />
+            <StatCard icon={MessageCircle} value={last30.comments} label="Comments" tint="bg-success/10 text-success" />
+            <StatCard icon={Share2} value={last30.shares} label="Shares" tint="bg-accent text-foreground" />
+          </div>
+        </section>
+      )}
+
+      {/* Coming up (scheduled posts, and live campaigns' next posting times) */}
+      {comingUp.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold text-foreground">
@@ -632,7 +715,21 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {upcoming.map((d) => (
+            {comingUp.map(({ draft: d, campaign: c }) =>
+              c ? (
+                <Link
+                  key={`campaign-${c.id}`}
+                  to={`/design/campaigns/${c.id}`}
+                  className="flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
+                >
+                  <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    {comingDay(c.at)}, {timeLabel(`${String(c.at.getHours()).padStart(2, "0")}:${String(c.at.getMinutes()).padStart(2, "0")}`)}
+                  </span>
+                  <p className="line-clamp-2 text-sm leading-snug text-foreground">{c.name}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">Slideshow campaign</p>
+                </Link>
+              ) : (
+                d && (
               <Link
                 key={d.id}
                 to={`/generate?draft=${encodeURIComponent(d.id)}`}
@@ -650,7 +747,9 @@ export default function HomePage() {
                   {d.hook || d.draft.slice(0, 80)}
                 </p>
               </Link>
-            ))}
+                )
+              ),
+            )}
           </div>
         </section>
       )}

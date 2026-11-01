@@ -41,6 +41,7 @@ export function TrendChart({
   measure = "engagement rate",
   title = "Engagement rate trend across recent tracked posts",
   fit = false,
+  dots = true,
   width: WIDTH = 600,
   height: HEIGHT = 180,
 }: {
@@ -51,6 +52,8 @@ export function TrendChart({
   title?: string;
   /** Fit the y axis to the data (a line, no area) instead of starting at zero. */
   fit?: boolean;
+  /** A dot on every point; off, only on the last and the hovered one (a long daily series). */
+  dots?: boolean;
   width?: number;
   height?: number;
 }) {
@@ -154,6 +157,7 @@ export function TrendChart({
         {coords.map((c, i) => {
           const isLast = i === coords.length - 1;
           const isHover = hover === i;
+          if (!dots && !isLast && !isHover) return null;
           return (
             <circle
               key={points[i].id}

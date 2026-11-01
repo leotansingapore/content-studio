@@ -8,8 +8,8 @@ const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
 const {
-  extraLine, linkPost, loadRealNumbers, markNotMine, matchOutside, matchPulled, numbersJob, onNumbers, realNumbersOn, refreshIfStale,
-  refreshNumbers, rememberRealNumbers, shouldRefresh, unlinkPost,
+  accountRows, extraLine, lastPull, linkPost, loadRealNumbers, markNotMine, matchOutside, matchPulled, numbersJob, onNumbers, postsInDays,
+  pullBrand, realNumbersOn, realTotals, refreshIfStale, refreshNumbers, rememberRealNumbers, shouldRefresh, unlinkPost, viewsByDay,
 } = await import("./realNumbers");
 const { loadPace } = await import("./pace");
 
@@ -348,5 +348,77 @@ describe("real numbers on Analytics", () => {
     expect(extraLine(n({ views: 1500, reach: 900, saves: 0 }))).toBe("1,500 views, 900 reach");
     expect(extraLine(n({ views: 1, reach: 1, saves: 1 }))).toBe("1 view, 1 reach, 1 save");
     expect(extraLine(n({}))).toBe("");
+  });
+});
+
+// Home's Last 30 days and Analytics' range read the last pull by the day a post went out in the person's own zone.
+describe("the last pull, read for a range of days", () => {
+  // Sunday 1 Nov 2026, 6pm in Singapore and 5am in New York (its clocks went back at 6am UTC that day)
+  const NOW = Date.parse("2026-11-01T10:00:00Z");
+  const A1 = "65000000000000000000a001";
+  const A2 = "65000000000000000000a002";
+  const at = (id: string, publishedAt: string | null, numbers: Numbers, accountId = A1) => pulled(id, null, numbers, { publishedAt, accountId });
+  const posts = [
+    // 1:30am on 1 Nov in Singapore, still 31 Oct in New York
+    at("late", "2026-10-31T17:30:00Z", n({ views: 100, likes: 10, comments: 2, shares: 1 })),
+    // 4am on 26 Oct in Singapore (the 7 days' first), 25 Oct in New York (outside them)
+    at("edge", "2026-10-25T20:00:00Z", n({ impressions: 40, likes: 4 }), A2),
+    at("old", "2026-09-01T02:00:00Z", n({ views: 7 })),
+    at("undated", null, n({ views: 999 })),
+    at("ahead", "2026-11-03T03:00:00Z", n({ views: 999 })),
+  ];
+  const ids = (ps: MetricsPost[]) => ps.map((p) => p.id);
+
+  it("keeps the posts of the last N calendar days in the zone, today included", () => {
+    expect(ids(postsInDays(posts, 7, "Asia/Singapore", NOW))).toEqual(["late", "edge"]);
+    expect(ids(postsInDays(posts, 7, "America/New_York", NOW))).toEqual(["late"]);
+    expect(ids(postsInDays(posts, 0, "Asia/Singapore", NOW))).toEqual(["late", "edge", "old"]);
+  });
+
+  it("buckets views by the day posted in the zone, every day of the range, empty days as 0", () => {
+    const sg = viewsByDay(posts, 7, "Asia/Singapore", NOW);
+    expect(sg.map((d) => d.day)).toEqual(["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"]);
+    expect(sg.map((d) => d.views)).toEqual([40, 0, 0, 0, 0, 0, 100]);
+    expect(sg[6].posts).toBe(1);
+    const ny = viewsByDay(posts, 7, "America/New_York", NOW);
+    expect(ny.map((d) => [d.day, d.views]).filter(([, v]) => v)).toEqual([["2026-10-31", 100]]);
+    // all time starts at the first post's day
+    const all = viewsByDay(posts, 0, "Asia/Singapore", NOW);
+    expect(all[0]).toEqual({ day: "2026-09-01", views: 7, posts: 1 });
+    expect(all.at(-1)!.day).toBe("2026-11-01");
+    expect(all.reduce((s, d) => s + d.views, 0)).toBe(147);
+  });
+
+  it("sums views (else impressions), likes, comments and shares", () => {
+    expect(realTotals(postsInDays(posts, 7, "Asia/Singapore", NOW))).toEqual({ posts: 2, views: 140, likes: 14, comments: 2, shares: 1 });
+    expect(realTotals([])).toEqual({ posts: 0, views: 0, likes: 0, comments: 0, shares: 0 });
+  });
+
+  it("gives each account its followers, posts, views and engagement rate", () => {
+    const accounts = [
+      { id: A1, platform: "tiktok", username: "leo" },
+      { id: A2, platform: "instagram", username: "leo.sg" },
+      { id: "65000000000000000000a003", platform: "linkedin", username: "" },
+    ];
+    const followers = [{ id: A2, platform: "instagram", username: "leo.sg", followers: 1200, series: [] }];
+    expect(accountRows(accounts, postsInDays(posts, 0, "Asia/Singapore", NOW), followers)).toEqual([
+      // (10 + 2 + 1) likes, comments and shares over 107 views
+      { ...accounts[0], followers: null, posts: 2, views: 107, rate: 12.1 },
+      { ...accounts[1], followers: 1200, posts: 1, views: 40, rate: 10 },
+      { ...accounts[2], followers: null, posts: 0, views: 0, rate: null },
+    ]);
+  });
+
+  it("keeps each brand's last pull for this page load, one pull at a time, the job's included", async () => {
+    const OTHER = "0b9a2c11-1111-4111-8111-111111111111";
+    pulledPosts = [pulled("p1", null, n({ views: 5 }))];
+    expect(lastPull(OTHER)).toBeNull();
+    const [a, b] = await Promise.all([pullBrand(OTHER), pullBrand(OTHER)]);
+    expect(a).toBe(b);
+    expect(pulls()).toBe(1);
+    expect(ids(lastPull(OTHER)!.posts)).toEqual(["p1"]);
+    pulledPosts = [pulled("p2", null, n({ views: 6 }))];
+    await refreshNumbers(OTHER);
+    expect(ids(lastPull(OTHER)!.posts)).toEqual(["p2"]);
   });
 });

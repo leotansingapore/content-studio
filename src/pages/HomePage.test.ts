@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import HomePage from "./HomePage";
+import HomePage, { campaignTimes } from "./HomePage";
 
 const html = (path = "/home") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(HomePage)));
 
@@ -99,5 +99,28 @@ describe("Home for Leo", () => {
     expect(out).not.toContain("Mine, not this brand&#x27;s");
     expect(out).toContain("Grow an audience that knows what we do");
     expect(out).toMatch(/aria-checked="true"[^>]*>.*?Get more sign-ups and enquiries<\/button>/);
+  });
+});
+
+describe("Coming up's campaign times", () => {
+  // Sunday 1 Nov 2026, 6pm in Singapore and 5am in New York (its clocks went back at 6am UTC that day)
+  const NOW = new Date("2026-11-01T10:00:00Z");
+  const row = (id: string, schedule: unknown, status = "live") => ({ id, name: `Campaign ${id}`, status, schedule });
+  const rows = [
+    row("sg", { tz: "Asia/Singapore", times: [{ at: "09:00", days: [1] }] }),
+    row("ny", { tz: "America/New_York", times: [{ at: "07:00", days: [0, 1, 2, 3, 4, 5, 6] }] }),
+    row("paused", { tz: "Asia/Singapore", times: [{ at: "19:00", days: [0] }] }, "paused"),
+    row("no-times", { tz: "Asia/Singapore", times: [] }),
+  ];
+  const times = (n?: number) => campaignTimes(rows, NOW, n).map((c) => [c.id, c.at.toISOString()]);
+
+  it("lists each live campaign's next posting time in its own zone, soonest first", () => {
+    expect(times()).toEqual([
+      ["ny", "2026-11-01T12:00:00.000Z"],
+      ["sg", "2026-11-02T01:00:00.000Z"],
+    ]);
+  });
+  it("keeps the first n", () => {
+    expect(times(1)).toEqual([["ny", "2026-11-01T12:00:00.000Z"]]);
   });
 });
