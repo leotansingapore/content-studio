@@ -12,7 +12,8 @@ export interface CampaignSpec {
   /** One is picked at random each run, so a few weeks show which angle lands. */
   hooks: string[];
   content: { slides: number; style: "plain" | "numbered" | "steps"; length: "short" | "medium" | "long"; tone: "plain" | "punchy" | "expert" | "warm" };
-  cta: { text: string; badge: boolean; placement: "end" | "middle" | "none" };
+  /** after_slide: the content slide a mid-deck CTA follows (1 to slides - 1); absent, the middle. */
+  cta: { text: string; badge: boolean; placement: "end" | "middle" | "none"; after_slide?: number };
   /** Search the web for the hook before writing, so the slides carry current facts (one paid search per post). */
   research: boolean;
   /** A library id per slide role; a run draws a fresh picture from it. */
@@ -66,17 +67,23 @@ export function sanitizeSpec(raw: unknown): CampaignSpec {
   const ov = obj(r.overlay) ? r.overlay : {};
   const lib = (v: unknown) => (typeof v === "string" && UUID.test(v) ? v : null);
   const hooks = (Array.isArray(r.hooks) ? r.hooks : []).map((h) => str(h, 200)).filter(Boolean);
+  const slides = num(c.slides, 5, 1, MAX_SLIDES);
   return {
     format: pick(r.format, ["tiktok", "instagram"] as const, "tiktok"),
     topic: str(r.topic, 1200),
     hooks: [...new Set(hooks)].slice(0, MAX_HOOKS),
     content: {
-      slides: num(c.slides, 5, 1, MAX_SLIDES),
+      slides,
       style: pick(c.style, ["plain", "numbered", "steps"] as const, "plain"),
       length: pick(c.length, ["short", "medium", "long"] as const, "medium"),
       tone: pick(c.tone, ["plain", "punchy", "expert", "warm"] as const, "plain"),
     },
-    cta: { text: str(cta.text, 200), badge: cta.badge === true, placement: pick(cta.placement, ["end", "middle", "none"] as const, "end") },
+    cta: {
+      text: str(cta.text, 200),
+      badge: cta.badge === true,
+      placement: pick(cta.placement, ["end", "middle", "none"] as const, "end"),
+      ...(typeof cta.after_slide === "number" ? { after_slide: num(cta.after_slide, 1, 1, Math.max(1, slides - 1)) } : {}),
+    },
     research: r.research === true,
     images: { hook: lib(im.hook), content: lib(im.content), cta: lib(im.cta), per_slide: im.per_slide !== false },
     text_style: { hook: sanitizeStyle(ts.hook), content: sanitizeStyle(ts.content), cta: sanitizeStyle(ts.cta) },
@@ -267,8 +274,8 @@ export function parseWriter(raw: string, spec: CampaignSpec, trusted = ""): { sl
 export function runPlan(spec: CampaignSpec, hook: string, w: { slides: string[]; cta: string }): { role: Role; text: string }[] {
   const content = w.slides.map((text) => ({ role: "content" as const, text }));
   const cta = spec.cta.placement !== "none" && w.cta ? [{ role: "cta" as const, text: w.cta }] : [];
-  // mid-deck: after the first half of the content, rounded up (with one content slide it lands last)
-  const cut = spec.cta.placement === "middle" ? Math.ceil(content.length / 2) : content.length;
+  // mid-deck: after the slide picked, else the first half of the content, rounded up (with one content slide it lands last)
+  const cut = spec.cta.placement === "middle" ? (spec.cta.after_slide ?? Math.ceil(content.length / 2)) : content.length;
   return [{ role: "hook" as const, text: hook }, ...content.slice(0, cut), ...cta, ...content.slice(cut)];
 }
 

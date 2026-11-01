@@ -406,6 +406,19 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                   CTA slide
                   <Segmented value={spec.cta.placement} options={[{ value: "end", label: "At the end" }, { value: "middle", label: "In the middle" }, { value: "none", label: "No CTA slide" }] as const} onChange={(placement) => setSpec((s) => ({ ...s, cta: { ...s.cta, placement } }))} />
                 </div>
+                {spec.cta.placement === "middle" && spec.content.slides > 1 && (
+                  <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                    Goes after
+                    {/* shown as the save keeps it: the middle until picked, inside the slide count */}
+                    <select className={field} value={Math.min(spec.cta.after_slide ?? Math.ceil(spec.content.slides / 2), spec.content.slides - 1)} onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, after_slide: Number(e.target.value) } }))}>
+                      {Array.from({ length: spec.content.slides - 1 }, (_, i) => (
+                        <option key={i} value={i + 1}>
+                          Content slide {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 {spec.cta.placement !== "none" && (
                   <>
                     <Textarea value={spec.cta.text} maxLength={200} rows={2} placeholder="Optional. Leave it blank and each post gets its own, pointing to you." onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, text: e.target.value } }))} />

@@ -134,6 +134,15 @@ describe("slideshow campaigns", () => {
     const w4 = parseWriter('{"slides":["a","b","c","d"],"cta":"","caption":""}', mid)!;
     expect(runPlan(mid, "h", w4).map((s) => s.text)).toEqual(["h", "a", "b", "Follow for more", "c", "d"]);
     expect(writerPrompt(mid, "h", "", "").system).toContain("in the middle");
+    // the slide it follows, when picked: kept inside 1 to slides - 1, and the writer is still told the middle
+    const after = (n: unknown, slides = 4) => sanitizeSpec({ content: { slides }, cta: { text: "Follow for more", placement: "middle", after_slide: n } });
+    expect(mid.cta).not.toHaveProperty("after_slide");
+    expect([after(1), after(3), after(0), after(9), after(2.6), after(5, 1)].map((s) => s.cta.after_slide)).toEqual([1, 3, 1, 3, 3, 1]);
+    expect(after("3").cta).not.toHaveProperty("after_slide");
+    expect(runPlan(after(1), "h", w4).map((s) => s.text)).toEqual(["h", "a", "Follow for more", "b", "c", "d"]);
+    expect(runPlan(after(3), "h", w4).map((s) => s.text)).toEqual(["h", "a", "b", "c", "Follow for more", "d"]);
+    expect(runPlan({ ...after(1), cta: { ...after(1).cta, placement: "end" } }, "h", w4).at(-1)?.role).toBe("cta");
+    expect(writerPrompt(after(1), "h", "", "").system).toContain("in the middle");
     const none = sanitizeSpec({ content: { slides: 1 }, cta: { placement: "none" } });
     expect(runPlan(none, "h", parseWriter('{"slides":["a"],"cta":"x","caption":""}', none)!).map((s) => s.role)).toEqual(["hook", "content"]);
   });
