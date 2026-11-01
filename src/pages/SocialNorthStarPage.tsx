@@ -105,9 +105,16 @@ function SocialNorthStar({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center gap-1">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Social north star</h1>
-        <InfoTip label="About the social north star">The formats that win for accounts like yours, rebuilt weekly from Apps like yours.</InfoTip>
+      <header className="space-y-1">
+        <div className="flex items-center gap-1">
+          <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Social north star</h1>
+          <InfoTip label="About the social north star">The formats that win for accounts like yours, rebuilt weekly from Apps like yours.</InfoTip>
+        </div>
+        {ns.builtAt && (
+          <p className="text-sm text-muted-foreground">
+            Built from your <Link to={links.swipe({ tab: "similar" })} className="font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3">Apps like yours references</Link> ({ns.basis} {ns.basis === 1 ? "account" : "accounts"})
+          </p>
+        )}
       </header>
 
       {status && (
@@ -163,7 +170,7 @@ function SocialNorthStar({ userId }: { userId: string }) {
 
       {ns.builtAt && (
         <p className="border-t border-border/60 pt-4 text-xs text-muted-foreground">
-          Built {dayMonth(ns.builtAt)} from {ns.basis} accounts on <Link to={links.swipe({ tab: "similar" })} className="font-medium text-primary hover:underline">Apps like yours</Link>. It rebuilds weekly, and as more are read.
+          Built {dayMonth(ns.builtAt)}. It rebuilds weekly, and as more references are read.
         </p>
       )}
     </div>

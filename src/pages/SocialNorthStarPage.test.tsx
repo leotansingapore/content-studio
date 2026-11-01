@@ -91,6 +91,19 @@ describe("the social north star", () => {
     expect(h).toContain('src="https://p16.tiktokcdn.com/1.jpeg"');
   });
 
+  it("says under the title what it was built from, linked to Apps like yours, and the footer keeps only when", () => {
+    as.user = LEO;
+    seed();
+    const h = html();
+    const head = h.slice(0, h.indexOf("</header>"));
+    expect(head).toMatch(/Built from your <a [^>]*href="\/swipe\?tab=similar"[^>]*>Apps like yours references<\/a> \(12 accounts\)/);
+    expect(h.match(/12 accounts/g)).toHaveLength(1);
+    expect(h).toContain("It rebuilds weekly, and as more references are read.");
+    // before the first build there is nothing it was built from
+    seed({ builtAt: null });
+    expect(html()).not.toContain("Built from your");
+  });
+
   it("marks the example a link names", () => {
     as.user = LEO;
     seed();

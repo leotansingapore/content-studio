@@ -42,10 +42,16 @@ describe("Apps like yours under the page's heading", () => {
     expect(top).toContain("US$1.20 of US$40 this month");
   });
 
+  it("links to the social north star, the formats that win among these accounts", () => {
+    store.set("content-studio-similar-u1", JSON.stringify({ accounts: [account("app_one")], posts: {}, dismissed: [], month: null }));
+    expect(html()).toMatch(/The formats that win among these: <a [^>]*href="\/social-north-star"[^>]*>Social north star<\/a>/);
+  });
+
   it("starts on the find with no row above it before anything is found", () => {
     const h = html();
     expect(h).not.toContain("accounts</span>");
     expect(h).not.toContain("this month");
     expect(h).toContain("See how apps and creators like yours post");
+    expect(h).not.toContain("Social north star");
   });
 });

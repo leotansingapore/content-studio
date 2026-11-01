@@ -37,6 +37,7 @@ A Leo-only page, /social-north-star, in Strategy (`src/lib/nav.ts`), one plan pe
 
 ```
 Social north star (i)
+Built from your [Apps like yours references] (38 accounts)
 Reading their posts: 12 of 40 accounts so far. The plan builds when they're in.
 +------------------------------------------------------------------+
 | This month                                         3 of 11 posts |
@@ -57,7 +58,7 @@ Reading their posts: 12 of 40 accounts so far. The plan builds when they're in.
 | How often About 4 a month ...  | | How often About 2 a month ...  |
 | [ Make one like this ]         | | [ Make one like this ]         |
 +--------------------------------+ +--------------------------------+
-Built 1 Nov from 38 accounts on Apps like yours. It rebuilds weekly, and as more are read.
+Built 1 Nov. It rebuilds weekly, and as more references are read.
 ```
 
 States:
@@ -75,11 +76,11 @@ Each play card has one action, Make one like this, which opens Remix over the pa
 
 ### Copy
 
-- Heading "Social north star", tip "The formats that win for accounts like yours, rebuilt weekly from Apps like yours."
+- Heading "Social north star", tip "The formats that win for accounts like yours, rebuilt weekly from Apps like yours.", and once built, under it "Built from your Apps like yours references ({n} accounts)" linking to /swipe?tab=similar. Apps like yours links back on its top row: "The formats that win among these: Social north star".
 - "This month", "{done} of {target} posts", "Next up: {play}"
 - Card: "{n} accounts use it, {x}x their usual", "{done} of {target} this month", rows Hook, Slides or Scenes, Length, Caption, Call to action, How often ("About {target} a month at the accounts that use it"), "The rest of the recipe comes with the next build.", button "Make one like this"
 - Example tile: plays in place as Apps like yours' cards do (VideoEmbed, the cover behind its play button, the tile taking the whole row while it plays), "@handle", "{x}x usual" and a small link that opens the post
-- Footer "Built {date} from {n} accounts on Apps like yours. It rebuilds weekly, and as more are read."
+- Footer "Built {date}. It rebuilds weekly, and as more references are read."
 
 ### Data
 

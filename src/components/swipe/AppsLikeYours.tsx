@@ -4,6 +4,7 @@
 // (src/lib/similarAccounts.ts); this draws the store and the jobs.
 import { refreshCloudKeys } from "@/lib/cloudSync";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 import { PostCard, SkeletonCard } from "@/components/competitors/TheirPosts";
 import { OutlierScoreTip } from "@/components/OutlierBadge";
@@ -116,6 +117,12 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
       {(state.accounts.length > 0 || state.month) && (
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           {state.accounts.length > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">{state.accounts.length} {state.accounts.length === 1 ? "account" : "accounts"}</span>}
+          {state.accounts.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              The formats that win among these:{" "}
+              <Link to={links.socialNorthStar()} className="font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3">Social north star</Link>
+            </p>
+          )}
           {state.month && (
             <span className="ml-auto text-xs tabular-nums text-muted-foreground">US${state.month.spent.toFixed(2)} of US${state.month.cap} this month</span>
           )}
