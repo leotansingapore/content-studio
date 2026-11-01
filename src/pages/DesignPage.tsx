@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { loadBrandFonts, registerBrandFonts } from "@/lib/brandFont";
 import { loadBrand } from "@/lib/carousel";
 import {
   DESIGNS_CHANGED,
@@ -66,6 +67,8 @@ export default function DesignPage() {
 
   useEffect(() => {
     ensureDesignFonts();
+    // the brand's uploaded fonts, so the slideshow thumbnails draw them as the editor does
+    void registerBrandFonts(loadBrandFonts(userId)).then(() => setTick((t) => t + 1));
     const b = loadBrand(userId);
     setBrandPictures({ logo: b?.logo, photo: b?.photo });
     void loadTemplates().then(setTemplates);
