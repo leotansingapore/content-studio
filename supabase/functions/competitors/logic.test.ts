@@ -508,22 +508,26 @@ describe("similar: accounts like the brand (find-similar-accounts.md)", () => {
     expect(kept.find((c) => c.handle === "isobellorna_")?.via).toBe("productivity tips"); // the first one found stays
   });
 
-  it("asks one noul and one choice about the account against the brand", () => {
-    const a = similarAsk(brand, cand("structured.app", { bio: "Daily planner" }));
+  it("asks one noul and one choice about the account against the brand and the accounts picked as examples", () => {
+    const liked = Array.from({ length: 14 }, (_, k) => ({ handle: `ex${k}`, name: `Ex ${k}`, bio: k ? "" : "The planning sidekick" }));
+    const a = similarAsk(brand, cand("structured.app", { bio: "Daily planner" }), liked);
     expect(a.state).toMatchObject({ brand: "ActivityTracker", account: { platform: "instagram", handle: "@structured.app", bio: "Daily planner", followers: 5000 } });
+    expect(a.state.liked).toHaveLength(12);
+    expect((a.state.liked as unknown[])[0]).toEqual({ handle: "@ex0", name: "Ex 0", bio: "The planning sidekick" });
+    expect(similarAsk(brand, cand("x")).state.liked).toEqual([]);
     expect(a.questions.similar.type).toBe("noul");
     expect(a.questions.kind).toMatchObject({ type: "choice", criteria: { app_or_brand: expect.any(String), creator: expect.any(String) } });
   });
 
-  it("keeps 0.6 and up, best first, 40 at most; an unanswered one is not kept; null when Jev answered none", () => {
+  it("keeps 0.45 and up, best first, 40 at most; an unanswered one is not kept; null when Jev answered none", () => {
     const cands = Array.from({ length: 45 }, (_, k) => cand(`a${k}`));
     const ans = (noul: number, choice = "creator") => ({ similar: { type: "noul" as const, noul }, kind: { type: "choice" as const, choice } });
-    const kept = similarKeep(cands, cands.map((_, k) => (k === 3 ? null : ans(k === 0 ? 0.59 : 0.6 + k / 1000, k === 1 ? "podcast" : "creator"))));
+    const kept = similarKeep(cands, cands.map((_, k) => (k === 3 ? null : ans(k === 0 ? 0.44 : 0.45 + k / 1000, k === 1 ? "podcast" : "creator"))));
     expect(kept).toHaveLength(SIMILAR_KEEP);
-    expect(kept![0]).toEqual({ platform: "instagram", handle: "a44", name: "a44", bio: "", followers: 5000, via: "@tiimoapp", kind: "creator", score: 0.64 });
+    expect(kept![0]).toEqual({ platform: "instagram", handle: "a44", name: "a44", bio: "", followers: 5000, via: "@tiimoapp", kind: "creator", score: 0.49 });
     expect(kept!.map((a) => a.handle)).not.toContain("a0");
     expect(kept!.map((a) => a.handle)).not.toContain("a3");
-    expect(similarKeep(cands.slice(0, 3), [null, null, ans(0.6, "nope")])?.[0]).toMatchObject({ handle: "a2", kind: null });
+    expect(similarKeep(cands.slice(0, 3), [null, null, ans(0.45, "nope")])?.[0]).toMatchObject({ handle: "a2", kind: null });
     expect(similarKeep(cands.slice(0, 2), [null, null])).toBeNull();
     expect(similarKeep([], [])).toBeNull();
   });
@@ -532,7 +536,7 @@ describe("similar: accounts like the brand (find-similar-accounts.md)", () => {
     expect(parsePhrases(JSON.stringify({ phrases: ["#adhd planner", "ADHD planner", "\"day in the life adhd\"", "x", ...Array.from({ length: 10 }, (_, k) => `tip ${k}`)] })))
       .toEqual(["adhd planner", "day in the life adhd", "tip 0", "tip 1", "tip 2", "tip 3", "tip 4", "tip 5"]);
     expect(parsePhrases("not json")).toEqual([]);
-    expect(similarSearchInput("adhd planner")).toEqual({ searchQueries: ["adhd planner"], resultsPerPage: 30 });
+    expect(similarSearchInput("adhd planner")).toEqual({ searchQueries: ["adhd planner"], resultsPerPage: 20 });
   });
 
   it("routes a posts read as similar only with scope similar: 30 first, 10 on a refresh (index.test.ts checks the caps)", () => {

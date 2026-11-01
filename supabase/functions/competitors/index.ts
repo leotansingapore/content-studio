@@ -43,7 +43,7 @@ import {
   compareAsk, excluded, firstHttpsLogo, type Handles, hostOf, IG_PROFILE_ACTOR, igCandidate, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, monthLine,
   monthStart, nameTask, organicResults, pageMissing, pageOf, parseInput, parsePhrases, parseProposals, parseWhys, passesMonth, PHRASES_FORMAT, phrasesMessages,
   pickCandidates, pickSite, postsFailure, postsScope, PROPOSE_FORMAT, proposeMessages, readCompetitorSite, relatedOf, shapeAds, shapeSpaceAds, type SimilarCandidate,
-  similarAsk, similarKeep, similarSearchInput, SIMILAR_MONTH_FEATURES, SIMILAR_MONTH_USD, SIMILAR_RELATED, similarSpent, similarUsd, siteAsk, SITE_BYTES,
+  similarAsk, similarKeep, similarSearchInput, SIMILAR_MONTH_FEATURES, SIMILAR_SEARCH_SECS, SIMILAR_MONTH_USD, SIMILAR_RELATED, similarSpent, similarUsd, siteAsk, SITE_BYTES,
   siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter, TIKTOK_ACTOR, tiktokCandidates, WHY_FORMAT, whyMessages,
 } from "./logic.ts";
 
@@ -360,7 +360,7 @@ async function similar(admin: Admin, uid: string, body: unknown): Promise<Respon
       ran: true,
     };
   };
-  const [ig, ...tt] = await Promise.allSettled([instagram(), ...phrases.map((p) => apifyItems(TIKTOK_ACTOR, similarSearchInput(p), token, 75))]);
+  const [ig, ...tt] = await Promise.allSettled([instagram(), ...phrases.map((p) => apifyItems(TIKTOK_ACTOR, similarSearchInput(p), token, SIMILAR_SEARCH_SECS, { keepPartial: true }))]);
   const answered = (ig.status === "fulfilled" && ig.value.ran) || tt.some((x) => x.status === "fulfilled");
   if (!answered) {
     console.error("competitors similar: apify", [ig, ...tt].map((x) => (x.status === "rejected" ? msg(x.reason) : "")).join(" | "));
@@ -375,7 +375,10 @@ async function similar(admin: Admin, uid: string, body: unknown): Promise<Respon
     ({ ...(found.find((c) => c.handle === h) ?? { platform: "tiktok", handle: h, name: h, bio: "", followers: null, private: false }), via: "competitor" }));
   const cands = pickCandidates([igv.seeds, igv.related, ttSeeds, found], r.exclude, r.brand);
 
-  const answers = await pool(cands, 12, async (c) => (Date.now() - started < SIMILAR_JEV_UNTIL_MS ? await jev(similarAsk(r.brand, c), "competitors similar") : null));
+  // the seeds as Jev's examples, with the bio Instagram gave for each (a TikTok seed only has its handle)
+  const liked = [...r.seeds.instagram.map((h) => igv.seeds.find((c) => c.handle === h) ?? { handle: h, name: h, bio: "" }), ...ttSeeds]
+    .map((c) => ({ handle: c.handle, name: c.name, bio: c.bio }));
+  const answers = await pool(cands, 12, async (c) => (Date.now() - started < SIMILAR_JEV_UNTIL_MS ? await jev(similarAsk(r.brand, c, liked), "competitors similar") : null));
   // every decision, so the first real run can be read and SIMILAR_FIT set from it
   cands.forEach((c, k) =>
     console.log(`competitors similar: ${accountKey(c)} | ${c.bio.replace(/\s+/g, " ").slice(0, 80)} | ${answers[k]?.similar?.noul ?? "unjudged"} | ${answers[k]?.kind?.choice ?? "-"}`));

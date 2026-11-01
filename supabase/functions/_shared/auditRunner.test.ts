@@ -57,6 +57,25 @@ describe("apifyItems: what the consultant reads when Apify fails", () => {
     apify({ [ACTOR]: { status: 500, body: "actor crashed" } });
     expect(await reason(apifyItems(ACTOR, {}, "t"))).toBe("Couldn't read the account right now. Try again in a few minutes.");
   });
+
+  it("keeps what a timed-out run collected only for a caller that asks, and fails as before when there is nothing to keep", async () => {
+    const TT = "clockworks~tiktok-scraper";
+    const timedOut = '{ "error": { "type": "run-failed", "message": "Actor run did not succeed (run ID: bipJjTfV0FMVkG340, status: TIMED-OUT)." } }';
+    const urls: string[] = [];
+    const route = (dataset: { status: number; body: unknown }) => vi.stubGlobal("fetch", vi.fn(async (input: URL | string) => {
+      urls.push(String(input));
+      if (String(input).includes("/actor-runs/")) return new Response(JSON.stringify(dataset.body), { status: dataset.status });
+      return new Response(timedOut, { status: 400 });
+    }));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    route({ status: 200, body: [{ id: "v1" }, { id: "v2" }] });
+    expect(await apifyItems(TT, {}, "t", 90, { keepPartial: true })).toEqual([{ id: "v1" }, { id: "v2" }]);
+    expect(urls.at(-1)).toBe("https://api.apify.com/v2/actor-runs/bipJjTfV0FMVkG340/dataset/items?clean=true");
+    expect(await reason(apifyItems(TT, {}, "t", 90))).toBe("Couldn't read the account right now. Try again in a few minutes.");
+    expect(urls.filter((u) => u.includes("/actor-runs/"))).toHaveLength(1); // not asked without keepPartial
+    route({ status: 404, body: { error: "gone" } });
+    expect(await reason(apifyItems(TT, {}, "t", 90, { keepPartial: true }))).toBe("Couldn't read the account right now. Try again in a few minutes.");
+  });
 });
 
 /** The service-role client: records each update and insert, and fails the ones named in `failing`. `synced`: cs_user_data rows. */

@@ -717,10 +717,19 @@ export const TIKTOK_ACTOR = "clockworks~tiktok-scraper";
 export const SIMILAR_SEEDS = 12;
 export const SIMILAR_RELATED = 60;
 export const SIMILAR_PHRASES = 8;
-export const SIMILAR_PER_PHRASE = 30;
+// 30 a search ran past 75 s on every one of 8 searches (1 Nov, all TIMED-OUT); 20 in 90 s, and a slow run keeps what it had
+export const SIMILAR_PER_PHRASE = 20;
+export const SIMILAR_SEARCH_SECS = 90;
 export const SIMILAR_KEEP = 40;
-/** Start cut (build brief): set it from the first real run's logged decisions. */
-export const SIMILAR_FIT = 0.6;
+/**
+ * Set from the first real run (ActivityTracker, 1 Nov, 64 accounts read one by one, shadow script beside the find-similar
+ * fixtures): with the picked accounts as examples, 0.48 and up were all productivity and planner apps or productivity
+ * creators (Akiflow, Tiimo, TickTick, Todoist, Sunsama); 0.44 and down were ADHD-tips creators, toys, games, health apps.
+ * The first question, without examples, kept none of them at 0.6.
+ */
+export const SIMILAR_FIT = 0.45;
+/** Examples Jev sees: the seeds (accounts the user added, then the competitors), with the bio the seed read gave. */
+export const SIMILAR_EXAMPLES = 12;
 export const SIMILAR_MIN_FOLLOWERS = 1000;
 /** A weekly re-read of an account's posts: the newest 10 (the first read takes POSTS_KEPT). */
 export const SIMILAR_REFRESH = 10;
@@ -858,19 +867,21 @@ export function pickCandidates(lists: SimilarCandidate[][], exclude: string[], b
   return out;
 }
 
-export function similarAsk(brand: Brand, c: SimilarCandidate): Ask {
+export function similarAsk(brand: Brand, c: SimilarCandidate, liked: { handle: string; name: string; bio: string }[] = []): Ask {
   return {
     state: {
       brand: brand.name || "this business", sells: brand.sells, serves: brand.serves,
+      // Leo 1 Nov: his examples (Structured, Tiimo, MeGrow) are planner apps, not sales CRMs; without them Jev kept none
+      liked: liked.slice(0, SIMILAR_EXAMPLES).map((x) => ({ handle: `@${x.handle}`, name: x.name, bio: x.bio })),
       account: { platform: c.platform, handle: `@${c.handle}`, name: c.name, bio: c.bio, followers: c.followers },
     },
     questions: {
       similar: {
         type: "noul",
-        instructions: "Is `account` worth following to see how others market to the people `brand` serves?",
+        instructions: "Is `account` worth following as a marketing reference for `brand`? The user picked the accounts in `liked` as examples of what they want to learn from.",
         criteria: {
-          true: "An app or business selling something like what `brand` sells to the same buyers, or a creator whose posts are made for the people `brand` serves (UGC, day in the life, tips).",
-          false: "Unrelated, a different audience, a podcast or an agency selling services, or spam.",
+          true: "An app or business like `brand` or like the accounts in `liked` (a similar product for similar people), whose posts show how it markets itself; or a creator posting for those same people (UGC, day in the life, tips).",
+          false: "A different kind of product or audience, a podcast or an agency selling services, or spam.",
         },
       },
       kind: {

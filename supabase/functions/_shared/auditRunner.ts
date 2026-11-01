@@ -52,7 +52,7 @@ const OPENAI_TIMEOUT_MS = 45_000;
  * One actor run's dataset items; AuditError (audit wording) when Apify never answered. Callers map it to their own
  * copy. `timeoutSecs` is for a caller that makes two runs in one function call (competitors' ads read).
  */
-export async function apifyItems(actor: string, input: unknown, token: string, timeoutSecs = APIFY_TIMEOUT_SECS): Promise<Item[]> {
+export async function apifyItems(actor: string, input: unknown, token: string, timeoutSecs = APIFY_TIMEOUT_SECS, opts: { keepPartial?: boolean } = {}): Promise<Item[]> {
   let res: Response;
   try {
     res = await fetch(
@@ -70,6 +70,19 @@ export async function apifyItems(actor: string, input: unknown, token: string, t
   }
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 500);
+    // a run that hit its time limit still holds what it collected, and was billed for it: an opted-in caller gets that
+    const timedOut = opts.keepPartial ? /run ID: ([A-Za-z0-9]+), status: TIMED-OUT/.exec(detail) : null;
+    if (timedOut) {
+      const part = await fetch(`https://api.apify.com/v2/actor-runs/${timedOut[1]}/dataset/items?clean=true`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(15_000),
+      }).catch(() => null);
+      const items = part?.ok ? await part.json().catch(() => null) : null;
+      if (Array.isArray(items)) {
+        console.warn("apify run timed out, kept what it had", actor, items.length);
+        return items as Item[];
+      }
+    }
     console.error("apify run failed", actor, res.status, detail);
     if (res.status === 402 || /platform-feature-disabled|invoice|payment|usage limit|credit/i.test(detail)) {
       throw new AuditError("Account audits are paused while the scraping account is sorted out. Try again later.");

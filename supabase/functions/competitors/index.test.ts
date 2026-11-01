@@ -59,6 +59,7 @@ let matchFit: Record<string, number | "down"> = {};
 /** Jev's similar answer per account handle (0.7 for the rest), and every handle it was asked about. */
 let similarFit: Record<string, number> = {};
 const jevAccounts: string[] = [];
+const jevLiked: unknown[] = [];
 /** TikTok search phrases whose run fails on Apify. */
 let searchDown: string[] = [];
 const IG_POSTS = Array.from({ length: 40 }, (_, k) => ({
@@ -96,6 +97,7 @@ beforeAll(async () => {
       if (req.questions.similar) {
         const h = String(req.state.account.handle).slice(1);
         jevAccounts.push(h);
+        jevLiked.push(req.state.liked);
         return Response.json({ answers: { similar: { type: "noul", noul: similarFit[h] ?? 0.7 }, kind: { type: "choice", choice: h.includes("adhd") ? "creator" : "app_or_brand" } } });
       }
       if (req.questions.hook) {
@@ -177,6 +179,7 @@ beforeEach(() => {
   matchFit = {};
   similarFit = {};
   jevAccounts.length = 0;
+  jevLiked.length = 0;
   searchDown = [];
   db.month = [];
   env = { NORTH_STAR_USERS: `someone-else,${LEO}`, DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "t", APIFY_API_KEY: "a" };
@@ -626,7 +629,7 @@ describe("competitors similar", () => {
     expect(seen).toEqual([]);
   });
 
-  it("reads the seeds' similar accounts and the searches, judges each once, and keeps 0.6 and up, best first", async () => {
+  it("reads the seeds' similar accounts and the searches, judges each once against the seeds as examples, and keeps 0.45 and up, best first", async () => {
     similarFit = { "structured.app": 0.95, sunsamahq: 0.9, speakadhd: 0.8, iccbpo: 0.2, nosuchthingasafish: 0.1 };
     const r = await call(body);
     expect(r.status).toBe(200);
@@ -636,7 +639,7 @@ describe("competitors similar", () => {
     const runs = apifyRuns.map((x) => x.actor);
     expect(runs.filter((a) => a === "apify~instagram-profile-scraper")).toHaveLength(2);
     expect(apifyRuns.filter((x) => x.actor === "clockworks~tiktok-scraper").map((x) => x.input)).toEqual(
-      r.body.phrases.map((p: string) => ({ searchQueries: [p], resultsPerPage: 30 })),
+      r.body.phrases.map((p: string) => ({ searchQueries: [p], resultsPerPage: 20 })),
     );
     const related = apifyRuns.find((x) => (x.input.usernames as string[] | undefined)?.length! > 1)!.input.usernames as string[];
     expect(related).toHaveLength(35); // 36 similar accounts minus todoist, excluded
@@ -655,6 +658,9 @@ describe("competitors similar", () => {
     for (const h of ["todoistofficial", "samfreeflow", "adhdwomen2020", "anne_tso"]) expect(jevAccounts, h).not.toContain(h);
     expect(jevAccounts).toContain("tiimoapp"); // the seed itself
     expect(jevAccounts).toContain("thedoapp"); // the TikTok seed, on its name alone
+    // every question carries the seeds as examples: the Instagram one with the bio its read gave, the TikTok one by name
+    expect(jevLiked.every((l) => JSON.stringify(l) === JSON.stringify(jevLiked[0]))).toBe(true);
+    expect(jevLiked[0]).toEqual([{ handle: "@tiimoapp", name: expect.any(String), bio: expect.stringMatching(/\S/) }, { handle: "@thedoapp", name: "thedoapp", bio: "" }]);
     expect(r.body.month).toEqual({ spent: 1.09, cap: 40 });
   });
 
