@@ -1,8 +1,9 @@
-// Apps like yours (/swipe?tab=similar, Leo's sign-ins on a brand that isn't an adviser's;
+// Apps like yours (/swipe?tab=similar, Leo's sign-ins on every brand;
 // docs/north-star/items/find-similar-accounts.md): Instagram and TikTok accounts like the brand, found or added by hand,
 // and their posts, best outlier score first. ?f= filters, ?post= marks one post. Finding and reading run outside React
 // (src/lib/similarAccounts.ts); this draws the store and the jobs.
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { refreshCloudKeys } from "@/lib/cloudSync";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { PostCard, SkeletonCard } from "@/components/competitors/TheirPosts";
 import { OutlierScoreTip } from "@/components/OutlierBadge";
@@ -17,8 +18,8 @@ import { links } from "@/lib/links";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { fromFollowPost } from "@/lib/remixSource";
 import {
-  accountKey, addAccount, type AddResult, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadSimilar, onSimilar, onSimilarChanged,
-  readAddInput, readFailure, readingAny, readsStopped, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarFeed,
+  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadSimilar, onSimilar, onSimilarChanged,
+  readAddInput, readFailure, readingAny, readsStopped, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarFeed, similarKey,
 } from "@/lib/similarAccounts";
 import { useGoneItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import { SIMILAR_KEEP } from "../../../supabase/functions/competitors/logic.ts";
@@ -42,7 +43,7 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const [, tick] = useState(0);
   useEffect(() => onSimilarChanged(() => bump((v) => v + 1)), []);
   useEffect(() => onSimilar(() => tick((n) => n + 1)), []);
-  // opening the tab reads whatever is 7+ days old, the newest 10 posts each
+  // opening the tab reads whatever is 7+ days old, the newest 10 posts each, and starts the brand's first find
   useEffect(() => {
     void runDueSimilar(userId);
   }, [userId]);
@@ -62,6 +63,15 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const foundCount = state.accounts.filter((a) => a.via !== "added").length;
   const room = SIMILAR_KEEP - foundCount;
   const why = reasonText({ left, leo: true }) ?? (room <= 0 ? "You have 40. Take some out with Not this one to find others." : null);
+  // the brand's first find starts by itself, after its synced list is pulled, so a find from another device never repeats
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (autoTried.current || why) return;
+    autoTried.current = true;
+    void refreshCloudKeys([similarKey(userId)]).then(() => {
+      if (autoFindDue(loadSimilar(userId))) void runFind(userId);
+    });
+  }, [userId, why]);
   // a find reads each new account's posts too
   const price = sumPrices(priceOf("similar-find"), ...Array.from({ length: Math.max(0, room) }, () => priceOf("similar-posts")));
   const note = lastFind();
@@ -87,6 +97,7 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
         </p>
       )}
       {note && !finding && <p role={note.error ? "alert" : undefined} className={`text-xs ${note.error ? "text-destructive" : "text-muted-foreground"}`}>{note.text}</p>}
+      {(state.searches?.length ?? 0) > 0 && !finding && <p className="text-xs text-muted-foreground">Searched TikTok for {state.searches?.join(", ")}.</p>}
     </div>
   );
 

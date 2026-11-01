@@ -40,6 +40,9 @@ export interface SimilarState {
   dismissed: string[];
   /** The month's spend as the server last said it. */
   month: { spent: number; cap: number } | null;
+  /** When a find last answered (null: never, so opening the tab starts one), and the TikTok searches it ran. */
+  foundAt?: string | null;
+  searches?: string[];
 }
 
 const KEY = "content-studio-similar-";
@@ -51,7 +54,7 @@ const MAX_DISMISSED = 200;
 const CAPTION = 150;
 export const FIND_FAILED = "Couldn't look for accounts right now. Try again in a few minutes.";
 export const POSTS_FAILED = "Couldn't read that account right now. Try again in a few minutes.";
-const EMPTY = (): SimilarState => ({ accounts: [], posts: {}, dismissed: [], month: null });
+const EMPTY = (): SimilarState => ({ accounts: [], posts: {}, dismissed: [], month: null, foundAt: null, searches: [] });
 const isAdded = (a: Pick<SimilarEntry, "via">) => a.via === "added";
 
 export function loadSimilar(userId: string): SimilarState {
@@ -65,6 +68,8 @@ export function loadSimilar(userId: string): SimilarState {
         : {},
       dismissed: (Array.isArray(v.dismissed) ? v.dismissed : []).filter((d: unknown): d is string => typeof d === "string").slice(0, MAX_DISMISSED),
       month: typeof v.month?.spent === "number" && typeof v.month?.cap === "number" ? v.month : null,
+      foundAt: typeof v.foundAt === "string" ? v.foundAt : null,
+      searches: (Array.isArray(v.searches) ? v.searches : []).filter((x: unknown): x is string => typeof x === "string").slice(0, 8),
     };
   } catch {
     return EMPTY();
@@ -172,7 +177,7 @@ export function findRequest(userId: string) {
 
 // ---- Finding, outside React ------------------------------------------------------------------------------------
 
-type FindAnswer = { accounts: SimilarAccount[]; note?: string; month?: { spent: number; cap: number } };
+type FindAnswer = { accounts: SimilarAccount[]; note?: string; phrases?: string[]; month?: { spent: number; cap: number } };
 let finding = false;
 let findNote: { text: string; error: boolean } | null = null;
 const listeners = new Set<() => void>();
@@ -190,6 +195,9 @@ export function onSimilar(fn: () => void): () => void {
   };
 }
 
+/** The first find for a brand starts by itself (Leo 1 Nov: "should be automatically added", "like a competitor search"); a failed one tries again next time, an answered one never repeats itself. */
+export const autoFindDue = (s: SimilarState) => !s.foundAt && !finding;
+
 export async function runFind(userId: string): Promise<void> {
   if (finding) return;
   finding = true;
@@ -200,7 +208,7 @@ export async function runFind(userId: string): Promise<void> {
     const s = loadSimilar(userId);
     const next = mergeFound(s, Array.isArray(r.accounts) ? r.accounts : []);
     const added = next.accounts.length - s.accounts.length;
-    saveSimilar(userId, { ...next, month: r.month ?? s.month });
+    saveSimilar(userId, { ...next, month: r.month ?? s.month, foundAt: new Date().toISOString(), searches: Array.isArray(r.phrases) ? r.phrases.slice(0, 8) : s.searches ?? [] });
     findNote = r.note ? { text: r.note, error: false } : { text: added ? `Found ${added} new account${added === 1 ? "" : "s"}. Reading their posts now.` : "No new accounts this time.", error: false };
     void runDueSimilar(userId);
   } catch (e) {

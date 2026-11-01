@@ -44,7 +44,7 @@ describe("Apps like yours: the synced store", () => {
     expect(s.loadSimilar(U)).toMatchObject({ accounts: [{ handle: "a" }], dismissed: ["tiktok:gone"], month: { spent: 1.09, cap: 40 } });
     expect([...storage.s.keys()]).toEqual(["content-studio-similar-u1"]);
     storage.setItem("content-studio-similar-u1", "[nope");
-    expect(s.loadSimilar(U)).toEqual({ accounts: [], posts: {}, dismissed: [], month: null });
+    expect(s.loadSimilar(U)).toEqual({ accounts: [], posts: {}, dismissed: [], month: null, foundAt: null, searches: [] });
   });
 
   it("adds found accounts after the ones there, never a dismissed or shown one, 40 found at most", () => {
@@ -199,8 +199,12 @@ describe("Apps like yours: accounts added by hand", () => {
 
 describe("Apps like yours: a find", () => {
   it("folds the found accounts in, keeps the month, and says how many", async () => {
-    callFn.mockResolvedValueOnce({ accounts: [found("a"), found("b")], month: { spent: 1.09, cap: 40 } });
+    expect(s.autoFindDue(s.loadSimilar(U))).toBe(true);
+    callFn.mockResolvedValueOnce({ accounts: [found("a"), found("b")], phrases: ["habit tracker app", "sales day in my life"], month: { spent: 1.09, cap: 40 } });
     await s.runFind(U);
+    expect(s.loadSimilar(U).searches).toEqual(["habit tracker app", "sales day in my life"]);
+    expect(s.loadSimilar(U).foundAt).toEqual(expect.any(String));
+    expect(s.autoFindDue(s.loadSimilar(U))).toBe(false);
     expect(callFn.mock.calls[0][1]).toMatchObject({ mode: "similar" });
     expect(s.loadSimilar(U)).toMatchObject({ accounts: [{ handle: "a" }, { handle: "b" }], month: { spent: 1.09, cap: 40 } });
     expect(s.lastFind()).toEqual({ text: "Found 2 new accounts. Reading their posts now.", error: false });
@@ -219,5 +223,8 @@ describe("Apps like yours: a find", () => {
     expect(s.lastFind()).toEqual({ text: "Apps like yours has used this month's US$40. It starts again on 1 December.", error: true });
     expect(s.loadSimilar(U).accounts).toHaveLength(1);
     expect(s.isFinding()).toBe(false);
+    // a refused find never counts as the first one, so opening the tab tries again
+    expect(s.loadSimilar(U).foundAt ?? null).toBeNull();
+    expect(s.autoFindDue(s.loadSimilar(U))).toBe(true);
   });
 });
