@@ -118,6 +118,12 @@ export function defaultOutput(s: RemixSource): "post" | "carousel" | "script" {
   return s.format === "video" ? "script" : s.format === "carousel" ? "carousel" : "post";
 }
 
+/**
+ * A TikTok photo post is a slideshow, so the sheet's Make row opens on Slideshow, first and picked. It is made on its own
+ * page (/make/slideshow, as Also make's link makes it), so it is never picked with another format.
+ */
+export const slidesFirst = (s: Pick<RemixSource, "platform" | "format">) => s.platform === "tiktok" && s.format === "carousel";
+
 const INSPIRATION = inspirationData as InspirationEntry[];
 const joined = (parts: (string | null | undefined)[]) =>
   parts
@@ -216,6 +222,7 @@ export const isVideo = (a: RemixAs): a is "speaking" | "explainer" => a === "spe
 
 /** The picks after pressing `next`: a pick comes off unless it is the last one; a fourth or a second video is ignored. */
 export function formatsAllowed(picked: RemixAs[], next: RemixAs): RemixAs[] {
+  if (next === "slideshow" || picked.includes("slideshow")) return picked.includes(next) ? picked : [next];
   if (picked.includes(next)) return picked.length > 1 ? picked.filter((a) => a !== next) : picked;
   if (picked.length >= MAX_FORMATS || (isVideo(next) && picked.some(isVideo))) return picked;
   return [...picked, next];

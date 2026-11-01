@@ -17,6 +17,7 @@ import {
   makePrice,
   platformFor,
   remixLabel,
+  slidesFirst,
   tooLongLine,
   videoAsk,
   videoBlock,
@@ -167,6 +168,21 @@ describe("the Make row", () => {
     expect(formatsAllowed(["post", "speaking"], "explainer")).toEqual(["post", "speaking"]);
     expect(formatsAllowed(["post", "speaking"], "speaking")).toEqual(["post"]);
     expect(formatsAllowed(["post"], "explainer")).toEqual(["post", "explainer"]);
+  });
+
+  it("opens on Slideshow for a TikTok photo post and only for it, picked on its own", () => {
+    expect(slidesFirst({ platform: "tiktok", format: "carousel" })).toBe(true);
+    for (const s of [{ platform: "instagram", format: "carousel" }, { platform: "tiktok", format: "video" }, { platform: "instagram", format: "video" }, { platform: "linkedin", format: "carousel" }])
+      expect(slidesFirst(s as RemixSource), JSON.stringify(s)).toBe(false);
+    // another pick replaces it, it replaces any picks, and it stays when pressed again
+    expect(formatsAllowed(["slideshow"], "carousel")).toEqual(["carousel"]);
+    expect(formatsAllowed(["slideshow"], "speaking")).toEqual(["speaking"]);
+    expect(formatsAllowed(["post", "carousel"], "slideshow")).toEqual(["slideshow"]);
+    expect(formatsAllowed(["slideshow"], "slideshow")).toEqual(["slideshow"]);
+    // its default stays out of the address
+    expect(cleanAs([], "slideshow")).toEqual(["slideshow"]);
+    expect(asParam(["slideshow"], "slideshow")).toEqual([]);
+    expect(asParam(["carousel"], "slideshow")).toEqual(["carousel"]);
   });
 
   it("reads as= safely: no repeats, at most 3, one video, the default when empty, and leaves the default out", () => {

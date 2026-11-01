@@ -6,14 +6,17 @@ import { FORMATS, alsoMakeList, formatHref } from "@/data/formats";
 import { aiBusy as aiWorking, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { links } from "@/lib/links";
 import { chipText, priceText } from "@/lib/prices";
-import { AS_LABELS, MAKE_CHIPS, MAX_FORMATS, VIDEO_LIMITS, formatsAllowed, isVideo, videoBlock, videoPrice, type RemixAs } from "@/lib/remix";
+import { AS_LABELS, MAKE_CHIPS, MAX_FORMATS, VIDEO_LIMITS, formatsAllowed, isVideo, slidesFirst, videoBlock, videoPrice, type RemixAs } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
 import type { UsageFeature } from "../../../supabase/functions/_shared/usageCaps.ts";
+
+const SLIDES_LINE = "Opens the slideshow page and makes it there.";
 
 /**
  * The formats one press makes (docs/north-star/items/remix-any-format.md): up to 3, one video at a time. The video
  * chips carry their price, and go off while another video is being made or a cap they spend is used up. Under them,
  * "Also make" links each ready format (src/data/formats.ts alsoMakeList) on this source; they open the page, they don't toggle.
+ * A TikTok photo post has Slideshow as its first chip instead (slidesFirst), picked unless another is.
  */
 export default function MakeRow(p: {
   source: RemixSource;
@@ -26,11 +29,14 @@ export default function MakeRow(p: {
 }) {
   const [warn, setWarn] = useState(false);
   const aiBusy = useAiBusy();
+  // a TikTok photo post's own format leads the chips, and leaves Also make
+  const slides = slidesFirst(p.source);
+  const chips: RemixAs[] = slides ? ["slideshow", ...MAKE_CHIPS] : MAKE_CHIPS;
   const picked = p.as.find(isVideo);
   const block = (a: "speaking" | "explainer") => videoBlock(a, { busy: aiBusy, waiting: !!pendingAvatar(), left: p.left });
   // a picked video that can't run says why under the button, so this line stays the plain hint then
   const blocked = picked && block(picked) ? null : (block("speaking") ?? block("explainer"));
-  const line = blocked ?? (picked ? VIDEO_LIMITS.oneVideo : VIDEO_LIMITS.pickMore);
+  const line = blocked ?? (picked ? VIDEO_LIMITS.oneVideo : p.as.includes("slideshow") ? SLIDES_LINE : VIDEO_LIMITS.pickMore);
   useEffect(() => {
     if (!warn) return;
     const t = setTimeout(() => setWarn(false), 4000);
@@ -48,7 +54,7 @@ export default function MakeRow(p: {
         Make
       </h3>
       <div className="flex flex-wrap gap-1.5">
-        {MAKE_CHIPS.map((a) => {
+        {chips.map((a) => {
           const on = p.as.includes(a);
           const price = videoPrice(a);
           const off = isVideo(a) && !on && (!!block(a) || (!!picked && picked !== a));
@@ -67,7 +73,7 @@ export default function MakeRow(p: {
       <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <span className="basis-full sm:basis-auto">Also make:</span>
         {/* a link that makes on arrival (navigation state, never a URL param), so it reads as a link with its price, not as one of the toggle chips above */}
-        {alsoMakeList(FORMATS).map(({ f, go }) => {
+        {alsoMakeList(FORMATS).filter(({ f }) => !(slides && f.slug === "slideshow")).map(({ f, go }) => {
           // the sheet is Leo's only; at 0 left the link opens the page, whose button is off with the reason
           const chip = chipText({ price: f.price(), left: f.cap ? p.left(f.cap) : null, leo: true });
           return (

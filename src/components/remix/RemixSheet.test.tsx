@@ -187,6 +187,52 @@ describe("the Remix sheet for Leo", () => {
   });
 });
 
+describe("Make for a TikTok photo post (Leo only)", () => {
+  const MAKE = (h: string) => h.slice(h.indexOf('id="remix-make"'), h.indexOf("</section>", h.indexOf('id="remix-make"')));
+  const as_ = (platform: string, format: string) => {
+    const was = { key: as.key, source: as.source };
+    as.key = `follow:${platform}:741`;
+    as.source = { ...as.source, key: as.key, kind: "follow", platform, format, author: "@app_one" };
+    return () => Object.assign(as, was);
+  };
+
+  it("opens on Slideshow, first and picked, made on its own page, and Also make leaves it out", () => {
+    const back = as_("tiktok", "carousel");
+    try {
+      as.user = { id: "u1", email: "leo@example.com" };
+      const make = MAKE(html());
+      expect(make).toMatch(/<div class="flex flex-wrap gap-1.5"><button[^>]*aria-pressed="true"[^>]*>Slideshow/);
+      expect(make.match(/aria-pressed="true"/g)).toHaveLength(1);
+      expect(make).toMatch(/aria-pressed="false"[^>]*>Carousel/);
+      expect(make).toContain("Opens the slideshow page and makes it there.");
+      expect(make).not.toMatch(/href="\/make\/slideshow/);
+      expect(make).toMatch(/href="\/make\/wall-of-text/);
+      // another pick is a remix as today
+      const carousel = MAKE(html("/swipe", "&as=carousel"));
+      expect(carousel).toMatch(/aria-pressed="false"[^>]*>Slideshow/);
+      expect(carousel).toMatch(/aria-pressed="true"[^>]*>Carousel/);
+      expect(carousel).toContain("Pick up to 3.");
+    } finally {
+      back();
+    }
+  });
+
+  it("leaves every other source as it is: Carousel for an Instagram carousel, Script for a TikTok video, Slideshow under Also make", () => {
+    as.user = { id: "u1", email: "leo@example.com" };
+    for (const [platform, format, picked] of [["instagram", "carousel", "Carousel"], ["tiktok", "video", "Script to film"]]) {
+      const back = as_(platform, format);
+      try {
+        const make = MAKE(html());
+        expect(make, `${platform} ${format}`).not.toMatch(/<button[^>]*>Slideshow/);
+        expect(make).toMatch(new RegExp(`aria-pressed="true"[^>]*>${picked}`));
+        expect(make).toMatch(/href="\/make\/slideshow\?source=follow%3A/);
+      } finally {
+        back();
+      }
+    }
+  });
+});
+
 describe("Rebuild this edit on an upload's read (remix-format-clone, Leo only)", () => {
   const LINK = /<a [^>]*href="\/make\/same-edit\?source=upload%3Aab12cd"[^>]*>Rebuild this edit<\/a>/;
   const read = (format: string, kind = "upload") => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ExternalLink, Loader2, Shuffle, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import BreakdownRow from "@/components/remix/BreakdownRow";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
+import { FORMATS, alsoMakeList, formatHref } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { loadBrand } from "@/lib/carousel";
 import { getDraftById } from "@/lib/draftHistory";
@@ -36,6 +37,7 @@ import {
   makePrice,
   noteKey,
   remixLabel,
+  slidesFirst,
   VIDEO_LIMITS,
   videoAsk,
   videoBlock,
@@ -137,6 +139,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const aiBusy = useAiBusy();
   const [params] = useSearchParams();
   const update = useUrlUpdate();
+  const navigate = useNavigate();
 
   const keeps = useMemo<Keep[]>(() => (source ? intentsFor(source) : ["structure"]), [source]);
   const [keep] = useUrlState<Keep>("keep", "structure", { allowed: keeps });
@@ -150,7 +153,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const [breakdownOpen, setBreakdownOpen] = useUrlFlag("breakdown", "open");
   // as=post,carousel: up to 3 formats, one video; the source's own format is the default and stays out of the URL
   const [asList, setAsList] = useUrlList("as", { allowed: MAKE_CHIPS });
-  const fallbackAs = source ? defaultOutput(source) : "post";
+  const fallbackAs: RemixAs = source ? (slidesFirst(source) ? "slideshow" : defaultOutput(source)) : "post";
   const asKey = asList.join(",");
   const as = useMemo(() => cleanAs(asKey.split(","), fallbackAs), [asKey, fallbackAs]);
   const setAs = (next: RemixAs[]) => setAsList(asParam(next, fallbackAs));
@@ -158,7 +161,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const leo = useLeoUser();
   // Versions (remix-variations, Leo only): 3 makes of the first text format picked, one hook formula each
   const [versionsParam] = useUrlState<"1" | "3">("versions", "1", { allowed: ["1", "3"] });
-  const one = as.find((a) => !isVideo(a));
+  const one = as.find((a) => !isVideo(a) && a !== "slideshow");
   const three = !!leo && versionsParam === "3" && !!one;
   const makeAs = three ? [one!] : as;
   const asOne = (a: RemixAs) => asParam([a], fallbackAs).join(",") || null;
@@ -169,6 +172,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     if (added) update({ as: asOne(added), ...(isVideo(added) ? { versions: null } : {}) });
   };
   const picked = makeAs.find(isVideo);
+  // Slideshow (a TikTok photo post's first choice) is made on its own page, as Also make's link makes it
+  const slideshow = makeAs[0] === "slideshow";
 
   // the URL wins (mention=no, offer=<slug>), then the remembered pick for this brand, then the default
   const [prefs, setPrefs] = useState<RemixPrefs>(() => loadRemixPrefs(userId));
@@ -251,7 +256,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
 
   const uses = three ? 3 : as.length;
   // the run breaks the post down first when this device has none, unless no breakdowns are left (remixJob's pre-step)
-  const breaksDown = !teardownCached && leftOf("remix-teardown") !== 0;
+  const breaksDown = !teardownCached && leftOf("remix-teardown") !== 0 && !slideshow;
   const out = left === 0;
   const short = left !== null && uses > left;
   const videosLeft = leftOf("ai-video");
@@ -263,6 +268,11 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const start = (f: FitResult) => {
     if (!source) return;
     setAsking(null);
+    if (slideshow) {
+      // the sheet's note rides along (the page reads it); leaving closes the sheet
+      const link = alsoMakeList(FORMATS).find((x) => x.f.slug === "slideshow");
+      if (link) return void navigate(formatHref(link.f, { source: source.key, mention: mention ? undefined : "no" }), { state: link.go ? { go: true } : undefined });
+    }
     startRemix(userId, {
       source,
       keep,
@@ -385,7 +395,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         <section className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3">
           <h3 className="text-xs font-semibold text-foreground">What Remix does</h3>
           <p className="text-sm leading-snug text-muted-foreground">
-            {whatRemixDoes(source, { keep: ran.keep, about: ran.about, as: shownAs, close: ran.close }, { brand, hasVoice: voicePosts > 0, teardownCached })}
+            {whatRemixDoes(source, { keep: ran.keep, about: ran.about, as: shownAs, close: ran.close }, { brand, hasVoice: voicePosts > 0, teardownCached: teardownCached || slideshow })}
           </p>
           {!working && <FitLine fit={fit} brand={brand} video={!!picked} disabled={working} onCarousel={toCarousel} />}
         </section>
