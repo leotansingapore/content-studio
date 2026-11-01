@@ -9,6 +9,7 @@ import { PostCard, SkeletonCard } from "@/components/competitors/TheirPosts";
 import { OutlierScoreTip } from "@/components/OutlierBadge";
 import PriceChip from "@/components/PriceChip";
 import SaveButton from "@/components/SaveButton";
+import VideoEmbed from "@/components/VideoEmbed";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import { links } from "@/lib/links";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { fromFollowPost } from "@/lib/remixSource";
 import {
-  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadSimilar, onSimilar, onSimilarChanged,
+  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadMedia, loadSimilar, onSimilar, onSimilarChanged,
   readAddInput, readFailure, readingAny, readsStopped, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarFeed, similarKey,
 } from "@/lib/similarAccounts";
 import { useGoneItem, useUrlItem, useUrlState } from "@/lib/urlState";
@@ -52,6 +53,8 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const [linked] = useUrlItem("post");
   const [limit, setLimit] = useState(PAGE);
   const state = useMemo(() => loadSimilar(userId), [userId, version]);
+  // the best posts' covers, kept on this device by the reads, behind each card's play button
+  const media = useMemo(() => loadMedia(userId), [userId, version]);
   const all = useMemo(() => similarFeed(state), [state]);
   const feed = f === "all" ? all : similarFeed(state, f);
   // an empty store may still be syncing, so it decides nothing
@@ -135,7 +138,10 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
             <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {skeletons && Array.from({ length: 3 }, (_, k) => <SkeletonCard key={`s${k}`} />)}
               {shown.map((p) => (
-                <PostCard key={p.key} f={p} name={p.entry.name} path={links.swipe({ tab: "similar", post: p.key })} linked={p.key === linked}>
+                <PostCard
+                  key={p.key} f={p} name={p.entry.name} path={links.swipe({ tab: "similar", post: p.key })} linked={p.key === linked}
+                  media={<VideoEmbed url={p.post.url} label={`${p.entry.name}'s post`} poster={media[accountKey(p.entry)]?.[p.post.id]?.cover} className="max-w-none" />}
+                >
                   <SaveButton source={fromFollowPost(p.account, p.post)} />
                 </PostCard>
               ))}

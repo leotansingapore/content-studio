@@ -12,15 +12,19 @@ export default function VideoEmbed({
   label,
   autoPlay = false,
   whenVisible = false,
+  poster,
   className,
 }: {
   url: string | null | undefined;
   label?: string;
   autoPlay?: boolean;
   whenVisible?: boolean;
+  /** The post's cover, behind the play button until a tap (a broken or expired one falls back to the plain button). */
+  poster?: string;
   className?: string;
 }) {
   const [playing, setPlaying] = useState(autoPlay);
+  const [posterBroken, setPosterBroken] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -67,8 +71,17 @@ export default function VideoEmbed({
         <button
           type="button"
           onClick={() => setPlaying(true)}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm font-semibold text-foreground/80 transition-colors hover:bg-muted/60"
+          className={cn(
+            "absolute inset-0 isolate flex flex-col items-center justify-center gap-2 text-sm font-semibold transition-colors",
+            poster && !posterBroken ? "text-white" : "text-foreground/80 hover:bg-muted/60",
+          )}
         >
+          {poster && !posterBroken && (
+            <>
+              <img src={poster} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setPosterBroken(true)} className="absolute inset-0 -z-10 h-full w-full object-cover" />
+              <span className="absolute inset-0 -z-10 bg-black/25" aria-hidden />
+            </>
+          )}
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elegant">
             <Play className="h-6 w-6 translate-x-0.5" />
           </span>

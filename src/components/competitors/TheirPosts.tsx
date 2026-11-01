@@ -234,13 +234,14 @@ export function SkeletonCard() {
   );
 }
 
-/** One post with its outlier badge, Remix and Open; also Apps like yours' card (`children` adds to the buttons). */
-export function PostCard({ f, name, path, linked, children }: {
+/** One post with its outlier badge, Remix and Open; also Apps like yours' card (`children` adds to the buttons, `media` sits on top). */
+export function PostCard({ f, name, path, linked, media, children }: {
   f: Pick<FeedPost, "account" | "post" | "outlier" | "fresh">;
   name: string;
   /** The post's own link, for Copy link. */
   path: string;
   linked: boolean;
+  media?: ReactNode;
   children?: ReactNode;
 }) {
   const ref = useScrollToItem<HTMLElement>(linked);
@@ -255,6 +256,7 @@ export function PostCard({ f, name, path, linked, children }: {
         {f.fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">New</span>}
         <CopyLinkButton path={path} label={`Copy link to ${name}'s post`} className="-my-2 -mr-2 ml-auto" />
       </div>
+      {media}
       <p className="text-[11px] text-muted-foreground">{[kind, p.postedAt ? dayMonth(p.postedAt) : "", NAME[a.platform]].filter(Boolean).join(", ")}</p>
       <p className="truncate text-[11px] font-medium">{name} <span className="font-normal text-muted-foreground">@{a.handle}</span></p>
       <p className="line-clamp-2 text-xs">{p.caption || "No caption"}</p>
