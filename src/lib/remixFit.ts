@@ -28,6 +28,17 @@ function storage(): Storage | null {
 }
 
 /** Text-heavy is asked only for a video made from a video or carousel, so any other source reads the same either way. */
+/**
+ * The fit as it reads for this Keep choice. "Make it about my topic" replaces the post's topic with the brand's, so
+ * whether the brand's people care about the post's topic no longer counts; MAS-safe and retell still do. (1 Nov: the
+ * social north star's Make one like this opens on it, and every off-topic example warned "Not recommended".)
+ */
+export function fitForKeep(f: FitResult, keep: string): FitResult {
+  if (keep !== "topic" || f.verdict === "unknown" || (f.verdict === "good" && !f.reasons.includes("serves"))) return f;
+  const reasons = f.reasons.filter((r) => r !== "serves");
+  return { verdict: reasons.some((r) => r === "retell" || r === "masSafe") ? "weak" : "good", reasons };
+}
+
 export const fitVideo = (s: Pick<RemixSource, "format">, videoPicked: boolean) => videoPicked && (s.format === "video" || s.format === "carousel");
 
 /** A business is asked no masSafe question, so its answers are kept apart; a person's keep their old key. */

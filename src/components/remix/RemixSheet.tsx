@@ -47,7 +47,7 @@ import {
   type RemixAs,
 } from "@/lib/remix";
 import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, speakerFor, type RemixPrefs } from "@/lib/remixBrand";
-import { FIT_WAIT_MS, UNKNOWN_FIT, fitAsk, fitVideo, loadFit, pressAction, requestFit, type FitResult } from "@/lib/remixFit";
+import { fitForKeep, FIT_WAIT_MS, UNKNOWN_FIT, fitAsk, fitVideo, loadFit, pressAction, requestFit, type FitResult } from "@/lib/remixFit";
 import { clearRemixJob, hrefFor, onRemixJob, remixJob, retryVersions, startRemix, type RemixJobState, type RemixRow } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
 import { localTeardown, type Teardown } from "@/lib/remixTeardown";
@@ -211,7 +211,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       live = false;
     };
   }, [source, userId, fv, keptFit, fitId, speaker]);
-  const fit: FitResult | "checking" = keptFit ?? (liveFit?.id === fitId ? liveFit.result : "checking");
+  const checked: FitResult | "checking" = keptFit ?? (liveFit?.id === fitId ? liveFit.result : "checking");
+  const fit: FitResult | "checking" = checked === "checking" ? checked : fitForKeep(checked, keep);
   const savePrefs = (next: RemixPrefs, url: Record<string, string | null>) => {
     setPrefs(next);
     saveRemixPrefs(userId, next);
@@ -293,7 +294,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     if (!f) {
       // a press during the check waits for it, at most Jev's own 5 s
       setWaiting(true);
-      f = await Promise.race([fitRun.current ?? Promise.resolve(UNKNOWN_FIT), new Promise<FitResult>((r) => setTimeout(() => r(UNKNOWN_FIT), FIT_WAIT_MS))]);
+      f = fitForKeep(await Promise.race([fitRun.current ?? Promise.resolve(UNKNOWN_FIT), new Promise<FitResult>((r) => setTimeout(() => r(UNKNOWN_FIT), FIT_WAIT_MS))]), keep);
       setWaiting(false);
     }
     if (pressAction(f.verdict, false) === "ask" || videoAsk(makeAs)) setAsking(f);

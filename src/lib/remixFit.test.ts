@@ -118,3 +118,15 @@ describe("requestFit", () => {
     expect(invoke).toHaveBeenCalledTimes(3);
   });
 });
+
+describe("fitForKeep: Make it about my topic", () => {
+  it("drops the topic reason, keeps MAS-safe and retell, and changes nothing for any other Keep", async () => {
+    const { fitForKeep } = await import("./remixFit");
+    expect(fitForKeep({ verdict: "poor", reasons: ["serves"] }, "topic")).toEqual({ verdict: "good", reasons: [] });
+    expect(fitForKeep({ verdict: "weak", reasons: ["serves", "textHeavy"] }, "topic")).toEqual({ verdict: "good", reasons: ["textHeavy"] });
+    expect(fitForKeep({ verdict: "poor", reasons: ["serves", "masSafe"] }, "topic")).toEqual({ verdict: "weak", reasons: ["masSafe"] });
+    expect(fitForKeep({ verdict: "weak", reasons: ["retell"] }, "topic")).toEqual({ verdict: "weak", reasons: ["retell"] });
+    expect(fitForKeep({ verdict: "poor", reasons: ["serves"] }, "structure")).toEqual({ verdict: "poor", reasons: ["serves"] });
+    expect(fitForKeep({ verdict: "unknown", reasons: [] }, "topic")).toEqual({ verdict: "unknown", reasons: [] });
+  });
+});
