@@ -6,8 +6,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, Loader2, Mic, Pause, Play, Plus, Send, Sparkles, Square, Trash2, Wand2, X } from "lucide-react";
+import { ChevronLeft, Compass, Loader2, Mic, Pause, Play, Plus, Send, Sparkles, Square, Trash2, Wand2, X } from "lucide-react";
 import LibraryDialog, { type Library } from "@/components/design/LibraryDialog";
+import PageTour from "@/components/PageTour";
 import { ColorField, Segmented, field } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -16,6 +17,7 @@ import { useDictation } from "@/hooks/useDictation";
 import { useToast } from "@/hooks/use-toast";
 import { LOOKS, lookFilter } from "@/lib/design";
 import { appendDictation } from "@/lib/dictation";
+import { CAMPAIGN_TOUR, pageTourDone } from "@/lib/pageTour";
 import { EdgeError, callFn } from "@/lib/edgeFn";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
@@ -98,10 +100,10 @@ export default function SlideCampaignPage() {
   }, [user, id]);
   if (user === undefined || row === undefined) return null;
   if (!user || !row) return <NotFoundPage />;
-  return <Studio key={row.id} initial={row} />;
+  return <Studio key={row.id} initial={row} userId={user.id} />;
 }
 
-function Studio({ initial }: { initial: CampaignRowView }) {
+function Studio({ initial, userId }: { initial: CampaignRowView; userId: string }) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -123,6 +125,8 @@ function Studio({ initial }: { initial: CampaignRowView }) {
   const [caption, setCaption] = useState<string | null>(null);
   const [safe, setSafe] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [tour, setTour] = useState(() => !pageTourDone(userId, "campaign"));
+  const tabFor: Record<string, Role> = { "campaign-hooks": "hook", "campaign-topic": "content" };
   const dictation = useDictation((chunk) => setSpec((s) => ({ ...s, topic: appendDictation(s.topic, chunk, 1200) })));
   const first = useRef(true);
   const canPost = socialConnectShown();
@@ -240,9 +244,13 @@ function Studio({ initial }: { initial: CampaignRowView }) {
         <span className="text-xs text-muted-foreground" aria-live="polite">
           {saved ? "Saved" : "Saving"}
         </span>
+        <Button variant="ghost" size="sm" onClick={() => setTour(true)} className="gap-1 text-muted-foreground">
+          <Compass className="h-4 w-4" /> Tour
+        </Button>
         <Button variant="outline" size="sm" disabled={!!busy || !spec.hooks.length} onClick={() => void act("generate", { action: "preview", id: row.id })} className="gap-1.5" title={spec.hooks.length ? undefined : "Add a hook first."}>
           {busy === "generate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {shown ? "Regenerate" : "Generate"}
         </Button>
+        <span data-tour="campaign-start" className="inline-flex rounded-md">
         {row.status === "live" ? (
           <Button size="sm" variant="outline" disabled={!!busy} onClick={() => void act("pause", { action: "pause", id: row.id })} className="gap-1.5">
             {busy === "pause" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4" />} Pause
@@ -252,13 +260,14 @@ function Studio({ initial }: { initial: CampaignRowView }) {
             {busy === "start" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Start
           </Button>
         )}
+        </span>
       </header>
       {startWhy && row.status !== "live" && <p className="text-xs text-muted-foreground">{startWhy}</p>}
       {row.status === "live" && row.next_run_at && <p className="text-sm text-muted-foreground">Next post goes {publishMode(row.publish) === "direct" ? "to your TikTok profile" : "to your TikTok drafts"} {when(row.next_run_at)}.</p>}
       {row.last_error && <p className="text-sm text-destructive">{row.last_error}</p>}
 
       {/* the example post */}
-      <section aria-label="Example post" className="space-y-2">
+      <section aria-label="Example post" data-tour="campaign-generate" className="space-y-2">
         {busy === "generate" && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Writing and drawing the slides</p>}
         {shown ? (
           <>
@@ -298,9 +307,11 @@ function Studio({ initial }: { initial: CampaignRowView }) {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-4 rounded-lg border border-border p-4">
-          <Segmented value={tab} options={TABS} onChange={(t) => setParams((p) => (p.set("tab", t), p), { replace: true })} />
+          <div data-tour="campaign-tabs">
+            <Segmented value={tab} options={TABS} onChange={(t) => setParams((p) => (p.set("tab", t), p), { replace: true })} />
+          </div>
           {tab === "hook" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="campaign-hooks">
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 Every post opens with one of these, picked at random
                 <InfoTip>Add a few: over a few weeks you see which ones land.</InfoTip>
@@ -334,7 +345,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
           )}
           {tab === "content" && (
             <div className="space-y-3">
-              <label className="block space-y-1 text-xs text-muted-foreground">
+              <label className="block space-y-1 text-xs text-muted-foreground" data-tour="campaign-topic">
                 What the posts are about
                 <Textarea value={spec.topic + (dictation.interim ? ` ${dictation.interim}` : "")} maxLength={1200} rows={3} placeholder="Ways a golfer can improve, unconventional rather than standard teaching, with numbers wherever possible." onChange={(e) => setSpec((s) => ({ ...s, topic: e.target.value }))} />
               </label>
@@ -395,7 +406,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
           )}
           {/* this role's pictures and words */}
           <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="campaign-pictures">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{TABS.find((t) => t.value === tab)?.label} pictures</h3>
               <select
                 className={field}
@@ -417,12 +428,12 @@ function Studio({ initial }: { initial: CampaignRowView }) {
                 </button>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="campaign-words">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{TABS.find((t) => t.value === tab)?.label} words</h3>
               <StyleControls s={spec.text_style[tab]} set={(p) => setStyle(tab, p)} />
             </div>
           </div>
-          <div className="space-y-2 border-t border-border pt-4">
+          <div className="space-y-2 border-t border-border pt-4" data-tour="campaign-look">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look on every slide</h3>
             <div className="flex flex-wrap gap-1.5">
               {LOOKS.map((k) => (
@@ -452,7 +463,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
         </div>
 
         <aside aria-label="Settings" className="space-y-4 rounded-lg border border-border p-4 text-sm">
-          <section className="space-y-1.5">
+          <section className="space-y-1.5" data-tour="campaign-account">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Post from</h3>
             {!canPost ? (
               <p className="text-xs text-muted-foreground">Posting isn't switched on for your account yet. You can build and preview the campaign now.</p>
@@ -515,7 +526,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
               </button>
             )}
           </section>
-          <section className="space-y-1">
+          <section className="space-y-1" data-tour="campaign-publish">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Posts go</h3>
             <Segmented value={publish.mode} options={[{ value: "inbox", label: "To my drafts" }, { value: "direct", label: "Straight to my profile" }] as const} onChange={(mode) => setPublish((p) => ({ ...p, mode }))} />
             {publish.mode === "inbox" ? (
@@ -589,6 +600,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
           }}
         />
       )}
+      {tour && <PageTour id="campaign" userId={userId} steps={CAMPAIGN_TOUR} onClose={() => setTour(false)} onStep={(t) => tabFor[t] && tabFor[t] !== tab && setParams((p) => (p.set("tab", tabFor[t]), p), { replace: true })} />}
     </div>
   );
 }

@@ -6,8 +6,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CalendarClock, ChevronLeft, Copy, Download, Image as ImageIcon, Loader2, Palette, Plus, Redo2, Save, Smartphone, Square, SunDim, Trash2, Type, Undo2, X } from "lucide-react";
+import { CalendarClock, ChevronLeft, Compass, Copy, Download, Image as ImageIcon, Loader2, Palette, Plus, Redo2, Save, Smartphone, Square, SunDim, Trash2, Type, Undo2, X } from "lucide-react";
 import Inspector from "@/components/design/Inspector";
+import PageTour from "@/components/PageTour";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
@@ -45,6 +46,7 @@ import { ExportPictureError, designPngs } from "@/lib/designExport";
 import { putFile } from "@/lib/deviceFiles";
 import { getDraftById, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
+import { DESIGN_TOUR, pageTourDone } from "@/lib/pageTour";
 import { sendToPhone } from "@/lib/phoneLink";
 import { ago } from "@/lib/slideshow";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -112,6 +114,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const [phone, setPhone] = useState<{ url: string; expiresAt: string; qr?: string } | null>(null);
   const [typing, setTyping] = useState<string | null>(null);
   const [palette, setPalette] = useState(() => loadPalette(userId));
+  const [tour, setTour] = useState(() => !pageTourDone(userId, "design-editor"));
   const [swatch, setSwatch] = useState("#ffd21f");
   const editPalette = (p: Partial<typeof palette>) => setPalette(savePalette(userId, { ...palette, ...p }));
   const abort = useRef<AbortController | null>(null);
@@ -417,6 +420,9 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
         <span className="text-xs text-muted-foreground" aria-live="polite">
           Saved {ago(savedAt)}
         </span>
+        <Button variant="ghost" size="sm" onClick={() => setTour(true)} className={`gap-1 text-muted-foreground ${TOUCH}`}>
+          <Compass className="h-4 w-4" /> Tour
+        </Button>
         {follow && (offer || claudeAt > 0) && (
           <span role="status" className="flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs">
             {offer ? "Claude changed this slideshow." : "Claude is editing"}
@@ -430,7 +436,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
             </button>
           </span>
         )}
-        <div className="relative">
+        <div className="relative" data-tour="design-export">
           <Button variant="outline" size="sm" onClick={() => setMenu(menu === "download" ? null : "download")} disabled={busy} aria-expanded={menu === "download"} className={`gap-1.5 ${TOUCH}`}>
             <Download className="h-4 w-4" /> Download
           </Button>
@@ -523,12 +529,12 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
         </p>
       )}
 
-      <nav aria-label="Add to the slide" className="flex flex-wrap items-center gap-0.5 border-y border-border py-1">
+      <nav aria-label="Add to the slide" data-tour="design-tools" className="flex flex-wrap items-center gap-0.5 border-y border-border py-1">
         {tool("Text", Type, () => addLayer("text", palette.body ? { font: palette.body } : {}))}
         {tool("Image", ImageIcon, () => addLayer("image"))}
         {tool("Shape", Square, () => addLayer("shape"))}
         {tool("Fade", SunDim, () => addLayer("gradient"))}
-        <div className="relative">
+        <div className="relative" data-tour="design-brand">
           {tool("Brand", Palette, () => setMenu(menu === "brand" ? null : "brand"), menu === "brand")}
           {menu === "brand" && (
             <div role="menu" className="absolute left-0 z-30 mt-1 w-72 rounded-md border border-border bg-popover p-1 shadow-lg">
@@ -606,7 +612,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
         {/* slides: a column on a computer, a row on a phone */}
-        <aside aria-label="Slides" className="flex shrink-0 flex-col gap-2 lg:w-28">
+        <aside aria-label="Slides" data-tour="design-slides" className="flex shrink-0 flex-col gap-2 lg:w-28">
           <ol className="flex gap-2 overflow-x-auto pb-1 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden">
             {work.slides.map((s, i) => (
               <li
@@ -637,7 +643,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           </div>
         </aside>
 
-        <div ref={stage} className={`relative flex min-h-[60vh] flex-1 select-none items-center justify-center lg:min-h-0 ${layer ? "touch-none" : ""}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={() => layer?.type === "text" && !layer.locked && setTyping(layer.id)}>
+        <div ref={stage} data-tour="design-stage" className={`relative flex min-h-[60vh] flex-1 select-none items-center justify-center lg:min-h-0 ${layer ? "touch-none" : ""}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={() => layer?.type === "text" && !layer.locked && setTyping(layer.id)}>
           <div data-slide-box="" className="relative shadow-xl" style={{ width: FRAME_W * k, height: H * k }}>
             <SlideView slide={slide} format={work.format} width={FRAME_W * k} />
             {layer?.type === "text" && typing === layer.id && (
@@ -673,7 +679,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           </div>
         </div>
 
-        <aside aria-label="Design panel" className="shrink-0 overflow-y-auto rounded-lg border border-border lg:w-80">
+        <aside aria-label="Design panel" data-tour="design-panel" className="shrink-0 overflow-y-auto rounded-lg border border-border lg:w-80">
           <Inspector
             userId={userId}
             design={work}
@@ -693,6 +699,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           />
         </aside>
       </div>
+      {tour && <PageTour id="design-editor" userId={userId} steps={DESIGN_TOUR} onClose={() => setTour(false)} />}
     </div>
   );
 }
