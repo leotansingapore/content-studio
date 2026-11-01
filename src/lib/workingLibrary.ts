@@ -3,7 +3,7 @@
 // cs-working bucket (<id>/<n>.webp). This file holds what the page reads: the filters as URL params, the query they
 // make, the niche names, the save rate and the prompt an agent rebuilds a format from.
 
-import { compact, likeTerm, multipleLabel, type Query } from "@/lib/carouselLibrary";
+import { PAGE_SIZE, compact, likeTerm, multipleLabel, type Query } from "@/lib/carouselLibrary";
 import { supabase } from "@/lib/supabase";
 
 export const SORTS = [
@@ -29,6 +29,21 @@ export function filtersFrom(params: URLSearchParams): Filters {
     niche: NICHE.test(niche) ? niche : "",
     sort: SORTS.some((s) => s.value === sort) ? (sort as Sort) : "working",
   };
+}
+
+/** ?pages=: how many pages Show more has opened, so Back from a slideshow comes back to the same list. */
+export const MAX_PAGES = 40;
+export const pagesFrom = (params: URLSearchParams): number => Math.min(MAX_PAGES, Math.max(1, Math.floor(Number(params.get("pages"))) || 1));
+
+/**
+ * The rows to fetch for `pages` pages of the list `key` (search, niche and sort), given the list last asked for: only
+ * the next page after a Show more, else every page from the top (arriving on ?pages=3 from Back). null for a new
+ * search, niche or sort while ?pages= is past 1: it starts again at the first page.
+ */
+export function pageFetch(asked: { key: string; pages: number }, key: string, pages: number): { from: number; to: number; more: boolean } | null {
+  if (asked.key && asked.key !== key && pages > 1) return null;
+  const more = asked.key === key && asked.pages === pages - 1;
+  return { from: more ? (pages - 1) * PAGE_SIZE : 0, to: pages * PAGE_SIZE - 1, more };
 }
 
 /** The builder calls the filters use, so the query is tested without a network. */

@@ -159,6 +159,7 @@ so one that is gone shows everything.
 | /working | q | search text (slides' words, captions, creators) | empty | replace | /working?q=protein |
 | /working | niche | a niche slug from the data (nutrition, ai_tools...) | all | replace | /working?niche=ai_tools |
 | /working | sort | working, views, saves | working | replace | /working?sort=saves |
+| /working | pages | 2 to 40, the pages Show more has opened (a new search, niche or sort starts at 1) | 1 | replace | /working?pages=3 |
 | /working/:id | (path) | a slideshow's TikTok post id; has Copy link | | push | /working/7412345678901234567 |
 | /profiles | q | search text (name, handle, company, niche) | empty | replace | /profiles?q=retirement |
 | /profiles | company | aia, prudential, great-eastern, manulife, independent-fee-only, other, none (comma list) | all | replace | /profiles?company=aia,none |

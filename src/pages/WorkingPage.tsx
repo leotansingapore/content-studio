@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Bookmark, Eye, Images, Layers, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PAGE_SIZE, compact, multipleLabel } from "@/lib/carouselLibrary";
+import { compact, multipleLabel } from "@/lib/carouselLibrary";
 import { supabase } from "@/lib/supabase";
 import { useUrlSearch, useUrlUpdate } from "@/lib/urlState";
 import {
   CARD_COLUMNS,
+  MAX_PAGES,
   SORTS,
   TABLE,
   applyFilters,
@@ -18,6 +19,8 @@ import {
   filtersFrom,
   missingTable,
   nicheLabel,
+  pageFetch,
+  pagesFrom,
   saveRateLabel,
   slideUrl,
   tagLabel,
@@ -35,7 +38,8 @@ export default function WorkingPage() {
   const f = useMemo(() => filtersFrom(params), [params]);
   const [text, setText] = useUrlSearch("q");
   const update = useUrlUpdate();
-  const [page, setPage] = useState(0);
+  const pages = pagesFrom(params);
+  const asked = useRef({ key: "", pages: 0 }); // the list last asked for: what data.rows holds once it lands
   const [data, setData] = useState<Load>({ rows: [], total: null, error: null, loading: true });
   const [niches, setNiches] = useState<{ niche: string; count: number }[]>([]);
   const [retry, setRetry] = useState(0);
@@ -58,26 +62,28 @@ export default function WorkingPage() {
   }, [retry]);
 
   const key = `${f.q}|${f.niche}|${f.sort}`;
-  useEffect(() => setPage(0), [key]);
 
   useEffect(() => {
+    const step = pageFetch(asked.current, key, pages);
+    if (!step) return void update({ pages: null }); // a new search, niche or sort: from the first page, which loads next
+    asked.current = { key, pages };
     let live = true;
-    setData((d) => ({ ...d, loading: true, error: null, ...(page === 0 ? { rows: [] } : {}) }));
+    setData((d) => ({ ...d, loading: true, error: null, ...(step.more ? {} : { rows: [] }) }));
     const failed = () => live && setData((d) => ({ ...d, loading: false, error: "Couldn't load the library. Check your connection and try again." }));
     const base = supabase.from(TABLE).select(CARD_COLUMNS, { count: "exact" });
     applyFilters(base, f)
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+      .range(step.from, step.to)
       .then(({ data: rows, error, count }) => {
         if (!live) return;
         if (error && !missingTable(error)) return failed();
         const got = (rows as WorkingCard[] | null) ?? [];
-        setData((d) => ({ rows: page === 0 ? got : [...d.rows, ...got], total: error ? 0 : count, error: null, loading: false }));
+        setData((d) => ({ rows: step.more ? [...d.rows, ...got] : got, total: error ? 0 : count, error: null, loading: false }));
       }, failed);
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, page, retry]);
+  }, [key, pages, retry]);
 
   const back = `${location.pathname}${location.search}`;
   const hasMore = data.total !== null && data.rows.length < data.total;
@@ -138,7 +144,7 @@ export default function WorkingPage() {
           </Grid>
           {hasMore && (
             <div className="flex justify-center">
-              <Button variant="outline" onClick={() => setPage(page + 1)} disabled={data.loading} className="gap-1.5">
+              <Button variant="outline" onClick={() => update({ pages: String(pages + 1) })} disabled={data.loading || pages >= MAX_PAGES} className="gap-1.5">
                 {data.loading && <Loader2 className="h-4 w-4 animate-spin" />} Show more
               </Button>
             </div>

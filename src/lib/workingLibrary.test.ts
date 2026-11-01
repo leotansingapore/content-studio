@@ -5,8 +5,11 @@ import {
   countNiches,
   filtersFrom,
   formatLines,
+  MAX_PAGES,
   missingTable,
   nicheLabel,
+  pageFetch,
+  pagesFrom,
   tagLabel,
   saveRate,
   saveRateLabel,
@@ -14,6 +17,7 @@ import {
   type WorkingQuery,
   type WorkingRow,
 } from "./workingLibrary";
+import { PAGE_SIZE } from "@/lib/carouselLibrary";
 
 /** Records every builder call, so a test reads the query the filters make. */
 class Recorder implements WorkingQuery<Recorder> {
@@ -57,6 +61,30 @@ describe("filters from the address", () => {
   it("ignores a sort or niche that isn't one, and caps the search", () => {
     expect(filtersFrom(new URLSearchParams("sort=nope&niche=Food%20%26%20nutrition"))).toEqual({ q: "", niche: "", sort: "working" });
     expect(filtersFrom(new URLSearchParams(`q=${"a".repeat(300)}`)).q).toHaveLength(100);
+  });
+});
+
+describe("Show more in the address (?pages=)", () => {
+  const K = "||working";
+  it("reads 1 to MAX_PAGES, 1 for anything else", () => {
+    expect(pagesFrom(new URLSearchParams(""))).toBe(1);
+    expect(pagesFrom(new URLSearchParams("pages=3"))).toBe(3);
+    expect(pagesFrom(new URLSearchParams("pages=-2"))).toBe(1);
+    expect(pagesFrom(new URLSearchParams("pages=abc"))).toBe(1);
+    expect(pagesFrom(new URLSearchParams("pages=9999"))).toBe(MAX_PAGES);
+  });
+  it("arriving on ?pages=3 (Back from a slideshow) loads all three pages from the top", () => {
+    expect(pageFetch({ key: "", pages: 0 }, K, 3)).toEqual({ from: 0, to: 3 * PAGE_SIZE - 1, more: false });
+  });
+  it("Show more loads only the next page and adds it", () => {
+    expect(pageFetch({ key: K, pages: 1 }, K, 2)).toEqual({ from: PAGE_SIZE, to: 2 * PAGE_SIZE - 1, more: true });
+  });
+  it("a new search, niche or sort goes back to the first page", () => {
+    expect(pageFetch({ key: K, pages: 3 }, "golf||working", 3)).toBeNull();
+    expect(pageFetch({ key: K, pages: 3 }, "golf||working", 1)).toEqual({ from: 0, to: PAGE_SIZE - 1, more: false });
+  });
+  it("a retry of the same list reloads it from the top", () => {
+    expect(pageFetch({ key: K, pages: 2 }, K, 2)).toEqual({ from: 0, to: 2 * PAGE_SIZE - 1, more: false });
   });
 });
 
