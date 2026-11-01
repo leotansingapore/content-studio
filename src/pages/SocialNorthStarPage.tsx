@@ -31,10 +31,22 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { times } from "../../supabase/functions/_shared/outlier.ts";
-import { FAMILY_NAME, HOOK_NAME } from "../../supabase/functions/social-plays/logic.ts";
+import { FAMILY_NAME, type Family, HOOK_NAME } from "../../supabase/functions/social-plays/logic.ts";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const FORMAT = { video: "Video", carousel: "Slides", image: "Photo" } as const;
+// How a post is remixed (the ActivityTracker playbook, folded in here 2 Nov): shown once above the plays, and sent with
+// every Make one like this so Remix's draft follows it too.
+const REMIX_RULES: [string, string][] = [
+  ["Keep", "The format, the hook's shape, the length and the pacing."],
+  ["Change", "The situation, the words, the face and the product."],
+  ["Never copy", "Their footage, audio, face, voice or exact lines, or a film or TV clip."],
+];
+// Where the brand's app goes: the product formats make it the subject; every other one names it once, so the post
+// reads as a post and not an ad.
+const PRODUCT_PLAYS: Family[] = ["screen-demo", "product-showcase", "founder-story"];
+const appLine = (id: Family) =>
+  PRODUCT_PLAYS.includes(id) ? "The subject. Open on the problem, then show one job done start to finish." : "Named once, at the end or in the caption.";
 
 export default function SocialNorthStarPage() {
   const leo = useLeoUser();
@@ -108,7 +120,7 @@ function SocialNorthStar({ userId }: { userId: string }) {
       <header className="space-y-1">
         <div className="flex items-center gap-1">
           <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Social north star</h1>
-          <InfoTip label="About the social north star">The formats that win for accounts like yours, rebuilt weekly from Apps like yours.</InfoTip>
+          <InfoTip label="About the social north star">The formats that win for apps like yours, rebuilt weekly.</InfoTip>
         </div>
         {ns.builtAt && (
           <p className="text-sm text-muted-foreground">
@@ -155,6 +167,13 @@ function SocialNorthStar({ userId }: { userId: string }) {
         </section>
       )}
 
+      {ns.plays.length > 0 && (
+        <section aria-labelledby="ns-remix" className="space-y-2 rounded-xl border border-border/60 bg-card p-4 shadow-card">
+          <h2 id="ns-remix" className="text-sm font-semibold">How to remix</h2>
+          <Rows rows={REMIX_RULES} />
+        </section>
+      )}
+
       {ns.plays.length > 0 ? (
         <div className="grid items-start gap-4 lg:grid-cols-2">
           {ns.plays.map((p) => <PlayCard key={p.id} play={p} media={media} done={counts[p.id] ?? 0} counted={counted} next={next?.id === p.id} linked={linked} />)}
@@ -190,10 +209,11 @@ function PlayCard({ play: p, media, done, counted, next, linked }: {
     ["Length", length],
     ["Caption", p.recipe?.caption ?? null],
     ["Call to action", p.recipe?.cta ?? null],
+    ["The app", appLine(p.id)],
     ["How often", `About ${p.target} a month at the accounts that use it`],
   ];
-  // the recipe goes into Remix's note, so the new post starts from it
-  const note = rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n");
+  // the recipe and the remix rules go into Remix's note, so the new post starts from them
+  const note = [...rows, ...REMIX_RULES].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n");
   return (
     <article id={p.id} className={cn("flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-xl border bg-card p-4 shadow-card", next ? "border-primary/60" : "border-border/60")}>
       <div className="flex items-start gap-2">
@@ -218,14 +238,7 @@ function PlayCard({ play: p, media, done, counted, next, linked }: {
         {p.examples.map((e) => <ExampleTile key={e.key} e={e} cover={exampleCover(e, media)} linked={linked === e.key} />)}
       </ul>
 
-      <dl className="space-y-1.5">
-        {rows.filter(([, v]) => v).map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[88px_1fr] gap-2 text-xs">
-            <dt className="font-semibold text-muted-foreground">{k}</dt>
-            <dd className="min-w-0 break-words leading-relaxed">{v}</dd>
-          </div>
-        ))}
-      </dl>
+      <Rows rows={rows} />
       {!p.recipe && <p className="text-xs text-muted-foreground">The rest of the recipe comes with the next build.</p>}
 
       {best && (
@@ -239,6 +252,19 @@ function PlayCard({ play: p, media, done, counted, next, linked }: {
         </div>
       )}
     </article>
+  );
+}
+
+function Rows({ rows }: { rows: [string, string | null][] }) {
+  return (
+    <dl className="space-y-1.5">
+      {rows.filter(([, v]) => v).map(([k, v]) => (
+        <div key={k} className="grid grid-cols-[88px_1fr] gap-2 text-xs">
+          <dt className="font-semibold text-muted-foreground">{k}</dt>
+          <dd className="min-w-0 break-words leading-relaxed">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

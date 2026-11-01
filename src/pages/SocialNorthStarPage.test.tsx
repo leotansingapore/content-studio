@@ -95,6 +95,11 @@ describe("the social north star", () => {
     expect(h).toContain("The rest of the recipe comes with the next build.");
     expect(h.match(/Make one like this/g)?.length).toBeGreaterThanOrEqual(2);
     expect(h).toContain('src="https://p16.tiktokcdn.com/1.jpeg"');
+    // the playbook's remix rules sit once above the plays, and each play says where the app goes
+    expect(h.match(/>How to remix<\/h2>/g)).toHaveLength(1);
+    expect(h).toContain("Their footage, audio, face, voice or exact lines, or a film or TV clip.");
+    expect(h).toContain("Named once, at the end or in the caption.");
+    expect(h).toContain("The subject. Open on the problem, then show one job done start to finish.");
   });
 
   it("says under the title what it was built from, linked to Apps like yours, and the footer keeps only when", () => {
