@@ -161,10 +161,13 @@ describe("following Claude in the open editor", () => {
     expect(followStep(open, claude, at(FOLLOW_QUIET_MS - 1))).toBe("offer");
     expect(followStep(open, claude, at(0))).toBe("offer");
   });
-  it("ignores a missing copy, one no newer than the editor's last save, and one that only differs in its stamp", () => {
-    expect(followStep(open, null, at(60_000))).toBe("ignore");
-    expect(followStep(open, { ...claude, updatedAt: open.updatedAt }, at(60_000))).toBe("ignore");
-    expect(followStep(open, { ...claude, updatedAt: "2026-11-01T09:00:00.000Z" }, at(60_000))).toBe("ignore");
+  it("re-saves the screen over a missing copy or one no newer than the editor's last save (another device's stale list)", () => {
+    expect(followStep(open, null, at(60_000))).toBe("resave");
+    expect(followStep(open, { ...claude, updatedAt: open.updatedAt }, at(60_000))).toBe("resave");
+    expect(followStep(open, { ...claude, updatedAt: "2026-11-01T09:00:00.000Z" }, at(0))).toBe("resave");
+  });
+  it("ignores a copy that only differs in its stamp", () => {
+    expect(followStep(open, { ...open, updatedAt: "2026-11-01T09:00:00.000Z" }, at(60_000))).toBe("ignore");
     expect(followStep(open, { ...open, updatedAt: claude.updatedAt }, at(60_000))).toBe("ignore");
     // the same document with its keys in another order is the same document
     const reordered = { updatedAt: claude.updatedAt, slides: open.slides, format: open.format, caption: open.caption, title: open.title, id: open.id };

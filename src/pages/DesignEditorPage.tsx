@@ -190,17 +190,18 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
         await refreshCloudKeys([key]);
         const stored = designById(userId, workRef.current.id);
         const next = followStep(workRef.current, stored, { savedAt: saved.current.at, editedAt: editedAt.current, now: Date.now() });
-        if (!stored || next === "ignore") return;
-        if (next === "apply") {
+        if (next === "ignore") return;
+        if (next === "apply" && stored) {
           saved.current = { at: stored.updatedAt, doc: stored };
           setSavedAt(stored.updatedAt);
           commit(stored, undefined, true);
           setOffer(null);
           setClaudeAt(Date.now());
         } else {
-          // the sync just stored Claude's copy: keep what the user is looking at saved, Claude's waits for the button
+          // the sync just stored Claude's copy (offer) or another device's older one (resave): keep what the user is
+          // looking at saved; Claude's waits for the button
           keep(workRef.current);
-          setOffer(stored);
+          if (next === "offer") setOffer(stored);
         }
       } catch {
         // offline: the next tick tries again

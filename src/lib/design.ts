@@ -107,9 +107,11 @@ const sameDoc = (a: Design, b: Design) => JSON.stringify(sanitizeDesign({ ...a, 
 
 /**
  * What the open editor does with this device's stored copy of its slideshow after a pull: "apply" it, "offer" it
- * (the user edited within FOLLOW_QUIET_MS), or "ignore" it (missing, no newer than the editor's last save, or the same).
+ * (the user edited within FOLLOW_QUIET_MS), "resave" the editor's version over it (missing, or no newer than the
+ * editor's last save: another device pushed an older list), or "ignore" it (the same as the screen).
  */
-export function followStep(open: Design, stored: Design | null, o: { savedAt: string; editedAt: number; now: number }): "apply" | "offer" | "ignore" {
-  if (!stored || !(Date.parse(stored.updatedAt) > Date.parse(o.savedAt)) || sameDoc(open, stored)) return "ignore";
+export function followStep(open: Design, stored: Design | null, o: { savedAt: string; editedAt: number; now: number }): "apply" | "offer" | "resave" | "ignore" {
+  if (stored && sameDoc(open, stored)) return "ignore";
+  if (!stored || !(Date.parse(stored.updatedAt) > Date.parse(o.savedAt))) return "resave";
   return o.now - o.editedAt < FOLLOW_QUIET_MS ? "offer" : "apply";
 }
