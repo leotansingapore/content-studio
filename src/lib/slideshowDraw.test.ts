@@ -180,3 +180,32 @@ describe("paintSlide row lines", () => {
     expect(strokes(false)).toBe(0);
   });
 });
+
+describe("phone looks", () => {
+  const record = (b: ReturnType<typeof makeBox>) => {
+    const fills: string[] = [];
+    const state: Record<string | symbol, unknown> = {};
+    const ctx = new Proxy(state, {
+      get: (t, k) => (k in t ? t[k] : k === "measureText" ? (text: string) => ({ width: text.length * 20 }) : k === "fill" ? () => void fills.push(String(t.fillStyle)) : () => undefined),
+      set: (t, k, v) => ((t[k] = v), true),
+    }) as unknown as CanvasRenderingContext2D;
+    paintSlide(ctx, slide(b), "9x16", null);
+    return fills;
+  };
+
+  it("lays a switch box out a row a line, wide enough for its switch", () => {
+    const one = layoutBoxes(slide(makeBox("Discipline", { ui: "switch", size: 40, w: 0.7 })), "9x16", measure).boxes[0];
+    const three = layoutBoxes(slide(makeBox("05:00\n05:15\n05:30", { ui: "switch", size: 40, w: 0.7 })), "9x16", measure).boxes[0];
+    expect(three.lines).toHaveLength(3);
+    expect(three.rect.h).toBeCloseTo(3 * one.rect.h + 2 * 0.35 * 40);
+    expect(one.rect.w).toBeGreaterThanOrEqual(0.7 * 1080);
+  });
+
+  it("paints a white row, a green switch and its white knob per line, and a red dot before REC", () => {
+    const rows = record(makeBox("05:00\n05:15", { ui: "switch", bg: "none" }));
+    expect(rows.filter((f) => f === "#34C759")).toHaveLength(2);
+    expect(rows.filter((f) => f.startsWith("rgba(255,255,255"))).toHaveLength(2);
+    expect(record(makeBox("REC", { ui: "rec", bg: "none" })).filter((f) => f === "#FF3B30")).toHaveLength(1);
+    expect(record(makeBox("Plain words", { bg: "none" })).some((f) => f === "#34C759" || f === "#FF3B30")).toBe(false);
+  });
+});

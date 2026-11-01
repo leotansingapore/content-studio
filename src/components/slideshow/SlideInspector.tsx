@@ -22,6 +22,8 @@ import {
   plainFillFor,
   SIZES,
   STICKERS,
+  UI_LABELS,
+  type BoxUi,
   SIZE_MAX,
   SIZE_MIN,
   STROKE_MAX,
@@ -60,6 +62,10 @@ export interface InspectorActs {
   addText: () => void;
   /** Adds a sticker (one of STICKERS' glyphs) to the slide and picks it. */
   sticker: (glyph: string) => void;
+  /** Adds a phone-screen box (a switch row, an alarm list or REC) and picks it. */
+  phone: (kind: "switch" | "alarm" | "rec") => void;
+  /** The picked box's phone look, or none. */
+  ui: (v: BoxUi | "none") => void;
   words: (text: string) => void;
   style: (patch: Partial<BoxStyle>) => void;
   overlay: (patch: Partial<Slideshow["overlay"]>) => void;
@@ -227,6 +233,17 @@ export default function SlideInspector({
       </div>
     </Group>
   );
+  const phone = (
+    <Group label="Phone screen">
+      <div className="grid grid-cols-3 gap-1.5">
+        {([["switch", "Switch row"], ["alarm", "Alarm list"], ["rec", "REC"]] as const).map(([k, label]) => (
+          <Button key={k} type="button" variant="outline" size="sm" onClick={() => act.phone(k)} disabled={slide.boxes.length >= MAX_BOXES} className={outline()}>
+            {label}
+          </Button>
+        ))}
+      </div>
+    </Group>
+  );
 
   return (
     <div className="space-y-4">
@@ -375,6 +392,7 @@ export default function SlideInspector({
               {chips}
               {addText}
               {stickers}
+              {phone}
               {allBox}
               <p className="text-xs text-muted-foreground">Pick a text box to change its style.</p>
             </>
@@ -388,6 +406,7 @@ export default function SlideInspector({
               {chips}
               {addText}
               {stickers}
+              {phone}
               {allBox}
               <Group label="Font">
                 <Choices label="Font" value={box.font} options={BOX_FONTS} labels={FONT_LABELS} onPick={(font) => act.style({ font })} />
@@ -402,6 +421,9 @@ export default function SlideInspector({
               </label>
               <Group label="Background">
                 <Choices label="Background" value={box.bg} options={["white", "none", "bar"] as BoxBg[]} labels={BG_LABELS} onPick={(bg) => act.style({ bg })} />
+              </Group>
+              <Group label="Phone look">
+                <Choices label="Phone look" value={box.ui ?? "none"} options={["none", "switch", "rec"] as (BoxUi | "none")[]} labels={UI_LABELS} onPick={act.ui} />
               </Group>
             </>
           )}

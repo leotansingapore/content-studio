@@ -25,6 +25,8 @@ import {
   loadStyleHint,
   makeBox,
   makeSticker,
+  makePhoneBox,
+  pickStyle,
   addThreeRowSlide,
   setRows,
   ROWS_FILL,
@@ -260,6 +262,21 @@ describe("three-row slides", () => {
     const on = setRows(s, id, true);
     expect(on.slides[0].rows).toBe(true);
     expect("rows" in setRows(on, id, false).slides[0]).toBe(false);
+  });
+});
+
+describe("phone-screen boxes", () => {
+  it("adds a switch row, an alarm list a line a time, and a REC label in the top corner", () => {
+    expect(makePhoneBox("switch")).toMatchObject({ ui: "switch", text: "Discipline", bg: "none" });
+    expect(makePhoneBox("alarm").text.split("\n")).toEqual(["05:00", "05:15", "05:30"]);
+    expect(makePhoneBox("rec")).toMatchObject({ ui: "rec", text: "REC", y: 0.06 });
+  });
+
+  it("keeps a phone look through a sync and never spreads it with apply to all or the carried style", () => {
+    const [s] = sanitizeSlideshows([{ id: "ss1", slides: [{ id: "s1", boxes: [box({ id: "a", ui: "switch" }), box({ id: "b", ui: "toggle" }), box({ id: "c" })] }, { id: "s2", boxes: [] }] }]);
+    expect(s.slides[0].boxes.map((b) => b.ui)).toEqual(["switch", undefined, undefined]);
+    expect(applyToAll(s, { ui: "rec", font: "serif" }).slides[0].boxes.map((b) => b.ui)).toEqual(["switch", undefined, undefined]);
+    expect("ui" in pickStyle(s.slides[0].boxes[0])).toBe(false);
   });
 });
 

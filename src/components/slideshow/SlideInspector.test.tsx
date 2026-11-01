@@ -10,7 +10,7 @@ const { default: SlideInspector } = await import("./SlideInspector");
 const { blankSlideshow, STICKERS } = await import("@/lib/slideshow");
 
 const noop = () => undefined;
-const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, threeRows: noop, rows: noop, words: noop, style: noop, overlay: noop };
+const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, phone: noop, ui: noop, threeRows: noop, rows: noop, words: noop, style: noop, overlay: noop };
 const draw = (slide: Record<string, unknown>, cell = 0, panel = "slide") =>
   renderToStaticMarkup(
     createElement(MemoryRouter, null,
@@ -56,5 +56,21 @@ describe("the Slide tab's three-row slide", () => {
     expect(draw({ id: "s1", boxes: [] })).toContain("Three-row slide");
     expect(draw({ id: "s1", boxes: [] })).not.toMatch(/type="checkbox"[^>]*checked=""[^>]*\/>Row lines/);
     expect(draw({ id: "s1", rows: true, boxes: [] })).toMatch(/type="checkbox"[^>]*checked=""[^>]*\/>Row lines/);
+  });
+});
+
+describe("the Text tab's phone screen", () => {
+  it("offers a switch row, an alarm list and REC, and shows the picked box's phone look", () => {
+    const html = draw({ id: "s1", boxes: [] }, 0, "text");
+    for (const label of [">Switch row<", ">Alarm list<", ">REC<"]) expect(html).toContain(label);
+    const b = { id: "b1", text: "Discipline", x: 0.5, y: 0.5, w: 0.7, font: "clean", size: 44, color: "#111111", stroke: 0, strokeColor: "#FFFFFF", bg: "none", ui: "switch" };
+    const picked = renderToStaticMarkup(
+      createElement(MemoryRouter, null,
+        createElement(SlideInspector, {
+          userId: "u1", show: blankSlideshow(), slide: { id: "s1", boxes: [b] } as never, box: b as never, panel: "text",
+          onPanel: noop, allBoxes: false, onAllBoxes: noop, swap: { busy: false, note: null }, cell: 0, brand: { handle: false, logo: false }, act,
+        })),
+    );
+    expect(picked).toMatch(/aria-label="Phone look"[\s\S]*?aria-pressed="true"[^>]*>Switch rows</);
   });
 });

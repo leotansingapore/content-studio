@@ -30,6 +30,11 @@ export const boxCss = (b: Pick<TextBox, "font" | "size">) => BOX_CSS[b.font].rep
 // sticker padding, as shares of the font size
 const PAD_X = 0.35;
 const PAD_Y = 0.15;
+// phone looks, as shares of the font size: a switch row's height and gap and the room its switch takes; the REC dot's room
+const ROW_H = 2;
+const ROW_GAP = 0.35;
+const SWITCH_W = 2.4;
+const DOT_W = 0.9;
 // wrapText wants a carousel FontSpec; the measure below ignores it and uses the box's own css
 const SPEC: FontSpec = { family: "sans", weight: 600, size: 0 };
 
@@ -49,10 +54,12 @@ export function layoutBoxes(slide: ShowSlide, size: Slideshow["size"], measure: 
     const css = boxCss(b);
     const px = b.size;
     const w = b.w * FRAME_W;
-    const lines = wrapText(b.text, Math.max(px, w - 2 * PAD_X * px), SPEC, (t) => measure(t, css));
-    // the words' own width with the sticker's padding: in a box narrower than the font it passes the box
-    const ink = lines.length ? Math.max(...lines.map((l) => measure(l, css))) + 2 * PAD_X * px : 0;
-    const h = Math.max(1, lines.length) * px * LINE_HEIGHT + 2 * PAD_Y * px;
+    const extra = b.ui === "switch" ? SWITCH_W * px : b.ui === "rec" ? DOT_W * px : 0;
+    const lines = wrapText(b.text, Math.max(px, w - 2 * PAD_X * px - extra), SPEC, (t) => measure(t, css));
+    // the words' own width with the sticker's padding (and a phone look's switch or dot): in a box narrower than the font it passes the box
+    const ink = lines.length ? Math.max(...lines.map((l) => measure(l, css))) + 2 * PAD_X * px + extra : 0;
+    const n = Math.max(1, lines.length);
+    const h = b.ui === "switch" ? n * ROW_H * px + (n - 1) * ROW_GAP * px : n * px * LINE_HEIGHT + 2 * PAD_Y * px;
     const cx = b.x * FRAME_W;
     const rw = Math.max(w, ink);
     const rect = { x: cx - rw / 2, y: b.y * H - h / 2, w: rw, h };
@@ -139,6 +146,38 @@ function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.fill();
 }
 
+const dot = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) => {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+};
+
+/** A switch box: each line a white settings row, its words on the left and its switch on (green, knob right) on the right. */
+function paintSwitchRows(ctx: CanvasRenderingContext2D, b: TextBox, lay: BoxLayout, css: string) {
+  const px = lay.px;
+  const rowH = ROW_H * px;
+  const pad = 0.6 * px;
+  const th = 0.95 * px;
+  const tw = 1.7 * th;
+  ctx.save();
+  ctx.textAlign = "left";
+  lay.lines.forEach((line, k) => {
+    const y = lay.rect.y + k * (rowH + ROW_GAP * px);
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    rounded(ctx, lay.rect.x, y, lay.rect.w, rowH, rowH * 0.28);
+    ctx.font = css;
+    ctx.fillStyle = b.color;
+    ctx.fillText(line, lay.rect.x + pad, y + rowH / 2);
+    const sx = lay.rect.x + lay.rect.w - pad - tw;
+    const sy = y + (rowH - th) / 2;
+    ctx.fillStyle = "#34C759";
+    rounded(ctx, sx, sy, tw, th, th / 2);
+    dot(ctx, sx + tw - th / 2, sy + th / 2, th * 0.42, "#FFFFFF");
+  });
+  ctx.restore();
+}
+
 /** Paints a slide with everything it needs already decoded (no awaits, so a later paint can't be overtaken). */
 export function paintSlide(
   ctx: CanvasRenderingContext2D,
@@ -187,6 +226,10 @@ export function paintSlide(
   for (const [i, lay] of boxes.entries()) {
     const b = slide.boxes[i];
     const css = boxCss(b);
+    if (b.ui === "switch") {
+      paintSwitchRows(ctx, b, lay, css);
+      continue;
+    }
     const step = lay.px * LINE_HEIGHT;
     const cx = lay.rect.x + lay.rect.w / 2;
     const top = lay.rect.y + PAD_Y * lay.px;
@@ -212,6 +255,8 @@ export function paintSlide(
         ctx.strokeStyle = b.strokeColor;
         ctx.strokeText(line, cx, cy);
       }
+      // REC: the red recording dot just before the words
+      if (b.ui === "rec") dot(ctx, cx - measure(line, css) / 2 - DOT_W * lay.px * 0.55, cy, 0.3 * lay.px, "#FF3B30");
       ctx.fillStyle = b.color;
       ctx.fillText(line, cx, cy);
       ctx.shadowBlur = 0;

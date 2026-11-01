@@ -61,6 +61,7 @@ import {
   isSticker,
   makeBox,
   makeSticker,
+  makePhoneBox,
   moveSlide,
   NEW_WORDS,
   onSlideshowsChanged,
@@ -658,6 +659,12 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
       commit(addBox(work, slide.id, b));
       pick(b.id);
     },
+    phone: (kind) => {
+      const b = makePhoneBox(kind, NEW_BOX_Y[slide.boxes.length] ?? 0.5);
+      commit(addBox(work, slide.id, b));
+      pick(b.id);
+    },
+    ui: (v) => box && commit(changeBox(work, slide.id, box.id, { ui: v === "none" ? undefined : v })),
     sticker: (glyph) => {
       const b = makeSticker(glyph, NEW_BOX_Y[slide.boxes.length] ?? 0.5);
       commit(addBox(work, slide.id, b));

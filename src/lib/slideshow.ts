@@ -30,6 +30,12 @@ export interface TextBox {
   bg: BoxBg;
   /** A soft drop shadow under the words, the classic white-text look. */
   shadow?: boolean;
+  /**
+   * A phone look (the.atomic.reset's phone-UI slides, 30 Oct teardowns): "switch" draws each line as a settings row with
+   * its switch on (an alarm list is one line a time), "rec" puts a red recording dot before the words. Not a style key,
+   * so Apply to all and the carried style never set it.
+   */
+  ui?: "switch" | "rec";
 }
 
 export interface ShowSlide {
@@ -152,6 +158,16 @@ export const STICKER_SIZE = 120;
 
 /** A box of emoji or symbols with no letters or digits. "Apply to all", the carried style and the slide's words pass it by. */
 export const isSticker = (b: Pick<TextBox, "text">) => !!b.text.trim() && !/[\p{L}\p{N}]/u.test(b.text);
+
+export type BoxUi = NonNullable<TextBox["ui"]>;
+export const UI_LABELS: Record<BoxUi | "none", string> = { none: "None", switch: "Switch rows", rec: "REC" };
+/** The Phone screen row's three boxes: one switch row, an alarm list, and a REC label in the top corner. */
+export function makePhoneBox(kind: "switch" | "alarm" | "rec", y = 0.5): TextBox {
+  if (kind === "rec") return makeBox("REC", { ui: "rec", font: "heavy", size: 40, color: "#FFFFFF", bg: "none", stroke: 0, w: W_MIN, x: 0.18, y: 0.06 });
+  return kind === "alarm"
+    ? makeBox("05:00\n05:15\n05:30", { ui: "switch", font: "clean", size: 56, color: "#111111", bg: "none", stroke: 0, w: 0.7, y })
+    : makeBox("Discipline", { ui: "switch", font: "clean", size: 44, color: "#111111", bg: "none", stroke: 0, w: 0.7, y });
+}
 
 export const makeSticker = (glyph: string, y = 0.5): TextBox => makeBox(glyph, { bg: "none", size: STICKER_SIZE, stroke: 0, w: W_MIN, y });
 
@@ -406,6 +422,7 @@ function sanitizeBox(raw: unknown): TextBox | null {
     ...style,
     id: typeof r.id === "string" && r.id ? r.id.slice(0, 40) : newId("b"),
     text: typeof r.text === "string" ? r.text : "",
+    ...(r.ui === "switch" || r.ui === "rec" ? { ui: r.ui } : {}),
     x: num(r.x, 0.5),
     y: num(r.y, 0.5),
     w: num(r.w, 0.84),
