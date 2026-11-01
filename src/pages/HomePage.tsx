@@ -70,6 +70,7 @@ import type { Campaign } from "@/lib/campaigns";
 import { lastPull, onNumbers, postsInDays, pullBrand, realNumbersOn, realTotals, type Pulled } from "@/lib/realNumbers";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { browserTimeZone } from "@/lib/autoPost";
+import { STATUS_LABEL as CAMPAIGN_STATUS, cadence } from "@/lib/campaignLabels";
 import { nextRunAt, sanitizeSchedule } from "../../supabase/functions/_shared/slideCampaign.ts";
 
 // Leo's Home (agent-home): its own chunk, so the agent engine never loads for anyone else.
@@ -276,6 +277,8 @@ export default function HomePage() {
   // Coming up also lists the open brand's live slideshow campaigns' next posting times (owner-only select, as on
   // /design/campaigns). Campaigns need posting on, so nobody else is asked.
   const [campaigns, setCampaigns] = useState<CampaignTime[]>([]);
+  // the Campaigns card: the brand's three most recently changed campaigns, any status (Volume's home lists them)
+  const [recentCampaigns, setRecentCampaigns] = useState<{ id: string; name: string; status: keyof typeof CAMPAIGN_STATUS; schedule: unknown }[]>([]);
   useEffect(() => {
     if (!uid || !socialConnectShown()) return;
     let active = true;
@@ -283,8 +286,14 @@ export default function HomePage() {
       .from("cs_slide_campaigns")
       .select("id, name, status, schedule")
       .eq("profile_id", activeProfileId(uid))
-      .eq("status", "live")
-      .then(({ data, error }) => active && !error && setCampaigns(campaignTimes(data ?? [], new Date())));
+      .order("updated_at", { ascending: false })
+      .limit(20)
+      .then(({ data, error }) => {
+        if (!active || error) return;
+        const rows = (data ?? []) as { id: string; name: string; status: keyof typeof CAMPAIGN_STATUS; schedule: unknown }[];
+        setCampaigns(campaignTimes(rows.filter((r) => r.status === "live"), new Date()));
+        setRecentCampaigns(rows.slice(0, 3));
+      });
     return () => {
       active = false;
     };
@@ -751,6 +760,31 @@ export default function HomePage() {
               ),
             )}
           </div>
+        </section>
+      )}
+
+      {recentCampaigns.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-lg font-semibold text-foreground">Campaigns</h2>
+            <Link
+              to="/design/campaigns"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
+            >
+              See all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <ul className="divide-y divide-border/60 rounded-xl border border-border/70 bg-card shadow-card">
+            {recentCampaigns.map((c) => (
+              <li key={c.id}>
+                <Link to={`/design/campaigns/${c.id}`} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-muted/40">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{c.name}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] ${c.status === "live" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>{CAMPAIGN_STATUS[c.status] ?? c.status}</span>
+                  <span className="w-full text-xs text-muted-foreground sm:w-auto">{cadence(c.schedule)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
