@@ -371,6 +371,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "slide-campaign-make": "Campaign examples",
   "slide-campaign-post": "Campaign posts to drafts",
   "slide-campaign-write": "Campaign changes",
+  "slide-phone": "Slides sent to your phone",
   "social-presign": "File uploads for posting",
   "telegram-connect": "Telegram connections",
   "telegram-schedule": "Posts set for Telegram",

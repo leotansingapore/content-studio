@@ -32,6 +32,8 @@ const TICK_BUDGET_MS = 90_000;
 const KEEP_PREVIEW_MS = 7 * 24 * 3600_000;
 const KEEP_POST_MS = 14 * 24 * 3600_000;
 const SWEEP_PER_TICK = 40;
+/** A few of the sweep's deletions on a studio request too, since the cron only calls in while a live campaign is due. */
+const sweepSome = (admin: SupabaseClient, now: Date) => sweep(admin, now, 3, 5).catch((e) => console.error("slide-campaigns sweep", e));
 /** Send to phone: a link that opens the slides on a phone for a day. The token is the only key to them. */
 const PHONE_MS = 24 * 3600_000;
 const PHONE_MAX = 20;
@@ -183,6 +185,7 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
         return json(r.body, r.status);
       }
       const run = await makeRun(admin, c, "preview");
+      await sweepSome(admin, now);
       return json({ run: { ...run, urls: await signed(admin, run.files) } });
     }
     case "send": {
@@ -267,6 +270,11 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       // Send to phone: links to put up to 20 slides where the phone page reads them for the next day
       const n = typeof b.count === "number" ? Math.floor(b.count) : 0;
       if (n < 1 || n > PHONE_MAX) return json({ error: `Send 1 to ${PHONE_MAX} slides.` }, 400);
+      const usage = await consumeUsage(admin, uid, "slide-phone");
+      if (!usage.allowed) {
+        const x = usageRefusal(usage);
+        return json(x.body, x.status);
+      }
       const token = `${now.getTime().toString(36)}-${crypto.randomUUID()}`;
       const uploads = await Promise.all(
         Array.from({ length: n }, async (_, i) => {
@@ -276,6 +284,7 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
           return { path, token: data.token };
         }),
       );
+      await sweepSome(admin, now);
       return json({ token, uploads, expires_at: new Date(now.getTime() + PHONE_MS).toISOString() });
     }
     case "runs": {
@@ -430,15 +439,15 @@ export async function phoneSlides(admin: SupabaseClient, token: unknown, now = n
 
 /** Deletes example runs older than a week and posted runs older than two, with their PNGs, a few at a time; and
  *  Send to phone folders over a day old. */
-async function sweep(admin: SupabaseClient, now: Date): Promise<void> {
+async function sweep(admin: SupabaseClient, now: Date, phonesMax = 10, runsMax = SWEEP_PER_TICK): Promise<void> {
   const { data: phones } = await admin.storage.from(BUCKET).list("phone", { limit: 100 });
-  for (const f of (phones ?? []).filter((x) => PHONE_TOKEN.test(x.name) && now.getTime() - phoneMade(x.name) > PHONE_MS).slice(0, 10)) {
+  for (const f of (phones ?? []).filter((x) => PHONE_TOKEN.test(x.name) && now.getTime() - phoneMade(x.name) > PHONE_MS).slice(0, phonesMax)) {
     const { data: files } = await admin.storage.from(BUCKET).list(`phone/${f.name}`, { limit: PHONE_MAX + 5 });
     const paths = (files ?? []).map((x) => `phone/${f.name}/${x.name}`);
     if (paths.length) await admin.storage.from(BUCKET).remove(paths);
   }
   for (const [kind, keep] of [["preview", KEEP_PREVIEW_MS], ["post", KEEP_POST_MS]] as const) {
-    const { data } = await admin.from("cs_slide_campaign_runs").select("id, files").eq("kind", kind).lte("created_at", new Date(now.getTime() - keep).toISOString()).limit(SWEEP_PER_TICK);
+    const { data } = await admin.from("cs_slide_campaign_runs").select("id, files").eq("kind", kind).lte("created_at", new Date(now.getTime() - keep).toISOString()).limit(runsMax);
     const old = data ?? [];
     if (!old.length) continue;
     const files = old.flatMap((r) => r.files as string[]);

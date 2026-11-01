@@ -350,7 +350,7 @@ Deno.test("Send to TikTok now: straight to the profile once the owner consents, 
   assertEquals(back.body.campaign.publish, { mode: "inbox", consent_at: null, music: false });
 });
 
-Deno.test("Send to phone: links for a day, read without signing in, then swept", async () => {
+Deno.test("Send to phone: links for a day, read without signing in, swept by the next one, 30 a day", async () => {
   const made = await call("jwt-a", { action: "phone-create", count: 2 });
   assertEquals(made.status, 200, JSON.stringify(made.body));
   assertEquals(made.body.uploads.map((u: Row) => u.path), [`phone/${made.body.token}/1.png`, `phone/${made.body.token}/2.png`]);
@@ -368,9 +368,14 @@ Deno.test("Send to phone: links for a day, read without signing in, then swept",
   const old = `${(Date.now() - 25 * 3600_000).toString(36)}-${crypto.randomUUID()}`;
   files.set(`phone/${old}/1.png`, new Uint8Array([1]));
   assertEquals((await anon({ action: "phone-get", token: old })).status, 410);
-  await tick(admin as never);
+  // the next Send to phone sweeps it, with no campaign due for the tick to
+  assertEquals((await call("jwt-a", { action: "phone-create", count: 1 })).status, 200);
   assertEquals(files.has(`phone/${old}/1.png`), false, "swept after a day");
   assertEquals(files.has(`phone/${made.body.token}/1.png`), true, "a fresh one stays");
+  // its own daily cap, under the studio's 500 writes: 2 used above, 28 more, then refused
+  for (let i = 0; i < 28; i++) assertEquals((await call("jwt-a", { action: "phone-create", count: 1 })).status, 200);
+  const over = await call("jwt-a", { action: "phone-create", count: 1 });
+  assertEquals([over.status, over.body.code], [429, "daily_limit"]);
 });
 
 Deno.test("two ticks at once make one post for a slot", async () => {
@@ -540,6 +545,18 @@ Deno.test("the tick sweeps old example runs and their files", async () => {
   files.set(path, new Uint8Array([1]));
   db.cs_slide_campaign_runs.push({ id: runId, kind: "preview", files: [path], created_at: new Date(Date.now() - 8 * 24 * 3600_000).toISOString() });
   await tick(admin as never);
+  assertEquals(db.cs_slide_campaign_runs.some((r) => r.id === runId), false);
+  assertEquals(files.has(path), false);
+});
+
+Deno.test("Generate sweeps a few old example runs too, with no campaign due", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  const runId = crypto.randomUUID();
+  const path = `${A}/runs/${runId}/1.png`;
+  files.set(path, new Uint8Array([1]));
+  db.cs_slide_campaign_runs.push({ id: runId, kind: "preview", files: [path], created_at: new Date(Date.now() - 8 * 24 * 3600_000).toISOString() });
+  const id = (await call("jwt-a", { action: "save", campaign: { profile_id: "me", name: "Sweep", spec: { hooks: ["Hook"], content: { slides: 1 }, cta: { placement: "none" } } } })).body.campaign.id;
+  assertEquals((await call("jwt-a", { action: "preview", id })).status, 200);
   assertEquals(db.cs_slide_campaign_runs.some((r) => r.id === runId), false);
   assertEquals(files.has(path), false);
 });

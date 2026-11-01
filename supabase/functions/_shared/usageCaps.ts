@@ -124,6 +124,8 @@ export const DAILY_LIMITS = {
   "slide-campaign-make": 20,
   "slide-campaign-post": 12,
   "slide-campaign-write": 500,
+  // Send to phone (slide-campaigns phone-create): a day's links for up to 20 slides each, file storage only.
+  "slide-phone": 30,
   // Telegram (telegram, Leo only, NORTH_STAR_USERS): a connect code, a queued post, and a post's file upload links.
   "telegram-connect": 5,
   "telegram-schedule": 30,
