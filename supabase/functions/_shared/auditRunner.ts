@@ -13,6 +13,7 @@ import {
   normalizeHandle,
   normalizeIgPost,
   normalizeTiktokPost,
+  postMedia,
   snapshotFields,
   tiktokProfile,
   validateAdvice,
@@ -20,6 +21,7 @@ import {
   type AuditPlatform,
   type AuditProfile,
   type AuditStats,
+  type PostMedia,
   type RatedPost,
   type SocialPost,
 } from "./socialAudit.ts";
@@ -101,12 +103,16 @@ function dedupe(posts: SocialPost[]): SocialPost[] {
   return posts.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
 }
 
+/** Each item's cover and slide count by post id (postMedia); the audit ignores them. */
+const mediaOf = (platform: AuditPlatform, items: Item[]): Record<string, PostMedia> =>
+  Object.fromEntries(items.map((i) => postMedia(platform, i)).filter((m): m is [string, PostMedia] => m !== null));
+
 export async function scrapeAccount(
   platform: AuditPlatform,
   handle: string,
   token: string,
   limit = POSTS_TO_READ,
-): Promise<{ profile: AuditProfile; posts: SocialPost[] }> {
+): Promise<{ profile: AuditProfile; posts: SocialPost[]; media: Record<string, PostMedia> }> {
   if (platform === "instagram") {
     const [profiles, items] = await Promise.all([
       apifyItems(IG_PROFILE_ACTOR, { usernames: [handle] }, token),
@@ -127,7 +133,7 @@ export async function scrapeAccount(
     const posts = items
       .map((i) => normalizeIgPost(i, handle))
       .filter((p): p is SocialPost => p !== null);
-    return { profile, posts: dedupe(posts) };
+    return { profile, posts: dedupe(posts), media: mediaOf("instagram", items) };
   }
 
   const items = (
@@ -145,7 +151,7 @@ export async function scrapeAccount(
   const posts = items
     .map((i) => normalizeTiktokPost(i, handle))
     .filter((p): p is SocialPost => p !== null);
-  return { profile: tiktokProfile(items, handle), posts: dedupe(posts) };
+  return { profile: tiktokProfile(items, handle), posts: dedupe(posts), media: mediaOf("tiktok", items) };
 }
 
 /** One JSON-mode chat completion. Returns the raw content, or null on any failure. */

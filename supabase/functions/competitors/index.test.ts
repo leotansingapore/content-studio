@@ -72,6 +72,7 @@ let searchDown: string[] = [];
 const IG_POSTS = Array.from({ length: 40 }, (_, k) => ({
   shortCode: `C${k}`, type: k % 3 ? "Image" : "Video", productType: k % 3 ? "feed" : "clips", caption: `Post ${k}`, ownerUsername: "acmewealth",
   timestamp: new Date(Date.UTC(2026, 9, 19) - k * 86_400_000).toISOString(), likesCount: 100 + k, commentsCount: 3, videoPlayCount: k % 3 ? null : 5000 + k,
+  displayUrl: `https://scontent.cdninstagram.com/v/C${k}.jpg`,
 }));
 const compare: Record<string, number> = { SleekFlow: 0.9, "respond.io": 0.7, Pipedrive: 0.65, Spotio: 0.95, Sunsama: 0.3 };
 
@@ -808,12 +809,15 @@ describe("competitors similar", () => {
     const ok = await call({ mode: "posts", platform: "instagram", handle: "acme", scope: "similar", limit: 10 });
     expect(ok.status).toBe(200);
     expect(ok.body.posts).toHaveLength(10);
+    // the social north star's cover for each post comes with Apps like yours' reads only
+    expect(ok.body.posts[0].cover).toBe("https://scontent.cdninstagram.com/v/C0.jpg");
     expect(ok.body.month).toEqual({ spent: 40, cap: 40 });
     expect(db.spent).toEqual(["similar-posts", "similar-posts-global"]);
     expect(apifyRuns.find((x) => x.actor === "apify~instagram-post-scraper")?.input.resultsLimit).toBe(13);
     // competitors' posts keep their caps, their 30 and no month
     const theirs = await call({ mode: "posts", platform: "instagram", handle: "acme" });
     expect(theirs.body.posts).toHaveLength(30);
+    expect(theirs.body.posts[0].cover).toBeUndefined();
     expect(theirs.body.month).toBeUndefined();
     expect(db.spent.slice(2)).toEqual(["competitor-posts", "competitor-posts-global"]);
     apify = "down";

@@ -278,7 +278,8 @@ async function posts(admin: Admin, uid: string, body: unknown): Promise<Response
 
   try {
     const read = await scrapeAccount(r.platform, r.handle, token, scope.read);
-    return json({ ...shapeResult(r.platform, read.profile, read.posts, scope.kept), checkedAt: new Date().toISOString(), ...(month ? { month: month.after } : {}) });
+    // Apps like yours' reads also carry each post's cover, seconds and slides, for the social north star
+    return json({ ...shapeResult(r.platform, read.profile, read.posts, scope.kept, scope.similar ? read.media : undefined), checkedAt: new Date().toISOString(), ...(month ? { month: month.after } : {}) });
   } catch (e) {
     if (!(e instanceof AuditError)) throw e;
     const f = postsFailure(e.message, r.handle);

@@ -5,6 +5,7 @@ import {
   normalizeHandle,
   normalizeIgPost,
   normalizeTiktokPost,
+  postMedia,
   refreshDecision,
   igProfile,
   tiktokProfile,
@@ -337,5 +338,27 @@ describe("refreshDecision", () => {
     expect(refreshDecision({ ...ready, hasAdvice: false }, now)).toEqual({ action: "refresh" });
     expect(refreshDecision({ ...ready, hasAdvice: false, refreshStartedAt: ago(5) }, now).action).toBe("serve");
     expect(refreshDecision({ ...ready, hasAdvice: false, postsAnalyzed: 3 }, now).action).toBe("serve");
+  });
+});
+
+describe("post media (Apps like yours)", () => {
+  it("takes an Instagram post's cover and slide count, and a TikTok slideshow's first slide before its video cover", () => {
+    expect(postMedia("instagram", { shortCode: "Dd1", displayUrl: "https://scontent-waw2-1.cdninstagram.com/v/a.jpg?oh=1&oe=2", images: ["a", "b", "c"] }))
+      .toEqual(["Dd1", { cover: "https://scontent-waw2-1.cdninstagram.com/v/a.jpg?oh=1&oe=2", slides: 3 }]);
+    expect(postMedia("instagram", { shortCode: "Dd2", displayUrl: "https://instagram.fbcn9-1.fna.fbcdn.net/v/b.jpg" })).toEqual(["Dd2", { cover: "https://instagram.fbcn9-1.fna.fbcdn.net/v/b.jpg" }]);
+    const slideshow = {
+      id: "7412", isSlideshow: true, videoMeta: { coverUrl: "https://p16-sign.tiktokcdn.com/video-cover.image" },
+      imagePost: { images: [{ imageURL: { urlList: ["https://p16-sign-sg.tiktokcdn-us.com/slide-1.jpeg"] } }, { imageURL: { urlList: [] } }] },
+    };
+    expect(postMedia("tiktok", slideshow)).toEqual(["7412", { cover: "https://p16-sign-sg.tiktokcdn-us.com/slide-1.jpeg", slides: 2 }]);
+    expect(postMedia("tiktok", { id: "7413", videoMeta: { coverUrl: "https://p16-sign.tiktokcdn.com/video-cover.image" } })).toEqual(["7413", { cover: "https://p16-sign.tiktokcdn.com/video-cover.image" }]);
+  });
+
+  it("keeps covers on Instagram's and TikTok's CDN only, and skips error items", () => {
+    for (const bad of ["http://x.cdninstagram.com/a.jpg", "https://evil.example/a.jpg", "https://cdninstagram.com.evil.example/a.jpg", "https://x.cdninstagram.com:8443/a.jpg", "x".repeat(2000)]) {
+      expect(postMedia("instagram", { shortCode: "Dd3", displayUrl: bad })).toEqual(["Dd3", {}]);
+    }
+    expect(postMedia("tiktok", { error: "not found" })).toBeNull();
+    expect(postMedia("instagram", {})).toBeNull();
   });
 });

@@ -44,3 +44,16 @@ describe("shaping a check", () => {
     expect(thirty[0].id).toBe("p33");
   });
 });
+
+describe("an Apps like yours read", () => {
+  it("adds each post's cover, seconds and slides only when given scrapeAccount's media", () => {
+    const posts = [post(1), post(2, { format: "carousel", durationSec: null })];
+    const media = { p1: { cover: "https://x.cdninstagram.com/1.jpg" }, p2: { cover: "https://x.cdninstagram.com/2.jpg", slides: 7 } };
+    expect(shapeResult("instagram", profile, posts, 30, media).posts).toEqual([
+      expect.objectContaining({ id: "p2", cover: "https://x.cdninstagram.com/2.jpg", slides: 7 }),
+      expect.objectContaining({ id: "p1", cover: "https://x.cdninstagram.com/1.jpg", seconds: 30 }),
+    ]);
+    expect(shapeResult("instagram", profile, posts, 30, media).posts[0]).not.toHaveProperty("seconds");
+    expect(shapeResult("instagram", profile, posts, 30).posts.every((p) => !("cover" in p) && !("seconds" in p))).toBe(true);
+  });
+});

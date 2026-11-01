@@ -2,7 +2,7 @@
 // numbers and latest posts, so the app can chart its growth, posting pace and
 // new posts to remix. Pure, so vitest covers the request and the shaping.
 
-import { normalizeHandle, type AuditPlatform, type AuditProfile, type SocialPost } from "../_shared/socialAudit.ts";
+import { normalizeHandle, type AuditPlatform, type AuditProfile, type PostMedia, type SocialPost } from "../_shared/socialAudit.ts";
 
 /** Posts read per check: enough for a posting pace, cheap enough to check daily. */
 export const POSTS_PER_CHECK = 12;
@@ -16,6 +16,10 @@ export interface TrackedPost {
   views: number | null;
   likes: number;
   comments: number;
+  /** Apps like yours reads only (competitors posts with scope "similar"): the cover, a video's seconds, a slideshow's slides. */
+  cover?: string;
+  seconds?: number;
+  slides?: number;
 }
 
 export interface TrackResult {
@@ -37,8 +41,11 @@ export function parseTrackRequest(body: unknown): { ok: true; platform: AuditPla
   return { ok: true, platform, handle };
 }
 
-/** What the app keeps: numbers and the newest `max` posts (Following 12, Competitors 30), captions cut to 240 characters, pinned posts left out. */
-export function shapeResult(platform: AuditPlatform, profile: AuditProfile, posts: SocialPost[], max = POSTS_PER_CHECK): TrackResult {
+/**
+ * What the app keeps: numbers and the newest `max` posts (Following 12, Competitors 30), captions cut to 240 characters,
+ * pinned posts left out. With `media` (scrapeAccount's, for Apps like yours) each post also gets its cover, seconds and slides.
+ */
+export function shapeResult(platform: AuditPlatform, profile: AuditProfile, posts: SocialPost[], max = POSTS_PER_CHECK, media?: Record<string, PostMedia>): TrackResult {
   return {
     platform,
     handle: profile.handle,
@@ -53,6 +60,7 @@ export function shapeResult(platform: AuditPlatform, profile: AuditProfile, post
       .map((p) => ({
         id: p.id, url: p.url, format: p.format, caption: p.caption.slice(0, 240), postedAt: p.postedAt,
         views: p.views, likes: p.likes, comments: p.comments,
+        ...(media ? { ...media[p.id], ...(p.durationSec ? { seconds: p.durationSec } : {}) } : {}),
       })),
   };
 }

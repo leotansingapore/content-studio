@@ -3,6 +3,7 @@
 // with their posts read through mode "posts" (scope "similar": 30 the first time, the newest 10 each week) and kept in
 // Following's shapes, so applyCheck, scoreAccount and byOutlier work unchanged. One synced key per brand, written whole,
 // holding the dismissals too. Jobs run outside React (competitorAds.ts's checkJobs), so leaving the page keeps them going.
+// Each read's covers, which expire within days, stay on this device (cs-similar-media-) for the social north star.
 
 import { auditedHandles } from "@/lib/accountAudit";
 import { checkJobs } from "@/lib/competitorAds";
@@ -151,6 +152,8 @@ export function addAccount(userId: string, platform: FollowPlatform, handle: str
 
 /** "Not this one": the account and its posts go, and no find brings it back (adding it by hand does). */
 export function dismissAccount(userId: string, key: string): void {
+  const { [key]: _gone, ...media } = loadMedia(userId);
+  writeMedia(userId, media);
   const s = loadSimilar(userId);
   saveSimilar(userId, { ...s, accounts: s.accounts.filter((a) => accountKey(a) !== key), dismissed: [key, ...s.dismissed.filter((d) => d !== key)].slice(0, MAX_DISMISSED) });
 }
@@ -235,7 +238,51 @@ export function applySimilarCheck(prev: FollowedAccount | undefined, r: TrackRes
   const base: FollowedAccount = prev ?? { platform: r.platform, handle: r.handle, addedAt: r.checkedAt, history: [], posts: [], seen: [], fresh: [] };
   // the store keeps no seen list: what it held is what was seen
   const a = applyCheck({ ...base, seen: base.posts.map((p) => p.id) }, { ...r, posts: mergePosts(base.posts, r.posts) });
-  return { ...a, history: a.history.slice(-1), seen: [], posts: a.posts.map((p) => ({ ...p, caption: p.caption.slice(0, CAPTION) })) };
+  // covers stay on this device (rememberMedia): their links expire within days and would triple the synced key
+  return { ...a, history: a.history.slice(-1), seen: [], posts: a.posts.map(({ cover: _c, seconds: _s, slides: _n, ...p }) => ({ ...p, caption: p.caption.slice(0, CAPTION) })) };
+}
+
+// ---- Covers, on this device only ---------------------------------------------------------------------------------
+
+/** A post's cover, a video's seconds and a slideshow's slides, as the read gave them (for the social north star). */
+export type PostMedia = Pick<TrackedPost, "cover" | "seconds" | "slides">;
+const MEDIA = "cs-similar-media-";
+/** An account's best posts whose media is kept: the social north star reads at most this many of each account. */
+export const MEDIA_KEPT = 8;
+
+/** accountKey -> post id -> media. Outside the content-studio- prefix, so it never syncs. */
+export function loadMedia(userId: string): Record<string, Record<string, PostMedia>> {
+  try {
+    const v = JSON.parse(localStorage.getItem(MEDIA + scoped(userId)) ?? "null");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeMedia(userId: string, all: Record<string, Record<string, PostMedia>>): void {
+  try {
+    localStorage.setItem(MEDIA + scoped(userId), JSON.stringify(all));
+  } catch {
+    // a device cache only: the north star labels from the words alone
+  }
+}
+
+/** Keeps the media of the posts in `keep` (the account's best), from this read or the last one; the rest go. */
+export function rememberMedia(userId: string, key: string, posts: TrackedPost[], keep: string[]): void {
+  const all = loadMedia(userId);
+  const read = new Map(posts.map((p) => [p.id, Object.fromEntries(Object.entries({ cover: p.cover, seconds: p.seconds, slides: p.slides }).filter(([, v]) => v !== undefined)) as PostMedia]));
+  const kept = keep.flatMap((id) => {
+    const m = read.get(id) ?? all[key]?.[id];
+    return m && Object.keys(m).length ? [[id, m] as const] : [];
+  });
+  writeMedia(userId, { ...all, [key]: Object.fromEntries(kept) });
+}
+
+/** An account's best posts, best first: scored at or above their usual, MEDIA_KEPT at most. */
+export function bestPostIds(posts: TrackedPost[], now = Date.now(), max = MEDIA_KEPT): string[] {
+  const scores = scoreAccount(posts, now);
+  return posts.filter((p) => (scores[p.id]?.ratio ?? 0) >= 1).sort((a, b) => byOutlier(scores[a.id], scores[b.id])).slice(0, max).map((p) => p.id);
 }
 
 const jobs = checkJobs("similar");
@@ -261,6 +308,7 @@ export function runSimilarPosts(userId: string, platform: FollowPlatform, handle
       posts: { ...s.posts, [key]: applySimilarCheck(s.posts[key], r) },
       month: r.month ?? s.month,
     });
+    rememberMedia(userId, key, r.posts, bestPostIds(loadSimilar(userId).posts[key]?.posts ?? []));
   }, POSTS_FAILED);
 }
 

@@ -258,6 +258,46 @@ export function normalizeTiktokPost(item: Item, handle: string): SocialPost | nu
   };
 }
 
+/** What a post's picture and slides are, for Apps like yours and the social north star (never stored by the audit). */
+export interface PostMedia {
+  cover?: string;
+  slides?: number;
+}
+
+const PICTURE_HOST = /\.(cdninstagram\.com|fbcdn\.net|tiktokcdn\.com|tiktokcdn-us\.com|tiktokcdn-eu\.com)$/;
+
+/** An https picture on Instagram's or TikTok's CDN, 1,500 characters at most; anything else is undefined. */
+export function cdnPicture(v: unknown): string | undefined {
+  if (typeof v !== "string" || v.length > 1500) return undefined;
+  try {
+    const u = new URL(v);
+    return u.protocol === "https:" && !u.port && !u.username && !u.password && PICTURE_HOST.test(u.hostname.toLowerCase()) ? u.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A scraper item's post id with its cover (a slideshow's first slide) and slide count; null for an error item. */
+export function postMedia(platform: AuditPlatform, item: Item): [string, PostMedia] | null {
+  if (!item || item.error) return null;
+  const list = (v: unknown) => (Array.isArray(v) ? (v as Item[]) : []);
+  const id = String((platform === "instagram" ? item.shortCode : item.id) ?? "").trim();
+  if (!id) return null;
+  let cover: string | undefined;
+  let slides: number;
+  if (platform === "instagram") {
+    cover = cdnPicture(item.displayUrl);
+    slides = Math.max(list(item.images).length, list(item.childPosts).length);
+  } else {
+    const images = list((item.imagePost as Item | undefined)?.images);
+    const links = list(item.slideshowImageLinks);
+    const meta = (item.videoMeta ?? {}) as Item;
+    cover = cdnPicture(list((images[0]?.imageURL as Item | undefined)?.urlList)[0]) ?? cdnPicture(links[0]?.tiktokLink) ?? cdnPicture(meta.coverUrl);
+    slides = item.isSlideshow ? Math.max(images.length, links.length) : 0;
+  }
+  return [id, { ...(cover ? { cover } : {}), ...(slides > 1 ? { slides } : {}) }];
+}
+
 const firstLink = (...v: unknown[]) => String(v.find((x) => typeof x === "string" && x.trim()) ?? "").trim().slice(0, 300);
 
 /** The item from apify~instagram-profile-scraper. */

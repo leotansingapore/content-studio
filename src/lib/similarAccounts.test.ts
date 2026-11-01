@@ -228,3 +228,32 @@ describe("Apps like yours: a find", () => {
     expect(s.autoFindDue(s.loadSimilar(U))).toBe(true);
   });
 });
+
+describe("Apps like yours: covers, on this device only", () => {
+  it("keeps covers, seconds and slides out of the synced store, and the best posts' on this device", async () => {
+    const posts = [post("hit", 5, { views: 50_000, cover: "https://p16.tiktokcdn.com/hit.jpeg", seconds: 21 }), ...Array.from({ length: 6 }, (_, k) => post(`n${k}`, k + 6, { cover: `https://p16.tiktokcdn.com/n${k}.jpeg` }))];
+    expect(s.applySimilarCheck(undefined, read("a", posts)).posts.every((p) => !("cover" in p) && !("seconds" in p) && !("slides" in p))).toBe(true);
+    s.saveSimilar(U, s.mergeFound({ accounts: [], posts: {}, dismissed: [], month: null }, [found("a", { platform: "tiktok" })]));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    callFn.mockResolvedValueOnce(read("a", posts));
+    await s.runSimilarPosts(U, "tiktok", "a");
+    vi.useRealTimers();
+    expect(JSON.stringify(s.loadSimilar(U))).not.toContain("tiktokcdn");
+    // the hit beat its usual; the others sit at it (1x), so they are kept too, best first, 8 at most
+    const media = s.loadMedia(U)["tiktok:a"];
+    expect(media.hit).toEqual({ cover: "https://p16.tiktokcdn.com/hit.jpeg", seconds: 21 });
+    expect(Object.keys(media).length).toBeLessThanOrEqual(s.MEDIA_KEPT);
+    expect(s.bestPostIds(posts, NOW)[0]).toBe("hit");
+    expect(s.bestPostIds([post("low", 5, { views: 10 }), ...posts.slice(1)], NOW)).not.toContain("low");
+    expect([...storage.s.keys()]).toContain("cs-similar-media-u1");
+    s.dismissAccount(U, "tiktok:a");
+    expect(s.loadMedia(U)).toEqual({});
+  });
+
+  it("keeps a post's media from the last read when this one didn't bring it, and drops posts no longer among the best", () => {
+    s.rememberMedia(U, "tiktok:a", [post("x", 3, { cover: "https://p16.tiktokcdn.com/x.jpeg" }), post("y", 3, { cover: "https://p16.tiktokcdn.com/y.jpeg" })], ["x", "y"]);
+    s.rememberMedia(U, "tiktok:a", [post("z", 1, { slides: 6 })], ["x", "z"]);
+    expect(s.loadMedia(U)).toEqual({ "tiktok:a": { x: { cover: "https://p16.tiktokcdn.com/x.jpeg" }, z: { slides: 6 } } });
+  });
+});
