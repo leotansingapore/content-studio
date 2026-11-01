@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Images, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Segmented } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -101,16 +101,9 @@ export default function SlideCampaignsPage() {
           <h1 className="text-2xl font-semibold">Campaigns</h1>
           {rows && <p className="text-sm text-muted-foreground">{`${rows.length} campaign${rows.length === 1 ? "" : "s"}, ${rows.filter((r) => r.status === "live").length} live`}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" asChild className="gap-1.5">
-            <Link to="/design/libraries">
-              <Images className="h-4 w-4" /> Libraries
-            </Link>
-          </Button>
-          <Button onClick={() => void create()} disabled={making || !canPost} className="gap-1.5">
-            {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} New campaign
-          </Button>
-        </div>
+        <Button onClick={() => void create()} disabled={making || !canPost} className="gap-1.5">
+          {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} New campaign
+        </Button>
       </header>
       {canPost && meter && <p className="text-xs text-muted-foreground">Used today: {meter}</p>}
       {!!rows?.length && <Segmented value={show} options={[{ value: "all", label: "All" }, { value: "live", label: "Live" }] as const} onChange={setShow} />}
