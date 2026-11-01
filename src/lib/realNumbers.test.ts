@@ -9,7 +9,8 @@ vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/e
 
 const {
   accountRows, extraLine, lastPull, linkPost, loadRealNumbers, markNotMine, matchOutside, matchPulled, numbersJob, onNumbers, postsInDays,
-  pullBrand, realNumbersOn, realTotals, refreshIfStale, refreshNumbers, rememberRealNumbers, shouldRefresh, unlinkPost, viewsByDay,
+  postRate, postsTableCsv, pullBrand, realNumbersOn, realTotals, refreshIfStale, refreshNumbers, rememberRealNumbers, runningViews, shouldRefresh,
+  sortPosts, unlinkPost, viewsByDay,
 } = await import("./realNumbers");
 const { loadPace } = await import("./pace");
 
@@ -407,6 +408,40 @@ describe("the last pull, read for a range of days", () => {
       { ...accounts[1], followers: 1200, posts: 1, views: 40, rate: 10 },
       { ...accounts[2], followers: null, posts: 0, views: 0, rate: null },
     ]);
+  });
+
+  it("adds the views up day by day for the running total", () => {
+    const sg = runningViews(viewsByDay(posts, 7, "Asia/Singapore", NOW));
+    expect(sg.map((d) => d.total)).toEqual([40, 40, 40, 40, 40, 40, 140]);
+    expect(sg[0]).toMatchObject({ day: "2026-10-26", views: 40, posts: 1 });
+    expect(runningViews([])).toEqual([]);
+  });
+
+  it("sorts the posts table by any column, either way, ties in their pulled order", () => {
+    const table = postsInDays(posts, 0, "Asia/Singapore", NOW);
+    expect(ids(sortPosts(table, "views", false))).toEqual(["late", "edge", "old"]);
+    expect(ids(sortPosts(table, "views", true))).toEqual(["old", "edge", "late"]);
+    expect(ids(sortPosts(table, "posted", false))).toEqual(["late", "edge", "old"]);
+    expect(ids(sortPosts(table, "posted", true))).toEqual(["old", "edge", "late"]);
+    expect(ids(sortPosts(table, "likes", false))).toEqual(["late", "edge", "old"]);
+    // "old" has no likes, comments or shares: 0%, ahead of nothing
+    expect(ids(sortPosts(table, "rate", false))).toEqual(["late", "edge", "old"]);
+    expect(ids(sortPosts(table, "saves", false))).toEqual(["late", "edge", "old"]);
+    expect(postRate(table[0])).toBe(13);
+    expect(postRate(at("none", null, n({})))).toBeNull();
+    const titled = [at("b", "2026-10-01T00:00:00Z", n({})), at("a", "2026-10-02T00:00:00Z", n({}))].map((p) => ({ ...p, text: `\n  ${p.id === "a" ? "Apple" : "banana"} post\nmore` }));
+    expect(ids(sortPosts(titled, "post", true))).toEqual(["a", "b"]);
+    expect(ids(sortPosts(titled, "post", false))).toEqual(["b", "a"]);
+  });
+
+  it("writes the posts table as a spreadsheet, a formula-looking post defused", () => {
+    const p = { ...at("late", "2026-10-31T17:30:00Z", n({ views: 100, likes: 10, comments: 2, shares: 1, saves: 3 })), text: '=HYPERLINK("x")\nrest', url: "https://tiktok.com/@leo/1" };
+    const csv = postsTableCsv([p, { ...at("none", null, n({})), text: " \n " }]);
+    const [head, row, blank] = csv.trim().split("\r\n");
+    expect(head).toBe('"Post","Posted","Platform","Views","Likes","Comments","Shares","Saves","Engagement rate %","Link"');
+    // Post, Posted, Platform, Views, Likes, Comments, Shares, Saves, rate, Link
+    expect(row).toBe(`"'=HYPERLINK(""x"")","2026-10-31T17:30:00Z","Instagram","100","10","2","1","3","13","https://tiktok.com/@leo/1"`);
+    expect(blank).toBe('"A post","","Instagram","0","0","0","0","0","",""');
   });
 
   it("keeps each brand's last pull for this page load, one pull at a time, the job's included", async () => {

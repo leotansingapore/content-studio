@@ -16,6 +16,8 @@ import { wordOverlap } from "@/lib/nearDuplicate";
 import { toPlainText } from "@/lib/plainText";
 import { loadPace, postViews, recordPull, savePace } from "@/lib/pace";
 import { SAVE_FAILED } from "@/lib/voiceMemory";
+import { buildCsv } from "@/lib/teamReview";
+import { platformName } from "@/lib/socialConnect";
 import { MAX_DAYS, realMetrics, type AccountRef, type FollowerSeries, type MetricsPost, type Numbers } from "../../supabase/functions/social/metrics.ts";
 import { clockIn } from "../../supabase/functions/_shared/zone.ts";
 
@@ -142,6 +144,49 @@ export function accountRows(accounts: AccountRef[], posts: MetricsPost[], follow
     };
   });
 }
+
+/** viewsByDay's days as a running total: each day's views plus every day before it in the range. */
+export const runningViews = (days: { day: string; views: number; posts: number }[]) => {
+  let sum = 0;
+  return days.map((d) => ({ ...d, total: (sum += d.views) }));
+};
+
+// ---- the posts table (Volume's): every pulled post in the range, sorted by any column ----
+
+export const POST_COLUMNS = ["post", "posted", "views", "likes", "comments", "shares", "saves", "rate"] as const;
+export type PostColumn = (typeof POST_COLUMNS)[number];
+
+/** A post's first line of words, or "A post". */
+export const postTitle = (p: MetricsPost) => p.text.split("\n").find((l) => l.trim())?.trim() || "A post";
+
+/** Likes, comments and shares over impressions (else reach, else views), in % to one place as accountRows; null with none. */
+export function postRate(p: MetricsPost): number | null {
+  const m = realMetrics(p.numbers);
+  return m.impressions ? Math.round(((m.reactions + m.comments + m.shares) / m.impressions) * 1000) / 10 : null;
+}
+
+const cell = (p: MetricsPost, c: PostColumn): number | string => {
+  if (c === "post") return postTitle(p).toLowerCase();
+  if (c === "posted") return Date.parse(p.publishedAt ?? "") || 0;
+  if (c === "views") return postViews(p);
+  if (c === "rate") return postRate(p) ?? -1;
+  return p.numbers[c];
+};
+
+/** The posts sorted by one column, high to low (Z to A, newest first) unless `asc`; ties keep their order. */
+export const sortPosts = (posts: MetricsPost[], by: PostColumn, asc: boolean): MetricsPost[] =>
+  [...posts].sort((a, b) => {
+    const x = cell(a, by);
+    const y = cell(b, by);
+    return (x < y ? -1 : x > y ? 1 : 0) * (asc ? 1 : -1);
+  });
+
+/** The posts table as a spreadsheet, rows as given (teamReview's buildCsv: quoted cells, formulas defused). */
+export const postsTableCsv = (posts: MetricsPost[]): string =>
+  buildCsv(
+    ["Post", "Posted", "Platform", "Views", "Likes", "Comments", "Shares", "Saves", "Engagement rate %", "Link"],
+    posts.map((p) => [postTitle(p), p.publishedAt ?? "", platformName(p.platform), postViews(p), p.numbers.likes, p.numbers.comments, p.numbers.shares, p.numbers.saves, postRate(p) ?? "", p.url ?? ""]),
+  );
 
 /** Each connected account's daily follower counts, a year back (as far as Zernio has them). */
 export const pullFollowers = (profileId: string) =>

@@ -67,7 +67,8 @@ import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
 import RealNumbers from "@/components/RealNumbers";
-import { accountRows, extraLine, lastPull, postsInDays, viewsByDay } from "@/lib/realNumbers";
+import { accountRows, extraLine, lastPull, POST_COLUMNS, postRate, postsInDays, postsTableCsv, postTitle, runningViews, sortPosts, viewsByDay, type PostColumn } from "@/lib/realNumbers";
+import { useBrandChannels } from "@/components/ChannelsBlock";
 import { postViews } from "@/lib/pace";
 import { browserTimeZone } from "@/lib/autoPost";
 import { gradePost } from "@/lib/postGrade";
@@ -108,6 +109,8 @@ import {
   Check,
   ExternalLink,
   ArrowRight,
+  ArrowDown,
+  ArrowUp,
   Lightbulb,
   Info,
   Ruler,
@@ -133,6 +136,10 @@ const PLATFORM_LABEL: Record<string, string> = {
   facebook: "Facebook",
   tiktok: "TikTok",
 };
+
+// The posts table's columns, as Volume's; ?sort=views is high to low, ?sort=views-asc low to high.
+const POST_COLUMN_LABEL: Record<PostColumn, string> = { post: "Post", posted: "Posted", views: "Views", likes: "Likes", comments: "Comments", shares: "Shares", saves: "Saves", rate: "Eng. rate" };
+const POST_SORTS = POST_COLUMNS.flatMap((c) => [c, `${c}-asc`]);
 
 const LENGTH_LABEL: Record<string, string> = {
   good: "Sweet spot",
@@ -650,14 +657,15 @@ export default function AnalyticsPage() {
   const mix = useMemo(() => labelMix(loadDrafts(userId), labels, period), [userId, labels, period, metricsVersion]);
   // Shown once there are labels and anything posted, whether or not numbers were logged.
   const showMix = labels.length > 0 && postedCount > 0;
-  const exportCsv = () => {
-    const blob = new Blob([postsCsv(tracked)], { type: "text/csv" });
+  const download = (csv: string, name: string) => {
+    const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `content-studio-posts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
+  const exportCsv = () => download(postsCsv(tracked), "content-studio-posts");
 
   // Your real numbers' last pull (posting sign-ins), read for the period in this browser's time zone: views by day
   // posted, the most viewed posts and, with more than one account, a row per account. Every post on the accounts counts,
@@ -667,7 +675,8 @@ export default function AnalyticsPage() {
     if (!pulled?.posts.length) return null;
     const tz = browserTimeZone();
     const posts = postsInDays(pulled.posts, period, tz);
-    const points: TrendChartPoint[] = viewsByDay(pulled.posts, period, tz).map((d) => ({
+    const days = viewsByDay(pulled.posts, period, tz);
+    const points: TrendChartPoint[] = days.map((d) => ({
       id: d.day,
       label: dayName(d.day),
       value: d.views,
@@ -675,12 +684,27 @@ export default function AnalyticsPage() {
     }));
     return {
       points,
+      running: runningViews(days).map((d): TrendChartPoint => ({ id: d.day, label: dayName(d.day), value: d.total, detail: `${countText(d.views)} that day` })),
+      posts,
       viewed: points.some((p) => p.value > 0),
       top: posts.filter((p) => postViews(p) > 0).sort((a, b) => postViews(b) - postViews(a)).slice(0, 5),
       accounts: pulled.accounts.length > 1 ? accountRows(pulled.accounts, posts, zernioFollowers) : [],
       none: period ? `No views on posts from the last ${period} days.` : "No views yet.",
     };
   }, [pulled, period, zernioFollowers]);
+
+  // Views by day or as a running total, and the posts table's sort, in the URL like the rest of the page
+  const [viewsParam, setViewsParam] = useUrlState("views", "day", { allowed: ["day", "total"] });
+  const [sortParam, setSortParam] = useUrlState<string>("sort", "posted", { allowed: POST_SORTS });
+  const sortAsc = sortParam.endsWith("-asc");
+  const sortBy = sortParam.replace(/-asc$/, "") as PostColumn;
+  const table = useMemo(() => (real ? sortPosts(real.posts, sortBy, sortAsc) : []), [real, sortBy, sortAsc]);
+  // a tap on the sorted column turns it round; another column sorts high to low
+  const sortOn = (c: PostColumn) => setSortParam(c === sortBy && !sortAsc ? `${c}-asc` : c);
+  // an account the brand's last account read (any page's) found needing a reconnect
+  const channels = useBrandChannels(userId);
+  const needsReconnect = (a: { platform: string; username: string }) =>
+    channels?.channels.some((c) => c.platform === a.platform && c.username === a.username.replace(/^@/, "") && c.health === "error") ?? false;
 
   const insights = useMemo(() => getInsights(userId), [userId, metricsVersion]);
 
@@ -993,10 +1017,17 @@ export default function AnalyticsPage() {
                 </div>
                 {real.accounts.map((a) => (
                   <div key={a.id} className="grid grid-cols-4 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-2">
-                    <p className="col-span-4 truncate text-sm font-medium text-foreground sm:col-span-1">
-                      {platformName(a.platform)}
-                      {a.username ? `: ${a.username}` : ""}
-                    </p>
+                    <div className="col-span-4 min-w-0 sm:col-span-1">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {platformName(a.platform)}
+                        {a.username ? `: ${a.username}` : ""}
+                      </p>
+                      {needsReconnect(a) && (
+                        <Link to={`/accounts#${a.platform}`} className="inline-flex items-center text-xs font-medium text-destructive hover:underline [@media(pointer:coarse)]:min-h-11">
+                          Needs reconnecting
+                        </Link>
+                      )}
+                    </div>
                     {(
                       [
                         ["Followers", a.followers === null ? "-" : countText(a.followers)],
@@ -1017,12 +1048,24 @@ export default function AnalyticsPage() {
           )}
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="min-w-0 border-border/60 shadow-card">
-              <CardHeader>
-                <CardTitle className="font-serif text-lg">Views by day posted</CardTitle>
+              <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+                <CardTitle className="font-serif text-lg">{viewsParam === "total" ? "Running total of views" : "Views by day posted"}</CardTitle>
+                <div className="flex gap-1.5" role="group" aria-label="Views">
+                  {([["day", "By day"], ["total", "Running total"]] as const).map(([v, label]) => (
+                    <button key={v} type="button" onClick={() => setViewsParam(v)} aria-pressed={viewsParam === v}
+                      className={`h-8 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${viewsParam === v ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </CardHeader>
               <CardContent>
                 {real.viewed ? (
-                  <TrendChart points={real.points} dots={false} format={countText} measure="views" title="Views by the day posts went out" width={400} height={160} />
+                  viewsParam === "total" ? (
+                    <TrendChart points={real.running} dots={false} format={countText} measure="views so far" title="Views added up by the day posts went out" width={400} height={160} />
+                  ) : (
+                    <TrendChart points={real.points} dots={false} format={countText} measure="views" title="Views by the day posts went out" width={400} height={160} />
+                  )
                 ) : (
                   <p className="text-sm text-muted-foreground">{real.none}</p>
                 )}
@@ -1070,6 +1113,58 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+          {table.length > 0 && (
+            <Card className="min-w-0 border-border/60 shadow-card">
+              <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+                <CardTitle className="font-serif text-lg">Posts</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => download(postsTableCsv(table), "content-studio-real-posts")} className="h-9 gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Export CSV
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-[32rem] overflow-auto">
+                  <table className="w-full min-w-[40rem] text-sm">
+                    <thead className="sticky top-0 bg-card">
+                      <tr>
+                        {POST_COLUMNS.map((c) => (
+                          <th key={c} scope="col" aria-sort={c === sortBy ? (sortAsc ? "ascending" : "descending") : undefined} className={`pb-1.5 ${c === "post" ? "text-left" : "text-right"}`}>
+                            <button type="button" onClick={() => sortOn(c)}
+                              className={`inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] hover:text-foreground ${c === sortBy ? "text-foreground" : "text-muted-foreground"}`}>
+                              {POST_COLUMN_LABEL[c]}
+                              {c === sortBy && (sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                            </button>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {table.map((p) => (
+                        <tr key={p.id} className="border-t border-border/50">
+                          <td className="py-2 pr-3">
+                            {p.url ? (
+                              <a href={p.url} target="_blank" rel="noopener noreferrer" className="block max-w-[10rem] truncate sm:max-w-[18rem] font-medium text-foreground hover:text-primary hover:underline">
+                                {postTitle(p)}
+                              </a>
+                            ) : (
+                              <span className="block max-w-[10rem] truncate sm:max-w-[18rem] font-medium text-foreground">{postTitle(p)}</span>
+                            )}
+                            <span className="block text-[11px] text-muted-foreground">{platformName(p.platform)}</span>
+                          </td>
+                          <td className="whitespace-nowrap py-2 pl-2 text-right text-muted-foreground">
+                            {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                          </td>
+                          {[postViews(p), p.numbers.likes, p.numbers.comments, p.numbers.shares, p.numbers.saves].map((v, i) => (
+                            <td key={i} className="py-2 pl-2 text-right tabular-nums text-foreground">{countText(v)}</td>
+                          ))}
+                          <td className="py-2 pl-2 text-right tabular-nums text-foreground">{postRate(p) === null ? "-" : `${postRate(p)}%`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
       {showMix && userId && (
