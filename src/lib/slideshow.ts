@@ -224,16 +224,21 @@ const ROWS = [
   ["\u2728 The result", "What changes for them"],
 ];
 
-/** A new slide after `after` laid out as three rows, its words ready to replace; 6 boxes, the most a slide holds. */
-export function addThreeRowSlide(s: Slideshow, after: number): Slideshow {
-  if (s.slides.length >= MAX_SLIDES) return s;
+/** A three-row slide: a heading and a line per row (6 boxes, the most a slide holds); `lines` fills the three lines. */
+export function threeRowSlide(lines?: readonly [string, string, string]): ShowSlide {
   const look = { bg: "none" as const, stroke: 0, w: 0.84 };
   const boxes = ROWS.flatMap(([head, body], i) => [
     makeBox(head, { ...look, font: "heavy", size: 46, color: "#111111", y: i / 3 + 0.1 }),
-    makeBox(body, { ...look, font: "clean", size: 34, color: "#374151", y: i / 3 + 0.2 }),
+    makeBox(lines?.[i] || body, { ...look, font: "clean", size: 34, color: "#374151", y: i / 3 + 0.2 }),
   ]);
+  return { id: newId("s"), fill: ROWS_FILL, rows: true, boxes };
+}
+
+/** A new three-row slide after `after`, its words ready to replace. */
+export function addThreeRowSlide(s: Slideshow, after: number): Slideshow {
+  if (s.slides.length >= MAX_SLIDES) return s;
   const slides = [...s.slides];
-  slides.splice(clamp(after + 1, 0, slides.length), 0, { id: newId("s"), fill: ROWS_FILL, rows: true, boxes });
+  slides.splice(clamp(after + 1, 0, slides.length), 0, threeRowSlide());
   return { ...s, slides };
 }
 

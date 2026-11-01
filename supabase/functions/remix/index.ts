@@ -54,6 +54,9 @@ import {
   adsState,
   adsVerdict,
   buildMakePrompt,
+  rowsQuestion,
+  rowsTopic,
+  wantsRows,
   dontReuseFor,
   editLength,
   editWords,
@@ -195,6 +198,13 @@ Deno.serve(async (req) => {
       const pick = over ? pickAdLayout(await askJev({ ad: over }, adLayoutQuestion(make.brand.speaker), { who: "remix image layout" }), make.brand.speaker) : null;
       make.layout = opts.layout = pick ?? "headline";
       if (pick) opts.layoutBy = "jev";
+    }
+
+    // a slideshow on a problem with a fix gets a three-row slide too: Jev decides, the writer writes it
+    if (make.as === "slideshow") {
+      const p = noulOf(await askJev({ topic: rowsTopic(make) }, rowsQuestion(), { who: "remix slideshow rows" }), "problem_fix");
+      make.rows = opts.rows = wantsRows(p);
+      console.log("remix slideshow rows", p?.toFixed(2) ?? "-", make.rows);
     }
 
     const { system, user } = buildMakePrompt(make);

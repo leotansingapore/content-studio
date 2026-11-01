@@ -2092,3 +2092,25 @@ describe("a marker at a line's end (live-p7a D17: \"One shared inbox .\")", () =
     expect(r.marks.filter((m) => m.k >= 2)).toEqual([{ k: 2, line: 0, word: 3 }, { k: 3, line: 1, word: 6 }, { k: 4, line: 1, word: 7 }, { k: 5, line: 2, word: 1 }, { k: 6, line: 2, word: 1 }]);
   });
 });
+
+describe("the slideshow's three-row slide", () => {
+  it("is asked for at Jev's 0.65 or more, never without an answer", async () => {
+    const { wantsRows, ROWS_AT, rowsTopic } = await import("./logic");
+    expect(ROWS_AT).toBe(0.65);
+    expect([wantsRows(0.66), wantsRows(0.65), wantsRows(0.64), wantsRows(null)]).toEqual([true, true, false, false]);
+    expect(rowsTopic({ topic: "Stop losing clients", note: "for coaches" })).toBe("Stop losing clients\nfor coaches");
+  });
+
+  it("keeps the writer's three lines, each cut to 12 words, and leaves the slide out when a line is missing or not asked for", async () => {
+    const { validateMake } = await import("./logic");
+    const slide = (title: string) => ({ title, sub: "", search: "desk" });
+    const raw = (rows: unknown) => JSON.stringify({ refuse: false, reason: "", slides: [slide("3 signs"), slide("1. One"), slide("A reframe")], caption: "Short caption here. And another.", cta: "Save this.", hashtags: [], rows });
+    const long = Array(20).fill("word").join(" ");
+    const ok = validateMake("slideshow", raw({ problem: long, fix: "Do this instead", result: "It works" }), { rows: true });
+    expect(ok && ok.as === "slideshow" && ok.rows).toEqual({ problem: Array(12).fill("word").join(" "), fix: "Do this instead", result: "It works" });
+    const gap = validateMake("slideshow", raw({ problem: "A problem", fix: "", result: "It works" }), { rows: true });
+    expect(gap && gap.as === "slideshow" && "rows" in gap).toBe(false);
+    const off = validateMake("slideshow", raw({ problem: "A problem", fix: "A fix", result: "A result" }), {});
+    expect(off && off.as === "slideshow" && "rows" in off).toBe(false);
+  });
+});

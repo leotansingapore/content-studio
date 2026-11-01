@@ -19,7 +19,8 @@ import { fullText, requestMake, type MakeRequest, type RemixAs } from "@/lib/rem
 import { brandPack, loadRemixPrefs } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
 import { localTeardown } from "@/lib/remixTeardown";
-import { blankSlideshow, frameHeight, loadSlideshows, loadStyleHint, makeBox, newId, saveSlideshow, type BoxStyle, type ShowSize, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
+import { MAX_SLIDES, blankSlideshow, frameHeight, loadSlideshows, loadStyleHint, makeBox, newId, saveSlideshow, threeRowSlide, type BoxStyle, type ShowSize, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
+import type { SlideRows } from "../../supabase/functions/remix/logic.ts";
 import { layoutBoxes, screenMeasure, type Measure } from "@/lib/slideshowDraw";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
@@ -241,6 +242,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
       now: new Date(),
       look: loadStyleHint(),
       cover: kept?.slides[0],
+      rows: res.result.rows,
     });
     saveSlideshow(userId, show);
     const ids = pictures.flatMap((p) => (p?.stockId ? [p.stockId] : []));
@@ -432,7 +434,14 @@ export function fitSlide(text: { title: string; sub: string }, hook: boolean, si
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /** The made slideshow: one slide per written slide, its picture or the brand colour, the caption, source and flags. */
-export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date; look?: Partial<BoxStyle>; cover?: ShowSlide }): Slideshow {
+/** The writer's three-row slide, when Jev asked for one, goes before the last slide; a full slideshow goes without it. */
+function withRows(slides: ShowSlide[], rows?: SlideRows): ShowSlide[] {
+  if (!rows || slides.length >= MAX_SLIDES || slides.length < 2) return slides;
+  const at = slides.length - 1;
+  return [...slides.slice(0, at), threeRowSlide([stripDashes(rows.problem), stripDashes(rows.fix), stripDashes(rows.result)]), ...slides.slice(at)];
+}
+
+export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date; look?: Partial<BoxStyle>; cover?: ShowSlide; rows?: SlideRows }): Slideshow {
   // the device's last text style carries over (Clean, no box and white for the slideshow accounts' look); the fit sets sizes
   const look: Partial<BoxStyle> = { ...a.look };
   delete look.size;
@@ -442,17 +451,20 @@ export function buildShow(a: { slides: { title: string; sub: string }[]; caption
     // a kept cover names it by its first line (its title box), not every line run together
     title: ((a.cover?.boxes[0]?.text ?? "").replace(/\s+/g, " ").trim() || a.slides[0]?.title || "Slideshow").slice(0, 120),
     size: a.ask.size,
-    slides: a.slides.map((s, i) => {
-      if (i === 0 && a.cover) return { ...a.cover, id: newId("s") };
-      const p = a.pictures[i];
-      return {
-        id: newId("s"),
-        ...(p?.image ? { image: p.image } : {}),
-        ...(p?.photo ? { photo: p.photo } : {}),
-        ...(!p && fill ? { fill } : {}),
-        boxes: fitSlide(s, i === 0, a.ask.size, a.measure, look),
-      };
-    }),
+    slides: withRows(
+      a.slides.map((s, i) => {
+        if (i === 0 && a.cover) return { ...a.cover, id: newId("s") };
+        const p = a.pictures[i];
+        return {
+          id: newId("s"),
+          ...(p?.image ? { image: p.image } : {}),
+          ...(p?.photo ? { photo: p.photo } : {}),
+          ...(!p && fill ? { fill } : {}),
+          boxes: fitSlide(s, i === 0, a.ask.size, a.measure, look),
+        };
+      }),
+      a.rows,
+    ),
     caption: a.caption,
     ...(a.ask.source ? { source: { ...a.ask.source, remixedAt: a.now.toISOString() } } : {}),
     ...(a.flags ? { flags: a.flags } : {}),

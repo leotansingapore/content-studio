@@ -394,6 +394,31 @@ describe("the job", () => {
   });
 });
 
+describe("the writer's three-row slide", () => {
+  const rows = { problem: "Leads go quiet after one message", fix: "Put a date on every next step", result: "Fewer deals slip through" };
+  it("goes before the last slide, light and lined, with the writer's three lines", async () => {
+    answer({ "empty office|1": [photo("10")], "phone on desk|1": [photo("20")], "calendar|1": [photo("30")] }, [0, 0, 0]);
+    make.mockResolvedValue({ ...response(), result: { ...response().result, rows } });
+    const made = madeShow(await run()).slides;
+    expect(made).toHaveLength(SLIDES.length + 1);
+    const row = made[made.length - 2];
+    expect(row).toMatchObject({ rows: true, fill: "#F3F4F6" });
+    expect(row.boxes.filter((_, i) => i % 2 === 1).map((b) => b.text)).toEqual([rows.problem, rows.fix, rows.result]);
+    expect(made[made.length - 1].boxes[0].text).toBe(SLIDES[SLIDES.length - 1].title);
+  });
+
+  it("is left out of a slideshow that already has 10 slides, and of one the writer gave no rows", async () => {
+    const ten = Array.from({ length: 10 }, (_, i) => ({ title: `${i}. Point`, sub: "", search: "calendar" }));
+    answer({ "calendar|1": [photo("30")] }, null);
+    make.mockResolvedValue({ ...response(ten), result: { ...response(ten).result, rows } });
+    expect(madeShow(await run()).slides.some((x) => x.rows)).toBe(false);
+    clearSlideshowJob();
+    answer({ "empty office|1": [photo("10")], "phone on desk|1": [photo("20")], "calendar|1": [photo("30")] }, [0, 0, 0]);
+    make.mockResolvedValue(response());
+    expect(madeShow(await run()).slides.some((x) => x.rows)).toBe(false);
+  });
+});
+
 describe("AI pictures in one look", () => {
   const AI: SlideshowAsk = { ...ASK, pictures: "ai", look: "clay" };
   /** ai-image answers: three tokens for "slides", then each token's status (t2's picture fails). */

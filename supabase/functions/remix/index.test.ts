@@ -321,6 +321,31 @@ describe("phase 3's shapes", () => {
     expect(jev.sent.join("\n")).toContain("about the coach, their clients");
   });
 
+  it("asks Jev whether a slideshow's topic is a problem with a fix, and only then asks the writer for a three-row slide", async () => {
+    openai.mode = "queue";
+    const slide = (title: string) => ({ title, sub: "One short line about it.", search: "coffee on a desk" });
+    const slides = [slide("3 signs your follow-ups slip"), slide("1. No date on the next step"), slide("2. Notes in your head"), slide("3. One message, then silence"), slide("A system beats a good memory")];
+    const rows = { problem: "Leads go quiet after one message", fix: "Put a date on every next step", result: "Fewer deals slip through the week" };
+    openai.answers = [{ refuse: false, reason: "", slides, rows, ...CAP }];
+    jev.answers = { problem_fix: { noul: 0.86 }, copied_claim: { noul: 0.1 }, invented_self: { noul: 0.1 } } as never;
+    const yes = await send({ mode: "make", as: "slideshow", topic: "3 signs your follow-ups need a system", brand: BRAND });
+    expect(yes.status).toBe(200);
+    expect(yes.body.result.rows).toEqual(rows);
+    expect(jev.questions[0]).toEqual(["problem_fix"]);
+    expect(jev.states[0]).toEqual({ topic: "3 signs your follow-ups need a system" });
+    expect(openai.sent[0].response_format.json_schema.name).toBe("remix_slideshow_rows");
+    expect(openai.sent[0].messages.map((m: { content: string }) => m.content).join("\n")).toContain("- rows: one more slide");
+
+    openai.sent = [];
+    openai.answers = [{ refuse: false, reason: "", slides, ...CAP }];
+    jev.answers = { problem_fix: { noul: 0.2 }, copied_claim: { noul: 0.1 }, invented_self: { noul: 0.1 } } as never;
+    const no = await send({ mode: "make", as: "slideshow", topic: "5 books every new coach should read", brand: BRAND });
+    expect(no.status).toBe(200);
+    expect(no.body.result.rows).toBeUndefined();
+    expect(openai.sent[0].response_format.json_schema.name).toBe("remix_slideshow");
+    expect(openai.sent[0].messages.map((m: { content: string }) => m.content).join("\n")).not.toContain("- rows:");
+  });
+
   it("picks an image's layout with Jev inside the make's one use, and writes for that layout", async () => {
     openai.mode = "queue";
     openai.answers = [{ refuse: false, reason: "", words: { ...words, statLabel: "of reps say follow-ups slip" }, ...CAP }];

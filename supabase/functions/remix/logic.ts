@@ -274,7 +274,12 @@ export interface MakeRequest {
   edit?: EditBrief;
   /** slideshow only, read with mention on: the brand once on slide 3 or 4 and a save or follow ask last (30 Oct account teardowns). */
   brandAt?: "inside";
+  /** slideshow only, set by the server when Jev reads the topic as a problem with a fix (wantsRows), never from the request. */
+  rows?: boolean;
 }
+
+/** A three-row slide's words: the problem, the fix and the result, one short line each (the app lays them out). */
+export type SlideRows = { problem: string; fix: string; result: string };
 
 export type MakeResult =
   | { as: "post"; hook: string; body: string; cta: string; hashtags: string[] }
@@ -282,7 +287,7 @@ export type MakeResult =
   | { as: "script"; hook: string; beats: ShotBeat[]; caption: string; cta: string }
   | { as: "speaking"; script: string; caption: string }
   | { as: "explainer"; scenes: { say: string; picture: string }[]; caption: string }
-  | { as: "slideshow"; slides: { title: string; sub: string; search: string }[]; caption: string }
+  | { as: "slideshow"; slides: { title: string; sub: string; search: string }[]; caption: string; rows?: SlideRows }
   | { as: "wall"; text: string; scene: string; search: string; caption: string }
   | { as: "notes"; title: string; items: string[]; caption: string }
   /** search: the stock clip behind a hook on screen, left out when it isn't one (hookSearch). */
@@ -694,8 +699,25 @@ function slideshowRules(req: MakeRequest): string[] {
     "- cta: one complete sentence asking the reader to do one thing: save it, follow, or comment.",
     "- hashtags: up to 3 relevant hashtags as words without the # sign, or none when the brand rules say none.",
     `- refuse: true only when ${req.source ? "the original" : "the topic"} cannot be made into a slideshow that is safe to post, with reason saying why in one sentence (the rest may be empty). Otherwise false, with reason empty.`,
+    ...(req.rows ? [ROWS_RULE] : []),
   ];
 }
+
+/**
+ * The three-row slide (16549cd7, glowuptrickz in the 30 Oct teardowns): only when Jev reads the topic as a problem with a
+ * fix (ROWS_AT, set from 14 topics on 1 Nov: fits 0.66 to 0.94, not 0.07 to 0.36). The app places it before the last slide.
+ */
+const ROWS_RULE =
+  "- rows: one more slide, laid out in three rows from this slideshow's own points: problem (what goes wrong for the reader), fix (what to do instead) and result (what changes for them), each at most 12 words. Don't repeat it in slides.";
+export const ROWS_AT = 0.65;
+export const rowsQuestion = () => ({
+  problem_fix: { type: "noul" as const, instructions: "Is `topic` about a problem the reader has and a way to fix it, so one slide could show the problem, the fix and the result?" },
+});
+/** What Jev reads: the typed topic, else the original's words, with the steer. */
+export const rowsTopic = (req: Pick<MakeRequest, "topic" | "source" | "note">) =>
+  [req.topic, req.source?.text, req.note].filter(Boolean).join("\n").slice(0, 1500);
+/** Jev's yes at ROWS_AT or more; no answer means no row slide, as before. */
+export const wantsRows = (p: number | null) => p !== null && p >= ROWS_AT;
 
 /** Emoji in a text; a joined sequence (a family, a profession) counts once. */
 export const emojiCount = (t: string) => (t.match(/(?<!\u200d)\p{Extended_Pictographic}/gu) ?? []).length;
@@ -1219,6 +1241,19 @@ const fieldsObject = (fields: Record<string, number>) => ({
 /** The structured output for this request: today's formats exactly as before, the phase 3 shapes built from their options. */
 export function responseFormat(req: MakeRequest): unknown {
   switch (req.as) {
+    case "slideshow": {
+      if (!req.rows) return MAKE_RESPONSE_FORMATS.slideshow;
+      const show = (MAKE_RESPONSE_FORMATS.slideshow as { json_schema: { schema: { properties: Record<string, unknown> } } }).json_schema.schema.properties;
+      return schema("remix_slideshow_rows", {
+        ...show,
+        rows: {
+          type: "object",
+          additionalProperties: false,
+          required: ["problem", "fix", "result"],
+          properties: { problem: str("What goes wrong, at most 12 words"), fix: str("What to do instead, at most 12 words"), result: str("What changes, at most 12 words") },
+        },
+      });
+    }
     case "speaking": {
       if (!req.seconds) return MAKE_RESPONSE_FORMATS.speaking;
       const { low, high } = scriptWords(req);
@@ -1353,7 +1388,7 @@ export function slideshowCaption(r: Record<string, unknown>, slides: { title: st
 }
 
 /** What validateMake reads from the request: the phase 3 options, and whether Jev picked an image's layout. */
-export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout" | "brand" | "versions">> & { layoutBy?: "jev" | "default" };
+export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout" | "brand" | "versions" | "rows">> & { layoutBy?: "jev" | "default" };
 
 /** Each field as one clean line, kept only when it has words and fits its limit; null when any field fails. */
 function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: string[] = []): Record<string, string> | null {
@@ -1398,7 +1433,11 @@ export function validateMake(as: MakeAs, raw: unknown, req: MakeOpts = {}): Made
       .filter((x) => x.title && x.search);
     if (slides.length < 3 || slides.length > 10 || slides.length !== rows.length) return null;
     const caption = slideshowCaption(r, slides);
-    return caption ? { as, slides, caption } : null;
+    if (!caption) return null;
+    // the row slide is extra: a missing or empty line leaves it out, never the slideshow
+    const o = obj(r.rows);
+    const three = req.rows ? { problem: words(line(o.problem, 200), 12), fix: words(line(o.fix, 200), 12), result: words(line(o.result, 200), 12) } : null;
+    return { as, slides, caption, ...(three && three.problem && three.fix && three.result ? { rows: three } : {}) };
   }
   if (as === "wall") {
     if (r.refuse === true) return null;
