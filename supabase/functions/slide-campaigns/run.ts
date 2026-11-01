@@ -5,7 +5,8 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { dfs, dfsAuth, SINGAPORE } from "../_shared/dataforseo.ts";
-import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, memoryBlock, publishMode, publishMusic, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, memoryBlock, publishMode, publishMusic, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, withSources, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
+import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
 import { PhotoError, type SlideInput } from "../_shared/slideDraw.ts";
 import { zernioClient } from "../_shared/zernio.ts";
 import { checkSchedule, runPost } from "../social/posts.ts";
@@ -81,13 +82,14 @@ async function brandMemory(admin: SupabaseClient, uid: string, profile: string):
 }
 
 async function write(spec: ReturnType<typeof sanitizeSpec>, hook: string, brief: string, memory: string) {
-  const p = writerPrompt(spec, hook, brief, HONEST_LINE, spec.research ? await research(hook, spec.topic.slice(0, 80)) : [], memory);
+  const found = spec.research ? await research(hook, spec.topic.slice(0, 80)) : [];
+  const p = writerPrompt(spec, hook, brief, HONEST_LINE, found, memory);
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await openaiChat({ model: OPENAI_MODEL, response_format: { type: "json_object" }, max_tokens: 1200, messages: [{ role: "system", content: p.system }, { role: "user", content: p.user }] });
     if (!res.ok) continue;
     const j = await res.json().catch(() => null);
-    const w = parseWriter(j?.choices?.[0]?.message?.content ?? "", spec);
-    if (w) return w;
+    const w = parseWriter(j?.choices?.[0]?.message?.content ?? "", spec, `${brief}\n${memory}`);
+    if (w) return { ...w, caption: withSources(w.caption, found) };
   }
   throw new RunError("The writer didn't answer in time. Try again in a minute.");
 }
@@ -125,6 +127,8 @@ export interface MadeRun {
   caption: string;
   slides: { role: Role; text: string }[];
   files: string[];
+  /** Why a post meant for the profile went to drafts instead (the compliance scan flagged it). */
+  review?: string | null;
 }
 
 /** Makes one run and keeps it; `kind` post also schedules it to the account's TikTok drafts at `at`. */
@@ -171,13 +175,14 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   }
   await admin.from("cs_slide_campaign_runs").update({ status: "made", error: null }).eq("id", runId);
   await admin.from("cs_slide_campaigns").update({ last_hook: hook, updated_at: new Date().toISOString() }).eq("id", c.id);
-  if (kind === "post") await schedule(admin, c, { id: runId, hook, caption: w.caption, slides: plan, files }, at!);
-  return { id: runId, hook, caption: w.caption, slides: plan, files };
+  const review = kind === "post" ? await schedule(admin, c, { id: runId, hook, caption: w.caption, slides: plan, files }, at!) : null;
+  return { id: runId, hook, caption: w.caption, slides: plan, files, review };
 }
 
 /** Sends a made run to the campaign's TikTok account (drafts, or straight to the profile with the owner's consent)
- *  at `at`, or now when `at` is null, through the same code Post it for me uses. */
-export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at: Date | null): Promise<void> {
+ *  at `at`, or now when `at` is null, through the same code Post it for me uses. Answers why a post meant for the
+ *  profile went to drafts instead, or null. */
+export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at: Date | null): Promise<string | null> {
   const fail = async (error: string) => {
     await admin.from("cs_slide_campaign_runs").update({ status: "failed", error: error.slice(0, 500) }).eq("id", run.id);
     throw new RunError(error);
@@ -188,7 +193,10 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
   const urls = (signed.data ?? []).map((s) => s.signedUrl).filter(Boolean) as string[];
   if (urls.length !== run.files.length) return fail("The slides couldn't be shared with TikTok.");
   const tz = sanitizeSchedule(c.schedule).tz;
-  const mode = publishMode(c.publish);
+  // straight to the profile goes out unseen: a post the posting screens' compliance scan flags goes to drafts instead
+  const flags = scanCompliance([...run.slides.map((s) => s.text), run.caption].join("\n"));
+  const review = publishMode(c.publish) === "direct" && hasComplianceErrors(flags) ? `Sent to drafts for review: ${flags.find((f) => f.severity === "error")!.message}` : null;
+  const mode = review ? "inbox" : publishMode(c.publish);
   const input = checkSchedule({
     // one key per campaign and posting time (or per run, sent now): Zernio answers a repeat with the same post
     clientKey: at ? await slotKey(c.id, at) : run.id,
@@ -197,7 +205,7 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
     ...(at ? { scheduledFor: at.toISOString().replace(/\.\d{3}Z$/, "Z") } : { now: true }),
     timezone: tz,
     // a draft: the person finishes and posts it in the TikTok app, where they can change who sees it; direct posts it
-    tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode, ...(publishMusic(c.publish) ? { autoAddMusic: true } : {}) },
+    tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode, ...(mode === "direct" && publishMusic(c.publish) ? { autoAddMusic: true } : {}) },
   });
   if ("error" in input) return fail(input.error);
   const z = zernioClient(Deno.env.get("ZERNIO_API_KEY")!);
@@ -214,4 +222,5 @@ export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeR
   }
   const postId = (reply.body as { post?: { id?: string } })?.post?.id ?? null;
   await admin.from("cs_slide_campaign_runs").update({ status: "scheduled", scheduled_for: (at ?? new Date()).toISOString(), zernio_post_id: postId, caption: run.caption }).eq("id", run.id);
+  return review;
 }

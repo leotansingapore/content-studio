@@ -199,8 +199,9 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
         return json(x.body, x.status);
       }
       const caption = typeof b.caption === "string" && b.caption.trim() ? b.caption.trim().slice(0, 2200) : r.caption;
-      await schedule(admin, c, { id: r.id, hook: r.hook, caption, slides: r.slides, files: r.files }, null);
-      return json({ sent: true });
+      const review = await schedule(admin, c, { id: r.id, hook: r.hook, caption, slides: r.slides, files: r.files }, null);
+      if (review) await admin.from("cs_slide_campaigns").update({ last_error: review }).eq("id", c.id);
+      return json({ sent: true, ...(review ? { review } : {}) });
     }
     case "optimize": {
       // Optimize prompt: the topic rewritten as a sharper brief for the writer. Counted with the examples.
@@ -391,13 +392,14 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
     // a slot already passed (the tick was late) is skipped rather than posted at the wrong time
     const due = at.getTime() > now.getTime() + 60_000;
     let error: string | null = null;
+    let review: string | null = null;
     if (!posting(c.owner_id)) error = "Posting was switched off for this account.";
     else if (due) {
       const usage = await consumeUsage(admin, c.owner_id, "slide-campaign-post");
       if (!usage.allowed) error = "Today's campaign posts are used up. It posts again tomorrow.";
       else
         try {
-          await makeRun(admin, c, "post", at);
+          review = (await makeRun(admin, c, "post", at)).review ?? null;
           made++;
         } catch (e) {
           error = e instanceof RunError ? e.message : "Something went wrong making the post. It tries again next time.";
@@ -407,7 +409,7 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
     if (error) failed++;
     await admin
       .from("cs_slide_campaigns")
-      .update({ ...(due ? { last_run_at: now.toISOString() } : {}), last_error: error, ...(posting(c.owner_id) ? {} : { status: "paused", next_run_at: null }) })
+      .update({ ...(due ? { last_run_at: now.toISOString() } : {}), last_error: error ?? review, ...(posting(c.owner_id) ? {} : { status: "paused", next_run_at: null }) })
       .eq("id", c.id);
   });
   await sweep(admin, now);
