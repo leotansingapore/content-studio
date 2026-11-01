@@ -22,6 +22,7 @@
 import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
 import { BRAND_FONT, FONT_NAMES, FORMAT_H, FRAME_W, LOOKS, MAX_CAPTION, MAX_DESIGNS, MAX_LAYERS, MAX_SLIDES, newDesign, parseTemplates, sanitizeDesign, type Design, type DesignSlide, type DesignTemplate } from "../_shared/design.ts";
 import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
+import { ownUpload, PEXELS_SRC } from "../_shared/slideCampaign.ts";
 import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient, type UsageFeature } from "../_shared/usageCaps.ts";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic.ts";
 import { MAX_QUERY, normalizePhotos, parseStockRequest, PER_PAGE, pexelsUrl } from "../stock-media/logic.ts";
@@ -105,6 +106,8 @@ export interface Media {
   supabaseUrl: string;
   /** Rows of one table through the service role: every eq column equal, the like if any, in order, at most limit. */
   rows(table: string, q: RowQuery): Promise<Record<string, unknown>[]>;
+  /** Signed links to files in a private bucket, in the order of `paths`, null where one couldn't be made. */
+  signed(bucket: string, paths: string[], seconds: number): Promise<(string | null)[]>;
 }
 export interface RowQuery {
   cols: string;
@@ -361,6 +364,16 @@ export const MEDIA_TOOLS = [
       },
     },
   },
+  {
+    name: "list_libraries",
+    description: "The brand's image libraries, the sets of pictures its slideshow campaigns draw from: id, name, when each last changed, and how many stock pictures and uploads each holds. Open one with get_library.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_library",
+    description: `One image library's pictures. stock are Pexels photos: each src goes straight into an image layer's src (update_design), with the photographer's credit. uploads are the user's own pictures as signed links that expire in an hour, so they are for looking at only: a layer that uses one goes blank when the link expires. Use the stock pictures in slideshow layers.`,
+    inputSchema: { type: "object", properties: { id: { type: "string", description: "The library's id, from list_libraries." } }, required: ["id"] },
+  },
 ] as const;
 
 export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
@@ -389,6 +402,8 @@ export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
   update_design: "Edits a slideshow, live in the editor",
   search_photos: "Free stock photos for your slides",
   find_working_formats: "Slideshows working now, to rebuild",
+  list_libraries: "Your campaign image libraries",
+  get_library: "One image library's pictures",
 };
 
 type Args = Record<string, unknown>;
@@ -655,9 +670,42 @@ async function spend(caller: Caller, userId: string, feature: UsageFeature, what
 /** What's working's columns for Claude (supabase/hub/032); pictures are added from the public cs-working bucket. */
 const WORKING_COLS = "id, url, author, niche, format, hook, hook_text, structure, summary, slides, ratio, views, saves";
 
+/** Campaign libraries (supabase/hub/030): uploads sit in this private bucket; slide-campaigns' caps and its view links' life. */
+const LIBRARY_BUCKET = "cs-slide-campaigns";
+const MAX_LIBRARIES = 30;
+const MAX_LIBRARY_IMAGES = 300;
+const UPLOAD_LINK_SECONDS = 3600;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NO_LIBRARY = "No library with that id. Use list_libraries for ids.";
+
 async function mediaTool(name: string, args: Args, link: Link, caller: Caller): Promise<ToolResult> {
   const media = caller.media;
   if (!media) return fail(BUSY_LINE);
+  if (name === "list_libraries" || name === "get_library") {
+    // the link's own user and brand, as the Libraries page asks for its profile ("me" is the main brand)
+    const mine = { owner_id: link.userId, profile_id: link.scope.split("~")[1] ?? "me" };
+    const images = (id: unknown, cols: string) => media.rows("cs_library_images", { cols, eq: { library_id: String(id), owner_id: link.userId }, order: [["created_at", true]], limit: MAX_LIBRARY_IMAGES });
+    if (name === "list_libraries") {
+      const libs = await media.rows("cs_image_libraries", { cols: "id, name, updated_at", eq: mine, order: [["name", true]], limit: MAX_LIBRARIES });
+      const counted = await Promise.all(libs.map(async (l) => {
+        const srcs = (await images(l.id, "src")).map((i) => String(i.src));
+        return { ...l, stock: srcs.filter((x) => PEXELS_SRC.test(x)).length, uploads: srcs.filter((x) => ownUpload(link.userId, x)).length };
+      }));
+      return ok({ libraries: counted });
+    }
+    if (typeof args.id !== "string" || !UUID.test(args.id)) return fail(NO_LIBRARY);
+    const [lib] = await media.rows("cs_image_libraries", { cols: "id, name, updated_at", eq: { id: args.id, ...mine }, limit: 1 });
+    if (!lib) return fail(NO_LIBRARY);
+    const pics = await images(lib.id, "id, src, credit");
+    const ups = pics.filter((i) => ownUpload(link.userId, String(i.src)));
+    const links = await media.signed(LIBRARY_BUCKET, ups.map((i) => String(i.src)), UPLOAD_LINK_SECONDS);
+    return ok({
+      ...lib,
+      stock: pics.filter((i) => PEXELS_SRC.test(String(i.src))).map((i) => ({ id: i.id, src: i.src, credit: i.credit ?? null })),
+      uploads: ups.flatMap((i, k) => (links[k] ? [{ id: i.id, url: links[k] }] : [])),
+      note: "Upload links expire in an hour. Use the stock pictures in slideshow layers.",
+    });
+  }
   if (name === "find_working_formats") {
     const q = (str(args.query) ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
     const niche = str(args.niche) ?? "";

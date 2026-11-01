@@ -247,6 +247,30 @@
           }
         }
       }
+    },
+    {
+      "name": "list_libraries",
+      "description": "The brand's image libraries, the sets of pictures its slideshow campaigns draw from: id, name, when each last changed, and how many stock pictures and uploads each holds. Open one with get_library.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_library",
+      "description": "One image library's pictures. stock are Pexels photos: each src goes straight into an image layer's src (update_design), with the photographer's credit. uploads are the user's own pictures as signed links that expire in an hour, so they are for looking at only: a layer that uses one goes blank when the link expires. Use the stock pictures in slideshow layers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The library's id, from list_libraries."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
     }
   ]
 }

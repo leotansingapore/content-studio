@@ -854,7 +854,7 @@ describe("picture tools", () => {
     };
     return { rows, queries };
   };
-  const media = (o: Partial<Media> = {}): Media => ({ pexelsKey: "px-key", supabaseUrl: "https://db.test", rows: fakeRows().rows, ...o });
+  const media = (o: Partial<Media> = {}): Media => ({ pexelsKey: "px-key", supabaseUrl: "https://db.test", rows: fakeRows().rows, signed: async (_b, paths) => paths.map(() => null), ...o });
   const everyone = (usage = fakeUsage(), m: Media = media()) => ({ leo: false, usage, media: m });
   const run = async (name: string, args: Record<string, unknown>, caller: Caller, l: Link = link) => {
     const r = await callTool(name, args, memoryStore({}), l, now, caller);
@@ -974,6 +974,76 @@ describe("picture tools", () => {
       for (const args of [{ niche: "AI Tools" }, { niche: "x%" }, { sort: "random" }]) expect((await run("find_working_formats", args, everyone(usage, media({ rows: db.rows })))).error).toBe(true);
       expect(db.queries).toEqual([]);
       expect(usage.calls).toEqual([]);
+    });
+  });
+
+  describe("image libraries", () => {
+    const B = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+    const L1 = "11111111-1111-4111-8111-111111111111";
+    const L2 = "22222222-2222-4222-8222-222222222222";
+    const L3 = "33333333-3333-4333-8333-333333333333";
+    const UP = `${UID}/lib/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg`;
+    const stock = (n: number) => `https://images.pexels.com/photos/${n}/pexels-photo-${n}.jpeg?auto=compress&cs=tinysrgb&w=1080`;
+    const db = () =>
+      fakeRows({
+        cs_image_libraries: [
+          { id: L1, owner_id: UID, profile_id: "me", name: "Hooks", updated_at: "2026-10-31T00:00:00Z" },
+          { id: L2, owner_id: UID, profile_id: "p1", name: "Second brand's", updated_at: "2026-10-30T00:00:00Z" },
+          { id: L3, owner_id: B, profile_id: "me", name: "Someone else's", updated_at: "2026-10-29T00:00:00Z" },
+        ],
+        cs_library_images: [
+          { id: "i1", library_id: L1, owner_id: UID, src: stock(1), credit: { by: "Ana", url: "https://www.pexels.com/@ana" }, created_at: "2026-10-31T00:00:01Z" },
+          { id: "i2", library_id: L1, owner_id: UID, src: UP, credit: null, created_at: "2026-10-31T00:00:02Z" },
+          { id: "i3", library_id: L1, owner_id: UID, src: stock(3), created_at: "2026-10-31T00:00:03Z" },
+          // a row in L1 that isn't this user's never shows
+          { id: "i4", library_id: L1, owner_id: B, src: stock(4), credit: null, created_at: "2026-10-31T00:00:04Z" },
+          { id: "i5", library_id: L2, owner_id: UID, src: stock(5), credit: null, created_at: "2026-10-31T00:00:05Z" },
+          { id: "i6", library_id: L3, owner_id: B, src: stock(6), credit: null, created_at: "2026-10-31T00:00:06Z" },
+        ],
+      });
+    const signs: unknown[] = [];
+    const signed = async (bucket: string, paths: string[], seconds: number) => (signs.push([bucket, paths, seconds]), paths.map((x) => `https://db.test/storage/v1/object/sign/${bucket}/${x}?token=t`));
+    const as = (d: ReturnType<typeof db>) => everyone(fakeUsage(), media({ rows: d.rows, signed }));
+
+    it("lists only the link's own brand's libraries, with their stock and upload counts", async () => {
+      const d = db();
+      expect((await run("list_libraries", {}, as(d))).out).toEqual({ libraries: [{ id: L1, name: "Hooks", updated_at: "2026-10-31T00:00:00Z", stock: 2, uploads: 1 }] });
+      expect((await run("list_libraries", {}, as(d), p1Link)).out.libraries.map((l: { id: string }) => l.id)).toEqual([L2]);
+      expect((await run("list_libraries", {}, as(d), { userId: B, scope: `${B}~p1`, secret: SECRET })).out).toEqual({ libraries: [] });
+      expect(d.queries[0]).toEqual({ table: "cs_image_libraries", q: { cols: "id, name, updated_at", eq: { owner_id: UID, profile_id: "me" }, order: [["name", true]], limit: 30 } });
+    });
+
+    it("gives one library's stock pictures as layer-ready srcs and its uploads only as hour-long signed links", async () => {
+      signs.length = 0;
+      const { out } = await run("get_library", { id: L1 }, as(db()));
+      expect(out).toEqual({
+        id: L1,
+        name: "Hooks",
+        updated_at: "2026-10-31T00:00:00Z",
+        stock: [{ id: "i1", src: stock(1), credit: { by: "Ana", url: "https://www.pexels.com/@ana" } }, { id: "i3", src: stock(3), credit: null }],
+        uploads: [{ id: "i2", url: `https://db.test/storage/v1/object/sign/cs-slide-campaigns/${UP}?token=t` }],
+        note: "Upload links expire in an hour. Use the stock pictures in slideshow layers.",
+      });
+      expect(signs).toEqual([["cs-slide-campaigns", [UP], 3600]]);
+    });
+
+    it("never opens another user's or another brand's library, and asks nothing for an id that isn't one", async () => {
+      signs.length = 0;
+      const d = db();
+      for (const [id, l] of [[L3, link], [L2, link], [L1, p1Link], [L1, { userId: B, scope: B, secret: SECRET }]] as [string, Link][]) {
+        expect(await run("get_library", { id }, as(d), l), `${id} ${l.scope}`).toEqual({ error: true, out: "No library with that id. Use list_libraries for ids." });
+      }
+      const asked = d.queries.length;
+      for (const id of [undefined, "", "x'; drop", 7]) expect((await run("get_library", { id }, as(d))).error).toBe(true);
+      expect(d.queries.length).toBe(asked);
+      expect(d.queries.every((x) => x.table === "cs_image_libraries")).toBe(true);
+      expect(signs).toEqual([]);
+    });
+
+    it("leaves out an upload whose link couldn't be made", async () => {
+      const { out } = await run("get_library", { id: L1 }, everyone(fakeUsage(), media({ rows: db().rows })));
+      expect(out.uploads).toEqual([]);
+      expect(out.stock).toHaveLength(2);
     });
   });
 });

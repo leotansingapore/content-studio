@@ -109,6 +109,11 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return (data ?? []) as unknown as Record<string, unknown>[];
       },
+      async signed(bucket, paths, seconds) {
+        if (!paths.length) return [];
+        const { data } = await admin.storage.from(bucket).createSignedUrls(paths, seconds);
+        return paths.map((p) => data?.find((d) => d.path === p)?.signedUrl ?? null);
+      },
     };
     const caller: Caller = { leo: isAllowed(Deno.env.get("NORTH_STAR_USERS"), link.userId), name, usage: admin, media };
 
