@@ -8,10 +8,11 @@
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
-import { PEXELS_SRC, nextRunAt, ownUpload, sanitizePublish, sanitizeSchedule, sanitizeSpec } from "../_shared/slideCampaign.ts";
+import { PEXELS_SRC, nextRunAt, ownUpload, publishMode, sanitizePublish, sanitizeSchedule, sanitizeSpec, type Publish } from "../_shared/slideCampaign.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { callerAccounts, zernioClient } from "../_shared/zernio.ts";
 import { isAllowed } from "../social/logic.ts";
+import { runPost } from "../social/posts.ts";
 import { secretMatches } from "../social-sweep/logic.ts";
 import { BUCKET, RunError, VIEW_LINK_SECONDS, makeRun, schedule, type CampaignRow, type MadeRun } from "./run.ts";
 
@@ -42,6 +43,26 @@ const posting = (uid: string) => !!Deno.env.get("ZERNIO_API_KEY") && isAllowed(D
 const signed = async (admin: SupabaseClient, paths: string[]) =>
   paths.length ? ((await admin.storage.from(BUCKET).createSignedUrls(paths, VIEW_LINK_SECONDS)).data ?? []).map((s) => s.signedUrl ?? null) : [];
 
+/** The campaign's posts already handed to Zernio for a later time, taken back off it, so a pause, a delete or a change
+ *  of account or consent stops them. Null when every one is stopped, else the error to answer: a post Zernio didn't
+ *  let go keeps its run and files, so trying again can still stop it. */
+async function stopHandedPosts(admin: SupabaseClient, c: CampaignRow, why: string): Promise<string | null> {
+  const { data } = await admin.from("cs_slide_campaign_runs").select("id, zernio_post_id").eq("campaign_id", c.id).eq("status", "scheduled").gt("scheduled_for", new Date().toISOString());
+  const handed = (data ?? []).filter((r) => r.zernio_post_id);
+  if (!handed.length) return null;
+  const { data: map } = await admin.from("cs_social_profiles").select("zernio_profile_id").eq("owner_id", c.owner_id).eq("profile_id", c.profile_id).maybeSingle();
+  const z = zernioClient(Deno.env.get("ZERNIO_API_KEY") ?? "");
+  for (const r of handed) {
+    const reply = await runPost(z, map?.zernio_profile_id ?? null, c.owner_id, { action: "cancel", profileId: c.profile_id, postId: r.zernio_post_id }).catch((e) => (console.error("slide-campaigns cancel", c.id, e), null));
+    if (reply?.status !== 200) {
+      if (reply) console.error("slide-campaigns cancel refused", c.id, reply.status, reply.body);
+      return "A post already sent to TikTok for later couldn't be stopped. Try again in a minute.";
+    }
+    await admin.from("cs_slide_campaign_runs").update({ status: "failed", error: why }).eq("id", r.id);
+  }
+  return null;
+}
+
 async function own<T>(admin: SupabaseClient, table: string, id: unknown, uid: string, cols = "*"): Promise<T | null> {
   if (typeof id !== "string" || !UUID.test(id)) return null;
   const { data } = await admin.from(table).select(cols).eq("id", id).eq("owner_id", uid).maybeSingle();
@@ -69,6 +90,12 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
         updated_at: now.toISOString(),
       };
       if (was) {
+        // straight to the profile turned off, or the mode changed: what Zernio holds for later was sent the old way
+        const pub = row.publish as Publish;
+        if (publishMode(was.publish) !== pub.mode || ((was.publish as Partial<Publish> | null)?.consent_at && !pub.consent_at)) {
+          const stuck = await stopHandedPosts(admin, was, "Cancelled: the campaign's posting settings changed.");
+          if (stuck) return json({ error: stuck }, 502);
+        }
         // a live campaign moves its next posting time with its schedule
         if (was.status === "live") row.next_run_at = nextRunAt(row.schedule as ReturnType<typeof sanitizeSchedule>, new Date(now.getTime() + LEAD_MS))?.toISOString() ?? null;
         if (was.status === "live" && !row.next_run_at) row.status = "paused";
@@ -86,6 +113,9 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
     case "delete": {
       const c = await own<CampaignRow>(admin, "cs_slide_campaigns", b.id, uid);
       if (!c) return json({ error: "Not found." }, 404);
+      // first: deleting the runs loses the posts' ids, and their files are what Zernio would post
+      const stuck = await stopHandedPosts(admin, c, "Cancelled: the campaign was deleted.");
+      if (stuck) return json({ error: stuck }, 502);
       const { data: runs } = await admin.from("cs_slide_campaign_runs").select("files").eq("campaign_id", c.id);
       const files = (runs ?? []).flatMap((r) => r.files as string[]);
       if (files.length) await admin.storage.from(BUCKET).remove(files);
@@ -104,7 +134,11 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       // the account a campaign posts to, checked against the owner's own Zernio profile
       const c = await own<CampaignRow>(admin, "cs_slide_campaigns", b.id, uid);
       if (!c) return json({ error: "Not found." }, 404);
+      // a post Zernio holds for later would still go out from the old account
+      const why = "Cancelled: the campaign's TikTok account changed.";
       if (b.account_id === null) {
+        const stuck = await stopHandedPosts(admin, c, why);
+        if (stuck) return json({ error: stuck }, 502);
         await admin.from("cs_slide_campaigns").update({ account_id: null, account_name: null, status: c.status === "live" ? "paused" : c.status }).eq("id", c.id);
         return json({ ok: true });
       }
@@ -113,6 +147,8 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       const list = map?.zernio_profile_id ? await callerAccounts(zernioClient(Deno.env.get("ZERNIO_API_KEY")!), map.zernio_profile_id) : [];
       const acct = list.find((a) => a._id === b.account_id && a.platform === "tiktok");
       if (!acct) return json({ error: "Connect that TikTok account on Social accounts first." }, 400);
+      const stuck = acct._id !== c.account_id ? await stopHandedPosts(admin, c, why) : null;
+      if (stuck) return json({ error: stuck }, 502);
       await admin.from("cs_slide_campaigns").update({ account_id: acct._id, account_name: (acct.username || acct.displayName || "TikTok").slice(0, 120) }).eq("id", c.id);
       return json({ ok: true });
     }
@@ -122,6 +158,8 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       if (!c) return json({ error: "Not found." }, 404);
       if (b.action === "pause") {
         await admin.from("cs_slide_campaigns").update({ status: "paused", next_run_at: null }).eq("id", c.id);
+        const stuck = await stopHandedPosts(admin, c, "Cancelled: the campaign was paused.");
+        if (stuck) return json({ error: stuck }, 502);
         return json({ status: "paused" });
       }
       if (!posting(uid)) return json({ code: "not_enabled", error: "Posting isn't switched on for your account yet." }, 403);

@@ -40,6 +40,10 @@ class Q implements PromiseLike<{ data: unknown; error: unknown; count?: number }
     this.filters.push((r) => typeof r[k] === "string" && (r[k] as string) <= v);
     return this;
   }
+  gt(k: string, v: string) {
+    this.filters.push((r) => typeof r[k] === "string" && (r[k] as string) > v);
+    return this;
+  }
   order(k: string, o?: { ascending?: boolean }) {
     this.sortBy = [k, o?.ascending !== false];
     return this;
@@ -144,6 +148,10 @@ const B = "00000000-0000-4000-8000-00000000000b";
 const ACCOUNT = "0123456789abcdef01234567";
 const ZPROFILE = "aaaaaaaaaaaaaaaaaaaaaaaa";
 const posts: Row[] = [];
+// Zernio's posts by id, the ids it was asked to cancel, and a switch that makes it refuse to
+const zposts = new Map<string, Row>();
+const cancels: string[] = [];
+let zernioRefuses = false;
 
 // canned writer and Zernio; everything else (fonts, the resvg wasm, Pexels) goes to the network
 const realFetch = globalThis.fetch;
@@ -158,7 +166,17 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     if (url.endsWith("/posts")) {
       const body = JSON.parse(String(init?.body));
       posts.push(body);
-      return Response.json({ post: { _id: "bbbbbbbbbbbbbbbbbbbbbbbb", status: "scheduled", platforms: body.platforms, scheduledFor: body.scheduledFor } });
+      const post = { _id: posts.length.toString(16).padStart(24, "b"), status: "scheduled", platforms: body.platforms, scheduledFor: body.scheduledFor };
+      zposts.set(post._id, post);
+      return Response.json({ post });
+    }
+    const one = /\/posts\/([0-9a-f]{24})$/.exec(url)?.[1];
+    if (one && zposts.has(one)) {
+      if (init?.method !== "DELETE") return Response.json({ post: zposts.get(one) });
+      if (zernioRefuses) return Response.json({ error: "down" }, { status: 503 });
+      cancels.push(one);
+      zposts.get(one)!.status = "cancelled";
+      return Response.json({});
     }
   }
   return realFetch(input, init);
@@ -276,8 +294,9 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
   assertEquals(libs.body.libraries.map((l: Row) => [l.name, l.count, l.stock, l.used_by]), [["Golf courses", 2, 2, ["Golf hacks"]]]);
   assertEquals((await call("jwt-b", { action: "libraries", profile_id: "me" })).body.libraries, [], "B sees none of A's");
 
-  // deleting the campaign removes its files
+  // deleting the campaign takes its post back off Zernio, then removes its files
   assertEquals((await call("jwt-a", { action: "delete", id })).status, 200);
+  assertEquals(cancels, [run.zernio_post_id]);
   assertEquals([...files.keys()].filter((k) => k.includes("/runs/")).length, 0);
 });
 
@@ -340,6 +359,58 @@ Deno.test("two ticks at once make one post for a slot", async () => {
   const [a, b] = await Promise.all([tick(admin as never), tick(admin as never)]);
   assertEquals(a.made + b.made, 1);
   assertEquals(posts.length, before + 1);
+});
+
+Deno.test("a post handed to Zernio for later is taken back by a pause, a delete, an account change or consent withdrawn", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  const spec = { hooks: ["One hook"], content: { slides: 1 }, cta: { placement: "none" } };
+  const schedule = { tz: "Asia/Singapore", times: [{ at: "09:00", days: [0, 1, 2, 3, 4, 5, 6] }] };
+  // a live campaign whose tick has handed its next post to Zernio
+  const handed = async (publish: Row = { mode: "inbox", consent_at: null, music: false }) => {
+    const id = crypto.randomUUID();
+    db.cs_slide_campaigns.push({ id, owner_id: A, profile_id: "me", name: "Handed", status: "live", account_id: ACCOUNT, next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(), last_hook: null, spec, schedule, publish });
+    await tick(admin as never);
+    const run = db.cs_slide_campaign_runs.find((r) => r.campaign_id === id && r.status === "scheduled")!;
+    assert(run && zposts.get(run.zernio_post_id as string)?.status === "scheduled", "handed to Zernio");
+    return { id, run, postId: run.zernio_post_id as string };
+  };
+  const cancelled = (h: { run: Row; postId: string }, why: string) => {
+    assertEquals(cancels.at(-1), h.postId);
+    assertEquals([h.run.status, h.run.error], ["failed", why]);
+  };
+
+  // Zernio won't let go: the pause and the delete say so, and the run and its files stay so a retry can stop it
+  const p = await handed();
+  zernioRefuses = true;
+  const refused = await call("jwt-a", { action: "pause", id: p.id });
+  assertEquals([refused.status, refused.body.error], [502, "A post already sent to TikTok for later couldn't be stopped. Try again in a minute."]);
+  assertEquals((await call("jwt-a", { action: "delete", id: p.id })).status, 502);
+  assert(db.cs_slide_campaigns.some((c) => c.id === p.id), "the campaign is kept");
+  assertEquals(p.run.status, "scheduled");
+  assert((p.run.files as string[]).every((f) => files.has(f)), "its files are kept");
+  zernioRefuses = false;
+  assertEquals((await call("jwt-a", { action: "pause", id: p.id })).body, { status: "paused" });
+  cancelled(p, "Cancelled: the campaign was paused.");
+
+  // a delete stops it before the files go
+  const d = await handed();
+  assertEquals((await call("jwt-a", { action: "delete", id: d.id })).status, 200);
+  assertEquals(cancels.at(-1), d.postId);
+  assertEquals((d.run.files as string[]).some((f) => files.has(f)), false);
+
+  // the same account and the same settings again leave it alone; taking the account off stops it
+  const a = await handed();
+  const before = cancels.length;
+  assertEquals((await call("jwt-a", { action: "account", id: a.id, account_id: ACCOUNT })).status, 200);
+  assertEquals((await call("jwt-a", { action: "save", campaign: { id: a.id, name: "Handed", spec, schedule, publish: { mode: "inbox" } } })).status, 200);
+  assertEquals(cancels.length, before);
+  assertEquals((await call("jwt-a", { action: "account", id: a.id, account_id: null })).status, 200);
+  cancelled(a, "Cancelled: the campaign's TikTok account changed.");
+
+  // straight to the profile, then consent withdrawn: the post Zernio holds would still go out unseen
+  const k = await handed({ mode: "direct", consent_at: new Date().toISOString(), music: false });
+  assertEquals((await call("jwt-a", { action: "save", campaign: { id: k.id, name: "Handed", spec, schedule, publish: { mode: "direct", consent: false } } })).status, 200);
+  cancelled(k, "Cancelled: the campaign's posting settings changed.");
 });
 
 Deno.test("the tick sweeps old example runs and their files", async () => {
