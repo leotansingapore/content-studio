@@ -23,7 +23,7 @@ import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
 import { BRAND_FONT, FONT_NAMES, FORMAT_H, FRAME_W, LOOKS, MAX_CAPTION, MAX_DESIGNS, MAX_LAYERS, MAX_SLIDES, newDesign, parseTemplates, sanitizeDesign, type Design, type DesignSlide, type DesignTemplate } from "../_shared/design.ts";
 import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { ownUpload, PEXELS_SRC } from "../_shared/slideCampaign.ts";
-import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient, type UsageFeature } from "../_shared/usageCaps.ts";
+import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient, type UsageResult } from "../_shared/usageCaps.ts";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic.ts";
 import { MAX_QUERY, normalizePhotos, parseStockRequest, PER_PAGE, pexelsUrl } from "../stock-media/logic.ts";
 import { buildImageBody, HF_BASE, HF_MODEL, jobToken, MAX_PROMPT, MIN_PROMPT, openJobToken, parseImageRequest, readStatus, tokenSecret } from "../ai-image/logic.ts";
@@ -678,12 +678,9 @@ async function designToolOnce(name: string, args: Args, store: Store, link: Link
 
 // ---------- the picture tools ----------
 
-/** One use of the user's own daily cap, counted as the app's function counts it: the use, or the refusal to answer. */
-async function spend(caller: Caller, userId: string, feature: UsageFeature, what: string): Promise<{ used: number; limit: number } | ToolResult> {
-  const use = caller.usage ? await consumeUsage(caller.usage, userId, feature) : null;
-  if (use?.allowed) return use;
-  return fail(use?.allowed === false && use.reason === "limit" ? `The user's ${DAILY_LIMITS[feature]} ${what} for today are used. More at 8am Singapore time.` : BUSY_LINE);
-}
+/** The answer when the user's own daily cap refused a use, or couldn't count it (no client, or the counter is down). */
+const refused = (use: UsageResult | null, what: string) =>
+  fail(use?.allowed === false && use.reason === "limit" ? `The user's ${use.limit} ${what} for today are used. More at 8am Singapore time.` : BUSY_LINE);
 
 /** What's working's columns for Claude (supabase/hub/032); pictures are added from the public cs-working bucket. */
 const WORKING_COLS = "id, url, author, niche, format, hook, hook_text, structure, summary, slides, ratio, views, saves";
@@ -713,10 +710,11 @@ async function aiPicture(name: string, args: Args, link: Link, caller: Caller, m
     return ok(st.state === "done" ? { ...st, note: PICTURE_NOTE } : st);
   }
   const parsed = parseImageRequest({ prompt: args.prompt });
-  if (!parsed.ok) return fail(parsed.error);
+  if (parsed.ok === false) return fail(parsed.error);
   if (parsed.request.mode !== "start") return fail("Say what to make.");
-  const use = await spend(caller, link.userId, "ai-image", "AI pictures");
-  if ("content" in use) return use;
+  // one use of the app's own "ai-image" cap, as ai-image counts it, before Higgsfield is asked
+  const use = caller.usage ? await consumeUsage(caller.usage, link.userId, "ai-image") : null;
+  if (!use || use.allowed === false) return refused(use, "AI pictures");
   // as ai-image's start: a refused or failed submit keeps the use spent
   const res = await fetch(`${HF_BASE}/${HF_MODEL}`, {
     method: "POST",
@@ -778,10 +776,10 @@ async function mediaTool(name: string, args: Args, link: Link, caller: Caller): 
   }
   // search_photos: stock-media's search, its key and its "stock-search" cap
   const parsed = parseStockRequest({ kind: "photo", query: args.query, orientation: args.orientation });
-  if (!parsed.ok) return fail(parsed.error);
+  if (parsed.ok === false) return fail(parsed.error);
   if (!media.pexelsKey) return fail("Free photo search isn't switched on yet.");
-  const use = await spend(caller, link.userId, "stock-search", "free photo searches");
-  if ("content" in use) return use;
+  const use = caller.usage ? await consumeUsage(caller.usage, link.userId, "stock-search") : null;
+  if (!use || use.allowed === false) return refused(use, "free photo searches");
   const res = await fetch(pexelsUrl(parsed.request), { headers: { Authorization: media.pexelsKey }, signal: AbortSignal.timeout(15_000) }).catch(() => null);
   if (!res?.ok) return fail(res?.status === 429 ? "The photo library is busy. Try again in a few minutes." : "Couldn't search right now. Try again in a minute.");
   return ok({ photos: normalizePhotos(await res.json().catch(() => null)) });
