@@ -12,7 +12,7 @@ import type { ComplianceFlag } from "@/lib/compliance";
 import { putFile } from "@/lib/deviceFiles";
 import { EdgeError, callFn } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
-import { leoUser } from "@/lib/useLeoOnly";
+import { signedInUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
 import { BANNER_MAX, newOverlay, type EditSettings } from "@/lib/videoEdit";
 import type { JoinExtra } from "@/lib/videoMedia";
@@ -166,13 +166,13 @@ export async function writeTalkScript(a: { talk: ScriptTalk; topic: string; offe
   const id = ++seq;
   const base = { id, talk: a.talk, topic: a.topic };
   scripts.set({ ...base, state: "writing" });
-  // Leo's facts and learnings for videos (brand-voice-memory); ai-video prints them after the topic
+  // the sign-in's facts and learnings for videos (brand-voice-memory); ai-video prints them after the topic
   let notes = "";
   try {
-    const me = await leoUser();
+    const me = await signedInUser();
     notes = me ? memoryLine(me.id, "videos", MAX_NOTES) : "";
   } catch {
-    // a session that can't be read is not Leo's
+    // a session that can't be read sends no notes
   }
   try {
     const r = await callFn<{ say: string; headline?: string; mas?: boolean | null }>(

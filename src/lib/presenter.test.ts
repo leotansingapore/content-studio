@@ -6,7 +6,7 @@ vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("./edgeF
 const files = vi.hoisted(() => new Map<string, Blob>());
 vi.mock("@/lib/deviceFiles", () => ({ putFile: async (k: string, b: Blob) => void files.set(k, b), getFile: async (k: string) => files.get(k) }));
 const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
-vi.mock("@/lib/useLeoOnly", () => ({ leoUser: async () => as.user }));
+vi.mock("@/lib/useLeoOnly", () => ({ signedInUser: async () => as.user }));
 
 import { EdgeError } from "./edgeFn";
 import {
@@ -125,7 +125,7 @@ describe("Write it for me", () => {
     expect(talkScript()).toMatchObject({ state: "done", headline: "", mas: null });
   });
 
-  it("sends Leo's facts and video learnings as notes, and nobody else's", async () => {
+  it("sends the sign-in's facts and video learnings as notes, for anyone, and none when signed out", async () => {
     store.set("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
     store.set(
       "content-studio-learnings-u1",
@@ -137,7 +137,7 @@ describe("Write it for me", () => {
     fn.mockResolvedValue({ say: "Here is the offer.", mas: null });
     await writeTalkScript({ talk: "stage", topic: "One habit that wins deals" });
     expect(fn).toHaveBeenLastCalledWith("ai-video", { mode: "talk-script", talk: "stage", topic: "One habit that wins deals" }, expect.any(String));
-    as.user = { id: "u1", email: "leo@example.com" };
+    as.user = { id: "u1", email: "someone@example.com" };
     await writeTalkScript({ talk: "stage", topic: "One habit that wins deals" });
     expect(fn.mock.calls.at(-1)?.[1]).toEqual({
       mode: "talk-script",

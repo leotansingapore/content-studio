@@ -1,10 +1,10 @@
 // streamOnePost carries Write's short calls, Batch, the carousel topic writer, the video caption writer and the
-// recruit agent. Everyone else's request body is pinned on the code before brand-voice-memory: never update the
-// pinned file with vitest -u.
+// recruit agent. The request body with no fact or learning saved is pinned on the code before brand-voice-memory:
+// never update the pinned file with vitest -u.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
-vi.mock("@/lib/useLeoOnly", () => ({ leoUser: vi.fn(async () => as.user) }));
+vi.mock("@/lib/useLeoOnly", () => ({ signedInUser: vi.fn(async () => as.user) }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   SUPABASE_ANON_KEY: "anon-key",
@@ -79,8 +79,8 @@ async function write(payload: GeneratePostPayload = PAYLOAD) {
   return sent[0];
 }
 
-describe("streamOnePost for everyone else", () => {
-  it("sends today's request, with Coach's lists, facts and learnings saved on the account", async () => {
+describe("streamOnePost with no fact or learning saved", () => {
+  it("sends today's request when signed out, with Coach's lists, facts and learnings saved on the device", async () => {
     seedMemory();
     const req = await write();
     expect(req.url).toBe("https://abc.supabase.co/functions/v1/generate-social-content");
@@ -90,6 +90,15 @@ describe("streamOnePost for everyone else", () => {
   it("sends today's request while the sign-in is still being read", async () => {
     seedMemory();
     as.user = undefined;
+    await expect(JSON.stringify(await write(), null, 2)).toMatchFileSnapshot("./__pins__/stream-one-post-everyone.json");
+  });
+
+  it("sends today's request for any sign-in with nothing saved, or only Coach's lists", async () => {
+    as.user = { id: UID, email: "someone@example.com" };
+    await expect(JSON.stringify(await write(), null, 2)).toMatchFileSnapshot("./__pins__/stream-one-post-everyone.json");
+    store.set(`content-studio-coachprofile-${UID}`, JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] }));
+    store.set(`content-studio-learnings-${UID}`, JSON.stringify([{ id: "l2", text: "Use Asian presenters", scope: "videos", source: "assistant", createdAt: "2026-10-19T04:00:00.000Z" }]));
+    sent.length = 0;
     await expect(JSON.stringify(await write(), null, 2)).toMatchFileSnapshot("./__pins__/stream-one-post-everyone.json");
   });
 });
@@ -103,13 +112,14 @@ describe("streamOnePost for a brand that says what it does", () => {
   });
 });
 
-describe("streamOnePost for Leo", () => {
-  const LEO = { id: UID, email: "leo@example.com" };
+// On for every sign-in from 1 Nov 2026 (brand-voice-memory): the account here is not Leo's.
+describe("streamOnePost with memory saved", () => {
+  const ME = { id: UID, email: "someone@example.com" };
   const pinned = async () => JSON.parse((await import("./__pins__/stream-one-post-everyone.json?raw")).default);
 
-  it("adds his facts and post learnings after the brand rules, with Coach's lists, and nothing else changes", async () => {
+  it("adds their facts and post learnings after the brand rules, with Coach's lists, and nothing else changes", async () => {
     seedMemory();
-    as.user = LEO;
+    as.user = ME;
     const req = await write();
     const block = [
       "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):",
@@ -124,17 +134,17 @@ describe("streamOnePost for Leo", () => {
 
   it("makes the block the whole context when the caller sends none", async () => {
     seedMemory();
-    as.user = LEO;
+    as.user = ME;
     const req = await write({ ...PAYLOAD, ideaContext: undefined });
     expect(String(req.body.ideaContext).startsWith("ABOUT ME, FROM WHAT I HAVE TOLD YOU")).toBe(true);
   });
 
   it("sends today's request when nothing is saved, and when the session can't be read", async () => {
-    as.user = LEO;
+    as.user = ME;
     expect(await write()).toEqual(await pinned());
     seedMemory();
-    const { leoUser } = await import("@/lib/useLeoOnly");
-    vi.mocked(leoUser).mockImplementationOnce(() => {
+    const { signedInUser } = await import("@/lib/useLeoOnly");
+    vi.mocked(signedInUser).mockImplementationOnce(() => {
       throw new Error("no auth");
     });
     sent.length = 0;

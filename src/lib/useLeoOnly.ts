@@ -112,3 +112,6 @@ export function useLeoOnly(): boolean {
 
 /** For code outside React (job runners): the same answer as the hooks. */
 export const leoUser = readLeo;
+
+/** For code outside React: any signed-in user, from the same one session read (useSignedInUser's answer). */
+export const signedInUser = (): Promise<LeoUser | null | undefined> => readLeo().then(() => signedIn);

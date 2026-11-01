@@ -172,6 +172,15 @@ describe("memoryLine", () => {
   it("is empty with nothing saved", () => {
     expect(memoryLine(UID, "posts")).toBe("");
   });
+  // Coach's lists exist on every account: alone they add nothing, so a prompt with no fact or learning is today's
+  it("is empty with only Coach's lists or another scope's learning, and carries the lists beside a fact", () => {
+    recordPreference(UID, "like", "client stories");
+    recordPreference(UID, "dislike", "jargon");
+    learn("use Asian presenters", "videos");
+    expect(memoryLine(UID, "posts")).toBe("");
+    addFact(UID, "12 years as an adviser", at(1));
+    expect(memoryLine(UID, "posts")).toBe([MEMORY_HEADER, `${FACTS_LEAD}12 years as an adviser`, `${KEEP_LEAD}Lean into: client stories; Steer clear of: jargon`].join("\n"));
+  });
   it("holds the facts, then the learnings on now in the scope or Everything, newest first, then Coach's lists", () => {
     addFact(UID, "12 years as an adviser", at(0));
     addFact(UID, "Helped 300 families", at(1));

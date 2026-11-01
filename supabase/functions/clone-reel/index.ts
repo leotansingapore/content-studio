@@ -52,7 +52,6 @@ import {
   MAX_RELAY_BYTES,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
-import { isAllowed } from "../market/logic.ts";
 import { CloneFailure, fetchSource, findSource, keepRunning, withinBudget } from "./source.ts";
 import { professionOf } from "../_shared/profession.ts";
 
@@ -173,8 +172,8 @@ Deno.serve(async (req) => {
       console.error("OPENAI_API_KEY is not set");
       return failure("not_configured");
     }
-    // standing notes (brand-voice-memory) only for NORTH_STAR_USERS: anyone else's prompt is today's
-    const voice = sanitizeVoice(body?.voice, isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid));
+    // standing notes (brand-voice-memory), for everyone from 1 Nov 2026: a voice without them is today's prompt
+    const voice = sanitizeVoice(body?.voice, true);
     const formulas = sanitizeFormulas(body?.formulas);
     // profession: the brand's "What do you do?"; none, or an adviser's, keeps today's prompt
     const profession = professionOf(body?.profession);

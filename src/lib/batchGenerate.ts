@@ -9,7 +9,7 @@
 // separate so batch mode doesn't depend on GeneratePage's internal state.
 
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase";
-import { leoUser } from "@/lib/useLeoOnly";
+import { signedInUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
 import type { AnswerShape, Audience, CtaType, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
 
@@ -36,16 +36,16 @@ export interface GeneratePostPayload {
 }
 
 /**
- * Leo's facts and learnings for posts after the caller's context (brand-voice-memory, decision 13), so Write's short
+ * The sign-in's facts and learnings for posts after the caller's context (brand-voice-memory), so Write's short
  * calls, Batch, the carousel topic writer, the video caption writer and the recruit agent all get them. The context
- * already holds the brand rules, which come first. Everyone else's payload goes out as it came in.
+ * already holds the brand rules, which come first. With none saved the payload goes out as it came in.
  */
 async function withMemory(payload: GeneratePostPayload): Promise<GeneratePostPayload> {
-  let me: Awaited<ReturnType<typeof leoUser>> = null;
+  let me: Awaited<ReturnType<typeof signedInUser>> = null;
   try {
-    me = await leoUser();
+    me = await signedInUser();
   } catch {
-    // a session that can't be read is not Leo's
+    // a session that can't be read sends the payload as it came
   }
   const memory = me ? memoryLine(me.id, "posts") : "";
   return memory ? { ...payload, ideaContext: [payload.ideaContext, memory].filter(Boolean).join("\n\n") } : payload;

@@ -87,10 +87,11 @@ export default function VoicePage() {
   const [voiceSummary, setVoiceSummary] = useState<string>("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [distilling, setDistilling] = useState(false);
-  // Leo only (brand-voice-memory): the summary is editable, and a hand edit is dated so Re-distill asks first
+  // Leo only: the summary is editable, and a hand edit is dated so Re-distill asks first. The facts and learned
+  // sections (brand-voice-memory) are on for everyone from 1 Nov 2026.
   const leo = useLeoUser();
   const [summaryEditedAt, setSummaryEditedAt] = useState<string | undefined>(undefined);
-  useScrollToHash(!!leo && !!userId);
+  useScrollToHash(leo !== undefined && !!userId);
 
   useEffect(() => {
     let active = true;
@@ -419,11 +420,17 @@ export default function VoicePage() {
           </CardContent>
         </Card>
       )}
+      {userId && (
+        <>
+          <FactsSection userId={userId} />
+          <LearnedSection userId={userId} />
+        </>
+      )}
     </div>
   );
 }
 
-// ---------- Leo's sections (north-star brand-voice-memory) ----------
+// ---------- How you sound (Leo's), and the facts and learned sections (everyone's, north-star brand-voice-memory) ----------
 
 const SUMMARY_MAX = 1200;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

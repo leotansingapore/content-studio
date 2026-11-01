@@ -1009,11 +1009,11 @@ export default function GeneratePage() {
   const [undoText, setUndoText] = useState<string | null>(null);
   // What the Undo line says happened: a rewrite, a clean or an insert.
   const [undoNote, setUndoNote] = useState("Rewritten.");
-  // Leo only (brand-voice-memory): a rewrite kept on 3 drafts in 14 days, offered as a standing note under the draft.
+  // brand-voice-memory: a rewrite kept on 3 drafts in 14 days, offered as a standing note under the draft.
   const [rewriteHabit, setRewriteHabit] = useState<LoggedRewrite | null>(null);
   useEffect(() => {
-    setRewriteHabit(leo && userId ? rewriteNudge(userId) : null);
-  }, [leo, userId]);
+    setRewriteHabit(userId ? rewriteNudge(userId) : null);
+  }, [userId]);
   // The editor, and the text its cursor was placed in (by a tap, typing or an insert): Insert puts text at the
   // cursor while the post is still that text, else where its kind goes, so a rewrite, Undo or a new post resets it.
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -1197,7 +1197,7 @@ export default function GeneratePage() {
       active = false;
     };
   }, []);
-  // Leo only (brand-voice-memory): a summary with no posts behind it, such as a brand read from its website, still writes.
+  // Leo only (the website-voice fix): a summary with no posts behind it, such as a brand read from its website, still writes.
   useEffect(() => {
     if (leo && userId && !voiceProfileUsable) setVoiceSummary(voiceSummaryOf(loadVoiceProfile(userId)) || null);
   }, [leo, userId, voiceProfileUsable]);
@@ -1773,8 +1773,8 @@ export default function GeneratePage() {
     if (rules) ctxParts.push(rules);
     // Leo only (brand-audiences): the picked audience in words, since the post writer knows only the five life stages
     if (audPick) ctxParts.push(audienceLine(audPick, userId ? speakerFor(userId) : undefined));
-    // Leo only (brand-voice-memory): his facts and learnings after the brand rules; the voice summary has its own field
-    const memory = leo && userId ? memoryLine(userId, "posts") : "";
+    // brand-voice-memory: their facts and learnings after the brand rules; the voice summary has its own field
+    const memory = userId ? memoryLine(userId, "posts") : "";
     if (memory) ctxParts.push(memory);
 
     // Combine an active vibe reference with a competitor's angle reference.
@@ -2704,8 +2704,8 @@ export default function GeneratePage() {
       setFixedFrom({ key: textKey(platform, rewrite.text), from: rewrite.fix.from });
       if (!scores[textKey(platform, rewrite.text)]) void runScore(rewrite.text);
     }
-    // Leo only: only the five one-tap rewrites are counted (rewriteLog.ts), never flagged lines or an asked change
-    if (leo && userId) {
+    // only the five one-tap rewrites are counted (rewriteLog.ts), never flagged lines or an asked change
+    if (userId) {
       logRewrite(userId, rewrite.id, currentDraftId);
       setRewriteHabit(rewriteNudge(userId));
     }
@@ -4637,7 +4637,7 @@ export default function GeneratePage() {
                     </button>
                   </p>
                 )}
-                {leo && userId && rewriteHabit && (
+                {userId && rewriteHabit && (
                   <p data-testid="rewrite-nudge" className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
                     <Lightbulb className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                     <span>{REWRITE_LEARNINGS[rewriteHabit].nudge}</span>

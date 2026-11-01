@@ -138,12 +138,14 @@ describe("the Recommended carousel design", () => {
 describe("the learning conflict check", () => {
   const body = { mode: "conflict", note: "use lots of emoji", notes: ["end with a question", "never use emoji in my posts"] };
 
-  it("refuses anyone not on the list before counting anything or asking Jev", async () => {
+  // on for everyone from 1 Nov 2026 (brand-voice-memory): an account not on NORTH_STAR_USERS gets the same check
+  it("answers an account not on the list, for one writing-judge use", async () => {
+    jev = () => Response.json({ answers: { conflict_0: { type: "noul", noul: 0.05 }, conflict_1: { type: "noul", noul: 0.93 } } });
     const res = await ask(OTHER, body);
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
-    expect(db.rows.size).toBe(0);
-    expect(calls).toEqual([]);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ replaces: 1 });
+    expect(used(OTHER)).toBe(1);
+    expect(calls).toHaveLength(1);
   });
   it("names the note it replaces for one writing-judge use, one question per kept note", async () => {
     jev = () => Response.json({ answers: { conflict_0: { type: "noul", noul: 0.05 }, conflict_1: { type: "noul", noul: 0.93 } } });

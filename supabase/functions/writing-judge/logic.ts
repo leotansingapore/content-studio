@@ -708,7 +708,7 @@ export function readFacts(answers: Record<string, JevAnswer> | null, sentences: 
   });
 }
 
-// ---- Mode "conflict" (brand-voice-memory, Leo only) -------------------------
+// ---- Mode "conflict" (brand-voice-memory, everyone) -------------------------
 // Whether a new standing note to the AI ("use lots of emoji", "one emoji at
 // most") changes one already kept ("never use emoji"): reverses, loosens,
 // tightens or narrows it, so the assistant's card can say which one it

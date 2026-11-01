@@ -592,7 +592,7 @@ export interface VoiceInput {
   samples: string[];
   /** Their best posts so far, so each clone leans on what already works for them. */
   winners?: Winner[];
-  /** Their facts and standing notes from /voice (brand-voice-memory); clone-reel keeps them for NORTH_STAR_USERS only. */
+  /** Their facts and standing notes from /voice (brand-voice-memory); clone-reel keeps them, remix drops them. */
   notes?: string;
 }
 

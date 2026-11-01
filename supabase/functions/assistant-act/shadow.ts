@@ -88,7 +88,7 @@ export function rows(cs: Case[], answer: (c: Case, mode: "today" | "agent") => A
       id: c.item.id,
       message: c.item.message,
       label: c.item.label,
-      todayAct: actPick(ta, c.today.body, true)?.act ?? "none",
+      todayAct: actPick(ta, c.today.body)?.act ?? "none",
       todayRaw: raw(ta, "act"),
       agentAct: pick?.act ?? "none",
       pick,

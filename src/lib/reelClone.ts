@@ -8,7 +8,7 @@ import { setStage, type ProductionStage } from "@/lib/board";
 import { getDraftById, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile, voiceSummaryOf, type VoiceProfile } from "@/lib/voiceProfile";
 import { memoryLine } from "@/lib/voiceMemory";
-import { leoUser } from "@/lib/useLeoOnly";
+import { leoUser, signedInUser } from "@/lib/useLeoOnly";
 import {
   MAX_VOICE_NOTES,
   parseReelUrl,
@@ -225,7 +225,7 @@ export function winnersFor(userId: string | null | undefined): Winner[] {
 
 /**
  * The voice the function writes in: GeneratePage's rule, a usable profile, plus their best posts. With `memory` (Leo's
- * sessions, brand-voice-memory) a summary with no posts behind it is sent too, and his standing notes ride with it.
+ * sessions: the website-voice fix) a summary with no posts behind it is sent too, and the standing notes ride with it.
  */
 export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = [], memory?: { notes: string }): VoiceInput | null {
   const usable = Boolean(profile && isVoiceProfileUsable(profile));
@@ -243,15 +243,23 @@ export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = 
   return notes ? { ...voice, notes } : voice;
 }
 
-/** Leo's sessions only: the voice built again with his website summary and his facts and learnings for posts. */
+/**
+ * Every sign-in's facts and learnings for posts ride with the voice as its notes. Leo's sessions also get the voice
+ * built again with his website summary (the website-voice fix, still Leo only).
+ */
 async function withMemory(voice: VoiceInput | null): Promise<VoiceInput | null> {
-  let me: Awaited<ReturnType<typeof leoUser>> = null;
+  let me: Awaited<ReturnType<typeof signedInUser>> = null;
+  let leo = false;
   try {
-    me = await leoUser();
+    me = await signedInUser();
+    leo = Boolean(me && (await leoUser()));
   } catch {
-    // a session that can't be read is not Leo's
+    // a session that can't be read sends the voice as built
   }
-  return me ? voiceForClone(loadVoiceProfile(me.id), voice?.winners ?? [], { notes: memoryLine(me.id, "posts", MAX_VOICE_NOTES) }) : voice;
+  if (!me) return voice;
+  const notes = memoryLine(me.id, "posts", MAX_VOICE_NOTES);
+  if (leo) return voiceForClone(loadVoiceProfile(me.id), voice?.winners ?? [], { notes });
+  return notes ? { ...(voice ?? { summary: "", samples: [] }), notes } : voice;
 }
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");

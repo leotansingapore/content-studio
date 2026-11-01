@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } } }));
-const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
-vi.mock("@/lib/useLeoOnly", () => ({ leoUser: vi.fn(async () => as.user) }));
+// as.user: the sign-in (anyone); as.leo: it is on the north-star list
+const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string }, leo: false }));
+vi.mock("@/lib/useLeoOnly", () => ({ leoUser: vi.fn(async () => (as.leo ? as.user : null)), signedInUser: vi.fn(async () => as.user) }));
 const PACING = { durationSec: 9, cuts: 1, avgShotSec: 4.5, cutsFirst3s: 0 };
 vi.mock("@/lib/reelFrames", async (orig) => ({ ...(await orig<typeof import("./reelFrames")>()), sampleReelFrames: async () => ({ frames: [], pacing: PACING }) }));
 
@@ -96,6 +97,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   invoke.mockReset();
   as.user = null;
+  as.leo = false;
 });
 
 describe("cloneDraftText", () => {
@@ -244,8 +246,8 @@ describe("voiceForClone", () => {
   });
 });
 
-// What Clone a reel sends for everyone else, pinned before standing notes joined the voice (brand-voice-memory):
-// the caller's voice as built, whatever /voice and /coach hold for the account.
+// What Clone a reel sends for everyone else with no fact or learning saved, pinned before standing notes joined the
+// voice (brand-voice-memory): the caller's voice as built, whatever else /voice and /coach hold for the account.
 describe("the voice sent to clone-reel for everyone else", () => {
   const post = "I started my CPF top-ups at 25 because my dad never had the chance to, and here is what I learned along the way.";
   const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];
@@ -255,8 +257,8 @@ describe("the voice sent to clone-reel for everyone else", () => {
     vi.stubGlobal("localStorage", storage);
     storage.setItem("content-studio-voice-u1", JSON.stringify({ posts: [], voiceSummary: "Warm and plain, from the website.", updatedAt: "" }));
     storage.setItem("content-studio-coachprofile-u1", JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] }));
-    storage.setItem("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
     invoke.mockResolvedValue({ data: result(), error: null });
+    as.user = { id: "u1", email: "someone@example.com" };
   });
 
   it("sends the caller's voice on a clone, and none when it has none", async () => {
@@ -320,6 +322,57 @@ describe("the brand's profession sent to clone-reel", () => {
   });
 });
 
+// From 1 Nov 2026 every sign-in's facts and learnings ride as notes; only Leo's also send the website summary.
+describe("the standing notes sent to clone-reel for everyone else", () => {
+  const post = "I started my CPF top-ups at 25 because my dad never had the chance to, and here is what I learned along the way.";
+  const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];
+  const NOTES = [
+    "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):",
+    "- Facts you may state about me (state no other facts, numbers, awards or results about me): 12 years as an adviser",
+    "- Keep doing or avoid: Lean into: client stories; Steer clear of: jargon",
+  ].join("\n");
+  beforeEach(() => {
+    const storage = memoryStorage();
+    vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true });
+    vi.stubGlobal("localStorage", storage);
+    storage.setItem("content-studio-voice-u1", JSON.stringify({ posts: [], voiceSummary: "Warm and plain, from the website.", updatedAt: "" }));
+    storage.setItem("content-studio-coachprofile-u1", JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] }));
+    storage.setItem("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
+    invoke.mockResolvedValue({ data: result(), error: null });
+    as.user = { id: "u1", email: "someone@example.com" };
+  });
+
+  it("go with the caller's voice on a clone, and make a voice of notes only when it has none, without the website summary", async () => {
+    const voice = voiceForClone({ posts: [post, post, post], voiceSummary: "Warm", updatedAt: "" }, winners);
+    await cloneReel("u", voice);
+    await cloneReel("u", null);
+    expect(invoke.mock.calls.map((c) => JSON.stringify(c[1].body))).toEqual([
+      JSON.stringify({ url: "u", voice: { summary: "Warm", samples: [post, post, post], winners, notes: NOTES } }),
+      JSON.stringify({ url: "u", voice: { summary: "", samples: [], notes: NOTES } }),
+    ]);
+  });
+
+  it("go with the caller's voice on a concept", async () => {
+    const voice = { summary: "Warm", samples: [post] };
+    const clone: SavedClone = { id: "c-notes", savedAt: "2026-10-20T03:00:00.000Z", result: { ...result(), concepts: [{ title: "a", keeps: "b", changes: "c" }] } };
+    invoke.mockResolvedValue({ data: { myVersion: { ...result().myVersion, beats: ["x"] } }, error: null });
+    await startConceptBuild("u1", clone, 0, voice).catch(() => null);
+    expect(invoke.mock.calls[0][1].body.voice).toEqual({ ...voice, notes: NOTES });
+  });
+
+  it("stay off when signed out or the session can't be read", async () => {
+    const voice = { summary: "Warm", samples: [post] };
+    as.user = null;
+    await cloneReel("u", voice);
+    const { signedInUser } = await import("@/lib/useLeoOnly");
+    vi.mocked(signedInUser).mockImplementationOnce(() => {
+      throw new Error("no auth");
+    });
+    await cloneReel("u", voice);
+    expect(invoke.mock.calls.map((c) => c[1].body.voice)).toEqual([voice, voice]);
+  });
+});
+
 describe("the voice sent to clone-reel for Leo", () => {
   const post = "I started my CPF top-ups at 25 because my dad never had the chance to, and here is what I learned along the way.";
   const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];
@@ -338,6 +391,7 @@ describe("the voice sent to clone-reel for Leo", () => {
     storage.setItem("content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }]));
     invoke.mockResolvedValue({ data: result(), error: null });
     as.user = { id: "u1", email: "leo@example.com" };
+    as.leo = true;
   });
 
   it("keeps a website summary with no samples when the fix is on, with the notes, and a voice of notes only", () => {

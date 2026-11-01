@@ -4,9 +4,9 @@
 // app shows a confirm card and applies the change itself on a tap. Counted
 // against the "assistant-act" daily cap. Null when Jev has no answer or the
 // message is mostly not in English: the assistant then answers in words.
-// For an account on NORTH_STAR_USERS it also offers "remember" (a lasting
-// preference) and asks what it applies to; everyone else's questions are today's.
-// Agent mode (phase 6): the same account sending `agent: true` gets the agent's
+// It also offers "remember" (a lasting preference) and asks what it applies to,
+// for everyone from 1 Nov 2026 (brand-voice-memory).
+// Agent mode (phase 6): an account on NORTH_STAR_USERS sending `agent: true` gets the agent's
 // acts and slots and Jev's probabilities back, counted on "agent-act" and given
 // back when Jev never answers. Anyone else's agent fields are ignored, not refused.
 //
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
     const ask = actAsk(body, leo);
     const answers = await askJev(ask.state, ask.questions, { who: agent ? "assistant-act agent" : "assistant-act" });
-    if (!agent) return json({ pick: actPick(answers, body, leo) });
+    if (!agent) return json({ pick: actPick(answers, body) });
     // A Jev reply always parses, so null means Jev never answered: the use goes back.
     if (!answers) await refundUsage(admin, uid, cap, day);
     return json(agentPick(answers, body));

@@ -1,11 +1,11 @@
-// What the AI may say about you and what it has learned (north-star brand-voice-memory, Leo only for now).
+// What the AI may say about you and what it has learned (north-star brand-voice-memory, on for everyone from 1 Nov 2026).
 // Two synced lists per brand: facts the writers may state about the adviser, and learnings (standing notes:
 // "never use emoji in my posts") from the assistant, a rewrite kept on 3 posts, or typed on /voice. Remove
 // turns a row off (offAt) and never deletes it, so Undo and the "replaced" history work.
 //
 // For the writers (memory-wiring): memoryLine(userId, scope) is the one block to add to a prompt, after the
-// brand rules and before the voice summary. Callers gate it to Leo's sessions (decision 13): Coach's lists,
-// which it also reads, exist on every account.
+// brand rules and before the voice summary, for every sign-in. Coach's lists, which it also reads, exist on every
+// account, so they ride only beside a fact or a learning: with neither the block is "" and the prompt is today's.
 
 import { scoped } from "@/lib/profiles";
 import { loadCoachProfile } from "@/lib/coachProfile";
@@ -238,17 +238,17 @@ function block(facts: string[], keep: string[]): string {
 }
 
 /**
- * The block for a writer, or "" when there is nothing: the facts, then the learnings on now in `scope` or "all"
- * (newest first), then (for posts) Coach's "Lean into" and "Steer clear of" lists. It never passes `max`
- * characters: whole items are left out from the end, so Coach's items and the oldest learnings go first and a
- * fact never goes before a learning. Gate the call to Leo's sessions.
+ * The block for a writer, or "" when there is no fact and no learning on now in `scope` or "all": the facts, then
+ * those learnings (newest first), then (for posts) Coach's "Lean into" and "Steer clear of" lists. It never passes
+ * `max` characters: whole items are left out from the end, so Coach's items and the oldest learnings go first and a
+ * fact never goes before a learning.
  */
 export function memoryLine(userId: string, scope: Exclude<LearningScope, "all">, max = 1500): string {
   const facts = loadFacts(userId).filter(isOn).map((f) => f.text);
   const learned = activeLearnings(loadLearnings(userId))
     .filter((l) => l.scope === scope || l.scope === "all")
     .map((l) => l.text);
-  const coach = scope === "posts" ? loadCoachProfile(userId) : null;
+  const coach = scope === "posts" && (facts.length || learned.length) ? loadCoachProfile(userId) : null;
   const keep = [...learned, ...(coach?.likes.map((x) => `Lean into: ${x}`) ?? []), ...(coach?.dislikes.map((x) => `Steer clear of: ${x}`) ?? [])];
   while (facts.length || keep.length) {
     const text = block(facts, keep);

@@ -33,9 +33,9 @@
 //     tokens for a 6-slide carousel.
 //   mode "conflict" {note, notes} -> {replaces: index | null}
 //     which kept note to the AI a new one reverses, loosens or narrows (the
-//     assistant's "This replaces" line, at CONFLICT_MIN). Leo only like
-//     "thread", the use given back when Jev never answered. About 170 tokens
-//     a kept note, up to 30.
+//     assistant's "This replaces" line, at CONFLICT_MIN). On for everyone from
+//     1 Nov 2026 (brand-voice-memory), the use given back when Jev never
+//     answered. About 170 tokens a kept note, up to 30.
 //   mode "goal" {text} -> {kind: GoalKind | null, p}
 //     which of five outcomes a typed goal (4 to 120 characters) is closest
 //     to, the kind only at JEV_GOAL_MIN. Leo only like "thread"; the use goes
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to check a post." }, 401);
-    const leoOnly = r.mode === "thread" || r.mode === "design" || r.mode === "conflict" || r.mode === "goal" || (POST_MODES as readonly string[]).includes(r.mode);
+    const leoOnly = r.mode === "thread" || r.mode === "design" || r.mode === "goal" || (POST_MODES as readonly string[]).includes(r.mode);
     if (leoOnly && !isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) {
       return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
     }

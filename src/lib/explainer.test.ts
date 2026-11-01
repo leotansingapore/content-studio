@@ -4,8 +4,6 @@ vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(), EdgeError: class extends Error
 vi.mock("@/lib/stockMedia", () => ({ searchStock: vi.fn() }));
 vi.mock("@/lib/aiVideo", () => ({ aiJob: vi.fn(() => null), makeExplainer: vi.fn(async () => {}) }));
 vi.mock("@/lib/draftHistory", () => ({ loadDrafts: vi.fn(() => []) }));
-const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
-vi.mock("@/lib/useLeoOnly", () => ({ leoUser: async () => as.user }));
 
 import { callFn } from "@/lib/edgeFn";
 import { searchStock } from "@/lib/stockMedia";
@@ -29,7 +27,6 @@ beforeEach(() => {
   vi.mocked(searchStock).mockReset();
   vi.mocked(makeExplainer).mockReset();
   vi.mocked(aiJob).mockReset().mockReturnValue(null);
-  as.user = null;
 });
 
 describe("the scene draft", () => {
@@ -270,8 +267,12 @@ describe("the write", () => {
   });
 });
 
-describe("Leo's standing notes in the narrated script", () => {
-  it("go with his script request, a video learning and not a post one, and nobody else's", async () => {
+describe("the standing notes in the narrated script", () => {
+  it("go with the script request once saved, a video learning and not a post one", async () => {
+    explainer.saveDraft(UID, { topic: "Why co-pays", scenes: [] });
+    vi.mocked(callFn).mockResolvedValue({ scenes: [SCENE, SCENE, SCENE], look: null, mas: null });
+    await explainer.writeNarrated(UID, { from: "topic", seconds: 30, stock: false });
+    expect(vi.mocked(callFn).mock.calls.at(-1)?.[1]).toEqual({ mode: "script", topic: "Why co-pays", seconds: 30 });
     localStorage.setItem(
       `content-studio-learnings-${UID}`,
       JSON.stringify([
@@ -280,10 +281,6 @@ describe("Leo's standing notes in the narrated script", () => {
       ]),
     );
     explainer.saveDraft(UID, { topic: "Why co-pays", scenes: [] });
-    vi.mocked(callFn).mockResolvedValue({ scenes: [SCENE, SCENE, SCENE], look: null, mas: null });
-    await explainer.writeNarrated(UID, { from: "topic", seconds: 30, stock: false });
-    expect(vi.mocked(callFn).mock.calls.at(-1)?.[1]).toEqual({ mode: "script", topic: "Why co-pays", seconds: 30 });
-    as.user = { id: UID, email: "leo@example.com" };
     await explainer.writeNarrated(UID, { from: "topic", seconds: 30, stock: false });
     expect(vi.mocked(callFn).mock.calls.at(-1)?.[1]).toEqual({
       mode: "script",

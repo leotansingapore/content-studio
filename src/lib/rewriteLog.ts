@@ -1,6 +1,6 @@
 // One-tap rewrites kept in Write ("Use this"), counted on this device so a habit becomes a standing note
-// (north-star brand-voice-memory, Leo only). The same rewrite kept on 3 different drafts within 14 days shows a
-// one-line nudge under the draft; "No thanks" hides that nudge for 30 days. Counting only, no AI.
+// (north-star brand-voice-memory, on for everyone from 1 Nov 2026). The same rewrite kept on 3 different drafts
+// within 14 days shows a one-line nudge under the draft; "No thanks" hides that nudge for 30 days. Counting only, no AI.
 //
 // For Write (memory-wiring): logRewrite after a kept rewrite, rewriteNudge to show the line, rememberRewrite on
 // "Remember", dismissRewriteNudge on "No thanks". Only the five REWRITES ids count, never "lines" or "ask".

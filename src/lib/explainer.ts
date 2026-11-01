@@ -22,7 +22,6 @@ import { splitScriptCaption } from "@/lib/scriptCaption";
 import { searchStock, type StockItem } from "@/lib/stockMedia";
 import type { VoiceId } from "@/lib/textVoice";
 import type { JoinExtra } from "@/lib/videoMedia";
-import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
 import { LOOK_IDS, MAX_NOTES, type LookId, type NarratedSeconds, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import { MAX_CANDIDATES } from "../../supabase/functions/video-assist/montage.ts";
@@ -258,15 +257,6 @@ async function withStock(scenes: Omit<NarratedScene, "stock" | "use">[], theme: 
   return scenes.map((s, i) => ({ ...s, stock: stock[i], use: stock[i] ? "stock" : "ai" }));
 }
 
-/** Leo's facts and learnings for videos (brand-voice-memory), "" for anyone else; ai-video prints them after the topic. */
-async function videoNotes(userId: string): Promise<string> {
-  try {
-    return (await leoUser()) ? memoryLine(userId, "videos", MAX_NOTES) : "";
-  } catch {
-    return "";
-  }
-}
-
 /** "Write it" / "Split into scenes": the page read first for a link, then the script, then stock when it is on. */
 export async function writeNarrated(userId: string, a: { from: From; seconds: NarratedSeconds; stock: boolean }): Promise<void> {
   if (writing()) return;
@@ -283,7 +273,8 @@ export async function writeNarrated(userId: string, a: { from: From; seconds: Na
     } else if (keep) source = { kind: "script", text: d.script.trim() };
     setWrite({ state: "writing", step: keep ? "Splitting into scenes..." : "Writing the script..." });
     const topic = a.from === "topic" ? d.topic.trim() : "";
-    const notes = await videoNotes(userId);
+    // their facts and learnings for videos (brand-voice-memory); ai-video prints them after the topic
+    const notes = memoryLine(userId, "videos", MAX_NOTES);
     const r = await callFn<{ scenes: Scene[]; look: { id: LookId; p: number } | null; mas: boolean | null }>(
       "ai-video",
       { mode: "script", topic, seconds: a.seconds, ...(source ? { source } : {}), ...(notes ? { notes } : {}) },

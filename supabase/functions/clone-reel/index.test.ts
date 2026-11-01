@@ -123,31 +123,24 @@ describe("the consultant's voice in the prompt", () => {
     await expect(JSON.stringify(prompts, null, 2)).toMatchFileSnapshot("./fixtures/prompts-today.json");
   });
 
-  it("ignores anyone else's standing notes: the same prompts, counted the same", async () => {
-    const NOTES = "ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing or avoid: Never use emoji";
-    await clone({ voice: { ...VOICE, notes: NOTES } });
-    await clone({ voice: { summary: "", samples: [], notes: NOTES } });
-    reader.cached = row();
-    await clone({ voice: { ...VOICE, notes: NOTES }, concept: CONCEPT });
-    await expect(JSON.stringify(prompts, null, 2)).toMatchFileSnapshot("./fixtures/prompts-today.json");
-    expect(db.spent).toEqual(["reel-clone", "reel-clone", "reel-concepts"]);
-  });
-
-  it("prints a listed account's standing notes in its voice, clipped to 1,200, and keeps a voice of notes only", async () => {
+  // on for everyone from 1 Nov 2026 (brand-voice-memory): UID is not on NORTH_STAR_USERS
+  it("prints anyone's standing notes in their voice, clipped to 1,200, and keeps a voice of notes only", async () => {
     const NOTES = `ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing or avoid: Never use emoji ${"x".repeat(1300)}`;
-    await clone({ voice: { ...VOICE, notes: NOTES } }, LEO);
-    await clone({ voice: { summary: "", samples: [], notes: "Never use emoji" } }, LEO);
+    await clone({ voice: { ...VOICE, notes: NOTES } });
+    await clone({ voice: { summary: "", samples: [], notes: "Never use emoji" } });
     reader.cached = row();
-    await clone({ voice: { ...VOICE, notes: "Never use emoji" }, concept: CONCEPT }, LEO);
+    await clone({ voice: { ...VOICE, notes: "Never use emoji" }, concept: CONCEPT });
     const line = asked[0].split("\nSummary:")[0].split("The consultant's voice:\n")[1];
     expect(line.startsWith("Their standing notes (follow them): ABOUT ME, FROM WHAT I HAVE TOLD YOU:\n- Keep doing")).toBe(true);
     expect(line.length).toBe("Their standing notes (follow them): ".length + 1200);
     expect(asked[1].endsWith("The consultant's voice:\nTheir standing notes (follow them): Never use emoji")).toBe(true);
     expect(asked[1]).not.toContain("No voice profile yet");
     expect(asked[2]).toContain("The consultant's voice:\nTheir standing notes (follow them): Never use emoji\nSummary: Warm and plain");
-    // the same prompt as anyone's without notes
+    // without notes the prompt is today's, Leo's the same as anyone's
+    await clone({ voice: VOICE });
     await clone({ voice: VOICE }, LEO);
     expect(prompts[3]).toEqual((await import("./fixtures/prompts-today.json")).default[0]);
-    expect(db.spent).toEqual(["reel-clone", "reel-clone", "reel-concepts", "reel-clone"]);
+    expect(prompts[4]).toEqual(prompts[3]);
+    expect(db.spent).toEqual(["reel-clone", "reel-clone", "reel-concepts", "reel-clone", "reel-clone"]);
   });
 });

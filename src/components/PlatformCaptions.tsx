@@ -74,9 +74,9 @@ export default function PlatformCaptions({
     if (!transcript.trim()) return toast({ title: "Caption the video first", variant: "destructive" });
     setBusy(true);
     try {
-      // Leo only (brand-voice-memory): his facts and learnings after the brand rules, inside video-assist's 1,200 characters
+      // brand-voice-memory: their facts and learnings after the brand rules, inside video-assist's 1,200 characters
       const rules = brandRulesLine(brand);
-      const sent = leo ? [rules, memoryLine(userId, "posts", 1200 - rules.length - 1)].filter(Boolean).join(" ") : rules;
+      const sent = [rules, memoryLine(userId, "posts", 1200 - rules.length - 1)].filter(Boolean).join(" ");
       const written = await writePlatformCaptions(transcript.slice(0, 6000), instagram, title, sent, professionFor(userId));
       for (const p of [...CAPTION_PLATFORMS, "youtubeTitle"] as const) if (written[p]) written[p] = applyBrandRules(written[p]!, brand);
       keep({ ...set, ...written, firstLine: written.firstLine });

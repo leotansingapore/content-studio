@@ -1,5 +1,6 @@
 // /voice is live for everyone: its first frame must draw exactly as it did before Leo's sections (pinned on
-// today's code). Never update the pinned file with vitest -u.
+// today's code); the facts and learned sections join once the account is read. Never update the pinned file
+// with vitest -u.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -45,7 +46,7 @@ describe("/voice for everyone else", () => {
     as.user = undefined;
     await expect(html()).toMatchFileSnapshot("./__pins__/voice-page-everyone.html");
   });
-  it("draws today's page at #learned, which has no learned list for them", async () => {
+  it("draws today's first frame at #learned, before the account is read", async () => {
     await expect(html("/voice#learned")).toMatchFileSnapshot("./__pins__/voice-page-everyone.html");
   });
 });

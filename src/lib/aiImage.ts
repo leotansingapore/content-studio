@@ -76,16 +76,11 @@ export function onImageJob(fn: (j: ImageJob | null) => void): () => void {
 export const imageBusy = () => job?.state === "working" || job?.state === "saving";
 
 /**
- * Leo's facts and learnings for pictures after the prompt (brand-voice-memory), only in the room ai-image's MAX_PROMPT
- * leaves: memoryLine drops the oldest learnings first. Anyone else's prompt goes as typed.
+ * Their facts and learnings for pictures after the prompt (brand-voice-memory), only in the room ai-image's MAX_PROMPT
+ * leaves: memoryLine drops the oldest learnings first. With none saved the prompt goes as typed.
  */
-async function withMemory(userId: string, prompt: string): Promise<string> {
-  let memory = "";
-  try {
-    if (await leoUser()) memory = memoryLine(userId, "pictures", MAX_PROMPT - prompt.length - 2);
-  } catch {
-    // a session that can't be read is not Leo's
-  }
+function withMemory(userId: string, prompt: string): string {
+  const memory = memoryLine(userId, "pictures", MAX_PROMPT - prompt.length - 2);
   return memory ? `${prompt}\n\n${memory}` : prompt;
 }
 
@@ -125,7 +120,7 @@ async function withLogo(userId: string, pic: Blob): Promise<Blob> {
 }
 
 export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"]): Promise<void> =>
-  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}) }, { mode: "start", prompt: await withMemory(userId, prompt) });
+  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}) }, { mode: "start", prompt: withMemory(userId, prompt) });
 
 /** "Fix it": Qwen Image 3 edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {

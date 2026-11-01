@@ -75,13 +75,13 @@ describe("Make the image", () => {
   });
 });
 
-// The picture request for everyone else, pinned before learnings joined it (brand-voice-memory): the prompt as typed,
-// whatever /voice holds for the account.
+// The picture request with nothing for pictures saved, pinned before learnings joined it (brand-voice-memory): the
+// prompt as typed, whatever else /voice and /coach hold for the account.
 describe("the prompt sent for everyone else", () => {
   it("is the prompt as typed", async () => {
     const store = new Map<string, string>([
-      ["content-studio-facts-u1", JSON.stringify([{ id: "f1", text: "12 years as an adviser", createdAt: "2026-10-20T03:00:00.000Z" }])],
-      ["content-studio-learnings-u1", JSON.stringify([{ id: "l1", text: "Use Asian presenters", scope: "pictures", source: "typed", createdAt: "2026-10-20T03:00:00.000Z" }])],
+      ["content-studio-coachprofile-u1", JSON.stringify({ likes: ["client stories"], dislikes: ["jargon"] })],
+      ["content-studio-learnings-u1", JSON.stringify([{ id: "l1", text: "Never use emoji", scope: "posts", source: "typed", createdAt: "2026-10-20T03:00:00.000Z" }])],
     ]);
     const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
     vi.stubGlobal("localStorage", localStorage);
@@ -236,7 +236,8 @@ describe("a picture the agent asked for (live-p6replay D6)", () => {
   });
 });
 
-describe("Leo's learnings in the picture prompt", () => {
+// On for every sign-in from 1 Nov 2026: the default user here is not Leo.
+describe("the learnings in the picture prompt", () => {
   const store = new Map<string, string>();
   const learn = (n: number) =>
     Array.from({ length: n }, (_, i) => ({ id: `l${i}`, text: `Picture learning number ${i}`, scope: i % 2 ? "pictures" : "all", source: "typed", createdAt: `2026-10-${10 + i}T03:00:00.000Z` }));
@@ -248,7 +249,6 @@ describe("Leo's learnings in the picture prompt", () => {
     vi.stubGlobal("window", { localStorage, location: { search: "" } });
     vi.mocked(callFn).mockImplementation(async (_fn, body) =>
       (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
-    as.user = { id: "u1", email: "leo@example.com" };
   });
   const sent = () => String((starts()[0][1] as { prompt: string }).prompt);
 

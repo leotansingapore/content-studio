@@ -5,7 +5,7 @@
 // and then only through the functions the pages use, with the pages' Undo. Nothing
 // here posts, sends or publishes: Post it for me stays a dialog on My posts.
 // No Jev answer, or nothing the app does: null, and the chat answers in words.
-// Leo only (the server offers it to NORTH_STAR_USERS): "remember" saves a lasting
+// For everyone from 1 Nov 2026 (brand-voice-memory): "remember" saves a lasting
 // preference as a learning, checked first against the ones kept (writing-judge conflict).
 // The agent (agentRun.ts, Leo only) asks through askAgent instead: agent mode's acts, slots and probabilities, with
 // every refusal thrown to the caller so the agent can say why (a 429 is its cap line), and Stop through `signal`.

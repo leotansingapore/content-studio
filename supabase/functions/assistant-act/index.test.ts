@@ -51,6 +51,13 @@ const call = async (body: unknown, uid = "u1") => {
   return { status: r.status, body: await r.json() };
 };
 const posts = [{ title: "Hospital plans in plain words", status: "draft", when: "", platform: "instagram" }];
+// a Jev request as it was before the remember act joined (fixtures/jev-request-everyone.json pins that one)
+type Asked = { questions: Record<string, { criteria: Record<string, string> }> };
+function withoutRemember(req: unknown) {
+  const { scope: _s, ...questions } = (req as Asked).questions;
+  const { remember: _r, ...criteria } = questions.act.criteria;
+  return { ...(req as object), questions: { ...questions, act: { ...questions.act, criteria } } };
+}
 // Every field agent mode reads (phase 6), each filled.
 const AGENT_FIELDS = {
   agent: true,
@@ -83,16 +90,16 @@ describe("the assistant's actions", () => {
     expect(asked).toEqual([]);
   });
 
-  it("sends Jev today's questions for an account not on the list (pinned)", async () => {
+  it("sends Jev the pinned questions plus remember and scope for an account not on the list", async () => {
     const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today: "2026-10-11", posts });
     expect(r.status).toBe(200);
-    await expect(JSON.stringify(asked[0], null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
+    await expect(JSON.stringify(withoutRemember(asked[0]), null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
   });
 
-  it("ignores every agent field from an account not on the list: today's Jev request (pinned) and today's counter", async () => {
+  it("ignores every agent field from an account not on the list: the same Jev request and today's counter", async () => {
     const r = await call({ message: "Put my hospital plans post out tomorrow at 9am", today: "2026-10-11", posts, ...AGENT_FIELDS });
     expect(r).toEqual({ status: 200, body: { pick: { act: "move", post: 0, day: tomorrow, time: "09:00" } } });
-    await expect(JSON.stringify(asked[0], null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
+    await expect(JSON.stringify(withoutRemember(asked[0]), null, 2)).toMatchFileSnapshot("./fixtures/jev-request-everyone.json");
     expect(db.spent).toEqual(["assistant-act"]);
   });
 
@@ -107,23 +114,17 @@ describe("the assistant's actions", () => {
 describe("the remember act", () => {
   const msg = { message: "from now on never use emoji in my posts", today: "2026-10-11", posts };
   type Sent = { questions: Record<string, { criteria: Record<string, string> }> };
-  it("is asked and answered for an account on NORTH_STAR_USERS, for one daily use", async () => {
+  // on for everyone from 1 Nov 2026: an account not on NORTH_STAR_USERS gets it, and the same request as Leo's
+  it("is asked and answered for any account, for one daily use", async () => {
     jev = () => ({ act: choice("remember"), scope: choice("posts") });
-    const r = await call(msg, "leo-uid");
+    const r = await call(msg, "u1");
     expect(r).toEqual({ status: 200, body: { pick: { act: "remember", post: null, day: null, time: null, scope: "posts" } } });
     const q = (asked[0] as Sent).questions;
     expect(q.act.criteria.remember).toBeTruthy();
     expect(Object.keys(q.scope.criteria)).toEqual(["posts", "videos", "pictures", "all"]);
     expect(db.spent).toEqual(["assistant-act"]);
-  });
-  it("is never asked for anyone else, and a stray remember answer gives them no pick", async () => {
-    jev = () => ({ act: choice("remember"), scope: choice("posts") });
-    const r = await call(msg, "u1");
-    expect(r).toEqual({ status: 200, body: { pick: null } });
-    const q = (asked[0] as Sent).questions;
-    expect(q.act.criteria.remember).toBeUndefined();
-    expect(q.scope).toBeUndefined();
-    expect(db.spent).toEqual(["assistant-act"]);
+    await call(msg, "leo-uid");
+    expect(asked[1]).toEqual(asked[0]);
   });
 });
 
