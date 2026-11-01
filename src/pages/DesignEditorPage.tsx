@@ -139,9 +139,15 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     saved.current = { at: now.toISOString(), doc: d };
     setSavedAt(now.toISOString());
   };
+  const autosave = async () => {
+    if (workRef.current === saved.current.doc) return;
+    // a row Claude changed since the last check goes through followStep first, so this save never pushes over it unseen
+    if (follow && (await pullOthers().catch(() => false))) return;
+    keep(workRef.current);
+  };
   useEffect(() => {
     if (work === saved.current.doc) return;
-    const t = setTimeout(() => keep(workRef.current), 500);
+    const t = setTimeout(() => void autosave(), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [work, userId]);
@@ -170,46 +176,44 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     });
   };
 
-  // follow Claude: while this tab shows, read the row's stamp every few seconds and pull the row only when another
-  // writer changed it (refreshCloudKeys puts it in localStorage, so the sync never pushes the stale copy back)
+  // follow Claude: read the row's stamp (every few seconds while this tab shows, and before each autosave) and pull the
+  // row only when another writer changed it (refreshCloudKeys puts it in localStorage, so the sync never pushes the
+  // stale copy back). One check at a time; true when it saved or took a version itself.
+  const seen = useRef("");
+  const checking = useRef<Promise<boolean> | null>(null);
+  const pullOthers = () =>
+    (checking.current ??= (async () => {
+      const key = designsKey(userId);
+      const { data } = await supabase.from("cs_user_data").select("updated_at").eq("user_id", userId).eq("key", key).maybeSingle();
+      const at = data?.updated_at;
+      if (!at || at === seen.current) return false;
+      seen.current = at;
+      if (Date.parse(at) === Date.parse(cloudSyncedAt(key) ?? "")) return false; // this device's own write, or one it has
+      await refreshCloudKeys([key]);
+      const stored = designById(userId, workRef.current.id);
+      const next = followStep(workRef.current, stored, { savedAt: saved.current.at, editedAt: editedAt.current, now: Date.now() });
+      if (next === "ignore") return false;
+      if (next === "apply" && stored) {
+        saved.current = { at: stored.updatedAt, doc: stored };
+        setSavedAt(stored.updatedAt);
+        commit(stored, undefined, true);
+        setOffer(null);
+        setClaudeAt(Date.now());
+        return true;
+      }
+      // the sync just stored Claude's copy (offer) or another device's older one (resave): keep what the user is
+      // looking at saved; Claude's waits for the button
+      keep(workRef.current);
+      if (next === "offer") setOffer(stored);
+      return true;
+    })().finally(() => (checking.current = null)));
   useEffect(() => {
     if (!follow) return;
-    const key = designsKey(userId);
-    let seen = "";
-    let busy = false;
-    const tick = async () => {
+    const tick = () => {
       setClaudeAt((t) => (t && Date.now() - t > CLAUDE_MS ? 0 : t));
-      if (busy || document.visibilityState !== "visible") return;
-      busy = true;
-      try {
-        const { data } = await supabase.from("cs_user_data").select("updated_at").eq("user_id", userId).eq("key", key).maybeSingle();
-        const at = data?.updated_at;
-        if (!at || at === seen) return;
-        seen = at;
-        if (Date.parse(at) === Date.parse(cloudSyncedAt(key) ?? "")) return; // this device's own write, or one it has
-        await refreshCloudKeys([key]);
-        const stored = designById(userId, workRef.current.id);
-        const next = followStep(workRef.current, stored, { savedAt: saved.current.at, editedAt: editedAt.current, now: Date.now() });
-        if (next === "ignore") return;
-        if (next === "apply" && stored) {
-          saved.current = { at: stored.updatedAt, doc: stored };
-          setSavedAt(stored.updatedAt);
-          commit(stored, undefined, true);
-          setOffer(null);
-          setClaudeAt(Date.now());
-        } else {
-          // the sync just stored Claude's copy (offer) or another device's older one (resave): keep what the user is
-          // looking at saved; Claude's waits for the button
-          keep(workRef.current);
-          if (next === "offer") setOffer(stored);
-        }
-      } catch {
-        // offline: the next tick tries again
-      } finally {
-        busy = false;
-      }
+      if (document.visibilityState === "visible") void pullOthers().catch(() => undefined); // offline: the next tick tries again
     };
-    const t = setInterval(() => void tick(), FOLLOW_MS);
+    const t = setInterval(tick, FOLLOW_MS);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [follow, userId, commit]);
