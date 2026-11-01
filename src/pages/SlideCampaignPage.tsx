@@ -19,6 +19,7 @@ import { LOOKS, lookFilter } from "@/lib/design";
 import { appendDictation } from "@/lib/dictation";
 import { CAMPAIGN_TOUR, pageTourDone } from "@/lib/pageTour";
 import { EdgeError, callFn } from "@/lib/edgeFn";
+import { saveSoon } from "@/lib/saveSoon";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
@@ -129,6 +130,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
   const tabFor: Record<string, Role> = { "campaign-hooks": "hook", "campaign-topic": "content" };
   const dictation = useDictation((chunk) => setSpec((s) => ({ ...s, topic: appendDictation(s.topic, chunk, 1200) })));
   const first = useRef(true);
+  const [saver] = useState(() => saveSoon(500));
   const canPost = socialConnectShown();
 
   // ---- load: libraries, accounts, recent runs ----
@@ -151,17 +153,22 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
         .catch(() => setAccounts([]));
   }, [initial.id, initial.profile_id, canPost]);
 
-  // ---- autosave ----
+  // ---- autosave: half a second after the last edit, and at once on leaving ----
   useEffect(() => {
     if (first.current) return void (first.current = false);
     setSaved(false);
-    const t = setTimeout(() => {
-      void callFn<{ campaign: CampaignRowView }>("slide-campaigns", { action: "save", campaign: { id: row.id, name, spec, schedule, publish } })
+    const campaign = { id: row.id, name, spec, schedule, publish };
+    saver.later(() =>
+      callFn<{ campaign: CampaignRowView }>("slide-campaigns", { action: "save", campaign })
         .then((r) => (setRow(r.campaign), setSaved(true)))
-        .catch((e) => toast({ title: "Couldn't save", description: (e as Error).message, variant: "destructive" }));
-    }, 500);
-    return () => clearTimeout(t);
+        .catch((e) => toast({ title: "Couldn't save", description: (e as Error).message, variant: "destructive" })),
+    );
   }, [name, spec, schedule, publish]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const flush = () => void saver.now();
+    window.addEventListener("pagehide", flush);
+    return () => (window.removeEventListener("pagehide", flush), flush());
+  }, [saver]);
 
   const setStyle = (role: Role, p: Partial<TextStyle>) => setSpec((s) => ({ ...s, text_style: { ...s.text_style, [role]: { ...s.text_style[role], ...p } } }));
   const addHooks = (text: string) => {
