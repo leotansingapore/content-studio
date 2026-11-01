@@ -65,6 +65,17 @@ export function oneLibrary(have: Library | null, make: () => Promise<Library>): 
 type Img = { id: string; src: string; url: string | null };
 type Source = "search" | "generate" | "app";
 
+/** A picture as PNG or JPEG: those pass as they are, anything else (WebP) is redrawn as a JPEG. */
+export async function asPngOrJpeg(b: Blob): Promise<Blob> {
+  if (b.type === "image/png" || b.type === "image/jpeg") return b;
+  const bmp = await createImageBitmap(b);
+  const c = document.createElement("canvas");
+  c.width = bmp.width;
+  c.height = bmp.height;
+  c.getContext("2d")!.drawImage(bmp, 0, 0);
+  return new Promise((ok, no) => c.toBlob((j) => (j ? ok(j) : no(new Error("Couldn't read that picture."))), "image/jpeg", 0.9));
+}
+
 export default function LibraryDialog({ profileId, library, onClose, onSaved }: { profileId: string; library: Library | null; onClose: () => void; onSaved: (lib: Library) => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [lib, setLib] = useState<Library | null>(library);
@@ -135,10 +146,12 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
   const upload = (files: FileList | Blob[] | null) =>
     run("upload", async () => {
       const l = await ensure();
-      for (const f of [...(files ?? [])].slice(0, 20)) {
-        if (!/^image\/(png|jpeg|webp)$/.test(f.type)) throw new Error("Pick PNG, JPEG or WebP pictures.");
+      for (const pick of [...(files ?? [])].slice(0, 20)) {
+        if (!/^image\/(png|jpeg|webp)$/.test(pick.type)) throw new Error("Pick PNG, JPEG or WebP pictures.");
+        // the slide drawer can't draw WebP: anything but PNG or JPEG goes up as a JPEG
+        const f = await asPngOrJpeg(pick);
         if (f.size > 10 * 1024 * 1024) throw new Error("Pictures up to 10 MB.");
-        const ext = f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg";
+        const ext = f.type === "image/png" ? "png" : "jpg";
         // the library row comes with the upload link; a failed upload takes its row back out
         const u = await callFn<{ path: string; token: string; id: string }>("slide-campaigns", { action: "upload-url", library_id: l.id, ext });
         const put = await supabase.storage.from("cs-slide-campaigns").uploadToSignedUrl(u.path, u.token, f, { contentType: f.type });

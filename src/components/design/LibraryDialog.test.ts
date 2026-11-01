@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: {} }));
-import { oneLibrary } from "./LibraryDialog";
+import { asPngOrJpeg, oneLibrary } from "./LibraryDialog";
 
 describe("a library dialog's library", () => {
   it("is made once, however many adds ask for it, together or one after another", async () => {
@@ -22,5 +22,14 @@ describe("a library dialog's library", () => {
     const ensure = oneLibrary(null, make);
     await expect(ensure()).rejects.toThrow("offline");
     expect((await ensure()).id).toBe("lib1");
+  });
+});
+
+describe("library uploads", () => {
+  it("send PNG and JPEG as they are (the drawer reads both)", async () => {
+    for (const type of ["image/png", "image/jpeg"]) {
+      const b = new Blob([new Uint8Array([1, 2, 3])], { type });
+      expect(await asPngOrJpeg(b)).toBe(b);
+    }
   });
 });
