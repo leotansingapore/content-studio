@@ -344,7 +344,9 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       if (!lib) return json({ error: "Not found." }, 404);
       const { count } = await admin.from("cs_library_images").select("id", { count: "exact", head: true }).eq("library_id", lib.id);
       if ((count ?? 0) >= MAX_LIBRARY_IMAGES) return json({ error: `A library holds up to ${MAX_LIBRARY_IMAGES} pictures.` }, 400);
-      const ext = b.ext === "png" || b.ext === "webp" ? b.ext : "jpg";
+      // JPEG or PNG only: the drawer (resvg) can't draw WebP
+      const ext = b.ext === "png" ? "png" : b.ext === undefined || b.ext === "jpg" ? "jpg" : null;
+      if (!ext) return json({ error: "Add a JPG or PNG picture." }, 400);
       const path = `${uid}/lib/${crypto.randomUUID()}.${ext}`;
       const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
       if (error || !data) throw error ?? new Error("no upload link");

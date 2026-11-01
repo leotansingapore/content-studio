@@ -7,7 +7,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import satori from "satori";
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
-import { FRAME_W, slideSvg, type Satori, type SlideInput } from "../supabase/functions/_shared/slideDraw.js";
+import { FRAME_W, PhotoError, slideSvg, type Satori, type SlideInput } from "../supabase/functions/_shared/slideDraw.js";
 
 export const config = { maxDuration: 30 };
 
@@ -44,6 +44,8 @@ export async function POST(req: Request): Promise<Response> {
     const png = new Resvg(svg, { fitTo: { mode: "width", value: FRAME_W } }).render().asPng();
     return new Response(png.slice(), { headers: { "content-type": "image/png", "cache-control": "no-store" } });
   } catch (e) {
+    // the caller (run.ts) fails the run and says the picture couldn't be loaded
+    if (e instanceof PhotoError) return new Response("Couldn't load the photo", { status: 422 });
     console.error("slide-render", e);
     return new Response("Couldn't draw the slide", { status: 500 });
   }

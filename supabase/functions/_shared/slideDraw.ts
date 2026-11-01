@@ -198,6 +198,10 @@ export interface SlideInput {
   badge?: boolean;
 }
 
+/** A slide's photo that couldn't be fetched, or that resvg can't draw (WebP): the slide is refused, never drawn black. */
+export class PhotoError extends Error {}
+const DRAWABLE = /^data:image\/(jpeg|png);base64,/;
+
 /** One slide as SVG (exposed for tests) and PNG. */
 /** A Satori-compatible layout function: the caller brings it, so this file imports nothing and runs in Deno and Node. */
 export type Satori = (el: unknown, o: { width: number; height: number; fonts: { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" | "italic" }[] }) => Promise<string>;
@@ -216,6 +220,7 @@ export async function slideSvg(input: SlideInput, satori: Satori): Promise<strin
   );
   // a link is fetched here; a data URL is drawn as it is
   const photo = s.photo && !s.photo.startsWith("data:") ? await photoData(s.photo) : s.photo;
+  if (s.photo && !(photo && DRAWABLE.test(photo))) throw new PhotoError("the slide's photo couldn't be loaded");
   const shade = overlayCss(s.overlay);
   const children: unknown[] = [];
   if (photo) children.push({ type: "img", props: { src: photo, width: FRAME_W, height: H, style: { position: "absolute", left: 0, top: 0, width: FRAME_W, height: H, objectFit: "cover" } } });
@@ -250,13 +255,13 @@ const b64 = (bytes: Uint8Array) => {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 };
-/** A photo as a data URL Satori can draw, or null when it can't be fetched. */
+/** A photo as a data URL Satori and resvg can draw (JPEG or PNG), or null when it can't be fetched. */
 export async function photoData(url: string): Promise<string | null> {
   try {
     const r = await fetch(url);
     if (!r.ok) return null;
     const type = r.headers.get("content-type") ?? "image/jpeg";
-    if (!/^image\/(jpeg|png|webp)/.test(type)) return null;
+    if (!/^image\/(jpeg|png)/.test(type)) return null;
     return `data:${type};base64,${b64(new Uint8Array(await r.arrayBuffer()))}`;
   } catch {
     return null;

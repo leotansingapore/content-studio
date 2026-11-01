@@ -6,7 +6,7 @@ import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { dfs, dfsAuth, SINGAPORE } from "../_shared/dataforseo.ts";
 import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, memoryBlock, publishMode, publishMusic, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
-import type { SlideInput } from "../_shared/slideDraw.ts";
+import { PhotoError, type SlideInput } from "../_shared/slideDraw.ts";
 import { zernioClient } from "../_shared/zernio.ts";
 import { checkSchedule, runPost } from "../social/posts.ts";
 
@@ -30,6 +30,7 @@ export interface CampaignRow {
   last_hook: string | null;
 }
 export class RunError extends Error {}
+const PHOTO_MISSING = "A picture couldn't be loaded. Check the campaign's library.";
 
 const scopedKey = (uid: string, profile: string) => (profile === "me" ? uid : `${uid}~${profile}`);
 
@@ -110,11 +111,12 @@ async function draw(s: SlideInput): Promise<Uint8Array> {
   const secret = Deno.env.get("SLIDE_RENDER_SECRET");
   if (url && secret) {
     const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-slide-render-secret": secret }, body: JSON.stringify({ slide: s }) });
+    if (r.status === 422) throw new RunError(PHOTO_MISSING);
     if (!r.ok || r.headers.get("content-type") !== "image/png") throw new Error(`draw ${r.status}`);
     return new Uint8Array(await r.arrayBuffer());
   }
   const { renderSlide } = await import("../_shared/slideRender.ts");
-  return renderSlide(s);
+  return renderSlide(s).catch((e) => Promise.reject(e instanceof PhotoError ? new RunError(PHOTO_MISSING) : e));
 }
 
 export interface MadeRun {
@@ -144,6 +146,7 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
     const { data } = await admin.from("cs_library_images").select("src").eq("library_id", lib).eq("owner_id", uid).limit(300);
     const chosen = pickImages((data ?? []).map((r) => r.src as string), at.length, spec.images.per_slide);
     const loaded = await Promise.all(chosen.map((src) => pictureSrc(admin, uid, src)));
+    if (loaded.some((u) => !u)) throw new RunError(PHOTO_MISSING);
     at.forEach((slide, k) => (pics[slide] = loaded[k] ?? null));
   }
 
@@ -157,7 +160,11 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
     plan.map((s, i) =>
       draw({ format: spec.format, photo: pics[i], text: s.text, style: spec.text_style[s.role], look: spec.look, lookStrength: spec.look_strength, overlay: spec.overlay, badge: s.role === "cta" && spec.cta.badge }),
     ),
-  );
+  ).catch(async (e) => {
+    // the run keeps the reason it stopped
+    if (e instanceof RunError) await admin.from("cs_slide_campaign_runs").update({ error: e.message }).eq("id", runId);
+    throw e;
+  });
   for (let i = 0; i < pngs.length; i++) {
     const up = await admin.storage.from(BUCKET).upload(files[i], pngs[i], { contentType: "image/png", upsert: false });
     if (up.error) throw new Error(`upload: ${up.error.message}`);

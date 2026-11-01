@@ -128,6 +128,7 @@ const admin = {
       download: (path: string) => Promise.resolve({ data: files.has(path) ? new Blob([files.get(path)!.slice()], { type: "image/jpeg" }) : null }),
       remove: (paths: string[]) => (paths.forEach((p) => files.delete(p)), Promise.resolve({ error: null })),
       createSignedUrls: (paths: string[]) => Promise.resolve({ data: paths.map((p) => ({ signedUrl: `https://stub.supabase.co/storage/v1/object/sign/cs-slide-campaigns/${p}?token=t` })) }),
+      createSignedUrl: (p: string) => Promise.resolve({ data: { signedUrl: `https://stub.supabase.co/storage/v1/object/sign/cs-slide-campaigns/${p}?token=t` } }),
       createSignedUploadUrl: (path: string) => Promise.resolve({ data: { token: "t", signedUrl: `https://stub/${path}` }, error: null }),
       // a folder's entries: files directly in it, and sub-folders (id null) once each
       list: (prefix: string) => {
@@ -163,9 +164,15 @@ const writer = { now: 0, most: 0 };
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   if (url === DRAWER) {
-    drawn.push(JSON.parse(String(init?.body)).slide);
+    const slide = JSON.parse(String(init?.body)).slide;
+    drawn.push(slide);
+    // as api/slide-render.ts answers a photo it can't load or draw
+    if (String(slide.photo ?? "").includes(".webp")) return new Response("Couldn't load the photo", { status: 422 });
     return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), { headers: { "content-type": "image/png" } });
   }
+  // the signed links to the bucket serve what was uploaded, typed by its ending
+  const stored = /^https:\/\/stub\.supabase\.co\/storage\/v1\/object\/sign\/cs-slide-campaigns\/([^?]+)/.exec(url)?.[1];
+  if (stored) return files.has(stored) ? new Response(files.get(stored)!.slice(), { headers: { "content-type": stored.endsWith(".webp") ? "image/webp" : "image/png" } }) : new Response("", { status: 404 });
   if (url.includes("api.openai.com")) {
     writer.most = Math.max(writer.most, ++writer.now);
     await new Promise((ok) => setTimeout(ok, 20));
@@ -399,6 +406,35 @@ Deno.test("a tick makes a dozen campaigns due at the same time, several at once"
     for (const c of db.cs_slide_campaigns) c.status = "paused";
     usage.clear();
   }
+});
+
+Deno.test("a picture that can't be loaded or drawn fails the run with a plain reason, never a black slide", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  const MISSING = "A picture couldn't be loaded. Check the campaign's library.";
+  const lib = (await call("jwt-a", { action: "library-save", profile_id: "me", name: "Uploads" })).body.library.id;
+  // a WebP upload is refused: the drawer can't draw one
+  assertEquals((await call("jwt-a", { action: "upload-url", library_id: lib, ext: "webp" })).body, { error: "Add a JPG or PNG picture." });
+  // one uploaded before that
+  const webp = `${A}/lib/${crypto.randomUUID()}.webp`;
+  files.set(webp, new Uint8Array([0x52, 0x49, 0x46, 0x46]));
+  const row: Row = { id: crypto.randomUUID(), library_id: lib, owner_id: A, src: webp };
+  db.cs_library_images.push(row);
+  const id = (await call("jwt-a", { action: "save", campaign: { profile_id: "me", name: "Pics", spec: { hooks: ["Hook"], content: { slides: 1 }, cta: { placement: "none" }, images: { hook: lib } } } })).body.campaign.id;
+  const pre = await call("jwt-a", { action: "preview", id });
+  assertEquals([pre.status, pre.body.error], [400, MISSING]);
+  const run = db.cs_slide_campaign_runs.filter((r) => r.campaign_id === id).at(-1)!;
+  assertEquals([run.status, run.error], ["failed", MISSING]);
+  // the same through the Vercel drawer
+  Deno.env.set("SLIDE_RENDER_URL", DRAWER);
+  Deno.env.set("SLIDE_RENDER_SECRET", "s");
+  try {
+    assertEquals((await call("jwt-a", { action: "preview", id })).body.error, MISSING);
+  } finally {
+    Deno.env.delete("SLIDE_RENDER_URL");
+  }
+  // a picture it can't make a link to (not the owner's upload) is refused before any slide is drawn
+  row.src = `${B}/lib/${crypto.randomUUID()}.png`;
+  assertEquals((await call("jwt-a", { action: "preview", id })).body.error, MISSING);
 });
 
 Deno.test("a post handed to Zernio for later is taken back by a pause, a delete, an account change or consent withdrawn", async () => {
