@@ -25,7 +25,7 @@ import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { STATUS_LABEL, cadence, when, type CampaignRowView } from "@/pages/SlideCampaignsPage";
-import { MAX_HOOKS, MAX_TIMES, publishMode, publishMusic, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
+import { MAX_HOOKS, MAX_TIMES, publishMode, publishMusic, publishSettings, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Publish, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
 import { CAMPAIGN_FONTS, FRAME_H, PX_RANGE, SAFE_BOTTOM, SAFE_TOP, type TextStyle } from "../../supabase/functions/_shared/slideStyle.ts";
 
 type Run = { id: string; hook: string; caption: string; slides: { role: Role; text: string }[]; urls: (string | null)[]; kind?: string; status?: string; scheduled_for?: string | null; error?: string | null; created_at?: string };
@@ -35,6 +35,9 @@ const TABS = [
   { value: "cta", label: "CTA" },
 ] as const;
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+/** TikTok's own words for who can see a post. */
+const WHO = [["PUBLIC_TO_EVERYONE", "Everyone"], ["MUTUAL_FOLLOW_FRIENDS", "Friends"], ["FOLLOWER_OF_CREATOR", "Followers"], ["SELF_ONLY", "Only me"]] as const;
+const DISCLOSE = [["none", "Nothing to disclose"], ["brand_organic", "Promotes my own business"], ["brand_content", "Paid partnership with a brand"]] as const;
 
 /** The look buttons show the look on a real photo. */
 const LOOK_SAMPLE = "/templates/behind/rest.jpg";
@@ -122,7 +125,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
   const [preview, setPreview] = useState<Run | null>(null);
   const [busy, setBusy] = useState<"generate" | "start" | "pause" | "delete" | "send" | null>(null);
   const [hookDraft, setHookDraft] = useState("");
-  const [publish, setPublish] = useState(() => ({ mode: publishMode(initial.publish), consent: publishMode(initial.publish) === "direct", music: publishMusic(initial.publish) }));
+  const [publish, setPublish] = useState(() => ({ mode: publishMode(initial.publish), consent: publishMode(initial.publish) === "direct", music: publishMusic(initial.publish), ...publishSettings(initial.publish) }));
   const [caption, setCaption] = useState<string | null>(null);
   const [safe, setSafe] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
@@ -549,9 +552,35 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                 </label>
               )}
               {publish.mode === "direct" && (
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input type="checkbox" className="accent-primary" checked={publish.music} onChange={(e) => setPublish((p) => ({ ...p, music: e.target.checked }))} /> Add TikTok's recommended music
-                </label>
+                <>
+                  <label className="grid grid-cols-[6rem_1fr] items-center gap-2 text-xs">
+                    Who can see it
+                    <select className={field} value={publish.privacy} onChange={(e) => setPublish((p) => ({ ...p, privacy: e.target.value as Publish["privacy"] }))}>
+                      {WHO.map(([v, label]) => (
+                        // TikTok refuses a paid partnership only the owner can see
+                        <option key={v} value={v} disabled={v === "SELF_ONLY" && publish.commercial === "brand_content"}>
+                          {v === "SELF_ONLY" && publish.commercial === "brand_content" ? `${label} (not for a paid partnership)` : label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input type="checkbox" className="accent-primary" checked={publish.comments} onChange={(e) => setPublish((p) => ({ ...p, comments: e.target.checked }))} /> Allow comments
+                  </label>
+                  <label className="grid grid-cols-[6rem_1fr] items-center gap-2 text-xs">
+                    This post
+                    <select className={field} value={publish.commercial} onChange={(e) => setPublish((p) => ({ ...p, commercial: e.target.value as Publish["commercial"] }))}>
+                      {DISCLOSE.map(([v, label]) => (
+                        <option key={v} value={v} disabled={v === "brand_content" && publish.privacy === "SELF_ONLY"}>
+                          {v === "brand_content" && publish.privacy === "SELF_ONLY" ? `${label} (not for Only me)` : label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input type="checkbox" className="accent-primary" checked={publish.music} onChange={(e) => setPublish((p) => ({ ...p, music: e.target.checked }))} /> Add TikTok's recommended music
+                  </label>
+                </>
               )}
             </section>
           </fieldset>
