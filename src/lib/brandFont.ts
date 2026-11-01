@@ -36,9 +36,9 @@ export const FONT_LIMIT_ERROR = "Up to 5 fonts per brand. Remove one to add anot
 const FULL_ERROR = "This device is out of room, so the font wasn't saved. Clear some space, then try again.";
 
 type Kind = "woff2" | "woff" | "otf" | "ttf";
-const MIME: Record<Kind, string> = { woff2: "font/woff2", otf: "font/otf", ttf: "font/ttf" };
+const MIME: Record<Kind, string> = { woff2: "font/woff2", woff: "font/woff", otf: "font/otf", ttf: "font/ttf" };
 
-/** The font a file's first 4 bytes say it is: wOF2, OTTO, "true" or 00 01 00 00; null for anything else. */
+/** The font a file's first 4 bytes say it is: wOF2, wOFF, OTTO, "true" or 00 01 00 00; null for anything else. */
 export function fontKind(head: ArrayLike<number>): Kind | null {
   const tag = String.fromCharCode(...Array.from(head).slice(0, 4));
   if (tag === "wOF2") return "woff2";
