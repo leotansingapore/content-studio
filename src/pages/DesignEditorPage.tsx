@@ -363,7 +363,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     if (!files) return;
     const d = workRef.current;
     if (files.length === 1) downloadBlob(files[0], slideFileName(d.title, only?.[0] ?? 0));
-    else downloadBlob(await zipBlob(files.map((file, i) => ({ file, name: slideFileName(d.title, i) }))), slidesZipName(d.title));
+    else downloadBlob(await zipBlob(files.map((file, i) => ({ file, name: slideFileName(d.title, only?.[i] ?? i) }))), slidesZipName(d.title));
     toast({ title: files.length === 1 ? "Slide downloaded" : "Slides downloaded" });
   };
   const toPhone = async () => {
