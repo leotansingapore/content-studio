@@ -235,3 +235,15 @@ describe("social north star: the synced key", () => {
     expect(n.loadSocialNs(U)).toMatchObject({ labels: { b: { family: "meme", hook: null } }, plays: [] });
   });
 });
+
+describe("social north star: example covers", () => {
+  it("draws the cover saved with the plan, else this device's latest read of that post, else none", () => {
+    const post = { id: "7660904485027319053" } as TrackedPost;
+    const e = { key: `tiktok:${post.id}`, platform: "tiktok" as const, handle: "glimmo.official", name: "Glimmo", post, ratio: 231 };
+    const media = { "tiktok:glimmo.official": { [post.id]: { cover: "https://p16-sign-sg.tiktokcdn.com/read.jpeg" } } };
+    expect(n.exampleCover({ ...e, cover: "https://p16-sign-sg.tiktokcdn.com/saved.jpeg" }, media)).toBe("https://p16-sign-sg.tiktokcdn.com/saved.jpeg");
+    expect(n.exampleCover(e, media)).toBe("https://p16-sign-sg.tiktokcdn.com/read.jpeg");
+    expect(n.exampleCover({ ...e, handle: "someone.else" }, media)).toBeUndefined();
+    expect(n.exampleCover(e, {})).toBeUndefined();
+  });
+});

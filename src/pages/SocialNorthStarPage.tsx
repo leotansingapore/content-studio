@@ -19,9 +19,9 @@ import { remixUrl } from "@/lib/following";
 import { links } from "@/lib/links";
 import { reasonText } from "@/lib/prices";
 import { dayMonth, fromFollowPost } from "@/lib/remixSource";
-import { isFinding, lastFind, loadSimilar, onSimilarChanged, similarBusy } from "@/lib/similarAccounts";
+import { isFinding, lastFind, loadMedia, loadSimilar, onSimilarChanged, type PostMedia, similarBusy } from "@/lib/similarAccounts";
 import {
-  isBuilding, isReadingOwn, isStarting, lastNote, loadSocialNs, nextUp, onSocialNs, onSocialNsChanged, ownCounts, type Play, type PlayExample, progressOf, readCount, runBuild,
+  exampleCover, isBuilding, isReadingOwn, isStarting, lastNote, loadSocialNs, nextUp, onSocialNs, onSocialNsChanged, ownCounts, type Play, type PlayExample, progressOf, readCount, runBuild,
   startSocialNs,
 } from "@/lib/socialNorthStar";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -57,6 +57,7 @@ function SocialNorthStar({ userId }: { userId: string }) {
   useEffect(() => onSocialNsChanged(() => bump((v) => v + 1)), []);
   useEffect(() => onSimilarChanged(() => bump((v) => v + 1)), []);
   useEffect(() => onSocialNs(() => tick((n) => n + 1)), []);
+  const media = useMemo(() => loadMedia(userId), [userId, version]);
 
   const finding = isFinding();
   const building = isBuilding();
@@ -148,7 +149,7 @@ function SocialNorthStar({ userId }: { userId: string }) {
 
       {ns.plays.length > 0 ? (
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          {ns.plays.map((p) => <PlayCard key={p.id} play={p} done={counts[p.id] ?? 0} counted={counted} next={next?.id === p.id} linked={linked} />)}
+          {ns.plays.map((p) => <PlayCard key={p.id} play={p} media={media} done={counts[p.id] ?? 0} counted={counted} next={next?.id === p.id} linked={linked} />)}
         </div>
       ) : (
         !busy && (
@@ -168,7 +169,9 @@ function SocialNorthStar({ userId }: { userId: string }) {
   );
 }
 
-function PlayCard({ play: p, done, counted, next, linked }: { play: Play; done: number; counted: boolean; next: boolean; linked: string | null }) {
+function PlayCard({ play: p, media, done, counted, next, linked }: {
+  play: Play; media: Record<string, Record<string, PostMedia>>; done: number; counted: boolean; next: boolean; linked: string | null;
+}) {
   const best = p.examples[0];
   const name = FAMILY_NAME[p.id];
   const slides = p.slides !== null || best?.post.format === "carousel";
@@ -204,7 +207,7 @@ function PlayCard({ play: p, done, counted, next, linked }: { play: Play; done: 
       )}
 
       <ul className="grid grid-cols-3 gap-2" aria-label={`Best ${name.toLowerCase()} posts`}>
-        {p.examples.map((e) => <ExampleTile key={e.key} e={e} linked={linked === e.key} />)}
+        {p.examples.map((e) => <ExampleTile key={e.key} e={e} cover={exampleCover(e, media)} linked={linked === e.key} />)}
       </ul>
 
       <dl className="space-y-1.5">
@@ -230,7 +233,7 @@ function PlayCard({ play: p, done, counted, next, linked }: { play: Play; done: 
   );
 }
 
-function ExampleTile({ e, linked }: { e: PlayExample; linked: boolean }) {
+function ExampleTile({ e, cover, linked }: { e: PlayExample; cover: string | undefined; linked: boolean }) {
   const ref = useScrollToItem<HTMLLIElement>(linked);
   const [broken, setBroken] = useState(false);
   const open = safeExternalUrl(e.post.url);
@@ -238,9 +241,9 @@ function ExampleTile({ e, linked }: { e: PlayExample; linked: boolean }) {
     <li ref={ref} className={cn("min-w-0 overflow-hidden rounded-lg border bg-muted/30", linked ? "border-primary ring-2 ring-primary/30" : "border-border/60")}>
       <a href={open ?? undefined} target="_blank" rel="noopener noreferrer" className="block" aria-label={`Open @${e.handle}'s post, ${times(e.ratio)} their usual`}>
         <div className="aspect-[3/4] w-full bg-muted">
-          {e.cover && !broken ? (
+          {cover && !broken ? (
             // cover links expire within days; a broken one shows the format instead
-            <img src={e.cover} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
+            <img src={cover} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full items-center justify-center text-[11px] text-muted-foreground">{FORMAT[e.post.format]}</span>
           )}

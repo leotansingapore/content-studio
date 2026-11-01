@@ -206,6 +206,14 @@ export function buildPlays(refs: RefPost[], labels: Record<string, PostLabel>, r
   });
 }
 
+/**
+ * An example's cover: the one saved with the plan, else this device's latest read of that post. Plans built before
+ * covers were kept (1 Nov) saved none, and the reads that bring them come after the build.
+ */
+export function exampleCover(e: PlayExample, media: Record<string, Record<string, PostMedia>>): string | undefined {
+  return e.cover ?? media[`${e.platform}:${e.handle}`]?.[e.post.id]?.cover;
+}
+
 // ---- Progress --------------------------------------------------------------------------------------------------------
 
 /** The brand's own posts of the last 30 days in each family, as Jev labelled them. */

@@ -266,6 +266,8 @@ function writeMedia(userId: string, all: Record<string, Record<string, PostMedia
   } catch {
     // a device cache only: the north star labels from the words alone
   }
+  // after the read's saveSimilar, so the north star's tiles draw the covers that just came in
+  globalThis.dispatchEvent?.(new Event(CHANGED));
 }
 
 /** Keeps the media of the posts in `keep` (the account's best), from this read or the last one; the rest go. */
