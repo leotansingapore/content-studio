@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type Store } from "./logic";
+import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type RowQuery, type Store } from "./logic";
 import { MAX_DESIGNS, newDesign, newLayer, sanitizeDesign, type Design, type ImageLayer, type TextLayer } from "../_shared/design";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic";
 
@@ -842,7 +842,20 @@ describe("picture tools", () => {
     });
     return seen;
   };
-  const everyone = (usage = fakeUsage(), media: Media = { pexelsKey: "px-key" }) => ({ leo: false, usage, media });
+  /** The service-role tables as arrays: rows() keeps each eq, the like (% and its escapes), the order and the limit, and logs each query. */
+  const fakeRows = (tables: Record<string, Record<string, unknown>[]> = {}) => {
+    const queries: { table: string; q: RowQuery }[] = [];
+    const rows = async (table: string, q: RowQuery) => {
+      queries.push({ table, q });
+      const like = q.like && { col: q.like[0], text: q.like[1].replace(/^%|%$/g, "").replace(/\\(.)/g, "$1") };
+      const out = (tables[table] ?? []).filter((r) => Object.entries(q.eq).every(([k, v]) => r[k] === v) && (!like || String(r[like.col]).includes(like.text)));
+      for (const [col, asc] of [...(q.order ?? [])].reverse()) out.sort((a, b) => (a[col] === b[col] ? 0 : (a[col] as number) > (b[col] as number) === asc ? 1 : -1));
+      return out.slice(0, q.limit).map((r) => Object.fromEntries(q.cols.split(",").map((c) => [c.trim(), r[c.trim()]])));
+    };
+    return { rows, queries };
+  };
+  const media = (o: Partial<Media> = {}): Media => ({ pexelsKey: "px-key", supabaseUrl: "https://db.test", rows: fakeRows().rows, ...o });
+  const everyone = (usage = fakeUsage(), m: Media = media()) => ({ leo: false, usage, media: m });
   const run = async (name: string, args: Record<string, unknown>, caller: Caller, l: Link = link) => {
     const r = await callTool(name, args, memoryStore({}), l, now, caller);
     return { error: r.isError === true, out: r.isError ? r.content[0].text : JSON.parse(r.content[0].text) };
@@ -896,7 +909,7 @@ describe("picture tools", () => {
       const seen = fakeFetch(() => 429);
       const usage = fakeUsage();
       expect((await run("search_photos", { query: " " }, everyone(usage))).error).toBe(true);
-      expect(await run("search_photos", { query: "city" }, everyone(usage, {}))).toEqual({ error: true, out: "Free photo search isn't switched on yet." });
+      expect(await run("search_photos", { query: "city" }, everyone(usage, media({ pexelsKey: undefined })))).toEqual({ error: true, out: "Free photo search isn't switched on yet." });
       expect(usage.calls).toEqual([]);
       expect(seen).toEqual([]);
       expect(await run("search_photos", { query: "city" }, everyone(usage))).toEqual({ error: true, out: "The photo library is busy. Try again in a few minutes." });
@@ -911,6 +924,56 @@ describe("picture tools", () => {
       const r = await handleRpc(call("search_photos", { query: "city" }), memoryStore({}), link, now, { ...everyone(usage), name: "Zapier" });
       expect(answer(r).photos).toHaveLength(1);
       expect(usage.calls).toEqual(["stock-search"]);
+    });
+  });
+
+  describe("find_working_formats", () => {
+    const slideshow = (id: string, o: Record<string, unknown> = {}) => ({
+      id, url: `https://www.tiktok.com/@maker/photo/${id}`, author: "maker", niche: "business_marketing", format: "classic_tiktok", hook: "question",
+      hook_text: "Why do 9 in 10 fail?", structure: "list", summary: "Five habits.", slides: 3, ratio: 4.5, views: 120000, saves: 900,
+      working_now: true, hidden: false, search: "maker why do 9 in 10 fail? five habits 100%_real", caption: "not for claude", ...o,
+    });
+    const library = () => fakeRows({
+      cs_working_slideshows: [
+        slideshow("7000000001"),
+        slideshow("7000000002", { niche: "ai_tools", ratio: 9, working_now: false, views: 5 }),
+        slideshow("7000000003", { hidden: true, ratio: 99 }),
+        ...Array.from({ length: 25 }, (_, i) => slideshow(`71000000${String(i).padStart(2, "0")}`, { ratio: 1, search: "filler" })),
+      ],
+    });
+
+    it("answers at most 20 visible slideshows with their slide pictures and post link, working now first", async () => {
+      const db = library();
+      const { out } = await run("find_working_formats", {}, everyone(fakeUsage(), media({ rows: db.rows })));
+      expect(out.count).toBe(20);
+      expect(out.slideshows[0]).toEqual({
+        id: "7000000001", url: "https://www.tiktok.com/@maker/photo/7000000001", author: "maker", niche: "business_marketing", format: "classic_tiktok", hook: "question",
+        hook_text: "Why do 9 in 10 fail?", structure: "list", summary: "Five habits.", slides: 3, ratio: 4.5, views: 120000, saves: 900,
+        pictures: [1, 2, 3].map((n) => `https://db.test/storage/v1/object/public/cs-working/7000000001/${n}.webp`),
+      });
+      expect(out.slideshows.map((r: { id: string }) => r.id)).not.toContain("7000000003");
+      expect(db.queries).toEqual([{ table: "cs_working_slideshows", q: expect.objectContaining({ eq: { hidden: false }, order: [["working_now", false], ["ratio", false], ["id", true]], limit: 20 }) }]);
+    });
+
+    it("finds by words (lower-cased, wildcards taken literally) and niche, and sorts by views or saves", async () => {
+      const db = library();
+      const caller = everyone(fakeUsage(), media({ rows: db.rows }));
+      expect((await run("find_working_formats", { query: "  WHY do " }, caller)).out.slideshows.map((r: { id: string }) => r.id)).toEqual(["7000000001", "7000000002"]);
+      expect((await run("find_working_formats", { query: "100%_real", niche: "ai_tools", sort: "views" }, caller)).out.slideshows.map((r: { id: string }) => r.id)).toEqual(["7000000002"]);
+      expect(db.queries.map((x) => [x.q.like, x.q.eq, x.q.order])).toEqual([
+        [["search", "%why do%"], { hidden: false }, [["working_now", false], ["ratio", false], ["id", true]]],
+        [["search", "%100\\%\\_real%"], { hidden: false, niche: "ai_tools" }, [["views", false], ["id", true]]],
+      ]);
+      await run("find_working_formats", { sort: "saves" }, caller);
+      expect(db.queries[2].q.order).toEqual([["saves", false], ["id", true]]);
+    });
+
+    it("refuses an odd niche or sort without reading, and counts no use", async () => {
+      const db = library();
+      const usage = fakeUsage();
+      for (const args of [{ niche: "AI Tools" }, { niche: "x%" }, { sort: "random" }]) expect((await run("find_working_formats", args, everyone(usage, media({ rows: db.rows })))).error).toBe(true);
+      expect(db.queries).toEqual([]);
+      expect(usage.calls).toEqual([]);
     });
   });
 });

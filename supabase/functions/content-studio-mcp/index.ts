@@ -97,7 +97,19 @@ Deno.serve(async (req) => {
     } catch {
       // an older or odd row: the link works without a name
     }
-    const media: Media = { pexelsKey: Deno.env.get("PEXELS_API_KEY") || undefined };
+    const media: Media = {
+      pexelsKey: Deno.env.get("PEXELS_API_KEY") || undefined,
+      supabaseUrl: Deno.env.get("SUPABASE_URL")!,
+      async rows(t, q) {
+        // logic.ts scopes every query it makes (the link's user and brand, or What's working's hidden = false)
+        let b = admin.from(t).select(q.cols).match(q.eq);
+        if (q.like) b = b.like(q.like[0], q.like[1]);
+        for (const [col, ascending] of q.order ?? []) b = b.order(col, { ascending, nullsFirst: false });
+        const { data, error } = await b.limit(q.limit);
+        if (error) throw error;
+        return (data ?? []) as unknown as Record<string, unknown>[];
+      },
+    };
     const caller: Caller = { leo: isAllowed(Deno.env.get("NORTH_STAR_USERS"), link.userId), name, usage: admin, media };
 
     const store: Store = {

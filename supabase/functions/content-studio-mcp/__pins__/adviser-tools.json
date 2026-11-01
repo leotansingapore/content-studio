@@ -221,6 +221,32 @@
           "query"
         ]
       }
+    },
+    {
+      "name": "find_working_formats",
+      "description": "TikTok photo slideshows that beat their creator's usual views (What's working in Postmosis), at most 20: id, url (the TikTok post), author, niche, format, hook (its kind) and hook_text (the cover's words), structure, summary, slides (how many), ratio (times the creator's usual views), views, saves and pictures (each slide's picture, in order). Rebuild one as a format for this brand: keep its hook kind, structure and slide count and write new words, never the original's. The slides are the creator's: look at them for the layout, never put them in a design, and credit @author when you name one.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Words to find in the creator, caption, hook or slide text."
+          },
+          "niche": {
+            "type": "string",
+            "description": "A niche as the results name it, such as business_marketing, ai_tools or self_improvement."
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "working",
+              "views",
+              "saves"
+            ],
+            "description": "working (working now, then the biggest ratio) is the default."
+          }
+        }
+      }
     }
   ]
 }

@@ -101,6 +101,18 @@ export interface Caller {
 export interface Media {
   /** PEXELS_API_KEY, sent as stock-media sends it. */
   pexelsKey?: string;
+  /** SUPABASE_URL, for addresses in a public bucket. */
+  supabaseUrl: string;
+  /** Rows of one table through the service role: every eq column equal, the like if any, in order, at most limit. */
+  rows(table: string, q: RowQuery): Promise<Record<string, unknown>[]>;
+}
+export interface RowQuery {
+  cols: string;
+  eq: Record<string, string | boolean>;
+  like?: [string, string];
+  /** [column, ascending], nulls last */
+  order?: [string, boolean][];
+  limit: number;
 }
 const EVERYONE: Caller = { leo: false };
 
@@ -336,6 +348,19 @@ export const MEDIA_TOOLS = [
       required: ["query"],
     },
   },
+  {
+    name: "find_working_formats",
+    description:
+      "TikTok photo slideshows that beat their creator's usual views (What's working in Postmosis), at most 20: id, url (the TikTok post), author, niche, format, hook (its kind) and hook_text (the cover's words), structure, summary, slides (how many), ratio (times the creator's usual views), views, saves and pictures (each slide's picture, in order). Rebuild one as a format for this brand: keep its hook kind, structure and slide count and write new words, never the original's. The slides are the creator's: look at them for the layout, never put them in a design, and credit @author when you name one.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Words to find in the creator, caption, hook or slide text." },
+        niche: { type: "string", description: "A niche as the results name it, such as business_marketing, ai_tools or self_improvement." },
+        sort: { type: "string", enum: ["working", "views", "saves"], description: "working (working now, then the biggest ratio) is the default." },
+      },
+    },
+  },
 ] as const;
 
 export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
@@ -363,6 +388,7 @@ export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
   create_design: "Starts a slideshow from a template",
   update_design: "Edits a slideshow, live in the editor",
   search_photos: "Free stock photos for your slides",
+  find_working_formats: "Slideshows working now, to rebuild",
 };
 
 type Args = Record<string, unknown>;
@@ -626,9 +652,30 @@ async function spend(caller: Caller, userId: string, feature: UsageFeature, what
   return fail(use?.allowed === false && use.reason === "limit" ? `The user's ${DAILY_LIMITS[feature]} ${what} for today are used. More at 8am Singapore time.` : BUSY_LINE);
 }
 
+/** What's working's columns for Claude (supabase/hub/032); pictures are added from the public cs-working bucket. */
+const WORKING_COLS = "id, url, author, niche, format, hook, hook_text, structure, summary, slides, ratio, views, saves";
+
 async function mediaTool(name: string, args: Args, link: Link, caller: Caller): Promise<ToolResult> {
   const media = caller.media;
   if (!media) return fail(BUSY_LINE);
+  if (name === "find_working_formats") {
+    const q = (str(args.query) ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
+    const niche = str(args.niche) ?? "";
+    if (niche && !/^[a-z_]{1,40}$/.test(niche)) return fail("niche is a slug such as business_marketing, as the results name it.");
+    const sort = args.sort ?? "working";
+    if (sort !== "working" && sort !== "views" && sort !== "saves") return fail("sort must be working, views or saves.");
+    // the page's query (workingLibrary.ts applyFilters): search is lower-cased by the importer, so like matches; id last for a stable order
+    const query: RowQuery = {
+      cols: WORKING_COLS,
+      eq: { hidden: false, ...(niche ? { niche } : {}) },
+      order: [...(sort === "working" ? [["working_now", false], ["ratio", false]] : [[sort, false]]), ["id", true]] as [string, boolean][],
+      limit: 20,
+    };
+    if (q) query.like = ["search", `%${q.toLowerCase().replace(/[\\%_]/g, "\\$&")}%`];
+    const rows = await media.rows("cs_working_slideshows", query);
+    const pictures = (r: Record<string, unknown>) => Array.from({ length: Math.min(40, Number(r.slides) || 0) }, (_, i) => `${media.supabaseUrl}/storage/v1/object/public/cs-working/${r.id}/${i + 1}.webp`);
+    return ok({ count: rows.length, slideshows: rows.map((r) => ({ ...r, pictures: pictures(r) })) });
+  }
   // search_photos: stock-media's search, its key and its "stock-search" cap
   const parsed = parseStockRequest({ kind: "photo", query: args.query, orientation: args.orientation });
   if (!parsed.ok) return fail(parsed.error);
