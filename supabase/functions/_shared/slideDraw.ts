@@ -10,9 +10,14 @@ export const CAMPAIGN_FONTS = ["TikTok Sans", "Inter", "DM Sans", "Montserrat", 
 export type CampaignFont = (typeof CAMPAIGN_FONTS)[number];
 export type TextBg = "none" | "bar" | "soft" | "outline" | "snap";
 export interface TextStyle {
-  v: "top" | "middle" | "bottom";
+  /** Text alignment inside the block. */
   h: "left" | "center" | "right";
-  size: "sm" | "md" | "lg";
+  /** Where the block sits in the safe area, 0-100 from left and from top (50, 50 is the middle). */
+  x: number;
+  y: number;
+  /** Font size in px on the 1080-wide frame, and the block's width as a share of the safe area. */
+  px: number;
+  width: number;
   font: CampaignFont;
   italic: boolean;
   caps: boolean;
@@ -20,13 +25,39 @@ export interface TextStyle {
   /** #rrggbb */
   color: string;
 }
-export const DEFAULT_STYLE: TextStyle = { v: "middle", h: "center", size: "md", font: "TikTok Sans", italic: false, caps: false, bg: "none", color: "#ffffff" };
+export const DEFAULT_STYLE: TextStyle = { h: "center", x: 50, y: 50, px: 58, width: 100, font: "TikTok Sans", italic: false, caps: false, bg: "none", color: "#ffffff" };
 export interface Overlay {
   kind: "none" | "dim" | "bottom" | "top";
   /** 0-100 */
   strength: number;
 }
-export const SIZE_PX: Record<TextStyle["size"], number> = { sm: 46, md: 58, lg: 76 };
+/** The three sizes campaigns had before the slider (31 Oct), still read from older campaigns. */
+export const SIZE_PX = { sm: 46, md: 58, lg: 76 } as const;
+export const PX_RANGE = [30, 140] as const;
+
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const oneOf = <T extends string>(v: unknown, list: readonly T[], fallback: T): T => (list.includes(v as T) ? (v as T) : fallback);
+const clamp = (v: unknown, fallback: number, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : fallback);
+
+/** A text style as sent, made whole; older styles' top/middle/bottom and small/medium/large become y and px. */
+export function sanitizeStyle(raw: unknown): TextStyle {
+  const r = isObj(raw) ? raw : {};
+  const d = DEFAULT_STYLE;
+  const y0 = r.v === "top" ? 0 : r.v === "bottom" ? 100 : d.y;
+  const px0 = typeof r.size === "string" && r.size in SIZE_PX ? SIZE_PX[r.size as keyof typeof SIZE_PX] : d.px;
+  return {
+    h: oneOf(r.h, ["left", "center", "right"] as const, d.h),
+    x: clamp(r.x, d.x, 0, 100),
+    y: clamp(r.y, y0, 0, 100),
+    px: clamp(r.px, px0, PX_RANGE[0], PX_RANGE[1]),
+    width: clamp(r.width, d.width, 30, 100),
+    font: oneOf(r.font, CAMPAIGN_FONTS, d.font),
+    italic: r.italic === true,
+    caps: r.caps === true,
+    bg: oneOf(r.bg, ["none", "bar", "soft", "outline", "snap"] as const, d.bg),
+    color: typeof r.color === "string" && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : d.color,
+  };
+}
 export const SAFE_TOP = 200;
 export const SAFE_BOTTOM = 320;
 
@@ -149,7 +180,7 @@ function wordsBlock(text: string, s: TextStyle, px: number): El {
     el("span", { ...base, ...(box ? { backgroundColor: box, padding: `${Math.round(px * 0.08)}px ${Math.round(px * 0.18)}px` } : { padding: `0 ${Math.round(px * 0.13)}px` }) }, w),
   );
   const justify = s.h === "left" ? "flex-start" : s.h === "right" ? "flex-end" : "center";
-  const block = el("div", { display: "flex", flexWrap: "wrap", justifyContent: justify, rowGap: box ? Math.round(px * 0.12) : 0, maxWidth: FRAME_W - 2 * 84 }, items);
+  const block = el("div", { display: "flex", flexWrap: "wrap", justifyContent: justify, rowGap: box ? Math.round(px * 0.12) : 0, maxWidth: Math.round(((FRAME_W - 2 * 84) * s.width) / 100) }, items);
   return s.bg === "snap" ? el("div", { display: "flex", width: FRAME_W, justifyContent: justify, backgroundColor: "rgba(0,0,0,0.6)", padding: `${Math.round(px * 0.4)}px 84px` }, [block]) : block;
 }
 
@@ -172,9 +203,11 @@ export interface SlideInput {
 export type Satori = (el: unknown, o: { width: number; height: number; fonts: { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" | "italic" }[] }) => Promise<string>;
 
 /** One slide as SVG. */
-export async function slideSvg(s: SlideInput, satori: Satori): Promise<string> {
+export async function slideSvg(input: SlideInput, satori: Satori): Promise<string> {
+  // the drawer's trust boundary: whatever style arrives is made whole here
+  const s = { ...input, style: sanitizeStyle(input.style) };
   const H = FRAME_H[s.format];
-  const px = SIZE_PX[s.style.size];
+  const px = s.style.px;
   const want: { name: string; weight: number; italic: boolean }[] = [{ name: s.style.font, weight: weightOf(s.style.font), italic: false }];
   if (s.style.italic && ITALICS.has(s.style.font)) want.push({ name: s.style.font, weight: weightOf(s.style.font), italic: true });
   if (s.badge) want.push({ name: "Inter", weight: 400, italic: false }, { name: "Inter", weight: 700, italic: false });
@@ -184,18 +217,23 @@ export async function slideSvg(s: SlideInput, satori: Satori): Promise<string> {
   // a link is fetched here; a data URL is drawn as it is
   const photo = s.photo && !s.photo.startsWith("data:") ? await photoData(s.photo) : s.photo;
   const shade = overlayCss(s.overlay);
-  const align = s.style.v === "top" ? "flex-start" : s.style.v === "bottom" ? "flex-end" : "center";
   const children: unknown[] = [];
   if (photo) children.push({ type: "img", props: { src: photo, width: FRAME_W, height: H, style: { position: "absolute", left: 0, top: 0, width: FRAME_W, height: H, objectFit: "cover" } } });
   if (shade) children.push(el("div", { position: "absolute", left: 0, top: 0, width: FRAME_W, height: H, ...(shade.startsWith("rgba") ? { backgroundColor: shade } : { backgroundImage: shade }) }));
   const words = [wordsBlock(s.text, s.style, px)];
   if (s.badge) words.push(appStoreBadge());
+  const snap = s.style.bg === "snap";
+  const items = s.style.h === "left" ? "flex-start" : s.style.h === "right" ? "flex-end" : "center";
+  // x and y place the block: the space around it is split x : 100 - x across and y : 100 - y down
+  const gap = (grow: number) => el("div", { display: "flex", flexGrow: grow, flexShrink: 1, flexBasis: 0 });
+  const content = el("div", { display: "flex", flexDirection: "column", alignItems: items, gap: 36, flexShrink: 0, ...(snap ? { width: FRAME_W } : {}) }, words);
+  const across = snap ? content : el("div", { display: "flex", flexDirection: "row", width: FRAME_W - 168 }, [gap(s.style.x), content, gap(100 - s.style.x)]);
   children.push(
     el(
       "div",
       // the safe area: clear of TikTok's top bar and caption, inset 84 px a side (none for a full-width snap band)
-      { position: "absolute", left: s.style.bg === "snap" ? 0 : 84, top: SAFE_TOP, width: s.style.bg === "snap" ? FRAME_W : FRAME_W - 168, height: H - SAFE_TOP - SAFE_BOTTOM, display: "flex", flexDirection: "column", justifyContent: align, alignItems: s.style.h === "left" ? "flex-start" : s.style.h === "right" ? "flex-end" : "center", gap: 36 },
-      words,
+      { position: "absolute", left: snap ? 0 : 84, top: SAFE_TOP, width: snap ? FRAME_W : FRAME_W - 168, height: H - SAFE_TOP - SAFE_BOTTOM, display: "flex", flexDirection: "column" },
+      [gap(s.style.y), across, gap(100 - s.style.y)],
     ),
   );
   let svg = await satori(el("div", { display: "flex", position: "relative", width: FRAME_W, height: H, backgroundColor: s.background ?? "#000000" }, children), { width: FRAME_W, height: H, fonts });

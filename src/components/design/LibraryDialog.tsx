@@ -1,18 +1,58 @@
-// An image library for slideshow campaigns: add free stock photos (Pexels) or your own, see and remove what's in it.
-// Pictures live on the server (cs_library_images, cs-slide-campaigns) so the schedule can draw from them.
+// An image library for slideshow campaigns: add free stock photos (Pexels), AI pictures, an app shot (your app's
+// screen in a phone over a scene) or your own, see and remove what's in it. Pictures live on the server
+// (cs_library_images, cs-slide-campaigns) so the schedule can draw from them.
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, Search, Trash2, Upload, X } from "lucide-react";
+import { Check, Loader2, Search, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { Segmented } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
+import { imageBusy, makeImage, onImageJob } from "@/lib/aiImage";
+import { useUsesLeft } from "@/lib/aiUsage";
 import { callFn } from "@/lib/edgeFn";
 import { searchStock, type StockItem } from "@/lib/stockMedia";
 import { supabase } from "@/lib/supabase";
+import { useSignedInUser } from "@/lib/useLeoOnly";
+
+/** An app shot: the scene covering a 1080x1920 frame, and the app's screen in a plain phone on it. */
+export async function appShot(scene: Blob | null, screen: Blob): Promise<Blob> {
+  const load = (b: Blob) => createImageBitmap(b);
+  const c = document.createElement("canvas");
+  c.width = 1080;
+  c.height = 1920;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#1f2937";
+  g.fillRect(0, 0, 1080, 1920);
+  if (scene) {
+    const s = await load(scene);
+    const k = Math.max(1080 / s.width, 1920 / s.height);
+    g.drawImage(s, (1080 - s.width * k) / 2, (1920 - s.height * k) / 2, s.width * k, s.height * k);
+  }
+  // a 9:19.5 phone, 56% of the frame wide, a little below the middle
+  const w = 600, h = 1300, x = 240, y = 420, bezel = 22, r = 84;
+  g.shadowColor = "rgba(0,0,0,0.45)";
+  g.shadowBlur = 60;
+  g.fillStyle = "#0b0b0b";
+  g.beginPath();
+  g.roundRect(x, y, w, h, r);
+  g.fill();
+  g.shadowBlur = 0;
+  const shot = await load(screen);
+  g.save();
+  g.beginPath();
+  g.roundRect(x + bezel, y + bezel, w - 2 * bezel, h - 2 * bezel, r - bezel);
+  g.clip();
+  const k = Math.max((w - 2 * bezel) / shot.width, (h - 2 * bezel) / shot.height);
+  g.drawImage(shot, x + bezel + (w - 2 * bezel - shot.width * k) / 2, y + bezel, shot.width * k, shot.height * k);
+  g.restore();
+  return new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("Couldn't draw the app shot."))), "image/jpeg", 0.9));
+}
 
 export interface Library {
   id: string;
   name: string;
 }
 type Img = { id: string; src: string; url: string | null };
+type Source = "search" | "generate" | "app";
 
 export default function LibraryDialog({ profileId, library, onClose, onSaved }: { profileId: string; library: Library | null; onClose: () => void; onSaved: (lib: Library) => void }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -25,6 +65,13 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
+  const user = useSignedInUser();
+  const [source, setSource] = useState<Source>("search");
+  const [prompt, setPrompt] = useState("");
+  const [making, setMaking] = useState<string | null>(null);
+  const left = useUsesLeft(!!making)("ai-image");
+  const [screen, setScreen] = useState<File | null>(null);
+  const [scene, setScene] = useState<File | null>(null);
 
   useEffect(() => {
     ref.current?.showModal();
@@ -68,7 +115,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
       setPicked(new Set());
       await refresh(l.id);
     });
-  const upload = (files: FileList | null) =>
+  const upload = (files: FileList | Blob[] | null) =>
     run("upload", async () => {
       const l = await ensure();
       for (const f of [...(files ?? [])].slice(0, 20)) {
@@ -85,6 +132,32 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
       }
       await refresh(l.id);
     });
+  // an AI picture lands in Media like everywhere else, then goes up into this library
+  useEffect(
+    () =>
+      onImageJob((j) => {
+        if (!making || !j || j.prompt !== making) return;
+        if (j.state === "failed") (setMaking(null), setNote(j.error ?? "Couldn't make the picture."));
+        if (j.state === "done" && j.preview) {
+          setMaking(null);
+          void fetch(j.preview)
+            .then((r) => r.blob())
+            .then((b) => upload([b]));
+        }
+      }),
+    [making], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const generate = () => {
+    if (!user || !prompt.trim() || imageBusy()) return;
+    setNote(null);
+    setMaking(prompt.trim());
+    void makeImage(user.id, prompt.trim(), prompt.trim().slice(0, 60));
+  };
+  const buildShot = () =>
+    run("app", async () => {
+      if (!screen) throw new Error("Upload your app's screen first.");
+      await upload([await appShot(scene, screen)]);
+    });
   const rename = () => lib && name.trim() && name.trim() !== lib.name && void run("name", async () => onSaved((await callFn<{ library: Library }>("slide-campaigns", { action: "library-save", id: lib.id, name: name.trim() })).library));
 
   return (
@@ -97,6 +170,33 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
       </div>
       <div className="grid max-h-[70vh] gap-4 overflow-y-auto p-4 md:grid-cols-[1fr_16rem]">
         <section className="space-y-2">
+          <Segmented<Source> value={source} options={[{ value: "search", label: "Free photos" }, { value: "generate", label: "Generate" }, { value: "app", label: "App shot" }] as const} onChange={setSource} />
+          {source === "generate" && (
+            <div className="space-y-2">
+              <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3} maxLength={600} placeholder="A golfer lining up a putt at sunrise, soft film grain" aria-label="Describe the picture" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" />
+              <Button size="sm" onClick={generate} disabled={!!making || !prompt.trim() || left === 0} className="gap-1.5">
+                {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {making ? "Making the picture" : "Generate into the library"}
+              </Button>
+              <p className="text-xs text-muted-foreground">{left === null ? "Also saved to Media under AI images." : `${left} left today. Also saved to Media under AI images.`}</p>
+            </div>
+          )}
+          {source === "app" && (
+            <div className="space-y-2 text-xs">
+              <label className="block space-y-1">
+                <span className="text-muted-foreground">Your app's screen (a screenshot)</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setScreen(e.target.files?.[0] ?? null)} className="block w-full text-xs" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-muted-foreground">The scene behind it (optional)</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setScene(e.target.files?.[0] ?? null)} className="block w-full text-xs" />
+              </label>
+              <Button size="sm" onClick={() => void buildShot()} disabled={!screen || !!busy} className="gap-1.5">
+                {(busy === "app" || busy === "upload") && <Loader2 className="h-4 w-4 animate-spin" />} Build the image
+              </Button>
+            </div>
+          )}
+          {source === "search" && (
+          <>
           <form
             className="flex gap-1.5"
             onSubmit={(e) => {
@@ -140,6 +240,8 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
             </>
           )}
           <p className="text-xs text-muted-foreground">Free photos from Pexels. Pick ones with open space where the words go.</p>
+          </>
+          )}
           <input ref={file} type="file" multiple accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => void upload(e.target.files)} />
           <Button type="button" variant="outline" size="sm" onClick={() => file.current?.click()} disabled={!!busy} className="gap-1.5">
             {busy === "upload" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload your own

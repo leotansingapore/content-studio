@@ -100,10 +100,11 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // gpt-6-luna (OPENAI_MODEL's default) at US$0.10 in / US$0.50 out per million (OpenAI pricing page, read 2026-10-21):
   // about 5,500 in and 700 out for up to 5 pages, plus two Jev calls under US$0.001 at US$0.042 per million
   "brand-dna": about(0.001),
-  // a slideshow campaign run (slide-campaigns): one gpt-6-luna call of about 600 in and 300 out (US$0.0002) and up to
-  // 12 slides drawn in the function (Satori and resvg, no provider); the Pexels fetches are free. Unverified.
-  "slide-campaign-make": about(0.001),
-  "slide-campaign-post": about(0.001),
+  // a slideshow campaign run (slide-campaigns): one gpt-6-luna call of about 600 in and 300 out (US$0.0002), up to
+  // 12 slides drawn on Vercel (no provider), free Pexels fetches, and with Search the web on one DataForSEO Google
+  // page (US$0.002). Optimize prompt counts as a make (one short call). Unverified.
+  "slide-campaign-make": upTo(0.003),
+  "slide-campaign-post": upTo(0.003),
   // gpt-6-luna as above: 21 slideshow and wall makes on 23 Oct (live-p5dog function-logs.json) averaged 1,150 in and 470
   // out, US$0.00035, the dearest US$0.00043; Jev's reads beside them (montage-pick, the make's checks) under US$0.0001.
   // A fix or rewrite pass is one more call.

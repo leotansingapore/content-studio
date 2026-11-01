@@ -1,26 +1,29 @@
 // /design/campaigns/:id: one campaign's studio. The hook, content and CTA tabs (?tab=) set what each slide says, which
 // library its picture comes from and how its words look; Style sets one look and overlay for every slide; Settings
-// sets the TikTok account, the posting times and where posts go. Generate makes an example post; Start runs it.
-// Edits save half a second after the last one.
+// sets the TikTok account, the posting times and where posts go (drafts, or straight to the profile with consent).
+// Generate makes an example post, which can be sent to TikTok now; Start runs it. Edits save half a second after the
+// last one.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, Loader2, Pause, Play, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronLeft, Loader2, Mic, Pause, Play, Plus, Send, Sparkles, Square, Trash2, Wand2, X } from "lucide-react";
 import LibraryDialog, { type Library } from "@/components/design/LibraryDialog";
 import { ColorField, Segmented, field } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
+import { useDictation } from "@/hooks/useDictation";
 import { useToast } from "@/hooks/use-toast";
-import { LOOKS } from "@/lib/design";
+import { LOOKS, lookFilter } from "@/lib/design";
+import { appendDictation } from "@/lib/dictation";
 import { EdgeError, callFn } from "@/lib/edgeFn";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { STATUS_LABEL, cadence, when, type CampaignRowView } from "@/pages/SlideCampaignsPage";
-import { MAX_HOOKS, MAX_TIMES, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
-import { CAMPAIGN_FONTS, type TextStyle } from "../../supabase/functions/_shared/slideStyle.ts";
+import { MAX_HOOKS, MAX_TIMES, publishMode, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
+import { CAMPAIGN_FONTS, FRAME_H, PX_RANGE, SAFE_BOTTOM, SAFE_TOP, type TextStyle } from "../../supabase/functions/_shared/slideStyle.ts";
 
 type Run = { id: string; hook: string; caption: string; slides: { role: Role; text: string }[]; urls: (string | null)[]; kind?: string; status?: string; scheduled_for?: string | null; error?: string | null; created_at?: string };
 const TABS = [
@@ -29,6 +32,9 @@ const TABS = [
   { value: "cta", label: "CTA" },
 ] as const;
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+/** The look buttons show the look on a real photo. */
+const LOOK_SAMPLE = "/templates/behind/rest.jpg";
 
 function StyleControls({ s, set }: { s: TextStyle; set: (p: Partial<TextStyle>) => void }) {
   const row = "grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground";
@@ -46,14 +52,22 @@ function StyleControls({ s, set }: { s: TextStyle; set: (p: Partial<TextStyle>) 
         Style
         <Segmented value={s.bg} options={[{ value: "none", label: "Plain" }, { value: "bar", label: "Bar" }, { value: "soft", label: "Soft" }, { value: "outline", label: "Outline" }, { value: "snap", label: "Snap" }] as const} onChange={(bg) => set({ bg })} />
       </div>
-      <div role="group" aria-label="Size" className={row}>
-        Size
-        <Segmented value={s.size} options={[{ value: "sm", label: "Small" }, { value: "md", label: "Medium" }, { value: "lg", label: "Large" }] as const} onChange={(size) => set({ size })} />
-      </div>
-      <div role="group" aria-label="Position" className={row}>
-        Position
-        <Segmented value={s.v} options={[{ value: "top", label: "Top" }, { value: "middle", label: "Middle" }, { value: "bottom", label: "Bottom" }] as const} onChange={(v) => set({ v })} />
-      </div>
+      {(
+        [
+          ["Size", "px", PX_RANGE[0], PX_RANGE[1]],
+          ["Width", "width", 30, 100],
+          ["Across", "x", 0, 100],
+          ["Down", "y", 0, 100],
+        ] as const
+      ).map(([label, k, lo, hi]) => (
+        <label key={k} className={row}>
+          {label}
+          <span className="flex items-center gap-2">
+            <input type="range" min={lo} max={hi} value={s[k]} onChange={(e) => set({ [k]: e.target.valueAsNumber })} className="min-w-0 flex-1 accent-primary" />
+            <span className="w-9 text-right tabular-nums">{k === "px" ? s[k] : `${s[k]}%`}</span>
+          </span>
+        </label>
+      ))}
       <div role="group" aria-label="Align" className={row}>
         Align
         <Segmented value={s.h} options={[{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }] as const} onChange={(h) => set({ h })} />
@@ -103,8 +117,13 @@ function Studio({ initial }: { initial: CampaignRowView }) {
   const [accounts, setAccounts] = useState<{ id: string; name: string; needsReconnection: boolean }[] | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [preview, setPreview] = useState<Run | null>(null);
-  const [busy, setBusy] = useState<"generate" | "start" | "pause" | "delete" | null>(null);
+  const [busy, setBusy] = useState<"generate" | "start" | "pause" | "delete" | "send" | null>(null);
   const [hookDraft, setHookDraft] = useState("");
+  const [publish, setPublish] = useState(() => ({ mode: publishMode(initial.publish), consent: publishMode(initial.publish) === "direct" }));
+  const [caption, setCaption] = useState<string | null>(null);
+  const [safe, setSafe] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const dictation = useDictation((chunk) => setSpec((s) => ({ ...s, topic: appendDictation(s.topic, chunk, 1200) })));
   const first = useRef(true);
   const canPost = socialConnectShown();
 
@@ -133,12 +152,12 @@ function Studio({ initial }: { initial: CampaignRowView }) {
     if (first.current) return void (first.current = false);
     setSaved(false);
     const t = setTimeout(() => {
-      void callFn<{ campaign: CampaignRowView }>("slide-campaigns", { action: "save", campaign: { id: row.id, name, spec, schedule } })
+      void callFn<{ campaign: CampaignRowView }>("slide-campaigns", { action: "save", campaign: { id: row.id, name, spec, schedule, publish } })
         .then((r) => (setRow(r.campaign), setSaved(true)))
         .catch((e) => toast({ title: "Couldn't save", description: (e as Error).message, variant: "destructive" }));
     }, 500);
     return () => clearTimeout(t);
-  }, [name, spec, schedule]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [name, spec, schedule, publish]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setStyle = (role: Role, p: Partial<TextStyle>) => setSpec((s) => ({ ...s, text_style: { ...s.text_style, [role]: { ...s.text_style[role], ...p } } }));
   const addHooks = (text: string) => {
@@ -146,23 +165,41 @@ function Studio({ initial }: { initial: CampaignRowView }) {
     if (lines.length) setSpec((s) => ({ ...s, hooks: [...new Set([...s.hooks, ...lines])].slice(0, MAX_HOOKS) }));
     setHookDraft("");
   };
+  const optimize = async () => {
+    setOptimizing(true);
+    try {
+      const r = await callFn<{ topic: string }>("slide-campaigns", { action: "optimize", topic: spec.topic });
+      setSpec((s) => ({ ...s, topic: r.topic }));
+    } catch (e) {
+      toast({ title: "Couldn't rewrite it", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setOptimizing(false);
+    }
+  };
   const act = useCallback(
-    async (kind: "generate" | "start" | "pause", body: Record<string, unknown>) => {
+    async (kind: "generate" | "start" | "pause" | "send", body: Record<string, unknown>) => {
       setBusy(kind);
       try {
         const r = await callFn<{ run?: Run; status?: CampaignRowView["status"]; next_run_at?: string }>("slide-campaigns", body);
         if (r.run) {
           setPreview(r.run);
+          setCaption(null);
           setRuns((x) => [r.run!, ...x].slice(0, 12));
+        }
+        if (kind === "send") {
+          const sentId = body.run_id;
+          setRuns((x) => x.map((y) => (y.id === sentId ? { ...y, status: "scheduled", scheduled_for: new Date().toISOString() } : y)));
+          setPreview((p) => (p && p.id === sentId ? { ...p, status: "scheduled" } : p));
+          toast({ title: publishMode(row.publish) === "direct" ? "Sent to your TikTok profile" : "Sent to your TikTok drafts", description: "It shows in TikTok within a few minutes." });
         }
         if (r.status) setRow((x) => ({ ...x, status: r.status!, next_run_at: r.next_run_at ?? null }));
       } catch (e) {
-        toast({ title: kind === "generate" ? "Couldn't make the example" : kind === "start" ? "Couldn't start it" : "Couldn't pause it", description: (e as Error).message, variant: "destructive" });
+        toast({ title: { generate: "Couldn't make the example", start: "Couldn't start it", pause: "Couldn't pause it", send: "Couldn't send it" }[kind], description: (e as Error).message, variant: "destructive" });
       } finally {
         setBusy(null);
       }
     },
-    [toast],
+    [toast, row.publish],
   );
   const setAccount = async (account_id: string | null) => {
     try {
@@ -217,7 +254,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
         )}
       </header>
       {startWhy && row.status !== "live" && <p className="text-xs text-muted-foreground">{startWhy}</p>}
-      {row.status === "live" && row.next_run_at && <p className="text-sm text-muted-foreground">Next post goes to your TikTok drafts {when(row.next_run_at)}.</p>}
+      {row.status === "live" && row.next_run_at && <p className="text-sm text-muted-foreground">Next post goes {publishMode(row.publish) === "direct" ? "to your TikTok profile" : "to your TikTok drafts"} {when(row.next_run_at)}.</p>}
       {row.last_error && <p className="text-sm text-destructive">{row.last_error}</p>}
 
       {/* the example post */}
@@ -228,12 +265,31 @@ function Studio({ initial }: { initial: CampaignRowView }) {
             <ol className="flex gap-2 overflow-x-auto pb-1">
               {shown.urls.map((u, i) => (
                 <li key={i} className="w-36 shrink-0">
-                  {u ? <img src={u} alt={shown.slides[i]?.text ?? ""} className="aspect-[9/16] w-full rounded-md border border-border object-cover" /> : <div className="aspect-[9/16] rounded-md bg-muted" />}
+                  <span className={`relative block overflow-hidden rounded-md border border-border ${spec.format === "instagram" ? "aspect-[4/5]" : "aspect-[9/16]"}`}>
+                    {u ? <img src={u} alt={shown.slides[i]?.text ?? ""} className="h-full w-full object-cover" /> : <span className="block h-full bg-muted" />}
+                    {safe && (
+                      <>
+                        <span aria-hidden className="absolute inset-x-0 top-0 bg-red-500/30" style={{ height: `${(SAFE_TOP / FRAME_H[spec.format]) * 100}%` }} />
+                        <span aria-hidden className="absolute inset-x-0 bottom-0 bg-red-500/30" style={{ height: `${(SAFE_BOTTOM / FRAME_H[spec.format]) * 100}%` }} />
+                      </>
+                    )}
+                  </span>
                   <span className="text-[11px] text-muted-foreground">{i === 0 ? "Hook" : shown.slides[i]?.role === "cta" ? "CTA" : `Slide ${i + 1}`}</span>
                 </li>
               ))}
             </ol>
-            <p className="max-w-3xl whitespace-pre-wrap text-sm">{shown.caption}</p>
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" className="accent-primary" checked={safe} onChange={(e) => setSafe(e.target.checked)} /> Show TikTok's safe area
+              </label>
+              <InfoTip>Red is where TikTok's buttons and caption cover the slide.</InfoTip>
+            </div>
+            <Textarea value={caption ?? shown.caption} maxLength={2200} rows={3} aria-label="Caption" onChange={(e) => setCaption(e.target.value)} className="max-w-3xl text-sm" readOnly={shown.status !== undefined && shown.status !== "made"} />
+            {(shown.status === undefined || shown.status === "made") && shown.kind !== "post" && (
+              <Button size="sm" variant="outline" disabled={!!busy || !canPost || !row.account_id} title={!row.account_id ? "Pick the TikTok account it posts to." : undefined} onClick={() => void act("send", { action: "send", id: row.id, run_id: shown.id, caption: caption ?? shown.caption })} className="gap-1.5">
+                {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {publishMode(row.publish) === "direct" ? "Post this to TikTok now" : "Send this to TikTok drafts now"}
+              </Button>
+            )}
           </>
         ) : (
           <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Add a hook, then Generate to see an example post.</p>
@@ -280,8 +336,23 @@ function Studio({ initial }: { initial: CampaignRowView }) {
             <div className="space-y-3">
               <label className="block space-y-1 text-xs text-muted-foreground">
                 What the posts are about
-                <Textarea value={spec.topic} maxLength={1200} rows={3} placeholder="Ways a golfer can improve, unconventional rather than standard teaching, with numbers wherever possible." onChange={(e) => setSpec((s) => ({ ...s, topic: e.target.value }))} />
+                <Textarea value={spec.topic + (dictation.interim ? ` ${dictation.interim}` : "")} maxLength={1200} rows={3} placeholder="Ways a golfer can improve, unconventional rather than standard teaching, with numbers wherever possible." onChange={(e) => setSpec((s) => ({ ...s, topic: e.target.value }))} />
               </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {dictation.supported && (
+                  <Button type="button" size="sm" variant="outline" onClick={dictation.toggle} aria-pressed={dictation.listening} className="gap-1.5">
+                    {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />} {dictation.listening ? "Stop" : "Say it"}
+                  </Button>
+                )}
+                <Button type="button" size="sm" variant="outline" onClick={() => void optimize()} disabled={optimizing || !spec.topic.trim() || !canPost} className="gap-1.5">
+                  {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Optimize
+                </Button>
+                <label className="flex items-center gap-1.5 text-xs">
+                  <input type="checkbox" className="accent-primary" checked={spec.research} onChange={(e) => setSpec((s) => ({ ...s, research: e.target.checked }))} /> Search the web first
+                </label>
+                <InfoTip>Each post looks up its hook on Google and names its sources in the caption.</InfoTip>
+              </div>
+              {dictation.error && <p className="text-xs text-destructive">{dictation.error}</p>}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
                   Slides
@@ -310,9 +381,9 @@ function Studio({ initial }: { initial: CampaignRowView }) {
             <div className="space-y-3">
               <div role="group" aria-label="Lands" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
                 CTA slide
-                <Segmented value={spec.cta.placement} options={[{ value: "end", label: "At the end" }, { value: "none", label: "No CTA slide" }] as const} onChange={(placement) => setSpec((s) => ({ ...s, cta: { ...s.cta, placement } }))} />
+                <Segmented value={spec.cta.placement} options={[{ value: "end", label: "At the end" }, { value: "middle", label: "In the middle" }, { value: "none", label: "No CTA slide" }] as const} onChange={(placement) => setSpec((s) => ({ ...s, cta: { ...s.cta, placement } }))} />
               </div>
-              {spec.cta.placement === "end" && (
+              {spec.cta.placement !== "none" && (
                 <>
                   <Textarea value={spec.cta.text} maxLength={200} rows={2} placeholder="Optional. Leave it blank and each post gets its own, pointing to you." onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, text: e.target.value } }))} />
                   <label className="flex items-center gap-1.5 text-xs">
@@ -355,11 +426,18 @@ function Studio({ initial }: { initial: CampaignRowView }) {
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look on every slide</h3>
             <div className="flex flex-wrap gap-1.5">
               {LOOKS.map((k) => (
-                <button key={k.value} type="button" aria-pressed={spec.look === k.value} onClick={() => setSpec((s) => ({ ...s, look: k.value }))} className={`rounded-md border px-2 py-1 text-xs ${spec.look === k.value ? "border-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
-                  {k.label}
+                <button key={k.value} type="button" aria-pressed={spec.look === k.value} onClick={() => setSpec((s) => ({ ...s, look: k.value }))} className={`w-16 overflow-hidden rounded-md border-2 text-[11px] ${spec.look === k.value ? "border-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                  <img src={LOOK_SAMPLE} alt="" loading="lazy" className="aspect-square w-full object-cover" style={{ filter: lookFilter(k.value, spec.look === k.value ? spec.look_strength : 50) }} />
+                  <span className="block truncate py-0.5">{k.label}</span>
                 </button>
               ))}
             </div>
+            {spec.look !== "none" && (
+              <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                Look strength
+                <input type="range" min={0} max={100} value={spec.look_strength} onChange={(e) => setSpec((s) => ({ ...s, look_strength: e.target.valueAsNumber }))} className="accent-primary" />
+              </label>
+            )}
             <div role="group" aria-label="Overlay" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
               Overlay
               <Segmented value={spec.overlay.kind} options={[{ value: "none", label: "None" }, { value: "dim", label: "Dim" }, { value: "bottom", label: "Bottom fade" }, { value: "top", label: "Top fade" }] as const} onChange={(kind) => setSpec((s) => ({ ...s, overlay: { ...s.overlay, kind } }))} />
@@ -438,11 +516,16 @@ function Studio({ initial }: { initial: CampaignRowView }) {
             )}
           </section>
           <section className="space-y-1">
-            <h3 className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Posts go
-              <InfoTip>To your TikTok drafts: you add a sound and post each one in the TikTok app.</InfoTip>
-            </h3>
-            <p>To your TikTok drafts</p>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Posts go</h3>
+            <Segmented value={publish.mode} options={[{ value: "inbox", label: "To my drafts" }, { value: "direct", label: "Straight to my profile" }] as const} onChange={(mode) => setPublish((p) => ({ ...p, mode }))} />
+            {publish.mode === "inbox" ? (
+              <p className="text-xs text-muted-foreground">You add a sound and post each one in the TikTok app.</p>
+            ) : (
+              <label className="flex items-start gap-1.5 text-xs">
+                <input type="checkbox" className="mt-0.5 accent-primary" checked={publish.consent} onChange={(e) => setPublish((p) => ({ ...p, consent: e.target.checked }))} />
+                <span>I agree each post goes public on my TikTok without me seeing it first. {!publish.consent && <span className="text-destructive">Until you tick this, posts go to your drafts.</span>}</span>
+              </label>
+            )}
           </section>
           {runs.length > 1 && (
             <section className="space-y-1">

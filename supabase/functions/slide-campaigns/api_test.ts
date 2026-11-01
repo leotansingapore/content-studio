@@ -32,6 +32,10 @@ class Q implements PromiseLike<{ data: unknown; error: unknown; count?: number }
     this.filters.push((r) => r[k] === v);
     return this;
   }
+  in(k: string, v: unknown[]) {
+    this.filters.push((r) => v.includes(r[k]));
+    return this;
+  }
   lte(k: string, v: string) {
     this.filters.push((r) => typeof r[k] === "string" && (r[k] as string) <= v);
     return this;
@@ -121,6 +125,16 @@ const admin = {
       remove: (paths: string[]) => (paths.forEach((p) => files.delete(p)), Promise.resolve({ error: null })),
       createSignedUrls: (paths: string[]) => Promise.resolve({ data: paths.map((p) => ({ signedUrl: `https://stub.supabase.co/storage/v1/object/sign/cs-slide-campaigns/${p}?token=t` })) }),
       createSignedUploadUrl: (path: string) => Promise.resolve({ data: { token: "t", signedUrl: `https://stub/${path}` }, error: null }),
+      // a folder's entries: files directly in it, and sub-folders (id null) once each
+      list: (prefix: string) => {
+        const seen = new Map<string, { name: string; id: string | null }>();
+        for (const k of files.keys()) {
+          if (!k.startsWith(`${prefix}/`)) continue;
+          const [name, ...rest] = k.slice(prefix.length + 1).split("/");
+          if (!seen.has(name)) seen.set(name, { name, id: rest.length ? null : name });
+        }
+        return Promise.resolve({ data: [...seen.values()], error: null });
+      },
     }),
   },
 };
@@ -198,7 +212,7 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
   });
   assertEquals(saved.status, 200);
   const id = saved.body.campaign.id;
-  assertEquals(saved.body.campaign.publish.mode, "inbox", "direct posting is not offered yet");
+  assertEquals(saved.body.campaign.publish.mode, "inbox", "straight to the profile needs the owner's consent");
 
   // someone else can't touch it, even with posting on
   Deno.env.set("SOCIAL_CONNECT_USERS", `${A},${B}`);
@@ -255,9 +269,63 @@ Deno.test("a campaign from the studio to TikTok drafts", async () => {
   assertEquals(await tick(admin as never), { made: 0, failed: 1 });
   assertEquals(c.status, "paused");
 
+  // the list's thumbnail is the newest post's first slide; the libraries page counts and names who uses each
+  const th = await call("jwt-a", { action: "thumbs", ids: [id] });
+  assert(String(th.body.thumbs[id]).includes(`/${A}/runs/`), JSON.stringify(th.body));
+  const libs = await call("jwt-a", { action: "libraries", profile_id: "me" });
+  assertEquals(libs.body.libraries.map((l: Row) => [l.name, l.count, l.stock, l.used_by]), [["Golf courses", 2, 2, ["Golf hacks"]]]);
+  assertEquals((await call("jwt-b", { action: "libraries", profile_id: "me" })).body.libraries, [], "B sees none of A's");
+
   // deleting the campaign removes its files
   assertEquals((await call("jwt-a", { action: "delete", id })).status, 200);
   assertEquals([...files.keys()].filter((k) => k.includes("/runs/")).length, 0);
+});
+
+Deno.test("Send to TikTok now: straight to the profile once the owner consents, and once per example", async () => {
+  Deno.env.set("SOCIAL_CONNECT_USERS", A);
+  const made = await call("jwt-a", { action: "save", campaign: { profile_id: "me", name: "Now", spec: { hooks: ["Now hook"], content: { slides: 1 }, cta: { placement: "none" } }, schedule: { tz: "Asia/Singapore", times: [] }, publish: { mode: "direct", consent: true } } });
+  const id = made.body.campaign.id;
+  assertEquals(made.body.campaign.publish.mode, "direct");
+  assert(made.body.campaign.publish.consent_at, "the consent time is kept");
+  assertEquals((await call("jwt-a", { action: "account", id, account_id: ACCOUNT })).status, 200);
+  const pre = await call("jwt-a", { action: "preview", id });
+  assertEquals(pre.status, 200, JSON.stringify(pre.body));
+  const before = posts.length;
+  assertEquals((await call("jwt-b", { action: "send", id, run_id: pre.body.run.id })).status, 403, "B has no posting switch");
+  const sent = await call("jwt-a", { action: "send", id, run_id: pre.body.run.id, caption: "Edited caption #golf" });
+  assertEquals(sent.body, { sent: true });
+  assertEquals(posts.length, before + 1);
+  const p = posts.at(-1) as { content: string; platforms: { platformSpecificData: Row }[] };
+  assertEquals(p.platforms[0].platformSpecificData.tiktokSettings, undefined, "not a draft");
+  assertEquals(p.platforms[0].platformSpecificData.expressConsentGiven, true);
+  assertEquals(p.content, "Edited caption #golf");
+  assertEquals((await call("jwt-a", { action: "send", id, run_id: pre.body.run.id })).body.error, "That one's already sent.");
+  // unticking consent goes back to drafts
+  const back = await call("jwt-a", { action: "save", campaign: { id, name: "Now", spec: made.body.campaign.spec, schedule: made.body.campaign.schedule, publish: { mode: "direct", consent: false } } });
+  assertEquals(back.body.campaign.publish, { mode: "inbox", consent_at: null });
+});
+
+Deno.test("Send to phone: links for a day, read without signing in, then swept", async () => {
+  const made = await call("jwt-a", { action: "phone-create", count: 2 });
+  assertEquals(made.status, 200, JSON.stringify(made.body));
+  assertEquals(made.body.uploads.map((u: Row) => u.path), [`phone/${made.body.token}/1.png`, `phone/${made.body.token}/2.png`]);
+  assertEquals((await call("jwt-a", { action: "phone-create", count: 21 })).status, 400);
+  for (const u of made.body.uploads) files.set(u.path, new Uint8Array([1]));
+  const anon = async (body: Row) => {
+    const res = await handle(new Request("https://x", { method: "POST", body: JSON.stringify(body) }), admin as never);
+    return { status: res.status, body: await res.json() };
+  };
+  const got = await anon({ action: "phone-get", token: made.body.token });
+  assertEquals(got.status, 200);
+  assertEquals(got.body.urls.length, 2);
+  assertEquals((await anon({ action: "phone-get", token: "nope" })).status, 404);
+  assertEquals((await anon({ action: "preview" })).status, 401, "nothing else opens without signing in");
+  const old = `${(Date.now() - 25 * 3600_000).toString(36)}-${crypto.randomUUID()}`;
+  files.set(`phone/${old}/1.png`, new Uint8Array([1]));
+  assertEquals((await anon({ action: "phone-get", token: old })).status, 410);
+  await tick(admin as never);
+  assertEquals(files.has(`phone/${old}/1.png`), false, "swept after a day");
+  assertEquals(files.has(`phone/${made.body.token}/1.png`), true, "a fresh one stays");
 });
 
 Deno.test("two ticks at once make one post for a slot", async () => {

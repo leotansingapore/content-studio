@@ -7,12 +7,13 @@
 // owner on SOCIAL_CONNECT_USERS, the switch Leo turns on per customer.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
+import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { PEXELS_SRC, nextRunAt, ownUpload, sanitizePublish, sanitizeSchedule, sanitizeSpec } from "../_shared/slideCampaign.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { callerAccounts, zernioClient } from "../_shared/zernio.ts";
 import { isAllowed } from "../social/logic.ts";
 import { secretMatches } from "../social-sweep/logic.ts";
-import { BUCKET, RunError, VIEW_LINK_SECONDS, makeRun, type CampaignRow } from "./run.ts";
+import { BUCKET, RunError, VIEW_LINK_SECONDS, makeRun, schedule, type CampaignRow, type MadeRun } from "./run.ts";
 
 const headers = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Content-Type": "application/json" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
@@ -27,6 +28,11 @@ const TICK_BUDGET_MS = 90_000;
 const KEEP_PREVIEW_MS = 7 * 24 * 3600_000;
 const KEEP_POST_MS = 14 * 24 * 3600_000;
 const SWEEP_PER_TICK = 40;
+/** Send to phone: a link that opens the slides on a phone for a day. The token is the only key to them. */
+const PHONE_MS = 24 * 3600_000;
+const PHONE_MAX = 20;
+const PHONE_TOKEN = /^[0-9a-z]{6,12}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const phoneMade = (token: string) => parseInt(token.split("-")[0], 36);
 /** A run is made this long before its posting time and handed to Zernio for the time itself. */
 const LEAD_MS = 20 * 60_000;
 
@@ -46,23 +52,23 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
   const now = new Date();
   // campaigns post to TikTok, so building one is for owners with posting switched on; anyone keeps reading, pausing
   // and deleting what they have
-  if (!posting(uid) && !["runs", "pause", "delete", "library-delete", "library-remove", "library-urls"].includes(String(b.action))) {
+  if (!posting(uid) && !["runs", "pause", "delete", "library-delete", "library-remove", "library-urls", "thumbs", "libraries", "phone-create"].includes(String(b.action))) {
     return json({ code: "not_enabled", error: "Posting isn't switched on for your account yet." }, 403);
   }
   switch (b.action) {
     case "save": {
       const c = (b.campaign ?? {}) as Record<string, unknown>;
       const profile = typeof c.profile_id === "string" && PROFILE.test(c.profile_id) ? c.profile_id : null;
+      const was = c.id ? await own<CampaignRow>(admin, "cs_slide_campaigns", c.id, uid) : null;
+      if (c.id && !was) return json({ error: "Not found." }, 404);
       const row: Record<string, unknown> = {
         name: (typeof c.name === "string" && c.name.trim().slice(0, 120)) || "Untitled campaign",
         spec: sanitizeSpec(c.spec),
         schedule: sanitizeSchedule(c.schedule),
-        publish: sanitizePublish(c.publish),
+        publish: sanitizePublish(c.publish, was?.publish, now),
         updated_at: now.toISOString(),
       };
-      if (c.id) {
-        const was = await own<CampaignRow>(admin, "cs_slide_campaigns", c.id, uid);
-        if (!was) return json({ error: "Not found." }, 404);
+      if (was) {
         // a live campaign moves its next posting time with its schedule
         if (was.status === "live") row.next_run_at = nextRunAt(row.schedule as ReturnType<typeof sanitizeSchedule>, new Date(now.getTime() + LEAD_MS))?.toISOString() ?? null;
         if (was.status === "live" && !row.next_run_at) row.status = "paused";
@@ -137,6 +143,98 @@ export async function userAction(admin: SupabaseClient, uid: string, b: Record<s
       }
       const run = await makeRun(admin, c, "preview");
       return json({ run: { ...run, urls: await signed(admin, run.files) } });
+    }
+    case "send": {
+      // Send to TikTok now: an example run goes to the account as it is, with the caption as edited
+      const c = await own<CampaignRow>(admin, "cs_slide_campaigns", b.id, uid);
+      if (!c) return json({ error: "Not found." }, 404);
+      if (!c.account_id) return json({ error: "Pick the TikTok account it posts to." }, 400);
+      const r = await own<{ id: string; campaign_id: string; status: string; hook: string; caption: string; slides: MadeRun["slides"]; files: string[] }>(admin, "cs_slide_campaign_runs", b.run_id, uid);
+      if (!r || r.campaign_id !== c.id) return json({ error: "Not found." }, 404);
+      if (r.status !== "made") return json({ error: r.status === "scheduled" ? "That one's already sent." : "Generate a new example first." }, 400);
+      const usage = await consumeUsage(admin, uid, "slide-campaign-post");
+      if (!usage.allowed) {
+        const x = usageRefusal(usage);
+        return json(x.body, x.status);
+      }
+      const caption = typeof b.caption === "string" && b.caption.trim() ? b.caption.trim().slice(0, 2200) : r.caption;
+      await schedule(admin, c, { id: r.id, hook: r.hook, caption, slides: r.slides, files: r.files }, null);
+      return json({ sent: true });
+    }
+    case "optimize": {
+      // Optimize prompt: the topic rewritten as a sharper brief for the writer. Counted with the examples.
+      const topic = typeof b.topic === "string" ? b.topic.trim().slice(0, 1200) : "";
+      if (!topic) return json({ error: "Write what the posts are about first." }, 400);
+      const usage = await consumeUsage(admin, uid, "slide-campaign-make");
+      if (!usage.allowed) {
+        const x = usageRefusal(usage);
+        return json(x.body, x.status);
+      }
+      const res = await openaiChat({
+        model: OPENAI_MODEL,
+        max_tokens: 400,
+        messages: [
+          { role: "system", content: "Rewrite the user's note into a brief for a writer of TikTok photo slideshows: who it is for, the angle, and what each slide should give the reader, with numbers wherever they help. Keep the user's meaning and facts; add none. Under 90 words, plain sentences, no bullet points. Answer with the brief only." },
+          { role: "user", content: topic },
+        ],
+      });
+      const j = res.ok ? await res.json().catch(() => null) : null;
+      const out = typeof j?.choices?.[0]?.message?.content === "string" ? j.choices[0].message.content.trim().slice(0, 1200) : "";
+      if (!out) return json({ error: "Couldn't rewrite it right now. Try again in a minute." }, 502);
+      return json({ topic: out });
+    }
+    case "thumbs": {
+      // each campaign's newest made post, first slide, for the list
+      const ids = (Array.isArray(b.ids) ? b.ids : []).filter((x): x is string => typeof x === "string" && UUID.test(x)).slice(0, MAX_CAMPAIGNS);
+      if (!ids.length) return json({ thumbs: {} });
+      const { data } = await admin.from("cs_slide_campaign_runs").select("campaign_id, files").eq("owner_id", uid).in("campaign_id", ids).in("status", ["made", "scheduled"]).order("created_at", { ascending: false }).limit(200);
+      const first = new Map<string, string>();
+      for (const r of data ?? []) if (!first.has(r.campaign_id) && (r.files as string[])[0]) first.set(r.campaign_id, (r.files as string[])[0]);
+      const links = await signed(admin, [...first.values()]);
+      return json({ thumbs: Object.fromEntries([...first.keys()].map((k, i) => [k, links[i]])) });
+    }
+    case "libraries": {
+      // the Libraries page: each library with its count, up to 4 pictures, where they came from and who uses it
+      const profile = typeof b.profile_id === "string" && PROFILE.test(b.profile_id) ? b.profile_id : "";
+      const [{ data: libs }, { data: camps }] = await Promise.all([
+        admin.from("cs_image_libraries").select("id, name, updated_at").eq("owner_id", uid).eq("profile_id", profile).order("name"),
+        admin.from("cs_slide_campaigns").select("name, spec").eq("owner_id", uid).eq("profile_id", profile),
+      ]);
+      const out = await Promise.all(
+        (libs ?? []).map(async (l) => {
+          // a library holds at most 300, under the API's 1,000-row page
+          const { data: imgs } = await admin.from("cs_library_images").select("src").eq("library_id", l.id).order("created_at").limit(MAX_LIBRARY_IMAGES);
+          const mine = (imgs ?? []).map((i) => i.src as string);
+          const shown = mine.slice(0, 4);
+          const ups = shown.filter((src) => ownUpload(uid, src));
+          const links = await signed(admin, ups);
+          const usedBy = (camps ?? []).filter((c) => Object.values((c.spec as { images?: Record<string, unknown> })?.images ?? {}).includes(l.id)).map((c) => c.name as string);
+          return {
+            ...l,
+            count: mine.length,
+            stock: mine.filter((src) => src.startsWith("https://")).length,
+            uploads: mine.filter((src) => ownUpload(uid, src)).length,
+            previews: shown.map((src) => (src.startsWith("https://") ? src : (links[ups.indexOf(src)] ?? null))),
+            used_by: usedBy,
+          };
+        }),
+      );
+      return json({ libraries: out });
+    }
+    case "phone-create": {
+      // Send to phone: links to put up to 20 slides where the phone page reads them for the next day
+      const n = typeof b.count === "number" ? Math.floor(b.count) : 0;
+      if (n < 1 || n > PHONE_MAX) return json({ error: `Send 1 to ${PHONE_MAX} slides.` }, 400);
+      const token = `${now.getTime().toString(36)}-${crypto.randomUUID()}`;
+      const uploads = await Promise.all(
+        Array.from({ length: n }, async (_, i) => {
+          const path = `phone/${token}/${i + 1}.png`;
+          const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
+          if (error || !data) throw error ?? new Error("no upload link");
+          return { path, token: data.token };
+        }),
+      );
+      return json({ token, uploads, expires_at: new Date(now.getTime() + PHONE_MS).toISOString() });
     }
     case "runs": {
       const c = await own<CampaignRow>(admin, "cs_slide_campaigns", b.id, uid, "id");
@@ -273,8 +371,27 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
   return { made, failed };
 }
 
-/** Deletes example runs older than a week and posted runs older than two, with their PNGs, a few at a time. */
+/** The phone page's slides: links for an hour while the token is under a day old. Anyone with the token may read. */
+export async function phoneSlides(admin: SupabaseClient, token: unknown, now = new Date()): Promise<Response> {
+  if (typeof token !== "string" || !PHONE_TOKEN.test(token)) return json({ error: "That link isn't right." }, 404);
+  const made = phoneMade(token);
+  if (!(made <= now.getTime()) || now.getTime() - made > PHONE_MS) return json({ error: "That link has run out. Send it to your phone again." }, 410);
+  const { data } = await admin.storage.from(BUCKET).list(`phone/${token}`, { limit: PHONE_MAX + 5 });
+  const names = (data ?? []).map((f) => f.name).filter((nm) => /^\d{1,2}\.png$/.test(nm)).sort((a, b) => parseInt(a) - parseInt(b));
+  if (!names.length) return json({ error: "That link isn't right." }, 404);
+  const urls = await signed(admin, names.map((nm) => `phone/${token}/${nm}`));
+  return json({ urls, expires_at: new Date(made + PHONE_MS).toISOString() });
+}
+
+/** Deletes example runs older than a week and posted runs older than two, with their PNGs, a few at a time; and
+ *  Send to phone folders over a day old. */
 async function sweep(admin: SupabaseClient, now: Date): Promise<void> {
+  const { data: phones } = await admin.storage.from(BUCKET).list("phone", { limit: 100 });
+  for (const f of (phones ?? []).filter((x) => PHONE_TOKEN.test(x.name) && now.getTime() - phoneMade(x.name) > PHONE_MS).slice(0, 10)) {
+    const { data: files } = await admin.storage.from(BUCKET).list(`phone/${f.name}`, { limit: PHONE_MAX + 5 });
+    const paths = (files ?? []).map((x) => `phone/${f.name}/${x.name}`);
+    if (paths.length) await admin.storage.from(BUCKET).remove(paths);
+  }
   for (const [kind, keep] of [["preview", KEEP_PREVIEW_MS], ["post", KEEP_POST_MS]] as const) {
     const { data } = await admin.from("cs_slide_campaign_runs").select("id, files").eq("kind", kind).lte("created_at", new Date(now.getTime() - keep).toISOString()).limit(SWEEP_PER_TICK);
     const old = data ?? [];
@@ -299,11 +416,13 @@ export async function handle(req: Request, admin: SupabaseClient = createClient(
     return json({ accepted: true }, 202);
   }
 
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  // the phone page is opened from a QR code on a phone that isn't signed in: the token is the key
+  if (body.action === "phone-get") return await phoneSlides(admin, body.token).catch((e) => (console.error("slide-campaigns phone", e), json({ error: "Something went wrong. Try again." }, 500)));
   const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   const { data: userData } = await admin.auth.getUser(jwt);
   const uid = userData?.user?.id;
   if (!uid) return json({ error: "Sign in again." }, 401);
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   // every studio write counts against one generous cap, so a stuck loop can't hammer the tables
   const usage = await consumeUsage(admin, uid, "slide-campaign-write");
   if (!usage.allowed) {

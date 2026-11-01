@@ -4,7 +4,8 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { openaiChat, OPENAI_MODEL } from "../_shared/openaiChat.ts";
 import { HONEST_LINE, professionOf } from "../_shared/profession.ts";
-import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, runPlan, sanitizeSchedule, sanitizeSpec, slotKey, writerPrompt, type Role } from "../_shared/slideCampaign.ts";
+import { dfs, dfsAuth, SINGAPORE } from "../_shared/dataforseo.ts";
+import { PEXELS_SRC, ownUpload, parseWriter, pickHook, pickImages, publishMode, runPlan, sanitizeSchedule, sanitizeSpec, searchHits, slotKey, writerPrompt, type Role, type SearchHit } from "../_shared/slideCampaign.ts";
 import type { SlideInput } from "../_shared/slideDraw.ts";
 import { zernioClient } from "../_shared/zernio.ts";
 import { checkSchedule, runPost } from "../social/posts.ts";
@@ -46,8 +47,20 @@ async function brandBrief(admin: SupabaseClient, uid: string, profile: string): 
   }
 }
 
+/** "Search the web": one Google page for the hook, Singapore English. A failed search writes without it. */
+async function research(hook: string, topic: string): Promise<SearchHit[]> {
+  const auth = dfsAuth();
+  if (!auth) return [];
+  try {
+    return searchHits(await dfs("serp/google/organic/live/regular", { keyword: `${hook} ${topic}`.slice(0, 200), location_code: SINGAPORE, language_code: "en", depth: 10 }, auth, 20_000));
+  } catch (e) {
+    console.error("slide-campaigns research", e);
+    return [];
+  }
+}
+
 async function write(spec: ReturnType<typeof sanitizeSpec>, hook: string, brief: string) {
-  const p = writerPrompt(spec, hook, brief, HONEST_LINE);
+  const p = writerPrompt(spec, hook, brief, HONEST_LINE, spec.research ? await research(hook, spec.topic.slice(0, 80)) : []);
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await openaiChat({ model: OPENAI_MODEL, response_format: { type: "json_object" }, max_tokens: 1200, messages: [{ role: "system", content: p.system }, { role: "user", content: p.user }] });
     if (!res.ok) continue;
@@ -134,8 +147,9 @@ export async function makeRun(admin: SupabaseClient, c: CampaignRow, kind: "prev
   return { id: runId, hook, caption: w.caption, slides: plan, files };
 }
 
-/** Sends a made run to the campaign's TikTok account as a draft at `at`, through the same code Post it for me uses. */
-async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at: Date): Promise<void> {
+/** Sends a made run to the campaign's TikTok account (drafts, or straight to the profile with the owner's consent)
+ *  at `at`, or now when `at` is null, through the same code Post it for me uses. */
+export async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at: Date | null): Promise<void> {
   const fail = async (error: string) => {
     await admin.from("cs_slide_campaign_runs").update({ status: "failed", error: error.slice(0, 500) }).eq("id", run.id);
     throw new RunError(error);
@@ -146,15 +160,16 @@ async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at:
   const urls = (signed.data ?? []).map((s) => s.signedUrl).filter(Boolean) as string[];
   if (urls.length !== run.files.length) return fail("The slides couldn't be shared with TikTok.");
   const tz = sanitizeSchedule(c.schedule).tz;
+  const mode = publishMode(c.publish);
   const input = checkSchedule({
-    // one key per campaign and posting time: Zernio answers a repeat for the same slot with the same post
-    clientKey: await slotKey(c.id, at),
+    // one key per campaign and posting time (or per run, sent now): Zernio answers a repeat with the same post
+    clientKey: at ? await slotKey(c.id, at) : run.id,
     content: run.caption,
     mediaUrls: urls,
-    scheduledFor: at.toISOString().replace(/\.\d{3}Z$/, "Z"),
+    ...(at ? { scheduledFor: at.toISOString().replace(/\.\d{3}Z$/, "Z") } : { now: true }),
     timezone: tz,
-    // a draft: the person finishes and posts it in the TikTok app, where they can change who sees it
-    tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode: "inbox" },
+    // a draft: the person finishes and posts it in the TikTok app, where they can change who sees it; direct posts it
+    tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, mode },
   });
   if ("error" in input) return fail(input.error);
   const z = zernioClient(Deno.env.get("ZERNIO_API_KEY")!);
@@ -170,5 +185,5 @@ async function schedule(admin: SupabaseClient, c: CampaignRow, run: MadeRun, at:
     return fail("TikTok didn't take the post. Check the account on Social accounts; it tries again next time.");
   }
   const postId = (reply.body as { post?: { id?: string } })?.post?.id ?? null;
-  await admin.from("cs_slide_campaign_runs").update({ status: "scheduled", scheduled_for: at.toISOString(), zernio_post_id: postId }).eq("id", run.id);
+  await admin.from("cs_slide_campaign_runs").update({ status: "scheduled", scheduled_for: (at ?? new Date()).toISOString(), zernio_post_id: postId, caption: run.caption }).eq("id", run.id);
 }

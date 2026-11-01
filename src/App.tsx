@@ -46,6 +46,8 @@ const DesignPage = lazy(() => import("@/pages/DesignPage"));
 const DesignEditorPage = lazy(() => import("@/pages/DesignEditorPage"));
 const SlideCampaignsPage = lazy(() => import("@/pages/SlideCampaignsPage"));
 const SlideCampaignPage = lazy(() => import("@/pages/SlideCampaignPage"));
+const SlideLibrariesPage = lazy(() => import("@/pages/SlideLibrariesPage"));
+const PhonePage = lazy(() => import("@/pages/PhonePage"));
 const MakePage = lazy(() => import("@/pages/MakePage"));
 const MakeFormatPage = lazy(() => import("@/pages/MakeFormatPage"));
 const SwipeFilePage = lazy(() => import("@/pages/SwipeFilePage"));
@@ -110,6 +112,15 @@ export default function App() {
         {/* Public: what people asked for, what is being built, what shipped. */}
         <Route path="/roadmap" element={<PublicRoadmap />} />
         <Route path="/auth" element={<Auth />} />
+        {/* Public: slides sent from Design to a phone (Send to phone), for a day. */}
+        <Route
+          path="/phone/:token"
+          element={
+            <Suspense fallback={null}>
+              <PhonePage />
+            </Suspense>
+          }
+        />
         <Route
           path="/review/:token"
           element={
@@ -164,6 +175,7 @@ export default function App() {
           <Route path="/design" element={<DesignPage />} />
           <Route path="/design/campaigns" element={<SlideCampaignsPage />} />
           <Route path="/design/campaigns/:id" element={<SlideCampaignPage />} />
+          <Route path="/design/libraries" element={<SlideLibrariesPage />} />
           <Route path="/design/:id" element={<DesignEditorPage />} />
           <Route path="/make" element={<MakePage />} />
           <Route path="/make/:format" element={<MakeFormatPage />} />

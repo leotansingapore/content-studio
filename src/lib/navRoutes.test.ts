@@ -14,6 +14,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/marketing-north-star/postmosis": "postmosis.com's marketing plan, reached from the north star tabs and the hub",
   "/seo-north-star": "postmosis.com's SEO plan, reached from the north star tabs",
   "/review/:token": "public compliance preview link",
+  "/phone/:token": "public Send to phone page, opened from a QR code or link",
   "/l/:slug": "public link-in-bio page",
   "/t/report/:slug": "public tracked-link report",
   "/join": "invite link to Leo's posts board, opened from the link he sends",

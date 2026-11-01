@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, slotKey, writerPrompt } from "./slideCampaign.ts";
-import { lookFilterSvg, overlayCss } from "./slideStyle.ts";
+import { nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, writerPrompt } from "./slideCampaign.ts";
+import { DEFAULT_STYLE, lookFilterSvg, overlayCss } from "./slideStyle.ts";
 
 describe("slideshow campaigns", () => {
   it("spec: defaults, clamps and drops what it can't use", () => {
@@ -22,9 +22,25 @@ describe("slideshow campaigns", () => {
     expect(s.format).toBe("tiktok");
   });
 
-  it("publishing is TikTok drafts only, whatever is sent", () => {
-    expect(sanitizePublish({})).toEqual({ mode: "inbox" });
-    expect(sanitizePublish({ mode: "direct" })).toEqual({ mode: "inbox" });
+  it("publishing: drafts unless the owner consents to straight to the profile, and the consent time is kept", () => {
+    const now = new Date("2026-11-01T03:00:00Z");
+    expect(sanitizePublish({}, null, now)).toEqual({ mode: "inbox", consent_at: null });
+    expect(sanitizePublish({ mode: "direct" }, null, now)).toEqual({ mode: "inbox", consent_at: null });
+    expect(sanitizePublish({ mode: "direct", consent_at: "2020-01-01T00:00:00Z" }, null, now).mode).toBe("inbox");
+    const first = sanitizePublish({ mode: "direct", consent: true }, null, now);
+    expect(first).toEqual({ mode: "direct", consent_at: "2026-11-01T03:00:00.000Z" });
+    expect(sanitizePublish({ mode: "direct", consent: true }, first, new Date("2026-11-05T00:00:00Z")).consent_at).toBe(first.consent_at);
+    expect(sanitizePublish({ mode: "direct", consent: false }, first, now)).toEqual({ mode: "inbox", consent_at: null });
+    expect(publishMode(first)).toBe("direct");
+    expect(publishMode({ mode: "direct", consent_at: null })).toBe("inbox");
+    expect(publishMode(null)).toBe("inbox");
+  });
+
+  it("text style: older top/bottom and sizes become y and px; numbers are clamped", () => {
+    expect(sanitizeStyle({})).toEqual(DEFAULT_STYLE);
+    expect(sanitizeStyle({ v: "top", size: "lg" })).toMatchObject({ y: 0, px: 76 });
+    expect(sanitizeStyle({ v: "bottom", size: "sm" })).toMatchObject({ y: 100, px: 46 });
+    expect(sanitizeStyle({ v: "top", y: 30, px: 999, width: 5, x: -4 })).toMatchObject({ y: 30, px: 140, width: 30, x: 0 });
   });
 
   it("uploads: only the owner's folder, a fresh id and a picture ending", () => {
@@ -95,8 +111,31 @@ describe("slideshow campaigns", () => {
     expect(ok.slides).toEqual(["a", "b", "c"]);
     expect(ok.cta).toBe("Get Scratch on the App Store");
     expect(runPlan(spec, "6 hacks", ok).map((s) => s.role)).toEqual(["hook", "content", "content", "content", "cta"]);
+    const mid = sanitizeSpec({ content: { slides: 4 }, cta: { text: "Follow for more", placement: "middle" } });
+    const w4 = parseWriter('{"slides":["a","b","c","d"],"cta":"","caption":""}', mid)!;
+    expect(runPlan(mid, "h", w4).map((s) => s.text)).toEqual(["h", "a", "b", "Follow for more", "c", "d"]);
+    expect(writerPrompt(mid, "h", "", "").system).toContain("in the middle");
     const none = sanitizeSpec({ content: { slides: 1 }, cta: { placement: "none" } });
     expect(runPlan(none, "h", parseWriter('{"slides":["a"],"cta":"x","caption":""}', none)!).map((s) => s.role)).toEqual(["hook", "content"]);
+  });
+
+  it("search the web: organic hits only, five at most, and the writer is told to use and name them", () => {
+    const answer = {
+      tasks: [{ result: [{ items: [
+        { type: "paid", title: "Ad", description: "Buy", domain: "ads.com" },
+        ...Array.from({ length: 7 }, (_, i) => ({ type: "organic", title: `T${i}`, description: `Fact  ${i}\nmore`, domain: `www.site${i}.sg` })),
+        { type: "organic", title: "No snippet", domain: "x.sg" },
+      ] }] }],
+    };
+    const hits = searchHits(answer);
+    expect(hits).toHaveLength(5);
+    expect(hits[0]).toEqual({ title: "T0", site: "site0.sg", text: "Fact 0 more" });
+    expect(searchHits({})).toEqual([]);
+    const spec = sanitizeSpec({ research: true, content: { slides: 2 } });
+    const p = writerPrompt(spec, "h", "", "", hits);
+    expect(p.system).toContain("Sources:");
+    expect(p.user).toContain("1. T0 (site0.sg): Fact 0 more");
+    expect(writerPrompt(sanitizeSpec({}), "h", "", "", hits).system).not.toContain("Sources:");
   });
 
   it("looks and overlays match the editor's maths", () => {

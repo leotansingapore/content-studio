@@ -1,7 +1,9 @@
 // Slideshow campaigns (Volume's, folded in): the post formula a campaign keeps, when it next posts, which hook and
 // pictures a run takes, and the writer's prompt and answer. Pure: the slide-campaigns function does the I/O.
 
-import { CAMPAIGN_FONTS, DEFAULT_STYLE, LOOK_MIX, type Overlay, type SlideFormat, type TextStyle } from "./slideStyle.ts";
+import { LOOK_MIX, sanitizeStyle, type Overlay, type SlideFormat, type TextStyle } from "./slideStyle.ts";
+
+export { sanitizeStyle };
 
 export type Role = "hook" | "content" | "cta";
 export interface CampaignSpec {
@@ -10,7 +12,9 @@ export interface CampaignSpec {
   /** One is picked at random each run, so a few weeks show which angle lands. */
   hooks: string[];
   content: { slides: number; style: "plain" | "numbered" | "steps"; length: "short" | "medium" | "long"; tone: "plain" | "punchy" | "expert" | "warm" };
-  cta: { text: string; badge: boolean; placement: "end" | "none" };
+  cta: { text: string; badge: boolean; placement: "end" | "middle" | "none" };
+  /** Search the web for the hook before writing, so the slides carry current facts (one paid search per post). */
+  research: boolean;
   /** A library id per slide role; a run draws a fresh picture from it. */
   images: Record<Role, string | null> & { per_slide: boolean };
   text_style: Record<Role, TextStyle>;
@@ -25,9 +29,11 @@ export interface Schedule {
   times: { at: string; days: number[] }[];
 }
 export interface Publish {
-  /** inbox: to the account's TikTok drafts, where the person adds a sound and posts it. The only mode today: posting
-   *  straight to the profile would tell TikTok the person saw each post (posts.ts), which a schedule can't. */
-  mode: "inbox";
+  /** inbox: to the account's TikTok drafts, where the person adds a sound and posts it. direct: straight to the
+   *  profile, which tells TikTok the owner agreed to each post going out unseen (posts.ts), so it needs consent_at. */
+  mode: "inbox" | "direct";
+  /** When the owner ticked that posts go out without them seeing each one first. */
+  consent_at: string | null;
 }
 
 export const MAX_HOOKS = 30;
@@ -40,19 +46,6 @@ const pick = <T extends string>(v: unknown, list: readonly T[], fallback: T): T 
 const num = (v: unknown, fallback: number, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : fallback);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function sanitizeStyle(raw: unknown): TextStyle {
-  const r = obj(raw) ? raw : {};
-  return {
-    v: pick(r.v, ["top", "middle", "bottom"] as const, DEFAULT_STYLE.v),
-    h: pick(r.h, ["left", "center", "right"] as const, DEFAULT_STYLE.h),
-    size: pick(r.size, ["sm", "md", "lg"] as const, DEFAULT_STYLE.size),
-    font: pick(r.font, CAMPAIGN_FONTS, DEFAULT_STYLE.font),
-    italic: r.italic === true,
-    caps: r.caps === true,
-    bg: pick(r.bg, ["none", "bar", "soft", "outline", "snap"] as const, DEFAULT_STYLE.bg),
-    color: typeof r.color === "string" && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : DEFAULT_STYLE.color,
-  };
-}
 
 export function sanitizeSpec(raw: unknown): CampaignSpec {
   const r = obj(raw) ? raw : {};
@@ -73,7 +66,8 @@ export function sanitizeSpec(raw: unknown): CampaignSpec {
       length: pick(c.length, ["short", "medium", "long"] as const, "medium"),
       tone: pick(c.tone, ["plain", "punchy", "expert", "warm"] as const, "plain"),
     },
-    cta: { text: str(cta.text, 200), badge: cta.badge === true, placement: pick(cta.placement, ["end", "none"] as const, "end") },
+    cta: { text: str(cta.text, 200), badge: cta.badge === true, placement: pick(cta.placement, ["end", "middle", "none"] as const, "end") },
+    research: r.research === true,
     images: { hook: lib(im.hook), content: lib(im.content), cta: lib(im.cta), per_slide: im.per_slide !== false },
     text_style: { hook: sanitizeStyle(ts.hook), content: sanitizeStyle(ts.content), cta: sanitizeStyle(ts.cta) },
     look: typeof r.look === "string" && r.look in LOOK_MIX ? r.look : "none",
@@ -98,7 +92,15 @@ export function sanitizeSchedule(raw: unknown): Schedule {
     .slice(0, MAX_TIMES);
   return { tz, times };
 }
-export const sanitizePublish = (_raw: unknown): Publish => ({ mode: "inbox" });
+/** Straight to the profile only with the owner's consent: kept from before, or stamped now when they tick it. */
+export function sanitizePublish(raw: unknown, was: unknown = null, now = new Date()): Publish {
+  const r = obj(raw) ? raw : {};
+  const before = obj(was) && typeof was.consent_at === "string" && !Number.isNaN(Date.parse(was.consent_at)) ? was.consent_at : null;
+  const consent_at = r.consent === true ? (before ?? now.toISOString()) : null;
+  return { mode: r.mode === "direct" && consent_at ? "direct" : "inbox", consent_at };
+}
+/** A stored campaign's mode (rows are only written through sanitizePublish): direct needs its consent time. */
+export const publishMode = (stored: unknown): Publish["mode"] => (obj(stored) && stored.mode === "direct" && typeof stored.consent_at === "string" ? "direct" : "inbox");
 
 /** An upload in a library: the owner's folder, a fresh id, a picture ending. Nothing else is read or deleted. */
 export const ownUpload = (uid: string, src: string) => new RegExp(`^${uid}/lib/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(src);
@@ -184,7 +186,7 @@ const STYLE: Record<CampaignSpec["content"]["style"], string> = {
 };
 
 /** The writer's instructions for one run. `brief` is what the brand does and for whom; `honest` the house honesty rule. */
-export function writerPrompt(spec: CampaignSpec, hook: string, brief: string, honest: string): { system: string; user: string } {
+export function writerPrompt(spec: CampaignSpec, hook: string, brief: string, honest: string, found: SearchHit[] = []): { system: string; user: string } {
   const n = spec.content.slides;
   const system = [
     "You write TikTok and Instagram photo slideshows. The first slide (the hook) is given. You write the slides after it, then the caption.",
@@ -192,15 +194,23 @@ export function writerPrompt(spec: CampaignSpec, hook: string, brief: string, ho
     "Deliver what the hook promises: if it names a number, the slides are those items, in that count when it matches.",
     "Use real, checkable specifics and numbers where they help; no filler, no hashtags or emoji on slides.",
     honest,
-    spec.cta.placement === "end"
-      ? spec.cta.text
-        ? `The last slide is the call to action, given as: ${JSON.stringify(spec.cta.text)}. Return it as cta, tightened only if it runs over 14 words.`
-        : "Then write a short call to action for the last slide, pointing to the brand naturally (no hard sell), under 12 words, as cta."
+    spec.cta.placement !== "none"
+      ? `${spec.cta.placement === "middle" ? "A call-to-action slide goes in the middle of the content slides." : "The last slide is the call to action."} ${
+          spec.cta.text
+            ? `It is given as: ${JSON.stringify(spec.cta.text)}. Return it as cta, tightened only if it runs over 14 words.`
+            : "Write it short, pointing to the brand naturally (no hard sell), under 12 words, as cta."
+        }`
       : 'There is no call-to-action slide: return cta as "".',
     "The caption is 1 to 3 short sentences that add to the slides, then 3 to 5 relevant hashtags.",
+    ...(spec.research ? ["You are given web search results. Build the slides on the facts in them that fit the hook, and never state a fact that is in neither the results nor common knowledge. End the caption, before the hashtags, with 'Sources:' and the sites you used."] : []),
     'Answer as JSON only: {"slides": string[], "cta": string, "caption": string}.',
   ].join("\n");
-  const user = [`About the brand: ${brief || "a solo professional"}`, `What the posts are about: ${spec.topic || "useful, practical advice for the brand's audience"}`, `Hook (slide 1): ${hook}`].join("\n");
+  const user = [
+    `About the brand: ${brief || "a solo professional"}`,
+    `What the posts are about: ${spec.topic || "useful, practical advice for the brand's audience"}`,
+    `Hook (slide 1): ${hook}`,
+    ...(found.length ? ["Web search results:", ...found.map((f, i) => `${i + 1}. ${f.title} (${f.site}): ${f.text}`)] : []),
+  ].join("\n");
   return { system, user };
 }
 
@@ -215,11 +225,34 @@ export function parseWriter(raw: string, spec: CampaignSpec): { slides: string[]
   if (!obj(j) || !Array.isArray(j.slides)) return null;
   const slides = j.slides.map((s) => (typeof s === "string" ? s.trim().slice(0, 300) : "")).filter(Boolean);
   if (slides.length < spec.content.slides) return null;
-  const cta = spec.cta.placement === "end" ? str(j.cta, 200) || spec.cta.text : "";
+  const cta = spec.cta.placement !== "none" ? str(j.cta, 200) || spec.cta.text : "";
   return { slides: slides.slice(0, spec.content.slides), cta, caption: str(j.caption, 2200) };
 }
 
 /** The slides of a run in order, each with its role and the library its picture comes from. */
 export function runPlan(spec: CampaignSpec, hook: string, w: { slides: string[]; cta: string }): { role: Role; text: string }[] {
-  return [{ role: "hook" as const, text: hook }, ...w.slides.map((text) => ({ role: "content" as const, text })), ...(spec.cta.placement === "end" && w.cta ? [{ role: "cta" as const, text: w.cta }] : [])];
+  const content = w.slides.map((text) => ({ role: "content" as const, text }));
+  const cta = spec.cta.placement !== "none" && w.cta ? [{ role: "cta" as const, text: w.cta }] : [];
+  // mid-deck: after the first half of the content, rounded up (with one content slide it lands last)
+  const cut = spec.cta.placement === "middle" ? Math.ceil(content.length / 2) : content.length;
+  return [{ role: "hook" as const, text: hook }, ...content.slice(0, cut), ...cta, ...content.slice(cut)];
+}
+
+export interface SearchHit {
+  title: string;
+  site: string;
+  text: string;
+}
+/** The organic results of a DataForSEO Google SERP answer, trimmed for the writer: at most 5, each with a snippet. */
+export function searchHits(answer: unknown): SearchHit[] {
+  const items = (answer as { tasks?: { result?: { items?: unknown[] }[] }[] })?.tasks?.[0]?.result?.[0]?.items;
+  if (!Array.isArray(items)) return [];
+  const hits: SearchHit[] = [];
+  for (const it of items) {
+    if (!obj(it) || it.type !== "organic" || typeof it.description !== "string" || typeof it.title !== "string") continue;
+    const site = typeof it.domain === "string" ? it.domain.replace(/^www\./, "") : "";
+    hits.push({ title: it.title.slice(0, 160), site, text: it.description.replace(/\s+/g, " ").slice(0, 300) });
+    if (hits.length === 5) break;
+  }
+  return hits;
 }
