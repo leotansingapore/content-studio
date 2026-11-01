@@ -141,12 +141,19 @@ describe("an AI B-roll clip", () => {
 describe("a slideshow's AI pictures", () => {
   const ask = { mode: "slides", pictures: ["a calm desk", "a planner", "a phone face down"], look: "clay", aspect: "9:16" };
 
-  it("is refused for anyone not on the list, with nothing counted or asked for", async () => {
+  it("is open to any signed-in adviser, counted on their own cap", async () => {
     const res = await db.handler!(new Request("http://x/ai-image", { method: "POST", headers: { Authorization: "Bearer someone-else" }, body: JSON.stringify(ask) }));
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ code: "not_enabled" });
-    expect(used("someone-else", "slide-pictures")).toBe(0);
+    expect(res.status).toBe(200);
+    expect(used("someone-else", "slide-pictures")).toBe(1);
+    expect(used(UID, "slide-pictures")).toBe(0);
+  });
+
+  it("is refused over the adviser's 5 a day, with nothing asked for", async () => {
+    db.rows.set(`${UID}|slide-pictures|${db.today()}`, 5);
+    const res = await call(ask);
+    expect(res.status).toBe(429);
     expect(hf.submits).toEqual([]);
+    expect(used(GLOBAL_COUNTER_USER, "slide-pictures-global")).toBe(0);
   });
 
   it("asks for one picture a slide and counts the slideshow once on each cap", async () => {

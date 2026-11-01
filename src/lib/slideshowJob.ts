@@ -1,7 +1,7 @@
 // Make a slideshow (/make/slideshow, docs/north-star/items/formats-slideshow.md) outside React, so leaving the page
 // keeps it going (montage.ts's shape). One remix make (as "slideshow") writes the slides, a stock search per slide
 // and the caption; Pexels finds photos, or the brand's own media stands in; Jev picks one per slide (video-assist
-// montage-pick, noun "photo"), or for Leo every slide gets an AI picture in one look (ai-image "slides", about
+// montage-pick, noun "photo"), or every slide gets an AI picture in one look (ai-image "slides", about
 // US$0.06 a slideshow); the words are sized to fit the frame and the result is saved as a Slideshow
 // (src/lib/slideshow.ts) that /slideshow edits. In memory only: a reload mid-make loses the run, and the server has
 // given back the use of any write the model never answered.
@@ -359,7 +359,7 @@ const POLL_MS = 2500;
 const GIVE_UP_MS = 4 * 60_000;
 
 /**
- * Leo's AI pictures: one ai-image "slides" call for every slide (its stock search words say what to show), each
+ * AI pictures: one ai-image "slides" call for every slide (its stock search words say what to show), each
  * picture in the look, then each job read until it lands and kept on this device. One that fails or never lands
  * leaves its slide on the brand colour, as a stock search with no results does.
  * shortcut: a reload mid-make loses pictures already paid for (aiImage.ts keeps its token to resume); add that if it bites.

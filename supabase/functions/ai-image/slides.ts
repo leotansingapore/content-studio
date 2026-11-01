@@ -1,4 +1,4 @@
-// AI pictures for a made slideshow (ai-image mode "slides", NORTH_STAR_USERS only): one Soul v2 picture per slide,
+// AI pictures for a made slideshow (ai-image mode "slides", every signed-in adviser): one Soul v2 picture per slide,
 // every one in the same look, so a slideshow holds one style (the 30 Oct teardowns: gymmadesimple's figures,
 // glowuptrickz's faces). The looks are the AI video explainer's (ai-video/logic.ts EXPLAINER_LOOKS, pictureBody).
 //   POST {mode:"slides", pictures, look, aspect} -> {tokens}: counts once against "slide-pictures" and

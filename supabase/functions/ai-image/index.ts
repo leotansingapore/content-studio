@@ -10,7 +10,7 @@
 //        motion job's, read with "status". Counts once against "ai-broll" and "ai-broll-global".
 //        Refused unless the AI_BROLL_ENABLED secret is "1" (set 2026-10-10, when the Higgsfield pool was topped up).
 //   POST {mode:"slides", pictures, look, aspect} -> {tokens}: a made slideshow's pictures in one look (slides.ts),
-//        NORTH_STAR_USERS only; counts once against "slide-pictures" and "slide-pictures-global" for up to 10.
+//        any signed-in adviser; counts once against "slide-pictures" and "slide-pictures-global" for up to 10.
 // The token is the Higgsfield request id signed for the adviser who started it
 // (logic.ts jobToken), so nobody else can read the job.
 // The browser polls status, then downloads the picture straight from Higgsfield's
@@ -21,7 +21,6 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { isAllowed } from "../market/logic.ts";
 import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
@@ -116,7 +115,6 @@ Deno.serve(async (req) => {
       return json({ token: await jobToken(signing, uid, vid) });
     }
     if (slides?.ok) {
-      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "AI pictures for slideshows aren't switched on for your account yet." }, 403);
       // the adviser's own cap first, so someone at their limit can't use up everyone's
       const mine = await consumeUsage(admin, uid, "slide-pictures");
       if (!mine.allowed) {
