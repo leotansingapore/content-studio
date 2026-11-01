@@ -37,6 +37,7 @@ import {
   pageTitle,
   section,
   sectionFor,
+  sectionHref,
   visiblePages,
   type MoreTile,
   type NavSection,
@@ -323,7 +324,7 @@ export default function StudioLayout() {
   const prevPath = useRef(pathname);
   // Read on every render: setReelsOn rerenders once checkMe has stored the answer.
   const board = reelsShown();
-  // Each sidebar item reopens the page you last had open in its section.
+  // Each nav item (sidebar, phone bar, More) reopens the page you last had open in its section (sectionHref).
   const lastInSection = useRef<Record<string, string>>({});
 
   const here = sectionFor(pathname);
@@ -522,7 +523,12 @@ export default function StudioLayout() {
 
   // Home lists everything that needs you (overdue posts, team posts, the posts board), so Home carries the count.
   const homeCount = needsYou + boardWaiting;
-  const sectionTo = (s: NavSection) => lastInSection.current[s.id] ?? visiblePages(s.pages, email)[0]?.to ?? s.to;
+  const sectionTo = (s: NavSection) => sectionHref(s, email, here?.id, lastInSection.current[s.id]);
+  // the phone bar reopens a section where you left it too; Home stays Home, since the agent's chats have their own tab
+  const barTo = (to: string) => {
+    const s = sectionFor(to);
+    return s && s.id !== "home" ? sectionTo(s) : to;
+  };
 
   const tabs = mobileTabs(email);
   const moreActive = !tabs.some((t) => t.active(pathname));
@@ -673,7 +679,7 @@ export default function StudioLayout() {
           <ChannelsBlock userId={uid ?? leo?.id} className="mb-4" />
           <div className="grid grid-cols-2 gap-2">
             {sheet.map((t) => (
-              <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
+              <MoreTileLink key={t.sectionId} tile={{ ...t, to: sectionTo(section(t.sectionId)) }} active={tileActive(t)} />
             ))}
           </div>
           <div className="mt-5 border-t border-border/70 pt-3">
@@ -702,8 +708,8 @@ export default function StudioLayout() {
         <div className="grid grid-cols-4">
           {tabs.map(({ to, label, icon: Icon, active }) => (
             <Link
-              key={to}
-              to={to}
+              key={label}
+              to={barTo(to)}
               aria-current={active(pathname) ? "true" : undefined}
               className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
                 active(pathname) ? "text-primary" : "text-muted-foreground"

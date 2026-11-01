@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, sectionTabs, visiblePages } from "./nav";
+import { mobileTabs, moreSheet, pageFor, pageTitle, section, sectionHref, SECTIONS, sectionFor, sectionTabs, visiblePages } from "./nav";
 
 const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
@@ -18,6 +18,16 @@ describe("nav", () => {
     for (const r of routes) expect(pageFor(r)?.page.to, r).toBe(r);
     const listed = SECTIONS.flatMap((s) => s.pages.map((p) => p.to));
     expect(new Set(listed).size).toBe(listed.length);
+  });
+
+  it("reopens a section where you left it, and takes you to its first page when you are already in it", () => {
+    const studio = section("write");
+    expect(sectionHref(studio, ANYONE, "find", "/design/campaigns/c1")).toBe("/design/campaigns/c1");
+    // a tap from a detail page is never a dead tap
+    expect(sectionHref(studio, ANYONE, "write", "/design/campaigns/c1")).toBe("/studio");
+    expect(sectionHref(studio, ANYONE, "find", undefined)).toBe("/studio");
+    expect(sectionHref(section("plan"), LEO, "home", undefined)).toBe("/campaigns");
+    expect(sectionHref(section("plan"), ANYONE, "home", undefined)).toBe("/calendar");
   });
 
   it("follows Fastlane's sidebar: its five plus Grow, with Brand, Learn, Feedback and Settings at the foot", () => {

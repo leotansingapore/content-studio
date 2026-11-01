@@ -289,6 +289,12 @@ export function pageFor(pathname: string): { section: NavSection; page: NavPage 
 
 export const sectionFor = (pathname: string) => pageFor(pathname)?.section ?? null;
 
+/** Where a section's nav item goes: its first page when you are already in it (a way out of a detail page), else the page you last had open there. */
+export const sectionHref = (s: NavSection, email: string, hereId: string | undefined, last: string | undefined) => {
+  const first = visiblePages(s.pages, email)[0]?.to ?? s.to;
+  return hereId === s.id || !last ? first : last;
+};
+
 export const pageTitle = (pathname: string) => {
   const hit = pageFor(pathname);
   return hit ? `${hit.page.title ?? (hit.page.anyLabel && !adviserBrand() ? hit.page.anyLabel : hit.page.label)} - Postmosis` : "Postmosis";
