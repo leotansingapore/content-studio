@@ -82,6 +82,8 @@ describe("key shapes", () => {
     expect(sourceNoun({ kind: "link", format: "video", platform: "youtube", url: "https://www.youtube.com/shorts/IphYQzGtYyk" })).toBe("Short");
     expect(sourceNoun({ kind: "link", format: "video", platform: "youtube" })).toBe("video");
     expect(sourceNoun({ kind: "follow", format: "carousel" })).toBe("carousel");
+    expect(sourceNoun({ kind: "follow", format: "carousel", platform: "instagram" })).toBe("carousel");
+    expect(sourceNoun({ kind: "follow", format: "carousel", platform: "tiktok" })).toBe("slideshow");
     expect(sourceNoun({ kind: "own", format: "text" })).toBe("post");
     expect(sourceNoun({ kind: "ad", format: "video" })).toBe("ad");
     expect(sourceNoun({ kind: "trend" })).toBe("trend");
@@ -126,7 +128,7 @@ describe("a trending format", () => {
     );
     expect(s.caption).not.toMatch(/#selfimprovement|freeze/i);
     expect(s.teardown?.structure).toBe(slideshow.structure.join(" / "));
-    expect(sourceChip(s)).toBe("Remixing @habits's carousel");
+    expect(sourceChip(s)).toBe("Remixing @habits's slideshow");
   });
 
   it("names a wall of text as words over a clip, and stops at a whole line under 400 characters", () => {
