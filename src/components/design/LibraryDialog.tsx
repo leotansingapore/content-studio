@@ -51,6 +51,16 @@ export interface Library {
   id: string;
   name: string;
 }
+
+/** A dialog's library: `make` runs once, on the first add, and every add after (or at the same time) gets the same one. */
+export function oneLibrary(have: Library | null, make: () => Promise<Library>): () => Promise<Library> {
+  let made: Promise<Library> | null = have ? Promise.resolve(have) : null;
+  return () =>
+    (made ??= make().catch((e) => {
+      made = null; // a failed make is tried again on the next add
+      throw e;
+    }));
+}
 type Img = { id: string; src: string; url: string | null };
 type Source = "search" | "generate" | "app";
 
@@ -82,13 +92,17 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
   }, [lib]);
 
   /** The library, made on first use with the name typed (or a plain one). */
-  const ensure = async (): Promise<Library> => {
-    if (lib) return lib;
-    const r = await callFn<{ library: Library }>("slide-campaigns", { action: "library-save", profile_id: profileId, name: name.trim() || "Pictures" });
-    setLib(r.library);
-    onSaved(r.library);
-    return r.library;
-  };
+  const nameNow = useRef(name);
+  nameNow.current = name;
+  // made once per dialog and the name read from a ref: the AI picture's handler was set up before a library existed
+  const [ensure] = useState(() =>
+    oneLibrary(library, async () => {
+      const r = await callFn<{ library: Library }>("slide-campaigns", { action: "library-save", profile_id: profileId, name: nameNow.current.trim() || "Pictures" });
+      setLib(r.library);
+      onSaved(r.library);
+      return r.library;
+    }),
+  );
   const run = async (label: string, job: () => Promise<void>) => {
     setBusy(label);
     setNote(null);
