@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { imageBusy, makeImage, onImageJob } from "@/lib/aiImage";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { callFn } from "@/lib/edgeFn";
+import { socialConnectShown } from "@/lib/socialConnect";
 import { searchStock, type StockItem } from "@/lib/stockMedia";
 import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
@@ -82,6 +83,8 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
   const left = useUsesLeft(!!making)("ai-image");
   const [screen, setScreen] = useState<File | null>(null);
   const [scene, setScene] = useState<File | null>(null);
+  // adding pictures is for owners with posting switched on (the server refuses the rest), so no AI picture is spent first
+  const canPost = socialConnectShown();
 
   useEffect(() => {
     ref.current?.showModal();
@@ -162,7 +165,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
     [making], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const generate = () => {
-    if (!user || !prompt.trim() || imageBusy()) return;
+    if (!user || !prompt.trim() || imageBusy() || !canPost) return;
     setNote(null);
     setMaking(prompt.trim());
     void makeImage(user.id, prompt.trim(), prompt.trim().slice(0, 60));
@@ -188,10 +191,10 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
           {source === "generate" && (
             <div className="space-y-2">
               <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3} maxLength={600} placeholder="A golfer lining up a putt at sunrise, soft film grain" aria-label="Describe the picture" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" />
-              <Button size="sm" onClick={generate} disabled={!!making || !prompt.trim() || left === 0} className="gap-1.5">
+              <Button size="sm" onClick={generate} disabled={!!making || !prompt.trim() || left === 0 || !canPost} className="gap-1.5">
                 {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {making ? "Making the picture" : "Generate into the library"}
               </Button>
-              <p className="text-xs text-muted-foreground">{left === null ? "Also saved to Media under AI images." : `${left} left today. Also saved to Media under AI images.`}</p>
+              <p className="text-xs text-muted-foreground">{!canPost ? "Posting isn't switched on for your account yet." : left === null ? "Also saved to Media under AI images." : `${left} left today. Also saved to Media under AI images.`}</p>
             </div>
           )}
           {source === "app" && (
@@ -204,7 +207,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
                 <span className="text-muted-foreground">The scene behind it (optional)</span>
                 <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setScene(e.target.files?.[0] ?? null)} className="block w-full text-xs" />
               </label>
-              <Button size="sm" onClick={() => void buildShot()} disabled={!screen || !!busy} className="gap-1.5">
+              <Button size="sm" onClick={() => void buildShot()} disabled={!screen || !!busy || !canPost} className="gap-1.5">
                 {(busy === "app" || busy === "upload") && <Loader2 className="h-4 w-4 animate-spin" />} Build the image
               </Button>
             </div>
@@ -244,7 +247,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
                 })}
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => void addPicked()} disabled={!picked.size || !!busy} className="gap-1.5">
+                <Button size="sm" onClick={() => void addPicked()} disabled={!picked.size || !!busy || !canPost} className="gap-1.5">
                   {busy === "add" && <Loader2 className="h-4 w-4 animate-spin" />} Add {picked.size || ""} to the library
                 </Button>
                 <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => setPicked(new Set(found.map((f) => f.id)))}>
@@ -257,7 +260,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
           </>
           )}
           <input ref={file} type="file" multiple accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => void upload(e.target.files)} />
-          <Button type="button" variant="outline" size="sm" onClick={() => file.current?.click()} disabled={!!busy} className="gap-1.5">
+          <Button type="button" variant="outline" size="sm" onClick={() => file.current?.click()} disabled={!!busy || !canPost} className="gap-1.5">
             {busy === "upload" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload your own
           </Button>
           {note && (

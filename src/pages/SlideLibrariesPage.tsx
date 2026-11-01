@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { callFn } from "@/lib/edgeFn";
 import { activeProfileId } from "@/lib/profiles";
+import { socialConnectShown } from "@/lib/socialConnect";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 
 type Row = Library & { count: number; stock: number; uploads: number; previews: (string | null)[]; used_by: string[] };
@@ -18,6 +19,8 @@ export default function SlideLibrariesPage() {
   const user = useSignedInUser();
   const { toast } = useToast();
   const profile = activeProfileId(user?.id);
+  // libraries feed campaigns, which post to TikTok: the server only fills them for owners with posting switched on
+  const canPost = socialConnectShown();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [open, setOpen] = useState<Library | "new" | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -54,10 +57,11 @@ export default function SlideLibrariesPage() {
           <h1 className="text-2xl font-semibold">Libraries</h1>
           {rows && <p className="text-sm text-muted-foreground">{`${rows.length} librar${rows.length === 1 ? "y" : "ies"}`}</p>}
         </div>
-        <Button onClick={() => setOpen("new")} className="gap-1.5">
+        <Button onClick={() => setOpen("new")} disabled={!canPost} className="gap-1.5">
           <Plus className="h-4 w-4" /> New library
         </Button>
       </header>
+      {!canPost && <p className="text-sm text-muted-foreground">Posting isn't switched on for your account yet.</p>}
       {!rows && <p className="text-sm text-muted-foreground">Loading your libraries</p>}
       {rows?.length === 0 && (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">

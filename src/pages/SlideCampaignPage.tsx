@@ -247,7 +247,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
             <ChevronLeft className="h-4 w-4" /> Campaigns
           </Link>
         </Button>
-        <input value={name} maxLength={120} aria-label="Campaign name" onChange={(e) => setName(e.target.value)} className="min-w-0 flex-1 basis-40 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-lg font-semibold hover:border-border focus:border-input focus:outline-none" />
+        <input value={name} maxLength={120} aria-label="Campaign name" readOnly={!canPost} onChange={(e) => setName(e.target.value)} className="min-w-0 flex-1 basis-40 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-lg font-semibold hover:border-border focus:border-input focus:outline-none" />
         <span className={`rounded-full px-2 py-0.5 text-xs ${row.status === "live" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>{STATUS_LABEL[row.status]}</span>
         <span className="text-xs text-muted-foreground" aria-live="polite">
           {saved ? "Saved" : "Saving"}
@@ -255,7 +255,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
         <Button variant="ghost" size="sm" onClick={() => setTour(true)} className="gap-1 text-muted-foreground">
           <Compass className="h-4 w-4" /> Tour
         </Button>
-        <Button variant="outline" size="sm" disabled={!!busy || !spec.hooks.length} onClick={() => void act("generate", { action: "preview", id: row.id })} className="gap-1.5" title={spec.hooks.length ? undefined : "Add a hook first."}>
+        <Button variant="outline" size="sm" disabled={!!busy || !spec.hooks.length || !canPost} onClick={() => void act("generate", { action: "preview", id: row.id })} className="gap-1.5" title={!canPost ? "Posting isn't switched on for your account yet." : spec.hooks.length ? undefined : "Add a hook first."}>
           {busy === "generate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {shown ? "Regenerate" : "Generate"}
         </Button>
         <span data-tour="campaign-start" className="inline-flex rounded-md">
@@ -318,163 +318,165 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
           <div data-tour="campaign-tabs">
             <Segmented value={tab} options={TABS} onChange={(t) => setParams((p) => (p.set("tab", t), p), { replace: true })} />
           </div>
-          {tab === "hook" && (
-            <div className="space-y-2" data-tour="campaign-hooks">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                Every post opens with one of these, picked at random
-                <InfoTip>Add a few: over a few weeks you see which ones land.</InfoTip>
-              </span>
-              <form
-                className="flex gap-1.5"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  addHooks(hookDraft);
-                }}
-              >
-                <input value={hookDraft} onChange={(e) => setHookDraft(e.target.value)} onPaste={(e) => {
-                  const t = e.clipboardData.getData("text");
-                  if (t.includes("\n")) (e.preventDefault(), addHooks(t));
-                }} maxLength={200} placeholder="Type a hook, press Enter. Paste a list to add many." aria-label="Add a hook" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" />
-                <Button type="submit" size="icon" variant="outline" aria-label="Add the hook" disabled={!hookDraft.trim()} className="h-9 w-9">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </form>
-              <ul className="flex flex-wrap gap-1.5">
-                {spec.hooks.map((h) => (
-                  <li key={h} className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs">
-                    {h}
-                    <button type="button" aria-label={`Remove ${h}`} onClick={() => setSpec((s) => ({ ...s, hooks: s.hooks.filter((x) => x !== h) }))} className="text-muted-foreground hover:text-foreground">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {tab === "content" && (
-            <div className="space-y-3">
-              <label className="block space-y-1 text-xs text-muted-foreground" data-tour="campaign-topic">
-                What the posts are about
-                <Textarea value={spec.topic + (dictation.interim ? ` ${dictation.interim}` : "")} maxLength={1200} rows={3} placeholder="Ways a golfer can improve, unconventional rather than standard teaching, with numbers wherever possible." onChange={(e) => setSpec((s) => ({ ...s, topic: e.target.value }))} />
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                {dictation.supported && (
-                  <Button type="button" size="sm" variant="outline" onClick={dictation.toggle} aria-pressed={dictation.listening} className="gap-1.5">
-                    {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />} {dictation.listening ? "Stop" : "Say it"}
+          <fieldset disabled={!canPost} className="min-w-0 space-y-4">
+            {tab === "hook" && (
+              <div className="space-y-2" data-tour="campaign-hooks">
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  Every post opens with one of these, picked at random
+                  <InfoTip>Add a few: over a few weeks you see which ones land.</InfoTip>
+                </span>
+                <form
+                  className="flex gap-1.5"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addHooks(hookDraft);
+                  }}
+                >
+                  <input value={hookDraft} onChange={(e) => setHookDraft(e.target.value)} onPaste={(e) => {
+                    const t = e.clipboardData.getData("text");
+                    if (t.includes("\n")) (e.preventDefault(), addHooks(t));
+                  }} maxLength={200} placeholder="Type a hook, press Enter. Paste a list to add many." aria-label="Add a hook" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" />
+                  <Button type="submit" size="icon" variant="outline" aria-label="Add the hook" disabled={!hookDraft.trim()} className="h-9 w-9">
+                    <Plus className="h-4 w-4" />
                   </Button>
-                )}
-                <Button type="button" size="sm" variant="outline" onClick={() => void optimize()} disabled={optimizing || !spec.topic.trim() || !canPost} className="gap-1.5">
-                  {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Optimize
-                </Button>
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input type="checkbox" className="accent-primary" checked={spec.research} onChange={(e) => setSpec((s) => ({ ...s, research: e.target.checked }))} /> Search the web first
+                </form>
+                <ul className="flex flex-wrap gap-1.5">
+                  {spec.hooks.map((h) => (
+                    <li key={h} className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs">
+                      {h}
+                      <button type="button" aria-label={`Remove ${h}`} onClick={() => setSpec((s) => ({ ...s, hooks: s.hooks.filter((x) => x !== h) }))} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {tab === "content" && (
+              <div className="space-y-3">
+                <label className="block space-y-1 text-xs text-muted-foreground" data-tour="campaign-topic">
+                  What the posts are about
+                  <Textarea value={spec.topic + (dictation.interim ? ` ${dictation.interim}` : "")} maxLength={1200} rows={3} placeholder="Ways a golfer can improve, unconventional rather than standard teaching, with numbers wherever possible." onChange={(e) => setSpec((s) => ({ ...s, topic: e.target.value }))} />
                 </label>
-                <InfoTip>Each post looks up its hook on Google and names its sources in the caption.</InfoTip>
-              </div>
-              {dictation.error && <p className="text-xs text-destructive">{dictation.error}</p>}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                  Slides
-                  <input type="number" min={1} max={10} className={field} value={spec.content.slides} onChange={(e) => setSpec((s) => ({ ...s, content: { ...s.content, slides: Math.min(10, Math.max(1, e.target.valueAsNumber || 1)) } }))} />
-                </label>
-                <div role="group" aria-label="Format" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                  Format
-                  <Segmented value={spec.content.style} options={[{ value: "plain", label: "Plain" }, { value: "numbered", label: "Numbered" }, { value: "steps", label: "Steps" }] as const} onChange={(style) => setSpec((s) => ({ ...s, content: { ...s.content, style } }))} />
-                </div>
-                <div role="group" aria-label="Length" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                  Length
-                  <Segmented value={spec.content.length} options={[{ value: "short", label: "5-7 words" }, { value: "medium", label: "10-12" }, { value: "long", label: "15-20" }] as const} onChange={(length) => setSpec((s) => ({ ...s, content: { ...s.content, length } }))} />
-                </div>
-                <div role="group" aria-label="Tone" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                  Tone
-                  <Segmented value={spec.content.tone} options={[{ value: "plain", label: "Plain" }, { value: "punchy", label: "Punchy" }, { value: "expert", label: "Expert" }, { value: "warm", label: "Warm" }] as const} onChange={(tone) => setSpec((s) => ({ ...s, content: { ...s.content, tone } }))} />
-                </div>
-              </div>
-              <div role="group" aria-label="Pictures" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                Pictures
-                <Segmented value={spec.images.per_slide ? "each" : "same"} options={[{ value: "each", label: "Different every slide" }, { value: "same", label: "Same on every slide" }] as const} onChange={(v) => setSpec((s) => ({ ...s, images: { ...s.images, per_slide: v === "each" } }))} />
-              </div>
-            </div>
-          )}
-          {tab === "cta" && (
-            <div className="space-y-3">
-              <div role="group" aria-label="Lands" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                CTA slide
-                <Segmented value={spec.cta.placement} options={[{ value: "end", label: "At the end" }, { value: "middle", label: "In the middle" }, { value: "none", label: "No CTA slide" }] as const} onChange={(placement) => setSpec((s) => ({ ...s, cta: { ...s.cta, placement } }))} />
-              </div>
-              {spec.cta.placement !== "none" && (
-                <>
-                  <Textarea value={spec.cta.text} maxLength={200} rows={2} placeholder="Optional. Leave it blank and each post gets its own, pointing to you." onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, text: e.target.value } }))} />
+                <div className="flex flex-wrap items-center gap-2">
+                  {dictation.supported && (
+                    <Button type="button" size="sm" variant="outline" onClick={dictation.toggle} aria-pressed={dictation.listening} className="gap-1.5">
+                      {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />} {dictation.listening ? "Stop" : "Say it"}
+                    </Button>
+                  )}
+                  <Button type="button" size="sm" variant="outline" onClick={() => void optimize()} disabled={optimizing || !spec.topic.trim() || !canPost} className="gap-1.5">
+                    {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Optimize
+                  </Button>
                   <label className="flex items-center gap-1.5 text-xs">
-                    <input type="checkbox" className="accent-primary" checked={spec.cta.badge} onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, badge: e.target.checked } }))} /> App Store badge under the words
+                    <input type="checkbox" className="accent-primary" checked={spec.research} onChange={(e) => setSpec((s) => ({ ...s, research: e.target.checked }))} /> Search the web first
                   </label>
-                </>
-              )}
+                  <InfoTip>Each post looks up its hook on Google and names its sources in the caption.</InfoTip>
+                </div>
+                {dictation.error && <p className="text-xs text-destructive">{dictation.error}</p>}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                    Slides
+                    <input type="number" min={1} max={10} className={field} value={spec.content.slides} onChange={(e) => setSpec((s) => ({ ...s, content: { ...s.content, slides: Math.min(10, Math.max(1, e.target.valueAsNumber || 1)) } }))} />
+                  </label>
+                  <div role="group" aria-label="Format" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                    Format
+                    <Segmented value={spec.content.style} options={[{ value: "plain", label: "Plain" }, { value: "numbered", label: "Numbered" }, { value: "steps", label: "Steps" }] as const} onChange={(style) => setSpec((s) => ({ ...s, content: { ...s.content, style } }))} />
+                  </div>
+                  <div role="group" aria-label="Length" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                    Length
+                    <Segmented value={spec.content.length} options={[{ value: "short", label: "5-7 words" }, { value: "medium", label: "10-12" }, { value: "long", label: "15-20" }] as const} onChange={(length) => setSpec((s) => ({ ...s, content: { ...s.content, length } }))} />
+                  </div>
+                  <div role="group" aria-label="Tone" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                    Tone
+                    <Segmented value={spec.content.tone} options={[{ value: "plain", label: "Plain" }, { value: "punchy", label: "Punchy" }, { value: "expert", label: "Expert" }, { value: "warm", label: "Warm" }] as const} onChange={(tone) => setSpec((s) => ({ ...s, content: { ...s.content, tone } }))} />
+                  </div>
+                </div>
+                <div role="group" aria-label="Pictures" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                  Pictures
+                  <Segmented value={spec.images.per_slide ? "each" : "same"} options={[{ value: "each", label: "Different every slide" }, { value: "same", label: "Same on every slide" }] as const} onChange={(v) => setSpec((s) => ({ ...s, images: { ...s.images, per_slide: v === "each" } }))} />
+                </div>
+              </div>
+            )}
+            {tab === "cta" && (
+              <div className="space-y-3">
+                <div role="group" aria-label="Lands" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                  CTA slide
+                  <Segmented value={spec.cta.placement} options={[{ value: "end", label: "At the end" }, { value: "middle", label: "In the middle" }, { value: "none", label: "No CTA slide" }] as const} onChange={(placement) => setSpec((s) => ({ ...s, cta: { ...s.cta, placement } }))} />
+                </div>
+                {spec.cta.placement !== "none" && (
+                  <>
+                    <Textarea value={spec.cta.text} maxLength={200} rows={2} placeholder="Optional. Leave it blank and each post gets its own, pointing to you." onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, text: e.target.value } }))} />
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <input type="checkbox" className="accent-primary" checked={spec.cta.badge} onChange={(e) => setSpec((s) => ({ ...s, cta: { ...s.cta, badge: e.target.checked } }))} /> App Store badge under the words
+                    </label>
+                  </>
+                )}
+              </div>
+            )}
+            {/* this role's pictures and words */}
+            <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+              <div className="space-y-2" data-tour="campaign-pictures">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{TABS.find((t) => t.value === tab)?.label} pictures</h3>
+                <select
+                  className={field}
+                  aria-label="Image library"
+                  value={spec.images[tab] ?? ""}
+                  onChange={(e) => (e.target.value === "new" ? setDialog("new") : setSpec((s) => ({ ...s, images: { ...s.images, [tab]: e.target.value || null } })))}
+                >
+                  <option value="">No pictures (plain background)</option>
+                  {libraries.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                  <option value="new">New library…</option>
+                </select>
+                {lib(tab) && (
+                  <button type="button" className="text-xs text-primary hover:underline" onClick={() => setDialog(lib(tab))}>
+                    Add or remove pictures in {lib(tab)!.name}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2" data-tour="campaign-words">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{TABS.find((t) => t.value === tab)?.label} words</h3>
+                <StyleControls s={spec.text_style[tab]} set={(p) => setStyle(tab, p)} />
+              </div>
             </div>
-          )}
-          {/* this role's pictures and words */}
-          <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
-            <div className="space-y-2" data-tour="campaign-pictures">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{TABS.find((t) => t.value === tab)?.label} pictures</h3>
-              <select
-                className={field}
-                aria-label="Image library"
-                value={spec.images[tab] ?? ""}
-                onChange={(e) => (e.target.value === "new" ? setDialog("new") : setSpec((s) => ({ ...s, images: { ...s.images, [tab]: e.target.value || null } })))}
-              >
-                <option value="">No pictures (plain background)</option>
-                {libraries.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
+            <div className="space-y-2 border-t border-border pt-4" data-tour="campaign-look">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look on every slide</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {LOOKS.map((k) => (
+                  <button key={k.value} type="button" aria-pressed={spec.look === k.value} onClick={() => setSpec((s) => ({ ...s, look: k.value }))} className={`w-16 overflow-hidden rounded-md border-2 text-[11px] ${spec.look === k.value ? "border-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                    <img src={LOOK_SAMPLE} alt="" loading="lazy" className="aspect-square w-full object-cover" style={{ filter: lookFilter(k.value, spec.look === k.value ? spec.look_strength : 50) }} />
+                    <span className="block truncate py-0.5">{k.label}</span>
+                  </button>
                 ))}
-                <option value="new">New library…</option>
-              </select>
-              {lib(tab) && (
-                <button type="button" className="text-xs text-primary hover:underline" onClick={() => setDialog(lib(tab))}>
-                  Add or remove pictures in {lib(tab)!.name}
-                </button>
+              </div>
+              {spec.look !== "none" && (
+                <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                  Look strength
+                  <input type="range" min={0} max={100} value={spec.look_strength} onChange={(e) => setSpec((s) => ({ ...s, look_strength: e.target.valueAsNumber }))} className="accent-primary" />
+                </label>
+              )}
+              <div role="group" aria-label="Overlay" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                Overlay
+                <Segmented value={spec.overlay.kind} options={[{ value: "none", label: "None" }, { value: "dim", label: "Dim" }, { value: "bottom", label: "Bottom fade" }, { value: "top", label: "Top fade" }] as const} onChange={(kind) => setSpec((s) => ({ ...s, overlay: { ...s.overlay, kind } }))} />
+              </div>
+              {spec.overlay.kind !== "none" && (
+                <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
+                  Strength
+                  <input type="range" min={0} max={100} value={spec.overlay.strength} onChange={(e) => setSpec((s) => ({ ...s, overlay: { ...s.overlay, strength: e.target.valueAsNumber } }))} className="accent-primary" />
+                </label>
               )}
             </div>
-            <div className="space-y-2" data-tour="campaign-words">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{TABS.find((t) => t.value === tab)?.label} words</h3>
-              <StyleControls s={spec.text_style[tab]} set={(p) => setStyle(tab, p)} />
-            </div>
-          </div>
-          <div className="space-y-2 border-t border-border pt-4" data-tour="campaign-look">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look on every slide</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {LOOKS.map((k) => (
-                <button key={k.value} type="button" aria-pressed={spec.look === k.value} onClick={() => setSpec((s) => ({ ...s, look: k.value }))} className={`w-16 overflow-hidden rounded-md border-2 text-[11px] ${spec.look === k.value ? "border-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-                  <img src={LOOK_SAMPLE} alt="" loading="lazy" className="aspect-square w-full object-cover" style={{ filter: lookFilter(k.value, spec.look === k.value ? spec.look_strength : 50) }} />
-                  <span className="block truncate py-0.5">{k.label}</span>
-                </button>
-              ))}
-            </div>
-            {spec.look !== "none" && (
-              <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                Look strength
-                <input type="range" min={0} max={100} value={spec.look_strength} onChange={(e) => setSpec((s) => ({ ...s, look_strength: e.target.valueAsNumber }))} className="accent-primary" />
-              </label>
-            )}
-            <div role="group" aria-label="Overlay" className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-              Overlay
-              <Segmented value={spec.overlay.kind} options={[{ value: "none", label: "None" }, { value: "dim", label: "Dim" }, { value: "bottom", label: "Bottom fade" }, { value: "top", label: "Top fade" }] as const} onChange={(kind) => setSpec((s) => ({ ...s, overlay: { ...s.overlay, kind } }))} />
-            </div>
-            {spec.overlay.kind !== "none" && (
-              <label className="grid grid-cols-[5rem_1fr] items-center gap-2 text-xs text-muted-foreground">
-                Strength
-                <input type="range" min={0} max={100} value={spec.overlay.strength} onChange={(e) => setSpec((s) => ({ ...s, overlay: { ...s.overlay, strength: e.target.valueAsNumber } }))} className="accent-primary" />
-              </label>
-            )}
-          </div>
+          </fieldset>
         </div>
 
         <aside aria-label="Settings" className="space-y-4 rounded-lg border border-border p-4 text-sm">
           <section className="space-y-1.5" data-tour="campaign-account">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Post from</h3>
             {!canPost ? (
-              <p className="text-xs text-muted-foreground">Posting isn't switched on for your account yet. You can build and preview the campaign now.</p>
+              <p className="text-xs text-muted-foreground">Posting isn't switched on for your account yet.</p>
             ) : accounts === null ? (
               <p className="text-xs text-muted-foreground">Loading your TikTok accounts</p>
             ) : accounts.length ? (
@@ -493,64 +495,66 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
               </p>
             )}
           </section>
-          <section className="space-y-2">
-            <h3 className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Posting times
-              <InfoTip>Spread posts a few hours apart.</InfoTip>
-            </h3>
-            <select className={field} aria-label="Time zone" value={schedule.tz} onChange={(e) => setSchedule((s) => ({ ...s, tz: e.target.value }))}>
-              {tzs.map((z) => (
-                <option key={z}>{z}</option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground">{cadence(schedule)}</p>
-            {schedule.times.map((t, i) => (
-              <div key={i} className="space-y-1.5 rounded-md border border-border p-2">
-                <span className="flex items-center gap-2">
-                  <input type="time" aria-label="Posting time" value={t.at} onChange={(e) => e.target.value && setSchedule((s) => ({ ...s, times: s.times.map((x, j) => (j === i ? { ...x, at: e.target.value } : x)) }))} className={`${field} w-32`} />
-                  <button type="button" aria-label="Remove this time" onClick={() => setSchedule((s) => ({ ...s, times: s.times.filter((_, j) => j !== i) }))} className="ml-auto text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-                <span className="flex gap-1">
-                  {DAYS.map((d, k) => (
-                    <button
-                      key={d}
-                      type="button"
-                      aria-pressed={t.days.includes(k)}
-                      aria-label={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][k]}
-                      onClick={() => setSchedule((s) => ({ ...s, times: s.times.map((x, j) => (j === i ? { ...x, days: x.days.includes(k) ? x.days.filter((y) => y !== k) : [...x.days, k].sort() } : x)) }))}
-                      className={`h-7 w-7 rounded-full text-[11px] ${t.days.includes(k) ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}
-                    >
-                      {d}
+          <fieldset disabled={!canPost} className="min-w-0 space-y-4">
+            <section className="space-y-2">
+              <h3 className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Posting times
+                <InfoTip>Spread posts a few hours apart.</InfoTip>
+              </h3>
+              <select className={field} aria-label="Time zone" value={schedule.tz} onChange={(e) => setSchedule((s) => ({ ...s, tz: e.target.value }))}>
+                {tzs.map((z) => (
+                  <option key={z}>{z}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">{cadence(schedule)}</p>
+              {schedule.times.map((t, i) => (
+                <div key={i} className="space-y-1.5 rounded-md border border-border p-2">
+                  <span className="flex items-center gap-2">
+                    <input type="time" aria-label="Posting time" value={t.at} onChange={(e) => e.target.value && setSchedule((s) => ({ ...s, times: s.times.map((x, j) => (j === i ? { ...x, at: e.target.value } : x)) }))} className={`${field} w-32`} />
+                    <button type="button" aria-label="Remove this time" onClick={() => setSchedule((s) => ({ ...s, times: s.times.filter((_, j) => j !== i) }))} className="ml-auto text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                  ))}
-                </span>
-              </div>
-            ))}
-            {schedule.times.length < MAX_TIMES && (
-              <button type="button" className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={() => setSchedule((s) => ({ ...s, times: [...s.times, { at: "18:00", days: [0, 1, 2, 3, 4, 5, 6] }] }))}>
-                <Plus className="h-3.5 w-3.5" /> Add a posting time
-              </button>
-            )}
-          </section>
-          <section className="space-y-1" data-tour="campaign-publish">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Posts go</h3>
-            <Segmented value={publish.mode} options={[{ value: "inbox", label: "To my drafts" }, { value: "direct", label: "Straight to my profile" }] as const} onChange={(mode) => setPublish((p) => ({ ...p, mode }))} />
-            {publish.mode === "inbox" ? (
-              <p className="text-xs text-muted-foreground">You add a sound and post each one in the TikTok app.</p>
-            ) : (
-              <label className="flex items-start gap-1.5 text-xs">
-                <input type="checkbox" className="mt-0.5 accent-primary" checked={publish.consent} onChange={(e) => setPublish((p) => ({ ...p, consent: e.target.checked }))} />
-                <span>I agree each post goes public on my TikTok without me seeing it first. {!publish.consent && <span className="text-destructive">Until you tick this, posts go to your drafts.</span>}</span>
-              </label>
-            )}
-            {publish.mode === "direct" && (
-              <label className="flex items-center gap-1.5 text-xs">
-                <input type="checkbox" className="accent-primary" checked={publish.music} onChange={(e) => setPublish((p) => ({ ...p, music: e.target.checked }))} /> Add TikTok's recommended music
-              </label>
-            )}
-          </section>
+                  </span>
+                  <span className="flex gap-1">
+                    {DAYS.map((d, k) => (
+                      <button
+                        key={d}
+                        type="button"
+                        aria-pressed={t.days.includes(k)}
+                        aria-label={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][k]}
+                        onClick={() => setSchedule((s) => ({ ...s, times: s.times.map((x, j) => (j === i ? { ...x, days: x.days.includes(k) ? x.days.filter((y) => y !== k) : [...x.days, k].sort() } : x)) }))}
+                        className={`h-7 w-7 rounded-full text-[11px] ${t.days.includes(k) ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+              ))}
+              {schedule.times.length < MAX_TIMES && (
+                <button type="button" className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={() => setSchedule((s) => ({ ...s, times: [...s.times, { at: "18:00", days: [0, 1, 2, 3, 4, 5, 6] }] }))}>
+                  <Plus className="h-3.5 w-3.5" /> Add a posting time
+                </button>
+              )}
+            </section>
+            <section className="space-y-1" data-tour="campaign-publish">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Posts go</h3>
+              <Segmented value={publish.mode} options={[{ value: "inbox", label: "To my drafts" }, { value: "direct", label: "Straight to my profile" }] as const} onChange={(mode) => setPublish((p) => ({ ...p, mode }))} />
+              {publish.mode === "inbox" ? (
+                <p className="text-xs text-muted-foreground">You add a sound and post each one in the TikTok app.</p>
+              ) : (
+                <label className="flex items-start gap-1.5 text-xs">
+                  <input type="checkbox" className="mt-0.5 accent-primary" checked={publish.consent} onChange={(e) => setPublish((p) => ({ ...p, consent: e.target.checked }))} />
+                  <span>I agree each post goes public on my TikTok without me seeing it first. {!publish.consent && <span className="text-destructive">Until you tick this, posts go to your drafts.</span>}</span>
+                </label>
+              )}
+              {publish.mode === "direct" && (
+                <label className="flex items-center gap-1.5 text-xs">
+                  <input type="checkbox" className="accent-primary" checked={publish.music} onChange={(e) => setPublish((p) => ({ ...p, music: e.target.checked }))} /> Add TikTok's recommended music
+                </label>
+              )}
+            </section>
+          </fieldset>
           {runs.length > 1 && (
             <section className="space-y-1">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent</h3>
