@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Eye, EyeOff, GripVertical, Lock, Plus, Trash2, X } from "lucide-react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
-import ImagePicker from "@/components/design/ImagePicker";
+import ImagePicker, { pictureTag } from "@/components/design/ImagePicker";
 import { ColorField, Segmented, field } from "@/components/design/fields";
 import {
   BRAND_FONT,
@@ -243,11 +243,11 @@ function TextPanel({ l, set, swatches, brandFont }: { l: TextLayer; set: (p: Par
   );
 }
 
-function ImagePanel({ userId, l, set, onLookAll, format }: { userId: string; l: ImageLayer; set: (p: Partial<ImageLayer>, tag?: string) => void; onLookAll: InspectorProps["onLookAll"]; format: Design["format"] }) {
+function ImagePanel({ userId, designId, l, set, onLookAll, format }: { userId: string; designId: string; l: ImageLayer; set: (p: Partial<ImageLayer>, tag?: string) => void; onLookAll: InspectorProps["onLookAll"]; format: Design["format"] }) {
   return (
     <>
       <Section title="Image">
-        <ImagePicker userId={userId} format={format} onPick={(src) => set({ src })} />
+        <ImagePicker userId={userId} format={format} tag={pictureTag(designId, l.id)} onPick={(src) => set({ src })} />
         <Row label="Fit" group>
           <Segmented value={l.fit} options={[{ value: "cover", label: "Cover" }, { value: "contain", label: "Contain" }] as const} onChange={(fit) => set({ fit })} />
         </Row>
@@ -459,7 +459,7 @@ export default function Inspector(p: InspectorProps) {
         </>
       )}
       {l?.type === "text" && <TextPanel l={l} set={set} swatches={p.brandColors} brandFont={p.brandFont} />}
-      {l?.type === "image" && <ImagePanel userId={p.userId} l={l} set={set} onLookAll={p.onLookAll} format={p.design.format} />}
+      {l?.type === "image" && <ImagePanel userId={p.userId} designId={p.design.id} l={l} set={set} onLookAll={p.onLookAll} format={p.design.format} />}
       {l?.type === "shape" && <ShapePanel l={l} set={set} swatches={p.brandColors} />}
       {l?.type === "gradient" && <FadePanel l={l} set={set} />}
       {l && <LayoutPanel l={l} set={set} />}

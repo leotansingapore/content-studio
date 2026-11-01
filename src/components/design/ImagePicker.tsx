@@ -6,7 +6,7 @@ import { Loader2, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/design/fields";
 import { pictureUrl } from "@/components/design/SlideView";
-import { imageBusy, makeImage, onImageJob } from "@/lib/aiImage";
+import { imageBusy, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { loadBrand } from "@/lib/carousel";
 import type { DesignFormat } from "@/lib/design";
@@ -32,7 +32,12 @@ function Thumb({ src, label, onPick }: { src: string; label: string; onPick: () 
   );
 }
 
-export default function ImagePicker({ userId, format, onPick }: { userId: string; format: DesignFormat; onPick: (src: string) => void }) {
+/** What an AI picture's job is tagged with (aiImage's designId): the slideshow and the layer that asked for it. */
+export const pictureTag = (designId: string, layerId: string) => `design-editor:${designId}:${layerId}`;
+/** A finished picture goes on the layer only when this picker is open on that slideshow and layer. */
+export const landsHere = (j: ImageJob | null, tag: string): j is ImageJob & { mediaKey: string } => j?.state === "done" && !!j.mediaKey && j.designId === tag;
+
+export default function ImagePicker({ userId, format, tag, onPick }: { userId: string; format: DesignFormat; tag: string; onPick: (src: string) => void }) {
   const [source, setSource] = useState<Source>("search");
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<StockItem[] | null>(null);
@@ -45,15 +50,15 @@ export default function ImagePicker({ userId, format, onPick }: { userId: string
   const usesLeft = useUsesLeft(making);
   const brand = loadBrand(userId);
 
-  // an AI picture lands in Media; the one this picker asked for goes on the layer
+  // an AI picture lands in Media; the one asked for on this slideshow's layer goes on it
   useEffect(
     () =>
       onImageJob((j) => {
         setMaking(j?.state === "working" || j?.state === "saving");
-        if (j?.state === "done" && j.mediaKey && j.designId === "design-editor") onPick(j.mediaKey);
+        if (landsHere(j, tag)) onPick(j.mediaKey);
         if (j?.state === "failed") setNote(j.error ?? "Couldn't make the picture. Try again in a minute.");
       }),
-    [onPick],
+    [onPick, tag],
   );
 
   const search = async () => {
@@ -163,7 +168,7 @@ export default function ImagePicker({ userId, format, onPick }: { userId: string
       {source === "generate" && (
         <>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3} maxLength={600} placeholder="A quiet harbour at dawn, soft film grain" aria-label="Describe the picture" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" />
-          <Button type="button" size="sm" disabled={making || !prompt.trim() || left === 0} onClick={() => void makeImage(userId, prompt, prompt.slice(0, 60), "design-editor")} className="w-full gap-1.5">
+          <Button type="button" size="sm" disabled={making || !prompt.trim() || left === 0} onClick={() => void makeImage(userId, prompt, prompt.slice(0, 60), tag)} className="w-full gap-1.5">
             {making && <Loader2 className="h-4 w-4 animate-spin" />} {making ? "Making the picture" : "Generate"}
           </Button>
           <p className="text-[11px] text-muted-foreground">{left === null ? "Saved to Media under AI images." : `${left} left today. Saved to Media under AI images.`}</p>
