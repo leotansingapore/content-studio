@@ -15,6 +15,12 @@ describe("VideoEmbed before a tap", () => {
     expect(html).not.toContain("<iframe");
   });
 
+  it("says what the caller names, a slideshow or a carousel, and the video when it names nothing", () => {
+    expect(draw({ url: TT, text: "Watch the slideshow" })).toContain("Watch the slideshow");
+    expect(draw({ url: TT, text: "Watch the slideshow" })).not.toContain("Watch the video");
+    expect(draw({ url: TT })).toContain("Watch the video");
+  });
+
   it("is the plain button with no cover, and nothing at all for a link no platform plays", () => {
     expect(draw({ url: TT })).not.toContain("<img");
     expect(draw({ url: "https://example.com/video/1" })).toBe("");

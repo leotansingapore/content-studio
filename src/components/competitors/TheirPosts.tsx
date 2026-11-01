@@ -18,7 +18,7 @@ import {
 } from "@/lib/competitorPosts";
 import type { Competitor } from "@/lib/competitors";
 import { safeExternalUrl } from "@/lib/embed";
-import { type FollowPlatform, followStats, remixUrl } from "@/lib/following";
+import { type FollowPlatform, followStats, postKind, remixUrl } from "@/lib/following";
 import { links } from "@/lib/links";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { dayMonth, fromFollowPost } from "@/lib/remixSource";
@@ -246,7 +246,7 @@ export function PostCard({ f, name, path, linked, media, children }: {
 }) {
   const ref = useScrollToItem<HTMLElement>(linked);
   const { post: p, account: a } = f;
-  const kind = p.format === "video" ? (a.platform === "instagram" ? "Reel" : "Video") : p.format === "carousel" ? "Carousel" : "Photo";
+  const kind = postKind(a.platform, p.format);
   const numbers = [p.views !== null ? `${fmt(p.views)} views` : "", `${fmt(p.likes)} likes`, `${fmt(p.comments)} comments`].filter(Boolean).join(", ");
   const open = safeExternalUrl(p.url);
   return (

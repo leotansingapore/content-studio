@@ -105,6 +105,16 @@ export function followStats(a: FollowedAccount, now = Date.now()): FollowStats {
   };
 }
 
+/** What a post is on its card: a TikTok photo post is a Slideshow (Apps like yours' Slideshows filter), Instagram's a Carousel. */
+export const postKind = (platform: FollowPlatform, format: TrackedPost["format"]) =>
+  format === "video" ? (platform === "instagram" ? "Reel" : "Video") : format === "carousel" ? (platform === "tiktok" ? "Slideshow" : "Carousel") : "Photo";
+
+/** Its play button's words, for VideoEmbed. */
+export function watchText(platform: FollowPlatform, format: TrackedPost["format"]): string {
+  const kind = postKind(platform, format);
+  return kind === "Slideshow" ? "Watch the slideshow" : kind === "Carousel" ? "See the carousel" : kind === "Photo" ? "See the photo" : "Watch the video";
+}
+
 /** Where a post goes to be remixed: a video to Clone a reel, anything else to Write. */
 export function remixUrl(a: Pick<FollowedAccount, "handle" | "platform">, p: TrackedPost): string {
   if (p.format === "video") return `/clone?${new URLSearchParams({ url: p.url })}`;

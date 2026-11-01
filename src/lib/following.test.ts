@@ -5,8 +5,8 @@ vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(() => new Promise(() => {})) }));
 
 import { callFn } from "@/lib/edgeFn";
 import {
-  MAX_FOLLOWED, applyCheck, checkCapped, checkFailure, followAccount, followStats, isChecking, loadFollowing, remixUrl, runCheck, saveFollowing,
-  type FollowedAccount, type TrackedPost,
+  MAX_FOLLOWED, applyCheck, checkCapped, checkFailure, followAccount, followStats, isChecking, loadFollowing, postKind, remixUrl, runCheck, saveFollowing,
+  watchText, type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
 
 const post = (id: string, day: number, extra: Partial<TrackedPost> = {}): TrackedPost => ({
@@ -142,5 +142,23 @@ describe("a check running outside React", () => {
     vi.mocked(callFn).mockRejectedValueOnce(Object.assign(new Error("Couldn't check that account right now."), { code: "failed" }));
     await runCheck("u1", acct("capped_one"));
     expect(checkCapped(acct("capped_one"))).toBe(false);
+  });
+});
+
+describe("a post's name on its card and its play button", () => {
+  it("calls a TikTok photo post a Slideshow and Instagram's a Carousel, as the Slideshows and Carousels filters do", () => {
+    expect(postKind("tiktok", "carousel")).toBe("Slideshow");
+    expect(postKind("instagram", "carousel")).toBe("Carousel");
+    expect(postKind("instagram", "video")).toBe("Reel");
+    expect(postKind("tiktok", "video")).toBe("Video");
+    expect(postKind("instagram", "image")).toBe("Photo");
+  });
+
+  it("says what a tap shows: the slideshow, the carousel, the photo, else the video", () => {
+    expect(watchText("tiktok", "carousel")).toBe("Watch the slideshow");
+    expect(watchText("instagram", "carousel")).toBe("See the carousel");
+    expect(watchText("instagram", "image")).toBe("See the photo");
+    expect(watchText("instagram", "video")).toBe("Watch the video");
+    expect(watchText("tiktok", "video")).toBe("Watch the video");
   });
 });

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
 import { useUsesLeft } from "@/lib/aiUsage";
-import type { FollowPlatform } from "@/lib/following";
+import { type FollowPlatform, watchText } from "@/lib/following";
 import { links } from "@/lib/links";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { fromFollowPost } from "@/lib/remixSource";
@@ -146,7 +146,7 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
               {shown.map((p) => (
                 <PostCard
                   key={p.key} f={p} name={p.entry.name} path={links.swipe({ tab: "similar", post: p.key })} linked={p.key === linked}
-                  media={<VideoEmbed url={p.post.url} label={`${p.entry.name}'s post`} poster={media[accountKey(p.entry)]?.[p.post.id]?.cover} className="max-w-none" />}
+                  media={<VideoEmbed url={p.post.url} label={`${p.entry.name}'s post`} poster={media[accountKey(p.entry)]?.[p.post.id]?.cover} text={watchText(p.entry.platform, p.post.format)} className="max-w-none" />}
                 >
                   <SaveButton source={fromFollowPost(p.account, p.post)} />
                 </PostCard>
