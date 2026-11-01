@@ -188,6 +188,14 @@ describe("what each platform takes", () => {
     });
   });
 
+  it("asks TikTok for its recommended music on a photo post only, when asked", () => {
+    const tiktok = { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, autoAddMusic: true };
+    const data = (b: Record<string, unknown>) => (b.platforms as { platformSpecificData: Record<string, unknown> }[])[0].platformSpecificData;
+    expect(data(postBody(input({ tiktok }), [{ _id: TT, platform: "tiktok" }], NOW)).autoAddMusic).toBe(true);
+    expect(data(postBody(input({ mediaUrls: [MP4], tiktok }), [{ _id: TT, platform: "tiktok" }], NOW))).not.toHaveProperty("autoAddMusic");
+    expect(data(postBody(input({ tiktok: { ...tiktok, autoAddMusic: false } }), [{ _id: TT, platform: "tiktok" }], NOW))).not.toHaveProperty("autoAddMusic");
+  });
+
   it("sends the post's own time zone to Zernio, Singapore when it has none", () => {
     expect(postBody(input({ scheduledFor: "2026-11-02T09:00:00-05:00", timezone: "America/New_York" }), [{ _id: LI, platform: "linkedin" }], NOW)).toMatchObject({ scheduledFor: "2026-11-02T09:00:00-05:00", timezone: "America/New_York" });
     expect(postBody(input({}), [{ _id: LI, platform: "linkedin" }], NOW)).toMatchObject({ timezone: "Asia/Singapore" });

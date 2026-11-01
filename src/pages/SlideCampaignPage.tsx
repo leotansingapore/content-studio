@@ -22,7 +22,7 @@ import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { STATUS_LABEL, cadence, when, type CampaignRowView } from "@/pages/SlideCampaignsPage";
-import { MAX_HOOKS, MAX_TIMES, publishMode, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
+import { MAX_HOOKS, MAX_TIMES, publishMode, publishMusic, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
 import { CAMPAIGN_FONTS, FRAME_H, PX_RANGE, SAFE_BOTTOM, SAFE_TOP, type TextStyle } from "../../supabase/functions/_shared/slideStyle.ts";
 
 type Run = { id: string; hook: string; caption: string; slides: { role: Role; text: string }[]; urls: (string | null)[]; kind?: string; status?: string; scheduled_for?: string | null; error?: string | null; created_at?: string };
@@ -119,7 +119,7 @@ function Studio({ initial }: { initial: CampaignRowView }) {
   const [preview, setPreview] = useState<Run | null>(null);
   const [busy, setBusy] = useState<"generate" | "start" | "pause" | "delete" | "send" | null>(null);
   const [hookDraft, setHookDraft] = useState("");
-  const [publish, setPublish] = useState(() => ({ mode: publishMode(initial.publish), consent: publishMode(initial.publish) === "direct" }));
+  const [publish, setPublish] = useState(() => ({ mode: publishMode(initial.publish), consent: publishMode(initial.publish) === "direct", music: publishMusic(initial.publish) }));
   const [caption, setCaption] = useState<string | null>(null);
   const [safe, setSafe] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
@@ -524,6 +524,11 @@ function Studio({ initial }: { initial: CampaignRowView }) {
               <label className="flex items-start gap-1.5 text-xs">
                 <input type="checkbox" className="mt-0.5 accent-primary" checked={publish.consent} onChange={(e) => setPublish((p) => ({ ...p, consent: e.target.checked }))} />
                 <span>I agree each post goes public on my TikTok without me seeing it first. {!publish.consent && <span className="text-destructive">Until you tick this, posts go to your drafts.</span>}</span>
+              </label>
+            )}
+            {publish.mode === "direct" && (
+              <label className="flex items-center gap-1.5 text-xs">
+                <input type="checkbox" className="accent-primary" checked={publish.music} onChange={(e) => setPublish((p) => ({ ...p, music: e.target.checked }))} /> Add TikTok's recommended music
               </label>
             )}
           </section>

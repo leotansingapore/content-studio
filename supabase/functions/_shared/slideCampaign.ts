@@ -34,6 +34,8 @@ export interface Publish {
   mode: "inbox" | "direct";
   /** When the owner ticked that posts go out without them seeing each one first. */
   consent_at: string | null;
+  /** TikTok adds a recommended sound to posts that go straight to the profile (drafts: the person picks one). */
+  music: boolean;
 }
 
 export const MAX_HOOKS = 30;
@@ -97,9 +99,10 @@ export function sanitizePublish(raw: unknown, was: unknown = null, now = new Dat
   const r = obj(raw) ? raw : {};
   const before = obj(was) && typeof was.consent_at === "string" && !Number.isNaN(Date.parse(was.consent_at)) ? was.consent_at : null;
   const consent_at = r.consent === true ? (before ?? now.toISOString()) : null;
-  return { mode: r.mode === "direct" && consent_at ? "direct" : "inbox", consent_at };
+  return { mode: r.mode === "direct" && consent_at ? "direct" : "inbox", consent_at, music: r.music === true };
 }
 /** A stored campaign's mode (rows are only written through sanitizePublish): direct needs its consent time. */
+export const publishMusic = (stored: unknown): boolean => publishMode(stored) === "direct" && obj(stored) && stored.music === true;
 export const publishMode = (stored: unknown): Publish["mode"] => (obj(stored) && stored.mode === "direct" && typeof stored.consent_at === "string" ? "direct" : "inbox");
 
 /** An upload in a library: the owner's folder, a fresh id, a picture ending. Nothing else is read or deleted. */

@@ -88,6 +88,8 @@ export interface TikTokInput {
   allowStitch: boolean;
   /** "inbox" sends it to the creator's TikTok inbox (publish-tiktok, Leo only); absent or "direct" posts it, as today. */
   mode?: "inbox" | "direct";
+  /** TikTok adds a recommended sound (photo posts only; Zernio's auto_add_music). */
+  autoAddMusic?: boolean;
 }
 
 export interface YouTubeInput {
@@ -228,7 +230,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   if (b.tiktok && typeof b.tiktok === "object") {
     const t = b.tiktok as Record<string, unknown>;
     if (typeof t.privacyLevel !== "string" || !PRIVACY.test(t.privacyLevel)) return refuse("Pick who can see it on TikTok.");
-    tiktok = { privacyLevel: t.privacyLevel, allowComment: t.allowComment === true, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true, ...(t.mode === "inbox" ? { mode: "inbox" as const } : {}) };
+    tiktok = { privacyLevel: t.privacyLevel, allowComment: t.allowComment === true, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true, ...(t.mode === "inbox" ? { mode: "inbox" as const } : {}), ...(t.autoAddMusic === true ? { autoAddMusic: true } : {}) };
   }
   let youtube: YouTubeInput | null = null;
   if (b.youtube && typeof b.youtube === "object") {
@@ -329,6 +331,7 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
     if (video) Object.assign(t, { allowDuet: !inbox && input.tiktok.allowDuet, allowStitch: !inbox && input.tiktok.allowStitch });
     // a photo post's content becomes a 90-character title; the full caption goes in description
     else t.description = captionFor(input, platform);
+    if (!video && input.tiktok.autoAddMusic) t.autoAddMusic = true;
     // direct stays flat, the shape that published live on 17 Oct; a draft goes where Zernio's TikTok pages put it
     if (inbox) data.tiktokSettings = { draft: true, ...t };
     else Object.assign(data, t);

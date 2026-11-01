@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, writerPrompt } from "./slideCampaign.ts";
+import { nextRunAt, ownUpload, parseWriter, pickHook, pickImages, postsPerWeek, publishMode, publishMusic, runPlan, sanitizePublish, sanitizeSchedule, sanitizeSpec, sanitizeStyle, searchHits, slotKey, writerPrompt } from "./slideCampaign.ts";
 import { DEFAULT_STYLE, lookFilterSvg, overlayCss } from "./slideStyle.ts";
 
 describe("slideshow campaigns", () => {
@@ -24,13 +24,15 @@ describe("slideshow campaigns", () => {
 
   it("publishing: drafts unless the owner consents to straight to the profile, and the consent time is kept", () => {
     const now = new Date("2026-11-01T03:00:00Z");
-    expect(sanitizePublish({}, null, now)).toEqual({ mode: "inbox", consent_at: null });
-    expect(sanitizePublish({ mode: "direct" }, null, now)).toEqual({ mode: "inbox", consent_at: null });
+    expect(sanitizePublish({}, null, now)).toEqual({ mode: "inbox", consent_at: null, music: false });
+    expect(sanitizePublish({ mode: "direct" }, null, now)).toEqual({ mode: "inbox", consent_at: null, music: false });
     expect(sanitizePublish({ mode: "direct", consent_at: "2020-01-01T00:00:00Z" }, null, now).mode).toBe("inbox");
     const first = sanitizePublish({ mode: "direct", consent: true }, null, now);
-    expect(first).toEqual({ mode: "direct", consent_at: "2026-11-01T03:00:00.000Z" });
+    expect(first).toEqual({ mode: "direct", consent_at: "2026-11-01T03:00:00.000Z", music: false });
     expect(sanitizePublish({ mode: "direct", consent: true }, first, new Date("2026-11-05T00:00:00Z")).consent_at).toBe(first.consent_at);
-    expect(sanitizePublish({ mode: "direct", consent: false }, first, now)).toEqual({ mode: "inbox", consent_at: null });
+    expect(sanitizePublish({ mode: "direct", consent: false }, first, now)).toEqual({ mode: "inbox", consent_at: null, music: false });
+    expect(publishMusic(sanitizePublish({ mode: "direct", consent: true, music: true }, null, now))).toBe(true);
+    expect(publishMusic(sanitizePublish({ mode: "inbox", consent: true, music: true }, null, now))).toBe(false);
     expect(publishMode(first)).toBe("direct");
     expect(publishMode({ mode: "direct", consent_at: null })).toBe("inbox");
     expect(publishMode(null)).toBe("inbox");

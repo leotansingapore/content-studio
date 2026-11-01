@@ -302,7 +302,7 @@ Deno.test("Send to TikTok now: straight to the profile once the owner consents, 
   assertEquals((await call("jwt-a", { action: "send", id, run_id: pre.body.run.id })).body.error, "That one's already sent.");
   // unticking consent goes back to drafts
   const back = await call("jwt-a", { action: "save", campaign: { id, name: "Now", spec: made.body.campaign.spec, schedule: made.body.campaign.schedule, publish: { mode: "direct", consent: false } } });
-  assertEquals(back.body.campaign.publish, { mode: "inbox", consent_at: null });
+  assertEquals(back.body.campaign.publish, { mode: "inbox", consent_at: null, music: false });
 });
 
 Deno.test("Send to phone: links for a day, read without signing in, then swept", async () => {
