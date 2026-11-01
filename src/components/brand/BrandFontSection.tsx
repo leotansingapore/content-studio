@@ -81,12 +81,12 @@ export default function BrandFontSection({ userId }: { userId: string }) {
       {fonts.length < MAX_BRAND_FONTS && (
         <label className={`inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40 [@media(pointer:coarse)]:h-11 ${busy ? "pointer-events-none opacity-60" : ""}`}>
           {busy ? "Reading the font..." : fonts.length ? "Upload another font" : "Upload a font"}
-          <input type="file" accept=".woff2,.ttf,.otf,font/woff2,font/ttf,font/otf" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void pick(f); }} />
+          <input type="file" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void pick(f); }} />
         </label>
       )}
       {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
       <p className="text-xs text-muted-foreground">
-        {fonts.length < MAX_BRAND_FONTS ? "WOFF2, TTF or OTF, up to 300 KB each. Only upload a font you have the right to use." : `${MAX_BRAND_FONTS} of ${MAX_BRAND_FONTS} fonts. Remove one to add another.`}
+        {fonts.length < MAX_BRAND_FONTS ? "WOFF2, WOFF, TTF or OTF, up to 300 KB each. Only upload a font you have the right to use." : `${MAX_BRAND_FONTS} of ${MAX_BRAND_FONTS} fonts. Remove one to add another.`}
       </p>
     </section>
   );

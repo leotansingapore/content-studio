@@ -30,18 +30,19 @@ export const MAX_BRAND_FONTS = 5;
 export const BRAND_FAMILIES = [BRAND_FONT_FAMILY, "BrandFont2", "BrandFont3", "BrandFont4", "BrandFont5"];
 /** 300 KB, which is about 400,000 characters as a data URL. */
 export const MAX_FONT_BYTES = 300_000;
-export const FONT_TYPE_ERROR = "That file isn't a font this browser can read. Use WOFF2, TTF or OTF.";
+export const FONT_TYPE_ERROR = "That file isn't a font this browser can read. Use WOFF2, WOFF, TTF or OTF.";
 export const FONT_SIZE_ERROR = "Fonts up to 300 KB. Try the WOFF2 version.";
 export const FONT_LIMIT_ERROR = "Up to 5 fonts per brand. Remove one to add another.";
 const FULL_ERROR = "This device is out of room, so the font wasn't saved. Clear some space, then try again.";
 
-type Kind = "woff2" | "otf" | "ttf";
+type Kind = "woff2" | "woff" | "otf" | "ttf";
 const MIME: Record<Kind, string> = { woff2: "font/woff2", otf: "font/otf", ttf: "font/ttf" };
 
 /** The font a file's first 4 bytes say it is: wOF2, OTTO, "true" or 00 01 00 00; null for anything else. */
 export function fontKind(head: ArrayLike<number>): Kind | null {
   const tag = String.fromCharCode(...Array.from(head).slice(0, 4));
   if (tag === "wOF2") return "woff2";
+  if (tag === "wOFF") return "woff";
   if (tag === "OTTO") return "otf";
   if (tag === "true" || tag === "\u0000\u0001\u0000\u0000") return "ttf";
   return null;
@@ -53,7 +54,7 @@ function base64(bytes: Uint8Array): string {
   return btoa(s);
 }
 
-const DATA_URL = /^data:font\/(woff2|otf|ttf);base64,([A-Za-z0-9+/]+={0,2})$/;
+const DATA_URL = /^data:font\/(woff2|woff|otf|ttf);base64,([A-Za-z0-9+/]+={0,2})$/;
 const MAX_DATA_CHARS = Math.ceil(MAX_FONT_BYTES / 3) * 4 + 20;
 
 /** A stored data URL whose bytes still read as a font, under the cap; anything else is no font. */

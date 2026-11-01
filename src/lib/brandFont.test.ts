@@ -14,6 +14,7 @@ const file = (head: number[] | string, size = 64, name = "Inter-Tight.woff2") =>
 describe("reading a brand font", () => {
   it("accepts WOFF2, OTF and TTF headers", async () => {
     expect(fontKind([0x77, 0x4f, 0x46, 0x32])).toBe("woff2");
+    expect(fontKind([0x77, 0x4f, 0x46, 0x46])).toBe("woff");
     for (const [head, mime] of [["wOF2", "font/woff2"], ["OTTO", "font/otf"], ["true", "font/ttf"], [[0, 1, 0, 0], "font/ttf"]] as const) {
       const r = await readFont(file(head as string | number[]));
       expect(r.ok && r.font.data.startsWith(`data:${mime};base64,`)).toBe(true);
