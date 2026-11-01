@@ -297,7 +297,8 @@ export const readsStopped = () => jobs.stopped();
 export function runSimilarPosts(userId: string, platform: FollowPlatform, handle: string): Promise<boolean> {
   const key = accountKey({ platform, handle });
   return jobs.run(key, async () => {
-    const first = !loadSimilar(userId).posts[key]?.checkedAt;
+    // a first read, or one from before covers were kept on this device: 30 posts, so the best ones get their covers
+    const first = !loadSimilar(userId).posts[key]?.checkedAt || !(key in loadMedia(userId));
     const r = await callFn<TrackResult & { checkedAt: string; month?: { spent: number; cap: number } }>(
       "competitors", { mode: "posts", platform, handle, scope: "similar", limit: first ? POSTS_KEPT : SIMILAR_REFRESH }, POSTS_FAILED,
     );
@@ -314,10 +315,18 @@ export function runSimilarPosts(userId: string, platform: FollowPlatform, handle
   }, POSTS_FAILED);
 }
 
-/** The accounts a round reads now: never read, or read 7+ days ago. */
+/**
+ * The accounts a round reads now: never read, read 7+ days ago, or read with no covers kept on this device (before
+ * 1 Nov covers were not kept, so the social north star's examples showed no pictures). A read always leaves the
+ * account's entry in the media cache, empty or not, so that last one happens once a device.
+ */
 export function dueSimilar(userId: string, now = Date.now()): SimilarEntry[] {
   const s = loadSimilar(userId);
-  return s.accounts.filter((a) => postsDue(s.posts[accountKey(a)], now));
+  const media = loadMedia(userId);
+  return s.accounts.filter((a) => {
+    const read = s.posts[accountKey(a)];
+    return postsDue(read, now) || (Boolean(read?.checkedAt) && !(accountKey(a) in media));
+  });
 }
 
 /** Opening the tab (and after a find or an add): every due account, one at a time, stopping at a refusal. */

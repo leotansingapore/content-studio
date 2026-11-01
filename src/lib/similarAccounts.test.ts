@@ -106,7 +106,19 @@ describe("Apps like yours: posts", () => {
       accounts: ["a", "b", "c"].map((h) => ({ ...found(h, { platform: "tiktok" }), addedAt: "x" })),
       posts: { "tiktok:a": acc, "tiktok:b": fresh }, dismissed: [], month: null,
     });
+    s.rememberMedia(U, "tiktok:b", [], []); // b's read kept its covers on this device
     expect(s.dueSimilar(U, NOW).map((a) => a.handle)).toEqual(["a", "c"]);
+  });
+
+  it("reads an account once more, 30 posts, when this device kept no covers for it, then not again", async () => {
+    const fresh = s.applySimilarCheck(undefined, read("b", [post("p1", 2)], new Date(NOW - DAY).toISOString()));
+    s.saveSimilar(U, { accounts: [{ ...found("b", { platform: "tiktok" }), addedAt: "x" }], posts: { "tiktok:b": fresh }, dismissed: [], month: null });
+    expect(s.dueSimilar(U, NOW).map((a) => a.handle)).toEqual(["b"]);
+    callFn.mockResolvedValueOnce(read("b", [post("p1", 2, { cover: "https://p16-sign-sg.tiktokcdn.com/c.jpeg" })], new Date(NOW).toISOString()));
+    await s.runSimilarPosts(U, "tiktok", "b");
+    expect(callFn.mock.calls.at(-1)?.[1]).toMatchObject({ limit: 30 });
+    expect("tiktok:b" in s.loadMedia(U)).toBe(true);
+    expect(s.dueSimilar(U, NOW)).toEqual([]);
   });
 
   it("filters slideshows (TikTok photo posts), carousels (Instagram's), reels and UGC, best outlier first", () => {
