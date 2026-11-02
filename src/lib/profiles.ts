@@ -138,8 +138,12 @@ export function setActiveProfile(userId: string, id: string): void {
   // the address names the brand now open, so the reload after a switch opens on it instead of switching back
   try {
     const { pathname, search, hash } = window.location;
-    const next = brandAddress(pathname, search, hash, id, loadProfiles(userId).map((p) => p.id));
-    if (next) window.history.replaceState(window.history.state, "", next);
+    // a ?brand= left in the address would make /reels switch straight back after the reload
+    const rest = new URLSearchParams(search);
+    rest.delete("brand");
+    const left = rest.toString();
+    const next = brandAddress(pathname, left, hash, id, loadProfiles(userId).map((p) => p.id)) ?? `${pathname}${left ? `?${left}` : ""}${hash}`;
+    if (next !== `${pathname}${search}${hash}`) window.history.replaceState(window.history.state, "", next);
   } catch {
     // no address bar (tests, the server)
   }

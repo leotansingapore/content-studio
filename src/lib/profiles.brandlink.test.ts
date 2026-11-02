@@ -29,6 +29,14 @@ describe("brand links", () => {
     expect(withBrand("https://x.test/plan#goal")).toBe(`https://x.test/plan?profile=${p.id}#goal`);
     expect(withBrand("not a url")).toBe("not a url");
   });
+  it("drop ?brand= when the brand switches, so /reels does not switch straight back after the reload", () => {
+    const p = addProfile("u1", "AT");
+    const replaced: string[] = [];
+    vi.stubGlobal("window", { ...globalThis.window, location: { pathname: "/reels", search: "?brand=palbycrm&profile=me&stage=review", hash: "" }, history: { state: null, replaceState: (_s: unknown, _t: string, url: string) => replaced.push(url) } });
+    setActiveProfile("u1", p.id);
+    vi.unstubAllGlobals();
+    expect(replaced).toEqual([`/reels?profile=${p.id}&stage=review`]);
+  });
   it("find the brand a ?business= link names, by name or by the board brand it owns", () => {
     const at = addProfile("u1", "ActivityTracker");
     linkBoardBrand("u1", "me", "leo");
