@@ -10,7 +10,12 @@ const D = (id: string, extra: Partial<DetailAd> = {}): DetailAd => ({
   video: null, libraryUrl: `https://www.facebook.com/ads/library/?id=${id}`, hookFamily: null, emotion: null, audience: null, cta: null, link: null, industry: null,
   complete: true, ...extra,
 });
-const DROP = ADS.map(toDetailAd);
+// the weekly drop replaces ADS, so these are drop ads of our own: ids and dates a test can pin
+const dropAd = (adId: string, advertiser: string, start: string) => toDetailAd({ ...ADS[0], adId, advertiser, start });
+const DROP = [
+  dropAd("p1", "Prudential Singapore", "2026-09-16"), dropAd("p2", "Prudential Singapore", "2026-10-04"), dropAd("p3", "Prudential Singapore", "2026-10-05"),
+  dropAd("s1", "Singlife", "2026-08-01"), dropAd("s2", "Singlife", "2026-08-01"), dropAd("s3", "Singlife", "2026-08-01"),
+];
 const of = (advertiser: string) => DROP.filter((a) => a.advertiser === advertiser);
 
 describe("runLength", () => {
@@ -28,8 +33,8 @@ describe("runLength", () => {
   it("measures a stopped ad from start to end and says ran; nothing without a start", () => {
     expect(runLength(D("1", { active: false, start: dayBefore(50), end: dayBefore(5) }), NOW)).toEqual({ big: "45 days", small: "ran" });
     expect(runLength(D("1", { start: null }), NOW)).toBeNull();
-    // Thomson Medical's video from 23 Dec 2025
-    expect(runLength(DROP.find((a) => a.id === "908248645187707")!, NOW)).toEqual({ big: "10 months", small: "running" });
+    // a drop ad has no end, so it reads as still running
+    expect(runLength(dropAd("t1", "Thomson Medical", "2025-12-23"), NOW)).toEqual({ big: "10 months", small: "running" });
   });
 });
 
