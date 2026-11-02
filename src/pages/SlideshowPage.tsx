@@ -29,6 +29,7 @@ import { scanCompliance } from "@/lib/compliance";
 import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import { getDraftById, loadDrafts, upsertDraft } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
+import { keepCutout } from "@/lib/cutout";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
@@ -59,6 +60,7 @@ import {
   loadSlideshows,
   loadStyleHint,
   isSticker,
+  makeCutout,
   makeBox,
   makeSticker,
   makePhoneBox,
@@ -665,6 +667,12 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
       pick(b.id);
     },
     ui: (v) => box && commit(changeBox(work, slide.id, box.id, { ui: v === "none" ? undefined : v })),
+    cutout: async (blob, ar) => {
+      const key = await keepCutout(blob);
+      const b = makeCutout(key, ar, NEW_BOX_Y[slide.boxes.length] ?? 0.5);
+      commit(addBox(workRef.current, slide.id, b));
+      pick(b.id);
+    },
     sticker: (glyph) => {
       const b = makeSticker(glyph, NEW_BOX_Y[slide.boxes.length] ?? 0.5);
       commit(addBox(work, slide.id, b));

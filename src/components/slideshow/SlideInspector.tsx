@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Copy, ImagePlus, Images, LayoutGrid, Loader2, PaintBucket, Plus, Rows3, Shuffle, Trash2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CutoutPicker from "@/components/slideshow/CutoutPicker";
 import { Textarea } from "@/components/ui/textarea";
 import { scanCompliance } from "@/lib/compliance";
 import { getFile } from "@/lib/deviceFiles";
@@ -62,6 +63,8 @@ export interface InspectorActs {
   addText: () => void;
   /** Adds a sticker (one of STICKERS' glyphs) to the slide and picks it. */
   sticker: (glyph: string) => void;
+  /** Keeps a cut-out on this device and adds it to the slide as a picture box, picked. */
+  cutout: (blob: Blob, ar: number) => Promise<void>;
   /** Adds a phone-screen box (a switch row, an alarm list or REC) and picks it. */
   phone: (kind: "switch" | "alarm" | "rec") => void;
   /** The picked box's phone look, or none. */
@@ -211,7 +214,7 @@ export default function SlideInspector({
       <Button type="button" variant="outline" size="sm" onClick={act.addText} disabled={slide.boxes.length >= MAX_BOXES} className={outline("w-full")}>
         <Type className="h-3.5 w-3.5" /> Add text
       </Button>
-      {slide.boxes.length >= MAX_BOXES && <p className="text-[11px] text-muted-foreground">6 text boxes and stickers is the most a slide holds.</p>}
+      {slide.boxes.length >= MAX_BOXES && <p className="text-[11px] text-muted-foreground">6 text boxes, stickers and cut-outs is the most a slide holds.</p>}
     </div>
   );
   const stickers = (
@@ -242,6 +245,11 @@ export default function SlideInspector({
           </Button>
         ))}
       </div>
+    </Group>
+  );
+  const cutout = (
+    <Group label="Cut-out picture">
+      <CutoutPicker full={slide.boxes.length >= MAX_BOXES} onAdd={act.cutout} />
     </Group>
   );
 
@@ -386,15 +394,16 @@ export default function SlideInspector({
 
       {panel === "text" && (
         <div role="tabpanel" aria-label="Text" className="space-y-4">
-          {!box ? (
+          {!box || box.pic ? (
             <>
-              <p className="text-sm text-muted-foreground">Tap the words on a slide to change them.</p>
+              {!box && <p className="text-sm text-muted-foreground">Tap the words on a slide to change them.</p>}
               {chips}
               {addText}
               {stickers}
               {phone}
+              {cutout}
               {allBox}
-              <p className="text-xs text-muted-foreground">Pick a text box to change its style.</p>
+              {!box && <p className="text-xs text-muted-foreground">Pick a text box to change its style.</p>}
             </>
           ) : (
             <>
@@ -407,6 +416,7 @@ export default function SlideInspector({
               {addText}
               {stickers}
               {phone}
+              {cutout}
               {allBox}
               <Group label="Font">
                 <Choices label="Font" value={box.font} options={BOX_FONTS} labels={FONT_LABELS} onPick={(font) => act.style({ font })} />

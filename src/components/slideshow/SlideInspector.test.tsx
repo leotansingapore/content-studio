@@ -10,7 +10,7 @@ const { default: SlideInspector } = await import("./SlideInspector");
 const { blankSlideshow, STICKERS } = await import("@/lib/slideshow");
 
 const noop = () => undefined;
-const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, phone: noop, ui: noop, threeRows: noop, rows: noop, words: noop, style: noop, overlay: noop };
+const act = { size: noop, swap: noop, media: noop, upload: noop, plain: noop, collage: noop, cell: noop, addSlide: noop, duplicate: noop, deleteSlide: noop, addText: noop, sticker: noop, cutout: async () => undefined, phone: noop, ui: noop, threeRows: noop, rows: noop, words: noop, style: noop, overlay: noop };
 const draw = (slide: Record<string, unknown>, cell = 0, panel = "slide") =>
   renderToStaticMarkup(
     createElement(MemoryRouter, null,
@@ -72,5 +72,29 @@ describe("the Text tab's phone screen", () => {
         })),
     );
     expect(picked).toMatch(/aria-label="Phone look"[\s\S]*?aria-pressed="true"[^>]*>Switch rows</);
+  });
+});
+
+describe("the Text tab's cut-out picture", () => {
+  const pic = { id: "b1", text: "", x: 0.5, y: 0.5, w: 0.5, font: "clean", size: 48, color: "#111111", stroke: 0, strokeColor: "#FFFFFF", bg: "none", pic: { key: "cimg-abc123", ar: 1.2 } };
+  const drawText = (boxes: unknown[], box: unknown = null) =>
+    renderToStaticMarkup(
+      createElement(MemoryRouter, null,
+        createElement(SlideInspector, {
+          userId: "u1", show: blankSlideshow(), slide: { id: "s1", boxes } as never, box: box as never, panel: "text",
+          onPanel: noop, allBoxes: false, onAllBoxes: noop, swap: { busy: false, note: null }, cell: 0, brand: { handle: false, logo: false }, act,
+        })),
+    );
+
+  it("offers Cut out a photo, closed off when the slide holds 6 boxes", () => {
+    expect(drawText([])).toMatch(/Cut out a photo<input type="file" accept="image\/\*" class="sr-only"\/>/);
+    expect(drawText(Array.from({ length: 6 }, (_, i) => ({ ...pic, id: `b${i}` })))).toMatch(/opacity-40[^"]*"[^>]*>[\s\S]*?Cut out a photo<input[^>]*disabled=""/);
+  });
+
+  it("shows no word or font controls when a cut-out is picked", () => {
+    const html = drawText([pic], pic);
+    expect(html).toContain("Cut out a photo");
+    expect(html).not.toContain(">Words<");
+    expect(html).not.toContain('aria-label="Font"');
   });
 });

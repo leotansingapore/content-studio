@@ -25,6 +25,8 @@ import {
   loadStyleHint,
   makeBox,
   makeSticker,
+  makeCutout,
+  ownLook,
   makePhoneBox,
   pickStyle,
   addThreeRowSlide,
@@ -461,5 +463,44 @@ describe("ago", () => {
     expect(ago("2026-10-19T11:00:00Z", now)).toBe("1 day ago");
     expect(ago("2026-10-17T12:00:00Z", now)).toBe("3 days ago");
     expect(ago("", now)).toBe("just now");
+  });
+});
+
+describe("cut-out pictures", () => {
+  it("make a word-free picture box half the slide wide that keeps its own look", () => {
+    const b = makeCutout("cimg-abc12345", 1.5, 0.3);
+    expect(b).toMatchObject({ text: "", pic: { key: "cimg-abc12345", ar: 1.5 }, w: 0.5, y: 0.3, bg: "none" });
+    expect(ownLook(b)).toBe(true);
+    expect(ownLook(makeBox("Words"))).toBe(false);
+  });
+
+  it("are passed by Apply to all and left out of the caption", () => {
+    const s = blankSlideshow();
+    const cut = makeCutout("cimg-abc12345", 1);
+    const show = { ...s, slides: [{ ...s.slides[0], boxes: [makeBox("Words"), cut] }, s.slides[1]] };
+    const all = applyToAll(show, { color: "#FF0000", size: 90 });
+    expect(all.slides[0].boxes[0]).toMatchObject({ color: "#FF0000", size: 90 });
+    expect(all.slides[0].boxes[1]).toEqual(cut);
+    expect(slideWords(show)).not.toContain("cimg");
+  });
+
+  it("survive a save and a load only with a device key and a sane shape", () => {
+    const [s] = sanitizeSlideshows([
+      {
+        id: "ss1",
+        title: "Cuts",
+        size: "9x16",
+        overlay: { darken: 0, mark: "off" },
+        slides: [
+          { id: "a", boxes: [box({ id: "k", text: "", pic: { key: "cimg-abc12345", ar: 1.25 } }), box({ id: "u", pic: { key: "https://x.com/a.png", ar: 1 } }), box({ id: "r", pic: { key: "cimg-abc12345", ar: 0 } })] },
+          { id: "b", boxes: [] },
+        ],
+        updatedAt: "2026-11-02T00:00:00.000Z",
+      },
+    ]);
+    const [k, u, r] = s.slides[0].boxes;
+    expect(k.pic).toEqual({ key: "cimg-abc12345", ar: 1.25 });
+    expect(u.pic).toBeUndefined();
+    expect(r.pic).toBeUndefined();
   });
 });

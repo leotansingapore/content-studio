@@ -16,10 +16,10 @@ export const MP_VERSION = "1.1.0";
 const WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 const MODELS = "https://storage.googleapis.com/mediapipe-models";
 
-const lib = () => import("@mediapipe/tasks-vision");
+export const lib = () => import("@mediapipe/tasks-vision");
 // a failed load is forgotten, so the next try starts again
 let fileset: ReturnType<typeof FilesetResolver.forVisionTasks> | null = null;
-const files = () => (fileset ??= lib().then((m) => m.FilesetResolver.forVisionTasks(WASM)).catch((e) => { fileset = null; throw e; }));
+export const files = () => (fileset ??= lib().then((m) => m.FilesetResolver.forVisionTasks(WASM)).catch((e) => { fileset = null; throw e; }));
 
 let detector: Promise<FaceDetector> | null = null;
 // The full-range model finds faces down to about 4% of a landscape frame's width (two people

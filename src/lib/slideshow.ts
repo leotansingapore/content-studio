@@ -36,6 +36,11 @@ export interface TextBox {
    * so Apply to all and the carried style never set it.
    */
   ui?: "switch" | "rec";
+  /**
+   * A cut-out picture in place of words (healthyyinspoo's product cut-outs, 30 Oct teardowns): a cimg- device key of a
+   * transparent PNG (cutout.ts) and its height over its width, so the box keeps the picture's shape. Its text is empty.
+   */
+  pic?: { key: string; ar: number };
 }
 
 export interface ShowSlide {
@@ -170,6 +175,11 @@ export function makePhoneBox(kind: "switch" | "alarm" | "rec", y = 0.5): TextBox
 }
 
 export const makeSticker = (glyph: string, y = 0.5): TextBox => makeBox(glyph, { bg: "none", size: STICKER_SIZE, stroke: 0, w: W_MIN, y });
+
+/** A cut-out picture box, half the slide wide. */
+export const makeCutout = (key: string, ar: number, y = 0.5): TextBox => makeBox("", { pic: { key, ar }, bg: "none", stroke: 0, w: 0.5, y });
+/** A box that keeps its own look: a sticker or a cut-out. "Apply to all" and the carried style pass it by. */
+export const ownLook = (b: Pick<TextBox, "text" | "pic">) => !!b.pic || isSticker(b);
 
 /** Only the style keys of `o`, each one valid; text, place and id never come through. */
 export function styleOf(o: Partial<Record<string, unknown>>): Partial<BoxStyle> {
@@ -351,7 +361,7 @@ export function restoreBox(s: Slideshow, slideId: string, box: TextBox, at: numb
 /** "Apply to all text boxes": the style keys in `patch` on every box of every slide; the words stay, stickers keep theirs. */
 export function applyToAll(s: Slideshow, patch: Partial<Record<string, unknown>>): Slideshow {
   const style = styleOf(patch);
-  return { ...s, slides: s.slides.map((x) => ({ ...x, boxes: x.boxes.map((b) => (isSticker(b) ? b : { ...b, ...style })) })) };
+  return { ...s, slides: s.slides.map((x) => ({ ...x, boxes: x.boxes.map((b) => (ownLook(b) ? b : { ...b, ...style })) })) };
 }
 
 export const pickStyle = (b: TextBox): BoxStyle => ({ font: b.font, size: b.size, color: b.color, stroke: b.stroke, strokeColor: b.strokeColor, bg: b.bg, shadow: b.shadow });
@@ -423,10 +433,17 @@ function sanitizeBox(raw: unknown): TextBox | null {
     id: typeof r.id === "string" && r.id ? r.id.slice(0, 40) : newId("b"),
     text: typeof r.text === "string" ? r.text : "",
     ...(r.ui === "switch" || r.ui === "rec" ? { ui: r.ui } : {}),
+    ...sanitizePic(r.pic),
     x: num(r.x, 0.5),
     y: num(r.y, 0.5),
     w: num(r.w, 0.84),
   });
+}
+
+function sanitizePic(raw: unknown): { pic?: TextBox["pic"] } {
+  if (!raw || typeof raw !== "object") return {};
+  const r = raw as Record<string, unknown>;
+  return typeof r.key === "string" && SLIDE_IMAGE_KEY.test(r.key) && typeof r.ar === "number" && r.ar >= 0.05 && r.ar <= 20 ? { pic: { key: r.key, ar: r.ar } } : {};
 }
 
 function sanitizePhoto(raw: unknown): ShowSlide["photo"] | undefined {

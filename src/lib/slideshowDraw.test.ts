@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { CELL_GAP, LINE_HEIGHT, MissingPictureError, boxCss, cellRects, paintSlide, layoutBoxes, lookOf, pictureKey, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
-import { BOX_FONTS, blankSlideshow, makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
+import { BOX_FONTS, blankSlideshow, makeBox, makeCutout, type ShowSlide, type ShowSize } from "@/lib/slideshow";
 
 // slideshowPngs on a device that has none of the pictures and no network: it must stop before drawing anything
 const media = vi.hoisted(() => ({
@@ -207,5 +207,35 @@ describe("phone looks", () => {
     expect(rows.filter((f) => f.startsWith("rgba(255,255,255"))).toHaveLength(2);
     expect(record(makeBox("REC", { ui: "rec", bg: "none" })).filter((f) => f === "#FF3B30")).toHaveLength(1);
     expect(record(makeBox("Plain words", { bg: "none" })).some((f) => f === "#34C759" || f === "#FF3B30")).toBe(false);
+  });
+});
+
+describe("cut-out pictures", () => {
+  it("lay out at the box's width with the picture's own shape", () => {
+    const [lay] = layoutBoxes(slide(makeCutout("cimg-abc12345", 1.5, 0.5)), "9x16", measure).boxes;
+    expect(lay.lines).toEqual([]);
+    expect(lay.rect).toEqual({ x: 270, y: 1920 / 2 - 405, w: 540, h: 810 });
+  });
+
+  it("paint the cut-out into its box and nothing when it isn't on this device", () => {
+    const drawn: unknown[][] = [];
+    const state: Record<string | symbol, unknown> = {};
+    const ctx = new Proxy(state, {
+      get: (t, k) => (k in t ? t[k] : k === "measureText" ? (text: string) => ({ width: text.length * 20 }) : k === "drawImage" ? (...a: unknown[]) => void drawn.push(a) : () => undefined),
+      set: (t, k, v) => ((t[k] = v), true),
+    }) as unknown as CanvasRenderingContext2D;
+    const cut = { width: 200, height: 300 } as ImageBitmap;
+    const one = slide(makeCutout("cimg-abc12345", 1.5, 0.5));
+    paintSlide(ctx, one, "9x16", null, {}, null, new Map([["cimg-abc12345", cut]]));
+    expect(drawn).toEqual([[cut, 270, 555, 540, 810]]);
+    drawn.length = 0;
+    paintSlide(ctx, one, "9x16", null);
+    expect(drawn).toEqual([]);
+  });
+
+  it("stop a download when a cut-out is on another device", async () => {
+    const s = blankSlideshow();
+    const show = { ...s, slides: [{ ...s.slides[0], boxes: [makeCutout("cimg-gone12345", 1)] }, s.slides[1]] };
+    await expect(slideshowPngs("u1", show)).rejects.toThrow("Slide 1's picture is on the device you added it from.");
   });
 });

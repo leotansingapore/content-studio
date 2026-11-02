@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { Loader2, X } from "lucide-react";
 import { FRAME_W, MAX_BOX_CHARS, frameHeight, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
-import { bitmapOf, boxCss, logoOf, paintSlide, slidePicture, type BoxLayout, type SlideLook } from "@/lib/slideshowDraw";
+import { bitmapOf, boxCss, cutoutsOf, logoOf, paintSlide, slidePicture, type BoxLayout, type SlideLook } from "@/lib/slideshowDraw";
 import { cn } from "@/lib/utils";
 
 /** A slide's picture as the editor knows it: the file, still loading, not on this device, or none. */
@@ -30,11 +30,11 @@ function usePaint(canvas: RefObject<HTMLCanvasElement>, slide: ShowSlide, size: 
     if (!c || !ready) return;
     const mine = ++turn.current;
     const blob = picture instanceof Blob ? picture : null;
-    void Promise.all([blob ? bitmapOf(blob) : null, look.logo ? logoOf(look.logo) : null]).then(([bitmap, logo]) => {
+    void Promise.all([blob ? bitmapOf(blob) : null, look.logo ? logoOf(look.logo) : null, cutoutsOf(slide)]).then(([bitmap, logo, cuts]) => {
       const ctx = c.getContext("2d");
       if (mine !== turn.current || !ctx) return;
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      paintSlide(ctx, slide, size, bitmap, look, logo);
+      paintSlide(ctx, slide, size, bitmap, look, logo, cuts);
     });
   }, [canvas, slide, size, look, picture, ready, scale]);
 }
@@ -133,7 +133,9 @@ export default function SlideCanvas({
     }
     // the box grows by twice the pull (it keeps its centre); a corner averages its two directions
     const pull = hd.x ? (hd.x * dx + hd.y * dy) / 2 : hd.y * dy;
-    onBox(d.id, { size: d.box.size * (1 + (2 * pull) / Math.max(40, d.rect.h)) });
+    const k = 1 + (2 * pull) / Math.max(40, d.rect.h);
+    // a cut-out grows by its width, so it keeps its shape
+    onBox(d.id, d.box.pic ? { w: d.box.w * k } : { size: d.box.size * k });
   };
 
   const end = (e: ReactPointerEvent) => {
@@ -144,7 +146,7 @@ export default function SlideCanvas({
     if (d.moved) return onEnd();
     // a second tap on the same box types in place (mouse double-click and phone double-tap alike)
     const now = e.timeStamp;
-    if (d.handle === "move" && lastTap.current?.id === d.id && now - lastTap.current.at < DOUBLE_TAP_MS) {
+    if (d.handle === "move" && !d.box.pic && lastTap.current?.id === d.id && now - lastTap.current.at < DOUBLE_TAP_MS) {
       lastTap.current = null;
       setTyping(d.id);
     } else lastTap.current = { id: d.id, at: now };
@@ -182,7 +184,7 @@ export default function SlideCanvas({
             role="button"
             tabIndex={0}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onPick(l.id))}
-            aria-label={`Text box: ${slide.boxes.find((b) => b.id === l.id)?.text.slice(0, 40) ?? ""}`}
+            aria-label={slide.boxes.find((b) => b.id === l.id)?.pic ? "Cut-out picture" : `Text box: ${slide.boxes.find((b) => b.id === l.id)?.text.slice(0, 40) ?? ""}`}
             aria-pressed={picked === l.id}
             className={cn("absolute cursor-move", picked === l.id ? "outline outline-2 outline-primary" : "hover:outline hover:outline-1 hover:outline-white/70")}
             style={{ left: l.rect.x * scale, top: l.rect.y * scale, width: l.rect.w * scale, height: l.rect.h * scale }}
@@ -213,7 +215,7 @@ export default function SlideCanvas({
           ))}
           <button
             type="button"
-            aria-label="Delete this text box"
+            aria-label={slide.boxes.find((b) => b.id === picking.id)?.pic ? "Delete this picture" : "Delete this text box"}
             className="absolute grid h-8 w-8 -translate-y-full translate-x-1 place-items-center [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
             // past the box's top right corner, pulled back inside the slide when that corner is near an edge
             style={{ left: `min(${(picking.rect.x + picking.rect.w) * scale}px, calc(100% - 3rem))`, top: `max(${picking.rect.y * scale}px, 2.75rem)` }}

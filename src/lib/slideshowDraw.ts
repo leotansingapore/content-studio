@@ -51,6 +51,13 @@ export function layoutBoxes(slide: ShowSlide, size: Slideshow["size"], measure: 
   const H = frameHeight(size);
   let overflow = false;
   const boxes = slide.boxes.map((b) => {
+    if (b.pic) {
+      // a cut-out keeps its picture's shape: the width is the box's, the height follows
+      const w = b.w * FRAME_W;
+      const h = w * b.pic.ar;
+      const rect = { x: b.x * FRAME_W - w / 2, y: b.y * H - h / 2, w, h };
+      return { id: b.id, lines: [], px: b.size, rect };
+    }
     const css = boxCss(b);
     const px = b.size;
     const w = b.w * FRAME_W;
@@ -90,6 +97,24 @@ export function bitmapOf(blob: Blob): Promise<ImageBitmap | null> {
   let hit = bitmaps.get(blob);
   if (!hit) bitmaps.set(blob, (hit = createImageBitmap(blob).catch(() => null)));
   return hit;
+}
+
+const cutFiles = new Map<string, Promise<Blob | null>>();
+/** A cut-out's file on this device, or null; a key's file never changes, so each is read once. */
+export function cutoutFile(key: string): Promise<Blob | null> {
+  if (!cutFiles.has(key)) cutFiles.set(key, getFile(key).then((f) => f ?? null).catch(() => null));
+  return cutFiles.get(key)!;
+}
+/** The slide's cut-outs, decoded, by key; one not on this device is left out. */
+export async function cutoutsOf(slide: ShowSlide): Promise<Map<string, ImageBitmap>> {
+  const keys = [...new Set(slide.boxes.flatMap((b) => (b.pic ? [b.pic.key] : [])))];
+  const out = new Map<string, ImageBitmap>();
+  for (const key of keys) {
+    const blob = await cutoutFile(key);
+    const bmp = blob ? await bitmapOf(blob) : null;
+    if (bmp) out.set(key, bmp);
+  }
+  return out;
 }
 
 const logos = new Map<string, Promise<HTMLImageElement | null>>();
@@ -186,6 +211,7 @@ export function paintSlide(
   picture: ImageBitmap | null,
   look: SlideLook = {},
   logo: HTMLImageElement | null = null,
+  cuts: Map<string, ImageBitmap> = new Map(),
 ): void {
   const W = FRAME_W;
   const H = frameHeight(size);
@@ -225,6 +251,11 @@ export function paintSlide(
   ctx.lineJoin = "round";
   for (const [i, lay] of boxes.entries()) {
     const b = slide.boxes[i];
+    if (b.pic) {
+      const cut = cuts.get(b.pic.key);
+      if (cut) ctx.drawImage(cut, lay.rect.x, lay.rect.y, lay.rect.w, lay.rect.h);
+      continue;
+    }
     const css = boxCss(b);
     if (b.ui === "switch") {
       paintSwitchRows(ctx, b, lay, css);
@@ -288,8 +319,8 @@ export async function drawSlide(
 ): Promise<void> {
   const key = pictureKey(slide);
   const blob = key ? pictures.get(key) : undefined;
-  const [picture, logo] = await Promise.all([blob ? bitmapOf(blob) : null, mark?.logo ? logoOf(mark.logo) : null]);
-  paintSlide(ctx, slide, size, picture, mark, logo);
+  const [picture, logo, cuts] = await Promise.all([blob ? bitmapOf(blob) : null, mark?.logo ? logoOf(mark.logo) : null, cutoutsOf(slide)]);
+  paintSlide(ctx, slide, size, picture, mark, logo, cuts);
 }
 
 // ---- the 2x2 collage (the 30 Oct teardowns: male_aestheticcc and the.atomic.reset post four photos a slide) ----
@@ -379,6 +410,8 @@ export async function slideshowPngs(
       if (!blob) throw new MissingPictureError(i + 1, !!slide.photo);
       pictures.set(key, blob);
     }
+    // a cut-out kept on another device stops the download, as a missing slide picture does
+    for (const b of slide.boxes) if (b.pic && !(await cutoutFile(b.pic.key))) throw new MissingPictureError(i + 1, false);
     const c = document.createElement("canvas");
     c.width = FRAME_W;
     c.height = frameHeight(s.size);
