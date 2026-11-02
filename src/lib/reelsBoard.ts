@@ -53,6 +53,7 @@ export const IG_HANDLES: Record<string, string> = {
   moneybees: "the_moneybees",
   finternship: "finternshipofficial",
   activitytracker: "activity_tracker_io",
+  palbysales: "activity_tracker_io", // Leo 2 Nov: Palby Sales Tracker keeps the account
 };
 
 export interface ReelCard {
