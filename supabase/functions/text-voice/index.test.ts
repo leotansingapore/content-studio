@@ -124,6 +124,29 @@ describe("a music track's uses", () => {
   });
 });
 
+describe("the Singaporean voices (Leo 2026-11-03: presenters' own voices, Leo's sign-ins only)", () => {
+  const send = (uid: string, body: Record<string, unknown>) =>
+    db.handler!(new Request("http://x/text-voice", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+  const voiced = (uid: string) => db.rows.get(`${uid}|ai-voice|${db.today()}`) ?? 0;
+
+  it("refuses one to anyone not listed, before ElevenLabs is called or a use is counted", async () => {
+    for (const body of [{ text: "Driving into JB this school holiday?", voice: "christine" }, { mode: "dub", lines: ["Satu", "Dua"], voice: "christine", lang: "ms" }]) {
+      const res = await send(UID, body);
+      expect(res.status).toBe(403);
+      expect((await res.json()).code).toBe("not_enabled");
+    }
+    expect(eleven.sent).toEqual([]);
+    expect(voiced(UID)).toBe(0);
+  });
+
+  it("speaks one for a listed caller, sent to that voice's ElevenLabs id", async () => {
+    const res = await send(LEO, { text: "Driving into JB this school holiday?", voice: "christine" });
+    expect(res.status).toBe(200);
+    expect(eleven.sent[0].url).toBe("https://api.elevenlabs.io/v1/text-to-speech/Y7xQSS5ZtS4xv4VJotWd?output_format=mp3_44100_128");
+    expect(voiced(LEO)).toBe(1);
+  });
+});
+
 describe("the voiceover and the dub (pinned at 6cdc59d2, before the lines mode and word times)", () => {
   const send = (uid: string, body: Record<string, unknown>) =>
     db.handler!(new Request("http://x/text-voice", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));

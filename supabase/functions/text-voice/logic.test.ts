@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { DAILY_LIMITS, GLOBAL_COUNTER_USER, type RpcClient } from "../_shared/usageCaps";
 import {
-  MAX_SCRIPT, PREMADE_VOICE_IDS, TTS_MODEL, VOICES, VOICE_IDS, parseVoiceRequest, voicesFor, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
+  MAX_SCRIPT, PREMADE_VOICE_IDS, TTS_MODEL, VOICES, VOICE_IDS, parseVoiceRequest, voiceAllowed, voicesFor, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
   DEFAULT_EMOTION, EMOTIONS, EMOTION_IDS, PACE_IDS, voiceSettings,
   DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
   moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal, parseMusicRequest, readMood,
@@ -91,6 +91,10 @@ describe("the ElevenLabs call", () => {
     expect(voicesFor(false, "christine")).toEqual([...PREMADE_VOICE_IDS, "christine"]);
     expect(voicesFor(false, "nobody")).toEqual(PREMADE_VOICE_IDS);
     expect(voicesFor(true)).toEqual(VOICE_IDS);
+    // the server's own gate: a Singaporean voice only for a listed caller
+    expect(voiceAllowed("alice", false)).toBe(true);
+    expect(voiceAllowed("christine", false)).toBe(false);
+    expect(voiceAllowed("christine", true)).toBe(true);
   });
 });
 

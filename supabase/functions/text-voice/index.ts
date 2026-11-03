@@ -24,7 +24,7 @@ import { askJev } from "../_shared/jev.ts";
 import { isAllowed } from "../market/logic.ts";
 import {
   DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, giveMusicBack, lineSpans, moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal,
-  parseDubRequest, parseLinesRequest, parseMusicRequest, parseVoiceRequest, readMood, ttsBody, ttsUrl, wordTimes,
+  parseDubRequest, parseLinesRequest, parseMusicRequest, parseVoiceRequest, readMood, ttsBody, ttsUrl, voiceAllowed, wordTimes,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -61,6 +61,8 @@ Deno.serve(async (req) => {
     if (mode === "lines" && !listed) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
     const lines = mode === "lines" ? parseLinesRequest(body) : null;
     if (lines && !lines.ok) return json({ code: "bad_request", error: lines.error }, 400);
+    const asked = (parsed?.ok && parsed.voice) || (dub?.ok && dub.voice) || (lines?.ok && lines.voice) || null;
+    if (asked && !voiceAllowed(asked, listed)) return json({ code: "not_enabled", error: "That voice isn't switched on for your account. Pick another." }, 403);
 
     if (mode === "mood") {
       // a decision, so Jev and never a prompt; calm whenever there is no answer to be had

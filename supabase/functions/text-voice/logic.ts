@@ -38,6 +38,9 @@ export type VoiceId = keyof typeof VOICES;
 export const VOICE_IDS = Object.keys(VOICES) as VoiceId[];
 /** The premade voices; the Singaporean library ones are offered on Leo's sign-ins, beside his presenters. */
 export const PREMADE_VOICE_IDS = VOICE_IDS.filter((v) => !VOICES[v].note.startsWith("Singaporean"));
+/** The server's gate: a Singaporean library voice only for a listed caller (NORTH_STAR_USERS), the pickers' rule enforced here. */
+export const voiceAllowed = (voice: VoiceId, listed: boolean) => listed || PREMADE_VOICE_IDS.includes(voice);
+
 /** The voices a picker lists: all of them on Leo's sign-ins, the premade ones for everyone else; a voice already picked always shows. */
 export function voicesFor(leo: boolean, picked?: string): VoiceId[] {
   if (leo) return VOICE_IDS;
