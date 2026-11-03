@@ -23,7 +23,7 @@ import { PARTS_GONE, canFix, changedParts, faceFor, fixedProject, loadScriptDraf
 import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
 import type { PostLang } from "@/lib/links";
 import { priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
-import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
+import { VOICES, speak, voicesFor, type VoiceId } from "@/lib/textVoice";
 import { LANG_NAMES, asPostLang } from "@/lib/translate";
 import { useUrlUpdate } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -289,7 +289,7 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
   const voicePills = (
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
       <span className="mr-1 text-xs font-medium">Voice</span>
-      {VOICE_IDS.map((v) => (
+      {voicesFor(!!leo, picked).map((v) => (
         <button key={v} type="button" aria-pressed={picked === v} onClick={() => setPicked(v)} disabled={busy}
           className={`h-11 rounded-full border px-3 text-xs font-medium sm:h-8 ${picked === v ? "border-primary bg-primary/10 text-primary" : "border-border/70"}`}>
           {VOICES[v].label}

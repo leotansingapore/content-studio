@@ -287,8 +287,9 @@ export function whoFor(userId: string, pickd: { id: string; look: string } | nul
 const whoWords = (userId: string, who: TalkWho, look: string) =>
   who === "mine" ? "Your face" : who === "presenter" ? `AI presenter, labelled on the post: ${look}` : `${speakers(userId).presenters.find((p) => p.id === who)?.name ?? "Your presenter"}, AI presenter, labelled on the post`;
 const newPresenter = (f: Pick<PlanFields, "who" | "look">) => f.who === "presenter" && !madePresenter(f.look ?? "", "office");
-/** A presenter speaks in a voice that fits their look, as a campaign's AI video does (replay D4: Raj spoke as Alice); your face keeps yours. */
-const voiceFor = (w: { who: TalkWho; look: string }, voice: VoiceId): VoiceId => (w.who === "mine" ? voice : presenterVoice({ look: w.look }, voice));
+/** A saved presenter speaks in its own voice, any other in one that fits their look, as a campaign's AI video does (replay D4: Raj spoke as Alice); your face keeps yours. */
+const voiceFor = (userId: string, w: { who: TalkWho; look: string }, voice: VoiceId): VoiceId =>
+  w.who === "mine" ? voice : presenterVoice(speakers(userId).presenters.find((p) => p.id === w.who) ?? { look: w.look }, voice);
 /** The most words a script can run to and still last `length` in `voice`, at its slowest measured read (replay D5). */
 export function wordsFor(length: TalkLength, voice: VoiceId): number {
   let n = speakingWords(length).high;
@@ -325,7 +326,7 @@ export function makeCard(userId: string, a: MakeAsk, now = new Date()): AgentCar
   if (a.plan === "speaking") {
     const w = whoFor(userId, a.speaker);
     const length = a.length ?? DEFAULT_LENGTH;
-    const g: PlanFields = { ...f, ...w, length, voice: voiceFor(w, loadRemixPrefs(userId).voice) };
+    const g: PlanFields = { ...f, ...w, length, voice: voiceFor(userId, w, loadRemixPrefs(userId).voice) };
     return card("video", g, { step: "script", title: `Talking video: "${about}"`, line: `${aSeconds(length)}. The script comes first, then its price.`, details: videoDetails(userId, g, length), price: price("remix-make") ?? undefined, needs: needsOf("speaking", { write: true, presenter: newPresenter(g) }) }, now);
   }
   if (a.plan === "explainer") {
@@ -582,7 +583,7 @@ export function withWho(userId: string, c: AgentCard, who: string): AgentCard | 
     return pr ? { who: pr.id as TalkWho, look: pr.look } : null;
   })();
   if (!next) return null;
-  const voice = voiceFor(next, f.voice ?? loadRemixPrefs(userId).voice);
+  const voice = voiceFor(userId, next, f.voice ?? loadRemixPrefs(userId).voice);
   const moved = { ...c, plan: withFields({ ...f, ...next, voice, correction: { kind: "face", from: f.who === "mine" ? "mine" : "ai", to: next.who === "mine" ? "mine" : "ai" } }) };
   return f.script ? withScript(userId, moved, f.script) : { ...moved, details: videoDetails(userId, fieldsOf(moved), f.length ?? DEFAULT_LENGTH), needs: needsOf("speaking", { write: true, presenter: newPresenter(fieldsOf(moved)) }) };
 }

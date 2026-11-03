@@ -14,9 +14,10 @@ import { loadBrand } from "@/lib/carousel";
 import { links } from "@/lib/links";
 import { loadFace, onFaceChanged } from "@/lib/myFace";
 import {
-  FULL, MAX_EXTRA, MAX_NAME, MAX_ON, loadPresenters, nameFor, onPresenters, onPresentersChanged, removePresenter, renamePresenter, savePrefs, setWho,
-  type Presenter, type Presenters,
+  FULL, MAX_EXTRA, MAX_NAME, MAX_ON, loadPresenters, nameFor, onPresenters, onPresentersChanged, presenterVoice, removePresenter, renamePresenter, savePrefs,
+  setPresenterVoice, setWho, type Presenter, type Presenters,
 } from "@/lib/presenters";
+import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import { clearMake, keepPick, makeState, onMake, resumeMake, startMake } from "@/lib/presentersJob";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
@@ -255,6 +256,47 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
 
 // ---------- a saved presenter ----------
 
+/** The voice a presenter always speaks in (saved with it, so every video uses it), and a line to hear it first. */
+function VoicePick({ userId, p }: { userId: string; p: Presenter }) {
+  const { toast } = useToast();
+  const [playing, setPlaying] = useState(false);
+  const fits = presenterVoice({ look: p.look }, "alice");
+  const pick = (v: string) => {
+    const r = setPresenterVoice(userId, p.id, (v || null) as VoiceId | null);
+    if (r.ok === false) toast({ title: r.error });
+  };
+  const hear = async () => {
+    setPlaying(true);
+    try {
+      const url = URL.createObjectURL(await speak(`Hi, I'm ${p.name}. This is how I sound in your videos.`, presenterVoice(p, "alice")));
+      const audio = new Audio(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setPlaying(false);
+      };
+      await audio.play();
+    } catch (e) {
+      setPlaying(false);
+      toast({ title: e instanceof Error ? e.message : "Couldn't play that voice. Try again." });
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+        Voice
+        <select value={p.voice ?? ""} onChange={(e) => pick(e.target.value)}
+          className="h-11 min-w-0 max-w-[15rem] rounded-md border border-border bg-background px-2 text-sm text-foreground sm:h-9">
+          <option value="">Fits the look ({VOICES[fits].label})</option>
+          {VOICE_IDS.map((v) => <option key={v} value={v}>{VOICES[v].label}, {VOICES[v].note}</option>)}
+        </select>
+      </label>
+      <Button variant="ghost" className={BIG} disabled={playing} onClick={() => void hear()} aria-label={`Hear ${p.name}'s voice`}>
+        {playing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hear it"}
+      </Button>
+    </div>
+  );
+}
+
 function PresenterCard({ userId, p, isDefault, open, cardRef }: { userId: string; p: Presenter; isDefault: boolean; open: boolean; cardRef?: React.Ref<HTMLLIElement> }) {
   const { toast } = useToast();
   const [mode, setMode] = useState<"view" | "menu" | "rename" | "remove">("view");
@@ -296,6 +338,7 @@ function PresenterCard({ userId, p, isDefault, open, cardRef }: { userId: string
             {isDefault && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">Default</span>}
           </div>
         )}
+        {(mode === "view" || mode === "menu") && <VoicePick userId={userId} p={p} />}
         {mode === "remove" ? (
           <div className="space-y-2" role="group" aria-label={`Remove ${p.name}`}>
             <p className="text-sm">Remove {p.name}? Videos already made keep {p.name}.</p>

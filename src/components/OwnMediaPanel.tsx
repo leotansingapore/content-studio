@@ -23,7 +23,8 @@ import {
   type OwnSound, type OwnWords,
 } from "@/lib/ownMedia";
 import { priceOf, sumPrices } from "@/lib/prices";
-import { VOICES, VOICE_IDS } from "@/lib/textVoice";
+import { VOICES, voicesFor } from "@/lib/textVoice";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { useUrlUpdate } from "@/lib/urlState";
 import { fmtTime } from "@/lib/videoEdit";
 import { stills, type JoinExtra } from "@/lib/videoMedia";
@@ -44,6 +45,7 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
   onJoin: () => void;
   onClose: () => void;
 }) {
+  const leo = useLeoOnly();
   const [s, setS] = useState(ownState);
   useEffect(() => onOwn(() => setS(ownState())), []);
   const [params] = useSearchParams();
@@ -207,7 +209,7 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
         </div>
         {voice && (
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Voice">
-            {VOICE_IDS.map((v) => <FilterChip key={v} active={s.voice === v} disabled={working} onClick={() => setOwn({ voice: v })}>{VOICES[v].label}</FilterChip>)}
+            {voicesFor(leo, s.voice).map((v) => <FilterChip key={v} active={s.voice === v} disabled={working} onClick={() => setOwn({ voice: v })}>{VOICES[v].label}</FilterChip>)}
           </div>
         )}
         {s.sound === "music" && (

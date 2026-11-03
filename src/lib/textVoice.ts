@@ -3,7 +3,7 @@
 
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 export {
-  DEFAULT_EMOTION, DUB_LANGS, EMOTIONS, EMOTION_IDS, MAX_SCRIPT, PACES, PACE_IDS, VOICES, VOICE_IDS,
+  DEFAULT_EMOTION, DUB_LANGS, EMOTIONS, EMOTION_IDS, MAX_SCRIPT, PACES, PACE_IDS, VOICES, VOICE_IDS, voicesFor,
   type Delivery, type DubLang, type VoiceId,
 } from "../../supabase/functions/text-voice/logic.ts";
 import type { Delivery, DubLang, VoiceId } from "../../supabase/functions/text-voice/logic.ts";

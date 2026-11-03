@@ -36,7 +36,7 @@ import {
 } from "@/lib/explainer";
 import { usableSets } from "@/lib/mediaSets";
 import { LEN_MAX, LEN_MIN, MAX_THEME, describe, dismissMontage, montageBusy, montageJob, onMontageJob, setClips, startMontage, type MontageJob } from "@/lib/montage";
-import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
+import { VOICES, VOICE_IDS, speak, voicesFor, type VoiceId } from "@/lib/textVoice";
 import {
   CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
   aiJob, avatarCredits, clipCredits, creditsUsd, examplesUrl, explainerCredits, makeAvatar, makeExplainer, makePresenter,
@@ -476,9 +476,10 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   // Everyone else keeps My photo, AI presenter and the premade voices as local choices, a typed face= or voice= ignored.
   const people = useSpeakers(user?.id);
   const [faceParam, pickWho] = useUrlState<string>("face", people ? defaultWho(people) : "", { allowed: people ? whoChoices(people) : [] });
-  const [voiceParam, setVoiceParam] = useUrlState<VoiceId | "mine">("voice", "alice", { allowed: [...VOICE_IDS, "mine"] });
   const who = people ? faceParam : "";
   const speaker = people ? speakerOf(people, who) : null;
+  // a saved presenter starts in its own voice; a voice picked here (?voice=) still wins
+  const [voiceParam, setVoiceParam] = useUrlState<VoiceId | "mine">("voice", (speaker?.person === "presenter" && speaker.p.voice) || "alice", { allowed: [...VOICE_IDS, "mine"] });
   const voice: VoiceId | "mine" = user ? voiceParam : localVoice;
   const own = voice === "mine";
   const chooseVoice = (v: VoiceId | "mine") => {
@@ -856,7 +857,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
         {user && <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />}
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
           {user && <Pill on={own} disabled={busy || !!rec} onClick={() => chooseVoice("mine")}>My own voice</Pill>}
-          {VOICE_IDS.map((v) => (
+          {voicesFor(!!user, voice).map((v) => (
             <Pill key={v} on={voice === v} disabled={busy || !!rec} onClick={() => chooseVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>
           ))}
         </div>
@@ -995,7 +996,7 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
             ))}
           </ol>
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
-            {VOICE_IDS.map((v) => <Pill key={v} on={voice === v} disabled={busy} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
+            {voicesFor(leo, voice).map((v) => <Pill key={v} on={voice === v} disabled={busy} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
           </div>
           <p className="text-sm" aria-live="polite">
             {scenes.length} pictures, about {secs(total / 2.5)}.{leo ? "" : ` Costs ${cost(explainerCredits(scenes.length))} and 1 voiceover.`}
@@ -1026,6 +1027,7 @@ const VISUALS_KEY = "cs-narrated-visuals";
  * them; the write runs there too. Every choice is in the URL (from, secs, visuals, look; topic and link fill once).
  */
 function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
+  const leo = useLeoOnly();
   const [w, setW] = useState(narratedWrite);
   useEffect(() => onNarratedWrite(setW), []);
   const [d, setD] = useState(() => loadDraft(userId));
@@ -1297,7 +1299,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
           )}
           <ComplianceChips flags={flags} onDismiss={(id) => setDismissed(new Set(dismissed).add(id))} />
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
-            {VOICE_IDS.map((v) => <Pill key={v} on={voice === v} disabled={off} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
+            {voicesFor(leo, voice).map((v) => <Pill key={v} on={voice === v} disabled={off} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">

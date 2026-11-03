@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { DAILY_LIMITS, GLOBAL_COUNTER_USER, type RpcClient } from "../_shared/usageCaps";
 import {
-  MAX_SCRIPT, TTS_MODEL, VOICES, VOICE_IDS, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
+  MAX_SCRIPT, PREMADE_VOICE_IDS, TTS_MODEL, VOICES, VOICE_IDS, parseVoiceRequest, voicesFor, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
   DEFAULT_EMOTION, EMOTIONS, EMOTION_IDS, PACE_IDS, voiceSettings,
   DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
   moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal, parseMusicRequest, readMood,
@@ -81,6 +81,16 @@ describe("the ElevenLabs call", () => {
   it("offers each voice once", () => {
     expect(VOICE_IDS.length).toBeGreaterThanOrEqual(7);
     expect(new Set(VOICE_IDS.map((v) => VOICES[v].id)).size).toBe(VOICE_IDS.length);
+    // the Singaporean Voice Library voices presenters can keep (Leo 2026-11-03), each a woman's voice
+    for (const v of ["christine", "cynthia", "emma", "ann", "lexi", "ihoo", "alyssa", "lilian", "adrina", "jane"] as const)
+      expect(VOICES[v].note).toMatch(/^Singaporean, .+, female$/);
+    expect(PREMADE_VOICE_IDS).toEqual(["alice", "lily", "george", "eric", "matilda", "sarah", "liam"]);
+    // pickers: everyone else keeps the premade voices, Leo sees all, and a voice already picked always shows
+    expect(voicesFor(false)).toEqual(PREMADE_VOICE_IDS);
+    expect(voicesFor(false, "eric")).toEqual(PREMADE_VOICE_IDS);
+    expect(voicesFor(false, "christine")).toEqual([...PREMADE_VOICE_IDS, "christine"]);
+    expect(voicesFor(false, "nobody")).toEqual(PREMADE_VOICE_IDS);
+    expect(voicesFor(true)).toEqual(VOICE_IDS);
   });
 });
 

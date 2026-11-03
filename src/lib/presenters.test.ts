@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  FULL, MAX_ON, MAX_PHOTO, PRESENTERS_CHANGED, keepPresenter, loadPresenters, nameFor, onPresenters, presenterVoice, removePresenter, renamePresenter, savePrefs, setWho,
+  FULL, MAX_ON, MAX_PHOTO, PRESENTERS_CHANGED, keepPresenter, loadPresenters, nameFor, onPresenters, presenterVoice, removePresenter, renamePresenter, savePrefs, setPresenterVoice, setWho,
 } from "./presenters";
 import { addProfile, setActiveProfile } from "./profiles";
 
@@ -145,5 +145,26 @@ describe("a presenter's voice (live-p5dog D1: Raj spoke in Alice's voice)", () =
     expect(presenterVoice(RAJ, "liam")).toBe("liam");
     expect(presenterVoice(AISHA, "sarah")).toBe("sarah");
     expect(presenterVoice({ look: "Someone typed by hand" }, "lily")).toBe("lily");
+  });
+
+  it("speaks in its own saved voice, kept after a reload, and goes back to the look when cleared", () => {
+    const mei = kept("Mei");
+    expect(setPresenterVoice(UID, mei.id, "christine").ok).toBe(true);
+    const saved = onPresenters(loadPresenters(UID))[0];
+    expect(saved.voice).toBe("christine");
+    expect(stored().items[0].voice).toBe("christine");
+    expect(presenterVoice(saved, "eric")).toBe("christine");
+    expect(setPresenterVoice(UID, mei.id, null).ok).toBe(true);
+    expect("voice" in stored().items[0]).toBe(false);
+    expect(presenterVoice(onPresenters(loadPresenters(UID))[0], "eric")).toBe("alice");
+  });
+
+  it("refuses a voice not on offer, and drops one a saved row names that is no longer on offer", () => {
+    const mei = kept("Mei");
+    expect(setPresenterVoice(UID, mei.id, "nobody" as never)).toEqual({ ok: false, error: "Pick a voice from the list." });
+    storage.setItem(`content-studio-presenters-${UID}`, JSON.stringify({ ...stored(), items: [{ ...stored().items[0], voice: "retired" }] }));
+    const read = onPresenters(loadPresenters(UID))[0];
+    expect(read.name).toBe("Mei");
+    expect("voice" in read).toBe(false);
   });
 });

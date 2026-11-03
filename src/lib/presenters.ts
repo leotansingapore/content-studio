@@ -6,7 +6,7 @@
 
 import { scoped } from "@/lib/profiles";
 import { MAX_EXTRA, PRESENTER_PREFS, type PresenterPrefs } from "../../supabase/functions/ai-video/logic.ts";
-import { VOICES, type VoiceId } from "../../supabase/functions/text-voice/logic.ts";
+import { VOICE_IDS, VOICES, type VoiceId } from "../../supabase/functions/text-voice/logic.ts";
 
 export { MAX_EXTRA, PRESENTER_PREFS, type PresenterPrefs } from "../../supabase/functions/ai-video/logic.ts";
 
@@ -33,6 +33,8 @@ export interface Presenter {
   photo: string;
   createdAt: string;
   status: "on" | "off";
+  /** The voice it always speaks in; none picks one that fits its look. */
+  voice?: VoiceId;
 }
 
 export interface Presenters {
@@ -58,7 +60,9 @@ function readItem(raw: Record<string, unknown>): Presenter | null {
   };
   if (!p.id || !/^pr-[a-z0-9]+$/.test(p.id) || !p.name?.trim() || !p.look || !p.url || !/^https:\/\//.test(p.url) || p.photo === null || !p.createdAt || !p.status) return null;
   if (p.status === "on" && !p.photo) return null;
-  return p as Presenter;
+  // a voice no longer on offer is dropped, so the presenter falls back to one that fits its look
+  const voice = VOICE_IDS.find((v) => v === raw?.voice);
+  return (voice ? { ...p, voice } : p) as Presenter;
 }
 
 /** This brand's presenters; the empty record when there are none or they don't read. */
@@ -128,6 +132,20 @@ export function renamePresenter(userId: string, id: string, name: string): Saved
   return write(userId, { ...p, items: p.items.map((x) => (x.id === id ? { ...x, name: clean } : x)) });
 }
 
+/** The voice this presenter always speaks in; null goes back to one that fits its look. */
+export function setPresenterVoice(userId: string, id: string, voice: VoiceId | null): Saved {
+  const p = loadPresenters(userId);
+  if (voice && !VOICE_IDS.includes(voice)) return { ok: false, error: "Pick a voice from the list." };
+  return write(userId, {
+    ...p,
+    items: p.items.map((x) => {
+      if (x.id !== id) return x;
+      const { voice: _old, ...rest } = x;
+      return voice ? { ...rest, voice } : rest;
+    }),
+  });
+}
+
 /** Off, with its picture dropped; the brand's choice falls back to Ask each time when it was this one. */
 export function removePresenter(userId: string, id: string): Saved {
   const p = loadPresenters(userId);
@@ -181,10 +199,12 @@ export function nameFor(look: string, taken: string[]): string {
 const female = (v: VoiceId) => /\bfemale\b/.test(VOICES[v].note);
 
 /**
- * The voice a presenter speaks in, from the woman or man their look names (live-p5dog D1: Raj spoke in Alice's voice):
- * the remembered voice when it fits, else Alice for a woman and Eric for a man. A look that names neither keeps it.
+ * The voice a presenter speaks in: its own when one is saved, else from the woman or man their look names (live-p5dog
+ * D1: Raj spoke in Alice's voice): the remembered voice when it fits, else Alice for a woman and Eric for a man. A look
+ * that names neither keeps it.
  */
-export function presenterVoice(p: Pick<Presenter, "look">, remembered: VoiceId): VoiceId {
+export function presenterVoice(p: Pick<Presenter, "look" | "voice">, remembered: VoiceId): VoiceId {
+  if (p.voice) return p.voice;
   const g = /\b(woman|man)\b/i.exec(p.look)?.[1].toLowerCase();
   if (!g) return remembered;
   return female(remembered) === (g === "woman") ? remembered : g === "woman" ? "alice" : "eric";

@@ -18,7 +18,8 @@ import type { AgentMsg } from "@/lib/agentThreads";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
 import { speakers } from "@/lib/talkingHead";
-import { VOICES, VOICE_IDS } from "@/lib/textVoice";
+import { VOICES, voicesFor } from "@/lib/textVoice";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { MAX_LEARNINGS } from "@/lib/voiceMemory";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +73,7 @@ export default function ActionCard({
   /** Sends a cheaper offer as a new message in this thread. */
   onSend: (text: string) => void;
 }) {
+  const leo = useLeoOnly();
   const stored = msg.card;
   const editable = canEdit(stored);
   const field: "script" | "prompt" | null = stored.kind === "image" ? "prompt" : isVideo(stored) && !stepIs(stored, "script") ? "script" : null;
@@ -277,7 +279,7 @@ export default function ActionCard({
                         aria-label="Voice"
                         className="h-11 w-full max-w-xs rounded-md border border-input bg-background px-2 text-sm sm:h-8"
                       >
-                        {VOICE_IDS.map((v) => (
+                        {voicesFor(leo, voice).map((v) => (
                           <option key={v} value={v}>{VOICES[v].label}, {VOICES[v].note}</option>
                         ))}
                       </select>

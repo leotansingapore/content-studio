@@ -10,9 +10,9 @@ export const MAX_SCRIPT = 2500; // about three minutes of speech
 export const MIN_SCRIPT = 5;
 
 /**
- * The voices on offer: ElevenLabs premade voices, ids checked against the account on 2026-10-10. The studio
- * account is on the free plan, which can't use Voice Library voices (the Singaporean ones among them)
- * through the API, so only premade voices go here. British English is the nearest they come to Singapore's.
+ * The voices on offer: ElevenLabs premade voices (ids checked against the account on 2026-10-10), then Voice Library
+ * voices shared by Singaporean speakers. Library voices need credit on the account, added 2026-10-30; all ten read a
+ * test line through this key on 2026-11-03.
  */
 export const VOICES = {
   alice: { id: "Xb7hH8MSUJpSbSDYk0k2", label: "Alice", note: "British, clear, female" },
@@ -22,10 +22,28 @@ export const VOICES = {
   matilda: { id: "XrExE9yKIg1WjnnlVkGX", label: "Matilda", note: "upbeat, female" },
   sarah: { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", note: "confident, female" },
   liam: { id: "TX3LPaxmHKxFdv7VOQHJ", label: "Liam", note: "young, male" },
+  christine: { id: "Y7xQSS5ZtS4xv4VJotWd", label: "Christine", note: "Singaporean, calm, female" },
+  cynthia: { id: "SEWXl8lPSO01tdGbWECX", label: "Cynthia", note: "Singaporean, relaxed, female" },
+  emma: { id: "1FcaCa84nUabCNNwbzBa", label: "Emma", note: "Singaporean, warm, female" },
+  ann: { id: "49thvZzg7OrL0LETLF6L", label: "Ann", note: "Singaporean, casual, female" },
+  lexi: { id: "TiKM6Oo9KZhmYBsTBA2s", label: "Lexi", note: "Singaporean, neutral, female" },
+  ihoo: { id: "2OnsxUxIkaYycmpSRm1E", label: "iHoo", note: "Singaporean, confident, female" },
+  alyssa: { id: "SuG4FbxBzXRts1WBLBrE", label: "Alyssa", note: "Singaporean, excited, female" },
+  lilian: { id: "6qpxBH5KUSDb40bij36w", label: "Lilian", note: "Singaporean, captivating, female" },
+  adrina: { id: "KdGcLjKviIhd1TJjgsuv", label: "Adrina", note: "Singaporean, soft, female" },
+  jane: { id: "ljEOxtzNoGEa58anWyea", label: "Jane", note: "Singaporean, quick, female" },
 } as const;
 
 export type VoiceId = keyof typeof VOICES;
 export const VOICE_IDS = Object.keys(VOICES) as VoiceId[];
+/** The premade voices; the Singaporean library ones are offered on Leo's sign-ins, beside his presenters. */
+export const PREMADE_VOICE_IDS = VOICE_IDS.filter((v) => !VOICES[v].note.startsWith("Singaporean"));
+/** The voices a picker lists: all of them on Leo's sign-ins, the premade ones for everyone else; a voice already picked always shows. */
+export function voicesFor(leo: boolean, picked?: string): VoiceId[] {
+  if (leo) return VOICE_IDS;
+  const extra = VOICE_IDS.find((v) => v === picked && !PREMADE_VOICE_IDS.includes(v));
+  return extra ? [...PREMADE_VOICE_IDS, extra] : PREMADE_VOICE_IDS;
+}
 
 /**
  * How the voice sounds, as ElevenLabs voice_settings (each 0 to 1): lower stability gives a wider, livelier
