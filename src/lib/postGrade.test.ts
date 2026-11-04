@@ -190,7 +190,11 @@ describe("the cached reason", () => {
   });
 
   it("keeps the newest 200", () => {
-    for (let i = 0; i < 205; i++) saveGrade(UID, `d${i}`, { band: "above", reason: "hook", p: 0.5, at: new Date(NOW + i * 1000).toISOString() });
+    // a full 200 in one write, as 200 saves would leave it (each save rewrites the whole list, so 205 saves timed out under load)
+    const grade = (i: number) => ({ band: "above", reason: "hook", p: 0.5, at: new Date(NOW + i * 1000).toISOString() }) as const;
+    window.localStorage.setItem(`content-studio-postgrades-${UID}`, JSON.stringify(Object.fromEntries([...Array(200).keys()].map((i) => [`d${i}`, grade(i)]))));
+    expect(Object.keys(loadGrades(UID))).toHaveLength(200);
+    for (let i = 200; i < 205; i++) saveGrade(UID, `d${i}`, grade(i));
     const kept = Object.keys(loadGrades(UID));
     expect(kept).toHaveLength(200);
     expect(kept).not.toContain("d4");
