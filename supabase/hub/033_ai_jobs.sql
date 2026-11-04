@@ -24,7 +24,8 @@
 --   cs_ai_jobs: revoke all from public, anon, authenticated; grant select to authenticated; select, insert, update,
 --   delete to service_role. cs_claim_ai_job: revoke all from public, anon, authenticated; execute to service_role.
 --
--- Idempotent: safe to run again. One transaction; lock_timeout gives up after 3 seconds.
+-- Idempotent: safe to run again, until 034 is applied. After 034, never run this again: it would add the 3-argument
+-- claim back beside 034's, and every claim would then fail as "not unique". One transaction; lock_timeout 3 seconds.
 
 begin;
 set local lock_timeout = '3s';
