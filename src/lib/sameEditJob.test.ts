@@ -510,6 +510,24 @@ describe("Make my version", () => {
     expect(loadPlans(UID)[0].versions).toHaveLength(1);
   });
 
+  it("no face: an earlier video that failed or waits for the editor never holds the join", async () => {
+    const plan = await readPlan();
+    makeFakes();
+    const { currentJoin } = await import("./videoMedia");
+    for (const earlier of ["failed", "done"] as const) {
+      vi.mocked(startSlides).mockClear();
+      vi.mocked(currentJoin).mockImplementation(() => (vi.mocked(startSlides).mock.calls.length ? null : { progress: 1, state: earlier, error: earlier === "failed" ? "This browser can't record video." : undefined }));
+      try {
+        // not awaited on its own: a version that wrongly waits on the earlier video would wait for ever
+        await Promise.race([J.startMake(UID, { ...ASK, planId: plan.id, who: "none" }), new Promise((r) => setTimeout(r, 1500))]);
+      } finally {
+        vi.mocked(currentJoin).mockReset().mockReturnValue(null);
+      }
+      expect(startSlides).toHaveBeenCalledTimes(1);
+      expect(J.sameEditJob()?.state).toBe("done");
+    }
+  });
+
   it("a reload picks up only this page's paid video, at no cost", () => {
     f.pending = { extra: { toast: "Your talking head video is ready. Export it when it looks right." } };
     expect(J.resumeSameEdit()).toBe(false);
