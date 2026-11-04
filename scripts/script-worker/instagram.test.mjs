@@ -184,6 +184,49 @@ describe("the reader when things go wrong", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("stops opening pages at its deadline or when the worker stops, and keeps what it read", async () => {
+    const loads = [];
+    const c = clock();
+    const dir = tmp();
+    const pages = {
+      "https://www.instagram.com/made.up_creator/reels/": { html: gridHtml(USER, [node("DMadeUp0001", 900), node("DMadeUp0002", 800), node("DMadeUp0003", 700)]) },
+      "https://www.instagram.com/second.one/reels/": { html: gridHtml({ ...USER, username: "second.one" }, [node("DMadeUp0004", 5)]) },
+      "https://www.instagram.com/third.one/reels/": { html: gridHtml({ ...USER, username: "third.one" }, [node("DMadeUp0005", 5)]) },
+    };
+    for (const code of ["DMadeUp0001", "DMadeUp0002", "DMadeUp0003"]) pages[`https://www.instagram.com/reel/${code}/embed/captioned/`] = { html: embedHtml(code, `caption ${code}`) };
+    const reader = createReader({ launch: fakeBrowser(pages, loads), stateDir: dir, now: c.now, sleep: c.sleep });
+    // the deadline passes during the first embed page (each page waits its 3 s): the rest are never opened
+    const a = await readReels({ handle: "made.up_creator" }, reader, { now: c.now, deadline: c.t + 1 });
+    expect(a.reels.map((r) => r.caption)).toEqual(["caption DMadeUp0001", "", ""]);
+    expect(loads).toHaveLength(2);
+    const stopped = new AbortController();
+    stopped.abort();
+    expect((await readReels({ handle: "made.up_creator" }, reader, { now: c.now, signal: stopped.signal })).reels).toHaveLength(3);
+    expect(loads).toHaveLength(3);
+    const found = [{ handle: "made.up_creator", why: "" }, { handle: "second.one", why: "" }, { handle: "third.one", why: "" }];
+    // each grid waits its 3 s too: the deadline passes while the second one loads
+    const r = await readCreators(found, reader, { now: c.now, deadline: c.t + PACE_MS });
+    expect(r.creators.map((x) => x.error ?? x.profile.handle)).toEqual(["made.up_creator", "second.one", "Not read: the search ran out of time."]);
+    expect(loads).toHaveLength(5);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("keeps a pause in memory when its file can't be written, so the next read still waits", async () => {
+    const loads = [];
+    const c = clock();
+    const dir = tmp();
+    // a file where the state folder should be: the pause can't be saved
+    const stateDir = path.join(dir, "not-a-folder");
+    fs.writeFileSync(stateDir, "");
+    const pages = { "https://www.instagram.com/made.up_creator/reels/": { html: "", redirect: "https://www.instagram.com/accounts/login/" } };
+    const reader = createReader({ launch: fakeBrowser(pages, loads), stateDir, now: c.now, sleep: c.sleep });
+    const until = new Date(c.t + PAUSE_MS).toISOString();
+    expect(await readReels({ handle: "made.up_creator" }, reader, { now: c.now })).toEqual({ paused: { until, why: "login" } });
+    expect(await readReel({ code: "DMadeUp0002" }, reader)).toEqual({ paused: { until, why: "login" } });
+    expect(loads).toHaveLength(1);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("starts Chromium again after it fails, and gives up on a load that hangs instead of stopping every read", async () => {
     const dir = tmp();
     let launches = 0;
