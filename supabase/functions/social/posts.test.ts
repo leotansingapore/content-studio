@@ -506,6 +506,13 @@ describe("check (Leo only): Zernio's own checks, nothing saved", () => {
     expect(f.keys()).toEqual(["GET /accounts", "POST /posts", `DELETE /posts/${POST}`]);
   });
 
+  it("never deletes a post Zernio answers a check with that isn't the caller's", async () => {
+    listed();
+    const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(THEIR_POST, [VICTIM]), [`DELETE /posts/${THEIR_POST}`]: { message: "Deleted" } });
+    await expect(runPost(f.z, MINE, UID, check([TT]), NOW)).rejects.toBeInstanceOf(NotYours);
+    expect(f.keys()).toEqual(["GET /accounts", "POST /posts"]);
+  });
+
   it("is Leo's: refused off NORTH_STAR_USERS before Zernio hears of it", async () => {
     expect(northStarOnly(check([TT]))).toBe(true);
     const f = fake({});
@@ -629,6 +636,13 @@ describe("post, cancel and retry", () => {
     const h = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG], { status: "failed" }), [`POST /posts/${POST}/retry`]: zPost(THEIR_POST, [VICTIM]) });
     await expect(runPost(h.z, MINE, UID, act("retry"))).rejects.toBeInstanceOf(NotYours);
   });
+
+  it("tries again a post that went out on some networks and failed on others", async () => {
+    const partial = zPost(POST, [IG, LI], { status: "partial", platforms: [{ platform: "instagram", accountId: IG, status: "published" }, { platform: "linkedin", accountId: LI, status: "failed" }] });
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: partial, [`POST /posts/${POST}/retry`]: zPost(POST, [IG, LI], { status: "published" }) });
+    expect(await runPost(f.z, MINE, UID, act("retry"))).toMatchObject({ status: 200, body: { post: { id: POST, status: "published" } } });
+    expect(f.keys()).toContain(`POST /posts/${POST}/retry`);
+  });
 });
 
 // Fixtures copy https://docs.zernio.com/posts/update-post.mdx (read 2026-10-25): PUT /v1/posts/{postId} takes
@@ -714,6 +728,14 @@ describe("presign and TikTok creator info", () => {
     expect(f.req("POST /media/presign")!.body).toEqual({ filename: "slide-01.png", contentType: "image/png", size: 1000 });
     const g = fake({ "POST /media/presign": { uploadUrl: "http://storage.example/put", publicUrl: PNG } });
     await expect(runPost(g.z, MINE, UID, req)).rejects.toBeInstanceOf(ZernioError);
+  });
+
+  it("refuses an upload link whose public address isn't a picture, video or PDF", async () => {
+    const req: PostRequest = { action: "presign", profileId: "me", file: { filename: "slide-01.png", contentType: "image/png", size: 1000 } };
+    for (const publicUrl of ["https://media.zernio.com/temp/1_a_page.html", "https://media.zernio.com/temp/1_a_script.js"]) {
+      const f = fake({ "POST /media/presign": { uploadUrl: "https://storage.example/put?sig=1", publicUrl } });
+      await expect(runPost(f.z, MINE, UID, req), publicUrl).rejects.toBeInstanceOf(ZernioError);
+    }
   });
 
   it("reads the creator's privacy levels for the caller's own TikTok account only", async () => {
