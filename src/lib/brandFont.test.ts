@@ -59,6 +59,13 @@ describe("the stored brand font", () => {
     expect(JSON.parse(store.get("content-studio-brandfont-u1")!)).toMatchObject({ data: "" });
   });
 
+  it("keeps a WOFF font as a WOFF, still there after a reload", async () => {
+    const f = await font("Brand Sans", "wOFF");
+    expect(f.data.startsWith("data:font/woff;base64,")).toBe(true);
+    expect(addBrandFont("u1", f).ok).toBe(true);
+    expect(loadBrandFonts("u1")).toEqual([{ ...f, family: "BrandFont" }]);
+  });
+
   it("reads a font saved before several were allowed as a list of one, drawn as BrandFont", async () => {
     const f = await font("Old One");
     store.set("content-studio-brandfont-u1", JSON.stringify({ name: f.name, data: f.data, addedAt: f.addedAt }));
