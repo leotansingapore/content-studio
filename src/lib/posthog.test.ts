@@ -1,8 +1,33 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/supabase', () => ({ supabase: {} }))
+// initPostHog's gate: a fake SDK and sign-in, and a key set before posthog.ts reads it at import.
+type AuthUser = { id: string; email: string }
+const ph = vi.hoisted(() => {
+  vi.stubEnv('VITE_POSTHOG_KEY', 'phc_test_key')
+  return {
+    init: vi.fn(),
+    identify: vi.fn(),
+    reset: vi.fn(),
+    get_session_id: vi.fn(() => '0199b1c2-7d4e-7a1b-9c3d-2e5f6a7b8c9d'),
+    session: null as null | { user: AuthUser },
+    onAuth: null as null | ((event: string, session: { user: AuthUser } | null) => void),
+  }
+})
+vi.mock('posthog-js', () => ({ default: ph }))
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: async () => ({ data: { session: ph.session } }),
+      onAuthStateChange: (fn: NonNullable<typeof ph.onAuth>) => {
+        ph.onAuth = fn
+        return { data: { subscription: { unsubscribe: () => {} } } }
+      },
+    },
+  },
+}))
 
-import { isProductionHost, isTestEmail, maskAttribute, maskNetworkEntry, scrubEvent, scrubUrl } from '@/lib/posthog'
+import { initPostHog, isProductionHost, isTestEmail, maskAttribute, maskNetworkEntry, scrubEvent, scrubUrl } from '@/lib/posthog'
+import { currentPostHogSession } from '@/lib/telemetryLink'
 import type { CaptureResult, CapturedNetworkRequest } from 'posthog-js'
 
 const UUID = '3f2a9c4e-1b7d-4e8a-9c0f-2d5b6a7e8f90'
@@ -241,5 +266,74 @@ describe('content-studio person and token routes', () => {
     expect(out.properties.$current_url).toBe('https://app.postmosis.com/l/:person')
     expect(out.properties.$snapshot_data[0].data.href).toBe('https://consultant-content-studio.vercel.app/review/:person')
     expect(maskAttribute('href', 'https://content-studio-beige-eta.vercel.app/profiles/grace-koh-instagram')).toBe('https://content-studio-beige-eta.vercel.app/profiles/:person')
+  })
+})
+
+describe('where and for whom PostHog starts', () => {
+  const page = (hostname: string, opts: { webdriver?: boolean; framed?: boolean } = {}) => {
+    const win: Record<string, unknown> = { location: { hostname } }
+    win.self = win
+    win.top = opts.framed ? {} : win
+    vi.stubGlobal('window', win)
+    vi.stubGlobal('navigator', { webdriver: !!opts.webdriver })
+  }
+  type Config = { before_send: (e: CaptureResult | null) => CaptureResult | null; bootstrap?: unknown; api_host: string }
+  const config = () => ph.init.mock.calls[0][1] as Config
+  const event = () => ({ uuid: 'u', event: '$pageview', properties: { $current_url: 'https://app.postmosis.com/home' } }) as unknown as CaptureResult
+
+  afterEach(() => {
+    ph.onAuth?.('SIGNED_OUT', null) // leaves the module's test-account switch off for the tests above
+    ph.session = null
+    ph.onAuth = null
+    for (const f of [ph.init, ph.identify, ph.reset]) f.mockClear()
+    vi.unstubAllGlobals()
+  })
+
+  it('never starts on a preview deployment, localhost, under automation or inside a frame', async () => {
+    for (const host of ['content-studio-git-main-leo.vercel.app', 'localhost', 'app.postmosis.com.evil.io']) {
+      page(host)
+      await initPostHog()
+    }
+    page('app.postmosis.com', { webdriver: true })
+    await initPostHog()
+    page('app.postmosis.com', { framed: true })
+    await initPostHog()
+    expect(ph.init).not.toHaveBeenCalled()
+    page('app.postmosis.com')
+    await initPostHog()
+    expect(ph.init).toHaveBeenCalledTimes(1)
+    expect(config().api_host).toBe('https://us.i.posthog.com')
+  })
+
+  it('names a signed-in adviser by user id only, never by email', async () => {
+    page('app.postmosis.com')
+    ph.session = { user: { id: 'user-123', email: 'maria@clientco.com' } }
+    await initPostHog()
+    expect(config().bootstrap).toEqual({ distinctID: 'user-123', isIdentifiedID: true })
+    expect(JSON.stringify(ph.init.mock.calls[0])).not.toContain('maria')
+    ph.onAuth?.('SIGNED_IN', { user: { id: 'user-456', email: 'john@clientco.com' } })
+    expect(ph.identify).toHaveBeenCalledWith('user-456')
+    expect(JSON.stringify(ph.identify.mock.calls)).not.toContain('john')
+  })
+
+  it('drops every event and the Sentry link while a demo account is signed in, and starts again for a real sign-in', async () => {
+    page('app.postmosis.com')
+    ph.session = { user: { id: 'demo-1', email: 'user@demo.com' } }
+    await initPostHog()
+    expect(config().bootstrap).toBeUndefined()
+    expect(config().before_send(event())).toBeNull()
+    expect(currentPostHogSession()).toBeUndefined()
+
+    ph.onAuth?.('SIGNED_IN', { user: { id: 'user-123', email: 'you@aia.com.sg' } })
+    expect(ph.identify).toHaveBeenCalledWith('user-123')
+    expect(config().before_send(event())).not.toBeNull()
+    expect(currentPostHogSession()).toBe('0199b1c2-7d4e-7a1b-9c3d-2e5f6a7b8c9d')
+
+    ph.onAuth?.('SIGNED_IN', { user: { id: 'demo-1', email: 'user@demo.com' } })
+    expect(config().before_send(event())).toBeNull()
+    expect(ph.identify).toHaveBeenCalledTimes(1)
+
+    ph.onAuth?.('SIGNED_OUT', null)
+    expect(ph.reset).toHaveBeenCalledTimes(1)
   })
 })
