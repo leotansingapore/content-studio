@@ -346,6 +346,27 @@ describe("createCloudSync", () => {
     expect(table.get(REVIEWS)?.data).toContain("approvedRev");
   });
 
+  it("knows the stamp of the row it sent and of the row it took, so an open slideshow re-reads only another writer's change", async () => {
+    const DESIGNS = `content-studio-designs-${ME}`;
+    const storage = new MemoryStorage();
+    const { backend, table } = fakeBackend();
+    const sync = createCloudSync(ME, storage, backend);
+    await sync.start();
+    expect(sync.syncedAt(DESIGNS)).toBeNull();
+
+    write(storage, sync, DESIGNS, "my deck");
+    await vi.advanceTimersByTimeAsync(800);
+    // this device's own save: the cloud row carries the stamp it knows, so it is nothing new
+    expect(sync.syncedAt(DESIGNS)).toBe(table.get(DESIGNS)?.updated_at);
+
+    // Claude rewrites the row later: a different stamp, until the refresh takes it
+    table.set(DESIGNS, { key: DESIGNS, data: "Claude's deck", updated_at: "2026-09-15T10:05:00.000Z" });
+    expect(sync.syncedAt(DESIGNS)).not.toBe(table.get(DESIGNS)?.updated_at);
+    await sync.refresh([DESIGNS]);
+    expect(storage.getItem(DESIGNS)).toBe("Claude's deck");
+    expect(sync.syncedAt(DESIGNS)).toBe("2026-09-15T10:05:00.000Z");
+  });
+
   it("refresh waits for the first pull and stops with the engine", async () => {
     const storage = new MemoryStorage();
     const { backend, calls } = fakeBackend();
