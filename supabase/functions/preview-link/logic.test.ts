@@ -32,6 +32,10 @@ describe("allowedOrigin", () => {
     expect(allowedOrigin("https://app.postmosis.com.evil.example")).toBeNull();
     expect(allowedOrigin("http://app.postmosis.com")).toBeNull();
     expect(allowedOrigin("https://postmosis.com")).toBeNull();
+    // a preview's or local dev's name at the start of someone else's host
+    expect(allowedOrigin("https://content-studio-abc123.vercel.app.evil.example")).toBeNull();
+    expect(allowedOrigin("http://localhost.evil.example")).toBeNull();
+    expect(allowedOrigin("http://127.0.0.1.evil.example")).toBeNull();
   });
 });
 
