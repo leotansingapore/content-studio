@@ -62,6 +62,16 @@ describe("the watch list", () => {
     expect(loadReads(UID)["made.up_creator"].reels[0]).toMatchObject({ views: 6000, caption: "first" });
   });
 
+  it("keeps every other watched creator's read when one is read, and drops only reads of creators no longer watched", () => {
+    const list = saveList(UID, addCreators({ creators: [], skipped: [] }, ["a_one", "b_two", "c_three"]).list);
+    for (const h of ["a_one", "b_two", "c_three"]) keepRead(UID, h, { profile: profile(h, 1), reels: [reel(`D${h}00`, 100, 3)] }, undefined, new Date(NOW));
+    saveList(UID, { ...list, creators: list.creators.filter((c) => c.handle !== "b_two") });
+    keepRead(UID, "a_one", { profile: profile("a_one", 2), reels: [] }, undefined, new Date(NOW));
+    const kept = loadReads(UID);
+    expect(Object.keys(kept).sort()).toEqual(["a_one", "c_three"]);
+    expect(kept.c_three.reels.map((r) => r.code)).toEqual(["Dc_three00"]);
+  });
+
   it("hands back a read even when the device is full, and keeps its numbers without covers if that fits", () => {
     saveList(UID, addCreators({ creators: [], skipped: [] }, ["made.up_creator"]).list);
     const set = storage.setItem.bind(storage);
