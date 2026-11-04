@@ -13,7 +13,7 @@ vi.mock("@/lib/edgeFn", async (real) => ({
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "https://x.supabase.co" }));
 
 import { DEFAULT_DIALS, DIAL_META, deskPostId, levelOf, runDesk, runRescript, saveScriptDraft, secondsOf, wordsOf } from "./scriptDesk";
-import { loadDrafts } from "./draftHistory";
+import { deleteDraft, loadDrafts } from "./draftHistory";
 import { saveScriptContext } from "./scriptContext";
 
 class MemStorage {
@@ -77,6 +77,11 @@ describe("runDesk", () => {
     await expect(runDesk({ action: "hooks", topic: "t" }, opts())).rejects.toThrow("taking too long");
   });
 
+  it("keeps waiting past five minutes when the caller asks for longer, as a research read does", async () => {
+    calls.replies.push({ job: "j1" }, ...Array.from({ length: 250 }, () => ({ status: "claimed" })), { status: "done", result: { reels: [] } });
+    await expect(runDesk({ action: "ig_reels", handle: "made.up_creator" }, opts({ giveUpMs: 10 * 60_000 }))).resolves.toEqual({ reels: [] });
+  });
+
   it("stops waiting when the page stops it", async () => {
     const stop = new AbortController();
     calls.replies.push({ job: "j1" });
@@ -129,5 +134,16 @@ describe("the scriptwriter's numbers", () => {
     const d = saveScriptDraft(UID, { title: "Price before volume", script: "Raise your price first.\nHere's why." });
     expect(d).toMatchObject({ hook: "Raise your price first.", format: "short-video", titles: ["Price before volume"] });
     expect(loadDrafts(UID).map((x) => x.id)).toEqual([d.id]);
+  });
+
+  it("saves an edited script over the draft it made before, and makes a new one once that draft is deleted", () => {
+    const first = saveScriptDraft(UID, { title: "Price before volume", script: "Raise your price first." }, undefined, new Date(Date.now() - 3_600_000));
+    const again = saveScriptDraft(UID, { title: "Price before volume", script: "Raise your price first, then add clients.\nHere's why." }, first.id);
+    expect(again).toMatchObject({ id: first.id, createdAt: first.createdAt, hook: "Raise your price first, then add clients." });
+    expect(loadDrafts(UID).map((x) => [x.id, x.draft])).toEqual([[first.id, "Raise your price first, then add clients.\nHere's why."]]);
+    deleteDraft(UID, first.id);
+    const fresh = saveScriptDraft(UID, { title: "", script: "Raise your price first." }, first.id);
+    expect(fresh.id).not.toBe(first.id);
+    expect(loadDrafts(UID).map((x) => x.id)).toEqual([fresh.id]);
   });
 });
