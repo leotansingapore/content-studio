@@ -35,6 +35,8 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     if (isChunkLoadError(error) && reloadForNewVersion()) return;
     reportClientError(error, info.componentStack ?? undefined);
+    // React swallows what a boundary catches; the window handlers never see it.
+    if (import.meta.env.VITE_SENTRY_DSN) void import("@/lib/sentry").then((m) => m.captureRenderError(error, info.componentStack));
   }
 
   componentDidUpdate(prev: Props) {
