@@ -98,6 +98,7 @@ const JoinPage = lazy(() => import("@/pages/JoinPage"));
 const TrackedLinksPage = lazy(() => import("@/pages/TrackedLinksPage"));
 // North star phase 5 (Leo only): stubs that answer the not-found page until their builders replace them.
 const AudiencesPage = lazy(() => import("@/pages/AudiencesPage"));
+const ScriptwriterPage = lazy(() => import("@/pages/ScriptwriterPage"));
 const IdeasPage = lazy(() => import("@/pages/IdeasPage"));
 const CampaignsPage = lazy(() => import("@/pages/CampaignsPage"));
 const CampaignWizardPage = lazy(() => import("@/pages/CampaignWizardPage"));
@@ -172,6 +173,7 @@ export default function App() {
           <Route path="/generate/batch" element={<BatchPage />} />
           <Route path="/generate/answer" element={<AnswerPage />} />
           <Route path="/generate/vsl" element={<VslPage />} />
+          <Route path="/script" element={<ScriptwriterPage />} />
           <Route path="/carousel" element={<CarouselPage />} />
           <Route path="/image" element={<ImagePage />} />
           <Route path="/slideshow" element={<SlideshowPage />} />

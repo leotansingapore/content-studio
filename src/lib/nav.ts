@@ -134,6 +134,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/generate/batch", label: "Batch" },
       { to: "/generate/answer", label: "Answer", title: "Answer a question" },
       { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
+      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
+      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/edit", label: "Video" },

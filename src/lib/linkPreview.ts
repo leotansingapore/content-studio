@@ -33,6 +33,7 @@ export const PAGES: Record<string, string> = {
   "/generate/batch": "Batch",
   "/generate/answer": "Answer a question",
   "/generate/vsl": "Write a VSL",
+  "/script": "Scriptwriter",
   "/carousel": "Carousel",
   "/image": "Image",
   "/slideshow": "Slideshow",
