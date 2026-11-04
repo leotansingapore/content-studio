@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// End to end on this Mac, never the live project: a local stub of script-worker holds three made-up jobs (hooks, a
-// breakdown, a claim check) as script-desk files them, inputs only. The real worker.mjs claims them, builds each with
+// End to end on this Mac, never the live project: a local stub of script-worker holds three made-up writing jobs
+// (hooks, a breakdown, a claim check) and two research jobs (a read of Instagram's own public account, and a creator
+// search) as script-desk files them, inputs only. Reads go to the real public Instagram from this Mac, through the
+// Playwright at SCRIPT_WORKER_PLAYWRIGHT (default the worker folder's). The real worker.mjs claims them, builds each with
 // the private templates installed on this Mac (SCRIPT_WORKER_TEMPLATES, default ~/.local/share/script-worker/
 // templates.mjs; not in this repo), and runs it on the real `claude` CLI (Leo's Max plan). The stub checks the secret,
 // that no more than two ran at once, that every answer reads in its JSON shape, and that no temp folder is left. The worker is started with a fake ANTHROPIC_API_KEY, CLAUDECODE and the
@@ -18,12 +20,16 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readBreakdown, readClaims, readHooks, sanitizeContext } from "../../supabase/functions/script-desk/logic.ts";
-import { TEMPLATES, childEnv, claudeArgs } from "./worker.mjs";
+import { readBreakdown, readClaims, readDiscover, readHooks, readIgReels, sanitizeContext } from "../../supabase/functions/script-desk/logic.ts";
+import { PLAYWRIGHT, READ_KINDS, TEMPLATES, childEnv, claudeArgs } from "./worker.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 if (!fs.existsSync(TEMPLATES)) {
   console.log(`FAIL 0 the private templates are installed (nothing at ${TEMPLATES}; set SCRIPT_WORKER_TEMPLATES or install them)`);
+  process.exit(1);
+}
+if (!fs.existsSync(PLAYWRIGHT)) {
+  console.log(`FAIL 0 Playwright is installed for the worker (nothing at ${PLAYWRIGHT}; set SCRIPT_WORKER_PLAYWRIGHT or install it)`);
   process.exit(1);
 }
 const SECRET = "e2e-" + Math.random().toString(36).slice(2);
@@ -36,14 +42,25 @@ const queue = [
   { id: "j-hooks", kind: "hooks", request: { topic: "cafe owners who dread tax season", context } },
   { id: "j-breakdown", kind: "breakdown", request: { source, context } },
   { id: "j-claims", kind: "claims", request: { original: transcript, adapted, context } },
+  { id: "j-ig_reels", kind: "ig_reels", request: { handle: "instagram", known: [], embeds: 2 } },
+  { id: "j-discover", kind: "discover", request: { mode: "search", topic: "money tips for nurses", max: 2 } },
 ];
-const read = { hooks: readHooks, breakdown: readBreakdown, claims: readClaims };
+const read = {
+  hooks: readHooks,
+  breakdown: readBreakdown,
+  claims: readClaims,
+  ig_reels: (t) => (r => r?.profile && r.reels.length && r.reels.some((x) => x.caption) ? r : null)(readIgReels(t)),
+  discover: (t) => (r => r?.creators.some((c) => c.profile) ? r : null)(readDiscover(t)),
+};
+const MODEL = { ig_reels: "instagram", discover: "claude-sonnet-5-5" };
 
 const tempsBefore = new Set(fs.readdirSync(os.tmpdir()).filter((f) => f.startsWith("script-desk-")));
 const reports = [];
 let claimed = 0;
-let live = 0;
-let peak = 0;
+const live = { read: 0, write: 0 };
+const peak = { read: 0, write: 0 };
+const sideOf = (kind) => (READ_KINDS.includes(kind) ? "read" : "write");
+const kindOf = {};
 let refused = 0;
 
 const server = http.createServer((req, res) => {
@@ -54,11 +71,18 @@ const server = http.createServer((req, res) => {
     if (req.headers["x-script-worker-secret"] !== SECRET) return (refused++, send(403, { error: "Forbidden." }));
     const body = JSON.parse(raw || "{}");
     if (body.op === "claim") {
-      const next = queue.shift() ?? null;
-      if (next) (claimed++, live++, (peak = Math.max(peak, live)));
+      // as script-worker does: only the kinds the worker has room for
+      const i = queue.findIndex((j) => (body.kinds ?? []).includes(j.kind));
+      const next = i < 0 ? null : queue.splice(i, 1)[0];
+      if (next) {
+        const s = sideOf(next.kind);
+        claimed++;
+        kindOf[next.id] = next.kind;
+        peak[s] = Math.max(peak[s], ++live[s]);
+      }
       return send(200, { job: next });
     }
-    live--;
+    live[sideOf(kindOf[body.id])]--;
     reports.push(body);
     return send(200, { ok: true });
   });
@@ -69,17 +93,18 @@ const url = `http://127.0.0.1:${server.address().port}/`;
 // Claude Code through a wrapper that writes down the environment it gets
 const spy = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-claude-env-"));
 const wrapper = path.join(spy, "claude");
-fs.writeFileSync(wrapper, `#!/bin/sh\nenv > "${spy}/env-$$.txt"\nexec claude "$@"\n`, { mode: 0o755 });
+fs.writeFileSync(wrapper, `#!/bin/sh\nenv > "${spy}/env-$$.txt"\nprintf '%s\\n' "$@" > "${spy}/args-$$.txt"\nexec claude "$@"\n`, { mode: 0o755 });
+const state = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-ig-state-"));
 
 const started = Date.now();
 const child = spawn(process.execPath, [path.join(HERE, "worker.mjs")], {
-  env: { ...process.env, SCRIPT_WORKER_URL: url, SCRIPT_WORKER_SECRET: SECRET, ANTHROPIC_API_KEY: "sk-ant-api03-not-a-real-key", CLAUDECODE: "1", CLAUDE_BIN: wrapper },
+  env: { ...process.env, SCRIPT_WORKER_URL: url, SCRIPT_WORKER_SECRET: SECRET, ANTHROPIC_API_KEY: "sk-ant-api03-not-a-real-key", CLAUDECODE: "1", CLAUDE_BIN: wrapper, SCRIPT_WORKER_STATE: state },
   stdio: ["ignore", "pipe", "pipe"],
 });
 let log = "";
 child.stdout.on("data", (d) => (log += d));
 child.stderr.on("data", (d) => (log += d));
-while (reports.length < 3 && Date.now() - started < 300_000) await new Promise((r) => setTimeout(r, 500));
+while (reports.length < 5 && Date.now() - started < 600_000) await new Promise((r) => setTimeout(r, 500));
 child.kill("SIGTERM");
 await new Promise((r) => child.on("close", r));
 server.close();
@@ -89,21 +114,29 @@ const check = (label, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"} ${label}${detail ? ` (${detail})` : ""}`);
   if (!ok) fails++;
 };
-check("1 the worker claimed all three jobs", claimed === 3, `${claimed}`);
-check("2 never more than two at once", peak <= 2 && peak >= 1, `peak ${peak}`);
+check("1 the worker claimed all five jobs", claimed === 5, `${claimed}`);
+check("2 never more than two writes and two reads at once", peak.write <= 2 && peak.read <= 2 && peak.write >= 1 && peak.read >= 1, JSON.stringify(peak));
 check("3 every call carried the secret", refused === 0, `${refused} refused`);
 for (const r of reports) {
   const kind = r.id.replace("j-", "");
   const answer = r.op === "done" ? read[kind](r.text) : null;
-  check(`4 ${kind} built from its inputs, done on Claude Code and readable in its JSON shape`, Boolean(answer), r.op === "done" ? `${r.model}, ${Math.round(r.ms / 1000)}s` : r.error);
+  const how = kind === "ig_reels" ? "read from Instagram" : kind === "discover" ? "searched on Claude Code, each creator read" : "built from its inputs, done on Claude Code";
+  // an unreadable answer shows its start, to tell a changed shape from a stray word
+  const said = r.op === "done" ? `${r.model}, ${Math.round(r.ms / 1000)}s${answer ? "" : `: ${String(r.text).replace(/\s+/g, " ").slice(0, 240)}`}` : r.error;
+  check(`4 ${kind} ${how}, readable in its JSON shape`, Boolean(answer), said);
 }
 const left = fs.readdirSync(os.tmpdir()).filter((f) => f.startsWith("script-desk-") && !tempsBefore.has(f));
 check("5 no temp folder left behind", left.length === 0, left.join(", "));
-check("6 answered by Opus 5.5", reports.every((r) => r.model === "claude-opus-5-5"), [...new Set(reports.map((r) => r.model))].join(", "));
+check("6 writing answered by Opus 5.5, the search by Sonnet 5.5 as captured", reports.every((r) => r.model === (MODEL[r.id.replace("j-", "")] ?? "claude-opus-5-5")), reports.map((r) => `${r.id}: ${r.model}`).join(", "));
 const envs = fs.readdirSync(spy).filter((f) => f.startsWith("env-")).map((f) => fs.readFileSync(path.join(spy, f), "utf8"));
 const leaked = envs.flatMap((e) => e.split("\n").map((l) => l.split("=")[0]).filter((k) => /^(ANTHROPIC_|CLAUDECODE$|SCRIPT_WORKER_SECRET$)|KEY|TOKEN|SECRET/.test(k)));
-check("7 Claude Code got no API key, token, secret or CLAUDECODE", envs.length === 3 && leaked.length === 0, `${envs.length} runs seen${leaked.length ? `, leaked ${[...new Set(leaked)].join(" ")}` : ""}`);
+check("7 Claude Code got no API key, token, secret or CLAUDECODE", envs.length === 4 && leaked.length === 0, `${envs.length} runs seen${leaked.length ? `, leaked ${[...new Set(leaked)].join(" ")}` : ""}`);
+const runs = fs.readdirSync(spy).filter((f) => f.startsWith("args-")).map((f) => fs.readFileSync(path.join(spy, f), "utf8").split("\n"));
+const toolsOf = (a) => [a[a.indexOf("--tools") + 1], a.includes("--allowedTools") ? a[a.indexOf("--allowedTools") + 1] : null];
+const tools = runs.map(toolsOf);
+check("9 the search ran with web search and nothing else, every other run with no tools", tools.filter(([t, a]) => t === "WebSearch" && a === "WebSearch").length === 1 && tools.filter(([t, a]) => t === "" && a === null).length === 3, JSON.stringify(tools));
 fs.rmSync(spy, { recursive: true, force: true });
+fs.rmSync(state, { recursive: true, force: true });
 
 // 8: what the worker's exact arguments load, from Claude Code's own init event (stream-json in place of json)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-init-"));

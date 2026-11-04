@@ -12,9 +12,14 @@
 // The child's environment has no API key or token of any kind: an inherited ANTHROPIC_API_KEY would silently bill the
 // API instead of the Max plan, and CLAUDECODE would mark it as a nested session. At most PARALLEL jobs run at once.
 //
+// Research (wave 2): ig_reels and ig_reel read public Instagram pages in headless Chromium (instagram.mjs), with no
+// Claude Code call; discover runs Claude Code with web search as its only tool, then reads each creator it found. Reads
+// have their own READ_PARALLEL slots, so a page of reads never holds up a script.
+//
 // Config (env): SCRIPT_WORKER_URL (default the live script-worker function), SCRIPT_WORKER_SECRET (else the
-// keychain item cs-script-worker-secret), SCRIPT_WORKER_TEMPLATES, CLAUDE_BIN (default `claude` on PATH). No npm
-// dependencies.
+// keychain item cs-script-worker-secret), SCRIPT_WORKER_TEMPLATES, SCRIPT_WORKER_PLAYWRIGHT (default Playwright in
+// ~/.local/share/script-worker/node_modules), SCRIPT_WORKER_STATE, CLAUDE_BIN (default `claude` on PATH). Its only npm
+// dependency is Playwright, for reads, installed beside the templates (the plist's install steps).
 // Install: the steps at the top of com.leo.script-worker.plist beside this file.
 
 import { spawn, execFileSync } from "node:child_process";
@@ -22,17 +27,24 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createReader, handlesOf, readCreators, readReel, readReels } from "./instagram.mjs";
 
 export const DEFAULT_URL = "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/script-worker";
 export const PARALLEL = 2;
+export const READ_PARALLEL = 2;
+export const WRITE_KINDS = ["write", "hooks", "breakdown", "rescript", "claims"];
+export const READ_KINDS = ["ig_reels", "ig_reel", "discover"];
+/** Reads stop opening pages by these, well inside script-desk's 6 and 10 minutes. */
+export const READ_DEADLINE_MS = { ig_reels: 4.5 * 60_000, discover: 8 * 60_000 };
 /** Claude Code gets 3 minutes a job; script-desk fails a claim with no answer after 4. */
 export const RUN_TIMEOUT_MS = 180_000;
 /** Look every 3 s for 2 minutes after a job, else every 10 s (one function call a look). */
 export const QUICK_MS = 3_000;
 export const IDLE_MS = 10_000;
 export const LINGER_MS = 120_000;
-export const MODELS = new Set(["claude-opus-5-5"]);
+export const MODELS = new Set(["claude-opus-5-5", "claude-sonnet-5-5"]);
 export const TEMPLATES = process.env.SCRIPT_WORKER_TEMPLATES || path.join(os.homedir(), ".local/share/script-worker/templates.mjs");
+export const PLAYWRIGHT = process.env.SCRIPT_WORKER_PLAYWRIGHT || path.join(os.homedir(), ".local/share/script-worker/node_modules/playwright/index.mjs");
 export const EFFORTS = new Set(["low", "medium", "high"]);
 
 /** The environment without the parent session's marker or anything that would bill another account or provider. */
@@ -46,10 +58,13 @@ export function childEnv(env) {
   return out;
 }
 
-/** One headless Claude Code call with no tools at all (the reference runner's arguments, with the job's model and effort). */
-export const claudeArgs = (systemFile, model, effort) => [
-  "-p", "--tools", "", "--strict-mcp-config", "--disable-slash-commands", "--setting-sources", "", "--no-session-persistence",
-  "--output-format", "json", "--model", model, "--effort", effort, "--system-prompt-file", systemFile,
+/**
+ * One headless Claude Code call (the reference runner's arguments, with the job's model and effort): no tools at all,
+ * or for a creator search web search and nothing else. The worker picks the tools by the job's kind, never the job.
+ */
+export const claudeArgs = (systemFile, model, effort, webSearch = false) => [
+  "-p", ...(webSearch ? ["--tools", "WebSearch", "--allowedTools", "WebSearch"] : ["--tools", ""]), "--strict-mcp-config", "--disable-slash-commands",
+  "--setting-sources", "", "--no-session-persistence", "--output-format", "json", "--model", model, "--effort", effort, "--system-prompt-file", systemFile,
 ];
 
 /** What a failure means for the person, in a sentence they can act on; null when it is nothing known. */
@@ -79,7 +94,7 @@ export const STOPPED = "The script worker on Leo's Mac restarted before this fin
  * past its time gets SIGTERM, then SIGKILL 10 s later; `signal` ends it the same way (the worker stopping).
  */
 export async function runClaude(request, opts = {}) {
-  const { bin = process.env.CLAUDE_BIN || "claude", spawnFn = spawn, env = process.env, timeoutMs = RUN_TIMEOUT_MS, signal, tmpdir = os.tmpdir() } = opts;
+  const { bin = process.env.CLAUDE_BIN || "claude", spawnFn = spawn, env = process.env, timeoutMs = RUN_TIMEOUT_MS, signal, tmpdir = os.tmpdir(), webSearch = false } = opts;
   if (!MODELS.has(request.model) || !EFFORTS.has(request.effort)) throw new Error("This job asked for a model or effort the worker doesn't run.");
   if (typeof request.system !== "string" || typeof request.message !== "string" || !request.message.trim()) throw new Error("This job has no message.");
   if (signal?.aborted) throw new Error(STOPPED);
@@ -92,7 +107,7 @@ export async function runClaude(request, opts = {}) {
     fs.mkdirSync(cwd);
     fs.writeFileSync(systemFile, request.system);
     return await new Promise((resolve, reject) => {
-      const child = spawnFn(bin, claudeArgs(systemFile, request.model, request.effort), { cwd, env: childEnv(env), stdio: ["pipe", "pipe", "pipe"] });
+      const child = spawnFn(bin, claudeArgs(systemFile, request.model, request.effort, webSearch), { cwd, env: childEnv(env), stdio: ["pipe", "pipe", "pipe"] });
       let out = "";
       let err = "";
       let ended = "";
@@ -154,8 +169,47 @@ export async function templatesOf(file = TEMPLATES) {
   return m;
 }
 
-/** One claimed job: its inputs built into Claude Code's request by the templates, then run. */
-export async function runJob(job, opts = {}) {
+// one promise, so two reads starting together share one reader (one Chromium, one pace, one pause)
+let reader = null;
+
+/** The one Instagram reader every read shares (its pacing and pause are the worker's), Playwright loaded on first use. */
+export function readerOf(file = PLAYWRIGHT) {
+  reader ??= (async () => {
+    if (!fs.existsSync(file)) throw new Error(`The script worker on Leo's Mac can't read Instagram yet: Playwright isn't installed (${file}). Install it, then try again.`);
+    let chromium;
+    try {
+      ({ chromium } = await import(pathToFileURL(file).href));
+    } catch (e) {
+      throw new Error(`The script worker's Playwright (${file}) didn't load (${String(e?.message ?? e).slice(0, 160)}). Reinstall it, then try again.`);
+    }
+    return createReader({ launch: () => chromium.launch({ headless: true }) });
+  })();
+  // a failed start is tried again on the next read
+  reader.catch(() => (reader = null));
+  return reader;
+}
+export const closeReader = async () => {
+  const r = reader;
+  reader = null;
+  await (await r?.catch(() => null))?.close();
+};
+
+/** One read: a grid, a reel, or a search and then its creators' grids. The answer is the worker's own JSON. */
+async function runRead(job, opts) {
+  const started = Date.now();
+  const deadline = started + (READ_DEADLINE_MS[job.kind] ?? READ_DEADLINE_MS.ig_reels);
+  const read = opts.reader ?? (await readerOf(opts.playwright));
+  const input = job.request ?? {};
+  if (job.kind === "ig_reels") return { text: JSON.stringify(await readReels(input, read, { deadline, signal: opts.signal })), model: "instagram" };
+  if (job.kind === "ig_reel") return { text: JSON.stringify(await readReel(input, read)), model: "instagram" };
+  const found = await runClaude(await built(job, opts), { ...opts, webSearch: true });
+  const max = Math.max(1, Math.min(8, Number.isInteger(input.max) ? input.max : 6));
+  const creators = await readCreators(handlesOf(found.text, max), read, { deadline, signal: opts.signal });
+  return { text: JSON.stringify(creators), model: found.model };
+}
+
+/** The job's inputs built into Claude Code's request by the templates. */
+async function built(job, opts) {
   const { build } = await templatesOf(opts.templates);
   let request;
   try {
@@ -164,7 +218,13 @@ export async function runJob(job, opts = {}) {
   } catch (e) {
     throw new Error(`The script worker couldn't build this ${job.kind} job (${String(e?.message ?? e).slice(0, 160)}). Try again.`);
   }
-  return runClaude(request, opts);
+  return request;
+}
+
+/** One claimed job: a read, or its inputs built into Claude Code's request by the templates, then run. */
+export async function runJob(job, opts = {}) {
+  if (READ_KINDS.includes(job.kind)) return runRead(job, opts);
+  return runClaude(await built(job, opts), opts);
 }
 
 /** One call to the script-worker function. */
@@ -188,6 +248,10 @@ export async function post(url, secret, body, fetchFn = fetch, timeoutMs = 30_00
 export function startWorker(o) {
   const { url, secret, worker, run = runJob, fetchFn = fetch, log = (s) => console.log(`${new Date().toISOString()} ${s}`), now = Date.now } = o;
   const running = new Set();
+  const slots = { write: new Set(), read: new Set() };
+  const slotOf = (kind) => (READ_KINDS.includes(kind) ? slots.read : slots.write);
+  // the kinds with a free slot, the only ones the claim asks for
+  const free = () => [...(slots.write.size < PARALLEL ? WRITE_KINDS : []), ...(slots.read.size < READ_PARALLEL ? READ_KINDS : [])];
   const stop = new AbortController();
   let stopped = false;
   let lastJobAt = 0;
@@ -217,18 +281,21 @@ export function startWorker(o) {
       .catch((e) => report({ op: "failed", id: job.id, worker, error: String(e?.message ?? e).slice(0, 400), ms: now() - started }))
       .finally(() => {
         running.delete(p);
+        slotOf(job.kind).delete(p);
         lastJobAt = now();
         log(`finished ${job.kind} ${job.id} in ${Math.round((now() - started) / 1000)}s`);
         wake();
       });
     running.add(p);
+    slotOf(job.kind).add(p);
   };
 
   const loop = (async () => {
     while (!stopped) {
-      if (running.size < PARALLEL) {
+      const kinds = free();
+      if (kinds.length) {
         try {
-          const { job } = await post(url, secret, { op: "claim", worker }, fetchFn);
+          const { job } = await post(url, secret, { op: "claim", worker, kinds }, fetchFn);
           lastWarn = "";
           // claimed as the stop came: hand it straight back as failed rather than start it
           if (job?.id && stopped) {
@@ -244,13 +311,15 @@ export function startWorker(o) {
           warn(`claim: ${e.message}`);
         }
       }
-      const wait = running.size >= PARALLEL ? IDLE_MS : now() - lastJobAt < LINGER_MS ? QUICK_MS : IDLE_MS;
+      const wait = !free().length ? IDLE_MS : now() - lastJobAt < LINGER_MS ? QUICK_MS : IDLE_MS;
       await new Promise((r) => {
         const t = setTimeout(r, wait);
         wake = () => (clearTimeout(t), r());
       });
     }
     await Promise.allSettled([...running]);
+    // Chromium goes with the worker
+    await closeReader();
   })();
 
   return {
@@ -282,7 +351,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   }
   const worker = os.hostname().replace(/[^A-Za-z0-9._-]/g, "").slice(0, 60) || "mac";
   const w = startWorker({ url: process.env.SCRIPT_WORKER_URL || DEFAULT_URL, secret, worker });
-  console.log(`${new Date().toISOString()} script worker ${worker} started, ${PARALLEL} at once`);
+  console.log(`${new Date().toISOString()} script worker ${worker} started, ${PARALLEL} writing and ${READ_PARALLEL} reads at once`);
   if (!fs.existsSync(TEMPLATES)) console.log(`${new Date().toISOString()} no templates at ${TEMPLATES}: every job fails until they are installed`);
   // launchd stops it with SIGTERM: let the running jobs report, then exit
   for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => void w.stop().then(() => process.exit(0)));

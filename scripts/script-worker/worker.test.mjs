@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import { PARALLEL, STOPPED, childEnv, claudeArgs, problemOf, readClaudeJson, runClaude, runJob, startWorker, templatesOf } from "./worker.mjs";
+import { PARALLEL, READ_KINDS, READ_PARALLEL, STOPPED, WRITE_KINDS, childEnv, claudeArgs, closeReader, problemOf, readClaudeJson, readerOf, runClaude, runJob, startWorker, templatesOf } from "./worker.mjs";
 
 // A child process that answers like `claude -p --output-format json` and records what it was given.
 function fakeSpawn(answer, seen) {
@@ -201,7 +201,8 @@ describe("script worker", () => {
     const fetchFn = async (_url, init) => {
       const body = JSON.parse(init.body);
       expect(init.headers["x-script-worker-secret"]).toBe("sec");
-      if (body.op === "claim") return Response.json({ job: queue.shift() ?? null });
+      // as script-worker does: only the kinds the worker names
+      if (body.op === "claim") return Response.json({ job: body.kinds.includes("hooks") ? (queue.shift() ?? null) : null });
       reports.push(body);
       return Response.json({ ok: true });
     };
@@ -221,4 +222,83 @@ describe("script worker", () => {
     expect(reports.find((r) => r.id === "b").error).toMatch(/didn't answer/);
     expect(reports.find((r) => r.id === "a")).toMatchObject({ worker: "mac", text: "answer to job 0", model: "claude-opus-5-5" });
   });
+
+  it("gives a creator search web search and nothing else, as the reference runner did, and every other job no tools", () => {
+    expect(claudeArgs("/t/s.txt", "claude-sonnet-5-5", "low", true)).toEqual([
+      "-p", "--tools", "WebSearch", "--allowedTools", "WebSearch", "--strict-mcp-config", "--disable-slash-commands", "--setting-sources", "", "--no-session-persistence",
+      "--output-format", "json", "--model", "claude-sonnet-5-5", "--effort", "low", "--system-prompt-file", "/t/s.txt",
+    ]);
+    expect(claudeArgs("/t/s.txt", "claude-opus-5-5", "low").slice(1, 3)).toEqual(["--tools", ""]);
+  });
+
+  it("runs a search on Claude Code with web search, then reads each creator it named, as the job's own JSON", async () => {
+    const t = stubTemplates();
+    try {
+      const seen = [];
+      const answer = JSON.stringify({ result: '{"creators":[{"handle":"made.up_creator","why":"money"},{"handle":"second.one","why":"tips"}]}', is_error: false, modelUsage: { "claude-opus-5-5": { outputTokens: 50 } } });
+      const loads = [];
+      const reader = { load: async (url) => (loads.push(url), { url, status: 200, html: "", body: "" }) };
+      const r = await runJob({ id: "j", kind: "discover", request: { topic: "money", max: 1 } }, { templates: t.file, spawnFn: fakeSpawn(answer, seen), env: { PATH: "/bin" }, reader });
+      expect(seen[0].args.slice(1, 5)).toEqual(["--tools", "WebSearch", "--allowedTools", "WebSearch"]);
+      expect(seen[0].input).toBe("Stub message about money.");
+      // max 1: only the first creator is read
+      expect(loads).toEqual(["https://www.instagram.com/made.up_creator/reels/"]);
+      expect(JSON.parse(r.text)).toEqual({ creators: [{ handle: "made.up_creator", why: "money", error: "Instagram's page for @made.up_creator couldn't be read. Try again later." }] });
+      expect(r.model).toBe("claude-opus-5-5");
+    } finally {
+      t.done();
+    }
+  });
+
+  it("reads a grid with no Claude Code call and no templates, and says so plainly when Playwright isn't installed", async () => {
+    const seen = [];
+    const reader = { load: async () => ({ url: "", status: 200, html: "", body: "Sorry, this page isn't available." }) };
+    await expect(runJob({ id: "j", kind: "ig_reels", request: { handle: "made.up_creator" } }, { templates: "/nonexistent.mjs", spawnFn: fakeSpawn(OK, seen), reader })).rejects.toThrow("There's no Instagram account @made.up_creator.");
+    expect(seen).toEqual([]);
+    await expect(readerOf("/nonexistent/playwright/index.mjs")).rejects.toThrow("Playwright isn't installed");
+    // two reads starting together get one reader: one Chromium, one pace, one pause
+    const fake = stubTemplates("export const chromium = { launch: async () => ({}) };");
+    try {
+      const [a, b] = await Promise.all([readerOf(fake.file), readerOf(fake.file)]);
+      expect(a).toBe(b);
+      expect(typeof a.load).toBe("function");
+    } finally {
+      await closeReader();
+      fake.done();
+    }
+  });
+
+  it("keeps reads and writing in their own slots and claims only the kinds it has room for", async () => {
+    const claims = [];
+    const queue = [
+      ...["r1", "r2", "r3"].map((id) => ({ id, kind: "ig_reels", request: {} })),
+      ...["w1", "w2"].map((id) => ({ id, kind: "hooks", request: {} })),
+    ];
+    const fetchFn = async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.op !== "claim") return Response.json({ ok: true });
+      claims.push(body.kinds);
+      const i = queue.findIndex((j) => body.kinds.includes(j.kind));
+      return Response.json({ job: i < 0 ? null : queue.splice(i, 1)[0] });
+    };
+    const live = { read: 0, write: 0 };
+    const peak = { read: 0, write: 0 };
+    const release = [];
+    const run = (job) => {
+      const side = READ_KINDS.includes(job.kind) ? "read" : "write";
+      live[side]++;
+      peak[side] = Math.max(peak[side], live[side]);
+      return new Promise((ok) => release.push(() => (live[side]--, ok({ text: "{}", model: "x" }))));
+    };
+    const w = startWorker({ url: "http://stub", secret: "s", worker: "mac", run, fetchFn, log: () => {} });
+    while (release.length < 4) await new Promise((ok) => setTimeout(ok, 5));
+    // two reads and two writes running at once; the third read still waits
+    expect(peak).toEqual({ read: READ_PARALLEL, write: PARALLEL });
+    expect(queue.map((j) => j.id)).toEqual(["r3"]);
+    expect(claims[0]).toEqual([...WRITE_KINDS, ...READ_KINDS]);
+    expect(claims.some((k) => k.length === WRITE_KINDS.length && k.every((x) => WRITE_KINDS.includes(x)))).toBe(true);
+    release.forEach((f) => f());
+    await w.stop();
+  });
 });
+

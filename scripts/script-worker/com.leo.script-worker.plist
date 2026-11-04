@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  The script desk's worker on Leo's Mac (scripts/script-worker/worker.mjs), kept running by launchd.
-  Install, once 033 is applied, script-desk and script-worker are deployed and SCRIPT_WORKER_SECRET is set:
+  The script desk's worker on Leo's Mac (scripts/script-worker/worker.mjs and instagram.mjs), kept running by launchd.
+  It lives in one folder, ~/.local/share/script-worker: the two scripts, the private templates and Playwright.
+  Install, once 033 and 034 are applied, script-desk and script-worker are deployed and SCRIPT_WORKER_SECRET is set:
     1. security add-generic-password -a "$USER" -s cs-script-worker-secret -w '<the same value as SCRIPT_WORKER_SECRET>'
-    2. cp scripts/script-worker/worker.mjs ~/.local/bin/script-worker.mjs
-    3. mkdir -p ~/.local/state/script-worker
-    4. cp scripts/script-worker/com.leo.script-worker.plist ~/Library/LaunchAgents/
+    2. mkdir -p ~/.local/share/script-worker ~/.local/state/script-worker
+    3. cp scripts/script-worker/worker.mjs scripts/script-worker/instagram.mjs ~/.local/share/script-worker/
+    4. npm install --prefix ~/.local/share/script-worker playwright@1.62.1
+       ~/.local/share/script-worker/node_modules/.bin/playwright install chromium
     5. install the private templates (not in this repo) at ~/.local/share/script-worker/templates.mjs: run install.sh in
        the private templates folder on Leo's Mac (without them every job fails with a sentence saying so)
-    6. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.leo.script-worker.plist
+    6. cp scripts/script-worker/com.leo.script-worker.plist ~/Library/LaunchAgents/
+    7. launchctl bootout gui/$(id -u)/com.leo.script-worker (if an older one runs), then
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.leo.script-worker.plist
   Check: tail -f ~/.local/state/script-worker/worker.log ("script worker ... started"). Stop:
     launchctl bootout gui/$(id -u)/com.leo.script-worker
   It does not source ~/.zshenv on purpose: that file holds API keys, and the worker must reach Claude Code with
@@ -19,7 +23,7 @@
 <dict>
   <key>Label</key><string>com.leo.script-worker</string>
   <key>ProgramArguments</key>
-  <array><string>/opt/homebrew/bin/node</string><string>/Users/leo/.local/bin/script-worker.mjs</string></array>
+  <array><string>/opt/homebrew/bin/node</string><string>/Users/leo/.local/share/script-worker/worker.mjs</string></array>
   <key>EnvironmentVariables</key>
   <dict><key>PATH</key><string>/Users/leo/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string></dict>
   <key>RunAtLoad</key><true/>
