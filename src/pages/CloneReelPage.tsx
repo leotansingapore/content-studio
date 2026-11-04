@@ -83,6 +83,7 @@ import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 import { loadPositioning } from "@/lib/positioning";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
+import ScriptDeskCard from "@/components/ScriptDeskCard";
 import { fromClone, sourceKey } from "@/lib/remixSource";
 import { MAKE_VIDEO, makeVideoHref, type MakeVideoKind } from "@/lib/scriptCaption";
 import PriceChip from "@/components/PriceChip";
@@ -1787,6 +1788,15 @@ export default function CloneReelPage() {
             </div>
             <div className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
               <BreakdownCard breakdown={view.clone.result.breakdown} />
+              {leoUser && (
+                <ScriptDeskCard
+                  key={view.clone.id}
+                  userId={leoUser.id}
+                  url={view.clone.result.source.url}
+                  postId={`${view.clone.result.source.platform}-${view.clone.result.source.postId}`}
+                  hasWords={Boolean(view.clone.result.source.transcript?.trim())}
+                />
+              )}
               <VisualsCard
                 clone={view.clone}
                 job={visualsJob}
