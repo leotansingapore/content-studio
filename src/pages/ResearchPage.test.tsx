@@ -54,6 +54,25 @@ describe("Research", () => {
     expect(html()).toContain("Instagram stopped this Mac&#x27;s reads (it showed a login wall). They start again by themselves at");
   });
 
+  it("says which creator the Mac is reading and how many more are due, or who it is about to send", () => {
+    seed();
+    const list = JSON.parse(store.get(`content-studio-research-${scoped(UID)}`)!);
+    list.creators.push({ handle: "second.creator", addedAt: day(1) }, { handle: "third.creator", addedAt: day(1) });
+    store.set(`content-studio-research-${scoped(UID)}`, JSON.stringify(list));
+    store.set(`cs-research-pending-${scoped(UID)}`, JSON.stringify({ "second.creator": { job: "j1", at: Date.now() } }));
+    expect(html()).toContain("Reading @second.creator on your Mac. 1 more due.");
+    store.delete(`cs-research-pending-${scoped(UID)}`);
+    expect(html()).toContain("Sending 2 creators to your Mac to read.");
+  });
+
+  it("tells a feed whose reels are all at their creator's usual apart from one the Mac hasn't read yet", () => {
+    seed();
+    store.set(`cs-research-reads-${scoped(UID)}`, JSON.stringify({ "made.up_creator": { at: day(0), avatar: "", reels: [reel("DA00000001", 1000, 5), reel("DA00000002", 1100, 6), reel("DA00000003", 900, 7)] } }));
+    expect(html()).toContain("None of their latest reels beat their creator&#x27;s usual yet.");
+    store.delete(`cs-research-reads-${scoped(UID)}`);
+    expect(html()).toContain("Your Mac is reading your creators.");
+  });
+
   it("lists who is watched, out of 100, and asks for creators when there are none", () => {
     seed();
     expect(html("?tab=creators")).toContain("Watching 1 of 100");
