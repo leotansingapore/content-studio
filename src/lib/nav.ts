@@ -34,6 +34,7 @@ import {
   Sparkles,
   Star,
   Swords,
+  Telescope,
   Target,
   TrendingUp,
   UserCheck,
@@ -171,6 +172,9 @@ export const SECTIONS: NavSection[] = [
       { to: "/working", label: "What's working", icon: Images },
       { to: "/trends", label: "Trends", icon: Flame, show: () => adviserBrand() },
       { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
+      // its own page, not Following: 100 Instagram creators read by Leo's Mac and ranked as one feed (Following is
+      // 5 accounts on either network, read through Apify, for everyone)
+      { to: "/research", label: "Research", icon: Telescope, owners: LEO_EMAILS },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
       { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
       { to: "/following", label: "Following", icon: UserCheck },

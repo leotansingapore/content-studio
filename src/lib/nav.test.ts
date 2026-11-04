@@ -4,7 +4,7 @@ import { mobileTabs, moreSheet, pageFor, pageTitle, section, sectionHref, SECTIO
 const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/script", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
-  "/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
+  "/swipe", "/carousels", "/working", "/trends", "/clone", "/research", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/social-north-star", "/audiences",
   "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/adlauncher",
 ];
@@ -75,7 +75,8 @@ describe("nav", () => {
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/linkedin", "/ideas", "/social-north-star"]);
       expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/script", "/carousel", "/image", "/edit", "/slideshow", "/design", "/design/campaigns"]);
       expect(pages("write", email), email).toContain("/people");
-      expect(pages("find", email).slice(8, 10), email).toEqual(["/competitors", "/saved"]);
+      expect(pages("find", email).slice(4, 6), email).toEqual(["/clone", "/research"]);
+      expect(pages("find", email).slice(9, 11), email).toEqual(["/competitors", "/saved"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
     }
   });
