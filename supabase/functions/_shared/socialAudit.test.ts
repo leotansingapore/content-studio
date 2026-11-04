@@ -355,7 +355,9 @@ describe("post media (Apps like yours)", () => {
   });
 
   it("keeps covers on Instagram's and TikTok's CDN only, and skips error items", () => {
-    for (const bad of ["http://x.cdninstagram.com/a.jpg", "https://evil.example/a.jpg", "https://cdninstagram.com.evil.example/a.jpg", "https://x.cdninstagram.com:8443/a.jpg", "x".repeat(2000)]) {
+    // social-plays fetches the cover server-side: a host that only ends in a CDN's name, or a link carrying a login, is not the CDN
+    const lookalikes = ["https://evilcdninstagram.com/a.jpg", "https://x.notfbcdn.net/a.jpg", "https://p16.eviltiktokcdn.com/a.jpg", "https://user:pw@x.cdninstagram.com/a.jpg", "https://user@x.cdninstagram.com/a.jpg", "https://:pw@x.cdninstagram.com/a.jpg"];
+    for (const bad of ["http://x.cdninstagram.com/a.jpg", "https://evil.example/a.jpg", "https://cdninstagram.com.evil.example/a.jpg", "https://x.cdninstagram.com:8443/a.jpg", "x".repeat(2000), ...lookalikes]) {
       expect(postMedia("instagram", { shortCode: "Dd3", displayUrl: bad })).toEqual(["Dd3", {}]);
     }
     expect(postMedia("tiktok", { error: "not found" })).toBeNull();
