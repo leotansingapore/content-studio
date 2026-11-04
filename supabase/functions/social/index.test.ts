@@ -14,6 +14,7 @@ const db = vi.hoisted(() => {
     { owner_id: "6d80f027-3395-480c-86a1-8827d3d6cce3", profile_id: "me", zernio_profile_id: "0123456789abcdef01234561" },
   ];
   const spent: string[] = [];
+  const state = { readFails: false };
   const admin = {
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
     rpc: async (_fn: string, a: Record<string, unknown>) => (spent.push(String(a.p_feature)), { data: 1, error: null }),
@@ -24,14 +25,15 @@ const db = vi.hoisted(() => {
           data: rows,
           error: null,
           eq: (c: string, v: unknown) => (where.push([c, v]), q),
-          maybeSingle: async () => ({ data: rows.find((r) => where.every(([c, v]) => (r as Record<string, unknown>)[c] === v)) ?? null, error: null }),
+          maybeSingle: async () =>
+            state.readFails ? { data: null, error: { message: "read failed" } } : { data: rows.find((r) => where.every(([c, v]) => (r as Record<string, unknown>)[c] === v)) ?? null, error: null },
         };
         return q;
       },
       upsert: async () => ({ error: null }),
     }),
   };
-  return { admin, spent, handler: null as null | ((r: Request) => Promise<Response>) };
+  return { admin, spent, state, handler: null as null | ((r: Request) => Promise<Response>) };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => db.admin }));
 
@@ -69,6 +71,7 @@ beforeEach(() => {
   zernio.length = 0;
   sent.length = 0;
   db.spent.length = 0;
+  db.state.readFails = false;
   Object.assign(env, { ZERNIO_API_KEY: "sk_test", SOCIAL_CONNECT_USERS: UID });
   delete env.NORTH_STAR_USERS;
   delete env.ZERNIO_MAX_PER_USER;
@@ -324,5 +327,20 @@ describe("removing a brand", () => {
     expect(none.status).toBe(200);
     expect(await none.json()).toEqual({ disconnected: 0 });
     expect(zernio).toEqual([]);
+  });
+
+  it("with no Zernio key, lets a brand go that never connected even when another adviser's brand of the same id did", async () => {
+    delete env.ZERNIO_API_KEY;
+    const r = await call("3b241101-e2bb-4255-8caf-4136c566a962", { action: "disconnect", profileId: "me", all: true });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ disconnected: 0 });
+  });
+
+  it("with no Zernio key, keeps the brand when its Zernio profile can't be read, rather than letting it go with accounts still connected", async () => {
+    delete env.ZERNIO_API_KEY;
+    db.state.readFails = true;
+    const r = await call(UID, { action: "disconnect", profileId: "pnever", all: true });
+    expect(r.status).toBe(500);
+    expect(await r.json()).not.toHaveProperty("disconnected");
   });
 });
