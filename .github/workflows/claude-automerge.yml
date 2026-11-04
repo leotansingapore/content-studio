@@ -3,7 +3,8 @@ name: Claude auto-merge
 # Squash-merges a PR from Claude's background jobs (claude-ci-fix.yml, claude-sweep.yml)
 # as soon as CI passes on its latest commit, so their fixes ship without anyone clicking
 # merge (Leo, 2026-11-04). Only PRs the Claude app opened from a claude/ branch, and never
-# a draft: a draft means Claude could not get build and tests green. Merging to main is
+# a draft: a draft means Claude could not get build and tests green. A PR that touches
+# .github/, package.json or the lockfile is held for Leo with one comment. Merging to main is
 # the production deploy. The merge is pushed with the workflow token, which starts no
 # CI run on main; the PR's CI already tested the merge result.
 
@@ -15,10 +16,12 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   merge:
     if: >-
+      github.event.workflow_run.path == '.github/workflows/ci.yml' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request' &&
       startsWith(github.event.workflow_run.head_branch, 'claude/')
@@ -34,4 +37,13 @@ jobs:
           if [ -z "$pr" ]; then echo "No open, non-draft PR from the Claude app on $BRANCH."; exit 0; fi
           read -r number head <<< "$pr"
           if [ "$head" != "$SHA" ]; then echo "PR #$number has a newer commit than this CI run; that run decides."; exit 0; fi
+          # A PR's CI runs the PR's own ci.yml, so a PR that changes CI, workflows or
+          # dependencies cannot vouch for itself: those wait for Leo.
+          held=$(gh pr diff "$number" -R "$GITHUB_REPOSITORY" --name-only | grep -E '^(\.github/|package(-lock)?\.json$)' || true)
+          if [ -n "$held" ]; then
+            note="Not auto-merged: this PR changes CI, workflows or dependencies, so it needs a person to merge it."
+            gh pr view "$number" -R "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' | grep -qF "$note" \
+              || gh pr comment "$number" -R "$GITHUB_REPOSITORY" --body "$note"$'\n\n'"$held"
+            exit 0
+          fi
           gh pr merge "$number" -R "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$SHA"
