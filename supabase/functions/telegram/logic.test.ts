@@ -418,11 +418,32 @@ describe("schedule", () => {
       expect((await runSchedule(db, UID, req(), NOW)).status).toBe(404);
       expect(posts).toEqual([]);
     }
-    for (const path of [pic(OTHER_UID), pic(UID, "pother"), `${UID}/me/../x.jpg`, `${UID}/me/00000000-0000-4000-8000-000000000001.gif`]) {
+    // a path that only contains the caller's folder, or runs on past the file, is outside it too
+    for (const path of [pic(OTHER_UID), pic(UID, "pother"), `${UID}/me/../x.jpg`, `${UID}/me/00000000-0000-4000-8000-000000000001.gif`, `${OTHER_UID}/${pic()}`, `${pic()}.png`]) {
       const { db, posts } = fakeDb([leoRow()]);
       expect((await runSchedule(db, UID, req({ media: [path] }), NOW)).status, path).toBe(404);
       expect(posts).toEqual([]);
     }
+  });
+});
+
+describe("schedule across several chats", () => {
+  const req = (chatRows: unknown[]) => {
+    const r = parseRequest({ action: "schedule", profileId: "me", chatRows, clientKey: KEY, text: "Hello", media: [], now: true });
+    if (!r.ok || r.req.action !== "schedule") throw new Error("bad test request");
+    return r.req;
+  };
+
+  it("queues nothing, not even to the caller's own chat, when one picked chat is someone else's", async () => {
+    const { db, posts } = fakeDb([leoRow(), leoRow({ id: ROW2, owner_id: OTHER_UID, chat_id: -1009876543210 })]);
+    expect((await runSchedule(db, UID, req([ROW, ROW2]), NOW)).status).toBe(404);
+    expect(posts).toEqual([]);
+  });
+
+  it("takes up to 10 chats in one post", () => {
+    const rows = (n: number) => Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}`);
+    expect(parseRequest({ action: "schedule", profileId: "me", chatRows: rows(10), clientKey: KEY, text: "Hi", now: true })).toMatchObject({ ok: true });
+    expect(parseRequest({ action: "schedule", profileId: "me", chatRows: rows(11), clientKey: KEY, text: "Hi", now: true })).toEqual({ ok: false, status: 400, error: "Pick a Telegram chat." });
   });
 });
 
