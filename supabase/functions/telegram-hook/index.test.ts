@@ -11,6 +11,11 @@ const h = vi.hoisted(() => ({
   filters: [] as unknown[][],
   botRow: null as null | Record<string, unknown>,
   ownToken: null as null | string,
+  // a read of cs_telegram_chats (maybeSingle), and the answers awaited queries give in turn (then; { data: [] } after)
+  chatRow: null as null | Record<string, unknown>,
+  answers: [] as { data: unknown; error: null | { code: string; message: string } }[],
+  // Telegram's answers by method, from the call's params
+  tg: {} as Record<string, (p: Record<string, unknown>) => unknown>,
 }));
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
   createClient: () => {
@@ -19,7 +24,8 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
     let table = "";
     const chain: Record<string, unknown> = {};
     for (const m of ["update", "select", "eq", "gt", "or", "in", "order", "limit", "is", "not"]) chain[m] = (...a: unknown[]) => (h.filters.push([m, ...a]), chain);
-    chain.maybeSingle = async () => ({ data: table === "cs_telegram_bots" ? h.botRow : null, error: null });
+    chain.maybeSingle = async () => ({ data: table === "cs_telegram_bots" ? h.botRow : table === "cs_telegram_chats" ? h.chatRow : null, error: null });
+    chain.then = (ok: (v: unknown) => unknown) => Promise.resolve(h.answers.shift() ?? { data: [], error: null }).then(ok);
     return {
       from: (t: string) => ((table = t), h.filters.push(["from", t]), chain),
       rpc: async (fn: string, args: Record<string, unknown>) => (h.filters.push(["rpc", fn, args]), { data: fn === "cs_telegram_bot_token" ? h.ownToken : null, error: null }),
@@ -34,7 +40,11 @@ const logged: string[] = [];
 
 beforeAll(async () => {
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (h.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string) => (telegram.push(String(u)), new Response("{}")));
+  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
+    telegram.push(String(u));
+    const answer = h.tg[String(u).split("/").pop()!];
+    return new Response(answer ? JSON.stringify({ ok: true, result: answer(JSON.parse(String(init?.body ?? "{}"))) }) : "{}");
+  });
   await import("./index.ts");
 }, 30_000);
 
@@ -43,6 +53,9 @@ beforeEach(() => {
   h.filters.length = 0;
   h.botRow = null;
   h.ownToken = null;
+  h.chatRow = null;
+  h.answers.length = 0;
+  h.tg = {};
   telegram.length = 0;
   logged.length = 0;
   for (const k of ["log", "warn", "error"] as const) vi.spyOn(console, k).mockImplementation((...a: unknown[]) => void logged.push(a.map(String).join(" ")));
@@ -168,5 +181,36 @@ describe("a brand's own bot", () => {
     const answered = await call({ "x-telegram-bot-api-secret-token": SECRET }, start, "/telegram-hook?bot=7000000002");
     expect(await answered.text()).not.toContain(OWN.split(":")[1]);
     for (const line of logged) expect(line).not.toContain(OWN.split(":")[1]);
+  });
+});
+
+describe("tying a chat the brand already has live", () => {
+  const GROUP = -1001234567890;
+  const LEO = 111000111;
+  const shared = { update_id: 3, message: { message_id: 5, from: { id: LEO, is_bot: false, first_name: "Leo" }, chat: { id: LEO, type: "private" }, date: 1, chat_shared: { request_id: 1, chat_id: GROUP, title: "Test group" } } };
+
+  it("disconnects only that same brand's older row of the chat, and moves only its waiting posts", async () => {
+    h.chatRow = { id: "00000000-0000-4000-8000-0000000000c1", owner_id: "7e57c0de-0000-4000-8000-0000000000d1", profile_id: "p1abc", status: "pending", tg_user_id: LEO, confirmed_at: new Date().toISOString(), code_expires_at: new Date(Date.now() + 600_000).toISOString() };
+    h.tg = {
+      getChat: () => ({ id: GROUP, type: "supergroup", title: "Test group" }),
+      getChatMember: (p) => (p.user_id === LEO ? { status: "creator" } : { status: "administrator", can_manage_chat: true }),
+      sendMessage: () => ({ message_id: 9 }),
+    };
+    // the first tie meets 026's unique live chat per brand; the older row is let go; the second tie lands
+    h.answers.push({ data: null, error: { code: "23505", message: "duplicate key" } }, { data: [{ id: "old-row" }], error: null }, { data: [], error: null }, { data: [{ id: "c1" }], error: null });
+    expect((await call({ "x-telegram-bot-api-secret-token": "hook-secret-for-tests" }, shared)).status).toBe(200);
+    const at = h.filters.findIndex((f) => f[0] === "update" && (f[1] as { status?: string }).status === "disconnected");
+    expect(at).toBeGreaterThan(-1);
+    const next = h.filters.slice(at + 1).findIndex((f) => f[0] === "from");
+    expect(h.filters.slice(at + 1, at + 1 + next)).toEqual([
+      ["eq", "owner_id", "7e57c0de-0000-4000-8000-0000000000d1"],
+      ["eq", "profile_id", "p1abc"],
+      ["eq", "chat_id", GROUP],
+      ["eq", "status", "connected"],
+      ["select", "id"],
+    ]);
+    const moved = h.filters.findIndex((f) => f[0] === "in" && f[1] === "chat_row");
+    expect(h.filters.slice(moved - 2, moved + 2)).toEqual([["from", "cs_telegram_posts"], ["update", { chat_row: "00000000-0000-4000-8000-0000000000c1" }], ["in", "chat_row", ["old-row"]], ["eq", "status", "scheduled"]]);
+    expect(telegram.at(-1)).toMatch(/\/sendMessage$/);
   });
 });
