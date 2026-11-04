@@ -14,22 +14,35 @@ const DEAD = "This connection link isn't active. Make a new one in Postmosis > C
 const h = vi.hoisted(() => {
   type Row = { user_id: string; key: string; data: string; updated_at?: string };
   const rows: Row[] = [];
-  const state = { clients: 0, fail: null as null | string, rpc: [] as Record<string, unknown>[], handler: null as null | ((r: Request) => Promise<Response>), beforeUpdate: null as null | (() => void) };
+  // the picture tools' tables (media.rows), by name
+  const tables: Record<string, Record<string, unknown>[]> = {};
+  const state = {
+    clients: 0,
+    fail: null as null | string,
+    rpc: [] as Record<string, unknown>[],
+    handler: null as null | ((r: Request) => Promise<Response>),
+    beforeUpdate: null as null | (() => void),
+    beforeInsert: null as null | (() => void),
+  };
   // a tiny stand-in for supabase-js over cs_user_data: select with eq / in / like (a prefix and %), maybeSingle, insert,
-  // and update with eq filters returning the rows it changed
+  // and update with eq filters returning the rows it changed; the picture tools' tables take match, order and limit
   function query(table: string) {
-    if (table !== "cs_user_data") throw new Error(`unexpected table ${table}`);
+    const source = (table === "cs_user_data" ? rows : tables[table]) as Row[] | undefined;
+    if (!source) throw new Error(`unexpected table ${table}`);
     const where: ((r: Row) => boolean)[] = [];
     let cols: string[] = [];
     const run = () =>
       state.fail
         ? { data: null, error: { code: "42501", message: state.fail } }
-        : { data: rows.filter((r) => where.every((w) => w(r))).map((r) => Object.fromEntries(cols.map((c) => [c, r[c as keyof Row]]))), error: null };
+        : { data: source.filter((r) => where.every((w) => w(r))).map((r) => Object.fromEntries(cols.map((c) => [c, r[c as keyof Row]]))), error: null };
     const q = {
       select: (c: string) => ((cols = c.split(",").map((s) => s.trim())), q),
       eq: (c: keyof Row, v: string) => (where.push((r) => r[c] === v), q),
       in: (c: keyof Row, vs: string[]) => (where.push((r) => vs.includes(r[c])), q),
       like: (c: keyof Row, p: string) => (where.push((r) => r[c].startsWith(p.replace(/%$/, ""))), q),
+      match: (o: Record<string, unknown>) => (where.push((r) => Object.entries(o).every(([c, v]) => (r as Record<string, unknown>)[c] === v)), q),
+      order: () => q,
+      limit: () => q,
       maybeSingle: async () => {
         const x = run();
         return { data: x.data?.[0] ?? null, error: x.error };
@@ -43,6 +56,8 @@ const h = vi.hoisted(() => {
       select: (c: string) => query(t).select(c),
       insert: async (row: Row) => {
         if (state.fail) return { error: { code: "42501", message: state.fail } };
+        // someone else's write making the row between Claude's read and this insert
+        state.beforeInsert?.();
         if (rows.some((r) => r.user_id === row.user_id && r.key === row.key)) return { error: { code: "23505", message: "duplicate key" } };
         rows.push(row);
         return { error: null };
@@ -65,7 +80,7 @@ const h = vi.hoisted(() => {
     }),
     rpc: async (fn: string, a: Record<string, unknown>) => (state.rpc.push({ fn, ...a }), { data: 1, error: null }),
   };
-  return { rows, state, admin };
+  return { rows, tables, state, admin };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => (h.state.clients++, h.admin) }));
 
@@ -81,6 +96,8 @@ beforeEach(() => {
   h.state.fail = null;
   h.state.rpc.length = 0;
   h.state.beforeUpdate = null;
+  h.state.beforeInsert = null;
+  for (const k of Object.keys(h.tables)) delete h.tables[k];
   for (const k of Object.keys(env)) delete env[k];
   Object.assign(env, { SUPABASE_URL: "https://db.test", SUPABASE_SERVICE_ROLE_KEY: "service-key-for-tests" });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -220,6 +237,51 @@ describe("a live connection link", () => {
     expect(r.saved).toBe(true);
     expect(JSON.parse(row.data).map((d: { id: string; title: string }) => [d.id, d.title])).toEqual([[made.id, "Renamed"], ["dsg_app", "From the app"]]);
     expect(raced).toBe(2);
+  });
+
+  it("keeps a slideshow the app made while Claude was starting the brand's first one, and adds Claude's beside it", async () => {
+    const key = `content-studio-designs-${A}`;
+    h.rows.push(linkRow(A, A));
+    h.state.beforeInsert = () => {
+      h.state.beforeInsert = null;
+      h.rows.push({ user_id: A, key, data: JSON.stringify([{ id: "dsg_app", title: "From the app", format: "tiktok", slides: [{ id: "s1", bg: "#ffffff", layers: [] }] }]), updated_at: new Date().toISOString() });
+    };
+    const made = answer((await post(`${A}.${SECRET}`, rpc("create_design", { template: "blank" }))).text);
+    expect(made).toMatchObject({ created: true });
+    const mine = h.rows.filter((x) => x.key === key && x.user_id === A);
+    expect(mine).toHaveLength(1);
+    expect(JSON.parse(mine[0].data).map((d: { id: string }) => d.id)).toEqual([made.id, "dsg_app"]);
+  });
+
+  it("changes only its own user's slideshows row, even when another account's row has the same key and version", async () => {
+    const key = `content-studio-designs-${A}`;
+    h.rows.push(linkRow(A, A));
+    const made = answer((await post(`${A}.${SECRET}`, rpc("create_design", { template: "blank" }))).text);
+    const mine = h.rows.find((x) => x.key === key && x.user_id === A)!;
+    const theirs = { user_id: B, key, data: "[]", updated_at: mine.updated_at };
+    h.rows.push(theirs);
+    await post(`${A}.${SECRET}`, rpc("update_design", { id: made.id, design: { title: "Renamed" } }));
+    expect(JSON.parse(mine.data)[0].title).toBe("Renamed");
+    expect(theirs.data).toBe("[]");
+  });
+
+  it("lists only the link's own user's and brand's image libraries", async () => {
+    h.rows.push(linkRow(A, A));
+    h.tables.cs_image_libraries = [
+      { id: "11111111-1111-4111-8111-111111111111", owner_id: A, profile_id: "me", name: "Mine", updated_at: "2026-10-01T00:00:00Z" },
+      { id: "22222222-2222-4222-8222-222222222222", owner_id: B, profile_id: "me", name: "Someone else's", updated_at: "2026-10-01T00:00:00Z" },
+      { id: "33333333-3333-4333-8333-333333333333", owner_id: A, profile_id: "p1abc", name: "My other brand's", updated_at: "2026-10-01T00:00:00Z" },
+    ];
+    h.tables.cs_library_images = [];
+    const r = answer((await post(`${A}.${SECRET}`, rpc("list_libraries"))).text);
+    expect(r.libraries.map((l: { name: string }) => l.name)).toEqual(["Mine"]);
+  });
+
+  it("answers at most 20 messages from one request", async () => {
+    h.rows.push(linkRow(A, A));
+    const batch = Array.from({ length: 25 }, (_, i) => ({ jsonrpc: "2.0", id: i + 1, method: "tools/list" }));
+    const r = await post(`${A}.${SECRET}`, batch);
+    expect(JSON.parse(r.text)).toHaveLength(20);
   });
 
   it("says try again, without the database's own words, when a read fails", async () => {
