@@ -44,7 +44,10 @@ jobs:
           : > "$RUNNER_TEMP/failures.log"
           while IFS=$'\t' read -r id name created url; do
             { echo "===== $name, $created, $url"
-              gh run view "$id" -R "$GITHUB_REPOSITORY" --log-failed | grep -B 60 -m 3 '##\[error\]' || true
+              # Error lines only: these logs can carry scraped third-party text, which Claude should not read.
+              gh run view "$id" -R "$GITHUB_REPOSITORY" --log-failed | grep -B 60 -m 3 '##\[error\]' \
+                | grep -i -E 'error|fail|exception|refus|denied|invalid|timed? ?out|exit code|[[:space:]]at [^ ]+:[0-9]+' \
+                | grep -v -i -E 'git (config|submodule)|credentials|extraheader|includeif' || true
             } >> "$RUNNER_TEMP/failures.log"
           done < "$RUNNER_TEMP/failed-runs.tsv"
           echo "go=true" >> "$GITHUB_OUTPUT"
@@ -53,6 +56,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 50
+          persist-credentials: false
 
       - if: steps.gate.outputs.go == 'true'
         uses: actions/setup-node@v7
@@ -82,4 +86,4 @@ jobs:
             5. If nothing needs a code change and nothing is new for the issue, stop without writing anything.
           claude_args: |
             --add-dir ${{ runner.temp }}
-            --allowedTools "Edit,Write,Read,Glob,Grep,Bash(npm ci),Bash(npm run build),Bash(npm test),Bash(npx vitest run:*),Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue create:*),Bash(gh issue comment:*)"
+            --allowedTools "Edit,Write,Read,Glob,Grep,Bash(npm ci),Bash(npm run build),Bash(npm test),Bash(npx vitest run:*),Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git push -u origin HEAD),Bash(gh pr create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue create:*),Bash(gh issue comment:*)"
