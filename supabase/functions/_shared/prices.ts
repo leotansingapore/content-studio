@@ -190,6 +190,8 @@ export const NO_PRICE: UsageFeature[] = [
   "telegram-connect", "telegram-schedule", "telegram-presign",
   // the script desk's jobs run on Leo's own Claude plan through the paired worker, not a paid API
   "script-desk",
+  // Research reads public Instagram pages on Leo's Mac, and a search runs his own Claude Code
+  "research",
 ];
 
 /** Write's own generation: uncapped, on the academy project (generate-social-content). Unverified. */

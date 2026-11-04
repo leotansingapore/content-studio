@@ -1,15 +1,20 @@
-// The script desk (wave 1): what each job carries and how its answer is read. A job
-// holds inputs only (the kind, the dials, a topic or hook, the source reel, Me, Product and the avatar); the worker on
-// Leo's Mac turns them into Claude Code's request with private templates that are never in this repo
-// (scripts/script-worker/worker.mjs). Answers keep the reference prompts' JSON shapes.
-// No Deno or npm imports, so vitest and the worker's e2e can import it.
+// The script desk: what each job carries and how its answer is read. A job holds inputs only (the kind, the dials, a
+// topic or hook, the source reel, Me, Product and the avatar; for research, a handle, a reel's code or a topic); the
+// worker on Leo's Mac turns them into Claude Code's request with private templates that are never in this repo, or
+// reads Instagram's public pages itself (scripts/script-worker/worker.mjs). Answers keep the reference prompts' JSON
+// shapes. No Deno or npm imports, so vitest and the worker's e2e can import it.
 
+import { normalizeHandle } from "../_shared/socialAudit.ts";
 import type { Band, Dials } from "./dials.ts";
 
 export * from "./dials.ts";
 
-export type JobKind = "write" | "hooks" | "breakdown" | "rescript" | "claims";
-export const JOB_KINDS: readonly JobKind[] = ["write", "hooks", "breakdown", "rescript", "claims"];
+/** Writing runs on Claude Code; research reads Instagram (and a search runs Claude Code with web search first). */
+export const WRITE_KINDS = ["write", "hooks", "breakdown", "rescript", "claims"] as const;
+export const READ_KINDS = ["ig_reels", "ig_reel", "discover"] as const;
+export type JobKind = (typeof WRITE_KINDS)[number] | (typeof READ_KINDS)[number];
+export const JOB_KINDS: readonly JobKind[] = [...WRITE_KINDS, ...READ_KINDS];
+export const isRead = (k: string): k is (typeof READ_KINDS)[number] => (READ_KINDS as readonly string[]).includes(k);
 
 // ---- Inputs -----------------------------------------------------------------------------------------------------
 
@@ -152,8 +157,33 @@ export interface JobInputs {
   /** claims: the re-script's original words and its answer */
   original?: string;
   adapted?: string;
-  context: Context;
+  /** ig_reels: whose grid, the codes already read (no embed page for those) and how many embed pages at most */
+  handle?: string;
+  known?: string[];
+  embeds?: number;
+  /** ig_reel: the reel's shortcode (the worker builds the page's address itself) */
+  code?: string;
+  /** discover: a typed topic (search), or the brand's niche and main audience (suggest), and how many to find */
+  mode?: "search" | "suggest";
+  max?: number;
+  /** writing, and a suggest's niche and audience; reads carry none */
+  context?: Context;
 }
+
+/** An Instagram username from "@name", "name" or a profile link; null when it can't be one. */
+export const cleanHandle = (v: unknown): string | null => (typeof v === "string" ? normalizeHandle("instagram", v) : null);
+const CODE = /^[A-Za-z0-9_-]{5,40}$/;
+/** A reel's shortcode from a reel or post link, or the bare code; null otherwise. */
+export function reelCode(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  const m = t.match(/instagram\.com\/(?:[A-Za-z0-9._]+\/)?(?:reels?|p)\/([A-Za-z0-9_-]+)/i);
+  const code = m ? m[1] : t;
+  return CODE.test(code) ? code : null;
+}
+/** The codes a creator's read already has: valid ones, no repeats, the newest 500. */
+export const knownCodes = (v: unknown): string[] => [...new Set((Array.isArray(v) ? v : []).filter((c): c is string => typeof c === "string" && CODE.test(c)))].slice(0, 500);
+
 
 // ---- The queue (033 cs_ai_jobs) -----------------------------------------------------------------------------------
 
@@ -161,8 +191,20 @@ export interface JobInputs {
 export const PICKUP_SECONDS = 45;
 /** A claimed job with no answer by then is failed: the worker gives Claude Code 3 minutes. */
 export const RUN_LIMIT_MS = 4 * 60_000;
-/** At most this many of one owner's jobs queued or running at once. */
+/**
+ * Reads take longer: a grid and up to 12 embed pages, 3 s apart and shared with the other read slot (about 90 s), and a
+ * search runs Claude Code with web search before reading up to 8 grids. The worker stops each well inside these.
+ */
+export const READ_LIMIT_MS: Record<(typeof READ_KINDS)[number], number> = { ig_reels: 6 * 60_000, ig_reel: 4 * 60_000, discover: 10 * 60_000 };
+export const runLimitOf = (k: JobKind) => (isRead(k) ? READ_LIMIT_MS[k] : RUN_LIMIT_MS);
+/** At most this many of one owner's writing jobs queued or running at once, and of their reads. */
 export const MAX_OPEN = 4;
+// as many as the worker has read slots, so a search filed while the page reads never waits past the pickup window
+export const MAX_OPEN_READS = 2;
+/** How many embed pages an ig_reels read opens at most, and how many creators a search or a suggestion asks for. */
+export const MAX_EMBEDS = 12;
+export const SEARCH_MAX = 6;
+export const SUGGEST_MAX = 8;
 /** Rows (the inputs, pasted words, the answer) are kept this long, swept when the owner files again. */
 export const KEEP_DAYS = 7;
 /** A request bigger than this is refused before it counts: a row holds 64 KB of JSON (033). */
@@ -187,6 +229,10 @@ export const DESK_COPY = {
   notReady: "That re-script isn't finished yet.",
   tooBig: "That's too long to send in one go. Shorten Me, Product or the audience, or pick a shorter reel.",
   gone: "That job isn't there any more. Start it again.",
+  tooManyReads: "Two reads are already running on your Mac. Wait for one to finish, then try again.",
+  badHandle: "That doesn't look like an Instagram username.",
+  badReel: "Paste an Instagram reel link.",
+  noNiche: "Add your niche on Your voice, or a main audience, first.",
 } as const;
 
 // ---- Reading the answers ------------------------------------------------------------------------------------------
@@ -293,3 +339,125 @@ export function readClaims(text: unknown): Unsupported[] | null {
 /** The adapted script with each unsupported sentence swapped for its placeholder version (where it is found). */
 export const applyClaims = (script: string, unsupported: Unsupported[]) =>
   unsupported.reduce((s, u) => (s.includes(u.sentence) ? s.replace(u.sentence, () => u.fixed) : s), script);
+
+// ---- Research answers (the worker's own JSON: ig_reels, ig_reel, discover) ------------------------------------------
+
+/** A public Instagram profile, as the reels grid shows it. */
+export interface IgProfile {
+  handle: string;
+  name: string;
+  followers: number | null;
+  posts: number | null;
+  avatar: string;
+  bio: string;
+}
+
+/** One reel: its numbers from the grid (views are plays), and a caption and video only where an embed page was read. */
+export interface IgReel {
+  code: string;
+  url: string;
+  owner: string;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  pinned: boolean;
+  takenAt: string | null;
+  thumb: string;
+  caption: string;
+  video: string;
+}
+
+/** Instagram stopped the Mac's reads (a login wall, or "please wait"): every read waits until `until`. */
+export interface IgPause {
+  until: string;
+  why: "login" | "wait";
+}
+
+export interface DiscoverCreator {
+  handle: string;
+  why: string;
+  profile: IgProfile | null;
+  /** The grid's reels, best first (no captions: a search reads no embed pages). */
+  reels: IgReel[];
+  error: string;
+}
+
+const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
+// images and videos only from Instagram's own hosts, so nothing else ends up in an <img> or a link
+const igUrl = (v: unknown) => {
+  const s = str(v, 2000);
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:" && /(^|\.)(cdninstagram\.com|fbcdn\.net|instagram\.com)$/.test(u.hostname) ? s : "";
+  } catch {
+    return "";
+  }
+};
+const isoOf = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isFinite(Date.parse(v)) ? v.slice(0, 24) : null);
+
+export function cleanProfile(raw: unknown): IgProfile | null {
+  const p = obj(raw);
+  const handle = cleanHandle(p?.handle);
+  if (!p || !handle) return null;
+  return { handle, name: str(p.name, 120), followers: count(p.followers), posts: count(p.posts), avatar: igUrl(p.avatar), bio: str(p.bio, 400) };
+}
+
+export function cleanReel(raw: unknown): IgReel | null {
+  const r = obj(raw);
+  const code = reelCode(r?.code);
+  if (!r || !code) return null;
+  return {
+    code,
+    url: `https://www.instagram.com/reel/${code}/`,
+    owner: cleanHandle(r.owner) ?? "",
+    views: count(r.views),
+    likes: count(r.likes),
+    comments: count(r.comments),
+    pinned: r.pinned === true,
+    takenAt: isoOf(r.takenAt),
+    thumb: igUrl(r.thumb),
+    caption: str(r.caption, 2200),
+    video: igUrl(r.video),
+  };
+}
+
+const reelsOf = (v: unknown, max: number) => (Array.isArray(v) ? v.map(cleanReel).filter((r): r is IgReel => r !== null).slice(0, max) : []);
+
+function pauseOf(j: Record<string, unknown> | null): IgPause | null {
+  const p = obj(j?.paused);
+  const until = isoOf(p?.until);
+  return p && until ? { until, why: p.why === "wait" ? "wait" : "login" } : null;
+}
+
+/**
+ * A creator's grid read, and the pause when one stopped it (before the grid, so no profile, or part way through the
+ * embed pages, so some reels have no caption); null when the answer holds neither.
+ */
+export function readIgReels(text: unknown): { profile: IgProfile | null; reels: IgReel[]; paused: IgPause | null } | null {
+  const j = jsonOf(text);
+  const paused = pauseOf(j);
+  const profile = cleanProfile(j?.profile);
+  return profile || paused ? { profile, reels: profile ? reelsOf(j?.reels, 40) : [], paused } : null;
+}
+
+export function readIgReel(text: unknown): { reel: IgReel | null; paused: IgPause | null } | null {
+  const j = jsonOf(text);
+  const paused = pauseOf(j);
+  const reel = cleanReel(j?.reel);
+  return reel || paused ? { reel, paused } : null;
+}
+
+/** A search's creators, each read or with the reason it couldn't be, and the pause when one stopped the reads. */
+export function readDiscover(text: unknown): { creators: DiscoverCreator[]; paused: IgPause | null } | null {
+  const j = jsonOf(text);
+  if (!j || !Array.isArray(j.creators)) return null;
+  const creators = j.creators
+    .map((c): DiscoverCreator | null => {
+      const o = obj(c);
+      const handle = cleanHandle(o?.handle);
+      return o && handle ? { handle, why: str(o.why, 200), profile: cleanProfile(o.profile), reels: reelsOf(o.reels, 12), error: str(o.error, 300) } : null;
+    })
+    .filter((c): c is DiscoverCreator => c !== null)
+    .slice(0, SUGGEST_MAX);
+  return { creators, paused: pauseOf(j) };
+}

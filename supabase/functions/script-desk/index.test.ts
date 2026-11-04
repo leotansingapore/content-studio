@@ -206,6 +206,44 @@ describe("script-desk", () => {
     expect(await call({ action: "claims", job: body.job }, "00000000-0000-0000-0000-00000000c003")).toMatchObject({ status: 404 });
   });
 
+  it("files research reads with inputs only, counted apart from writing on their own cap", async () => {
+    expect(await call({ action: "ig_reels", handle: "@Made.Up_Creator", known: ["DMadeUp0001", "no good"], context: { niche: "x" } })).toMatchObject({ status: 200, body: { kind: "ig_reels" } });
+    expect(jobs()[0].request).toEqual({ handle: "made.up_creator", known: ["DMadeUp0001"], embeds: 12 });
+    await call({ action: "ig_reel", url: "https://www.instagram.com/reel/DMadeUp0001/?igsh=1" });
+    expect(jobs()[1].request).toEqual({ code: "DMadeUp0001" });
+    expect(db.spent).toEqual(["research", "research"]);
+    // two reads open, as many as the Mac has read slots: a third waits, a script doesn't
+    expect(await call({ action: "discover", topic: "money" })).toMatchObject({ status: 429, body: { code: "too_many" } });
+    expect((await call({ action: "hooks", topic: "x" })).status).toBe(200);
+    expect(db.spent).toEqual(["research", "research", "script-desk"]);
+    jobs().filter((j) => j.kind !== "hooks").forEach((j) => (j.status = "done"));
+    await call({ action: "discover", topic: "  money tips for nurses " });
+    expect(jobs().at(-1)!.request).toEqual({ mode: "search", topic: "money tips for nurses", max: 6 });
+    jobs().forEach((j) => noPromptText(j.request));
+  });
+
+  it("suggests creators from the niche and main audience only, and refuses a bad handle, link or topic without counting", async () => {
+    const context = { niche: "money for nurses", avatar: { name: "Nurses", who: "Shift workers" }, me: { name: "Priya" }, sample: "my words" };
+    await call({ action: "discover", mode: "suggest", context });
+    expect(jobs()[0].request).toEqual({ mode: "suggest", max: 8, context: { ...sanitizeContext(context), sample: "", me: null, product: null } });
+    for (const b of [{ action: "ig_reels", handle: "not a handle!" }, { action: "ig_reel", url: "https://example.com/x" }, { action: "discover" }, { action: "discover", mode: "suggest", context: {} }]) {
+      expect((await call(b)).status, JSON.stringify(b)).toBeGreaterThanOrEqual(400);
+    }
+    expect(db.spent).toEqual(["research"]);
+  });
+
+  it("gives a read's answer back, a pause too, and gives a search its longer time before calling it stalled", async () => {
+    const a = (await call({ action: "ig_reels", handle: "made.up_creator" })).body.job;
+    done(a, JSON.stringify({ profile: { handle: "made.up_creator", name: "M", followers: 9, avatar: "", bio: "" }, reels: [{ code: "DMadeUp0001", views: 5 }] }));
+    expect((await call({ action: "job", id: a })).body).toMatchObject({ status: "done", result: { profile: { handle: "made.up_creator" }, reels: [{ code: "DMadeUp0001", views: 5 }] } });
+    const b = (await call({ action: "ig_reel", url: "DMadeUp0002" })).body.job;
+    done(b, JSON.stringify({ paused: { until: "2026-11-04T18:40:00.000Z", why: "login" } }));
+    expect((await call({ action: "job", id: b })).body).toEqual({ status: "done", result: { reel: null, paused: { until: "2026-11-04T18:40:00.000Z", why: "login" } } });
+    const c = (await call({ action: "discover", topic: "t" })).body.job;
+    Object.assign(jobs().find((j) => j.id === c)!, { status: "claimed", worker: "mac", claimed_at: new Date(Date.now() - 5 * 60_000).toISOString() });
+    expect((await call({ action: "job", id: c })).body).toEqual({ status: "claimed" });
+  });
+
   it("runs the claim check on a finished re-script, then swaps each unsupported sentence for its placeholder", async () => {
     const product = { product: { name: "TESTPRODUCT", cta: "Comment TEST for the link" } };
     const re = (await call({ action: "rescript", url: REEL_URL, context: product })).body.job;

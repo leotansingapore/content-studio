@@ -1,5 +1,5 @@
-// script-desk (wave 1): the Scriptwriter, hook ideas, a
-// reel's breakdown, both remix modes and Re-script with its claim check. It never calls a model: each request is filed
+// script-desk: the Scriptwriter, hook ideas, a reel's breakdown, both remix modes and Re-script with its claim check
+// (wave 1), and Research's Instagram reads and creator searches (wave 2). It never calls a model: each request is filed
 // in cs_ai_jobs (033) with its inputs only (logic.ts JobInputs, no prompt text); Leo's Mac claims it through
 // script-worker, builds Claude Code's request from them with its private templates, and runs it on his own Claude
 // Code, and the app polls here for the answer.
@@ -11,17 +11,20 @@
 //   breakdown  {url}: why a reel worked
 //   rescript   {url}: the reel's spoken words, re-scripted into the user
 //   claims     {job}: the claim check on a finished re-script (no job when nothing changed)
+//   ig_reels   {handle, known?}: a creator's profile and latest 12 reels, embed pages for codes not in known
+//   ig_reel    {url}: one reel's embed page
+//   discover   {topic} or {mode: "suggest", context}: creators found by a web search, each one's grid read
 //   job        {id}: where a job is; a done one comes back in its JSON shape
 // Every filing action takes {context} (Me, Product, the avatar, niche, voice sample: logic.ts sanitizeContext) and
 // {brand}. A reel ({url}) is read from clone-reel's cache (cs_reel_sources) only: Clone a reel reads it first.
 //
 // Leo only while NORTH_STAR_USERS lists the caller's uid (a real id: "*" opens nothing, logic.ts ownersOf; 403
 // not_enabled before the body is read). A request over MAX_REQUEST_BYTES is refused before it counts. A filing counts one
-// "script-desk" use (given back when the insert fails), at most MAX_OPEN of an owner's jobs are open at once (counted,
-// then inserted: two filings at the same moment can pass it by one), and filing deletes that owner's rows older than
-// KEEP_DAYS. Polling is free.
+// "script-desk" use, or one "research" use for a read (given back when the insert fails); at most MAX_OPEN writing jobs
+// and MAX_OPEN_READS reads of an owner's are open at once (counted, then inserted: two filings at the same moment can
+// pass it by one), and filing deletes that owner's rows older than KEEP_DAYS. Polling is free.
 //
-// Secrets (set already): NORTH_STAR_USERS. Needs 033 applied. Deploy WITH JWT verification (a new name):
+// Secrets (set already): NORTH_STAR_USERS. Needs 033 applied, and 034 for the reads. Deploy WITH JWT verification (a new name):
 //   supabase functions deploy script-desk --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
@@ -29,9 +32,10 @@ import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts
 import { parseReelUrl } from "../clone-reel/logic.ts";
 import { findSource } from "../clone-reel/source.ts";
 import {
-  DESK_COPY, KEEP_DAYS, LIMITS, MAX_OPEN, MAX_REQUEST_BYTES, PICKUP_SECONDS, RUN_LIMIT_MS, WRITE_ENTRIES, applyClaims, bytesOf, cleanBand, cleanBreakdown,
-  cleanDials, cut, ownersOf, readBreakdown, readClaims, readHooks, readRescript, readScript, sanitizeContext, type Context, type JobInputs, type JobKind,
-  type SourceReel,
+  DESK_COPY, JOB_KINDS, KEEP_DAYS, LIMITS, MAX_EMBEDS, MAX_OPEN, MAX_OPEN_READS, MAX_REQUEST_BYTES, PICKUP_SECONDS, READ_KINDS, READ_LIMIT_MS, RUN_LIMIT_MS,
+  SEARCH_MAX, SUGGEST_MAX, WRITE_ENTRIES, WRITE_KINDS, applyClaims, bytesOf, cleanBand, cleanBreakdown, cleanDials, cleanHandle, cut, isRead, knownCodes, ownersOf,
+  readBreakdown, readClaims, readDiscover, readHooks, readIgReel, readIgReels, readRescript, readScript, reelCode, runLimitOf, sanitizeContext, type Context,
+  type JobInputs, type JobKind, type SourceReel,
 } from "./logic.ts";
 
 const headers = {
@@ -77,6 +81,25 @@ async function planOf(admin: Admin, action: string, body: Record<string, unknown
   if (action === "hooks") {
     if (!topic) return fail(400, "bad_request", "Type a topic first.");
     return { kind: "hooks", request: { topic, context } };
+  }
+  if (action === "ig_reels") {
+    const handle = cleanHandle(body.handle);
+    if (!handle) return fail(400, "bad_handle", DESK_COPY.badHandle);
+    return { kind: "ig_reels", request: { handle, known: knownCodes(body.known), embeds: MAX_EMBEDS } };
+  }
+  if (action === "ig_reel") {
+    const code = reelCode(body.url);
+    if (!code) return fail(400, "bad_url", DESK_COPY.badReel);
+    return { kind: "ig_reel", request: { code } };
+  }
+  if (action === "discover") {
+    if (body.mode !== "suggest") {
+      if (!topic) return fail(400, "bad_request", "Type a topic first.");
+      return { kind: "discover", request: { mode: "search", topic, max: SEARCH_MAX } };
+    }
+    // only what a suggestion is written from: the niche and the main audience
+    if (!context.niche && !context.avatar) return fail(422, "no_niche", DESK_COPY.noNiche);
+    return { kind: "discover", request: { mode: "suggest", max: SUGGEST_MAX, context: { ...context, sample: "", me: null, product: null } } };
   }
   if (action === "breakdown" || action === "rescript") {
     const reel = await reelOf(admin, body.url);
@@ -124,6 +147,9 @@ async function claimsPlan(admin: Admin, uid: string, id: unknown): Promise<Filin
 /** A done job's answer in its JSON shape; null when Claude's text can't be read as that shape. */
 function answerOf(kind: JobKind, result: { text?: unknown } | null, request: Partial<JobInputs> | undefined): unknown {
   const t = result?.text;
+  if (kind === "ig_reels") return readIgReels(t);
+  if (kind === "ig_reel") return readIgReel(t);
+  if (kind === "discover") return readDiscover(t);
   if (kind === "write") return readScript(t);
   if (kind === "hooks") {
     const hooks = readHooks(t);
@@ -158,7 +184,7 @@ async function poll(admin: Admin, uid: string, id: unknown, again = false): Prom
     return now - Date.parse(row.created_at) > PICKUP_SECONDS * 1000 ? giveUp("queued", DESK_COPY.noWorker) : json({ status: "queued" });
   }
   if (row.status === "claimed") {
-    return now - Date.parse(row.claimed_at) > RUN_LIMIT_MS ? giveUp("claimed", DESK_COPY.stalled) : json({ status: "claimed" });
+    return now - Date.parse(row.claimed_at) > runLimitOf(row.kind) ? giveUp("claimed", DESK_COPY.stalled) : json({ status: "claimed" });
   }
   if (row.status === "failed") return json({ status: "failed", error: row.error || DESK_COPY.stalled });
   // the inputs (up to 60 KB) are read only for the one answer that needs them: a claim check's adapted script
@@ -186,19 +212,24 @@ Deno.serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) ?? {};
     const action = typeof body.action === "string" ? body.action : "";
     if (action === "job") return await poll(admin, uid, body.id);
-    if (!["write", "hooks", "breakdown", "rescript", "claims"].includes(action)) return fail(400, "bad_request", "Unknown action.");
+    if (!(JOB_KINDS as readonly string[]).includes(action)) return fail(400, "bad_request", "Unknown action.");
 
     const plan = action === "claims" ? await claimsPlan(admin, uid, body.job) : await planOf(admin, action, body, sanitizeContext(body.context));
     if (plan instanceof Response) return plan;
 
-    const since = new Date(Date.now() - RUN_LIMIT_MS - PICKUP_SECONDS * 1000).toISOString();
+    // reads and writing are counted apart, so a page of reads never stops a script
+    const read = isRead(plan.kind);
+    const family = read ? READ_KINDS : WRITE_KINDS;
+    const longest = read ? Math.max(...Object.values(READ_LIMIT_MS)) : RUN_LIMIT_MS;
+    const since = new Date(Date.now() - longest - PICKUP_SECONDS * 1000).toISOString();
     const { count, error: countError } = await admin
-      .from("cs_ai_jobs").select("id", { count: "exact", head: true }).eq("owner_id", uid).in("status", ["queued", "claimed"]).gt("created_at", since);
+      .from("cs_ai_jobs").select("id", { count: "exact", head: true }).eq("owner_id", uid).in("status", ["queued", "claimed"]).in("kind", family).gt("created_at", since);
     if (countError) throw countError;
-    if ((count ?? 0) >= MAX_OPEN) return fail(429, "too_many", DESK_COPY.tooMany);
+    if ((count ?? 0) >= (read ? MAX_OPEN_READS : MAX_OPEN)) return fail(429, "too_many", read ? DESK_COPY.tooManyReads : DESK_COPY.tooMany);
     if (bytesOf(plan.request) > MAX_REQUEST_BYTES) return fail(413, "too_big", DESK_COPY.tooBig);
     const day = new Date().toISOString().slice(0, 10);
-    const usage = await consumeUsage(admin, uid, "script-desk");
+    const feature = read ? "research" : "script-desk";
+    const usage = await consumeUsage(admin, uid, feature);
     if (!usage.allowed) {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
@@ -211,7 +242,7 @@ Deno.serve(async (req) => {
       .from("cs_ai_jobs").insert({ owner_id: uid, profile_id: brandOf(body.brand), kind: plan.kind, request: plan.request }).select("id").single();
     if (error || !row?.id) {
       // nothing was filed: the use goes back
-      await refundUsage(admin, uid, "script-desk", day);
+      await refundUsage(admin, uid, feature, day);
       throw error ?? new Error("no id");
     }
     console.log("script-desk filed", plan.kind, action === "write" ? body.entry : "");

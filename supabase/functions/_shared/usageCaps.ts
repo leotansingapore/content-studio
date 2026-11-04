@@ -256,6 +256,9 @@ export const DAILY_LIMITS = {
   // breakdown, a re-script or its claim check): it runs on Leo's own Claude Code through the paired worker, so the cap
   // only stops a runaway loop.
   "script-desk": 200,
+  // Research wave 2 (Leo only): one Instagram read or creator search filed, run on Leo's Mac (his home connection and
+  // Claude plan), so the cap only stops a runaway loop: 100 watched creators re-read every 2 days is 50 a day.
+  research: 400,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
