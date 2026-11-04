@@ -33,7 +33,7 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
       const answer = () =>
         t === "cs_telegram_bots"
           ? (writing() ? [] : h.ownBot ? [h.ownBot] : [])
-          : writing() || mine.some((f) => f[0] === "eq" && f[1] === "id" && f[2] === "00000000-0000-4000-8000-0000000000c1")
+          : writing() || mine.some((f) => (f[0] === "eq" && f[1] === "id" && f[2] === "00000000-0000-4000-8000-0000000000c1") || (f[0] === "in" && f[1] === "id" && (f[2] as string[]).includes("00000000-0000-4000-8000-0000000000c1")))
             ? [{ id: "00000000-0000-4000-8000-0000000000c1", bot_id: null }]
             : [];
       chain.select = (cols: string) => (note([writing() ? "select" : "read", cols]), chain);
@@ -41,6 +41,7 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
       chain.maybeSingle = async () => ({ data: answer()[0] ?? null, error: null });
       chain.update = (v: unknown) => (note(["update", v]), chain);
       chain.delete = () => (note(["delete"]), chain);
+      chain.upsert = (rows: unknown) => (h.inserted.push(rows), chain);
       chain.insert = (row: unknown) => (h.inserted.push(row), { select: () => ({ single: async () => ({ data: { id: "00000000-0000-4000-8000-0000000000c1" }, error: null }) }) });
       return chain;
     },
@@ -221,6 +222,21 @@ describe("the telegram function's caps", () => {
     await call("leo", { action: "disconnect", profileId: "pmoneybees", chatRow: ROW });
     await call("leo", { action: "bot-remove", profileId: "pmoneybees" });
     expect(h.rpcs.filter((r) => r.fn === "cs_consume_ai_usage")).toHaveLength(5);
+  });
+});
+
+describe("a chat's own rows", () => {
+  it("disconnects only a chat row of the caller's own, in this brand", async () => {
+    expect((await call("leo", { action: "disconnect", profileId: "pmoneybees", chatRow: ROW })).status).toBe(200);
+    expect(h.filters.slice(0, 4)).toEqual([["read", "id, chat_id, status, bot_id"], ["eq", "owner_id", LEO], ["eq", "profile_id", "pmoneybees"], ["eq", "id", ROW]]);
+  });
+
+  it("queues a post only into the caller's own connected chats in this brand, and reads back only their own posts", async () => {
+    const KEY = "00000000-0000-4000-8000-00000000000a";
+    expect((await call("leo", { action: "schedule", profileId: "pmoneybees", chatRows: [ROW], clientKey: KEY, text: "Hi", media: [], now: true })).status).toBe(200);
+    expect(h.filters.slice(0, 5)).toEqual([["read", "id"], ["eq", "owner_id", LEO], ["eq", "profile_id", "pmoneybees"], ["eq", "status", "connected"], ["in", "id", [ROW]]]);
+    expect(h.inserted).toEqual([[expect.objectContaining({ owner_id: LEO, profile_id: "pmoneybees", chat_row: ROW })]]);
+    expect(h.filters.slice(5)).toEqual([["read", "id, chat_row, send_at, status"], ["eq", "owner_id", LEO], ["eq", "client_key", KEY], ["in", "chat_row", [ROW]]]);
   });
 });
 
