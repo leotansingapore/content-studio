@@ -66,7 +66,10 @@
   `--no-verify-jwt`, with `x-script-worker-secret` (SCRIPT_WORKER_SECRET, keychain `cs-script-worker-secret`).
   Both serve NORTH_STAR_USERS' real ids only, never "*". A job holds inputs only: the reference prompts and message
   wording live in a private templates module on Leo's Mac (`~/.local/share/script-worker/templates.mjs`, its source
-  outside git), never in this public repo, the database or the bundle. Don't add prompt text here.
+  outside git), never in this public repo, the database or the bundle. Don't add prompt text here. Research (/research,
+  034) runs on the same worker: `ig_reels` and `ig_reel` read Instagram's public pages in headless Chromium
+  (`scripts/script-worker/instagram.mjs`, 3 s apart, every read paused 6 hours at a login wall), `discover` runs
+  Claude Code with web search only; reads have their own two slots and their own `research` cap.
 - Connected social accounts go through Zernio (`social` function, JWT on,
   018 `cs_social_profiles`). Zernio accepts any id on the team, so every id
   from a request is checked against the caller's own Zernio profile first.
