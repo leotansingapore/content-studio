@@ -170,3 +170,43 @@ describe("finding creators", () => {
     expect(loadList(UID)).toEqual({ creators: [], skipped: [] });
   });
 });
+
+describe("what the watch list keeps", () => {
+  it("leaves out a synced row whose handle isn't a username, so a bad row from another device never reaches the Mac", () => {
+    storage.setItem("content-studio-research-u1", JSON.stringify({
+      creators: [{ handle: "made.up_creator", addedAt: day(1) }, { handle: "https://www.instagram.com/second.one/", addedAt: day(1) }, { handle: "Upper.Case", addedAt: day(1) }, { handle: 5 }, null],
+      skipped: ["skip_me", 7],
+    }));
+    expect(loadList(UID)).toEqual({ creators: [{ handle: "made.up_creator", addedAt: day(1) }], skipped: ["skip_me"] });
+  });
+
+  it("drops a removed creator's reels from this device when the next read lands", () => {
+    saveList(UID, addCreators({ creators: [], skipped: [] }, ["a_one", "b_two"]).list);
+    keepRead(UID, "a_one", { profile: profile("a_one", 1), reels: [reel("DA00000001", 1000, 5)] }, undefined, new Date(NOW));
+    keepRead(UID, "b_two", { profile: profile("b_two", 1), reels: [reel("DB00000001", 1000, 5)] }, undefined, new Date(NOW));
+    saveList(UID, { ...loadList(UID), creators: loadList(UID).creators.filter((c) => c.handle !== "a_one") });
+    keepRead(UID, "b_two", { profile: profile("b_two", 1), reels: [reel("DB00000001", 1100, 5)] }, undefined, new Date(NOW));
+    expect(Object.keys(loadReads(UID))).toEqual(["b_two"]);
+  });
+
+  it("keeps a read small, 12 reels with captions cut at 300 characters, and the name from before when a read brings none", () => {
+    saveList(UID, addCreators({ creators: [], skipped: [] }, ["made.up_creator"]).list);
+    const reels = Array.from({ length: 15 }, (_, i) => reel(`DMadeUp00${String(i).padStart(2, "0")}`, 1000, 3 + i, { caption: "x".repeat(1000) }));
+    keepRead(UID, "made.up_creator", { profile: profile("made.up_creator", 120400), reels }, undefined, new Date(NOW));
+    const kept = loadReads(UID)["made.up_creator"];
+    expect(kept.reels).toHaveLength(12);
+    expect(kept.reels[0].caption).toHaveLength(300);
+    keepRead(UID, "made.up_creator", { profile: null, reels: [] }, undefined, new Date(NOW));
+    expect(loadReads(UID)["made.up_creator"]).toMatchObject({ name: "MADE.UP_CREATOR", followers: 120400 });
+  });
+
+  it("puts the newer reel first when two creators' reels beat their usual by the same", () => {
+    const list = { creators: [{ handle: "a_one", addedAt: day(9) }, { handle: "b_two", addedAt: day(9) }], skipped: [] };
+    const usual = (p: string) => [reel(`${p}0000001`, 1000, 10), reel(`${p}0000002`, 1000, 11), reel(`${p}0000003`, 1000, 12), reel(`${p}0000004`, 1000, 13)];
+    const reads = {
+      a_one: { at: day(0), avatar: "", reels: [...usual("DA"), reel("DA0000009", 5000, 9)] },
+      b_two: { at: day(0), avatar: "", reels: [...usual("DB"), reel("DB0000009", 5000, 3)] },
+    };
+    expect(feedOf(list, reads, NOW).slice(0, 2).map((f) => f.reel.code)).toEqual(["DB0000009", "DA0000009"]);
+  });
+});
