@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The handler with OpenAI and Jev faked: which counters move, which come back, and what each mode answers.
 const db = vi.hoisted(() => ({
@@ -36,7 +36,9 @@ let openai: () => Response | Promise<Response> = () => reply({});
 let jevReply: (questions: Record<string, unknown>, state: Record<string, unknown>) => Record<string, unknown> = () => ({});
 const reply = (content: unknown) => Response.json({ choices: [{ message: { content: JSON.stringify(content) } }] });
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout at load 40, and collection has no timeout
+{
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
     const url = String(u);
@@ -47,7 +49,7 @@ beforeAll(async () => {
     throw new Error(`unexpected fetch ${url}`);
   });
   await import("./index.ts");
-}, 30_000);
+}
 beforeEach(() => {
   db.spent.length = 0;
   db.refunded.length = 0;

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { clipPasses } from "./passes";
 
 // The handler's money path for Find clips: a long recording takes one use of "video-clips" per pass.
@@ -45,7 +45,9 @@ const LEO = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
 // the function's secrets; a test that wants Jev to answer sets TYPESAFE_API_KEY and takes it off again
 const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k", NORTH_STAR_USERS: LEO };
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout at load 40, and collection has no timeout
+{
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
@@ -57,7 +59,7 @@ beforeAll(async () => {
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
   await import("./index.ts");
-}, 30_000);
+}
 afterAll(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();

@@ -4,7 +4,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import W2 from "../../../supabase/functions/remix/fixtures/phase3-w2-live.json";
 import { priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 import type { MakeResponse } from "@/lib/remix";
@@ -30,7 +30,9 @@ const store = new Map<string, string>([
 
 let page: (play?: string) => string;
 let job: typeof import("@/lib/hookDemoJob");
-beforeAll(async () => {
+// at collection, not in a beforeAll: the page's first import transforms a large tree (8 s alone on a cold cache), which
+// ran past even a 60 s hook timeout at load 40, and collection has no timeout
+{
   const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
   vi.stubGlobal("localStorage", storage);
   vi.stubGlobal("sessionStorage", storage);
@@ -39,8 +41,7 @@ beforeAll(async () => {
   job = await import("@/lib/hookDemoJob");
   page = (play) =>
     renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/make/hook-demo${play ? `?play=${play}` : ""}`] }, createElement(HookDemo, { userId: UID, source: null })));
-  // the page's first import transforms a large tree (8 s alone on a cold cache), so the default 10 s is too tight in a full parallel run
-}, 60_000);
+}
 
 /** The footer chip's words: the last aria-live span on the page. */
 const chip = (html: string) => [...html.matchAll(/aria-live="polite"><span[^>]*>([^<]*)<\/span>/g)].at(-1)?.[1];
