@@ -214,6 +214,22 @@ describe("every update shape", () => {
     const startX = structuredClone(start) as { message: { from: { id: unknown } } };
     startX.message.from.id = "111000111";
     expect(eventOf(startX, "cs_test_bot")).toEqual({ kind: "ignore" });
+    const moved = structuredClone(migrate) as { message: { migrate_to_chat_id: unknown } };
+    moved.message.migrate_to_chat_id = "-1005550001111";
+    expect(eventOf(moved, "cs_test_bot")).toEqual({ kind: "ignore" });
+  });
+
+  it("ignores a message another bot sent, so it can't point posts at a topic", () => {
+    const fromBot = structuredClone(hereTopic);
+    fromBot.message.from.is_bot = true;
+    expect(eventOf(fromBot, "cs_test_bot")).toEqual({ kind: "ignore" });
+  });
+
+  it("reads /here sent as a reply in a group without topics as General, not as the reply's thread", () => {
+    const reply = structuredClone(hereTopic) as { message: Record<string, unknown> & { chat: { is_forum?: boolean } } };
+    delete reply.message.is_topic_message;
+    reply.message.chat.is_forum = false;
+    expect(eventOf(reply, "cs_test_bot")).toMatchObject({ kind: "here", topicId: null, topicName: null });
   });
 
   it("ignores a /here or /start meant for another bot, and a code with characters Telegram never sends", () => {
@@ -544,6 +560,12 @@ describe("the bot removed, demoted, moved or pointed at a topic", () => {
     expect(rows.map((r) => r.status)).toEqual(["removed", "connected"]);
     expect(posts.map((p) => [p.id, p.status, p.error])).toEqual([["p1", "cancelled", "Removed in Telegram"], ["p2", "posted", undefined], ["p3", "scheduled", undefined]]);
     expect(replies()).toEqual([]);
+  });
+
+  it("turns a chat already marked can't post into removed when the bot is taken out", async () => {
+    const { db, rows } = fakeDb([await connected({ status: "cant_post" })]);
+    await run(kicked, db, stubBot(GOOD).bot);
+    expect(rows[0].status).toBe("removed");
   });
 
   it("marks a channel the bot left as removed", async () => {
