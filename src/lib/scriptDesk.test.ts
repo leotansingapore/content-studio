@@ -54,6 +54,15 @@ describe("runDesk", () => {
     expect(polls.every((p) => p.action === "job" && p.id === "j1")).toBe(true);
   });
 
+  it("waits on a job the server files with its queued status, as script-desk answers a filing", async () => {
+    calls.replies.push({ job: "j1", kind: "write", status: "queued" }, { status: "claimed" }, { status: "done", result: { title: "t", script: "s" } });
+    const filed: string[] = [];
+    const r = await runDesk<{ title: string }>({ action: "write", entry: "dials" }, opts({ onFiled: (j: string) => filed.push(j) }));
+    expect(r).toEqual({ title: "t", script: "s" });
+    expect(filed).toEqual(["j1"]);
+    expect(calls.sent.slice(1).every((p) => p.action === "job" && p.id === "j1")).toBe(true);
+  });
+
   it("sends Me and Product only while their switch is on", async () => {
     saveScriptContext(UID, { me: { on: false, name: "Leo", handle: "", what: "", story: "", results: "", beliefs: "", niche: "" } });
     calls.replies.push({ job: "j1" }, { status: "done", result: {} });

@@ -45,7 +45,8 @@ export type DeskPhase = "queued" | "claimed";
 export const POLL_MS = 1500;
 export const GIVE_UP_MS = 5 * 60_000;
 
-type Filed = { job: string } | { status: "done"; result: unknown };
+// script-desk answers a filing with { job, kind, status: "queued" }; only a reply without a job is a finished answer
+type Filed = { job: string; status?: string } | { status: "done"; result: unknown };
 
 /**
  * Files one job and resolves with its answer. `onPhase` hears queued, then claimed. A stop (signal) ends the wait
@@ -63,7 +64,7 @@ export interface RunOpts {
 export async function runDesk<T>(body: Record<string, unknown>, opts: RunOpts): Promise<T> {
   const withContext = body.action === "claims" ? body : { ...body, context: deskContext(opts.userId), brand: activeProfileId(opts.userId) };
   const filed = await callFn<Filed>("script-desk", withContext, undefined, { signal: opts.signal });
-  if ("status" in filed) return filed.result as T;
+  if (!("job" in filed)) return filed.result as T;
   opts.onFiled?.(filed.job);
   return pollDesk<T>(filed.job, opts);
 }
