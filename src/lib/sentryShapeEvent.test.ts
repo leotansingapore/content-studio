@@ -1,5 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { shapeEvent } from './sentry';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+
+// initSentry's gate and settings: a fake SDK, and a DSN set before sentry.ts reads it at import.
+const sdk = vi.hoisted(() => {
+  vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o1.ingest.sentry.io/1');
+  return { init: vi.fn(), captureException: vi.fn(), browserTracingIntegration: vi.fn(() => ({ name: 'BrowserTracing' })) };
+});
+vi.mock('@sentry/react', () => sdk);
+
+import { captureRenderError, initSentry, shapeEvent } from './sentry';
 import { describeFailure } from './supabase-fetch-watch';
 import { scrubSentryEvent } from './sentryScrub';
 
@@ -47,5 +55,58 @@ describe('shapeEvent', () => {
     expect(e.transaction).toBe('/t/report/:person');
     expect(e.fingerprint).toEqual(['supabase', '{{ tags.supabase_method }}', '{{ tags.supabase_resource }}', '{{ tags.supabase_code }}', '{{ tags.supabase_select }}', '{{ tags.supabase_filters }}']);
     expect(e.tags).toMatchObject({ supabase_method: 'GET', supabase_resource: 'cs_tracked_links', supabase_code: '42501', supabase_select: 'id,campaign_id,slug,label,url,created_at', supabase_filters: 'profile_id,created_at' });
+  });
+});
+
+describe('where Sentry starts and what it collects', () => {
+  type Config = {
+    environment: string;
+    dataCollection: { userInfo: boolean; httpBodies: string[] };
+    tracePropagationTargets: unknown[];
+    beforeSend: (event: object, hint: object) => { request?: { url?: string } };
+  };
+  const build = (prod: boolean, hostname = 'app.postmosis.com') => {
+    vi.stubEnv('PROD', prod);
+    vi.stubGlobal('window', { location: { hostname } });
+    vi.stubGlobal('__APP_BUILD_ID__', 'b1');
+  };
+  const config = (i = 0) => sdk.init.mock.calls[i][0] as Config;
+
+  afterEach(() => {
+    sdk.init.mockClear();
+    sdk.captureException.mockClear();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs(); // the DSN is already read at import
+  });
+
+  it('holds render errors until it starts, then sends them with the errors caught before', () => {
+    build(true);
+    for (let i = 0; i < 6; i++) captureRenderError(new Error(`render ${i}`), 'at Card');
+    expect(sdk.captureException).not.toHaveBeenCalled();
+    const early = new Error('before load');
+    initSentry([early]);
+    expect(sdk.init).toHaveBeenCalledTimes(1);
+    expect(sdk.captureException.mock.calls.map(([e]) => (e as Error).message)).toEqual(['before load', 'render 0', 'render 1', 'render 2', 'render 3', 'render 4']);
+  });
+
+  it('collects no user, no request bodies and no trace headers, and cleans the page address before sending', () => {
+    build(true);
+    initSentry();
+    expect(config().environment).toBe('production');
+    expect(config().dataCollection).toEqual({ userInfo: false, httpBodies: [] });
+    expect(config().tracePropagationTargets).toEqual([]);
+    const sent = config().beforeSend({ request: { url: 'https://app.postmosis.com/review/abcdefghij?role=author' } }, {});
+    expect(sent.request?.url).toBe('https://app.postmosis.com/review/:person');
+  });
+
+  it("marks a preview deployment's errors as preview, and sends nothing from a development build", () => {
+    build(true, 'content-studio-git-main-leo.vercel.app');
+    initSentry();
+    expect(config().environment).toBe('preview');
+    sdk.init.mockClear();
+    build(false);
+    initSentry([new Error('dev')]);
+    expect(sdk.init).not.toHaveBeenCalled();
+    expect(sdk.captureException).not.toHaveBeenCalled();
   });
 });
