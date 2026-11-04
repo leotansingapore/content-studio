@@ -1050,6 +1050,19 @@ describe("picture tools", () => {
       expect(signs).toEqual([]);
     });
 
+    it("never signs a file outside the user's own upload folder, even one listed in their own library", async () => {
+      signs.length = 0;
+      const { rows } = db();
+      const foreign = [`${B}/lib/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg`, `${UID}/campaigns/cccccccc-cccc-4ccc-8ccc-cccccccccccc.png`, `x/${UP}`];
+      const withForeign: typeof rows = async (table, q) => [
+        ...(await rows(table, q)),
+        ...(table === "cs_library_images" ? foreign.map((src, i) => ({ id: `f${i}`, src, credit: null })) : []),
+      ];
+      const { out } = await run("get_library", { id: L1 }, everyone(fakeUsage(), media({ rows: withForeign, signed })));
+      expect(out.uploads.map((u: { id: string }) => u.id)).toEqual(["i2"]);
+      expect(signs).toEqual([["cs-slide-campaigns", [UP], 3600]]);
+    });
+
     it("leaves out an upload whose link couldn't be made", async () => {
       const { out } = await run("get_library", { id: L1 }, everyone(fakeUsage(), media({ rows: db().rows })));
       expect(out.uploads).toEqual([]);
