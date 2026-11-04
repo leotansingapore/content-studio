@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The script desk's worker on Leo's Mac (scripts/script-worker/worker.mjs), kept running by launchd.
+  Install, once 033 is applied, script-desk and script-worker are deployed and SCRIPT_WORKER_SECRET is set:
+    1. security add-generic-password -a "$USER" -s cs-script-worker-secret -w '<the same value as SCRIPT_WORKER_SECRET>'
+    2. cp scripts/script-worker/worker.mjs ~/.local/bin/script-worker.mjs
+    3. mkdir -p ~/.local/state/script-worker
+    4. cp scripts/script-worker/com.leo.script-worker.plist ~/Library/LaunchAgents/
+    5. install the private templates (not in this repo) at ~/.local/share/script-worker/templates.mjs: run install.sh in
+       the private templates folder on Leo's Mac (without them every job fails with a sentence saying so)
+    6. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.leo.script-worker.plist
+  Check: tail -f ~/.local/state/script-worker/worker.log ("script worker ... started"). Stop:
+    launchctl bootout gui/$(id -u)/com.leo.script-worker
+  It does not source ~/.zshenv on purpose: that file holds API keys, and the worker must reach Claude Code with
+  none (the worker strips them from Claude's environment anyway). The keychain gives it the secret.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.leo.script-worker</string>
+  <key>ProgramArguments</key>
+  <array><string>/opt/homebrew/bin/node</string><string>/Users/leo/.local/bin/script-worker.mjs</string></array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/Users/leo/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <!-- a stop ends the running jobs and reports them failed: give that time before launchd kills it -->
+  <key>ExitTimeOut</key><integer>40</integer>
+  <key>StandardOutPath</key><string>/Users/leo/.local/state/script-worker/worker.log</string>
+  <key>StandardErrorPath</key><string>/Users/leo/.local/state/script-worker/worker.log</string>
+</dict>
+</plist>
