@@ -195,6 +195,19 @@ describe("team-board", () => {
     expect(JSON.stringify(list.body)).not.toMatch(/token|[0-9a-f]{64}/);
   });
 
+  it("with two owners, never lets one see, change, remove or turn off the other's members and links", async () => {
+    env.TEAM_OWNER_IDS = `${LEO},${NEW}`;
+    const invite = await call(NEW, { action: "team.invite", role: "commenter", brands: ["activitytracker"] });
+    await call(MEI, { action: "claim", token: (invite.body.url as string).split("#")[1] });
+    const member = (await call(NEW, { action: "team.list" })).body.members[0].id as string;
+    expect((await call(LEO, { action: "team.list" })).body).toEqual({ members: [], links: [] });
+    expect(await call(LEO, { action: "team.update", id: member, role: "approver", brands: ["leo"] })).toEqual({ status: 404, body: { error: "That person isn't on the team any more." } });
+    expect((await call(LEO, { action: "team.revoke", id: member })).status).toBe(404);
+    expect((await call(LEO, { action: "team.linkOff", id: invite.body.link.id })).status).toBe(404);
+    expect(db.tables.cs_board_members).toEqual([expect.objectContaining({ owner_id: NEW, role: "commenter", brands: ["activitytracker"], revoked_at: null })]);
+    expect(db.tables.cs_board_invites).toEqual([expect.objectContaining({ owner_id: NEW, revoked_at: null })]);
+  });
+
   it("keeps a member whose access leaves out the posts board off it", async () => {
     const now = new Date().toISOString();
     db.tables.cs_board_members.push({ id: crypto.randomUUID(), owner_id: LEO, label: "Mei", member_id: MEI, role: "approver", brands: ["activitytracker"], modules: ["review"], claimed_at: now, revoked_at: null, created_at: now });
