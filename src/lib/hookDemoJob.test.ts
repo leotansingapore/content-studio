@@ -191,6 +191,22 @@ describe("words on a stock clip", () => {
     expect(opts.extra.toast).toBe(HOOK_TOAST);
   });
 
+  it("joins at once while an earlier video waits for the editor or failed to join, never on top of one being put together", async () => {
+    for (const earlier of ["done", "failed"] as const) {
+      media.start.mockClear();
+      media.current.mockImplementation(() => (media.start.mock.calls.length ? null : { progress: 1, state: earlier }));
+      expect((await run({ ...ASK, hook: "Stop guessing why your pipeline is empty" })).state).toBe("done");
+      expect(media.start).toHaveBeenCalledTimes(1);
+    }
+    // one still running holds the join until it ends
+    let checks = 0;
+    media.start.mockClear();
+    media.current.mockImplementation(() => (media.start.mock.calls.length ? null : ++checks < 3 ? { progress: 0.5, state: "running" } : null));
+    expect((await run({ ...ASK, hook: "Stop guessing why your pipeline is empty" })).state).toBe("done");
+    expect(checks).toBeGreaterThanOrEqual(3);
+    expect(media.start).toHaveBeenCalledTimes(1);
+  });
+
   it("takes the first clip when Jev has no answer", async () => {
     serve({ montage: () => null });
     await run({ ...ASK, hook: "Stop guessing why your pipeline is empty" });
