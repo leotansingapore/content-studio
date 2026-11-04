@@ -188,6 +188,8 @@ export const NO_PRICE: UsageFeature[] = [
   "slide-campaign-write", "slide-phone",
   // Telegram's Bot API is free at these volumes
   "telegram-connect", "telegram-schedule", "telegram-presign",
+  // the script desk's jobs run on Leo's own Claude plan through the paired worker, not a paid API
+  "script-desk",
 ];
 
 /** Write's own generation: uncapped, on the academy project (generate-social-content). Unverified. */

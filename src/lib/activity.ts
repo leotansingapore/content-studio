@@ -437,6 +437,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "post-match": "Post matches",
   "post-grade": "Post grades",
   "post-angles": "Post tags",
+  "script-desk": "Script desk jobs",
 };
 
 export interface AiUseRow {

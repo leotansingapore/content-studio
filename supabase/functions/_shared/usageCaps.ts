@@ -252,6 +252,10 @@ export const DAILY_LIMITS = {
   "post-grade": 30,
   // The angle and hook of up to 20 posted posts, and what to try next (writing-judge tags and try-next): Jev only.
   "post-angles": 10,
+  // Script desk wave 1 (Leo only, NORTH_STAR_USERS). One script desk job filed (script-desk: a script, hook ideas, a
+  // breakdown, a re-script or its claim check): it runs on Leo's own Claude Code through the paired worker, so the cap
+  // only stops a runaway loop.
+  "script-desk": 200,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
