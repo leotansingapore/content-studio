@@ -84,6 +84,7 @@ import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 import { loadPositioning } from "@/lib/positioning";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import ScriptDeskCard from "@/components/ScriptDeskCard";
+import { deskPostId } from "@/lib/scriptDesk";
 import { fromClone, sourceKey } from "@/lib/remixSource";
 import { MAKE_VIDEO, makeVideoHref, type MakeVideoKind } from "@/lib/scriptCaption";
 import PriceChip from "@/components/PriceChip";
@@ -1198,6 +1199,7 @@ function RemixLinkBox({
   cloning: boolean;
   onClone: (url: string) => void;
 }) {
+  const leoUser = useLeoUser();
   const [linkError, setLinkError] = useState<string | null>(null);
   const [read, setRead] = useState<LinkRead | null>(() => linkRead());
   const [saved, setSaved] = useState<LinkedSource[]>(() => savedLinks(userId));
@@ -1366,7 +1368,13 @@ function RemixLinkBox({
         </Card>
       )}
       {!read && idle && shown && (
-        <LinkResult source={shown} cloneLeft={left("reel-clone")} onRemix={() => openRemix(shown.key)} onClone={() => onClone(shown.url!)} onReset={reset} />
+        <>
+          <LinkResult source={shown} cloneLeft={left("reel-clone")} onRemix={() => openRemix(shown.key)} onClone={() => onClone(shown.url!)} onReset={reset} />
+          {/* a read reel is already in clone-reel's cache (remix-link reads through it), so the desk works on it here */}
+          {leoUser && shown.url && deskPostId(shown.key) && (
+            <ScriptDeskCard key={shown.key} userId={leoUser.id} url={shown.url} postId={deskPostId(shown.key)!} hasWords={shown.format === "video" && Boolean(shown.text?.trim())} />
+          )}
+        </>
       )}
       {!working && idle && (
         <RecentReads

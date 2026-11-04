@@ -102,6 +102,12 @@ export async function runRescript(
   return { rescript, check, job };
 }
 
+/** The desk's id for a reel read on Clone a reel (`link:instagram:<id>`), or null when it isn't an Instagram or TikTok reel. */
+export function deskPostId(key: string): string | null {
+  const m = /^link:(instagram|tiktok):([A-Za-z0-9_.-]{1,80})$/.exec(key);
+  return m ? `${m[1]}-${m[2]}` : null;
+}
+
 export const wordsOf = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 /** Seconds at 170 words a minute, the pace the writer is held to. */
 export const secondsOf = (s: string) => Math.round((wordsOf(s) / 170) * 60);

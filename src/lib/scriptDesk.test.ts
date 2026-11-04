@@ -12,7 +12,7 @@ vi.mock("@/lib/edgeFn", async (real) => ({
 }));
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "https://x.supabase.co" }));
 
-import { DEFAULT_DIALS, DIAL_META, levelOf, runDesk, runRescript, saveScriptDraft, secondsOf, wordsOf } from "./scriptDesk";
+import { DEFAULT_DIALS, DIAL_META, deskPostId, levelOf, runDesk, runRescript, saveScriptDraft, secondsOf, wordsOf } from "./scriptDesk";
 import { loadDrafts } from "./draftHistory";
 import { saveScriptContext } from "./scriptContext";
 
@@ -100,6 +100,16 @@ describe("runDesk", () => {
     const got = vi.fn();
     await expect(runRescript("https://www.instagram.com/reel/abc/", { ...opts(), onRescript: got })).rejects.toThrow("plan limit");
     expect(got).toHaveBeenCalledWith({ script: "a", changes: [], fill: [] }, "re1");
+  });
+});
+
+describe("deskPostId", () => {
+  it("names an Instagram or TikTok reel read on Clone a reel, and nothing else", () => {
+    expect(deskPostId("link:instagram:DdsjSosgWYL")).toBe("instagram-DdsjSosgWYL");
+    expect(deskPostId("link:tiktok:7412345678901234567")).toBe("tiktok-7412345678901234567");
+    expect(deskPostId("link:youtube:dQw4w9WgXcQ")).toBeNull();
+    expect(deskPostId("upload:abc")).toBeNull();
+    expect(deskPostId("link:instagram:../x")).toBeNull();
   });
 });
 
