@@ -293,4 +293,16 @@ suite("the montage for the brand's profession", () => {
       { mode: "montage", theme: "Rainy mornings", seconds: 20 },
     ]);
   });
+
+  it("still plans and makes the montage when the session can't be read, with today's prompt", async () => {
+    vi.mocked(supabase.auth.getSession).mockRejectedValueOnce(new Error("Auth session missing"));
+    const beats = ["coffee morning", "train commute", "hawker food"].map((q) => ({ say: q, search: q, fallback: q, text: "", seconds: 4 }));
+    vi.mocked(callFn).mockReset().mockImplementation(async (_fn, body) => ((body as { mode: string }).mode === "montage" ? { beats, grade: "warm" } : { picks: [0, 0, 0] }));
+    vi.mocked(searchStock).mockReset().mockImplementation(async (_k, q) => ({ items: [{ ...item(q, q.replace(/ /g, "-")), src: `https://p/${q}.mp4` }], more: false }));
+    vi.mocked(downloadStock).mockReset().mockImplementation(async (src: string) => new Blob([src]));
+    vi.mocked(startJoin).mockReset().mockResolvedValue(undefined);
+    await startMontage({ theme: "Rainy mornings", seconds: 20, words: false, music: null });
+    expect(montageJob()).toMatchObject({ state: "done" });
+    expect(JSON.parse(JSON.stringify(vi.mocked(callFn).mock.calls[0][1]))).toEqual({ mode: "montage", theme: "Rainy mornings", seconds: 20 });
+  });
 });

@@ -310,4 +310,12 @@ describe("key lines for the brand's profession", () => {
       { mode: "motion", sentences: sent, duration: 2, hookSeconds: 0 },
     ]);
   });
+
+  it("still asks for the key lines when the session can't be read, with today's prompt", async () => {
+    vi.mocked(supabase.auth.getSession).mockRejectedValueOnce(new Error("Auth session missing"));
+    vi.mocked(callFn).mockReset().mockResolvedValue({ lines: null });
+    const sent = [{ s: 0, e: 2, text: "Most people start too late." }];
+    await expect(pickKeyLines(sent, 2, 0)).resolves.toEqual({ lines: null });
+    expect(vi.mocked(callFn).mock.calls.map(([, b]) => JSON.parse(JSON.stringify(b)))).toEqual([{ mode: "motion", sentences: sent, duration: 2, hookSeconds: 0 }]);
+  });
 });

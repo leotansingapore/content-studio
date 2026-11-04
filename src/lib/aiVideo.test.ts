@@ -1,9 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
-const signedIn = vi.hoisted(() => ({ uid: undefined as string | undefined }));
+const signedIn = vi.hoisted(() => ({ uid: undefined as string | undefined, unreadable: false }));
 vi.mock("@/lib/supabase", () => ({
-  supabase: { auth: { getSession: async () => ({ data: { session: signedIn.uid ? { user: { id: signedIn.uid } } : null } }) } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "",
+  supabase: {
+    auth: {
+      getSession: async () => {
+        if (signedIn.unreadable) throw new Error("Auth session missing");
+        return { data: { session: signedIn.uid ? { user: { id: signedIn.uid } } : null } };
+      },
+    },
+  },
+  SUPABASE_URL: "", SUPABASE_ANON_KEY: "",
 }));
 vi.mock("@/lib/videoMedia", () => ({
   currentJoin: vi.fn(() => null), getFile: vi.fn(async () => undefined), putFile: vi.fn(async () => {}), deleteFile: vi.fn(async () => {}), monoPcm: vi.fn(),
@@ -62,7 +70,10 @@ describe("the brand's profession sent to ai-video", () => {
     vi.stubGlobal("window", { localStorage, dispatchEvent: () => true });
     signedIn.uid = "u1";
   });
-  afterEach(() => (signedIn.uid = undefined));
+  afterEach(() => {
+    signedIn.uid = undefined;
+    signedIn.unreadable = false;
+  });
 
   it("goes with the explainer script from the open brand's kit, and not for an adviser's", async () => {
     vi.mocked(callFn).mockResolvedValue({ scenes: [] });
@@ -86,6 +97,19 @@ describe("the brand's profession sent to ai-video", () => {
     const asks = vi.mocked(callFn).mock.calls.filter(([, b]) => (b as Body).mode === "template").map(([, b]) => JSON.parse(JSON.stringify(b)));
     expect(asks.map((b) => b.profession)).toEqual(["real estate agent", undefined]);
     expect(asks[1]).toEqual({ mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" }, photos: [] });
+  });
+
+  it("still orders the template clip and writes the explainer when the session can't be read, with today's prompt", async () => {
+    signedIn.unreadable = true;
+    kit("Coach");
+    vi.mocked(callFn).mockResolvedValueOnce({ scenes: [] });
+    await expect(writeExplainer("Why most people start too late")).resolves.toEqual([]);
+    vi.mocked(callFn).mockRejectedValue(new Error("stop"));
+    await makeTemplateClip("Laksa", ASK);
+    expect(vi.mocked(callFn).mock.calls.map(([, b]) => JSON.parse(JSON.stringify(b)))).toEqual([
+      { mode: "script", topic: "Why most people start too late" },
+      { mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" }, photos: [] },
+    ]);
   });
 });
 
