@@ -12,7 +12,7 @@ import { EdgeError } from "./edgeFn";
 import { goodFilm } from "./film/fixtures";
 import { parseFilm, type Film } from "./film/timeline";
 import {
-  DEFAULT_SETUP, MAX_FILMS, editorExtra, openInEditor, filmJob, fixIssues, getFilm, loadFilms, loadHistory, notQuite, putFilm, resumeFilm, sendNote, setSpec, undoFilm, voiceFilm, voiceStale,
+  DEFAULT_SETUP, MAX_FILMS, editorExtra, openInEditor, filmJob, fixIssues, getFilm, loadFilms, loadHistory, notQuite, putFilm, resumeFilm, sendNote, setSpec, takeUnseen, undoFilm, voiceFilm, voiceStale,
   writeDirections, writeFilm, type FilmDirection, type FilmSetup, type StoredFilm,
 } from "./filmJob";
 import { AI_LINE } from "./videoProjects";
@@ -83,6 +83,17 @@ describe("Show me 3 directions and Make this one", () => {
     expect(f.directions.map((d) => d.name)).toEqual(["Demo", "Claim", "Cards"]);
     expect(f.recommended).toBe(0);
     expect(f.spec).toBeUndefined();
+  });
+
+  it("opens directions that landed while the page was away once, and none after a write that failed", async () => {
+    takeUnseen();
+    fn.mockRejectedValueOnce(new EdgeError("You've used today's launch films. Back at 8am Singapore time.", 429, "daily_limit"));
+    await writeDirections(UID, SETUP);
+    expect(takeUnseen()).toBeNull();
+    fn.mockResolvedValueOnce(directionsAnswer);
+    const id = await writeDirections(UID, SETUP);
+    expect(takeUnseen()).toBe(id);
+    expect(takeUnseen()).toBeNull();
   });
 
   it("Show 3 more replaces the directions on the same film", async () => {
