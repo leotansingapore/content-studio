@@ -6,10 +6,12 @@ import {
   formProblem,
   lastPrivacyUrl,
   loadLaunches,
+  loadResults,
   metricsWindow,
   preflightArgs,
   resultDue,
   saveLaunch,
+  saveResult,
   startOf,
   statusWord,
   webAddress,
@@ -158,6 +160,19 @@ describe("the launches store", () => {
     saveLaunch("u1", launch("c1", { privacyUrl: "https://leotan.sg/privacy" }));
     saveLaunch("u1", launch("c2", { goal: "website" }));
     expect(lastPrivacyUrl("u1")).toBe("https://leotan.sg/privacy");
+  });
+  it("keeps each campaign's last read numbers as read, beside the other campaigns', and reads a broken store as none", () => {
+    saveResult("c1", { at: NOW, status: "Running", spend: 12.5, leads: 3, cpl: 4.1666 });
+    saveResult("c2", { at: NOW, status: "Paused", spend: 0, leads: 0, cpl: null });
+    saveResult("c1", { at: NOW + 1, status: "Running", spend: 20.75, leads: 4, cpl: 5.1875 });
+    expect(loadResults()).toEqual({
+      c1: { at: NOW + 1, status: "Running", spend: 20.75, leads: 4, cpl: 5.1875 },
+      c2: { at: NOW, status: "Paused", spend: 0, leads: 0, cpl: null },
+    });
+    for (const broken of ["not json", "[1,2]", "null"]) {
+      store.set("cs-ad-results", broken);
+      expect(loadResults(), broken).toEqual({});
+    }
   });
   it("reads a broken or foreign value as no launches", () => {
     store.set("content-studio-ad-launches-u1", "not json");
