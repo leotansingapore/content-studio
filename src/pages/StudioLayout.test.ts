@@ -133,6 +133,9 @@ async function load(path = "/home") {
   return { first, loaded };
 }
 
+// The pins were written on a Mac, where the Jump to button reads "⌘K"; pin the platform so Linux CI draws the same.
+vi.stubGlobal("navigator", { platform: "MacIntel", userAgent: "" });
+
 afterEach(() => {
   as.user = null;
   auth.user = null;
