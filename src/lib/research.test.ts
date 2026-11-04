@@ -78,6 +78,21 @@ describe("the watch list", () => {
     expect(dueCreators(loadList(UID), reads, {}, NOW)).toEqual([]);
   });
 
+  it("keeps each brand's watch list and reads to that brand, so switching brands never shows or rewrites the other's", () => {
+    saveList(UID, addCreators({ creators: [], skipped: [] }, ["made.up_creator"]).list);
+    keepRead(UID, "made.up_creator", { profile: profile("made.up_creator", 5), reels: [] }, undefined, new Date(NOW));
+    storage.setItem("content-studio-profiles-u1", JSON.stringify([{ id: "me", name: "Me", createdAt: "" }, { id: "pbrand2", name: "MoneyBees", createdAt: "" }]));
+    storage.setItem("cs-active-profile-u1", "pbrand2");
+    expect(loadList(UID).creators).toEqual([]);
+    expect(loadReads(UID)).toEqual({});
+    saveList(UID, addCreators(loadList(UID), ["second.one"]).list);
+    keepRead(UID, "second.one", { profile: profile("second.one", 7), reels: [] }, undefined, new Date(NOW));
+    expect(storage.getItem("content-studio-research-u1~pbrand2")).toContain("second.one");
+    storage.setItem("cs-active-profile-u1", "me");
+    expect(loadList(UID).creators.map((c) => c.handle)).toEqual(["made.up_creator"]);
+    expect(Object.keys(loadReads(UID))).toEqual(["made.up_creator"]);
+  });
+
   it("reads the never-read first, then the oldest, none read in the last 2 days, none already being read", () => {
     let list = addCreators({ creators: [], skipped: [] }, ["a_one", "b_two", "c_three", "d_four", "e_five"]).list;
     saveList(UID, list);
