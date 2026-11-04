@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import { PARALLEL, READ_KINDS, READ_PARALLEL, STOPPED, WRITE_KINDS, childEnv, claudeArgs, closeReader, problemOf, readClaudeJson, readerOf, runClaude, runJob, startWorker, templatesOf } from "./worker.mjs";
+import { PARALLEL, READ_DEADLINE_MS, READ_KINDS, READ_PARALLEL, STOPPED, WRITE_KINDS, childEnv, claudeArgs, closeReader, problemOf, readClaudeJson, readerOf, runClaude, runJob, startWorker, templatesOf } from "./worker.mjs";
 
 // A child process that answers like `claude -p --output-format json` and records what it was given.
 function fakeSpawn(answer, seen) {
@@ -277,6 +277,56 @@ describe("script worker", () => {
     } finally {
       await closeReader();
       fake.done();
+    }
+  });
+
+  it("tries a report again when it doesn't land, so Claude's answer isn't lost", async () => {
+    vi.useFakeTimers();
+    try {
+      const reports = [];
+      let job = { id: "j1", kind: "hooks", request: {} };
+      const fetchFn = async (_url, init) => {
+        const body = JSON.parse(init.body);
+        if (body.op === "claim") {
+          const j = job;
+          job = null;
+          return Response.json({ job: j });
+        }
+        reports.push([body.op, body.text]);
+        // the first report meets a hiccup at the function
+        return reports.length === 1 ? Response.json({ error: "down" }, { status: 503 }) : Response.json({ ok: true });
+      };
+      const w = startWorker({ url: "http://stub", secret: "s", worker: "mac", run: async () => ({ text: "the answer", model: "claude-opus-5-5" }), fetchFn, log: () => {} });
+      await vi.advanceTimersByTimeAsync(2_100);
+      expect(reports).toEqual([["done", "the answer"], ["done", "the answer"]]);
+      const stopping = w.stop();
+      await vi.advanceTimersByTimeAsync(10);
+      await stopping;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops a grid read's embed pages by its deadline, well inside the time script-desk gives a read", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const loads = [];
+      const grid = `<script type="application/json">${JSON.stringify({ u: { username: "made.up_creator", follower_count: 5, pk: "1", reels: ["DMadeUp0001", "DMadeUp0002"].map((code) => ({ code, play_count: 9 })) } })}</script>`;
+      const reader = {
+        load: async (url) => {
+          loads.push(url);
+          // the grid takes five minutes: past the worker's 4.5, inside script-desk's 6
+          vi.setSystemTime(Date.now() + 5 * 60_000);
+          return { url, status: 200, html: url.endsWith("/reels/") ? grid : "", body: "" };
+        },
+        pauseFor: () => ({}),
+      };
+      const r = await runJob({ id: "j", kind: "ig_reels", request: { handle: "made.up_creator", embeds: 12 } }, { reader });
+      expect(JSON.parse(r.text).reels.map((x) => x.code)).toEqual(["DMadeUp0001", "DMadeUp0002"]);
+      expect(loads).toEqual(["https://www.instagram.com/made.up_creator/reels/"]);
+      expect(READ_DEADLINE_MS.ig_reels).toBeLessThan(6 * 60_000);
+    } finally {
+      vi.useRealTimers();
     }
   });
 
