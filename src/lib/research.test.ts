@@ -145,6 +145,12 @@ describe("finding creators", () => {
     expect(suggestedOf(found, list).map((x) => x.handle)).toEqual(["big_1", "big_2", "big_3", "small_1", "small_2"]);
   });
 
+  it("never suggests a creator skipped just now, even after 500 skips", () => {
+    const old = Array.from({ length: 500 }, (_, i) => `old_skip_${i}`);
+    saveList(UID, { creators: [], skipped: [...old, "skip_me"] });
+    expect(suggestedOf([c("skip_me", 70_000), c("old_skip_0", 70_000)], loadList(UID)).map((x) => x.handle)).toEqual(["old_skip_0"]);
+  });
+
   it("files a read with the codes already kept and no brand facts, and a search or a suggestion as its own job", async () => {
     calls.replies.push({ job: "r1" }, { status: "done", result: { profile: null, reels: [], paused: { until: day(-1), why: "login" } } });
     const r = await readCreator("made.up_creator", ["DA00000001"], { userId: UID, sleep: async () => {} });
