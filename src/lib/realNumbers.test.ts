@@ -457,3 +457,12 @@ describe("the last pull, read for a range of days", () => {
     expect(ids(lastPull(OTHER)!.posts)).toEqual(["p2"]);
   });
 });
+
+describe("matchOutside: days are Singapore days", () => {
+  it("matches a post put out just after midnight in Singapore to a draft 3 Singapore days on, and not one 4 days on", () => {
+    const at1am = pulled("p1", null, n({ likes: 3 }), { text: words(1, 20), publishedAt: "2026-10-07T17:00:00Z" }); // 8 Oct, 1:00 am SGT
+    const on = (day: string) => draft(`d${day}`, { draft: words(1, 20), postedAt: undefined, scheduledFor: `2026-10-${day}T09:00` });
+    expect(matchOutside([on("11")], [at1am]).sure.map((l) => l.draftId)).toEqual(["d11"]);
+    expect(matchOutside([on("12")], [at1am])).toEqual({ sure: [], ask: [] });
+  });
+});
