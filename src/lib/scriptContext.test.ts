@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { saveAudience } from "./audiences";
 import { productsKey } from "./products";
-import { deskContext, hasAvatar, loadScriptContext, saveScriptContext, scriptContextKey, EMPTY_ME, EMPTY_PRODUCT } from "./scriptContext";
+import { deskContext, hasAvatar, loadScriptContext, saveScriptContext, scriptContextKey, EMPTY_ME, EMPTY_PRODUCT, ownName } from "./scriptContext";
 
 class MemStorage {
   s = new Map<string, string>();
@@ -20,6 +20,14 @@ afterEach(() => vi.unstubAllGlobals());
 const UID = "u1";
 
 describe("script context", () => {
+  it("drops an audience name that only repeats the start of who they are, and keeps a real one", () => {
+    const who = "Working adults, students and freelancers who juggle tasks, appointments and reminders across too many apps.";
+    expect(ownName("Working adults, students and freelancers who juggle tas", who)).toBe("");
+    expect(ownName("Busy freelancers", who)).toBe("Busy freelancers");
+    expect(ownName(who, who)).toBe(who);
+    expect(ownName("  ", who)).toBe("");
+  });
+
   it("syncs under a content-studio- key per brand, and a save on one side keeps the other", () => {
     expect(scriptContextKey(UID).startsWith("content-studio-script-context-")).toBe(true);
     saveScriptContext(UID, { me: { ...EMPTY_ME, name: "Leo" } });

@@ -95,6 +95,12 @@ const sampleOf = (userId: string) => loadVoiceProfile(userId)?.posts.find((p) =>
  * main audience, the niche (typed on /voice, else the positioning's topics) and a voice sample. The server cleans and
  * clips all of it again (script-desk logic.ts sanitizeContext).
  */
+/** An audience's name, or "" when it only repeats the start of who they are (a seeded audience's name is its detail cut short). */
+export function ownName(name: string, who: string): string {
+  const n = name.trim();
+  return n && who.trim().startsWith(n) && n.length < who.trim().length ? "" : n;
+}
+
 export function deskContext(userId: string) {
   const { me, product: typed } = loadScriptContext(userId);
   // a field left empty takes the brand kit's main product (/brand, Products), where there is one
@@ -105,7 +111,7 @@ export function deskContext(userId: string) {
   const main = loadAudiences(userId)[0] ?? null;
   const topics = loadPositioning(userId)?.topics ?? [];
   return {
-    avatar: main ? { name: main.name, who: main.who, pains: main.pains ?? [], fears: main.fears ?? [], desires: main.desires ?? [], days: main.days ?? [] } : null,
+    avatar: main ? { name: ownName(main.name, main.who), who: main.who, pains: main.pains ?? [], fears: main.fears ?? [], desires: main.desires ?? [], days: main.days ?? [] } : null,
     niche: me.niche.trim() || topics.join(", "),
     sample: sampleOf(userId),
     me: me.on ? { name: me.name, handle: me.handle, what: me.what, story: me.story, results: lines(me.results), beliefs: lines(me.beliefs) } : null,
