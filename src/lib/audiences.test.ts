@@ -52,6 +52,16 @@ describe("sanitizeAudience", () => {
     const a = sanitizeAudience({ id: "au-1", name: "x", lifeStage: "martian", source: "robot", cares: "no" });
     expect([a?.lifeStage, a?.source, a?.cares]).toEqual(["general", "you", []]);
   });
+
+  it("keeps the avatar lists one item a line, clipped, and leaves empty ones out of the row", () => {
+    const a = sanitizeAudience({ id: "au-1", name: "x", pains: ["Late payers", " ", "p".repeat(200)], fears: Array.from({ length: 14 }, (_, i) => `f${i}`), desires: "no", days: [] });
+    expect(a?.pains).toEqual(["Late payers", "p".repeat(120)]);
+    expect(a?.fears).toHaveLength(10);
+    expect(a && ["desires" in a, "days" in a]).toEqual([false, false]);
+    // a row from before the lists reads exactly as it did
+    expect(sanitizeAudience({ id: "au-2", name: "y", createdAt: "t" })).toEqual({ id: "au-2", name: "y", who: "", lifeStage: "general", cares: [], source: "you", createdAt: "t" });
+    expect(add("Owners", { pains: ["Cash flow"] }).pains).toEqual(["Cash flow"]);
+  });
 });
 
 describe("seeding from positioning", () => {

@@ -8,7 +8,10 @@ import { cutAtWord } from "@/lib/scriptCaption";
 
 export const MAX_ACTIVE = 6;
 export const MAX_KEPT = 20;
-export const AUDIENCE_LIMITS = { name: 60, who: 240, care: 80, cares: 5, says: 160 } as const;
+export const AUDIENCE_LIMITS = { name: 60, who: 240, care: 80, cares: 5, says: 160, item: 120, items: 10 } as const;
+/** The avatar lists (the script desk reads them): one item a line on /audiences. */
+export const AVATAR_LISTS = ["pains", "fears", "desires", "days"] as const;
+export type AvatarList = (typeof AVATAR_LISTS)[number];
 export const AUDIENCES_CHANGED = "content-studio-audiences-changed";
 export const FULL_LINE = "6 is the most. Remove one to add another.";
 export const NO_ROOM_LINE = "This device is out of room, so that wasn't saved. Clear some space, then try again.";
@@ -31,6 +34,11 @@ export interface Audience {
   cares: string[];
   says?: string;
   main?: boolean;
+  /** Pain points, fears, desires and daily activities (script desk, Leo only); absent when empty. */
+  pains?: string[];
+  fears?: string[];
+  desires?: string[];
+  days?: string[];
   source: "website" | "profile" | "you";
   createdAt: string;
   offAt?: string;
@@ -54,6 +62,11 @@ export function sanitizeAudience(raw: unknown): Audience | null {
   const cares = (Array.isArray(r.cares) ? r.cares : []).map((c) => text(c, AUDIENCE_LIMITS.care)).filter(Boolean).slice(0, AUDIENCE_LIMITS.cares);
   const says = text(r.says, AUDIENCE_LIMITS.says);
   const offAt = text(r.offAt, 40);
+  const lists: Partial<Record<AvatarList, string[]>> = {};
+  for (const k of AVATAR_LISTS) {
+    const items = (Array.isArray(r[k]) ? (r[k] as unknown[]) : []).map((c) => text(c, AUDIENCE_LIMITS.item)).filter(Boolean).slice(0, AUDIENCE_LIMITS.items);
+    if (items.length) lists[k] = items;
+  }
   return {
     id,
     name,
@@ -61,6 +74,7 @@ export function sanitizeAudience(raw: unknown): Audience | null {
     lifeStage: isStage(r.lifeStage) ? r.lifeStage : "general",
     cares,
     ...(says ? { says } : {}),
+    ...lists,
     ...(r.main === true && !offAt ? { main: true } : {}),
     source: r.source === "website" || r.source === "profile" ? r.source : "you",
     createdAt: text(r.createdAt, 40),

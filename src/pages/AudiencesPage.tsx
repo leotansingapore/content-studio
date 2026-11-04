@@ -17,7 +17,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
-  type Audience, AUDIENCE_LIMITS, FULL_LINE, loadAudiences, MAX_ACTIVE, onAudiencesChanged, removeAudience, saveAudience, setMain, whoRepeatsName } from "@/lib/audiences";
+  type Audience, type AvatarList, AUDIENCE_LIMITS, AVATAR_LISTS, FULL_LINE, loadAudiences, MAX_ACTIVE, onAudiencesChanged, removeAudience, saveAudience, setMain, whoRepeatsName } from "@/lib/audiences";
 import {
   hasProfile, keepAllSuggested, keepSuggested, loadWaiting, onSuggest, removeSuggested, siteFor, startSuggest, statusLine, suggestFailed,
   suggestingNow, type Waiting,
@@ -237,8 +237,23 @@ function Suggestions({ waiting, full, onKeep, onKeepAll, onRemove }: {
   );
 }
 
-type Fields = Pick<Audience, "name" | "who" | "lifeStage" | "cares"> & { says: string };
-const fieldsOf = (a: Audience | null): Fields => ({ name: a?.name ?? "", who: a?.who ?? "", lifeStage: a?.lifeStage ?? "general", cares: a?.cares ?? [], says: a?.says ?? "" });
+// the avatar lists are typed one a line, so the box keeps its raw text and the row gets the lines
+type Fields = Pick<Audience, "name" | "who" | "lifeStage" | "cares"> & { says: string } & Record<AvatarList, string>;
+const fieldsOf = (a: Audience | null): Fields => ({
+  name: a?.name ?? "", who: a?.who ?? "", lifeStage: a?.lifeStage ?? "general", cares: a?.cares ?? [], says: a?.says ?? "",
+  ...(Object.fromEntries(AVATAR_LISTS.map((k) => [k, (a?.[k] ?? []).join("\n")])) as Record<AvatarList, string>),
+});
+const rowOf = (f: Fields): Omit<Fields, AvatarList> & Record<AvatarList, string[]> => ({
+  ...f,
+  ...(Object.fromEntries(AVATAR_LISTS.map((k) => [k, f[k].split("\n")])) as Record<AvatarList, string[]>),
+});
+/** The avatar lists, for the script desk. */
+const LIST_LABELS: Record<AvatarList, [string, string]> = {
+  pains: ["Pain points", "Feast or famine months"],
+  fears: ["Fears", "Losing their biggest client"],
+  desires: ["Desires", "A waitlist of clients"],
+  days: ["Daily activities", "Chasing invoices"],
+};
 
 /** One audience: every field saves as it is typed (a new one once it has a name). */
 function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
@@ -265,7 +280,7 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
     const next = { ...f, ...patch };
     setF(next);
     if (!next.name.trim()) return setLine(audience ? "Give it a name first." : "");
-    const r = saveAudience(userId, { ...next, ...(audience ? { id: audience.id } : { source: "you" as const }) });
+    const r = saveAudience(userId, { ...rowOf(next), ...(audience ? { id: audience.id } : { source: "you" as const }) });
     if (r.ok === false) return setLine(r.error);
     setLine("");
     onSaved();
@@ -344,6 +359,14 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
         <div className="space-y-1.5">
           <Label htmlFor="aud-says">How they talk about {speakerFor(userId) === "person" ? "money" : "it"} (optional)</Label>
           <Input id="aud-says" value={f.says} maxLength={AUDIENCE_LIMITS.says} onChange={(e) => set({ says: e.target.value })} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {AVATAR_LISTS.map((k) => (
+            <div key={k} className="space-y-1.5">
+              <Label htmlFor={`aud-${k}`}>{LIST_LABELS[k][0]} <span className="font-normal text-muted-foreground">(one a line, up to {AUDIENCE_LIMITS.items})</span></Label>
+              <Textarea id={`aud-${k}`} rows={3} value={f[k]} placeholder={LIST_LABELS[k][1]} onChange={(e) => set({ [k]: e.target.value } as Partial<Fields>)} />
+            </div>
+          ))}
         </div>
         {line && <p className="text-sm text-destructive" role="alert">{line}</p>}
         <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
