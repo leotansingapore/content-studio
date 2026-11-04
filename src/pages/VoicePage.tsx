@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Input } from "@/components/ui/input";
 import PriceChip from "@/components/PriceChip";
+import { MeCard } from "@/components/ScriptContextCards";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useGoneItem, useScrollToHash, useScrollToItem, useUrlItem } from "@/lib/urlState";
@@ -269,6 +270,7 @@ export default function VoicePage() {
               distill={runDistill}
             />
             <FactsSection userId={userId} />
+            <MeCard userId={userId} />
             <LearnedSection userId={userId} />
           </>
         ) : (

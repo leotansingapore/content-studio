@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
+import { ProductCard } from "@/components/ScriptContextCards";
 import ProfessionField from "@/components/ProfessionField";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -655,6 +656,7 @@ export default function BrandPage() {
             )}
           </section>
           {leo && userId && <ProductsSection userId={userId} brand={brand} setBrand={setKit} />}
+          {leo && userId && <ProductCard userId={userId} />}
           {leo && userId && <DemoVideosSection userId={userId} brand={brand} setBrand={setKit} />}
 
           <section id="emoji-and-hashtags" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
