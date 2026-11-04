@@ -461,6 +461,39 @@ describe("AI pictures in one look", () => {
     expect(j.note).toBeUndefined();
   });
 
+  it("keeps a paid picture when one of its status checks drops on the way", async () => {
+    let dropped = false;
+    fn.mockImplementation(async (name: string, body: { mode: string; token?: string }) => {
+      if (name !== "ai-image") throw new Error(name);
+      if (body.mode === "slides") return { tokens: ["t1", "t2", "t3"] };
+      if (body.token === "t2" && !dropped) {
+        dropped = true;
+        throw new Error("Failed to fetch");
+      }
+      return { state: "done", url: `https://cdn.higgsfield.ai/${body.token}.png` };
+    });
+    vi.stubGlobal("fetch", async () => new Response(new Blob(["png"])));
+    const j = await runFake(AI);
+    expect(dropped).toBe(true);
+    expect(madeShow(j).slides.map((x) => !!x.image)).toEqual([true, true, true]);
+    expect(fn.mock.calls.filter(([, b]) => b.mode === "slides")).toHaveLength(1);
+  });
+
+  it("makes AI pictures only for the new slides after a kept cover, each on its own slide", async () => {
+    const { saveSlideshow, blankSlideshow, makeBox } = await import("./slideshow");
+    const cover = { id: "c1", fill: "#1E293B", boxes: [{ ...makeBox("5 viral theories"), id: "b1" }] };
+    saveSlideshow(UID, { ...blankSlideshow(), id: "old", slides: [cover, { id: "o2", boxes: [{ ...makeBox("1. old point"), id: "b2" }] }] });
+    // t2, the first new slide's picture, fails: it must leave slide 2 (not slide 3) on the brand colour
+    studio(() => ({ tokens: ["t2", "t3"] }));
+    vi.stubGlobal("fetch", async () => new Response(new Blob(["png"])));
+    const j = await runFake({ ...AI, keep: "old" });
+    expect(j.state).toBe("done");
+    expect(fn.mock.calls[0][1]).toMatchObject({ mode: "slides", pictures: SLIDES.slice(1).map((x) => x.search) });
+    const made = madeShow(j).slides;
+    expect(made[0]).toMatchObject({ fill: "#1E293B", boxes: cover.boxes });
+    expect(made.map((x) => !!x.image)).toEqual([false, false, true]);
+  });
+
   it("keeps the written slides with stock photos, and says why, when the AI pictures are refused", async () => {
     answer({ "empty office|1": [photo("10")], "phone on desk|1": [photo("20")], "calendar|1": [photo("30")] }, [0, 0, 0]);
     const jev = fn.getMockImplementation()!;
