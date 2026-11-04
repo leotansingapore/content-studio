@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import templatesRaw from "../../supabase/functions/_shared/designTemplates.json" with { type: "json" };
 import { staleCutout } from "@/components/design/SlideView";
 import {
@@ -19,7 +19,7 @@ import {
   type ImageLayer,
 } from "@/lib/design";
 import { designToDraft } from "@/pages/DesignEditorPage";
-import { FOLLOW_QUIET_MS, MAX_DESIGNS, followStep, loadDesigns, saveDesign } from "@/lib/design";
+import { FOLLOW_QUIET_MS, MAX_DESIGNS, MAX_TEMPLATES, followStep, loadDesigns, loadOwnTemplates, loadPalette, removeDesign, saveDesign, saveOwnTemplate, savePalette } from "@/lib/design";
 import * as shared from "../../supabase/functions/_shared/design.ts";
 
 describe("accent words", () => {
@@ -181,7 +181,7 @@ describe("saving slideshows", () => {
     const m = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
   });
-  afterEach(() => delete (globalThis as { localStorage?: unknown }).localStorage);
+  afterEach(() => (vi.unstubAllGlobals(), delete (globalThis as { localStorage?: unknown }).localStorage));
 
   it("refuses a new one past MAX_DESIGNS instead of dropping the oldest, and still saves the ones it has", () => {
     const decks = Array.from({ length: MAX_DESIGNS }, (_, i) => ({ ...newDesign("tiktok", `Deck ${i}`), id: `dsg_${i}` }));
@@ -192,6 +192,44 @@ describe("saving slideshows", () => {
     // the editor's own save of a design it has goes through
     expect(saveDesign(UID, { ...decks[0], title: "Renamed" })?.[0]).toMatchObject({ id: "dsg_0", title: "Renamed" });
     expect(loadDesigns(UID)).toHaveLength(MAX_DESIGNS);
+  });
+
+  it("Delete takes off only the slideshow it names, the rest kept in order", () => {
+    for (const id of ["dsg_a", "dsg_b", "dsg_c"]) saveDesign(UID, { ...newDesign("tiktok", id), id });
+    expect(loadDesigns(UID).map((d) => d.id)).toEqual(["dsg_c", "dsg_b", "dsg_a"]);
+    removeDesign(UID, "dsg_b");
+    expect(loadDesigns(UID).map((d) => d.id)).toEqual(["dsg_c", "dsg_a"]);
+    removeDesign(UID, "dsg_gone");
+    expect(loadDesigns(UID).map((d) => d.id)).toEqual(["dsg_c", "dsg_a"]);
+  });
+
+  it("Save as template keeps the newest 20, each its own copy with no link to a post", () => {
+    const deck = { ...newDesign("tiktok", "Deck"), draftId: "draft-1" };
+    for (let i = 0; i <= MAX_TEMPLATES; i++) saveOwnTemplate(UID, { ...deck, title: `Template ${i}` });
+    const kept = loadOwnTemplates(UID);
+    expect(kept).toHaveLength(MAX_TEMPLATES);
+    expect(kept[0].title).toBe(`Template ${MAX_TEMPLATES}`);
+    expect(kept.some((t) => t.title === "Template 0")).toBe(false);
+    expect(new Set(kept.map((t) => t.id)).size).toBe(MAX_TEMPLATES);
+    expect(kept.every((t) => t.id !== deck.id && !t.draftId)).toBe(true);
+    expect(loadDesigns(UID)).toEqual([]);
+  });
+
+  it("each brand keeps its own slideshows, palette and templates", () => {
+    const ls = (globalThis as unknown as { localStorage: Storage }).localStorage;
+    vi.stubGlobal("window", { localStorage: ls });
+    saveDesign(UID, { ...newDesign("tiktok", "Mine"), id: "dsg_mine" });
+    savePalette(UID, { colors: ["#111111"], heading: "Anton", body: null });
+    saveOwnTemplate(UID, newDesign("tiktok", "My template"));
+    ls.setItem(`content-studio-profiles-${UID}`, JSON.stringify([{ id: "me", name: "Me", createdAt: "" }, { id: "pbrand2", name: "MoneyBees", createdAt: "" }]));
+    ls.setItem(`cs-active-profile-${UID}`, "pbrand2");
+    expect([loadDesigns(UID), loadOwnTemplates(UID), loadPalette(UID)]).toEqual([[], [], { colors: [], heading: null, body: null }]);
+    saveDesign(UID, { ...newDesign("tiktok", "Theirs"), id: "dsg_theirs" });
+    savePalette(UID, { colors: ["#222222"], heading: null, body: null });
+    ls.setItem(`cs-active-profile-${UID}`, "me");
+    expect(loadDesigns(UID).map((d) => d.id)).toEqual(["dsg_mine"]);
+    expect(loadOwnTemplates(UID).map((t) => t.title)).toEqual(["My template"]);
+    expect(loadPalette(UID)).toEqual({ colors: ["#111111"], heading: "Anton", body: null });
   });
 });
 
