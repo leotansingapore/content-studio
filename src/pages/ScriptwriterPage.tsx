@@ -310,7 +310,8 @@ function Dial({ id, label, shown, sub, pct, input }: { id: string; label: string
         <circle cx="28" cy="28" r={r} fill="none" strokeWidth="5" strokeLinecap="round" className="stroke-primary" strokeDasharray={`${c * pct} ${c}`} transform="rotate(-90 28 28)" />
         <text x="28" y="32" textAnchor="middle" className="fill-foreground text-[12px] font-semibold">{shown}</text>
       </svg>
-      <label htmlFor={id} className="w-full truncate text-xs font-medium">{label}</label>
+      {/* two lines held for every label so "Template match" can wrap and the row of gauges stays level */}
+      <label htmlFor={id} className="flex min-h-[2.5em] w-full items-center justify-center text-xs font-medium leading-tight">{label}</label>
       <span className="text-[11px] text-muted-foreground">{sub}</span>
       {input}
     </div>
