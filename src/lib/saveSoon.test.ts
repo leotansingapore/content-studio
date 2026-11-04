@@ -41,6 +41,19 @@ describe("saveSoon", () => {
     expect(log).toEqual(["saved", "action"]);
   });
 
+  it("an edit saved while a slow save is still out goes after it, so the server ends with the newest copy", async () => {
+    vi.useFakeTimers();
+    let server = "";
+    const s = saveSoon(500);
+    const save = (copy: string, ms: number) => () => new Promise((done) => setTimeout(() => ((server = copy), done(null)), ms));
+    s.later(save("older", 2000));
+    await vi.advanceTimersByTimeAsync(500); // the older save is out
+    s.later(save("newer", 100));
+    await vi.advanceTimersByTimeAsync(500); // the newer one's pause is over while the older is still out
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(server).toBe("newer");
+  });
+
   it("a failed save doesn't stop the next one or the action", async () => {
     const sent: string[] = [];
     const s = saveSoon(500);
