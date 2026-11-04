@@ -27,7 +27,8 @@ jobs:
       startsWith(github.event.workflow_run.head_branch, 'claude/')
     runs-on: ubuntu-latest
     steps:
-      - env:
+      - shell: bash # -eo pipefail: a failed gh call stops the merge instead of looking like an empty answer
+        env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           SHA: ${{ github.event.workflow_run.head_sha }}
@@ -39,7 +40,12 @@ jobs:
           if [ "$head" != "$SHA" ]; then echo "PR #$number has a newer commit than this CI run; that run decides."; exit 0; fi
           # A PR's CI runs the PR's own ci.yml, so a PR that changes CI, workflows or
           # dependencies cannot vouch for itself: those wait for Leo.
-          held=$(gh pr diff "$number" -R "$GITHUB_REPOSITORY" --name-only | grep -E '^(\.github/|package(-lock)?\.json$)' || true)
+          # Old and new path of every file; no list, or the API's 3000-file cap, means no merge.
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$number/files" --jq '.[] | .filename, (.previous_filename // empty)') \
+            || { echo "Could not list the files of PR #$number; not merging."; exit 1; }
+          count=$(printf '%s\n' "$files" | grep -c . || true)
+          if [ -z "$files" ] || [ "$count" -ge 3000 ]; then echo "PR #$number lists $count files; not merging."; exit 1; fi
+          held=$(printf '%s\n' "$files" | grep -E '^(\.github/|package(-lock)?\.json$)' || true)
           if [ -n "$held" ]; then
             note="Not auto-merged: this PR changes CI, workflows or dependencies, so it needs a person to merge it."
             gh pr view "$number" -R "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' | grep -qF "$note" \
