@@ -59,10 +59,16 @@ export interface RunOpts {
   onFiled?: (job: string) => void;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  /** How long to wait for the answer: GIVE_UP_MS, longer for research reads and searches. */
+  giveUpMs?: number;
 }
 
+// a read or a typed search needs none of the brand's facts (a claim check reuses its re-script's, and no brand)
+const noContext = (b: Record<string, unknown>) => b.action === "ig_reels" || b.action === "ig_reel" || (b.action === "discover" && b.mode !== "suggest");
+
 export async function runDesk<T>(body: Record<string, unknown>, opts: RunOpts): Promise<T> {
-  const withContext = body.action === "claims" ? body : { ...body, context: deskContext(opts.userId), brand: activeProfileId(opts.userId) };
+  const brand = activeProfileId(opts.userId);
+  const withContext = body.action === "claims" ? body : noContext(body) ? { ...body, brand } : { ...body, context: deskContext(opts.userId), brand };
   const filed = await callFn<Filed>("script-desk", withContext, undefined, { signal: opts.signal });
   if (!("job" in filed)) return filed.result as T;
   opts.onFiled?.(filed.job);
@@ -76,7 +82,7 @@ export async function pollDesk<T>(job: string, opts: Omit<RunOpts, "userId" | "o
   opts.onPhase?.("queued");
   const started = now();
   let phase: DeskPhase = "queued";
-  while (now() - started < GIVE_UP_MS) {
+  while (now() - started < (opts.giveUpMs ?? GIVE_UP_MS)) {
     await sleep(POLL_MS);
     if (opts.signal?.aborted) throw new EdgeError("Stopped.", 0, "stopped");
     const r = await callFn<{ status: string; result?: unknown; error?: string }>("script-desk", { action: "job", id: job }, undefined, { signal: opts.signal });
