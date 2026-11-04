@@ -248,6 +248,17 @@ describe("slideshow campaigns", () => {
     expect(c).toMatchObject({ status: "paused", next_run_at: null });
   });
 
+  it("Send to TikTok now sends an example once, counted once on the day's campaign posts", async () => {
+    const c = live({ status: "draft", next_run_at: null });
+    const run = { id: crypto.randomUUID(), campaign_id: c.id, owner_id: A, kind: "preview", status: "made", hook: "One hook", caption: "Old caption", slides: [{ role: "hook", text: "One hook" }], files: [`${A}/runs/x/1.png`] };
+    st.db.cs_slide_campaign_runs.push(run);
+    expect(await call(A, { action: "send", id: c.id, run_id: run.id, caption: "Edited caption" })).toEqual({ status: 200, body: { sent: true } });
+    expect(schedules()).toHaveLength(1);
+    expect(schedules()[0].input).toMatchObject({ content: "Edited caption", mediaUrls: [expect.stringContaining(`/${A}/runs/x/1.png`)] });
+    expect(await call(A, { action: "send", id: c.id, run_id: run.id })).toEqual({ status: 400, body: { error: "That one's already sent." } });
+    expect([schedules().length, used(A, "slide-campaign-post")]).toEqual([1, 1]);
+  });
+
   it("Send to phone has its own 30 a day, refused before any upload link, and needs no posting switch", async () => {
     st.env.SOCIAL_CONNECT_USERS = "";
     expect((await call(A, { action: "phone-create", count: 0 })).status).toBe(400);
