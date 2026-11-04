@@ -201,6 +201,29 @@ describe("the telegram function's gate", () => {
   });
 });
 
+describe("the telegram function's caps", () => {
+  it("counts a connect, an upload link and a queued post each on its own day's cap, and does nothing once one is used up", async () => {
+    h.rpc = (fn) => (fn === "cs_consume_ai_usage" ? { data: null, error: null } : { data: 1, error: null });
+    const counted = [
+      { action: "start", profileId: "pmoneybees" },
+      { action: "bot-add", profileId: "pmoneybees", token: OWN },
+      { action: "bot-replace", profileId: "pmoneybees", token: OWN },
+      { action: "presign", profileId: "pmoneybees", files: [{ type: "image/jpeg", size: 1000 }] },
+      { action: "schedule", profileId: "pmoneybees", chatRows: [ROW], clientKey: "00000000-0000-4000-8000-0000000000e1", text: "Hello", now: true },
+    ];
+    for (const body of counted) {
+      const res = await call("leo", body);
+      expect([res.status, ((await res.json()) as { code?: string }).code], body.action).toEqual([429, "daily_limit"]);
+    }
+    expect(h.rpcs.map((r) => r.args.p_feature)).toEqual(["telegram-connect", "telegram-connect", "telegram-connect", "telegram-presign", "telegram-schedule"]);
+    expect([h.reads.filter((t) => t !== "cs_consume_ai_usage"), h.inserted, telegram]).toEqual([[], [], []]);
+    // letting go of a chat or a bot is never counted
+    await call("leo", { action: "disconnect", profileId: "pmoneybees", chatRow: ROW });
+    await call("leo", { action: "bot-remove", profileId: "pmoneybees" });
+    expect(h.rpcs.filter((r) => r.fn === "cs_consume_ai_usage")).toHaveLength(5);
+  });
+});
+
 describe("the brand's own bot", () => {
   const me = { id: 7000000002, is_bot: true, first_name: "MoneyBees", username: "mb_test_bot" };
   const tgOk = (method: string) =>
