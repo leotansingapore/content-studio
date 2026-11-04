@@ -1,12 +1,33 @@
 {
-  "fetched": "2026-11-02",
+  "fetched": "2026-11-04",
   "questions": [
     {
       "question": "HSBC Step Up Promo - Part 2",
       "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-01T22:02:31.000Z",
+      "publishedAt": "2026-11-04T00:00:19.000Z",
       "audience": "working-adult"
+    },
+    {
+      "question": "MARI invest",
+      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-03T13:02:50.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Is cpf oa money meant to be invested?",
+      "url": "https://forums.hardwarezone.com.sg/threads/is-cpf-oa-money-meant-to-be-invested.7213687/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-03T08:35:32.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "UOB stash interest",
+      "url": "https://forums.hardwarezone.com.sg/threads/uob-stash-interest.7093002/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-02T07:10:08.000Z",
+      "audience": "general"
     },
     {
       "question": "Chocolate finance increased top up programme balance",
@@ -23,25 +44,11 @@
       "audience": "general"
     },
     {
-      "question": "Is cpf oa money meant to be invested?",
-      "url": "https://forums.hardwarezone.com.sg/threads/is-cpf-oa-money-meant-to-be-invested.7213687/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-01T11:13:20.000Z",
-      "audience": "working-adult"
-    },
-    {
       "question": "insurance",
       "url": "https://www.reddit.com/r/singaporefi/comments/1xky16v/insurance/",
       "source": "r/singaporefi",
       "publishedAt": "2026-11-01T08:39:04.000Z",
       "audience": "young-adult"
-    },
-    {
-      "question": "UOB stash interest",
-      "url": "https://forums.hardwarezone.com.sg/threads/uob-stash-interest.7093002/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-01T07:11:49.000Z",
-      "audience": "general"
     },
     {
       "question": "Standchart eSaver",
@@ -112,13 +119,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-31T07:52:02.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "MARI invest",
-      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-31T05:23:12.000Z",
-      "audience": "general"
     },
     {
       "question": "Brokers FX spread",

@@ -1,5 +1,29 @@
 [
   {
+    "id": "7f9ec7f147e9",
+    "title": "MoneySmart data breach hits S’pore, HK users; IC numbers, financial info potentially exposed",
+    "gist": "Hackers breached internal systems at personal finance platform MoneySmart on Oct 29, copying data belonging to some users in Singapore and Hong Kong. Potentially accessed information includes identification numbers, contact details, income ranges, and insurance inquiries. The platform notified affected users on Nov 3, and regulators including the Monetary Authority of Singapore are following up closely.",
+    "talkingPoint": "Clients who have used online platforms to compare loans or insurance may worry that their personal and financial records were exposed. You can ask if they received a breach notification from a comparison portal and offer to look over their existing cover together.",
+    "clientMessage": "Hi [Client name], an unauthorised party breached a major online financial comparison portal on Oct 29. Hackers accessed user details, including identification numbers, contact information, and insurance inquiries. If you have used online portals to compare financial products, your details might be involved. If you want, we can review your current plan and records together. Let me know if you would like to do that. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/moneysmart-data-breach-hits-spore-hk-users-ic-numbers-financial-info-potentially-exposed",
+    "publishedAt": "2026-11-03T05:03:25+00:00",
+    "topic": "Scams",
+    "clipping": "/news/7f9ec7f147e9.jpg"
+  },
+  {
+    "id": "a17e3d791d56",
+    "title": "Commentary: How super-aged Singapore should think about financial security",
+    "gist": "Data released earlier this year shows lower- and middle-income households in Singapore hold 80 per cent to 90 per cent of their wealth in housing and CPF savings. Authors Daniel Mahadzir and Stanley Sia note that holding wealth in illiquid assets leaves families vulnerable to unexpected healthcare costs. Ministry of Health figures show that downgrades and discontinuations of private Integrated Shield Plans increased from 99,000 in 2023 to 128,200 in 2025.",
+    "talkingPoint": "Clients may worry about having most of their assets tied up in housing and CPF when unexpected health expenses arise. You can ask them how they plan to build liquid buffers for healthcare costs as they age.",
+    "clientMessage": "Hi [Client name], recent reports show that many households have most of their wealth tied up in housing and CPF savings. This means families might face stress when hit by unexpected health costs, especially as private health plan downgrades increase. If you want, we can review your current plan together to understand your liquid buffers and future needs. [Your name]",
+    "source": "CNA",
+    "url": "https://channelnewsasia.com/commentary/super-aged-singapore-financial-security-planning-cpf-housing-6512771",
+    "publishedAt": "2026-11-02T22:00:00+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/a17e3d791d56.jpg"
+  },
+  {
     "id": "6b0ffeac9895",
     "title": "Over 6,000 new homes coming up in Toa Payoh West, new shopping mall near Caldecott MRT station",
     "gist": "On Oct. 31, 2026, HDB and Minister Chee Hong Tat announced that more than 6,000 new homes will be built in Toa Payoh West. The first project, Toa Payoh Hillside, will offer about 1,600 flats in November 2026 near Caldecott MRT station, along with a new shopping mall and park amenities. The eligibility age for Community Care Apartments in this exercise will also be lowered from 65 to 55 years old.",
@@ -615,18 +639,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "6d46dc1c57d8",
-    "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
-    "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
-    "talkingPoint": "Every client privately wonders whether the company will actually pay. This is the answer with a number on it, and it is the insurer's own published figure, so they can check it. Careful: This is AIA's own release, not an independent audit, and a payout total is not a claims-approval rate. Never let it imply a particular claim will be paid; that turns on the policy wording.",
-    "clientMessage": "Hi [Client name],\n\nOver the last ten years AIA Singapore paid out more than S$40 billion in claims and maturity proceeds. That is the part of a policy you never see until you need it.\n\nSource: AIA Singapore, 12 Feb 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-singapore-surpasses-40-billion-in-payouts-over-the-last-decade",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/6d46dc1c57d8.jpg"
-  },
-  {
     "id": "38d77cf6f8ef",
     "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
     "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
@@ -649,6 +661,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "CPF and retirement",
     "clipping": "/news/146ce01a9327.jpg"
+  },
+  {
+    "id": "6d46dc1c57d8",
+    "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
+    "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
+    "talkingPoint": "Every client privately wonders whether the company will actually pay. This is the answer with a number on it, and it is the insurer's own published figure, so they can check it. Careful: This is AIA's own release, not an independent audit, and a payout total is not a claims-approval rate. Never let it imply a particular claim will be paid; that turns on the policy wording.",
+    "clientMessage": "Hi [Client name],\n\nOver the last ten years AIA Singapore paid out more than S$40 billion in claims and maturity proceeds. That is the part of a policy you never see until you need it.\n\nSource: AIA Singapore, 12 Feb 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-singapore-surpasses-40-billion-in-payouts-over-the-last-decade",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/6d46dc1c57d8.jpg"
   },
   {
     "id": "e98550debf11",
