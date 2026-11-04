@@ -71,7 +71,11 @@ describe("the fit cache", () => {
     expect(loadFit(UID, "top:a-b", true, now)).toBeNull();
     setActiveProfile(UID, "me");
 
-    for (let i = 0; i < MAX_FITS + 5; i++) saveFit(UID, `ad:${i}`, false, { verdict: "good", reasons: [] }, new Date(now.getTime() + (i + 1) * 1000));
+    // a full cache in one write, as MAX_FITS saves would leave it (each save rewrites the whole cache, so 205 saves timed out under load)
+    const at = (i: number) => new Date(now.getTime() + (i + 1) * 1000);
+    local.setItem(`cs-remix-fit-${UID}`, JSON.stringify(Object.fromEntries([...Array(MAX_FITS).keys()].map((i) => [`ad:${i}|text`, { verdict: "good", reasons: [], at: at(i).toISOString() }]))));
+    expect(loadFit(UID, "ad:0", false, at(0))).toEqual({ verdict: "good", reasons: [] });
+    for (let i = MAX_FITS; i < MAX_FITS + 5; i++) saveFit(UID, `ad:${i}`, false, { verdict: "good", reasons: [] }, at(i));
     const kept = JSON.parse(local.getItem(`cs-remix-fit-${UID}`)!);
     expect(Object.keys(kept)).toHaveLength(MAX_FITS);
     expect(kept["ad:0|text"]).toBeUndefined();
