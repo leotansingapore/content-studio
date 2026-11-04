@@ -222,6 +222,25 @@ describe("script-desk", () => {
     jobs().forEach((j) => noPromptText(j.request));
   });
 
+  it("gives a read's use back to research, not to writing, when nothing was filed", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    db.tables.cs_ai_usage.push({ user_id: LEO, feature: "research", day: today, count: 3 });
+    db.insertFails = true;
+    expect((await call({ action: "ig_reels", handle: "made.up_creator" })).status).toBe(500);
+    expect(db.spent).toEqual(["research"]);
+    expect(db.tables.cs_ai_usage.map((r) => [r.feature, r.count])).toEqual([["script-desk", 1], ["research", 2]]);
+  });
+
+  it("counts a search still running at 7 minutes against the two reads, and no writing job left open past its time", async () => {
+    const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    for (let i = 0; i < 2; i++) jobs().push({ id: crypto.randomUUID(), owner_id: LEO, kind: "discover", status: "claimed", created_at: ago(7), claimed_at: ago(7) });
+    expect(await call({ action: "ig_reels", handle: "made.up_creator" })).toMatchObject({ status: 429, body: { code: "too_many" } });
+    // four scripts claimed 6 minutes ago and never answered: past the 4 minutes a script gets, so they stop nothing
+    for (let i = 0; i < 4; i++) jobs().push({ id: crypto.randomUUID(), owner_id: LEO, kind: "hooks", status: "claimed", created_at: ago(6), claimed_at: ago(6) });
+    expect((await call({ action: "hooks", topic: "x" })).status).toBe(200);
+    expect(db.spent).toEqual(["script-desk"]);
+  });
+
   it("suggests creators from the niche and main audience only, and refuses a bad handle, link or topic without counting", async () => {
     const context = { niche: "money for nurses", avatar: { name: "Nurses", who: "Shift workers" }, me: { name: "Priya" }, sample: "my words" };
     await call({ action: "discover", mode: "suggest", context });
