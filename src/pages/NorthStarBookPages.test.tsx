@@ -25,6 +25,9 @@ const LOAD = {
   PostmosisMarketingNorthStarPage: () => import("@/pages/PostmosisMarketingNorthStarPage"),
   MarketingNorthStarPage: () => import("@/pages/MarketingNorthStarPage"),
 };
+// the first import of each page transforms its whole tree inside a test, past 5 s at load 40: done here, at collection,
+// which has no timeout, so each visit's fresh import after resetModules only runs the modules again
+await Promise.all([import("@/lib/useLeoOnly"), ...Object.values(LOAD).map((load) => load())]);
 
 /** Signs in as `email` (or out, with null), reads the session the way a page load does, then renders `path`. */
 async function visit(email: string | null, page: keyof typeof LOAD, path: string) {
