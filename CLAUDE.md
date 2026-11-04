@@ -60,6 +60,13 @@
   `social-sweep` (Zernio safety jobs: daily recount, weekly orphan sweep,
   021) is `--no-verify-jwt` the same way, with `x-social-sweep-secret`
   (SOCIAL_SWEEP_SECRET, Vault `cs_social_sweep_secret`).
+- The script desk (Leo only, 033 `cs_ai_jobs`) never calls a model from Supabase: `script-desk`
+  (JWT on) files each request as a job, and a worker on Leo's Mac (`scripts/script-worker/worker.mjs`, launchd
+  `com.leo.script-worker`) runs it on his own Claude Code. The worker reaches `script-worker`, deployed
+  `--no-verify-jwt`, with `x-script-worker-secret` (SCRIPT_WORKER_SECRET, keychain `cs-script-worker-secret`).
+  Both serve NORTH_STAR_USERS' real ids only, never "*". A job holds inputs only: the reference prompts and message
+  wording live in a private templates module on Leo's Mac (`~/.local/share/script-worker/templates.mjs`, its source
+  outside git), never in this public repo, the database or the bundle. Don't add prompt text here.
 - Connected social accounts go through Zernio (`social` function, JWT on,
   018 `cs_social_profiles`). Zernio accepts any id on the team, so every id
   from a request is checked against the caller's own Zernio profile first.
