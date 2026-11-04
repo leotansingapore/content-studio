@@ -37,12 +37,20 @@ const STUB = `export function build(kind, inputs) {
   if (kind === "boom") throw new Error("no such kind");
   return { system: "Stub system for " + kind + ".", message: "Stub message about " + inputs.topic + ".", model: "claude-opus-5-5", effort: kind === "rescript" ? "medium" : "low" };
 }`;
-function stubTemplates(source = STUB) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "worker-test-templates-"));
-  const file = path.join(dir, "templates.mjs");
-  fs.writeFileSync(file, source);
-  return { file, done: () => fs.rmSync(dir, { recursive: true, force: true }) };
+// Each import() is a round trip to vitest's main thread, which transforms the file first; under the full suite that
+// thread is busy and an import took over a second. A .mjs under node_modules is handed to Node's own loader instead.
+function tempDir(prefix) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  fs.mkdirSync(path.join(dir, "node_modules"));
+  return { dir, file: path.join(dir, "node_modules", "templates.mjs"), done: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
+function stubTemplates(source = STUB) {
+  const t = tempDir("worker-test-templates-");
+  fs.writeFileSync(t.file, source);
+  return t;
+}
+// Node loads Response (its fetch internals) on first use, 1 to 3 s at load 40: paid here at collection, not in a test.
+await Response.json(null).text();
 const OK = JSON.stringify({ result: '{"hooks": []}', is_error: false, modelUsage: { "claude-opus-5-5": {} } });
 
 describe("script worker", () => {
@@ -115,8 +123,7 @@ describe("script worker", () => {
   });
 
   it("fails every job with a plain sentence while the templates aren't installed, and loads them once they are", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "worker-test-missing-"));
-    const file = path.join(dir, "templates.mjs");
+    const { file, done } = tempDir("worker-test-missing-");
     try {
       const seen = [];
       await expect(runJob({ id: "j", kind: "hooks", request: { topic: "x" } }, { templates: file, spawnFn: fakeSpawn(OK, seen) })).rejects.toThrow(/no templates installed/);
@@ -124,18 +131,23 @@ describe("script worker", () => {
       fs.writeFileSync(file, STUB);
       await runJob({ id: "j", kind: "hooks", request: { topic: "x" } }, { templates: file, spawnFn: fakeSpawn(OK, seen), env: { PATH: "/bin" } });
       expect(seen[0].input).toBe("Stub message about x.");
-      const bad = stubTemplates("export const nothing = 1;");
-      await expect(templatesOf(bad.file)).rejects.toThrow(/no build function/);
-      bad.done();
-      const broken = stubTemplates("export function build( {");
-      await expect(templatesOf(broken.file)).rejects.toThrow(/didn't load \(.+\)\. Reinstall them/);
-      broken.done();
-      const empty = stubTemplates("export const build = () => null;");
-      await expect(runJob({ id: "j", kind: "hooks", request: {} }, { templates: empty.file, spawnFn: fakeSpawn(OK, seen) })).rejects.toThrow(/couldn't build this hooks job \(build gave no request\)/);
-      empty.done();
     } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
+      done();
     }
+  });
+
+  it("fails a job with a plain sentence when the templates have no build, don't load, or build nothing", async () => {
+    const seen = [];
+    const bad = stubTemplates("export const nothing = 1;");
+    await expect(templatesOf(bad.file)).rejects.toThrow(/no build function/);
+    bad.done();
+    const broken = stubTemplates("export function build( {");
+    await expect(templatesOf(broken.file)).rejects.toThrow(/didn't load \(.+\)\. Reinstall them/);
+    broken.done();
+    const empty = stubTemplates("export const build = () => null;");
+    await expect(runJob({ id: "j", kind: "hooks", request: {} }, { templates: empty.file, spawnFn: fakeSpawn(OK, seen) })).rejects.toThrow(/couldn't build this hooks job \(build gave no request\)/);
+    empty.done();
+    expect(seen).toEqual([]);
   });
 
   // a child that never answers until it is killed, and whose stdin breaks (claude gone before it read the message)
