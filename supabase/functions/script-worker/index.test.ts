@@ -78,6 +78,25 @@ describe("script-worker", () => {
     expect(db.rows[0].status).toBe("queued");
   });
 
+  it("claims only the kinds the worker names, known ones only, and nothing when it names none it knows", async () => {
+    await call({ op: "claim", worker: "leo-mbp", kinds: ["ig_reels", "discover", "made-up"] });
+    expect(db.rpcs[0]).toEqual({ p_worker: "leo-mbp", p_owners: [LEO], p_pickup_seconds: 45, p_kinds: ["ig_reels", "discover"] });
+    expect((await call({ op: "claim", worker: "leo-mbp", kinds: ["made-up"] })).body).toEqual({ job: null });
+    expect(db.rpcs).toHaveLength(1);
+  });
+
+  it("claims any kind, as before 034, when the database has no claim by kind yet", async () => {
+    const rpc = db.admin.rpc as (fn: string, a: Record<string, unknown>) => Promise<unknown>;
+    db.admin.rpc = async (fn: string, a: Record<string, unknown>) => ("p_kinds" in a ? (db.rpcs.push(a), { data: null, error: { code: "PGRST202", message: "no such function" } }) : rpc(fn, a));
+    try {
+      const r = await call({ op: "claim", worker: "leo-mbp", kinds: ["hooks"] });
+      expect(db.rpcs.map((a) => "p_kinds" in a)).toEqual([true, false]);
+      expect(r.body.job.id).toBe("10000000-0000-0000-0000-000000000002");
+    } finally {
+      db.admin.rpc = rpc;
+    }
+  });
+
   it("keeps an answer only from the worker holding the claim, and only while it is claimed", async () => {
     await call({ op: "claim", worker: "leo-mbp" });
     const id = "10000000-0000-0000-0000-000000000002";
@@ -91,8 +110,12 @@ describe("script-worker", () => {
 
   it("files an answer too long to keep whole as a failure, never a cut one", async () => {
     await call({ op: "claim", worker: "leo-mbp" });
-    expect((await call({ op: "done", id: "10000000-0000-0000-0000-000000000002", worker: "leo-mbp", text: "x".repeat(15_001) })).body).toEqual({ ok: true });
-    expect(db.rows[1]).toMatchObject({ status: "failed", error: "Claude's answer was too long to keep. Try again." });
+    // 15,001 emoji are 60,004 bytes: over; 59,000 plain characters are under
+    expect((await call({ op: "done", id: "10000000-0000-0000-0000-000000000002", worker: "leo-mbp", text: "\u{1F600}".repeat(15_001) })).body).toEqual({ ok: true });
+    expect(db.rows[1]).toMatchObject({ status: "failed", error: "The answer was too long to keep. Try again." });
+    Object.assign(db.rows[1], { status: "claimed", worker: "leo-mbp" });
+    await call({ op: "done", id: "10000000-0000-0000-0000-000000000002", worker: "leo-mbp", text: "x".repeat(59_000) });
+    expect(db.rows[1].status).toBe("done");
   });
 
   it("mends a lone half of an emoji in a report, which jsonb would refuse", async () => {

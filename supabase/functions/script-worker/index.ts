@@ -1,7 +1,8 @@
 // script-worker: the one door a paired worker (scripts/script-worker/worker.mjs on Leo's Mac) uses to take the
 // script desk's jobs (cs_ai_jobs, 033) and hand back Claude Code's answers: claim, build the request on the Mac, run
 // it with no tools on the Mac's own Claude Code, report. Ops, on body.op:
-//   claim   {worker}: the oldest queued job filed in the last PICKUP_SECONDS, now this worker's, as {job: {id, kind,
+//   claim   {worker, kinds?}: the oldest queued job filed in the last PICKUP_SECONDS (of those kinds, when given: the
+//           worker names the kinds it has a free slot for, which needs 034), now this worker's, as {job: {id, kind,
 //           request}}, the request being the job's inputs (script-desk logic.ts JobInputs: no prompt text, which
 //           only the worker's private templates hold); {job: null} when there is none.
 //   done    {id, worker, text, model?, ms?}: the answer, kept only while the job is still this worker's claim.
@@ -12,18 +13,21 @@
 // For this Leo-only phase there is one shared secret, and a claim only hands out jobs of the uids listed in
 // NORTH_STAR_USERS (never "*": the jobs run on Leo's own Claude plan). Per-user pairing comes with wave 4.
 //
-// Secrets: SCRIPT_WORKER_SECRET (new, not set yet; the same value goes in the Mac's keychain as
-// cs-script-worker-secret), NORTH_STAR_USERS (set). Needs 033 applied.
+// Secrets: SCRIPT_WORKER_SECRET (the same value is in the Mac's keychain as cs-script-worker-secret), NORTH_STAR_USERS.
+// Needs 033 applied; claiming by kind needs 034, and before 034 a claim falls back to any kind.
 //   supabase functions deploy script-worker --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { secretMatches } from "../social-sweep/logic.ts";
-import { PICKUP_SECONDS, cut, ownersOf } from "../script-desk/logic.ts";
+import { JOB_KINDS, PICKUP_SECONDS, cut, ownersOf } from "../script-desk/logic.ts";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** Claude's answer is a few KB; 15,000 characters stay under the row's 64 KB check even at 4 bytes each. */
-export const MAX_TEXT = 15_000;
+/**
+ * An answer's bytes, under the row's 64 KB check with room for the model and time beside it. Claude's text is a few
+ * KB; a 12-reel read is about 15 KB (the worker clips captions to 500 characters and keeps no video address in it).
+ */
+export const MAX_TEXT_BYTES = 60_000;
 
 // Postgres jsonb refuses a lone half of an emoji anywhere in a string (a report the worker cut mid-text): U+FFFD for it.
 const whole = (s: string) => s.toWellFormed();
@@ -43,7 +47,13 @@ Deno.serve(async (req) => {
     if (body.op === "claim") {
       const owners = ownersOf(Deno.env.get("NORTH_STAR_USERS"));
       if (!owners.length) return json({ job: null });
-      const { data, error } = await admin.rpc("cs_claim_ai_job", { p_worker: worker, p_owners: owners, p_pickup_seconds: PICKUP_SECONDS });
+      // a worker from before 034 names no kinds and takes any job, as the 3-argument claim did
+      const kinds = Array.isArray(body.kinds) ? JOB_KINDS.filter((k) => body.kinds.includes(k)) : null;
+      if (kinds && !kinds.length) return json({ job: null });
+      const args = { p_worker: worker, p_owners: owners, p_pickup_seconds: PICKUP_SECONDS };
+      let { data, error } = await admin.rpc("cs_claim_ai_job", kinds ? { ...args, p_kinds: kinds } : args);
+      // 034 not applied yet: PostgREST finds no 4-argument claim, so claim as before 034
+      if (kinds && error?.code === "PGRST202") ({ data, error } = await admin.rpc("cs_claim_ai_job", args));
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
       if (!row?.id) return json({ job: null });
@@ -59,8 +69,8 @@ Deno.serve(async (req) => {
       if (typeof body.text !== "string" || !body.text.trim()) return json({ error: "No answer." }, 400);
       const model = typeof body.model === "string" ? whole(cut(body.model, 80)) : null;
       // a cut answer is unreadable JSON: an answer past the cap is a failure the person can retry
-      values = body.text.length > MAX_TEXT
-        ? { status: "failed", error: "Claude's answer was too long to keep. Try again.", done_at: new Date().toISOString() }
+      values = new TextEncoder().encode(body.text).length > MAX_TEXT_BYTES
+        ? { status: "failed", error: "The answer was too long to keep. Try again.", done_at: new Date().toISOString() }
         : { status: "done", result: { text: whole(body.text), model, ms }, done_at: new Date().toISOString() };
     } else {
       const error = typeof body.error === "string" && body.error.trim() ? whole(cut(body.error.trim(), 500)) : "Claude Code on your Mac didn't finish this. Try again.";
