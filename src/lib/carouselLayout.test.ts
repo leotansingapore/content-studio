@@ -364,28 +364,37 @@ describe("today's carousels, before designs and sizes (pinned at 7e8f1493)", () 
   const PIC = "data:image/png;base64,iVBORw0KGgo=";
   const long = "Review your cover every two years or after a big life event, and check the riders too. ".repeat(3);
 
-  // a test per brand, as the whole matrix in one test ran past 5 s under load; the three outputs joined with "\n" hash
-  // to 38872daf1170af64, the pin taken at 7e8f1493, so each third pins what that commit drew
+  // a test per brand and paper, as a test per brand still ran past 5 s at load 40 (576 layouts each). Each brand's four
+  // outputs joined with "\n" hash to that brand's third of the 7e8f1493 pin (84b3a1e2, b0d58799, 3a398c69), and those
+  // three joined hash to 38872daf1170af64, so each piece pins what that commit drew. No paper draws as light.
+  const BRANDS = { "the plain brand": brand, "a brand with a photo": { ...brand, photo: PHOTO }, "a pale brand with no name": { ...brand, color: "#FDE68A", name: "", handle: "" } };
   it.each([
-    ["the plain brand", brand, "84b3a1e24631b2539fb45fbdd3f6065fb730603720dae4cfeee60ad06d619440"],
-    ["a brand with a photo", { ...brand, photo: PHOTO }, "b0d5879948b451c2c45e95218a02951989925a11feba262a93f6517afb8d5f7b"],
-    ["a pale brand with no name", { ...brand, color: "#FDE68A", name: "", handle: "" }, "3a398c695629d6ac9262ee5615e6bcc99b6f1425035c7fe48161616d052f9994"],
-  ])("lays out every role, look, alignment, size, picture and brand the same way as before: %s", (_, b, pin) => {
+    ["the plain brand", undefined, "d4696b725aabc8a45b40f27cd6a07d27b5c27172b591ac11bbd078aa52c79d78"],
+    ["the plain brand", "light", "d4696b725aabc8a45b40f27cd6a07d27b5c27172b591ac11bbd078aa52c79d78"],
+    ["the plain brand", "dark", "ecef2893f5fb2ce05692d131c2c3e1b854a827c094be2d05fac9dd980060fd05"],
+    ["the plain brand", "tint", "37670cfffbb9ab026c603b1069f8943080c5f458dc6376f0f9f7b2d1fd0eda4c"],
+    ["a brand with a photo", undefined, "8664d072a7b889fa434a80f61fcaf623b93e0ff9f049f707057af97b9145c26b"],
+    ["a brand with a photo", "light", "8664d072a7b889fa434a80f61fcaf623b93e0ff9f049f707057af97b9145c26b"],
+    ["a brand with a photo", "dark", "5447f53ac03f25ec6e30e4055ee2d4a37b2426dc958cf33b32c92479b10fe115"],
+    ["a brand with a photo", "tint", "98f71540d482f874080435cab38c0c06e7134c6f9c2be61a04b874d74e2ed5a4"],
+    ["a pale brand with no name", undefined, "c7febb1833d876cc2845a89b949c9a77dbfab816adeb2938f93cada345b485b9"],
+    ["a pale brand with no name", "light", "c7febb1833d876cc2845a89b949c9a77dbfab816adeb2938f93cada345b485b9"],
+    ["a pale brand with no name", "dark", "2bd0a4a9bfff1241415d86f62d47b364d3c9a096c02c2047a1e8cf37ba50d222"],
+    ["a pale brand with no name", "tint", "e9558016c9554c4741cf734a1d4935fa240dfe799bd35782770e97b39ddf602d"],
+  ] as const)("lays out every role, look, alignment, size, picture and brand the same way as before: %s, paper %s", (name, paper, pin) => {
     const out: string[] = [];
-    for (const paper of [undefined, "light", "dark", "tint"] as const) {
-      for (const font of [undefined, "classic", "modern", "serif"] as const) {
-        // 250 words overflow every slide here and draw the same as the 400 the pin was taken with, at 60% of the CPU
-        for (const [title, body] of [["Know your number", "Six months of expenses."], ["", long], ["A title", ""], ["Title", "word ".repeat(250)]]) {
-          for (const index of [0, 1, 4]) {
-            for (const extra of [{}, { align: "center" as const, scale: 1.15 }, { image: PIC, scale: 0.85 }]) {
-              const layout = layoutSlide({ title, body, index, total: 5, brand: b, paper, font, ...extra }, measure);
-              out.push(JSON.stringify(layout), renderSvg(layout));
-            }
+    for (const font of [undefined, "classic", "modern", "serif"] as const) {
+      // 250 words overflow every slide here and draw the same as the 400 the pin was taken with, at 60% of the CPU
+      for (const [title, body] of [["Know your number", "Six months of expenses."], ["", long], ["A title", ""], ["Title", "word ".repeat(250)]]) {
+        for (const index of [0, 1, 4]) {
+          for (const extra of [{}, { align: "center" as const, scale: 1.15 }, { image: PIC, scale: 0.85 }]) {
+            const layout = layoutSlide({ title, body, index, total: 5, brand: BRANDS[name], paper, font, ...extra }, measure);
+            out.push(JSON.stringify(layout), renderSvg(layout));
           }
         }
       }
     }
-    expect(out.length).toBe(2 * 4 * 4 * 4 * 3 * 3);
+    expect(out.length).toBe(2 * 4 * 4 * 3 * 3);
     expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe(pin);
   });
 });
@@ -556,23 +565,27 @@ describe("today's carousels in every design, before the brand kit's second colou
   const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
   const PIC = "data:image/png;base64,iVBORw0KGgo=";
 
-  it("draws every design, size, role, paper and brand the same way as before", () => {
+  // a test per brand, as the three in one test ran past 5 s at load 40; the three outputs joined with "\n" hash to the
+  // d077aba6 pin taken at 7cd872f4, so each pins its third of what that commit drew
+  it.each([
+    ["the plain brand", brand, "76723fd0f3131b59dfccc8ad88edfd0e9dac75c2de5f622febee4ae69c0edd8f"],
+    ["an adviser brand with a photo", { ...brand, photo: PHOTO, role: "Adviser" }, "d1590451d7da66f6632933bef0560b7947c5f0c5513b427a79383a08eabcb797"],
+    ["a pale brand with no name", { ...brand, color: "#FDE68A", name: "", handle: "" }, "ef192ead170507e3fec04f2a8d8dce3ebc6483be2070a83a28dc6eb7ee5bcd31"],
+  ])("draws every design, size, role, paper and brand the same way as before: %s", (_, b, pin) => {
     const out: string[] = [];
-    for (const b of [brand, { ...brand, photo: PHOTO, role: "Adviser" }, { ...brand, color: "#FDE68A", name: "", handle: "" }]) {
-      for (const design of CAROUSEL_DESIGNS) {
-        for (const size of ["4x5", "1x1", "9x16"] as const) {
-          for (const paper of [undefined, "dark", "tint"] as const) {
-            for (const index of [0, 1, 2, 4]) {
-              const body = index === 2 ? "One.\nTwo.\nThree." : "Six months of expenses, kept where you can reach them.";
-              const layout = layoutSlide({ title: "Know your number", body, index, total: 5, brand: b, paper, design, size, image: index === 1 ? PIC : undefined }, measure);
-              out.push(JSON.stringify(layout), renderSvg(layout));
-            }
+    for (const design of CAROUSEL_DESIGNS) {
+      for (const size of ["4x5", "1x1", "9x16"] as const) {
+        for (const paper of [undefined, "dark", "tint"] as const) {
+          for (const index of [0, 1, 2, 4]) {
+            const body = index === 2 ? "One.\nTwo.\nThree." : "Six months of expenses, kept where you can reach them.";
+            const layout = layoutSlide({ title: "Know your number", body, index, total: 5, brand: b, paper, design, size, image: index === 1 ? PIC : undefined }, measure);
+            out.push(JSON.stringify(layout), renderSvg(layout));
           }
         }
       }
     }
-    expect(out.length).toBe(2 * 3 * CAROUSEL_DESIGNS.length * 3 * 3 * 4);
-    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("d077aba6d973ea5acafe251e411a7db6d6dcd052b4f56037f47a517756fb4c6a");
+    expect(out.length).toBe(2 * CAROUSEL_DESIGNS.length * 3 * 3 * 4);
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe(pin);
   });
 });
 
