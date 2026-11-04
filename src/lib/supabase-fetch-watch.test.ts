@@ -142,3 +142,18 @@ describe('installFetchWatch', () => {
     expect(win.fetch).toBe(first);
   });
 });
+
+describe('public function links', () => {
+  it('a crashing preview, bio or tracked-link call names the function, never the token or name past it', () => {
+    const base = 'https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1';
+    for (const [path, fn] of [
+      ['preview-link/9f86d081884c7d659a2feaa0', 'preview-link'],
+      ['link-in-bio/john-tan', 'link-in-bio'],
+      ['tracked-link/report/john-tan-webinar', 'tracked-link'],
+    ]) {
+      const e = describeFailure(`${base}/${path}`, 'GET', 500, null)!;
+      expect(e.meta.resource).toBe(`function ${fn}`);
+      expect(JSON.stringify([e.message, e.meta])).not.toMatch(/9f86d081|john/);
+    }
+  });
+});
