@@ -1,0 +1,37 @@
+name: Claude auto-merge
+
+# Squash-merges a PR from Claude's background jobs (claude-ci-fix.yml, claude-sweep.yml)
+# as soon as CI passes on its latest commit, so their fixes ship without anyone clicking
+# merge (Leo, 2026-11-04). Only PRs the Claude app opened from a claude/ branch, and never
+# a draft: a draft means Claude could not get build and tests green. Merging to main is
+# the production deploy. The merge is pushed with the workflow token, which starts no
+# CI run on main; the PR's CI already tested the merge result.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'claude/')
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --head "$BRANCH" --json number,author,isDraft,headRefOid \
+            --jq '.[] | select(.author.login == "app/claude" and (.isDraft | not)) | "\(.number) \(.headRefOid)"')
+          if [ -z "$pr" ]; then echo "No open, non-draft PR from the Claude app on $BRANCH."; exit 0; fi
+          read -r number head <<< "$pr"
+          if [ "$head" != "$SHA" ]; then echo "PR #$number has a newer commit than this CI run; that run decides."; exit 0; fi
+          gh pr merge "$number" -R "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$SHA"

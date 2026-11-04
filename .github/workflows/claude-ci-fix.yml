@@ -1,7 +1,7 @@
 name: Claude CI fix
 
 # When CI fails on main, Claude finds the cause, fixes it on its own branch and opens a
-# PR for Leo to merge. One fix at a time: while a claude/ci-fix-* PR is open, new red runs
+# PR, which claude-automerge.yml merges once its CI passes. One fix at a time: while a claude/ci-fix-* PR is open, new red runs
 # are skipped, so a day of red pushes makes one PR. If Claude cannot get build and tests
 # green it still opens the PR, as a draft saying what it found, so it does not retry on
 # every push. Runs on Leo's Max plan (CLAUDE_CODE_OAUTH_TOKEN, see claude.yml).

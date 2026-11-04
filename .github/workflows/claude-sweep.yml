@@ -2,7 +2,7 @@ name: Claude sweep
 
 # Every morning Claude looks at this repo's automated jobs that failed in the last day
 # (all but CI, which claude-ci-fix.yml handles), fixes a cause that is in the code on its
-# own branch and opens a PR for Leo to merge. A cause outside the code (a secret, a
+# own branch and opens a PR, which claude-automerge.yml merges once its CI passes. A cause outside the code (a secret, a
 # quota, a third-party outage) goes on one standing "Claude sweep: needs you" issue
 # instead. Nothing failed: nothing happens. One sweep PR open at a time.
 # Runs on Leo's Max plan (CLAUDE_CODE_OAUTH_TOKEN, see claude.yml).
