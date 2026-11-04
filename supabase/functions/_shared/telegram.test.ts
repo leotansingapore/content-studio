@@ -10,6 +10,7 @@ import {
   intoSendingHours,
   mediaKindOf,
   messageLink,
+  pickerMessage,
 } from "./telegram";
 
 const TOKEN = "7000000001:TEST-token-for-fixtures-only";
@@ -96,6 +97,17 @@ describe("the small pieces", () => {
     expect(mediaKindOf("u/me/x.webp")).toBe("photo");
     expect(mediaKindOf("u/me/x.mp4")).toBe("video");
     expect(mediaKindOf("u/me/x.mov")).toBeNull();
+  });
+});
+
+describe("the chat pickers", () => {
+  it("ask for the bot as an admin that can only manage the chat, and post in a channel: nothing that deletes, bans, promotes or edits", () => {
+    const [[group, channel]] = pickerMessage("cs_test_bot").reply_markup.keyboard;
+    const granted = (rights: object) => Object.entries(rights).filter(([, v]) => v !== false).map(([k]) => k).sort();
+    expect(granted(group.request_chat.bot_administrator_rights)).toEqual(["can_manage_chat"]);
+    expect(granted(group.request_chat.user_administrator_rights)).toEqual(["can_manage_chat"]);
+    expect(granted(channel.request_chat.bot_administrator_rights)).toEqual(["can_manage_chat", "can_post_messages"]);
+    expect(granted(channel.request_chat.user_administrator_rights)).toEqual(["can_manage_chat", "can_post_messages"]);
   });
 });
 
