@@ -557,6 +557,7 @@ describe("removed data stays removed on every device", () => {
 
   it("a plan deleted on the laptop is removed from the open phone, and the phone never uploads it again", async () => {
     const { cloud, phone, laptop, a, b } = await bothHoldPlan();
+    const cloudStamp = cloud.table.get(PLAN)!.updated_at;
     remove(laptop, a, PLAN);
     await vi.advanceTimersByTimeAsync(1_000);
     expect(cloud.table.has(PLAN)).toBe(false);
@@ -568,7 +569,7 @@ describe("removed data stays removed on every device", () => {
     // and a reload of a device that still held it (before this change it pushed it back up)
     const stale = new MemoryStorage();
     stale.setItem(PLAN, "this week's plan");
-    stale.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: "2026-11-06T10:00:00.500Z" }));
+    stale.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: cloudStamp }));
     await createCloudSync(ME, stale, cloud.backend).start();
     await vi.advanceTimersByTimeAsync(1_000);
     expect(stale.getItem(PLAN)).toBeNull();
@@ -577,9 +578,10 @@ describe("removed data stays removed on every device", () => {
 
   it("undoes an old build uploading a deleted plan again with its old stamp", async () => {
     const { cloud, phone, laptop, a } = await bothHoldPlan();
+    const cloudStamp = cloud.table.get(PLAN)!.updated_at;
     remove(laptop, a, PLAN);
     await vi.advanceTimersByTimeAsync(1_000);
-    cloud.table.set(PLAN, { key: PLAN, data: "this week's plan", updated_at: "2026-11-06T10:00:00.500Z" });
+    cloud.table.set(PLAN, { key: PLAN, data: "this week's plan", updated_at: cloudStamp });
     await createCloudSync(ME, phone, cloud.backend).start();
     await vi.advanceTimersByTimeAsync(1_000);
     expect(phone.getItem(PLAN)).toBeNull();
@@ -610,6 +612,64 @@ describe("removed data stays removed on every device", () => {
     const fresh = new MemoryStorage();
     await createCloudSync(ME, fresh, cloud.backend).start();
     expect(fresh.getItem(PLAN)).toBe("reset plan");
+  });
+
+  it("the device that deleted the plan doesn't take back an old copy uploaded meanwhile, even after a reload", async () => {
+    const { cloud, laptop, a } = await bothHoldPlan();
+    const cloudStamp = cloud.table.get(PLAN)!.updated_at;
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(1_000);
+    cloud.table.set(PLAN, { key: PLAN, data: "this week's plan", updated_at: cloudStamp });
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(laptop.getItem(PLAN)).toBeNull();
+    expect(cloud.table.has(PLAN)).toBe(false);
+  });
+
+  it("a second tab on the same device keeps a plan made again in the first after the delete", async () => {
+    const { cloud, laptop, a } = await bothHoldPlan();
+    const tab2 = createCloudSync(ME, laptop, cloud.backend); // read the meta before the delete below
+    await tab2.start();
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(2_000);
+    write(laptop, a, PLAN, "a new plan");
+    await vi.advanceTimersByTimeAsync(11_000);
+    await tab2.refreshMerged();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(laptop.getItem(PLAN)).toBe("a new plan");
+    expect(cloud.table.get(PLAN)?.data).toBe("a new plan");
+  });
+
+  it("a plan made after the delete on a phone whose clock is slow is new work: kept everywhere", async () => {
+    const { cloud, laptop, phone, a, b } = await bothHoldPlan();
+    // the plan was last saved at 10:00; it is deleted an hour later
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    remove(laptop, a, PLAN); // 11:00 on the laptop's clock
+    await vi.advanceTimersByTimeAsync(1_000);
+    // 30 s later the phone, 2 minutes slow (10:58:31), pulls the removal and makes a new plan
+    await vi.advanceTimersByTimeAsync(10_000);
+    await b.refreshMerged();
+    expect(phone.getItem(PLAN)).toBeNull();
+    vi.setSystemTime(new Date(Date.now() - 120_000));
+    write(phone, b, PLAN, "phone's new plan");
+    await vi.advanceTimersByTimeAsync(1_000);
+    const fresh = new MemoryStorage();
+    await createCloudSync(ME, fresh, cloud.backend).start();
+    expect(fresh.getItem(PLAN)).toBe("phone's new plan");
+    expect(cloud.table.get(PLAN)?.data).toBe("phone's new plan");
+  });
+
+  it("records nothing for rows read once and removed on purpose (Claude's inbox), so they can't fill the list", async () => {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    for (const k of [`content-studio-activityin-${ME}-1`, `content-studio-mcpdraft-${ME}-s00`]) {
+      write(laptop, a, k, "x");
+      remove(laptop, a, k);
+    }
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(laptop.getItem(`content-studio-tombstones-${ME}`)).toBeNull();
   });
 
   it("merges the brand list: a brand added on each device survives, and one removed on either goes from both", async () => {

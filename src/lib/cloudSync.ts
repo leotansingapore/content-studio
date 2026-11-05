@@ -42,11 +42,14 @@ export function registerSyncMerge(prefix: string, merger: SyncMerger) {
 }
 const mergerFor = (key: string) => MERGERS.find((m) => key.startsWith(m.prefix))?.merger;
 
-// What was removed, and when (Leo, 6 Nov: deleted plans and removed brands came back from any device still holding a
-// copy, since the pull pushed up every key the cloud lacked). One synced list per account, merged like posts; a device
-// drops its copy of a key removed after it last wrote it, instead of uploading it again, and undoes an old build's
-// re-upload (a row stamped before the removal). Entries go after 90 days, 1,000 at most.
-type Tomb = { id: string; at: string };
+// What was removed (Leo, 6 Nov: deleted plans and removed brands came back from any device still holding a copy, since
+// the pull pushed up every key the cloud lacked). One synced list per account, merged like posts. Each entry keeps the
+// stamp of the version it removed (`was`), so a copy stamped at or before it is that version or older and goes, while a
+// copy written later on any device is new work and stays, unless that device's clock lags by more than the time since
+// the removed version was saved (comparing against the removal's own time would lose it at any lag). Entries go after 90 days, 1,000 at
+// most; rows read once and removed on purpose (Claude's drafts inbox, its activity rows) are not recorded.
+type Tomb = { id: string; at: string; was?: string };
+const READ_ONCE = /^content-studio-(mcpdraft|activityin)-/;
 const TOMB_PREFIX = "content-studio-tombstones-";
 const TOMB_DAYS = 90;
 const TOMB_MAX = 1_000;
@@ -201,12 +204,19 @@ export function createCloudSync(
     const list = readJson<unknown>(storage, tombKey, []);
     return Array.isArray(list) ? (list as Tomb[]).filter((t) => t && typeof t.id === "string" && typeof t.at === "string") : [];
   };
-  /** When the key was removed, if it was removed after this device last wrote it: its copy here is stale. */
-  const removedAt = (key: string, list = tombs()): string | null => {
+  const ms = (iso: string | undefined) => (iso ? new Date(iso).getTime() : 0);
+  /** The newest stamp this device holds for the key: another tab may have written it since this one read the meta. */
+  const stampOf = (key: string) => Math.max(ms(meta[key]), ms(readJson<Meta>(storage, META_KEY, {})[key]));
+  /** The stamp a copy must beat to outlive the key's removal, or null when it was never removed. */
+  const cutFor = (key: string, list = tombs()): number | null => {
     if (key === tombKey) return null;
-    const at = list.find((t) => t.id === key)?.at;
-    // written at or after the removal (a reset that removes and writes in one go): this copy is the new one
-    return at && !(meta[key] && new Date(meta[key]).getTime() >= new Date(at).getTime()) ? at : null;
+    const t = list.find((x) => x.id === key);
+    return t ? ms(t.was ?? t.at) : null;
+  };
+  /** This device's copy is the removed version or older. */
+  const removedHere = (key: string, list = tombs()) => {
+    const cut = cutFor(key, list);
+    return cut !== null && stampOf(key) <= cut;
   };
   /** Takes away this device's copy of a removed key, without recording a new removal. */
   const dropRemoved = (key: string) => {
@@ -226,13 +236,15 @@ export function createCloudSync(
     if (!list.length) return;
     for (let i = storage.length - 1; i >= 0; i--) {
       const key = storage.key(i);
-      if (key && isSyncedKeyFor(key, userId) && removedAt(key, list)) dropRemoved(key);
+      if (key && isSyncedKeyFor(key, userId) && removedHere(key, list)) dropRemoved(key);
     }
   };
   /** Records the app's removal of `key` in the synced list, to go up with it. */
   const noteRemoval = (key: string) => {
     const at = new Date().toISOString();
-    writeJson(storage, tombKey, pruneTombs([{ id: key, at }, ...tombs().filter((t) => t.id !== key)]));
+    const seen = stampOf(key);
+    const tomb: Tomb = seen ? { id: key, at, was: new Date(seen).toISOString() } : { id: key, at };
+    writeJson(storage, tombKey, pruneTombs([tomb, ...tombs().filter((t) => t.id !== key)]));
     meta[tombKey] = at;
     pending.add(tombKey);
   };
@@ -362,10 +374,14 @@ export function createCloudSync(
 
   const applyRow = (row: SyncRow) => {
     if (!isSyncedKeyFor(row.key, userId)) return;
-    const gone = row.key !== tombKey && tombs().find((t) => t.id === row.key)?.at;
-    if (gone && new Date(row.updated_at).getTime() < new Date(gone).getTime() && removedAt(row.key)) {
-      dropRemoved(row.key);
-      pending.add(row.key); // nothing here, so the send removes the cloud row again
+    const cut = cutFor(row.key);
+    if (cut !== null && ms(row.updated_at) <= cut) {
+      // the cloud holds the removed version (an old build or a stale device uploaded it again)
+      if (storage.getItem(row.key) !== null && !removedHere(row.key)) pending.add(row.key); // newer work here goes up over it
+      else {
+        dropRemoved(row.key);
+        pending.add(row.key); // nothing here, so the send removes the cloud row again
+      }
       return;
     }
     const merger = mergerFor(row.key);
@@ -425,7 +441,7 @@ export function createCloudSync(
     for (let i = storage.length - 1; i >= 0; i--) {
       const key = storage.key(i);
       if (!key || cloudKeys.has(key) || !isSyncedKeyFor(key, userId)) continue;
-      if (removedAt(key)) dropRemoved(key);
+      if (removedHere(key)) dropRemoved(key);
       else pending.add(key);
     }
 
@@ -452,7 +468,7 @@ export function createCloudSync(
 
   const noteWrite = (key: string) => {
     if (stopped || !isSyncedKeyFor(key, userId)) return;
-    if (key !== tombKey && storage.getItem(key) === null) noteRemoval(key);
+    if (key !== tombKey && !READ_ONCE.test(key) && storage.getItem(key) === null) noteRemoval(key);
     meta[key] = new Date().toISOString();
     writeJson(storage, META_KEY, meta);
     pending.add(key);
