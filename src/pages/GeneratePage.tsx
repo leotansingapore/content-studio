@@ -1259,7 +1259,12 @@ export default function GeneratePage() {
       .maybeSingle()
       .then(({ data }) => {
         if (!live) return;
-        setSearchParams((prev) => withParam(prev, "carousel", ""), { replace: true });
+        // one write, as ?working= does: a second setSearchParams in the same tick (the step) put ?carousel= back, and
+        // the leftover param then skipped restoring the brief on a reload
+        setSearchParams((prev) => {
+          const p = withParam(prev, "carousel", null);
+          return data ? withParam(p, "step", WRITE_STEPS[IDEA_STEP], "topic") : p;
+        }, { replace: true });
         if (!data) return;
         const slides = ((data.slide_text as string[] | null) ?? []).map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 10);
         setFormat("carousel");
@@ -1267,7 +1272,6 @@ export default function GeneratePage() {
         setStyleReference(
           [`A ${data.slides}-slide Instagram carousel: ${data.title}`, ...slides.map((t, i) => `Slide ${i + 1}: ${t.slice(0, 160)}`)].join("\n"),
         );
-        setWizardStep(IDEA_STEP);
         setIdeaContext((prev) => (prev.trim() ? prev : `Style reference (do not copy verbatim, match the pattern): ${data.title}`));
         toast({ title: "Carousel loaded", description: "Its slides are the structure to match. Add your own topic and generate." });
       });
