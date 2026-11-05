@@ -1,9 +1,10 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
 import ChannelsBlock from "@/components/ChannelsBlock";
+import CreateMenu from "@/components/CreateMenu";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
@@ -562,9 +563,11 @@ export default function StudioLayout() {
             ))}
           </nav>
           <div className="space-y-2 px-3 pt-4">
+            {/* the main button starts the usual thing in one click; the arrow beside it opens every other way to make */}
+            <div className="relative flex">
             <Button
               asChild
-              className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal py-2 text-left bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
+              className="h-auto min-h-10 min-w-0 flex-1 justify-start gap-2 whitespace-normal rounded-r-none py-2 text-left bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
             >
               {leo ? (
                 <Link to={links.agent()}>
@@ -576,6 +579,8 @@ export default function StudioLayout() {
                 </Link>
               )}
             </Button>
+            <CreateMenu place="sidebar" />
+            </div>
             <button
               type="button"
               onClick={() => setJumpOpen(true)}
@@ -705,10 +710,12 @@ export default function StudioLayout() {
         data-bottom-nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
-        <div className="grid grid-cols-4">
-          {tabs.map(({ to, label, icon: Icon, active }) => (
+        <div className="grid grid-cols-5">
+          {tabs.map(({ to, label, icon: Icon, active }, i) => (
+            <Fragment key={label}>
+            {/* Create sits in the middle of the bar, as on Instagram, TikTok and YouTube */}
+            {i === 2 && <CreateMenu place="bar" />}
             <Link
-              key={label}
               to={barTo(to)}
               aria-current={active(pathname) ? "true" : undefined}
               className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
@@ -729,6 +736,7 @@ export default function StudioLayout() {
               {label}
               {to === "/home" && homeCount > 0 && <span className="sr-only">, {homeCount} need you</span>}
             </Link>
+            </Fragment>
           ))}
           <button
             type="button"
