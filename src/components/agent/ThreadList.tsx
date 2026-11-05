@@ -203,7 +203,7 @@ export default function ThreadList({
                   )}
                   {asking === t.id && (
                     <div role="alertdialog" aria-label="Delete this chat?" className="mt-1 space-y-2 rounded-lg border border-border bg-card p-3 shadow-card">
-                      <p className="text-sm">Delete this chat? What it made stays in My posts.</p>
+                      <p className="text-sm">Delete this chat? What it made stays in All posts.</p>
                       <div className="flex gap-2">
                         <Button
                           type="button"

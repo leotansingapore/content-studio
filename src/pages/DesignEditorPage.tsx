@@ -396,7 +396,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     return draftId;
   };
   const saveToPosts = async () => {
-    if (await toPosts()) toast({ title: "Saved to My posts", action: <ToastAction altText="Open My posts" onClick={() => navigate(links.drafts())}>Open My posts</ToastAction> });
+    if (await toPosts()) toast({ title: "Saved to All posts", action: <ToastAction altText="Open All posts" onClick={() => navigate(links.drafts())}>Open All posts</ToastAction> });
   };
   const schedule = async () => {
     const post = await toPosts();
@@ -502,7 +502,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           )}
         </div>
         <Button variant={socialConnectShown() ? "outline" : "default"} size="sm" onClick={() => void saveToPosts()} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-          <Save className="h-4 w-4" /> Save to My posts
+          <Save className="h-4 w-4" /> Save to All posts
         </Button>
         {socialConnectShown() && (
           <Button size="sm" onClick={() => void schedule()} disabled={busy} className={`gap-1.5 ${TOUCH}`}>

@@ -212,7 +212,7 @@ export default function CreatorLookup() {
             <p className="text-xs text-muted-foreground">
               Looking up your own account instead? Track your real posts in{" "}
               <Link to="/drafts" className="font-semibold text-primary hover:underline">
-                My posts
+                All posts
               </Link>{" "}
               and the numbers below will analyze those.
             </p>

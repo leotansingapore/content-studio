@@ -270,7 +270,7 @@ describe("Post it for me for everyone else", () => {
       { name: "social", action: "cancel", profileId: "me", postId: "zp1" },
     ]);
     expect(zernioOf(onDrafts.mock.calls)).toEqual([{ key: "k1", postId: "zp1", status: "scheduled", at: "2030-01-15T01:00:00.000Z" }, null]);
-    expect(toasts).toEqual([{ title: "Cancelled", description: "Zernio won't post it. It stays in My posts." }]);
+    expect(toasts).toEqual([{ title: "Cancelled", description: "Zernio won't post it. It stays in All posts." }]);
     expect(activityRows()).toEqual([]);
   });
 });
@@ -344,7 +344,7 @@ describe("Post it for me in Leo's Activity", () => {
       { who: "you", kind: "post", title: 'Tried posting "3 CPF myths at 55" again', detail: "Zernio is posting it again.", link: LINK },
       { who: "you", kind: "post", title: '"3 CPF myths at 55" could not be posted', detail: "Couldn't try it again. Try again in a minute.", link: LINK },
       { who: "you", kind: "post", title: 'Cancelled posting "3 CPF myths at 55"', detail: undefined, link: LINK },
-      { who: "you", kind: "post", title: '"3 CPF myths at 55" is gone from Zernio', detail: "It stays in My posts.", link: LINK },
+      { who: "you", kind: "post", title: '"3 CPF myths at 55" is gone from Zernio', detail: "It stays in All posts.", link: LINK },
     ]);
   });
 });

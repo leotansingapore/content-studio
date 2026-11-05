@@ -771,7 +771,7 @@ export default function CalendarPage() {
     toast({
       title: `Copy scheduled for ${whenLabel(next.at)}`,
       description: pushedOut
-        ? `My posts keeps ${MAX_DRAFTS}, so "${(pushedOut.hook || pushedOut.draft).slice(0, 40)}" was removed. Undo brings it back.`
+        ? `All posts keeps ${MAX_DRAFTS}, so "${(pushedOut.hook || pushedOut.draft).slice(0, 40)}" was removed. Undo brings it back.`
         : undefined,
       action: (
         <ToastAction altText="Undo" onClick={() => setDrafts(undoDuplicate(userId, r.copy.id, r.dropped))}>
@@ -926,7 +926,7 @@ export default function CalendarPage() {
               if (cancelAsk !== r.key) return setCancelAsk(r.key);
               setCancelAsk(null);
               queueCancel(userId, d);
-              toast({ title: "Cancelling the auto-post", description: "Zernio won't post it. It stays in My posts." });
+              toast({ title: "Cancelling the auto-post", description: "Zernio won't post it. It stays in All posts." });
             }}
             className={`${rowButton} ${cancelAsk === r.key ? "text-destructive hover:text-destructive" : "text-muted-foreground"}`}
           >

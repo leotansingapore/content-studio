@@ -295,7 +295,7 @@ export default function PillarsSection({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             <h3 className="font-serif text-lg font-semibold">Pillars</h3>
-            <InfoTip label="About pillars">Same as your labels on My posts.</InfoTip>
+            <InfoTip label="About pillars">Same as your labels on All posts.</InfoTip>
           </div>
           {!editing && labels.length > 0 && (
             <Button size="sm" variant="outline" onClick={onEdit}>

@@ -177,11 +177,11 @@ function Scriptwriter({ userId }: { userId: string }) {
             <Textarea id="sw-script" ref={scriptRef} rows={14} value={desk.script} placeholder="Your script shows here." onChange={(e) => (setDesk({ script: e.target.value }), setSaved(false))} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" onClick={save} disabled={!desk.script.trim() || running}>{desk.savedId ? "Save changes to My posts" : "Save to My posts"}</Button>
+            <Button type="button" variant="outline" onClick={save} disabled={!desk.script.trim() || running}>{desk.savedId ? "Save changes to All posts" : "Save to All posts"}</Button>
             <Button type="button" variant="ghost" onClick={clear} disabled={running || (!desk.script && !desk.title && !desk.about)}>Clear</Button>
             {saved && desk.savedId && (
               <span role="status" className="text-sm text-muted-foreground">
-                Saved. <Link to="/drafts" className="font-medium text-primary underline underline-offset-2">Open My posts</Link>
+                Saved. <Link to="/drafts" className="font-medium text-primary underline underline-offset-2">Open All posts</Link>
               </span>
             )}
           </div>

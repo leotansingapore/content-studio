@@ -217,13 +217,13 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
   // one row for them all, as overdue has, so a campaign's 24 made posts never bury what comes after (live-p6replay D15)
   if (made.length === 1)
     items.push({
-      id: `draft:${made[0].id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(made[0]), line: "Schedule it, or leave it in My posts.",
+      id: `draft:${made[0].id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(made[0]), line: "Schedule it, or leave it in All posts.",
       // links.drafts({ schedule, step: "where" }): the schedule steps open on it, and only their last button posts (phase 7a)
       actions: [{ label: "Open", to: draftLink(made[0].id) }, { label: "Schedule it", to: `/drafts?${new URLSearchParams({ schedule: made[0].id, step: "where" })}` }],
     });
   else if (made.length)
     items.push({
-      id: "unscheduled", kind: "unscheduled", title: `${made.length} posts are made and not scheduled`, quote: hookOf(made[0]), line: "Schedule them, or leave them in My posts.",
+      id: "unscheduled", kind: "unscheduled", title: `${made.length} posts are made and not scheduled`, quote: hookOf(made[0]), line: "Schedule them, or leave them in All posts.",
       actions: [{ label: "Open", to: "/drafts?status=draft" }],
     });
 

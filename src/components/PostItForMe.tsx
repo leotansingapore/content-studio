@@ -157,7 +157,7 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
         await cancelPost(profileId, link.postId!);
         onDrafts(setDraftZernio(userId, draft.id, null));
         logPost(userId, draft, (n) => `Cancelled posting ${n}`);
-        toast({ title: "Cancelled", description: "Zernio won't post it. It stays in My posts." });
+        toast({ title: "Cancelled", description: "Zernio won't post it. It stays in All posts." });
         return;
       }
       const { post } = what === "retry" ? await retryPost(profileId, link.postId!) : await readPost(profileId, link.postId!);
@@ -170,11 +170,11 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
     } catch (e) {
       if (what !== "read") {
         const title = (n: string) => (gone(e) ? `${n} is gone from Zernio` : what === "cancel" ? `${n} could not be cancelled` : `${n} could not be posted`);
-        logPost(userId, draft, title, gone(e) ? "It stays in My posts." : message(e));
+        logPost(userId, draft, title, gone(e) ? "It stays in All posts." : message(e));
       }
       if (gone(e)) {
         onDrafts(setDraftZernio(userId, draft.id, null));
-        toast({ title: "That post is gone from Zernio", description: "It stays in My posts." });
+        toast({ title: "That post is gone from Zernio", description: "It stays in All posts." });
       } else setError(message(e));
     } finally {
       setBusy(null);

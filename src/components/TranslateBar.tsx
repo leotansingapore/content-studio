@@ -299,7 +299,7 @@ export default function TranslateBar(p: {
       )}
       {ask && (
         <Ask onYes={() => start(ask)} onNo={() => setAsk(null)}>
-          My posts holds {MAX_DRAFTS} posts. Saving this drops your oldest one.
+          All posts holds {MAX_DRAFTS} posts. Saving this drops your oldest one.
         </Ask>
       )}
       {job?.state === "failed" && job.kind === "post" && (

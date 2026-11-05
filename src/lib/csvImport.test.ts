@@ -158,12 +158,12 @@ describe("planImport with times, media and hashtags", () => {
     expect(planImport("hook,text,platform\n,,linkedin\nA,a,\nB,b,", "linkedin", 2, NOW).rows.map((r) => r.fits)).toEqual([false, true, true]);
   });
 
-  it("moves a time clear of a post already scheduled in My posts, but not of one already posted", () => {
+  it("moves a time clear of a post already scheduled in All posts, but not of one already posted", () => {
     const one = "hook,text,platform,date,time\nX,Body,linkedin,2026-10-20,09:10";
     const booked = [{ platform: "linkedin", scheduledFor: "2026-10-20T09:00", status: "scheduled" as const }];
     expect(planImport(one, "linkedin", 5, NOW, booked).rows[0]).toMatchObject({
       time: "09:40",
-      notes: ["Moved from 9:10am to 9:40am, a post in My posts is on LinkedIn at 9am"],
+      notes: ["Moved from 9:10am to 9:40am, a post in All posts is on LinkedIn at 9am"],
     });
     expect(planImport(one, "linkedin", 5, NOW, [{ ...booked[0], status: "posted" as const }]).rows[0].notes).toEqual([]);
   });
@@ -173,7 +173,7 @@ describe("planImport with times, media and hashtags", () => {
     const booked = [{ platform: "linkedin", scheduledFor: "2026-10-20T23:45", status: "scheduled" as const }];
     expect(planImport(late, "linkedin", 5, NOW, booked).rows[0]).toMatchObject({
       time: "23:50",
-      notes: ["Clashes with a post in My posts on LinkedIn at 11:45pm, and nothing later that day is free"],
+      notes: ["Clashes with a post in All posts on LinkedIn at 11:45pm, and nothing later that day is free"],
     });
   });
 

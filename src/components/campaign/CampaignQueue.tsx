@@ -536,7 +536,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         )}
         {p.state === "made" && (p.made?.kind === "video"
           ? band(p.format === "wall" ? "Made. Open it in the editor to check the words and export." : "Made. Open it in the editor to add captions and export.", links.edit(), "Open in editor")
-          : band(`On your calendar for ${whenText(p)}.`, links.calendar({ post: p.draftId }), "Open in My posts"))}
+          : band(`On your calendar for ${whenText(p)}.`, links.calendar({ post: p.draftId }), "Open in All posts"))}
         {p.state === "skipped" && <p role="status" className="text-sm">Skipped. Press Skip again to bring it back.</p>}
         {p.error && (p.state === "ready" || (p.state === "making" && !maker)) && <p role="status" className={`text-sm ${p.error === STILL_MAKING ? "text-muted-foreground" : "text-warning"}`}>{p.error}</p>}
         <div className={p.state === "skipped" ? "opacity-40" : ""}>{preview()}</div>
@@ -590,8 +590,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             {cur.format === "ai-video" && cur.state === "ready" && videos === null && <p className="text-sm text-muted-foreground">{UNREAD}</p>}
           </div>
           {confirm === "full" && (
-            <div role="alertdialog" aria-label="My posts is full" className="space-y-3 rounded-xl border border-warning/40 bg-warning/10 p-4">
-              <p className="text-sm">My posts is full, so this drops &quot;{droppedHook(loadDrafts(userId))}&quot; from it. Make anyway?</p>
+            <div role="alertdialog" aria-label="All posts is full" className="space-y-3 rounded-xl border border-warning/40 bg-warning/10 p-4">
+              <p className="text-sm">All posts is full, so this drops &quot;{droppedHook(loadDrafts(userId))}&quot; from it. Make anyway?</p>
               <div className="flex flex-wrap gap-2">
                 <Button autoFocus className={BIG} onClick={() => (setConfirm(null), make(cur, "full"))}>Make anyway</Button>
                 <Button variant="ghost" className={BIG} onClick={() => setConfirm(null)}>Cancel</Button>

@@ -309,7 +309,7 @@ describe("a turn", () => {
     off();
     expect(seen).toContain("thinking");
     expect(last(id)).toMatchObject({ text: CAPABILITIES, turn: "done", meta: { steps: 1 } });
-    expect(last(id).go?.map((g) => g.label)).toEqual(["Open Swipe file", "Open My posts"]);
+    expect(last(id).go?.map((g) => g.label)).toEqual(["Open Swipe file", "Open All posts"]);
   });
 
   it("sends agent mode's fields and only the one proposed card as pending", async () => {
@@ -336,7 +336,7 @@ describe("a turn", () => {
 
   it("writes the cap line when agent-act is used up, then the feedback service's answer", async () => {
     jev.refuse = { status: 429, code: "daily_limit" };
-    setFeedback(async () => ({ text: "Here's how labels work.", go: [{ label: "Open My posts", path: "/drafts" }] }));
+    setFeedback(async () => ({ text: "Here's how labels work.", go: [{ label: "Open All posts", path: "/drafts" }] }));
     const id = await say("how do labels work", null);
     expect(last(id).text).toBe(`${CAP_LINE}\n\nHere's how labels work.`);
     expect(priced()).toEqual([]);
@@ -407,7 +407,7 @@ describe("nothing priced runs before its card's press", () => {
     await approve(id);
     const m = cardMsg(id);
     expect(m.job).toMatchObject({ kind: "remix", state: "done", drafts: ["d-made"], open: "/carousel?draft=d-made" });
-    expect(m.receipt).toMatchObject({ title: "Carousel written", line: "CPF LIFE pays for life. It's in My posts.", undo: { kind: "delete-drafts", ids: ["d-made"] } });
+    expect(m.receipt).toMatchObject({ title: "Carousel written", line: "CPF LIFE pays for life. It's in All posts.", undo: { kind: "delete-drafts", ids: ["d-made"] } });
     expect(m.card?.flags).toEqual(['Check: "guaranteed" is flagged.']);
     expect(loadDrafts(UID)[0].agent).toEqual({ thread: id, msg: m.id });
     expect(await undoReceipt(UID, id, m.id)).toBe(UNDONE);
@@ -447,7 +447,7 @@ describe("nothing priced runs before its card's press", () => {
     expect([c.status, approveLabel(c), c.line]).toEqual(["proposed", "Make it for US$3.31", "The voiceover runs 18 seconds, so this costs about US$3.31."]);
     await approve(id);
     expect(priced()).toEqual(["writeScript", "startTalk:presenter", "goOnAtPrice"]);
-    expect(cardMsg(id).receipt).toMatchObject({ title: "Video made", undoText: "Paid makes can't be undone. Delete the draft in My posts if you don't want it." });
+    expect(cardMsg(id).receipt).toMatchObject({ title: "Video made", undoText: "Paid makes can't be undone. Delete the draft in All posts if you don't want it." });
     expect(cardMsg(id).receipt?.line).toMatch(/It used \d+ Higgsfield credits, about US\$\d+\.\d\d\.$/);
   });
 

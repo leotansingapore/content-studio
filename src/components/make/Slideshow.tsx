@@ -511,7 +511,7 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
     const again = !!show.draftId;
     toPosts();
     // the first save shows the line under the buttons; saving again changes nothing on screen, so it gets a toast
-    if (again) toast({ title: "Saved. It's in My posts as a draft." });
+    if (again) toast({ title: "Saved. It's in All posts as a draft." });
   };
   const downloadAll = async () => {
     if (prep && typeof prep !== "string") return;
@@ -628,9 +628,9 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
       </div>
       {show.draftId && (
         <p className="text-xs text-muted-foreground">
-          Saved. It's in My posts as a draft.{" "}
+          Saved. It's in All posts as a draft.{" "}
           <Link to={links.drafts()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">
-            Open My posts
+            Open All posts
           </Link>
         </p>
       )}

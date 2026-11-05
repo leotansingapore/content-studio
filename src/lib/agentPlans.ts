@@ -130,7 +130,7 @@ export const LINES = {
   competitorLead: (name: string) => `This adds ${name} once to the competitors you track.`,
   noSource: "Which post? Press Remix on one in Swipe file or Analytics, then Ask the agent instead.",
   campaign: "I'll set it up in the campaign planner.",
-  paid: "Paid makes can't be undone. Delete the draft in My posts if you don't want it.",
+  paid: "Paid makes can't be undone. Delete the draft in All posts if you don't want it.",
   gone: (kind: string) => `That ${kind} is no longer open. Open it and ask again.`,
   editFailed: "That change didn't go through. Nothing changed.",
   learningsFull: "30 is the most. Remove one on Your voice to add another.",
@@ -156,9 +156,9 @@ const NOUN: Record<AgentFormat, string> = {
   image: "picture",
 };
 const MAKE_LINE: Partial<Record<AgentFormat, string>> = {
-  post: "A written post, saved to My posts.",
-  carousel: "A carousel to swipe through, saved to My posts.",
-  script: "A script you film yourself, saved to My posts.",
+  post: "A written post, saved to All posts.",
+  carousel: "A carousel to swipe through, saved to All posts.",
+  script: "A script you film yourself, saved to All posts.",
   slideshow: "Words on a few photos, saved to your slideshows.",
   wall: "One bold claim over a short clip, opened in the video editor.",
 };
@@ -721,7 +721,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         if (j?.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
         const text = j.written?.text ?? "";
         const open = links.edit();
-        return x.done({ title: "Wall of text made", line: `"${clip(text, 80)}"`, button: { label: "Open in editor", path: open }, undoText: "Delete it in My posts" }, { kind: "wall", state: "done", open, title: clip(text, 80) }, { flags: flagsFor(userId, text, j.written?.flags.mas) });
+        return x.done({ title: "Wall of text made", line: `"${clip(text, 80)}"`, button: { label: "Open in editor", path: open }, undoText: "Delete it in All posts" }, { kind: "wall", state: "done", open, title: clip(text, 80) }, { flags: flagsFor(userId, text, j.written?.flags.mas) });
       }
       case "speaking":
         return await talkPress(userId, x, src, live);
@@ -752,7 +752,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
       }
       case "move": {
         const d = loadDrafts(userId).find((y) => y.id === f.draft);
-        if (!d) return x.fail("That post is no longer in My posts.");
+        if (!d) return x.fail("That post is no longer in All posts.");
         const today = localDateKey();
         const dock = actFor(userId, { act: "move", post: 0, day: f.day ?? null, time: f.time ?? null }, "", [d], today, () => {});
         if (!dock) return x.fail("That post can't move to that day.");
@@ -766,7 +766,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
       case "write":
       case "paste": {
         const d = f.plan === "write" ? loadDrafts(userId).find((y) => y.id === f.draft) : undefined;
-        if (f.plan === "write" && !d) return x.fail("That post is no longer in My posts.");
+        if (f.plan === "write" && !d) return x.fail("That post is no longer in All posts.");
         const dock = actFor(userId, { act: f.act as "write", post: d ? 0 : null, day: null, time: null }, f.message ?? "", d ? [d] : [], localDateKey(), (path) => navigate?.(path));
         if (!dock) return x.fail(NOT_THROUGH);
         if ("say" in dock) return x.fail(dock.say);
@@ -834,7 +834,7 @@ async function remixPress(userId: string, thread: string, msgId: string, x: Pres
   if (row?.state !== "done" || !row.draftId) return x.fail(row?.error ?? NOT_THROUGH, row?.refunded === true && row.error === NOTHING_USED);
   const draft = loadDrafts(userId).find((d) => d.id === row.draftId);
   x.done(
-    { title: `${cap(NOUN[as])} written`, line: `${row.hook ? `${sentence(row.hook)} ` : ""}It's in My posts.`, button: { label: "Open", path: row.href ?? links.drafts() }, undo: { kind: "delete-drafts", ids: [row.draftId] } },
+    { title: `${cap(NOUN[as])} written`, line: `${row.hook ? `${sentence(row.hook)} ` : ""}It's in All posts.`, button: { label: "Open", path: row.href ?? links.drafts() }, undo: { kind: "delete-drafts", ids: [row.draftId] } },
     { kind: "remix", state: "done", drafts: [row.draftId], open: row.href, title: row.hook },
     { flags: flagsFor(userId, draft?.draft ?? row.hook ?? "", row.flags?.mas) },
   );

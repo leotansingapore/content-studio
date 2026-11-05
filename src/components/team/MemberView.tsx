@@ -134,7 +134,7 @@ export default function MemberView({
             </p>
           )}
           <Button size="sm" onClick={() => navigate("/drafts")} className="gap-1.5">
-            <Send className="h-3.5 w-3.5" /> Submit a draft from My posts
+            <Send className="h-3.5 w-3.5" /> Submit a draft from All posts
           </Button>
           <LeaveTeam
             teamName={team.name}
@@ -159,9 +159,9 @@ export default function MemberView({
             <ErrorBlock message={error} onRetry={() => void load()} />
           ) : subs.length === 0 ? (
             <EmptyBlock icon={<History className="h-6 w-6" />}>
-              <p>Nothing submitted yet. In My posts, choose Submit for review on a draft.</p>
+              <p>Nothing submitted yet. In All posts, choose Submit for review on a draft.</p>
               <Button size="sm" variant="outline" onClick={() => navigate("/drafts")}>
-                Open My posts
+                Open All posts
               </Button>
             </EmptyBlock>
           ) : (

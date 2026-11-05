@@ -324,7 +324,7 @@ export function getInsights(userId: string | null | undefined): Insight[] {
       title: "Track a few more posts",
       body: `You've logged real numbers on ${tracked.length} post${
         tracked.length === 1 ? "" : "s"
-      }. Add impressions and engagement on at least ${MIN_INSIGHT_SAMPLE} posted posts (in My posts) and this page starts surfacing what's actually working.`,
+      }. Add impressions and engagement on at least ${MIN_INSIGHT_SAMPLE} posted posts (in All posts) and this page starts surfacing what's actually working.`,
     });
     return insights;
   }

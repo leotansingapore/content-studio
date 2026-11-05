@@ -237,7 +237,7 @@ export function planImport(
   for (const d of booked) {
     const t = scheduleTime(d.scheduledFor);
     if (t && draftStatus(d as DraftEntry) !== "posted") {
-      slotsOf(d.platform, d.scheduledFor!.slice(0, 10)).push({ min: toMinutes(t), who: "a post in My posts" });
+      slotsOf(d.platform, d.scheduledFor!.slice(0, 10)).push({ min: toMinutes(t), who: "a post in All posts" });
     }
   }
   for (const r of rows) {

@@ -98,7 +98,7 @@ export function actFor(userId: string, pick: ActPick, message: string, drafts: D
   return engageAct(userId, ENGAGE[pick.act], message, go);
 }
 
-const MY_POSTS = { path: "/drafts", label: "Open My posts" };
+const MY_POSTS = { path: "/drafts", label: "Open All posts" };
 
 /** Where a move pick puts a post: its day (a scheduled post keeps its own) and time, or null with no day or a past one. */
 export function moveWhen(d: DraftEntry, pick: Pick<ActPick, "day" | "time">, today: string): { when: string; label: string } | null {
@@ -111,10 +111,10 @@ export function moveWhen(d: DraftEntry, pick: Pick<ActPick, "day" | "time">, tod
 
 function moveAct(userId: string, d: DraftEntry, pick: ActPick, today: string): DockAct | null {
   const title = titleOf(d);
-  if (draftStatus(d) === "posted") return { say: `"${title}" is marked posted. Mark it unposted on My posts to move it.`, go: [MY_POSTS] };
+  if (draftStatus(d) === "posted") return { say: `"${title}" is marked posted. Mark it unposted on All posts to move it.`, go: [MY_POSTS] };
   // Post it for me already has it: moving only the app's date would leave Zernio posting at the old time
   if (d.zernio?.postId && !["cancelled", "failed"].includes(d.zernio.status ?? ""))
-    return { say: `"${title}" is set to go out through Post it for me. Change its time on My posts.`, go: [MY_POSTS] };
+    return { say: `"${title}" is set to go out through Post it for me. Change its time on All posts.`, go: [MY_POSTS] };
   const wasScheduled = draftStatus(d) === "scheduled";
   const target = moveWhen(d, pick, today);
   if (!target) return null;
@@ -126,7 +126,7 @@ function moveAct(userId: string, d: DraftEntry, pick: ActPick, today: string): D
     yes: `${verb} it`,
     run: () => {
       const prev = loadDrafts(userId).find((x) => x.id === d.id);
-      if (!prev) throw new Error("that post is no longer in My posts");
+      if (!prev) throw new Error("that post is no longer in All posts");
       if (draftStatus(prev) === "posted") throw new Error("it is marked posted now");
       setDraftStatus(userId, d.id, "scheduled", when);
       draftsChanged();

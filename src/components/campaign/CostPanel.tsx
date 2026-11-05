@@ -154,7 +154,7 @@ export default function CostPanel({ userId, campaign: c }: { userId: string; cam
         <div className="space-y-2 border-t border-border/60 pt-3">
           {dropped > 0 && (
             <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
-              My posts keeps your newest {MAX_DRAFTS}, so making {state.f} drops your {dropped} oldest from it.
+              All posts keeps your newest {MAX_DRAFTS}, so making {state.f} drops your {dropped} oldest from it.
             </p>
           )}
           <Button className="h-11 w-full sm:h-10" disabled={running || !!state.reason} onClick={() => startFreeRun(userId, c)}>

@@ -387,7 +387,7 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
             <div className="space-y-3 rounded-lg border border-border/60 p-4 text-sm">
               <p className="font-medium text-foreground">{FILM_LINE}</p>
               <Button asChild className={TOUCH}><Link to={links.edit({ plan: plan!.id, version: job!.versionId })}>Upload the take</Link></Button>
-              <p className="text-xs text-muted-foreground">Your script is in My posts too.</p>
+              <p className="text-xs text-muted-foreground">Your script is in All posts too.</p>
             </div>
           ) : job!.state === "done" ? (
             <Frame>

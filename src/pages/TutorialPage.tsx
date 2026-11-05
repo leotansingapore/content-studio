@@ -379,7 +379,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <History className="h-3.5 w-3.5" /> My posts
+                      <History className="h-3.5 w-3.5" /> All posts
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">

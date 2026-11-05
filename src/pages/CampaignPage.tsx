@@ -192,7 +192,7 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
         </header>
         {menu === "confirm" && (
           <div role="alertdialog" aria-label="Delete this campaign" className="space-y-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
-            <p className="text-sm">Delete this campaign? Posts you made stay in My posts and on your calendar.</p>
+            <p className="text-sm">Delete this campaign? Posts you made stay in All posts and on your calendar.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="destructive" className={BIG} onClick={remove}>Delete campaign</Button>
               <Button variant="ghost" className={BIG} onClick={() => setMenu("closed")}>Keep</Button>

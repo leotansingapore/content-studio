@@ -194,7 +194,7 @@ export default function AutopilotCard({ userId, onDraftsChange }: { userId: stri
         )}
         {p.state === "missed" && (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">Not approved in time. It is in My posts as a draft.</p>
+            <p className="text-xs text-muted-foreground">Not approved in time. It is in All posts as a draft.</p>
             <Button size="sm" variant="outline" className={TOUCH} asChild>
               <Link to={edit}>Open</Link>
             </Button>
@@ -270,7 +270,7 @@ export default function AutopilotCard({ userId, onDraftsChange }: { userId: stri
               ) : null}
               {!rows.length && !run.running && dropped > 0 && (
                 <p className="text-xs text-warning">
-                  My posts keeps your newest {MAX_DRAFTS}, so this week's posts push out your {plural(dropped, "oldest", "oldest")}.
+                  All posts keeps your newest {MAX_DRAFTS}, so this week's posts push out your {plural(dropped, "oldest", "oldest")}.
                 </p>
               )}
               {shown && rows.length > 0 && (

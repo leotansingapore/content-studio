@@ -209,7 +209,7 @@ function ScriptActions({ userId, title, script }: { userId: string; title: strin
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" size="sm" className={`gap-1 ${TOUCH}`} onClick={() => void copy()}><Copy className="h-3.5 w-3.5" /> Copy</Button>
-      <Button type="button" variant="outline" size="sm" className={TOUCH} onClick={() => (setDraftId(saveScriptDraft(userId, { title, script }, draftId).id), setDone("saved"))}>Save to My posts</Button>
+      <Button type="button" variant="outline" size="sm" className={TOUCH} onClick={() => (setDraftId(saveScriptDraft(userId, { title, script }, draftId).id), setDone("saved"))}>Save to All posts</Button>
       {done && <span role="status" className="flex items-center gap-1 text-xs text-success"><Check className="h-3.5 w-3.5" />{done === "copied" ? "Copied" : "Saved"}</span>}
     </div>
   );

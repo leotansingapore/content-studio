@@ -162,7 +162,7 @@ describe("upsertDraft", () => {
     expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", media: "https://drive.example.com/reel.mp4", labels: ["format:carousel"] });
   });
 
-  it("editing a post when My posts is full loses no other post", () => {
+  it("editing a post when All posts is full loses no other post", () => {
     const full = Array.from({ length: MAX_DRAFTS }, (_, i) => post({ id: `p${i}` }));
     saveDrafts(UID, full);
     upsertDraft(UID, post({ id: "p10", hook: "Edited in Write" }));
@@ -489,7 +489,7 @@ describe("drafts Claude saved, as absorbed today", () => {
   const row = (id: string, o: Record<string, unknown> = {}) =>
     JSON.stringify({ id, createdAt: "2026-10-08T03:00:00.000Z", hook: "From Claude", draft: "Body", platform: "instagram", format: "carousel", status: "draft", ...o });
 
-  it("join My posts newest first with these fields, and only this brand's rows go", () => {
+  it("join All posts newest first with these fields, and only this brand's rows go", () => {
     ls().setItem(`content-studio-drafts-${UID}`, JSON.stringify([post({ id: "old" })]));
     ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1", { pillarDetail: "CPF at 55" }));
     ls().setItem(`content-studio-mcpdraft-claude-b2-${UID}`, row("claude-b2", { createdAt: "2026-10-08T04:00:00.000Z", status: "scheduled", scheduledFor: "2026-10-20T19:30", hook: "x".repeat(200) }));
@@ -509,7 +509,7 @@ describe("drafts Claude saved, as absorbed today", () => {
     expect(Array.from({ length: ls().length }, (_, i) => ls().key(i)).sort()).toEqual([`content-studio-drafts-${UID}`, `content-studio-mcpdraft-claude-c3-${UID}~p9`]);
   });
 
-  it("on a full device still show in My posts and keep their row, so a later read takes them in and nothing is lost", () => {
+  it("on a full device still show in All posts and keep their row, so a later read takes them in and nothing is lost", () => {
     const s = ls();
     s.setItem(`content-studio-drafts-${UID}`, JSON.stringify([post({ id: "old" })]));
     s.setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
@@ -564,7 +564,7 @@ describe("drafts Claude saved, in Leo's Activity", () => {
     loadDrafts(UID);
     expect(loadActivity(UID, ["2026-10"])).toEqual([
       { id: "claude-b2", at: "2026-10-08T04:00:00.000Z", who: "claude", kind: "post", title: 'Added a draft: "Why I stopped chasing yield"', detail: "Scheduled for Tue 20 Oct, 7:30pm.", link: "/generate?draft=claude-b2" },
-      { id: "claude-a1", at: "2026-10-08T03:00:00.000Z", who: "claude", kind: "post", title: 'Added a draft: "From Claude"', detail: "Saved as a draft in My posts.", link: "/generate?draft=claude-a1" },
+      { id: "claude-a1", at: "2026-10-08T03:00:00.000Z", who: "claude", kind: "post", title: 'Added a draft: "From Claude"', detail: "Saved as a draft in All posts.", link: "/generate?draft=claude-a1" },
     ]);
   });
 
@@ -582,7 +582,7 @@ describe("drafts Claude saved, in Leo's Activity", () => {
     expect(loadActivity(UID, ["2026-10"]).map((e) => e.id)).toEqual(["claude-a1"]);
   });
 
-  it("a draft already in My posts logs nothing", () => {
+  it("a draft already in All posts logs nothing", () => {
     ls().setItem(`content-studio-drafts-${UID}`, JSON.stringify([post({ id: "claude-a1" })]));
     ls().setItem(`content-studio-mcpdraft-claude-a1-${UID}`, row("claude-a1"));
     loadDrafts(UID);
@@ -715,7 +715,7 @@ describe("phase 7a's draft fields", () => {
   });
 });
 
-describe("the Zernio outbox from My posts' own actions (phase 7 decision 6)", () => {
+describe("the Zernio outbox from All posts' own actions (phase 7 decision 6)", () => {
   const ls = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
   const POST_ID = "67000000000000000000d001";
   const link = { key: "k", postId: POST_ID, status: "scheduled", at: "2026-10-15T01:00:00.000Z" };

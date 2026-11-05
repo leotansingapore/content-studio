@@ -53,7 +53,7 @@ Select `Download` to get your slides out:
 - `Choose slides` to pick which ones.
 - `Send to phone` puts the slides behind a link and a QR code. Open it on your phone to share them to TikTok or Instagram. The link works for **24 hours**.
 
-`Save to My posts` adds the slideshow to your posts with every slide attached, ready for `Schedule`.
+`Save to All posts` adds the slideshow to your posts with every slide attached, ready for `Schedule`.
 
 ---
 

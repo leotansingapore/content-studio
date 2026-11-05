@@ -62,7 +62,7 @@ export const REFUSE = {
   person: "I can't make that. Posts can't promise returns or name an insurer's products, and a remix copies the structure, never the words or another person's face.",
   business: "I can't make that. A remix copies the structure, never the words or another person's face or voice.",
 } as const;
-const OPEN_MY_POSTS = { path: "/drafts", label: "Open My posts" };
+const OPEN_MY_POSTS = { path: "/drafts", label: "Open All posts" };
 export const NOT_MADE = "Nothing was made or charged.";
 const OVER_A_DOLLAR = 1;
 

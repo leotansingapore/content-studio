@@ -135,7 +135,7 @@ describe("moving a post", () => {
     saveDrafts(UID, [post({ status: "posted", postedAt: "2026-10-11T01:00:00.000Z" })]);
     expect(() => c.run()).toThrow("marked posted now");
     saveDrafts(UID, []);
-    expect(() => c.run()).toThrow("no longer in My posts");
+    expect(() => c.run()).toThrow("no longer in All posts");
   });
 });
 

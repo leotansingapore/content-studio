@@ -1715,7 +1715,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
   const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks, avoidList(brandKit)).warnings : []), [caption, postText, brandLinks, brandKit]);
   // a video made from a post saves back to it (Leo only); read again after a save, in case it was the fallback
   const ownPost = useMemo(() => (leo && project.draftId ? getDraftById(userId, project.draftId) : null), [leo, userId, project.draftId, savedDraft]);
-  const saveLabel = ownPost ? (savedDraft ? "Saved to your post" : "Save to your post") : savedDraft ? "Saved to My posts" : "Save to My posts";
+  const saveLabel = ownPost ? (savedDraft ? "Saved to your post" : "Save to your post") : savedDraft ? "Saved to All posts" : "Save to All posts";
   const saveToPosts = () => {
     // a words-over-video project with no caption written posts its words
     const text = caption.trim() || !wallMode ? caption : (settings.overlays ?? []).find((o) => o.kind === "block")?.text ?? "";
@@ -1740,7 +1740,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
       ...(project.source ? { source: project.source } : {}),
     });
     setSavedDraft(true);
-    toast(leo && project.draftId ? { title: "That post is gone, so this saved as a new one." } : { title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });
+    toast(leo && project.draftId ? { title: "That post is gone, so this saved as a new one." } : { title: "Saved to All posts", description: "Schedule it from Pipeline when the video is exported." });
   };
 
   // the B-roll files from this device, with the face and background effects loaded; null when the effects couldn't load (said already)

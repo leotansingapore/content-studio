@@ -182,7 +182,7 @@ export const UNDONE = "Undone.";
 const changedLine = (page: string) => `It changed since. Change it on ${page}.`;
 const failedLine = (page: string) => `Couldn't undo that. Change it back on ${page}.`;
 const PAGE: Record<Exclude<Undo["kind"], "page">, string> = {
-  "delete-drafts": "My posts",
+  "delete-drafts": "All posts",
   "restore-draft": "Calendar",
   "remove-competitor": "Competitors",
   "learning-off": "Your voice",

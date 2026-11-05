@@ -496,7 +496,7 @@ export default function DraftsPage() {
     toast({
       title: "Copy made",
       description: pushedOut
-        ? `It's at the top as a draft. My posts keeps ${MAX_DRAFTS}, so "${(pushedOut.hook || pushedOut.draft).slice(0, 40) || "your oldest post"}" was removed. Undo brings it back.`
+        ? `It's at the top as a draft. All posts keeps ${MAX_DRAFTS}, so "${(pushedOut.hook || pushedOut.draft).slice(0, 40) || "your oldest post"}" was removed. Undo brings it back.`
         : "It's at the top as a draft.",
       action: (
         <ToastAction altText="Undo" onClick={() => setDrafts(undoDuplicate(userId, r.copy.id, r.dropped))}>
@@ -799,7 +799,7 @@ export default function DraftsPage() {
       <Card className="border-border/60 shadow-card">
         <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle className="font-serif text-xl">
-            Filter your drafts
+            Filter your posts
           </CardTitle>
           {!manageLabels && (
             <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">

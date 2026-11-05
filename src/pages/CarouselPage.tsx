@@ -887,7 +887,7 @@ export default function CarouselPage() {
     const all = loadDrafts(userId);
     setDrafts(draftsWithText(all));
     build({ kind: "ai", id, text: clean, title, platform: topicPlatform });
-    toast({ title: "Slides written", description: "The post is saved in My posts too." });
+    toast({ title: "Slides written", description: "The post is saved in All posts too." });
   };
 
   // an edited carousel is kept to come back to (per profile, on every device)
@@ -1361,7 +1361,7 @@ export default function CarouselPage() {
           >
             {(
               [
-                ["drafts", "From My posts"],
+                ["drafts", "From All posts"],
                 ["paste", "Paste text"],
                 ["topic", "From a topic"],
                 ...(saved.length ? ([["saved", `Saved (${saved.length})`]] as const) : []),

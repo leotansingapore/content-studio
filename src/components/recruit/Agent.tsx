@@ -151,7 +151,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
     });
     setSavedId(id);
     lastSaved.current = draft;
-    toast({ title: "Saved to My posts", description: "Schedule it from Pipeline." });
+    toast({ title: "Saved to All posts", description: "Schedule it from Pipeline." });
   };
 
   return (
@@ -267,7 +267,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
             {!busy && (
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={save} disabled={!userId} className="gap-1.5">
-                  <Save className="h-3.5 w-3.5" /> {savedId ? "Save changes" : "Save to My posts"}
+                  <Save className="h-3.5 w-3.5" /> {savedId ? "Save changes" : "Save to All posts"}
                 </Button>
                 <CopyButton text={draft} label="Copy" what="Draft copied" />
                 {savedId && (

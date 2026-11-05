@@ -90,9 +90,9 @@ export default function CsvImport({
             hashtags, all optional. Up to {MAX_IMPORT_ROWS} rows.
           </p>
           {room === 0 ? (
-            <p className="text-sm font-medium text-warning">My posts is full ({MAX_DRAFTS} posts). Delete some to make room.</p>
+            <p className="text-sm font-medium text-warning">All posts is full at {MAX_DRAFTS} posts. Delete some to make room.</p>
           ) : (
-            room < MAX_IMPORT_ROWS && <p className="text-xs text-muted-foreground">My posts has room for {room} more.</p>
+            room < MAX_IMPORT_ROWS && <p className="text-xs text-muted-foreground">All posts has room for {room} more.</p>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex flex-wrap items-center gap-2">
@@ -109,7 +109,7 @@ export default function CsvImport({
           <p className="text-sm text-foreground">
             {fits} post{fits === 1 ? "" : "s"} ready
             {problems.length ? `, ${problems.length} row${problems.length === 1 ? "" : "s"} to check` : ""}
-            {noRoom ? `. ${noRoom} won't fit: My posts holds ${MAX_DRAFTS}.` : "."}
+            {noRoom ? `. ${noRoom} won't fit: All posts holds ${MAX_DRAFTS}.` : "."}
           </p>
           {plan.skipped > 0 && (
             <p className="text-xs text-warning">

@@ -779,7 +779,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
   };
   const saveToPosts = () => {
     toPosts();
-    toast({ title: "Saved to My posts", action: <ToastAction altText="Open My posts" onClick={() => navigate(links.drafts())}>Open My posts</ToastAction> });
+    toast({ title: "Saved to All posts", action: <ToastAction altText="Open All posts" onClick={() => navigate(links.drafts())}>Open All posts</ToastAction> });
   };
   // the calendar dates the post; Post it for me shows there once it has a date. Month view, since a remembered
   // week view on a phone or the upcoming list shows an undated post's editor nowhere (links.calendar leaves month out).
@@ -816,7 +816,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
             <Download className="h-4 w-4" /> Download
           </Button>
           <Button variant="outline" size="sm" onClick={saveToPosts} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-            <Save className="h-4 w-4" /> Save to My posts
+            <Save className="h-4 w-4" /> Save to All posts
           </Button>
           {/* the slideshow accounts' move: one cover that worked, new slides after it (the make's sizes only) */}
           {(work.size === "4x5" || work.size === "9x16") && (

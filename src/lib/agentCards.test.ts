@@ -155,9 +155,9 @@ describe("runUndo", () => {
     expect(runUndo(UID, { kind: "delete-drafts", ids: ["a1", "b2"] })).toBe(UNDONE);
     expect(loadDrafts(UID).map((d) => d.id)).toEqual(["keep"]);
     expect(loadCarousels(UID).map((c) => c.id)).toEqual(["d:keep"]);
-    expect(runUndo(UID, { kind: "delete-drafts", ids: ["a1", "b2"] })).toBe("It changed since. Change it on My posts.");
+    expect(runUndo(UID, { kind: "delete-drafts", ids: ["a1", "b2"] })).toBe("It changed since. Change it on All posts.");
     saveDrafts(UID, [draft("p1", { status: "posted" })]);
-    expect(runUndo(UID, { kind: "delete-drafts", ids: ["p1"] })).toBe("It changed since. Change it on My posts.");
+    expect(runUndo(UID, { kind: "delete-drafts", ids: ["p1"] })).toBe("It changed since. Change it on All posts.");
     expect(loadDrafts(UID)).toHaveLength(1);
   });
 
@@ -205,6 +205,6 @@ describe("runUndo", () => {
     expect(runUndo(UID, { kind: "page", page: "the carousel" })).toBe("Couldn't undo that. Change it back on the carousel.");
     saveDrafts(UID, [draft("f1")]);
     full = true;
-    expect(runUndo(UID, { kind: "delete-drafts", ids: ["f1"] })).toBe("Couldn't undo that. Change it back on My posts.");
+    expect(runUndo(UID, { kind: "delete-drafts", ids: ["f1"] })).toBe("Couldn't undo that. Change it back on All posts.");
   });
 });

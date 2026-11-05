@@ -79,7 +79,7 @@ export default function NoTeamView({
       const { teamName: joined } = await joinTeam(code, memberName.trim());
       toast({
         title: `You joined ${joined}`,
-        description: "Submit drafts for review from My posts.",
+        description: "Submit drafts for review from All posts.",
       });
       onJoined();
     } catch (err) {
@@ -208,7 +208,7 @@ export default function NoTeamView({
         <CardContent className="flex gap-3 p-4 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <ol className="list-decimal space-y-1 pl-4">
-            <li>A consultant submits a draft from My posts. The text and its compliance flags are saved as they were.</li>
+            <li>A consultant submits a draft from All posts. The text and its compliance flags are saved as they were.</li>
             <li>The leader approves it or asks for changes, with a comment.</li>
             <li>Every step is kept in an audit trail the leader can export.</li>
           </ol>

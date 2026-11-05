@@ -377,7 +377,7 @@ function logClaudeDraft(userId: string, d: DraftEntry): void {
     who: "claude",
     kind: "post",
     title: `Added a draft: "${hook.length > 90 ? `${hook.slice(0, 87).trimEnd()}...` : hook}"`,
-    detail: d.status === "scheduled" && when ? `Scheduled for ${when}.` : "Saved as a draft in My posts.",
+    detail: d.status === "scheduled" && when ? `Scheduled for ${when}.` : "Saved as a draft in All posts.",
     link: links.generate({ draft: d.id }),
   });
 }

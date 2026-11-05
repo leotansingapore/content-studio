@@ -73,7 +73,7 @@ async function sendOne(userId: string, profileId: string, op: OutboxOp, gone: st
       if (d) setDraftZernio(userId, d.id, null);
       // a 404 on a cancel is a cancel done (the other device sent it first, or it was already gone)
       if (op.op === "cancel") log(userId, d, `Cancelled posting ${noun(op.title)}`, "Zernio won't post it.");
-      else log(userId, d, `${noun(op.title)} is gone from Zernio`, "It stays in My posts.");
+      else log(userId, d, `${noun(op.title)} is gone from Zernio`, "It stays in All posts.");
       return "gone";
     }
     if (e instanceof EdgeError && e.status === 409 && e.code === "published") {

@@ -273,7 +273,7 @@ export default function BatchPage() {
     if (!userId || !card || card.status !== "done") return;
     upsertDraft(userId, entryFor(t, card));
     setCards((prev) => ({ ...prev, [t.key]: { ...card, status: "saved" } }));
-    toast({ title: "Saved to My posts", description: t.label });
+    toast({ title: "Saved to All posts", description: t.label });
   };
 
   const unsaved = activeTargets.filter((t) => cards[t.key]?.status === "done");
@@ -287,7 +287,7 @@ export default function BatchPage() {
       for (const t of unsaved) next[t.key] = { ...prev[t.key], status: "saved" };
       return next;
     });
-    toast({ title: `Saved ${unsaved.length} drafts to My posts` });
+    toast({ title: `Saved ${unsaved.length} drafts to All posts` });
   };
 
   const handleCopy = async (text: string, plat: string, campaign: string) => {
@@ -428,7 +428,7 @@ export default function BatchPage() {
       {hasResults && !running && unsaved.length > 1 && (
         <div className="flex justify-end">
           <Button onClick={handleSaveAll} className="w-full gap-1.5 sm:w-auto">
-            <Save className="h-4 w-4" /> Save all {unsaved.length} to My posts
+            <Save className="h-4 w-4" /> Save all {unsaved.length} to All posts
           </Button>
         </div>
       )}
@@ -478,7 +478,7 @@ export default function BatchPage() {
                         className="gap-1.5"
                       >
                         <Save className="h-3.5 w-3.5" />{" "}
-                        {card.status === "saved" ? "Saved" : "Save to My posts"}
+                        {card.status === "saved" ? "Saved" : "Save to All posts"}
                       </Button>
                       <Button
                         size="sm"
@@ -506,7 +506,7 @@ export default function BatchPage() {
             if (
               unsaved > 0 &&
               !window.confirm(
-                `Start over? ${unsaved} draft${unsaved === 1 ? " isn't" : "s aren't"} saved to My posts yet and will be lost.`,
+                `Start over? ${unsaved} draft${unsaved === 1 ? " isn't" : "s aren't"} saved to All posts yet and will be lost.`,
               )
             )
               return;

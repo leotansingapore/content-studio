@@ -35,7 +35,7 @@ export const DESIGN_TOUR: readonly PageStep[] = [
   { target: "design-panel", title: "Fine-tune it here", text: "Everything about the picked layer: font, colour, outline, photo look, position. The layers list is at the bottom." },
   { target: "design-brand", title: "Your brand, once", text: "Brand holds your palette, heading and body fonts, logo and headshot, ready on every slide." },
   { target: "design-slides", title: "Slides", text: "Add, duplicate or delete slides. Each one keeps its own layers." },
-  { target: "design-export", title: "Get it out", text: "Download the slides, send them to your phone, or put them in My posts to schedule." },
+  { target: "design-export", title: "Get it out", text: "Download the slides, send them to your phone, or put them in All posts to schedule." },
 ];
 
 export const CAMPAIGN_TOUR: readonly PageStep[] = [

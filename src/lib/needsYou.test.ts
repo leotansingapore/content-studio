@@ -220,7 +220,7 @@ describe("needsYouItems", () => {
     expect(by.team).toEqual({ id: "team", kind: "team", title: "Team posts to review", n: 2, line: "Approve or skip each one.", actions: [{ label: "Review", to: links.calendar({ business: "team-posts", teampost: "tp1" }) }] });
     expect(by["review:radiant"]).toMatchObject({ title: "Radiant posts to review", n: 1, actions: [{ label: "Review", to: "/reels?brand=radiant&stage=all" }] });
     expect(by["notes:radiant"]).toMatchObject({ title: "Team notes: Radiant", n: 1, actions: [{ label: "Open", to: "/reels?brand=radiant&view=feed&stage=notes" }] });
-    expect(by.unscheduled).toEqual({ id: "unscheduled", kind: "unscheduled", title: "2 posts are made and not scheduled", quote: "Agent made", line: "Schedule them, or leave them in My posts.", actions: [{ label: "Open", to: links.drafts({ status: "draft" }) }] });
+    expect(by.unscheduled).toEqual({ id: "unscheduled", kind: "unscheduled", title: "2 posts are made and not scheduled", quote: "Agent made", line: "Schedule them, or leave them in All posts.", actions: [{ label: "Open", to: links.drafts({ status: "draft" }) }] });
     expect(by.autopilot).toMatchObject({ title: "Posts for your OK", n: 3, actions: [{ label: "Open", to: links.plan({ section: "autopilot" }) }] });
     expect(by["campaign:c1"]).toEqual({ id: "campaign:c1", kind: "campaign", title: "Keep making your campaign", quote: "Young families", line: "1 of 4 made | 2 drafts waiting for you", actions: [{ label: "Open", to: links.campaign("c1", { section: "queue" }) }] });
     expect(by.ideas).toMatchObject({ title: "Today's ideas", n: 6, actions: [{ label: "Open", to: links.ideas() }] });
@@ -263,7 +263,7 @@ describe("needsYouItems", () => {
     expect(items[1]).toMatchObject({ title: "24 posts are made and not scheduled", quote: "Made 23", actions: [{ label: "Open", to: "/drafts?status=draft" }] });
     // one made post keeps its own row with its own buttons
     const one = needsYouItems({ drafts: made.slice(0, 1) }, TODAY, NOW);
-    expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in My posts.", actions: [{ label: "Open", to: links.generate({ draft: "m0" }) }, { label: "Schedule it", to: links.drafts({ schedule: "m0", step: "where" }) }] }]);
+    expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in All posts.", actions: [{ label: "Open", to: links.generate({ draft: "m0" }) }, { label: "Schedule it", to: links.drafts({ schedule: "m0", step: "where" }) }] }]);
   });
 
   it("opens the schedule steps on that post from Schedule it, at Where, and posts nothing itself (phase 7a)", () => {

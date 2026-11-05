@@ -2590,7 +2590,7 @@ export default function GeneratePage() {
     }
     setKeptVariants({ key: variants.map((v) => v.text).join("\n"), set: set.id, ids });
     toast({
-      title: `${rows.length} ${rows.length === 1 ? "version" : "versions"} saved to My posts`,
+      title: `${rows.length} ${rows.length === 1 ? "version" : "versions"} saved to All posts`,
       action: (
         <ToastAction altText="Open" onClick={() => navigate(links.drafts({ set: set.id }))}>
           Open
@@ -4528,7 +4528,7 @@ export default function GeneratePage() {
                 <CopyLinkButton path={links.generate({ draft: savedEntry.id })} label="Copy link to this post" className="-my-2 -ml-2 order-last" />
                 {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-success" />}
                 {savedEntry.status === "posted" ? (
-                  "Posted. Edits save to My posts."
+                  "Posted. Edits save to All posts."
                 ) : savedEntry.status === "scheduled" && savedEntry.scheduledFor ? (
                   <>
                     Scheduled for {whenLabel(savedEntry.scheduledFor)}.
@@ -4543,7 +4543,7 @@ export default function GeneratePage() {
                   </>
                 ) : (
                   <>
-                    {saveState === "saving" ? "Saving..." : "Saved to My posts."}
+                    {saveState === "saving" ? "Saving..." : "Saved to All posts."}
                     {suggestedTime && (
                       <>
                         <span className="font-medium text-foreground">{leo ? `${suggestedLabel(suggestedTime)}: ` : "Best time "}{whenLabel(suggestedTime.at)}</span>
@@ -5677,7 +5677,7 @@ export default function GeneratePage() {
               ) : versionSaved ? (
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                   {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-success" />}
-                  {saveState === "saving" ? "Saving..." : "Saved to My posts."}
+                  {saveState === "saving" ? "Saving..." : "Saved to All posts."}
                   <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
                     Schedule it
                   </Link>
