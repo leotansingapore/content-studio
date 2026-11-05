@@ -21,6 +21,7 @@
 
 import { hasComplianceErrors, scanCompliance } from "../_shared/compliance.ts";
 import { BRAND_FONT, FONT_NAMES, FORMAT_H, FRAME_W, LOOKS, MAX_CAPTION, MAX_DESIGNS, MAX_LAYERS, MAX_SLIDES, newDesign, parseTemplates, sanitizeDesign, type Design, type DesignSlide, type DesignTemplate } from "../_shared/design.ts";
+import { briefFor, cleanLink, isDay, makerLabel, makerUrl, MAX_THING, stepDate, STEPS } from "../_shared/launchSteps.ts";
 import { aOrAn, HONEST_LINE, professionOf } from "../_shared/profession.ts";
 import { ownUpload, PEXELS_SRC } from "../_shared/slideCampaign.ts";
 import { consumeUsage, DAILY_LIMITS, refundUsage, type UsageClient, type UsageResult } from "../_shared/usageCaps.ts";
@@ -157,6 +158,17 @@ function parseJson<T>(raw: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+/** The kept hooks in a snippet row (src/lib/replySnippets.ts), oldest first, as the app reads them: at most 30. */
+function keptHooks(list: unknown): { text: string }[] {
+  return (Array.isArray(list) ? list : [])
+    .flatMap((raw) => {
+      const s = raw as Record<string, unknown> | null;
+      const text = typeof s?.text === "string" ? s.text.trim() : "";
+      return s?.kind === "hook" && typeof s.id === "string" && typeof s.name === "string" && text ? [{ text }] : [];
+    })
+    .slice(0, MAX_KEPT_HOOKS);
 }
 
 /** The brand kit get_brand reads; its `profession` sets what Claude is told (toldFor). */
@@ -392,8 +404,33 @@ export const MEDIA_TOOLS = [
   },
 ] as const;
 
-export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
-export const LEO_TOOLS = [...TOOLS, ...NEW_TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS];
+// My hooks and the launch plan (BuilderCult's distribute tools, folded in 6 Nov): the kept hooks are the brand's
+// snippets of kind "hook" (src/lib/replySnippets.ts), the plan is src/lib/launchPlan.ts's synced row.
+export const MAX_KEPT_HOOKS = 30; // replySnippets.ts MAX_PER_KIND
+export const HOOK_CHARS = 200; // replySnippets.ts MAX_TEXT.hook
+export const snippetsKey = (scope: string) => `content-studio-snippets-${scope}`;
+const hookWriterKey = (scope: string) => `content-studio-hookwriter-${scope}`;
+const launchKey = (scope: string) => `content-studio-launchplan-${scope}`;
+export const HOOK_TOOLS = [
+  {
+    name: "list_hooks",
+    description: `The brand's kept hooks from My hooks (at most ${MAX_KEPT_HOOKS}), and the latest batch still waiting there for Keep or Not this. Use them as opening lines for videos, slideshows and posts.`,
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "add_hooks",
+    description: `Save hooks to the brand's kept hooks on My hooks, where Write and slideshow campaigns offer them. Up to 10 at a time, each up to ${HOOK_CHARS} characters; one already kept is skipped and nothing past ${MAX_KEPT_HOOKS} kept is saved. Open on the viewer's problem, and state only facts get_brand gives.`,
+    inputSchema: { type: "object", properties: { hooks: { type: "array", items: { type: "string" }, description: "1 to 10 hooks." } }, required: ["hooks"] },
+  },
+  {
+    name: "get_launch_plan",
+    description: "The brand's launch plan, when it has one: what launches, the date, where posts send people, and its 12 posts in order with each one's day, stage, what it is about, the maker that makes it, whether it is made, and the link that opens that maker in Postmosis with the words filled in.",
+    inputSchema: { type: "object", properties: {} },
+  },
+] as const;
+
+export const EVERYONE_TOOLS = [...TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS, ...HOOK_TOOLS];
+export const LEO_TOOLS = [...TOOLS, ...NEW_TOOLS, ...DESIGN_TOOLS, ...MEDIA_TOOLS, ...HOOK_TOOLS];
 const toolsFor = (caller: Caller): readonly { name: string }[] => (caller.leo ? LEO_TOOLS : EVERYONE_TOOLS);
 
 /** One plain line per tool for Connect Claude's "What Claude can do" list, read from the same list the server answers. */
@@ -422,6 +459,9 @@ export const TOOL_LINES: Record<(typeof LEO_TOOLS)[number]["name"], string> = {
   get_library: "One image library's pictures",
   make_ai_picture: "Makes an AI picture, from your 5 a day",
   picture_status: "Whether an AI picture is ready",
+  list_hooks: "Your kept hooks from My hooks",
+  add_hooks: "Saves hooks to My hooks",
+  get_launch_plan: "Your launch plan, post by post",
 };
 
 type Args = Record<string, unknown>;
@@ -949,6 +989,68 @@ export async function callTool(name: string, args: Args, store: Store, link: Lin
     case "get_activity": {
       const days = Math.min(30, Math.max(1, Math.round(Number(args.days) || 7)));
       return ok({ days, events: await recentActivity(store, scope, days, now) });
+    }
+    case "list_hooks": {
+      const kept = keptHooks(parseJson<unknown>(await store.get(snippetsKey(scope)), []));
+      const desk = parseJson<{ topic?: unknown; fresh?: unknown }>(await store.get(hookWriterKey(scope)), {});
+      const waiting = (Array.isArray(desk.fresh) ? desk.fresh : []).flatMap((h) => {
+        const t = str((h as Record<string, unknown> | null)?.text)?.trim().slice(0, HOOK_CHARS);
+        return t ? [t] : [];
+      });
+      return ok({
+        kept: kept.map((k) => k.text),
+        ...(waiting.length ? { waiting, waitingTopic: str(desk.topic) ?? "" } : {}),
+        note: "Kept hooks are the person's picks. Waiting ones were written for them but not yet kept or turned down.",
+      });
+    }
+    case "add_hooks": {
+      const given = Array.isArray(args.hooks) ? args.hooks : [];
+      const clean = [...new Set(given.map((h) => (typeof h === "string" ? h.replace(/[ \t]+/g, " ").trim() : "")).filter(Boolean))];
+      if (!clean.length) return fail("hooks is required: 1 to 10 hooks.");
+      if (clean.length > 10) return fail("Send at most 10 hooks at a time.");
+      if (clean.some((h) => h.length > HOOK_CHARS)) return fail(`Each hook is at most ${HOOK_CHARS} characters.`);
+      // the whole snippet row is written back while it is still the version read, else read again once
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const row = await store.read(snippetsKey(scope));
+        const list = parseJson<unknown>(row?.data ?? null, []);
+        const all = Array.isArray(list) ? (list as Record<string, unknown>[]) : [];
+        const kept = keptHooks(all);
+        const have = new Set(kept.map((k) => k.text.toLowerCase()));
+        const room = Math.max(0, MAX_KEPT_HOOKS - kept.length);
+        const fresh = clean.filter((h) => !have.has(h.toLowerCase()));
+        const added = fresh.slice(0, room).map((text, i) => ({ id: `claude-${now.getTime().toString(36)}${i}${Math.random().toString(36).slice(2, 5)}`, name: text.split(/\s+/).join(" ").slice(0, 40), text, kind: "hook" }));
+        if (!added.length) return ok({ added: 0, skipped: clean.length, kept: kept.length, note: room ? "Every hook was already kept." : `My hooks is full at ${MAX_KEPT_HOOKS}: ask the user to remove some first.` });
+        if (await store.put(snippetsKey(scope), JSON.stringify([...all, ...added]), row?.updatedAt ?? null)) {
+          return ok({ added: added.length, skipped: clean.length - added.length, kept: kept.length + added.length, note: "They show on My hooks the next time Postmosis opens or syncs." });
+        }
+      }
+      return fail("My hooks changed while saving. Try again.");
+    }
+    case "get_launch_plan": {
+      const raw = parseJson<Record<string, unknown>>(await store.get(launchKey(scope)), {});
+      if (!isDay(raw.date) || typeof raw.thing !== "string") return ok({ plan: null, note: "No launch plan yet. The user makes one on Strategy > Launch in Postmosis." });
+      const plan = { thing: raw.thing.trim().slice(0, MAX_THING), date: raw.date, link: typeof raw.link === "string" ? cleanLink(raw.link) : "", done: Array.isArray(raw.done) ? raw.done.filter((d): d is string => typeof d === "string") : [] };
+      const today = sgToday(now);
+      const profile = scope.split("~")[1] ?? "me";
+      return ok({
+        launches: plan.thing,
+        date: plan.date,
+        ...(plan.link ? { link: plan.link } : {}),
+        made: STEPS.filter((s) => plan.done.includes(s.id)).length,
+        posts: STEPS.map((s) => {
+          const day = stepDate(plan, s);
+          const url = makerUrl(plan, s);
+          return {
+            day,
+            stage: s.stage,
+            about: briefFor(plan, s),
+            maker: makerLabel(s),
+            made: plan.done.includes(s.id),
+            ...(day < today && !plan.done.includes(s.id) ? { missed: true } : {}),
+            open: `https://app.postmosis.com${url}${url.includes("?") ? "&" : "?"}profile=${profile}`,
+          };
+        }),
+      });
     }
     default:
       return fail(`Unknown tool ${name}.`);

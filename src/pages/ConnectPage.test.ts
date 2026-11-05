@@ -49,7 +49,7 @@ describe("/connect for Leo", () => {
       expect(out).toContain(line);
     }
     // 18, then the six picture tools (1 Nov 2026)
-    expect(out.match(/<code class="font-mono/g)).toHaveLength(24);
+    expect(out.match(/<code class="font-mono/g)).toHaveLength(27);
     // the curl line shows only beside a fresh link
     expect(out).not.toContain("Use it from Zapier");
   });

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { MEDIA_TOOLS } from "./logic";
+import { HOOK_TOOLS, MEDIA_TOOLS } from "./logic";
 
 // The handler deployed without JWT: the connection link in the URL is the only credential. A link that isn't one,
 // isn't there, was turned off or sits under another account answers the dead-link line and reaches nothing; a live
@@ -197,7 +197,7 @@ describe("a live connection link", () => {
       env.NORTH_STAR_USERS = list;
       const r = await post(`${A}.${SECRET}`, { jsonrpc: "2.0", id: 1, method: "tools/list" });
       // the six, the five design tools and the picture tools: none of phase 6's
-      expect(JSON.parse(r.text).result.tools, String(list)).toHaveLength(11 + MEDIA_TOOLS.length);
+      expect(JSON.parse(r.text).result.tools, String(list)).toHaveLength(11 + MEDIA_TOOLS.length + HOOK_TOOLS.length);
       expect(JSON.parse((await post(`${A}.${SECRET}`, rpc("get_activity"))).text).error, String(list)).toEqual({ code: -32602, message: "Unknown tool get_activity" });
     }
     expect(h.state.rpc).toEqual([]);

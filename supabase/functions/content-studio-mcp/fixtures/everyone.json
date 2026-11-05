@@ -347,6 +347,41 @@
                 "token"
               ]
             }
+          },
+          {
+            "name": "list_hooks",
+            "description": "The brand's kept hooks from My hooks (at most 30), and the latest batch still waiting there for Keep or Not this. Use them as opening lines for videos, slideshows and posts.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "name": "add_hooks",
+            "description": "Save hooks to the brand's kept hooks on My hooks, where Write and slideshow campaigns offer them. Up to 10 at a time, each up to 200 characters; one already kept is skipped and nothing past 30 kept is saved. Open on the viewer's problem, and state only facts get_brand gives.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "hooks": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "1 to 10 hooks."
+                }
+              },
+              "required": [
+                "hooks"
+              ]
+            }
+          },
+          {
+            "name": "get_launch_plan",
+            "description": "The brand's launch plan, when it has one: what launches, the date, where posts send people, and its 12 posts in order with each one's day, stage, what it is about, the maker that makes it, whether it is made, and the link that opens that maker in Postmosis with the words filled in.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
           }
         ]
       }

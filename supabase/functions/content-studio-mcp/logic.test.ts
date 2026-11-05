@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, PICTURE_NOTE, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type RowQuery, type Store } from "./logic";
+import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_INSTRUCTIONS, LEO_TOOLS, MAX_INBOX, MEDIA_TOOLS, PICTURE_NOTE, TOOL_LINES, TOOLS, callTool, designsKey, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Caller, type Link, type Media, type RowQuery, type Store, HOOK_TOOLS } from "./logic";
 import { buildImageBody, jobToken, openJobToken, tokenSecret } from "../ai-image/logic";
 import { MAX_DESIGNS, newDesign, newLayer, sanitizeDesign, type Design, type ImageLayer, type TextLayer } from "../_shared/design";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic";
@@ -228,7 +228,7 @@ describe("JSON-RPC", () => {
     const odd = (await handleRpc({ jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "1999-01-01" } }, s, link)) as { result: { protocolVersion: string } };
     expect(odd.result.protocolVersion).toBe("2025-06-18");
     const list = (await handleRpc({ jsonrpc: "2.0", id: 3, method: "tools/list" }, s, link)) as { result: { tools: { name: string }[] } };
-    expect(list.result.tools.map((t) => t.name)).toEqual(["list_posts", "get_post", "get_calendar", "get_results", "get_brand", "add_draft", "list_design_templates", "list_designs", "get_design", "create_design", "update_design", ...MEDIA_TOOLS.map((t) => t.name)]);
+    expect(list.result.tools.map((t) => t.name)).toEqual(["list_posts", "get_post", "get_calendar", "get_results", "get_brand", "add_draft", "list_design_templates", "list_designs", "get_design", "create_design", "update_design", ...MEDIA_TOOLS.map((t) => t.name), ...HOOK_TOOLS.map((t) => t.name)]);
   });
 
   it("gives notifications no reply and unknown methods or tools an error", async () => {
@@ -375,6 +375,7 @@ describe("tools and instructions on a listed link", () => {
       "get_activity",
       ...DESIGN_TOOLS.map((t) => t.name),
       ...MEDIA_TOOLS.map((t) => t.name),
+      ...HOOK_TOOLS.map((t) => t.name),
     ]);
     expect(Object.keys(TOOL_LINES).sort()).toEqual(LEO_TOOLS.map((t) => t.name).sort());
   });
@@ -688,7 +689,7 @@ describe("design tools", () => {
   };
 
   it("are listed for every link, after the six, and need no adviser words", () => {
-    expect(EVERYONE_TOOLS.map((t) => t.name)).toEqual([...TOOLS.map((t) => t.name), "list_design_templates", "list_designs", "get_design", "create_design", "update_design", ...MEDIA_TOOLS.map((t) => t.name)]);
+    expect(EVERYONE_TOOLS.map((t) => t.name)).toEqual([...TOOLS.map((t) => t.name), "list_design_templates", "list_designs", "get_design", "create_design", "update_design", ...MEDIA_TOOLS.map((t) => t.name), ...HOOK_TOOLS.map((t) => t.name)]);
     const told = JSON.stringify(DESIGN_TOOLS);
     for (const fact of ["1080 wide", "1920 high", "1350 high", "[[ and ]]", "images.pexels.com", "/templates/", "brand:logo", "brand:photo"]) expect(told).toContain(fact);
   });
@@ -1148,5 +1149,58 @@ describe("picture tools", () => {
       expect(seen).toEqual([]);
       expect(usage.calls).toEqual([]);
     });
+  });
+});
+
+// ---------- My hooks and the launch plan (BuilderCult fold, 6 Nov) ----------
+
+describe("hooks and the launch plan, for every link", () => {
+  const call = async (name: string, args: Record<string, unknown>, s: Store) => {
+    const r = await callTool(name, args, s, link, now, { leo: false });
+    return { error: r.isError === true, out: r.isError ? r.content[0].text : JSON.parse(r.content[0].text) };
+  };
+  const snippets = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `s${i}`, name: `kept ${i}`, text: `kept hook ${i}`, kind: "hook" }));
+  const reply = { id: "r1", name: "a reply", text: "Thanks for asking" };
+
+  it("lists the kept hooks and the batch still waiting, never the other snippets", async () => {
+    const s = memoryStore({
+      [`content-studio-snippets-${UID}`]: [reply, ...snippets(2)],
+      [`content-studio-hookwriter-${UID}`]: { topic: "busy weeks", fresh: [{ id: "a", text: "POV: Monday ate your plan", format: "pov" }], no: ["nope"] },
+    });
+    const { out } = await call("list_hooks", {}, s);
+    expect(out).toMatchObject({ kept: ["kept hook 0", "kept hook 1"], waiting: ["POV: Monday ate your plan"], waitingTopic: "busy weeks" });
+    expect(JSON.stringify(out)).not.toContain("Thanks for asking");
+    expect(JSON.stringify(out)).not.toContain("nope");
+  });
+
+  it("adds hooks beside the other snippets, skipping ones already kept, and stops at 30", async () => {
+    const s = memoryStore({ [`content-studio-snippets-${UID}`]: [reply, ...snippets(28)] });
+    const { out } = await call("add_hooks", { hooks: ["kept hook 3", "  A new one about Mondays ", "Another new one", "One too many"] }, s);
+    expect(out).toMatchObject({ added: 2, skipped: 2, kept: 30 });
+    const row = JSON.parse(s.rows.get(`content-studio-snippets-${UID}`)!);
+    expect(row[0]).toEqual(reply);
+    expect(row.slice(-2).map((x: { text: string; kind: string }) => [x.text, x.kind])).toEqual([["A new one about Mondays", "hook"], ["Another new one", "hook"]]);
+    expect((await call("add_hooks", { hooks: ["yet another"] }, s)).out).toMatchObject({ added: 0, note: expect.stringContaining("full at 30") });
+  });
+
+  it("refuses an empty list, more than 10 and a hook over 200 characters, writing nothing", async () => {
+    const s = memoryStore({});
+    expect((await call("add_hooks", { hooks: [] }, s)).error).toBe(true);
+    expect((await call("add_hooks", { hooks: Array.from({ length: 11 }, (_, i) => `hook ${i}`) }, s)).error).toBe(true);
+    expect((await call("add_hooks", { hooks: ["x".repeat(201)] }, s)).error).toBe(true);
+    expect(s.rows.size).toBe(0);
+  });
+
+  it("reads the launch plan post by post, with missed, made and a link that opens each maker", async () => {
+    const s = memoryStore({ [`content-studio-launchplan-${UID}`]: { thing: "Tidy", date: "2026-10-20", link: "https://tidy.app/join", done: ["why"] } });
+    const { out } = await call("get_launch_plan", {}, s);
+    expect(out).toMatchObject({ launches: "Tidy", date: "2026-10-20", link: "https://tidy.app/join", made: 1 });
+    expect(out.posts).toHaveLength(12);
+    expect(out.posts[0]).toMatchObject({ day: "2026-09-23", stage: "Why you're making it", made: true });
+    expect(out.posts[0].missed).toBeUndefined();
+    expect(out.posts[1]).toMatchObject({ day: "2026-09-26", maker: "Hooks", missed: true });
+    expect(out.posts[1].open).toBe("https://app.postmosis.com/hooks?topic=The+problem+Tidy+fixes%2C+in+the+words+people+use+for+it&profile=me");
+    expect(out.posts[4].open).toBe("https://app.postmosis.com/edit?profile=me");
+    expect((await call("get_launch_plan", {}, memoryStore({}))).out).toMatchObject({ plan: null });
   });
 });
