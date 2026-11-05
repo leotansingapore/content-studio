@@ -99,5 +99,8 @@ export function weekProgress(drafts: DraftEntry[], goals: WeeklyGoals, today = s
   const sum = (k: "goal" | "posted" | "scheduled" | "toDo") => rows.reduce((s, r) => s + r[k], 0);
   // Posts that count toward a goal: extra posts on one platform don't fill another's.
   const met = rows.reduce((s, r) => s + Math.min(r.posted, r.goal), 0);
-  return { rows, goal: sum("goal"), posted: sum("posted"), scheduled: sum("scheduled"), toDo: sum("toDo"), met };
+  const goal = sum("goal");
+  const toDo = sum("toDo");
+  // posted or scheduled toward a goal: what a goal's "of N" and its bar show, so they agree with "to go"
+  return { rows, goal, posted: sum("posted"), scheduled: sum("scheduled"), toDo, met, planned: goal - toDo };
 }

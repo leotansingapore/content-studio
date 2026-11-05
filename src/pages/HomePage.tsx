@@ -866,7 +866,8 @@ export default function HomePage() {
                 <div className="flex items-center justify-between gap-2 text-sm">
                   <span className="font-semibold text-foreground">This week</span>
                   <span className="flex items-center gap-1 text-muted-foreground">
-                    {week.posted}
+                    {/* toward the goal, as the bar and "to do" count; with no goal, every post */}
+                    {week.goal > 0 ? week.met : week.posted}
                     {week.goal > 0 ? ` / ${week.goal}` : ""} posted
                     {week.goal > 0 && (
                       <Button variant="ghost" size="icon" className="-my-2 -mr-2 h-9 w-9 [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => setGoalDraft(goals)} aria-label="Edit weekly goal">

@@ -87,7 +87,11 @@ describe("weekProgress", () => {
       { platform: "instagram", goal: 0, posted: 1, scheduled: 0, toDo: 0 },
       { platform: "facebook", goal: 2, posted: 0, scheduled: 0, toDo: 2 },
     ]);
-    expect(w).toMatchObject({ goal: 5, posted: 2, scheduled: 1, toDo: 3, met: 1 });
+    expect(w).toMatchObject({ goal: 5, posted: 2, scheduled: 1, toDo: 3, met: 1, planned: 2 });
+  });
+  it("a post on a network with no goal counts toward nothing, so planned, met and to go agree", () => {
+    const ig = [post("i", "instagram", { status: "posted", postedAt: "2026-10-06T02:00:00Z" })];
+    expect(weekProgress(ig, { linkedin: 3 }, "2026-10-08")).toMatchObject({ goal: 3, posted: 1, met: 0, planned: 0, toDo: 3 });
   });
   it("extra posts on one platform don't cover another", () => {
     const many = [1, 2, 3, 4].map((i) => post(`x${i}`, "linkedin", { status: "posted", postedAt: "2026-10-06T02:00:00Z" }));

@@ -1782,22 +1782,22 @@ export default function CalendarPage() {
           {progress.goal > 0 && (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span className="font-medium text-foreground">
-                {profileName}: {Math.min(progress.goal, progress.posted + progress.scheduled)} of {progress.goal} planned
+                {profileName}: {progress.planned} of {progress.goal} planned
               </span>
               <span
                 role="progressbar"
                 aria-label={`${profileName} weekly goal`}
                 aria-valuemin={0}
                 aria-valuemax={progress.goal}
-                aria-valuenow={Math.min(progress.goal, progress.posted + progress.scheduled)}
+                aria-valuenow={progress.planned}
                 className="relative h-1.5 w-24 overflow-hidden rounded-full bg-muted"
               >
-                <span className="absolute inset-y-0 left-0 bg-success" style={{ width: `${(100 * Math.min(progress.goal, progress.posted)) / progress.goal}%` }} />
+                <span className="absolute inset-y-0 left-0 bg-success" style={{ width: `${(100 * progress.met) / progress.goal}%` }} />
                 <span
                   className="absolute inset-y-0 bg-primary"
                   style={{
-                    left: `${(100 * Math.min(progress.goal, progress.posted)) / progress.goal}%`,
-                    width: `${(100 * Math.max(0, Math.min(progress.goal, progress.posted + progress.scheduled) - progress.posted)) / progress.goal}%`,
+                    left: `${(100 * progress.met) / progress.goal}%`,
+                    width: `${(100 * Math.max(0, progress.planned - progress.met)) / progress.goal}%`,
                   }}
                 />
               </span>
