@@ -554,7 +554,7 @@ export default function CalendarPage() {
     if (!userId) return;
     const platform = loadPositioning(userId)?.platform ?? "linkedin";
     const posts = getTrackedPosts(userId);
-    const next = slotsForGoal(n, (wd) => postingTimeOn(posts, platform, wd).time);
+    const next = slotsForGoal(n, (wd, nth) => postingTimeOn(posts, platform, wd, [], nth).time);
     const before = loadBrand(userId);
     const goalsBefore = loadGoals(userId);
     saveBrand(userId, { ...(before ?? DEFAULT_BRAND), slots: next });

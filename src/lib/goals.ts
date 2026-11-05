@@ -11,7 +11,7 @@ import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { weekOf } from "@/lib/dueDates";
 
 export const GOAL_PLATFORMS: PlanPlatform[] = ["linkedin", "instagram", "facebook", "tiktok"];
-export const MAX_WEEKLY_GOAL = 21;
+export const MAX_WEEKLY_GOAL = 28; // 4 a day, the most a plan or campaign paces (CADENCE_OPTIONS, PACES)
 export type WeeklyGoals = Partial<Record<PlanPlatform, number>>;
 
 const KEY_PREFIX = "content-studio-goals-";

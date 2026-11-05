@@ -7,7 +7,10 @@ import type { FunnelStageId } from "@/data/funnelFramework";
 import { loadAudiences } from "@/lib/audiences";
 import { generatePlan, planItemDate, planOptionsFor, steerFor, upcomingMonday, type GeneratePlanOptions, type PlanPillar } from "@/lib/contentPlan";
 import { keyToDate, localDateKey } from "@/lib/dueDates";
-import { draftStatus, engagement, MAX_DRAFTS, pushedOut, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, engagement, loadDrafts, MAX_DRAFTS, pushedOut, type DraftEntry } from "@/lib/draftHistory";
+import { getTrackedPosts, postingTimeOn } from "@/lib/analytics";
+import { loadBrand } from "@/lib/carousel";
+import { freeTimeOn, monFirst, slotTimesFor, type Held } from "@/lib/postingSlots";
 import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
@@ -32,7 +35,7 @@ export interface CampaignPost {
 export interface Campaign {
   id: string; name: string; createdAt: string; audience: string; audienceName: string;
   angles: { id: string; title: string; line: string }[]; platforms: PlanPlatform[]; accountIds?: string[];
-  formats: CampaignFormat[]; weeks: number; perWeek: 2 | 3 | 5 | 7; startDay: string;
+  formats: CampaignFormat[]; weeks: number; perWeek: 2 | 3 | 5 | 7 | 14 | 21 | 28; startDay: string;
   pictures: "stock" | "mine"; goal?: string; target: { posts: number; winners: number };
   waitUntil?: string; posts: CampaignPost[];
 }
@@ -160,11 +163,33 @@ export function buildCampaignPosts(
   }));
 }
 
+/**
+ * Each post at its day's first brand slot that nothing holds (freeTimeOn, the calendar's open-slot rule): scheduled
+ * drafts, the brand's other campaigns' posts and this campaign's earlier posts hold theirs, so campaigns at the same
+ * pace take a day's slots in turn. With every slot that day held, postingTimeOn spreads it past the day's posts.
+ * shortcut: the spread counts the day's held posts, so a draft at a hand-typed time can still share one; check the times if that bites.
+ */
+function freeTimes(userId: string, posts: CampaignPost[], platform: string, exceptId?: string): CampaignPost[] {
+  const brand = loadBrand(userId);
+  const tracked = getTrackedPosts(userId);
+  const held: Held[] = [
+    ...loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor),
+    ...loadCampaigns(userId).filter((c) => c.id !== exceptId).flatMap((c) =>
+      c.posts.filter((p) => p.state !== "skipped").flatMap((p) => c.platforms.map((pl) => ({ platform: pl, scheduledFor: p.time ? `${p.day}T${p.time}` : p.day })))),
+  ];
+  return posts.map((p) => {
+    const time = freeTimeOn(brand, platform, held, p.day, (n) => postingTimeOn(tracked, platform, monFirst(p.day), slotTimesFor(brand, platform), n).time);
+    held.push({ platform, scheduledFor: `${p.day}T${time}` });
+    return { ...p, time };
+  });
+}
+
 /** The wizard's answers as a campaign, laid out from this brand's positioning, posting slots and goal; not saved. */
 export function planCampaign(userId: string, ask: CampaignAsk, today: Date): Campaign {
   const positioning = loadPositioning(userId) ?? EMPTY_POSITIONING;
-  const options = { ...planOptionsFor(userId, ask.platforms[0] ?? positioning.platform, { plan: null }), ...steerFor(userId) };
-  const posts = buildCampaignPosts(ask, positioning, options, today);
+  const platform = ask.platforms[0] ?? positioning.platform;
+  const options = { ...planOptionsFor(userId, platform, { plan: null }), ...steerFor(userId) };
+  const posts = freeTimes(userId, buildCampaignPosts(ask, positioning, options, today), platform);
   const goal = positioning.goal?.trim();
   return {
     id: newCampaignId(),
@@ -201,8 +226,9 @@ export const hasWords = (p: CampaignPost) => p.state !== "waiting" && p.state !=
  */
 export function replanCampaign(userId: string, c: Campaign, next: Pick<Campaign, "weeks" | "perWeek">): Campaign {
   const positioning = loadPositioning(userId) ?? EMPTY_POSITIONING;
-  const options = { ...planOptionsFor(userId, c.platforms[0] ?? positioning.platform, { plan: null }), ...steerFor(userId) };
-  const slots = buildCampaignPosts({ ...c, ...next }, positioning, options, keyToDate(c.startDay));
+  const platform = c.platforms[0] ?? positioning.platform;
+  const options = { ...planOptionsFor(userId, platform, { plan: null }), ...steerFor(userId) };
+  const slots = freeTimes(userId, buildCampaignPosts({ ...c, ...next }, positioning, options, keyToDate(c.startDay)), platform, c.id);
   const posts = slots.map((s, i): CampaignPost => {
     const old = c.posts[i];
     if (!old || !hasWords(old)) return s;

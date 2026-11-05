@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { campaignCost } from "./campaigns";
 import {
-  addedLine, confirmed, costLine, defaultName, firstOpen, formatLine, freshAngles, listJoin, loadWizard, nearestPace, newWork, openStep, pickAudience, previewPosts,
+  addedLine, confirmed, costLine, defaultName, firstOpen, formatLine, freshAngles, listJoin, loadWizard, nearestPace, newWork, openStep, PACES, paceLabel, pickAudience, previewPosts,
   readWork, saveWizard, shortDay, successLine, summaryLines, whereLine, withAudience, withoutAudience, writeLimitLine, type WizardWork,
 } from "./campaignWizard";
 
@@ -77,7 +77,11 @@ describe("the steps", () => {
 
 describe("the answers", () => {
   it("the pace nearest the weekly goal, ties to the slower, else 3 a week", () => {
-    expect([undefined, 0, 1, 2, 3, 4, 5, 6, 7, 14].map(nearestPace)).toEqual([3, 3, 2, 2, 3, 3, 5, 5, 7, 7]);
+    expect([undefined, 0, 1, 2, 3, 4, 5, 6, 7, 10, 14, 25, 40].map(nearestPace)).toEqual([3, 3, 2, 2, 3, 3, 5, 5, 7, 7, 14, 28, 28]);
+  });
+
+  it("paces up to 4 a day, named per day from 7 a week", () => {
+    expect(PACES.map(paceLabel)).toEqual(["2 a week", "3 a week", "5 a week", "1 a day", "2 a day", "3 a day", "4 a day"]);
   });
 
   it("names the campaign after the audience and the start week's month, at most 80 characters", () => {

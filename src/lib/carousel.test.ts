@@ -417,10 +417,10 @@ describe("brand", () => {
     expect(store.get("content-studio-carousel-brand-u2")).toBe(`{"color":"#AABBCC","name":"Jane","handle":"@jane"}`);
   });
 
-  it("keeps per-network posting times like the shared ones, and drops bad times, unknown networks and the 15th time", () => {
-    const fifteen = Array.from({ length: 15 }, (_, i) => `${i % 7}T${String(8 + Math.floor(i / 7)).padStart(2, "0")}:00`);
-    const kit = sanitizeBrand({ slotsBy: { linkedin: ["1T08:00", "1T08:00", "7T08:00", "1T25:00", 9, "0T07:30"], instagram: fifteen, x: ["1T08:00"], tiktok: "1T08:00", threads: [] } });
-    expect(kit.slotsBy).toEqual({ linkedin: ["0T07:30", "1T08:00"], instagram: [...fifteen].sort().slice(0, 14), threads: [] });
+  it("keeps per-network posting times like the shared ones, and drops bad times, unknown networks and the 29th time", () => {
+    const many = Array.from({ length: 29 }, (_, i) => `${i % 7}T${String(8 + Math.floor(i / 7)).padStart(2, "0")}:00`);
+    const kit = sanitizeBrand({ slotsBy: { linkedin: ["1T08:00", "1T08:00", "7T08:00", "1T25:00", 9, "0T07:30"], instagram: many, x: ["1T08:00"], tiktok: "1T08:00", threads: [] } });
+    expect(kit.slotsBy).toEqual({ linkedin: ["0T07:30", "1T08:00"], instagram: [...many].sort().slice(0, 28), threads: [] });
     expect(sanitizeBrand({ slotsBy: "1T08:00" }).slotsBy).toBeUndefined();
     expect(sanitizeBrand({ name: "K" }, kit).slotsBy).toEqual(kit.slotsBy);
     const store = new Map<string, string>();

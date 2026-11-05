@@ -8,6 +8,7 @@ import { splitScriptCaption } from "@/lib/scriptCaption";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { activeProfile, scoped } from "@/lib/profiles";
 import { cachedKit, withKit } from "@/lib/brandKitFeed";
+import { MAX_SLOTS } from "@/lib/postingSlots";
 import { CAROUSEL_DESIGNS, type CarouselDesign, type PostLang } from "@/lib/links";
 import type { SlideFont, SlidePaper } from "@/lib/carouselLayout";
 import { FACTOR_IDS, type FactorId } from "../../supabase/functions/post-score/logic.ts";
@@ -745,8 +746,8 @@ function webOrigin(raw: string): string | undefined {
 const objects = (raw: unknown[]) => raw.filter((o): o is Record<string, unknown> => !!o && typeof o === "object");
 const text = (raw: unknown, max: number) => (typeof raw === "string" && raw ? raw.slice(0, max) : undefined);
 
-/** Weekly posting times, "<day 0 = Mon>T<HH:MM>": known ones only, once each, in order, 14 at most. */
-const slotList = (raw: unknown[]) => [...new Set(raw.filter((x): x is string => typeof x === "string" && /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/.test(x)))].sort().slice(0, 14);
+/** Weekly posting times, "<day 0 = Mon>T<HH:MM>": known ones only, once each, in order, MAX_SLOTS at most. */
+const slotList = (raw: unknown[]) => [...new Set(raw.filter((x): x is string => typeof x === "string" && /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/.test(x)))].sort().slice(0, MAX_SLOTS);
 
 /** Each known network's own times, cleaned like `slots`; anything else is dropped. */
 const slotsByOf = (r: Record<string, unknown>): CarouselBrand["slotsBy"] =>

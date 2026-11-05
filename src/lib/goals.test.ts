@@ -30,7 +30,7 @@ describe("goals store", () => {
     mem.setItem(`content-studio-positioning-${UID}`, JSON.stringify({ platform: "instagram", cadence: 4 }));
     expect(loadGoals(UID)).toEqual({ instagram: 4 });
     saveGoals(UID, { linkedin: 3, instagram: 0, tiktok: 99, facebook: -1 } as never);
-    expect(loadGoals(UID)).toEqual({ linkedin: 3, tiktok: 21 });
+    expect(loadGoals(UID)).toEqual({ linkedin: 3, tiktok: 28 });
   });
 });
 

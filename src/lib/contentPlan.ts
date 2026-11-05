@@ -273,8 +273,8 @@ export interface GeneratePlanOptions {
   recentThemes?: Set<string>;
   /** Weekdays the adviser set posting times for ("Tue"): the plan's days start with these. */
   postingDays?: string[];
-  /** The "HH:MM" to post on a weekday (0 = Mon). */
-  postingTime?: (weekday: number) => string | null;
+  /** The "HH:MM" to post on a weekday (0 = Mon); `nth` (0-based) is which post of that day it is. */
+  postingTime?: (weekday: number, nth?: number) => string | null;
   /** Funnel stage weights (a goal's): each week is split by stageSplit. */
   weights?: Record<FunnelStageId, number>;
   /** Slot i takes angles[i % n]. */
@@ -387,7 +387,7 @@ export function planOptionsFor(
     formulaStart: nextFormulaStart(o.plan),
     recentThemes: recentThemes(loadDrafts(userId)),
     postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
-    postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
+    postingTime: (day: number, nth?: number) => postingTimeOn(posts, platform, day, slots, nth).time,
   };
 }
 
@@ -523,7 +523,8 @@ export function generatePlan(
           : undefined;
 
       const day = days[slot % days.length];
-      const time = opts.postingTime?.(WEEKDAYS.indexOf(day)) ?? undefined;
+      // past 7 a week a day comes round again: its second post is nth 1, and so on
+      const time = opts.postingTime?.(WEEKDAYS.indexOf(day), Math.floor(slot / days.length)) ?? undefined;
       items.push({
         id: `plan-${w}-${slot}-${globalIndex}`,
         week: w,

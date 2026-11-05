@@ -42,7 +42,7 @@ import {
 } from "@/lib/carousel";
 import { offerUrl } from "@/lib/brandRules";
 import TrackClicks from "@/components/TrackClicks";
-import { DAY_SETS, addSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
+import { DAY_SETS, MAX_SLOTS, addSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { getTrackedPosts, postingTimeOn } from "@/lib/analytics";
 import { loadPositioning } from "@/lib/positioning";
 import { setPlatformGoal } from "@/lib/goals";
@@ -250,7 +250,7 @@ function SlotEditor({ labelId, slots, onChange }: { labelId: string; slots: stri
           </li>
         ))}
       </ul>
-      {slots.length < 14 && (
+      {slots.length < MAX_SLOTS && (
         <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11"
           onClick={() => onChange([...slots, slots.length ? `${(Number(slots[slots.length - 1][0]) + 2) % 7}T${slots[slots.length - 1].slice(2)}` : "1T08:30"])}>
           <Plus className="h-3.5 w-3.5" /> Add a time
@@ -284,7 +284,7 @@ function SlotEditor({ labelId, slots, onChange }: { labelId: string; slots: stri
               onChange(r.slots);
               toast({
                 title: added ? `Added ${timeLabel(presetTime)} on ${label.toLowerCase()}` : `${timeLabel(presetTime)} is already on ${label.toLowerCase()}`,
-                description: r.skipped ? `14 posting times is the most, so ${r.skipped} were left out.` : undefined,
+                description: r.skipped ? `${MAX_SLOTS} posting times is the most, so ${r.skipped} were left out.` : undefined,
               });
             }}
           >
@@ -385,7 +385,7 @@ export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; 
               onClick={() => {
                 const platform = loadPositioning(userId)?.platform ?? "linkedin";
                 const posts = getTrackedPosts(userId);
-                const next = slotsForGoal(n, (wd) => postingTimeOn(posts, platform, wd).time);
+                const next = slotsForGoal(n, (wd, nth) => postingTimeOn(posts, platform, wd, [], nth).time);
                 update({ slots: next });
                 setPlatformGoal(userId, platform, n);
                 toast({ title: `Posting times: ${slotDaysLabel(next)}`, description: `Your weekly goal is now ${n}.` });

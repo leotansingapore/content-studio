@@ -38,6 +38,7 @@ import { angleText, generatePlan, pillarGrid, planItemToGenerateUrl, rebuildPlan
 import type { Label } from "./labels";
 import { HOOK_FORMULAS, hookFormulasFrom } from "./hookFormulas";
 import { EMPTY_POSITIONING, type Positioning } from "./positioning";
+import { postingTimeOn } from "./analytics";
 
 const pos = (o: Partial<Positioning> = {}): Positioning => ({
   ...EMPTY_POSITIONING, oneLiner: "I help parents", topics: ["CPF top-ups", "Critical illness", "Hospital plans"], ...o,
@@ -101,6 +102,24 @@ describe("generatePlan posting days and times", () => {
     ]);
     const { entries } = planCalendarEntries(plan.items, monday, []);
     expect(entries.map((e) => e.scheduledFor)).toEqual(["2026-10-12T12:00", "2026-10-13T08:30", "2026-10-15T20:00"]);
+  });
+});
+
+// Each day's post times in plan order, by "Wk 1 · Mon".
+const timesByDay = (plan: ContentPlan) => {
+  const by = new Map<string, string[]>();
+  for (const i of plan.items) by.set(i.dayLabel, [...(by.get(i.dayLabel) ?? []), i.time ?? ""]);
+  return by;
+};
+
+describe("generatePlan several posts a day", () => {
+  it("spreads the extra posts through the day when the brand has one time a day", () => {
+    const slots = [0, 1, 2, 3, 4, 5, 6].map((d) => `${d}T${d === 6 ? "21:00" : "08:30"}`);
+    const plan = generatePlan(pos({ cadence: 28 }), { weeks: 1, postingTime: (d, nth) => postingTimeOn([], "linkedin", d, slots, nth).time });
+    const by = timesByDay(plan);
+    expect(by.get("Wk 1 · Mon")).toEqual(["08:30", "11:30", "14:30", "17:30"]);
+    expect(by.get("Wk 1 · Sun")).toEqual(["21:00", "18:00", "15:00", "12:00"]);
+    for (const times of by.values()) expect(new Set(times).size).toBe(4);
   });
 });
 
@@ -205,6 +224,17 @@ describe("the options /plan builds, pinned", () => {
   afterEach(() => {
     vi.useRealTimers();
     delete (globalThis as { window?: unknown }).window;
+  });
+
+  it("gives each weekday 4 posts at its 4 brand times at 28 a week", () => {
+    seed();
+    const slots = [0, 1, 2, 3, 4, 5, 6].flatMap((d) => ["08:00", "12:30", "17:00", "20:30"].map((t) => `${d}T${t}`));
+    localStorage().setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots }));
+    const plan = generatePlan({ ...PIN_POS, cadence: 28 }, { ...planOptionsFor(UID, "instagram", { plan: null }), weeks: 1 });
+    expect(plan.items).toHaveLength(28);
+    const by = timesByDay(plan);
+    expect(by.size).toBe(7);
+    for (const times of by.values()) expect([...times].sort()).toEqual(["08:00", "12:30", "17:00", "20:30"]);
   });
 
   it("steerFor gives the goal's weights and, once labels are saved, the pillars", () => {

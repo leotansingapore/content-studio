@@ -15,8 +15,9 @@ export const STEPS: WizardStep[] = ["who", "angles", "where", "pace", "review"];
 /** A finished step's collapsed row. */
 export const STEP_LABEL: Record<WizardStep, string> = { who: "Who", angles: "Angles", where: "Where", pace: "Format and pace", review: "Review" };
 
-export const PACES: Campaign["perWeek"][] = [2, 3, 5, 7];
-export const paceLabel = (n: number) => (n === 7 ? "1 a day" : `${n} a week`);
+export const PACES: Campaign["perWeek"][] = [2, 3, 5, 7, 14, 21, 28];
+/** 7 a week and up read per day: "1 a day" to "4 a day". */
+export const paceLabel = (n: number) => (n >= 7 && n % 7 === 0 ? `${n / 7} a day` : `${n} a week`);
 export const MIN_WEEKS = 1;
 export const MAX_WEEKS = 8;
 export const MAX_NAME = 80;

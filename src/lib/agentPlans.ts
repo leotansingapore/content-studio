@@ -18,6 +18,7 @@ import { anglesFor } from "@/lib/angles";
 import { loadAudiences } from "@/lib/audiences";
 import { addCampaign, campaignCost, FREE_FORMATS, planCampaign, type CampaignAsk, type CampaignFormat } from "@/lib/campaigns";
 import { BATCH, startDrafting } from "@/lib/campaignJob";
+import { PACES } from "@/lib/campaignWizard";
 import { addCompetitor, loadCompetitors, MAX_COMPETITORS, parseInput, runRead, sameCompetitor, type Competitor } from "@/lib/competitors";
 import { scanCompliance } from "@/lib/compliance";
 import { localDateKey } from "@/lib/dueDates";
@@ -430,7 +431,7 @@ export async function campaignReply(userId: string, o: { audience: string | null
     platforms: [loadPositioning(userId)?.platform ?? "instagram"],
     formats: [...FREE_FORMATS, ...(pick ? [pick] : [])],
     weeks: o.weeks ?? 4,
-    perWeek: ([2, 3, 5, 7] as const).find((n) => n === o.pace) ?? 3,
+    perWeek: PACES.find((n) => n === o.pace) ?? 3,
     pictures: "stock",
     name: `${aud.name}, ${month}`,
   };

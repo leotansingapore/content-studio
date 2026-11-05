@@ -70,7 +70,7 @@ export const GOAL_WEIGHTS: Partial<Record<GoalKind, Record<FunnelStageId, number
 
 const KEY_PREFIX = "content-studio-positioning-";
 
-export const CADENCE_OPTIONS = [3, 4, 5, 7] as const;
+export const CADENCE_OPTIONS = [3, 4, 5, 7, 14, 21, 28] as const;
 
 export const EMPTY_POSITIONING: Positioning = {
   oneLiner: "",

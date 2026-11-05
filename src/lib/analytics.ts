@@ -685,15 +685,33 @@ function resultsSlot(posts: TrackedPost[], platform: string): { slot: { day: num
   return { slot: COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin, why: "common" };
 }
 
+const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+/**
+ * The `extra`th (1-based) time past a day's own times: `base` plus 3 hours per extra post while that stays inside the
+ * day, then base minus 3 hours, skipping any time the day already has.
+ * shortcut: a fixed 3-hour step, so a 9th post on one day repeats a time; pick the gap from results if days get fuller.
+ */
+function spreadTime(base: string, extra: number, taken: string[]): string {
+  const b = Number(base.slice(0, 2)) * 60 + Number(base.slice(3));
+  const later = Array.from({ length: 8 }, (_, k) => b + 180 * (k + 1)).filter((m) => m < 1440);
+  const earlier = Array.from({ length: 8 }, (_, k) => b - 180 * (k + 1)).filter((m) => m >= 0);
+  const open = [...later, ...earlier].map(hhmm).filter((t) => !taken.includes(t));
+  return open.length ? open[(extra - 1) % open.length] : base;
+}
+
 /**
  * A plan slot's time on its weekday (0 = Mon), by suggestPostingTime's sources: the
  * adviser's own time that day, else the best-landing hour, else the platform's common hour.
+ * `nth` (0-based) is which post of that day this is: the day's nth own time in time order, and past the last one
+ * (or with none) a time spread through the same day by spreadTime. nth 0 is the day's first time, as always.
  */
-export function postingTimeOn(posts: TrackedPost[], platform: string, weekday: number, slots: string[] = []): { time: string; why: SuggestedTime["why"] } {
-  const mine = slots.filter((x) => SLOT.test(x) && Number(x[0]) === weekday).sort();
-  if (mine.length) return { time: mine[0].slice(2), why: "slot" };
+export function postingTimeOn(posts: TrackedPost[], platform: string, weekday: number, slots: string[] = [], nth = 0): { time: string; why: SuggestedTime["why"] } {
+  const mine = slots.filter((x) => SLOT.test(x) && Number(x[0]) === weekday).sort().map((x) => x.slice(2));
+  if (mine.length) return { time: nth < mine.length ? mine[nth] : spreadTime(mine[mine.length - 1], nth - mine.length + 1, mine), why: "slot" };
   const { slot, why } = resultsSlot(posts, platform);
-  return { time: `${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why };
+  const time = hhmm(slot.hour * 60 + slot.minute);
+  return { time: nth > 0 ? spreadTime(time, nth, [time]) : time, why };
 }
 
 /** What a suggested time is called wherever it shows (Write, the calendar column): a brand kit slot is the next slot. */

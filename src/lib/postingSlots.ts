@@ -6,6 +6,9 @@ import type { DraftEntry } from "@/lib/draftHistory";
 
 const SLOT_RE = /^([0-6])T(([01]\d|2[0-3]):[0-5]\d)$/;
 
+/** The most weekly posting times a brand keeps: 4 a day, every day. */
+export const MAX_SLOTS = 28;
+
 /** Monday-first weekday of a day key: 0 = Mon ... 6 = Sun (the slot format's numbering). */
 export const monFirst = (day: string) => (keyToDate(day).getDay() + 6) % 7;
 
@@ -33,18 +36,20 @@ export function openSlots(slots: string[], scheduledFor: string[], now: Date, da
   if (!slots.length) return [];
   const today = localDateKey(now);
   const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const exact = new Set(scheduledFor.filter((s) => scheduleTime(s)));
-  const dayOnly = new Map<string, number>();
-  // the board's older full ISO timestamps count as the day alone, as everywhere else (scheduleTime)
-  for (const s of scheduledFor) if (!scheduleTime(s)) dayOnly.set(s.slice(0, 10), (dayOnly.get(s.slice(0, 10)) ?? 0) + 1);
   const out: OpenSlot[] = [];
   for (let i = 0; i < days; i++) {
     const date = addDays(today, i);
-    let free = slotsOn(slots, date).filter((t) => !exact.has(`${date}T${t}`));
-    free = free.slice(dayOnly.get(date) ?? 0);
-    for (const time of free) if (date > today || time > nowHm) out.push({ date, time });
+    for (const time of openOn(slots, scheduledFor, date)) if (date > today || time > nowHm) out.push({ date, time });
   }
   return out;
+}
+
+/** One day of openSlots, past times included: the day's slot times, earliest first, that no scheduled post holds. */
+export function openOn(slots: string[], scheduledFor: string[], date: string): string[] {
+  const exact = new Set(scheduledFor.filter((s) => scheduleTime(s)));
+  // the board's older full ISO timestamps count as the day alone, as everywhere else (scheduleTime)
+  const dayOnly = scheduledFor.filter((s) => !scheduleTime(s) && s.slice(0, 10) === date).length;
+  return slotsOn(slots, date).filter((t) => !exact.has(`${date}T${t}`)).slice(dayOnly);
 }
 
 /** A brand kit's posting times: shared, and per network once "Same times on every network" is unticked (publish-queue). */
@@ -53,19 +58,32 @@ export interface SlotBrand {
   slotsBy?: Partial<Record<string, string[]>>;
 }
 
-type Held = Pick<DraftEntry, "platform" | "scheduledFor">;
+export type Held = Pick<DraftEntry, "platform" | "scheduledFor">;
 
 const perNetwork = (b: SlotBrand | null | undefined) => !!b?.slotsBy && Object.keys(b.slotsBy).length > 0;
 
 /** The times a network posts at: its own row with per-network times on, else the shared ones. */
 export const slotTimesFor = (b: SlotBrand | null | undefined, platform: string): string[] => (perNetwork(b) && b!.slotsBy![platform]) || b?.slots || [];
 
+/** The times that hold this network's slots: with per-network times on only its own posts, else every post's. */
+const heldFor = (brand: SlotBrand | null | undefined, platform: string, scheduled: Held[]) =>
+  scheduled.filter((s) => s.scheduledFor && (!perNetwork(brand) || s.platform === platform)).map((s) => s.scheduledFor!);
+
+/**
+ * A post's time on `date` on this network: the day's first slot no held post takes (openOn, nextOpenSlots' held
+ * posts), and with every slot that day held, `spread(n)` with n the posts already that day (postingTimeOn's nth).
+ */
+export function freeTimeOn(brand: SlotBrand | null | undefined, platform: string, scheduled: Held[], date: string, spread: (n: number) => string): string {
+  const held = heldFor(brand, platform, scheduled);
+  return openOn(slotTimesFor(brand, platform), held, date)[0] ?? spread(held.filter((s) => s.slice(0, 10) === date).length);
+}
+
 /**
  * The open slots for a post on this network, each at least 2 hours away. With per-network times on only posts on
  * the same network hold a slot; with shared times every post does, so it is today's openSlots.
  */
 export function nextOpenSlots(brand: SlotBrand | null | undefined, platform: string, scheduled: Held[], now: Date, days: number): OpenSlot[] {
-  const held = scheduled.filter((s) => s.scheduledFor && (!perNetwork(brand) || s.platform === platform)).map((s) => s.scheduledFor!);
+  const held = heldFor(brand, platform, scheduled);
   const earliest = now.getTime() + 2 * 3_600_000;
   // "YYYY-MM-DDTHH:MM" with no offset reads as local time, as the slots are
   return openSlots(slotTimesFor(brand, platform), held, now, days).filter((o) => Date.parse(`${o.date}T${o.time}`) >= earliest);
@@ -103,10 +121,16 @@ export const GOAL_DAYS: Record<number, number[]> = {
   7: [0, 1, 2, 3, 4, 5, 6],
 };
 
-/** Slots for a weekly goal: the goal's spread of weekdays, each at `timeFor(weekday)` ("HH:MM"). */
-export function slotsForGoal(goal: number, timeFor: (weekday: number) => string): string[] {
-  const days = GOAL_DAYS[Math.min(7, Math.max(1, Math.round(goal)))];
-  return days.map((d) => `${d}T${timeFor(d)}`).filter((s) => SLOT_RE.test(s));
+/**
+ * Slots for a weekly goal: the goal's spread of weekdays, each at `timeFor(weekday, nth)` ("HH:MM"). Past 7 a week
+ * every day takes one, then the rest go round again as GOAL_DAYS spreads them, nth 1 (the day's second time), and so
+ * on up to MAX_SLOTS. A time a day already has is kept once, in week order.
+ */
+export function slotsForGoal(goal: number, timeFor: (weekday: number, nth: number) => string): string[] {
+  const total = Math.min(MAX_SLOTS, Math.max(1, Math.round(goal) || 1));
+  const out: string[] = [];
+  for (let nth = 0; nth * 7 < total; nth++) for (const d of GOAL_DAYS[Math.min(7, total - nth * 7)]) out.push(`${d}T${timeFor(d, nth)}`);
+  return [...new Set(out.filter((s) => SLOT_RE.test(s)))].sort();
 }
 
 /** "Mon, Wed, Fri" for a set of slots, in week order, each weekday once. */
@@ -121,9 +145,9 @@ export const DAY_SETS = { everyDay: [0, 1, 2, 3, 4, 5, 6], weekdays: [0, 1, 2, 3
 
 /**
  * Adds `time` on each of `days` to the slots, without repeats, in week order, up to `max` (the Brand kit
- * keeps 14). `skipped` counts the times left out because the list was full.
+ * keeps MAX_SLOTS). `skipped` counts the times left out because the list was full.
  */
-export function addSlots(existing: string[], days: readonly number[], time: string, max = 14): { slots: string[]; skipped: number } {
+export function addSlots(existing: string[], days: readonly number[], time: string, max = MAX_SLOTS): { slots: string[]; skipped: number } {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return { slots: existing, skipped: 0 };
   const set = new Set(existing);
   let skipped = 0;

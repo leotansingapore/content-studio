@@ -352,6 +352,23 @@ describe("laying a campaign out", () => {
     }
   });
 
+  it("gives campaigns at the same pace different times on the same day: the day's next open slot, then spread", () => {
+    storage.setItem(`content-studio-positioning-${UID}`, JSON.stringify(POS));
+    storage.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: [0, 1, 2, 3, 4, 5, 6].flatMap((d) => [`${d}T08:30`, `${d}T19:00`]) }));
+    const one = (name: string) => {
+      const c = planCampaign(UID, ask({ perWeek: 7, weeks: 1, platforms: ["linkedin"], name }), THU);
+      expect(addCampaign(UID, c)).toBeNull();
+      return c;
+    };
+    const [a, b, c] = [one("A"), one("B"), one("C")];
+    expect(b.posts.map((p) => p.day)).toEqual(a.posts.map((p) => p.day));
+    expect(a.posts.map((p) => p.time)).toEqual(Array(7).fill("08:30"));
+    expect(b.posts.map((p) => p.time)).toEqual(Array(7).fill("19:00"));
+    expect(c.posts.map((p) => p.time)).toEqual(Array(7).fill("22:00"));
+    // replanning keeps out of the others' slots, but not its own
+    expect(replanCampaign(UID, a, { weeks: 1, perWeek: 7 }).posts.map((p) => p.time)).toEqual(Array(7).fill("08:30"));
+  });
+
   it("planCampaign copies the ask, the audience's name and the goal, and addCampaign keeps it first", () => {
     storage.setItem(`content-studio-positioning-${UID}`, JSON.stringify({ ...POS, audienceDetail: "Young families" }));
     storage.setItem(`content-studio-audiences-${UID}`, JSON.stringify([{ id: "au-1", name: "Young families", who: "", lifeStage: "parent", cares: [], source: "you", createdAt: "" }]));

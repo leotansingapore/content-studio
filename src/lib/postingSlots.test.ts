@@ -91,6 +91,14 @@ describe("slotsForGoal", () => {
     expect(slotsForGoal(12, () => "08:30")).toHaveLength(7);
     expect(slotsForGoal(3, (d) => (d === 2 ? "8:30" : "09:00"))).toEqual(["0T09:00", "4T09:00"]);
   });
+  it("puts several times on each day past 7 a week, the day's nth post at timeFor(day, nth)", () => {
+    const at = (d: number, nth: number) => `${String(8 + 4 * nth).padStart(2, "0")}:00`;
+    const four = slotsForGoal(28, at);
+    expect(four).toHaveLength(28);
+    for (let d = 0; d < 7; d++) expect(four.filter((s) => s[0] === String(d))).toEqual(["08:00", "12:00", "16:00", "20:00"].map((t) => `${d}T${t}`));
+    expect(slotsForGoal(10, at)).toEqual(["0T08:00", "0T12:00", "1T08:00", "2T08:00", "2T12:00", "3T08:00", "4T08:00", "4T12:00", "5T08:00", "6T08:00"]);
+    expect(slotsForGoal(40, at)).toHaveLength(28);
+  });
   it("never puts two goal days next to each other below 4 a week", () => {
     for (const n of [2, 3]) {
       const d = GOAL_DAYS[n];

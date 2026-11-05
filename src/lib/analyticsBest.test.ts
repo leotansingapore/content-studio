@@ -225,4 +225,13 @@ describe("postingTimeOn (a plan slot's time on its day)", () => {
     ];
     expect(postingTimeOn(posts, "linkedin", 0, [])).toEqual({ time: "20:00", why: "best" });
   });
+
+  it("gives a day's nth post its nth time, then spreads the rest 3 hours apart inside the day", () => {
+    const slots = ["1T19:00", "1T08:30", "3T20:00"];
+    expect([0, 1, 2, 3].map((n) => postingTimeOn([], "linkedin", 1, slots, n).time)).toEqual(["08:30", "19:00", "22:00", "16:00"]);
+    expect([0, 1, 2, 3].map((n) => postingTimeOn([], "linkedin", 3, slots, n).time)).toEqual(["20:00", "23:00", "17:00", "14:00"]);
+    expect([0, 1, 2, 3].map((n) => postingTimeOn([], "instagram", 4, [], n))).toEqual(
+      ["19:30", "22:30", "16:30", "13:30"].map((time) => ({ time, why: "common" })),
+    );
+  });
 });
