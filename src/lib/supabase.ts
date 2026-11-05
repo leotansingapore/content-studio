@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { shareCall } from "@/lib/shareCall";
 
 export const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ?? "https://hgdbflprrficdoyxmdxe.supabase.co";
@@ -15,3 +16,13 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     flowType: "pkce",
   },
 });
+
+// Every page asks who is signed in as it opens: callers made while a request runs share it, and a lost auth lock is
+// asked again once (shareCall.ts), so a slow connection no longer opens a page with no user. A call with a token
+// (getUser(jwt)) is its own question and goes straight through.
+const auth = supabase.auth;
+const ownGetUser = auth.getUser.bind(auth);
+const sharedUser = shareCall(() => ownGetUser());
+auth.getUser = ((jwt?: string) => (jwt === undefined ? sharedUser() : ownGetUser(jwt))) as typeof auth.getUser;
+auth.getSession = shareCall(auth.getSession.bind(auth)) as typeof auth.getSession;
+
