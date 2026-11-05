@@ -480,10 +480,10 @@ export function CarouselCardView({ c, back, saved, onSave }: { c: CarouselCard; 
         </button>
         {c.slides > 1 && (
           <>
-            <button type="button" aria-label="Previous slide" onClick={(e) => flip(e, -1)} className={cn("absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white group-hover:flex", n === 0 && "invisible")}>
+            <button type="button" aria-label="Previous slide" onClick={(e) => flip(e, -1)} className={cn("absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white group-hover:flex group-focus-within:flex [@media(pointer:coarse)]:flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11", n === 0 && "invisible")}>
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <button type="button" aria-label="Next slide" onClick={(e) => flip(e, 1)} className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white group-hover:flex">
+            <button type="button" aria-label="Next slide" onClick={(e) => flip(e, 1)} className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white group-hover:flex group-focus-within:flex [@media(pointer:coarse)]:flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
               <ChevronRight className="h-4 w-4" />
             </button>
           </>
