@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
@@ -439,6 +439,7 @@ function ConvictionCard({ icon: Icon, title, text }: { icon: React.ElementType; 
 
 export default function FadsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { tab } = useParams();
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
@@ -545,11 +546,12 @@ export default function FadsPage() {
   useEffect(() => {
     // A bare /fads, or an old or mistyped step, opens the first step.
     if (!tab || !TABS.some((t) => t.id === tab)) {
-      navigate(`${BASE_PATH}/personality`, { replace: true });
+      // the query goes along, so a ?profile= link opens on its brand
+      navigate({ pathname: `${BASE_PATH}/personality`, search: location.search }, { replace: true });
     } else {
       setActiveTab(tab);
     }
-  }, [tab, navigate]);
+  }, [tab, navigate, location.search]);
 
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

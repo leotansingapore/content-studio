@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,6 +16,13 @@ import PublicRoadmap from "@/pages/PublicRoadmap";
 // public roadmap stay eager: they render outside the layout's Suspense or are
 // the landing page. Avoid the manualChunks object form, which force-preloads
 // lazy chunks.
+
+/** A redirect that keeps the query, so a ?profile= link to / or /diagnosis opens on the brand it names. */
+function Redirect({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
+}
+
 const WelcomePage = lazy(() => import("@/pages/WelcomePage"));
 const CoachPage = lazy(() => import("@/pages/CoachPage"));
 const PlaybookPage = lazy(() => import("@/pages/PlaybookPage"));
@@ -166,7 +173,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/" element={<Redirect to="/home" />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/agent" element={<AgentPage />} />
@@ -248,7 +255,7 @@ export default function App() {
           <Route path="/brands/new" element={<AddBrandPage />} />
           <Route path="/coach" element={<CoachPage />} />
           {/* Diagnosis now lives inside the Coach as its first step. */}
-          <Route path="/diagnosis" element={<Navigate to="/coach" replace />} />
+          <Route path="/diagnosis" element={<Redirect to="/coach" />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/playbook" element={<PlaybookPage />} />
           <Route path="/academy" element={<AcademyPage />} />
