@@ -131,7 +131,7 @@ export default function DesignPage() {
           <ul className="flex flex-wrap gap-x-3 gap-y-5">
             {designs.map((d) => (
               <Cover key={d.id} d={d} onOpen={() => navigate(`/design/${d.id}`)}>
-                <Link to={`/design/${d.id}`} className="truncate text-sm font-medium hover:underline">
+                <Link to={`/design/${d.id}`} className="truncate text-sm font-medium hover:underline [@media(pointer:coarse)]:leading-[2.75rem]">
                   {d.title}
                 </Link>
                 <span className="text-xs text-muted-foreground">
@@ -140,19 +140,19 @@ export default function DesignPage() {
                 {confirm === d.id ? (
                   <span className="flex items-center gap-2 text-xs">
                     Delete it?
-                    <button type="button" className="font-medium text-destructive hover:underline" onClick={() => (removeDesign(userId, d.id), setConfirm(null))}>
+                    <button type="button" className="font-medium text-destructive hover:underline [@media(pointer:coarse)]:min-h-11" onClick={() => (removeDesign(userId, d.id), setConfirm(null))}>
                       Delete
                     </button>
-                    <button type="button" className="text-muted-foreground hover:underline" onClick={() => setConfirm(null)}>
+                    <button type="button" className="text-muted-foreground hover:underline [@media(pointer:coarse)]:min-h-11" onClick={() => setConfirm(null)}>
                       Keep
                     </button>
                   </span>
                 ) : (
                   <span className="flex gap-3 text-xs text-muted-foreground">
-                    <button type="button" className="flex items-center gap-1 hover:text-foreground" onClick={() => open(newDesign(d.format, `${d.title} copy`, d.slides))}>
+                    <button type="button" className="flex items-center gap-1 hover:text-foreground [@media(pointer:coarse)]:min-h-11" onClick={() => open(newDesign(d.format, `${d.title} copy`, d.slides))}>
                       <Copy className="h-3 w-3" /> Duplicate
                     </button>
-                    <button type="button" className="flex items-center gap-1 hover:text-destructive" onClick={() => setConfirm(d.id)}>
+                    <button type="button" className="flex items-center gap-1 hover:text-destructive [@media(pointer:coarse)]:min-h-11" onClick={() => setConfirm(d.id)}>
                       <Trash2 className="h-3 w-3" /> Delete
                     </button>
                   </span>
@@ -191,10 +191,10 @@ export default function DesignPage() {
           })}
         </ul>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
-          <Link to="/working" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+          <Link to="/working" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
             <Images className="h-4 w-4" /> Find a format that's working in your niche
           </Link>
-          <Link to="/connect" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+          <Link to="/connect" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
             <Plug className="h-4 w-4" /> Have Claude build one with you
           </Link>
         </div>
@@ -211,7 +211,7 @@ export default function DesignPage() {
                 <span className="truncate text-sm font-medium">{t.title}</span>
                 <span className="flex items-center justify-between text-xs text-muted-foreground">
                   {FORMAT_LABEL[t.format]}, {t.slides.length} slides
-                  <button type="button" aria-label={`Remove the template ${t.title}`} className="hover:text-destructive" onClick={() => removeOwnTemplate(userId, t.id)}>
+                  <button type="button" aria-label={`Remove the template ${t.title}`} className="hover:text-destructive [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-end" onClick={() => removeOwnTemplate(userId, t.id)}>
                     <Trash2 className="h-3 w-3" />
                   </button>
                 </span>
@@ -246,8 +246,9 @@ export default function DesignPage() {
               </Link>
             </div>
           </div>
-          {/* a row: scrolls sideways on a phone, six across on a wide screen */}
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
+          {/* a row: scrolls sideways on a phone, six across on a wide screen; relative, or the cards' sr-only labels
+              escape the scroller and widen a phone's layout viewport (the bottom bar then sits off screen) */}
+          <div className="relative -mx-1 flex gap-3 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
             {working.map((c) => (
               <div key={c.id} className="w-36 shrink-0 sm:w-auto">
                 <WorkingCardView c={c} back="/design" />
