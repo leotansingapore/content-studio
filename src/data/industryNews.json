@@ -1,5 +1,16 @@
 [
   {
+    "id": "d0a89dbff3f0",
+    "title": "HDB launches 7,964 BTO flats; higher income ceiling kicks in",
+    "gist": "The Housing Board launched 7,964 Build-To-Order flats on Nov 4 across seven projects. Higher income ceilings of $16,000 for families and $8,000 for singles took effect from this launch. Prime and Plus flats carry a 10-year minimum occupation period and subsidy clawbacks between 8% and 11% upon resale.",
+    "talkingPoint": "Clients may now qualify for public housing under the higher income ceilings of $16,000 for families and $8,000 for singles. You can ask if they plan to apply before the Nov 11 deadline and review how property costs fit into their budget.",
+    "clientMessage": "Hi [Client name], the Housing Board launched 7,964 new flats across seven projects on Nov 4. Higher income ceilings of $16,000 for families and $8,000 for singles also took effect. This means more households may qualify to apply. Applications close on Nov 11. If you are planning for a home and want to look at how housing costs fit into your financial plan, we can review it together. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/housing/hdb-launches-7964-bto-flats-higher-income-ceiling-kicks-in",
+    "publishedAt": "2026-11-04T02:19:38+00:00",
+    "topic": "Property"
+  },
+  {
     "id": "7f9ec7f147e9",
     "title": "MoneySmart data breach hits S’pore, HK users; IC numbers, financial info potentially exposed",
     "gist": "Hackers breached internal systems at personal finance platform MoneySmart on Oct 29, copying data belonging to some users in Singapore and Hong Kong. Potentially accessed information includes identification numbers, contact details, income ranges, and insurance inquiries. The platform notified affected users on Nov 3, and regulators including the Monetary Authority of Singapore are following up closely.",
@@ -555,18 +566,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "5e4ceccda4ff",
-    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
-    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
-    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
-    "clientMessage": null,
-    "source": "CNBC",
-    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/5e4ceccda4ff.jpg"
-  },
-  {
     "id": "eab7f642835b",
     "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
     "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
@@ -577,6 +576,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/eab7f642835b.jpg"
+  },
+  {
+    "id": "5e4ceccda4ff",
+    "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
+    "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
+    "talkingPoint": "If your client holds an HSBC Shield plan, the company behind it is changing owner again, and the sale is not even closed yet. Careful: A sale is not a claims problem. Nothing here says HSBC Life pays claims badly. Keep it to who will own the policy.",
+    "clientMessage": null,
+    "source": "CNBC",
+    "url": "https://cnbc.com/2026/07/24/allianz-to-buy-hsbcs-singapore-insurance-unit-for-2billion.html",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/5e4ceccda4ff.jpg"
   },
   {
     "id": "cc5c9a27e256",
