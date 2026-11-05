@@ -8,11 +8,15 @@ import { activeProfileId, brandAddress, brandChange, loadProfiles, setActiveProf
 
 export default function BrandTabWatch({ userId }: { userId: string | null }) {
   const [tabBrand, setTabBrand] = useState<string | null>(null);
+  // its name as this tab opened it: the brand may be removed in another tab, and its row with it
+  const [tabName, setTabName] = useState<string | null>(null);
   const [other, setOther] = useState<string | null>(null);
   const switchRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    setTabBrand(userId ? activeProfileId(userId) : null);
+    const id = userId ? activeProfileId(userId) : null;
+    setTabBrand(id);
+    setTabName(id && userId ? (loadProfiles(userId).find((p) => p.id === id)?.name ?? null) : null);
     setOther(null);
   }, [userId]);
 
@@ -32,15 +36,17 @@ export default function BrandTabWatch({ userId }: { userId: string | null }) {
 
   if (!userId || !tabBrand || !other) return null;
   const name = (id: string) => loadProfiles(userId).find((p) => p.id === id)?.name ?? "another brand";
+  // a brand removed in another tab can't be stayed on: saving would quietly go to Me under its old name
+  const gone = !loadProfiles(userId).some((p) => p.id === tabBrand);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-start justify-center bg-foreground/40 px-4 pt-24">
       <div role="alertdialog" aria-modal="true" aria-labelledby="brand-tab-title" aria-describedby="brand-tab-why" className="w-full max-w-md rounded-xl border border-border bg-background p-5 shadow-xl">
         <p id="brand-tab-title" className="font-semibold text-foreground">
-          {name(other)} is open in another tab.
+          {gone ? `${tabName ?? "This brand"} was removed in another tab.` : `${name(other)} is open in another tab.`}
         </p>
         <p id="brand-tab-why" className="mt-1 text-sm text-muted-foreground">
-          Anything you save here would go to {name(other)}, not {name(tabBrand)}.
+          {gone ? `Anything you save here would go to ${name(other)}.` : `Anything you save here would go to ${name(other)}, not ${name(tabBrand)}.`}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {/* open this address on the other brand: a plain reload would re-apply the ?profile= it still names and switch
@@ -55,16 +61,18 @@ export default function BrandTabWatch({ userId }: { userId: string | null }) {
           >
             Switch to {name(other)}
           </Button>
-          <Button
-            variant="outline"
-            className="min-h-11"
-            onClick={() => {
-              setActiveProfile(userId, tabBrand);
-              setOther(null);
-            }}
-          >
-            Stay on {name(tabBrand)}
-          </Button>
+          {!gone && (
+            <Button
+              variant="outline"
+              className="min-h-11"
+              onClick={() => {
+                setActiveProfile(userId, tabBrand);
+                setOther(null);
+              }}
+            >
+              Stay on {name(tabBrand)}
+            </Button>
+          )}
         </div>
       </div>
     </div>
