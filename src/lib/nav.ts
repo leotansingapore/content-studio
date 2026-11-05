@@ -4,6 +4,7 @@
 // bottom bar plus a More sheet. Adding a page = adding it to one section here.
 import {
   BarChart3,
+  Bell,
   BookMarked,
   Bookmark,
   Clapperboard,
@@ -252,6 +253,7 @@ export const SECTIONS: NavSection[] = [
     index: true,
     pages: [
       { to: "/settings", label: "Settings", end: true, bare: true },
+      { to: "/notifications", label: "Notifications", icon: Bell, group: "You", hint: "Phone alerts and the Monday results email." },
       { to: "/accounts", label: "Social accounts", icon: Share2, show: socialConnectShown, group: "Connections", hint: "The Instagram and TikTok accounts the studio posts to." },
       { to: "/bio", label: "Link in bio", icon: Link2, hint: "One page of your links for your profile." },
       { to: "/links", label: "Tracked links", icon: MousePointerClick, hint: "Short links that count who clicks." },

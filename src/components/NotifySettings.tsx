@@ -1,4 +1,4 @@
-// My Playbook's two reminder switches: the Monday results email and phone
+// The two reminder switches on Settings > Notifications: the Monday results email and phone
 // alerts (src/lib/notify.ts). Both start off. Leo's sign-ins also get What
 // moved under the email and the hit alert under phone alerts.
 import { useEffect, useId, useState } from "react";

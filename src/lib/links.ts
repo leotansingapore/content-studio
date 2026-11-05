@@ -601,6 +601,7 @@ export const links = {
   createGuide: (o: { step?: GuideStep } = {}) => `/create-guide${o.step ? `#${o.step}` : ""}`,
   tutorial: (o: { section?: TutorialSection } = {}) => `/tutorial${o.section ? `#${o.section}` : ""}`,
   playbook: () => "/playbook",
+  notifications: () => "/notifications",
   academy: (o: { lesson?: string } = {}) => `/academy${qs({ lesson: o.lesson })}`,
   // ---- end Create pages ----
   /** The slideshow editor (Leo only): s opens one (push); slide is 1-based; slide 1 and the Slide tab are left out; ask (phase 6) proposes a change, read once. */

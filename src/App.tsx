@@ -27,6 +27,7 @@ const VoicePage = lazy(() => import("@/pages/VoicePage"));
 const BrandPage = lazy(() => import("@/pages/BrandPage"));
 const MediaPage = lazy(() => import("@/pages/MediaPage"));
 const ConnectPage = lazy(() => import("@/pages/ConnectPage"));
+const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const AccountsPage = lazy(() => import("@/pages/AccountsPage"));
 const AdLauncherPage = lazy(() => import("@/pages/AdLauncherPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
@@ -229,6 +230,7 @@ export default function App() {
           <Route path="/links" element={<TrackedLinksPage />} />
           <Route path="/media" element={<MediaPage />} />
           <Route path="/connect" element={<ConnectPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/automations" element={<AutomationsPage />} />

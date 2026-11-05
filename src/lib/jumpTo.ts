@@ -31,7 +31,7 @@ const KEYWORDS: Record<string, string> = {
   "/grid": "instagram feed preview",
   "/reels": "posts board reels board approve review pending carousels images notes comments",
   "/reels/team": "team invite teammate teammates people roles members access",
-  "/playbook": "notifications alerts reminders notification settings",
+  "/notifications": "alerts reminders notification settings email push",
   "/brand": "posting times best time when slots logo photo colours sign-off fonts font",
   "/voice": "tone writing style",
   "/people": "face voice presenter faces and voices",

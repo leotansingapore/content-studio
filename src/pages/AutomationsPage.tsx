@@ -44,7 +44,7 @@ export default function AutomationsPage() {
 function Automations({ userId }: { userId: string }) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
-    // "storage" covers My Playbook's email switch changed in another tab
+    // "storage" covers the Notifications page's email switch changed in another tab
     const events = [AUTONOMY_CHANGED, SHADOW_CHANGED, AUTOPILOT_CHANGED, "storage"];
     events.forEach((e) => window.addEventListener(e, redraw));
     const offIdeas = onIdeasChanged(redraw);
@@ -97,7 +97,7 @@ function Automations({ userId }: { userId: string }) {
     showSaved("move", error);
   };
   const setEmail = (email: boolean) => {
-    // exactly as My Playbook's switch writes it (NotifySettings.tsx)
+    // exactly as the Notifications page's switch writes it (NotifySettings.tsx)
     saveNotifyPrefs(userId, { ...loadNotifyPrefs(userId), email });
     redraw();
     showSaved("email", null);
@@ -147,7 +147,7 @@ function Automations({ userId }: { userId: string }) {
           <Switch label="Monday results email" checked={prefs.email} onChange={setEmail} />
         </Row>
         <Row label="Phone alerts" sub={!prefs.push ? "Off" : pushHere === null ? "\u00a0" : pushHere ? "On for this device" : "Off"}>
-          <Go to={links.playbook()}>Change in My Playbook</Go>
+          <Go to={links.notifications()}>Change in Notifications</Go>
         </Row>
         <Row label="Autopilot" sub={autopilotOn ? "On. Writes when you open the app." : "Off"}>
           <Go to={links.plan({ section: "autopilot" })}>Change on Plan</Go>

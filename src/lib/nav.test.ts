@@ -6,7 +6,7 @@ const routes = [
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/carousels", "/working", "/trends", "/clone", "/research", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/social-north-star", "/audiences",
-  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/adlauncher",
+  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/notifications", "/adlauncher",
 ];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
@@ -69,7 +69,7 @@ describe("nav", () => {
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
-    expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/linkedin", "/ideas", "/social-north-star"]);
@@ -77,7 +77,7 @@ describe("nav", () => {
       expect(pages("write", email), email).toContain("/people");
       expect(pages("find", email).slice(4, 6), email).toEqual(["/clone", "/research"]);
       expect(pages("find", email).slice(9, 11), email).toEqual(["/competitors", "/saved"]);
-      expect(pages("settings", email), email).toEqual(["/settings", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
+      expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
     }
   });
 
@@ -104,7 +104,7 @@ describe("nav", () => {
     expect(pages("write", ANYONE)).toContain("/reels");
     expect(pages("settings", LEO)).not.toContain("/reels/team");
     store.set("cs-team-me", JSON.stringify({ owner: true, member: false, at: Date.now() }));
-    expect(pages("settings", ANYONE)).toEqual(["/settings", "/bio", "/links", "/connect", "/reels/team"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect", "/reels/team"]);
     vi.unstubAllGlobals();
   });
 
@@ -152,7 +152,7 @@ describe("nav", () => {
 
   it("lists Settings as tiles, its pages leading back to it instead of tabs", () => {
     expect(sectionTabs("/settings", ANYONE)).toEqual({ tabs: [], chips: [] });
-    for (const p of ["/connect", "/links", "/reels/team", "/skills", "/adlauncher"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
+    for (const p of ["/notifications", "/connect", "/links", "/reels/team", "/skills", "/adlauncher"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
   });
 

@@ -75,8 +75,8 @@ describe("searchJump", () => {
     expect(searchJump(items, "approve")[0].to).toBe("/team");
     expect(searchJump(items, "my posts")[0].to).toBe("/drafts");
     expect(searchJump(items, "bio")[0].to).toBe("/bio");
-    expect(searchJump(items, "notifications")[0].to).toBe("/playbook");
-    expect(searchJump(items, "alerts")[0].to).toBe("/playbook");
+    expect(searchJump(items, "notifications")[0].to).toBe("/notifications");
+    expect(searchJump(items, "alerts")[0].to).toBe("/notifications");
     expect(searchJump(items, "plan my week")[0].to).toBe("/plan");
     expect(searchJump(items, "account")[0].to).toBe("/settings");
     expect(searchJump(items, "hashtags")[0].to).toBe("/trends");
@@ -85,7 +85,7 @@ describe("searchJump", () => {
     expect(searchJump(items, "competitors")[0].to).toBe("/following");
     expect(searchJump(items, "request a feature")[0].to).toBe("/feedback");
     expect(searchJump(items, "how did my post do")[0].to).toBe("/analytics");
-    expect(searchJump(items, "notification settings")[0].to).toBe("/playbook");
+    expect(searchJump(items, "notification settings")[0].to).toBe("/notifications");
     expect(searchJump(items, "fonts")[0].to).toBe("/brand");
   });
 
