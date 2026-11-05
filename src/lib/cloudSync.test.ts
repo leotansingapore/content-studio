@@ -528,3 +528,113 @@ describe("posts lists merged post by post", () => {
   });
 });
 
+describe("removed data stays removed on every device", () => {
+  const PLAN = `content-studio-plan-${ME}`;
+  const remove = (storage: SyncStorage, sync: CloudSync, key: string) => {
+    storage.removeItem(key);
+    sync.noteWrite(key);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-06T10:00:00.000Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  async function bothHoldPlan() {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    write(laptop, a, PLAN, "this week's plan");
+    await vi.advanceTimersByTimeAsync(1_000);
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await b.start();
+    expect(phone.getItem(PLAN)).toBe("this week's plan");
+    return { cloud, laptop, phone, a, b };
+  }
+
+  it("a plan deleted on the laptop is removed from the open phone, and the phone never uploads it again", async () => {
+    const { cloud, phone, laptop, a, b } = await bothHoldPlan();
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(cloud.table.has(PLAN)).toBe(false);
+    // the phone's tab comes back
+    await vi.advanceTimersByTimeAsync(10_000);
+    await b.refreshMerged();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(phone.getItem(PLAN)).toBeNull();
+    // and a reload of a device that still held it (before this change it pushed it back up)
+    const stale = new MemoryStorage();
+    stale.setItem(PLAN, "this week's plan");
+    stale.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: "2026-11-06T10:00:00.500Z" }));
+    await createCloudSync(ME, stale, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(stale.getItem(PLAN)).toBeNull();
+    expect(cloud.table.has(PLAN)).toBe(false);
+  });
+
+  it("undoes an old build uploading a deleted plan again with its old stamp", async () => {
+    const { cloud, phone, laptop, a } = await bothHoldPlan();
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(1_000);
+    cloud.table.set(PLAN, { key: PLAN, data: "this week's plan", updated_at: "2026-11-06T10:00:00.500Z" });
+    await createCloudSync(ME, phone, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(phone.getItem(PLAN)).toBeNull();
+    expect(cloud.table.has(PLAN)).toBe(false);
+  });
+
+  it("keeps a plan made again after the delete, on every device", async () => {
+    const { cloud, laptop, a } = await bothHoldPlan();
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(5_000);
+    write(laptop, a, PLAN, "next week's plan");
+    await vi.advanceTimersByTimeAsync(1_000);
+    const fresh = new MemoryStorage();
+    await createCloudSync(ME, fresh, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fresh.getItem(PLAN)).toBe("next week's plan");
+    expect(cloud.table.get(PLAN)?.data).toBe("next week's plan");
+  });
+
+  it("keeps a key removed and written again in the same moment (a reset), here and on other devices", async () => {
+    const { cloud, laptop, a } = await bothHoldPlan();
+    remove(laptop, a, PLAN);
+    write(laptop, a, PLAN, "reset plan");
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await a.refreshMerged();
+    expect(laptop.getItem(PLAN)).toBe("reset plan");
+    const fresh = new MemoryStorage();
+    await createCloudSync(ME, fresh, cloud.backend).start();
+    expect(fresh.getItem(PLAN)).toBe("reset plan");
+  });
+
+  it("merges the brand list: a brand added on each device survives, and one removed on either goes from both", async () => {
+    const LIST = `content-studio-profiles-${ME}`;
+    const brands = (...ids: string[]) => JSON.stringify(ids.map((id) => ({ id, name: id, createdAt: "" })));
+    const names = (v: string | null | undefined) => (v ? (JSON.parse(v) as { id: string }[]).map((x) => x.id).sort() : []);
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await a.start();
+    await b.start();
+    write(laptop, a, LIST, brands("me", "radiant"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    write(phone, b, LIST, brands("me", "coach"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(names(cloud.table.get(LIST)?.data)).toEqual(["coach", "me", "radiant"]);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await a.refreshMerged();
+    write(laptop, a, LIST, brands("me", "radiant"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await b.refreshMerged();
+    expect(names(phone.getItem(LIST))).toEqual(["me", "radiant"]);
+  });
+});
+

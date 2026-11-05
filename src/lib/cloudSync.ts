@@ -18,7 +18,7 @@
 // keep reading/writing localStorage as before.
 
 import { supabase } from "@/lib/supabase";
-import type { SyncBase, SyncMerger } from "@/lib/syncMerge";
+import { listMerger, type SyncBase, type SyncMerger } from "@/lib/syncMerge";
 
 const SYNC_PREFIX = "content-studio-";
 const META_KEY = "cs-sync-meta"; // deliberately outside SYNC_PREFIX
@@ -41,6 +41,22 @@ export function registerSyncMerge(prefix: string, merger: SyncMerger) {
   if (!MERGERS.some((m) => m.prefix === prefix)) MERGERS.push({ prefix, merger });
 }
 const mergerFor = (key: string) => MERGERS.find((m) => key.startsWith(m.prefix))?.merger;
+
+// What was removed, and when (Leo, 6 Nov: deleted plans and removed brands came back from any device still holding a
+// copy, since the pull pushed up every key the cloud lacked). One synced list per account, merged like posts; a device
+// drops its copy of a key removed after it last wrote it, instead of uploading it again, and undoes an old build's
+// re-upload (a row stamped before the removal). Entries go after 90 days, 1,000 at most.
+type Tomb = { id: string; at: string };
+const TOMB_PREFIX = "content-studio-tombstones-";
+const TOMB_DAYS = 90;
+const TOMB_MAX = 1_000;
+const pruneTombs = (list: Tomb[]) => {
+  const since = Date.now() - TOMB_DAYS * 86_400_000;
+  return list.filter((t) => new Date(t.at).getTime() >= since).slice(0, TOMB_MAX);
+};
+registerSyncMerge(TOMB_PREFIX, listMerger<Tomb>({ after: pruneTombs }));
+// The brand list (profiles.ts): a brand added on one device and removed on another both reach every device.
+registerSyncMerge("content-studio-profiles-", listMerger<{ id: string }>());
 
 export type SyncDecision = "apply-cloud" | "push-local" | "noop";
 
@@ -180,6 +196,47 @@ export function createCloudSync(
   const localNewer = (key: string, cloudTs: string) =>
     !!meta[key] && new Date(meta[key]).getTime() > new Date(cloudTs).getTime();
   /** Merges the cloud's copy into this device's, writing the result here; null when the merger can't. */
+  const tombKey = TOMB_PREFIX + userId;
+  const tombs = (): Tomb[] => {
+    const list = readJson<unknown>(storage, tombKey, []);
+    return Array.isArray(list) ? (list as Tomb[]).filter((t) => t && typeof t.id === "string" && typeof t.at === "string") : [];
+  };
+  /** When the key was removed, if it was removed after this device last wrote it: its copy here is stale. */
+  const removedAt = (key: string, list = tombs()): string | null => {
+    if (key === tombKey) return null;
+    const at = list.find((t) => t.id === key)?.at;
+    // written at or after the removal (a reset that removes and writes in one go): this copy is the new one
+    return at && !(meta[key] && new Date(meta[key]).getTime() >= new Date(at).getTime()) ? at : null;
+  };
+  /** Takes away this device's copy of a removed key, without recording a new removal. */
+  const dropRemoved = (key: string) => {
+    try {
+      storage.removeItem(key);
+      storage.removeItem(BASE_PREFIX + key);
+    } catch {
+      // unavailable storage: nothing to drop
+    }
+    delete meta[key];
+    pending.delete(key);
+    mergerFor(key)?.changed?.(key);
+  };
+  /** Every key removed elsewhere since this device wrote it goes here too. */
+  const dropAllRemoved = () => {
+    const list = tombs();
+    if (!list.length) return;
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const key = storage.key(i);
+      if (key && isSyncedKeyFor(key, userId) && removedAt(key, list)) dropRemoved(key);
+    }
+  };
+  /** Records the app's removal of `key` in the synced list, to go up with it. */
+  const noteRemoval = (key: string) => {
+    const at = new Date().toISOString();
+    writeJson(storage, tombKey, pruneTombs([{ id: key, at }, ...tombs().filter((t) => t.id !== key)]));
+    meta[tombKey] = at;
+    pending.add(tombKey);
+  };
+
   const mergeIn = (key: string, merger: SyncMerger, local: string, row: SyncRow): string | null => {
     const merged = merger.merge(local, row.data, loadBase(key), localNewer(key, row.updated_at));
     if (merged !== null && merged !== local) {
@@ -305,6 +362,12 @@ export function createCloudSync(
 
   const applyRow = (row: SyncRow) => {
     if (!isSyncedKeyFor(row.key, userId)) return;
+    const gone = row.key !== tombKey && tombs().find((t) => t.id === row.key)?.at;
+    if (gone && new Date(row.updated_at).getTime() < new Date(gone).getTime() && removedAt(row.key)) {
+      dropRemoved(row.key);
+      pending.add(row.key); // nothing here, so the send removes the cloud row again
+      return;
+    }
     const merger = mergerFor(row.key);
     const local = storage.getItem(row.key);
     // synced here before the merge existed and nothing unsent: this copy is what the cloud held, so it is the base
@@ -353,14 +416,17 @@ export function createCloudSync(
     }
 
     const cloudKeys = new Set<string>();
-    for (const row of rows) {
+    // the removals first, so every other row is read against them
+    for (const row of [...rows].sort((x, y) => Number(y.key === tombKey) - Number(x.key === tombKey))) {
       cloudKeys.add(row.key);
       applyRow(row);
     }
-    // Local synced keys the cloud has never seen: push them up.
-    for (let i = 0; i < storage.length; i++) {
+    // Local synced keys the cloud has never seen: push them up, unless they were removed since this device wrote them.
+    for (let i = storage.length - 1; i >= 0; i--) {
       const key = storage.key(i);
-      if (key && !cloudKeys.has(key) && isSyncedKeyFor(key, userId)) pending.add(key);
+      if (!key || cloudKeys.has(key) || !isSyncedKeyFor(key, userId)) continue;
+      if (removedAt(key)) dropRemoved(key);
+      else pending.add(key);
     }
 
     writeJson(storage, META_KEY, meta);
@@ -386,6 +452,7 @@ export function createCloudSync(
 
   const noteWrite = (key: string) => {
     if (stopped || !isSyncedKeyFor(key, userId)) return;
+    if (key !== tombKey && storage.getItem(key) === null) noteRemoval(key);
     meta[key] = new Date().toISOString();
     writeJson(storage, META_KEY, meta);
     pending.add(key);
@@ -399,7 +466,11 @@ export function createCloudSync(
     try {
       const { data, error } = await read();
       if (error || !data || stopped) return;
-      data.filter((row) => wanted(row.key)).forEach(applyRow);
+      data
+        .filter((row) => wanted(row.key))
+        .sort((x, y) => Number(y.key === tombKey) - Number(x.key === tombKey))
+        .forEach(applyRow);
+      dropAllRemoved();
     } catch {
       return; // offline: the next refresh or reload catches up
     }
