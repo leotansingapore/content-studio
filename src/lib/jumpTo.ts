@@ -31,8 +31,8 @@ const KEYWORDS: Record<string, string> = {
   "/grid": "instagram feed preview",
   "/reels": "posts board reels board approve review pending carousels images notes comments",
   "/reels/team": "team invite teammate teammates people roles members access",
-  "/playbook": "notifications alerts reminders",
-  "/brand": "posting times best time when slots logo photo colours sign-off",
+  "/playbook": "notifications alerts reminders notification settings",
+  "/brand": "posting times best time when slots logo photo colours sign-off fonts font",
   "/voice": "tone writing style",
   "/people": "face voice presenter faces and voices",
   "/bio": "link in bio page",
@@ -42,7 +42,7 @@ const KEYWORDS: Record<string, string> = {
   "/fads": "fads framework",
   "/connect": "claude mcp ai",
   "/coach": "diagnosis score feedback",
-  "/analytics": "results numbers stats insights performance",
+  "/analytics": "results numbers stats insights performance views how did my post do",
   "/team": "team review approval approve leader",
   "/swipe": "top posts examples trending",
   "/working": "tiktok slideshows photo viral formats niches examples volume",
@@ -89,7 +89,8 @@ export function pageItems(email: string): JumpItem[] {
   );
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+// an apostrophe joins its word ("What's working" is whats working), other marks split words
+const norm = (s: string) => s.toLowerCase().replace(/['\u2019]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
 /**
  * Items matching every word typed, best first: label or the page's own address word starts with the

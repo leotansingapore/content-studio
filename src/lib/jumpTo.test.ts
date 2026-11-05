@@ -84,6 +84,13 @@ describe("searchJump", () => {
     expect(searchJump(items, "trending posts")[0].to).toBe("/swipe");
     expect(searchJump(items, "competitors")[0].to).toBe("/following");
     expect(searchJump(items, "request a feature")[0].to).toBe("/feedback");
+    expect(searchJump(items, "how did my post do")[0].to).toBe("/analytics");
+    expect(searchJump(items, "notification settings")[0].to).toBe("/playbook");
+    expect(searchJump(items, "fonts")[0].to).toBe("/brand");
+  });
+
+  it("reads an apostrophe as part of its word, typed or not", () => {
+    for (const q of ["whats working", "what's working", "what\u2019s working"]) expect(searchJump(items, q)[0].to, q).toBe("/working");
   });
 
   it("tells the three team places apart", () => {
