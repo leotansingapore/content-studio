@@ -249,3 +249,19 @@ describe("jumpList", () => {
     expect(list[3].group).toBe("Create");
   });
 });
+
+describe("Jump to over the whole list", () => {
+  const email = "user@demo.com";
+  it("puts the everyday create action first, so Enter on \"write\" starts a post, not a VSL", () => {
+    expect(searchJump(jumpList(email, [], "/home"), "write")[0].to).toBe("/generate");
+  });
+  it("lists each page once, though it is also recent or a create action", () => {
+    const hits = searchJump(jumpList(email, ["/calendar", "/generate"], "/home"), "");
+    const found = searchJump(jumpList(email, ["/calendar", "/generate"], "/home"), "calendar");
+    expect(found.filter((i) => i.to === "/calendar")).toHaveLength(1);
+    expect(searchJump(jumpList(email, ["/generate"], "/home"), "write a post").filter((i) => i.to === "/generate")).toHaveLength(1);
+    // the empty list keeps Recent on purpose, but no page sits in both Create and its section
+    expect(hits.filter((i) => i.to === "/generate" && i.group !== "Recent")).toHaveLength(1);
+  });
+});
+

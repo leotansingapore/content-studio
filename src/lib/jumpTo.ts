@@ -101,17 +101,24 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
   const q = norm(query);
   if (!q) return items;
   const words = q.split(" ");
-  const scored: { item: JumpItem; score: number; len: number; i: number }[] = [];
+  const scored: { item: JumpItem; score: number; exact: number; len: number; i: number }[] = [];
   items.forEach((item, i) => {
     const label = norm(item.label);
     const address = norm(item.to.split("/").pop() ?? "");
     const hay = `${label} ${address} ${norm(item.group)} ${norm(item.keywords)}`;
     if (!words.every((w) => hay.includes(w))) return;
     const score = label.startsWith(q) || address.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : 2;
-    scored.push({ item, score, len: label.length, i });
+    scored.push({ item, score, exact: label === q || address === q ? 0 : 1, len: label.length, i });
   });
-  // the shorter label is the closer match ("Brand kit" before "Brand Brain" for "brand")
-  return scored.sort((a, b) => a.score - b.score || a.len - b.len || a.i - b.i).map((s) => s.item);
+  // the page whose name or address is exactly what was typed ("make" is /make), then a create action before a page
+  // ("write" starts a post, not a VSL), then the shorter label is the closer match
+  // ("Brand kit" before "Brand Brain" for "brand"); each address once, at its best place (a recent page is a page too)
+  const create = (s: { item: JumpItem }) => (s.item.group === "Create" ? 0 : 1);
+  const seen = new Set<string>();
+  return scored
+    .sort((a, b) => a.score - b.score || a.exact - b.exact || create(a) - create(b) || a.len - b.len || a.i - b.i)
+    .map((s) => s.item)
+    .filter((item) => !seen.has(item.to) && !!seen.add(item.to));
 }
 
 // Recently opened pages, per device (outside the synced content-studio- prefix: where you were is
@@ -159,5 +166,7 @@ export function jumpList(email: string, recent: string[], currentPath: string): 
     .filter((p): p is JumpItem => !!p)
     .slice(0, 3)
     .map((p) => ({ ...p, group: "Recent" }));
-  return [...recentItems, ...CREATE_ITEMS, ...pages];
+  // a page a create action already opens is listed once, under Create
+  const made = new Set(CREATE_ITEMS.map((c) => c.to));
+  return [...recentItems, ...CREATE_ITEMS, ...pages.filter((p) => !made.has(p.to))];
 }
