@@ -150,11 +150,30 @@ describe("the shelf", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it("keeps its own key apart from the carousel maker's saved carousels, and moves a shelf left under the shared one", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
+    const maker = JSON.stringify([{ id: "d:1", title: "My carousel", slides: [] }]);
+    // the maker's list under content-studio-carousels- survives a shelf save
+    store.set("content-studio-carousels-u1", maker);
+    expect(saveShelf("u1", toggleSaved(empty(), "c1"))).toBe(true);
+    expect(store.get("content-studio-carousels-u1")).toBe(maker);
+    // a shelf saved there before 6 Nov is read and moved to the shelf's own key; a maker's list there is never read as one
+    store.clear();
+    store.set("content-studio-carousels-u2", JSON.stringify({ folders: [{ id: "f", name: "Ideas" }], saved: [{ id: "c9", folder: "f", at: "x" }], tracked: [], searches: [] }));
+    expect(loadShelf("u2").saved.map((x) => x.id)).toEqual(["c9"]);
+    expect(JSON.parse(store.get("content-studio-carouselshelf-u2")!).folders).toEqual([{ id: "f", name: "Ideas" }]);
+    store.clear();
+    store.set("content-studio-carousels-u3", maker);
+    expect(loadShelf("u3")).toEqual(empty());
+    expect(store.has("content-studio-carouselshelf-u3")).toBe(false);
+  });
+
   it("is kept under the synced prefix, per brand, and survives bad storage", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
     expect(saveShelf("u1", toggleSaved(empty(), "c1"))).toBe(true);
-    expect([...store.keys()].every((k) => k.startsWith("content-studio-carousels-"))).toBe(true);
+    expect([...store.keys()].every((k) => k.startsWith("content-studio-carouselshelf-"))).toBe(true);
     expect(loadShelf("u1").saved.map((x) => x.id)).toEqual(["c1"]);
     store.set([...store.keys()][0], "{not json");
     expect(loadShelf("u1")).toEqual(empty());

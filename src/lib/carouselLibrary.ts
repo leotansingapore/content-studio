@@ -226,7 +226,10 @@ export interface Shelf {
   searches: { id: string; name: string; query: string }[];
 }
 
-export const SHELF_PREFIX = "content-studio-carousels-";
+// The library's own key. Until 6 Nov it shared content-studio-carousels- with the carousel maker's saved carousels
+// (carousel.ts), so each one's save wiped the other's; a shelf still under that key is moved on first read.
+export const SHELF_PREFIX = "content-studio-carouselshelf-";
+const SHARED_PREFIX = "content-studio-carousels-";
 export const MAX_SAVED = 500;
 export const MAX_FOLDERS = 30;
 export const MAX_TRACKED = 50;
@@ -235,9 +238,25 @@ export const MAX_SEARCHES = 30;
 const EMPTY: Shelf = { folders: [], saved: [], tracked: [], searches: [] };
 const arr = <T>(v: unknown, ok: (x: T) => boolean): T[] => (Array.isArray(v) ? (v as T[]).filter(ok) : []);
 
+/** The shelf's stored text, moving one saved under the shared key before 6 Nov; the maker's list there is left alone. */
+function shelfText(userId: string): string | null {
+  const key = SHELF_PREFIX + scoped(userId);
+  const own = localStorage.getItem(key);
+  if (own !== null) return own;
+  const shared = localStorage.getItem(SHARED_PREFIX + scoped(userId));
+  try {
+    const v = shared ? JSON.parse(shared) : null;
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  } catch {
+    return null;
+  }
+  localStorage.setItem(key, shared!);
+  return shared;
+}
+
 export function loadShelf(userId: string): Shelf {
   try {
-    const v = JSON.parse(localStorage.getItem(SHELF_PREFIX + scoped(userId)) ?? "null") ?? {};
+    const v = JSON.parse(shelfText(userId) ?? "null") ?? {};
     return {
       folders: arr<Shelf["folders"][number]>(v.folders, (x) => typeof x?.id === "string" && typeof x?.name === "string"),
       saved: arr<Shelf["saved"][number]>(v.saved, (x) => typeof x?.id === "string"),
