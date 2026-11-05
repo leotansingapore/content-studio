@@ -125,7 +125,16 @@ describe("complaints", () => {
     expect(painFact("Productivity", out[0].text).length).toBeLessThanOrEqual(FACT_CHARS);
   });
   it("leaves out a quote that carries a link or a handle", () => {
-    const raw = feed(review("r1", 1, "Just use www.other.example instead", "x"), review("r2", 1, "Go to rival.app it is better", "x"), review("r3", 1, "DM @someone for a refund", "x"), review("r4", 1, "Paywall after one day", "x"));
+    const raw = feed(
+      review("r1", 1, "Just use www.other.example instead", "x"),
+      review("r2", 1, "Go to rival.app it is better", "x"),
+      review("r3", 1, "DM @someone for a refund", "x"),
+      review("r4", 1, "Paywall after one day. Sad", "x"),
+      review("r5", 1, "Better one at claim-cpf.sg honestly", "x"),
+      review("r6", 1, "Better one at rival\uFF0Eapp honestly", "x"),
+      review("r7", 1, "Search rival dot com for a free one", "x"),
+      review("r8", 1, "Get it at rival [.] io today", "x"),
+    );
     expect(toComplaints(raw, "Rival", "").map((c) => c.id)).toEqual(["r4"]);
   });
   it("reads a feed with a single review, which Apple sends as an object", () => {

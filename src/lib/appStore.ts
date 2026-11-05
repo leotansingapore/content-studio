@@ -49,7 +49,11 @@ export const MAX_COMPLAINTS = 12;
 /** Complaints the person may keep as facts. */
 export const MAX_PAINS = 5;
 
-const LINKISH = /https?:|www\.|\b[a-z0-9-]+\.(com|net|org|io|app|co|ly|me|gg)\b|@\w/i;
+// The site test campaigns run on what they post (supabase/functions/_shared/slideCampaign.ts domainsIn), plus links
+// and handles: a site with any ending, look-alike dots ("rival\uFF0Eapp") or spelled out ("rival dot app"). Campaigns
+// trust memory facts as the owner's own words, so a quote that names a site must never become one.
+const LINKISH = /https?:|www\.|@\w|\b[a-z0-9-]+\.[a-z]{2,}\b|\b[a-z0-9-]+\s*(?:\[\.\]|\(\.\)|\[dot\]|\(dot\)|\s+dot\s+)\s*[a-z]{2,}\b/i;
+const linkish = (t: string) => LINKISH.test(t.replace(/[\u3002\uFF0E\uFF61\u2024\uFE52]/g, "."));
 const str = (v: unknown) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "");
 const https = (v: unknown) => (/^https:\/\/[^\s"'<>]+$/.test(str(v)) ? str(v) : null);
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -170,8 +174,8 @@ export function toComplaints(raw: unknown, app: string, genre: string): Complain
     const id = str(x?.id?.label);
     if (!id || !(stars >= 1 && stars <= 2)) continue;
     const text = quoteOf(str(x.title?.label), str(x.content?.label), room);
-    // the fact reaches writers that post unattended (campaigns), so a quote carrying a link is left out
-    if (text.length < 12 || LINKISH.test(text)) continue;
+    // the fact reaches writers that post unattended (campaigns), so a quote naming a site or handle is left out
+    if (text.length < 12 || linkish(text)) continue;
     out.push({ id, app, stars, text });
     if (out.length === PER_RIVAL) break;
   }
