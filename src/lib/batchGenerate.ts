@@ -208,6 +208,11 @@ async function streamVariants(
   );
 }
 
+/** The variant a writer stream's error belongs to, or null when it ends the whole run. The server keeps writing the
+ *  other variants after one fails (generate-social-content), so only an error with no index stops a reader. */
+export const erroredVariant = (evt: Record<string, unknown>): number | null =>
+  typeof evt.variantIndex === "number" ? evt.variantIndex : null;
+
 type VariantHandlers = Parameters<typeof streamVariants>[1];
 
 /** Three answers to one question (/generate/answer). */

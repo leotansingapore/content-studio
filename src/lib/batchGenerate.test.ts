@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt", user: { id: UID, email: "someone@example.com" } } } }) } },
 }));
 
-import { ANSWER_COUNT, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, type GeneratePostPayload } from "./batchGenerate";
+import { ANSWER_COUNT, erroredVariant, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, type GeneratePostPayload } from "./batchGenerate";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -211,5 +211,14 @@ describe("streamAnswers (/generate/answer)", () => {
     const { done, errors } = await run();
     expect(done).toEqual([]);
     expect(errors).toEqual([[null, "Generation failed (429) Too many"]]);
+  });
+});
+
+describe("erroredVariant", () => {
+  it("names the variant a failure belongs to, so Write keeps the others; an error with no index ends the run", () => {
+    expect(erroredVariant({ variantIndex: 1 })).toBe(1);
+    expect(erroredVariant({ variantIndex: 0 })).toBe(0);
+    expect(erroredVariant({})).toBeNull();
+    expect(erroredVariant({ variantIndex: "1" })).toBeNull();
   });
 });

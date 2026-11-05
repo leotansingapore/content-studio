@@ -189,7 +189,7 @@ import { professionFor } from "@/lib/profession";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
-import { streamOnePost } from "@/lib/batchGenerate";
+import { erroredVariant, streamOnePost } from "@/lib/batchGenerate";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
   buildCompetitorStyleReference,
@@ -1969,6 +1969,7 @@ export default function GeneratePage() {
           ),
         );
       } else if (evt.type === "variant_complete") {
+        anyFinished = true;
         const idx = firstRow + (evt.variantIndex as number);
         // Dashes, and emoji or hashtags over the brand kit's policy or the platform's cap, go before the text is shown or saved.
         const finalText = applyBrandRules(stripDashes(evt.text as string), brandKit, platform);
@@ -1981,12 +1982,18 @@ export default function GeneratePage() {
           ),
         );
       } else if (evt.type === "error") {
-        return (evt.message as string) ?? "Stream error";
+        // one variant failing leaves the others writing; only a run-wide error stops the read
+        const i = erroredVariant(evt);
+        if (i === null) return (evt.message as string) ?? "Stream error";
+        variantFailure = (evt.message as string) ?? "Variant failed";
+        rowsSetter(target)((prev) => prev.map((v) => (v.index === firstRow + i && !v.complete ? { ...v, halted: "failed" as const } : v)));
       }
       return null;
     };
 
     let failure: string | null = null;
+    let variantFailure: string | null = null;
+    let anyFinished = false;
     try {
       while (true) {
         const { value, done } = await reader.read();
@@ -2024,6 +2031,8 @@ export default function GeneratePage() {
     // place a network failure does: rows get their halt label and the caller
     // toasts.
     if (failure) throw new Error(failure);
+    // every variant failed: raise it like a failed run, so the caller says so
+    if (variantFailure && !anyFinished) throw new Error(variantFailure);
   };
 
   const validateForm = (): boolean => {
