@@ -82,7 +82,7 @@ export default function GridPage() {
               {brand.handle ? (
                 <p className="truncate text-sm font-semibold">{brand.handle.replace(/^@/, "")}</p>
               ) : (
-                <Link to="/brand" className="text-sm font-semibold text-primary hover:underline">
+                <Link to="/brand" className="text-sm font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                   Add your handle
                 </Link>
               )}
