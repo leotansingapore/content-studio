@@ -626,10 +626,12 @@ export default function HomePage() {
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row">
+              {/* the one filled create button on a phone; beside the sidebar's New post (lg) it matches its two neighbours,
+                  so a screen never shows two filled buttons for the same thing (as Buffer and Hootsuite do) */}
               <Button
                 asChild
                 size="lg"
-                className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+                className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 lg:border lg:border-input lg:bg-background lg:bg-none lg:text-foreground lg:shadow-none lg:hover:bg-accent lg:hover:text-accent-foreground lg:hover:opacity-100"
               >
                 <Link to="/generate">
                   <Pencil className="h-4 w-4" /> Write a post
