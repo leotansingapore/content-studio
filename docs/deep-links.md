@@ -161,6 +161,18 @@ so one that is gone shows everything.
 | /working | sort | working, views, saves | working | replace | /working?sort=saves |
 | /working | pages | 2 to 40, the pages Show more has opened (a new search, niche or sort starts at 1) | 1 | replace | /working?pages=3 |
 | /working/:id | (path) | a slideshow's TikTok post id; has Copy link | | push | /working/7412345678901234567 |
+| /carousels | view | all, trending, saved, tracked (All outliers, Trending this week, Saved, Tracked creators); a new view drops folder and sort | all | replace | /carousels?view=trending |
+| /carousels | q | search text | empty | replace | /carousels?q=budget |
+| /carousels | topic | one topic, as its label (TOPICS in src/lib/carouselLibrary.ts) | all | replace | /carousels?topic=Personal%20finance |
+| /carousels | hide | topics to leave out, a comma list of labels | none | replace | /carousels?hide=Entertainment%20%26%20pop%20culture |
+| /carousels | format | Tutorial, List, Story, Opinion, Case study, Save for later, News, Showcase, Quiz | all | replace | /carousels?format=List |
+| /carousels | smin, smax, emin, emax, lmin, lmax | numbers: the outlier score (times the creator's usual), engagements and slide count ranges from Filters | none | replace | /carousels?smin=3&lmax=8 |
+| /carousels | days | 7, 30, 90, 180, 365, 730 (posted within); the trending view is always the last week | all time | replace | /carousels?days=30 |
+| /carousels | sort | published, oldest, score, engagement, imported, brand | score on the trending view, else published | replace | /carousels?sort=engagement |
+| /carousels | creator | an Instagram handle: that creator's carousels | all | replace | /carousels?creator=thewokesalaryman |
+| /carousels | folder | a saved folder's id, with view=saved | all saved | replace | /carousels?view=saved&folder=f-lq3k9z |
+| /carousels | size | large: the bigger cards | compact | replace | /carousels?size=large |
+| /carousels/:id | (path) | a carousel's id in the library; has Copy link | | push | /carousels/3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /profiles | q | search text (name, handle, company, niche) | empty | replace | /profiles?q=retirement |
 | /profiles | company | aia, prudential, great-eastern, manulife, independent-fee-only, other, none (comma list) | all | replace | /profiles?company=aia,none |
 | /profiles | platform | linkedin, instagram, facebook, tiktok, youtube (comma list) | all | replace | /profiles?platform=tiktok |
@@ -203,6 +215,8 @@ so one that is gone shows everything.
 | /analytics | time | linkedin, instagram, facebook, tiktok (best time to post for) | all platforms | replace | /analytics?time=linkedin |
 | /analytics | audit | `<platform>:<post id>` of one of your own posts in the account audit: shown as "The linked post" at the top of that account's audit, scrolled to and marked; Copy link on each best post and each post that fell short | none | set by links | /analytics?audit=instagram%3A3456789012345678901 |
 | /analytics | rank | engagements, engagement-rate, impressions, reactions, comments, shares, reach, comment-ratio (top posts by) | engagements | replace | /analytics?period=7d&rank=engagement-rate |
+| /analytics | views | total: Your views as a running total | day (views by day) | replace | /analytics?views=total |
+| /analytics | sort | post, posted, views, likes, comments, shares, saves, rate, each high to low, or with -asc low to high (your pulled posts' table) | posted | replace | /analytics?sort=views-asc |
 | /links | period | 7d, 30d (clicks shown for) | 30d | replace | /links?period=7d |
 | /recruit/engage | tool | replies, dms, comments, connect, snippets | replies | replace | /recruit/engage?tool=dms |
 | /recruit/auto-dm | log | an auto-DM id; opens Who got it, with Copy link | none | push | /recruit/auto-dm?log=a1b2c3 |
@@ -296,6 +310,9 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /generate/batch | pillar | topic, market, identity, interest | the tab's unfinished batch, else topic | replace | /generate/batch?pillar=market |
 | /generate/batch | audience | general, young-adult, working-adult, parent, pre-retiree | the tab's unfinished batch, else general | replace | /generate/batch?audience=parent |
 | /generate/vsl | offer, promise, pain, proof, method, objections, next | the intake answers as typed (VSL_QUESTIONS in generate-social-content/logic.ts); offer is needed to write | empty | replace | /generate/vsl?offer=Coaching%20for%20new%20managers&next=Book%20a%20call |
+| /generate/answer | q | the question, as typed | empty | replace | /generate/answer?q=Is%20an%20ILP%20worth%20it |
+| /generate/answer | where, rule | where it was asked, and the place's rule, as typed | empty | replace | /generate/answer?q=Is%20an%20ILP%20worth%20it&where=r%2Fsingaporefi&rule=no%20links |
+| /generate/answer | shape | reply, guide | reply | replace | /generate/answer?shape=guide |
 | /carousel | tab | drafts, paste, topic, saved (where the post comes from) | the tab's unfinished carousel, else drafts; drafts when there are no saved carousels | replace | /carousel?tab=topic |
 | /carousel | draft | a post id: fresh slides from that post | none | replace | /carousel?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /carousel | carousel | a saved carousel id (d:<post id> or p:<time>): reopens it with its edits; beats draft; the address takes it once an edit is kept | none | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
@@ -331,6 +348,10 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /generate | compare | original, more: on a remixed post (Leo's sign-ins only), phones open the compare strip's Original or More like this tab and large screens scroll to that part; a draft with no source ignores it | your version | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=original |
 | /carousel | compare | original, more: the same strip above the slides of a remixed post, with draft or carousel=d:<post id> | your version | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=more |
 | /slideshow | view | original: a remixed slideshow's Original tab (the source's snapshot) in place of the slide, with s; a slideshow with no source shows its slides | the slides | replace | /slideshow?s=ssmh2k9x01ab&view=original |
+| /design | format | instagram: the Instagram size's templates | tiktok | replace | /design?format=instagram |
+| /design/:id | slide | the open slide, 1-based; out of range reads as the nearest; has Copy link | 1 | replace | /design/dsmh2k9x01ab?slide=3 |
+| /design/campaigns | show | live: only the campaigns that are on | all | replace | /design/campaigns?show=live |
+| /design/campaigns/:id | tab | hook, content, cta (which slides the campaign's editor shows) | hook | replace | /design/campaigns/cmh2k9x01ab?tab=content |
 | /make/slideshow | source | a remix source key (the same keys as /generate?source= below): the slideshow to remix. Leo's sign-ins only (src/lib/leoOnly.ts); anyone else, and any /make/<slug> not in src/data/formats.ts, gets the not-found page. A key that no longer resolves says so and starts from a topic | none | replace | /make/slideshow?source=top%3Agrace-koh-instagram-C931K |
 | /make/slideshow | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/slideshow?from=remix |
 | /make/slideshow | mention | inside: the brand once on slide 3 or 4, then a save or follow ask; no: the slides leave the brand out | yes (its own last slide) | replace | /make/slideshow?from=topic&mention=inside |
