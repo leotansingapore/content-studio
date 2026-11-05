@@ -445,8 +445,10 @@ export default function BoardPage() {
                               if (!userId) return;
                               // Rename in place — upsertDraft would bump the
                               // card to the top of its column.
-                              setDrafts((prev) => {
-                                const next = prev.map((x) =>
+                              setDrafts(() => {
+                                // from the stored list, not the board's copy: a merge from another device may
+                                // have added posts since this page read it
+                                const next = loadDrafts(userId).map((x) =>
                                   x.id === d.id ? { ...x, hook } : x,
                                 );
                                 saveDrafts(userId, next);

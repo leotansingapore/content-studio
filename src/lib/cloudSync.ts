@@ -18,6 +18,7 @@
 // keep reading/writing localStorage as before.
 
 import { supabase } from "@/lib/supabase";
+import type { SyncBase, SyncMerger } from "@/lib/syncMerge";
 
 const SYNC_PREFIX = "content-studio-";
 const META_KEY = "cs-sync-meta"; // deliberately outside SYNC_PREFIX
@@ -28,6 +29,18 @@ const SIGN_OUT_WAIT_MS = 3_000;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
 type Meta = Record<string, string>; // key -> ISO timestamp of last local write
+
+// Keys merged item by item instead of last write wins (posts lists: syncMerge.ts), registered by their owners
+// (draftHistory). Each keeps, on this device only, what it last knew the cloud held (`cs-sync-base-<key>`).
+const MERGERS: { prefix: string; merger: SyncMerger }[] = [];
+const BASE_PREFIX = "cs-sync-base-"; // outside SYNC_PREFIX: this device's own knowledge, never uploaded
+const REFRESH_EVERY_MS = 10_000;
+
+/** Merge every key starting with `prefix` item by item from now on. */
+export function registerSyncMerge(prefix: string, merger: SyncMerger) {
+  if (!MERGERS.some((m) => m.prefix === prefix)) MERGERS.push({ prefix, merger });
+}
+const mergerFor = (key: string) => MERGERS.find((m) => key.startsWith(m.prefix))?.merger;
 
 export type SyncDecision = "apply-cloud" | "push-local" | "noop";
 
@@ -76,6 +89,10 @@ export interface SyncBackend {
   pull(keys?: string[]): PromiseLike<{ data: SyncRow[] | null; error: unknown }>;
   upsert(rows: SyncRow[]): PromiseLike<Outcome>;
   remove(keys: string[]): PromiseLike<Outcome>;
+  /** Every row whose key starts with one of these (the merged lists, read again when a tab comes back). */
+  pullLike?(prefixes: string[]): PromiseLike<{ data: SyncRow[] | null; error: unknown }>;
+  /** Write the row only if the cloud's still has the stamp `seen` (null: no row yet). Merged keys save this way. */
+  swap?(row: SyncRow, seen: string | null): PromiseLike<"ok" | "conflict" | Outcome>;
 }
 
 // Unpatched storage calls: the engine's own reads and writes must not re-queue.
@@ -98,6 +115,8 @@ export interface CloudSync {
   flush(): Promise<void>;
   /** Pull these keys again after the first pull, for rows a server job rewrites while the app is open. */
   refresh(keys: string[]): Promise<void>;
+  /** Pull and merge the merged keys again (a tab came back), at most every 10 s. */
+  refreshMerged(): Promise<void>;
   /** The stamp of the key's row this device last wrote or took, or null: a cloud row with that stamp is nothing new. */
   syncedAt(key: string): string | null;
   /** Send what's pending once, then stop. Anything unsent stays saved on the device. */
@@ -153,6 +172,23 @@ export function createCloudSync(
   const backoff = (failures: number) =>
     RETRY_DELAYS_MS[Math.min(failures - 1, RETRY_DELAYS_MS.length - 1)];
 
+  const loadBase = (key: string) => readJson<SyncBase | null>(storage, BASE_PREFIX + key, null);
+  const saveBase = (key: string, base: SyncBase | null) => {
+    if (base) writeJson(storage, BASE_PREFIX + key, base);
+  };
+  // this device wrote the key after the cloud's row was stamped: its copy wins an item both sides changed
+  const localNewer = (key: string, cloudTs: string) =>
+    !!meta[key] && new Date(meta[key]).getTime() > new Date(cloudTs).getTime();
+  /** Merges the cloud's copy into this device's, writing the result here; null when the merger can't. */
+  const mergeIn = (key: string, merger: SyncMerger, local: string, row: SyncRow): string | null => {
+    const merged = merger.merge(local, row.data, loadBase(key), localNewer(key, row.updated_at));
+    if (merged !== null && merged !== local) {
+      storage.setItem(key, merged);
+      merger.changed?.(key);
+    }
+    return merged;
+  };
+
   const savePending = () => {
     const keys = [...new Set([...pending, ...sending])];
     if (keys.length) {
@@ -171,11 +207,52 @@ export function createCloudSync(
     if (!stopped) pushTimer = setTimeout(() => void flush(), ms);
   };
 
+  // A merged key reads the cloud's copy, merges into it and writes only if the cloud still holds what it merged
+  // (swap): a blind write would drop what another device saved in between. A lost race reads and merges again.
+  const sendMerged = async (key: string, merger: SyncMerger): Promise<boolean> => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let row: SyncRow | undefined;
+      try {
+        const { data, error } = await backend.pull([key]);
+        if (error || !data) return false;
+        row = data.find((r) => r.key === key);
+      } catch {
+        return false;
+      }
+      // read after the wait, so an edit made meanwhile is in what goes up
+      const local = storage.getItem(key);
+      if (local === null) return succeeded(() => backend.remove([key]));
+      const value = row && row.data !== local ? (mergeIn(key, merger, local, row) ?? local) : local;
+      if (row && value === row.data) {
+        meta[key] = row.updated_at;
+        saveBase(key, merger.base(value));
+        return true;
+      }
+      const stamp = new Date().toISOString();
+      let outcome: Awaited<ReturnType<NonNullable<SyncBackend["swap"]>>>;
+      try {
+        outcome = await backend.swap!({ key, data: value, updated_at: stamp }, row?.updated_at ?? null);
+      } catch {
+        return false;
+      }
+      if (outcome === "ok") {
+        meta[key] = stamp;
+        saveBase(key, merger.base(value));
+        return true;
+      }
+      if (outcome !== "conflict") return false;
+    }
+    return false;
+  };
+
   const send = async (keys: string[]) => {
+    const failed: string[] = [];
+    const merged = backend.swap ? keys.filter((key) => mergerFor(key) && storage.getItem(key) !== null) : [];
+    for (const key of merged) if (!(await sendMerged(key, mergerFor(key)!))) failed.push(key);
     const now = new Date().toISOString();
     const upserts: SyncRow[] = [];
     const deletes: string[] = [];
-    for (const key of keys) {
+    for (const key of keys.filter((k) => !merged.includes(k))) {
       const data = storage.getItem(key);
       // Stamp rows with when they were written here, not when they were sent,
       // so a delayed retry doesn't beat edits made on another device since.
@@ -183,7 +260,6 @@ export function createCloudSync(
       else upserts.push({ key, data, updated_at: meta[key] ?? now });
     }
 
-    const failed: string[] = [];
     if (upserts.length && !(await succeeded(() => backend.upsert(upserts)))) {
       failed.push(...upserts.map((row) => row.key));
     }
@@ -222,6 +298,20 @@ export function createCloudSync(
 
   const applyRow = (row: SyncRow) => {
     if (!isSyncedKeyFor(row.key, userId)) return;
+    const merger = mergerFor(row.key);
+    const local = storage.getItem(row.key);
+    if (merger && local !== null) {
+      // both copies kept, item by item; what differs from the cloud goes back up
+      const merged = local === row.data ? local : mergeIn(row.key, merger, local, row);
+      if (merged !== null) {
+        saveBase(row.key, merger.base(row.data));
+        if (merged === row.data) {
+          meta[row.key] = row.updated_at;
+          pending.delete(row.key);
+        } else pending.add(row.key);
+        return;
+      }
+    }
     const decision = decideSync(
       storage.getItem(row.key),
       meta[row.key] ?? null,
@@ -232,6 +322,10 @@ export function createCloudSync(
       storage.setItem(row.key, row.data);
       meta[row.key] = row.updated_at;
       pending.delete(row.key);
+      if (merger) {
+        saveBase(row.key, merger.base(row.data));
+        merger.changed?.(row.key);
+      }
     } else if (decision === "push-local") {
       pending.add(row.key);
     }
@@ -289,13 +383,12 @@ export function createCloudSync(
     else if (pulled) schedulePush(PUSH_DEBOUNCE_MS);
   };
 
-  // Same rules as the first pull, for the named keys only; other keys are left alone.
-  const refresh = async (keys: string[]) => {
-    if (stopped || !pulled || !keys.length) return;
+  // Same rules as the first pull, for the rows asked for only; other keys are left alone.
+  const refreshRows = async (read: () => PromiseLike<{ data: SyncRow[] | null; error: unknown }>, wanted: (key: string) => boolean) => {
     try {
-      const { data, error } = await backend.pull(keys);
+      const { data, error } = await read();
       if (error || !data || stopped) return;
-      data.filter((row) => keys.includes(row.key)).forEach(applyRow);
+      data.filter((row) => wanted(row.key)).forEach(applyRow);
     } catch {
       return; // offline: the next refresh or reload catches up
     }
@@ -303,11 +396,30 @@ export function createCloudSync(
     savePending();
     if (pending.size) schedulePush(PUSH_DEBOUNCE_MS);
   };
+  const refresh = async (keys: string[]) => {
+    if (stopped || !pulled || !keys.length) return;
+    await refreshRows(() => backend.pull(keys), (key) => keys.includes(key));
+  };
+
+  let lastMergedRefresh = 0;
+  const refreshMerged = () => {
+    if (!pulled || stopped || Date.now() - lastMergedRefresh < REFRESH_EVERY_MS) return Promise.resolve();
+    lastMergedRefresh = Date.now();
+    // by prefix, so a list another device made since (a new brand's posts) arrives too
+    if (backend.pullLike) return refreshRows(() => backend.pullLike!(MERGERS.map((m) => m.prefix)), (key) => !!mergerFor(key));
+    const keys: string[] = [];
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      if (key && mergerFor(key) && isSyncedKeyFor(key, userId)) keys.push(key);
+    }
+    return refresh(keys);
+  };
 
   return {
     userId,
     start: pullUntilDone,
     refresh,
+    refreshMerged,
     syncedAt: (key) => meta[key] ?? null,
     noteWrite,
     retryNow: () => {
@@ -344,6 +456,26 @@ function supabaseBackend(userId: string): SyncBackend {
         { onConflict: "user_id,key" },
       ),
     remove: (keys) => table().delete().eq("user_id", userId).in("key", keys),
+    pullLike: (prefixes) =>
+      table()
+        .select("key,data,updated_at")
+        .eq("user_id", userId)
+        .or(prefixes.map((p) => `key.like.${p}*`).join(",")),
+    swap: async (row, seen) => {
+      if (seen === null) {
+        const { error } = await table().insert({ user_id: userId, ...row });
+        // another device made the row first: read it and merge
+        return !error ? "ok" : (error as { code?: string }).code === "23505" ? "conflict" : { error };
+      }
+      const { data, error } = await table()
+        .update({ data: row.data, updated_at: row.updated_at })
+        .eq("user_id", userId)
+        .eq("key", row.key)
+        .eq("updated_at", seen)
+        .select("key");
+      if (error) return { error };
+      return data && data.length ? "ok" : "conflict";
+    },
   };
 }
 
@@ -366,8 +498,10 @@ function installStoragePatch(): SyncStorage {
   };
   window.addEventListener("online", () => active?.retryNow());
   // Best-effort send when the tab hides or closes; unsent keys are saved either way.
+  // ...and a tab coming back merges in what other devices saved meanwhile (posts lists)
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") void active?.flush();
+    else void active?.refreshMerged();
   });
   return {
     get length() {

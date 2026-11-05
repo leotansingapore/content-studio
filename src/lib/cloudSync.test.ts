@@ -1,8 +1,10 @@
+import { listMerger } from "./syncMerge";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createCloudSync,
   decideSync,
   isSyncedKeyFor,
+  registerSyncMerge,
   type CloudSync,
   type SyncBackend,
   type SyncRow,
@@ -71,8 +73,8 @@ class MemoryStorage implements SyncStorage {
 // A fake cs_user_data table; set fail.* to make the next N calls fail.
 function fakeBackend(rows: SyncRow[] = []) {
   const table = new Map(rows.map((row) => [row.key, row]));
-  const fail = { pull: 0, upsert: 0, remove: 0 };
-  const calls = { pull: 0, pullKeys: [] as (string[] | undefined)[], upsert: [] as SyncRow[][], remove: [] as string[][] };
+  const fail = { pull: 0, upsert: 0, remove: 0, swap: 0 };
+  const calls = { pull: 0, pullKeys: [] as (string[] | undefined)[], upsert: [] as SyncRow[][], remove: [] as string[][], swap: 0 };
   const offline = { message: "offline" };
   const backend: SyncBackend = {
     async pull(keys) {
@@ -92,6 +94,20 @@ function fakeBackend(rows: SyncRow[] = []) {
       }
       batch.forEach((row) => table.set(row.key, row));
       return { error: null };
+    },
+    async pullLike(prefixes) {
+      calls.pull += 1;
+      return { data: [...table.values()].filter((row) => prefixes.some((p) => row.key.startsWith(p))), error: null };
+    },
+    async swap(row, seen) {
+      calls.swap += 1;
+      if (fail.swap > 0) {
+        fail.swap -= 1;
+        return "conflict";
+      }
+      if ((table.get(row.key)?.updated_at ?? null) !== seen) return "conflict";
+      table.set(row.key, row);
+      return "ok";
     },
     async remove(keys) {
       calls.remove.push(keys);
@@ -379,3 +395,90 @@ describe("createCloudSync", () => {
     expect(calls.pull).toBe(1);
   });
 });
+
+describe("posts lists merged post by post", () => {
+  const LIST = `content-studio-mtest-${ME}`;
+  const ids = (v: string | null | undefined) => (v ? (JSON.parse(v) as { id: string }[]).map((x) => x.id) : []);
+  const list = (...posts: string[]) => JSON.stringify(posts.map((id) => ({ id, text: id })));
+  const changed: string[] = [];
+  registerSyncMerge("content-studio-mtest-", listMerger({ changed: (key) => void changed.push(key) }));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-06T10:00:00.000Z"));
+    changed.length = 0;
+  });
+  afterEach(() => vi.useRealTimers());
+
+  async function twoDevices() {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await a.start();
+    await b.start();
+    return { cloud, laptop, phone, a, b };
+  }
+
+  it("keeps the post each open device added, on both devices, instead of the last save wiping the other's", async () => {
+    const { cloud, laptop, phone, a, b } = await twoDevices();
+    write(laptop, a, LIST, list("laptop-post"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    write(phone, b, LIST, list("phone-post"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["laptop-post", "phone-post"]);
+    // the laptop's tab comes back and reads what the phone saved, with no reload
+    await vi.advanceTimersByTimeAsync(10_000);
+    await a.refreshMerged();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(laptop.getItem(LIST)).sort()).toEqual(["laptop-post", "phone-post"]);
+    expect(changed).toContain(LIST);
+    expect(ids(phone.getItem(LIST)).sort()).toEqual(["laptop-post", "phone-post"]);
+  });
+
+  it("drops a post deleted on one device from the other, instead of the stale copy bringing it back", async () => {
+    const { cloud, laptop, phone, a, b } = await twoDevices();
+    write(laptop, a, LIST, list("keep", "gone"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await b.refreshMerged();
+    expect(ids(phone.getItem(LIST))).toEqual(["keep", "gone"]);
+    // the phone deletes one; the laptop, still holding it, saves something else
+    write(phone, b, LIST, list("keep"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    write(laptop, a, LIST, list("new", "keep", "gone"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["keep", "new"]);
+    expect(ids(laptop.getItem(LIST)).sort()).toEqual(["keep", "new"]);
+  });
+
+  it("reads and merges again when another device saved between its read and its write", async () => {
+    const { cloud, laptop, a } = await twoDevices();
+    write(laptop, a, LIST, list("first"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    // another device's save lands just before this one's write
+    const pull = cloud.backend.pull.bind(cloud.backend);
+    let raced = false;
+    cloud.backend.pull = async (keys) => {
+      const res = await pull(keys);
+      if (!raced && keys?.includes(LIST)) {
+        raced = true;
+        cloud.table.set(LIST, { key: LIST, data: list("other", "first"), updated_at: "2026-11-06T10:00:01.500Z" });
+      }
+      return res;
+    };
+    write(laptop, a, LIST, list("second", "first"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["first", "other", "second"]);
+    expect(cloud.calls.swap).toBeGreaterThanOrEqual(3);
+  });
+
+  it("leaves a value that isn't a list of posts to the old whole-value rules", async () => {
+    const { cloud, laptop, a } = await twoDevices();
+    write(laptop, a, LIST, "not a list");
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(cloud.table.get(LIST)?.data).toBe("not a list");
+  });
+});
+

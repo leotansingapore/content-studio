@@ -18,6 +18,8 @@ import { links, type PostLang } from "@/lib/links";
 import { logActivity } from "@/lib/activity";
 import { loadOutbox, queueCancel, saveOutbox, zernioHolds, zernioOps } from "@/lib/zernioOutbox";
 import { browserTimeZone, TIMEZONE } from "@/lib/autoPost";
+import { registerSyncMerge } from "@/lib/cloudSync";
+import { listMerger } from "@/lib/syncMerge";
 export const MAX_DRAFTS = 150;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -454,6 +456,10 @@ export function onDraftsChanged(cb: () => void): () => void {
   window.addEventListener(CHANGED, cb);
   return () => window.removeEventListener(CHANGED, cb);
 }
+
+// Two devices open at once merge their posts lists post by post instead of the last save wiping the other's (Leo, 6
+// Nov; syncMerge.ts): capped by the same rule as every save, and open pages read the list again after a merge.
+registerSyncMerge(KEY_PREFIX, listMerger<DraftEntry>({ after: trimDrafts, changed: () => draftsChanged() }));
 
 export function upsertDraft(
   userId: string,

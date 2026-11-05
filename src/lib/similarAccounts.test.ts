@@ -7,6 +7,8 @@ vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/e
 // the cloud's newer copy, as another tab or device saved it: a refresh writes it here (null: nothing newer)
 let cloud: string | null = null;
 vi.mock("@/lib/cloudSync", () => ({
+  // draftHistory registers its posts-list merge on load
+  registerSyncMerge: () => {},
   refreshCloudKeys: async (keys: string[]) => {
     if (cloud !== null) for (const k of keys) if (k.startsWith("content-studio-similar-")) localStorage.setItem(k, cloud);
   },
