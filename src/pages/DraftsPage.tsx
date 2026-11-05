@@ -359,6 +359,8 @@ export default function DraftsPage() {
   // The schedule steps (publish-schedule) live in the URL for Leo: ?schedule=<post id> (push), with the steps' own
   // ?step= and ?network= (replace). A post that is out, or already with Zernio, never opens them.
   const scheduleParam = leo ? params.get("schedule") : null;
+  // a review link to a post that is gone drops ?review= and says so, as ?schedule= and ?set= do (docs/deep-links.md)
+  useGoneItem("review", previewOpenId && drafts.length ? drafts.some((d) => d.id === previewOpenId) : undefined);
   useGoneItem("schedule", scheduleParam && drafts.length ? drafts.some((d) => d.id === scheduleParam) : undefined);
   const scheduleFor = (scheduleParam && drafts.find((d) => d.id === scheduleParam && draftStatus(d) !== "posted" && !d.zernio?.postId)?.id) || null;
   const panelId = scheduleFor ?? postOpenId;
