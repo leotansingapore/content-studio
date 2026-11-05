@@ -518,7 +518,8 @@ export default function StudioLayout() {
     forgetSocialConnect();
     forgetMarketShown();
     forgetMe();
-    await supabase.auth.signOut();
+    // this device only (Leo, 6 Nov): the default global scope also signed out every other device on the account
+    await supabase.auth.signOut({ scope: "local" });
     window.location.replace("/auth");
   };
 

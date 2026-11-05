@@ -148,7 +148,7 @@ export default function JoinPage() {
                   <p className="text-sm text-muted-foreground">You're signed in as <span className="font-semibold text-foreground">{asEmail}</span>.</p>
                   <div className="flex flex-col gap-2">
                     <Button size="lg" onClick={claim}>Join as {asEmail}</Button>
-                    <Button variant="outline" onClick={() => supabase.auth.signOut().then(() => { setAsEmail(""); setSignedIn(false); })}>Use another account</Button>
+                    <Button variant="outline" onClick={() => supabase.auth.signOut({ scope: "local" }).then(() => { setAsEmail(""); setSignedIn(false); })}>Use another account</Button>
                   </div>
                 </>
               )}
@@ -157,7 +157,7 @@ export default function JoinPage() {
                   <p className="text-sm" role="alert">{error}</p>
                   <div className="flex justify-center gap-2">
                     <Button size="sm" onClick={claim}>Try again</Button>
-                    <Button size="sm" variant="outline" onClick={() => supabase.auth.signOut().then(() => { setError(""); setSignedIn(false); })}>Use another account</Button>
+                    <Button size="sm" variant="outline" onClick={() => supabase.auth.signOut({ scope: "local" }).then(() => { setError(""); setSignedIn(false); })}>Use another account</Button>
                   </div>
                 </>
               )}
