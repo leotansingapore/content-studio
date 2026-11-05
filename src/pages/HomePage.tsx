@@ -382,7 +382,8 @@ export default function HomePage() {
     // the brand kit puts your photo, name and sign-off on every carousel, video and copied post
     { done: !!kit && !!(kit.photo || kit.signOff?.trim()), label: "Set up your brand kit", to: "/brand" },
     { done: hasPosts, label: "Write your first post", to: "/generate" },
-    { done: upcoming.length > 0 || (stats?.scheduled ?? 0) > 0, label: "Schedule a post", to: "/calendar" },
+    // a post that went out was scheduled or posted first, so the step stays done once it leaves the calendar
+    { done: upcoming.length > 0 || (stats?.scheduled ?? 0) > 0 || (stats?.posted ?? 0) > 0, label: "Schedule a post", to: "/calendar" },
     { done: coachRuns > 0, label: "Check your content in Coach", to: "/coach" },
   ];
   const checklistDone = checklist.filter((c) => c.done).length;
