@@ -39,6 +39,8 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | An idea in the Ideas inbox (Leo only) | /ideas?idea=<idea key> | the open idea |
 | A saved design (Leo only) | /image?image=<design id> | the open design |
 | A format trend (Leo only) | /trends?view=formats&template=<id> | every format card |
+| A carousel in the carousel library | /carousels/<id> | the carousel's page; every card is a link to it |
+| A What's working slideshow | /working/<TikTok post id> | the slideshow's page; every card is a link to it |
 
 A card or row that opens a post is a link to it, so a new tab, cmd-click and a long-press Copy link work: the calendar's
 rows and reel chips, Ideas, a campaign's grid, the editor's Recent videos, its versions and clips, Same edit's "Edits you
