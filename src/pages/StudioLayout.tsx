@@ -23,7 +23,7 @@ import { pushRecent } from "@/lib/jumpTo";
 import { badgeText, boardWaitingHere, countNeedsYou, onBoardWaiting } from "@/lib/needsYou";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { useZernioOutbox } from "@/lib/useZernioOutbox";
-import { readTeamPosts, readTeamReviews, teamPostsHere } from "@/lib/teamPosts";
+import { readTeamPostsHere, readTeamReviews } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
 import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
@@ -442,7 +442,7 @@ export default function StudioLayout() {
   useEffect(() => {
     if (!uid) return;
     const recount = () =>
-      setNeedsYou(countNeedsYou(loadDrafts(uid), teamPostsHere(uid, readTeamPosts(uid)), readTeamReviews(uid), localDateKey(), autopilot?.waiting(uid)));
+      setNeedsYou(countNeedsYou(loadDrafts(uid), readTeamPostsHere(uid), readTeamReviews(uid), localDateKey(), autopilot?.waiting(uid)));
     recount();
     const timer = window.setInterval(recount, 30_000);
     const onVisible = () => document.visibilityState === "visible" && recount();

@@ -69,6 +69,9 @@ export const teamHome = (uid: string, post?: Pick<TeamPost, "channel">) => {
 };
 /** The team posts on the open brand (docs/brand-isolation.md). */
 export const teamPostsHere = (uid: string, posts: TeamPost[]) => posts.filter((p) => teamHome(uid, p) === activeProfileId(uid));
+/** The open brand's team posts on this device: what every count and line of them reads (Home, the posts board, the nav
+ *  badge). Only the Calendar reads them all, to switch to the brand a team post link names. */
+export const readTeamPostsHere = (uid: string) => teamPostsHere(uid, readTeamPosts(uid));
 
 export const teamPostsKey = (uid: string) => `content-studio-teamposts-${uid}`;
 export const teamReviewsKey = (uid: string) => `content-studio-teamreviews-${uid}`;

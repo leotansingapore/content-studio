@@ -7,6 +7,7 @@ import {
   nextToReview,
   reviewOrder,
   readTeamPosts,
+  readTeamPostsHere,
   readTeamReviews,
   skip,
   skippedBy,
@@ -261,6 +262,21 @@ describe("teamHome", () => {
     expect(teamPostsHere(UID, [fast, adv, memo]).map((p) => p.id)).toEqual(["a"]);
     setActiveProfile(UID, team.id);
     expect(teamPostsHere(UID, [fast, adv, memo]).map((p) => p.id)).toEqual(["f", "m"]);
+  });
+});
+
+describe("readTeamPostsHere", () => {
+  it("reads only the open brand's team posts, so Home and the posts board never ask about another brand's (Radiant VEP, 5 Nov)", () => {
+    const fast = post({ id: "f" }), adv = post({ id: "a", channel: "advisoros" });
+    store.setItem(teamPostsKey(UID), JSON.stringify({ posts: [fast, adv] }));
+    const team = addProfile(UID, "Leo's team");
+    const at = addProfile(UID, "ActivityTracker");
+    setActiveProfile(UID, addProfile(UID, "Radiant VEP").id);
+    expect(readTeamPostsHere(UID)).toEqual([]);
+    setActiveProfile(UID, team.id);
+    expect(readTeamPostsHere(UID).map((p) => p.id)).toEqual(["f"]);
+    setActiveProfile(UID, at.id);
+    expect(readTeamPostsHere(UID).map((p) => p.id)).toEqual(["a"]);
   });
 });
 

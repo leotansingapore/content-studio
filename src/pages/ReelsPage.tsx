@@ -12,7 +12,7 @@ import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setAct
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
 import { TEAM_TO_REVIEW, boardWaitingChanged, boardWaitingHere, postsToReview, teamReviewLine, teamWaiting, waitingByBrand } from "@/lib/needsYou";
-import { readTeamPosts, readTeamReviews, teamHome } from "@/lib/teamPosts";
+import { readTeamPostsHere, readTeamReviews, teamHome } from "@/lib/teamPosts";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import {
   NEXT,
@@ -82,7 +82,7 @@ export default function ReelsPage() {
   const leo = useLeoUser();
   const team = useMemo(() => {
     if (!leo) return null;
-    const posts = readTeamPosts(leo.id);
+    const posts = readTeamPostsHere(leo.id);
     const reviews = readTeamReviews(leo.id);
     // the brand the first one waiting sits on: AdvisorOS and FASTRACK posts live on different brands
     const home = teamHome(leo.id, teamWaiting(posts, reviews)[0]);

@@ -25,7 +25,7 @@ import { refreshIfStale } from "@/lib/realNumbers";
 import type { Board, Me } from "@/lib/reelsBoard";
 import { ownBrandName } from "@/lib/remixBrand";
 import { socialConnectShown } from "@/lib/socialConnect";
-import { readTeamPosts, readTeamReviews } from "@/lib/teamPosts";
+import { readTeamPostsHere, readTeamReviews } from "@/lib/teamPosts";
 import { useScrollToHash } from "@/lib/urlState";
 
 const HOME_HEAD = "flex flex-wrap items-start justify-between gap-x-6 gap-y-3";
@@ -123,7 +123,7 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
             me: day?.me ?? null,
             board: day?.board ?? null,
             market,
-            teamPosts: readTeamPosts(userId),
+            teamPosts: readTeamPostsHere(userId),
             reviews: readTeamReviews(userId),
             autopilot: plan?.autopilot,
             campaigns: plan?.list,

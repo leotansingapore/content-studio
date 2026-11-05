@@ -13,6 +13,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import ReelsPage from "./ReelsPage";
+import { addProfile, setActiveProfile } from "@/lib/profiles";
 
 const UID = "40f07a18-b087-4c95-ba1f-d5444222968a";
 const post = (id: string, day: string, over: Record<string, unknown> = {}) => ({
@@ -21,7 +22,8 @@ const post = (id: string, day: string, over: Record<string, unknown> = {}) => ({
 });
 function device(posts: unknown[]) {
   const m = new Map<string, string>([[`content-studio-teamposts-${UID}`, JSON.stringify({ posts })]]);
-  (globalThis as { window?: unknown }).window = { localStorage: { getItem: (k: string) => m.get(k) ?? null, setItem: () => undefined, removeItem: () => undefined } };
+  const localStorage = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
+  (globalThis as { window?: unknown }).window = { localStorage, dispatchEvent: () => true };
 }
 const html = () => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/reels?profile=pmvaytr9ayhh1"] }, createElement(ReelsPage)));
 
@@ -45,6 +47,22 @@ describe("Posts board, team posts line", () => {
     as.user = { id: UID, email: "tanjunsing@gmail.com" };
     device([post("tp7", "2026-10-20", { postedAt: "2026-10-20T02:00:00Z" }), post("tp6", "2026-10-21", { skipped: true })]);
     expect(html()).not.toContain("Team posts to review");
+  });
+
+  it("counts only the team posts that sit on the open brand: none on Radiant VEP, FASTRACK's on Leo's team, AdvisorOS's on ActivityTracker", () => {
+    as.user = { id: UID, email: "tanjunsing@gmail.com" };
+    device([post("tp8", "2026-10-28"), post("tp9", "2026-10-31"), post("tp5", "2026-10-29", { channel: "advisoros" })]);
+    const team = addProfile(UID, "Leo's team");
+    const at = addProfile(UID, "ActivityTracker");
+    const radiant = addProfile(UID, "Radiant VEP");
+    setActiveProfile(UID, radiant.id);
+    expect(html()).not.toContain("Team posts to review");
+    setActiveProfile(UID, team.id);
+    expect(html()).toMatch(/Team posts to review<span[^>]*>2<\/span>/);
+    expect(html()).toContain('href="/calendar?business=team-posts&amp;teampost=tp8"');
+    setActiveProfile(UID, at.id);
+    expect(html()).toMatch(/Team posts to review<span[^>]*>1<\/span>/);
+    expect(html()).toContain('href="/calendar?business=team-posts&amp;teampost=tp5"');
   });
 
   it("is hidden for every other sign-in, and while the sign-in is still being read", () => {
