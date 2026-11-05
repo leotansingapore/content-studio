@@ -206,7 +206,14 @@ export default function CalendarPage() {
   const [selectedId] = useUrlItem("post");
   // Opening or closing a post closes Leo's schedule steps with it, so they never reopen on the next post picked
   const openPost = (id: string) => update({ post: id, schedule: null, step: null, network: null, preview: null }, { push: true });
-  const closePost = () => update({ post: null, schedule: null, step: null, network: null, preview: null });
+  // Closing keeps the month or week the post was showing in (a ?post= link to December stays on December), rather than
+  // falling back to today's; the anchor is read at click time, after the render below has worked it out.
+  const keepPlace = () =>
+    params.get("week") || params.get("month") ? {}
+    : view === "week" && weekOf(anchor)[0] !== weekOf(todayKey)[0] ? { week: anchor }
+    : view === "month" && anchor.slice(0, 7) !== todayKey.slice(0, 7) ? { month: anchor.slice(0, 7) }
+    : {};
+  const closePost = () => update({ post: null, schedule: null, step: null, network: null, preview: null, ...keepPlace() });
   // ?preview=1: the open post's network preview, shown in its panel
   const previewOn = params.get("preview") === "1";
   // deleted since the link was made; an empty list may still be syncing, so it decides nothing
