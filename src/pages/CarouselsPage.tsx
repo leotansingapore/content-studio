@@ -474,7 +474,7 @@ export function CarouselCardView({ c, back, saved, onSave }: { c: CarouselCard; 
           onClick={(e) => onSave(e, c.id)}
           aria-pressed={saved}
           aria-label={saved ? `Remove ${c.title} from Saved` : `Save ${c.title}`}
-          className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
+          className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 text-white backdrop-blur-sm hover:bg-black/70"
         >
           {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
         </button>
