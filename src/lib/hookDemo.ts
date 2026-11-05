@@ -15,8 +15,6 @@ export const HOOK_PLAYS: HookPlay[] = ["stock", "mine", "crumple", "spoken"];
 export const PLAY_LABELS: Record<HookPlay, string> = { stock: "Words on a stock clip", mine: "I say it", crumple: "I crumple a notification", spoken: "Someone says it" };
 /** The two that order a paid AI clip, with the demo joined after it from this device. */
 export const paidPlay = (p: HookPlay): boolean => p === "crumple" || p === "spoken";
-/** What everyone but Leo can pick: the two that order no AI clip (the paid two run on NORTH_STAR_USERS only). */
-export const FREE_PLAYS: HookPlay[] = HOOK_PLAYS.filter((p) => !paidPlay(p));
 
 export const DEMO_MAX_MB = 100;
 export const DEMO_MAX_SECONDS = 30;

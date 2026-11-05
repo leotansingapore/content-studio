@@ -54,7 +54,7 @@
 //   POST {mode:"avatar", photo, slices, version:{plan, of?}} a Speak run made from an edit plan ("ep-" id, and the
 //        "ev-" version it changes): counted on "edit-version" (6 a day) and "ai-video-global" instead of "ai-video",
 //        given back the same ways. Anyone else's version is ignored, never refused, so their run counts as today.
-// Phase 3's hidden and Leo-only templates, any presenter setting but office, talk-script and set answer 403
+// Phase 3's hidden (but not open) and Leo-only templates, any presenter setting but office, talk-script and set answer 403
 // not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
 // new modes before their body is checked too); every other request is as before.
 //

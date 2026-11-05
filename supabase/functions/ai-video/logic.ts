@@ -79,7 +79,7 @@ export type VideoRequest =
       fields: Partial<Record<FieldKey, string>>;
       /** At most one: a person goes in as the first frame, which leaves no room for a product reference. */
       photos: { role: PhotoRole; jpeg: string }[];
-      /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser and on a hidden or Leo-only template. */
+      /** The brand's "What do you do?" (../_shared/profession.ts); absent for an adviser and on a closed hidden or Leo-only template. */
       profession?: string;
     }
   | { mode: "status"; tokens: string[]; refund?: string }
@@ -207,8 +207,8 @@ export function parseVideoRequest(raw: unknown): Parsed {
       }
       if (photos.length > 1) return no("Add one photo: the person or the product.");
       if (t.needsPhoto && !photos.some((p) => p.role === t.needsPhoto)) return no("Add a photo first.");
-      // Leo's own templates keep today's prompt
-      const profession = t.hidden || t.leoOnly ? "" : professionOf(b.profession);
+      // Leo's own templates keep today's prompt; an open one is everyone's, so it's written for their work
+      const profession = (t.hidden && !t.open) || t.leoOnly ? "" : professionOf(b.profession);
       return { ok: true, request: { mode: "template", template: t.id, seconds, quality, fields, photos, ...(profession ? { profession } : {}) } };
     }
     case "status": {
@@ -279,8 +279,8 @@ export function parseVideoRequest(raw: unknown): Parsed {
 }
 
 /**
- * Phase 3's parts only NORTH_STAR_USERS may ask for (index.ts answers 403 not_enabled before any count): a hidden or
- * Leo-only template, a presenter setting other than today's office, the presenter formats' script and set, a moved or
+ * Phase 3's parts only NORTH_STAR_USERS may ask for (index.ts answers 403 not_enabled before any count): a hidden
+ * (but not open) or Leo-only template, a presenter setting other than today's office, the presenter formats' script and set, a moved or
  * read explainer, a script from a source or with a length, and an explainer of other than 3 to 6 pictures (or its
  * status poll past 6). An explainer's look is not here: index.ts ignores it for anyone else. Everything else is open as before.
  */
@@ -288,7 +288,7 @@ export function northStarOnly(r: VideoRequest): boolean {
   if (NORTH_STAR_MODES.includes(r.mode)) return true;
   if (r.mode === "template") {
     const t = templateById(r.template);
-    return Boolean(t?.hidden || t?.leoOnly);
+    return Boolean((t?.hidden && !t.open) || t?.leoOnly);
   }
   if (r.mode === "explainer") return r.pictures.length < MIN_SCENES || r.pictures.length > MAX_SCENES;
   if (r.mode === "status") return r.tokens.length > MAX_SCENES;

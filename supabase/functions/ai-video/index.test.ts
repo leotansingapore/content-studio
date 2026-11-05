@@ -189,8 +189,6 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
   it("refuse a hidden or Leo-only template, or a presenter in a new setting, before any count or call", async () => {
     for (const body of [
       scene,
-      { mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing why your pipeline is empty" } },
-      { mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", fields: {}, photos: [{ role: "person", jpeg: "/9j/4AAQSkZJRgABAQAAAQABAAD" }] },
       { mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "How much of your pay do you save?" } },
       { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "car" },
     ]) {
@@ -207,6 +205,16 @@ describe("phase 3's templates and settings (NORTH_STAR_USERS only)", () => {
     expect((await send(UID, { mode: "presenter", look: "A Malay Singaporean woman in her 30s", setting: "office" })).status).toBe(200);
     expect([used(UID, "ai-clip"), used(UID, "ai-image")]).toEqual([1, 1]);
     expect(hf.openai[0].messages[0].content).toContain("Spoken lines: few");
+  });
+
+  it("let hook plus demo's crumpled and spoken hooks through for everyone, each on the ai-clip cap, the spoken one written for their work", async () => {
+    const crumple = await send(UID, { mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", fields: {}, photos: [{ role: "person", jpeg: "/9j/4AAQSkZJRgABAQAAAQABAAD" }] });
+    expect(crumple.status).toBe(200);
+    expect(hf.openai).toEqual([]);
+    const spoken = await send(UID, { mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing why your pipeline is empty" }, profession: "Coach" });
+    expect(spoken.status).toBe(200);
+    expect(hf.openai[0].messages[0].content).toBe(templateSystem(templateById("spoken-hook")!, 4, null, "coach"));
+    expect(used(UID, "ai-clip")).toBe(2);
   });
 
   it("write a template's prompt for the work the brand names", async () => {

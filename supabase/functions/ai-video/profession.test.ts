@@ -71,11 +71,19 @@ describe("a template clip's prompt writer for the brand's profession", () => {
     expect(spoken).toContain("Never invent a number, a result, a client story or a testimonial, and never promise an outcome.");
   });
 
-  it("a hidden or Leo-only template keeps today's prompt whatever the brand does", () => {
+  it("a closed hidden or Leo-only template keeps today's prompt whatever the brand does", () => {
     const leo = [
-      { mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing" } },
+      { mode: "template", template: "scene-kitchen", seconds: 8, quality: "480p", fields: {} },
       { mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "How much do you save?" } },
     ];
     expect(templatePrompts({ profession: "Coach" }, leo)).toEqual(templatePrompts({}, leo));
+  });
+
+  // open to everyone since 6 Nov (hook plus demo's "Someone says it"), so a business's spoken hook isn't an adviser's
+  const SPOKEN = [{ mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing" } }];
+  it.each(PROFESSIONS)("$raw gets the spoken hook's prompt written for them, with none of the adviser words", ({ raw, said }) => {
+    const [p] = templatePrompts({ profession: raw }, SPOKEN);
+    expect(p.system).toContain(`a short vertical clip that a ${said} posts on Reels, TikTok and Shorts.`);
+    expect(adviserWordsIn(JSON.stringify(p).replace(CLIP_PEOPLE, ""))).toEqual([]);
   });
 });

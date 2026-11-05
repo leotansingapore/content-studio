@@ -41,8 +41,10 @@ export interface VideoTemplate {
   structure: string[];
   guidance: string[];
   avoid: string[];
-  /** Left out of the editor's list: a format page (/make) makes it, for NORTH_STAR_USERS only. */
+  /** Left out of the editor's list: a format page (/make) makes it, for NORTH_STAR_USERS only unless `open`. */
   hidden?: true;
+  /** A hidden template every sign-in may order, its prompt written for the brand's work: hook plus demo's paid plays. */
+  open?: true;
   /** Nobody speaks: the prompt writer asks for room or street sound in place of spoken lines. */
   silent?: true;
   /** Shown only to Leo in the editor, and refused by the server for anyone not on NORTH_STAR_USERS. */
@@ -61,7 +63,8 @@ const LINE: TemplateField = { key: "line", label: "What they say", placeholder: 
 
 // ---- phase 3 (docs/north-star/items/formats-text-over-clip.md, formats-hook-demo.md, formats-skits.md) ----
 // Hidden scenes for Words over a made scene and the spoken hook, which format pages make, and three one-take skits
-// (formats-skits step 1) that only Leo sees. The server refuses all of them for anyone not on NORTH_STAR_USERS.
+// (formats-skits step 1) that only Leo sees. The server refuses them for anyone not on NORTH_STAR_USERS, but the two
+// marked open (hook plus demo's spoken and crumpled hooks, open to everyone since 6 Nov on the ai-clip caps).
 
 const WHO: TemplateField = { key: "person", label: "Who is in it", placeholder: "A Malay woman in her 30s in a grey cardigan" };
 const SCENE_WARNINGS = ["Nobody speaks. Your words go on top in the editor."];
@@ -157,6 +160,7 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
     guidance: ["They say the line exactly as given, once.", "Natural light and a real room, no studio polish."],
     avoid: ["A second line", "Other people in frame", "Text, captions or logos"],
     hidden: true,
+    open: true,
   },
   {
     // the hook card is drawn onto the adviser's own frame in the browser (src/lib/crumpleCard.ts): video models garble
@@ -180,6 +184,7 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
     guidance: [],
     avoid: [],
     hidden: true,
+    open: true,
     fixed: true,
   },
   {

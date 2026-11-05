@@ -303,9 +303,10 @@ describe("what only NORTH_STAR_USERS may ask for", () => {
     return p.request;
   };
 
-  it("is a hidden or Leo-only template, or a presenter anywhere but the office", () => {
+  it("is a hidden (not open) or Leo-only template, or a presenter anywhere but the office", () => {
     expect(northStarOnly(req({ mode: "template", template: "scene-kitchen", seconds: 8, quality: "480p" }))).toBe(true);
-    expect(northStarOnly(req({ mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing" } }))).toBe(true);
+    expect(northStarOnly(req({ mode: "template", template: "spoken-hook", seconds: 4, quality: "480p", fields: { line: "Stop guessing" } }))).toBe(false);
+    expect(northStarOnly(req({ mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", photos: [{ role: "person", jpeg: "/9j/4AAQSkZJRgABAQAAAQABAAD" }] }))).toBe(false);
     expect(northStarOnly(req({ mode: "template", template: "street-interview", seconds: 8, quality: "480p", fields: { question: "Do you save?" } }))).toBe(true);
     expect(northStarOnly(req({ mode: "presenter", look: "A Malay Singaporean woman", setting: "news" }))).toBe(true);
   });
