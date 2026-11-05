@@ -250,6 +250,24 @@ export function engagement(m?: PostMetrics): number {
   return (m.reactions ?? 0) + (m.comments ?? 0) + (m.shares ?? 0);
 }
 
+// Section labels a writer puts on scripts and carousels ("**HOOK**", "SLIDE 1:"): never a post's name. A label counts
+// only as a whole line or with a separator after it, so "Title of my post" keeps its first word.
+const LABEL = String.raw`(?:hook|body|cta|caption|script|intro|outro|title|headline|(?:slide|frame|scene|part)\s*\d+)`;
+const LABEL_ONLY = new RegExp(`^${LABEL}$`, "i");
+const LABEL_LEAD = new RegExp(`^${LABEL}\\s*[:.)-]\\s*`, "i");
+
+/** A post's name for lists (its `hook`): the first line with words in it, without markdown or a section label. */
+export function postTitle(text: string, max = 120): string {
+  for (const raw of String(text ?? "").split("\n")) {
+    // bold and italic markers go; a single underscore stays (@my_handle)
+    const line = raw.replace(/^#+\s*/, "").replace(/\*{1,3}|_{2,3}/g, "").trim();
+    if (!line || LABEL_ONLY.test(line)) continue;
+    const rest = line.replace(LABEL_LEAD, "").trim();
+    if (rest) return rest.slice(0, max);
+  }
+  return "";
+}
+
 const KEY_PREFIX = "content-studio-drafts-";
 
 function safeStorage(): Storage | null {

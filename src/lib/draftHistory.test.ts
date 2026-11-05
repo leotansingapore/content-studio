@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadDrafts,
+  postTitle,
   nextOccurrence,
   occurrencesBetween,
   restoreDraft,
@@ -903,5 +904,22 @@ describe("a dated post keeps the zone its time was set in", () => {
     expect(saved().tz).toBe("America/Chicago");
     setDraftStatus(UID, "s", "scheduled", "2026-10-21T09:00");
     expect(saved().tz).toBe("America/Chicago");
+  });
+});
+
+describe("postTitle", () => {
+  it("names a post by its first real line, not a script's or carousel's section label", () => {
+    expect(postTitle("**HOOK**\nYou are topping up the wrong account.\n\n**BODY**\nHere is why.")).toBe("You are topping up the wrong account.");
+    expect(postTitle("SLIDE 1: Myth: you need $1m to retire\nSLIDE 2: The real number")).toBe("Myth: you need $1m to retire");
+    expect(postTitle("## Hook:\n*Three CPF moves* before 55")).toBe("Three CPF moves before 55");
+    expect(postTitle("Hook: Stop guessing your posting times")).toBe("Stop guessing your posting times");
+  });
+  it("keeps a plain post's first line as it is, trimmed to 120 characters", () => {
+    expect(postTitle("\n  Three CPF moves before 55\nBody")).toBe("Three CPF moves before 55");
+    expect(postTitle("x".repeat(200))).toHaveLength(120);
+    expect(postTitle("")).toBe("");
+    expect(postTitle("Title of my post")).toBe("Title of my post");
+    expect(postTitle("Ask @my_handle anything")).toBe("Ask @my_handle anything");
+    expect(postTitle("Hooks that work for coaches")).toBe("Hooks that work for coaches");
   });
 });

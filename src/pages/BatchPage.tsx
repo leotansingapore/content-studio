@@ -21,6 +21,7 @@ import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { findWords, strayLinks } from "@/lib/platformCounters";
 import {
+  postTitle,
   upsertDraft,
   newDraftId,
   type DraftEntry,
@@ -257,7 +258,7 @@ export default function BatchPage() {
   const entryFor = (t: BatchTarget, card: CardState): DraftEntry => ({
     id: newDraftId(),
     createdAt: new Date().toISOString(),
-    hook: card.text.split("\n")[0]?.slice(0, 120) ?? "",
+    hook: postTitle(card.text),
     draft: card.text,
     pillar,
     pillarDetail: topic.trim(),
