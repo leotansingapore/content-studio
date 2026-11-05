@@ -6,7 +6,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { sectionTabs, type Tab } from "@/lib/nav";
 
-const tabClass = (active: boolean) =>
+export const tabClass = (active: boolean) =>
   `flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-lg border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
     active ? "border-border bg-background text-foreground shadow-sm" : "border-transparent text-muted-foreground hover:text-foreground"
   }`;
