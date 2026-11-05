@@ -474,6 +474,52 @@ describe("posts lists merged post by post", () => {
     expect(cloud.calls.swap).toBeGreaterThanOrEqual(3);
   });
 
+  it("on the first open after this release, a device synced before takes its copy as the base: a post deleted elsewhere stays deleted", async () => {
+    const laptop = new MemoryStorage();
+    laptop.setItem(LIST, list("a", "b", "c"));
+    laptop.setItem("cs-sync-meta", JSON.stringify({ [LIST]: "2026-11-01T00:00:00.000Z" }));
+    // the phone deleted c on 3 Nov; nothing is unsent on the laptop
+    const cloud = fakeBackend([{ key: LIST, data: list("a", "b"), updated_at: "2026-11-03T00:00:00.000Z" }]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(LIST)?.data)).toEqual(["a", "b"]);
+    expect(ids(laptop.getItem(LIST))).toEqual(["a", "b"]);
+  });
+
+  it("on that first open, a full list keeps its newest posts: no stale ones land on top and push real ones off the cap", async () => {
+    const CAP = `content-studio-mcap-${ME}`;
+    registerSyncMerge("content-studio-mcap-", listMerger({ after: (l) => l.slice(0, 150) }));
+    const old = Array.from({ length: 150 }, (_, i) => `o${i + 1}`);
+    const fresh = Array.from({ length: 10 }, (_, i) => `n${i + 1}`);
+    const laptop = new MemoryStorage();
+    laptop.setItem(CAP, list(...old));
+    laptop.setItem("cs-sync-meta", JSON.stringify({ [CAP]: "2026-11-01T00:00:00.000Z" }));
+    const cloud = fakeBackend([{ key: CAP, data: list(...fresh, ...old.slice(0, 140)), updated_at: "2026-11-03T00:00:00.000Z" }]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(CAP)?.data)).toEqual([...fresh, ...old.slice(0, 140)]);
+  });
+
+  it("a save that lost its race keeps the cloud copy it merged as the base, so a post deleted by the other device stays deleted", async () => {
+    const laptop = new MemoryStorage();
+    laptop.setItem(LIST, list("a"));
+    const cloud = fakeBackend([{ key: LIST, data: list("a"), updated_at: "2026-11-06T09:00:00.000Z" }]);
+    const swap = cloud.backend.swap!.bind(cloud.backend);
+    let n = 0;
+    cloud.backend.swap = async (row, seen) => {
+      // the phone deletes y just before the laptop's first write lands
+      if (n++ === 0) cloud.table.set(LIST, { key: LIST, data: list("a"), updated_at: "2026-11-06T10:00:00.900Z" });
+      return swap(row, seen);
+    };
+    const sync = createCloudSync(ME, laptop, cloud.backend);
+    await sync.start();
+    // the phone adds y, then the laptop adds x
+    cloud.table.set(LIST, { key: LIST, data: list("y", "a"), updated_at: "2026-11-06T09:30:00.000Z" });
+    write(laptop, sync, LIST, list("x", "a"));
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["a", "x"]);
+  });
+
   it("leaves a value that isn't a list of posts to the old whole-value rules", async () => {
     const { cloud, laptop, a } = await twoDevices();
     write(laptop, a, LIST, "not a list");

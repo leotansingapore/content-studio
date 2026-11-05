@@ -183,7 +183,11 @@ export function createCloudSync(
   const mergeIn = (key: string, merger: SyncMerger, local: string, row: SyncRow): string | null => {
     const merged = merger.merge(local, row.data, loadBase(key), localNewer(key, row.updated_at));
     if (merged !== null && merged !== local) {
-      storage.setItem(key, merged);
+      try {
+        storage.setItem(key, merged);
+      } catch {
+        return null; // storage full: this device keeps its copy, and the whole-value rules decide as before
+      }
       merger.changed?.(key);
     }
     return merged;
@@ -223,6 +227,9 @@ export function createCloudSync(
       const local = storage.getItem(key);
       if (local === null) return succeeded(() => backend.remove([key]));
       const value = row && row.data !== local ? (mergeIn(key, merger, local, row) ?? local) : local;
+      // what the cloud held is known now, whether or not the write below lands: a retry must not read a post deleted
+      // there meanwhile as one added here
+      if (row) saveBase(key, merger.base(row.data));
       if (row && value === row.data) {
         meta[key] = row.updated_at;
         saveBase(key, merger.base(value));
@@ -300,6 +307,10 @@ export function createCloudSync(
     if (!isSyncedKeyFor(row.key, userId)) return;
     const merger = mergerFor(row.key);
     const local = storage.getItem(row.key);
+    // synced here before the merge existed and nothing unsent: this copy is what the cloud held, so it is the base
+    // (without it the first merge reads nothing as deleted, and posts deleted elsewhere come back)
+    if (merger && local !== null && !loadBase(row.key) && meta[row.key] && !pending.has(row.key) && !sending.includes(row.key))
+      saveBase(row.key, merger.base(local));
     if (merger && local !== null) {
       // both copies kept, item by item; what differs from the cloud goes back up
       const merged = local === row.data ? local : mergeIn(row.key, merger, local, row);
