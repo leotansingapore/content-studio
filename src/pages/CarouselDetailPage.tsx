@@ -158,7 +158,7 @@ export default function CarouselDetailPage() {
 
         <section aria-label="About this carousel" className="space-y-5">
           <div className="space-y-1.5">
-            <Link to={`/carousels?creator=${encodeURIComponent(row.creator)}`} className="text-sm font-semibold text-foreground hover:text-primary">@{row.creator}</Link>
+            <Link to={`/carousels?creator=${encodeURIComponent(row.creator)}`} className="text-sm font-semibold text-foreground hover:text-primary [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">@{row.creator}</Link>
             <p className="text-xs text-muted-foreground">
               {[row.topic, row.format, `Posted ${new Date(row.posted_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`].filter(Boolean).join(" · ")}
             </p>
@@ -223,7 +223,7 @@ export default function CarouselDetailPage() {
           </div>
 
           <details className="rounded-lg border border-border/60 p-3 text-sm">
-            <summary className="cursor-pointer font-medium">Words on each slide</summary>
+            <summary className="cursor-pointer font-medium [@media(pointer:coarse)]:py-3">Words on each slide</summary>
             <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-muted-foreground">
               {Array.from({ length: row.slides }, (_, i) => (
                 <li key={i}>
@@ -236,7 +236,7 @@ export default function CarouselDetailPage() {
           </details>
           {row.caption && (
             <details className="rounded-lg border border-border/60 p-3 text-sm">
-              <summary className="cursor-pointer font-medium">Caption</summary>
+              <summary className="cursor-pointer font-medium [@media(pointer:coarse)]:py-3">Caption</summary>
               <p className="mt-2 whitespace-pre-line text-muted-foreground">{row.caption}</p>
             </details>
           )}
@@ -256,7 +256,7 @@ function Related({ title, rows, back, saved, onSave, more }: { title: string; ro
     <section className="space-y-3" aria-label={title}>
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold">{title}</h2>
-        {more && <Link to={more} className="text-sm font-medium text-primary hover:underline">See all</Link>}
+        {more && <Link to={more} className="text-sm font-medium text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">See all</Link>}
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {rows.map((c) => <CarouselCardView key={c.id} c={c} back={back} saved={saved.has(c.id)} onSave={onSave} />)}
