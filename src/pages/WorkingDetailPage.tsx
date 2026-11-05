@@ -90,7 +90,7 @@ export default function WorkingDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
         <section aria-label="About this slideshow" className="space-y-5">
           <div className="space-y-1.5">
-            <Link to={`/working?q=${encodeURIComponent(row.author)}`} className="text-sm font-semibold text-foreground hover:text-primary">@{row.author}</Link>
+            <Link to={`/working?q=${encodeURIComponent(row.author)}`} className="text-sm font-semibold text-foreground hover:text-primary [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">@{row.author}</Link>
             <p className="text-xs text-muted-foreground">
               {[
                 row.followers !== null && `${compact(row.followers)} followers`,
