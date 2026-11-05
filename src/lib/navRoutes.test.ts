@@ -51,7 +51,8 @@ describe("routes and the nav", () => {
 
   it("every nav page has a route, so no link in the nav goes nowhere", () => {
     const served = new Set(routes);
-    const dead = [...navPaths].filter((to) => !served.has(to) && !served.has(to.replace(/\/[^/]+$/, "/:tab")));
+    // a nav page may be one tab of a /:tab route, or one format page of /make/:format (hook plus demo, 6 Nov)
+    const dead = [...navPaths].filter((to) => !served.has(to) && !["/:tab", "/:format"].some((p) => served.has(to.replace(/\/[^/]+$/, p))));
     expect(dead).toEqual([]);
   });
 

@@ -282,6 +282,8 @@ export const FORMATS: FormatDef[] = [
     price: () => from(priceOf("remix-make")),
     needs: "demo-video",
     Component: lazy(() => import("@/components/make/HookDemo")),
+    // on for everyone with its two free plays (6 Nov, BuilderCult's Reaction UGC fold); crumple and spoken stay Leo's
+    everyone: true,
     ready: true,
   },
   ...TALKS.map(

@@ -424,8 +424,11 @@ export function withSpoken(s: SourceIn, transcript: string | null | undefined): 
   return { ...s, text: blockText(`${said}\n\n${s.text}`, 2000) };
 }
 
-/** Makes on for everyone signed in (Leo, 30 Oct: "Slideshows for everyone"); every other make and mode stays on NORTH_STAR_USERS. */
-export const OPEN_MAKES: readonly RemixAs[] = ["slideshow"];
+/**
+ * Makes on for everyone signed in (Leo, 30 Oct: "Slideshows for everyone"; 6 Nov: the three hooks hook plus demo
+ * writes, folded from BuilderCult's Reaction UGC); every other make and mode stays on NORTH_STAR_USERS.
+ */
+export const OPEN_MAKES: readonly RemixAs[] = ["slideshow", "hooks"];
 export const openToAll = (raw: unknown): boolean => {
   const r = obj(raw);
   return r.mode === "make" && OPEN_MAKES.includes(r.as as RemixAs);
@@ -958,10 +961,15 @@ function shapeLines(req: MakeRequest): string[] {
     ];
   }
   if (req.as === "hooks") {
+    // a business gets its own shapes where the adviser's need a person in a trade, as ads and Write do (hookFormulas.ts)
+    const biz = req.brand.speaker === "business";
     return [
       "",
       "Formulas:",
-      ...(req.formulas ?? []).map((f) => `- ${f.id} (${f.name}). Shape: ${f.template} Example of the shape only, never its facts: ${f.example} Avoid: ${f.trap}`),
+      ...(req.formulas ?? []).map((f) => {
+        const s = (biz && BUSINESS_SHAPES_COPY[f.id]) || f;
+        return `- ${f.id} (${f.name}). Shape: ${s.template} Example of the shape only, never its facts: ${s.example} Avoid: ${f.trap}`;
+      }),
       ...(req.demo ? ["", `The demo: a ${req.demo.seconds}-second video. Its file name:`, quote(req.demo.name)] : []),
     ];
   }

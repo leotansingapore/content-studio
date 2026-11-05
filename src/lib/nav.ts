@@ -137,6 +137,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Create" },
       // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
       { to: "/hooks", label: "Hooks", title: "My hooks" },
+      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
+      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
       { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },
       { to: "/generate/answer", label: "Answer", title: "Answer a question" },

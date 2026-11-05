@@ -2,7 +2,8 @@
 // The demo is a file kept on this device (never in a link); the hooks are written from what it shows or from a post
 // (?source=, which MakeFormatPage resolves), Jev's pick marked; the hook plays as words on a stock clip, your own
 // clip, you crumpling a notification card with the hook on it (AI moves a frame of your demo; the result area shows
-// that frame, card and all, before anything is paid), or an AI person saying it. The run is src/lib/hookDemoJob.ts
+// that frame, card and all, before anything is paid), or an AI person saying it. Open to every sign-in since 6 Nov with
+// the first two (FREE_PLAYS); the paid two stay on Leo's sign-ins. The run is src/lib/hookDemoJob.ts
 // (outside React, so leaving the page keeps it going); the video opens in the editor (/edit), which this page pushes
 // once it is being put together.
 //
@@ -33,7 +34,7 @@ import { demoVideos, type DemoVideo } from "@/lib/demoVideos";
 import { loadBrand } from "@/lib/carousel";
 import { cardFrame } from "@/lib/crumpleCard";
 import {
-  CARD_TOO_LONG, HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_TOO_LONG, cardFrameAt, clock, demoIssue, hookClipIssue, hookIssue, paidPlay, pressSpend, type HookPlay,
+  CARD_TOO_LONG, FREE_PLAYS, HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_TOO_LONG, cardFrameAt, clock, demoIssue, hookClipIssue, hookIssue, paidPlay, pressSpend, type HookPlay,
 } from "@/lib/hookDemo";
 import {
   hookDemoBusy, hookDemoJob, hookSet, hooksFailure, hooksFor, hooksWriting, keepOnlyDemo, loadDemo, makeHookDemo, newDemoKey, onHookDemo,
@@ -44,6 +45,7 @@ import { mediaLength } from "@/lib/longAudio";
 import type { RemixSource } from "@/lib/remixSource";
 import { cn } from "@/lib/utils";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { getFile, loadVideo, putFile, stills } from "@/lib/videoMedia";
 import { paidClipBlock } from "@/lib/wallJob";
 
@@ -100,7 +102,9 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
   const busy = hookDemoBusy();
   const writing = hooksWriting();
   const leftOf = useUsesLeft(busy || writing);
-  const [play, setPlay] = useUrlState<HookPlay>("play", "stock", { allowed: HOOK_PLAYS, remember: PLAY_KEY });
+  // everyone but Leo gets the two plays that order no AI clip (FREE_PLAYS); the paid two run on NORTH_STAR_USERS only
+  const plays = useLeoOnly() ? HOOK_PLAYS : FREE_PLAYS;
+  const [play, setPlay] = useUrlState<HookPlay>("play", "stock", { allowed: plays, remember: PLAY_KEY });
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
   const [typed, setTyped] = useTyped();
   const [saved] = useState(() => demoVideos(userId));
@@ -355,7 +359,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
         <CardContent className="space-y-2 pt-4 sm:pt-5">
           <p className={FIELD_LABEL}>How the hook plays</p>
           <div className="flex flex-wrap gap-1.5">
-            {HOOK_PLAYS.map((p) => (
+            {plays.map((p) => (
               <FilterChip key={p} active={play === p} onClick={() => setPlay(p)}>
                 {PLAY_LABELS[p]}
               </FilterChip>

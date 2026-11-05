@@ -38,7 +38,7 @@ export const STEPS: LaunchStep[] = [
   { id: "start", offset: 5, stage: "How to start", brief: "how to get started with {thing}, step by step", maker: "write", format: "carousel", funnel: "conversion", withLink: true },
 ];
 
-export const MAKER_LABEL: Record<Maker, string> = { write: "Write", hooks: "Hooks", slideshow: "Slideshow", video: "Video" };
+export const MAKER_LABEL: Record<Maker, string> = { write: "Write", hooks: "Hooks", slideshow: "Slideshow", video: "Hook plus demo" };
 const FORMAT_LABEL: Record<WriteFormat, string> = { "short-video": "short video", carousel: "carousel", "text-post": "post", story: "story" };
 export const makerLabel = (s: LaunchStep) => (s.maker === "write" && s.format ? `Write a ${FORMAT_LABEL[s.format]}` : MAKER_LABEL[s.maker]);
 
@@ -84,12 +84,13 @@ export function briefFor(plan: LaunchPlan, s: LaunchStep): string {
   return s.withLink && plan.link ? `${said}. End by sending people to ${plan.link}` : said;
 }
 
-/** The maker that makes the step, opened with its words: Write (topic, format, funnel), Hooks, Slideshow, or the video editor. */
+/** The maker that makes the step, opened with its words: Write (topic, format, funnel), Hooks, Slideshow, or hook plus demo. */
 export function makerUrl(plan: LaunchPlan, s: LaunchStep): string {
   const brief = briefFor(plan, s);
   if (s.maker === "hooks") return `/hooks?${new URLSearchParams({ topic: brief.slice(0, 300) })}`;
   if (s.maker === "slideshow") return `/make/slideshow?${new URLSearchParams({ from: "topic", topic: brief.slice(0, 200) })}`;
-  if (s.maker === "video") return "/edit";
+  // the first look: a hook, then the demo (hook plus demo's topic= is "what it shows")
+  if (s.maker === "video") return `/make/hook-demo?${new URLSearchParams({ topic: brief.slice(0, 200) })}`;
   return `/generate?${new URLSearchParams({ ctx: brief, format: s.format ?? "text-post", funnel: s.funnel })}`;
 }
 

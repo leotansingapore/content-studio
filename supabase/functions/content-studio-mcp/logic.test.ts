@@ -1200,7 +1200,7 @@ describe("hooks and the launch plan, for every link", () => {
     expect(out.posts[0].missed).toBeUndefined();
     expect(out.posts[1]).toMatchObject({ day: "2026-09-26", maker: "Hooks", missed: true });
     expect(out.posts[1].open).toBe("https://app.postmosis.com/hooks?topic=The+problem+Tidy+fixes%2C+in+the+words+people+use+for+it&profile=me");
-    expect(out.posts[4].open).toBe("https://app.postmosis.com/edit?profile=me");
+    expect(out.posts[4].open).toBe("https://app.postmosis.com/make/hook-demo?topic=A+first+look+at+Tidy%3A+one+screen+or+one+result&profile=me");
     expect((await call("get_launch_plan", {}, memoryStore({}))).out).toMatchObject({ plan: null });
   });
 });

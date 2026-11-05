@@ -47,7 +47,7 @@ describe("/launch", () => {
     for (const g of ["4 weeks out", "Launch week", "Launch day", "After launch"]) expect(page).toContain(g);
     expect(page).toContain('href="/hooks?topic=The+problem+Tidy+fixes');
     expect(page).toContain('href="/make/slideshow?from=topic&amp;topic=A+day+with+the+problem+Tidy+fixes"');
-    expect(page).toContain('href="/edit"');
+    expect(page).toContain('href="/make/hook-demo?topic=A+first+look+at+Tidy');
     expect(page).toContain("End by sending people to https://tidy.app/join");
     // a made post has no Make it button
     expect(page).not.toContain("Why+I%27m+making+Tidy");

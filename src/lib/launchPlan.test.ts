@@ -36,10 +36,12 @@ describe("each post opens its maker", () => {
     expect(params(makerUrl(plan, step("why"))).ctx).toBe("Why I'm making Tidy, and the moment that started it");
     expect(briefFor({ ...plan, link: "" }, step("list"))).toBe("The people on the early list hear first when Tidy opens");
   });
-  it("Hooks and Slideshow get the topic, the first look opens the video editor", () => {
+  it("Hooks, Slideshow and hook plus demo get the topic", () => {
     expect(makerUrl(plan, step("problem"))).toBe(`/hooks?topic=${encodeURIComponent("The problem Tidy fixes, in the words people use for it").replace(/%20/g, "+")}`);
     expect(params(makerUrl(plan, step("day")))).toEqual({ from: "topic", topic: "A day with the problem Tidy fixes" });
-    expect(makerUrl(plan, step("first-look"))).toBe("/edit");
+    expect(params(makerUrl(plan, step("first-look")))).toEqual({ topic: "A first look at Tidy: one screen or one result" });
+    expect(makerUrl(plan, step("first-look")).startsWith("/make/hook-demo?")).toBe(true);
+    expect(makerLabel(step("first-look"))).toBe("Hook plus demo");
     expect(makerLabel(step("today"))).toBe("Write a carousel");
     expect(makerLabel(step("day"))).toBe("Slideshow");
   });

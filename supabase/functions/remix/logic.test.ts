@@ -286,6 +286,12 @@ describe("the speaker", () => {
         }
       }
     }
+    // hook plus demo's three hooks, opened to everyone 6 Nov, with the insider formula whose adviser example names a trade
+    const insider = { id: "insider", name: "Insider view", template: "After {N} years as {role}, here is what nobody tells you about {topic}.", example: "After 8 years as a financial consultant, here is what nobody tells you about making a claim.", trap: "Never vague" };
+    const hooks = buildMakePrompt(business({}, { as: "hooks", formulas: [insider, ...FORMULAS.slice(0, 2)] }));
+    expect(`${hooks.system}\n${hooks.user}`).not.toMatch(/adviser|consultant/i);
+    expect(hooks.user + hooks.system).toContain("from a team that packs up homes every week");
+    expect(buildMakePrompt(make({ as: "hooks", formulas: [insider, ...FORMULAS.slice(0, 2)] })).system + buildMakePrompt(make({ as: "hooks", formulas: [insider, ...FORMULAS.slice(0, 2)] })).user).toContain("financial consultant");
     const part2 = buildMakePrompt(business({}, { keep: "part2", source: { key: "own:d1", kind: "own", text: "Our first post" } }));
     expect(`${part2.system}\n${part2.user}`).not.toMatch(/adviser|consultant/i);
     expect(part2.system).toContain("This is the business's own earlier post.");
