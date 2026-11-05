@@ -1,6 +1,6 @@
 # A countdown to your launch
 
-`plan-launch-countdown` | plan | phase 5 | status: missing | /north-star#plan-launch-countdown
+`plan-launch-countdown` | plan | phase 5 | status: partial | /north-star#plan-launch-countdown
 
 ## Leo asked
 
@@ -16,6 +16,7 @@ A coach opening a workshop, an adviser opening a seminar or a consultant startin
 
 ## What we have today
 
+- Since 6 Nov 2026, /launch for every sign-in (src/lib/launchPlan.ts, folded from BuilderCult's Launch plan): what launches, the date and a link lay out 12 posts from 27 days before to 5 days after, in the order below, each opening Write, Hooks, Slideshow or the video editor with its words filled in. No AI, no tagged link yet, and nothing is put on the calendar until a post is made.
 - Plan a campaign (plan-campaign, Leo's sign-ins only) is a five-step wizard that writes up to 28 posts over four weeks from angles at an even pace (src/lib/campaigns.ts, src/lib/campaignJob.ts). It has no launch date and no order between the posts.
 - Link in bio has no sign-up form yet (publish-link-in-bio, step 2).
 - Write's idea sources have no launch.

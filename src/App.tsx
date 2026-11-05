@@ -31,6 +31,7 @@ const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const PlanPage = lazy(() => import("@/pages/PlanPage"));
 const LinkedInStrategyPage = lazy(() => import("@/pages/LinkedInStrategyPage"));
 const HooksPage = lazy(() => import("@/pages/HooksPage"));
+const LaunchPlanPage = lazy(() => import("@/pages/LaunchPlanPage"));
 const VoicePage = lazy(() => import("@/pages/VoicePage"));
 const BrandPage = lazy(() => import("@/pages/BrandPage"));
 const MediaPage = lazy(() => import("@/pages/MediaPage"));
@@ -199,6 +200,7 @@ export default function App() {
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/linkedin" element={<LinkedInStrategyPage />} />
           <Route path="/hooks" element={<HooksPage />} />
+          <Route path="/launch" element={<LaunchPlanPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/campaigns/new" element={<CampaignWizardPage />} />
           <Route path="/campaigns/:id" element={<CampaignPage />} />

@@ -3,9 +3,11 @@
 // their median views. Kept hooks are the brand's hook snippets, offered in Write's Pick a hook and in slideshow
 // campaigns (src/lib/hookWriter.ts). Folded from BuilderCult's My hooks (owner's agreement, Leo 6 Nov 2026).
 //
-// URL (docs/deep-links.md): n=5|10|20|30 and format=<id>|any replace.
+// URL (docs/deep-links.md): n=5|10|20|30 and format=<id>|any replace; topic= (the launch plan's link-in) fills the box
+// once, then leaves the address.
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Check, Copy, Loader2, Quote, Sparkles, Trash2, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -32,7 +34,7 @@ import {
   type HookDesk,
 } from "@/lib/hookWriter";
 import { MAX_PER_KIND, type Snippet } from "@/lib/replySnippets";
-import { useUrlState } from "@/lib/urlState";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -64,6 +66,16 @@ function HookDeskView({ userId }: { userId: string }) {
   const working = run?.state === "working";
   const usesLeft = useUsesLeft(working);
   const topicBox = useRef<HTMLInputElement>(null);
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const topicParam = params.get("topic");
+  useEffect(() => {
+    if (topicParam === null) return;
+    const next = { ...loadDesk(userId), topic: topicParam.slice(0, MAX_TOPIC) };
+    setDesk(next);
+    saveDesk(userId, next);
+    update({ topic: null });
+  }, [userId, topicParam, update]);
 
   // another tab or a synced device changed the batch or the kept list
   useEffect(() => {

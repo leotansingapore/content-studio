@@ -41,6 +41,7 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  Rocket,
   Wand2,
   type LucideIcon,
 } from "lucide-react";
@@ -118,6 +119,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/campaigns", label: "Campaigns", icon: Columns3, owners: LEO_EMAILS },
       { to: "/calendar", label: "Calendar", icon: CalendarClock },
       { to: "/plan", label: "Plan", icon: Target },
+      // a month of launch posts counting back from a date, each opening its maker (BuilderCult's Launch plan, 6 Nov)
+      { to: "/launch", label: "Launch", title: "Launch plan", icon: Rocket },
       { to: "/linkedin", label: "LinkedIn", title: "LinkedIn strategy", icon: Linkedin },
       { to: "/ideas", label: "Ideas", icon: Lightbulb, owners: LEO_EMAILS },
       // the formats that win among the brand's Apps like yours references, and this month's progress on them

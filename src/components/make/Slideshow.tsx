@@ -2,7 +2,8 @@
 // made into photo slides with words on them. The run is src/lib/slideshowJob.ts (outside React, so leaving the page
 // keeps it going); the result is a Slideshow that /slideshow edits.
 //
-// URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), from=topic|remix, mention=inside|no,
+// URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), topic= (fills the topic once and
+// leaves), from=topic|remix, mention=inside|no,
 // size=9x16, pictures=mine|ai, look=<explainer look id>, tab=original, pick=open and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
 // show=<slideshow id> pushes.
 
@@ -141,6 +142,14 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const [picking, setPicking] = useUrlFlag("pick", "open");
   const [showId, openShow] = useUrlItem("show");
   const [words, setWords] = useWords();
+  // topic= (the launch plan's link-in) fills the topic once, then leaves the address
+  const topicParam = params.get("topic");
+  useEffect(() => {
+    if (topicParam === null) return;
+    setWords({ ...words, topic: topicParam.slice(0, 200) });
+    update({ topic: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topicParam]);
   const kept = useMemo(() => (keepId ? loadSlideshows(userId).find((s) => s.id === keepId) : undefined), [keepId, userId]);
   // a kept cover's words are the topic, set once per cover so a change typed after stays
   const filledFor = useRef<string | null>(null);
