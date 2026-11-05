@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, Globe, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Globe, Loader2, Pencil, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,15 +14,20 @@ import type { PlanAudience } from "@/lib/positioning";
 import { loadProfiles } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { AUDIENCE_NAMES, createBrand, keptBrand, keptBrandKey, NETWORKS, PROFESSION_NEEDED, readBody, type BrandDna as Dna } from "@/lib/addBrand";
+import { appDna, appFacts, appProfession, appStoreLink, isAppRead, MAX_PAINS, proofLines, readComplaints, readListing, readRivals, type AppRead } from "@/lib/appStore";
 import { asPostLang, LANG_NAMES } from "@/lib/translate";
 
-// /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow).
+// /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow), or an app from
+// its App Store link (src/lib/appStore.ts: the listing, the app's own site, and complaints about apps like it).
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
 // own stores (brand kit, positioning, social accounts, voice) are filled when it is created.
 
 const STEPS = ["Opening the site", "Name and logo", "Brand colour", "Social accounts", "What you do and for whom", "How you sound"];
+const APP_STEPS = ["Opening the App Store listing", "Its website: colour and social accounts", "Apps like it", "What their users complain about"];
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
-type Card = (typeof CARDS)[number];
+// an App Store read adds two cards: the store's own facts, and complaints about apps like it
+const ALL_CARDS = [...CARDS, "proof", "pains"] as const;
+type Card = (typeof ALL_CARDS)[number];
 
 // Leo's read names the site's language from <html lang> (brand-dna); everyone else's read has none (edit-translate)
 const siteLang = (d: Dna | null, leo: boolean) => (leo ? asPostLang((d as { lang?: unknown } | null)?.lang) : null);
@@ -34,6 +39,7 @@ export default function AddBrandPage() {
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
   const [dna, setDna] = useState<Dna | null>(null);
+  const [app, setApp] = useState<AppRead | null>(null);
   const [done, setDone] = useState<Set<Card>>(new Set());
   const [justName, setJustName] = useState(false);
   const [name, setName] = useState("");
@@ -67,8 +73,14 @@ export default function AddBrandPage() {
       } catch {
         // storage blocked: start empty
       }
-      const kept = keptBrand(raw, CARDS);
+      const kept = keptBrand(raw, ALL_CARDS);
       if (!kept) return;
+      try {
+        const a = JSON.parse(raw ?? "null")?.app;
+        if (kept.dna && isAppRead(a)) setApp(a);
+      } catch {
+        // keptBrand read it already: an unreadable form never gets here
+      }
       setAddress(kept.address);
       setName(kept.name);
       setJustName(kept.justName);
@@ -87,15 +99,45 @@ export default function AddBrandPage() {
     if (!uid || phase === "reading" || phase === "done") return;
     try {
       if (!address && !name && !dna && !profession) sessionStorage.removeItem(keptBrandKey(uid));
-      else sessionStorage.setItem(keptBrandKey(uid), JSON.stringify({ address, name, justName, profession, dna, done: [...done] }));
+      else sessionStorage.setItem(keptBrandKey(uid), JSON.stringify({ address, name, justName, profession, dna, done: [...done], app }));
     } catch {
       // storage full or blocked: the form just isn't kept
     }
-  }, [uid, phase, address, name, justName, profession, dna, done]);
+  }, [uid, phase, address, name, justName, profession, dna, done, app]);
+
+  const appLink = appStoreLink(address);
+  const NO_APP = "We couldn't read that App Store link. Check it opens in a browser, or paste the app's website instead.";
+  // the steps move as each read lands, so a slow one shows where it is
+  const readApp = async (link: NonNullable<typeof appLink>) => {
+    setError("");
+    setApp(null);
+    setPhase("reading");
+    setStep(0);
+    try {
+      const l = await readListing(link);
+      if (!l) throw new Error("no such app");
+      setStep(1);
+      // the app's own site gives colour, social accounts and voice; a failed or capped read just leaves them empty
+      const site = l.sellerUrl && left !== 0 ? callFn<Dna>("brand-dna", readBody(l.sellerUrl, leo)).catch(() => null) : Promise.resolve(null);
+      const rivals = await readRivals(l);
+      setStep(2);
+      const complaints = readComplaints(rivals, l).finally(() => setStep(3));
+      const [d, found] = await Promise.all([site, complaints]);
+      setDna(appDna(l, d && leo ? { ...d, readAt: new Date().toISOString() } : d));
+      setApp({ listing: l, rivals, complaints: found, proof: proofLines(l), pains: [] });
+      setProfession((p) => p.trim() || appProfession(l));
+      setPhase("confirm");
+    } catch {
+      setError(NO_APP);
+      setPhase("url");
+    }
+  };
 
   const read = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (appLink) return readApp(appLink);
     setError("");
+    setApp(null);
     setPhase("reading");
     setStep(0);
     // the steps tick over while the one request runs; the last waits for the answer
@@ -115,6 +157,7 @@ export default function AddBrandPage() {
   const patch = (p: Partial<Dna>) => setDna((d) => d && { ...d, ...p });
   const startOver = () => {
     setDna(null);
+    setApp(null);
     setDone(new Set());
     setPhase("url");
   };
@@ -128,7 +171,7 @@ export default function AddBrandPage() {
   const create = (brand: Dna | null) => {
     const title = (brand?.name ?? name).trim().slice(0, 40);
     if (!uid || !title) return;
-    const made = createBrand(uid, title, brand, profession, brand ? siteLang(brand, leo) : null);
+    const made = createBrand(uid, title, brand, profession, brand ? siteLang(brand, leo) : null, brand && app ? appFacts(app) : []);
     if (!made.ok) {
       setTriedEmpty(true);
       if (brand) reopen("offer");
@@ -143,7 +186,11 @@ export default function AddBrandPage() {
   };
   const needLine = triedEmpty && !profession.trim() ? <p className="text-sm text-destructive" role="alert">{PROFESSION_NEEDED}</p> : null;
 
-  const pct = Math.round((done.size / CARDS.length) * 100);
+  const cards: readonly Card[] = app ? ALL_CARDS : CARDS;
+  const pct = Math.round((done.size / cards.length) * 100);
+  const steps = appLink ? APP_STEPS : STEPS;
+  const tick = (key: "proof" | "pains", v: string, on: boolean) =>
+    setApp((a) => a && { ...a, [key]: on ? [...a[key], v] : a[key].filter((x) => x !== v) });
   const lang = siteLang(dna, leo);
   const row = (c: Card, title: string, summary: string, body: React.ReactNode) => (
     <section key={c} className={`rounded-xl border p-3 ${done.has(c) ? "border-border/60 bg-muted/30" : "border-primary/40 bg-card shadow-card"}`}>
@@ -176,15 +223,15 @@ export default function AddBrandPage() {
       {phase === "url" && !justName && (
         <form onSubmit={read} className="space-y-3 rounded-2xl border border-border/60 bg-card p-4 shadow-card">
           <label className="block space-y-1.5 text-sm font-semibold">
-            The brand's website
+            The brand's website or App Store link
             <div className="flex gap-2">
-              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg" inputMode="url" autoFocus className="font-normal" />
+              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg or apps.apple.com/..." inputMode="url" autoFocus className="font-normal" />
               <Button type="submit" disabled={!address.trim() || left === 0}><Globe className="mr-1.5 h-4 w-4" /> Read it</Button>
             </div>
           </label>
           {leo && <p><PriceChip feature="brand-dna" left={left} /></p>}
           {why && <p className="text-xs text-destructive">{why}</p>}
-          <p className="text-xs text-muted-foreground">{leo ? "Takes under a minute. We read the home page and up to 4 more pages, and nothing is posted." : "Takes under a minute. We read the home page only, and nothing is posted."}</p>
+          <p className="text-xs text-muted-foreground">{appLink ? "Takes under a minute. We read the listing, the app's website and reviews of apps like it, and nothing is posted." : leo ? "Takes under a minute. We read the home page and up to 4 more pages, and nothing is posted." : "Takes under a minute. We read the home page only, and nothing is posted."}</p>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
           <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
         </form>
@@ -207,7 +254,7 @@ export default function AddBrandPage() {
 
       {phase === "reading" && (
         <ol className="space-y-2 rounded-2xl border border-border/60 bg-card p-4 shadow-card" aria-live="polite">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <li key={s} className={`flex items-center gap-2 text-sm ${i > step ? "text-muted-foreground" : ""}`}>
               {i < step ? <Check className="h-4 w-4 text-success" /> : i === step ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
               {s}
@@ -222,7 +269,7 @@ export default function AddBrandPage() {
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Brand set up">
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-xs font-semibold text-muted-foreground">{done.size} of {CARDS.length} checked</span>
+            <span className="text-xs font-semibold text-muted-foreground">{done.size} of {cards.length} checked</span>
           </div>
 
           {row("identity", "Name and logo", dna.name, (
@@ -269,13 +316,68 @@ export default function AddBrandPage() {
           {row("voice", "How it sounds", dna.voice || "not set", (
             <Textarea rows={2} value={dna.voice} onChange={(e) => patch({ voice: e.target.value })} placeholder="Warm and plain. Short sentences." className="text-sm" aria-label="Voice" />
           ))}
+          {app && row("proof", "From the App Store", `${app.proof.length} ${app.proof.length === 1 ? "fact" : "facts"} to save`, (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                {app.listing.icon && <img src={app.listing.icon} alt="" className="h-12 w-12 rounded-xl border border-border/60" />}
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="font-semibold">{app.listing.name}</p>
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    {app.listing.rating !== null && <><Star className="h-3.5 w-3.5" /> {app.listing.rating.toFixed(1)} from {app.listing.ratings.toLocaleString("en-US")} ratings, </>}
+                    {app.listing.price || "No price shown"}
+                  </p>
+                </div>
+                <a href={app.listing.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary [@media(pointer:coarse)]:min-h-11">Listing <ExternalLink className="h-3 w-3" /></a>
+              </div>
+              {app.listing.screenshots.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {app.listing.screenshots.map((src) => <img key={src} src={src} alt="" loading="lazy" className="h-28 shrink-0 rounded-md border border-border/60" />)}
+                </div>
+              )}
+              <fieldset className="space-y-1.5">
+                <legend className="text-xs font-semibold text-muted-foreground">Facts the writers may state</legend>
+                {proofLines(app.listing).map((line) => (
+                  <label key={line} className="flex items-start gap-2 text-sm [@media(pointer:coarse)]:min-h-11">
+                    <input type="checkbox" className="mt-1" checked={app.proof.includes(line)} onChange={(e) => tick("proof", line, e.target.checked)} />
+                    {line}
+                  </label>
+                ))}
+              </fieldset>
+            </div>
+          ))}
+          {app && row("pains", "What users of apps like it complain about", app.pains.length ? `${app.pains.length} picked` : "none picked", (
+            <div className="space-y-2">
+              {app.complaints.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No 1 or 2 star reviews came back for apps like it. You can add problems later in Your voice.</p>
+              ) : (
+                <fieldset className="space-y-1.5">
+                  <legend className="text-xs text-muted-foreground">
+                    Pick up to {MAX_PAINS}. Writers can open a post on these problems. From reviews of {app.rivals.map((r) => r.name).join(", ")}.
+                  </legend>
+                  {app.complaints.map((c) => {
+                    const on = app.pains.includes(c.id);
+                    return (
+                      <label key={c.id} className="flex items-start gap-2 rounded-lg border border-border/60 p-2 text-sm [@media(pointer:coarse)]:min-h-11">
+                        <input type="checkbox" className="mt-1" checked={on} disabled={!on && app.pains.length >= MAX_PAINS} onChange={(e) => tick("pains", c.id, e.target.checked)} />
+                        <span className="min-w-0 flex-1">
+                          {`"${c.text}"`}
+                          <span className="block text-xs text-muted-foreground">{c.app}, {c.stars} {c.stars === 1 ? "star" : "stars"}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              )}
+            </div>
+          ))}
+          {app && (app.proof.length > 0 || app.pains.length > 0) && <p className="text-xs text-muted-foreground">These are saved to Your voice as facts, where you can turn any off.</p>}
           {lang && <p className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm" data-testid="site-language">Your website is in {LANG_NAMES[lang]}, so posts will be too. Change it in Brand kit.</p>}
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Button size="lg" disabled={!dna.name.trim()} onClick={() => create(dna)}>Create {dna.name.trim() || "brand"}</Button>
             {needLine}
-            {done.size < CARDS.length && <span className="text-xs text-muted-foreground">Anything you haven't checked is kept as shown.</span>}
-            <Button variant="ghost" className="ml-auto text-muted-foreground" onClick={startOver}>Read a different site</Button>
+            {done.size < cards.length && <span className="text-xs text-muted-foreground">Anything you haven't checked is kept as shown.</span>}
+            <Button variant="ghost" className="ml-auto text-muted-foreground" onClick={startOver}>Read a different link</Button>
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createBrand, keptBrand, keptBrandKey, newBrandKit, PROFESSION_NEEDED, readBody, type BrandDna } from "./addBrand";
 import { loadBrand } from "./carousel";
 import { loadPositioning } from "./positioning";
+import { loadFacts } from "./voiceMemory";
 import { activeProfileId, loadProfiles } from "./profiles";
 
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
@@ -99,7 +100,7 @@ describe("creating a brand (Add a brand)", () => {
   };
   beforeEach(() => {
     const s = mem();
-    vi.stubGlobal("window", { localStorage: s, location: { pathname: "/brands/new", search: "", hash: "" }, history: { state: null, replaceState: () => undefined } });
+    vi.stubGlobal("window", { localStorage: s, location: { pathname: "/brands/new", search: "", hash: "" }, history: { state: null, replaceState: () => undefined }, dispatchEvent: () => true });
     vi.stubGlobal("localStorage", s);
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -123,5 +124,15 @@ describe("creating a brand (Add a brand)", () => {
     expect(activeProfileId(UID)).toBe(read.id);
     expect(loadBrand(UID)).toMatchObject({ name: "Acme Advisory", profession: "Financial adviser", color: "#0F766E" });
     expect(loadPositioning(UID)?.oneLiner).toBe("We help young families plan their CPF.");
+  });
+
+  it("puts an App Store read's facts on the new brand only", () => {
+    const facts = ["Tidy is free to download on the App Store", 'Users of other productivity apps complain: "Will not sync"'];
+    const made = createBrand(UID, "Tidy", { ...dna, name: "Tidy" }, "productivity app", null, facts);
+    if (made.ok === false) throw new Error(made.error);
+    expect(loadFacts(UID).map((f) => f.text)).toEqual(facts);
+    const other = createBrand(UID, "Acme Advisory", dna, "Financial adviser", null);
+    if (other.ok === false) throw new Error(other.error);
+    expect(loadFacts(UID)).toEqual([]);
   });
 });

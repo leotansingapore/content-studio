@@ -5,6 +5,7 @@ import type { PostLang } from "@/lib/links";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
+import { addFact } from "@/lib/voiceMemory";
 import { saveVoiceProfile } from "@/lib/voiceProfile";
 
 export interface BrandDna {
@@ -111,6 +112,7 @@ export const PROFESSION_NEEDED = "Pick what you do first, so the AI writes this 
 /**
  * Makes the brand, opens it and fills its own stores from the site read (brand kit, positioning, social accounts,
  * voice), with "What do you do?" on its kit. A new brand must answer it, so nothing is created until it has.
+ * `facts` (an App Store read's proof lines and picked complaints) go to the new brand's memory, which the writers read.
  */
 export function createBrand(
   uid: string,
@@ -118,6 +120,7 @@ export function createBrand(
   brand: BrandDna | null,
   profession: string,
   postLang: PostLang | null,
+  facts: string[] = [],
 ): { ok: true; id: string } | { ok: false; error: string } {
   if (!profession.trim()) return { ok: false, error: PROFESSION_NEEDED };
   const p = addProfile(uid, title);
@@ -147,5 +150,6 @@ export function createBrand(
   }
   saveSocialAccounts(uid, accounts);
   if (brand.voice) saveVoiceProfile(uid, { posts: [], voiceSummary: brand.voice, updatedAt: now });
+  for (const f of facts) addFact(uid, f);
   return { ok: true, id: p.id };
 }
