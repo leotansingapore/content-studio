@@ -90,6 +90,8 @@ export const DAILY_LIMITS = {
   "post-score": 40,
   // A LinkedIn strategy written from the interview's answers (linkedin-strategy, one OpenAI call).
   "linkedin-strategy": 5,
+  // A batch of 5 to 30 hooks on My hooks (hook-writer, one OpenAI call).
+  "hook-writer": 20,
   // Jev's judgment calls in Write (writing-judge): the sounds-human check and the rest.
   "writing-judge": 60,
   // Profile score out of 100 with name and bio rewrites (writing-judge mode "profile", Jev + OpenAI).

@@ -23,6 +23,7 @@ import { saveSoon } from "@/lib/saveSoon";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { useSignedInUser } from "@/lib/useLeoOnly";
+import { loadSnippets, ofKind } from "@/lib/replySnippets";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { STATUS_LABEL, cadence, when, type CampaignRowView } from "@/pages/SlideCampaignsPage";
 import { MAX_HOOKS, MAX_TIMES, publishMode, publishMusic, publishSettings, sanitizeSchedule, sanitizeSpec, type CampaignSpec, type Publish, type Role, type Schedule } from "../../supabase/functions/_shared/slideCampaign.ts";
@@ -343,6 +344,15 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                     <Plus className="h-4 w-4" />
                   </Button>
                 </form>
+                {(() => {
+                  // hooks kept on My hooks (/hooks) that this campaign doesn't have yet, one line each
+                  const mine = ofKind(loadSnippets(userId), "hook").map((k) => k.text.replace(/\s*\n\s*/g, " ")).filter((t) => !spec.hooks.includes(t));
+                  return mine.length > 0 && spec.hooks.length < MAX_HOOKS ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => addHooks(mine.join("\n"))} className="h-8 px-0 text-xs text-primary [@media(pointer:coarse)]:min-h-11">
+                      Add {mine.length} from My hooks
+                    </Button>
+                  ) : null;
+                })()}
                 <ul className="flex flex-wrap gap-1.5">
                   {spec.hooks.map((h) => (
                     <li key={h} className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs">

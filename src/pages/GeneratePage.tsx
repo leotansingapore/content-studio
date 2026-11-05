@@ -164,6 +164,7 @@ import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } f
 import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
 import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom, provenFormulas, provenOpen, type HookFormula, type HookSpeaker } from "@/lib/hookFormulas";
+import { loadSnippets, ofKind } from "@/lib/replySnippets";
 import { HOOK_BANK } from "@/lib/hookBank";
 import { prompterLines, titlesRun, writeTitles, TITLES_FAILED } from "@/lib/prompter";
 import {
@@ -1088,6 +1089,8 @@ export default function GeneratePage() {
   // ?hooks=proven: the hook card on "Proven in your niche" (Leo only); formulas is the default and left out.
   const [hookTab, setHookTab] = useUrlState("hooks", "formulas", { allowed: HOOK_TABS });
   const proven = Boolean(leo) && hookTab === "proven" && PROVEN_OPEN;
+  // hooks kept on My hooks (/hooks), offered under the written ones; read again whenever a new set comes in
+  const myHooks = useMemo(() => (userId ? ofKind(loadSnippets(userId), "hook").slice(-6).reverse() : []), [userId, hookOptions]);
   // ?compare=original|more: a remixed post's compare tab on phones (RemixCompare reads the same param)
   const [compareTab, setCompareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
   const showShortcuts = panel === "shortcuts";
@@ -4253,6 +4256,26 @@ export default function GeneratePage() {
                 row
               );
             })}
+            {myHooks.length > 0 && (
+              <div className="space-y-1.5 pt-2" data-testid="my-hooks-pick">
+                <p className="text-xs font-semibold text-muted-foreground">From My hooks</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {myHooks.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={isStreaming}
+                      onClick={() => handlePickHook(s.text)}
+                      className={`max-w-full rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors disabled:opacity-50 [@media(pointer:coarse)]:min-h-11 ${
+                        chosenHook === s.text.trim() ? "border-primary/60 bg-primary/10 text-primary" : "border-border/70 hover:border-primary/40"
+                      }`}
+                    >
+                      {s.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

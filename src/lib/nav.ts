@@ -132,6 +132,8 @@ export const SECTIONS: NavSection[] = [
     pages: [
       { to: "/studio", label: "Overview", title: "Studio", group: "Overview" },
       { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Create" },
+      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
+      { to: "/hooks", label: "Hooks", title: "My hooks" },
       { to: "/make", label: "Formats", owners: LEO_EMAILS },
       { to: "/generate/batch", label: "Batch" },
       { to: "/generate/answer", label: "Answer", title: "Answer a question" },

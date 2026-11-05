@@ -29,6 +29,7 @@ export const PAGES: Record<string, string> = {
   "/welcome": "Getting started",
   "/north-star": "North star",
   "/generate": "Write a post",
+  "/hooks": "My hooks",
   "/make": "Formats",
   "/generate/batch": "Batch",
   "/generate/answer": "Answer a question",
