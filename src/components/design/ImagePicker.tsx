@@ -105,7 +105,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
               void search();
             }}
           >
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search photos" aria-label="Search photos" className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search photos" aria-label="Search photos" className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
             <Button type="submit" size="sm" variant="outline" disabled={busy || !query.trim()} className="h-8 gap-1">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Search
             </Button>

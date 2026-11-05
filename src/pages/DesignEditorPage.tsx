@@ -426,7 +426,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           aria-label="Slideshow name"
           onChange={(e) => commit({ ...work, title: e.target.value }, "title")}
           onBlur={() => !work.title.trim() && commit({ ...work, title: "Untitled slideshow" })}
-          className="min-w-0 flex-1 basis-40 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-lg font-semibold hover:border-border focus:border-input focus:outline-none"
+          className="min-w-0 flex-1 basis-40 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-lg font-semibold [@media(pointer:coarse)]:min-h-11 hover:border-border focus:border-input focus:outline-none"
         />
         <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{FORMAT_LABEL[work.format]}</span>
         <span className="text-xs text-muted-foreground" aria-live="polite">

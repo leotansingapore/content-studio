@@ -96,7 +96,7 @@ function Slider({ value, onChange, min, max, step = 1 }: { value: number; onChan
 function Toggle({ label, on, onChange, children }: { label: string; on: boolean; onChange: (on: boolean) => void; children?: ReactNode }) {
   return (
     <div className="rounded-md border border-border">
-      <label className="flex cursor-pointer items-center gap-2 px-2.5 py-2 text-xs">
+      <label className="flex cursor-pointer items-center gap-2 px-2.5 py-2 text-xs [@media(pointer:coarse)]:min-h-11">
         <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} className="accent-primary" />
         {label}
       </label>
@@ -196,7 +196,7 @@ function TextPanel({ l, set, swatches, fonts, brandFonts }: { l: TextLayer; set:
             ["italic", "Italic"],
           ] as const
         ).map(([k, label]) => (
-          <label key={k} className="flex items-center gap-1.5">
+          <label key={k} className="flex items-center gap-1.5 [@media(pointer:coarse)]:min-h-11">
             <input type="checkbox" className="accent-primary" checked={l[k]} onChange={(e) => set({ [k]: e.target.checked })} />
             {label}
           </label>
@@ -320,7 +320,7 @@ function ImagePanel({ userId, designId, l, set, onLookAll, format }: { userId: s
               type="button"
               aria-pressed={l.look === k.value}
               onClick={() => set({ look: k.value })}
-              className={`rounded-md border px-1.5 py-1.5 text-xs ${l.look === k.value ? "border-primary text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
+              className={`rounded-md border px-1.5 py-1.5 text-xs [@media(pointer:coarse)]:min-h-11 ${l.look === k.value ? "border-primary text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
             >
               {k.label}
             </button>
@@ -331,7 +331,7 @@ function ImagePanel({ userId, designId, l, set, onLookAll, format }: { userId: s
             <Slider value={l.look_strength} min={0} max={100} onChange={(look_strength) => set({ look_strength }, "ls")} />
           </Row>
         )}
-        <button type="button" className="text-xs text-primary hover:underline" onClick={() => onLookAll(l.look, l.look_strength)}>
+        <button type="button" className="text-xs text-primary hover:underline [@media(pointer:coarse)]:min-h-11" onClick={() => onLookAll(l.look, l.look_strength)}>
           Use on every photo in this slideshow
         </button>
       </Section>
@@ -423,7 +423,7 @@ function LayoutPanel({ l, set }: { l: Layer; set: (p: Partial<Layer>, tag?: stri
       <Row label="Opacity">
         <Slider value={Math.round(l.opacity * 100)} min={0} max={100} onChange={(n) => set({ opacity: n / 100 }, "op")} />
       </Row>
-      <label className="flex items-center gap-1.5 text-xs">
+      <label className="flex items-center gap-1.5 text-xs [@media(pointer:coarse)]:min-h-11">
         <input type="checkbox" className="accent-primary" checked={l.locked} onChange={(e) => set({ locked: e.target.checked })} />
         Lock position
       </label>
@@ -452,14 +452,14 @@ function Layers({ slide, selected, onSelect, onLayer, onRemove, onMove }: Pick<I
             className={`flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs ${selected === l.id ? "bg-muted" : "hover:bg-muted/60"}`}
           >
             <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
-            <button type="button" onClick={() => onSelect(l.id)} className="min-w-0 flex-1 truncate text-left">
+            <button type="button" onClick={() => onSelect(l.id)} className="min-w-0 flex-1 truncate text-left [@media(pointer:coarse)]:min-h-11">
               {l.name}
             </button>
             {l.locked && <Lock className="h-3 w-3 text-muted-foreground" aria-label="Locked" />}
-            <button type="button" aria-label={l.hidden ? `Show ${l.name}` : `Hide ${l.name}`} onClick={() => onLayer(l.id, { hidden: !l.hidden })} className="p-1 text-muted-foreground hover:text-foreground">
+            <button type="button" aria-label={l.hidden ? `Show ${l.name}` : `Hide ${l.name}`} onClick={() => onLayer(l.id, { hidden: !l.hidden })} className="p-1 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center">
               {l.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </button>
-            <button type="button" aria-label={`Delete ${l.name}`} onClick={() => onRemove(l.id)} className="p-1 text-muted-foreground hover:text-destructive">
+            <button type="button" aria-label={`Delete ${l.name}`} onClick={() => onRemove(l.id)} className="p-1 text-muted-foreground hover:text-destructive [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </li>

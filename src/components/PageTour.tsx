@@ -51,7 +51,7 @@ export default function PageTour({ id, userId, steps, onClose, onStep }: { id: P
           <p className="font-medium">{step.title}</p>
           <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
         </div>
-        <button type="button" aria-label="Close the tour" onClick={close} className="rounded p-1 text-muted-foreground hover:text-foreground">
+        <button type="button" aria-label="Close the tour" onClick={close} className="rounded p-1 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:-m-2.5 [@media(pointer:coarse)]:p-3.5">
           <X className="h-4 w-4" />
         </button>
       </div>

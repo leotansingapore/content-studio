@@ -279,7 +279,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
               if (query.trim()) void search();
             }}
           >
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search free photos, like golf course" aria-label="Search photos" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search free photos, like golf course" aria-label="Search photos" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
             <Button type="submit" variant="outline" size="sm" disabled={!query.trim() || !!busy} className="h-9 gap-1">
               {busy === "search" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Search
             </Button>

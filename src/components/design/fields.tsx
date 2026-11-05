@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 
-export const field = "h-8 w-full rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring";
+export const field = "h-8 [@media(pointer:coarse)]:h-11 w-full rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring";
 
 export function ColorField({ value, onChange, swatches = [] }: { value: string; onChange: (c: string) => void; swatches?: string[] }) {
   const [typed, setTyped] = useState<string | null>(null);
   const six = /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000";
   return (
-    <span className="flex items-center gap-1.5">
-      <input type="color" aria-label="Colour" value={six} onChange={(e) => onChange(e.target.value)} className="h-8 w-8 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5" />
+    <span className="flex items-center gap-1.5 [@media(pointer:coarse)]:flex-wrap">
+      <input type="color" aria-label="Colour" value={six} onChange={(e) => onChange(e.target.value)} className="h-8 w-8 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" />
       <input
-        className="h-8 w-[5.5rem] rounded-md border border-input bg-background px-2 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+        className="h-8 w-[5.5rem] rounded-md border border-input [@media(pointer:coarse)]:h-11 bg-background px-2 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-ring"
         aria-label="Hex colour"
         value={typed ?? value}
         onChange={(e) => {
@@ -21,7 +21,7 @@ export function ColorField({ value, onChange, swatches = [] }: { value: string; 
         onBlur={() => setTyped(null)}
       />
       {swatches.map((c) => (
-        <button key={c} type="button" title={c} aria-label={`Use ${c}`} onClick={() => onChange(c)} className="h-6 w-6 shrink-0 rounded-full border border-border" style={{ background: c }} />
+        <button key={c} type="button" title={c} aria-label={`Use ${c}`} onClick={() => onChange(c)} className="h-6 w-6 shrink-0 rounded-full border border-border [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ background: c }} />
       ))}
     </span>
   );
@@ -35,7 +35,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 whitespace-nowrap rounded px-2 py-1 text-xs ${value === o.value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          className={`flex-1 whitespace-nowrap rounded px-2 py-1 text-xs [@media(pointer:coarse)]:min-h-11 ${value === o.value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
         >
           {o.label}
         </button>
