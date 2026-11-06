@@ -3,6 +3,7 @@
 // its frame, anything else a card in the brand colour with the hook.
 
 import { useEffect, useMemo, useState } from "react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
 import { Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,7 @@ export default function GridPage() {
               const img = cover(t.draft);
               const to = t.draft.format === "carousel" && carousels.some((c) => c.draftId === t.draft.id) ? `/carousel?draft=${encodeURIComponent(t.draft.id)}` : `/generate?draft=${encodeURIComponent(t.draft.id)}`;
               return (
-                <li key={t.draft.id} className="relative aspect-[3/4] bg-card">
+                <li key={t.draft.id} className="group relative aspect-[3/4] bg-card">
                   <Link to={to} aria-label={`${t.kind === "planned" ? `Planned for ${dayLabel(t.day)}` : "Posted"}: ${t.draft.hook || t.draft.draft}`.slice(0, 140)}
                     className={`block h-full w-full ${t.kind === "posted" ? "opacity-60" : ""}`}>
                     {img ? (
@@ -109,6 +110,12 @@ export default function GridPage() {
                       <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">{dayLabel(t.day)}</span>
                     )}
                   </Link>
+                  {/* its own link, beside the tile rather than inside it; out of the way of the preview until hovered */}
+                  <CopyLinkButton
+                    path={to}
+                    label={`Copy link to ${(t.draft.hook || t.draft.draft || "this post").slice(0, 60)}`}
+                    className="absolute right-1 top-1 rounded-full bg-background/90 text-foreground opacity-0 shadow-sm focus:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
+                  />
                 </li>
               );
             })}

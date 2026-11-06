@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Clapperboard, Image as ImageIcon, Layers, Type, type LucideIcon } from "lucide-react";
 import { CREATE_FORMATS } from "@/lib/createFormats";
 import ReelCard from "@/components/ReelCard";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { FORMATS, formatHref, type FormatKind } from "@/data/formats";
 import { ADS, daysRunning } from "@/lib/adsSwipe";
 import { draftsOfBrand, draftStatus } from "@/lib/draftHistory";
@@ -145,10 +146,16 @@ export default function StudioPage() {
           </p>
         ) : (
           latest.map((d) => (
-            <Link key={d.id} to={`/generate?draft=${encodeURIComponent(d.id)}`} className={tile}>
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{draftStatus(d)}</span>
-              <span className="line-clamp-3 text-sm font-medium text-foreground">{(d.hook || d.draft.split("\n")[0] || "Untitled post").slice(0, 120)}</span>
-            </Link>
+            // the whole tile opens the post (its title's link stretches over it); Copy link sits above that
+            <div key={d.id} className={`relative ${tile} focus-within:border-primary/40`}>
+              <span className="flex items-start justify-between gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{draftStatus(d)}</span>
+                <CopyLinkButton path={`/generate?draft=${encodeURIComponent(d.id)}`} label={`Copy link to ${(d.hook || "this post").slice(0, 60)}`} className="relative z-10 -mr-1.5 -mt-1.5" />
+              </span>
+              <Link to={`/generate?draft=${encodeURIComponent(d.id)}`} className="line-clamp-3 text-sm font-medium text-foreground after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">
+                {(d.hook || d.draft.split("\n")[0] || "Untitled post").slice(0, 120)}
+              </Link>
+            </div>
           ))
         )}
       </Row>

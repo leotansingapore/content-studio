@@ -16,7 +16,7 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 
 | Post | Its link | Where the Copy link sits |
 |---|---|---|
-| Your post (draft, scheduled, posted) | /generate?draft=<id> (the editor); /calendar?post=<id> for its calendar panel | the editor, each My posts row, the calendar panel, each finished Library card |
+| Your post (draft, scheduled, posted) | /generate?draft=<id> (the editor); /calendar?post=<id> for its calendar panel | the editor, each All posts row, the calendar panel, each finished Library card, each Home and Studio post card, each Board card, each Grid tile (its carousel's /carousel?draft= when it has one) |
 | A carousel, slideshow or video project | the Library card's own page: /carousel?carousel=, /slideshow?s=, /edit?p= (video projects open on the device that made them) | each finished Library card, the carousel preview, the slideshow |
 | A posts board post (reel, carousel) | /reels?card=<id> | every post in the Posts view and the post's panel |
 | A team post (calendar review) | /calendar?business=team-posts&teampost=tp3 | the review panel |

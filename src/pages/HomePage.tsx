@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -968,10 +969,10 @@ export default function HomePage() {
             {recent.map((d) => {
               const s = draftStatus(d);
               return (
-                <Link
+                // the whole card opens the post (Open's link stretches over it); Copy link sits above that
+                <div
                   key={d.id}
-                  to={`/generate?draft=${encodeURIComponent(d.id)}`}
-                  className="flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
+                  className="relative flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors focus-within:border-primary/40 hover:border-primary/40"
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span
@@ -986,10 +987,16 @@ export default function HomePage() {
                   <p className="line-clamp-3 text-sm leading-relaxed text-foreground">
                     {d.hook || d.draft.slice(0, 90)}
                   </p>
-                  <span className="mt-auto pt-3 text-[11px] font-medium text-primary">
-                    Open &rarr;
-                  </span>
-                </Link>
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+                    <Link
+                      to={`/generate?draft=${encodeURIComponent(d.id)}`}
+                      className="text-[11px] font-medium text-primary after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
+                    >
+                      Open &rarr;
+                    </Link>
+                    <CopyLinkButton path={`/generate?draft=${encodeURIComponent(d.id)}`} label={`Copy link to ${(d.hook || "this post").slice(0, 60)}`} className="relative z-10 -my-2 -mr-2" />
+                  </div>
+                </div>
               );
             })}
           </div>

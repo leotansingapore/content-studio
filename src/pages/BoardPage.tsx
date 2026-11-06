@@ -7,6 +7,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Card, CardContent } from "@/components/ui/card";
 import { ToastAction } from "@/components/ui/toast";
 import DayInput from "@/components/DayInput";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 import {
@@ -187,6 +188,7 @@ function BoardCard({
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
+          <CopyLinkButton path={`/generate?draft=${encodeURIComponent(draft.id)}`} label={`Copy link to ${(draft.hook || "this post").slice(0, 60)}`} className="-my-1" />
           {onMove && !children && (
             <select
               value={column}
