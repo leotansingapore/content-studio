@@ -66,7 +66,7 @@ describe("nav", () => {
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/launch", "/linkedin"]);
-    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/hooks", "/make/hook-demo", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/drafts", "/board", "/grid", "/media", "/team"]);
+    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/hooks", "/make/hook-demo", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/library", "/drafts", "/board", "/grid", "/media", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect"]);
@@ -119,7 +119,8 @@ describe("nav", () => {
       // a detail page has its own way back: no row over a creator, a campaign or a format; F.A.D.S.'s own tabs keep it
       for (const p of ["/profiles/abc", "/campaigns/new", "/campaigns/c1", "/make/slideshow", "/inspiration/i1", "/carousels/c1", "/working/7412345678901234567", "/design/campaigns/c1", "/design/d1"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
       expect(sectionTabs("/fads/positioning", ANYONE).tabs.find((t) => t.active)?.to).toBe("/fads");
-      expect(sectionTabs("/drafts/", ANYONE).tabs.find((t) => t.active)?.to).toBe("/drafts");
+      // the Library tab is lit on My posts and opens Everything, its first page (everyone since 6 Nov)
+      expect(sectionTabs("/drafts/", ANYONE).tabs.find((t) => t.active)?.to).toBe("/library");
     });
 
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {
@@ -130,12 +131,12 @@ describe("nav", () => {
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
       // each group tab opens the group's first page this sign-in sees
       expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/slideshow", "/library", "/team", "/people"]);
-      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/slideshow", "/drafts", "/team"]);
+      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/slideshow", "/library", "/team"]);
       // the slideshow tools are their own tab, so its Campaigns never sit beside Post and Video
       const slides = sectionTabs("/design/campaigns", ANYONE);
       expect(slides.tabs.find((t) => t.active)?.label).toBe("Slideshows");
       expect(labels(slides.chips)).toEqual(["Slideshow", "Design", "Campaigns", "Libraries"]);
-      expect(labels(sectionTabs("/grid", ANYONE).chips)).toEqual(["All posts", "Board", "Grid", "Media"]);
+      expect(labels(sectionTabs("/grid", ANYONE).chips)).toEqual(["Everything", "All posts", "Board", "Grid", "Media"]);
     });
 
     it("leaves out a row of one and gives bare pages none", () => {

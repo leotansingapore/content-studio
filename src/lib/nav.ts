@@ -156,7 +156,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/design/campaigns", label: "Campaigns", title: "Slideshow campaigns" },
       // the pictures campaigns draw from (Volume's Library, folded in 1 Nov)
       { to: "/design/libraries", label: "Libraries", title: "Image libraries" },
-      { to: "/library", label: "Everything", title: "Library", owners: LEO_EMAILS, group: "Library" },
+      { to: "/library", label: "Everything", title: "Library", group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },
       { to: "/board", label: "Board", icon: Columns3 },
       { to: "/grid", label: "Grid", title: "Instagram grid" },

@@ -198,6 +198,7 @@ Nav: `src/lib/nav.test.ts` keeps its More sheet assertion for `someone@example.c
 - Should `/library` replace `/drafts` when it is turned on for everyone, or sit beside it? Leo decides. Until then both exist and the library is read-only apart from its links.
 - Videos made on another device show a card with no file. Cloud copies of video files wait on brand-media-library step 2 (bucket and storage spend), which is Leo's call.
 - 20 Oct 2026, as built (phase-1 brief over this spec): slideshows are carousel cards (a slideshow tied to a post gives that post its slide-1 thumb and opens /slideshow?s=); a saved carousel tied to a post opens /carousel?carousel=<id>; a finished join /edit has not taken yet is a ready video, "Open it in the editor"; a paid avatar or template clip waiting after a reload is a making row, "Open the editor to finish it"; Remix rows come in as "Remix" (a format still queued says "Up next") and reopen the sheet over /library. After review: a scheduled post whose day has passed says the calendar's "<n> days overdue", and one with no day says "Scheduled"; /library runs My posts' Zernio refresh on load; the waiting avatar shows a clock, not a spinner; a failed job card shows only "Try again", since Open goes to the same maker.
+- 6 Nov 2026 (BuilderCult fold, research/buildercult/02-parity.md gap 7): /library opens to every sign-in, and Everything sits in the Library nav group for everyone. Designs and slideshow campaign runs are still not in it.
 
 ## Related
 

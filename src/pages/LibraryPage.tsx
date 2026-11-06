@@ -1,4 +1,4 @@
-// Your library (/library, Leo's sign-ins only; docs/north-star/items/publish-library.md): every post, carousel,
+// Your library (/library, every sign-in since 6 Nov, BuilderCult fold; docs/north-star/items/publish-library.md): every post, carousel,
 // slideshow, video and AI picture in one grid, filtered by format, status and search, with what is still being made
 // beside it. Read-only apart from its links: each card opens the page that made it. Nothing is stored here.
 
@@ -28,7 +28,7 @@ import {
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { loadSlideshows, onSlideshowsChanged } from "@/lib/slideshow";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useSignedInUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import { loadProjects } from "@/lib/videoProjects";
@@ -39,10 +39,10 @@ const FORMATS = ["all", ...LIBRARY_FORMATS] as const;
 const STATUSES = ["all", ...LIBRARY_STATUSES] as const;
 
 export default function LibraryPage() {
-  const leo = useLeoUser();
-  if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
-  if (!leo) return <NotFoundPage notOnAccount />;
-  return <Library userId={leo.id} />;
+  const user = useSignedInUser();
+  if (user === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
+  if (!user) return <NotFoundPage notOnAccount />;
+  return <Library userId={user.id} />;
 }
 
 /** The stores, read at once from this device: no page spinner, only thumbs load. */
