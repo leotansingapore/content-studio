@@ -110,11 +110,11 @@ export default function GridPage() {
                       <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">{dayLabel(t.day)}</span>
                     )}
                   </Link>
-                  {/* its own link, beside the tile rather than inside it; out of the way of the preview until hovered */}
+                  {/* its own link, beside the tile rather than inside it; bottom corner, clear of the date chip on a phone-width tile */}
                   <CopyLinkButton
                     path={to}
                     label={`Copy link to ${(t.draft.hook || t.draft.draft || "this post").slice(0, 60)}`}
-                    className="absolute right-1 top-1 rounded-full bg-background/90 text-foreground opacity-0 shadow-sm focus:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
+                    className="absolute bottom-1 right-1 rounded-full bg-background/90 text-foreground opacity-0 shadow-sm focus:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
                   />
                 </li>
               );
