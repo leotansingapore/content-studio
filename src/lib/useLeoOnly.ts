@@ -34,7 +34,7 @@ const asLeo = (u: SessionUser): LeoUser | null => (u?.id && (leoOnly(u.email) ||
 
 // The session supabase-js keeps on this device (its default storage key), read without the auth lock. getSession
 // can take a second or more on load, and Leo's cards would show today's link until then and jump to Remix.
-function storedUser(): SessionUser {
+export function storedUser(): SessionUser {
   try {
     const raw = globalThis.localStorage?.getItem(`sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`);
     const user = raw ? JSON.parse(raw)?.user : undefined;

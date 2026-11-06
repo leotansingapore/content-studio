@@ -14,7 +14,7 @@ import { checkMe, fetchBoard, forgetMe, ownerShown, reelsShown, seesBoard, share
 import { activeProfile, applyBrandLink, profileForBusiness, rememberUser, useBrandAddress } from "@/lib/profiles";
 import BrandTabWatch from "@/components/BrandTabWatch";
 import { supabase } from "@/lib/supabase";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { storedUser, useLeoUser } from "@/lib/useLeoOnly";
 import { setActivityOn } from "@/lib/activity";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import TourPopover from "@/components/TourPopover";
@@ -310,7 +310,8 @@ export default function StudioLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
   // Jump to: Cmd/Ctrl+K anywhere, the button under New post, or the search button on phones.
   const [jumpOpen, setJumpOpen] = useState(false);
-  const [email, setEmail] = useState<string>("");
+  // the stored session names the account on the first frame; getUser below confirms it
+  const [email, setEmail] = useState<string>(() => storedUser()?.email ?? "");
   const [uid, setUid] = useState<string | null>(null);
   // Overdue posts and team posts waiting for approval: part of the count on Home and the phone Home tab.
   const [needsYou, setNeedsYou] = useState(0);
