@@ -4,13 +4,14 @@
 //
 // URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), topic= (fills the topic once and
 // leaves), from=topic|remix, mention=inside|no,
-// size=9x16, pictures=mine|ai, look=<explainer look id>, tab=original, pick=open and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
+// size=9x16, pictures=mine|ai, look=<explainer look id>, tab=original, pick=open, batch=open (the batch card) and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
 // show=<slideshow id> pushes.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, Copy, Download, Loader2, Pencil, Save } from "lucide-react";
 import FormatShell from "@/components/make/FormatShell";
+import SlideshowBatchCard, { useBatch } from "@/components/make/SlideshowBatch";
 import PickList, { metaOf } from "@/components/make/PickList";
 import FlagChips from "@/components/remix/FlagChips";
 import { OriginalPane } from "@/components/OriginalPane";
@@ -58,6 +59,7 @@ import { cn } from "@/lib/utils";
 import { EXPLAINER_LOOKS, LOOK_IDS, type LookId } from "../../../supabase/functions/ai-video/logic.ts";
 import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
+import { batchBusy } from "@/lib/slideshowBatch";
 
 const SIZES = ["4x5", "9x16"] as const;
 type Size = (typeof SIZES)[number];
@@ -128,7 +130,8 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const arrivedToMake = useRef(Boolean((location.state as { go?: boolean } | null)?.go));
   const update = useUrlUpdate();
   const job = useJob();
-  const busy = !!job && slideshowBusy();
+  const batching = !!useBatch() && batchBusy();
+  const busy = (!!job && slideshowBusy()) || batching;
   const gone = !!params.get("source") && !source;
   const [from] = useUrlState<ShowFrom>("from", startFrom(source), { allowed: ["topic", "remix"] });
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "inside", "no"] });
@@ -184,7 +187,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
 
   /** Starts a run on the setup as it is now; `changes` ride in the same URL write (two writes in a row keep only the last). */
   const makeIt = (changes: Record<string, string | null> = {}, over: Partial<SlideshowAsk> = {}) => {
-    if (reason || slideshowBusy()) return void (Object.keys(changes).length && update(changes));
+    if (reason || slideshowBusy() || batchBusy()) return void (Object.keys(changes).length && update(changes));
     update({ ...changes, show: null, slide: null, tab: null });
     void startSlideshow(userId, { ...ask, ...over });
     started.current = slideshowJob()?.id ?? null;
@@ -198,7 +201,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     if (!job) return;
     const step = `${job.id}:${job.state}`;
     if (seen.current === step) return;
-    const live = seen.current !== null;
+    const live = seen.current !== null && !batchBusy();
     seen.current = step;
     const mine = job.id === started.current;
     if ((mine || live) && (job.state === "writing" || job.state === "failed")) toResult();
@@ -371,6 +374,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
           )}
         </CardContent>
       </Card>
+      {!remix && <SlideshowBatchCard userId={userId} base={{ mention: ask.mention, inside: ask.inside, note: ask.note, size }} hasMedia={hasMedia} onOpen={(id) => update({ show: id, slide: null, tab: null })} />}
     </>
   );
 

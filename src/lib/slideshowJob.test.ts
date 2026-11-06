@@ -392,6 +392,13 @@ describe("the job", () => {
     expect(make.mock.calls[0][0].source).toBeUndefined();
     expect(madeShow(j).source).toBeUndefined();
   });
+
+  it("puts a batch's hook on the cover word for word, whatever the writer titled it", async () => {
+    answer(pages, [0, 0, 0]);
+    const j = await run({ ...ASK, source: null, topic: "Why your todo app never sticks", hook: "Why your todo app never sticks (and what does)" });
+    expect(madeShow(j).slides[0].boxes[0].text).toBe("Why your todo app never sticks (and what does)");
+    expect(madeShow(j).slides[1].boxes[0].text).toBe(SLIDES[1].title);
+  });
 });
 
 describe("the writer's three-row slide", () => {

@@ -48,6 +48,8 @@ export interface SlideshowAsk {
   pictures: ShowPictures;
   /** AI pictures only: the explainer's look every slide's picture is made in. */
   look?: LookId;
+  /** A batch's kept hook (slideshowBatch.ts): the first slide's title, word for word. */
+  hook?: string;
   /** The agent's chat that asked for it: Activity logs the run as the agent's (live-p6replay D6). */
   agent?: { thread: string; msg: string };
 }
@@ -212,7 +214,8 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
     const res = await requestMake(makeBody(userId, kept ? { ...ask, note: keptNote(ask.note, kept) } : ask));
     if (res?.result?.as !== "slideshow") throw new Error(WRITE_FAILED);
     wrote = true;
-    const slides = res.result.slides.map((s) => ({ ...s, title: stripDashes(s.title).trim(), sub: stripDashes(s.sub).trim() }));
+    // the writer keeps a typed hook only in "inside" mode, so a batch's hook is set on the cover here
+    const slides = res.result.slides.map((s, i) => ({ ...s, title: stripDashes(i === 0 && ask.hook && !kept ? ask.hook : s.title).trim(), sub: stripDashes(s.sub).trim() }));
     // the kept cover has its picture already: no search for it
     const fresh = kept ? slides.slice(1) : slides;
     mine({ state: "finding", done: 0, of: fresh.length });
