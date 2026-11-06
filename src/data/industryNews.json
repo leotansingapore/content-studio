@@ -1,5 +1,41 @@
 [
   {
+    "id": "4d676abecfa6",
+    "title": "Buy money market funds to benefit from rising rates",
+    "gist": "Rising interest rates in 2026 have created difficulties for stocks, mortgages, and the economy. However, these higher rates funnel more money directly to investors in money market funds. This creates an immediate benefit for people who are holding cash.",
+    "talkingPoint": "Clients holding cash or dealing with mortgage costs are directly affected by the rising interest rates in 2026. You can ask them how their cash holdings are currently positioned in light of these higher rates.",
+    "clientMessage": "Hi [Client name], Rising interest rates in 2026 have caused difficulties for stocks and mortgages, but they also funnel more money to investors in money market funds. If you are holding cash, these rate changes can directly affect your position. I am happy to sit down and review your current financial plan with you to see how your cash is set up. Let me know if you want to connect. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/business/invest/buy-money-market-funds-to-benefit-from-rising-rates",
+    "publishedAt": "2026-11-05T21:00:00+00:00",
+    "topic": "Rates and markets",
+    "clipping": "/news/4d676abecfa6.jpg"
+  },
+  {
+    "id": "deba84648980",
+    "title": "Her paycheck stopped when cancer hit, her insurance payout didn’t: Now she’s planning a baby and her dream bistro",
+    "gist": "In July 2024, 45-year-old Sheree Ang was diagnosed with grade 1 Endometrioid Adenocarcinoma. Payouts from her critical illness and hospitalisation plans allowed her to leave her job and focus on recovery. A poll by Prudential Singapore found that only 29 per cent of Singaporeans say their savings could cover household expenses for more than a year without income during recovery.",
+    "talkingPoint": "Clients may worry about managing household expenses if a medical condition forces them to stop working. You can ask how long their current savings and coverage would support their living costs if they had to take extended time off work.",
+    "clientMessage": "Hi [Client name], a recent news report shared the story of a woman who stepped away from work after being diagnosed with cancer. A lump-sum payout from her critical illness plan helped cover her daily expenses while she recovered. This highlights how serious health conditions can impact household income during recovery. If you like, we can look at your current plans together to review how your everyday expenses are supported. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/health/cancer-insurance-critical-illness-prulady-prudential",
+    "publishedAt": "2026-11-05T20:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/deba84648980.jpg"
+  },
+  {
+    "id": "99cb34975c04",
+    "title": "Subsidised genetic testing for hereditary breast and ovarian cancer starts Dec 1",
+    "gist": "From Dec 1, eligible Singapore citizens and permanent residents can receive means-tested subsidies of up to 70% for hereditary breast and ovarian cancer genetic testing at specialist outpatient clinics in National Cancer Centre Singapore, National University Cancer Institute Singapore, and Tan Tock Seng Hospital. Patients can fully offset the remaining cost with MediSave for the test, which costs about $1,000 before subsidies. The Ministry of Health also extended MediShield Life and MediSave coverage to preventive treatments such as risk-reducing surgeries and scans.",
+    "talkingPoint": "Clients with a family history of breast or ovarian cancer may care about new subsidies that lower the cost of genetic testing and preventive care. You can ask if they know about this support and review their MediSave and MediShield Life coverage for preventive treatments together.",
+    "clientMessage": "Hi [Client name], starting Dec 1, means-tested subsidies of up to 70% will be available for hereditary breast and ovarian cancer genetic tests. Patients can use MediSave to offset remaining test costs, and MediShield Life and MediSave now cover certain preventive surgeries. If you have a family history of these conditions, this support may help reduce your healthcare costs. If you want, we can look over your current healthcare plans together. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/subsidised-genetic-testing-to-be-available-at-3-healthcare-centres-from-dec-1",
+    "publishedAt": "2026-11-05T07:04:12+00:00",
+    "topic": "Healthcare costs",
+    "clipping": "/news/99cb34975c04.jpg"
+  },
+  {
     "id": "d0a89dbff3f0",
     "title": "HDB launches 7,964 BTO flats; higher income ceiling kicks in",
     "gist": "The Housing Board launched 7,964 Build-To-Order flats on Nov 4 across seven projects. Higher income ceilings of $16,000 for families and $8,000 for singles took effect from this launch. Prime and Plus flats carry a 10-year minimum occupation period and subsidy clawbacks between 8% and 11% upon resale.",
@@ -662,18 +698,6 @@
     "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
-    "id": "146ce01a9327",
-    "title": "Budget 2026 Highlights",
-    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
-    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "CPF Board",
-    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "CPF and retirement",
-    "clipping": "/news/146ce01a9327.jpg"
-  },
-  {
     "id": "6d46dc1c57d8",
     "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
     "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
@@ -684,6 +708,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/6d46dc1c57d8.jpg"
+  },
+  {
+    "id": "146ce01a9327",
+    "title": "Budget 2026 Highlights",
+    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
+    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "CPF Board",
+    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/146ce01a9327.jpg"
   },
   {
     "id": "e98550debf11",
