@@ -90,12 +90,17 @@ function ScheduleForm({ title, onSchedule, onCancel }: { title?: string; onSched
 
 function BoardCard({
   draft,
+  column,
+  onMove,
   onAdvance,
   advanceLabel,
   onRename,
   children,
 }: {
   draft: DraftEntry;
+  column: BoardColumn;
+  /** Any column, back or forward, without dragging (phones and keyboards can't drag), as Trello's Move does. */
+  onMove?: (col: BoardColumn) => void;
   onAdvance?: () => void;
   advanceLabel?: string;
   onRename?: (hook: string) => void;
@@ -175,13 +180,28 @@ function BoardCard({
             )}
           </div>
         )}
-        <div className="flex items-center justify-between gap-2 pl-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pl-5">
           <Link
             to={`/generate?draft=${draft.id}`}
             className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:underline sm:h-7 sm:text-[11px] [@media(pointer:coarse)]:h-11"
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
+          {onMove && !children && (
+            <select
+              value={column}
+              onChange={(e) => onMove(e.target.value as BoardColumn)}
+              aria-label="Move to"
+              title="Move to another column"
+              className="h-9 min-w-0 rounded-md border border-border/70 bg-background px-1.5 text-xs text-muted-foreground hover:border-primary/40 sm:h-7 sm:text-[11px] [@media(pointer:coarse)]:h-11"
+            >
+              {BOARD_COLUMNS.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          )}
           {onAdvance && advanceLabel && !children && (
             <button
               type="button"
@@ -378,7 +398,7 @@ export default function BoardPage() {
           <Columns3 className="h-5 w-5" /> Board
         </h1>
         <InfoTip label="About moving cards">
-          Drag a card between columns, or use its quick-move button.
+          Drag a card, or pick its column in Move to.
         </InfoTip>
       </div>
 
@@ -439,6 +459,8 @@ export default function BoardPage() {
                           <BoardCard
                             key={d.id}
                             draft={d}
+                            column={col.key}
+                            onMove={(to) => moveTo(d, to, true)}
                             onAdvance={step ? () => moveTo(d, step.to, true) : undefined}
                             advanceLabel={step?.label}
                             onRename={(hook) => {
