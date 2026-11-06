@@ -157,6 +157,7 @@ so one that is gone shows everything.
 | /inspiration | format | carousel, short-video, text-only (comma list) | all | replace | /inspiration?format=carousel |
 | /inspiration | audience | general, parent, pre-retiree, working-adult, young-adult (comma list) | all | replace | /inspiration?audience=parent |
 | /inspiration | saved | only | off | replace | /inspiration?saved=only |
+| /inspiration | shown | 13 to 2000, how many examples Show more has opened (a new search or filter starts at 12) | 12 | replace | /inspiration?shown=36 |
 | /inspiration/:id | (path) | an example's id; has Copy link | | push | /inspiration/linkedin-cpf-myth-young-adult-001 |
 | /working | q | search text (slides' words, captions, creators) | empty | replace | /working?q=protein |
 | /working | niche | a niche slug from the data (nutrition, ai_tools...) | all | replace | /working?niche=ai_tools |
@@ -174,6 +175,7 @@ so one that is gone shows everything.
 | /carousels | creator | an Instagram handle: that creator's carousels | all | replace | /carousels?creator=thewokesalaryman |
 | /carousels | folder | a saved folder's id, with view=saved | all saved | replace | /carousels?view=saved&folder=f-lq3k9z |
 | /carousels | size | large: the bigger cards | compact | replace | /carousels?size=large |
+| /carousels | pages | 2 to 20, the pages Show more has opened, fetched in one go on a cold load (a new search, filter or view starts at 1) | 1 | replace | /carousels?pages=3 |
 | /carousels/:id | (path) | a carousel's id in the library; has Copy link | | push | /carousels/3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /profiles | q | search text (name, handle, company, niche) | empty | replace | /profiles?q=retirement |
 | /profiles | company | aia, prudential, great-eastern, manulife, independent-fee-only, other, none (comma list) | all | replace | /profiles?company=aia,none |
@@ -258,11 +260,15 @@ so one that is gone shows everything.
 | /swipe | ad | Leo only. ads tab: opens the ad's drawer over the library, with Copy link; everyone else keeps the scroll-and-mark above | none | push | /swipe?tab=ads&ad=2095783381019179 |
 | /swipe | why | Leo only. hooks tab: curiosity, fear-of-loss, social-proof, authority, contrast, identity, story (PSYCHOLOGY in _shared/tags.ts) | all | replace | /swipe?tab=hooks&why=curiosity |
 | /swipe | formula | Leo only. hooks tab: a hook formula id (src/lib/hookFormulas.ts) | all | replace | /swipe?tab=hooks&formula=myth-bust |
+| /swipe | shown | 13 to 2000, top posts Show more has opened (a new filter starts at 12) | 12 | replace | /swipe?shown=36 |
+| /swipe | newsshown | the same for the News tab | 12 | replace | /swipe?tab=news&newsshown=24 |
+| /swipe | adsshown | the same for the Ads tab | 12 | replace | /swipe?tab=ads&adsshown=24 |
 | /trends | view | Leo only. search (what people search for), hashtags; anyone else keeps the kits | kits | replace | /trends?view=search |
 | /trends | show | Leo only. search view: rising, gap | all | replace | /trends?view=search&show=rising |
 | /trends | topic | Leo only. search view: a search topic's slug; opens its drawer, with Copy link | none | push | /trends?view=search&topic=cpf-life |
 | /trends | tag | Leo only. hashtags view: a hashtag without the #; opens its drawer, with Copy link | none | push | /trends?view=hashtags&tag=moneytok |
 | /profiles | sort | Leo only. for-you: ranked by fit with the brand's Plan positioning; ignored without one | the tier sections | replace | /profiles?sort=for-you |
+| /profiles | shown | 13 to 2000, creators Show more has opened (a new filter or sort starts at one page) | one page | replace | /profiles?shown=48 |
 | /profiles/:id | #works | Leo only. scrolls to "What works for them" once it is drawn | top | (anchor) | /profiles/the-astute-parent-youtube#works |
 | /following | account, view | Leo only. account=<platform>:<handle> with view=patterns opens What worked for that followed account; a result already made opens with no call | none | push | /following?account=instagram%3Asleekflow&view=patterns |
 | /home | #what-moved | Leo only. scrolls to the What moved card (Monday's email and phone alerts link here) | top | (anchor) | /home#what-moved |

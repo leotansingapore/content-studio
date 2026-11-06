@@ -65,6 +65,31 @@ export function useUrlState<T extends string>(name: string, fallback: NoInfer<T>
   return [value, set];
 }
 
+/** How many a "Show more" list shows, from its address param: at least one page, at most 2,000. */
+export const shownCount = (raw: string | null | undefined, page: number) => {
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n > page ? Math.min(n, 2000) : page;
+};
+
+/**
+ * "Show more" kept in the address (?shown=36) so Back from an item, a reload or a shared link returns to the same spot
+ * in the list (QA 6 Nov). A new search or filter (`resetKey` changing) starts again at one page; the first draw never
+ * does, or a Back would lose it. Lists that share a page use their own `name`.
+ */
+export function useShownCount(page: number, resetKey: string, name = "shown"): [number, (from?: number) => void] {
+  const [raw, set] = useUrlState(name, String(page));
+  const shown = shownCount(raw, page);
+  const last = useRef(resetKey);
+  useEffect(() => {
+    if (last.current === resetKey) return;
+    last.current = resetKey;
+    set(String(page));
+  }, [resetKey, page, set]);
+  // `from`: a list already showing more than `shown` (an item link opened past it) adds a page to that
+  const more = useCallback((from = shown) => set(String(Math.max(from, shown) + page)), [set, shown, page]);
+  return [shown, more];
+}
+
 /** Multi-select: ?platform=instagram,tiktok. Empty means no param. */
 export function useUrlList(name: string, opts: { allowed?: readonly string[] } = {}): [string[], (next: string[]) => void] {
   const [params, setParams] = useSearchParams();

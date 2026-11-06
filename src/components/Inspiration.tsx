@@ -15,7 +15,7 @@ import { links } from "@/lib/links";
 import RemixButton from "@/components/remix/RemixButton";
 import { fromInspiration } from "@/lib/remixSource";
 import { useLeoOnly } from "@/lib/useLeoOnly";
-import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
+import { toggled, useShownCount, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -271,7 +271,6 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   // as a short, scannable screen instead of one endless wall of cards. A link
   // that names a hidden filter opens them.
   const [showFilters, setShowFilters] = useState(() => platformList.length + audienceList.length + formatList.length > 0);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
@@ -335,10 +334,8 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   const activeFilterCount =
     platforms.size + pillars.size + audiences.size + formats.size + (search.trim() ? 1 : 0);
 
-  // Any time the filters change, jump back to the first page of results.
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [search, platformList.join(), pillarList.join(), audienceList.join(), formatList.join()]);
+  // Show more lives in the address (?shown=), so Back from an example returns to the same spot; a new filter starts over.
+  const [visibleCount, showMore] = useShownCount(PAGE_SIZE, [search, platformList.join(), pillarList.join(), audienceList.join(), formatList.join()].join("|"));
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
@@ -519,7 +516,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
             <div className="flex justify-center pt-1">
               <Button
                 variant="outline"
-                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                onClick={() => showMore()}
                 className="gap-1.5 [@media(pointer:coarse)]:h-11"
               >
                 <ChevronDown className="h-4 w-4" />

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { links, slug } from "@/lib/links";
-import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useShownCount, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
 import { ExternalLink, PenLine, Search } from "lucide-react";
@@ -69,7 +69,7 @@ export default function AdsSwipe() {
   // On /swipe?tab=ads: ?q= and ?industry= (the industry's slug), per docs/deep-links.md.
   const [query, setQueryRaw] = useUrlSearch("q");
   const [industrySlug, setIndustrySlug] = useUrlState("industry", "all");
-  const [more, setLimit] = useState(12);
+  const [more, showMore] = useShownCount(12, `${industrySlug}|${query}`, "adsshown");
   const [adId] = useUrlItem("ad");
   // Bundled data: an ad that is not in it any more opens the tab without it, saying so.
   useGoneItem("ad", ADS.some((a) => a.adId === adId), "ad");
@@ -79,8 +79,8 @@ export default function AdsSwipe() {
   const shown = industry === "all" ? found : found.filter((a) => a.industry === industry);
   // a linked ad further down than the first 12 is shown too
   const limit = Math.max(more, shown.findIndex((a) => a.adId === adId) + 1);
-  const setIndustry = (v: string) => { setIndustrySlug(v === "all" ? "all" : slug(v)); setLimit(12); };
-  const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
+  const setIndustry = (v: string) => setIndustrySlug(v === "all" ? "all" : slug(v));
+  const setQuery = (q: string) => setQueryRaw(q);
 
   if (ADS.length === 0) {
     return (
@@ -116,7 +116,7 @@ export default function AdsSwipe() {
           </div>
           {shown.length > limit && (
             <div className="flex justify-center">
-              <button type="button" onClick={() => setLimit(limit + 12)}
+              <button type="button" onClick={() => showMore(limit)}
                 className="h-10 rounded-lg border border-border/70 px-4 text-sm font-semibold hover:border-primary/40">
                 Show {Math.min(12, shown.length - limit)} more of {shown.length - limit}
               </button>

@@ -179,3 +179,17 @@ describe("label helpers", () => {
     expect(url.toString()).toBe("q=a");
   });
 });
+
+const { shownCount } = await import("./urlState");
+
+describe("shownCount", () => {
+  it("reads how many a Show more list shows from the address, never fewer than one page", () => {
+    expect(shownCount("36", 12)).toBe(36);
+    expect(shownCount(null, 12)).toBe(12);
+    expect(shownCount("5", 12)).toBe(12);
+    expect(shownCount("junk", 12)).toBe(12);
+    expect(shownCount("999999", 12)).toBe(2000);
+    expect(shownCount("3", 1)).toBe(3);
+  });
+});
+

@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { fitInput } from "@/lib/creatorFit";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { supabase } from "@/lib/supabase";
-import { withParam } from "@/lib/urlState";
+import { useShownCount, withParam } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import {
   CARD_COLUMNS,
@@ -53,6 +53,9 @@ const ID_CHUNK = 60;
 
 type Load = { rows: CarouselCard[]; total: number | null; error: string | null; loading: boolean };
 
+// a ?pages= link fetches at most this many pages at once (240 carousels)
+const MAX_PAGES = 20;
+
 export default function CarouselsPage() {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
@@ -62,7 +65,6 @@ export default function CarouselsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [shelf, setShelfState] = useState<Shelf>({ folders: [], saved: [], tracked: [], searches: [] });
   const [panel, setPanel] = useState(activeCount(f) > 0);
-  const [page, setPage] = useState(0);
   const [data, setData] = useState<Load>({ rows: [], total: null, error: null, loading: true });
   const [fit, setFit] = useState<{ state: "idle" | "ranking" | "ready" | "none" | "needs-audience"; answer?: FitAnswer; note?: string }>({ state: "idle" });
   const [q, setQ] = useState(f.q);
@@ -124,18 +126,26 @@ export default function CarouselsPage() {
   }, [f.sort, userId]);
 
   const filterKey = searchQuery(params) + f.view + f.folder + (f.sort === "brand" ? fit.state : "");
-  useEffect(() => setPage(0), [filterKey]);
+  // Show more lives in the address (?pages=), so Back from a carousel returns to the same spot; a new filter starts over.
+  // A cold load fetches every page shown in one go; a Show more press fetches only the next one.
+  const [pages, showMore] = useShownCount(1, filterKey, "pages");
+  const page = Math.min(pages, MAX_PAGES) - 1;
+  // what data.rows holds: pages 0 to `pages - 1` for these filters
+  const loaded = useRef({ key: "", pages: 0 });
 
   useEffect(() => {
     if (!userId) return;
     if (f.sort === "brand" && f.view !== "saved" && fit.state === "ranking") return;
     let live = true;
-    setData((d) => ({ ...d, loading: true, error: null, ...(page === 0 ? { rows: [] } : {}) }));
+    const adding = loaded.current.key === filterKey && loaded.current.pages === page;
+    const from = adding ? page * PAGE_SIZE : 0;
+    const to = (page + 1) * PAGE_SIZE;
+    setData((d) => ({ ...d, loading: true, error: null, ...(adding ? {} : { rows: [] }) }));
     (async (): Promise<Load> => {
       const base = () => supabase.from("cs_carousels").select(CARD_COLUMNS, { count: "exact" });
       if (f.view === "saved") {
         const ids = shelf.saved.filter((s) => !f.folder || s.folder === f.folder).map((s) => s.id);
-        const chunk = ids.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+        const chunk = ids.slice(from, to);
         if (!chunk.length) return { rows: [], total: ids.length, error: null, loading: false };
         const { data: rows, error } = await base().in("id", chunk);
         if (error) throw error;
@@ -157,13 +167,17 @@ export default function CarouselsPage() {
           ranked.current = { key: filterKey, rows: rankByFit(all, fit.answer.fit) };
         }
         const list = ranked.current.rows;
-        return { rows: list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), total: list.length, error: null, loading: false };
+        return { rows: list.slice(from, to), total: list.length, error: null, loading: false };
       }
-      const { data: rows, error, count } = await scoped(applyFilters(base(), f)).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      const { data: rows, error, count } = await scoped(applyFilters(base(), f)).range(from, to - 1);
       if (error) throw error;
       return { rows: rows as CarouselCard[], total: count, error: null, loading: false };
     })()
-      .then((r) => live && setData((d) => ({ ...r, rows: page === 0 ? r.rows : [...d.rows, ...r.rows] })))
+      .then((r) => {
+        if (!live) return;
+        loaded.current = { key: filterKey, pages: page + 1 };
+        setData((d) => ({ ...r, rows: adding ? [...d.rows, ...r.rows] : r.rows }));
+      })
       .catch(() => live && setData((d) => ({ ...d, loading: false, error: "Couldn't load the library. Check your connection and try again." })));
     return () => {
       live = false;
@@ -338,7 +352,7 @@ export default function CarouselsPage() {
           </Grid>
           {hasMore && (
             <div className="flex justify-center">
-              <Button variant="outline" onClick={() => setPage(page + 1)} disabled={data.loading} className="gap-1.5">
+              <Button variant="outline" onClick={() => showMore()} disabled={data.loading} className="gap-1.5">
                 {data.loading && <Loader2 className="h-4 w-4 animate-spin" />} Show more
               </Button>
             </div>

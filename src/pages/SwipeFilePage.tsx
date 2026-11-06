@@ -14,7 +14,7 @@ import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
-import { withParam, useGoneItem, useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { withParam, useGoneItem, useShownCount, useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
@@ -181,7 +181,6 @@ export default function SwipeFilePage() {
   const [savedOnly, setSavedOnly] = useUrlFlag("saved");
   // A link that names a filter behind the Filters button opens them.
   const [showFilters, setShowFilters] = useState(() => [kind, topic, angle, audience].some((v) => v !== "all"));
-  const [visible, setVisible] = useState(PAGE_SIZE);
   const [openKey, openPost, closePost] = useUrlItem("post");
   const { search: here } = useLocation();
   // ads waits too: Leo's library replaces the Singapore picks, so they never flash first, and with no picks it
@@ -236,7 +235,9 @@ export default function SwipeFilePage() {
     });
   }, [enriched, search, format, kind, topic, angle, audience, sort, savedOnly, savedSet, target]);
 
-  useEffect(() => setVisible(PAGE_SIZE), [search, format, kind, topic, angle, audience, sort, savedOnly]);
+  // Show more lives in the address (?shown=), so Back from a post returns to the same spot; a new filter starts over
+  // the sort as the address has it: its default changes once the Playbook loads, which is not a new filter
+  const [visible, showMore] = useShownCount(PAGE_SIZE, [search, format, kind, topic, angle, audience, new URLSearchParams(here).get("sort"), savedOnly].join("|"));
 
   const working = useMemo(
     () =>
@@ -522,7 +523,7 @@ export default function SwipeFilePage() {
                 <div className="flex justify-center pt-1">
                   <Button
                     variant="outline"
-                    onClick={() => setVisible((c) => c + PAGE_SIZE)}
+                    onClick={() => showMore()}
                     className="gap-1.5 [@media(pointer:coarse)]:h-11"
                   >
                     <ChevronDown className="h-4 w-4" />

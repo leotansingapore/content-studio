@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import PriceChip from "@/components/PriceChip";
 import { humanLabel } from "@/lib/utils";
 import { NICHE_GROUPS, inNicheGroups, nicheGroup } from "@/lib/nicheGroups";
 import { links } from "@/lib/links";
-import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { toggled, useShownCount, useUrlLabels, useUrlFlag, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
   CAP_LINE, FIT_CHIP, FOLLOW_ONLY, fitHash, fitInput, fitRun, followButton, followable, loadFit, onFitRun, runFit, sortByAudience, sortByFit,
@@ -430,7 +430,6 @@ export default function AdvisorProfiles() {
   const niches = new Set(nicheList);
   // A link that names a filter behind the Filters button opens them.
   const [showFilters, setShowFilters] = useState(() => platformList.length + audienceList.length + nicheList.length > 0);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
@@ -527,9 +526,10 @@ export default function AdvisorProfiles() {
     niches.size +
     (search.trim() ? 1 : 0);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [search, platformList.join(), companyList.join(), audienceList.join(), nicheList.join(), sort]);
+  // Show more lives in the address (?shown=), so Back from a creator returns to the same spot; a new filter starts over.
+  // the sort as the address has it: "for-you" reads as unset until the plan loads, which is not a new filter
+  const [qs] = useSearchParams();
+  const [visibleCount, showMore] = useShownCount(PAGE_SIZE, [search, platformList.join(), companyList.join(), audienceList.join(), nicheList.join(), qs.get("sort")].join("|"));
 
   // Best for you: Jev's order, data order while it runs, the Plan's audience first when there is no answer
   const ordered = !forYou || !plan ? filtered : fit ? sortByFit(filtered, fit) : !run || run.state === "working" ? filtered : sortByAudience(filtered, plan.audience);
@@ -764,7 +764,7 @@ export default function AdvisorProfiles() {
             <div className="flex justify-center pt-1">
               <Button
                 variant="outline"
-                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                onClick={() => showMore()}
                 className="gap-1.5 [@media(pointer:coarse)]:h-11"
               >
                 <ChevronDown className="h-4 w-4" />

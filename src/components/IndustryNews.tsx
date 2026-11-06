@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { links, slug } from "@/lib/links";
-import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useShownCount, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
@@ -116,14 +116,14 @@ export default function IndustryNews() {
   const topic = topics.find((t) => slug(t.topic) === topicSlug)?.topic ?? "all";
   const shown = topic === "all" ? found : found.filter((s) => s.topic === topic);
   // 39+ stories made a 33,000px page on a phone: start with the newest 12.
-  const [more, setLimit] = useState(12);
+  const [more, showMore] = useShownCount(12, `${topicSlug}|${query}`, "newsshown");
   const [storyId] = useUrlItem("story");
   // Bundled data: a story that is not in it any more opens the tab without it, saying so.
   useGoneItem("story", NEWS.some((s) => s.id === storyId), "story");
   // a linked story further down than the first 12 is shown too
   const limit = Math.max(more, shown.findIndex((s) => s.id === storyId) + 1);
-  const setTopic = (t: string) => { setTopicSlug(t === "all" ? "all" : slug(t)); setLimit(12); };
-  const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
+  const setTopic = (t: string) => setTopicSlug(t === "all" ? "all" : slug(t));
+  const setQuery = (q: string) => setQueryRaw(q);
   const months = useMemo(() => byMonth(shown.slice(0, limit)), [shown, limit]);
 
   if (NEWS.length === 0) {
@@ -169,7 +169,7 @@ export default function IndustryNews() {
         ))}
         {shown.length > limit && (
           <div className="flex justify-center">
-            <button type="button" onClick={() => setLimit(limit + 12)}
+            <button type="button" onClick={() => showMore(limit)}
               className="h-10 rounded-lg border border-border/70 px-4 text-sm font-semibold hover:border-primary/40">
               Show {Math.min(12, shown.length - limit)} more of {shown.length - limit}
             </button>
