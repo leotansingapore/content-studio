@@ -136,9 +136,49 @@ async function main() {
     if (estimate > capUsd) throw new Error(`estimate US$${estimate.toFixed(2)} is above the cap; nothing scraped`);
     if (args.includes("--estimate")) return;
 
-    const { items, costUsd, runId } = await scrape(token, urls, capUsd);
-    const owners = new Set(items.filter((i) => i.ownerUsername && !i.error).map((i) => i.ownerUsername.toLowerCase()));
-    console.log(`Apify run ${runId}: ${items.length} items from ${owners.size} profiles, actual cost US$${costUsd ?? "?"}`);
+    const handleOf = (u) => u.replace(/\/+$/, "").split("/").pop().toLowerCase();
+    const ownersOf = (list) =>
+      new Set(list.filter((i) => i.ownerUsername && !i.error).map((i) => i.ownerUsername.toLowerCase()));
+    const logErrors = (list) => {
+      for (const i of list.filter((x) => x.error)) {
+        console.log(`  error item: ${i.inputUrl || i.url || "?"}: ${i.error}: ${i.errorDescription ?? ""}`);
+      }
+    };
+
+    const first = await scrape(token, urls, capUsd);
+    let items = first.items;
+    let owners = ownersOf(items);
+    console.log(
+      `Apify run ${first.runId}: ${items.length} items from ${owners.size} profiles, actual cost US$${first.costUsd ?? "?"}`,
+    );
+    logErrors(items);
+
+    // Apify sometimes returns a short run (8 Nov: 23 of 48 profiles in 20 s).
+    // Rescrape only the missing profiles once, inside what is left of the cap.
+    const missing = urls.filter((u) => !owners.has(handleOf(u)));
+    if (missing.length) {
+      const leftUsd = capUsd - (first.costUsd ?? 0);
+      const retryEstimate = missing.length * RESULTS_PER_PROFILE * price;
+      console.log(
+        `Missing ${missing.length} profiles: ${missing.map(handleOf).join(", ")}; retry estimated US$${retryEstimate.toFixed(2)} (US$${leftUsd.toFixed(2)} left of cap)`,
+      );
+      if (retryEstimate > leftUsd) {
+        console.log("Retry skipped: above what is left of the cap");
+      } else {
+        try {
+          const retry = await scrape(token, missing, Number(leftUsd.toFixed(2)));
+          const got = ownersOf(retry.items);
+          console.log(
+            `Apify retry run ${retry.runId}: ${retry.items.length} items from ${got.size} profiles, actual cost US$${retry.costUsd ?? "?"}`,
+          );
+          logErrors(retry.items);
+          items = items.filter((i) => !i.error).concat(retry.items);
+          owners = ownersOf(items);
+        } catch (err) {
+          console.log(`Retry failed: ${err?.message ?? err}`);
+        }
+      }
+    }
     datasetPath =
       process.env.TOP_POSTS_DATASET ||
       path.join(os.tmpdir(), `top-posts-dataset-${new Date().toISOString().slice(0, 10)}.json`);
