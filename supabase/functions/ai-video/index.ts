@@ -9,9 +9,6 @@
 //        (a person's photo as the first frame, a product's as a reference; logic.ts seedanceRequest). A fixed template
 //        (crumple-hook) skips the writer: its structure is the prompt (templates.ts fixedPrompt).
 //        Counts against "ai-clip" (2 a day) and "ai-clip-global" (8 a day across everyone).
-//        Backup (Leo 2026-11-08): with MUAPI_API_KEY set, the same Seedance 2.5 clip goes to muapi.ai when Higgsfield refuses
-//        the submit, and for the rest of the UTC day once a status check sees Higgsfield fail a job for credit (logic.ts
-//        HF_LOW). Its token is "mu."-signed (logic.ts muToken) and status reads muapi for it. No key: Higgsfield only, as before.
 //   POST {mode:"status", tokens, refund?} -> {jobs:[{state, url?, error?}]}
 //        a request Higgsfield failed is logged with its own answer, links cut ("ai-video status failed <id> <answer>")
 //   POST {mode:"talk-script", talk, topic, offer?, source?} -> {say, headline?, mas}  a presenter format's script
@@ -61,7 +58,7 @@
 // not_enabled for anyone not on NORTH_STAR_USERS, after JWT and before any count (logic.ts northStarOnly; the two
 // new modes before their body is checked too); every other request is as before.
 //
-// Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), MUAPI_API_KEY (optional, template clips' backup), OPENAI_API_KEY, NORTH_STAR_USERS, TYPESAFE_API_KEY (Jev; none means no MAS answer). Deploy WITH JWT verification:
+// Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY, NORTH_STAR_USERS, TYPESAFE_API_KEY (Jev; none means no MAS answer). Deploy WITH JWT verification:
 //   supabase functions deploy ai-video --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
@@ -75,7 +72,7 @@ import { askJev, noulOf } from "../_shared/jev.ts";
 import { consentSecret, heardCode, newCode, openSigned, signFor } from "../_shared/consent.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import {
-  CHECK_FAILED, CODE_GONE, HF_LOW, MUAPI_BASE, muapiRequest, muToken, openMuToken, outOfCredit, readMuapi, consentTicket, faceToken, notHeard, sha256Hex, LOOK_REFUSED, lookQuestions, presenterLooks, readLookCheck,
+  CHECK_FAILED, CODE_GONE, consentTicket, faceToken, notHeard, sha256Hex, LOOK_REFUSED, lookQuestions, presenterLooks, readLookCheck,
   NARRATED_FORMAT, NORTH_STAR_MODES, NO_POINT, failureLine, partsSpent, PAGE_BYTES, PICTURE_MODEL, POINT_QUESTION, READ_FAILED, REFUNDS, SCRIPT_FORMAT, SPEAK_MODEL,
   TALK_FORMAT, avatarCredits, clipCredits, explainerCredits, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser,
   northStarOnly, parseVideoRequest, pictureBody, pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, scriptPrompt, seedanceRequest, setBody,
@@ -315,25 +312,10 @@ Deno.serve(async (req) => {
     const versionTicket = (ids: string[]) => `${uid}:refund:edit-version:${day}:${ids.map((id) => id.toLowerCase()).join(",")}`;
 
     if (r.mode === "status") {
-      const mu = Deno.env.get("MUAPI_API_KEY");
-      // a muapi clip's token opens only as muapi's, and only while its key is set
-      const opened = await Promise.all(r.tokens.map(async (token) => {
-        const id = await openJobToken(signing, uid, token);
-        return id ? { id, mu: false } : { id: mu ? await openMuToken(signing, uid, token) : null, mu: true };
-      }));
-      const ids = opened.map((o) => o.id);
-      const jobs = await Promise.all(opened.map(async ({ id, mu: isMu }): Promise<MediaState> => {
+      const ids = await Promise.all(r.tokens.map((token) => openJobToken(signing, uid, token)));
+      const jobs = await Promise.all(ids.map(async (id): Promise<MediaState> => {
         if (!id) return { state: "failed", error: "That video job isn't known." };
         try {
-          if (isMu) {
-            const res = await fetch(`${MUAPI_BASE}/predictions/${id}/result`, { headers: { "x-api-key": mu! }, signal: AbortSignal.timeout(15_000) });
-            if (res.status === 404) return { state: "failed", error: "That video job isn't known." };
-            const data = await res.json().catch(() => null);
-            // muapi answers a failed prediction's poll with 400 (its own client, muapi.js pollAgentChatResult)
-            const m = res.status === 400 ? readMuapi({ ...(data ?? {}), status: "failed" }) : res.ok ? readMuapi(data) : null;
-            if (m?.state === "failed") console.error("ai-video muapi status failed", id, failureLine(data));
-            return m ?? { state: "working" };
-          }
           const res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
           if (res.status === 404) return { state: "failed", error: "That video job isn't known." };
           if (!res.ok) return { state: "working" };
@@ -341,10 +323,6 @@ Deno.serve(async (req) => {
           const m = readMedia(data);
           // Higgsfield's own status and reason, so a failure can be read later (no keys, links cut)
           if (m.state === "failed") console.error("ai-video status failed", id, failureLine(data));
-          // out of credit: the rest of today's template clips go to muapi (claimed once, so logged once)
-          if (m.state === "failed" && mu && outOfCredit(data) && (await claimOnce(admin, GLOBAL_COUNTER_USER, HF_LOW))) {
-            console.error("ai-video higgsfield out of credit: template clips go to muapi until 08:00 SGT");
-          }
           return m;
         } catch {
           return { state: "working" }; // a blip: the browser asks again
@@ -366,7 +344,7 @@ Deno.serve(async (req) => {
       if (r.refund && failed?.state === "failed") {
         const charged = await Promise.all(ids.map(async (id, i) => {
           if (!id || jobs[i].state === "failed") return false;
-          if (jobs[i].state === "done" || opened[i].mu) return true; // muapi's: no cancel, so counted as spent
+          if (jobs[i].state === "done") return true;
           const res = await fetch(`${HF_BASE}/requests/${id}/cancel`, { method: "POST", headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
           console.log("ai-video cancel", id, res?.status ?? "no answer");
           return !res?.ok;
@@ -412,42 +390,6 @@ Deno.serve(async (req) => {
       });
       if (!put.ok) throw new HfError(502);
       return u.public_url as string;
-    };
-    /** A muapi job (template clips' backup): its request id. Fails as a plain Error, never HfError, so it reads as try again. */
-    const muSubmit = async (key: string, endpoint: string, body: Record<string, unknown>): Promise<string> => {
-      const res = await fetch(`${MUAPI_BASE}/${endpoint}`, {
-        method: "POST",
-        headers: { "x-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(30_000),
-      });
-      if (!res.ok) {
-        console.error("ai-video muapi submit", endpoint, res.status, (await res.text()).slice(0, 300));
-        throw new Error(`muapi ${res.status}`);
-      }
-      const out = await res.json().catch(() => null);
-      const id = out?.request_id ?? out?.id;
-      if (typeof id !== "string") throw new Error("muapi gave no request id");
-      return id;
-    };
-    /** A photo on muapi's storage (POST upload_file, as muapi.js uploadFile), for its request to read by link. */
-    const muUpload = async (key: string, b64: string): Promise<string> => {
-      const form = new FormData();
-      form.append("file", new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], { type: "image/jpeg" }), "photo.jpg");
-      const res = await fetch(`${MUAPI_BASE}/upload_file`, { method: "POST", headers: { "x-api-key": key }, body: form, signal: AbortSignal.timeout(30_000) });
-      const out = res.ok ? await res.json().catch(() => null) : null;
-      const url = out?.url ?? out?.file_url ?? out?.data?.url;
-      if (typeof url !== "string" || !/^https:\/\//.test(url)) throw new Error(`muapi upload ${res.status}`);
-      return url;
-    };
-    /** Whether a status check saw Higgsfield out of credit today (logic.ts HF_LOW); unreadable reads as no. */
-    const hfLowToday = async () => {
-      try {
-        const { data } = await admin.from("cs_ai_usage").select("count").match({ user_id: GLOBAL_COUNTER_USER, feature: HF_LOW, day });
-        return Array.isArray(data) && data.length > 0;
-      } catch {
-        return false;
-      }
     };
     const failed = (e: unknown) => json({ error: e instanceof HfError && e.status === 403 ? NO_CREDITS : RETRY }, 502);
     /** Nothing was made after the uses were taken: both come back (the adviser's alone when everyone's wasn't taken). */
@@ -571,41 +513,19 @@ Deno.serve(async (req) => {
         await giveBack("ai-clip");
         return json({ error: "The clip's shots didn't come back right. Try again." }, 502);
       }
-      const muKey = Deno.env.get("MUAPI_API_KEY");
-      const credits = clipCredits(r.seconds, r.quality); // Higgsfield's credits; muapi's same clip costs less
-      const viaMuapi = async (key: string) => {
-        const uploaded = photo ? { role: photo.role, url: await muUpload(key, photo.jpeg) } : null;
-        const { endpoint, body } = muapiRequest(prompt, r.seconds, r.quality, uploaded);
-        const id = await muSubmit(key, endpoint, body);
-        console.log("ai-video template", t.id, "muapi", endpoint, r.seconds, r.quality);
+      try {
+        const uploaded = photo ? { role: photo.role, url: await upload(photo.jpeg, "image/jpeg") } : null;
+        const { model, body } = seedanceRequest(prompt, r.seconds, r.quality, uploaded);
+        const id = await submit(model, body);
+        const credits = clipCredits(r.seconds, r.quality);
+        console.log("ai-video template", t.id, model, r.seconds, r.quality, credits, "credits");
         return json({
-          tokens: [await muToken(signing, uid, id)],
+          tokens: [await jobToken(signing, uid, id)],
           refund: await refundTicket(signing, uid, "ai-clip", day, [id]),
           credits,
           usage: { used: mine.used, limit: mine.limit },
         });
-      };
-      try {
-        if (muKey && (await hfLowToday())) return await viaMuapi(muKey);
-        try {
-          const uploaded = photo ? { role: photo.role, url: await upload(photo.jpeg, "image/jpeg") } : null;
-          const { model, body } = seedanceRequest(prompt, r.seconds, r.quality, uploaded);
-          const id = await submit(model, body);
-          console.log("ai-video template", t.id, model, r.seconds, r.quality, credits, "credits");
-          return json({
-            tokens: [await jobToken(signing, uid, id)],
-            refund: await refundTicket(signing, uid, "ai-clip", day, [id]),
-            credits,
-            usage: { used: mine.used, limit: mine.limit },
-          });
-        } catch (e) {
-          // Higgsfield answered no, so it took no job and muapi can make the clip; a timeout may have been taken: no second job
-          if (!muKey || !(e instanceof HfError)) throw e;
-          console.error("ai-video template: higgsfield refused, sending to muapi");
-          return await viaMuapi(muKey);
-        }
       } catch (e) {
-        if (!(e instanceof HfError)) console.error("ai-video template failed", String(e).slice(0, 200));
         await giveBack("ai-clip");
         return failed(e);
       }

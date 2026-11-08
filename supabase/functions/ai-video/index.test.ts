@@ -59,12 +59,6 @@ const hf: {
   answers: Record<string, unknown> | null; status: Record<string, unknown>; pages: Record<string, { html: string; type?: string } | number>; dns: Record<string, string[]>;
   whisper: (string | number)[]; heard: FormData[]; ids: string[]; cancels: Record<string, number>;
 } = { calls: [], submits: [], bodies: [], openai: [], replies: [], jev: null, asked: [], answers: null, status: {}, pages: {}, dns: {}, whisper: [], heard: [], ids: [], cancels: {} };
-// muapi.ai (template clips' backup): on only while `key` is set. Submits answer from `submits` (a status) with `ids` in turn,
-// a poll by id from `results` (a body, or a status for a failure; done by default), the photo upload with `upload`.
-const mu: {
-  key: boolean; calls: string[]; keys: (string | null)[]; bodies: Record<string, unknown>[]; submits: number[]; ids: string[];
-  results: Record<string, Record<string, unknown> | number>; upload: number; uploads: FormData[];
-} = { key: false, calls: [], keys: [], bodies: [], submits: [], ids: [], results: {}, upload: 200, uploads: [] };
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
@@ -75,26 +69,10 @@ beforeAll(async () => {
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "service-role-key", HF_API_KEY: "k", HF_API_SECRET: "s", OPENAI_API_KEY: "k", NORTH_STAR_USERS: `${LEO},${LEO_TWO}`, TYPESAFE_API_KEY: "k" };
   vi.stubGlobal("Deno", {
     serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn),
-    env: { get: (k: string) => (k === "MUAPI_API_KEY" ? (mu.key ? "mk" : undefined) : env[k]) },
+    env: { get: (k: string) => env[k] },
     resolveDns: async (host: string, t: string) => (t === "A" ? hf.dns[host] ?? ["93.184.216.34"] : []),
   });
   vi.stubGlobal("fetch", async (u: string | URL, init?: RequestInit) => {
-    if (String(u).startsWith("https://api.muapi.ai/")) {
-      mu.calls.push(String(u));
-      mu.keys.push(new Headers(init?.headers).get("x-api-key"));
-      if (String(u).endsWith("/upload_file")) {
-        mu.uploads.push(init?.body as FormData);
-        return mu.upload === 200 ? answer({ url: "https://cdn.muapi.example/photo.jpg" }) : answer({ detail: "no" }, mu.upload);
-      }
-      if (String(u).endsWith("/result")) {
-        const id = String(u).split("/").at(-2)!;
-        const r = mu.results[id] ?? { status: "completed", outputs: [`https://cdn.muapi.example/${id}.mp4`] };
-        return typeof r === "number" ? answer({ detail: { error: "Generation failed" } }, r) : answer(r);
-      }
-      mu.bodies.push(JSON.parse(String(init?.body)));
-      const status = mu.submits.shift() ?? 200;
-      return status === 200 ? answer({ request_id: mu.ids.shift() ?? `mu-request-${mu.calls.length}` }) : answer({ detail: "no" }, status);
-    }
     if (String(u).includes("typesafe")) {
       hf.asked.push(JSON.parse(String(init?.body)));
       if (hf.answers) return answer({ answers: hf.answers });
@@ -130,7 +108,6 @@ beforeAll(async () => {
     if (init?.body) hf.bodies.push(JSON.parse(String(init.body)));
     if (String(u).endsWith("/cancel")) return new Response(null, { status: hf.cancels[String(u).split("/").at(-2)!] ?? 202 });
     const status = hf.submits.shift() ?? 200;
-    if (status === -1) throw new DOMException("The operation timed out.", "TimeoutError"); // no answer: it may have been taken
     return status === 200 ? answer({ request_id: hf.ids.shift() ?? `r${hf.calls.length}` }) : answer({ detail: "no" }, status);
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -160,7 +137,6 @@ beforeEach(() => {
   hf.heard.length = 0;
   hf.ids.length = 0;
   hf.cancels = {};
-  Object.assign(mu, { key: false, calls: [], keys: [], bodies: [], submits: [], ids: [], results: {}, upload: 200, uploads: [] });
 });
 
 const PICTURES = ["A clinic waiting room in Toa Payoh", "An HDB flat living room at dusk", "A hawker centre at lunchtime"];
@@ -1045,129 +1021,5 @@ describe("same edit's version runs (NORTH_STAR_USERS only)", () => {
     hf.status = { [P2]: { status: "failed", error: "Generation failed" } };
     await send(LEO, { mode: "status", tokens: plain.tokens, refund: plain.refund });
     expect(counts()).toEqual([1, 0, 1]);
-  });
-});
-
-describe("muapi, the template clips' backup (Leo 2026-11-08)", () => {
-  const send = (uid: string, body: Record<string, unknown>) =>
-    db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
-  const used = (uid: string, feature: string) => db.rows.get(`${uid}|${feature}|${db.today()}`) ?? 0;
-  const switched = () => db.rows.get(`${GLOBAL_COUNTER_USER}|hf-credit-low|${db.today()}`);
-  const CLIP = { mode: "template", template: "food-asmr", seconds: 4, quality: "480p", fields: { product: "Laksa" } };
-  const HF_ID = "11111111-2222-4333-8444-555555555555";
-  const MU_ID = "8f7e6d5c-0000-4000-8000-000000000001";
-  const DIDNT = "It didn't come through. Try again.";
-  // the 5 Nov answer: Higgsfield took the clip, then failed it for credit (function log, 2026-11-05 22:38)
-  const LOW = { status: "failed", request_id: HF_ID, error: "Your credit balance is too low to complete this request. Please top up your balance and try again." };
-  /** A clip Higgsfield takes, then its status check seeing it fail for credit. */
-  const lowClip = async () => {
-    hf.ids.push(HF_ID);
-    const out = (await (await send(UID, CLIP)).json()) as { tokens: string[]; refund: string };
-    hf.status = { [HF_ID]: LOW };
-    return (await (await send(UID, { mode: "status", tokens: out.tokens, refund: out.refund })).json()) as { jobs: unknown[] };
-  };
-  const muClip = async (uid = UID, body: Record<string, unknown> = CLIP) => {
-    mu.ids.push(MU_ID);
-    const res = await send(uid, body);
-    expect(res.status).toBe(200);
-    return (await res.json()) as { tokens: string[]; refund: string; credits: number };
-  };
-
-  it("leave every clip on Higgsfield while no muapi key is set, as before", async () => {
-    expect((await lowClip()).jobs).toEqual([{ state: "failed", error: DIDNT }]);
-    expect(switched()).toBeUndefined();
-    hf.submits.push(403);
-    expect(await (await send(UID, CLIP)).json()).toEqual({ error: "AI video credits have run out. Tell your studio admin." });
-    expect(mu.calls).toEqual([]);
-  });
-
-  it("send the rest of the day's clips to muapi once Higgsfield fails one for credit, and read them there", async () => {
-    mu.key = true;
-    expect((await lowClip()).jobs).toEqual([{ state: "failed", error: DIDNT }]);
-    expect([switched(), used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global")]).toEqual([1, 0, 0]);
-    // a second failed read doesn't count the switch again
-    await send(UID, { mode: "status", tokens: [await jobToken(await tokenSecret("service-role-key"), UID, HF_ID)] });
-    expect(switched()).toBe(1);
-
-    hf.calls.length = 0;
-    const out = await muClip();
-    expect(out).toMatchObject({ credits: 13.2, tokens: [expect.stringMatching(/^mu\./)], refund: expect.any(String) });
-    expect(hf.calls).toEqual([]);
-    expect(mu.calls).toEqual(["https://api.muapi.ai/api/v1/seedance-2.5-text-to-video"]);
-    expect(mu.keys).toEqual(["mk"]);
-    expect(mu.bodies[0]).toEqual({ prompt: expect.stringContaining("HDB flat"), duration: 4, resolution: "480p", aspect_ratio: "9:16" });
-    expect([used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global")]).toEqual([1, 1]);
-
-    mu.results = { [MU_ID]: { status: "processing" } };
-    expect(await (await send(UID, { mode: "status", tokens: out.tokens, refund: out.refund })).json()).toEqual({ jobs: [{ state: "working" }] });
-    mu.results = {};
-    expect(await (await send(UID, { mode: "status", tokens: out.tokens, refund: out.refund })).json()).toEqual({ jobs: [{ state: "done", url: `https://cdn.muapi.example/${MU_ID}.mp4` }] });
-    expect(mu.calls.at(-1)).toBe(`https://api.muapi.ai/api/v1/predictions/${MU_ID}/result`);
-    expect(hf.calls).toEqual([]);
-  });
-
-  it("send one clip to muapi when Higgsfield refuses its submit, keeping its use, without switching the day", async () => {
-    mu.key = true;
-    hf.submits.push(403);
-    expect((await muClip()).tokens[0]).toMatch(/^mu\./);
-    expect([used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global"), switched()]).toEqual([1, 1, undefined]);
-    // the next clip tries Higgsfield first again
-    await send(UID, CLIP);
-    expect(hf.calls.at(-1)).toBe("https://api.higgsfield.ai/bytedance/seedance-2.5/text-to-video");
-  });
-
-  it("start no muapi job when Higgsfield's submit gets no answer, since Higgsfield may have taken it", async () => {
-    mu.key = true;
-    hf.submits.push(-1);
-    const res = await send(UID, CLIP);
-    expect(res.status).toBe(502);
-    expect(mu.calls).toEqual([]);
-    expect([used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global")]).toEqual([0, 0]);
-  });
-
-  it("give both uses back and say try again when muapi refuses too", async () => {
-    mu.key = true;
-    hf.submits.push(500);
-    mu.submits.push(402);
-    const res = await send(UID, CLIP);
-    expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: "Couldn't start the video right now. Try again in a minute." });
-    expect([used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global")]).toEqual([0, 0]);
-  });
-
-  it("put a person's photo on muapi's storage and send it as the first frame", async () => {
-    mu.key = true;
-    db.rows.set(`${GLOBAL_COUNTER_USER}|hf-credit-low|${db.today()}`, 1);
-    await muClip(LEO, { mode: "template", template: "crumple-hook", seconds: 4, quality: "720p", fields: {}, photos: [{ role: "person", jpeg: "/9j/4AAQSkZJRgABAQAAAQABAAD" }] });
-    expect(mu.calls).toEqual(["https://api.muapi.ai/api/v1/upload_file", "https://api.muapi.ai/api/v1/seedance-2.5-image-to-video"]);
-    expect((mu.uploads[0].get("file") as Blob).type).toBe("image/jpeg");
-    expect(mu.bodies[0]).toEqual({ prompt: fixedPrompt(templateById("crumple-hook")!, "person"), duration: 4, resolution: "720p", image_url: "https://cdn.muapi.example/photo.jpg" });
-    expect(hf.calls).toEqual([]);
-  });
-
-  it("give both uses back, once, when muapi fails the clip (a failed body or a 400)", async () => {
-    mu.key = true;
-    db.rows.set(`${GLOBAL_COUNTER_USER}|hf-credit-low|${db.today()}`, 1);
-    for (const failure of [{ status: "failed", error: "Generation failed" }, 400] as const) {
-      const out = await muClip();
-      expect([used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global")]).toEqual([1, 1]);
-      mu.results = { [MU_ID]: failure };
-      expect(await (await send(UID, { mode: "status", tokens: out.tokens, refund: out.refund })).json()).toEqual({ jobs: [{ state: "failed", error: DIDNT }] });
-      await send(UID, { mode: "status", tokens: out.tokens, refund: out.refund });
-      expect([used(UID, "ai-clip"), used(GLOBAL_COUNTER_USER, "ai-clip-global")]).toEqual([0, 0]);
-      db.rows.delete(`${UID}|refund:${MU_ID}|${db.today()}`); // the same id again for the 400 round
-      mu.results = {};
-    }
-  });
-
-  it("open a muapi token only for the adviser it was made for, and only while the key is set", async () => {
-    mu.key = true;
-    db.rows.set(`${GLOBAL_COUNTER_USER}|hf-credit-low|${db.today()}`, 1);
-    const { tokens } = await muClip();
-    const unknown = { jobs: [{ state: "failed", error: "That video job isn't known." }] };
-    expect(await (await send(LEO, { mode: "status", tokens })).json()).toEqual(unknown);
-    mu.key = false;
-    expect(await (await send(UID, { mode: "status", tokens })).json()).toEqual(unknown);
-    expect(mu.calls).toEqual(["https://api.muapi.ai/api/v1/seedance-2.5-text-to-video"]);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PEOPLE_RULE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic";
+import { PEOPLE_RULE, tokenSecret } from "../ai-image/logic";
 import { GLOBAL_COUNTER_USER, refundUsage, type UsageClient } from "../_shared/usageCaps";
 import { priceOf } from "../_shared/prices";
 import { EXPLAINER_LOOK_IDS } from "../../../src/lib/links.ts";
@@ -9,7 +9,7 @@ import {
   EXPLAINER_LOOKS, LOOK_IDS, MAX_SLICE, NO_POINT, READ_FAILED, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits,
   keepsWords, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser, northStarOnly, parseVideoRequest, pictureBody, MAX_NOTES,
   pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, sceneReady, setBody, speakBody, speakSeconds, talkSystem, talkUser,
-  validateScript, validateTalk, muapiRequest, muToken, openMuToken, outOfCredit, readMuapi,
+  validateScript, validateTalk,
 } from "./logic";
 
 const WAV = "UklGRiQAAABXQVZFZm10IBAAAAABAAEA";
@@ -755,49 +755,5 @@ describe("a business brand's narrated script (replay D14: the agent's explainer 
   it("is asked for with speaker business only; a person's or a junk speaker is today's request", () => {
     expect(parseVideoRequest({ mode: "script", topic: "Why follow-ups slip", speaker: "business" })).toEqual({ ok: true, request: { mode: "script", topic: "Why follow-ups slip", speaker: "business" } });
     for (const speaker of ["person", "biz", 3, undefined]) expect(parseVideoRequest({ mode: "script", topic: "Why follow-ups slip", speaker })).toEqual({ ok: true, request: { mode: "script", topic: "Why follow-ups slip" } });
-  });
-});
-
-describe("muapi, the template clips' backup", () => {
-  it("asks muapi for the same Seedance 2.5 clip by its photo: none, a person as the first frame, a product as a reference", () => {
-    expect(muapiRequest("Shots", 8, "720p", null)).toEqual({ endpoint: "seedance-2.5-text-to-video", body: { prompt: "Shots", duration: 8, resolution: "720p", aspect_ratio: "9:16" } });
-    expect(muapiRequest("Shots", 4, "480p", { role: "person", url: "https://cdn/p.jpg" })).toEqual({
-      endpoint: "seedance-2.5-image-to-video", body: { prompt: "Shots", duration: 4, resolution: "480p", image_url: "https://cdn/p.jpg" },
-    });
-    expect(muapiRequest("Shots", 4, "480p", { role: "product", url: "https://cdn/b.jpg" })).toEqual({
-      endpoint: "seedance-2.5-omni-reference",
-      body: { prompt: "Shots", duration: 4, resolution: "480p", aspect_ratio: "9:16", images_list: ["https://cdn/b.jpg"], omni_reference_task_type: "reference" },
-    });
-  });
-
-  it("reads muapi's statuses in the studio's words, and only an https link as done", () => {
-    expect(readMuapi({ status: "processing" })).toEqual({ state: "working" });
-    expect(readMuapi({ status: "queued" })).toEqual({ state: "working" });
-    expect(readMuapi(null)).toEqual({ state: "working" });
-    expect(readMuapi({ status: "completed", outputs: ["https://cdn/v.mp4"] })).toEqual({ state: "done", url: "https://cdn/v.mp4" });
-    expect(readMuapi({ status: "succeeded", video: "https://cdn/w.mp4" })).toEqual({ state: "done", url: "https://cdn/w.mp4" });
-    expect(readMuapi({ status: "completed", outputs: ["http://cdn/v.mp4"] })).toEqual({ state: "failed", error: "It came back empty. Try again." });
-    expect(readMuapi({ status: "failed", error: "Generation failed" })).toEqual({ state: "failed", error: "It didn't come through. Try again." });
-    expect(readMuapi({ status: "Error", error: { message: "Input flagged as sensitive content" } })).toEqual({ state: "failed", error: "The safety filter blocked it. Try another photo or wording." });
-  });
-
-  it("knows Higgsfield's out-of-credit answer from any other failure", () => {
-    expect(outOfCredit({ status: "failed", error: "Your credit balance is too low to complete this request. Please top up your balance and try again." })).toBe(true);
-    expect(outOfCredit({ status: "failed", error: "Generation failed" })).toBe(false);
-    expect(outOfCredit(null)).toBe(false);
-  });
-
-  it("signs a muapi job for one adviser, under another name than a Higgsfield job's", async () => {
-    const secret = await tokenSecret("service-role-key");
-    const id = "8f7e6d5c-0000-4000-8000-000000000001";
-    const token = await muToken(secret, "u1", id);
-    expect(await openMuToken(secret, "u1", token)).toBe(id);
-    expect(await openMuToken(secret, "u2", token)).toBeNull();
-    expect(await openJobToken(secret, "u1", token)).toBeNull();
-    expect(await openMuToken(secret, "u1", await jobToken(secret, "u1", id))).toBeNull();
-    expect(await openMuToken(secret, "u1", token.replace(/.$/, (c) => (c === "0" ? "1" : "0")))).toBeNull();
-    // an id that isn't a uuid keeps its case
-    expect(await openMuToken(secret, "u1", await muToken(secret, "u1", "AbC123xyz"))).toBe("AbC123xyz");
-    await expect(muToken(secret, "u1", "../result")).rejects.toThrow("muapi id");
   });
 });

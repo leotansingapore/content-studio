@@ -5,7 +5,7 @@
 //   template: a look from the template gallery (./templates.ts), written up by OpenAI, made by Seedance 2.5
 // No Deno or npm imports, so vitest covers it. The browser imports the costs and limits from here.
 
-import { PEOPLE_RULE, hmacHex, jobToken, openJobToken } from "../ai-image/logic.ts";
+import { PEOPLE_RULE, jobToken, openJobToken } from "../ai-image/logic.ts";
 import { MOTION_CREDITS } from "../ai-image/broll.ts";
 import { meta, stripBlocks } from "../brand-dna/logic.ts";
 import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
@@ -607,61 +607,6 @@ export function readMedia(data: unknown): MediaState {
   // Seedance reports its safety block as "failed" with a message, not as "nsfw" (2026-10-10); neither is charged
   if (status === "nsfw" || /content safety/i.test(String(d.error ?? ""))) return { state: "failed", error: "The safety filter blocked it. Try another photo or wording." };
   return { state: "failed", error: "It didn't come through. Try again." };
-}
-
-// ---------- muapi.ai: the backup for template clips (Leo 2026-11-08) ----------
-// Same Seedance 2.5, 17-26% cheaper (muapi's estimate-cost, 2026-11-08). Used only while MUAPI_API_KEY is set, for the
-// rest of a UTC day once Higgsfield fails a job for credit, and for a clip whose Higgsfield submit is refused.
-
-export const MUAPI_BASE = "https://api.muapi.ai/api/v1";
-/** The day's switch to muapi: a row on the studio's usage counter, set once (claimOnce) and read before each clip. */
-export const HF_LOW = "hf-credit-low";
-
-/** Higgsfield took the job but couldn't pay for it: its answer on 2026-11-05 ("Your credit balance is too low ..."). */
-export const outOfCredit = (data: unknown) => /credit balance is too low/i.test(String((data as { error?: unknown } | null)?.error ?? ""));
-
-/** muapi's Seedance 2.5 request for the same clip (schemas from GET api.muapi.ai/api/v1/models/<endpoint>, 2026-11-08). */
-export function muapiRequest(
-  prompt: string, seconds: ClipSeconds, quality: ClipQuality, photo: { role: PhotoRole; url: string } | null,
-): { endpoint: string; body: Record<string, unknown> } {
-  const body = { prompt, duration: seconds, resolution: quality };
-  if (photo?.role === "person") return { endpoint: "seedance-2.5-image-to-video", body: { ...body, image_url: photo.url } };
-  const vertical = { ...body, aspect_ratio: "9:16" };
-  return photo
-    ? { endpoint: "seedance-2.5-omni-reference", body: { ...vertical, images_list: [photo.url], omni_reference_task_type: "reference" } }
-    : { endpoint: "seedance-2.5-text-to-video", body: vertical };
-}
-
-/** A muapi prediction in the studio's words (its statuses as muapi's own client reads them, generationLifecycle.js). */
-export function readMuapi(data: unknown): MediaState {
-  const d = (data ?? {}) as Record<string, unknown>;
-  const status = String(d.status ?? "").toLowerCase();
-  if (["completed", "succeeded", "success"].includes(status)) {
-    const url = (d.outputs as unknown[] | undefined)?.[0] ?? d.video ?? d.url;
-    return typeof url === "string" && /^https:\/\//.test(url) ? { state: "done", url } : { state: "failed", error: "It came back empty. Try again." };
-  }
-  if (!["failed", "error", "cancelled", "canceled"].includes(status)) return { state: "working" };
-  const why = typeof d.error === "string" ? d.error : String((d.error as { message?: unknown } | undefined)?.message ?? "");
-  return /content safety|nsfw|sensitive/i.test(why)
-    ? { state: "failed", error: "The safety filter blocked it. Try another photo or wording." }
-    : { state: "failed", error: "It didn't come through. Try again." };
-}
-
-// A muapi job's token: "mu." and its id signed for this adviser under another name than Higgsfield's, so neither opens as
-// the other. muapi's id format isn't documented (no key to see one on 2026-11-08): kept as sent, any case, not just a uuid.
-const MU_ID = /^[0-9A-Za-z][0-9A-Za-z_-]{7,63}$/;
-export async function muToken(secret: string, uid: string, id: string): Promise<string> {
-  if (!MU_ID.test(id)) throw new Error(`muapi id ${id.slice(0, 80)}`);
-  return `mu.${id}.${await hmacHex(secret, `mu:${uid}:${id}`)}`;
-}
-/** The muapi job id when the token was made for this user, else null. Compared in constant time. */
-export async function openMuToken(secret: string, uid: string, token: string): Promise<string | null> {
-  const m = /^mu\.([0-9A-Za-z_-]+)\.([0-9a-f]{64})$/.exec(token);
-  if (!m || !MU_ID.test(m[1])) return null;
-  const want = await hmacHex(secret, `mu:${uid}:${m[1]}`);
-  let diff = 0;
-  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ m[2].charCodeAt(i);
-  return diff === 0 ? m[1] : null;
 }
 
 /** Said on a failed video when its other parts were already being made or made: Higgsfield charges those as usual. */
