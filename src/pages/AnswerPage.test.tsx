@@ -24,7 +24,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import AnswerPage, { splitTitle } from "./AnswerPage";
+import AnswerPage, { savedWork, splitTitle } from "./AnswerPage";
 
 const html = (path = "/generate/answer") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(AnswerPage)));
 const button = (h: string) => /<button[^>]*>(?:(?!<\/button>).)*Write 3 answers<\/button>/s.exec(h)?.[0] ?? "";
@@ -50,5 +50,22 @@ describe("splitTitle", () => {
   it("splits a guide's TITLE line from its body, and leaves a reply whole", () => {
     expect(splitTitle("TITLE: How finance internships work\n\nStart here.\nThen this.")).toEqual({ title: "How finance internships work", body: "Start here.\nThen this." });
     expect(splitTitle("Yes, if you start early.")).toEqual({ title: null, body: "Yes, if you start early." });
+  });
+});
+
+describe("savedWork", () => {
+  const done = { status: "done", text: "Yes, if you start early." };
+  const work = { q: "Is it worth it?", where: "r/SGExams", rule: "", shape: "reply", answers: [done, { status: "error", text: "", error: "Stopped." }] };
+  it("brings back the answers for the question on screen, or with the fields when the box is empty", () => {
+    expect(savedWork(work, "Is it worth it?")?.answers).toHaveLength(2);
+    expect(savedWork(work, "")).toEqual(work);
+  });
+  it("leaves out answers to another question, half-written rows and anything unreadable", () => {
+    expect(savedWork(work, "Something else?")).toBeNull();
+    expect(savedWork({ ...work, answers: [{ status: "writing", text: "Yes" }, done] }, "")?.answers).toEqual([done]);
+    expect(savedWork({ ...work, answers: [{ status: "writing", text: "Yes" }] }, "")).toBeNull();
+    expect(savedWork({ ...work, q: " " }, "")).toBeNull();
+    expect(savedWork(null, "")).toBeNull();
+    expect(savedWork("junk", "")).toBeNull();
   });
 });

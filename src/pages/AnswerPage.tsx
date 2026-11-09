@@ -15,13 +15,29 @@ import { useToast } from "@/hooks/use-toast";
 import { ANSWER_COUNT, streamAnswers } from "@/lib/batchGenerate";
 import { stripDashes } from "@/lib/plainText";
 import { professionFor } from "@/lib/profession";
+import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { useUrlState } from "@/lib/urlState";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { isVoiceProfileUsable, loadVoiceProfile, voiceSummaryOf } from "@/lib/voiceProfile";
 import { ANSWER_SHAPES, type AnswerShape } from "../../supabase/functions/generate-social-content/logic.ts";
 
 type Answer = { status: "writing" | "done" | "error"; text: string; error?: string };
+type Work = { q: string; where: string; rule: string; shape: string; answers: Answer[] };
+
+// The last answers written, kept for this tab so a reload or a trip to another page doesn't lose them.
+// sessionStorage, outside the synced prefix, as Batch's work is.
+const workKey = (userId: string) => `cs-answer-work-${scoped(userId)}`;
+
+/** The tab's saved answers, when they were written for the question on screen (or the box is empty); else null. */
+export function savedWork(raw: unknown, question: string): Work | null {
+  const w = raw as Partial<Work> | null;
+  if (!w || typeof w.q !== "string" || !w.q.trim() || !Array.isArray(w.answers)) return null;
+  if (question.trim() && w.q !== question) return null;
+  const answers = w.answers.filter((a) => !!a && typeof a.text === "string" && (a.status === "done" || a.status === "error"));
+  const s = (v: unknown) => (typeof v === "string" ? v : "");
+  return answers.length ? { q: w.q, where: s(w.where), rule: s(w.rule), shape: s(w.shape), answers } : null;
+}
 
 /** A guide's first line is "TITLE: ...": split off so the title and the post copy into their own boxes. */
 export function splitTitle(text: string): { title: string | null; body: string } {
@@ -43,6 +59,37 @@ export default function AnswerPage() {
   const writing = answers.some((a) => a.status === "writing");
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  const updateUrl = useUrlUpdate();
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      const id = data.session?.user.id ?? null;
+      try {
+        const work = id ? savedWork(JSON.parse(sessionStorage.getItem(workKey(id)) ?? "null"), question) : null;
+        if (work) {
+          // one write: the fields the answers were written from, when the address came without them
+          if (!question.trim()) updateUrl({ q: work.q, where: work.where || null, rule: work.rule || null, shape: work.shape === "reply" ? null : work.shape || null });
+          setAnswers(work.answers);
+        }
+      } catch {
+        // corrupt or blocked storage: start fresh
+      }
+      setUid(id);
+    });
+    // read once at mount, with the question the address opened on
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // saved once the answers are in (not on every token), under the question they answer
+  useEffect(() => {
+    if (!uid || writing || !answers.length || !question.trim()) return;
+    try {
+      sessionStorage.setItem(workKey(uid), JSON.stringify({ q: question, where, rule, shape, answers }));
+    } catch {
+      // storage blocked: the answers just won't survive a page change
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, writing, answers]);
 
   const write = async () => {
     if (!question.trim() || writing) return;
