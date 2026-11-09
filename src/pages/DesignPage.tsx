@@ -209,12 +209,24 @@ export default function DesignPage() {
             {own.map((t) => (
               <Cover key={t.id} d={t} onOpen={() => open(newDesign(t.format, t.title, t.slides))}>
                 <span className="truncate text-sm font-medium">{t.title}</span>
-                <span className="flex items-center justify-between text-xs text-muted-foreground">
-                  {FORMAT_LABEL[t.format]}, {t.slides.length} slides
-                  <button type="button" aria-label={`Remove the template ${t.title}`} className="hover:text-destructive [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-end" onClick={() => removeOwnTemplate(userId, t.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </span>
+                {confirm === t.id ? (
+                  <span className="flex items-center gap-2 text-xs">
+                    Remove it?
+                    <button type="button" className="font-medium text-destructive hover:underline [@media(pointer:coarse)]:min-h-11" onClick={() => (removeOwnTemplate(userId, t.id), setConfirm(null))}>
+                      Remove
+                    </button>
+                    <button type="button" className="text-muted-foreground hover:underline [@media(pointer:coarse)]:min-h-11" onClick={() => setConfirm(null)}>
+                      Keep
+                    </button>
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-between text-xs text-muted-foreground">
+                    {FORMAT_LABEL[t.format]}, {t.slides.length} slides
+                    <button type="button" aria-label={`Remove the template ${t.title}`} className="hover:text-destructive [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-end" onClick={() => setConfirm(t.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
               </Cover>
             ))}
           </ul>
