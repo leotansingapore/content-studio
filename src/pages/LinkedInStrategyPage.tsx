@@ -178,7 +178,12 @@ function Interview(p: {
             </Button>
           )}
         </div>
-        {last && !ready && <p className="text-xs text-muted-foreground">{NEED_FIRST}</p>}
+        {/* the two answers it needs are on step 1: the line takes you there */}
+        {last && !ready && (
+          <button type="button" onClick={() => p.onStep(0)} className={`text-left text-xs font-medium text-primary hover:underline ${TOUCH}`}>
+            {NEED_FIRST}
+          </button>
+        )}
       </CardContent>
     </Card>
   );
