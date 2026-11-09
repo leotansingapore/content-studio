@@ -190,7 +190,7 @@ import { professionFor } from "@/lib/profession";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
-import { erroredVariant, streamOnePost } from "@/lib/batchGenerate";
+import { erroredVariant, streamOnePost, WRITER_OFFLINE, writerRefusal } from "@/lib/batchGenerate";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
   buildCompetitorStyleReference,
@@ -1945,13 +1945,10 @@ export default function GeneratePage() {
       });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      throw err;
+      throw new Error(WRITER_OFFLINE);
     }
 
-    if (!res.ok || !res.body) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Stream request failed (${res.status}) ${text}`);
-    }
+    if (!res.ok || !res.body) throw new Error(await writerRefusal(res));
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

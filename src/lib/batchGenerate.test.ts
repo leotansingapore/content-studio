@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt", user: { id: UID, email: "someone@example.com" } } } }) } },
 }));
 
-import { ANSWER_COUNT, erroredVariant, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, type GeneratePostPayload } from "./batchGenerate";
+import { ANSWER_COUNT, erroredVariant, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, WRITER_FAILED, WRITER_OFFLINE, type GeneratePostPayload } from "./batchGenerate";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -206,11 +206,18 @@ describe("streamAnswers (/generate/answer)", () => {
     expect(done).toEqual(["Yes, if you start early.", undefined, "Most people skip it."]);
     expect(errors).toEqual([[1, "Variant failed"]]);
   });
-  it("reports a refusal before any answer starts with no index", async () => {
+  it("reports a refusal before any answer starts with no index, in plain words when the body has none", async () => {
     reply([], 429);
     const { done, errors } = await run();
     expect(done).toEqual([]);
-    expect(errors).toEqual([[null, "Generation failed (429) Too many"]]);
+    expect(errors).toEqual([[null, WRITER_FAILED]]);
+  });
+  it("passes on the writer's own refusal line, and says so when the server can't be reached", async () => {
+    const limit = "You've used all 30 for today. It resets at 8am Singapore time.";
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error: limit, code: "daily_limit" }), { status: 429 }));
+    expect((await run()).errors).toEqual([[null, limit]]);
+    vi.stubGlobal("fetch", async () => Promise.reject(new TypeError("Failed to fetch")));
+    expect((await run()).errors).toEqual([[null, WRITER_OFFLINE]]);
   });
 });
 

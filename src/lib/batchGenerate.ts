@@ -51,6 +51,15 @@ async function withMemory(payload: GeneratePostPayload): Promise<GeneratePostPay
   return memory ? { ...payload, ideaContext: [payload.ideaContext, memory].filter(Boolean).join("\n\n") } : payload;
 }
 
+export const WRITER_FAILED = "That didn't go through. Try again in a minute.";
+export const WRITER_OFFLINE = "Couldn't reach the server. Check your connection and try again.";
+
+/** A refused request in the writer's own words (its { error }: the daily limit, too long), else a plain line. */
+export async function writerRefusal(res: Response): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+  return typeof body?.error === "string" && body.error.trim() ? body.error.trim() : WRITER_FAILED;
+}
+
 /**
  * POSTs one request to the writer and hands each server-sent event to `onEvent`, which returns false to stop reading.
  * Resolves true when the stream ran to its end. An abort resolves false silently; any other failure is reported through
@@ -81,13 +90,12 @@ async function readWriterStream(
     });
   } catch (err) {
     if ((err as Error).name === "AbortError") return false;
-    onError(err instanceof Error ? err.message : "Request failed");
+    onError(WRITER_OFFLINE);
     return false;
   }
 
   if (!res.ok || !res.body) {
-    const text = await res.text().catch(() => "");
-    onError(`Generation failed (${res.status}) ${text}`.trim());
+    onError(await writerRefusal(res));
     return false;
   }
 
