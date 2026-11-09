@@ -403,16 +403,27 @@ export default function PlanPage() {
       setDrafts(setDraftStatus(userId, post.id, posted ? "posted" : "scheduled"));
   };
 
+  // Undo instead of a browser confirm box: the plan, its angles and ticks come back as they were.
   const handleDeletePlan = () => {
-    if (!userId) return;
-    if (
-      !window.confirm(
-        "Delete this content plan? Your positioning stays; the mapped posts and posted ticks are removed.",
-      )
-    )
-      return;
+    if (!userId || !plan) return;
+    const prev = plan;
     clearPlan(userId);
     setPlan(null);
+    toast({
+      title: "Plan deleted",
+      description: "Your positioning stays.",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            savePlan(userId, prev);
+            setPlan(prev);
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   // Push every plan slot onto the calendar as a scheduled post (dated from the
