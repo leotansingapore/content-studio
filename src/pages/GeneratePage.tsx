@@ -4359,9 +4359,10 @@ export default function GeneratePage() {
                     <Button
                       size="sm"
                       variant={isSelected ? "default" : "outline"}
-                      disabled={!v.complete}
+                      // picking it again would put the variation back over the edits in Your draft
+                      disabled={!v.complete || isSelected}
                       onClick={() => handlePickVariant(v.index)}
-                      className="mt-3 w-full gap-1.5"
+                      className={`mt-3 w-full gap-1.5 ${isSelected ? "disabled:opacity-100" : ""}`}
                     >
                       {isSelected ? (
                         <>
