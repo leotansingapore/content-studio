@@ -56,6 +56,8 @@ export const WRITER_OFFLINE = "Couldn't reach the server. Check your connection 
 
 /** A refused request in the writer's own words (its { error }: the daily limit, too long), else a plain line. */
 export async function writerRefusal(res: Response): Promise<string> {
+  // a 5xx carries the server's own error text (OpenAI's, a missing key), which isn't for the person
+  if (res.status >= 500) return WRITER_FAILED;
   const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
   return typeof body?.error === "string" && body.error.trim() ? body.error.trim() : WRITER_FAILED;
 }

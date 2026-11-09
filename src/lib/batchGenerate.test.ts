@@ -216,6 +216,8 @@ describe("streamAnswers (/generate/answer)", () => {
     const limit = "You've used all 30 for today. It resets at 8am Singapore time.";
     vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error: limit, code: "daily_limit" }), { status: 429 }));
     expect((await run()).errors).toEqual([[null, limit]]);
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error: "OpenAI API key not configured" }), { status: 500 }));
+    expect((await run()).errors).toEqual([[null, WRITER_FAILED]]);
     vi.stubGlobal("fetch", async () => Promise.reject(new TypeError("Failed to fetch")));
     expect((await run()).errors).toEqual([[null, WRITER_OFFLINE]]);
   });
