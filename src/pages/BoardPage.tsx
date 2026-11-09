@@ -33,6 +33,8 @@ import {
 import { supabase } from "@/lib/supabase";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { activeProfile } from "@/lib/profiles";
+import { zernioHolds } from "@/lib/zernioOutbox";
+import { undoTo } from "@/lib/useZernioOutbox";
 
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { useUrlItem } from "@/lib/urlState";
@@ -386,8 +388,20 @@ export default function BoardPage() {
       return;
     }
     // Production stage move; also clears scheduled/posted if dragging back.
-    if (draftStatus(draft) !== "draft") {
+    const was = draftStatus(draft);
+    if (was !== "draft") {
       setDrafts(setDraftStatus(userId, draft.id, "draft"));
+      // that wipes its day (and Zernio's post) or its posted record: say so, with Undo (its old status wins the column)
+      toast({
+        title: `Moved to ${BOARD_COLUMNS.find((c) => c.key === col)?.label}`,
+        description:
+          was === "posted" ? "No longer marked posted." : `Its date is cleared.${zernioHolds(draft) ? " Zernio won't post it." : ""}`,
+        action: (
+          <ToastAction altText="Undo" onClick={() => setDrafts(undoTo(userId, draft))}>
+            Undo
+          </ToastAction>
+        ),
+      });
     }
     setStages(setStage(userId, draft.id, col as ProductionStage));
   };
