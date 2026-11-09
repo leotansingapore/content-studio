@@ -178,6 +178,15 @@ export default function BatchPage() {
     });
   };
 
+  // A new batch replaces every card: drafts not yet saved go only when the user says so.
+  const okToDropUnsaved = () => {
+    const unsaved = Object.values(cards).filter((c) => c.status === "done").length;
+    return (
+      unsaved === 0 ||
+      window.confirm(`Start over? ${unsaved} draft${unsaved === 1 ? " isn't" : "s aren't"} saved to All posts yet and will be lost.`)
+    );
+  };
+
   // only: a failed card's Try again writes that one again and leaves the others as they are
   const runBatch = async (only?: BatchTarget) => {
     const trimmed = topic.trim();
@@ -197,6 +206,7 @@ export default function BatchPage() {
       });
       return;
     }
+    if (!only && !okToDropUnsaved()) return;
     setRunning(true);
     const targets = only ? [only] : activeTargets;
     if (only) {
@@ -512,17 +522,7 @@ export default function BatchPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            const unsaved = Object.values(cards).filter((c) => c.status === "done").length;
-            if (
-              unsaved > 0 &&
-              !window.confirm(
-                `Start over? ${unsaved} draft${unsaved === 1 ? " isn't" : "s aren't"} saved to All posts yet and will be lost.`,
-              )
-            )
-              return;
-            setCards({});
-          }}
+          onClick={() => okToDropUnsaved() && setCards({})}
           className="gap-1.5 text-muted-foreground"
         >
           <RotateCcw className="h-3.5 w-3.5" /> Start a new batch
