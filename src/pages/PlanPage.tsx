@@ -59,6 +59,7 @@ import {
   type PlanPlatform,
 } from "@/lib/positioning";
 import {
+  angleText,
   generatePlan,
   loadPlan,
   savePlan,
@@ -1067,7 +1068,7 @@ export default function PlanPage() {
                               : "text-foreground"
                           }`}
                         >
-                          {item.angle}
+                          {angleText(item)}
                         </p>
                         {formula ? (
                           <p className="rounded-lg border border-border/50 bg-muted/20 px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">

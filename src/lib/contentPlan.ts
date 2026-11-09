@@ -665,7 +665,7 @@ export function planItemToGenerateUrl(item: PlanItem, thisWeek?: string): string
     idea: item.ideaSource,
   });
   const story = item.week === 1 ? thisWeek?.trim() : "";
-  const ctx = [item.angle, story ? `What happened this week: ${story}` : ""].filter(Boolean).join("\n\n");
+  const ctx = [angleText(item), story ? `What happened this week: ${story}` : ""].filter(Boolean).join("\n\n");
   if (ctx) params.set("ctx", ctx);
   if (item.formulaId) params.set("formula", item.formulaId);
   if (item.competitorHandle) params.set("ref", item.competitorHandle);

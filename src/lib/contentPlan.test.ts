@@ -132,6 +132,10 @@ describe("planItemToGenerateUrl", () => {
     expect(b.get("ctx")).toBe("Angle b");
     expect(b.has("formula")).toBe(false);
   });
+  it("hands Write the angle without its em dash", () => {
+    const url = planItemToGenerateUrl({ ...item("c", "Mon", 2), angle: "Critical illness — a myth worth busting" });
+    expect(new URLSearchParams(url.split("?")[1]).get("ctx")).toBe("Critical illness: a myth worth busting");
+  });
 });
 
 describe("hookFormulasFrom", () => {
