@@ -673,6 +673,21 @@ export function planItemToGenerateUrl(item: PlanItem, thisWeek?: string): string
   return `/generate?${params.toString()}`;
 }
 
+/** The calendar post Add to calendar makes for a plan slot. */
+export const planDraftId = (item: Pick<PlanItem, "id">) => `plan_${item.id}`;
+
+/**
+ * Where a plan slot's Write button goes. Once Add to calendar has made the slot's post, Write fills that post (and it
+ * keeps its day) rather than starting a second one beside it; once that post is written, it simply opens.
+ */
+export function planSlotWriteUrl(item: PlanItem, drafts: Pick<DraftEntry, "id" | "draft">[], thisWeek?: string): string {
+  const id = planDraftId(item);
+  const onCalendar = drafts.find((d) => d.id === id);
+  if (onCalendar?.draft.trim()) return `/generate?draft=${encodeURIComponent(id)}`;
+  const url = planItemToGenerateUrl(item, thisWeek);
+  return onCalendar ? `${url}&draft=${encodeURIComponent(id)}` : url;
+}
+
 // ---- calendar mapping ----
 
 const WEEKDAY_OFFSET: Record<string, number> = {
@@ -717,7 +732,7 @@ export function planCalendarEntries(
   const entries: DraftEntry[] = [];
   let kept = 0;
   for (const item of items) {
-    const id = `plan_${item.id}`;
+    const id = planDraftId(item);
     const prev = byId.get(id);
     if (prev && (prev.draft.trim() || prev.status !== "scheduled")) {
       kept++;

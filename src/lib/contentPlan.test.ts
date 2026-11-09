@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planCalendarEntries, type PlanItem } from "./contentPlan";
+import { planCalendarEntries, planSlotWriteUrl, type PlanItem } from "./contentPlan";
 import type { DraftEntry } from "./draftHistory";
 
 const item = (id: string, dayLabel: string, week = 1): PlanItem => ({
@@ -31,6 +31,24 @@ describe("planCalendarEntries", () => {
     expect(kept).toBe(2);
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ id: "plan_c", hook: "Hook c", scheduledFor: "2026-10-16", createdAt: "2026-09-01T00:00:00.000Z" });
+  });
+});
+
+describe("planSlotWriteUrl", () => {
+  it("prefills a fresh Write before the slot is on the calendar", () => {
+    const url = new URL(planSlotWriteUrl(item("a", "Mon"), []), "https://x");
+    expect(url.searchParams.get("draft")).toBeNull();
+    expect(url.searchParams.get("ctx")).toBe("Angle a");
+  });
+
+  it("fills the slot's calendar post, with the plan's prefill, once Add to calendar made it", () => {
+    const url = new URL(planSlotWriteUrl(item("a", "Mon"), [post({ id: "plan_a" })]), "https://x");
+    expect(url.searchParams.get("draft")).toBe("plan_a");
+    expect(url.searchParams.get("ctx")).toBe("Angle a");
+  });
+
+  it("just opens the calendar post once it is written", () => {
+    expect(planSlotWriteUrl(item("a", "Mon"), [post({ id: "plan_a", draft: "Written" })])).toBe("/generate?draft=plan_a");
   });
 });
 

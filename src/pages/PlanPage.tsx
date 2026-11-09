@@ -64,7 +64,8 @@ import {
   loadPlan,
   savePlan,
   clearPlan,
-  planItemToGenerateUrl,
+  planDraftId,
+  planSlotWriteUrl,
   planCalendarEntries,
   planOptionsFor,
   rebuildPlan,
@@ -1108,8 +1109,8 @@ export default function PlanPage() {
                               : ""
                           }`}
                         >
-                          <Link to={planItemToGenerateUrl(labelled(item), plan.thisWeek)}>
-                            Draft in Studio
+                          <Link to={planSlotWriteUrl(labelled(item), drafts, plan.thisWeek)}>
+                            {drafts.some((d) => d.id === planDraftId(item) && d.draft.trim()) ? "Open post" : "Draft in Studio"}
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
