@@ -173,8 +173,8 @@ export default function VoicePage() {
       return;
     }
     if (!canDistill) {
-      // Still save the raw posts, but skip distill. Leo keeps the saved summary (a website voice has no posts).
-      persistOnly(leo ? undefined : "");
+      // Still save the raw posts, but skip distill, keeping the saved summary (a website voice from Add a brand has no posts).
+      persistOnly();
       toast({
         title: "Saved (not enough posts to distill yet)",
         description: `Add at least ${VOICE_MIN_FILLED} posts of ${VOICE_MIN_CHARS}+ chars to generate a voice summary.`,
