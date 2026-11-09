@@ -59,8 +59,11 @@ export function reportClientError(value: unknown, context?: string) {
   }
 }
 
-/** Reload to pick up a new deploy. Returns false (and doesn't reload) if we just tried. */
+let reloading = false;
+
+/** Reload to pick up a new deploy. True while a reload is underway; false (and no reload) if one just failed to help. */
 export function reloadForNewVersion(): boolean {
+  if (reloading) return true;
   try {
     const last = Number(window.sessionStorage.getItem(RELOAD_KEY) ?? 0);
     if (Date.now() - last < RELOAD_COOLDOWN_MS) return false;
@@ -68,14 +71,17 @@ export function reloadForNewVersion(): boolean {
   } catch {
     return false;
   }
+  reloading = true;
   window.location.reload();
   return true;
 }
 
 export function installGlobalErrorHandlers() {
-  // Vite fires this when a lazy route's preload fails (usually a stale tab).
-  window.addEventListener("vite:preloadError", (event) => {
-    if (reloadForNewVersion()) event.preventDefault();
+  // Vite fires this when a lazy route's preload fails (usually a stale tab). No preventDefault: Vite would then
+  // resolve the import to undefined and lazy() crash on .default before the reload lands (Sentry CONTENT-STUDIO-4);
+  // thrown, the error reaches ErrorBoundary as a chunk error, which waits for this reload.
+  window.addEventListener("vite:preloadError", () => {
+    reloadForNewVersion();
   });
   window.addEventListener("error", (event) => {
     reportClientError(event.error ?? event.message, "window error");
