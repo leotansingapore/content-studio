@@ -187,6 +187,8 @@ export default function VoicePage() {
   const runDistill = async () => {
     if (!userId) return;
     setDistilling(true);
+    // the writer's own refusal (daily limit, sign in again), the one error worth showing as it is
+    let refusal = "";
     try {
       const filled = posts
         .map((p) => p.trim())
@@ -204,8 +206,10 @@ export default function VoicePage() {
         body: JSON.stringify({ mode: "voice-summary", posts: filled, profession: professionFor(userId) || undefined }),
       });
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`voice-summary failed (${res.status}) ${text}`);
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        // a 5xx carries the model's own error text, which isn't for the person
+        if (res.status < 500) refusal = payload?.error ?? "";
+        throw new Error(`voice-summary failed (${res.status}) ${payload?.error ?? ""}`);
       }
       const data = (await res.json()) as { voiceSummary?: string; error?: string };
       if (data.error) throw new Error(data.error);
@@ -230,10 +234,7 @@ export default function VoicePage() {
       persistOnly();
       toast({
         title: "Couldn't distill voice",
-        description:
-          err instanceof Error
-            ? err.message
-            : "Saved the raw posts. Try distilling again in a moment.",
+        description: `${refusal || "Try again in a moment."} Your posts are saved.`,
         variant: "destructive",
       });
     } finally {
