@@ -538,7 +538,8 @@ export default function BrandPage() {
     <div className="space-y-6">
       <header className="flex items-center gap-3">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Brand kit</h1>
-        <span aria-live="polite" className={`flex items-center gap-1 text-xs font-medium text-success transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}>
+        {/* fixed, so an edit far down the page still shows it saved */}
+        <span aria-live="polite" className={`pointer-events-none fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold text-success shadow-elegant transition-opacity lg:bottom-6 ${saved ? "opacity-100" : "opacity-0"}`}>
           <Check className="h-3.5 w-3.5" /> Saved
         </span>
       </header>
