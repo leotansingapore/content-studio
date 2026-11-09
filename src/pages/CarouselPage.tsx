@@ -83,6 +83,7 @@ import {
   restoreSlide,
   saveBrand,
   slideFileName,
+  slidesZipName,
   loadCarousels,
   removeCarousel,
   saveCarousel,
@@ -100,7 +101,7 @@ import {
 import { DESIGNS, SLIDE_SIZES, designLook, isDesign, isSize, slideImage } from "@/lib/carouselDesigns";
 import { callFn } from "@/lib/edgeFn";
 import { SLIDE_FONTS, layoutSlide, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
-import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng } from "@/lib/carouselRender";
+import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng, zipBlob } from "@/lib/carouselRender";
 import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
@@ -126,8 +127,6 @@ type AiState =
   | { status: "idle" | "loading"; fix?: boolean }
   | { status: "error" | "limit" | "unavailable"; message: string };
 type SplitInfo = Omit<SplitResult, "slides">;
-
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The carousel in progress (pasted text, slide edits), kept for this tab so
 // leaving the page doesn't lose it. sessionStorage, outside the synced prefix.
@@ -1095,16 +1094,17 @@ export default function CarouselPage() {
     const jobs = indexes.map((i) => ({ svg: images[i].svg, name: slideFileName(fileBase, i) }));
     setExporting({ done: 0, total: jobs.length });
     try {
+      const files = [];
       for (let k = 0; k < jobs.length; k++) {
-        const blob = size === "4x5" ? await svgToPng(jobs[k].svg) : await slideImage(jobs[k].svg, size, "image/png");
-        downloadBlob(blob, jobs[k].name);
+        files.push({ file: size === "4x5" ? await svgToPng(jobs[k].svg) : await slideImage(jobs[k].svg, size, "image/png"), name: jobs[k].name });
         setExporting({ done: k + 1, total: jobs.length });
-        // Browsers drop downloads that all start at the same moment.
-        if (k < jobs.length - 1) await pause(400);
       }
+      // more than one goes as one zip: Chrome blocks a site's downloads after the first file (zipBlob)
+      if (files.length === 1) downloadBlob(files[0].file, files[0].name);
+      else downloadBlob(await zipBlob(files), slidesZipName(fileBase));
       toast({
         title: jobs.length === 1 ? "Slide downloaded" : `${jobs.length} slides downloaded`,
-        description: "They're in your Downloads folder, numbered in order.",
+        description: jobs.length === 1 ? "It's in your Downloads folder." : "One zip in your Downloads folder, numbered in order.",
       });
     } catch (err) {
       console.error("carousel export failed", err);
@@ -2039,7 +2039,6 @@ export default function CarouselPage() {
                 {exporting && (
                   <p role="status" className="text-xs text-muted-foreground">
                     Creating slide {Math.min(exporting.done + 1, exporting.total)} of {exporting.total}.
-                    {exporting.total > 1 ? " Your browser may ask to allow multiple downloads." : ""}
                   </p>
                 )}
                 <ul className={`grid grid-cols-2 gap-3 ${scoreOn ? "lg:max-h-[calc(100vh-26rem)]" : "lg:max-h-[calc(100vh-14rem)]"} lg:overflow-y-auto lg:pr-1`}>
