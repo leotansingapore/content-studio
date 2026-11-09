@@ -581,7 +581,7 @@ export default function CarouselPage() {
   const [hexInput, setHexInput] = useState(DEFAULT_BRAND.color);
   const [ai, setAi] = useState<AiState>({ status: "idle" });
   const [beforeAi, setBeforeAi] = useState<Slide[] | null>(null);
-  const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
+  const [exporting, setExporting] = useState<{ done: number; total: number; pdf?: true } | null>(null);
   const measure = useMemo(() => createCanvasMeasure(), []);
   const deepLinkHandled = useRef(false);
 
@@ -1130,13 +1130,13 @@ export default function CarouselPage() {
   const exportPdf = async () => {
     if (exporting) return;
     keep();
-    setExporting({ done: 0, total: images.length });
+    setExporting({ done: 0, total: images.length, pdf: true });
     try {
       const pages = [];
       for (let k = 0; k < images.length; k++) {
         const jpeg = size === "4x5" ? await svgToJpeg(images[k].svg) : new Uint8Array(await (await slideImage(images[k].svg, size, "image/jpeg", 0.92)).arrayBuffer());
         pages.push({ jpeg, width: frame.width, height: frame.height });
-        setExporting({ done: k + 1, total: images.length });
+        setExporting({ done: k + 1, total: images.length, pdf: true });
       }
       downloadBlob(new Blob([buildPdf(pages)], { type: "application/pdf" }), `${slideFileName(fileBase, 0).replace(/-01\.png$/, "")}.pdf`);
       toast({ title: "PDF downloaded", description: "Post it on LinkedIn as a document." });
@@ -1355,7 +1355,7 @@ export default function CarouselPage() {
         className="gap-1.5 [@media(pointer:coarse)]:h-11"
       >
         <Download className="h-3.5 w-3.5" />
-        {exporting && exporting.total > 1
+        {exporting && !exporting.pdf && exporting.total > 1
           ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
           : platform === "linkedin" && frame.pdf ? "PNGs" : "Download all"}
       </Button>
@@ -1367,7 +1367,7 @@ export default function CarouselPage() {
           disabled={exportBusy || busy}
           className="gap-1.5 [@media(pointer:coarse)]:h-11"
         >
-          <FileText className="h-3.5 w-3.5" /> {platform === "linkedin" ? "Download PDF" : "PDF"}
+          <FileText className="h-3.5 w-3.5" /> {exporting?.pdf ? "Making the PDF..." : platform === "linkedin" ? "Download PDF" : "PDF"}
         </Button>
       )}
     </div>
