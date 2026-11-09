@@ -442,13 +442,21 @@ export default function DraftsPage() {
     </ToastAction>
   );
 
-  const handleSetStatus = (id: string, status: DraftStatus, when?: string) => {
+  // The post as it was when its date field took focus: a typed date lands once per digit, and Undo goes back to this.
+  const dateBase = useRef<DraftEntry | null>(null);
+  // A day picked on a card: say where it went (under the Drafts filter the card leaves the list), with Undo.
+  const handleSchedule = (id: string, when: string) => {
     if (!userId) return;
     const prev = drafts.find((d) => d.id === id);
-    setDrafts(setDraftStatus(userId, id, status, when));
-    // a new day for a post Zernio holds moves the real post too: say so, with Undo (publish-calendar)
-    if (prev && when && status === "scheduled" && zernioHolds(prev) && prev.scheduledFor !== when)
-      toast({ title: `Moved to ${whenLabel(when)}`, description: "The auto-post moves with it.", action: undoAction([prev]) });
+    if (!prev) return;
+    const base = dateBase.current?.id === id ? dateBase.current : prev;
+    setDrafts(setDraftStatus(userId, id, "scheduled", when));
+    toast({
+      title: `${draftStatus(base) === "scheduled" ? "Moved to" : "Scheduled for"} ${whenLabel(when)}`,
+      // a new day for a post Zernio holds moves the real post too (publish-calendar)
+      description: zernioHolds(prev) ? "The auto-post moves with it." : undefined,
+      action: undoAction([base]),
+    });
   };
 
   // As on Home and the calendar: say so, with Undo (which also takes off the posted copy a recurring post leaves).
@@ -1031,7 +1039,8 @@ export default function DraftsPage() {
                       min={today}
                       value={d.scheduledFor?.slice(0, 10) ?? ""}
                       // keeps a set posting time
-                      onPick={(day) => handleSetStatus(d.id, "scheduled", scheduleAt(day, scheduleTime(d.scheduledFor)))}
+                      onFocus={() => (dateBase.current = d)}
+                      onPick={(day) => handleSchedule(d.id, scheduleAt(day, scheduleTime(d.scheduledFor)))}
                       className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 [@media(pointer:coarse)]:h-11"
                     />
                   </label>
