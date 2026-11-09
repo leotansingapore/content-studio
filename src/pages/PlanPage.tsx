@@ -315,11 +315,24 @@ export default function PlanPage() {
       ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptionsFor(userId, merged.platform, { competitors, plan }), ...steer(userId) }),
       ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
     };
+    const prev = plan;
     savePlan(userId, newPlan);
     setPlan(newPlan);
     toast({
       title: "Fresh angles",
       description: "Same positioning, new ideas. Posted ticks were reset.",
+      // the old angles and ticks back, as rebuildAroundPillars' Undo does
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            savePlan(userId, prev);
+            setPlan(prev);
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
     });
   };
 
