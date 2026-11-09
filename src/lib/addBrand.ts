@@ -142,7 +142,8 @@ export function createBrand(
   // the stores below key on the open brand, so it opens first
   setActiveProfile(uid, p.id);
   if (!brand) {
-    saveBrand(uid, { ...DEFAULT_BRAND, profession });
+    // its name on the kit too, as a site read's is (newBrandKit), so carousels and the bio page aren't left blank
+    saveBrand(uid, { ...DEFAULT_BRAND, name: title, profession });
     return { ok: true, id: p.id };
   }
   const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";

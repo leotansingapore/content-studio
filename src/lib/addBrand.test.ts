@@ -131,7 +131,7 @@ describe("creating a brand (Add a brand)", () => {
     const named = createBrand(UID, "Ada Homes", null, "Real estate agent", null);
     if (named.ok === false) throw new Error(named.error);
     expect(activeProfileId(UID)).toBe(named.id);
-    expect(loadBrand(UID)?.profession).toBe("Real estate agent");
+    expect(loadBrand(UID)).toMatchObject({ name: "Ada Homes", profession: "Real estate agent" });
     const read = createBrand(UID, "Acme Advisory", dna, "Financial adviser", null);
     if (read.ok === false) throw new Error(read.error);
     expect(activeProfileId(UID)).toBe(read.id);
