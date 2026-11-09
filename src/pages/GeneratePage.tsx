@@ -3947,31 +3947,6 @@ export default function GeneratePage() {
         </CardContent>
       </Card>
 
-      {ideaAsk && (
-        <section aria-label="One question first" className="space-y-2.5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <Label htmlFor="idea-answer" className="block text-sm font-semibold leading-snug">
-            One question first: what happened, to whom, and what did it cost or save them?
-          </Label>
-          <Textarea
-            id="idea-answer"
-            autoFocus
-            rows={3}
-            value={ideaAsk.answer}
-            onChange={(e) => setIdeaAsk({ answer: e.target.value })}
-            placeholder="e.g. A mum of two, 38. Her son's 3 nights at KK cost $9,800 and her plan paid none of it."
-            className="text-sm"
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => answerIdea(false)} disabled={!ideaAsk.answer.trim()} className="h-11 gap-1.5 sm:h-10">
-              <Sparkles className="h-4 w-4" /> Write with this
-            </Button>
-            <Button variant="ghost" onClick={() => answerIdea(true)} className="h-11 sm:h-10">
-              Skip
-            </Button>
-          </div>
-        </section>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
         <Button
           type="button"
@@ -4071,6 +4046,32 @@ export default function GeneratePage() {
         )}
       </div>
             </div>
+          )}
+
+          {/* on any step: Generate shows from the Idea step on too, and this question is its answer */}
+          {ideaAsk && (
+            <section aria-label="One question first" className="space-y-2.5 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <Label htmlFor="idea-answer" className="block text-sm font-semibold leading-snug">
+                One question first: what happened, to whom, and what did it cost or save them?
+              </Label>
+              <Textarea
+                id="idea-answer"
+                autoFocus
+                rows={3}
+                value={ideaAsk.answer}
+                onChange={(e) => setIdeaAsk({ answer: e.target.value })}
+                placeholder="e.g. A mum of two, 38. Her son's 3 nights at KK cost $9,800 and her plan paid none of it."
+                className="text-sm"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => answerIdea(false)} disabled={!ideaAsk.answer.trim()} className="h-11 gap-1.5 sm:h-10">
+                  <Sparkles className="h-4 w-4" /> Write with this
+                </Button>
+                <Button variant="ghost" onClick={() => answerIdea(true)} className="h-11 sm:h-10">
+                  Skip
+                </Button>
+              </div>
+            </section>
           )}
 
           {/* Wizard footer navigation */}
