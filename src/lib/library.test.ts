@@ -121,6 +121,13 @@ describe("buildLibrary", () => {
     expect(byKey(items, "d:t1").scheduleHref).toBe(`${links.calendar({ post: "t1" })}&view=month`);
   });
 
+  it("opens a Design's post in Design, not the carousel maker", () => {
+    const made = build({ drafts: [draft("dz", { format: "carousel" }), draft("cd2", { format: "carousel" })], designs: [{ id: "dsg_1", draftId: "dz" }, { id: "dsg_2" }] });
+    expect(byKey(made, "d:dz").href).toBe("/design/dsg_1");
+    expect(byKey(made, "d:cd2").href).toBe(links.carousel({ draft: "cd2" }));
+    expect(made).toHaveLength(2);
+  });
+
   it("gives a tied draft its carousel slide, slideshow or video thumb and name", () => {
     expect(byKey(items, "d:t2").thumb).toEqual({ kind: "slide", carouselId: "d:t2" });
     expect(byKey(items, "d:ss").thumb).toEqual({ kind: "show", showId: "sh1" });

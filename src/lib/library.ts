@@ -7,6 +7,7 @@ import { AI_FOLDER, type ImageJob } from "@/lib/aiImage";
 import type { AiJob } from "@/lib/aiVideo";
 import { tiktokReason } from "@/lib/autoPost";
 import type { SavedCarousel } from "@/lib/carousel";
+import type { Design } from "@/lib/design";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { daysOverdue, keyToDate, localDateKey, overdueLabel, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
 import type { FormatJob } from "@/lib/formatJob";
@@ -87,14 +88,17 @@ function firstBy<T>(list: T[], key: (t: T) => string | undefined): Map<string, T
   return m;
 }
 
-function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject): LibraryItem {
+function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: Pick<Design, "id">): LibraryItem {
   const pid = d.id.startsWith("video-") ? d.id.slice("video-".length) : null;
   const format: LibraryFormat = show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
   const z = d.zernio;
   const zFailed = z?.status === "failed" || z?.status === "partial";
   const st = draftStatus(d);
   const status: LibraryStatus = zFailed ? "failed" : st === "draft" ? "ready" : st;
-  const href = show
+  // a Design's post opens in Design: the carousel maker would rebuild it as text slides
+  const href = design
+    ? `/design/${design.id}`
+    : show
     ? links.slideshow({ s: show.id })
     : car
       ? links.carousel({ carousel: car.id })
@@ -154,14 +158,16 @@ export function buildLibrary(i: {
   media: MediaItem[];
   jobs: LibraryJob[];
   now: Date;
+  designs?: Pick<Design, "id" | "draftId">[];
 }): LibraryItem[] {
   const draftIds = new Set(i.drafts.map((d) => d.id));
   const tied = (id?: string) => (id && draftIds.has(id) ? id : undefined);
   const showOf = firstBy(i.slideshows, (s) => tied(s.draftId));
   const carouselOf = firstBy(i.carousels, (c) => tied(c.draftId));
   const projectOf = firstBy(i.projects, (p) => tied(`video-${p.id}`));
+  const designOf = firstBy(i.designs ?? [], (x) => tied(x.draftId));
   const items: LibraryItem[] = [
-    ...i.drafts.map((d) => draftItem(d, showOf.get(d.id), carouselOf.get(d.id), projectOf.get(d.id))),
+    ...i.drafts.map((d) => draftItem(d, showOf.get(d.id), carouselOf.get(d.id), projectOf.get(d.id), designOf.get(d.id))),
     ...i.carousels
       .filter((c) => !tied(c.draftId))
       .map((c): LibraryItem => ({

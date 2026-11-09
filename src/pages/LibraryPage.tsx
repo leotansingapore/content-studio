@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
+import { loadDesigns } from "@/lib/design";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import {
   FORMAT_LABELS,
@@ -52,6 +53,7 @@ const readStores = (userId: string) => ({
   slideshows: loadSlideshows(userId),
   projects: loadProjects(userId),
   media: loadMedia(userId),
+  designs: loadDesigns(userId),
   brand: loadBrand(userId) ?? DEFAULT_BRAND,
 });
 
