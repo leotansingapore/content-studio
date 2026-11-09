@@ -262,9 +262,18 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   };
   const deleteSlide = () => {
     if (work.slides.length < 2) return;
+    const gone = slide;
+    const at = index;
     setSlides(work.slides.filter((_, i) => i !== index));
     goSlide(Math.max(0, index - 1));
-    toast({ title: "Slide deleted", action: <ToastAction altText="Undo" onClick={() => step("undo")}>Undo</ToastAction> });
+    // puts this slide back where it was and keeps edits made since (a plain undo would take the newest edit instead)
+    const back = () => {
+      const now = workRef.current.slides;
+      if (now.some((s) => s.id === gone.id) || now.length >= MAX_SLIDES) return;
+      setSlides([...now.slice(0, at), gone, ...now.slice(at)]);
+      goSlide(Math.min(at, now.length));
+    };
+    toast({ title: "Slide deleted", action: <ToastAction altText="Undo" onClick={back}>Undo</ToastAction> });
   };
   const [dragSlide, setDragSlide] = useState<number | null>(null);
   const moveSlide = (from: number, to: number) => {
