@@ -999,7 +999,7 @@ export default function DraftsPage() {
                     </Link>
                   )}
                   <span className="ml-auto text-[10px] text-muted-foreground">
-                    {ts.toLocaleString()}
+                    {ts.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
                   </span>
                   <CopyLinkButton path={links.generate({ draft: d.id })} label={`Copy link to ${d.hook || "this post"}`.slice(0, 120)} className="-my-2 -mr-2" />
                 </div>
