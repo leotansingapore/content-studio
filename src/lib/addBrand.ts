@@ -87,6 +87,21 @@ export function keptBrand(raw: string | null, cards: readonly string[]): KeptBra
   }
 }
 
+/** Empty cards for a link that couldn't be read, to fill in by hand, named from a site's address ("www.acme-qa.sg" -> "Acme qa"). */
+export function blankDna(address: string): BrandDna {
+  const a = address.trim();
+  let name = "";
+  try {
+    const host = new URL(/^https?:\/\//i.test(a) ? a : `https://${a}`).hostname.replace(/^www\./, "");
+    // an App Store link names the store, not the brand
+    if (!/(^|\.)apple\.com$/.test(host)) name = host.split(".")[0].replace(/-/g, " ");
+  } catch {
+    // not an address: the name starts empty
+  }
+  name = (name.charAt(0).toUpperCase() + name.slice(1)).slice(0, 40);
+  return { url: a, name, colour: null, logo: null, handles: {}, oneLiner: "", audience: "general", audienceDetail: "", topics: [], edge: "", voice: "" };
+}
+
 /** What /brands/new sends brand-dna: Leo's sign-in also reads up to 4 more pages (brand-from-website). */
 export const readBody = (address: string, leo = false) => (leo ? { url: address, deep: true } : { url: address });
 

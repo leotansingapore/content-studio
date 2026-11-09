@@ -13,7 +13,7 @@ import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { PlanAudience } from "@/lib/positioning";
 import { loadProfiles } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { AUDIENCE_NAMES, createBrand, keptBrand, keptBrandKey, NETWORKS, PROFESSION_NEEDED, readBody, type BrandDna as Dna } from "@/lib/addBrand";
+import { AUDIENCE_NAMES, blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, PROFESSION_NEEDED, readBody, type BrandDna as Dna } from "@/lib/addBrand";
 import { appDna, appFacts, appProfession, appStoreLink, isAppRead, MAX_PAINS, proofLines, readComplaints, readListing, readRivals, type AppRead } from "@/lib/appStore";
 import { asPostLang, LANG_NAMES } from "@/lib/translate";
 
@@ -154,6 +154,14 @@ export default function AddBrandPage() {
     }
   };
 
+  // a link it couldn't read: the same cards, empty, to fill in by hand
+  const byHand = () => {
+    setError("");
+    setApp(null);
+    setDna(blankDna(address));
+    setDone(new Set());
+    setPhase("confirm");
+  };
   const patch = (p: Partial<Dna>) => setDna((d) => d && { ...d, ...p });
   const startOver = () => {
     setDna(null);
@@ -233,7 +241,8 @@ export default function AddBrandPage() {
           {why && <p className="text-xs text-destructive">{why}</p>}
           <p className="text-xs text-muted-foreground">{appLink ? "Takes under a minute. We read the listing, the app's website and reviews of apps like it, and nothing is posted." : leo ? "Takes under a minute. We read the home page and up to 4 more pages, and nothing is posted." : "Takes under a minute. We read the home page only, and nothing is posted."}</p>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-          <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
+          {error && <Button type="button" variant="outline" size="sm" className="[@media(pointer:coarse)]:h-11" onClick={byHand}><Pencil className="mr-1.5 h-3.5 w-3.5" /> Fill it in yourself</Button>}
+          <button type="button" className="block text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
         </form>
       )}
 

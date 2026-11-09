@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createBrand, keptBrand, keptBrandKey, newBrandKit, PROFESSION_NEEDED, readBody, type BrandDna } from "./addBrand";
+import { blankDna, createBrand, keptBrand, keptBrandKey, newBrandKit, PROFESSION_NEEDED, readBody, type BrandDna } from "./addBrand";
 import { loadBrand } from "./carousel";
 import { loadPositioning } from "./positioning";
 import { loadFacts } from "./voiceMemory";
@@ -52,6 +52,19 @@ describe("keptBrand", () => {
   it("is kept per sign-in, outside the synced prefix", () => {
     expect(keptBrandKey("u1")).toBe("cs-addbrand-form-u1");
     expect(keptBrandKey("u1").startsWith("content-studio-")).toBe(false);
+  });
+});
+
+describe("blankDna: a link that couldn't be read, filled in by hand", () => {
+  it("starts empty cards named from the site's address, which the form keeps across a reload", () => {
+    const d = blankDna(" https://www.acme-qa.sg/about ");
+    expect(d).toMatchObject({ url: "https://www.acme-qa.sg/about", name: "Acme qa", colour: null, logo: null, handles: {}, oneLiner: "", topics: [], voice: "" });
+    expect(keptBrand(JSON.stringify({ dna: d }), CARDS)?.dna).toStrictEqual(d);
+    expect(blankDna("acme.sg").name).toBe("Acme");
+  });
+  it("leaves the name empty for an App Store link or something that isn't an address", () => {
+    expect(blankDna("apps.apple.com/sg/app/structured/id1499198946").name).toBe("");
+    expect(blankDna("").name).toBe("");
   });
 });
 
