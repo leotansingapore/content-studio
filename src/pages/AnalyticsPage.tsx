@@ -39,6 +39,7 @@ import {
   type TrackedPost,
   labelForDimension,
   MIN_GROUP_SAMPLE,
+  parseCount,
   type BreakdownDimension,
   type Insight,
 } from "@/lib/analytics";
@@ -283,18 +284,18 @@ function MetricInput({
   placeholder: string;
   label: string;
 }) {
+  // text, not type="number": that drops the "k" of "1.2k" and saves 1
   return (
     <input
-      type="number"
-      min="0"
       inputMode="numeric"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onSave}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       aria-label={label}
+      aria-invalid={value.trim() !== "" && parseCount(value) === null}
       placeholder={placeholder}
-      className="h-9 w-full min-w-14 rounded-md border border-border/70 bg-background px-2 text-right text-xs tabular-nums outline-none focus:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
+      className="h-9 w-full min-w-14 rounded-md border border-border/70 bg-background px-2 text-right text-xs tabular-nums outline-none focus:border-primary/40 aria-[invalid=true]:border-destructive sm:h-8 [@media(pointer:coarse)]:h-11"
     />
   );
 }
@@ -496,7 +497,10 @@ export default function AnalyticsPage() {
   const saveFollowers = (p: SocialPlatform) => {
     const v = followerEdits[p];
     if (!userId || v === undefined) return;
-    setTypedFollowers(setFollowers(userId, p, v.trim() === "" ? null : Number(v)));
+    const n = parseCount(v);
+    // a number it can't read stays in the box, marked, instead of wiping the saved count
+    if (v.trim() !== "" && n === null) return;
+    setTypedFollowers(setFollowers(userId, p, n));
     setFollowerEdits((e) => {
       const next = { ...e };
       delete next[p];
@@ -536,24 +540,28 @@ export default function AnalyticsPage() {
     const row = bulkEdits[id];
     if (!row) return;
     const metrics: PostMetrics = {};
+    // numbers it can't read stay in their boxes, marked, until fixed
+    const unread: Record<string, string> = {};
     (["impressions", "reactions", "comments", "shares"] as const).forEach((f) => {
       if (row[f] === undefined) return;
-      if (row[f] === "") {
+      if (row[f].trim() === "") {
         // Explicitly cleared — zero it out so a typo can be undone.
         metrics[f] = 0;
         return;
       }
-      const n = Number(row[f]);
-      if (Number.isFinite(n) && n >= 0) metrics[f] = Math.round(n);
+      const n = parseCount(row[f]);
+      if (n === null) unread[f] = row[f];
+      else metrics[f] = n;
     });
     setDraftMetrics(userId, id, metrics);
     setBulkEdits((prev) => {
       const next = { ...prev };
-      delete next[id];
+      if (Object.keys(unread).length) next[id] = unread;
+      else delete next[id];
       return next;
     });
     setMetricsVersion((v) => v + 1);
-    setSavedId(id);
+    if (!Object.keys(unread).length) setSavedId(id);
   };
 
   useEffect(() => {

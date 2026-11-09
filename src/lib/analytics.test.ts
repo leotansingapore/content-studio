@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withReal } from "./analytics";
+import { parseCount, withReal } from "./analytics";
 import type { DraftEntry } from "./draftHistory";
 
 const post = (extra: Partial<DraftEntry>): DraftEntry => ({
@@ -16,5 +16,15 @@ describe("withReal", () => {
     expect(withReal(both).metrics?.impressions).toBe(900);
     const typed = post({ live: { postId: "m1", platform: "instagram", url: null, by: "you" } });
     expect(withReal(typed)).toBe(typed);
+  });
+});
+
+describe("parseCount: a typed count as the apps show it", () => {
+  it("reads plain numbers, thousands marks and k or M", () => {
+    expect(["1200", " 1,200 ", "1.200", "1 200", "1,234,567"].map(parseCount)).toEqual([1200, 1200, 1200, 1200, 1234567]);
+    expect(["1.2k", "1.2K", "12k", "1,5k", "3M", "2.5 m", "0"].map(parseCount)).toEqual([1200, 1200, 12000, 1500, 3000000, 2500000, 0]);
+  });
+  it("refuses what isn't a count instead of guessing", () => {
+    expect(["", "abc", "1.2", "1,20", "-5", "12x", "1.2.3k"].map(parseCount)).toEqual([null, null, null, null, null, null, null]);
   });
 });

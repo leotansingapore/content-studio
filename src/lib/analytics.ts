@@ -27,6 +27,16 @@ export interface TrackedPost extends DraftEntry {
   engagementRate: number; // % of impressions that engaged; 0 if impressions unknown
 }
 
+/** A typed count as the apps show it: "1200", "1,200", "1.200", "1.2k", "3M". Null when it isn't one. */
+export function parseCount(text: string): number | null {
+  const t = text.trim().replace(/\s+(?=[km]$)/i, "");
+  if (/^\d+$/.test(t)) return Number(t);
+  // a count has no decimals, so a dot, comma or space between groups of 3 digits is a thousands mark
+  if (/^\d{1,3}([.,\s]\d{3})+$/.test(t)) return Number(t.replace(/\D/g, ""));
+  const m = t.match(/^(\d+(?:[.,]\d+)?)([km])$/i);
+  return m ? Math.round(Number(m[1].replace(",", ".")) * (m[2].toLowerCase() === "k" ? 1e3 : 1e6)) : null;
+}
+
 // A group needs at least this many posts before its average is shown at all.
 export const MIN_GROUP_SAMPLE = 2;
 // A group needs at least this many posts before it can drive an auto-insight.
