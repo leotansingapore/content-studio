@@ -1343,6 +1343,35 @@ export default function CarouselPage() {
   };
   const one = view === "one" ? slides[at] : undefined;
   const SMALL = "h-8 gap-1.5 text-xs [@media(pointer:coarse)]:h-11";
+  // in the preview's header from lg; under it, a bar along the bottom of the page (FormatShell's), since the preview
+  // sits under every slide's fields there
+  const downloads = (
+    <div className={`flex flex-wrap gap-2 ${platform === "linkedin" ? "flex-row-reverse justify-end" : ""}`}>
+      <Button
+        size="sm"
+        variant={platform === "linkedin" && frame.pdf ? "outline" : "default"}
+        onClick={() => exportSlides(slides.map((_, i) => i))}
+        disabled={exportBusy || busy}
+        className="gap-1.5 [@media(pointer:coarse)]:h-11"
+      >
+        <Download className="h-3.5 w-3.5" />
+        {exporting && exporting.total > 1
+          ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
+          : platform === "linkedin" && frame.pdf ? "PNGs" : "Download all"}
+      </Button>
+      {frame.pdf && (
+        <Button
+          size="sm"
+          variant={platform === "linkedin" ? "default" : "outline"}
+          onClick={exportPdf}
+          disabled={exportBusy || busy}
+          className="gap-1.5 [@media(pointer:coarse)]:h-11"
+        >
+          <FileText className="h-3.5 w-3.5" /> {platform === "linkedin" ? "Download PDF" : "PDF"}
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -2017,31 +2046,7 @@ export default function CarouselPage() {
                     {slides.length} slides, {frame.width} × {frame.height} PNG each.
                   </CardDescription>
                 </div>
-                <div className={`flex flex-wrap gap-2 ${platform === "linkedin" ? "flex-row-reverse justify-end" : ""}`}>
-                  <Button
-                    size="sm"
-                    variant={platform === "linkedin" && frame.pdf ? "outline" : "default"}
-                    onClick={() => exportSlides(slides.map((_, i) => i))}
-                    disabled={exportBusy || busy}
-                    className="gap-1.5"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    {exporting && exporting.total > 1
-                      ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
-                      : platform === "linkedin" && frame.pdf ? "PNGs" : "Download all"}
-                  </Button>
-                  {frame.pdf && (
-                    <Button
-                      size="sm"
-                      variant={platform === "linkedin" ? "default" : "outline"}
-                      onClick={exportPdf}
-                      disabled={exportBusy || busy}
-                      className="gap-1.5"
-                    >
-                      <FileText className="h-3.5 w-3.5" /> {platform === "linkedin" ? "Download PDF" : "PDF"}
-                    </Button>
-                  )}
-                </div>
+                <div className="hidden lg:block">{downloads}</div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {exporting && (
@@ -2094,6 +2099,11 @@ export default function CarouselPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      )}
+      {showEditor && (
+        <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-border/70 bg-background py-3 pl-4 pr-[4.5rem] sm:-mx-6 sm:pl-6 lg:hidden">
+          {downloads}
         </div>
       )}
     </div>
