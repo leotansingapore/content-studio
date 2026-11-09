@@ -572,21 +572,22 @@ export default function DraftsPage() {
     const next = deleteDraft(userId, id);
     setDrafts(next);
     setConfirmId(null);
+    if (!gone) return;
     toast({
       title: "Draft deleted",
       description: `Removed from your history.${held ? " Zernio won't post it." : ""}`,
-      action: held ? (
+      action: (
         <ToastAction
           altText="Undo"
           onClick={() => {
-            // back in its place at Zernio's time, which drops the waiting cancel (zernioOps)
+            // back in its place; for a post Zernio holds, at Zernio's time, which drops the waiting cancel (zernioOps)
             const cur = loadDrafts(userId).filter((d) => d.id !== id);
             setDrafts(saveDrafts(userId, [...cur.slice(0, at), gone, ...cur.slice(at)]));
           }}
         >
           Undo
         </ToastAction>
-      ) : undefined,
+      ),
     });
   };
 
