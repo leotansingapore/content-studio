@@ -55,6 +55,7 @@ import {
   setDraftStatus,
   duplicateDraft,
   undoDuplicate,
+  markUnposted,
   MAX_DRAFTS,
   draftStatus,
   occurrencesBetween,
@@ -107,6 +108,7 @@ import {
   PenLine,
   Repeat as RepeatIcon,
   StickyNote,
+  Undo2,
   X,
 } from "lucide-react";
 
@@ -879,6 +881,17 @@ export default function CalendarPage() {
     toast({ title: "Back in drafts", description: `It waits in Unscheduled drafts.${zernioHolds(d) ? " Zernio won't post it." : ""}`, action: undoAction(d) });
   };
 
+  // A post marked posted by mistake: back to Scheduled on its day, time and repeat (or to drafts if it never had a
+  // day), as All posts' Mark unposted does. Undo marks it posted again.
+  const unpost = (d: DraftEntry) => {
+    if (!userId) return;
+    const back = markUnposted(userId, d.id);
+    setDrafts(back);
+    const when = back.find((x) => x.id === d.id)?.scheduledFor;
+    if (!when) closePost();
+    toast({ title: when ? `Back to scheduled, ${whenLabel(when)}` : "Back in drafts", action: undoAction(d) });
+  };
+
   // Needs you's auto-post rows: Retry and Open, Retry and Cancel auto-post, Mark posted.
   const rowButton = "h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11";
   const openRow = (id: string) => {
@@ -1085,6 +1098,11 @@ export default function CalendarPage() {
               className="h-9 gap-1 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
             >
               <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+            </Button>
+          )}
+          {posted && (
+            <Button size="sm" variant="ghost" onClick={() => unpost(d)} className="h-9 gap-1 px-3 text-xs text-muted-foreground sm:h-8 [@media(pointer:coarse)]:h-11">
+              <Undo2 className="h-3.5 w-3.5" /> Mark unposted
             </Button>
           )}
           {!posted && d.scheduledFor && !d.zernio?.postId && socialConnectShown() && (
