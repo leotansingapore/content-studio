@@ -2025,7 +2025,7 @@ export default function CalendarPage() {
                   type="button"
                   onClick={() => setNoteForm(null)}
                   aria-label="Close note"
-                  className="-mr-1 grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+                  className="-mr-1 grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                 >
                   <X className="h-4 w-4" />
                 </button>
