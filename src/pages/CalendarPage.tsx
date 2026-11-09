@@ -624,8 +624,13 @@ export default function CalendarPage() {
     </ToastAction>
   );
 
-  // Puts a draft on a day (and optional time), or moves a scheduled post. Undo puts it back.
-  const reschedule = (id: string, next: string) => {
+  // The post as it was when a Move to field took focus: a typed time or date lands once per digit, and Undo goes back
+  // to this rather than to the last digit's half-typed time.
+  const fieldBase = useRef<DraftEntry | null>(null);
+  const baseFor = (id: string) => (fieldBase.current?.id === id ? fieldBase.current : undefined);
+
+  // Puts a draft on a day (and optional time), or moves a scheduled post. Undo puts it back (to `base` when given).
+  const reschedule = (id: string, next: string, base?: DraftEntry) => {
     if (!userId || next.slice(0, 10) < todayKey) return;
     const prev = drafts.find((d) => d.id === id);
     if (!prev || draftStatus(prev) === "posted") return;
@@ -640,13 +645,13 @@ export default function CalendarPage() {
     toast({
       title: `${wasScheduled ? "Moved to" : "Scheduled for"} ${whenLabel(next)}`,
       description: prev.repeat ? `Repeats ${REPEAT_LABEL[prev.repeat.every]} from here` : undefined,
-      action: undoAction(prev),
+      action: undoAction(base ?? prev),
     });
   };
 
   // A drag or a new date moves the day and keeps the posting time.
-  const moveTo = (id: string, day: string) =>
-    reschedule(id, scheduleAt(day, scheduleTime(drafts.find((d) => d.id === id)?.scheduledFor)));
+  const moveTo = (id: string, day: string, base?: DraftEntry) =>
+    reschedule(id, scheduleAt(day, scheduleTime(drafts.find((d) => d.id === id)?.scheduledFor)), base);
 
   const setPick = (id: string, patch: Partial<{ date: string; time: string }>) =>
     setRowPick((m) => ({ ...m, [id]: { date: "", time: "", ...m[id], ...patch } }));
@@ -959,7 +964,8 @@ export default function CalendarPage() {
         <DayInput
           min={todayKey}
           value={d.scheduledFor?.slice(0, 10) ?? ""}
-          onPick={(day) => moveTo(d.id, day)}
+          onFocus={() => (fieldBase.current = d)}
+          onPick={(day) => moveTo(d.id, day, baseFor(d.id))}
           className={dateInputClass}
         />
       </label>
@@ -968,7 +974,8 @@ export default function CalendarPage() {
         <input
           type="time"
           value={scheduleTime(d.scheduledFor) ?? ""}
-          onChange={(e) => d.scheduledFor && reschedule(d.id, scheduleAt(d.scheduledFor.slice(0, 10), e.target.value))}
+          onFocus={() => (fieldBase.current = d)}
+          onChange={(e) => d.scheduledFor && reschedule(d.id, scheduleAt(d.scheduledFor.slice(0, 10), e.target.value), baseFor(d.id))}
           aria-label="Posting time"
           className={dateInputClass}
         />
