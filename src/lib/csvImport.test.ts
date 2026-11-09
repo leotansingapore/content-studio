@@ -20,6 +20,18 @@ describe("parseCsv", () => {
   it("reads a last line with no newline, and a trailing empty field", () => {
     expect(parseCsv("a,b,")).toEqual([["a", "b", ""]]);
   });
+  it("reads Excel's semicolon CSV and a tab-separated file, quoted separators kept", () => {
+    expect(parseCsv('hook;text;date\nIdea;"One; two, three";2026-12-20\nNext;;')).toEqual([
+      ["hook", "text", "date"],
+      ["Idea", "One; two, three", "2026-12-20"],
+      ["Next", "", ""],
+    ]);
+    expect(parseCsv("hook\ttext\nIdea\tBody, with a comma")).toEqual([["hook", "text"], ["Idea", "Body, with a comma"]]);
+  });
+  it("keeps commas when the first line has one, and a list of hooks with a semicolon in one whole", () => {
+    expect(parseCsv('hook,text\n"A; B",C')).toEqual([["hook", "text"], ["A; B", "C"]]);
+    expect(parseCsv("Do this; then that\nAnother hook")).toEqual([["Do this; then that"], ["Another hook"]]);
+  });
 });
 
 describe("parseDay", () => {

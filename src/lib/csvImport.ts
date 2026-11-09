@@ -13,10 +13,26 @@ import type { PlanPlatform } from "@/lib/positioning";
 
 export const MAX_IMPORT_ROWS = 200;
 
+/**
+ * The file's separator: a comma, or a semicolon or tab (Excel's CSV in much of Europe, a sheet saved as text) when the
+ * first line has none and splits on it, the same way as the second line when there is one. A list of hooks with a
+ * semicolon in one of them stays comma-separated.
+ */
+export function separatorOf(src: string): string {
+  const [a, b] = src.split("\n", 2).map((line) => line.replace(/"[^"]*"/g, ""));
+  if (a.includes(",")) return ",";
+  for (const sep of [";", "\t"]) {
+    const n = a.split(sep).length;
+    if (n > 1 && (b === undefined || b.split(sep).length === n)) return sep;
+  }
+  return ",";
+}
+
 /** RFC 4180 CSV: quoted fields may hold commas, quotes ("") and line breaks; BOM, CRLF and CR are fine. */
 export function parseCsv(text: string): string[][] {
   // One line ending everywhere, inside quoted fields too.
   const src = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const sep = separatorOf(src);
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -30,7 +46,7 @@ export function parseCsv(text: string): string[][] {
       } else if (c === '"') quoted = false;
       else field += c;
     } else if (c === '"' && field === "") quoted = true;
-    else if (c === ",") {
+    else if (c === sep) {
       row.push(field);
       field = "";
     } else if (c === "\n") {
