@@ -2357,6 +2357,8 @@ export default function GeneratePage() {
   const handlePickVariant = (idx: number) => {
     const v = variants.find((x) => x.index === idx);
     if (!v) return;
+    // the typing on the post now open is saved first, so the check below sees it
+    flushSave.current();
     setSelectedVariantIndex(idx);
     clearDraftExtras();
     setDraft(v.text);
@@ -2369,13 +2371,14 @@ export default function GeneratePage() {
     setHashtags([]);
     setImagePrompt("");
     setDismissedFlagIds(new Set());
-    // Save to history immediately on selection. Normally each pick forks a
-    // fresh entry, but when editing a scheduled/posted slot we keep updating
-    // it so it stays put on the calendar.
-    if (!preserveIdRef.current) setCurrentDraftId(null);
+    // Save to history immediately on selection. A pick writes over the post now open only while that post is still
+    // one of these variations, untouched; an edited post (or one opened from My posts) keeps its words and the pick
+    // becomes a new post. A scheduled/posted slot is always updated, so it stays put on the calendar.
+    const saved = !preserveIdRef.current && currentDraftId && userId ? getDraftById(userId, currentDraftId)?.draft : undefined;
+    const fork = saved !== undefined && !variants.some((x) => x.text === saved);
     // Leo only: a variation Keep all 3 saved opens its own draft rather than forking another
     const kept = preserveIdRef.current ? undefined : keptNow?.ids[idx];
-    const id = persistDraftEntry(v.text, chosenHook ?? "", null, kept ? { id: kept } : {});
+    const id = persistDraftEntry(v.text, chosenHook ?? "", null, kept ? { id: kept } : fork ? { id: newDraftId() } : {});
     // written in another language (Leo only): its version is made straight after, under the post
     if (makeLang && id) setAutoTranslate({ id, lang: makeLang });
     // Fire hashtags + image-prompt in parallel; failures don't block. The
