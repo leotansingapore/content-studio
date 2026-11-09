@@ -84,6 +84,7 @@ import PreviewLinkPanel from "@/components/review/PreviewLinkPanel";
 import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { platformName, socialConnectShown } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { parseCount } from "@/lib/analytics";
 import { LANG_NAMES, langOf } from "@/lib/translate";
 import { LANGS, versionsOf } from "@/lib/translateJob";
 import {
@@ -503,8 +504,10 @@ export default function DraftsPage() {
     value: string,
   ) => {
     if (!userId) return;
-    const n = Math.max(0, parseInt(value, 10) || 0);
-    setDrafts(setDraftMetrics(userId, id, { [field]: n }));
+    // "1,200" and "1.2k" as typed; a half-typed or unreadable number keeps the saved one (the box is marked)
+    const n = value.trim() === "" ? 0 : parseCount(value);
+    if (n !== null) setDrafts(setDraftMetrics(userId, id, { [field]: n }));
+    return n !== null;
   };
 
   const handleRestore = (id: string) => {
@@ -1084,13 +1087,11 @@ export default function DraftsPage() {
                           {label}
                         </span>
                         <input
-                          type="number"
-                          min={0}
                           inputMode="numeric"
                           defaultValue={d.metrics?.[field] ?? ""}
-                          onChange={(e) => handleMetric(d.id, field, e.target.value)}
+                          onChange={(e) => e.currentTarget.setAttribute("aria-invalid", String(!handleMetric(d.id, field, e.target.value)))}
                           placeholder="0"
-                          className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-destructive"
                         />
                       </label>
                     ))}
