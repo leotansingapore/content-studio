@@ -48,6 +48,7 @@ export default function AddBrandPage() {
   const [triedEmpty, setTriedEmpty] = useState(false);
   const [created, setCreated] = useState("");
   const timer = useRef<number>();
+  const createdOnce = useRef(false);
   const leo = useLeoOnly();
   // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
   const left = useUsesLeft(phase === "reading" || !leo)("brand-dna");
@@ -178,13 +179,15 @@ export default function AddBrandPage() {
 
   const create = (brand: Dna | null) => {
     const title = (brand?.name ?? name).trim().slice(0, 40);
-    if (!uid || !title) return;
+    // a double click lands twice before the page leaves: one brand, not two
+    if (!uid || !title || createdOnce.current) return;
     const made = createBrand(uid, title, brand, profession, brand ? siteLang(brand, leo) : null, brand && app ? appFacts(app) : []);
     if (!made.ok) {
       setTriedEmpty(true);
       if (brand) reopen("offer");
       return;
     }
+    createdOnce.current = true;
     try {
       sessionStorage.removeItem(keptBrandKey(uid));
     } catch {
