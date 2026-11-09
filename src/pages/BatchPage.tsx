@@ -178,7 +178,8 @@ export default function BatchPage() {
     });
   };
 
-  const runBatch = async () => {
+  // only: a failed card's Try again writes that one again and leaves the others as they are
+  const runBatch = async (only?: BatchTarget) => {
     const trimmed = topic.trim();
     if (!trimmed) {
       document.getElementById("batch-topic")?.focus();
@@ -197,11 +198,16 @@ export default function BatchPage() {
       return;
     }
     setRunning(true);
-    const initial: Record<string, CardState> = {};
-    for (const t of activeTargets) initial[t.key] = { status: "streaming", text: "" };
-    setCards(initial);
-    // On a phone the drafts stream in a screen below the button.
-    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    const targets = only ? [only] : activeTargets;
+    if (only) {
+      setCards((prev) => ({ ...prev, [only.key]: { status: "streaming", text: "" } }));
+    } else {
+      const initial: Record<string, CardState> = {};
+      for (const t of activeTargets) initial[t.key] = { status: "streaming", text: "" };
+      setCards(initial);
+      // On a phone the drafts stream in a screen below the button.
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
 
     const { data } = await supabase.auth.getUser();
     const voiceProfile = loadVoiceProfile(data.user?.id ?? null);
@@ -213,7 +219,7 @@ export default function BatchPage() {
         : undefined;
 
     await Promise.all(
-      activeTargets.map(async (t) => {
+      targets.map(async (t) => {
         try {
           await streamOnePost(
             {
@@ -406,14 +412,14 @@ export default function BatchPage() {
           </div>
 
           <Button
-            onClick={runBatch}
+            onClick={() => void runBatch()}
             disabled={running}
             size="lg"
             className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 disabled:opacity-100 sm:w-auto"
           >
             {running ? (
               <>
-                <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Generating {activeTargets.length}...
+                <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Generating {activeTargets.filter((t) => cards[t.key]?.status === "streaming").length || activeTargets.length}...
               </>
             ) : (
               <>
@@ -456,7 +462,12 @@ export default function BatchPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {card.status === "error" ? (
-                    <p className="text-sm text-destructive">{card.error}</p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-destructive">{card.error}</p>
+                      <Button size="sm" variant="outline" disabled={running} onClick={() => void runBatch(t)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                        <RotateCcw className="h-3.5 w-3.5" /> Try again
+                      </Button>
+                    </div>
                   ) : (
                     <p className="whitespace-pre-line text-[13px] leading-relaxed text-foreground/85">
                       {card.text || "..."}
