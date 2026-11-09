@@ -634,10 +634,10 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           )}
         </div>
         <span className="mx-1 h-5 w-px bg-border" aria-hidden />
-        <Button size="icon" variant="ghost" onClick={() => step("undo")} disabled={!hist.past.length} aria-label="Undo" title="Undo" className="h-9 w-9">
+        <Button size="icon" variant="ghost" onClick={() => step("undo")} disabled={!hist.past.length} aria-label="Undo" title="Undo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
           <Undo2 className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="ghost" onClick={() => step("redo")} disabled={!hist.future.length} aria-label="Redo" title="Redo" className="h-9 w-9">
+        <Button size="icon" variant="ghost" onClick={() => step("redo")} disabled={!hist.future.length} aria-label="Redo" title="Redo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
           <Redo2 className="h-4 w-4" />
         </Button>
       </nav>
@@ -663,13 +663,13 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
             ))}
           </ol>
           <div className="flex gap-1">
-            <Button size="icon" variant="ghost" aria-label="Add a slide" title="Add a slide" onClick={() => addSlide(false)} className="h-9 w-9">
+            <Button size="icon" variant="ghost" aria-label="Add a slide" title="Add a slide" onClick={() => addSlide(false)} className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
               <Plus className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="ghost" aria-label="Duplicate this slide" title="Duplicate this slide" onClick={() => addSlide(true)} className="h-9 w-9">
+            <Button size="icon" variant="ghost" aria-label="Duplicate this slide" title="Duplicate this slide" onClick={() => addSlide(true)} className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
               <Copy className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="ghost" aria-label="Delete this slide" title="Delete this slide" onClick={deleteSlide} disabled={work.slides.length < 2} className="h-9 w-9">
+            <Button size="icon" variant="ghost" aria-label="Delete this slide" title="Delete this slide" onClick={deleteSlide} disabled={work.slides.length < 2} className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
