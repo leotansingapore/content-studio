@@ -15,9 +15,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToastAction } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
   addOwn,
+  bringBack,
   COUNTS,
   FORMATS,
   HOOKS_CHANGED,
@@ -33,7 +36,7 @@ import {
   writeHooks,
   type HookDesk,
 } from "@/lib/hookWriter";
-import { MAX_PER_KIND, type Snippet } from "@/lib/replySnippets";
+import { MAX_PER_KIND, saveSnippet, type Snippet } from "@/lib/replySnippets";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -55,6 +58,7 @@ export default function HooksPage() {
 }
 
 function HookDeskView({ userId }: { userId: string }) {
+  const { toast } = useToast();
   const [desk, setDesk] = useState<HookDesk>(() => loadDesk(userId));
   const [kept, setKept] = useState<Snippet[]>(() => keptHooks(userId));
   const [n, setN] = useUrlState("n", "10", { allowed: COUNT_VALUES });
@@ -118,8 +122,30 @@ function HookDeskView({ userId }: { userId: string }) {
     setKept(keptHooks(userId));
   };
   const notThis = (ids: string[]) => {
-    turnDown(userId, ids);
+    const gone = turnDown(userId, ids);
     setDesk(loadDesk(userId));
+    // a whole batch goes in one tap: it can come back
+    if (gone.length > 1)
+      toast({
+        title: `Turned down ${gone.length} hooks.`,
+        action: (
+          <ToastAction altText="Undo" onClick={() => (bringBack(userId, gone), setDesk(loadDesk(userId)))}>
+            Undo
+          </ToastAction>
+        ),
+      });
+  };
+  const remove = (s: Snippet) => {
+    removeHook(userId, s.id);
+    setKept(keptHooks(userId));
+    toast({
+      title: "Hook removed.",
+      action: (
+        <ToastAction altText="Undo" onClick={() => (saveSnippet(userId, { name: s.name, text: s.text, kind: "hook" }), setKept(keptHooks(userId)))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
   const addMine = () => {
     const r = addOwn(userId, own);
@@ -236,7 +262,7 @@ function HookDeskView({ userId }: { userId: string }) {
                   <Button size="icon" variant="ghost" onClick={() => void copy(s)} aria-label={`Copy ${s.text}`} className={`h-8 w-8 shrink-0 ${TOUCH}`}>
                     {copied === s.id ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => (removeHook(userId, s.id), setKept(keptHooks(userId)))} aria-label={`Remove ${s.text}`} className={`h-8 w-8 shrink-0 text-muted-foreground ${TOUCH}`}>
+                  <Button size="icon" variant="ghost" onClick={() => remove(s)} aria-label={`Remove ${s.text}`} className={`h-8 w-8 shrink-0 text-muted-foreground ${TOUCH}`}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>

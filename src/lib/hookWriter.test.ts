@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const sent = vi.hoisted(() => ({ body: null as unknown, hooks: [] as { text: string; format: string }[] }));
 vi.mock("@/lib/edgeFn", () => ({ callFn: async (_name: string, body: unknown) => ((sent.body = body), { hooks: sent.hooks }) }));
 
-import { addOwn, keepHook, keptHooks, KEEP_NO, loadDesk, saveDesk, splitOwn, turnDown, writeHooks } from "./hookWriter";
+import { addOwn, bringBack, keepHook, keptHooks, KEEP_NO, loadDesk, saveDesk, splitOwn, turnDown, writeHooks } from "./hookWriter";
 import { MAX_PER_KIND, saveSnippet } from "./replySnippets";
 import { addFact } from "./voiceMemory";
 
@@ -55,6 +55,16 @@ describe("Keep and Not this", () => {
   it("Not this takes them out and remembers them for the next batch", () => {
     turnDown(UID, ["b", "c"]);
     expect(loadDesk(UID)).toMatchObject({ fresh: [{ id: "a" }], no: ["hook b is meh", "hook c is meh"] });
+  });
+
+  it("Undo of Not this puts the hooks back on top and stops them steering the next batch", () => {
+    saveDesk(UID, { ...loadDesk(UID), no: ["an older no"] });
+    const gone = turnDown(UID, ["b", "c"]);
+    expect(gone.map((h) => h.id)).toEqual(["b", "c"]);
+    bringBack(UID, gone);
+    expect(loadDesk(UID)).toMatchObject({ fresh: [{ id: "b" }, { id: "c" }, { id: "a" }], no: ["an older no"] });
+    bringBack(UID, gone);
+    expect(loadDesk(UID).fresh).toHaveLength(3);
   });
 
   it("a full list says so and leaves the hook in the batch", () => {

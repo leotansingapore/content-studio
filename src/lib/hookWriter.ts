@@ -77,11 +77,20 @@ export function keepHook(userId: string, id: string): SaveResult["problem"] | nu
   return null;
 }
 
-/** Not this: the hooks leave the batch and steer the next one away from them. */
-export function turnDown(userId: string, ids: string[]): void {
+/** Not this: the hooks leave the batch and steer the next one away from them. Returns them, for an Undo. */
+export function turnDown(userId: string, ids: string[]): FreshHook[] {
   const d = loadDesk(userId);
   const gone = d.fresh.filter((x) => ids.includes(x.id));
   saveDesk(userId, { ...d, fresh: d.fresh.filter((x) => !ids.includes(x.id)), no: [...d.no, ...gone.map((x) => x.text)] });
+  return gone;
+}
+
+/** Undo of Not this: the hooks go back on top of the batch and stop steering it. */
+export function bringBack(userId: string, gone: FreshHook[]): void {
+  const d = loadDesk(userId);
+  const texts = new Set(gone.map((h) => h.text));
+  const fresh = [...gone, ...d.fresh.filter((h) => !gone.some((g) => g.id === h.id))].slice(0, KEEP_FRESH);
+  saveDesk(userId, { ...d, fresh, no: d.no.filter((t) => !texts.has(t)) });
 }
 
 /** Your own hooks, pasted: a blank line between hooks, a single line break kept inside one. */
