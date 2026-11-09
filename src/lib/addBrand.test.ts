@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { blankDna, createBrand, keptBrand, keptBrandKey, newBrandKit, PROFESSION_NEEDED, readBody, type BrandDna } from "./addBrand";
+import { blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, newBrandKit, PROFESSION_NEEDED, profileAddress, readBody, type BrandDna } from "./addBrand";
 import { loadBrand } from "./carousel";
 import { loadPositioning } from "./positioning";
 import { loadFacts } from "./voiceMemory";
@@ -84,6 +84,17 @@ describe("what /brands/new sends and saves", () => {
       facebook: "acmesg",
     });
     expect(newBrandKit({ ...dna, colour: null, handles: {} }, "Acme")).toStrictEqual({ color: "#1E3A8A", name: "Acme", handle: "" });
+  });
+
+  it("takes a pasted profile link as the account, not glued after the network's address", () => {
+    expect(newBrandKit({ ...dna, handles: { instagram: "https://www.instagram.com/acme_qa/?hl=en" } }, "Acme")).toMatchObject({ handle: "@acme_qa", instagram: "acme_qa" });
+    const at = (n: number, typed: string) => profileAddress(NETWORKS[n].base, typed);
+    expect([at(0, "@acme"), at(0, "https://www.instagram.com/acme_qa/"), at(0, "instagram.com/acme")]).toEqual([
+      "https://www.instagram.com/acme", "https://www.instagram.com/acme_qa/", "https://www.instagram.com/acme",
+    ]);
+    expect([at(1, "m.facebook.com/acmeqa"), at(2, "linkedin.com/company/acme-qa"), at(3, "@acme.qa"), at(3, "https://www.tiktok.com/@acme.qa")]).toEqual([
+      "https://www.facebook.com/acmeqa", "https://www.linkedin.com/company/acme-qa", "https://www.tiktok.com/@acme.qa", "https://www.tiktok.com/@acme.qa",
+    ]);
   });
 });
 

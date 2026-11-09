@@ -1,6 +1,6 @@
 // Add a brand (/brands/new): what a site read gives back, and the half-done form kept for the tab so
 // leaving the page or reloading does not throw away the read and the cards already checked.
-import { DEFAULT_BRAND, saveBrand, type CarouselBrand } from "@/lib/carousel";
+import { DEFAULT_BRAND, normalizeHandle, saveBrand, type CarouselBrand } from "@/lib/carousel";
 import type { PostLang } from "@/lib/links";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
@@ -107,7 +107,8 @@ export const readBody = (address: string, leo = false) => (leo ? { url: address,
 
 /** The new brand's kit from the confirmed read, as /brands/new saves it. */
 export function newBrandKit(brand: BrandDna, title: string): CarouselBrand {
-  const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
+  // "@acme" or a pasted profile link -> "acme"
+  const ig = normalizeHandle(brand.handles.instagram ?? "").replace(/^@/, "");
   return {
     ...DEFAULT_BRAND,
     name: title,
@@ -119,6 +120,14 @@ export function newBrandKit(brand: BrandDna, title: string): CarouselBrand {
     // only Leo's reads carry readAt: the site and when it was read, so /brand#website opens on "read <date>"
     ...(brand.readAt ? { website: brand.url, websiteReadAt: brand.readAt } : {}),
   };
+}
+
+/** A handle as a read gives it ("acme", "@acme") or a pasted profile link, as the address saved for the account. */
+export function profileAddress(base: string, typed: string): string {
+  const h = typed.trim();
+  const path = h.replace(/^https?:\/\//i, "").replace(/^(?:www|m)\./i, "");
+  // already this network's link ("instagram.com/acme/"): kept, with https, instead of put after the base again
+  return path.toLowerCase().startsWith(`${new URL(base).hostname.replace(/^www\./, "")}/`) ? `https://www.${path}` : base + h.replace(/^@/, "");
 }
 
 /** The one line Add a brand shows when Create or Add brand is pressed before "What do you do?" has an answer. */
@@ -162,7 +171,7 @@ export function createBrand(
   const accounts: SocialAccounts = {};
   for (const n of NETWORKS) {
     const h = brand.handles[n.key]?.trim();
-    if (h) accounts[n.key] = { handle: n.base + h.replace(/^@/, ""), connectedAt: now };
+    if (h) accounts[n.key] = { handle: profileAddress(n.base, h), connectedAt: now };
   }
   saveSocialAccounts(uid, accounts);
   if (brand.voice) saveVoiceProfile(uid, { posts: [], voiceSummary: brand.voice, updatedAt: now });
