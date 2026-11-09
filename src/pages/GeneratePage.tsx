@@ -4256,6 +4256,12 @@ export default function GeneratePage() {
                 row
               );
             })}
+            {/* every hook failed or stopped: the brief is folded away, so the retry sits here */}
+            {!isStreaming && !hookOptions.some((h) => h.complete) && (
+              <Button variant="outline" size="sm" onClick={() => void handleGenerate()} disabled={checkingIdea} className="gap-1.5 [@media(pointer:coarse)]:h-11">
+                <RefreshCw className="h-3.5 w-3.5" /> Try again
+              </Button>
+            )}
             {myHooks.length > 0 && (
               <div className="space-y-1.5 pt-2" data-testid="my-hooks-pick">
                 <p className="text-xs font-semibold text-muted-foreground">From My hooks</p>
