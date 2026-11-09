@@ -693,6 +693,15 @@ export default function CarouselPage() {
   useEffect(() => {
     if (!ready || deepLinkHandled.current) return;
     deepLinkHandled.current = true;
+    const work = (() => {
+      try {
+        return userId ? JSON.parse(sessionStorage.getItem(workKey(userId)) ?? "null") : null;
+      } catch {
+        return null; // corrupt or blocked storage: start fresh
+      }
+    })();
+    // a typed topic comes back whichever carousel the link opens
+    if (typeof work?.topic === "string") setTopic(work.topic);
     // ?carousel=<saved id> reopens a kept carousel with its edits; it beats ?draft=, which makes fresh slides
     const savedId = searchParams.get("carousel");
     const kept = savedId ? saved.find((c) => c.id === savedId) : null;
@@ -705,9 +714,8 @@ export default function CarouselPage() {
       // one address write: two in one pass would keep only the last (urlState.ts)
       const fix: Record<string, string | null> = savedId ? { carousel: null } : {};
       try {
-        const work = userId ? JSON.parse(sessionStorage.getItem(workKey(userId)) ?? "null") : null;
         if (work && Array.isArray(work.slides) && typeof work.pasteText === "string") {
-          if (!savedId && !searchParams.has("tab")) fix.tab = work.mode === "paste" ? "paste" : null;
+          if (!savedId && !searchParams.has("tab")) fix.tab = work.mode === "paste" || work.mode === "topic" ? work.mode : null;
           // Leo's unfinished carousel comes back in its design and size, unless the link names its own
           if (isDesign(work.design) && !searchParams.has("design")) fix.design = designParam(work.design);
           if (isSize(work.size) && !searchParams.has("size")) fix.size = sizeParam(work.size);
@@ -760,18 +768,18 @@ export default function CarouselPage() {
   useEffect(() => {
     if (!ready || !userId || !deepLinkHandled.current) return;
     try {
-      if (!pasteText.trim() && slides.length === 0) {
+      if (!pasteText.trim() && !topic.trim() && slides.length === 0) {
         sessionStorage.removeItem(workKey(userId));
       } else {
         sessionStorage.setItem(
           workKey(userId),
-          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, ...(leo ? { design, size, ...(signer ? { signer } : {}) } : {}) }),
+          JSON.stringify({ mode, pasteText, topic, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, ...(leo ? { design, size, ...(signer ? { signer } : {}) } : {}) }),
         );
       }
     } catch {
       // storage blocked: the work just won't survive a page change
     }
-  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, leo, design, size, signer]);
+  }, [ready, userId, mode, pasteText, topic, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, leo, design, size, signer]);
 
   useEffect(() => {
     const want = slides.map((x) => x.image).filter((k): k is string => !!k && SLIDE_IMAGE_KEY.test(k) && !pictures[k] && !missing.has(k));
