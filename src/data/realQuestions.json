@@ -1,12 +1,68 @@
 {
-  "fetched": "2026-11-08",
+  "fetched": "2026-11-09",
   "questions": [
+    {
+      "question": "Fixed deposit war",
+      "url": "https://forums.hardwarezone.com.sg/threads/fixed-deposit-war.7230970/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-08T22:29:27.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Tiq 3-Year Endowment Plan",
+      "url": "https://forums.hardwarezone.com.sg/threads/tiq-3-year-endowment-plan.6260517/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-08T11:48:32.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "need opinions for BTO financing as a full-time student",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xqvcb5/need_opinions_for_bto_financing_as_a_fulltime/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-08T10:23:46.000Z",
+      "audience": "young-adult"
+    },
     {
       "question": "Waited 1year for the stocks market to drop.",
       "url": "https://forums.hardwarezone.com.sg/threads/waited-1year-for-the-stocks-market-to-drop.7230863/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-07T23:56:48.000Z",
+      "publishedAt": "2026-11-08T09:47:33.000Z",
       "audience": "general"
+    },
+    {
+      "question": "Impact of US using inflation as a tool to 'manage' debt to SG investors",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xqsr48/impact_of_us_using_inflation_as_a_tool_to_manage/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-08T07:31:12.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Market collasping, espcecially AI and Semiconductor stock?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xqs9hr/market_collasping_espcecially_ai_and/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-08T07:00:01.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "IBKR connect to AI.",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xqrvkc/ibkr_connect_to_ai/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-08T06:34:57.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Savings account",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xqq3yv/savings_account/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-08T04:48:55.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Standchart eSaver",
+      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-08T00:53:35.000Z",
+      "audience": "working-adult"
     },
     {
       "question": "Is it wise to buy resale hoping for ROI",
@@ -42,13 +98,6 @@
       "source": "HardwareZone Money Mind",
       "publishedAt": "2026-11-07T12:40:24.000Z",
       "audience": "general"
-    },
-    {
-      "question": "Standchart eSaver",
-      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-07T11:59:25.000Z",
-      "audience": "working-adult"
     },
     {
       "question": "Best credit card for BTO expenses for Cash-back and Miles?",
@@ -370,55 +419,6 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1xl5bhc/chocolate_finance_increased_top_up_programme/",
       "source": "r/singaporefi",
       "publishedAt": "2026-11-01T15:05:31.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "Mid Term Elections",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xl4aj7/mid_term_elections/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T14:22:24.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "insurance",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xky16v/insurance/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T08:39:04.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Seeking input on topping up term with whole life plan for critical illness?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xktk4i/seeking_input_on_topping_up_term_with_whole_life/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T04:01:01.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Premium banking advisors",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xkt78m/premium_banking_advisors/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T03:40:25.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "27M Journey to FI, All Advice Welcomed!",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xksy3q/27m_journey_to_fi_all_advice_welcomed/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T03:26:02.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "UOB One \"cashback\" not credited",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xksqt2/uob_one_cashback_not_credited/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T03:14:35.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "How bad is this ILP? HSBC Life (Goal Focus)",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xkfo7a/how_bad_is_this_ilp_hsbc_life_goal_focus/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-31T17:11:23.000Z",
       "audience": "general"
     }
   ]
