@@ -57,6 +57,7 @@ import {
   undoDuplicate,
   markUnposted,
   restoreDraft,
+  undoPosted,
   MAX_DRAFTS,
   type DraftEntry,
   type DraftStatus,
@@ -448,6 +449,24 @@ export default function DraftsPage() {
     // a new day for a post Zernio holds moves the real post too: say so, with Undo (publish-calendar)
     if (prev && when && status === "scheduled" && zernioHolds(prev) && prev.scheduledFor !== when)
       toast({ title: `Moved to ${whenLabel(when)}`, description: "The auto-post moves with it.", action: undoAction([prev]) });
+  };
+
+  // As on Home and the calendar: say so, with Undo (which also takes off the posted copy a recurring post leaves).
+  const handleMarkPosted = (prev: DraftEntry) => {
+    if (!userId) return;
+    const before = loadDrafts(userId);
+    const next = setDraftStatus(userId, prev.id, "posted");
+    setDrafts(next);
+    const series = next.find((d) => d.id === prev.id && d.repeat);
+    toast({
+      title: "Marked as posted",
+      description: series?.scheduledFor ? `Next one: ${whenLabel(series.scheduledFor)}` : undefined,
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoPosted(userId, prev, before))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   // Back to Scheduled on its day, time and repeat (or to drafts if it never had a day).
@@ -1139,7 +1158,7 @@ export default function DraftsPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleSetStatus(d.id, "posted")}
+                      onClick={() => handleMarkPosted(d)}
                       disabled={reviews.blockReason(d) !== null}
                       title={reviews.blockReason(d) ?? undefined}
                       className="h-11 gap-1.5 text-xs text-success hover:text-success sm:h-9 [@media(pointer:coarse)]:h-11"

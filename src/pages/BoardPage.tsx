@@ -25,6 +25,7 @@ import {
   restoreDraft,
   saveDrafts,
   setDraftStatus,
+  undoPosted,
   upsertDraft,
   type DraftEntry,
   onDraftsChanged,
@@ -372,8 +373,16 @@ export default function BoardPage() {
         toast({ title: "Approval needed before posting", description: `Team rule. ${blocked}` });
         return;
       }
+      const before = loadDrafts(userId);
       setDrafts(setDraftStatus(userId, draft.id, "posted"));
-      toast({ title: "Marked as posted" });
+      toast({
+        title: "Marked as posted",
+        action: (
+          <ToastAction altText="Undo" onClick={() => setDrafts(undoPosted(userId, draft, before))}>
+            Undo
+          </ToastAction>
+        ),
+      });
       return;
     }
     // Production stage move; also clears scheduled/posted if dragging back.
