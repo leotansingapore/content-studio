@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -193,6 +193,7 @@ export default function CoachPage() {
   const [history, setHistory] = useState<CoachHistoryEntry[]>([]);
   const report = (reportId ? history.find((h) => h.id === reportId)?.report : null) ?? unkept;
   const [inAppCount, setInAppCount] = useState(0);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.title = "Coach - Postmosis";
@@ -608,7 +609,7 @@ export default function CoachPage() {
         </Card>
 
         {report && (
-          <Card className="border-border/60 shadow-card">
+          <Card ref={reportRef} className="scroll-mt-20 border-border/60 shadow-card">
             <CardContent className="space-y-6 pt-6">
               <div className="flex flex-col items-center gap-4 sm:flex-row">
                 <ScoreRing score={report.score} />
@@ -732,7 +733,8 @@ export default function CoachPage() {
                       if (!h.report) return;
                       setUnkept(null);
                       openReport(h.id);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      // the report shows under Review your posts, not at the top of the page
+                      window.setTimeout(() => reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
                     }}
                     className={`flex w-full items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-left ${
                       openable
