@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import ProfessionField from "@/components/ProfessionField";
+import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { supabase } from "@/lib/supabase";
 import { markOnboarded } from "@/lib/onboarding";
 import { useTourUser } from "@/lib/useTourUser";
@@ -58,13 +60,18 @@ export default function WelcomePage() {
   const tour = useTourUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState("");
+  // "What do you do?", asked first while the open brand has no answer: unanswered, every writer writes as a financial
+  // adviser. Null once the sign-in is read and the brand has one (and on the first frame, which stays as pinned).
+  const [profession, setProfession] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Welcome - Postmosis";
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
-      setUserId(data.user?.id ?? null);
+      const uid = data.user?.id ?? null;
+      setUserId(uid);
+      if (uid && !loadBrand(uid)?.profession?.trim()) setProfession("");
       const email = data.user?.email ?? "";
       const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
       // Only greet by name when the email prefix actually reads like one —
@@ -77,6 +84,11 @@ export default function WelcomePage() {
   }, []);
 
   const go = (to: string) => void onboardThenGo(userId, to, navigate);
+
+  const answer = (v: string) => {
+    setProfession(v);
+    if (userId) saveBrand(userId, { ...(loadBrand(userId) ?? DEFAULT_BRAND), profession: v });
+  };
 
   const start = (
     <Button
@@ -98,6 +110,12 @@ export default function WelcomePage() {
           Welcome{name ? <span className="capitalize">, {name}</span> : ""} 👋
         </h1>
       </header>
+
+      {profession !== null && (
+        <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+          <ProfessionField value={profession} onChange={answer} emptyIsAdviser={false} />
+        </section>
+      )}
 
       <div className="space-y-3">
         {STEPS.map((s) => {
