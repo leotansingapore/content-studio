@@ -133,6 +133,7 @@ import {
   type DraftRemix,
 } from "@/lib/draftHistory";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
+import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime, suggestedLabel } from "@/lib/analytics";
 import { keyToDate, localDateKey, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { nearDuplicate } from "@/lib/nearDuplicate";
@@ -4533,11 +4534,15 @@ export default function GeneratePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {mainCopyBlock && (
-              <p className="mb-3 text-xs text-muted-foreground">
-                Team rule: approval needed before posting. {mainCopyBlock}
-              </p>
-            )}
+            {/* a saved post on the team rule: its review state and Submit for review right here, as on All posts */}
+            {mainCopyBlock &&
+              (currentDraftId && reviews.enabled ? (
+                <DraftReviewControl draft={{ id: currentDraftId, draft, platform, format } as DraftEntry} reviews={reviews} />
+              ) : (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Team rule: approval needed before posting. {mainCopyBlock}
+                </p>
+              ))}
             {saveState === "failed" && (
               <p role="alert" className="mb-3 flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-red-700 dark:text-red-300">
                 <AlertTriangle className="h-3.5 w-3.5" /> Not saved: this browser's storage is full. Copy your post somewhere safe.
