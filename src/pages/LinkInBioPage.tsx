@@ -72,6 +72,8 @@ export default function LinkInBioPage() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
+  // edits on this device that aren't on the public page yet
+  const [unsaved, setUnsaved] = useState(false);
   const [error, setError] = useState("");
   const [clicks, setClicks] = useState<ClickRow[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -95,25 +97,30 @@ export default function LinkInBioPage() {
       setPages(all);
       const page = all.find((p) => p.profile_id === currentProfileId(uid)) ?? null;
       const b = loadBrand(uid);
+      const saved: Form | null = page
+        ? {
+            slug: page.slug,
+            name: page.display_name,
+            headline: page.headline,
+            showPhoto: page.photo !== null,
+            links: page.links,
+            published: page.published,
+          }
+        : null;
+      // a draft equal to the saved page holds no edits
+      const draft = readDraft(DRAFT_PREFIX + scoped(uid));
+      const kept = draft && JSON.stringify(draft) !== JSON.stringify(saved) ? draft : null;
+      setUnsaved(kept !== null);
       setForm(
-        readDraft(DRAFT_PREFIX + scoped(uid)) ??
-          (page
-            ? {
-                slug: page.slug,
-                name: page.display_name,
-                headline: page.headline,
-                showPhoto: page.photo !== null,
-                links: page.links,
-                published: page.published,
-              }
-            : {
-                slug: normalizeSlug(b?.name ?? ""),
-                name: b?.name ?? "",
-                headline: b?.role ?? "",
-                showPhoto: Boolean(b?.photo),
-                links: [{ label: "", url: "" }],
-                published: true,
-              }),
+        kept ??
+          saved ?? {
+            slug: normalizeSlug(b?.name ?? ""),
+            name: b?.name ?? "",
+            headline: b?.role ?? "",
+            showPhoto: Boolean(b?.photo),
+            links: [{ label: "", url: "" }],
+            published: true,
+          },
       );
       if (page) setClicks(await fetchClicks(page.id, sgDay(new Date(), 29)).catch(() => []));
       setState("ready");
@@ -135,6 +142,7 @@ export default function LinkInBioPage() {
       if (draftKey) writeDraft(draftKey, next);
       return next;
     });
+    setUnsaved(true);
     setError("");
   };
   const editLink = (i: number, patch: Partial<BioLink>) =>
@@ -180,6 +188,7 @@ export default function LinkInBioPage() {
       const saved = { ...form, slug: page.slug, links: page.links };
       setForm(saved);
       writeDraft(draftKey, null);
+      setUnsaved(false);
       toast({
         title: page.published ? "Page saved and live" : "Page saved (not live)",
         description: page.published ? publicPageUrl(window.location.origin, page.slug) : "Switch on Page is live to publish it.",
@@ -265,7 +274,7 @@ export default function LinkInBioPage() {
                       value={form.slug}
                       maxLength={40}
                       onChange={(e) => edit({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                      onBlur={() => edit({ slug: normalizeSlug(form.slug) })}
+                      onBlur={() => normalizeSlug(form.slug) !== form.slug && edit({ slug: normalizeSlug(form.slug) })}
                       placeholder="your-name"
                       className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground focus:outline-none [@media(pointer:coarse)]:min-h-11"
                     />
@@ -399,10 +408,13 @@ export default function LinkInBioPage() {
                   <input type="checkbox" checked={form.published} onChange={(e) => edit({ published: e.target.checked })} className="h-4 w-4" />
                   Page is live
                 </label>
-                <Button onClick={() => void save()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto [@media(pointer:coarse)]:h-11">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Save page
-                </Button>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Button onClick={() => void save()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto [@media(pointer:coarse)]:h-11">
+                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Save page
+                  </Button>
+                  {unsaved && !saving && <span className="text-xs text-muted-foreground">Not saved yet</span>}
+                </div>
                 {error && (
                   <p role="alert" className="break-words text-sm text-destructive">
                     {error}
