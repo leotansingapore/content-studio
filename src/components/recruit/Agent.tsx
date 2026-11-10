@@ -97,6 +97,8 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
+    // the draft on screen (an AI call already paid for) comes back if this one fails
+    const before = { draft, savedId, generated: generated.current };
     setBusy(true);
     setDraft("");
     setSavedId(null);
@@ -124,7 +126,10 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
         },
         onError: (message) => {
           setBusy(false);
-          toast({ title: "The draft didn't come through", description: `${message}. Your inputs are kept; try again.`, variant: "destructive" });
+          generated.current = before.generated;
+          setDraft(before.draft);
+          setSavedId(before.savedId);
+          toast({ title: "The draft didn't come through", description: message, variant: "destructive" });
         },
       },
       controller.signal,
