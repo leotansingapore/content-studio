@@ -1,7 +1,7 @@
 // Slideshow model (/slideshow): photo slides with free text boxes, the one slideshow format in phase 1
 // (docs/north-star/items/edit-slideshow.md). Everything here is pure apart from load and save; drawing and
 // export live in slideshowDraw.ts.
-//   synced: content-studio-slideshows-${scoped(userId)}, newest 40, sanitized on read
+//   synced: content-studio-slideshows-${scoped(userId)}, newest MAX_SHOWS (100), sanitized on read
 //   device hint: cs-slideshow-style, the last text style used
 
 import { scoped } from "@/lib/profiles";
@@ -97,7 +97,9 @@ export const BG_LABELS: Record<BoxBg, string> = { white: "White", none: "None", 
 
 export const MAX_BOXES = 6;
 export const MAX_BOX_CHARS = 400;
-export const MAX_SHOWS = 40;
+// Leo 10 Nov "raise it": a typical made slideshow is ~5.6 KB of JSON (45 KB at most), so 100 a brand stays far inside
+// the browser's ~5 MB; past it the oldest still drops (campaignActions showDropLine warns before a run)
+export const MAX_SHOWS = 100;
 export const MAX_HISTORY = 20;
 export const MAX_CAPTION = 2200;
 export const SIZE_MIN = 16;
@@ -557,7 +559,7 @@ function write(userId: string, list: Slideshow[]): Slideshow[] {
   return list;
 }
 
-/** Saves (or replaces) one slideshow, newest first, keeping the latest 20. */
+/** Saves (or replaces) one slideshow, newest first, keeping the latest MAX_SHOWS. */
 export function saveSlideshow(userId: string, s: Slideshow, now = new Date()): Slideshow[] {
   return write(userId, [{ ...s, updatedAt: now.toISOString() }, ...loadSlideshows(userId).filter((x) => x.id !== s.id)].slice(0, MAX_SHOWS));
 }
