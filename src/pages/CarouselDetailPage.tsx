@@ -47,6 +47,9 @@ export default function CarouselDetailPage() {
     navigate(-1);
   };
   const [row, setRow] = useState<CarouselRow | null | undefined>(undefined);
+  // the read failed (offline, a timeout): not the same as a carousel taken out of the library
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [similar, setSimilar] = useState<CarouselCard[]>([]);
   const [more, setMore] = useState<CarouselCard[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -65,13 +68,16 @@ export default function CarouselDetailPage() {
   useEffect(() => {
     let live = true;
     setRow(undefined);
+    setFailed(false);
     supabase
       .from("cs_carousels")
       .select(DETAIL_COLUMNS)
       .eq("id", id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (!live) return;
+        // 22P02: the id isn't a uuid, so no carousel has it
+        setFailed(Boolean(error) && error.code !== "22P02");
         const r = (data as CarouselRow | null) ?? null;
         setRow(r);
         if (!r) return;
@@ -88,7 +94,7 @@ export default function CarouselDetailPage() {
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, retry]);
 
   useEffect(() => {
     document.title = row ? `${row.title.slice(0, 60)} - Postmosis` : "Carousel - Postmosis";
@@ -122,6 +128,12 @@ export default function CarouselDetailPage() {
   };
 
   if (row === undefined) return <div className="h-[60vh] animate-pulse rounded-xl bg-muted" aria-label="Loading the carousel" />;
+  if (row === null && failed)
+    return (
+      <EmptyState icon={Layers} title="The carousel didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
+        Check your connection and try again.
+      </EmptyState>
+    );
   if (row === null)
     return (
       <EmptyState icon={Layers} title="Carousel not found" actions={<Button asChild variant="outline" size="sm"><Link to="/carousels">Back to the library</Link></Button>}>

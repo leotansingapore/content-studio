@@ -22,23 +22,29 @@ export default function WorkingDetailPage() {
     navigate(-1);
   };
   const [row, setRow] = useState<WorkingRow | null | undefined>(undefined);
+  // the read failed (offline, a timeout): not the same as a slideshow taken out of the library
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let live = true;
     setRow(undefined);
+    setFailed(false);
+    const fail = () => {
+      if (!live) return;
+      setFailed(true);
+      setRow(null);
+    };
     supabase
       .from(TABLE)
       .select(DETAIL_COLUMNS)
       .eq("id", id)
       .maybeSingle()
-      .then(
-        ({ data }) => live && setRow((data as WorkingRow | null) ?? null),
-        () => live && setRow(null),
-      );
+      .then(({ data, error }) => (error ? fail() : live && setRow((data as WorkingRow | null) ?? null)), fail);
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, retry]);
 
   useEffect(() => {
     document.title = row ? `@${row.author}'s slideshow - Postmosis` : "Slideshow - Postmosis";
@@ -48,6 +54,12 @@ export default function WorkingDetailPage() {
   }, [row]);
 
   if (row === undefined) return <div className="h-[60vh] animate-pulse rounded-xl bg-muted" aria-label="Loading the slideshow" />;
+  if (row === null && failed)
+    return (
+      <EmptyState icon={Images} title="The slideshow didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
+        Check your connection and try again.
+      </EmptyState>
+    );
   if (row === null)
     return (
       <EmptyState icon={Images} title="Slideshow not found" actions={<Button asChild variant="outline" size="sm"><Link to="/working">Back to What's working</Link></Button>}>
