@@ -91,8 +91,11 @@ export default function YourFeeds() {
     if (left !== 0) void load(next, true);
   };
   const addPasted = () => {
-    const url = paste.trim();
-    if (!/^https?:\/\/\S+\.\S+/.test(url)) return toast({ title: "Paste the feed's full address, starting https://", variant: "destructive" });
+    const typed = paste.trim();
+    // an address pasted without its scheme (moneysmart.sg/feed) gets https://
+    const url = /^https?:\/\//i.test(typed) ? typed : `https://${typed}`;
+    if (!/^https?:\/\/[^\s/]+\.[^\s/]+\S*$/i.test(url)) return toast({ title: "Paste the feed's address, like site.com/feed", variant: "destructive" });
+    if (feeds.some((f) => f.url === url)) return toast({ title: "That feed is already in your list" });
     setPaste("");
     void add({ url, label: "" });
   };
