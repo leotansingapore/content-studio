@@ -376,9 +376,10 @@ export default function VideoEditPage() {
       }
       await putFile(id, file);
       const thumb = sound ? waveThumb(await audioPeaks(file)) : (await stills(file, [0.3], 240))[0];
-      // a video with no sound track at all, sent by the own panel, is silent footage: words on screen, nothing to caption
+      // a video with no sound track at all (a screen recording, stock footage) still opens, with nothing to caption;
+      // the own panel's silent footage gets words on screen
       const heard = await extractWav(file).catch((e) => {
-        if (ask?.own && Number.isFinite(length) && length > 0) return null;
+        if (!sound && Number.isFinite(length) && length > 0) return null;
         throw e;
       });
       const duration = heard?.duration ?? length;
@@ -392,6 +393,7 @@ export default function VideoEditPage() {
       // a montage has no speech to caption; it opens with its look, words and music, and says what stood in for a clip
       if (extra?.settings?.captions === false || !heard) {
         if (ask?.own) await withOwnWords(p, ask.own.about);
+        else if (!heard && extra?.settings?.captions !== false) toast({ title: NO_SOUND, description: "There's nothing to caption." });
         open("no-captions");
         return;
       }
@@ -1542,7 +1544,8 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     if (!src) return;
     setCaptioning(true);
     try {
-      const { wav } = await extractWav(src);
+      // the browser's own words for a file with no sound track ("Unable to decode audio data") say nothing useful
+      const { wav } = await extractWav(src).catch(() => { throw new Error(NO_SOUND); });
       const mine = [...fixes, ...(leo ? brandFixes(brandKit?.name) : [])];
       const t = await transcribe(wav, undefined, leo ? captionTerms(mine) : undefined);
       const fixed = applyFixes(t.words, mine);
