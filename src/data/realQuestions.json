@@ -1,12 +1,26 @@
 {
-  "fetched": "2026-11-09",
+  "fetched": "2026-11-10",
   "questions": [
+    {
+      "question": "Waited 1year for the stocks market to drop.",
+      "url": "https://forums.hardwarezone.com.sg/threads/waited-1year-for-the-stocks-market-to-drop.7230863/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-09T20:19:41.000Z",
+      "audience": "general"
+    },
     {
       "question": "Fixed deposit war",
       "url": "https://forums.hardwarezone.com.sg/threads/fixed-deposit-war.7230970/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-08T22:29:27.000Z",
+      "publishedAt": "2026-11-09T12:12:44.000Z",
       "audience": "general"
+    },
+    {
+      "question": "FIRE (Financial Independence, Retire Early) Movement",
+      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-09T07:36:02.000Z",
+      "audience": "working-adult"
     },
     {
       "question": "Tiq 3-Year Endowment Plan",
@@ -21,13 +35,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-11-08T10:23:46.000Z",
       "audience": "young-adult"
-    },
-    {
-      "question": "Waited 1year for the stocks market to drop.",
-      "url": "https://forums.hardwarezone.com.sg/threads/waited-1year-for-the-stocks-market-to-drop.7230863/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-08T09:47:33.000Z",
-      "audience": "general"
     },
     {
       "question": "Impact of US using inflation as a tool to 'manage' debt to SG investors",
@@ -84,13 +91,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-11-07T18:27:14.000Z",
       "audience": "young-adult"
-    },
-    {
-      "question": "FIRE (Financial Independence, Retire Early) Movement",
-      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-07T18:16:03.000Z",
-      "audience": "working-adult"
     },
     {
       "question": "Interactive Brokers - SGD now available for funding - Part 2",
@@ -195,7 +195,7 @@
       "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
       "source": "HardwareZone Money Mind",
       "publishedAt": "2026-11-06T09:22:44.000Z",
-      "audience": "general"
+      "audience": "young-adult"
     },
     {
       "question": "Endowus Offer ETF",
