@@ -7,6 +7,7 @@ import {
   buildIdeaDumpContext,
   isOnBoard,
   loadBriefs,
+  notesLeft,
   outcomeForFailure,
   outcomeForSuccess,
   removeBrief,
@@ -256,5 +257,18 @@ describe("buildIdeaDumpContext", () => {
   it("still takes the platform from a row with no other words and no goal", () => {
     window.localStorage.setItem(`content-studio-positioning-${USER}`, JSON.stringify({ platform: "facebook" }));
     expect(buildIdeaDumpContext(USER).platforms).toEqual(["facebook"]);
+  });
+});
+
+describe("notesLeft", () => {
+  it("leaves the undeveloped lines", () => {
+    expect(notesLeft("a\nb", "a\nb", ["b"])).toBe("b");
+  });
+  it("keeps words dictated after Develop was tapped", () => {
+    expect(notesLeft("idea one", "idea one and the last thing I said", [])).toBe("and the last thing I said");
+    expect(notesLeft("one\ntoo", "one\ntoo late words", ["too"])).toBe("too\nlate words");
+  });
+  it("keeps today's leftovers when the box changed some other way", () => {
+    expect(notesLeft("one", "", ["x"])).toBe("x");
   });
 });

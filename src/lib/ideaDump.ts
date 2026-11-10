@@ -152,6 +152,15 @@ export function removeBrief(userId: string, id: string): IdeaBrief[] {
   );
 }
 
+/**
+ * The box after a run: the lines that weren't developed, then anything that reached the box while it ran (dictation
+ * still hands in its last words after Develop stops it). `sent` is the box as it was when Develop was tapped.
+ */
+export function notesLeft(sent: string, now: string, left: string[]): string {
+  const late = now.startsWith(sent) ? now.slice(sent.length).trim() : "";
+  return [...left, ...(late ? [late] : [])].join("\n");
+}
+
 // ---- Context sent with the notes ---------------------------------------------
 
 /** What the app knows about the consultant, for the model to write in their voice. */

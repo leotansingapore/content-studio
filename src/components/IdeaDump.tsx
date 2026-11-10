@@ -38,6 +38,7 @@ import {
   developIdeas,
   isOnBoard,
   loadBriefs,
+  notesLeft,
   preferredAudience,
   removeBrief,
   saveBriefs,
@@ -414,12 +415,13 @@ export default function IdeaDump() {
     setNotice(null);
     setPendingCount(ideas.length);
     setLoading(true);
+    const sent = text;
     const outcome = await developIdeas(ideas, buildIdeaDumpContext(userId));
     setLoading(false);
     if (outcome.kind === "ok") {
       setBriefs(addBriefs(userId, outcome.briefs));
-      // Leave what wasn't developed in the box: ideas past the limit and thin lines.
-      setText([...overflow, ...tooShort].join("\n"));
+      // Leave what wasn't developed in the box: ideas past the limit, thin lines and words dictated during the run.
+      setText((now) => notesLeft(sent, now, [...overflow, ...tooShort]));
       setNotice({
         kind: "done",
         developed: outcome.briefs.length,
