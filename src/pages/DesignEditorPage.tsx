@@ -394,7 +394,14 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
     const files = await run((signal) => designPngs(userId, workRef.current, progress(signal)));
     if (!files) return null;
     const d = workRef.current;
-    const keys = await Promise.all(files.map(async (f, i) => (await putFile(`cimg-dz${d.id.slice(4, 16)}${i}`, f), `cimg-dz${d.id.slice(4, 16)}${i}`)));
+    let keys: string[];
+    try {
+      keys = await Promise.all(files.map(async (f, i) => (await putFile(`cimg-dz${d.id.slice(4, 16)}${i}`, f), `cimg-dz${d.id.slice(4, 16)}${i}`)));
+    } catch {
+      // the post's pictures live on this device: say so rather than a Save that does nothing
+      toast({ title: "Couldn't keep the slides on this device", description: "Its storage may be full. Download the slides instead, or free some space and try again.", variant: "destructive" });
+      return null;
+    }
     const draftId = d.draftId ?? newDraftId();
     const entry = designToDraft({ ...d, draftId }, keys, getDraftById(userId, draftId), new Date().toISOString());
     upsertDraft(userId, { ...entry, id: draftId });
