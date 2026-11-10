@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   SUPABASE_ANON_KEY: "",
   supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })), onAuthStateChange: () => ({}) }, functions: { invoke: vi.fn() }, from: vi.fn() },
 }));
-vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false }));
+vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false, useSignedInUser: () => null }));
 
 const { default: AiVideo } = await import("./AiVideo");
 const html = (at: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(AiVideo, { onClose: () => undefined })));

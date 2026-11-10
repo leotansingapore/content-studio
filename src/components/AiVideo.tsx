@@ -24,7 +24,8 @@ import { loadProducts, productLabel, type Product } from "@/lib/products";
 import { PICTURE_FAILED, pictureFile } from "@/lib/productScan";
 import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
 import { aiMark, defaultWho, speakerFace, speakerFile, speakerOf, useSpeakers, whoChoices, type Speaker } from "@/lib/talkingHead";
-import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
+import { useLeoOnly, useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
+import { scoped } from "@/lib/profiles";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { BANNER_MAX, MUSIC_LEVEL, defaultSettings, moveTake, styleLabel, withLook } from "@/lib/videoEdit";
 import { defaultSkill, loadSkills } from "@/lib/videoSkills";
@@ -929,9 +930,28 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   );
 }
 
+/** The explainer's topic and written script, kept for this tab (sessionStorage), per brand. */
+const explainerKey = (userId: string) => `cs-explainer-draft-${scoped(userId)}`;
+
 function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
   const [topic, setTopic] = useState("");
   const [scenes, setScenes] = useState<Scene[] | null>(null);
+  // a written script is a paid use: another kind, Close or a reload must not throw it away
+  const user = useSignedInUser();
+  const keyNow = user ? explainerKey(user.id) : null;
+  const [kept, setKept] = useState<string | null>(null);
+  useEffect(() => {
+    if (!keyNow) return;
+    let d: { topic?: unknown; scenes?: unknown } | null = null;
+    try { d = JSON.parse(sessionStorage.getItem(keyNow) ?? "null"); } catch { /* nothing kept */ }
+    setTopic(typeof d?.topic === "string" ? d.topic : "");
+    setScenes(Array.isArray(d?.scenes) ? (d.scenes as Scene[]) : null);
+    setKept(keyNow);
+  }, [keyNow]);
+  useEffect(() => {
+    if (!kept) return;
+    try { sessionStorage.setItem(kept, JSON.stringify({ topic, scenes })); } catch { /* it still holds while the panel is open */ }
+  }, [kept, topic, scenes]);
   const [writing, setWriting] = useState(false);
   const leo = useLeoOnly();
   // Leo's chips say what is left after this run, so his counts are read again after a script too
@@ -1003,7 +1023,10 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Button className="h-11 sm:h-10" disabled={busy || videos === 0 || voices === 0 || !scenes.every(sceneReady)}
-              onClick={() => void makeExplainer(topic.trim().slice(0, 40) || "Explainer", scenes.map((s) => ({ say: s.say.trim(), picture: s.picture.trim() })), voice)}>
+              onClick={() => void makeExplainer(topic.trim().slice(0, 40) || "Explainer", scenes.map((s) => ({ say: s.say.trim(), picture: s.picture.trim() })), voice).then(() => {
+                // made: the panel opens empty next time; a failed make keeps the script to try again
+                if (aiJob()?.state === "done" && kept) try { sessionStorage.removeItem(kept); } catch { /* nothing kept */ }
+              })}>
               Make the video
             </Button>
             {!scenes.every(sceneReady) && <span className="text-xs text-muted-foreground">Fill in every scene first.</span>}
