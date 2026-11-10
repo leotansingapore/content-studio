@@ -12,6 +12,8 @@ import { ThinkingOrb } from "thinking-orbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { ToastAction } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
@@ -38,6 +40,7 @@ import {
   loadBriefs,
   preferredAudience,
   removeBrief,
+  saveBriefs,
   scoreBrief,
   splitIdeas,
   updateBrief,
@@ -347,6 +350,7 @@ export default function IdeaDump() {
   const [loading, setLoading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const { toast } = useToast();
 
   const dictation = useDictation((chunk) => setText((prev) => appendDictation(prev, chunk, MAX_NOTES_CHARS)));
   const { supported: speechSupported, listening, interim, error: micError } = dictation;
@@ -445,7 +449,22 @@ export default function IdeaDump() {
 
   const remove = (brief: IdeaBrief) => {
     if (!userId) return;
+    const at = briefs.findIndex((b) => b.id === brief.id);
     setBriefs(removeBrief(userId, brief.id));
+    toast({
+      title: "Brief removed",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            const now = loadBriefs(userId);
+            if (!now.some((b) => b.id === brief.id)) setBriefs(saveBriefs(userId, [...now.slice(0, at), brief, ...now.slice(at)]));
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   return (
