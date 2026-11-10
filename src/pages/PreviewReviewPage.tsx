@@ -51,7 +51,15 @@ export default function PreviewReviewPage() {
   const [error, setError] = useState("");
   const [post, setPost] = useState<PublicPreview | null>(null);
   const [name, setName] = useState(readName);
-  const [body, setBody] = useState("");
+  // a half-written comment survives a reload in this tab, until it is sent
+  const draftKey = `cs-review-comment-${token}`;
+  const [body, setBody] = useState(() => {
+    try {
+      return sessionStorage.getItem(draftKey) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [website, setWebsite] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -76,6 +84,15 @@ export default function PreviewReviewPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    try {
+      if (body) sessionStorage.setItem(draftKey, body);
+      else sessionStorage.removeItem(draftKey);
+    } catch {
+      // private mode: the comment just won't survive a reload
+    }
+  }, [draftKey, body]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
