@@ -295,7 +295,8 @@ function Slideshows({ userId, leo }: { userId: string; leo: boolean }) {
   const update = useUrlUpdate();
   const ready = useFontsReady();
   const show = sid ? shows.find((x) => x.id === sid) : undefined;
-  const close = useCallback(() => update({ s: null, slide: null, panel: null, box: null, view: null }), [update]);
+  // pushed, as opening was: replaced, the list sat twice in history and the phone's Back seemed to do nothing
+  const close = useCallback(() => update({ s: null, slide: null, panel: null, box: null, view: null }, { push: true }), [update]);
 
   return (
     <div className="space-y-6">
