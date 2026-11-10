@@ -43,7 +43,9 @@ export function loadWatch(userId: string | null | undefined): string[] {
 }
 
 export function saveWatch(userId: string, list: string[]): string[] {
-  const next = [...new Set(list.map((k) => k.replace(/\s+/g, " ").trim()).filter((k) => k.length >= 2))].slice(0, MAX_WATCH);
+  const tidy = list.map((k) => k.replace(/\s+/g, " ").trim()).filter((k) => k.length >= 2);
+  // "CPF" and "cpf" are one keyword: the first spelling stays
+  const next = tidy.filter((k, i) => tidy.findIndex((x) => x.toLowerCase() === k.toLowerCase()) === i).slice(0, MAX_WATCH);
   try {
     store()?.setItem(KEY + scoped(userId), JSON.stringify(next));
   } catch {

@@ -10,7 +10,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("mentions", () => {
   it("keeps up to five tidy keywords per profile in a synced key", async () => {
-    saveWatch("u1", [" Leo  Tan ", "Leo Tan", "x", "CPF", "a1", "a2", "a3", "a4"]);
+    saveWatch("u1", [" Leo  Tan ", "Leo Tan", "x", "CPF", "leo tan", "cpf", "a1", "a2", "a3", "a4"]);
     expect(loadWatch("u1")).toEqual(["Leo Tan", "CPF", "a1", "a2", "a3"]);
     expect([...map.keys()]).toEqual(["content-studio-mentions-u1"]);
   });
