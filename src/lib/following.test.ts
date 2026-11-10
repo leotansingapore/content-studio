@@ -5,7 +5,7 @@ vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(() => new Promise(() => {})) }));
 
 import { callFn } from "@/lib/edgeFn";
 import {
-  MAX_FOLLOWED, applyCheck, checkCapped, checkFailure, followAccount, followStats, isChecking, loadFollowing, postKind, remixUrl, runCheck, saveFollowing,
+  MAX_FOLLOWED, applyCheck, checkCapped, checkFailure, followAccount, followStats, isChecking, loadFollowing, pastedPlatform, postKind, remixUrl, runCheck, saveFollowing,
   watchText, type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
 
@@ -160,5 +160,30 @@ describe("a post's name on its card and its play button", () => {
     expect(watchText("instagram", "image")).toBe("See the photo");
     expect(watchText("instagram", "video")).toBe("Watch the video");
     expect(watchText("tiktok", "video")).toBe("Watch the video");
+  });
+});
+
+describe("what a pasted account names", () => {
+  it("takes the platform from a profile link, whatever the toggle says", () => {
+    expect(pastedPlatform("instagram", "https://www.tiktok.com/@khaby.lame?lang=en")).toBe("tiktok");
+    expect(pastedPlatform("tiktok", "https://m.instagram.com/mrbrown/?igsh=abc")).toBe("instagram");
+    expect(pastedPlatform("instagram", "https://www.instagram.com/mrbrown/reel/C8xYz12AbCd/")).toBe("instagram");
+    expect(pastedPlatform("tiktok", "https://www.tiktok.com/@khaby.lame/video/7212345678901234567")).toBe("tiktok");
+  });
+
+  it("keeps the toggle for a bare @name", () => {
+    expect(pastedPlatform("tiktok", "@khaby.lame")).toBe("tiktok");
+    expect(pastedPlatform("instagram", "mrbrown")).toBe("instagram");
+  });
+
+  it("calls a link to one post a post, since it hides the account", () => {
+    for (const link of [
+      "https://www.instagram.com/p/C8xYz12AbCd/",
+      "https://www.instagram.com/reel/C8xYz12AbCd/?igsh=x",
+      "https://vt.tiktok.com/ZSabc1234/",
+      "vm.tiktok.com/ZMabc1234",
+      "https://www.tiktok.com/t/ZTabc1234/",
+      "https://m.tiktok.com/v/7212345678901234567.html",
+    ]) expect(pastedPlatform("tiktok", link)).toBe("post");
   });
 });

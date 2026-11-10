@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { normalizeHandle } from "../../supabase/functions/_shared/socialAudit.ts";
 import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
 import {
-  MAX_FOLLOWED, checkFailure, followAccount, followStats, isChecking, loadFollowing, onFollowing, remixUrl, runCheck, sameAccount, saveFollowing,
+  MAX_FOLLOWED, checkFailure, followAccount, followStats, isChecking, loadFollowing, onFollowing, pastedPlatform, remixUrl, runCheck, sameAccount, saveFollowing,
   type FollowPlatform, type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
 import { links } from "@/lib/links";
@@ -74,9 +74,12 @@ export default function FollowingPage() {
     // A tap before the sign-in check finished must not be dropped.
     const uid = userId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
     if (!uid) return toast({ title: "Sign in again to follow accounts", variant: "destructive" });
-    const added = followAccount(uid, platform, handle);
+    const on = pastedPlatform(platform, handle);
+    if (on === "post") return toast({ title: "That's a link to one post", description: "Paste the account's profile link or @name.", variant: "destructive" });
+    setPlatform(on);
+    const added = followAccount(uid, on, handle);
     if (added === "invalid") return toast({ title: "That doesn't look like an account name", description: "Paste @name or a profile link.", variant: "destructive" });
-    if (added === "already") return toast({ title: `You already follow @${normalizeHandle(platform, handle)}` });
+    if (added === "already") return toast({ title: `You already follow @${normalizeHandle(on, handle)}` });
     if (added === "full") return toast({ title: `You can follow up to ${MAX_FOLLOWED} accounts`, description: "Remove one first.", variant: "destructive" });
     setList(loadFollowing(uid));
     setHandle("");

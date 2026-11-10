@@ -163,6 +163,17 @@ export async function runCheck(userId: string, a: Pick<FollowedAccount, "platfor
   }
 }
 
+/**
+ * What a pasted account names: the platform its link is on (that beats the toggle), or "post" for a link to one post,
+ * which hides the account (a reel or /p/ link, a TikTok share link: vm., vt., /t/).
+ */
+export function pastedPlatform(platform: FollowPlatform, raw: string): FollowPlatform | "post" {
+  if (/instagram\.com\/(?:p|reels?|tv)\/|(?:vm|vt)\.tiktok\.com\/|tiktok\.com\/(?:t|v)\//i.test(raw)) return "post";
+  if (/instagram\.com\//i.test(raw)) return "instagram";
+  if (/tiktok\.com\//i.test(raw)) return "tiktok";
+  return platform;
+}
+
 export type FollowResult = "added" | "already" | "full" | "invalid";
 
 /**
