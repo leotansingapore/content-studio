@@ -218,6 +218,13 @@ function AccountCard({ a, leo, linked, left, onCheck, onRemove, patterns: w }: {
 
       {failure && <p role="alert" className="text-xs text-destructive">{failure}</p>}
       {checking && !a.checkedAt && <p className="text-xs text-muted-foreground" aria-live="polite">Reading the account, about a minute...</p>}
+      {/* its first read was cut off (the tab closed or reloaded mid-read), so nothing came back yet */}
+      {!checking && !a.checkedAt && !failure && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          Not read yet.
+          <Button size="sm" variant="outline" className="h-9 [@media(pointer:coarse)]:h-11" onClick={onCheck} disabled={leo && left === 0}>Check now</Button>
+        </div>
+      )}
 
       {a.checkedAt && (
         <dl className="grid grid-cols-3 gap-2 text-center">
