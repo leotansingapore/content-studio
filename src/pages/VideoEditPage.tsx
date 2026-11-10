@@ -976,11 +976,26 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
   // save the edit a moment after the last change; the newest project, so a save due as a video is swapped can't put the old file back
   const live = useRef(project);
   live.current = project;
+  // the save still due, made at once when the editor closes or the tab reloads, so a change in its last 400 ms is kept
+  const due = useRef<(() => void) | null>(null);
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...live.current, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish, thumb }), 400);
+    const save = () => {
+      due.current = null;
+      onSave({ ...live.current, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish, thumb });
+    };
+    due.current = save;
+    const t = window.setTimeout(save, 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, words, subs, caption, cutaways, publish, thumb]);
+  useEffect(() => {
+    const flush = () => due.current?.();
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
 
   const duration = project.duration;
   // /edit?p=<id>#clips lands on the clip list once it can show (ClipFinder: 45 s or more, with words)
