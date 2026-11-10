@@ -129,7 +129,9 @@ export default function FollowingPage() {
 
       <EngageWeek userId={userId} />
 
-      {list.length < MAX_FOLLOWED && (
+      {list.length >= MAX_FOLLOWED ? (
+        <p className="text-xs text-muted-foreground">You follow {MAX_FOLLOWED} accounts, the most at once. Remove one to follow another.</p>
+      ) : (
         <form onSubmit={add} className="space-y-2 rounded-2xl border border-border/60 p-4">
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Platform">
