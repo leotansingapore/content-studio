@@ -486,6 +486,10 @@ export default function HomePage() {
                           </>
                         )}
                       </p>
+                      {/* why Mark posted is off, in words: a phone shows no tooltip */}
+                      {reviews.blockReason(d) && (
+                        <p className="text-[11px] text-muted-foreground">Team rule: {reviews.blockReason(d)}</p>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
