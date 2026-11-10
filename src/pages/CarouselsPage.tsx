@@ -471,7 +471,7 @@ function FilterPanel({ f, set, reset }: { f: Filters; set: (name: string, value:
   );
 }
 
-export function CarouselCardView({ c, back, saved, onSave }: { c: CarouselCard; back: string; saved: boolean; onSave: (e: MouseEvent, id: string) => void }) {
+export function CarouselCardView({ c, back, saved, onSave, replace }: { c: CarouselCard; back: string; saved: boolean; onSave: (e: MouseEvent, id: string) => void; replace?: boolean }) {
   const [n, setN] = useState(0);
   const tier = tierOf(c.multiple);
   const flip = (e: MouseEvent, by: number) => {
@@ -480,7 +480,7 @@ export function CarouselCardView({ c, back, saved, onSave }: { c: CarouselCard; 
     setN((x) => (x + by + c.slides) % c.slides);
   };
   return (
-    <Link to={`/carousels/${c.id}`} state={{ back }} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <Link to={`/carousels/${c.id}`} state={{ back }} replace={replace} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
         <img src={publicUrl(n === 0 ? coverPath(c.id) : slidePath(c.id, n))} alt={c.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <button

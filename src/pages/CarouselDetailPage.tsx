@@ -40,6 +40,12 @@ export default function CarouselDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const back = (state as { back?: string } | null)?.back ?? "/carousels";
+  // opened from a list in this tab (a related card replaces the open one): Back goes back to it, so it keeps its scroll
+  const goBack = (e: MouseEvent) => {
+    if (!(state as { back?: string } | null)?.back) return;
+    e.preventDefault();
+    navigate(-1);
+  };
   const [row, setRow] = useState<CarouselRow | null | undefined>(undefined);
   const [similar, setSimilar] = useState<CarouselCard[]>([]);
   const [more, setMore] = useState<CarouselCard[]>([]);
@@ -132,7 +138,7 @@ export default function CarouselDetailPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-          <Link to={back}>
+          <Link to={back} onClick={goBack}>
             <ArrowLeft className="h-3.5 w-3.5" /> Back to carousels
           </Link>
         </Button>
@@ -259,7 +265,7 @@ function Related({ title, rows, back, saved, onSave, more }: { title: string; ro
         {more && <Link to={more} className="text-sm font-medium text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">See all</Link>}
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {rows.map((c) => <CarouselCardView key={c.id} c={c} back={back} saved={saved.has(c.id)} onSave={onSave} />)}
+        {rows.map((c) => <CarouselCardView key={c.id} c={c} back={back} saved={saved.has(c.id)} onSave={onSave} replace />)}
       </div>
     </section>
   );

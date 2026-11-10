@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Copy, ExternalLink, Images, Sparkles } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -15,6 +15,12 @@ export default function WorkingDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const back = (state as { back?: string } | null)?.back ?? "/working";
+  // opened from a list in this tab: Back goes back to it, so it keeps its scroll and Show more
+  const goBack = (e: MouseEvent) => {
+    if (!(state as { back?: string } | null)?.back) return;
+    e.preventDefault();
+    navigate(-1);
+  };
   const [row, setRow] = useState<WorkingRow | null | undefined>(undefined);
 
   useEffect(() => {
@@ -67,7 +73,7 @@ export default function WorkingDetailPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-          <Link to={back}>
+          <Link to={back} onClick={goBack}>
             <ArrowLeft className="h-3.5 w-3.5" /> Back to What's working
           </Link>
         </Button>
