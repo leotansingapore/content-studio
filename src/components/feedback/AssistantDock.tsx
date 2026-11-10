@@ -214,7 +214,8 @@ export function AssistantDock({
         method: "POST",
         headers,
         body: JSON.stringify({
-          messages: next.slice(-12).map((m) => ({ role: m.role, text: m.text })),
+          // a failed turn's error line is ours, not the assistant's: never send it back as its words
+          messages: next.filter((m) => !m.error).slice(-12).map((m) => ({ role: m.role, text: m.text })),
           page: typeof window !== "undefined" ? window.location.pathname : null,
           thread: threadId,
           identity: identity ? { name: identity.name ?? null } : null,
@@ -225,7 +226,11 @@ export function AssistantDock({
       if (!res.ok) throw new Error(data.error || "The assistant is not answering right now.");
       setMessages((m) => [...m, { role: "assistant", text: data.text || "", id: data.id ?? null, actions: data.actions ?? [] }]);
     } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", text: e instanceof Error ? e.message : "Something went wrong.", error: true }]);
+      // the question goes back in the box to send again, and leaves the thread so the resend isn't asked twice
+      const sent = next[next.length - 1];
+      const why = e instanceof TypeError ? "Couldn't reach the assistant. Check your connection and send it again." : e instanceof Error ? e.message : "Something went wrong.";
+      setMessages((m) => [...m.filter((x) => x !== sent), { role: "assistant", text: why, error: true }]);
+      setDraft((d) => d || text);
     } finally {
       setBusy(false);
     }
