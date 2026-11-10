@@ -36,6 +36,12 @@ type Action =
   | { type: "support"; message: string; label: string }
   | { type: "go"; path: string; label: string };
 
+/** A failed send in words: offline, fetch throws a TypeError whose own words ("Failed to fetch") say nothing useful. */
+function failLine(e: unknown): string {
+  if (e instanceof TypeError) return "Couldn't reach the assistant. Check your connection and send it again.";
+  return e instanceof Error ? e.message : "Something went wrong.";
+}
+
 type Msg = {
   role: "user" | "assistant";
   text: string;
@@ -228,8 +234,7 @@ export function AssistantDock({
     } catch (e) {
       // the question goes back in the box to send again, and leaves the thread so the resend isn't asked twice
       const sent = next[next.length - 1];
-      const why = e instanceof TypeError ? "Couldn't reach the assistant. Check your connection and send it again." : e instanceof Error ? e.message : "Something went wrong.";
-      setMessages((m) => [...m.filter((x) => x !== sent), { role: "assistant", text: why, error: true }]);
+      setMessages((m) => [...m.filter((x) => x !== sent), { role: "assistant", text: failLine(e), error: true }]);
       setDraft((d) => d || text);
     } finally {
       setBusy(false);
