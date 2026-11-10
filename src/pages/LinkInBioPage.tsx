@@ -157,11 +157,12 @@ export default function LinkInBioPage() {
   const save = async () => {
     if (!form || !userId) return;
     const links = form.links.filter((l) => l.label.trim() || l.url.trim());
+    // numbered as the rows are, blank rows included, so "Link 3" is the third box
+    const bad = form.links.findIndex((l) => (l.label.trim() || l.url.trim()) && linkProblem(l));
     const problem =
       slugProblem(form.slug) ??
       (!form.name.trim() ? "Add your name." : null) ??
-      links.map(linkProblem).find(Boolean) ??
-      null;
+      (bad >= 0 ? `Link ${bad + 1}: ${linkProblem(form.links[bad])}` : null);
     if (problem) return setError(problem);
     setSaving(true);
     setError("");
