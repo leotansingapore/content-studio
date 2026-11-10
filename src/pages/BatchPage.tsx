@@ -292,7 +292,8 @@ export default function BatchPage() {
     toast({ title: "Saved to All posts", description: t.label });
   };
 
-  const unsaved = activeTargets.filter((t) => cards[t.key]?.status === "done");
+  // every written card, ticked or not: unticking a platform after a run must not hide its draft or skip it in Save all
+  const unsaved = TARGETS.filter((t) => cards[t.key]?.status === "done");
 
   const handleSaveAll = () => {
     if (!userId || unsaved.length === 0) return;
@@ -451,7 +452,7 @@ export default function BatchPage() {
 
       {hasResults && (
         <div ref={resultsRef} className="grid scroll-mt-20 gap-4 lg:grid-cols-2">
-          {activeTargets.map((t) => {
+          {TARGETS.map((t) => {
             const card = cards[t.key];
             if (!card) return null;
             const Icon = t.icon;
