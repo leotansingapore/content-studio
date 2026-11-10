@@ -165,7 +165,13 @@ export default function MediaPage() {
   // "" all, "-" no folder; a folder this device does not have reads as all
   const folder = folderParam === "none" ? "-" : folders.includes(folderParam) ? folderParam : "";
   const setFolder = (id: string) => setFolderParam(id === "-" ? "none" : id);
-  const shown = useMemo(() => filterMedia(items, query, folder, leo ? { kind: kind || undefined, type: type || undefined } : {}), [items, query, folder, leo, kind, type]);
+  // the card being typed in stays put while its box has focus, even once its folder or name stops matching the filter
+  const [held, setHeld] = useState<string | null>(null);
+  const shown = useMemo(() => {
+    const hit = new Set(filterMedia(items, query, folder, leo ? { kind: kind || undefined, type: type || undefined } : {}).map((m) => m.key));
+    return items.filter((m) => hit.has(m.key) || m.key === held);
+  }, [items, query, folder, leo, kind, type, held]);
+  const hold = (key: string) => ({ onFocus: () => setHeld(key), onBlur: () => setHeld(null) });
   // ?item=<picture key> (docs/deep-links.md): that picture is scrolled to and marked
   const [itemKey] = useUrlItem("item");
   const linkedTile = useScrollToItem<HTMLLIElement>(shown.some((m) => m.key === itemKey));
@@ -304,11 +310,11 @@ export default function MediaPage() {
                   {m.credit.url ? <a href={m.credit.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">Pexels</a> : "Pexels"}
                 </p>
               )}
-              <input value={m.name} onChange={(e) => edit(m.key, { name: e.target.value.slice(0, 80) })} aria-label="Name"
+              <input value={m.name} {...hold(m.key)} onChange={(e) => edit(m.key, { name: e.target.value.slice(0, 80) })} aria-label="Name"
                 className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs font-semibold" />
-              <input value={m.folder} list="media-folders" onChange={(e) => edit(m.key, { folder: e.target.value.slice(0, 40) })} placeholder="Folder" aria-label="Folder"
+              <input value={m.folder} {...hold(m.key)} list="media-folders" onChange={(e) => edit(m.key, { folder: e.target.value.slice(0, 40) })} placeholder="Folder" aria-label="Folder"
                 className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs" />
-              <textarea value={m.alt} onChange={(e) => edit(m.key, { alt: e.target.value.slice(0, 250) })} rows={2} placeholder="Alt text: what the photo shows" aria-label="Alt text"
+              <textarea value={m.alt} {...hold(m.key)} onChange={(e) => edit(m.key, { alt: e.target.value.slice(0, 250) })} rows={2} placeholder="Alt text: what the photo shows" aria-label="Alt text"
                 className="w-full resize-none rounded-md border border-input bg-background px-2 py-1 text-xs" />
               <div className="flex items-center gap-1">
                 <Button size="sm" variant="ghost" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground hover:text-destructive" onClick={() => remove(m)}>
