@@ -302,10 +302,10 @@ export function imageJobs(j: ImageJob | null): LibraryJob[] {
   return [{ ...base, state: "working", step: j.state === "saving" ? "Saving it to Media" : j.fix ? "Fixing the picture" : "Making the picture" }];
 }
 
-/** ExportJob.id is a run counter, not a project id, so it links /edit as ExportPill does. */
+/** Links the editor the export was started from, as ExportPill does. */
 export function exportJobs(j: ExportJob | null): LibraryJob[] {
   if (!j || j.state === "done") return [];
-  const base = { kind: "export", label: "Export", format: "video" as const, href: links.edit() };
+  const base = { kind: "export", label: "Export", format: "video" as const, href: j.from ?? links.edit() };
   if (j.state === "failed") return [{ ...base, state: "failed", error: j.error }];
   return [{ ...base, state: "working", step: `Exporting ${j.name} ${Math.round(j.progress * 100)}%` }];
 }

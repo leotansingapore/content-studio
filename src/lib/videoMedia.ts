@@ -1278,6 +1278,8 @@ export interface ExportJob {
   label?: string;
   /** True once it is exporting faster than real time (it can be stopped), false when it records in real time; unset while that is being worked out. */
   fast?: boolean;
+  /** The page it was started from (the video's editor), which the export pill links back to. */
+  from?: string;
 }
 
 let job: ExportJob | null = null;
@@ -1395,7 +1397,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
-  job = { id: String(++jobCount), name, kind, progress: 0, state: "running" };
+  job = { id: String(++jobCount), name, kind, progress: 0, state: "running", from: typeof location === "undefined" ? undefined : location.pathname + location.search };
   emit();
   let video: HTMLVideoElement | null = null;
   let actx: AudioContext | null = null;

@@ -295,6 +295,8 @@ describe("job mappers", () => {
     expect(exportJobs({ id: "3", name: "Reel", progress: 0.42, state: "running" })[0]).toMatchObject({ state: "working", step: "Exporting Reel 42%", href: links.edit() });
     expect(exportJobs({ id: "3", name: "Reel", progress: 1, state: "failed", error: "Out of memory" })[0]).toMatchObject({ state: "failed", error: "Out of memory" });
     expect(exportJobs({ id: "3", name: "Reel", progress: 1, state: "done" })).toEqual([]);
+    // back to the video's own editor, not the upload screen
+    expect(exportJobs({ id: "3", name: "Reel", progress: 1, state: "failed", from: "/edit?p=v1" })[0].href).toBe("/edit?p=v1");
   });
 
   it("makes a finished join with a file a ready video", () => {
