@@ -324,11 +324,12 @@ export default function VideoEditPage() {
       // a WebM recording (Firefox, Chrome before 126) reads as Infinity; a wall's block already spans the joined length
       const length = Number.isFinite(read) && read > 0 ? read : (extra?.settings?.wall ? extra.settings.overlays?.find((o) => o.kind === "block")?.to : undefined) ?? read;
       // what a format's hand-off asks for (toast, caption, source, draft, tab), the same on every path below
-      const open = (path: PickupPath, quiet = false) => {
+      const open = (path: PickupPath, quiet = false, orTab?: EditTab) => {
         const plan = pickupPlan(extra, path);
         // a same edit version's plan learns which project holds it (on this device)
         if (plan.keep.plan) markVersion(uid, plan.keep.plan, id);
-        setParams({ p: id, ...(plan.tab ? { tab: plan.tab } : {}) });
+        const tab = plan.tab ?? orTab;
+        setParams({ p: id, ...(tab ? { tab } : {}) });
         if (plan.toast && !quiet) toast(plan.toast);
         return plan;
       };
@@ -403,6 +404,7 @@ export default function VideoEditPage() {
       if (!said && !timed) setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       let landed = false;
       let silent = false;
+      let retry = false;
       try {
         if (timed || said) {
           const words = timed ?? scriptWords(said!, duration);
@@ -424,14 +426,15 @@ export default function VideoEditPage() {
       } catch (e) {
         silent = (e as Error).message === NO_SOUND;
         // footage from the own panel with no sound gets words on screen below instead
-        if (!(ask?.own && silent)) toast({ title: "Captions didn't come through", description: `${(e as Error).message} Your video is saved; press Caption it to retry.`, variant: "destructive" });
+        retry = !(ask?.own && silent);
+        if (retry) toast({ title: "Captions didn't come through", description: `${(e as Error).message} Your video is saved; press Caption it to retry.`, variant: "destructive" });
       }
       if (ask?.clips && landed) runClipAsk(id, p.words);
       if (ask?.own && (landed ? p.words.length < FEW_WORDS : silent)) {
         p = await withOwnWords(p, ask.own.about);
       }
-      // a format's toast once the captions land; a failure keeps the failure's words on screen
-      open("captions", !landed);
+      // a format's toast once the captions land; a failure keeps the failure's words on screen, on the tab with Caption it
+      open("captions", !landed, retry ? "words" : undefined);
     } catch (e) {
       toast({ title: "Couldn't open that video", description: (e as Error).message, variant: "destructive" });
     } finally {
