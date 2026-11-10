@@ -42,17 +42,22 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    // a rename left half-typed is dropped with the menu, never waiting in it next time; Escape drops the rename first
+    const close = () => {
+      setEditing(null);
+      setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && (editing ? setEditing(null) : close());
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, editing]);
 
   if (!userId) return null;
   const active = profiles.find((p) => p.id === activeId) ?? profiles[0];
@@ -93,7 +98,10 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
     <div ref={root} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setEditing(null);
+          setOpen((v) => !v);
+        }}
         aria-haspopup="true"
         aria-expanded={open}
         aria-label={`Profile: ${active?.name}. Switch profile`}
