@@ -4063,7 +4063,12 @@ export default function GeneratePage() {
                 rows={3}
                 value={ideaAsk.answer}
                 onChange={(e) => setIdeaAsk({ answer: e.target.value })}
-                placeholder="e.g. A mum of two, 38. Her son's 3 nights at KK cost $9,800 and her plan paid none of it."
+                // the adviser example only where the writer is the adviser's, as with the option lists (optionsFor)
+                placeholder={
+                  profession
+                    ? "e.g. A client, 41, was two weeks from missing her launch. One change got it out on the day."
+                    : "e.g. A mum of two, 38. Her son's 3 nights at KK cost $9,800 and her plan paid none of it."
+                }
                 className="text-sm"
               />
               <div className="flex flex-wrap gap-2">
