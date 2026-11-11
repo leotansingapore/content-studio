@@ -369,6 +369,22 @@ describe("disconnect", () => {
     expect(down.rows[0].status).toBe("connected");
   });
 
+  it("lets go of a chat the bot was already removed from without asking Telegram, even while Telegram is down", async () => {
+    const down = () => new TelegramError(0, "Telegram didn't answer.");
+    for (const status of ["removed", "disconnected"] as const) {
+      const { db, rows } = fakeDb([leoRow({ status })]);
+      const { bot, calls } = stubBot(down);
+      expect((await runDisconnect(db, botsOf(bot), UID, "me", ROW, NOW)).status).toBe(200);
+      expect(calls).toEqual([]);
+      expect(rows[0].status).toBe("disconnected");
+    }
+    // a chat the bot is still in but can't post to is left like a connected one
+    const { db } = fakeDb([leoRow({ status: "cant_post" })]);
+    const { bot, calls } = stubBot();
+    await runDisconnect(db, botsOf(bot), UID, "me", ROW, NOW);
+    expect(calls).toEqual([{ method: "leaveChat", params: { chat_id: -1001234567890 } }]);
+  });
+
   it("cancels a waiting connect without calling Telegram", async () => {
     const { db, rows } = fakeDb([leoRow({ chat_id: null, status: "pending" })]);
     const { bot, calls } = stubBot();
