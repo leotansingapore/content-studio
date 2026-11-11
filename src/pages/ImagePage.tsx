@@ -80,6 +80,7 @@ import {
   chosenVersion,
   imageById,
   imageDraft,
+  imageMention,
   imageWrite,
   imageWriteBusy,
   isVersionLayout,
@@ -324,7 +325,7 @@ function ImageEditor({ userId }: { userId: string }) {
       topic: design.words.topic ?? "",
       // a static format is always written for itself; an ad's layout Jev may pick from the original
       layout: isStatic(design.layout) ? design.layout : src && !layoutPicked ? null : (layout as AdLayoutId),
-      mention: true,
+      mention: imageMention(userId),
       note: src ? sheetNote(src.key) : "",
       size,
       read: !!src && !!swipePicture(src) && !cachedShows(src.key) && leftOf("remix-image") !== 0,
