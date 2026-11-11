@@ -1369,8 +1369,8 @@ export default function FadsPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">F.A.D.S.</h1>
-          <p className="text-xl text-muted-foreground">Financial Advisor Differentiation Stack</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">Positioning</h1>
+          <p className="text-xl text-muted-foreground">F.A.D.S., the Financial Advisor Differentiation Stack</p>
 
           {/* Overall Progress */}
           <div className="mt-6 max-w-lg mx-auto">

@@ -37,7 +37,7 @@ export default function RecruitPage() {
             {/* the kit's name over the page's own, so the title matches the nav item you tapped */}
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">From chasing to chosen</p>
             <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-              {tab === "conversations" ? "Conversations" : tab === "agent" ? "AI agent" : "Brand Brain"}
+              {tab === "conversations" ? "Conversations" : tab === "agent" ? "Reply agent" : "Recruit kit"}
             </h1>
           </div>
           {savedAt && (
@@ -65,7 +65,7 @@ export default function RecruitPage() {
         </ol>
       </header>
 
-      {!ready && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading your Brand Brain" />}
+      {!ready && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading your recruit kit" />}
       {ready && tab === "brain" && <BrandBrain brain={brain} update={update} done={done} />}
       {ready && tab === "conversations" && <Conversations brain={brain} update={update} done={done.conversations} />}
       {ready && tab === "agent" && <Agent brain={brain} update={update} userId={userId} />}

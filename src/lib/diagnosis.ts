@@ -366,7 +366,7 @@ export const MISSIONS: Record<AreaId, Mission> = {
     title: "Sharpen who you're for",
     objective: "Lock in your audience and three content pillars.",
     effortMins: 10,
-    cta: "Open My Playbook",
+    cta: "Open your profile",
     to: "/playbook",
   },
   conversion: {

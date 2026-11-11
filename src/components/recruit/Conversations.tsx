@@ -62,7 +62,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
           {unfilled ? (
             <p className="mt-2 text-[11px] font-medium text-warning">
               Fill in My ICP on{" "}
-              <Link to="/recruit" className="underline">Brand Brain</Link>{" "}
+              <Link to="/recruit" className="underline">Recruit kit</Link>{" "}
               first, so the script says who it's for. WhatsApp sending opens after that.
             </p>
           ) : (

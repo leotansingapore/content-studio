@@ -70,7 +70,7 @@ export default function PlaybookPage() {
   });
 
   useEffect(() => {
-    document.title = "My Playbook - Postmosis";
+    document.title = "Profile - Postmosis";
   }, []);
 
   // read on each draw: these stores change on other pages, and this page only shows them
@@ -110,7 +110,7 @@ export default function PlaybookPage() {
     <div className="space-y-6">
       <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          My Playbook
+          Profile
         </h1>
       </header>
 

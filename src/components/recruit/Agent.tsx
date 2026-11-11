@@ -180,7 +180,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
         </ol>
       </Part>
 
-      <Part n="2" title="Your Context Document" tip="Built only from what you typed here and on Brand Brain, so it can't invent a fact.">
+      <Part n="2" title="Your Context Document" tip="Built only from what you typed here and on Recruit kit, so it can't invent a fact.">
         <div className="flex flex-wrap items-center gap-2">
           <CopyButton text={buildAgentPack(brain)} label="Copy agent for ChatGPT / Claude" what="Agent copied: paste it into a new chat or project" />
           <CopyButton text={contextDoc} label="Copy Context Document" what="Context Document copied" />
