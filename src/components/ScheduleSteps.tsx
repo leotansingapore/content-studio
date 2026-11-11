@@ -257,6 +257,7 @@ export function ScheduleSteps({
   const typed = useRef({ versions, fc: firstComment });
   // one key per send: an unanswered earlier try is resent with its own key, so it never posts twice
   const key = useRef(draft.zernio && !draft.zernio.postId ? draft.zernio.key : crypto.randomUUID());
+  const tgKey = useRef(key.current);
   // Calendar renders its editor twice (phone and desktop): only the copy on screen asks or draws
   const hidden = () => !!root.current && root.current.offsetParent === null;
 
@@ -698,10 +699,10 @@ export function ScheduleSteps({
         if (tiktokId) saveMode(userId, tiktokId, ttMode);
       }
       if (tgOn) {
-        // the same key as the networks' post, so a retry never queues a second Telegram post
+        // its own key, kept when a retry gives the networks a new one, so a retry never queues a second Telegram post
         setBusy("send");
         const tgFiles = list.length ? await uploadTelegramFiles(profileId, list, tgUploaded.current) : [];
-        const tg = await scheduleTelegram(profileId, { chatRows: tgPicked, clientKey: key.current, text: tgText, media: tgFiles, ...(goesNow ? { now: true as const } : { sendAt: at! }) });
+        const tg = await scheduleTelegram(profileId, { chatRows: tgPicked, clientKey: tgKey.current, text: tgText, media: tgFiles, ...(goesNow ? { now: true as const } : { sendAt: at! }) });
         if (tgOnly) setDraftStatus(userId, draft.id, "scheduled", wallIn(tg.sendAt));
       }
       logPost(userId, draft, (n) => `Set ${n} to post on ${names}`, `Goes out ${goesNow ? "now" : whenText}.`);

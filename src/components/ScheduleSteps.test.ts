@@ -9,6 +9,7 @@ const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const shim = vi.hoisted(() => ({ i: 0, e: 0, slots: [] as unknown[], deps: [] as (unknown[] | undefined)[], effects: [] as (() => unknown)[] }));
 const fn = vi.hoisted(() => ({ calls: [] as Record<string, unknown>[], answers: {} as Record<string, (body: Record<string, unknown>) => unknown> }));
 const url = vi.hoisted(() => ({ params: new URLSearchParams() }));
+const tg = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[] }));
 
 vi.mock("react", async (actual) => {
   const real = await actual<typeof import("react")>();
@@ -43,7 +44,14 @@ vi.mock("react-router-dom", async (actual) => ({
 }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
-  supabase: { auth: { getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
+  supabase: {
+    auth: { getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) },
+    from: (table: string) => {
+      if (table !== "cs_telegram_chats") throw new Error(`No table ${table}`);
+      const q = { select: () => q, eq: () => q, order: () => q, limit: async () => ({ data: tg.rows, error: null }) };
+      return q;
+    },
+  },
 }));
 vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => ({ id: UID, email: "leo@example.com" }), useLeoOnly: () => true, leoUser: async () => null }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: () => undefined }), toast: () => undefined }));
@@ -170,6 +178,7 @@ beforeEach(() => {
   local.clear();
   fn.calls.length = 0;
   fn.answers = {};
+  tg.rows = [];
 });
 
 describe("step 1, Where", () => {
@@ -319,6 +328,47 @@ describe("the one press that posts", () => {
     const tree = await draw();
     expect(text(tree)).toContain("Step 1 of 3 | Where");
     expect(url.params.has("step")).toBe(false);
+  });
+});
+
+describe("Telegram beside a network", () => {
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
+
+  it("Try again after the network fails late sends the networks with a new key and Telegram with the key it queued under", async () => {
+    tg.rows = [{ id: "tg1", profile_id: "me", status: "connected", chat_id: -100, chat_type: "group", title: "Clients", username: null, is_forum: false, topic_id: null, topic_name: null, refusal: null, code_expires_at: "2026-10-01T00:00:00.000Z", tg_user_name: null, confirmed_at: "2026-10-01T00:00:00.000Z", created_at: "2026-10-01T00:00:00.000Z" }];
+    fn.answers.status = () => ({ accounts: [acc("li1", "linkedin")] });
+    fn.answers.schedule = (b) =>
+      b.name === "telegram" || b.chatRows
+        ? { posts: [{ id: "tp1", chat_row: "tg1", send_at: "2030-01-15T01:00:00.000Z", status: "scheduled" }], held: false, sendAt: "2030-01-15T01:00:00.000Z" }
+        : { post: view("scheduled", [{ platform: "linkedin", accountId: "li1", status: "pending" }]) };
+    mount(draftOf({ status: "draft", scheduledFor: undefined }));
+    let tree = await draw();
+    tick(tree, "ClientsGroup", true);
+    tree = await draw();
+    press(tree, "Next");
+    tree = await draw();
+    press(tree, "Next");
+    tree = await draw();
+    press(tree, /^Post now/);
+    await settle();
+    await draw();
+
+    fn.answers.post = () => ({ post: view("failed", [{ platform: "linkedin", accountId: "li1", status: "failed", error: "LinkedIn refused it." }]) });
+    await vi.advanceTimersByTimeAsync(20_000);
+    tree = await draw();
+    expect(text(sendButton(tree))).toBe("Try again");
+    fn.answers.cancel = () => ({ cancelled: true });
+    press(tree, "Try again");
+    await settle();
+
+    const sends = fn.calls.filter((c) => c.action === "schedule") as { name: string; clientKey: string }[];
+    const networks = sends.filter((c) => c.name === "social");
+    const telegram = sends.filter((c) => c.name === "telegram");
+    expect(networks).toHaveLength(2);
+    expect(telegram).toHaveLength(2);
+    expect(networks[1].clientKey).not.toBe(networks[0].clientKey);
+    expect(telegram[1].clientKey).toBe(telegram[0].clientKey);
   });
 });
 
