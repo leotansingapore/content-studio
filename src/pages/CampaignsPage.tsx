@@ -11,10 +11,12 @@ import GoalLine from "@/components/GoalLine";
 import { NoAudience } from "@/components/campaign/WhoStep";
 import { Button } from "@/components/ui/button";
 import { loadAudiences, onAudiencesChanged } from "@/lib/audiences";
+import { adCounts, adsMade, adViews, countsLine } from "@/lib/campaignAds";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting, type Drafting } from "@/lib/campaignJob";
 import { campaignStatus, loadCampaigns, onCampaignsChanged, type Campaign, type CampaignStatus } from "@/lib/campaigns";
 import { localDateKey } from "@/lib/dueDates";
 import { LABEL_CHIP } from "@/lib/labels";
+import { imageWrite, loadImages, onImagesChanged } from "@/lib/images";
 import { links } from "@/lib/links";
 import { isPositioningUsable, loadPositioning } from "@/lib/positioning";
 import { platformName } from "@/lib/socialConnect";
@@ -47,13 +49,17 @@ const toWrite = (c: Campaign) => c.posts.some((p) => p.state === "waiting" || p.
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** The row's progress: writing, paused, or made and written; failed posts on a second line in the warning colour. */
-function progressOf(c: Campaign, job: Drafting | null, now = Date.now()): { line: string; failed: string | null } {
+function progressOf(userId: string, c: Campaign, job: Drafting | null, now = Date.now()): { line: string; failed: string | null } {
   const count = (...states: string[]) => c.posts.filter((p) => states.includes(p.state)).length;
   const n = c.posts.length;
   const written = count("ready", "making", "made", "skipped");
   const failed = count("failed");
   const paused = job?.paused ?? (toWrite(c) && c.waitUntil && Date.parse(c.waitUntil) > now ? PAUSED_LINE : null);
-  const line = paused ?? (toWrite(c) ? `Writing ${job?.done ?? written} of ${job?.of ?? n}` : `${count("made")} of ${n} made | ${written} written`);
+  const posts = paused ?? (toWrite(c) ? `Writing ${job?.done ?? written} of ${job?.of ?? n}` : `${count("made")} of ${n} made | ${written} written`);
+  // a campaign with ads: "10 ads | 2 made, 8 drafts" beside the posts' line (alone for Ads only)
+  const k = c.ads?.length ? adCounts(adViews(c, loadImages(userId), imageWrite())) : null;
+  const ads = k ? `${plural(k.live, "ad")} | ${countsLine(k)}` : "";
+  const line = [n ? posts : "", ads].filter(Boolean).join(". ");
   return { line, failed: failed ? `${plural(failed, "post")} could not be written` : null };
 }
 
@@ -62,7 +68,7 @@ function Campaigns({ userId }: { userId: string }) {
   const [showDone, setShowDone] = useUrlFlag("show", "done");
   useEffect(() => {
     document.title = "Campaigns - Postmosis";
-    const offs = [onCampaignsChanged(redraw), onCampaignJob(redraw), onAudiencesChanged(redraw)];
+    const offs = [onCampaignsChanged(redraw), onCampaignJob(redraw), onAudiencesChanged(redraw), onImagesChanged(redraw)];
     return () => offs.forEach((off) => off());
   }, []);
   // a closed tab left posts waiting or half written: this visit picks them up
@@ -73,7 +79,7 @@ function Campaigns({ userId }: { userId: string }) {
   const list = loadCampaigns(userId);
   const audiences = loadAudiences(userId);
   const today = localDateKey();
-  const status = (c: Campaign) => campaignStatus(c, today);
+  const status = (c: Campaign) => campaignStatus(c, today, c.ads?.length ? adsMade(userId, c) : 0);
   const needsYou = (c: Campaign) => status(c) === "draft" || c.posts.some((p) => p.state === "ready" || p.state === "failed");
   const open = list.filter((c) => status(c) !== "done");
   const groups = { needs: open.filter(needsYou), running: open.filter((c) => !needsYou(c)), done: list.filter((c) => status(c) === "done") };
@@ -86,7 +92,7 @@ function Campaigns({ userId }: { userId: string }) {
 
   const row = (c: Campaign) => {
     const s = STATUS[status(c)];
-    const p = progressOf(c, draftingOf(c.id));
+    const p = progressOf(userId, c, draftingOf(c.id));
     return (
       <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border/60 bg-card p-4 shadow-card">
         <div className="min-w-0 flex-1 basis-56">

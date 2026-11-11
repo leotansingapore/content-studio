@@ -1,12 +1,14 @@
 // One campaign (/campaigns/:id, Leo's sign-ins only; docs/north-star/items/plan-campaign-page.md): the header with
-// Configure (?configure=1: name, pace and length), Rename and Delete (Undo), the paused and finished states, then the
-// cost, where and goal panels on one row and the review queue under #queue (panels and queue arrive in wave 4). Opening it resumes any posts still to be written
+// Configure (?configure=1: name, pace and length), Rename and Delete (Undo), the paused and finished states, then a
+// campaign with ads shows its ads group first (?ads=all, ?ads=send; src/components/campaign/AdsGroup.tsx), then the
+// cost, where and goal panels on one row and the review queue under #queue (none of these for Ads only). Opening it resumes any posts still to be written
 // (src/lib/campaignJob.ts, outside React). ?angle= filters the queue; ?post= and ?view= are the queue's own.
 // Everyone else gets the 404 page.
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MoreHorizontal } from "lucide-react";
+import AdsGroup from "@/components/campaign/AdsGroup";
 import CampaignQueue from "@/components/campaign/CampaignQueue";
 import ConfigurePanel from "@/components/campaign/ConfigurePanel";
 import CostPanel from "@/components/campaign/CostPanel";
@@ -17,12 +19,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
+import { adsMade } from "@/lib/campaignAds";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting } from "@/lib/campaignJob";
 import {
   type Campaign, campaignStatus, deleteCampaign, getCampaign, loadCampaigns, onCampaignsChanged, restoreCampaign, saveCampaigns,
 } from "@/lib/campaigns";
 import { loadAudiences } from "@/lib/audiences";
+import { runsLabel } from "@/lib/campaignWizard";
 import { keyToDate, localDateKey } from "@/lib/dueDates";
+import { onImagesChanged } from "@/lib/images";
 import { links } from "@/lib/links";
 import { platformName } from "@/lib/socialConnect";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -55,12 +60,9 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   const { toast } = useToast();
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
-    const offStore = onCampaignsChanged(redraw);
-    const offJob = onCampaignJob(redraw);
-    return () => {
-      offStore();
-      offJob();
-    };
+    // a made ad's design lands in Your images: the status chip counts it
+    const offs = [onCampaignsChanged(redraw), onCampaignJob(redraw), onImagesChanged(redraw)];
+    return () => offs.forEach((off) => off());
   }, []);
   // a closed tab or a limit left posts to write: this visit picks them up (a no-op when nothing waits)
   useEffect(() => startDrafting(userId, id), [userId, id]);
@@ -92,7 +94,7 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
     );
   }
 
-  const status = campaignStatus(c, localDateKey());
+  const status = campaignStatus(c, localDateKey(), c.ads?.length ? adsMade(userId, c) : 0);
   const who = loadAudiences(userId).find((a) => a.id === c.audience)?.who || c.audienceName;
   const paused = c.waitUntil && Date.now() < Date.parse(c.waitUntil) ? PAUSED_LINE : draftingOf(c.id)?.paused;
   const finished = c.posts.length > 0 && c.posts.every((p) => p.state === "made" || p.state === "skipped");
@@ -156,7 +158,9 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
               <CopyLinkButton label="Copy link to this campaign" className="shrink-0" />
             </div>
             <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
-              {who} | {c.weeks} {c.weeks === 1 ? "week" : "weeks"} | {c.platforms.map(platformName).join(", ")}
+              {[who, `${c.weeks} ${c.weeks === 1 ? "week" : "weeks"}`, c.platforms.map(platformName).join(", "), c.runs && c.runs !== "organic" ? runsLabel(c.runs) : ""]
+                .filter(Boolean)
+                .join(" | ")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -221,18 +225,24 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
         </section>
       )}
 
-      {/* one row from lg up (cost, where, goal); stacked below as cost, goal, where */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="order-1 min-w-0 empty:hidden"><CostPanel userId={userId} campaign={c} /></div>
-        <div className="order-3 min-w-0 empty:hidden lg:order-2"><WherePanel userId={userId} campaign={c} /></div>
-        <div className="order-2 min-w-0 empty:hidden lg:order-3">
-          <GoalPanel userId={userId} campaign={c} angle={angle || null} onAngle={(a) => setAngle(a ?? "")} />
-        </div>
-      </div>
+      {c.ads?.length ? <AdsGroup userId={userId} campaign={c} /> : null}
 
-      <section id="queue" aria-label="Review queue" className="scroll-mt-20">
-        <CampaignQueue userId={userId} campaign={c} angle={angle || null} />
-      </section>
+      {c.runs !== "ads" && (
+        <>
+          {/* one row from lg up (cost, where, goal); stacked below as cost, goal, where */}
+          <div className="grid items-start gap-4 lg:grid-cols-3">
+            <div className="order-1 min-w-0 empty:hidden"><CostPanel userId={userId} campaign={c} /></div>
+            <div className="order-3 min-w-0 empty:hidden lg:order-2"><WherePanel userId={userId} campaign={c} /></div>
+            <div className="order-2 min-w-0 empty:hidden lg:order-3">
+              <GoalPanel userId={userId} campaign={c} angle={angle || null} onAngle={(a) => setAngle(a ?? "")} />
+            </div>
+          </div>
+
+          <section id="queue" aria-label="Review queue" className="scroll-mt-20">
+            <CampaignQueue userId={userId} campaign={c} angle={angle || null} />
+          </section>
+        </>
+      )}
     </div>
   );
 }

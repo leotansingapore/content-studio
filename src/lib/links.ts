@@ -620,11 +620,12 @@ export const links = {
   /** goal=change opens the goal editor under the H1, show=done unfolds the Done campaigns (both replace). */
   campaigns: (o: { goal?: "change"; show?: "done" } = {}) => `/campaigns${qs({ goal: o.goal, show: o.show })}`,
   /** step (replace) has no fixed default (the first unfinished step), so every step stays in the link; audience is read once. */
-  campaignNew: (o: { step?: "who" | "angles" | "where" | "pace" | "review"; audience?: string } = {}) =>
+  campaignNew: (o: { step?: "who" | "angles" | "where" | "budget" | "accounts" | "pace" | "review"; audience?: string } = {}) =>
     `/campaigns/new${qs({ step: o.step, audience: o.audience })}`,
-  /** post is 1-based (replace); view=grid (one at a time left out) and angle filter replace; section scrolls to #queue. */
-  campaign: (id: string, o: { post?: number; view?: "grid"; angle?: string; section?: "queue" } = {}) =>
-    `/campaigns/${encodeURIComponent(id)}${qs({ post: o.post, view: o.view, angle: o.angle })}${o.section ? `#${o.section}` : ""}`,
+  /** post is 1-based (replace); view=grid (one at a time left out), angle filter and ads (all: the ad grid; send: the
+   *  hand-off to AdLauncher) replace; section scrolls to #queue. */
+  campaign: (id: string, o: { post?: number; view?: "grid"; angle?: string; ads?: "all" | "send"; section?: "queue" } = {}) =>
+    `/campaigns/${encodeURIComponent(id)}${qs({ post: o.post, view: o.view, angle: o.angle, ads: o.ads })}${o.section ? `#${o.section}` : ""}`,
   /** tab and source replace (inbox and all left out); label filters (replace); idea opens one (push). */
   ideas: (
     o: {

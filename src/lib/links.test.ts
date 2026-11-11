@@ -353,6 +353,7 @@ describe("links", () => {
     expect(links.campaign("c1")).toBe("/campaigns/c1");
     expect(links.campaign("c1", { post: 4, view: "grid" })).toBe("/campaigns/c1?post=4&view=grid");
     expect(links.campaign("c1", { angle: "a2" })).toBe("/campaigns/c1?angle=a2");
+    expect(links.campaign("c1", { ads: "all" })).toBe("/campaigns/c1?ads=all");
     expect(links.campaign("c1", { section: "queue" })).toBe("/campaigns/c1#queue");
     expect(links.campaign("c1", { section: "queue", post: 4, angle: "a2" })).toBe("/campaigns/c1?post=4&angle=a2#queue");
     expect(links.campaign("c 1/x")).toBe("/campaigns/c%201%2Fx");
