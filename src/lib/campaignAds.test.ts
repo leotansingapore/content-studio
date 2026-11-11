@@ -284,6 +284,14 @@ describe("Send the ads to AdLauncher", () => {
     expect(sendPlan(campaign(), [], []).perAd).toBe(0);
   });
 
+  it("leaves a made ad that was then skipped out of the send, so its share of the budget goes to the rest", () => {
+    for (const n of [1, 2, 3]) saveImage(U, made(`img-made${n}x`));
+    store(campaign({ ads: planAds(ANGLES, []).map((a) => (a.n <= 3 ? { ...a, designId: `img-made${a.n}x`, ...(a.n === 3 ? { skipped: true } : {}) } : a)) }));
+    const plan = sendPlan(getCampaign(U, "c1")!, adViews(getCampaign(U, "c1")!, loadImages(U), null), []);
+    expect(plan.ads.map((v) => v.ad.n)).toEqual([1, 2]);
+    expect(plan.perAd).toBe(25);
+  });
+
   it("hands each ad to Run as an ad, filled in, and never calls AdLauncher", () => {
     const views = withMade([1, 2]);
     const c = getCampaign(U, "c1")!;
