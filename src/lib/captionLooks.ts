@@ -3,9 +3,10 @@
 // word Jev picks in each line (video-assist keywords) kept on the edit by its source time; and the captions saved
 // into the default skill for every new video.
 
-import { captionLookOf, isKeyAt, sanitizeKeyWords, withLook, withStyle, withoutCaptions, type CaptionLine, type EditSettings, type KeyWord, type StyleId, type Word } from "@/lib/videoEdit";
+import { captionLookOf, defaultSettings, isKeyAt, sanitizeKeyWords, withLook, withStyle, withoutCaptions, type CaptionLine, type EditSettings, type KeyWord, type StyleId, type Word } from "@/lib/videoEdit";
 import { keyCandidates, type KeywordPick } from "../../supabase/functions/video-assist/keywords.ts";
 import type { VideoSkill } from "@/lib/videoSkills";
+import { loadPostChoices } from "@/lib/postChoices";
 
 export interface CaptionLook {
   id: "boxed-word" | "key-word" | "two-words" | "typewriter";
@@ -36,6 +37,13 @@ export function captionLookIn(s: EditSettings): CaptionLook | null {
 /** The default skill holding these captions: today's default with only its caption keys replaced, or a new default "My captions". */
 export function captionsAsDefault(def: VideoSkill | null, s: EditSettings, newId: string): Omit<VideoSkill, "updatedAt"> {
   return def ? { ...def, look: { ...withoutCaptions(def.look), ...captionLookOf(s) } } : { id: newId, name: "My captions", look: captionLookOf(s), isDefault: true };
+}
+
+/** What a new video's captions start as, under the default skill: the brand's Post choices pick; Bold is today's. */
+export function captionStart(userId: string): EditSettings {
+  const s = defaultSettings("bold");
+  const c = loadPostChoices(userId).captions;
+  return c === "off" ? { ...s, captions: false } : c === "bold" ? s : withLook(s, captionLookOf(defaultSettings(c)));
 }
 
 // ---------- key words ----------

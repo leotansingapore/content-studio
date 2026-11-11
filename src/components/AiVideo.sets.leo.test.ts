@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })), onAuthStateChange: () => ({}) }, functions: { invoke: vi.fn() }, from: vi.fn() },
 }));
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
-vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => ({ id: UID, email: "leo@example.com" }), useLeoOnly: () => true, leoUser: async () => null }));
+vi.mock("@/lib/useLeoOnly", () => ({ storedUser: () => undefined, useLeoUser: () => ({ id: UID, email: "leo@example.com" }), useLeoOnly: () => true, leoUser: async () => null }));
 vi.mock("@/lib/aiUsage", () => ({ useUsesLeft: () => (f: string) => (f === "ai-video" ? 0 : 3) }));
 
 const mem = () => {

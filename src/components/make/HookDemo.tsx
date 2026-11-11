@@ -45,6 +45,7 @@ import { mediaLength } from "@/lib/longAudio";
 import type { RemixSource } from "@/lib/remixSource";
 import { cn } from "@/lib/utils";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useMentionStart } from "@/lib/postChoices";
 import { getFile, loadVideo, putFile, stills } from "@/lib/videoMedia";
 import { paidClipBlock } from "@/lib/wallJob";
 
@@ -102,7 +103,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
   const writing = hooksWriting();
   const leftOf = useUsesLeft(busy || writing);
   const [play, setPlay] = useUrlState<HookPlay>("play", "stock", { allowed: HOOK_PLAYS, remember: PLAY_KEY });
-  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
+  const [mention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   const [typed, setTyped] = useTyped();
   const [saved] = useState(() => demoVideos(userId));
   // this tab's demo, else the one a waiting spoken hook joins, else the brand's newest saved demo

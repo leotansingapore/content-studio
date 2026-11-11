@@ -17,6 +17,7 @@ import {
 import { appendMsg, loadThreads, newMsg, newThread, patchMsg, type AgentMsg, type AgentThread, type TurnState } from "@/lib/agentThreads";
 import { logActivity } from "@/lib/activity";
 import { LOOKS } from "@/lib/aiVideo";
+import { looksFor } from "@/lib/postChoices";
 import { askAgent, conflictFor, type AgentAsk } from "@/lib/assistantActs";
 import { loadAudiences } from "@/lib/audiences";
 import { loadAutonomy, recordShadow } from "@/lib/autonomy";
@@ -228,7 +229,7 @@ function sentLists(userId: string, api: SkillsApi | null): Sent {
     speakers: [
       ...(s.face ? [{ id: "mine", look: "The person themselves, from their own saved face." }] : []),
       ...s.presenters.map((p) => ({ id: p.id, look: (p.look.trim() || p.name || "A saved presenter").slice(0, 160) })),
-      ...LOOKS.map((look) => ({ id: "new", look })),
+      ...looksFor(userId, LOOKS).map((look) => ({ id: "new", look })),
     ].slice(0, 7),
     audiences: loadAudiences(userId).filter((a) => a.name.trim()).slice(0, 6).map((a) => ({ id: a.id, name: a.name.slice(0, 60) })),
     skills: (api?.loadMySkills(userId) ?? []).filter((x) => x.name.trim() && x.instruction.trim()).slice(0, 12),

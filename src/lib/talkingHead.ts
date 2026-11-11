@@ -223,8 +223,15 @@ export function useSpeakers(userId: string | undefined): Speakers | null {
   return s;
 }
 
-/** The brand's "Who appears" as the pick: me is your face, a presenter its id, and Ask each time picks none (""). */
-export const defaultWho = (s: Speakers) => (s.who === "me" ? "mine" : s.who === "ask" ? "" : s.who);
+/**
+ * The brand's "Who appears" as the pick: me is your face, a presenter its id, and Ask each time picks none (""). `keep`
+ * (Post choices: Your influencers, Who appears) may leave a saved presenter unpicked, by its look.
+ */
+export const defaultWho = (s: Speakers, keep: (look: string) => boolean = () => true) => {
+  if (s.who === "me") return "mine";
+  const p = s.presenters.find((x) => x.id === s.who);
+  return s.who === "ask" || (p && !keep(p.look)) ? "" : s.who;
+};
 
 /** The picks a ?face= or ?who= link may hold: your face, a new presenter, or a saved one. */
 export const whoChoices = (s: Speakers) => ["mine", "presenter", ...s.presenters.map((p) => p.id)];

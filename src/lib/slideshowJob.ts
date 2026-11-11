@@ -14,6 +14,7 @@ import { EdgeError, callFn } from "@/lib/edgeFn";
 import { loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { stripDashes } from "@/lib/plainText";
 import { scoped } from "@/lib/profiles";
+import { boxStyleOf, textStyleFor } from "@/lib/postChoices";
 import { voiceForClone, winnersFor } from "@/lib/reelClone";
 import { fullText, requestMake, type MakeRequest, type RemixAs } from "@/lib/remix";
 import { brandPack, loadRemixPrefs } from "@/lib/remixBrand";
@@ -243,7 +244,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk, spread?:
       flags: res.flags,
       measure: screenMeasure(),
       now: new Date(),
-      look: loadStyleHint(),
+      look: slideLook(userId),
       cover: kept?.slides[0],
       rows: res.result.rows,
     });
@@ -435,6 +436,12 @@ export function fitSlide(text: { title: string; sub: string }, hook: boolean, si
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
+
+/** A new slideshow's text look: one of the brand's ticked Post choices styles, else the device's last text style. */
+export function slideLook(userId: string): Partial<BoxStyle> {
+  const t = textStyleFor(userId);
+  return t ? boxStyleOf(t) : loadStyleHint();
+}
 
 /** The made slideshow: one slide per written slide, its picture or the brand colour, the caption, source and flags. */
 /** The writer's three-row slide, when Jev asked for one, goes before the last slide; a full slideshow goes without it. */

@@ -31,6 +31,7 @@ import { loadPositioning } from "@/lib/positioning";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
 import { defaultOutput } from "@/lib/remix";
 import { loadRemixPrefs, ownBrandName, speakerFor } from "@/lib/remixBrand";
+import { mentionFor, pickLook, presenterStarts } from "@/lib/postChoices";
 import { NOT_THROUGH, NOTHING_USED, onRemixJob, remixJob, startRemix, writingStep } from "@/lib/remixJob";
 import { EdgeError } from "@/lib/edgeFn";
 import { linkRead, startLinkRead } from "@/lib/remixLink";
@@ -281,9 +282,9 @@ export function whoFor(userId: string, pickd: { id: string; look: string } | nul
   const saved = (id: string) => (id === "mine" ? !!s.face : s.presenters.some((p) => p.id === id));
   if (pickd && pickd.id !== "new" && saved(pickd.id)) return { who: pickd.id as TalkWho, look: pickd.look };
   if (pickd?.id === "new" && LOOKS.includes(pickd.look)) return { who: "presenter", look: pickd.look };
-  const d = defaultWho(s);
+  const d = defaultWho(s, (l) => presenterStarts(userId, l));
   if (d && saved(d)) return { who: d as TalkWho, look: s.presenters.find((p) => p.id === d)?.look ?? "" };
-  return { who: "presenter", look: LOOKS[Math.floor(Math.random() * LOOKS.length)] };
+  return { who: "presenter", look: pickLook(userId, LOOKS) };
 }
 const whoWords = (userId: string, who: TalkWho, look: string) =>
   who === "mine" ? "Your face" : who === "presenter" ? `AI presenter, labelled on the post: ${look}` : `${speakers(userId).presenters.find((p) => p.id === who)?.name ?? "Your presenter"}, AI presenter, labelled on the post`;
@@ -704,7 +705,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         live.call();
         live.step("Writing the slides...", "writing");
         const off = onSlideshowJob((j) => void (j && showStep(j) && live.step(showStep(j), "writing")));
-        await startSlideshow(userId, { source: src, topic: src ? "" : (f.topic ?? ""), note: src ? (f.topic ?? "") : "", mention: loadRemixPrefs(userId).mention, size: "4x5", pictures: loadMedia(userId).length ? "mine" : "stock", agent: x.agent }).finally(off);
+        await startSlideshow(userId, { source: src, topic: src ? "" : (f.topic ?? ""), note: src ? (f.topic ?? "") : "", mention: mentionFor(userId, null, loadRemixPrefs(userId).mention), size: "4x5", pictures: loadMedia(userId).length ? "mine" : "stock", agent: x.agent }).finally(off);
         const j = slideshowJob();
         if (j?.state !== "done" || !j.showId) return x.fail(j?.error ?? NOT_THROUGH);
         const id = j.showId;
@@ -716,7 +717,7 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         live.call();
         live.step("Writing the text...", "writing");
         const off = onWallJob((j) => void (j && wallStep(j) && live.step(wallStep(j), "writing")));
-        await startWall(userId, { source: src, about: f.topic ?? "", mention: loadRemixPrefs(userId).mention, bg: "stock", agent: x.agent }).finally(off);
+        await startWall(userId, { source: src, about: f.topic ?? "", mention: mentionFor(userId, null, loadRemixPrefs(userId).mention), bg: "stock", agent: x.agent }).finally(off);
         const j = wallJob();
         if (j?.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
         const text = j.written?.text ?? "";
@@ -819,7 +820,7 @@ async function remixPress(userId: string, thread: string, msgId: string, x: Pres
     keep: "structure",
     close: "balanced",
     as: [as],
-    mention: loadRemixPrefs(userId).mention,
+    mention: mentionFor(userId, null, loadRemixPrefs(userId).mention),
     offer: null,
     agent: { thread, msg: msgId },
   });
@@ -851,7 +852,7 @@ async function talkPress(userId: string, x: Press, src: RemixSource | null, live
     setting: "office",
     voice: f.voice ?? "alice",
     length: f.length ?? DEFAULT_LENGTH,
-    mention: loadRemixPrefs(userId).mention,
+    mention: mentionFor(userId, null, loadRemixPrefs(userId).mention),
     ...(f.caption ? { caption: f.caption } : {}),
     agent: x.agent,
   };

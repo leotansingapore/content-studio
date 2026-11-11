@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatBySlug } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { LOOKS, MAX_LOOK, aiBusy, onAiJob, pendingAvatar } from "@/lib/aiVideo";
+import { nextLook, pickLook, presenterStarts, useCoin, useMentionStart } from "@/lib/postChoices";
 import { scanCompliance } from "@/lib/compliance";
 import { links } from "@/lib/links";
 import { loadSavedClones } from "@/lib/reelClone";
@@ -62,7 +63,8 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   // who speaks: your saved face, a saved presenter or a new one, the brand's Who appears preselected (Ask each time
   // picks none); a photo picked by hand is not offered on Leo's pages (people-my-face)
   const people = useSpeakers(userId);
-  const [whoParam, setWho] = useUrlState<string>("who", people ? defaultWho(people) : "", { allowed: people ? whoChoices(people) : [] });
+  const flip = useCoin();
+  const [whoParam, setWho] = useUrlState<string>("who", people ? defaultWho(people, (l) => presenterStarts(userId, l, flip)) : "", { allowed: people ? whoChoices(people) : [] });
   const who = whoParam as TalkWho | "";
   const speaker = people ? speakerOf(people, who) : null;
   const [setting, setSetting] = useUrlState<TalkSetting>("setting", "office", { allowed: TALK_SETTINGS.map((s) => s.id) });
@@ -72,10 +74,10 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   // Leo's sign-ins aim the script at the words the picked voice reads in the length (live-p7a-fix); everyone else as today
   const leo = useLeoUser();
   const byVoice = leo ? voice : undefined;
-  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
+  const [mention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   const [typed, setTyped] = useState<Typed>(() => {
     const t = loadTyped(userId);
-    return t.look ? t : { ...t, look: LOOKS[Math.floor(Math.random() * LOOKS.length)] };
+    return t.look ? t : { ...t, look: pickLook(userId, LOOKS) };
   });
   // the text a write or a clone replaced, one Undo away
   const [undo, setUndo] = useState<string | null>(null);
@@ -266,7 +268,7 @@ export default function TalkingHead({ userId, source }: { userId: string; source
                     className="text-sm"
                     onChange={(e) => setTyped({ ...typed, look: e.target.value })}
                   />
-                  <Button size="sm" variant="outline" className={TOUCH} onClick={() => setTyped({ ...typed, look: LOOKS[(LOOKS.indexOf(typed.look) + 1) % LOOKS.length] })}>
+                  <Button size="sm" variant="outline" className={TOUCH} onClick={() => setTyped({ ...typed, look: nextLook(userId, LOOKS, typed.look) })}>
                     Another look
                   </Button>
                   <p className="text-xs text-muted-foreground">The person is made by AI.</p>
