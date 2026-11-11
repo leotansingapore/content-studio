@@ -234,4 +234,7 @@ describe("postingTimeOn (a plan slot's time on its day)", () => {
       ["19:30", "22:30", "16:30", "13:30"].map((time) => ({ time, why: "common" })),
     );
   });
+  it("never puts a day's extra post on one of its own times: evening slots at 18:00 and 21:00 send the third post to 15:00", () => {
+    expect([0, 1, 2, 3].map((n) => postingTimeOn([], "linkedin", 2, ["2T18:00", "2T21:00"], n).time)).toEqual(["18:00", "21:00", "15:00", "12:00"]);
+  });
 });
