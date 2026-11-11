@@ -35,6 +35,15 @@ describe("Your work", () => {
     expect(workCounters(w)).toEqual(["2 need you", "2 in flight", "2 made"]);
   });
 
+  it("lists made work by when it finished, so a long make that ended last is on top", () => {
+    const job = (startedAt: string, endedAt: string) => ({ kind: "image" as const, state: "done" as const, title: "A desk", startedAt, endedAt });
+    const w = workOf([thread("t", [
+      msg("slow", { job: job("2026-11-11T01:00:00.000Z", "2026-11-11T05:00:00.000Z") }),
+      msg("quick", { job: job("2026-11-11T02:00:00.000Z", "2026-11-11T02:01:00.000Z") }),
+    ])]);
+    expect(w.made.map((x) => [x.msg, x.at])).toEqual([["slow", "2026-11-11T05:00:00.000Z"], ["quick", "2026-11-11T02:01:00.000Z"]]);
+  });
+
   it("counts a pressed card as in flight until its result or receipt lands", () => {
     expect(inFlight(msg("a", { card: card({ status: "starting" }) }))).toBe(true);
     // most makes write their job row only when done: the approved card alone says it is being made
@@ -43,6 +52,8 @@ describe("Your work", () => {
     expect(inFlight(msg("d", { card: card({ status: "approved" }), job: { kind: "remix", state: "done", startedAt: "" } }))).toBe(false);
     expect(inFlight(msg("e", { card: card({ status: "failed" }) }))).toBe(false);
     expect(inFlight(msg("f", { card: card({}) }))).toBe(false);
+    // a Rewrite card opens Write when pressed and makes nothing in the background, so it is never in flight
+    expect(inFlight(msg("g", { card: card({ status: "approved", plan: { plan: "write" } }) }))).toBe(false);
   });
 
   it("says so when there is nothing", () => {
