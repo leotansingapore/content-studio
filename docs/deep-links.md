@@ -346,7 +346,8 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /media | folder | a folder name, or none (photos with no folder) | all | replace | /media?folder=none |
 | /media | item | a picture's key: scrolled to and marked; Copy link on every picture. the picture list lives on the device that added it, so the link opens there; anywhere else it says "That picture is not on this device" | none | set by links | /media?item=cimg-mh2k9x01ab |
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
-| /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
+| /playbook | #section | identity, offer, personas, proof, look, tone, on-file: a group of "What the AI knows" (proof and on-file on Leo's sign-ins only); each row links to the page that edits it | top | (anchor) | /playbook#look |
+| /brand | #section | script-product (Leo only: the product card scripts read, where the Playbook's Proof row lands), you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
 | /tutorial | #section | why, voice, guided-flow, after, tabs, design, campaigns, claude-design, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
 | /voice | (none) | the past posts are typed text, kept for this tab until Save; Leo's sections and learnings are under "Faces, voices and brand" below | | | /voice |

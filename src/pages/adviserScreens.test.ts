@@ -48,6 +48,7 @@ import StudioPage from "./StudioPage";
 import CreateGuidePage from "./CreateGuidePage";
 import CloneReelPage from "./CloneReelPage";
 import SwipeFilePage from "./SwipeFilePage";
+import AnalyticsPage from "./AnalyticsPage";
 import StockSearch from "@/components/StockSearch";
 import WhoYouWatch from "@/components/competitors/WhoYouWatch";
 import { ADS } from "@/lib/adsSwipe";
@@ -261,6 +262,10 @@ describe("Top posts, the Singapore ads and Trends", () => {
     expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=foryou"))).toBe("For you");
     device(ADVISER);
     expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=similar"))).toBe("Top posts to swipe");
+    // Leo's ad library heads itself, without the finance creators line
+    const ads = draw(createElement(SwipeFilePage), "/swipe?tab=ads");
+    expect(h1(ads)).toBe("Ads");
+    expect(ads).not.toContain("SG finance creators");
     as.user = null;
     for (const [brand, path, heading] of [[COACH, "/swipe", "News"], [COACH, "/swipe?tab=ads", "News"], [ADVISER, "/swipe", "Top posts to swipe"], [ADVISER, "/swipe?tab=news", "Top posts to swipe"]]) {
       device(brand);
@@ -321,5 +326,14 @@ describe("Create guide", () => {
     expect(guide()).toContain("Post it for me");
     expect(guide()).toContain('href="/calendar"');
     expect(guide()).not.toContain("Meta Business Suite");
+  });
+
+  it("open another brand's Analytics on its own accounts and posts, with the creator lookup last", () => {
+    device(ADVISER);
+    const adviser = draw(createElement(AnalyticsPage), "/analytics");
+    expect(adviser.indexOf("Analyze a creator")).toBeLessThan(adviser.indexOf("Your accounts"));
+    device(COACH);
+    const coach = draw(createElement(AnalyticsPage), "/analytics");
+    expect(coach.indexOf("Analyze a creator")).toBeGreaterThan(coach.indexOf("Your accounts"));
   });
 });

@@ -657,7 +657,8 @@ export default function BrandPage() {
             )}
           </section>
           {leo && userId && <ProductsSection userId={userId} brand={brand} setBrand={setKit} />}
-          {leo && userId && <ProductCard userId={userId} />}
+          {/* /brand#script-product: where the Playbook's Proof row lands (the card has no id of its own) */}
+          {leo && userId && <div id="script-product" className="scroll-mt-20"><ProductCard userId={userId} /></div>}
           {leo && userId && <DemoVideosSection userId={userId} brand={brand} setBrand={setKit} />}
 
           <section id="emoji-and-hashtags" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
