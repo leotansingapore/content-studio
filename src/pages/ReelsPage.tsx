@@ -161,9 +161,11 @@ export default function ReelsPage() {
   // a move touches the stage only, so a note added a moment before (the drawer's move to Needs changes) is never undone
   const setStage = useCallback((id: string, stage: StageId) => setBoard((b) => b && { ...b, cards: b.cards.map((x) => (x.id === id ? { ...x, stage } : x)) }), []);
 
+  const boardRef = useRef(board);
+  boardRef.current = board;
   const move = useCallback(
     (id: string, to: StageId, quiet = false) => {
-      const c = board?.cards.find((x) => x.id === id);
+      const c = boardRef.current?.cards.find((x) => x.id === id);
       if (!c || c.stage === to) return;
       if (!perms(me, c).move(to)) {
         toast({ title: "Your role can't move this post there", description: "Leave a note instead, or ask Leo." });
@@ -175,7 +177,7 @@ export default function ReelsPage() {
         .then((fresh) => {
           replace(fresh);
           if (quiet) return;
-          const name = board?.stages.find((s) => s.id === fresh.stage)?.name ?? fresh.stage;
+          const name = boardRef.current?.stages.find((s) => s.id === fresh.stage)?.name ?? fresh.stage;
           toast({
             title:
               fresh.stage === "scheduled" && fresh.schedule
@@ -190,7 +192,7 @@ export default function ReelsPage() {
           if (accessChanged(e)) void checkMe(true).then(setMe).catch(() => {});
         });
     },
-    [board, me, replace, setStage, toast],
+    [me, replace, setStage, toast],
   );
 
   // a post card is a real link to its ?card=, so long-press Copy link, a new tab and cmd-click work on it
