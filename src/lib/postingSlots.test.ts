@@ -229,3 +229,16 @@ describe("seriesSlots", () => {
     expect(seriesSlots(40, null, "tiktok", [], morning)).toHaveLength(20);
   });
 });
+
+describe("addSlots at the brand kit's own limit", () => {
+  it("keeps 4 times a day on every day, 28 in all, and leaves a fifth time out and counts it", () => {
+    let slots: string[] = [];
+    for (const t of ["08:00", "12:00", "16:00", "20:00"]) {
+      const r = addSlots(slots, DAY_SETS.everyDay, t);
+      expect(r.skipped).toBe(0);
+      slots = r.slots;
+    }
+    expect(slots).toHaveLength(28);
+    expect(addSlots(slots, DAY_SETS.everyDay, "22:00")).toEqual({ slots, skipped: 7 });
+  });
+});
