@@ -57,6 +57,8 @@ const AgentMeter = lazy(() => import("@/components/agent/AgentMeter"));
 // waited ~5 s behind them on 26 Oct), or at once when the address opens a remix.
 const RemixSheet = lazy(() => import("@/components/remix/RemixSheet"));
 const RemixPill = lazy(() => import("@/components/remix/RemixPill"));
+// "Your <format> is ready" when a background make finishes on another page (Leo, 11 Nov)
+const MadeToast = lazy(() => import("@/components/MadeToast"));
 // Activity's recorder (Leo only) listens to every job store, so it loads in its own chunk too.
 const ActivityRecorder = lazy(() => import("@/components/ActivityRecorder"));
 
@@ -778,6 +780,11 @@ export default function StudioLayout() {
       </div>
       <JumpTo open={jumpOpen} onClose={() => setJumpOpen(false)} email={email} />
       <ExportPill />
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          <MadeToast />
+        </Suspense>
+      </ErrorBoundary>
       {leo && (remixLate || remixKey) && (
         <ErrorBoundary resetKey={pathname}>
           <Suspense fallback={null}>
