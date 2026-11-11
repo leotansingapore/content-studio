@@ -7,7 +7,7 @@
 // footage), read once on arrival; a card's need line links to where it is added, beside the card's own link.
 // The page calls no AI and stores nothing; the only read is today's usage counts.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clapperboard, Diamond, Image as ImageIcon, Layers, Type, VolumeX, type LucideIcon } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
@@ -216,12 +216,25 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
 /** One static ad format: its line, then what it works best with or needs. Opens its own page. */
 function StaticCard({ f }: { f: StaticFormat }) {
   const extra = f.needs ? STATIC_NEED_LINES[f.needs].needs : f.best ? STATIC_NEED_LINES[f.best].best : null;
+  // the format's own example, drawn after the gallery paints so the drawing code stays out of this page's chunk
+  const [example, setExample] = useState<string | null>(null);
+  useEffect(() => {
+    let on = true;
+    void import("@/lib/staticExample").then((m) => on && setExample(m.staticExampleUrl(f)), () => {});
+    return () => {
+      on = false;
+    };
+  }, [f]);
   return (
     <Link to={staticFormatHref(f.slug)} className={CARD}>
-      <div className={TILE}>
-        <div className="flex h-full items-center justify-center">
-          <ImageIcon className="h-8 w-8 text-muted-foreground/70" aria-hidden />
-        </div>
+      <div className={`${TILE} aspect-[4/5]`}>
+        {example ? (
+          <img src={example} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <ImageIcon className="h-8 w-8 text-muted-foreground/70" aria-hidden />
+          </div>
+        )}
       </div>
       <div className="min-w-0 space-y-1 px-0.5">
         <p className="text-sm font-semibold leading-snug text-foreground">{f.name}</p>

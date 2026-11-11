@@ -13,11 +13,10 @@ import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { STATIC_EXAMPLE, staticFormatBySlug, type StaticFormat } from "@/data/staticFormats";
+import { staticFormatBySlug, type StaticFormat } from "@/data/staticFormats";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { renderSvg } from "@/lib/carouselLayout";
-import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
-import { isStatic, layoutImage } from "@/lib/imageLayout";
+import { staticExampleUrl } from "@/lib/staticExample";
+import { isStatic } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { loadProducts, type Products } from "@/lib/products";
@@ -94,12 +93,7 @@ export default function StaticFormatPage() {
 function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }) {
   const navigate = useNavigate();
   const drawn = isStatic(def.slug);
-  const example = useMemo(() => {
-    if (!isStatic(def.slug)) return null;
-    const usesPhoto = def.best === "photo" || def.needs === "photo";
-    const d = layoutImage({ layout: def.slug, words: def.example ?? {}, brand: STATIC_EXAMPLE.brand, picture: usesPhoto ? STATIC_EXAMPLE.picture : undefined, samples: true }, "4x5", createCanvasMeasure());
-    return svgDataUrl(renderSvg(d));
-  }, [def]);
+  const example = useMemo(() => staticExampleUrl(def), [def]);
   const [note, setNote] = useState(() => loadNote(def.slug));
   const brand = useMemo(() => brandName(userId), [userId]);
   const bits = useMemo(() => productBits(loadProducts(userId)), [userId]);
