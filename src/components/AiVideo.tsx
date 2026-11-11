@@ -31,7 +31,7 @@ import { BANNER_MAX, MUSIC_LEVEL, defaultSettings, moveTake, styleLabel, withLoo
 import { defaultSkill, loadSkills } from "@/lib/videoSkills";
 import type { JoinExtra } from "@/lib/videoMedia";
 import {
-  EXPLAINER_LOOKS, FROMS, FROM_LABELS, LOOK_IDS, MAX_SCRIPT, SCRIPT_LIMITS, STOCK_TIP, dismissWrite, findStockNow, loadDraft, loadLook, makeNarrated, narratedWrite,
+  ALL_LOOK_IDS, EXPLAINER_LOOKS, FROMS, FROM_LABELS, LOOK_IDS, MAX_SCRIPT, SCRIPT_LIMITS, STOCK_TIP, dismissWrite, findStockNow, loadDraft, loadLook, makeNarrated, narratedWrite,
   onDraft, onNarratedWrite, pickPhotosNow, saveDraft, saveLook, scriptDrafts, setPhotos, stockOn, summaryLine, usesPhoto, usesStock, writeNarrated, type From, type LookId,
   type NarratedScene, type Visuals,
 } from "@/lib/explainer";
@@ -1074,7 +1074,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
   const photos = useMemo(() => (set ? setPhotos(userId, set) : []), [userId, set]);
   const [swap, setSwap] = useState<number | null>(null);
   const kept = useMemo(() => loadLook(userId), [userId]);
-  const [look, setLookParam] = useUrlState<LookId>("look", kept.look, { allowed: LOOK_IDS });
+  const [look, setLookParam] = useUrlState<LookId>("look", kept.look, { allowed: ALL_LOOK_IDS });
   const [move, setMove] = useState(kept.move);
   const seconds = len === "60" ? 60 : 30;
   const on = !set && stockOn(visuals, look);
@@ -1226,7 +1226,8 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
         </div>
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Look">
           <span className="mr-1 text-xs font-medium">Look</span>
-          {LOOK_IDS.map((id) => (
+          {/* an animated story (picked from its Formats card) joins the eight while it is the look */}
+          {[...LOOK_IDS, ...(LOOK_IDS.some((id) => id === look) ? [] : [look])].map((id) => (
             <Pill key={id} on={look === id} disabled={off} onClick={() => chooseLook(id)}>
               {EXPLAINER_LOOKS[id].label}{d.recommended?.id === id ? <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Recommended</span> : null}
             </Pill>

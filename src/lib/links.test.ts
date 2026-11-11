@@ -235,7 +235,10 @@ describe("links", () => {
     expect(links.edit({ panel: ["ai"], kind: "explainer", from: "topic", topic: " cpf top-ups " })).toBe("/edit?panel=ai&kind=explainer&topic=cpf+top-ups");
     expect(links.edit({ panel: ["ai"], kind: "avatar", from: "draft", draft: "d1" })).toBe("/edit?panel=ai&kind=avatar&from=draft&draft=d1");
     expect(links.edit({ panel: ["ai"], kind: "explainer", from: "script" })).toBe("/edit?panel=ai&kind=explainer&from=script");
-    expect(EXPLAINER_LOOK_IDS).toEqual(["photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"]);
+    expect(EXPLAINER_LOOK_IDS).toEqual([
+      "photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook",
+      "bricks", "dolls", "skeleton", "anime", "metaphor", "object", "animal", "puppet", "host",
+    ]);
   });
 
   it("builds Write's thread, prompter and hooks params with defaults left out", () => {

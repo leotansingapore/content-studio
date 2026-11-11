@@ -23,10 +23,10 @@ import { searchStock, type StockItem } from "@/lib/stockMedia";
 import type { VoiceId } from "@/lib/textVoice";
 import type { JoinExtra } from "@/lib/videoMedia";
 import { memoryLine } from "@/lib/voiceMemory";
-import { LOOK_IDS, MAX_NOTES, type LookId, type NarratedSeconds, type Scene } from "../../supabase/functions/ai-video/logic.ts";
+import { ALL_LOOK_IDS, MAX_NOTES, type LookId, type NarratedSeconds, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import { MAX_CANDIDATES } from "../../supabase/functions/video-assist/montage.ts";
 
-export { EXPLAINER_LOOKS, LOOK_IDS, MAX_PAGE_TEXT, MAX_SCRIPT, SCRIPT_LIMITS, type LookId, type NarratedSeconds } from "../../supabase/functions/ai-video/logic.ts";
+export { ALL_LOOK_IDS, EXPLAINER_LOOKS, LOOK_IDS, MAX_PAGE_TEXT, MAX_SCRIPT, SCRIPT_LIMITS, type LookId, type NarratedSeconds } from "../../supabase/functions/ai-video/logic.ts";
 
 export type From = "topic" | "script" | "link" | "draft";
 export const FROMS: From[] = ["topic", "script", "link", "draft"];
@@ -48,7 +48,7 @@ const lookKey = (userId: string) => `content-studio-explainer-look-${scoped(user
 export function loadLook(userId: string): LookChoice {
   try {
     const r = JSON.parse(localStorage.getItem(lookKey(userId)) ?? "{}") ?? {};
-    return { look: LOOK_IDS.includes(r.look) ? r.look : "photo", move: r.move === true };
+    return { look: ALL_LOOK_IDS.includes(r.look) ? r.look : "photo", move: r.move === true };
   } catch {
     return { look: "photo", move: false };
   }
@@ -56,7 +56,7 @@ export function loadLook(userId: string): LookChoice {
 
 export function saveLook(userId: string, c: LookChoice): void {
   try {
-    localStorage.setItem(lookKey(userId), JSON.stringify({ look: LOOK_IDS.includes(c.look) ? c.look : "photo", move: c.move === true }));
+    localStorage.setItem(lookKey(userId), JSON.stringify({ look: ALL_LOOK_IDS.includes(c.look) ? c.look : "photo", move: c.move === true }));
     globalThis.window?.dispatchEvent(new Event("content-studio-explainer-look-changed"));
   } catch {
     // full storage: the pick holds for this visit

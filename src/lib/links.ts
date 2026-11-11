@@ -699,8 +699,11 @@ export type CompareView = Exclude<(typeof COMPARE_TABS)[number], "version">;
 /** /image?layout=: four ad layouts, then the five meme layouts. */
 export const IMAGE_LAYOUTS = ["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction"] as const;
 export type ImageLayout = (typeof IMAGE_LAYOUTS)[number];
-/** /edit?look=: the explainer's looks (ai-video EXPLAINER_LOOKS holds the same ids). */
-export const EXPLAINER_LOOK_IDS = ["photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"] as const;
+/** /edit?look=: the explainer's looks, then the animated stories (ai-video EXPLAINER_LOOKS holds the same ids). */
+export const EXPLAINER_LOOK_IDS = [
+  "photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook",
+  "bricks", "dolls", "skeleton", "anime", "metaphor", "object", "animal", "puppet", "host",
+] as const;
 export type ExplainerLook = (typeof EXPLAINER_LOOK_IDS)[number];
 /** /carousel?design=. */
 export const CAROUSEL_DESIGNS = ["clean", "bold", "numbered", "checklist", "post-card", "photo-cover", "quote", "notebook"] as const;

@@ -6,7 +6,7 @@ import { EXPLAINER_LOOK_IDS } from "../../../src/lib/links.ts";
 import {
   CODE_GONE, MAX_CONSENT_WAV, MAX_FACE_PHOTO, NORTH_STAR_MODES, consentTicket, faceToken, notHeard, sha256Hex,
   LOOK_REFUSED, MAX_EXTRA, MAX_LOOK, PRESENTER_PREFS, lookQuestions, presenterLooks, readLookCheck,
-  EXPLAINER_LOOKS, LOOK_IDS, MAX_SLICE, NO_POINT, READ_FAILED, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits,
+  ALL_LOOK_IDS, EXPLAINER_LOOKS, LOOK_IDS, MAX_SLICE, NO_POINT, READ_FAILED, SETS, SETTINGS, SETTING_IDS, SET_TALKS, TALKS, avatarCredits, creditsUsd, explainerCredits,
   keepsWords, lookPick, lookQuestion, motionPrompt, moveClaimKey, moveCredits, narratedSystem, narratedUser, northStarOnly, parseVideoRequest, pictureBody, MAX_NOTES,
   pointPasses, presenterBody, readArticle, readMedia, refundFailed, refundTicket, sceneReady, setBody, speakBody, speakSeconds, talkSystem, talkUser,
   validateScript, validateTalk,
@@ -394,13 +394,28 @@ describe("the presenter formats' script and set (formats-presenter)", () => {
 describe("an explainer's looks (formats-animated)", () => {
   const SCENE = "A Chinese Singaporean woman in her 40s reading a hospital bill at her kitchen table";
 
-  it("has the gallery's look ids, in the same order", () => {
-    expect(LOOK_IDS).toEqual([...EXPLAINER_LOOK_IDS]);
+  it("has the gallery's look ids, in the same order, each with a picture style and a motion line", () => {
+    expect(ALL_LOOK_IDS).toEqual([...EXPLAINER_LOOK_IDS]);
+    // Jev's pick and the slideshows keep to the eight looks they had before the animated stories
+    expect(LOOK_IDS).toEqual(["photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"]);
+    expect(ALL_LOOK_IDS.slice(0, LOOK_IDS.length)).toEqual([...LOOK_IDS]);
+    for (const id of ALL_LOOK_IDS) {
+      expect(EXPLAINER_LOOKS[id].style.length, id).toBeGreaterThan(20);
+      expect(motionPrompt(id), id).toBe(`${EXPLAINER_LOOKS[id].motion} No text, no cuts.`);
+    }
+  });
+
+  it("takes an animated story on an explainer and a move, for NORTH_STAR_USERS (index.ts drops it for anyone else)", () => {
+    const pictures = Array(3).fill("A couple at an HDB table");
+    for (const look of ALL_LOOK_IDS.filter((x) => !(LOOK_IDS as readonly string[]).includes(x))) {
+      expect(parseVideoRequest({ mode: "explainer", pictures, look }), look).toEqual({ ok: true, request: { mode: "explainer", pictures, look } });
+      expect(parseVideoRequest({ mode: "move", tokens: ["a.b"], look }), look).toEqual({ ok: true, request: { mode: "move", tokens: ["a.b"], look } });
+    }
   });
 
   it("swaps only the photo sentence for the look's style, keeping the Singaporean people and no-text rules", () => {
     expect(PEOPLE_RULE).toContain("Polished lifestyle photograph.");
-    for (const id of LOOK_IDS.filter((x) => x !== "photo")) {
+    for (const id of ALL_LOOK_IDS.filter((x) => x !== "photo")) {
       const prompt = String(pictureBody(SCENE, id).prompt);
       expect(prompt, id).toContain(EXPLAINER_LOOKS[id].style);
       expect(prompt, id).not.toContain("Polished lifestyle photograph.");

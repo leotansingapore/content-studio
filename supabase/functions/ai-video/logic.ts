@@ -562,11 +562,62 @@ export const EXPLAINER_LOOKS = {
     jev: "a bright 3D cartoon",
   },
   storybook: { label: "Storybook", style: "Hand-painted watercolour storybook illustration, soft edges, gentle colours.", motion: "Slow drift, light shifts.", jev: "a painted storybook" },
+  // The animated stories (Fastlane's Studio > Create, 11 Nov), in our own words. No `jev`: Jev's pick and the
+  // slideshows' AI pictures (every sign-in) keep to LOOK_IDS, so they stay as they were.
+  bricks: {
+    label: "Brick figures",
+    style: "Stop-motion toy brick figures and sets built from small plastic building bricks, studs visible, bright primary colours, miniature lighting.",
+    motion: "Stop-motion steps at 12 frames a second, figures turn and hop stiffly.",
+  },
+  dolls: {
+    label: "Fashion dolls",
+    style: "Stop-motion fashion dolls with glossy plastic skin and styled hair, miniature furnished sets in bright pastels.",
+    motion: "Stop-motion steps, stiff jointed arms and small head turns.",
+  },
+  skeleton: {
+    label: "Skeleton explainer",
+    style: "A friendly cartoon 3D skeleton as the main character in place of the person, clean white bones, simple modern sets, bright educational explainer look.",
+    motion: "The skeleton gestures and turns its skull as if explaining, camera drifts.",
+  },
+  anime: {
+    label: "Painted anime",
+    style: "Hand-painted anime film look, soft watercolour skies, detailed painted backgrounds, gentle warm light.",
+    motion: "Clouds and leaves drift, hair moves in a breeze, slow pan.",
+  },
+  metaphor: {
+    label: "3D metaphor story",
+    style: "Detailed 3D animated short-film look, cinematic lighting, the scene's point shown as a visual metaphor with everyday objects.",
+    motion: "A smooth cinematic camera move into the metaphor, one clear action.",
+  },
+  object: {
+    label: "Talking object",
+    style: "An everyday object from the scene as the main character, with simple cartoon eyes and a mouth, facing the viewer, glossy 3D render in a real setting.",
+    motion: "The object faces the lens and talks, its mouth moving, a small bounce.",
+  },
+  animal: {
+    label: "Talking animal",
+    style: "A realistic animal in everyday human clothes as the main character in place of the person, doing the scene's human task in a human setting, facing the viewer.",
+    motion: "The animal looks into the lens and talks, mouth moving, small natural moves.",
+  },
+  puppet: {
+    label: "Marionette puppet",
+    style: "A painted wooden marionette puppet on visible strings as the main character, a small handmade stage set, warm theatre light.",
+    motion: "The puppet bobs on its strings, head and arms swinging gently.",
+  },
+  host: {
+    label: "Expert in the corner",
+    style: "Bright 3D animated film look; a friendly 3D cartoon expert stands small in the lower corner facing the viewer, while the scene fills the frame behind them.",
+    motion: "The expert gestures from the corner while the scene behind moves gently.",
+  },
 } as const;
 export type LookId = keyof typeof EXPLAINER_LOOKS;
-export const LOOK_IDS = Object.keys(EXPLAINER_LOOKS) as LookId[];
+const JEV_LOOKS = ["photo", "clay", "paper", "felt", "chalk", "comic", "cartoon3d", "storybook"] as const satisfies readonly LookId[];
+/** The looks Jev picks from and slideshows offer: the eight before the animated stories. */
+export const LOOK_IDS: readonly LookId[] = JEV_LOOKS;
+/** Every look an explainer takes, NORTH_STAR_USERS only (index.ts): LOOK_IDS, then the animated stories. */
+export const ALL_LOOK_IDS = Object.keys(EXPLAINER_LOOKS) as LookId[];
 /** A known look other than today's photo, else none. */
-const lookOf = (v: unknown): Exclude<LookId, "photo"> | undefined => LOOK_IDS.find((x): x is Exclude<LookId, "photo"> => x === v && x !== "photo");
+const lookOf = (v: unknown): Exclude<LookId, "photo"> | undefined => ALL_LOOK_IDS.find((x): x is Exclude<LookId, "photo"> => x === v && x !== "photo");
 
 const PHOTO_LINE = EXPLAINER_LOOKS.photo.style;
 
@@ -813,7 +864,7 @@ export const LOOK_TAG = 0.4;
 export const lookQuestion = (seconds: NarratedSeconds = 30): JevQuestion => ({
   type: "choice",
   instructions: `A licensed Singapore financial adviser is making a ${seconds}-second narrated explainer for Instagram and TikTok on the topic below. Which picture style makes it easiest to follow and most likely to be watched to the end, while still looking trustworthy for a money topic?`,
-  criteria: Object.fromEntries(LOOK_IDS.map((id) => [id, EXPLAINER_LOOKS[id].jev])),
+  criteria: Object.fromEntries(JEV_LOOKS.map((id) => [id, EXPLAINER_LOOKS[id].jev])),
 });
 
 /** The look to tag Recommended: Jev's pick at LOOK_TAG or more, else none (and none when Jev gave nothing). */

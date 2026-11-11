@@ -85,7 +85,10 @@ describe("the brand's last look", () => {
     expect(explainer.loadLook(UID)).toEqual({ look: "felt", move: true });
     expect(changed).toHaveBeenCalledTimes(1);
     expect(explainer.loadLook("someone-else")).toEqual({ look: "photo", move: false });
-    localStorage.setItem(`content-studio-explainer-look-${UID}`, JSON.stringify({ look: "skeleton", move: "yes" }));
+    // an animated story picked from its Formats card is kept too
+    explainer.saveLook(UID, { look: "skeleton", move: false });
+    expect(explainer.loadLook(UID)).toEqual({ look: "skeleton", move: false });
+    localStorage.setItem(`content-studio-explainer-look-${UID}`, JSON.stringify({ look: "lego", move: "yes" }));
     expect(explainer.loadLook(UID)).toEqual({ look: "photo", move: false });
     localStorage.setItem(`content-studio-explainer-look-${UID}`, "nope");
     expect(explainer.loadLook(UID)).toEqual({ look: "photo", move: false });
