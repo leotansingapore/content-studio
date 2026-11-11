@@ -123,6 +123,31 @@ const STATIC_FIELDS: Record<StaticLayoutId, ImageField[]> = {
     { key: "headline", label: "Headline", max: 16, unit: "words", sample: "A headline written like news" },
     { key: "footer", label: "Small line", max: 10, unit: "words", sample: "Your name and what it is" },
   ],
+  "lofi-note": [
+    { key: "title", label: "Heading", max: 8, unit: "words", sample: "A confession" },
+    { key: "body", label: "The note", max: 40, unit: "words", sample: "The note, in your own words" },
+    { key: "last", label: "Last line", max: 12, unit: "words", sample: "The line it ends on" },
+  ],
+  "concern-answer": [
+    { key: "question", label: "Their doubt", max: 14, unit: "words", sample: "A buyer's doubt" },
+    { key: "answer", label: "The answer", max: 10, unit: "words", sample: "The answer, big" },
+    { key: "fact", label: "The fact behind it", max: 25, unit: "words", sample: "The one fact behind it" },
+  ],
+  "story-reply": [
+    { key: "question", label: "Their question", max: 14, unit: "words", sample: "A buyer's question" },
+    { key: "answer", label: "The answer", max: 10, unit: "words", sample: "The answer, big" },
+    { key: "detail", label: "Line under it", max: 16, unit: "words", sample: "One line under it" },
+  ],
+  "page-post": [
+    { key: "post", label: "The post", max: 40, unit: "words", sample: "Your post's words" },
+    { key: "headline", label: "Headline on the picture", max: 8, unit: "words", sample: "The picture's headline" },
+    { key: "line", label: "Line under it", max: 12, unit: "words", sample: "A line under it" },
+  ],
+  "email-screenshot": [
+    { key: "subject", label: "Subject", max: 10, unit: "words", sample: "A subject worth opening" },
+    { key: "body", label: "The email", max: 45, unit: "words", sample: "A short email" },
+    { key: "button", label: "Link", max: 4, unit: "words", sample: "Read more" },
+  ],
 };
 /** The field a static design is named after, and needs before a download. */
 const STATIC_MAIN: Record<StaticLayoutId, string> = {
@@ -132,6 +157,11 @@ const STATIC_MAIN: Record<StaticLayoutId, string> = {
   "forum-thread": "title",
   "us-vs-them": "headline",
   "news-headline": "headline",
+  "lofi-note": "title",
+  "concern-answer": "question",
+  "story-reply": "question",
+  "page-post": "post",
+  "email-screenshot": "subject",
 };
 
 /**
@@ -697,6 +727,14 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     if (input.samples) nodes.push({ type: "text", x: box.x + box.w / 2, y: Math.round(box.y + box.h / 2 + 12), text: "Your picture", font: { family: "sans", weight: 400, size: 34 }, fill: "#D4D4D8", anchor: "middle" });
     return true;
   };
+  /** The brand's round picture: its logo, else its headshot, else its initial on its colour. */
+  const avatar = (cx: number, cy: number, r: number) => {
+    const href = sanitizeImage(brand.logo) ?? sanitizeImage(brand.photo);
+    if (href) return void nodes.push({ type: "image", x: cx - r, y: cy - r, width: 2 * r, height: 2 * r, href, shape: "circle" });
+    nodes.push(dot(cx, cy, r, brand.color));
+    text(initialOf(brand.name || "?"), cx, cy + Math.round(r * 0.36), { family: "sans", weight: 600, size: Math.round(r * 0.95) }, onBrand, { anchor: "middle" });
+  };
+  const brandLabel = (brand.name ?? "").replace(/\s+/g, " ").trim() || "Your page";
   const chevron = (x: number, cy: number, color: string) => nodes.push({ type: "path", d: `M${x + 16} ${cy - 22}L${x} ${cy}L${x + 16} ${cy + 22}`, stroke: color, strokeWidth: 6 });
 
   /**
@@ -976,6 +1014,171 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       draw(left, PAD_X + col / 2, y + cellPad + Math.round((rh - 2 * cellPad - (left?.height ?? 0)) / 2), { anchor: "middle" });
       draw(right, rightX + col / 2, y + cellPad + Math.round((rh - 2 * cellPad - (right?.height ?? 0)) / 2), { anchor: "middle" });
       y += rh + 12;
+    }
+  } else if (layout === "lofi-note") {
+    // a desktop notes window on a tinted desk: three window dots, cream paper, the words in a marker hand, and the
+    // photo taped on as a print at the foot
+    const dark = input.paper === "dark";
+    const paper = dark ? "#23211E" : "#FFFBEA";
+    const ink = dark ? "#F5F5F4" : "#1C1917";
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: dark ? "#111113" : mix("#FFFFFF", brand.color, 0.16) });
+    const win: Box = { x: 48, y: top + 48, w: W - 96, h: bottom - top - 96 };
+    nodes.push({ type: "rect", x: win.x, y: win.y + 10, width: win.w, height: win.h, rx: 28, fill: "#000000", opacity: 0.12 }, { type: "rect", x: win.x, y: win.y, width: win.w, height: win.h, rx: 28, fill: paper });
+    nodes.push({ type: "path", d: `M${win.x} ${win.y + 84}V${win.y + 28}A28 28 0 0 1 ${win.x + 28} ${win.y}H${win.x + win.w - 28}A28 28 0 0 1 ${win.x + win.w} ${win.y + 28}V${win.y + 84}Z`, fill: mix(paper, "#000000", 0.06) });
+    ["#FF5F57", "#FEBC2E", "#28C840"].forEach((c, i) => nodes.push(dot(win.x + 44 + i * 36, win.y + 42, 12, c)));
+    text("Aa", W - PAD_X - 4, win.y + 54, { family: "sans", weight: 600, size: 30 }, ui.muted, { anchor: "end" });
+    const hasPhoto = !!input.picture?.trim();
+    const printW = Math.round(W * 0.36);
+    const printH = Math.round(printW * 1.1);
+    const room = win.h - 84 - 56 - 48 - (hasPhoto ? printH + 24 : 0);
+    const hand = (sizes: number[], weight: 400 | 600, gap: number): Omit<Block, "text"> => ({ family: "hand", weight, sizes, line: 1.28, fill: ink, gap });
+    const p = fitFields(
+      [
+        ["title", hand([80, 74, 68, 62, 56, 50, 46, 42, 38, 34], 600, 36), true],
+        ["body", hand([52, 48, 45, 42, 39, 36, 33, 30, 28, 26], 400, 32)],
+        ["last", hand([52, 48, 45, 42, 39, 36, 33, 30, 28, 26], 600, 0)],
+      ],
+      w,
+      room,
+    );
+    let y = win.y + 84 + 56;
+    for (const it of [p.title, p.body, p.last]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+    if (hasPhoto) {
+      const px = W - PAD_X - printW;
+      const py = win.y + win.h - 48 - printH;
+      nodes.push({ type: "rect", x: px - 16, y: py - 16, width: printW + 32, height: printH + 32 + 40, fill: "#FFFFFF" });
+      photo({ x: px, y: py, w: printW, h: printH });
+      nodes.push({ type: "rect", x: px + printW / 2 - 70, y: py - 36, width: 140, height: 44, fill: "#FDE68A", opacity: 0.85 });
+    }
+  } else if (layout === "concern-answer") {
+    // a buyer's question in a sticker on the brand's colour, the answer huge under it, one fact, the photo at the foot
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: brand.color });
+    const sw = Math.min(w, 780);
+    const sx = Math.round((W - sw) / 2);
+    const sy = top + 72;
+    const q = fitFields([["question", { family: "sans", weight: 600, sizes: [46, 42, 39, 36, 33, 30, 28, 26], line: 1.25, fill: "#111111", gap: 0 }]], sw - 72, Math.round((bottom - top) * 0.22)).question;
+    const sh = 76 + (q?.height ?? 40) + 64;
+    nodes.push({ type: "rect", x: sx, y: sy, width: sw, height: sh, rx: 28, fill: "#FFFFFF" }, { type: "path", d: `M${sx} ${sy + 76}V${sy + 28}A28 28 0 0 1 ${sx + 28} ${sy}H${sx + sw - 28}A28 28 0 0 1 ${sx + sw} ${sy + 28}V${sy + 76}Z`, fill: "#111111" });
+    text("Your questions", W / 2, sy + 50, { family: "sans", weight: 600, size: 28 }, "#FFFFFF", { anchor: "middle" });
+    draw(q, W / 2, sy + 76 + 32, { anchor: "middle" });
+    const hasPhoto = !!input.picture?.trim();
+    const picH = hasPhoto ? Math.round((bottom - top) * (size === "1x1" ? 0.26 : 0.3)) : 0;
+    const area: Box = { x: PAD_X, y: sy + sh + 64, w, h: bottom - 72 - (picH ? picH + 40 : 0) - (sy + sh + 64) };
+    const p = fitFields(
+      [
+        ["answer", { family: fonts.title, weight: 600, sizes: [118, 108, 98, 88, 80, 72, 64, 58, 52, 46, 42], line: 1.06, fill: onBrand, gap: 36 }],
+        ["fact", { family: fonts.body, weight: 400, sizes: [42, 39, 36, 33, 30, 28, 26, 24], line: 1.4, fill: onBrand, gap: 0, opacity: 0.9 }],
+      ],
+      w,
+      area.h,
+    );
+    let y = area.y;
+    for (const it of [p.answer, p.fact]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+    if (picH) photo({ x: W - PAD_X - Math.round(picH * 1.2), y: bottom - 72 - picH, w: Math.round(picH * 1.2), h: picH }, "rounded");
+  } else if (layout === "story-reply") {
+    // a story on a light tint of the brand: a question sticker headed with the brand's name, the answer big and centred
+    const bg = input.paper === "dark" ? mix("#111111", brand.color, 0.4) : mix("#FFFFFF", brand.color, 0.28);
+    const ink = readableOn(bg);
+    const big = contrastRatio(brand.color, bg) >= 3 ? brand.color : ink;
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: bg });
+    const sw = Math.min(w, 760);
+    const sx = Math.round((W - sw) / 2);
+    const sy = top + 72;
+    const q = fitFields([["question", { family: "sans", weight: 600, sizes: [46, 42, 39, 36, 33, 30, 28, 26], line: 1.25, fill: "#111111", gap: 0 }]], sw - 72, Math.round((bottom - top) * 0.2)).question;
+    const sh = 80 + (q?.height ?? 40) + 64;
+    nodes.push({ type: "rect", x: sx, y: sy, width: sw, height: sh, rx: 28, fill: "#FFFFFF" }, { type: "path", d: `M${sx} ${sy + 80}V${sy + 28}A28 28 0 0 1 ${sx + 28} ${sy}H${sx + sw - 28}A28 28 0 0 1 ${sx + sw} ${sy + 28}V${sy + 80}Z`, fill: brand.color });
+    text(brand.name?.trim() ? `Questions about ${brand.name.trim()}?` : "Your questions", W / 2, sy + 52, { family: "sans", weight: 600, size: 30 }, onBrand, { anchor: "middle", room: sw - 48 });
+    draw(q, W / 2, sy + 80 + 32, { anchor: "middle" });
+    const hasPhoto = !!input.picture?.trim();
+    const picH = hasPhoto ? Math.round((bottom - top) * (size === "1x1" ? 0.24 : 0.3)) : 0;
+    const p = fitFields(
+      [
+        ["answer", { family: fonts.title, weight: 600, sizes: [104, 96, 88, 80, 72, 64, 58, 52, 46, 42], line: 1.08, fill: big, gap: 28 }],
+        ["detail", { family: "sans", weight: 400, sizes: [42, 39, 36, 33, 30, 28, 26], line: 1.35, fill: ink, gap: 0, opacity: 0.85 }],
+      ],
+      w,
+      bottom - 72 - (picH ? picH + 56 : 0) - (sy + sh + 64),
+    );
+    const used = (p.answer ? p.answer.height + p.answer.b.gap : 0) + (p.detail?.height ?? 0);
+    const free = bottom - 72 - (picH ? picH + 56 : 0) - (sy + sh + 64);
+    let y = sy + sh + 64 + Math.max(0, Math.round((free - used) / 2));
+    for (const it of [p.answer, p.detail]) if (it) y += draw(it, W / 2, y, { anchor: "middle" }) + it.b.gap;
+    if (picH) {
+      const tw = Math.round(picH * 1.1);
+      const tx = Math.round((W - tw) / 2);
+      nodes.push({ type: "rect", x: tx - 20, y: bottom - 72 - picH - 20, width: tw + 40, height: picH + 40, rx: 32, fill: "#FFFFFF" });
+      photo({ x: tx, y: bottom - 72 - picH, w: tw, h: picH }, "rounded");
+    }
+  } else if (layout === "page-post") {
+    // the brand's own page post: its picture and name, the post's words, an attached picture in its colour with a
+    // headline, reactions and Like, Comment, Share
+    const headY = top + 56;
+    avatar(PAD_X + 44, headY + 44, 44);
+    text(brandLabel, PAD_X + 112, headY + 38, { family: "sans", weight: 600, size: 34 }, ui.ink, { room: w - 112 - 80 });
+    text("2h", PAD_X + 112, headY + 82, { family: "sans", weight: 400, size: 28 }, ui.muted);
+    const gx = PAD_X + 168;
+    const gy = headY + 72;
+    nodes.push({ type: "path", d: `M${gx - 11} ${gy}a11 11 0 1 0 22 0a11 11 0 1 0 -22 0M${gx - 11} ${gy}h22M${gx} ${gy - 11}a5 11 0 1 0 0 22a5 11 0 1 0 0 -22`, stroke: ui.muted, strokeWidth: 2.5 });
+    [0, 15, 30].forEach((dx) => nodes.push(dot(W - PAD_X - 30 + dx, headY + 44, 5, ui.muted)));
+    const actions = 150;
+    const hasPhoto = !!input.picture?.trim();
+    const postTop = headY + 88 + 36;
+    const postFit = fitFields([["post", { family: "sans", weight: 400, sizes: [44, 41, 38, 35, 32, 30, 28, 26, 24], line: 1.36, fill: ui.ink, gap: 0 }]], w, Math.round((bottom - top) * 0.34)).post;
+    const blockY = postTop + (postFit?.height ?? 0) + 36;
+    const blockH = bottom - actions - blockY;
+    draw(postFit, PAD_X, postTop);
+    nodes.push({ type: "rect", x: 0, y: blockY, width: W, height: blockH, fill: brand.color });
+    if (hasPhoto) photo({ x: Math.round(W / 2), y: blockY, w: W - Math.round(W / 2), h: blockH });
+    const textW = hasPhoto ? Math.round(W / 2) - PAD_X - 32 : w;
+    const p = fitFields(
+      [
+        ["headline", { family: fonts.title, weight: 600, sizes: [84, 76, 68, 62, 56, 50, 46, 42, 38, 34], line: 1.1, fill: onBrand, gap: 20 }],
+        ["line", { family: "sans", weight: 400, sizes: [36, 33, 30, 28, 26, 24, 22], line: 1.35, fill: onBrand, gap: 0, opacity: 0.88 }],
+      ],
+      textW,
+      blockH - 96,
+    );
+    const used = (p.headline ? p.headline.height + p.headline.b.gap : 0) + (p.line?.height ?? 0);
+    let y = blockY + Math.max(48, Math.round((blockH - used) / 2));
+    for (const it of [p.headline, p.line]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+    const ry = bottom - actions + 40;
+    nodes.push(dot(PAD_X + 16, ry, 16, brand.color), dot(PAD_X + 40, ry, 16, "#EF4444"));
+    text("48", PAD_X + 70, ry + 10, { family: "sans", weight: 400, size: 28 }, ui.muted);
+    text("12 comments", W - PAD_X, ry + 10, { family: "sans", weight: 400, size: 28 }, ui.muted, { anchor: "end" });
+    nodes.push({ type: "rect", x: PAD_X, y: ry + 34, width: w, height: 2, fill: ui.line });
+    ["Like", "Comment", "Share"].forEach((a, i) => text(a, PAD_X + Math.round((w / 3) * (i + 0.5)), ry + 90, { family: "sans", weight: 600, size: 30 }, ui.muted, { anchor: "middle" }));
+  } else if (layout === "email-screenshot") {
+    // an email open on a phone: the time, back to Inbox, the sender (the brand) and when, the subject, the email and
+    // its link in the brand's colour
+    const sb = top + 56;
+    text("9:41", PAD_X, sb, { family: "sans", weight: 600, size: 32 }, ui.ink);
+    nodes.push({ type: "path", d: roundRect(W - PAD_X - 64, sb - 26, 56, 28, 8), stroke: ui.ink, strokeWidth: 3 }, { type: "rect", x: W - PAD_X - 59, y: sb - 21, width: 40, height: 18, rx: 4, fill: ui.ink }, { type: "rect", x: W - PAD_X - 5, y: sb - 16, width: 5, height: 10, rx: 2, fill: ui.ink });
+    const nav = sb + 92;
+    chevron(PAD_X, nav - 12, accent);
+    text("Inbox", PAD_X + 34, nav, { family: "sans", weight: 400, size: 34 }, accent);
+    nodes.push({ type: "path", d: `M${W - PAD_X - 110} ${nav - 4}l14 -14l14 14M${W - PAD_X - 28} ${nav - 18}l14 14l14 -14`, stroke: accent, strokeWidth: 5 });
+    const from = nav + 76;
+    avatar(PAD_X + 44, from + 44, 44);
+    text(brandLabel, PAD_X + 112, from + 36, { family: "sans", weight: 600, size: 34 }, ui.ink, { room: w - 112 - 140 });
+    text("To: me", PAD_X + 112, from + 80, { family: "sans", weight: 400, size: 28 }, ui.muted);
+    text("6:01 am", W - PAD_X, from + 36, { family: "sans", weight: 400, size: 28 }, ui.muted, { anchor: "end" });
+    nodes.push({ type: "rect", x: PAD_X, y: from + 120, width: w, height: 2, fill: ui.line });
+    const p = fitFields(
+      [
+        ["subject", { family: "sans", weight: 600, sizes: [62, 56, 52, 48, 44, 40, 37, 34, 31, 28], line: 1.18, fill: ui.ink, gap: 36 }],
+        ["body", { family: "sans", weight: 400, sizes: [44, 41, 38, 35, 32, 30, 28, 26, 24], line: 1.45, fill: ui.ink, gap: 44 }],
+        ["button", { family: "sans", weight: 600, sizes: [34, 32, 30, 28, 26], line: 1.2, fill: accent, gap: 0, single: true, width: w - 60 }, true],
+      ],
+      w,
+      bottom - 64 - (from + 120 + 56),
+    );
+    let y = from + 120 + 56;
+    for (const it of [p.subject, p.body]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+    if (p.button) {
+      draw(p.button, PAD_X, y);
+      const ax = PAD_X + Math.round(measure(p.button.lines[0], p.button.font)) + 22;
+      const ay = y + Math.round(p.button.lineHeight / 2);
+      nodes.push({ type: "path", d: `M${ax} ${ay}h30M${ax + 18} ${ay - 12}l12 12l-12 12`, stroke: accent, strokeWidth: 4 });
     }
   } else {
     // news-headline: the photo full bleed, a round badge, the headline in capitals, white and yellow, on a dark fade
