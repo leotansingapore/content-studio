@@ -200,6 +200,10 @@ describe("links", () => {
     expect(links.make({ show: "ready" })).toBe("/make?show=ready");
     expect(links.make({ show: "needs" })).toBe("/make?show=needs");
     expect(links.make({ tab: "static" })).toBe("/make?tab=static");
+    // Blitz opens Configure on configure=1, the value its page reads
+    expect(links.blitz()).toBe("/blitz");
+    expect(links.blitz({ configure: true })).toBe("/blitz?configure=1");
+    expect(links.blitz({ card: "k1", configure: false })).toBe("/blitz?card=k1");
     // the Image page
     expect(links.image()).toBe("/image");
     expect(links.image({ layout: "headline", size: "4x5" })).toBe("/image");
