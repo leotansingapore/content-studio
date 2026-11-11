@@ -242,12 +242,18 @@ describe("the real-time export without the intro card (pinned)", () => {
     expect(sha(out)).toBe(TODAY);
   });
 
-  it("records the same file with introCard off, and with it on for a sign-in that isn't Leo's", async () => {
-    const today = await run(settings);
-    expect(await run({ ...settings, introCard: false })).toEqual(today);
-    expect(await run({ ...settings, introCard: true })).toEqual(today);
-    // Leo's brand art with the switch off
-    expect(await run(settings, { ...brand, intro: true } as BrandArt)).toEqual(today);
+  // one export per test, each against today's pin: four in one test ran past 5 s under load (5.4 and 5.9 s, 12 Nov),
+  // and the export it left running failed every test after it
+  it("records the same file with introCard off", async () => {
+    expect(sha(await run({ ...settings, introCard: false }))).toBe(TODAY);
+  });
+
+  it("records the same file with introCard on for a sign-in that isn't Leo's", async () => {
+    expect(sha(await run({ ...settings, introCard: true }))).toBe(TODAY);
+  });
+
+  it("records the same file for Leo's brand art with the switch off", async () => {
+    expect(sha(await run(settings, { ...brand, intro: true } as BrandArt))).toBe(TODAY);
   });
 
   it("records sound only as today, the intro card never in it", async () => {
