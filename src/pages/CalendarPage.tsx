@@ -1729,10 +1729,11 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
         </div>
+        {/* from sm up, beside the filters; on phones it is not a filter, so it sits under the calendar (below) */}
         <button
           type="button"
           onClick={() => openNote(null)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
+          className="hidden h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:inline-flex sm:h-8 [@media(pointer:coarse)]:h-11"
         >
           <StickyNote className="h-3.5 w-3.5" /> Add note
         </button>
@@ -2440,6 +2441,11 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      {/* phones: Add note's own quiet place, under the calendar it writes on (each day's panel has one too) */}
+      <button type="button" data-add-note-phone onClick={() => openNote(null)} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground sm:hidden">
+        <StickyNote className="h-4 w-4" /> Add note
+      </button>
       <ChannelPostDrawer
         item={openFeed}
         onClose={closeFeed}

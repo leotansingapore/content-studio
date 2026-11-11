@@ -48,7 +48,11 @@ describe("Calendar's first screen on a phone", () => {
     const fold = out.slice(out.indexOf('id="calendar-filters"'));
     expect(fold.indexOf('aria-label="Platform"')).toBeLessThan(fold.indexOf('aria-label="Previous month"'));
     expect(out.indexOf('aria-label="Platform"')).toBeGreaterThan(out.indexOf('id="calendar-filters"'));
-    expect(out.indexOf("Add note")).toBeGreaterThan(out.indexOf('id="calendar-filters"'));
+    // Add note is not a filter: on phones its own quiet button sits outside the fold, and the one in the fold is sm-up only
+    const phone = out.indexOf("data-add-note-phone");
+    expect(phone).toBeGreaterThan(out.indexOf('aria-label="Previous month"'));
+    expect(out).toMatch(/<button type="button" data-add-note-phone[^>]*sm:hidden[^>]*>.*?Add note<\/button>/);
+    expect(out).toMatch(/<button type="button" class="hidden [^"]*sm:inline-flex[^"]*">.*?Add note<\/button>/);
   });
   it("recommends 3 posting times a week", () => {
     expect(SLOT_DEFAULT).toBe(3);
