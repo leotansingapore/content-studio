@@ -3,6 +3,9 @@ import { BUSY_LINE, CHECK_NOTE, DESIGN_TOOLS, EVERYONE_TOOLS, INBOX_PREFIX, LEO_
 import { buildImageBody, jobToken, openJobToken, tokenSecret } from "../ai-image/logic";
 import { MAX_DESIGNS, newDesign, newLayer, sanitizeDesign, type Design, type ImageLayer, type TextLayer } from "../_shared/design";
 import { profilesFrom, reportFacts, sgDay, weekMoves, weekReport } from "../notify/logic";
+// the 370 KB templates file is read on a design tool's first use; read with the file instead, so that isn't inside the
+// first template test, which ran past 5 s under load (12 Nov)
+await import("../_shared/designTemplates.json");
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
 const SECRET = "a".repeat(40) + "b-_";

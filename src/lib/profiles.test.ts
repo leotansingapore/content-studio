@@ -16,6 +16,10 @@ import { isSyncedKeyFor } from "./cloudSync";
 import { loadDrafts, saveDrafts } from "./draftHistory";
 import { isVoiceProfileUsable, loadVoiceProfile, saveVoiceProfile } from "./voiceProfile";
 import { addCoachEntry, loadCoachHistory, type CoachReport } from "./coach";
+// imported with the file, not inside the test: the MCP logic's first import transformed its whole graph there, which ran
+// past 5 s under load (12 Nov)
+import { createLink } from "./claudeConnect";
+import { linkIsLive, linkKey } from "../../supabase/functions/content-studio-mcp/logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -73,8 +77,6 @@ describe("profiles", () => {
   });
 
   it("turns off a Claude link still on when its profile is removed, so a device that still holds it can't bring it back", async () => {
-    const { createLink } = await import("./claudeConnect");
-    const { linkIsLive, linkKey } = await import("../../supabase/functions/content-studio-mcp/logic");
     const ls = (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
     const mb = addProfile(UID, "MoneyBees");
     setActiveProfile(UID, mb.id);
