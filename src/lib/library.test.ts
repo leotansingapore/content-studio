@@ -14,6 +14,7 @@ import {
   aiJobs,
   buildLibrary,
   countBy,
+  draftHref,
   exportJobs,
   filterLibrary,
   formatLibraryJobs,
@@ -408,5 +409,15 @@ describe("links.library", () => {
   it("leaves defaults out", () => {
     expect(links.library()).toBe("/library");
     expect(links.library({ format: "video", status: "ready", q: " cpf ", panel: "making" })).toBe("/library?format=video&status=ready&q=cpf&panel=making");
+  });
+});
+
+describe("where a post opens (the Library card and the Instagram grid)", () => {
+  it("a slideshow opens its slides, a saved carousel its edits, a video its project, else the writer", () => {
+    expect(draftHref({ id: "d1", format: "carousel" }, { id: "s1" })).toBe(links.slideshow({ s: "s1" }));
+    expect(draftHref({ id: "d1", format: "carousel" }, undefined, { id: "d:d1" })).toBe(links.carousel({ carousel: "d:d1" }));
+    expect(draftHref({ id: "video-p1", format: "short-video" })).toBe(links.edit({ p: "p1" }));
+    expect(draftHref({ id: "d1", format: "carousel" })).toBe(links.carousel({ draft: "d1" }));
+    expect(draftHref({ id: "d1", format: "text-post" })).toBe(links.generate({ draft: "d1" }));
   });
 });

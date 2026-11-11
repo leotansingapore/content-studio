@@ -16,6 +16,11 @@ import { DEFAULT_BRAND, loadBrand, loadCarousels, type CarouselBrand, type Saved
 import { layoutSlide, readableOn, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 import { loadProjects, type VideoProject } from "@/lib/videoProjects";
+import { loadSlideshows, type Slideshow } from "@/lib/slideshow";
+import { lookOf } from "@/lib/slideshowDraw";
+import { draftHref } from "@/lib/library";
+import { SlideThumb } from "@/components/slideshow/SlideCanvas";
+import { useFontsReady } from "@/components/library/LibraryThumb";
 
 const dayLabel = (day: string) => new Date(`${day}T00:00:00`).toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short" });
 
@@ -25,6 +30,7 @@ export default function GridPage() {
   const [brand, setBrand] = useState<CarouselBrand>(DEFAULT_BRAND);
   const [carousels, setCarousels] = useState<SavedCarousel[]>([]);
   const [videos, setVideos] = useState<VideoProject[]>([]);
+  const [shows, setShows] = useState<Slideshow[]>([]);
   const measure = useMemo(() => createCanvasMeasure(), []);
 
   useEffect(() => {
@@ -36,10 +42,14 @@ export default function GridPage() {
       setBrand(loadBrand(id) ?? DEFAULT_BRAND);
       setCarousels(loadCarousels(id));
       setVideos(loadProjects(id));
+      setShows(loadSlideshows(id));
     });
   }, []);
 
   const tiles = useMemo(() => gridTiles(drafts), [drafts]);
+  const showOf = (d: DraftEntry) => shows.find((x) => x.draftId === d.id);
+  const looks = useMemo(() => new Map(shows.map((x) => [x.id, lookOf(userId ?? "", x)])), [shows, userId]);
+  const fontsReady = useFontsReady(shows.length > 0);
   const cover = (d: DraftEntry): string | null => {
     if (d.format === "carousel") {
       const c = carousels.find((x) => x.draftId === d.id);
@@ -94,13 +104,17 @@ export default function GridPage() {
           </div>
           <ul className="grid grid-cols-3 gap-0.5 bg-border/60">
             {tiles.map((t) => {
-              const img = cover(t.draft);
-              const to = t.draft.format === "carousel" && carousels.some((c) => c.draftId === t.draft.id) ? `/carousel?draft=${encodeURIComponent(t.draft.id)}` : `/generate?draft=${encodeURIComponent(t.draft.id)}`;
+              const show = showOf(t.draft);
+              const look = show?.slides[0] ? looks.get(show.id) : undefined;
+              const img = look ? null : cover(t.draft);
+              const to = draftHref(t.draft, show, carousels.find((c) => c.draftId === t.draft.id));
               return (
                 <li key={t.draft.id} className="group relative aspect-[3/4] bg-card">
                   <Link to={to} aria-label={`${t.kind === "planned" ? `Planned for ${dayLabel(t.day)}` : "Posted"}: ${t.draft.hook || t.draft.draft}`.slice(0, 140)}
                     className={`block h-full w-full ${t.kind === "posted" ? "opacity-60" : ""}`}>
-                    {img ? (
+                    {show && look ? (
+                      <SlideThumb slide={show.slides[0]} size={show.size} look={look} ready={fontsReady} className="h-full w-full rounded-none object-cover" />
+                    ) : img ? (
                       <img src={img} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <span className="flex h-full w-full items-center p-2 text-[11px] font-semibold leading-snug sm:text-xs"

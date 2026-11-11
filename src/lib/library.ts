@@ -116,16 +116,11 @@ const sourceLine = (s?: RemixSource) => {
   }
 };
 
-function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: DesignDoc, image?: ImageDesign): LibraryItem {
+// a Design's post opens in Design: the carousel maker would rebuild it as text slides
+// an /image design's post opens in Image, where its picture is
+export const draftHref = (d: Pick<DraftEntry, "id" | "format">, show?: Pick<Slideshow, "id">, car?: Pick<SavedCarousel, "id">, design?: Pick<DesignDoc, "id">, image?: Pick<ImageDesign, "id">): string => {
   const pid = d.id.startsWith("video-") ? d.id.slice("video-".length) : null;
-  const format: LibraryFormat = image ? "image" : design || show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
-  const z = d.zernio;
-  const zFailed = z?.status === "failed" || z?.status === "partial";
-  const st = draftStatus(d);
-  const status: LibraryStatus = zFailed ? "failed" : st === "draft" ? "ready" : st;
-  // a Design's post opens in Design: the carousel maker would rebuild it as text slides
-  // an /image design's post opens in Image, where its picture is
-  const href = image
+  return image
     ? links.image({ image: image.id })
     : design
     ? `/design/${design.id}`
@@ -138,6 +133,16 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
         : d.format === "carousel"
           ? links.carousel({ draft: d.id })
           : links.generate({ draft: d.id });
+};
+
+function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: DesignDoc, image?: ImageDesign): LibraryItem {
+  const pid = d.id.startsWith("video-") ? d.id.slice("video-".length) : null;
+  const format: LibraryFormat = image ? "image" : design || show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
+  const z = d.zernio;
+  const zFailed = z?.status === "failed" || z?.status === "partial";
+  const st = draftStatus(d);
+  const status: LibraryStatus = zFailed ? "failed" : st === "draft" ? "ready" : st;
+  const href = draftHref(d, show, car, design, image);
   return {
     key: `d:${d.id}`,
     format,
