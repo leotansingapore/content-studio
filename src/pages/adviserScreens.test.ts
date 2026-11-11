@@ -137,13 +137,15 @@ describe("the diagnosis quiz", () => {
 
   it("drives an adviser brand's next move on Home, and nothing on another brand's", async () => {
     device(ADVISER, A_DRAFT);
-    expect(await loaded(HomePage, "/home")).toContain("Start diagnosis");
+    // the diagnosis is a quiet link beside Home's one filled button (wave 5)
+    expect(await loaded(HomePage, "/home")).toMatch(/href="\/coach">Get your Content Score<\/a>/);
     device(ADVISER, { ...A_DRAFT, ...DIAGNOSED });
     expect(await loaded(HomePage, "/home")).toContain("Your next move");
 
     device(COACH, A_DRAFT);
     const fresh = await loaded(HomePage, "/home");
-    expect(fresh).toContain("Write a post");
+    expect(fresh).toContain("Finish your post");
+    expect(fresh).toContain("Write a new post");
     expect(fresh).not.toContain("Start diagnosis");
     expect(fresh).not.toContain("Content Score");
     device(COACH, { ...A_DRAFT, ...DIAGNOSED });
