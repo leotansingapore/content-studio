@@ -37,6 +37,7 @@ const TODAY = {
   navigate: "function",
   offsetY: 20,
   mobileOffsetY: 88,
+  mobileButton: { top: 6, left: 64 },
   mobileBreakpoint: 1024,
   act: "function",
   intro:

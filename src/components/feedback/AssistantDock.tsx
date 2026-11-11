@@ -103,6 +103,7 @@ export function AssistantDock({
   offsetY = 20,
   offsetX = 20,
   mobileOffsetY,
+  mobileButton,
   mobileBreakpoint = 768,
   label = "Ask",
   act,
@@ -118,6 +119,9 @@ export function AssistantDock({
   offsetX?: number;
   /** Bottom offset below mobileBreakpoint, for apps with a mobile bottom nav. Defaults to offsetY. */
   mobileOffsetY?: number;
+  /** Below mobileBreakpoint, where the closed button sits instead of floating over the page: a slot in the app's
+   *  top bar, so it never covers content. The open panel still rises from the bottom. */
+  mobileButton?: { top: number; left: number };
   /** Width in px under which mobileOffsetY applies. */
   mobileBreakpoint?: number;
   label?: string;
@@ -334,6 +338,7 @@ export function AssistantDock({
   };
 
   const side = position === "bottom-left" ? { left: offsetX } : { right: offsetX };
+  const inBar = narrow && !!mobileButton;
 
   return (
     <>
@@ -342,14 +347,18 @@ export function AssistantDock({
           type="button"
           onClick={() => setOpen(true)}
           aria-label={`Ask the ${appName} assistant`}
-          style={{ position: "fixed", bottom, zIndex: 60, ...side }}
-          className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 sm:w-auto sm:px-4"
+          style={inBar ? { position: "fixed", zIndex: 60, ...mobileButton } : { position: "fixed", bottom, zIndex: 60, ...side }}
+          className={
+            inBar
+              ? "inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+              : "inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 sm:w-auto sm:px-4"
+          }
         >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={inBar ? "h-5 w-5" : "h-4 w-4"} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z" />
           </svg>
           {/* Icon only on phones: the labelled pill covered buttons and fields on every screen. */}
-          <span className="hidden sm:inline">{label}</span>
+          {!inBar && <span className="hidden sm:inline">{label}</span>}
         </button>
       ) : null}
 

@@ -19,6 +19,9 @@ import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "./config";
 
 const AgentDock = lazy(() => import("@/components/agent/AgentDock"));
 
+/** The phone top bar's free slot: right of the logo (16 + 44 wide), centred in the 56 px bar. */
+export const MOBILE_BUTTON = { top: 6, left: 64 };
+
 export function AssistantMount() {
   const navigate = useNavigate();
   const leo = useLeoUser();
@@ -62,6 +65,8 @@ export function AssistantMount() {
       navigate={navigate}
       offsetY={20}
       mobileOffsetY={88}
+      // phones: the button sits in the top bar beside the logo, so it never covers the page (the panel still opens from the bottom)
+      mobileButton={MOBILE_BUTTON}
       mobileBreakpoint={1024}
       act={act}
       intro="Ask how anything works or reach the team. It can also move a post, rewrite one in Write, show last week's numbers or paste text into Reply drafts. Nothing changes until you tap to confirm."
