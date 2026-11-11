@@ -4,9 +4,10 @@ import RealQuestions from "@/components/RealQuestions";
 import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
 import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences";
 import { labelsForNewDraft, loadLabels } from "@/lib/labels";
+import { leftOpenPost } from "@/lib/newPost";
 import { loadPositioning } from "@/lib/positioning";
 import { withQuestion } from "@/lib/sgFeeds";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { COMPARE_TABS, links, WRITE_STEPS, type PostLang } from "@/lib/links";
 import { asPostLang, langOf } from "@/lib/translate";
@@ -855,7 +856,21 @@ const TranslateBar = lazy(() => import("@/components/TranslateBar"));
 const LanguageRow = lazy(() => import("@/components/TranslateBar").then((m) => ({ default: m.LanguageRow })));
 const VersionTabs = lazy(() => import("@/components/TranslateBar").then((m) => ({ default: m.VersionTabs })));
 
-export default function GeneratePage() {
+const GeneratePage = () => {
+  const [searchParams] = useSearchParams();
+  const nav = useNavigationType();
+  const draftParam = searchParams.get("draft");
+  const was = useRef(draftParam);
+  const [fresh, setFresh] = useState(0);
+  useEffect(() => {
+    if (leftOpenPost(was.current, draftParam, nav)) setFresh((n) => n + 1);
+    was.current = draftParam;
+  }, [draftParam, nav]);
+  return <Writer key={fresh} />;
+};
+export default GeneratePage;
+
+function Writer() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

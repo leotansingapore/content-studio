@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NEW_POST, newPostHref } from "./newPost";
+import { leftOpenPost, NEW_POST, newPostHref } from "./newPost";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 afterEach(() => vi.unstubAllGlobals());
@@ -27,5 +27,17 @@ describe("New post", () => {
     vi.stubGlobal("sessionStorage", { getItem: () => { throw new Error("blocked"); } });
     vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
     expect(newPostHref(UID)).toBe(NEW_POST);
+  });
+});
+
+describe("Leaving the open post in Write", () => {
+  it("starts a fresh post when a link opens Write without the post", () => {
+    expect(leftOpenPost("d-1", null, "PUSH")).toBe(true);
+  });
+  it("keeps the post on a replace, Back, another post or no post open", () => {
+    expect(leftOpenPost("d-1", null, "REPLACE")).toBe(false);
+    expect(leftOpenPost("d-1", null, "POP")).toBe(false);
+    expect(leftOpenPost("d-1", "d-2", "PUSH")).toBe(false);
+    expect(leftOpenPost(null, null, "PUSH")).toBe(false);
   });
 });

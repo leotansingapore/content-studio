@@ -14,3 +14,5 @@ export function newPostHref(userId: string | null | undefined): string {
     return NEW_POST; // storage blocked: nothing could have been kept
   }
 }
+
+export const leftOpenPost = (was: string | null, now: string | null, nav: string) => nav === "PUSH" && !!was && !now;
