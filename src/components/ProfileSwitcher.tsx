@@ -1,4 +1,5 @@
 import { deleteBioPage } from "@/lib/bioPage";
+import { pauseBrandCampaigns, stopBrandTelegram } from "@/lib/brandRemoval";
 import { deleteBrandLinks } from "@/lib/trackedLinks";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
@@ -81,6 +82,8 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
     try {
       // its link-in-bio page and tracked links go too (docs/brand-isolation.md)
       setProfiles(await removeProfile(userId, p.id, async (id) => {
+        await stopBrandTelegram(id);
+        await pauseBrandCampaigns(id);
         await deleteBioPage(id);
         await deleteBrandLinks(id);
       }));

@@ -30,7 +30,7 @@ Migration 024 adds `profile_id text not null default 'me'` to tracked links and 
 
 /board shows the open brand only. So does the Calendar since 23 Oct 2026 (Leo: "each business should be isolated"): no All brands view, a ?business= link opens that brand. Team posts sit on their group's brand (Leo, 28 Oct 2026): AdvisorOS on ActivityTracker, FASTRACK and its memo posts on "Leo's team" (teamHome).
 
-Removing a brand takes everything with it: after its social accounts are disconnected as today, its bio page and tracked links are deleted on the server, and only then its synced data and this device's `cs-*` data. If the server part fails, nothing is removed.
+Removing a brand takes everything with it: after its social accounts are disconnected as today, its Telegram chats are disconnected (which cancels their waiting posts) and its own bot is removed, its live slideshow campaigns are paused, its bio page and tracked links are deleted on the server, and only then its synced data and this device's `cs-*` data. If the server part fails, nothing is removed. Its compliance preview links still stay open until they expire.
 
 ## Phase 2: add a brand from its website
 
