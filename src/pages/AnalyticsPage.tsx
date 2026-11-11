@@ -82,7 +82,7 @@ import ScoreCheck from "@/components/analytics/ScoreCheck";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 import { platformName, socialConnectShown } from "@/lib/socialConnect";
 import { auditedHandles, normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
-import { professionFor } from "@/lib/profession";
+import { adviserBrand, professionFor } from "@/lib/profession";
 import type { FollowerSeries } from "@/lib/realNumbers";
 import {
   SOCIAL_PLATFORMS,
@@ -773,6 +773,8 @@ export default function AnalyticsPage() {
     return `Best so far${scope}: ${when}, ${c.rate}% across ${c.count} posts`;
   }, [timeGrid, timePool, timePlatform, timePlatforms]);
 
+  const adviser = adviserBrand(userId);
+
   return (
     <div className="space-y-6">
       <header>
@@ -783,11 +785,12 @@ export default function AnalyticsPage() {
 
       {userId && <ThisWeekCard userId={userId} version={metricsVersion} grade={leoOn ? weekGrade : undefined} />}
 
-      <RecruitNumbers />
+      {/* an adviser's page opens on the recruitment tracker (shown once a recruit kit exists); any other brand opens on its own posts and finds both below */}
+      {adviser && <RecruitNumbers />}
 
       {userId && <AccountAudit accounts={accounts} profession={professionFor(userId)} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
 
-      <CreatorLookup />
+      {adviser && <CreatorLookup />}
 
       {/* Your accounts — register a handle per platform. */}
       <Card className="border-border/60 shadow-card">
@@ -1462,6 +1465,9 @@ export default function AnalyticsPage() {
       )}
 
       {userId && <ScoreCheck userId={userId} drafts={drafts} />}
+      {!adviser && <RecruitNumbers />}
+      {/* its curated list is Singapore finance, but any public handle works */}
+      {!adviser && <CreatorLookup />}
     </div>
   );
 }

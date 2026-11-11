@@ -48,6 +48,7 @@ import StudioPage from "./StudioPage";
 import CreateGuidePage from "./CreateGuidePage";
 import CloneReelPage from "./CloneReelPage";
 import SwipeFilePage from "./SwipeFilePage";
+import AnalyticsPage from "./AnalyticsPage";
 import StockSearch from "@/components/StockSearch";
 import WhoYouWatch from "@/components/competitors/WhoYouWatch";
 import { ADS } from "@/lib/adsSwipe";
@@ -325,5 +326,14 @@ describe("Create guide", () => {
     expect(guide()).toContain("Post it for me");
     expect(guide()).toContain('href="/calendar"');
     expect(guide()).not.toContain("Meta Business Suite");
+  });
+
+  it("open another brand's Analytics on its own accounts and posts, with the creator lookup last", () => {
+    device(ADVISER);
+    const adviser = draw(createElement(AnalyticsPage), "/analytics");
+    expect(adviser.indexOf("Analyze a creator")).toBeLessThan(adviser.indexOf("Your accounts"));
+    device(COACH);
+    const coach = draw(createElement(AnalyticsPage), "/analytics");
+    expect(coach.indexOf("Analyze a creator")).toBeGreaterThan(coach.indexOf("Your accounts"));
   });
 });
