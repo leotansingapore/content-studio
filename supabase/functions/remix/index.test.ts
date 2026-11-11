@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 import LIVE from "./fixtures/phase3-w1-live.json";
 import W2 from "./fixtures/phase3-w2-live.json";
@@ -50,7 +50,9 @@ const openai = { mode: "down" as "down" | "junk" | "drops" | "queue", calls: 0, 
 // Jev: the state and questions each call was sent; answered with `answers` when set, else a 500 (no flags)
 const jev = { states: [] as Record<string, unknown>[], questions: [] as string[][], sent: [] as string[], answers: null as null | Record<string, { noul: number }> };
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout at load 40, and collection has no timeout
+{
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", NORTH_STAR_USERS: UID, OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "k" };
@@ -77,7 +79,7 @@ beforeAll(async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "log").mockImplementation(() => {});
   await import("./index.ts");
-}, 30_000);
+}
 afterAll(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();

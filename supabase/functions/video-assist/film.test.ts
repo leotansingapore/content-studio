@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseFilm, rhythmIssues, sceneStarts, type Film } from "./filmSpec";
 import type * as FilmModule from "./film";
 import LIVE_FILM from "./fixtures/live-p7a-film.json";
@@ -53,7 +53,9 @@ let jev: Record<string, unknown> = {};
 let FILM_BUSINESS_LINES: typeof FilmModule.FILM_BUSINESS_LINES, FILM_MAS_LINES: typeof FilmModule.FILM_MAS_LINES, RECOMMEND_QUESTION: string;
 let filmSystem: typeof FilmModule.filmSystem;
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout at load 40, and collection has no timeout
+{
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
@@ -71,7 +73,7 @@ beforeAll(async () => {
   await import("./index.ts");
   // film.ts reads Deno's env as it loads (openaiChat), so it is imported once Deno is stubbed
   ({ FILM_BUSINESS_LINES, FILM_MAS_LINES, RECOMMEND_QUESTION, filmSystem } = await import("./film"));
-}, 30_000);
+}
 afterAll(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
