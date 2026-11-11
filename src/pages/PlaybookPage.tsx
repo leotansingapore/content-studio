@@ -3,23 +3,29 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
-import {
-  loadPositioning,
-  isPositioningUsable,
-  type Positioning,
-} from "@/lib/positioning";
-import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
-import { loadGoals, withGoalCadence } from "@/lib/goals";
+import { loadPositioning } from "@/lib/positioning";
+import { loadVoiceProfile } from "@/lib/voiceProfile";
+import { brandOverview, completeness } from "@/lib/brandOverview";
+import { loadBrand } from "@/lib/carousel";
+import { loadScriptContext } from "@/lib/scriptContext";
+import { loadMarket } from "@/lib/market";
+import { loadAudiences } from "@/lib/audiences";
+import { loadProducts } from "@/lib/products";
+import { loadCompetitors } from "@/lib/competitors";
+import { demoVideos } from "@/lib/demoVideos";
+import { loadMedia } from "@/lib/mediaLibrary";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { useScrollToHash } from "@/lib/urlState";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
 import {
   Target,
-  Mic,
   Lightbulb,
   Users as UsersIcon,
   CheckCircle2,
+  ChevronRight,
   ArrowRight,
   Bookmark,
 } from "lucide-react";
@@ -29,14 +35,6 @@ type Adv = { id: string; name: string; handle: string };
 
 const INSP = inspirationData as Insp[];
 const ADV = advisorsData as Adv[];
-
-const AUDIENCE_LABEL: Record<string, string> = {
-  "young-adult": "Young adults",
-  "working-adult": "Working adults",
-  parent: "Parents",
-  "pre-retiree": "Pre-retirees",
-  general: "General",
-};
 
 function SectionCard({
   icon: Icon,
@@ -63,8 +61,7 @@ function SectionCard({
 }
 
 export default function PlaybookPage() {
-  const [positioning, setPositioning] = useState<Positioning | null>(null);
-  const [voiceReady, setVoiceReady] = useState(false);
+  const leo = useLeoUser();
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
@@ -80,9 +77,6 @@ export default function PlaybookPage() {
       if (!active) return;
       const id = data.user?.id ?? null;
       if (id) setUser({ id, email: data.user?.email ?? "" });
-      const p = loadPositioning(id);
-      setPositioning(p && withGoalCadence(p, loadGoals(id)));
-      setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setSaved(loadSaved(id));
     })();
     return () => {
@@ -90,7 +84,31 @@ export default function PlaybookPage() {
     };
   }, []);
 
-  const hasPositioning = isPositioningUsable(positioning);
+  // read on each draw: these stores change on other pages, and this page only shows them
+  const uid = user?.id ?? null;
+  const isLeo = !!leo && !!uid;
+  // /playbook#look lands on that group once the sign-in is known (docs/deep-links.md)
+  useScrollToHash(!!uid);
+  const groups = brandOverview({
+    leo: isLeo,
+    kit: loadBrand(uid),
+    positioning: loadPositioning(uid),
+    voice: loadVoiceProfile(uid),
+    ...(isLeo && uid
+      ? {
+        proof: loadScriptContext(uid).product.proof,
+        marketName: loadMarket(uid).name,
+        audiences: loadAudiences(uid),
+        products: loadProducts(uid).items,
+        competitors: loadCompetitors(uid).list,
+        demos: demoVideos(uid).length,
+        media: loadMedia(uid, { videos: true }).length,
+      }
+      : {}),
+  });
+  const done = completeness(groups);
+  const next = done.missing[0];
+  const name = groups[0].rows[0].value;
   const savedInsp = saved.inspiration
     .map((id) => INSP.find((e) => e.id === id))
     .filter(Boolean) as Insp[];
@@ -106,99 +124,85 @@ export default function PlaybookPage() {
         </h1>
       </header>
 
-      {/* Positioning */}
-      <SectionCard
-        icon={Target}
-        title="Your positioning"
-        action={
-          <Button asChild variant="ghost" size="sm" className="gap-1 text-xs [@media(pointer:coarse)]:h-11">
-            <Link to="/plan">{hasPositioning ? "Edit" : "Set it up"}</Link>
-          </Button>
-        }
-      >
-        {hasPositioning && positioning ? (
-          <div className="space-y-3">
-            {positioning.oneLiner && (
-              <p className="font-serif text-lg leading-snug text-foreground">
-                &ldquo;{positioning.oneLiner}&rdquo;
-              </p>
-            )}
-            <div className="flex flex-wrap gap-1.5">
-              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                {AUDIENCE_LABEL[positioning.audience] ?? positioning.audience}
-              </span>
-              {positioning.audienceDetail && (
-                <span className="rounded-full border border-border/60 bg-muted/40 px-2.5 py-0.5 text-xs text-muted-foreground">
-                  {positioning.audienceDetail}
-                </span>
-              )}
-              <span className="rounded-full border border-border/60 bg-muted/40 px-2.5 py-0.5 text-xs text-muted-foreground">
-                {positioning.cadence} posts/week
-              </span>
-            </div>
-            {positioning.topics.length > 0 && (
-              <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Topics you teach
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {positioning.topics.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-md border border-border/60 bg-background px-2 py-0.5 text-xs text-foreground"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {positioning.edge && (
-              <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Your edge
-                </p>
-                <p className="text-sm text-foreground/90">{positioning.edge}</p>
-              </div>
+      {/* What the AI knows: one row per fact, each opening the place that edits it */}
+      <section aria-labelledby="known-title" className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <h2 id="known-title" className="font-serif text-lg font-semibold">
+              What the AI knows about {name || "your brand"}
+            </h2>
+            {next && (
+              <Button asChild size="sm" className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 [@media(pointer:coarse)]:h-11">
+                <Link to={next.to}>
+                  Next: {next.add} <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             )}
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            You haven't set your positioning yet. Define who you serve and your
-            edge in{" "}
-            <Link to="/plan" className="font-semibold text-primary hover:underline">
-              Plan
-            </Link>
-            . It makes every draft sharper.
-          </p>
-        )}
-      </SectionCard>
-
-      {/* Voice */}
-      <SectionCard
-        icon={Mic}
-        title="Your voice"
-        action={
-          <Button asChild variant="ghost" size="sm" className="gap-1 text-xs [@media(pointer:coarse)]:h-11">
-            <Link to="/voice">{voiceReady ? "Edit" : "Set it up"}</Link>
-          </Button>
-        }
-      >
-        {voiceReady ? (
-          <p className="flex items-center gap-2 text-sm text-foreground">
-            <CheckCircle2 className="h-4 w-4 text-success" /> Your voice profile
-            is active.
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No voice profile yet. Paste a few past posts in{" "}
-            <Link to="/voice" className="font-semibold text-primary hover:underline">
-              Voice
-            </Link>{" "}
-            so drafts sound like you, not generic AI.
-          </p>
-        )}
-      </SectionCard>
+          <div className="flex items-center gap-3">
+            <div
+              role="progressbar"
+              aria-label="Brand facts on file"
+              aria-valuemin={0}
+              aria-valuemax={done.total}
+              aria-valuenow={done.set}
+              className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+            >
+              <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${(done.set / Math.max(1, done.total)) * 100}%` }} />
+            </div>
+            <p className="shrink-0 text-xs tabular-nums text-muted-foreground" data-testid="known-count">
+              {done.missing.length ? `${done.set} of ${done.total} on file` : (
+                <span className="inline-flex items-center gap-1 font-medium text-success">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> All {done.total} on file
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {groups.map((g) => (
+            <Card key={g.id} id={g.id} className="min-w-0 scroll-mt-20 border-border/60 shadow-card">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{g.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                <ul>
+                  {g.rows.map((r) => (
+                    <li key={r.id}>
+                      <Link
+                        to={r.to}
+                        className="group flex min-h-11 items-start gap-3 rounded-md px-3 py-2 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="w-28 shrink-0 pt-0.5 text-xs text-muted-foreground sm:w-36">{r.label}</span>
+                        <span className="min-w-0 flex-1 text-sm">
+                          {r.swatches?.length ? (
+                            <span className="flex flex-wrap gap-1.5 pt-0.5">
+                              {r.swatches.map((hex, k) => (
+                                <span key={k} title={hex} className="h-5 w-5 rounded-full border border-border/60" style={{ backgroundColor: hex }} />
+                              ))}
+                            </span>
+                          ) : r.chips?.length ? (
+                            <span className="flex flex-wrap gap-1.5">
+                              {r.chips.map((c) => (
+                                <span key={c} className="max-w-full truncate rounded-md border border-border/60 bg-background px-2 py-0.5 text-xs text-foreground">{c}</span>
+                              ))}
+                            </span>
+                          ) : r.value ? (
+                            <span className="line-clamp-2 break-words text-foreground">{r.value}</span>
+                          ) : (
+                            <span className="font-medium text-primary group-hover:underline">{r.add}</span>
+                          )}
+                        </span>
+                        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       {/* Saved: Inspiration and Creators are an adviser brand's libraries; another brand sees only what it saved before */}
       {(adviserBrand(user?.id) || savedInsp.length + savedAdv.length > 0) && <div className="grid gap-4 md:grid-cols-2">
@@ -259,7 +263,7 @@ export default function PlaybookPage() {
       </div>}
 
       <div className="flex flex-wrap gap-2">
-        <Button asChild className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95">
+        <Button asChild variant={next ? "outline" : "default"} className={next ? "gap-1.5" : "gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"}>
           <Link to="/generate">
             Write a post <ArrowRight className="h-4 w-4" />
           </Link>
