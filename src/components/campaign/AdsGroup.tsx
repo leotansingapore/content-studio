@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Loader2, Pencil, Shuffle, Undo2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Pencil, RefreshCw, Shuffle, Undo2, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
@@ -14,7 +14,8 @@ import { LAUNCHES_CHANGED, loadLaunches } from "@/lib/adlauncher";
 import { useUsesLeft } from "@/lib/aiUsage";
 import type { MakeOutcome } from "@/lib/campaignActions";
 import {
-  adCounts, adViews, editAdLink, groupTitle, handOff, layoutMix, makeAd, notTaken, sendBlock, sendPlan, skipAd, swapAdLayout, type AdView,
+  adCounts, adViews, editAdLink, groupTitle, layoutMix, makeAd, handOff, notTaken, redrawAd, sendBlock, sendPlan, skipAd, swapAdLayout,
+  type AdView,
 } from "@/lib/campaignAds";
 import type { Campaign } from "@/lib/campaigns";
 import { usd } from "@/lib/campaignWizard";
@@ -23,7 +24,8 @@ import { renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 import { getFile } from "@/lib/deviceFiles";
 import { LAYOUT_LABELS, layoutImage } from "@/lib/imageLayout";
-import { HEADSHOT, imageWrite, imageWriteBusy, loadImages, MAX_IMAGES, onImagesChanged, onImageWrite } from "@/lib/images";
+import { HEADSHOT, imageWrite, imageWriteBusy, loadImages, MAX_IMAGES, onImagesChanged, onImageWrite, swipePicture, type SavedImage } from "@/lib/images";
+import { resolveSource } from "@/lib/resolveSource";
 import { useUrlState } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +79,7 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
   const files = useFiles([...new Set(views.flatMap((v) => (v.state === "made" && v.design?.pictureKey && v.design.pictureKey !== HEADSHOT ? [v.design.pictureKey] : [])))]);
   const photoOf = (key: string | undefined) => (key === HEADSHOT ? brand.photo : key ? files[key] : undefined) || undefined;
   const drawKey = views.map((v) => (v.state === "made" ? `${v.design?.id}${v.design?.updatedAt}${photoOf(v.design?.pictureKey)?.length ?? 0}` : "")).join();
+  const drawn = (d: SavedImage) => layoutImage({ layout: d.layout, words: d.words, brand, font: d.font, paper: d.paper, align: d.align, picture: photoOf(d.pictureKey) }, d.size, measure);
   const pictures = useMemo(
     () =>
       Object.fromEntries(
@@ -84,7 +87,7 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
           const d = v.design;
           if (v.state !== "made" || !d) return [];
           try {
-            return [[v.ad.n, svgDataUrl(renderSvg(layoutImage({ layout: d.layout, words: d.words, brand, font: d.font, paper: d.paper, align: d.align, picture: photoOf(d.pictureKey) }, d.size, measure)))]];
+            return [[v.ad.n, svgDataUrl(renderSvg(drawn(d)))]];
           } catch {
             return [];
           }
@@ -92,6 +95,12 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
       ) as Record<number, string>,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [drawKey, brand, measure],
+  );
+
+  // a draft that remixes a swipe ad shows the original it starts from (a competitor's own Meta link expires, so those show their name only)
+  const originals = useMemo(
+    () => Object.fromEntries((c.ads ?? []).flatMap((a) => { const src = a.source ? swipePicture(resolveSource(a.source.key, userId)) : null; return src ? [[a.n, src]] : []; })) as Record<number, string>,
+    [c.ads, userId],
   );
 
   if (!views.length) return null;
@@ -108,19 +117,22 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
 
   const tile = (v: AdView) => {
     const pic = pictures[v.ad.n];
+    const original = pic ? undefined : originals[v.ad.n];
     const angle = c.angles.find((a) => a.id === v.ad.angleId);
     return (
       <li key={v.ad.n} className={cn("flex min-w-0 flex-col gap-2", v.state === "skipped" && "opacity-60")}>
         <div className={cn("relative aspect-[4/5] overflow-hidden rounded-lg border bg-muted/30", pic ? "border-border/60" : "border-dashed border-border")}>
           {pic ? (
-            <img src={pic} alt={`Ad ${v.ad.n}`} className="h-full w-full object-cover" />
+            <img src={pic} alt={`Ad ${v.ad.n}, ${LAYOUT_LABELS[v.layout]}`} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full flex-col justify-end gap-1 p-3 pt-10 text-xs">
-              <p className="line-clamp-3 font-medium text-foreground [overflow-wrap:anywhere]">{angle?.title}</p>
-              {v.ad.source && <p className="line-clamp-2 text-muted-foreground [overflow-wrap:anywhere]">Remixes {v.ad.source.label}</p>}
-            </div>
+            <>
+              {original && <img src={original} alt={`The original ad from ${v.ad.source?.label}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-45" />}
+              <div className="relative flex h-full flex-col justify-end gap-1 bg-gradient-to-t from-background/90 via-background/40 to-transparent p-3 pt-10 text-xs">
+                <p className="line-clamp-3 font-medium text-foreground [overflow-wrap:anywhere]">{angle?.title}</p>
+                {v.ad.source && <p className="line-clamp-2 text-muted-foreground [overflow-wrap:anywhere]">{original ? "Original: " : "Remixes "}{v.ad.source.label}</p>}
+              </div>
+            </>
           )}
-          <span className={cn(CHIP, "absolute left-2 top-2")}>Ad {v.ad.n}</span>
           {v.state !== "made" && (
             <span className={cn(CHIP, "absolute right-2 top-2 font-medium text-muted-foreground")}>
               {v.state === "making" ? "Making" : v.state === "skipped" ? "Skipped" : "Draft"}
@@ -128,9 +140,10 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
           )}
         </div>
         <div>
-          <p className={HEAD}>Layout</p>
+          {/* under the picture, never over it: a chip on a made ad hid its first words */}
+          <p className={HEAD}>Ad {v.ad.n}</p>
           <p className="text-sm font-medium">{LAYOUT_LABELS[v.layout]}</p>
-          {v.state === "draft" && v.ad.error && <p className="text-xs text-destructive [overflow-wrap:anywhere]">{v.ad.error}</p>}
+          {v.state !== "making" && v.ad.error && <p className="text-xs text-destructive [overflow-wrap:anywhere]">{v.ad.error}</p>}
           {v.state === "draft" && v.gone && <p className="text-xs text-muted-foreground">Its design dropped out of Your images.</p>}
         </div>
         <div className="mt-auto space-y-1">
@@ -138,13 +151,18 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
             // outline, so Send the ads stays the one strong button on the group
             <Button variant="outline" className="h-11 w-full sm:h-9" onClick={() => void makeAd(userId, c.id, v.ad.n).then(done)}>Make</Button>
           )}
+          {v.state === "made" && (
+            <Button variant="ghost" className="h-11 w-full gap-1.5 text-muted-foreground sm:h-9" disabled={busy} onClick={() => void redrawAd(userId, c.id, v.ad.n).then(done)}>
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Redraw
+            </Button>
+          )}
           {v.state === "making" && (
             <Button className="h-11 w-full gap-1.5 sm:h-9" disabled>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Making
             </Button>
           )}
           <div className="flex justify-between gap-1">
-            <Button variant="ghost" size="icon" className={ICON} aria-label={`Swap Ad ${v.ad.n}'s layout`} title="Swap layout"
+            <Button variant="ghost" size="icon" className={ICON} aria-label={`Swap Ad ${v.ad.n}'s layout`} title={v.state === "made" ? "A made ad's layout changes in Edit" : "Swap layout"}
               disabled={v.state === "made" || v.state === "making"} onClick={() => done(swapAdLayout(userId, c.id, v.ad.n))}>
               <Shuffle className="h-4 w-4" />
             </Button>
@@ -198,7 +216,7 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
       {open && (
         <div id="ads-grid" className="space-y-3 border-t border-border/60 pt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className={HEAD}>Each Make</p>
+            <p className={HEAD}>Each Make or Redraw</p>
             <PriceChip feature="remix-make" left={usesLeft("remix-make")} />
           </div>
           {k.drafts > 0 && designs.length >= MAX_IMAGES && (
