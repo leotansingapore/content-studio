@@ -1,7 +1,7 @@
 // The open section's pages as a tab row at the top of every page, after Fastlane (docs/fastlane-nav-gap.md), with the
 // open group's pages as chips under it. The shell renders it once, above the page. Routes stay intact (deep links,
 // query params keep working).
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { sectionTabs, type Tab } from "@/lib/nav";
@@ -21,9 +21,22 @@ const chipClass = (active: boolean) =>
 export const revealBy = (row: { left: number; right: number }, tab: { left: number; right: number }, pad = 24) =>
   tab.right > row.right ? tab.right - row.right + pad : tab.left < row.left ? tab.left - row.left - pad : 0;
 
+/**
+ * The fade on a scrolling row's edges: a phone shows the first few tabs only, and a tab fading out says more follow
+ * that way. Nothing when the row fits, and no fade on a side with nothing past it.
+ */
+export function edgeFade(scrollLeft: number, clientWidth: number, scrollWidth: number, px = 28): string | undefined {
+  const left = scrollLeft > 1;
+  const right = scrollLeft + clientWidth < scrollWidth - 1;
+  if (!left && !right) return undefined;
+  return `linear-gradient(to right, ${left ? "transparent" : "#000"}, #000 ${px}px, #000 calc(100% - ${px}px), ${right ? "transparent" : "#000"})`;
+}
+
 function Row({ tabs, cls }: { tabs: Tab[]; cls: (active: boolean) => string }) {
   const row = useRef<HTMLDivElement>(null);
   const open = tabs.find((t) => t.active)?.to;
+  const [fade, setFade] = useState<string>();
+  const measure = () => row.current && setFade(edgeFade(row.current.scrollLeft, row.current.clientWidth, row.current.scrollWidth));
   // a phone shows the first few tabs only: scroll the row (never the page) so the page you are on is not cut off, and
   // again once the web font is in, since it widens the tabs
   useLayoutEffect(() => {
@@ -32,10 +45,13 @@ function Row({ tabs, cls }: { tabs: Tab[]; cls: (active: boolean) => string }) {
       if (row.current && tab) row.current.scrollLeft += revealBy(row.current.getBoundingClientRect(), tab.getBoundingClientRect());
     };
     reveal();
-    void document.fonts?.ready.then(reveal);
-  }, [open]);
+    measure();
+    void document.fonts?.ready.then(() => (reveal(), measure()));
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open, tabs.length]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={row} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+    <div ref={row} onScroll={measure} style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
       {tabs.map((t) => (
         <Link key={t.to} to={t.to} aria-current={t.active ? "page" : undefined} className={cls(t.active)}>
           {t.label}
