@@ -587,7 +587,7 @@ export default function DraftsPage() {
     if (!gone) return;
     toast({
       title: "Draft deleted",
-      description: `Removed from your history.${held ? " Zernio won't post it." : ""}`,
+      description: `Removed from your history.${held ? " Cancelling the auto-post." : ""}`,
       action: (
         <ToastAction
           altText="Undo"

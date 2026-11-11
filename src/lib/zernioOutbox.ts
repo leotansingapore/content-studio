@@ -40,6 +40,8 @@ const changeable = (d: Pick<DraftEntry, "zernio">, gone: string[]) => zernioHold
 /** The moment a draft's time names, as Zernio takes it, in the zone its post was scheduled in; a day with no time goes out at 9:00 there. */
 const zernioAt = (scheduledFor: string, tz?: string) => zernioTime(scheduledFor, undefined, tz) ?? zernioTime(scheduledFor.slice(0, 10), "09:00", tz)!;
 
+export const tooSoon = (d: DraftEntry, next: string, now = Date.now()) => zernioHolds(d) && Date.parse(zernioAt(next, d.zernio!.tz)) < now + 60_000;
+
 const opId = () => `o-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6).padEnd(4, "0")}`;
 const titleOf = (d: DraftEntry) => (d.hook || d.pillarDetail || "Untitled post").replace(/\s+/g, " ").trim().slice(0, 120);
 

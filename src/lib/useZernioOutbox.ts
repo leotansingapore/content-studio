@@ -131,6 +131,12 @@ export async function sendOutbox(userId: string, now: () => number = Date.now): 
         if (op.tries >= MAX_TRIES) {
           const d = loadDrafts(userId).find((x) => x.zernio?.postId === op.postId);
           log(userId, d, `${noun(op.title)} could not be ${op.op === "move" ? "moved" : "cancelled"} on Zernio`, op.error);
+          const at = d?.zernio?.at;
+          toast({
+            title: `${noun(op.title)} could not be ${op.op === "move" ? "moved" : "cancelled"} on Zernio`,
+            description: `It still goes out ${at ? zoneLabel(at, d?.zernio?.tz) : "at its old time"}. Retry it under Needs you on the Calendar.${op.error ? ` ${op.error}` : ""}`,
+            variant: "destructive",
+          });
         }
       }
       draftsChanged(); // open pages read the drafts again: new times, links gone, cards back where Zernio holds them
@@ -199,7 +205,8 @@ export function outboxRows(drafts: DraftEntry[], box: Outbox, titleOf: (d: Draft
     if (op.tries < MAX_TRIES) continue;
     const d = drafts.find((x) => x.zernio?.postId === op.postId) ?? null;
     const at = d?.zernio?.at;
-    rows.push({ kind: "stuck", key: `s-${op.id}`, text: `Still on the old time: "${d ? titleOf(d) : op.title}" ${at ? `goes out ${zoneLabel(at, d?.zernio?.tz)}` : "still goes out"}`, op, draft: d });
+    const when = at ? `goes out ${zoneLabel(at, d?.zernio?.tz)}` : "still goes out";
+    rows.push({ kind: "stuck", key: `s-${op.id}`, text: op.op === "cancel" ? `Not cancelled: "${d ? titleOf(d) : op.title}" ${at ? `still ${when}` : when}` : `Still on the old time: "${d ? titleOf(d) : op.title}" ${when}`, op, draft: d });
   }
   return rows;
 }

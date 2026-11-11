@@ -396,7 +396,7 @@ export default function BoardPage() {
       toast({
         title: `Moved to ${BOARD_COLUMNS.find((c) => c.key === col)?.label}`,
         description:
-          was === "posted" ? "No longer marked posted." : `Its date is cleared.${zernioHolds(draft) ? " Zernio won't post it." : ""}`,
+          was === "posted" ? "No longer marked posted." : `Its date is cleared.${zernioHolds(draft) ? " Cancelling the auto-post." : ""}`,
         action: (
           <ToastAction altText="Undo" onClick={() => setDrafts(undoTo(userId, draft))}>
             Undo

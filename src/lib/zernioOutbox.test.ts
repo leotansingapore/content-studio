@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MAX_TRIES, heldOn, loadOutbox, onOutbox, queueCancel, runOutbox, saveOutbox, settleOutbox, zernioHolds, zernioOps, type Outbox, type OutboxOp } from "./zernioOutbox";
+import { MAX_TRIES, heldOn, loadOutbox, onOutbox, queueCancel, runOutbox, saveOutbox, settleOutbox, tooSoon, zernioHolds, zernioOps, type Outbox, type OutboxOp } from "./zernioOutbox";
 import type { DraftEntry } from "./draftHistory";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -90,6 +90,19 @@ describe("heldOn", () => {
     expect(heldOn(drafts, "tiktok")).toEqual(["Budget 2027", "Two networks"]);
     expect(heldOn(drafts, "linkedin")).toEqual(["Two networks", "LinkedIn only"]);
     expect(heldOn(drafts, "youtube")).toEqual([]);
+  });
+});
+
+describe("tooSoon", () => {
+  it("is true for a held post moved to under a minute from now, in the zone it was scheduled in", () => {
+    const now = Date.parse("2026-10-15T01:00:00.000Z");
+    expect(tooSoon(held(), "2026-10-15T08:30", now)).toBe(true);
+    expect(tooSoon(held(), "2026-10-15T09:00", now)).toBe(true);
+    expect(tooSoon(held(), "2026-10-15T09:02", now)).toBe(false);
+    expect(tooSoon(held(), "2026-10-15", now)).toBe(true);
+    expect(tooSoon(post({ status: "scheduled" }), "2026-10-15T08:30", now)).toBe(false);
+    const ny = held({ zernio: { key: "k", postId: POST_ID, status: "scheduled", tz: "America/New_York" } });
+    expect(tooSoon(ny, "2026-10-15T08:30", now)).toBe(false);
   });
 });
 

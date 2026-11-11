@@ -36,7 +36,7 @@ import { FORMAT_NAME } from "@/lib/campaignWizard";
 import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate, withParam } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { queueCancel, zernioHolds } from "@/lib/zernioOutbox";
+import { queueCancel, tooSoon, zernioHolds } from "@/lib/zernioOutbox";
 import { outboxRows, retryFailed, retryOp, undoTo, updating, useOutbox, type NeedsRow } from "@/lib/useZernioOutbox";
 import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
@@ -524,7 +524,7 @@ export default function CalendarPage() {
   );
   const handDue = useMemo(() => dueByHand(reels.filter((r) => showsBiz(r.business)), todayKey), [reels, bizOn, todayKey]);
   // Leo's auto-post rows under those: didn't post, still on the old time, finish in TikTok
-  const autoRows = useMemo(() => (leo ? outboxRows(drafts, box, titleOf) : []), [leo, drafts, box]);
+  const autoRows = useMemo(() => (leo ? outboxRows(drafts, box, titleOf) : socialConnectShown() ? outboxRows(drafts, box, titleOf).filter((r) => r.kind === "stuck") : []), [leo, drafts, box]);
   const needsYouShown = teamToApprove.length > 0 || handDue.length > 0 || waitingGroups.length > 0 || autoRows.length > 0;
   // /calendar#needs-you: bring the section into view once it has loaded, as #overdue does
   useEffect(() => {
@@ -645,6 +645,10 @@ export default function CalendarPage() {
     if (!userId || next.slice(0, 10) < todayKey) return;
     const prev = drafts.find((d) => d.id === id);
     if (!prev || draftStatus(prev) === "posted") return;
+    if (tooSoon(prev, next)) {
+      toast({ title: "That time has passed for the auto-post", description: "Pick a time at least a minute from now.", variant: "destructive" });
+      return;
+    }
     const wasScheduled = draftStatus(prev) === "scheduled";
     if (
       wasScheduled &&
@@ -887,7 +891,7 @@ export default function CalendarPage() {
     if (!userId) return;
     setDrafts(setDraftStatus(userId, d.id, "draft"));
     closePost();
-    toast({ title: "Back in drafts", description: `It waits in Unscheduled drafts.${zernioHolds(d) ? " Zernio won't post it." : ""}`, action: undoAction(d) });
+    toast({ title: "Back in drafts", description: `It waits in Unscheduled drafts.${zernioHolds(d) ? " Cancelling the auto-post." : ""}`, action: undoAction(d) });
   };
 
   // A post marked posted by mistake: back to Scheduled on its day, time and repeat (or to drafts if it never had a

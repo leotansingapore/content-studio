@@ -189,6 +189,12 @@ describe("sendOutbox", () => {
     const [stopped] = loadOutbox(UID).ops;
     expect(stopped).toMatchObject({ tries: MAX_TRIES, error: "Couldn't move it on Zernio. Try again in a minute." });
     expect(updating(loadOutbox(UID), draftOf(id)!)).toBe(false);
+    expect(calls.toast).toHaveBeenCalledTimes(1);
+    expect(calls.toast.mock.calls[0][0]).toMatchObject({
+      title: '"Budget 2027" could not be moved on Zernio',
+      description: expect.stringMatching(/^It still goes out Thu,? 15 Oct,? 9:00\s?am SGT\. Retry it under Needs you on the Calendar\. Couldn't move it on Zernio\. Try again in a minute\.$/i),
+      variant: "destructive",
+    });
     calls.fn.mockReset().mockResolvedValueOnce(view(id, "2026-10-16T11:30:00.000Z"));
     retryOp(UID, stopped);
     await sendOutbox(UID, now);
@@ -323,7 +329,7 @@ describe("outboxRows", () => {
     expect(rows.map((r) => [r.kind, r.text])).toEqual([
       ["inbox", 'Finish in TikTok: "5 signs" is in your TikTok inbox'],
       ["stuck", expect.stringMatching(/^Still on the old time: "Budget 2027" goes out Thu,? 15 Oct,? 9:00\s?am SGT$/i)],
-      ["stuck", 'Still on the old time: "Old one" still goes out'],
+      ["stuck", 'Not cancelled: "Old one" still goes out'],
     ]);
     expect(outboxRows([{ ...inbox, status: "posted" }], { ops: [], gone: [] }, titleOf)).toEqual([]);
   });
