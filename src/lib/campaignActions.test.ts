@@ -262,6 +262,46 @@ describe("makePost, a slideshow", () => {
   });
 });
 
+describe("naming the business (Settings > Post choices)", () => {
+  const posts = () => [
+    post(4, { format: "slideshow", brief: "Room type", body: undefined }),
+    post(5, { format: "wall", brief: "Same day", body: undefined }),
+    post(6, { format: "ai-video", script: SCRIPT, body: undefined }),
+  ];
+  const mentions = async () => {
+    startSlideshow.mockClear();
+    startWall.mockClear();
+    startTalk.mockClear();
+    await act.makePost(UID, "c-1", 4, NOW);
+    // the wall and the video are made once their runs fail here, so the next round's makers are free
+    const runs = [act.makePost(UID, "c-1", 5, NOW), act.makePost(UID, "c-1", 6, NOW)];
+    await tick();
+    fake.wall.patch({ state: "failed" });
+    fake.talk.patch({ state: "failed" });
+    await Promise.all(runs);
+    fake.wall.reset();
+    fake.talk.reset();
+    return [startSlideshow, startWall, startTalk].map((f) => f.mock.calls[0]?.[1].mention);
+  };
+
+  it("a slideshow, a wall of text and an AI video name it on Always, never on Never, and by this make's flip on Sometimes", async () => {
+    seed(posts());
+    expect(await mentions()).toEqual([true, true, true]);
+    local.setItem(`content-studio-post-choices-${UID}`, JSON.stringify({ mention: "never" }));
+    seed(posts());
+    expect(await mentions()).toEqual([false, false, false]);
+    local.setItem(`content-studio-post-choices-${UID}`, JSON.stringify({ mention: "sometimes" }));
+    const flip = vi.spyOn(Math, "random");
+    flip.mockReturnValue(0.9);
+    seed(posts());
+    expect(await mentions()).toEqual([false, false, false]);
+    flip.mockReturnValue(0.1);
+    seed(posts());
+    expect(await mentions()).toEqual([true, true, true]);
+    flip.mockRestore();
+  });
+});
+
 describe("makePost, a wall of text", () => {
   it("schedules a short-video draft first, then starts the wall with its draftId, and is made once the editor has it", async () => {
     seed([post(5, { format: "wall", hook: "Nobody reads your follow-up", brief: "Write it the same day", body: undefined })]);

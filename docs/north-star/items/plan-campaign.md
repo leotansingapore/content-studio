@@ -229,9 +229,18 @@ i on angle i mod n, its layout from `adLayoutFor(i)` and, while they last, a com
 (`runningAdSources`: `content-studio-competitor-ads-`, active ads only, one rival after another, pictures first, the
 longest running first). Ads only has no posts; changing its length in Configure lays out none.
 
-**The seam for the static formats:** `adLayoutFor` in `src/lib/campaigns.ts` is the one place an ad's layout is chosen.
-Today it takes /image's headline ad, quote card and stat card in turn (`AD_LAYOUTS`, which Swap layout also cycles). Once
-`src/data/staticFormats.ts` can be made from here, choose among those formats there and widen `CampaignAdLayout`.
+**The seam and the static formats (11 Nov, second pass):** `adLayoutFor` in `src/lib/campaigns.ts` is still the one
+place an ad's layout is chosen. It takes the brand's list, `adLayouts`, in turn: headline ad, quote card, every ready
+static format in `src/data/staticFormats.ts` in the registry's order, then stat card. A format with `needs: "photo"` is
+in the list only when the brand has a product photo (`adBits`, read as the static format page reads it), and the
+tear-off flyer only when a product has a price. A campaign's 10 ads are 10 different layouts, the brand's next campaign
+goes on from where the last stopped, and the stat card (it needs a typed number) comes up once every two rounds of the
+others. Swap layout cycles the same list, and labels are the registry's names. Make starts the design the way a format's
+own page does (the product photo when the format shows one, the price on a flyer) and runs `startImageWrite` with that
+layout, the write /image runs for it. A format whose photo is missing can't open Run as an ad until one is added in Edit.
+
+Naming the business: the ad makes, and a campaign post's slideshow, wall of text and AI video, read Settings > Post
+choices (`mentionFor`): Always, Never, or one flip per make on Sometimes.
 
 The ads group (`src/lib/campaignAds.ts`, `src/components/campaign/AdsGroup.tsx`), first on the campaign page:
 

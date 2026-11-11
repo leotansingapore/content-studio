@@ -23,6 +23,7 @@ import { deleteDraft, draftsChanged, pushedOut, upsertDraft, type DraftEntry } f
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { links } from "@/lib/links";
 import { findWords } from "@/lib/platformCounters";
+import { mentionFor } from "@/lib/postChoices";
 import { loadRemixPrefs } from "@/lib/remixBrand";
 import { loadSlideshows, MAX_SHOWS, saveSlideshow, slideshowToDraft } from "@/lib/slideshow";
 import { slideshowBusy, slideshowJob, startSlideshow, FINISH_FAILED as SHOW_FAILED } from "@/lib/slideshowJob";
@@ -195,7 +196,7 @@ async function makeShow(userId: string, c: Campaign, p: CampaignPost, now: Date)
   busy(k, "slideshow");
   const run = startSlideshow(
     userId,
-    { source: null, topic: p.hook ?? "", note: p.brief ?? "", mention: true, size: c.platforms[0] === "tiktok" ? "9x16" : "4x5", pictures: c.pictures },
+    { source: null, topic: p.hook ?? "", note: p.brief ?? "", mention: mentionFor(userId), size: c.platforms[0] === "tiktok" ? "9x16" : "4x5", pictures: c.pictures },
     { used: campaignPictures(userId, c), start: p.n },
   );
   const id = slideshowJob()?.id;
@@ -252,7 +253,7 @@ async function makeWall(userId: string, c: Campaign, p: CampaignPost, now: Date)
       // the words and caption the wall maker wrote, which the queue shows in place of the hook and brief (live-p5dog D8)
       resolve(settle(userId, c, p, d.id, done, (j?.id === id && j.error) || WALL_FAILED, "wall of text", done ? j?.written : undefined));
     }, "wall");
-    void startWall(userId, { source: null, about: p.hook ?? "", note: p.brief ?? "", mention: true, bg: "stock", draftId: d.id });
+    void startWall(userId, { source: null, about: p.hook ?? "", note: p.brief ?? "", mention: mentionFor(userId), bg: "stock", draftId: d.id });
     const j = wallJob("wall");
     if (j?.ask.draftId === d.id) id = j.id;
     else {
@@ -356,7 +357,7 @@ async function makeVideo(userId: string, c: Campaign, p: CampaignPost, now: Date
     // the post's own caption and call to action go to the editor with it (live-p5dog D3); the price check stops only
     // above the card's estimate (videoPriceOf), not a 15 s video's
     void startTalk(userId, {
-      source: null, text: script, who, photo: null, look: "", setting: "office", voice, length: 15, mention: true, caption: videoCaption(p), draftId: d.id,
+      source: null, text: script, who, photo: null, look: "", setting: "office", voice, length: 15, mention: mentionFor(userId), caption: videoCaption(p), draftId: d.id,
       quoted: scriptEstimate(wordCount(script), voice).usd,
     });
     return talkJob()?.ask?.draftId === d.id;

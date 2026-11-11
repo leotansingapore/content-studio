@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  AD_COUNT, adLayoutFor, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
+  AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
   planAds, planCampaign, type PostState, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
@@ -418,8 +418,15 @@ describe("laying a campaign out", () => {
       expect(c.ads).toHaveLength(AD_COUNT);
       expect(c.ads?.map((a) => a.n)).toEqual(Array.from({ length: 10 }, (_, i) => i + 1));
       expect(c.ads?.map((a) => a.angleId)).toEqual(["a1", "a2", "a3", "a4", "a5", "a1", "a2", "a3", "a4", "a5"]);
-      expect(c.ads?.map((a) => a.layout)).toEqual(["headline", "quote", "stat", "headline", "quote", "stat", "headline", "quote", "stat", "headline"]);
+      // 10 different layouts: the two cards, then the static formats in the registry's order
+      expect(c.ads?.map((a) => a.layout)).toEqual(["headline", "quote", "text-chat", "us-vs-them", "friend-recommends", "lofi-note", "ai-chat", "forum-thread", "concern-answer", "story-reply"]);
       expect(c.ads?.map((a) => a.layout)).toEqual(c.ads?.map((_, i) => adLayoutFor(i)));
+      // the brand's next campaign goes on from there, so its 10 are different again
+      expect(addCampaign(UID, c)).toBeNull();
+      const next = planCampaign(UID, ask({ runs: "both", budget: BUDGET }), THU).ads?.map((a) => a.layout) ?? [];
+      expect(next[0]).toBe("playful-apology");
+      expect(new Set(next).size).toBe(10);
+      expect(next.filter((l) => c.ads?.some((a) => a.layout === l))).toEqual([]);
       // no competitor ads on this brand: none remixes anything
       expect(c.ads?.some((a) => a.source)).toBe(false);
       // a copy, never the ask's own arrays
@@ -448,6 +455,45 @@ describe("laying a campaign out", () => {
       expect(c.ads?.map((a) => a.source?.key ?? null)).toEqual(["ad:f-old", "ad:a-1", "ad:f-new", "ad:f-video", null, null, null, null, null, null]);
       expect(planAds(ANGLES.slice(0, 2), s).map((a) => [a.angleId, a.source?.key ?? null]).slice(0, 5))
         .toEqual([["a1", "ad:f-old"], ["a2", "ad:a-1"], ["a1", "ad:f-new"], ["a2", "ad:f-video"], ["a1", null]]);
+    });
+
+    it("the brand's layouts: a format that needs a photo only with a product photo, the flyer only with a price, stat last", () => {
+      const none = adLayouts({});
+      expect(none.slice(0, 3)).toEqual(["headline", "quote", "text-chat"]);
+      expect(none.at(-1)).toBe("stat");
+      expect(none).not.toContain("phone-share");
+      expect(none).not.toContain("share-popup");
+      expect(none).not.toContain("tear-off-flyer");
+      // a format only best with a photo needs none
+      expect(none).toContain("us-vs-them");
+      expect(none).toHaveLength(22);
+      expect(adLayouts({ picture: "cimg-abc123" })).toEqual(expect.arrayContaining(["phone-share", "share-popup"]));
+      expect(adLayouts({ picture: "cimg-abc123" })).not.toContain("tear-off-flyer");
+      expect(adLayouts({ price: "$6" })).toContain("tear-off-flyer");
+      expect(adLayouts({ picture: "cimg-abc123", price: "$6" })).toHaveLength(25);
+      expect(new Set(none).size).toBe(none.length);
+    });
+
+    it("any 10 ads in a row are 10 different layouts, and a stat card comes up half as often as the rest", () => {
+      const list = adLayouts({});
+      // two full rounds: each round is every other layout twice, then the stat card once
+      const round = Array.from({ length: 2 * (2 * (list.length - 1) + 1) }, (_, i) => adLayoutFor(i, list));
+      for (let from = 0; from < round.length * 2; from++) {
+        expect(new Set(Array.from({ length: 10 }, (_, i) => adLayoutFor(from + i, list))).size).toBe(10);
+      }
+      expect(round.filter((l) => l === "stat")).toHaveLength(2);
+      expect(round.filter((l) => l === "headline")).toHaveLength(4);
+      // a short list still gives a layout to every ad
+      expect(Array.from({ length: 4 }, (_, i) => adLayoutFor(i, ["headline", "quote"]))).toEqual(["headline", "quote", "headline", "quote"]);
+    });
+
+    it("reads the product photo and price as the static format page does, and plans from them", () => {
+      const p = (o: Record<string, unknown>) => ({ id: "pd-1", name: "Brew", what: "", forWho: "", pictures: [], sources: [], ...o });
+      const products = { items: [p({ id: "pd-1", pictures: ["cimg-first1"], price: " " }), p({ id: "pd-2", use: true, pictures: ["cimg-used11"], price: " $6 a bottle " })] };
+      expect(adBits(products as never)).toEqual({ picture: "cimg-used11", price: "$6 a bottle" });
+      expect(adBits({ items: [] })).toEqual({ picture: undefined, price: undefined });
+      storage.setItem(`content-studio-products-${UID}`, JSON.stringify(products));
+      expect(planAds(ANGLES, [], adLayouts(adBits(products as never)), 10).map((a) => a.layout)).toContain("phone-share");
     });
 
     it("an ad made counts as running, though no post is", () => {
