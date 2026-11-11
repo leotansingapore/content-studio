@@ -1286,6 +1286,7 @@ let job: ExportJob | null = null;
 // a counter, not the clock: two exports can start in the same millisecond, and exportAll tells them apart by id
 let jobCount = 0;
 let stopper: AbortController | null = null;
+const STUCK_MS = 15000;
 /** Stops a fast export; nothing is kept. A real-time one runs to its end. */
 export const stopExport = () => stopper?.abort();
 const listeners = new Set<(j: ExportJob | null) => void>();
@@ -1565,13 +1566,14 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       // frames are recorded, and treat a stall at the very end as the end.
       let lastT = v.currentTime;
       let lastMove = performance.now();
+      let waitFrom = lastMove;
       let stalled = false;
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         const tick = () => {
           const nowMs = performance.now();
           if (v.currentTime > lastT + 0.001) {
             lastT = v.currentTime;
-            lastMove = nowMs;
+            lastMove = waitFrom = nowMs;
             if (stalled) {
               rec.resume();
               stalled = false;
@@ -1582,6 +1584,11 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
             stalled = true;
           }
           if (stalled && v.currentTime >= seg.end - 0.4) return resolve();
+          if (stalled && document.hidden) waitFrom = nowMs;
+          else if (stalled) {
+            if (v.paused && !v.ended) v.play().catch(() => {});
+            if (nowMs - waitFrom > STUCK_MS) return reject(new Error("The video stopped playing. Keep this tab open and try again."));
+          }
           draw();
           if (!fading && isFast(seg, v.currentTime, (speed * FAST) / 30) !== fast) {
             fast = !fast;
