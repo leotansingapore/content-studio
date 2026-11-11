@@ -185,6 +185,7 @@ export const STATIC_LAYOUTS = [
   "text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline",
   "lofi-note", "concern-answer", "story-reply", "page-post", "email-screenshot",
   "playful-apology", "phone-share", "share-popup", "whiteboard", "anti-design",
+  "tear-off-flyer", "article-page", "general-ad",
 ] as const;
 export type StaticLayout = (typeof STATIC_LAYOUTS)[number];
 export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
@@ -204,6 +205,9 @@ export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
   "share-popup": { headline: 10, what: 6, tagline: 8 },
   whiteboard: { title: 10, one: 4, two: 4, three: 4, four: 4, answer: 20 },
   "anti-design": { headline: 12, aside: 6, one: 6, two: 6, three: 6, close: 14 },
+  "tear-off-flyer": { headline: 6, line: 8, details: 14 },
+  "article-page": { kicker: 4, headline: 16, deck: 30 },
+  "general-ad": { headline: 10, line: 14 },
 };
 export const isStaticLayout = (l: unknown): l is StaticLayout => (STATIC_LAYOUTS as readonly unknown[]).includes(l);
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
@@ -979,6 +983,23 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
     "- words.aside: a small aside under it, at most 6 words, with no brackets.",
     "- words.one, words.two and words.three: three scrawled notes about the product, at most 6 words each, only from the facts given.",
     "- words.close: the plain line at the bottom, at most 14 words: the brand and one fact.",
+  ],
+  "tear-off-flyer": [
+    "a tear-off flyer pinned on a notice board: a short headline, one line under it and a line of details. The brand types its price itself.",
+    "- words.headline: the flyer's headline, at most 6 words.",
+    "- words.line: one line under it, at most 8 words.",
+    "- words.details: a line of details, at most 14 words, only from the facts given, with no price.",
+  ],
+  "article-page": [
+    "the brand's own magazine page: a small section label, a big headline and a short deck under it, over a hero picture.",
+    "- words.kicker: the section label, at most 4 words, like Mornings at work.",
+    "- words.headline: the headline, at most 16 words.",
+    "- words.deck: the deck under the headline, at most 30 words, naming the brand and what it does, only from the facts given.",
+  ],
+  "general-ad": [
+    "a clean ad shaped to the business: a headline and one line under it, over the product photo.",
+    "- words.headline: the headline, at most 10 words.",
+    "- words.line: one line under it, at most 14 words, naming the brand.",
   ],
 };
 
