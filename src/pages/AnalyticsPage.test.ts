@@ -51,6 +51,29 @@ describe("/analytics for a new sign-in", () => {
   });
 });
 
+describe("/analytics once a handle is typed", () => {
+  const FILLED = /<(a|button)[^>]*class="[^"]*\bbg-primary text-primary-foreground[^"]*"[^>]*>(.*?)<\/\1>/g;
+  const filled = (out: string) => [...out.matchAll(FILLED)].map((m) => m[2].replace(/<[^>]+>/g, "").trim());
+  it("while the first audit reads, the one filled button is the next step: write a post", async () => {
+    const { AuditReading } = await import("@/components/AccountAudit");
+    const out = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(AuditReading, { platform: "instagram", stalled: false })));
+    expect(out).toContain("The first audit takes about a minute.");
+    expect(filled(out)).toEqual(["Write a post while it reads"]);
+    expect(out).toContain('href="/studio#topic"');
+  });
+  it("adding a second account is a quiet button, so it never competes", async () => {
+    const { default: AccountAudit } = await import("@/components/AccountAudit");
+    const accounts = { instagram: { handle: "@adatan.sg", connectedAt: "2026-11-11T00:00:00Z" } } as never;
+    const out = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(AccountAudit, { accounts, profession: "", onSaveAccount: () => undefined })));
+    expect(out).toContain("Add your TikTok too");
+    expect(out).toContain("Audit my TikTok");
+    expect(filled(out)).toEqual([]);
+    // the first account's button stays the filled one
+    const first = renderToStaticMarkup(createElement(AccountAudit, { accounts: {}, profession: "", onSaveAccount: () => undefined }));
+    expect(filled(first)).toEqual(["Audit my Instagram"]);
+  });
+});
+
 describe("This week's Best and Weakest rows", () => {
   const posts = [
     { id: "d1", hook: "CPF at 55", platform: "linkedin", impressions: 400, engagements: 30 },

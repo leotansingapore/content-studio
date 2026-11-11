@@ -1472,7 +1472,8 @@ export default function AnalyticsPage() {
                 : "Once you publish and mark posts as posted, add their real numbers to track what lands."}
             </p>
             {postedCount === 0 && (
-              <Button asChild size="sm" className="gap-1.5">
+              // quiet: the account audit above holds the page's one filled button
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
                 <Link to="/drafts">
                   Go to All posts <ArrowRight className="h-3.5 w-3.5" />
                 </Link>

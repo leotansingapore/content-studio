@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { NEW_POST } from "@/lib/newPost";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import RemixButton from "@/components/remix/RemixButton";
 import { links } from "@/lib/links";
@@ -76,6 +77,7 @@ import {
   Video,
   Wand2,
   Wrench,
+  PenLine,
 } from "lucide-react";
 
 const PLATFORM_NAME: Record<AuditPlatform, string> = { instagram: "Instagram", tiktok: "TikTok" };
@@ -206,7 +208,8 @@ function AddAccount({
             aria-invalid={error ? true : undefined}
             className="sm:flex-1"
           />
-          <Button type="submit" size="sm" className="h-10 gap-1.5">
+          {/* the first account is the page's one filled button; a second account is an extra, so it stays quiet */}
+          <Button type="submit" size="sm" variant={first ? "default" : "outline"} className="h-10 gap-1.5">
             <Sparkles className="h-3.5 w-3.5" /> Audit my {PLATFORM_NAME[platform]}
           </Button>
         </form>
@@ -400,15 +403,7 @@ function AuditPanel({
         {!audit && loading && <StatusLine text="Checking your audit…" />}
         {!audit && !loading && failure && <ErrorBox message={failure} onRetry={open} />}
 
-        {audit && !hasData && refreshing && (
-          <StatusLine
-            text={
-              stalled
-                ? "Still working. Check back in a few minutes."
-                : `Reading your last ${POSTS_TO_READ} posts on ${PLATFORM_NAME[platform]}. The first audit takes about a minute.`
-            }
-          />
-        )}
+        {audit && !hasData && refreshing && <AuditReading platform={platform} stalled={stalled} />}
         {audit && !hasData && audit.status === "error" && (
           <ErrorBox
             message={audit.error ?? "The audit didn't finish."}
@@ -468,6 +463,26 @@ function AuditPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** The first read of an account: what is happening, and the one thing to do meanwhile (the audit fills in by itself). */
+export function AuditReading({ platform, stalled }: { platform: AuditPlatform; stalled: boolean }) {
+  return (
+    <div className="space-y-3">
+      <StatusLine
+        text={
+          stalled
+            ? "Still working. Check back in a few minutes."
+            : `Reading your last ${POSTS_TO_READ} posts on ${PLATFORM_NAME[platform]}. The first audit takes about a minute.`
+        }
+      />
+      <Button asChild size="sm" className="h-10 gap-1.5 [@media(pointer:coarse)]:h-11">
+        <Link to={NEW_POST}>
+          <PenLine className="h-3.5 w-3.5" /> Write a post while it reads
+        </Link>
+      </Button>
+    </div>
   );
 }
 
