@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
+import { MAKE_AS, openToAll } from "./logic";
 import { COMPLIANCE_RULES } from "../clone-reel/logic";
 import { BUSINESS_SHAPES, HOOK_FORMULAS, hookFormulaFields } from "@/lib/hookFormulas";
 import {
@@ -2118,5 +2119,13 @@ describe("the slideshow's three-row slide", () => {
     expect(gap && gap.as === "slideshow" && "rows" in gap).toBe(false);
     const off = validateMake("slideshow", raw({ problem: "A problem", fix: "A fix", result: "A result" }), {});
     expect(off && off.as === "slideshow" && "rows" in off).toBe(false);
+  });
+});
+
+describe("what anyone signed in may make (the rest is NORTH_STAR_USERS only)", () => {
+  it("is a slideshow and hook plus demo's three hooks; every other make, the static ads among them, stays shut", () => {
+    expect(MAKE_AS.filter((as) => openToAll({ mode: "make", as }))).toEqual(["slideshow", "hooks"]);
+    for (const mode of ["fit", "teardown", "creator-fit", undefined]) expect(openToAll({ mode, as: "slideshow" }), String(mode)).toBe(false);
+    expect([openToAll(null), openToAll("make"), openToAll({ mode: "make", as: ["slideshow"] })]).toEqual([false, false, false]);
   });
 });
