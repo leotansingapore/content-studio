@@ -20,6 +20,7 @@ import {
   perms,
   resolveNote,
   fixesOnItsOwn,
+  scheduleToSave,
   sendToFix,
   updateCard,
   type Board,
@@ -56,6 +57,7 @@ export default function ReelDrawer({
   const [note, setNote] = useState(() => localStorage.getItem(`cs-reelnote-draft-${card.id}`) ?? "");
   const [caption, setCaption] = useState(card.caption ?? "");
   const [capState, setCapState] = useState("");
+  const [at, setAt] = useState(card.schedule ?? "");
   const [sending, setSending] = useState(false);
   const capTimer = useRef<number>();
   const v = currentVersion(card);
@@ -87,6 +89,18 @@ export default function ReelDrawer({
 
   const patch = (change: Parameters<typeof updateCard>[1], what: string) =>
     updateCard(card.id, change).then(onChange).catch((e) => fail(what, e));
+
+  useEffect(() => setAt(card.schedule ?? ""), [card.schedule]);
+
+  const saveAt = () => {
+    const saved = card.schedule ?? "";
+    const v = scheduleToSave(at, saved);
+    if (v === null || (me?.owner && new Date(v).getTime() < Date.now() && !window.confirm("That time has passed, so the post goes out within 15 minutes. Save it?"))) {
+      setAt(saved);
+      return;
+    }
+    patch({ schedule: v }, "the date");
+  };
 
   const onCaption = (text: string) => {
     setCaption(text);
@@ -225,7 +239,7 @@ export default function ReelDrawer({
               )}
               <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
                 Post at
-                <input type="datetime-local" value={card.schedule ?? ""} disabled={!p.edit} onChange={(e) => patch({ schedule: e.target.value }, "the date")}
+                <input type="datetime-local" value={at} disabled={!p.edit} onChange={(e) => setAt(e.target.value)} onBlur={saveAt} onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground disabled:cursor-not-allowed disabled:opacity-60" />
               </label>
             </div>

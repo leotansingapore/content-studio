@@ -229,6 +229,11 @@ export function fetchBoard(): Promise<Board> {
 export const sharedBoard = () => (lastBoard && Date.now() - lastBoard.at < SHARE_MS ? lastBoard.p : fetchBoard());
 export const updateCard = (id: string, patch: Partial<Pick<ReelCard, "stage" | "caption" | "schedule" | "version" | "brand">>) =>
   board<ReelCard>({ action: "card", id, patch });
+export const scheduleToSave = (typed: string, saved: string): string | null => {
+  const m = /^(\d{4})-\d\d-\d\dT\d\d:\d\d$/.exec(typed);
+  if (!m || Number(m[1]) < 2000 || Number.isNaN(new Date(typed).getTime()) || typed === saved) return null;
+  return typed;
+};
 export const addNote = (id: string, note: { text: string; t?: number | null; slide?: number }) =>
   board<ReelCard>({ action: "comment", id, ...note });
 export const resolveNote = (id: string, cid: string, resolved: boolean) => board<ReelCard>({ action: "resolve", id, cid, resolved });

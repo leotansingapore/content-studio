@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: vi.fn() }));
 import { callFn } from "@/lib/edgeFn";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, perms, seesBoard, setConnectedIg, sharedBoard, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type Me, type ReelCard, type ReelComment, type Role } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, perms, seesBoard, setConnectedIg, sharedBoard, scheduleToSave, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type Me, type ReelCard, type ReelComment, type Role } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -240,5 +240,17 @@ describe("what each person is offered on a post (docs/team-roles.md)", () => {
     expect(seesBoard({ ...member("approver"), modules: ["calendar"] })).toBe(false);
     expect(seesBoard({ ...member("approver"), member: false })).toBe(false);
     expect(seesBoard(null)).toBe(false);
+  });
+});
+
+describe("Post at field", () => {
+  it("saves only a complete, changed date, never a part typed so far or a blank", () => {
+    const saved = "2026-11-20T19:00";
+    expect(scheduleToSave("2026-11-25T19:00", saved)).toBe("2026-11-25T19:00");
+    expect(scheduleToSave("0002-11-20T19:00", saved)).toBeNull();
+    expect(scheduleToSave("0007-11-20T19:00", saved)).toBeNull();
+    expect(scheduleToSave("", saved)).toBeNull();
+    expect(scheduleToSave("2026-11-20", saved)).toBeNull();
+    expect(scheduleToSave(saved, saved)).toBeNull();
   });
 });
