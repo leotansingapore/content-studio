@@ -114,6 +114,7 @@ import {
   StickyNote,
   Undo2,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -154,6 +155,9 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
   "2weeks": "every 2 weeks",
   month: "monthly",
 };
+/** Posting times a week on offer when the brand has none; the first is the one picked for you. */
+export const SLOT_CHOICES = [3, 5, 7] as const;
+export const SLOT_DEFAULT = SLOT_CHOICES[0];
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 const STATUSES = ["all", "scheduled", "posted"] as const;
 type StatusFilter = (typeof STATUSES)[number];
@@ -192,6 +196,7 @@ export default function CalendarPage() {
   const { toast } = useToast();
   const { hash } = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Team rule: members on approval can't mark a post posted until it is approved.
   const reviews = useDraftReviews(userId, drafts);
@@ -1667,11 +1672,13 @@ export default function CalendarPage() {
     </button>
   );
 
+  const filtersOn = (platform === "all" ? 0 : 1) + (status === "all" ? 0 : 1);
   const dropHighlight = (key: string) => (dragOver === key ? "bg-primary/10 ring-2 ring-inset ring-primary" : "");
 
   return (
     <div className="space-y-6">
-      <header>
+      {/* on phones the tab row above already says Calendar: the heading stays for screen readers */}
+      <header className="sr-only sm:not-sr-only">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Calendar
         </h1>
@@ -1684,6 +1691,19 @@ export default function CalendarPage() {
           {viewButton("week", "Week", CalendarRange)}
           {viewButton("upcoming", "Upcoming", List)}
         </div>
+        {/* phones: the filters fold behind one button, so the first week is on the first screen */}
+        <button
+          type="button"
+          aria-expanded={filtersOpen}
+          aria-controls="calendar-filters"
+          onClick={() => setFiltersOpen((o) => !o)}
+          className={`ml-auto inline-flex h-11 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold sm:hidden ${
+            filtersOpen || filtersOn > 0 ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" /> Filter{filtersOn > 0 ? ` (${filtersOn})` : ""}
+        </button>
+        <div id="calendar-filters" className={`${filtersOpen ? "flex basis-full flex-wrap" : "hidden"} gap-2 sm:contents`}>
         <div className="flex gap-2">
           <Select value={platform} onValueChange={setPlatform}>
             <SelectTrigger aria-label="Platform" className="h-9 w-[8rem] text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
@@ -1728,8 +1748,9 @@ export default function CalendarPage() {
             Open slots
           </button>
         )}
+        </div>
         {view !== "upcoming" && (
-          <div className="flex items-center gap-1.5 sm:ml-auto">
+          <div className="flex basis-full items-center gap-1.5 sm:ml-auto sm:basis-auto">
             <button
               type="button"
               onClick={() => shift(-1)}
@@ -1738,7 +1759,7 @@ export default function CalendarPage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="min-w-[8.5rem] text-center text-sm font-semibold text-foreground">{navLabel}</span>
+            <span className="min-w-[8.5rem] flex-1 text-center text-sm font-semibold text-foreground sm:flex-none">{navLabel}</span>
             <button
               type="button"
               onClick={() => shift(1)}
@@ -1855,26 +1876,29 @@ export default function CalendarPage() {
               </span>
               <span>{progress.toDo > 0 ? `${progress.toDo} to go` : "goal met"}</span>
               {progress.toDo > 0 && (
-                <Link
-                  to={nextSlotThisWeek ? `/generate?day=${nextSlotThisWeek.date}&time=${nextSlotThisWeek.time}` : "/generate"}
-                  className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center"
-                >
-                  {nextSlotThisWeek ? `Write for ${dayLabel(nextSlotThisWeek.date)}, ${timeLabel(nextSlotThisWeek.time)}` : "Write a post"}
-                </Link>
+                // the week's one next step is a button, not a link in a line of small print
+                <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
+                  <Link to={nextSlotThisWeek ? `/generate?day=${nextSlotThisWeek.date}&time=${nextSlotThisWeek.time}` : "/generate"}>
+                    {nextSlotThisWeek ? `Write for ${dayLabel(nextSlotThisWeek.date)}, ${timeLabel(nextSlotThisWeek.time)}` : "Write a post"}
+                  </Link>
+                </Button>
               )}
             </div>
           )}
           {!kitTimes && userId && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>No posting times yet. Make them:</span>
-              {[3, 5, 7].map((n) => (
+              {SLOT_CHOICES.map((n) => (
+                // one is picked for you (law 13): the other two stay a tap away, quieter
                 <button
                   key={n}
                   type="button"
                   onClick={() => makeSlots(n)}
-                  className="h-9 rounded-md border border-border/70 px-2.5 font-semibold text-foreground hover:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
+                  className={`h-9 rounded-md border px-2.5 font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
+                    n === SLOT_DEFAULT ? "border-primary/50 bg-primary/10 text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  {n} a week
+                  {n === SLOT_DEFAULT ? `${n} a week, recommended` : `${n} a week`}
                 </button>
               ))}
             </div>
@@ -1886,9 +1910,12 @@ export default function CalendarPage() {
                   {/* the calendar is one business, so the line needs no name ("Me nothing planned" read as broken) */}
                   <span>{r.last ? `Planned to ${dayLabel(r.last)}, then nothing` : `Nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
                   {r.last ? (
-                    <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                      Write a post
-                    </Link>
+                    // the goal row above already carries this week's Write button: never two for the same thing
+                    !(progress.goal > 0 && progress.toDo > 0) && (
+                      <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
+                        <Link to="/generate">Write a post</Link>
+                      </Button>
+                    )
                   ) : (
                     // an empty calendar's one next step is a button, not a link in a line of small print
                     <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
