@@ -21,6 +21,10 @@ const ICON = "inline-flex h-9 w-9 items-center justify-center rounded-md text-mu
 /** Pages with their own composer, where the launcher stays hidden. */
 export const ownComposer = (pathname: string) => pathname === "/home" || pathname === "/agent" || pathname.startsWith("/agent/");
 
+/** The closed button's place and look: the top bar's free slot on phones (left 64, top 6), the bottom-right pill from lg. */
+export const CLOSED =
+  "fixed z-[60] left-16 top-1.5 text-muted-foreground hover:text-foreground lg:left-auto lg:top-auto lg:right-5 lg:bottom-5 lg:w-auto lg:bg-primary lg:px-4 lg:text-primary-foreground lg:shadow-lg lg:transition-transform lg:hover:-translate-y-0.5 lg:hover:text-primary-foreground lg:active:translate-y-0";
+
 export default function AgentDock({ userId, identity }: { userId: string; identity?: DockIdentity }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -74,10 +78,12 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Ask the agent"
-        className={`${place} inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 sm:w-auto sm:px-4`}
+        // below lg it sits in the phone top bar beside the logo (AssistantMount's MOBILE_BUTTON slot), a quiet icon that
+        // covers no content; from lg it is the pill at the bottom right. The open panel still rises from the bottom.
+        className={`${CLOSED} inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full text-sm font-semibold`}
       >
-        <MessageSquare className="h-4 w-4" />
-        <span className="hidden sm:inline">Agent</span>
+        <MessageSquare className="h-5 w-5 lg:h-4 lg:w-4" />
+        <span className="hidden lg:inline">Agent</span>
       </button>
     );
 
