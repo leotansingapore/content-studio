@@ -6,6 +6,7 @@ import Conversations from "@/components/recruit/Conversations";
 import Agent from "@/components/recruit/Agent";
 import { useRecruitBrain } from "@/hooks/useRecruitBrain";
 import { partsDone } from "@/lib/recruit";
+import { adviserBrand, professionFor } from "@/lib/profession";
 
 // Each part links to where it is filled in; "One system" (the Friday numbers) lives on Analytics.
 const PARTS = [
@@ -68,7 +69,12 @@ export default function RecruitPage() {
       {!ready && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading your recruit kit" />}
       {ready && tab === "brain" && <BrandBrain brain={brain} update={update} done={done} />}
       {ready && tab === "conversations" && <Conversations brain={brain} update={update} done={done.conversations} />}
-      {ready && tab === "agent" && <Agent brain={brain} update={update} userId={userId} />}
+      {ready && tab === "agent" && (adviserBrand(userId) ? <Agent brain={brain} update={update} userId={userId} /> : (
+        <p className="rounded-xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+          The reply agent writes posts that recruit financial advisers to your team, so it is off for this brand. Your brand kit says you work as: {professionFor(userId)}.{" "}
+          <Link to="/brand" className="font-semibold text-primary hover:underline">Change it in Brand kit</Link>
+        </p>
+      ))}
     </div>
   );
 }
