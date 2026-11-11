@@ -167,9 +167,8 @@ function AddAccount({
   return (
     <Card className="border-dashed border-border/80 shadow-none">
       <CardContent className="space-y-3 py-4">
-        <p className="text-sm font-semibold text-foreground">
-          {first ? "Audit your account" : `Add your ${PLATFORM_NAME[platform]} too`}
-        </p>
+        {/* the first one sits right under "Your account audit": a second title would only repeat it */}
+        {!first && <p className="text-sm font-semibold text-foreground">Add your {PLATFORM_NAME[platform]} too</p>}
         {platforms.length > 1 && (
           <div className="flex gap-1.5" role="radiogroup" aria-label="Platform">
             {platforms.map((p) => {

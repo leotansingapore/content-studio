@@ -97,6 +97,7 @@ import {
   type SocialPlatform,
 } from "@/lib/socialAccounts";
 import {
+  ChevronRight,
   BarChart3,
   Eye,
   Heart,
@@ -475,6 +476,8 @@ function ThisWeekCard({ userId, version, grade }: { userId: string; version: num
   );
 }
 
+const FOLD = "inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden";
+
 export default function AnalyticsPage() {
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const [postedCount, setPostedCount] = useState(0);
@@ -774,6 +777,7 @@ export default function AnalyticsPage() {
   }, [timeGrid, timePool, timePlatform, timePlatforms]);
 
   const adviser = adviserBrand(userId);
+  const fresh = connectedCount(accounts) === 0;
 
   return (
     <div className="space-y-6">
@@ -790,8 +794,21 @@ export default function AnalyticsPage() {
 
       {userId && <AccountAudit accounts={accounts} profession={professionFor(userId)} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
 
-      {adviser && <CreatorLookup />}
+      {/* A new sign-in is asked for a handle once, above: the audit saves it to Your accounts. The other two boxes
+          that take a handle stay folded until there is one (never unmounted, so nothing typed in them is lost). */}
+      {adviser && (
+        <details open={!fresh} className="group">
+          <summary className={fresh ? FOLD : "hidden"}>
+            <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" /> Look up another creator
+          </summary>
+          <CreatorLookup />
+        </details>
+      )}
 
+      <details open={!fresh} className="group">
+      <summary className={fresh ? FOLD : "hidden"}>
+        <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" /> Add LinkedIn or Facebook by hand
+      </summary>
       {/* Your accounts — register a handle per platform. */}
       <Card className="border-border/60 shadow-card">
         <CardHeader>
@@ -863,6 +880,7 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+      </details>
 
       {userId && socialConnectShown() && (
         leoOn ? (

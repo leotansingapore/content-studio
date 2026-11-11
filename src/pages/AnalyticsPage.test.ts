@@ -34,6 +34,23 @@ describe("/analytics for everyone else", () => {
   });
 });
 
+describe("/analytics for a new sign-in", () => {
+  it("shows one handle box, with the other two folded and still on the page", () => {
+    const out = html();
+    expect(out.match(/<details class="group">/g)?.length).toBeGreaterThanOrEqual(1);
+    expect(out).toContain("Add LinkedIn or Facebook by hand");
+    expect(out.indexOf("Your accounts")).toBeGreaterThan(out.indexOf("<details"));
+    expect(out).not.toMatch(/<details[^>]* open/);
+  });
+  it("has no card titled like the heading above it", async () => {
+    const { default: AccountAudit } = await import("@/components/AccountAudit");
+    const out = renderToStaticMarkup(createElement(AccountAudit, { accounts: {}, profession: "", onSaveAccount: () => undefined }));
+    expect(out).toContain("Your account audit");
+    expect(out).not.toContain("Audit your account");
+    expect(out).toContain("Audit my Instagram");
+  });
+});
+
 describe("This week's Best and Weakest rows", () => {
   const posts = [
     { id: "d1", hook: "CPF at 55", platform: "linkedin", impressions: 400, engagements: 30 },
