@@ -9,8 +9,8 @@ vi.mock("@/lib/adlauncher", async (orig) => ({ ...(await orig<typeof import("./a
 
 import { campaignArgs, type AdForm } from "./adlauncher";
 import {
-  AD_BUSY, AD_MADE, AD_SWAP_MADE, adCounts, adViews, countsLine, editAdLink, groupTitle, handOff, layoutMix, makeAd, notTaken, sendBlock, sendPlan, sheetKey,
-  sheetPrefill, skipAd, swapAdLayout,
+  AD_BUSY, AD_MADE, AD_REDRAW_DRAFT, AD_SWAP_MADE, adCounts, adViews, countsLine, editAdLink, groupTitle, handOff, layoutMix, makeAd, nextToSend, notTaken, prefillSheet, redrawAd, sendBlock, sendPlan,
+  sendProgress, sheetKey, sheetPrefill, skipAd, swapAdLayout,
 } from "./campaignAds";
 import { adLayouts, getCampaign, planAds, saveCampaigns, type Campaign, type CampaignAd } from "./campaigns";
 import { EdgeError } from "./edgeFn";
@@ -243,6 +243,28 @@ describe("Make, Swap layout, Skip and Edit", () => {
   });
 });
 
+describe("Redraw", () => {
+  it("writes a made ad again in the layout it has now, Undo puts the words before back, and a draft is made first", async () => {
+    store(campaign());
+    make.mockResolvedValueOnce(reply());
+    await makeAd(U, "c1", 2);
+    const before = view(2).design!;
+    expect(await redrawAd(U, "c1", 1)).toEqual({ ok: false, error: AD_REDRAW_DRAFT });
+    make.mockResolvedValueOnce(reply({ words: { quote: "Planned care costs less." }, caption: "Second go." }));
+    const r = await redrawAd(U, "c1", 2);
+    expect(r).toMatchObject({ ok: true, toast: "Ad 2 is redrawn." });
+    expect(make.mock.calls[1][0]).toMatchObject({ mode: "make", as: "image", layout: "quote", topic: "See the work" });
+    expect(view(2)).toMatchObject({ state: "made", design: { id: before.id, words: { quote: "Planned care costs less.", caption: "Second go." } } });
+    if (r.ok) r.undo();
+    expect(view(2).design?.words).toEqual(before.words);
+    // a redraw that fails leaves the made ad as it was, with the reason
+    make.mockRejectedValueOnce(new EdgeError("Couldn't write it.", 502));
+    expect(await redrawAd(U, "c1", 2)).toMatchObject({ ok: false });
+    expect(view(2)).toMatchObject({ state: "made", design: { words: before.words } });
+    expect(adl.call).not.toHaveBeenCalled();
+  });
+});
+
 describe("Send the ads to AdLauncher", () => {
   const withMade = (ns: number[], layout: SavedImage["layout"] = "headline") => {
     for (const n of ns) saveImage(U, made(`img-made${n}x`, layout === "stat" ? { layout, words: { statLabel: "of families" } } : {}));
@@ -284,6 +306,39 @@ describe("Send the ads to AdLauncher", () => {
     expect(adl.call).not.toHaveBeenCalled();
     expect(adl.image).not.toHaveBeenCalled();
     expect(adl.status).not.toHaveBeenCalled();
+  });
+
+  it("walks the made ads in order: the next one not yet in AdLauncher, past one that needs an edit, to done", () => {
+    const views = withMade([1, 2, 4]);
+    const c = getCampaign(U, "c1")!;
+    const plan = (sent: string[]) => sendPlan(c, views, sent.map((designId) => ({ designId })));
+    expect(nextToSend(plan([]))?.ad.n).toBe(1);
+    expect(sendProgress(plan([]))).toEqual({ sent: 0, of: 3, blocked: 0, done: false });
+    // after Ad 1 is made paused, on to Ad 2; one sent out of order is passed over, and the walk wraps to what is left
+    expect(nextToSend(plan(["img-made1x"]), 1)?.ad.n).toBe(2);
+    expect(nextToSend(plan(["img-made1x", "img-made2x"]), 2)?.ad.n).toBe(4);
+    expect(nextToSend(plan(["img-made2x", "img-made4x"]), 4)?.ad.n).toBe(1);
+    expect(sendProgress(plan(["img-made2x", "img-made4x"]))).toEqual({ sent: 2, of: 3, blocked: 0, done: false });
+    expect(nextToSend(plan(["img-made1x", "img-made2x", "img-made4x"]), 4)).toBeNull();
+    expect(sendProgress(plan(["img-made1x", "img-made2x", "img-made4x"]))).toEqual({ sent: 3, of: 3, blocked: 0, done: true });
+    expect(sendProgress(sendPlan(c, [], []))).toEqual({ sent: 0, of: 0, blocked: 0, done: false });
+    // a stat card with no number can't open the sheet: the walk goes round it and counts it
+    const stat = withMade([3], "stat");
+    const held = sendPlan(getCampaign(U, "c1")!, stat, []);
+    expect(nextToSend(held)).toBeNull();
+    expect(sendProgress(held)).toEqual({ sent: 0, of: 1, blocked: 1, done: false });
+  });
+
+  it("fills the sheet in place for the walk, keeping what was typed, and never calls AdLauncher", () => {
+    const views = withMade([1, 2]);
+    const c = getCampaign(U, "c1")!;
+    const plan = sendPlan(c, views, []);
+    session.setItem(sheetKey("img-made2x"), JSON.stringify({ primaryText: "Typed before", approval: "AP-1", dailyBudget: "3" }));
+    prefillSheet(c, plan.ads[1], plan);
+    expect(JSON.parse(session.getItem(sheetKey("img-made2x"))!)).toEqual({ primaryText: "Typed before", approval: "AP-1", goal: "website", url: "https://example.com/", dailyBudget: "25", days: "28" });
+    expect(session.getItem(sheetKey("img-made1x"))).toBeNull();
+    expect(adl.call).not.toHaveBeenCalled();
+    expect(adl.image).not.toHaveBeenCalled();
   });
 
   it("lists what the sheet can't take, and holds back a stat card until it has your number", () => {

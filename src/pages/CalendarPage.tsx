@@ -29,6 +29,9 @@ import { activeProfile, applyBrandLink, profileForBoardBrand, type Profile } fro
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { commentChannelPost, readChannelReviews, shownStatus, skipChannelPost, type ChannelReviews } from "@/lib/channelReviews";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { plannedByDay, type PlannedPost } from "@/lib/campaignBoard";
+import { loadCampaigns, onCampaignsChanged } from "@/lib/campaigns";
+import { FORMAT_NAME } from "@/lib/campaignWizard";
 import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate, withParam } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -1319,6 +1322,26 @@ export default function CalendarPage() {
     </p>
   );
 
+  // Leo's campaigns' posts not made yet, on their days: a dashed chip, since nothing is on the calendar until its Make
+  const [campaignTick, setCampaignTick] = useState(0);
+  useEffect(() => onCampaignsChanged(() => setCampaignTick((n) => n + 1)), []);
+  const planned = useMemo(() => (leo && userId ? plannedByDay(loadCampaigns(userId)) : new Map<string, PlannedPost[]>()), [leo, userId, campaignTick]);
+  const plannedChips = (key: string, roomy: boolean) => {
+    const list = planned.get(key) ?? [];
+    const shown = roomy ? list : list.slice(0, 2);
+    return (
+      <>
+        {shown.map(({ c, p }) => (
+          <Link key={`${c.id}-${p.n}`} to={links.campaign(c.id, { post: p.n, section: "queue" })} title={`${c.name}: ${p.hook ?? "waiting to be written"}`}
+            className={`flex w-full items-center gap-1 rounded border border-dashed border-border px-1.5 font-medium text-muted-foreground hover:border-primary/50 hover:text-foreground ${roomy ? "min-h-11 py-1.5 text-xs sm:min-h-0 sm:py-1 sm:text-[11px]" : "py-0.5 text-[10px]"}`}>
+            <span className={roomy ? "[overflow-wrap:anywhere]" : "truncate"}>Draft: {roomy && p.hook ? p.hook : FORMAT_NAME[p.format]}</span>
+          </Link>
+        ))}
+        {list.length > shown.length && <p className="text-[10px] text-muted-foreground">+{list.length - shown.length} more drafts</p>}
+      </>
+    );
+  };
+
   const noteChip = (n: CalNote, roomy: boolean) => (
     <button
       key={n.id}
@@ -1411,6 +1434,7 @@ export default function CalendarPage() {
     return [
       ...(keyDates.get(key) ?? []).filter((k) => k.kind === "holiday").map((k) => ({ id: `k${k.title}`, tone: "bg-destructive" })),
       ...(notesByDate.get(key) ?? []).map((n) => ({ id: n.id, tone: "border border-muted-foreground" })),
+      ...(planned.get(key) ?? []).map((x) => ({ id: `c${x.c.id}-${x.p.n}`, tone: "border border-dashed border-muted-foreground" })),
       ...t.events.map((e) => ({
         id: e.id,
         tone: draftStatus(e) === "posted" ? "bg-success" : (e.scheduledFor ?? "").slice(0, 10) < todayKey ? "bg-warning" : "bg-primary",
@@ -1433,6 +1457,7 @@ export default function CalendarPage() {
     "bg-muted-foreground/60": "Team post",
     "bg-success": "Posted",
     "border border-muted-foreground": "Note",
+    "border border-dashed border-muted-foreground": "Campaign draft",
     "bg-destructive": "Holiday",
   };
 
@@ -1457,6 +1482,7 @@ export default function CalendarPage() {
         <div className="space-y-1.5">
           {(sgDatesBetween(key, key).get(key) ?? []).map((k) => keyDateLine(k, true))}
           {(notesByDate.get(key) ?? []).map((n) => noteChip(n, true))}
+          {plannedChips(key, true)}
           {t.events.map((e) => chip(e, true))}
           {t.ghosts.map((g) => ghostChip(g, key, true))}
           {t.reels.map((r) => reelChip(r, true))}
@@ -2168,6 +2194,7 @@ export default function CalendarPage() {
                             {(keyDates.get(key) ?? []).map((k) => keyDateLine(k, false))}
                             {(notesByDate.get(key) ?? []).map((n) => noteChip(n, false))}
                             {items.slice(0, 3).map((render) => render())}
+                            {plannedChips(key, false)}
                             {items.length > 3 && (
                               <button
                                 type="button"
@@ -2229,6 +2256,7 @@ export default function CalendarPage() {
                       <div className="min-w-0 flex-1 space-y-1.5">
                         {(keyDates.get(key) ?? []).map((k) => keyDateLine(k, true))}
                         {(notesByDate.get(key) ?? []).map((n) => noteChip(n, true))}
+                        {plannedChips(key, true)}
                         {events.map((e) => (
                           <div key={e.id} className="space-y-1.5">
                             {chip(e, true)}

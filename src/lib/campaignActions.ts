@@ -15,8 +15,8 @@ import { loadAudiences } from "@/lib/audiences";
 import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
-import { AI_VIDEO, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignPost } from "@/lib/campaigns";
-import { shortDay } from "@/lib/campaignWizard";
+import { AI_VIDEO, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
+import { FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
 import { keyToDate, scheduleAt, timeLabel } from "@/lib/dueDates";
 import { deleteDraft, draftsChanged, pushedOut, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
@@ -420,29 +420,31 @@ function wordsOf(w: WrittenPost | undefined, userId: string, platform: string): 
   return { ...words, mas: typeof w.mas === "boolean" ? w.mas : null };
 }
 
-/** New words for one written post, same angle and format; the old ones wait in `prev` for Undo. */
-export async function swapPost(userId: string, campaignId: string, n: number): Promise<MakeOutcome> {
+/** New words for one written post on the same angle, in its own format or in `format`; the old ones (and the old format) wait in `prev` for Undo. */
+export async function swapPost(userId: string, campaignId: string, n: number, format?: CampaignFormat): Promise<MakeOutcome> {
   const { c, p } = find(userId, campaignId, n);
   if (!c || !p) return { ok: false, error: GONE_LINE };
   if (p.state === "made") return { ok: false, error: SWAP_MADE_LINE };
   if (videoUnderway(c, p)) return { ok: false, error: VIDEO_WORDS_LINE };
   const no = notMakeable(campaignId, p);
   if (no || p.state !== "ready" || !p.hook) return { ok: false, error: no ?? WRITING_LINE };
+  // a new format: the same slot, angle and day, written again in that format's shape
+  const to = format && format !== p.format ? format : null;
   const k = keyOf(c.id, n);
   swapping.add(k);
   notify();
   try {
-    const base = campaignRequest(userId, c, [p]);
-    // the swapped post's own hook first: idea-dump refuses a new hook that repeats it (wave 2 live fix)
-    const avoid = [p.hook, ...base.avoid.filter((h) => h !== p.hook)].slice(0, 20);
+    const base = campaignRequest(userId, c, [to ? { ...p, format: to } : p]);
+    // the swapped post's own hook first: idea-dump refuses a new hook that repeats it (wave 2 live fix); a new format may keep its idea
+    const avoid = to ? base.avoid : [p.hook, ...base.avoid.filter((h) => h !== p.hook)].slice(0, 20);
     const r = await callFn<{ posts?: WrittenPost[] }>("idea-dump", { ...base, swap: true, avoid }, SWAP_FAILED);
     const words = wordsOf(r?.posts?.find((w) => w?.n === n), userId, c.platforms[0]);
     if (!words) return { ok: false, error: SWAP_FAILED };
     const now = find(userId, campaignId, n).p;
     if (!now || now.state !== "ready") return { ok: false, error: now ? MADE_LINE : GONE_LINE };
-    const prev = Object.fromEntries(FIELDS.map((f) => [f, now[f]])) as CampaignPost["prev"];
-    if (!updatePost(userId, campaignId, n, { ...words, prev })) return { ok: false, error: SAVE_LINE };
-    return { ok: true, toast: `New words for post ${n}.`, undo: () => void undoSwap(userId, campaignId, n) };
+    const prev = { ...Object.fromEntries(FIELDS.map((f) => [f, now[f]])), ...(to ? { format: now.format } : {}) } as CampaignPost["prev"];
+    if (!updatePost(userId, campaignId, n, { ...words, ...(to ? { format: to } : {}), prev })) return { ok: false, error: SAVE_LINE };
+    return { ok: true, toast: to ? `Post ${n} is now: ${FORMAT_NAME[to]}.` : `New words for post ${n}.`, undo: () => void undoSwap(userId, campaignId, n) };
   } catch (e) {
     if (e instanceof EdgeError && e.status === 429) return { ok: false, error: SWAP_CAP_LINE, capped: true };
     return { ok: false, error: (e instanceof EdgeError && e.message) || SWAP_FAILED };
@@ -452,12 +454,12 @@ export async function swapPost(userId: string, campaignId: string, n: number): P
   }
 }
 
-/** Undo for a Swap: the old words back (Jev's answer was for them, so the pattern check stands in). */
+/** Undo for a Swap: the old words (and the old format) back (Jev's answer was for them, so the pattern check stands in). */
 export function undoSwap(userId: string, campaignId: string, n: number): string | null {
   const { p } = find(userId, campaignId, n);
   if (!p?.prev || p.state !== "ready") return null;
   const back = Object.fromEntries(FIELDS.map((f) => [f, p.prev?.[f]]));
-  return updatePost(userId, campaignId, n, { ...back, prev: undefined, mas: null }) ? null : SAVE_LINE;
+  return updatePost(userId, campaignId, n, { ...back, ...(p.prev.format ? { format: p.prev.format } : {}), prev: undefined, mas: null }) ? null : SAVE_LINE;
 }
 
 /** Saves typed words over an unmade post. Jev's answer was for the old words, so the pattern check stands in. Null when saved. */

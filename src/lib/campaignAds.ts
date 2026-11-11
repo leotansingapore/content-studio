@@ -8,7 +8,7 @@
 
 import type { MakeOutcome } from "@/lib/campaignActions";
 import { adBits, adLayouts, getCampaign, loadCampaigns, saveCampaigns, type AdBudget, type Campaign, type CampaignAd } from "@/lib/campaigns";
-import { imageBlock, LAYOUT_LABELS, mainWords, pictureBlock, staticPhoto } from "@/lib/imageLayout";
+import { AD_LAYOUT_IDS, imageBlock, isStatic, LAYOUT_LABELS, mainWords, pictureBlock, staticPhoto } from "@/lib/imageLayout";
 import { blankImage, imageWrite, imageWriteBusy, loadImages, saveImage, startImageWrite, WRITE_FAILED, type ImageWrite, type SavedImage } from "@/lib/images";
 import { links, type ImageLayout } from "@/lib/links";
 import { MAX_DAYS, type AdForm, type AdLaunch } from "@/lib/adlauncher";
@@ -37,6 +37,7 @@ export const AD_MAKING = "This ad is being made.";
 export const AD_SKIPPED = "Skipped. Press Skip again to bring it back.";
 export const AD_GONE = "This ad isn't here any more.";
 export const AD_SWAP_MADE = "Change a made ad's layout in Edit.";
+export const AD_REDRAW_DRAFT = "Make this ad first.";
 const SAVE_LINE = "Couldn't save. Try again.";
 
 const writing = (w: ImageWrite | null) => w?.state === "reading" || w?.state === "writing";
@@ -115,6 +116,26 @@ function designFor(userId: string, c: Campaign, ad: CampaignAd, existing: SavedI
   return updateAd(userId, c.id, ad.n, { designId: design.id, error: undefined }) ? design : null;
 }
 
+/** One write into the ad's design with /image's own write; null when it is done, else why not. */
+async function writeAd(userId: string, c: Campaign, ad: CampaignAd, design: SavedImage): Promise<null | { error: string; capped?: true }> {
+  const source = ad.source ? (resolveSource(ad.source.key, userId) ?? seenSources(userId).find((s) => s.key === ad.source?.key) ?? null) : null;
+  // so /image finds it again when this design is opened there
+  if (source) rememberSource(source, userId);
+  // a made ad edited onto a layout the writer can't write (a meme) goes back to the ad's own
+  const layout = isStatic(design.layout) || (AD_LAYOUT_IDS as readonly string[]).includes(design.layout) ? (design.layout as CampaignAd["layout"]) : ad.layout;
+  // the seam's layout, never Jev's pick; a competitor ad's picture link expires, so it is never read (read: false)
+  const run = startImageWrite(userId, {
+    designId: design.id, source, topic: adTopic(c, ad), layout, mention: mentionFor(userId), note: source ? adNote(c, ad) : "", size: design.size, read: false,
+  });
+  const id = imageWrite()?.id;
+  await run;
+  const w = imageWrite();
+  if (w?.id === id && w.state === "done") return null;
+  const error = (w?.id === id && w.error) || WRITE_FAILED;
+  updateAd(userId, c.id, ad.n, { error });
+  return { error, ...(w?.id === id && w.capped ? { capped: true as const } : {}) };
+}
+
 /** Writes the ad into its design with /image's own write. Not while another static ad is being written. */
 export async function makeAd(userId: string, campaignId: string, n: number): Promise<MakeOutcome> {
   const f = find(userId, campaignId, n);
@@ -122,22 +143,22 @@ export async function makeAd(userId: string, campaignId: string, n: number): Pro
   const { c, ad, view } = f;
   if (view.state !== "draft") return { ok: false, error: view.state === "made" ? AD_MADE : view.state === "making" ? AD_MAKING : AD_SKIPPED };
   if (imageWriteBusy()) return { ok: false, error: AD_BUSY };
-  const source = ad.source ? (resolveSource(ad.source.key, userId) ?? seenSources(userId).find((s) => s.key === ad.source?.key) ?? null) : null;
-  // so /image finds it again when this design is opened there
-  if (source) rememberSource(source, userId);
   const design = designFor(userId, c, ad, view.design);
   if (!design) return { ok: false, error: SAVE_LINE };
-  // the seam's layout, never Jev's pick; a competitor ad's picture link expires, so it is never read (read: false)
-  const run = startImageWrite(userId, {
-    designId: design.id, source, topic: adTopic(c, ad), layout: ad.layout, mention: mentionFor(userId), note: source ? adNote(c, ad) : "", size: "4x5", read: false,
-  });
-  const id = imageWrite()?.id;
-  await run;
-  const w = imageWrite();
-  if (w?.id === id && w.state === "done") return { ok: true, toast: `Ad ${n} is made.`, undo: () => void undoMakeAd(userId, campaignId, n) };
-  const error = (w?.id === id && w.error) || WRITE_FAILED;
-  updateAd(userId, campaignId, n, { error });
-  return { ok: false, error, ...(w?.id === id && w.capped ? { capped: true as const } : {}) };
+  const no = await writeAd(userId, c, ad, design);
+  return no ? { ok: false, ...no } : { ok: true, toast: `Ad ${n} is made.`, undo: () => void undoMakeAd(userId, campaignId, n) };
+}
+
+/** Redraw: a made ad written again in the layout it has now (one more remix make). Undo puts the words before back. */
+export async function redrawAd(userId: string, campaignId: string, n: number): Promise<MakeOutcome> {
+  const f = find(userId, campaignId, n);
+  if (!f) return { ok: false, error: AD_GONE };
+  const was = f.view.design;
+  if (f.view.state !== "made" || !was) return { ok: false, error: f.view.state === "making" ? AD_MAKING : AD_REDRAW_DRAFT };
+  if (imageWriteBusy()) return { ok: false, error: AD_BUSY };
+  if (!updateAd(userId, campaignId, n, { error: undefined })) return { ok: false, error: SAVE_LINE };
+  const no = await writeAd(userId, f.c, f.ad, was);
+  return no ? { ok: false, ...no } : { ok: true, toast: `Ad ${n} is redrawn.`, undo: () => void saveImage(userId, was) };
 }
 
 /** Undo for Make: the ad is a draft again; its design stays in Your images (the remix make was spent). */
@@ -218,17 +239,39 @@ export function notTaken(b: AdBudget): string[] {
 }
 
 /**
- * Fills the sheet for one made ad and returns its /image address with the sheet open. What the person typed in the
- * sheet before (its headline, text, approval code) stays; the campaign's settings replace the rest. Nothing is sent.
+ * Fills Run as an ad's sheet for one made ad. What the person typed in the sheet before (its headline, text, approval
+ * code) stays; the campaign's settings replace the rest. Nothing is sent.
  */
-export function handOff(c: Pick<Campaign, "budget">, v: AdView, plan: Pick<SendPlan, "perAd" | "days">): string | null {
-  const d = v.design;
-  if (!d) return null;
+export function prefillSheet(c: Pick<Campaign, "budget">, v: AdView, plan: Pick<SendPlan, "perAd" | "days">): void {
+  if (!v.design) return;
   try {
-    const kept = JSON.parse(sessionStorage.getItem(sheetKey(d.id)) ?? "null");
-    sessionStorage.setItem(sheetKey(d.id), JSON.stringify({ ...(kept && typeof kept === "object" ? kept : {}), ...sheetPrefill(c, plan) }));
+    const kept = JSON.parse(sessionStorage.getItem(sheetKey(v.design.id)) ?? "null");
+    sessionStorage.setItem(sheetKey(v.design.id), JSON.stringify({ ...(kept && typeof kept === "object" ? kept : {}), ...sheetPrefill(c, plan) }));
   } catch {
     // private mode: the sheet opens on its own defaults, and the settings are listed beside the button
   }
+}
+
+/** The same, then the ad's /image address with the sheet open. */
+export function handOff(c: Pick<Campaign, "budget">, v: AdView, plan: Pick<SendPlan, "perAd" | "days">): string | null {
+  const d = v.design;
+  if (!d) return null;
+  prefillSheet(c, v, plan);
   return links.image({ layout: d.layout, size: d.size, image: d.id, ad: true });
+}
+
+// ---- Sending them one after another ------------------------------------------------------------
+
+const isSent = (plan: Pick<SendPlan, "sent">, v: AdView) => plan.sent.includes(v.design?.id ?? "");
+
+/** The next made ad not yet in AdLauncher that can open the sheet: the first after ad `after`, else the first; null when none is left. */
+export function nextToSend(plan: Pick<SendPlan, "ads" | "sent">, after = 0): AdView | null {
+  const open = plan.ads.filter((v) => !isSent(plan, v) && !sendBlock(v));
+  return open.find((v) => v.ad.n > after) ?? open[0] ?? null;
+}
+
+/** How far the send is: made ads paused in AdLauncher, of how many, and how many can't open the sheet until they're edited. */
+export function sendProgress(plan: Pick<SendPlan, "ads" | "sent">): { sent: number; of: number; blocked: number; done: boolean } {
+  const sent = plan.ads.filter((v) => isSent(plan, v)).length;
+  return { sent, of: plan.ads.length, blocked: plan.ads.filter((v) => !isSent(plan, v) && sendBlock(v)).length, done: plan.ads.length > 0 && sent === plan.ads.length };
 }

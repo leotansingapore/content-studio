@@ -509,6 +509,28 @@ describe("swapPost", () => {
     expect(the(1).prev).toBeUndefined();
   });
 
+  it("swaps to another format: the writer is asked for that format, the post takes it, and Undo brings the old format and words back", async () => {
+    seed([post(1), post(2, { hook: "Another hook in this campaign" })]);
+    fn.mockResolvedValueOnce({ posts: [{ n: 1, hook: "Three things to check", script: "HOOK: Three things\nBODY: Check them.\nCTA: Follow.", cta: "Follow.", ctaType: "open-question", mas: false }] });
+    const r = await act.swapPost(UID, "c-1", 1, "short-video");
+    expect(r).toMatchObject({ ok: true, toast: "Post 1 is now: Short video script." });
+    const body = fn.mock.calls[0][1];
+    expect(body).toMatchObject({ mode: "campaign", swap: true });
+    expect(body.posts[0]).toMatchObject({ n: 1, format: "short-video" });
+    // a new format may keep the post's idea, so its own hook is not pushed to the front of avoid
+    expect(body.avoid).toEqual(["Another hook in this campaign"]);
+    expect(the(1)).toMatchObject({ format: "short-video", hook: "Three things to check", prev: { format: "text-post", hook: "Most people get post 1 wrong" } });
+    expect(the(1).body).toBeUndefined();
+    if (r.ok === false) throw new Error(r.error);
+    r.undo();
+    expect(the(1)).toMatchObject({ format: "text-post", hook: "Most people get post 1 wrong", body: post(1).body });
+    expect(the(1).prev).toBeUndefined();
+    // the format it already has is a plain swap of the words
+    fn.mockResolvedValueOnce({ posts: [{ n: 1, hook: "A different way in", body: "New body.", cta: "x", ctaType: "open-question" }] });
+    expect(await act.swapPost(UID, "c-1", 1, "text-post")).toMatchObject({ ok: true, toast: "New words for post 1." });
+    expect(the(1).prev?.format).toBeUndefined();
+  });
+
   it("leaves the words alone at the cap with the cap line, and on a reply it can't use", async () => {
     seed([post(1)]);
     fn.mockRejectedValueOnce(new EdgeError("You've used all 40 for today.", 429, "daily_limit"));

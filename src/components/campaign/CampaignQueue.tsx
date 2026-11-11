@@ -1,12 +1,15 @@
 // The review queue on /campaigns/:id, under #queue (plan-review-queue, Leo only; docs/north-star/items/plan-review-queue.md):
-// one post at a time with a strip of every post, or a grid (?view=grid). Keys 1 Make, 2 Swap, 3 Edit, 4 Skip and the
-// arrows, never while typing or with a dialog open. The actions run outside React (src/lib/campaignActions.ts), so a
+// Review, one post at a time with a strip of every post, or All posts (?view=grid, AllPosts.tsx: every post by week,
+// with ?boards=1 every storyboard). The toolbar counts made, making and drafts, jumps to the next draft and lists what
+// is being made. Keys 1 Make, 2 Swap, 3 Edit, 4 Skip and the arrows, never while typing or with a dialog open.
+// ?swap=format opens the format picker beside the post: the same slot written again as another format, with Undo. The actions run outside React (src/lib/campaignActions.ts), so a
 // Make or a Swap keeps going when the page is left; this only shows them. ?post=<n> is the post shown (replace), and
 // the page's ?angle= filters the posts. Typed edits wait in this tab's sessionStorage until Save or Cancel.
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Loader2, Slash } from "lucide-react";
+import AllPosts, { slideUrls, useFontsReady } from "@/components/campaign/AllPosts";
 import ComplianceChips from "@/components/ComplianceChips";
 import PostPreview from "@/components/PostPreview";
 import PriceChip from "@/components/PriceChip";
@@ -22,12 +25,10 @@ import {
   onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, VIDEO_WORDS_LINE, videoCaption, videoPriceOf, videoUnderway, waitingFor,
   whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
+import { boardCounts, countsText, scriptBlocks } from "@/lib/campaignBoard";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
-import { FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignPost, type QueueAction } from "@/lib/campaigns";
-import { FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
-import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
-import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
-import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
+import { FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignFormat, type CampaignPost, type QueueAction } from "@/lib/campaigns";
+import { FORMAT_HINT, FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { scanCompliance } from "@/lib/compliance";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
 import { loadDrafts } from "@/lib/draftHistory";
@@ -41,9 +42,8 @@ import { onSlideshowJob, slideshowBusy, slideshowJob, stepText as showStep } fro
 import { platformName } from "@/lib/socialConnect";
 import { asTopic } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, onTalkJob, talkBusy, talkJob } from "@/lib/talkingHeadJob";
-import { useUrlState, withParam } from "@/lib/urlState";
+import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
-import { ensureCaptionFonts } from "@/lib/videoMedia";
 import { onWallJob, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
 import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
 
@@ -83,27 +83,8 @@ function keepEdit(campaignId: string, n: number, w: Words | null): void {
 /** "Thu 8pm", or the day alone. */
 const slotText = (p: Pick<CampaignPost, "day" | "time">) => `${shortDay(keyToDate(p.day)).split(" ")[0]}${p.time ? ` ${timeLabel(p.time)}` : ""}`;
 const dayIndex = (c: Pick<Campaign, "startDay">, p: Pick<CampaignPost, "day">) => Math.round((keyToDate(p.day).getTime() - keyToDate(c.startDay).getTime()) / 86_400_000) + 1;
-/** A short video script's HOOK, BODY and CTA lines as blocks; one block when it has no labels. */
-const scriptBlocks = (script: string) => {
-  const blocks = script.split("\n").map((l) => /^(HOOK|BODY|CTA)\s*:\s*(.*)$/i.exec(l.trim())).filter((m): m is RegExpExecArray => !!m && !!m[2]);
-  return blocks.length ? blocks.map((m) => ({ label: m[1].toUpperCase(), text: m[2] })) : [{ label: "SCRIPT", text: script }];
-};
-
 function Key({ k }: { k: string }) {
   return <kbd className="ml-1.5 hidden rounded border border-current/30 px-1 font-sans text-[10px] font-medium opacity-70 lg:inline [@media(pointer:coarse)]:hidden">{k}</kbd>;
-}
-
-function useFontsReady(want: boolean) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (!want) return;
-    let live = true;
-    void ensureCaptionFonts().then(() => live && setReady(true));
-    return () => {
-      live = false;
-    };
-  }, [want]);
-  return ready;
 }
 
 /** What a made slideshow or wall says: the slideshow's cover, else the wall's words; null before Make (the hook and brief show). */
@@ -119,12 +100,7 @@ const madeCaption = (userId: string, p: CampaignPost, show: { caption?: string }
 
 /** A carousel's slides drawn the way /carousel draws them from the same words, with the brand kit; nothing is stored. */
 function CarouselSlides({ userId, p, all }: { userId: string; p: CampaignPost; all: boolean }) {
-  const slides = useMemo(() => postSlides(p), [p]);
-  const urls = useMemo(() => {
-    const brand = loadBrand(userId) ?? DEFAULT_BRAND;
-    const measure = createCanvasMeasure();
-    return slides.map((s, i) => svgDataUrl(renderSvg(layoutSlide({ title: s.title, body: s.body, index: i, total: slides.length, brand }, measure))));
-  }, [userId, slides]);
+  const urls = useMemo(() => slideUrls(userId, p), [userId, p]);
   const [at, setAt] = useState(0);
   if (!urls.length) return <p className="text-sm text-muted-foreground">These words make no slides yet. Edit them first.</p>;
   if (all) {
@@ -181,6 +157,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   const running = c.posts.some((p) => makerOf(c.id, p.n) || isSwapping(c.id, p.n));
   const usesLeft = useUsesLeft(running);
 
+  const [picking, openPicker, closePicker] = useUrlItem("swap");
   const [confirm, setConfirm] = useState<null | "video" | "full">(null);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [all, setAll] = useState(false);
@@ -283,9 +260,10 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
     if (p.format === "ai-video" && savedWho(userId) && !waitingFor(c, p)) return setConfirm("video");
     void run(p);
   };
-  const swap = async (p: CampaignPost) => {
+  const swap = async (p: CampaignPost, format?: CampaignFormat) => {
     if (swapOff) return void (swapReason && toast({ title: swapReason }));
-    report(await swapPost(userId, c.id, p.n));
+    closePicker();
+    report(await swapPost(userId, c.id, p.n, format));
   };
   const madeLink = (p: CampaignPost) => {
     const id = p.draftId ?? "";
@@ -346,46 +324,64 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
   ].filter(([n]) => n) as [number, string, string][];
   const finished = posts.every((p) => !open(p));
   const lastDay = sorted.reduce((m, p) => (p.day > m ? p.day : m), "");
+  const toPost = (n: number) => withParam(withParam(params, "view", null), "post", String(n)).toString();
+  // the next written post still to make after this one: one tap from either view
+  const upNext = nextToReview({ posts }, view === "grid" ? 0 : cur.n);
+  const nextDraft = upNext !== null && (view === "grid" || upNext !== cur.n) ? posts.find((p) => p.n === upNext) : undefined;
+  // what is being made in this tab, each with the step it is on: Make keeps going while you review the rest
+  const jobs = c.posts.flatMap((p) => {
+    const m = makerOf(c.id, p.n);
+    if (!m) return [];
+    const step = m === "slideshow" ? showStep(slideshowJob() ?? { state: "writing", done: 0, of: 0 }) : m === "wall" ? wallStep(wallJob() ?? { state: "writing" }) : talkJob()?.step;
+    return [{ p, step: step || "Making it..." }];
+  });
 
   const toolbar = (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <div role="group" aria-label="View" className="inline-flex rounded-lg border border-border/70 p-0.5">
-        {(["one", "grid"] as const).map((v) => (
-          <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
-            className={`h-11 rounded-md px-3 text-sm font-medium sm:h-9 ${view === v ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-            {v === "one" ? "One at a time" : "Grid"}
-          </button>
-        ))}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div role="group" aria-label="View" className="inline-flex rounded-lg border border-border/70 p-0.5">
+          {(["one", "grid"] as const).map((v) => (
+            <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+              className={`h-11 rounded-md px-3 text-sm font-medium sm:h-9 ${view === v ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              {v === "one" ? "Review" : <>All posts <span className="tabular-nums opacity-70">{posts.length}</span></>}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm tabular-nums" aria-live="polite">{countsText(boardCounts(posts))}</p>
+        {nextDraft && (
+          <Link to={{ search: toPost(nextDraft.n) }} replace className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-primary hover:underline sm:min-h-0">
+            Next draft: Day {dayIndex(c, nextDraft)} <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        )}
+        {hasVideo && (
+          <p className="text-sm"><span className={LABEL}>AI videos left today</span> <span className="tabular-nums">{videos ?? "?"}</span></p>
+        )}
+        <p className="text-sm text-muted-foreground sm:ml-auto">{tallies.map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" | ")}</p>
       </div>
-      <p className="text-sm"><span className={LABEL}>Made</span> <span className="tabular-nums">{kept.filter((p) => p.state === "made").length} of {kept.length}</span></p>
-      {hasVideo && (
-        <p className="text-sm"><span className={LABEL}>AI videos left today</span> <span className="tabular-nums">{videos ?? "?"}</span></p>
+      {jobs.length > 0 && (
+        <ul role="status" aria-label="Being made" className="flex flex-wrap items-center gap-2 text-sm">
+          <li className={LABEL}>Making {jobs.length}</li>
+          {jobs.map(({ p, step }) => (
+            <li key={p.n}>
+              <Link to={{ search: toPost(p.n) }} replace className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 text-xs hover:border-primary/60 sm:min-h-8">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
+                <span className="font-medium">Day {dayIndex(c, p)}</span>
+                <span className="text-muted-foreground">{step}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
-      <p className="text-sm text-muted-foreground sm:ml-auto">{tallies.map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" | ")}</p>
     </div>
   );
 
   // ---- grid ----
 
   if (view === "grid") {
-    const shows = loadSlideshows(userId);
     return (
       <div className="space-y-4">
         {toolbar}
-        <ol className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {posts.map((p) => (
-            <li key={p.n}>
-              {/* a real link to the post, so a new tab and Copy link work; replace, as picking a post does */}
-              <Link to={{ search: withParam(withParam(params, "view", null), "post", String(p.n)).toString() }} replace
-                className={`flex h-full w-full flex-col gap-1.5 rounded-xl border border-border/60 bg-card p-3 text-left shadow-card hover:border-primary/40 ${p.state === "skipped" ? "opacity-50" : ""}`}>
-                <span className="line-clamp-3 min-h-[3.75rem] text-sm font-medium [overflow-wrap:anywhere]">{madeWords(p, shows.find((s) => s.id === p.made?.id)) || p.hook || (p.state === "failed" ? FAILED_POST : "Waiting to be written.")}</span>
-                <span className="text-xs text-muted-foreground">Day {dayIndex(c, p)} | {FORMAT_NAME[p.format]}</span>
-                <span className="line-clamp-1 text-xs text-muted-foreground">{c.angles.find((a) => a.id === p.angleId)?.title}</span>
-                <span className="mt-auto w-fit rounded-full border border-border/70 px-2 py-0.5 text-[11px]">{STATE_WORD[p.state]}</span>
-              </Link>
-            </li>
-          ))}
-        </ol>
+        <AllPosts userId={userId} campaign={c} posts={posts} to={toPost} />
         <p className="text-xs text-muted-foreground">{SAFETY}</p>
       </div>
     );
@@ -617,7 +613,43 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             <p className={LABEL}>Day {dayIndex(c, cur)} | {shortDay(keyToDate(cur.day))}</p>
             <span className="rounded-full border border-border/70 px-2 py-0.5 text-[11px]">{FREE_FORMATS.includes(cur.format) ? "Free" : cur.format === "ai-video" ? "AI video" : "Made at Make"}</span>
           </div>
-          <p><span className={LABEL}>Format</span> {FORMAT_NAME[cur.format]}{cur.format === "carousel" ? ` | ${postSlides(cur).length} slides` : show ? ` | ${show.slides.length} slides` : ""}</p>
+          <p className="flex flex-wrap items-center gap-x-2">
+            <span><span className={LABEL}>Format</span> {FORMAT_NAME[cur.format]}{cur.format === "carousel" ? ` | ${postSlides(cur).length} slides` : show ? ` | ${show.slides.length} slides` : ""}</span>
+            {cur.state === "ready" && !work && !swapOff && (
+              <button type="button" className="min-h-11 text-primary hover:underline sm:min-h-0" aria-expanded={picking === "format"} aria-controls="swap-format"
+                onClick={() => (picking === "format" ? closePicker() : openPicker("format"))}>
+                Change format
+              </button>
+            )}
+          </p>
+          {picking === "format" && cur.state === "ready" && !work && !swapOff && (
+            <div id="swap-format" role="group" aria-label={`Swap day ${dayIndex(c, cur)}'s format`} className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Same day and angle, written again in the format you pick. Undo brings this draft back.</p>
+              <ul className="space-y-1">
+                {(Object.keys(FORMAT_NAME) as CampaignFormat[]).map((f) => {
+                  const now = f === cur.format;
+                  return (
+                    <li key={f}>
+                      <button type="button" disabled={now} onClick={() => void swap(cur, f)}
+                        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-border/60 bg-card px-3 py-1.5 text-left hover:border-primary/50 disabled:border-primary/40 disabled:bg-primary/5">
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{FORMAT_NAME[f]}</span>
+                          <span className="block text-xs text-muted-foreground">{FORMAT_HINT[f]}</span>
+                        </span>
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {now ? <span className="rounded-full bg-primary/15 px-2 py-0.5 font-medium text-primary">Now</span> : FREE_FORMATS.includes(f) ? "Free" : f === "ai-video" ? priceText(videoPrice) : "Under US$0.01"}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <PriceChip feature="campaign-swap" left={left("campaign-swap")} />
+                <Button variant="ghost" size="sm" className="h-11 sm:h-9" onClick={closePicker}>Cancel</Button>
+              </div>
+            </div>
+          )}
           <p>Angle: {angleTitle}</p>
           <p><span className={LABEL}>Goes out</span> {c.accountIds?.length ? `${c.platforms.map(platformName).join(", ")} | ${slotText(cur)}` : `You post it, ${slotText(cur)}`}</p>
           {cur.format === "carousel" && cur.hook && (
