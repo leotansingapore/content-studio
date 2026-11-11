@@ -180,7 +180,7 @@ describe("label helpers", () => {
   });
 });
 
-const { shownCount } = await import("./urlState");
+const { shownCount, useShownCount } = await import("./urlState");
 
 describe("shownCount", () => {
   it("reads how many a Show more list shows from the address, never fewer than one page", () => {
@@ -193,3 +193,18 @@ describe("shownCount", () => {
   });
 });
 
+
+describe("useShownCount", () => {
+  it("Show more adds a page to the address and keeps the search; opened past the list, it adds the page from there", () => {
+    const [shown, more] = run(() => useShownCount(12, "cpf"), "q=cpf&shown=24");
+    expect(shown).toBe(24);
+    more();
+    expect(url.toString()).toBe("q=cpf&shown=36");
+    // an item link opened at row 40: the next page starts there, not back at 24
+    more(40);
+    expect(url.get("shown")).toBe("52");
+    // a smaller start never shrinks the list
+    more(10);
+    expect(url.get("shown")).toBe("36");
+  });
+});
