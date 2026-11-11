@@ -147,11 +147,23 @@ export const sgDate = (d: Date) => {
   return `${s.getUTCDate()} ${MONTHS[s.getUTCMonth()]} ${s.getUTCFullYear()}`;
 };
 
-/** The campaign's name in AdLauncher: the headline, the approval code on an adviser's brand, and the day it was made. */
-export function campaignName(f: AdForm, person: boolean, now: number): string {
-  const head = f.headline.trim().replace(/\s+/g, " ");
-  return [head.length > 60 ? `${head.slice(0, 57)}...` : head, person ? f.approval.trim() : "", sgDate(new Date(now))].filter(Boolean).join(" | ");
+/** Five characters that change with anything the ad is made with, so AdLauncher's same-name check catches only a repeat of this exact ad. */
+export function intentRef(f: AdForm, person: boolean, designId = ""): string {
+  const parts = [f.pageId, f.adAccountId.replace(/^act_/, ""), f.goal, webAddress(f.goal === "leads" ? f.privacyUrl : f.url), Number(f.dailyBudget), Number(f.days), f.headline.trim(), f.primaryText.trim(), f.cta, person ? f.approval.trim() : "", designId];
+  let h = 2166136261;
+  for (const c of parts.join("\u0001")) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return (h >>> 0).toString(36).padStart(7, "0").slice(-5);
 }
+
+/** The campaign's name in AdLauncher: the headline, the approval code on an adviser's brand, the day it was made, and the ad's intent ref. */
+export function campaignName(f: AdForm, person: boolean, now: number, designId?: string): string {
+  const head = f.headline.trim().replace(/\s+/g, " ");
+  return [head.length > 60 ? `${head.slice(0, 57)}...` : head, person ? f.approval.trim() : "", sgDate(new Date(now)), `#${intentRef(f, person, designId)}`].filter(Boolean).join(" | ");
+}
+
+/** AdLauncher matched an earlier ad by name that sits on another Page or ad account, so nothing was made for this form. */
+export const duplicateElsewhere = (r: Pick<CampaignResult, "duplicateOf" | "pageId" | "adAccountId">, f: AdForm): boolean =>
+  !!r.duplicateOf && ((!!r.pageId && r.pageId !== f.pageId) || (!!r.adAccountId && r.adAccountId.replace(/^act_/, "") !== f.adAccountId.replace(/^act_/, "")));
 
 export const SINGAPORE = [{ key: "SG", type: "country" }];
 /** The standard questions AdLauncher's lead form asks when given none, sent so the check shows them. */
@@ -215,6 +227,7 @@ export interface CampaignResult {
   externalCampaignId: string | null;
   status?: string;
   dryRun: boolean;
+  pageId?: string;
   pageName?: string | null;
   adAccountId?: string;
   currency?: string;

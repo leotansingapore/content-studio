@@ -60,6 +60,9 @@ ad batches in /image after them (section 6, Ad versions).
   and `warnings`; a live one adds `campaignId` (AdLauncher's own `user_campaigns` id), `externalCampaignId` (Meta's),
   `externalAdSetId`, `externalCreativeId`, `externalAdId`, `leadFormId` and `warnings`. The same name again within 10
   minutes, once it has a Meta id, answers `duplicateOf` and makes nothing, so a second press of Create is safe.
+  The name ends in `#<intentRef>`, a hash of the Page, account, goal, address, budget, days, copy, CTA, approval code
+  and design, so only a repeat of the same ad matches. A `duplicateOf` from another Page or account is shown as a
+  failure, and a duplicate never overwrites a launch already saved on this brand.
   Refusals carry codes such as `below_budget_floor`, `placeholder_copy`, `meta_blocked` and `meta_error`.
 - The campaign in AdLauncher's web app is `https://autoadslauncher.com/campaigns/<campaignId>` (the client route); an
   agency sign-in is sent on to `/agency/campaigns/<campaignId>` (`src/components/AuthenticatedApp.tsx:204`), and both

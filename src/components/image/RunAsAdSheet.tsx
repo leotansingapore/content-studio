@@ -25,8 +25,10 @@ import {
   campaignArgs,
   campaignLink,
   campaignName,
+  duplicateElsewhere,
   formProblem,
   lastPrivacyUrl,
+  loadLaunches,
   needsReconnect,
   preflightArgs,
   rememberReturn,
@@ -199,7 +201,7 @@ export default function RunAsAdSheet(p: {
       setProgress("Checking with AdLauncher...");
       const pre = await adlCall<Preflight>("preflight-launch", preflightArgs(form));
       const now = Date.now();
-      const args = campaignArgs(form, { name: campaignName(form, p.person, now), imageUrl: url, now });
+      const args = campaignArgs(form, { name: campaignName(form, p.person, now, p.designId), imageUrl: url, now });
       const dry = await adlCall<CampaignResult>("create-campaign", args);
       setChecked({ args, pre, dry });
       setStep(pre.ok && pre.data.passed && dry.ok ? "checked" : "problems");
@@ -221,8 +223,13 @@ export default function RunAsAdSheet(p: {
         setStep("problems");
         return;
       }
+      if (duplicateElsewhere(res.data, form)) {
+        setFailure({ error: "AdLauncher matched an ad made a few minutes ago on another Page or ad account, and made nothing.", hint: "Wait 10 minutes, then Check and Create again." });
+        setStep("problems");
+        return;
+      }
       const id = res.data.campaignId ?? res.data.duplicateOf;
-      if (id) {
+      if (id && !(res.data.duplicateOf && loadLaunches(p.userId).some((l) => l.campaignId === id))) {
         const kept = saveLaunch(p.userId, {
           id: `al-${Date.now().toString(36)}`,
           at: new Date().toISOString(),

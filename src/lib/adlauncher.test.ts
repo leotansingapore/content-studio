@@ -3,7 +3,9 @@ import {
   campaignArgs,
   campaignLink,
   campaignName,
+  duplicateElsewhere,
   formProblem,
+  intentRef,
   lastPrivacyUrl,
   loadLaunches,
   loadResults,
@@ -107,10 +109,26 @@ describe("the create-campaign call", () => {
     expect(startOf(Date.parse("2026-10-27T15:59:00Z")).toISOString()).toBe("2026-10-27T16:00:00.000Z");
     expect(startOf(Date.parse("2026-10-27T16:00:00Z")).toISOString()).toBe("2026-10-28T16:00:00.000Z");
   });
-  it("names the campaign by its headline, the approval code on an adviser's brand, and the day", () => {
-    expect(campaignName({ ...FORM, approval: " MAS-118 " }, true, NOW)).toBe("Three CPF moves before 55 | MAS-118 | 27 Oct 2026");
-    expect(campaignName({ ...FORM, approval: "MAS-118" }, false, NOW)).toBe("Three CPF moves before 55 | 27 Oct 2026");
-    expect(campaignName({ ...FORM, headline: "x".repeat(80) }, false, NOW)).toBe(`${"x".repeat(57)}... | 27 Oct 2026`);
+  it("names the campaign by its headline, the approval code on an adviser's brand, the day and the ad's intent ref", () => {
+    expect(campaignName({ ...FORM, approval: " MAS-118 " }, true, NOW)).toMatch(/^Three CPF moves before 55 \| MAS-118 \| 27 Oct 2026 \| #[0-9a-z]{5}$/);
+    expect(campaignName({ ...FORM, approval: "MAS-118" }, false, NOW)).toMatch(/^Three CPF moves before 55 \| 27 Oct 2026 \| #[0-9a-z]{5}$/);
+    expect(campaignName({ ...FORM, headline: "x".repeat(80) }, false, NOW)).toMatch(new RegExp(`^${"x".repeat(57)}\\.\\.\\. \\| 27 Oct 2026 \\| #[0-9a-z]{5}$`));
+  });
+  it("names the same ad the same, and another Page, account, goal, budget, length, copy or design differently", () => {
+    const name = campaignName(FORM, false, NOW, "d1");
+    expect(campaignName({ ...FORM }, false, NOW + 60_000, "d1")).toBe(name);
+    expect(campaignName({ ...FORM, approval: "ignored" }, false, NOW, "d1")).toBe(name);
+    const others: Partial<AdForm>[] = [{ pageId: "p2" }, { adAccountId: "5678" }, { goal: "website", url: "leotan.sg" }, { dailyBudget: "30" }, { days: "14" }, { primaryText: "Other words." }, { cta: "SIGN_UP" }];
+    for (const o of others) expect(campaignName({ ...FORM, ...o }, false, NOW, "d1"), JSON.stringify(o)).not.toBe(name);
+    expect(campaignName(FORM, false, NOW, "d2")).not.toBe(name);
+    expect(intentRef({ ...FORM, adAccountId: "act_1234" }, false)).toBe(intentRef(FORM, false));
+  });
+  it("treats a duplicate answer from another Page or ad account as nothing made", () => {
+    expect(duplicateElsewhere({ duplicateOf: "c1", pageId: "p2" }, FORM)).toBe(true);
+    expect(duplicateElsewhere({ duplicateOf: "c1", adAccountId: "act_999" }, FORM)).toBe(true);
+    expect(duplicateElsewhere({ duplicateOf: "c1", pageId: "p1", adAccountId: "act_1234" }, FORM)).toBe(false);
+    expect(duplicateElsewhere({ duplicateOf: "c1" }, FORM)).toBe(false);
+    expect(duplicateElsewhere({ duplicateOf: null, pageId: "p2" }, FORM)).toBe(false);
   });
   it("preflights the same Page, account, budget and place", () => {
     expect(preflightArgs(FORM)).toEqual({ pageId: "p1", adAccountId: "1234", dailyBudget: 20, locations: [{ key: "SG", type: "country" }] });
