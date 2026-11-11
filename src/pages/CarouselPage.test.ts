@@ -20,7 +20,7 @@ vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof imp
 // the rewrite store has no server snapshot; nothing is being rewritten on a first frame
 vi.mock("@/components/carousel/SlideFields", async (actual) => ({ ...(await actual<typeof import("@/components/carousel/SlideFields")>()), useRewriting: () => false }));
 
-const { default: CarouselPage, addsRecap, carouselTarget, carouselScoreSource, CarouselScore } = await import("./CarouselPage");
+const { default: CarouselPage, addsRecap, carouselTarget, carouselScoreSource, CarouselScore, savedForDraft } = await import("./CarouselPage");
 const { textKey } = await import("@/lib/postScore");
 const html = (path = "/carousel") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(CarouselPage)));
 
@@ -167,5 +167,15 @@ describe("the carousel's predicted engagement (edit-score, Leo only)", () => {
     expect(visible(panel({ saved: { v: 7.5, down: [] } }))).toContain("Nothing big is holding it back.");
     expect(visible(panel({ saved: { v: 5, down: ["cta"] } }))).toContain("5.0/10 Fair");
     expect(visible(panel({ saved: { v: 4.9, down: ["cta"] } }))).toContain("4.9/10 Weak");
+  });
+});
+
+describe("a link to a post's carousel", () => {
+  const kept = (id: string, over: Record<string, unknown> = {}) => ({ id, title: id, platform: "instagram" as const, slides: [], updatedAt: "", ...over });
+  it("opens the carousel saved for that post, not fresh slides, and never a version in another language", () => {
+    expect(savedForDraft([kept("p:x"), kept("d:d1", { draftId: "d1" })], "d1")?.id).toBe("d:d1");
+    expect(savedForDraft([kept("t:zh", { draftId: "d1", translationOf: { id: "d:d1", at: "" } }), kept("p:y", { draftId: "d1" })], "d1")?.id).toBe("p:y");
+    expect(savedForDraft([kept("t:zh", { draftId: "d1", translationOf: { id: "d:d1", at: "" } })], "d1")).toBeUndefined();
+    expect(savedForDraft([kept("d:d2", { draftId: "d2" })], "d1")).toBeUndefined();
   });
 });

@@ -352,6 +352,9 @@ function AskBox(p: { text: string; left: number | null; busy: boolean; target: (
 /** Tighten's recap slide: added when it fits, never by the score's Fix this (its slide of 4 bullets failed Easy to read: live-p7a D13). */
 export const addsRecap = (slides: Slide[], fix: boolean) => !fix && recapFits(slides);
 
+export const savedForDraft = (saved: SavedCarousel[], id: string) =>
+  saved.find((c) => c.id === `d:${id}`) ?? saved.find((c) => c.draftId === id && !c.translationOf);
+
 export function carouselScoreSource(slides: Pick<Slide, "title" | "body">[], post: Pick<DraftEntry, "draft" | "lang"> | undefined, lang: string | undefined): string | null {
   return lang || post?.lang ? null : carouselScoreText(slides, post?.draft);
 }
@@ -738,6 +741,11 @@ export default function CarouselPage() {
         // corrupt or blocked storage: start fresh
       }
       if (Object.keys(fix).length) updateUrl(fix);
+      return;
+    }
+    const keptForDraft = savedForDraft(saved, id);
+    if (keptForDraft) {
+      openSaved(keptForDraft, true);
       return;
     }
     if (drafts.some((d) => d.id === id)) {
