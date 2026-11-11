@@ -312,6 +312,23 @@ describe("a turn", () => {
     expect(last(id).go?.map((g) => g.label)).toEqual(["Open Swipe file", "Open All posts"]);
   });
 
+  it("names the step before a make's card and counts its seconds from when it began", async () => {
+    const lines: (string | undefined)[] = [];
+    const off = onAgent(() => {
+      const t = turnOf(loadThreads(UID)[0]?.id ?? "");
+      if (t?.state === "thinking" && lines[lines.length - 1] !== t.line) lines.push(t.line);
+      // a named step has its own start, never before the turn's
+      if (t?.line) expect(t.stepAt).toBeGreaterThanOrEqual(t.startedAt);
+    });
+    jev.pick = pk({ act: "make", format: "post" });
+    const id = send(UID, null, "make a post about CPF LIFE");
+    await settled(id);
+    off();
+    expect(lines).toContain("Checking today's uses");
+    // the answer's own row shows no step
+    expect(turnOf(id)).toMatchObject({ state: "done", line: undefined });
+  });
+
   it("sends agent mode's fields and only the one proposed card as pending", async () => {
     const id = await say("make a carousel about CPF LIFE", { act: "make", format: "carousel" });
     expect(jev.bodies[0]).toMatchObject({ agent: true, speaker: "person", pending: "", learnings: [], lastChange: "", competitorAds: false });

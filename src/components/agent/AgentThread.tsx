@@ -26,11 +26,11 @@ type Go = { path: string; label: string };
 /** Chips that act here rather than open a page; any other path that isn't the app's own is never drawn. */
 export const ENGINE_CHIP = /^(say|format|forget|fb):/;
 
-/** "Thinking 3s" for a live turn; the stored state's word for one this tab isn't running. */
+/** "Thinking 3s", or the turn's named step ("Checking today's uses 2s"), for a live turn; the stored state's word for one this tab isn't running. */
 export function runLabel(state: Turn["state"], seconds: number | null, line?: string): string {
   const n = seconds === null ? "" : ` ${seconds}s`;
   if (state === "starting") return "Starting";
-  if (state === "thinking") return `Thinking${n}`;
+  if (state === "thinking") return `${line || "Thinking"}${n}`;
   if (state === "writing") return `Writing${n}`;
   return line ? `Making | ${line}` : "Making";
 }
@@ -142,6 +142,14 @@ export default function AgentThread({
     } else toBottom();
   }, [messages.length, focusMsg, show, toBottom]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // a link into the chat already open (a row of Your work) scrolls to its message too
+  useEffect(() => {
+    if (landed.current && focusMsg && document.getElementById(`m-${focusMsg}`)) {
+      near.current = false;
+      show(focusMsg, true);
+    }
+  }, [focusMsg, show]);
+
   // new words follow the bottom while it is in view; a make that lands while scrolled up gets the "ready" chip
   const tail = messages.map((m) => `${m.id}:${m.turn ?? ""}:${m.card?.status ?? ""}:${m.job?.state ?? ""}:${m.receipt ? 1 : 0}`).join("|");
   useLayoutEffect(() => {
@@ -251,7 +259,7 @@ export default function AgentThread({
           const mine = turn && turn.msg === m.id && RUNNING.has(turn.state) ? turn : null;
           const stored = !mine && m.turn && RUNNING.has(m.turn) ? m.turn : null;
           const state = mine
-            ? runLabel(mine.state, Math.max(0, Math.floor((now - mine.startedAt) / 1000)), mine.line)
+            ? runLabel(mine.state, Math.max(0, Math.floor((now - (mine.stepAt ?? mine.startedAt)) / 1000)), mine.line)
             : stored
               ? runLabel(stored, null)
               : null;
