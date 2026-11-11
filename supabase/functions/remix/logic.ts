@@ -181,7 +181,10 @@ export const MEME_UNSAFE_AT = 0.4;
  * ff1111: Fastlane's static ad formats as image layouts (src/data/staticFormats.ts slugs), each with its own words and
  * word limits. A field the brand types itself (the flyer's price) is never here, so the writer never fills it.
  */
-export const STATIC_LAYOUTS = ["text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline"] as const;
+export const STATIC_LAYOUTS = [
+  "text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline",
+  "lofi-note", "concern-answer", "story-reply", "page-post", "email-screenshot",
+] as const;
 export type StaticLayout = (typeof STATIC_LAYOUTS)[number];
 export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
   "text-chat": { name: 2, one: 14, two: 14, three: 14, four: 14, five: 14, six: 14 },
@@ -190,6 +193,11 @@ export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
   "forum-thread": { asker: 2, title: 14, body: 30, replier: 2, reply: 45 },
   "us-vs-them": { headline: 10, them: 4, us: 4, oldA: 7, newA: 7, oldB: 7, newB: 7, oldC: 7, newC: 7, close: 8 },
   "news-headline": { badge: 3, headline: 16, footer: 10 },
+  "lofi-note": { title: 8, body: 40, last: 12 },
+  "concern-answer": { question: 14, answer: 10, fact: 25 },
+  "story-reply": { question: 14, answer: 10, detail: 16 },
+  "page-post": { post: 40, headline: 8, line: 12 },
+  "email-screenshot": { subject: 10, body: 45, button: 4 },
 };
 export const isStaticLayout = (l: unknown): l is StaticLayout => (STATIC_LAYOUTS as readonly unknown[]).includes(l);
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
@@ -903,6 +911,36 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
     "- words.badge: the badge, at most 3 words, like Just in.",
     "- words.headline: the headline, at most 16 words, written like news about the brand or the problem it solves, only from the facts given.",
     "- words.footer: a small line at the foot, at most 10 words: the brand and what it is.",
+  ],
+  "lofi-note": [
+    "a scrappy note typed in a desktop notes window, in the first person: a small confession about a familiar struggle, and where the brand fits in.",
+    "- words.title: the note's heading, at most 8 words, shown in capitals.",
+    "- words.body: the note, at most 40 words, in short plain sentences, naming the brand and what it does, only from the facts given.",
+    "- words.last: the line it ends on, at most 12 words.",
+  ],
+  "concern-answer": [
+    "a buyer's doubt about the brand in a question sticker, answered in big type with one fact.",
+    "- words.question: the doubt, the way a buyer would ask it, at most 14 words.",
+    "- words.answer: the answer in big type, at most 10 words.",
+    "- words.fact: the one fact behind the answer, only from the facts given, at most 25 words.",
+  ],
+  "story-reply": [
+    "a story answering a buyer's question: the question in a sticker, the answer in big type and one line under it.",
+    "- words.question: the buyer's question, the way they would type it, at most 14 words.",
+    "- words.answer: the answer in big type, at most 10 words, only from the facts given.",
+    "- words.detail: one line under it, at most 16 words.",
+  ],
+  "page-post": [
+    "a post from the brand's own page: the post's words, then a picture with a headline and a line on it.",
+    "- words.post: the post, at most 40 words, in the brand's voice.",
+    "- words.headline: the headline on the picture, at most 8 words.",
+    "- words.line: a line under the headline, at most 12 words.",
+  ],
+  "email-screenshot": [
+    "an email from the brand open in an inbox: a subject worth opening, a short body and a link to act on.",
+    "- words.subject: the subject, at most 10 words, the way a person writes one.",
+    "- words.body: the email, at most 45 words, plain and personal.",
+    "- words.button: the link's words, at most 4 words, like Start a lesson.",
   ],
 };
 
