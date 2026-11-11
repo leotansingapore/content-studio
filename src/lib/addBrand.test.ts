@@ -61,6 +61,8 @@ describe("blankDna: a link that couldn't be read, filled in by hand", () => {
     expect(d).toMatchObject({ url: "https://www.acme-qa.sg/about", name: "Acme qa", colour: null, logo: null, handles: {}, oneLiner: "", topics: [], voice: "" });
     expect(keptBrand(JSON.stringify({ dna: d }), CARDS)?.dna).toStrictEqual(d);
     expect(blankDna("acme.sg").name).toBe("Acme");
+    // a long address still fits the name card: 40 characters at most
+    expect(blankDna("the-very-long-name-of-a-financial-advisory-practice.sg").name).toBe("The very long name of a financial adviso");
   });
   it("leaves the name empty for an App Store link or something that isn't an address", () => {
     expect(blankDna("apps.apple.com/sg/app/structured/id1499198946").name).toBe("");
