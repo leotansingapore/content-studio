@@ -75,7 +75,8 @@ describe("nav", () => {
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/ideas", "/social-north-star"]);
       expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/make", "/carousel", "/image", "/edit", "/make/hook-demo", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/script", "/library"]);
       expect(pages("write", email).slice(17, 19), email).toEqual(["/blitz", "/people"]);
-      expect(pages("find", email).slice(5), email).toEqual(["/following", "/profiles", "/competitors", "/research", "/clone", "/saved"]);
+      expect(pages("find", email).slice(5), email).toEqual(["/following", "/profiles", "/research", "/clone", "/saved"]);
+      expect(pages("playbook", email), email).toEqual(["/playbook", "/voice", "/brand", "/audiences", "/competitors", "/fads"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/adlauncher", "/automations", "/activity", "/skills"]);
     }
   });
@@ -151,7 +152,10 @@ describe("nav", () => {
       expect(leo.tabs.map((t) => t.to)).toEqual(["/swipe", "/following", "/clone", "/saved"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Posts");
       expect(labels(leo.chips)).toEqual(["Top posts", "Carousels", "What's working", "Trends", "Inspiration"]);
-      expect(labels(sectionTabs("/research", LEO).chips)).toEqual(["Following", "Creators", "Competitors", "Research"]);
+      expect(labels(sectionTabs("/research", LEO).chips)).toEqual(["Following", "Creators", "Research"]);
+      // Competitors is a Brand tab on Leo's sign-ins, and its detail addresses stay in Brand
+      expect(labels(sectionTabs("/competitors", LEO).tabs)).toEqual(["My Playbook", "Your voice", "Brand kit", "Audiences", "Competitors", "F.A.D.S."]);
+      expect(sectionFor("/competitors/c1")?.id).toBe("playbook");
       const anyone = sectionTabs("/following", ANYONE);
       expect(labels(anyone.tabs)).toEqual(["Posts", "Creators", "Remix"]);
       expect(labels(anyone.chips)).toEqual(["Following", "Creators"]);

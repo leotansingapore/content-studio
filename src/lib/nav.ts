@@ -194,7 +194,6 @@ export const SECTIONS: NavSection[] = [
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
       { to: "/following", label: "Following", icon: UserCheck, group: "Creators" },
       { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
-      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
       // its own page, not Following: 100 Instagram creators read by Leo's Mac and ranked as one feed (Following is
       // 5 accounts on either network, read through Apify, for everyone)
       { to: "/research", label: "Research", icon: Telescope, owners: LEO_EMAILS },
@@ -237,6 +236,9 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
+      // who the brand is up against is part of the brand, as on Fastlane's Brand (moved from Radar 11 Nov); their ads
+      // stay on Radar, in Top posts
+      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
       { to: "/fads", label: "F.A.D.S.", subTabs: true, show: () => adviserBrand() },
     ],
   },
