@@ -48,7 +48,7 @@ describe("Recent creations", () => {
 
 describe("Start from a format", () => {
   const fmt = (slug: string, group: 1 | 2 | 3 | 4, ready = true) =>
-    ({ slug, name: slug, blurb: `${slug} line`, kind: "video", group, price: () => null, ready, to: () => `/x/${slug}` }) as FormatDef;
+    ({ slug, name: slug, blurb: `${slug} line`, kind: "video", group, section: "words", price: () => null, ready, to: () => `/x/${slug}` }) as FormatDef;
   const still = (slug: string, ready: boolean): StaticFormat => ({ slug, name: slug, blurb: `${slug} line`, ready });
   const video = [fmt("v3", 3), fmt("v1", 1), fmt("off", 1, false), ...["v4", "v5", "v6", "v7", "v8", "v9"].map((s) => fmt(s, 4))];
 
