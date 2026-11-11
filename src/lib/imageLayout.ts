@@ -1220,7 +1220,6 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     for (const it of [p.headline, p.line]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
     const ry = bottom - actions + 40;
     nodes.push(dot(PAD_X + 16, ry, 16, brand.color), dot(PAD_X + 40, ry, 16, "#EF4444"));
-    text("Comments", W - PAD_X, ry + 10, { family: "sans", weight: 400, size: 28 }, ui.muted, { anchor: "end" });
     nodes.push({ type: "rect", x: PAD_X, y: ry + 34, width: w, height: 2, fill: ui.line });
     ["Like", "Comment", "Share"].forEach((a, i) => text(a, PAD_X + Math.round((w / 3) * (i + 0.5)), ry + 90, { family: "sans", weight: 600, size: 30 }, ui.muted, { anchor: "middle" }));
   } else if (layout === "email-screenshot") {
