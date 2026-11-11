@@ -14,7 +14,7 @@ import type { DraftEntry } from "@/lib/draftHistory";
 import type { SavedImage } from "@/lib/images";
 import type { Slideshow } from "@/lib/slideshow";
 import { brandDevice } from "@/test/brandDevice";
-import HomeRows, { PublishPromote, RecentCreations, RemixCompetitorAd, StartFromFormat, adsLine, bookedWhen, homeFormats, longestRunning, nextBooked, recentCreations } from "./HomeRows";
+import HomeRows, { PublishPromote, RecentCreations, RemixCompetitorAd, StartFromFormat, adsLine, bookedCount, homeFormats, longestRunning, recentCreations } from "./HomeRows";
 
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: {} }));
 
@@ -48,7 +48,7 @@ describe("Recent creations", () => {
 
   it("a brand whose only creation is a static ad made on Image shows it, opening in Image", () => {
     const items = recentCreations({ ...none, images: [image("img-1", 1)] });
-    expect(items).toEqual([{ key: "g:img-1", kind: "Image", status: "Ready", title: "Ad img-1", to: "/image?image=img-1" }]);
+    expect(items).toMatchObject([{ key: "g:img-1", kind: "Image", status: "Ready", title: "Ad img-1", to: "/image?image=img-1", item: { thumb: { kind: "image", imageId: "img-1" } } }]);
     expect(words(html(<RecentCreations items={items} />))).not.toContain("Nothing made yet.");
   });
 
@@ -75,7 +75,7 @@ describe("Recent creations", () => {
     ]);
     const out = html(<RecentCreations items={items} />);
     expect(hrefs(out)).toEqual(["/library", ...items.map((c) => c.to)]);
-    expect(words(out)).toContain("Text | Scheduled Hook post");
+    expect(words(out)).toContain("Text | Scheduled Hook post Goes out Fri 20 Nov");
     expect(words(out)).toContain("Image | Ready Ad img-1");
   });
 
@@ -153,20 +153,15 @@ describe("Remix a competitor ad", () => {
 });
 
 describe("Publish and promote", () => {
-  it("picks the next scheduled post from today on, earliest first", () => {
+  it("counts the posts booked from today on", () => {
     const drafts = [
       draft("past", { status: "scheduled", scheduledFor: "2026-11-10" }),
       draft("later", { status: "scheduled", scheduledFor: "2026-11-20T09:00" }),
       draft("posted", { status: "posted", scheduledFor: "2026-11-12" }),
       draft("soon", { status: "scheduled", scheduledFor: "2026-11-13T19:30" }),
     ];
-    expect(nextBooked(drafts, "2026-11-11")?.id).toBe("soon");
-    expect(nextBooked(drafts.slice(0, 3), "2026-11-21")).toBeNull();
-  });
-
-  it("names the day and, when picked, the time", () => {
-    expect(bookedWhen("2026-11-13T19:30")).toBe("Fri 13 Nov, 7:30pm");
-    expect(bookedWhen("2026-11-13")).toBe("Fri 13 Nov");
+    expect(bookedCount(drafts, "2026-11-11")).toBe(2);
+    expect(bookedCount(drafts, "2026-11-21")).toBe(0);
   });
 
   it("says whether AdLauncher is connected and how many ads went there", () => {
@@ -180,17 +175,17 @@ describe("Publish and promote", () => {
   });
 
   it("empty: not connected and nothing booked, with Open ads and Open calendar", () => {
-    const out = html(<PublishPromote adl={{ connected: false, account: null }} sent={0} next={null} />);
+    const out = html(<PublishPromote adl={{ connected: false, account: null }} sent={0} booked={0} />);
     expect(words(out)).toContain("Ads AdLauncher not connected Open ads");
     expect(words(out)).toContain("Posting Nothing booked yet Open calendar");
     expect(hrefs(out)).toEqual(["/adlauncher", "/calendar"]);
   });
 
-  it("filled: connected with ads sent, and when the next post goes out without repeating Coming up's title", () => {
-    const next = draft("soon", { status: "scheduled", scheduledFor: "2026-11-13T19:30", hook: "Three CPF myths" });
-    const out = words(html(<PublishPromote adl={{ connected: true, account: null }} sent={4} next={next} />));
+  it("filled: counts the booked posts and never names the next one, which Next up and Coming up already show", () => {
+    const out = words(html(<PublishPromote adl={{ connected: true, account: null }} sent={4} booked={2} />));
     expect(out).toContain("AdLauncher connected, 4 ads sent");
-    expect(out).toContain("Next one goes out Fri 13 Nov, 7:30pm");
-    expect(out).not.toContain("Three CPF myths");
+    expect(out).toContain("Posting 2 posts booked Open calendar");
+    expect(out).not.toMatch(/goes out|Next/);
+    expect(words(html(<PublishPromote adl={null} sent={0} booked={1} />))).toContain("1 post booked");
   });
 });

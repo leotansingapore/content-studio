@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CalendarDays, ChevronRight, Clapperboard, Image as ImageIcon, ImageOff, Layers, Megaphone, Type, type LucideIcon } from "lucide-react";
+import LibraryThumb, { readThumbSources, useFontsReady, useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { FORMATS, formatHref, type FormatDef, type FormatKind } from "@/data/formats";
@@ -14,10 +15,10 @@ import { type CompetitorAd, type CompetitorAdsState, canReadAds, loadCompetitorA
 import { type Competitor, loadCompetitors } from "@/lib/competitors";
 import { loadCarousels } from "@/lib/carousel";
 import { loadDesigns } from "@/lib/design";
-import { draftStatus, postTitle, type DraftEntry } from "@/lib/draftHistory";
-import { keyToDate, localDateKey, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
+import { localDateKey } from "@/lib/dueDates";
 import { loadImages, onImagesChanged } from "@/lib/images";
-import { FORMAT_LABELS, STATUS_LABELS, buildLibrary, type LibraryItem } from "@/lib/library";
+import { STATUS_LABELS, buildLibrary, statusLine, type LibraryItem } from "@/lib/library";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { fromAd } from "@/lib/remixSource";
@@ -64,20 +65,42 @@ export interface Creation {
   title: string;
   /** Its own editor. */
   to: string;
+  /** The Library's own item: its thumb and its schedule line. */
+  item: LibraryItem;
 }
 
 type Stores = Omit<Parameters<typeof buildLibrary>[0], "jobs" | "now">;
 
-const kindOf = (it: LibraryItem) => (it.href.startsWith("/design/") ? "Design" : it.href.startsWith("/slideshow") ? "Slideshow" : FORMAT_LABELS[it.format]);
-
-/** The brand's newest `n` creations, from the Library's own merge (library.ts): each tile is a Library card's kind, status, title and Open. */
+/** The brand's newest `n` creations, from the Library's own merge (library.ts): each tile is a Library card's picture, kind, status, title and Open. */
 export function recentCreations(stores: Stores, n = ROW): Creation[] {
   return buildLibrary({ ...stores, jobs: [], now: new Date(0) })
     .slice(0, n)
-    .map((it) => ({ key: it.key, kind: kindOf(it), status: STATUS_LABELS[it.status], title: it.title, to: it.href }));
+    .map((it) => ({ key: it.key, kind: it.kind, status: STATUS_LABELS[it.status], title: it.title, to: it.href, item: it }));
 }
 
-export function RecentCreations({ items }: { items: Creation[] }) {
+/** One creation: its picture as the Library draws it (given `sources`), its kind and status, and its title. The whole tile opens it. */
+export function CreationTile({ c, sources }: { c: Creation; sources?: ThumbSources }) {
+  const [ref, seen] = useOnScreen<HTMLSpanElement>();
+  return (
+    <Link to={c.to} className="group flex h-full min-w-0 flex-col gap-1.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {sources && (
+        <span ref={ref} className="block aspect-[4/5] w-full overflow-hidden rounded-xl border border-border/70 bg-muted transition-colors group-hover:border-primary/40">
+          <LibraryThumb item={c.item} sources={sources} seen={seen} />
+        </span>
+      )}
+      <span className={cn("flex min-w-0 flex-col gap-1", !sources && TILE)}>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {c.kind} | {c.status}
+        </span>
+        <span className="line-clamp-2 text-sm font-medium text-foreground group-hover:underline">{c.title}</span>
+        {/* when it goes out or went out; "Not scheduled yet" only repeats Ready */}
+        {c.item.when && <span className="text-xs text-muted-foreground">{statusLine(c.item)}</span>}
+      </span>
+    </Link>
+  );
+}
+
+export function RecentCreations({ items, sources }: { items: Creation[]; sources?: ThumbSources }) {
   return (
     <Row id="recent" title="Recent creations" more={{ to: links.library(), label: "Library" }}>
       {items.length === 0 ? (
@@ -86,12 +109,7 @@ export function RecentCreations({ items }: { items: Creation[] }) {
         <ul className={cn(STRIP, "lg:grid-cols-5")}>
           {items.map((c) => (
             <li key={c.key} className={CELL}>
-              <Link to={c.to} className={TILE}>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {c.kind} | {c.status}
-                </span>
-                <span className="line-clamp-3 text-sm font-medium text-foreground">{c.title}</span>
-              </Link>
+              <CreationTile c={c} sources={sources} />
             </li>
           ))}
         </ul>
@@ -225,23 +243,11 @@ export function adsLine(adl: AdlRead, sent: number): string {
   return adl.reconnect ? "AdLauncher needs connecting again" : "AdLauncher not connected";
 }
 
-/** The open brand's next scheduled post from `today` on, or null. */
-export function nextBooked(drafts: DraftEntry[], today = localDateKey()): DraftEntry | null {
-  return (
-    drafts
-      .filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) >= today)
-      .sort((a, b) => a.scheduledFor!.localeCompare(b.scheduledFor!))[0] ?? null
-  );
-}
+/** How many of the open brand's posts are booked from `today` on. */
+export const bookedCount = (drafts: DraftEntry[], today = localDateKey()) =>
+  drafts.filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) >= today).length;
 
-/** "Thu 13 Nov, 7:30pm", or the day alone when no time was picked. */
-export function bookedWhen(scheduledFor: string): string {
-  const day = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(keyToDate(scheduledFor.slice(0, 10)));
-  const time = scheduleTime(scheduledFor);
-  return time ? `${day}, ${timeLabel(time)}` : day;
-}
-
-export function PublishPromote({ adl, sent, next }: { adl: AdlRead; sent: number; next: DraftEntry | null }) {
+export function PublishPromote({ adl, sent, booked }: { adl: AdlRead; sent: number; booked: number }) {
   return (
     <Row id="publish" title="Publish and promote">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -249,8 +255,8 @@ export function PublishPromote({ adl, sent, next }: { adl: AdlRead; sent: number
         <Card
           icon={CalendarDays}
           title="Posting"
-          // the post itself is listed in Coming up below; this card says when the queue next goes out
-          line={next?.scheduledFor ? `Next one goes out ${bookedWhen(next.scheduledFor)}` : "Nothing booked yet"}
+          // which posts and when is Next up's and Coming up's to say, once each: this card only counts the queue
+          line={booked ? `${booked} post${booked === 1 ? "" : "s"} booked` : "Nothing booked yet"}
           to={links.calendar()}
           action="Open calendar"
         />
@@ -300,14 +306,13 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
     const offs = [onImagesChanged, onSlideshowsChanged].map((on) => on(() => setSaved((n) => n + 1)));
     return () => offs.forEach((off) => off());
   }, []);
-  const recent = useMemo(
-    () =>
-      recentCreations({
-        drafts, carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId),
-        images: loadImages(userId),
-      }),
-    [userId, drafts, saved],
+  const stores = useMemo(
+    () => ({ drafts, carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId), images: loadImages(userId) }),
+    [userId, drafts, saved], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  const recent = useMemo(() => recentCreations(stores), [stores]);
+  const fontsReady = useFontsReady(recent.some((c) => c.item.thumb?.kind === "show"));
+  const sources = useMemo(() => readThumbSources(userId, stores, fontsReady), [userId, stores, fontsReady]);
   const sent = useMemo(() => loadLaunches(userId).length, [userId]);
   const [adl, setAdl] = useState<AdlRead>(undefined);
   useEffect(() => {
@@ -323,10 +328,10 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
 
   return (
     <div className={cn("space-y-8", className)}>
-      <RecentCreations items={recent} />
+      <RecentCreations items={recent} sources={sources} />
       <StartFromFormat tiles={tiles} />
       <RemixCompetitorAd {...competitors} />
-      <PublishPromote adl={adl} sent={sent} next={nextBooked(drafts)} />
+      <PublishPromote adl={adl} sent={sent} booked={bookedCount(drafts)} />
     </div>
   );
 }
