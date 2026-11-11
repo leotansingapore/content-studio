@@ -83,11 +83,11 @@ export const CTA_TYPES = [
 // sync). Any match drops the kit: an automatic drop has no one to reword it.
 export const COMPLIANCE_RULES = [
   { id: "guarantee", pattern: /\b(guaranteed?|guarantee[ds]?)\b/i },
-  { id: "risk-free", pattern: /\b(risk[-\s]?free|no\s+risk)\b/i },
+  { id: "risk-free", pattern: /\b(risk[-\s]?free|(?:no|zero)[-\s]+risk)\b/i },
   { id: "100-safe", pattern: /\b(100%|completely)\s+(safe|secure)\b/i },
-  { id: "best-superlative", pattern: /\b(best|number\s*one|#1)\s+(insurance|policy|plan|fund|product)/i },
+  { id: "best-superlative", pattern: /(?:\b(?:best|number\s*one)|#1)\s+(insurance|policy|plan|fund|product)/i },
   { id: "aia-best", pattern: /\bAIA\s+is\s+the\s+best/i },
-  { id: "specific-return", pattern: /\b(\d+%\s+(return|p\.a\.|annual)|\d+%\s+(rate|interest))\b/i },
+  { id: "specific-return", pattern: /\b\d+(?:\.\d+)?\s?%\s+(?:(?:returns?|per\s+annum|annual(?:ly)?|rate|interest)\b|p\.a\.)/i },
   { id: "easy-money", pattern: /\b(easy|guaranteed|sure)\s+(money|profit|win)/i },
   { id: "act-now", pattern: /\bact\s+(now|today)\b/i },
 ];

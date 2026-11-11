@@ -24,7 +24,7 @@ export const COMPLIANCE_FLAGS: ComplianceRule[] = [
   },
   {
     id: "risk-free",
-    pattern: /\b(risk[-\s]?free|no\s+risk)\b/i,
+    pattern: /\b(risk[-\s]?free|(?:no|zero)[-\s]+risk)\b/i,
     severity: "error",
     message: "'Risk-free' is non-compliant for any market-linked product.",
   },
@@ -36,7 +36,7 @@ export const COMPLIANCE_FLAGS: ComplianceRule[] = [
   },
   {
     id: "best-superlative",
-    pattern: /\b(best|number\s*one|#1)\s+(insurance|policy|plan|fund|product)/i,
+    pattern: /(?:\b(?:best|number\s*one)|#1)\s+(insurance|policy|plan|fund|product)/i,
     severity: "warn",
     message:
       "Superlatives like 'best' / 'number one' need substantiation. Reword or remove.",
@@ -49,7 +49,7 @@ export const COMPLIANCE_FLAGS: ComplianceRule[] = [
   },
   {
     id: "specific-return",
-    pattern: /\b(\d+%\s+(return|p\.a\.|annual)|\d+%\s+(rate|interest))\b/i,
+    pattern: /\b\d+(?:\.\d+)?\s?%\s+(?:(?:returns?|per\s+annum|annual(?:ly)?|rate|interest)\b|p\.a\.)/i,
     severity: "warn",
     message:
       "Specific return numbers must be substantiated and labelled (illustrated / projected / past). Add the qualifier.",

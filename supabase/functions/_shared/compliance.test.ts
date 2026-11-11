@@ -23,9 +23,13 @@ type Pin = {
 const PINS: Pin[] = [
   {
     text: "Guaranteed returns of 8% p.a. with zero risk.",
-    flags: [["guarantee", "warn", "Guaranteed", "guarantee::guaranteed"]],
-    errors: false,
-    issues: ["guarantee"],
+    flags: [
+      ["guarantee", "warn", "Guaranteed", "guarantee::guaranteed"],
+      ["risk-free", "error", "zero risk", "risk-free::zero risk"],
+      ["specific-return", "warn", "8% p.a.", "specific-return::8% p.a."],
+    ],
+    errors: true,
+    issues: ["guarantee", "risk-free", "specific-return"],
   },
   {
     text: "This plan is risk-free and 100% safe. Act now!",
@@ -95,15 +99,18 @@ const PINS: Pin[] = [
   },
   {
     text: "#1 policy for families. Act today before prices rise, the #1 plan.",
-    flags: [["act-now", "warn", "Act today", "act-now::act today"]],
+    flags: [
+      ["best-superlative", "warn", "#1 policy", "best-superlative::#1 policy"],
+      ["act-now", "warn", "Act today", "act-now::act today"],
+    ],
     errors: false,
-    issues: ["act-now"],
+    issues: ["best-superlative", "act-now"],
   },
   {
     text: "Projected, not guaranteed. Past results are not a promise. 2.5% rate illustrated.",
     flags: [
       ["guarantee", "warn", "guaranteed", "guarantee::guaranteed"],
-      ["specific-return", "warn", "5% rate", "specific-return::5% rate"],
+      ["specific-return", "warn", "2.5% rate", "specific-return::2.5% rate"],
     ],
     errors: false,
     issues: ["guarantee", "specific-return"],
@@ -123,7 +130,7 @@ const PINS: Pin[] = [
   },
   {
     text: "A riskless plan with no-risk wording and RISK-FREE caps.",
-    flags: [["risk-free", "error", "RISK-FREE", "risk-free::risk-free"]],
+    flags: [["risk-free", "error", "no-risk", "risk-free::no-risk"]],
     errors: true,
     issues: ["risk-free"],
   },
@@ -142,7 +149,7 @@ const PINS: Pin[] = [
   },
   {
     text: "Earn 12% annually, or 7%rate, or 9% p.a.x",
-    flags: [["specific-return", "warn", "9% p.a.", "specific-return::9% p.a."]],
+    flags: [["specific-return", "warn", "12% annually", "specific-return::12% annually"]],
     errors: false,
     issues: ["specific-return"],
   },
@@ -212,6 +219,24 @@ describe("one list in _shared/compliance.ts", () => {
 
   it("flags a repeated word once", () => {
     expect(shared.scanCompliance("Act now. Act now. ACT NOW.").map((f) => f.ruleId)).toEqual(["act-now"]);
+  });
+
+  it("flags plural returns, p.a., per annum, #1 and a hyphenated no-risk", () => {
+    const flags = shared.scanCompliance(
+      "We are the #1 insurance agency in SG. Earn 8% returns on your savings, about 6% p.a. over ten years. A no-risk way to grow. Guaranteed income too.",
+    );
+    expect(flags.map((f) => [f.ruleId, f.severity, f.match])).toEqual([
+      ["guarantee", "warn", "Guaranteed"],
+      ["risk-free", "error", "no-risk"],
+      ["best-superlative", "warn", "#1 insurance"],
+      ["specific-return", "warn", "8% returns"],
+    ]);
+    expect(shared.hasComplianceErrors(flags)).toBe(true);
+    for (const t of ["Earn 8% p.a.", "Earn 8% p.a. with this plan", "8% per annum", "8% annually", "8 % return", "Earn 8% returns a year"])
+      expect(shared.scanCompliance(t).map((f) => f.ruleId)).toEqual(["specific-return"]);
+    expect(shared.scanCompliance("the #1 plan in SG").map((f) => f.match)).toEqual(["#1 plan"]);
+    expect(shared.scanCompliance("Brand colour #1C1917 plan")).toEqual([]);
+    expect(shared.scanCompliance("No risky moves here")).toEqual([]);
   });
 
   it("gives clean text no flags", () => {
