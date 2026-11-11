@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import HomePage, { campaignTimes } from "./HomePage";
+import HomePage, { campaignTimes, homePrimary } from "./HomePage";
 
 const html = (path = "/home") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(HomePage)));
 
@@ -37,6 +37,23 @@ describe("Home for everyone else", () => {
   });
   it("draws today's first frame on a goal link", async () => {
     await expect(html("/home?goal=change")).toMatchFileSnapshot("./__pins__/home-page-everyone.html");
+  });
+});
+
+describe("Home's one filled button", () => {
+  const d = (id: string, o: object = {}) => ({ id, createdAt: "", hook: `Hook ${id}`, draft: "", pillar: "", pillarDetail: "", audience: "", format: "", platform: "", ctaType: "", ...o }) as never;
+  it("finishes the newest unfinished post, naming it", () => {
+    expect(homePrimary([d("s", { status: "scheduled", scheduledFor: "2026-11-20" }), d("a b"), d("older")], "/studio#topic")).toEqual({ label: "Finish your post", to: "/generate?draft=a%20b", title: "Hook a b" });
+  });
+  it("writes a post when nothing is unfinished", () => {
+    expect(homePrimary([], "/studio#topic")).toEqual({ label: "Write a post", to: "/studio#topic" });
+    expect(homePrimary([d("p", { status: "posted", postedAt: "2026-11-01" })], "/x").label).toBe("Write a post");
+  });
+  it("is the page's only filled button, with the other ways as links", () => {
+    const out = html();
+    expect(out.match(/bg-gradient-primary/g)).toHaveLength(1);
+    expect(out).toMatch(/<a[^>]*href="\/plan"[^>]*>Plan a week<\/a>/);
+    expect(out).not.toContain("Start diagnosis");
   });
 });
 

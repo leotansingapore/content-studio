@@ -36,11 +36,11 @@ import { isOnboarded } from "@/lib/onboarding";
 import { loadResult, nextAction, type NextAction } from "@/lib/diagnosis";
 import {
   Pencil,
-  CalendarRange,
   Lightbulb,
   Users as UsersIcon,
   ArrowRight,
   CheckCircle2,
+  ChevronRight,
   Circle,
   Clock,
   FileText,
@@ -48,7 +48,6 @@ import {
   CalendarClock,
   Gauge,
   Flame,
-  Layers,
   Target,
   Minus,
   Plus,
@@ -76,6 +75,7 @@ import { STATUS_LABEL as CAMPAIGN_STATUS, cadence } from "@/lib/campaignLabels";
 import { nextRunAt, sanitizeSchedule } from "../../supabase/functions/_shared/slideCampaign.ts";
 
 // Leo's Home (agent-home): its own chunk, so the agent engine never loads for anyone else.
+const QUIET = "inline-flex min-h-9 items-center hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11";
 const AgentHome = lazy(() => import("@/components/home/AgentHome"));
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -114,6 +114,13 @@ export function campaignTimes(rows: { id: string; name: string; status: string; 
 }
 
 const comingDay = (at: Date) => at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+
+/** Home's one filled button: finish the newest unfinished post, else write one. */
+export function homePrimary(drafts: DraftEntry[], writeHref: string): { label: string; to: string; title?: string } {
+  const open = drafts.find((d) => draftStatus(d) === "draft");
+  if (!open) return { label: "Write a post", to: writeHref };
+  return { label: "Finish your post", to: `/generate?draft=${encodeURIComponent(open.id)}`, title: (open.hook || open.draft.split("\n")[0] || "").trim().slice(0, 80) || undefined };
+}
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -262,6 +269,7 @@ export default function HomePage() {
     return (inProgress.length ? inProgress : drafts).slice(0, 3);
   }, [drafts]);
   const hasPosts = drafts.length > 0;
+  const primary = homePrimary(drafts, newPostHref(uid));
 
   const upcoming = useMemo(() => {
     const today = localDateKey();
@@ -567,10 +575,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      asChild
-                      className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-                    >
+                    <Button asChild variant="outline" className="gap-2">
                       <Link to={nextAct.mission.to}>
                         Start mission <ArrowRight className="h-4 w-4" />
                       </Link>
@@ -579,30 +584,6 @@ export default function HomePage() {
                       <Clock className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
                     </span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-            {nextAct?.kind === "diagnose" && (
-              <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div className="flex items-start gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Gauge className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Get your Content Score
-                      </p>
-                      <p className="max-w-md text-xs text-muted-foreground">
-                        {nextAct.detail}
-                      </p>
-                    </div>
-                  </div>
-                  <Button asChild size="sm" variant="outline" className="gap-1.5 [@media(pointer:coarse)]:h-11">
-                    <Link to="/coach">
-                      Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -632,43 +613,36 @@ export default function HomePage() {
               </Card>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {/* the one filled create button on a phone; beside the sidebar's New post (lg) it matches its two neighbours,
-                  so a screen never shows two filled buttons for the same thing (as Buffer and Hootsuite do) */}
-              <Button
-                asChild
-                size="lg"
-                className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 lg:border lg:border-input lg:bg-background lg:bg-none lg:text-foreground lg:shadow-none lg:hover:bg-accent lg:hover:text-accent-foreground lg:hover:opacity-100"
-              >
-                <Link to={newPostHref(uid)}>
-                  <Pencil className="h-4 w-4" /> Write a post
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="gap-2">
-                <Link to="/plan">
-                  <CalendarRange className="h-4 w-4" /> Plan a week
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="gap-2">
-                <Link to="/generate/batch">
-                  <Layers className="h-4 w-4" /> Weekly batch
-                </Link>
-              </Button>
+            {/* one filled button: the next thing to do. Everything else on the page is quieter (UX law 7) */}
+            <div className="flex flex-col gap-x-5 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="min-w-0">
+                <Button asChild size="lg" className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto">
+                  <Link to={primary.to}>
+                    <Pencil className="h-4 w-4" /> {primary.label}
+                  </Link>
+                </Button>
+                {primary.title && <p className="mt-1.5 max-w-sm truncate text-xs text-muted-foreground">{primary.title}</p>}
+              </div>
+              <nav aria-label="Other ways to start" className={`flex flex-wrap gap-x-5 text-sm font-medium text-muted-foreground ${primary.title ? "sm:self-start sm:pt-3" : ""}`}>
+                {primary.title && <Link to={newPostHref(uid)} className={QUIET}>Write a new post</Link>}
+                <Link to="/plan" className={QUIET}>Plan a week</Link>
+                <Link to="/generate/batch" className={QUIET}>Weekly batch</Link>
+                {nextAct?.kind === "diagnose" && <Link to="/coach" className={QUIET}>Get your Content Score</Link>}
+              </nav>
             </div>
           </section>
 
           {/* Get-started checklist (until every step is done) */}
           {showChecklist && (
-            <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
-              <CardContent className="space-y-3 py-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">
-                    Get set up
-                  </p>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {checklistDone} / {checklist.length} done
-                  </span>
-                </div>
+            <details className="group rounded-xl border border-border/70 bg-card">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-sm [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+                <span className="font-medium text-foreground">Get set up</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {checklistDone} of {checklist.length} done
+                </span>
+              </summary>
+              <div className="px-4 pb-4">
                 <div className="grid gap-2 sm:grid-cols-2">
                   {checklist.map((c) => (
                     <Link
@@ -694,8 +668,8 @@ export default function HomePage() {
                     </Link>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </details>
           )}
         </>
       )}
