@@ -312,11 +312,17 @@ describe("slide looks", () => {
   });
 });
 
+/**
+ * The pinned hashes were taken before renderSvg told browsers to keep text at its measured width (text-rendering on
+ * the root): with that one attribute taken out, every SVG is still byte for byte what it was.
+ */
+const asPinned = (svg: string) => svg.split(' text-rendering="geometricPrecision"').join("");
+
 describe("renderSvg", () => {
   it("writes a 1080x1350 SVG with escaped text", () => {
     const layout = layoutSlide({ title: 'Fees <5% & "fair"', body: "", index: 1, total: 3, brand }, measure);
     const svg = renderSvg(layout);
-    expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">')).toBe(true);
+    expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" text-rendering="geometricPrecision">')).toBe(true);
     expect(svg.endsWith("</svg>")).toBe(true);
     expect(svg).toContain("Fees &lt;5% &amp; &quot;fair&quot;");
     expect(svg.match(/<text /g)?.length).toBe(textNodes(layout.nodes).length);
@@ -336,7 +342,7 @@ describe("today's carousels, after the image page's additions", () => {
       layoutSlide({ title: "Message me", body: "Book a call", index: 3, total: 4, brand: kit }, measure),
     ];
     const svg = slides.map(renderSvg).join("\n");
-    expect(createHash("sha256").update(svg).digest("hex")).toBe("aa4d55a184288ce2c6ff9bf243052f002166ca1f86fe89efc633c83874427506");
+    expect(createHash("sha256").update(asPinned(svg)).digest("hex")).toBe("aa4d55a184288ce2c6ff9bf243052f002166ca1f86fe89efc633c83874427506");
     expect(svg).not.toContain("stroke");
     expect(svg).not.toContain("meet");
   });
@@ -354,7 +360,7 @@ describe("today's carousels, after the image page's additions", () => {
     expect(pic("square")).toContain('<clipPath id="c0"><rect x="0" y="0" width="100" height="60"/></clipPath>');
     expect(pic("rounded")).toContain('height="60" rx="28"/>');
     expect(pic("square", "contain")).toBe(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><image href="${PHOTO}" x="0" y="0" width="100" height="60" preserveAspectRatio="xMaxYMid meet"/></svg>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" text-rendering="geometricPrecision"><image href="${PHOTO}" x="0" y="0" width="100" height="60" preserveAspectRatio="xMaxYMid meet"/></svg>`,
     );
   });
 });
@@ -389,7 +395,7 @@ describe("today's carousels, before designs and sizes (pinned at 7e8f1493)", () 
         for (const index of [0, 1, 4]) {
           for (const extra of [{}, { align: "center" as const, scale: 1.15 }, { image: PIC, scale: 0.85 }]) {
             const layout = layoutSlide({ title, body, index, total: 5, brand: BRANDS[name], paper, font, ...extra }, measure);
-            out.push(JSON.stringify(layout), renderSvg(layout));
+            out.push(JSON.stringify(layout), asPinned(renderSvg(layout)));
           }
         }
       }
@@ -579,7 +585,7 @@ describe("today's carousels in every design, before the brand kit's second colou
           for (const index of [0, 1, 2, 4]) {
             const body = index === 2 ? "One.\nTwo.\nThree." : "Six months of expenses, kept where you can reach them.";
             const layout = layoutSlide({ title: "Know your number", body, index, total: 5, brand: b, paper, design, size, image: index === 1 ? PIC : undefined }, measure);
-            out.push(JSON.stringify(layout), renderSvg(layout));
+            out.push(JSON.stringify(layout), asPinned(renderSvg(layout)));
           }
         }
       }

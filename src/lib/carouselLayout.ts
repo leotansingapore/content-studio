@@ -566,7 +566,10 @@ export function escapeXml(text: string): string {
 
 export function renderSvg(layout: Pick<SlideLayout, "width" | "height" | "nodes">): string {
   const out = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}">`,
+    // geometricPrecision: a browser showing the picture smaller lays its text out at the shown size by default, where
+    // the system font is a wider cut (14 px runs about 12% wider per em than 38 px), so lines measured at full size
+    // ran past their boxes in a preview. This keeps every line the width it was measured and wrapped at, at any scale.
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}" text-rendering="geometricPrecision">`,
   ];
   layout.nodes.forEach((node, i) => {
     if (node.type === "image") {
