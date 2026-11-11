@@ -384,6 +384,26 @@ describe("the posted chip's views (learn-real-numbers, Leo only)", () => {
   });
 });
 
+describe("edits in Write after scheduling", () => {
+  it("say plainly the auto-post keeps the old words, and cancel it on the second press so it can be sent again", async () => {
+    const linked = { ...dated, zernio: { key: "k1", postId: "zp1", status: "scheduled" } };
+    local.setItem(DRAFTS, JSON.stringify([linked]));
+    fn.answers.cancel = () => ({ cancelled: true });
+    const onDrafts = vi.fn();
+    const props = { userId: UID, draft: linked, onDrafts, edits: true };
+    expect(text(await draw(ZernioStatus, props))).toContain("Edits here don't reach it.");
+    expect(text(await draw(ZernioStatus, { ...props, edits: undefined }))).not.toContain("Edits here");
+    button(await draw(ZernioStatus, props), (w) => w === "Cancel it, then Post it for me again").props.onClick!();
+    button(await draw(ZernioStatus, props), (w) => w === "Confirm cancel").props.onClick!();
+    await settle();
+    expect(fn.calls).toEqual([{ name: "social", action: "cancel", profileId: "me", postId: "zp1" }]);
+    expect(zernioOf(onDrafts.mock.calls)).toEqual([null]);
+    for (const status of ["published", "publishing", "cancelled"]) {
+      expect(text(await draw(ZernioStatus, { ...props, draft: { ...linked, zernio: { ...linked.zernio, status } } })), status).not.toContain("Edits here");
+    }
+  });
+});
+
 describe("a post whose account was disconnected (account_gone)", () => {
   const gone = () => {
     throw new EdgeError("The account this post goes out from isn't connected now. Reconnect it on Social accounts to see or cancel the post.", 410, "account_gone");

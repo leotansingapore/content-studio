@@ -135,7 +135,7 @@ export function ZernioChipLabel({ draft, compact }: { draft: DraftEntry; compact
 export const chipText = (label: string, numbers?: { views?: number }) =>
   numbers?.views ? `${label}, ${numbers.views.toLocaleString("en-SG")} views` : label;
 
-export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draft: DraftEntry; onDrafts: (d: DraftEntry[]) => void }) {
+export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: string; draft: DraftEntry; onDrafts: (d: DraftEntry[]) => void; edits?: boolean }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<PostView | null>(null);
@@ -196,6 +196,19 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
         {busy === "read" && <Loader2 className="h-3 w-3 animate-spin" />}
         {chipText(chip.label, posted && leo ? link.numbers : undefined)}
       </button>
+      {edits && canCancel(link) && link.status !== "publishing" && (
+        <p role="status" className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
+          The auto-post goes out with the words it had when you scheduled it. Edits here don't reach it.{" "}
+          <button
+            type="button"
+            disabled={!!busy}
+            onClick={() => (confirm ? void run("cancel") : setConfirm(true))}
+            className={`font-semibold hover:underline ${confirm ? "text-destructive" : "text-primary"} ${TOUCH}`}
+          >
+            {busy === "cancel" ? "Cancelling..." : confirm ? "Confirm cancel" : "Cancel it, then Post it for me again"}
+          </button>
+        </p>
+      )}
       {open && (
         <div className="mt-2 space-y-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
           {lines.length ? (

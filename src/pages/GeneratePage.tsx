@@ -4628,7 +4628,7 @@ function Writer() {
             )}
             {savedEntry && userId && savedEntry.zernio?.postId && (
               <div className="mb-3">
-                <ZernioStatus userId={userId} draft={savedEntry} onDrafts={() => setScheduleTick((n) => n + 1)} />
+                <ZernioStatus userId={userId} draft={savedEntry} onDrafts={() => setScheduleTick((n) => n + 1)} edits />
               </div>
             )}
             {/* Leo's panel is the schedule steps (When included), so it opens on any post not yet out; it reads ?step= and ?network= itself */}
