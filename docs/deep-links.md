@@ -589,7 +589,7 @@ who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults
 | /home | goal | Leo only. change: the goal editor open under the greeting; closing removes it | closed | replace | /home?goal=change |
 | /campaigns | goal | Leo only. change: the goal editor open under the H1; closing removes it | closed | replace | /campaigns?goal=change |
 | /campaigns | show | Leo only. done: the Done campaigns shown under Running, unfolded | folded | replace | /campaigns?show=done |
-| /campaigns/new | step | Leo only. who, angles, where, pace, review: the wizard's open step | the first unfinished step | replace | /campaigns/new?step=angles |
+| /campaigns/new | step | Leo only. who, angles, where (Where it runs), budget (only after Ads only or Posts and ads), accounts (Where it posts; not on Ads only), pace (not on Ads only), review: the wizard's open step; a step the campaign doesn't take, or one further on, opens the first unfinished | the first unfinished step | replace | /campaigns/new?step=where, /campaigns/new?step=budget |
 | /campaigns/new | audience | Leo only. an audience id: step 1 answered, the wizard opens on step 2; read once, then kept with the wizard's typed work | none | replace | /campaigns/new?audience=au-lq3k9z |
 | /campaigns/<id> | (path) | Leo only. a campaign's id: the campaign page, with Copy link beside the H1 | | push | /campaigns/c-lq3k9z |
 | /campaigns/<id> | post | Leo only. a post's number, 1-based: that post shown in the queue; out of range shows the first post not yet made | the first post not yet made | replace | /campaigns/c-lq3k9z?post=4 |
@@ -597,6 +597,7 @@ who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults
 | /campaigns/<id> | angle | Leo only. an angle's id: the queue filtered to it and its chip outlined; an unknown id shows every angle | every angle | replace | /campaigns/c-lq3k9z?angle=ang-2 |
 | /campaigns/<id> | configure | Leo only. 1: the campaign settings panel open under the header (name, pace, length) | closed | push | /campaigns/c-lq3k9z?configure=1 |
 | /campaigns/<id> | #queue | Leo only. scrolls to the review queue | top | (anchor) | /campaigns/c-lq3k9z?post=4#queue |
+| /campaigns/<id> | ads | Leo only, a campaign with ads. all: the ads group open on its grid (Ad 1 to Ad 10); send: the grid plus Send the ads to AdLauncher, each made ad's Run as an ad button. An ad's Edit opens /image?image=<its design>, and Run as an ad opens /image?image=<design>&ad=1 with the campaign's budget, days and landing page filled in | the group folded | replace | /campaigns/c-lq3k9z?ads=all |
 | /plan | #section | Leo only. autopilot, pillars | top | (anchor) | /plan#autopilot |
 | /plan | autopilot | Leo only. settings: autopilot's settings dialog | closed | push | /plan?autopilot=settings |
 | /plan | week | Leo only. a Monday, YYYY-MM-DD: that week's autopilot batch in the card; a week with no batch shows the newest | the newest batch | replace | /plan?week=2026-10-27#autopilot |

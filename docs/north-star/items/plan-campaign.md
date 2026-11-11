@@ -171,7 +171,8 @@ All strings above are exact. The nav label is `Campaigns`, the H1s are `Campaign
 ### Deep links
 
 - `/campaigns`: `goal=change` (plan-goal). No other state.
-- `/campaigns/new`: `step` = who, angles, where, pace, review (replace; default the first unfinished step); `audience` = an audience key (read once, then kept in the wizard's session state).
+- `/campaigns/new`: `step` = who, angles, where (Where it runs), budget, accounts (Where it posts), pace, review (replace; default the first unfinished step); `audience` = an audience key (read once, then kept in the wizard's session state).
+- `/campaigns/<id>`: `ads` = all (the ad grid) or send (the grid and the hand-off to AdLauncher), replace.
 - `/campaigns/<id>` has params owned by plan-campaign-page and plan-review-queue.
 - Add the builders `links.campaigns()`, `links.campaignNew({ step, audience })` and `links.campaign(id, { post, view, angle })` to `src/lib/links.ts`, and the three rows to `docs/deep-links.md`.
 
@@ -200,9 +201,71 @@ All strings above are exact. The nav label is `Campaigns`, the H1s are `Campaign
 - `src/lib/nav.test.ts` and `navRoutes.test.ts` stay green with the owner-gated tab (the More sheet for someone@example.com is unchanged).
 - `usageCaps` test: `campaign-draft` is 20.
 
+## Where it runs, Budget and the ads (built 11 Nov 2026)
+
+Leo, 11 Nov: Fastlane's campaigns make posts and ads from one plan ("10 ads launch together"); ours made posts only. Built
+on branch `ff1111-campaign`, Leo-only as the rest of the wizard.
+
+The wizard (`src/lib/campaignWizard.ts`, `src/components/campaign/BudgetStep.tsx`):
+
+- Steps are `stepsFor(runs)`: organic Who, Angles, Where it runs, Where it posts, Format and pace, Review (6); Posts and
+  ads adds Budget after Where it runs (7); Ads only is Who, Angles, Where it runs, Budget, Review (5), its length on the
+  Budget step. The header counts within them ("WHERE IT RUNS | 3 OF 7"). The step that was `where` (accounts) is now
+  `accounts`; `?step=where` is Where it runs.
+- Where it runs, "Where does this campaign run?": Organic posts ("The accounts you pick post it.", the default), Ads
+  only ("Ads go to AdLauncher, paused. Nothing is posted."), Posts and ads ("Your posts, plus ads on the same angles.").
+- Budget, "What does it spend, and who sees it?": DAILY BUDGET (US$), "At least US$25 a day.", the error "Keep the
+  daily budget between US$25 and US$100,000." under the field with Confirm off; WHERE THE ADS SEND PEOPLE, the brand
+  kit's website until typed, "An https address on your own site."; COUNTRIES, Singapore first, picked by name from the
+  list (Enter takes the first match; typing alone never adds one, so "Niger" can become "Nigeria"), up to 10, kept as
+  ISO codes; AGES 18 to 65. Any edit un-confirms the step until its Confirm, so Review never shows a budget that
+  doesn't hold. Every answer waits in `cs-campaign-wizard-<scoped>` with the rest.
+- Review adds Where it runs, Budget ("US$50 a day"), Over the run ("US$1,400 across 4 weeks"), Destination, Countries
+  and Ages, and the line "10 ads come to <price>, each written when you press Make." Ads only drops Where it posts,
+  Formats, Pace, Success looks like and the writing price chip, since nothing is posted or written at Add.
+
+The campaign (`src/lib/campaigns.ts`): `runs`, `budget {daily, url, countries, ages}` and `ads`, 10 `CampaignAd`s, ad
+i on angle i mod n, its layout from `adLayoutFor(i)` and, while they last, a competitor's running ad to remix
+(`runningAdSources`: `content-studio-competitor-ads-`, active ads only, one rival after another, pictures first, the
+longest running first). Ads only has no posts; changing its length in Configure lays out none.
+
+**The seam for the static formats:** `adLayoutFor` in `src/lib/campaigns.ts` is the one place an ad's layout is chosen.
+Today it takes /image's headline ad, quote card and stat card in turn (`AD_LAYOUTS`, which Swap layout also cycles). Once
+`src/data/staticFormats.ts` can be made from here, choose among those formats there and widen `CampaignAdLayout`.
+
+The ads group (`src/lib/campaignAds.ts`, `src/components/campaign/AdsGroup.tsx`), first on the campaign page:
+
+- Folded: a fanned stack, "10 ads launch together" (skipped ones leave the count), LAYOUTS "4 Headline ad, 3 Quote
+  card, 3 Stat card", "N made, N drafts", "Show all 10 ads" (`?ads=all`) and, once one is made, "Send the ads to
+  AdLauncher" (`?ads=send`). Open: "Hide ads" and a grid Ad 1 to Ad 10, each with its layout, the picture once made
+  (drawn on the page from its design), else the angle and "Remixes <rival>, N days running".
+- Make: the ad's design in Your images (a new one, or its unwritten one again), then `startImageWrite`, the same write
+  /image's "Write it for me" runs: one remix make as "image" on the `remix-make` cap, the seam's layout, the angle as the
+  topic (or, remixing, the rival's ad as the source and the angle in the note). One static ad at a time ("Another static
+  ad is being written. Wait for it to finish."). Made, making and draft are read from the design and the write, never
+  stored. Undo unlinks the design (it stays in Your images; the make was spent).
+- Swap layout (drafts only, Undo), Edit (/image on its design; a draft gets one first, nothing written), Skip (Undo, or
+  Skip again). No confirm boxes. When Your images already holds 20 the grid says each new ad drops the oldest there.
+- Send the ads to AdLauncher: each made ad opens /image's Run as an ad (`?image=<design>&ad=1`) with the sheet's own
+  stored form (`cs-ad-sheet-<design>`) set to Website visits, the landing page, the daily budget split across the made
+  ads (to the cent below, so together they spend what the campaign says) and the campaign's days. What was typed there
+  before (headline, text, approval code) stays. The sheet's Check and "Create paused" do the rest: AdLauncher makes it
+  PAUSED, and nothing here switches an ad on, changes a budget or spends. An ad already in the launches store reads
+  "Paused in AdLauncher"; a stat card waits for your number ("Type your own number and where it's from.", Edit).
+- What the sheet can't take stays on our side and is listed under SET THESE IN ADLAUNCHER: countries other than
+  Singapore (the sheet sends Singapore only), ages (no field), and that the budget is US$ here and the ad account's own
+  currency there. Each ad is its own AdLauncher campaign; there is no "launch all 10".
+
+Tests: `campaignWizard.test.ts` (steps per choice, counts, budget limits, landing page, countries, ages, typed work),
+`campaigns.test.ts` (10 ads, angles, the seam, sources, Ads only, status), `campaignAds.test.ts` (states and counts,
+Make on the real write with the make call faked, busy and failed makes, Swap, Skip, Edit, the split, the hand-off and
+the create-campaign call it leads to, with every AdLauncher call mocked and asserted never made).
+
 ## Open questions
 
-- Fastlane's step 2 offers "Ads only" and "Posts and ads". This spec builds organic only, since running ads is AdLauncher's job. Should "Posts and ads" hand the angles and made posts to AdLauncher? Leo decides.
+- Each ad goes to AdLauncher as its own paused campaign, one sheet at a time. A single campaign with 10 ads needs
+  AdLauncher's `create-campaign` to take several creatives; Leo decides whether to ask for it.
+- The ad budget is typed in US$, and the sheet reads it in the ad account's currency. Converting needs a rate source.
 - My posts keeps 50 entries (`MAX_DRAFTS`, shared code), so a campaign of 28 made posts pushes older ones out, and posted ones with numbers go too. Raising it to 200 is a one-line change in shared code with sync-size risk, so it waits for Leo; plan-review-queue warns before it happens meanwhile.
 - A start date other than next Monday is left out. Leo decides whether he wants it.
 - Fastlane offers 2 and 3 posts a day; this spec stops at 1 a day because the plan engine keeps one posting time per weekday. More than one a day needs a second time per day. Leo decides whether he wants it.
