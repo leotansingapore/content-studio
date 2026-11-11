@@ -2,7 +2,7 @@
 // "Ask the agent for" tiles, Agent now and the agent's composer, in place of the due card, the Today rows, "Your next
 // move", the three buttons and "Get set up". HomePage loads it lazily, so the agent engine never loads for anyone else.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import AgentNow from "@/components/home/AgentNow";
@@ -27,6 +27,9 @@ import { ownBrandName } from "@/lib/remixBrand";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { readTeamPostsHere, readTeamReviews } from "@/lib/teamPosts";
 import { useScrollToHash } from "@/lib/urlState";
+
+// Recent creations, formats, competitor ads and Publish and promote load after Home paints; a chunk gone after a deploy draws none
+const HomeRows = lazy(() => import("@/components/home/HomeRows").catch(() => ({ default: () => null })));
 
 const HOME_HEAD = "flex flex-wrap items-start justify-between gap-x-6 gap-y-3";
 const PLACEHOLDER = "Ask the agent for a post, a remix, a video or a campaign";
@@ -136,6 +139,9 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
         />
         <AskFor className="lg:col-span-2" userId={userId} onPick={(text) => composer.current?.fill(text)} />
         <AgentNow className="lg:col-start-2 lg:row-start-1 lg:self-start" now={agentNow(userId)} />
+        <Suspense fallback={null}>
+          <HomeRows className="min-w-0 lg:col-span-2" userId={userId} drafts={drafts} />
+        </Suspense>
         {/* pinned above the phone's bottom bar while Home's top part scrolls */}
         <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-20 -mx-4 bg-background px-4 py-2 sm:-mx-6 sm:px-6 lg:bottom-0 lg:col-span-2 lg:mx-0 lg:px-0">
           <Composer ref={composer} userId={userId} threadId={null} slot="home" placeholder={PLACEHOLDER} onSent={(id) => navigate(links.agent({ thread: id }))} />
