@@ -348,6 +348,18 @@ export const pageTitle = (pathname: string) => {
   return hit ? `${hit.page.title ?? (hit.page.anyLabel && !adviserBrand() ? hit.page.anyLabel : hit.page.label)} - Postmosis` : "Postmosis";
 };
 
+/**
+ * Studio's tabs for a sign-in without the catalogue (/make): Write comes before Create, so the first maker they reach
+ * is still Post, their main action, not Carousel. With the catalogue, Create (All formats) stays first, as Fastlane's.
+ */
+function makerOrder(groups: (string | undefined)[], pages: NavPage[]): (string | undefined)[] {
+  const create = groups.indexOf("Create");
+  if (create < 0 || !groups.includes("Write") || pages.some((p) => p.to === "/make")) return groups;
+  const rest = groups.filter((g) => g !== "Write");
+  rest.splice(create, 0, "Write");
+  return rest;
+}
+
 export type Tab = { to: string; label: string; end?: boolean; active: boolean };
 export type SectionTabs = { tabs: Tab[]; chips: Tab[]; back?: Tab };
 
@@ -370,7 +382,7 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   const atLeastTwo = (t: Tab[]) => (t.length > 1 ? t : []);
   if (!all.some((p) => p.group)) return { tabs: atLeastTwo(pages.map((p) => tab(p))), chips: [] };
   const open = all.find((p) => p.to === hit.page.to)?.group;
-  const groups = [...new Set(pages.map((p) => p.group))];
+  const groups = makerOrder([...new Set(pages.map((p) => p.group))], pages);
   return {
     tabs: atLeastTwo(groups.map((g) => tab(pages.find((p) => p.group === g)!, g, g === open))),
     chips: atLeastTwo(pages.filter((p) => p.group === open).map((p) => tab(p))),

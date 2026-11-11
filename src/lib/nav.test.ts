@@ -134,9 +134,12 @@ describe("nav", () => {
       expect(labels(write.chips)).toEqual(["Post", "Batch", "Answer", "VSL", "Hooks", "Script"]);
       expect(labels(sectionTabs("/generate", ANYONE).chips)).toEqual(["Post", "Batch", "Answer", "VSL", "Hooks"]);
       for (const email of [LEO, ANYONE]) for (const p of pages("write", email)) expect(sectionTabs(p, email).chips.length, p).toBeLessThanOrEqual(6);
-      // each group tab opens the group's first page this sign-in sees: Leo's Create the whole catalogue, everyone else's Carousel
+      // each group tab opens the group's first page this sign-in sees: Leo's Create the whole catalogue, everyone else's Create is Carousel
       expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/generate", "/library", "/blitz", "/people", "/slideshow", "/team"]);
-      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/carousel", "/generate", "/library", "/slideshow", "/team"]);
+      // without the catalogue, Write comes first: the first maker everyone else reaches is still Post
+      expect(labels(sectionTabs("/grid", ANYONE).tabs)).toEqual(["Overview", "Write", "Create", "Library", "Slideshows", "Approvals"]);
+      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/carousel", "/library", "/slideshow", "/team"]);
+      expect(sectionTabs("/carousel", ANYONE).tabs.find((t) => t.active)?.label).toBe("Create");
       expect(sectionTabs("/blitz", LEO).tabs.find((t) => t.active)?.label).toBe("Blitz");
       expect(sectionTabs("/people", LEO).tabs.find((t) => t.active)?.label).toBe("Influencers");
       // the slideshow tools are their own tab, so its Campaigns never sit beside Post and Video
