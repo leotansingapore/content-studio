@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
 import { jobToken, tokenSecret } from "./logic";
 
@@ -46,7 +46,9 @@ const hf: { submits: string[]; cancels: string[]; failAt: number; status: unknow
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout under load, and collection has no timeout
+{
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, HF_API_KEY: "k", HF_API_SECRET: "s", AI_BROLL_ENABLED: "1", NORTH_STAR_USERS: UID };
@@ -60,7 +62,7 @@ beforeAll(async () => {
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
   await import("./index.ts");
-}, 30_000);
+}
 afterAll(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();

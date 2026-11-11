@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import FB_ADS from "./fixtures/facebook-ads.json";
 import TIIMO from "./fixtures/ig-profile-tiimo.json";
 import TT_SEARCH from "./fixtures/tiktok-search.json";
@@ -76,7 +76,9 @@ const IG_POSTS = Array.from({ length: 40 }, (_, k) => ({
 }));
 const compare: Record<string, number> = { SleekFlow: 0.9, "respond.io": 0.7, Pipedrive: 0.65, Spotio: 0.95, Sunsama: 0.3 };
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout under load, and collection has no timeout
+{
   vi.stubGlobal("Deno", {
     serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn),
     env: { get: (k: string) => env[k] },
@@ -181,7 +183,7 @@ beforeAll(async () => {
     return new Response(PAGE(host[0].toUpperCase() + host.slice(1)), { headers: { "content-type": "text/html" } });
   });
   await import("./index.ts");
-}, 30_000);
+}
 beforeEach(() => {
   seen.length = 0;
   db.spent.length = 0;
