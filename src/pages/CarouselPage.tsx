@@ -1169,8 +1169,10 @@ export default function CarouselPage() {
     const base = snapshot.filter((s) => !s.recap);
     const old = snapshot.find((s) => s.recap);
     setAi({ status: "loading", fix });
+    const forOpen = opened.current;
     try {
       const { slides: copy, recap } = await tightenSlides(base, platform, addsRecap(base, fix), brand.emojiPolicy, professionFor(userId));
+      if (opened.current !== forOpen) return false;
       const next = withRecap(applyCopy(base, copy), recap ? { ...recap, id: old?.id } : old ?? null);
       setBeforeAi(snapshot);
       change(() => next);
@@ -1188,6 +1190,7 @@ export default function CarouselPage() {
       });
       return true;
     } catch (err) {
+      if (opened.current !== forOpen) return false;
       const e =
         err instanceof CarouselCopyError
           ? err
