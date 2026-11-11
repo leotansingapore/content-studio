@@ -19,7 +19,7 @@ import {
 import { blitzBusy, editHref, keepCard, nothingToDraw, onBlitzJob, retryCard, skipCard, startDeck, undoKeep } from "@/lib/blitzJob";
 import { links } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useUrlItem } from "@/lib/urlState";
+import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -64,7 +64,8 @@ function Blitz({ userId }: { userId: string }) {
     const offs = [onBlitzJob(redraw), onBlitzChanged(redraw)];
     return () => offs.forEach((off) => off());
   }, []);
-  const [cardParam, openCard, closeCard] = useUrlItem("card");
+  const [cardParam, , closeCard] = useUrlItem("card");
+  const update = useUrlUpdate();
   const [configure, openConfigure, closeConfigure] = useUrlItem("configure");
   const [why, setWhy] = useState(false);
   const [empty, setEmpty] = useState(false);
@@ -107,8 +108,8 @@ function Blitz({ userId }: { userId: string }) {
   const edit = (c: BlitzCard) => {
     const href = editHref(userId, c.id);
     if (!href) return;
-    // Back from the editor comes here
-    openCard(c.id);
+    // Back from the editor comes here, to this card (replace: one history entry, not two)
+    update({ card: c.id });
     navigate(href);
   };
 
