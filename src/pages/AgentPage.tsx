@@ -74,7 +74,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
   const [handover] = useState(() => ({ ask: threadId ? null : params.get("ask"), remix: threadId ? null : params.get("remix") }));
   const location = useLocation();
   // read once, as ?ask= is: the words a page handed over to send on arrival
-  const [sends] = useState(() => handoff(location.state, handover.ask).send);
+  const [sends, setSends] = useState(() => handoff(location.state, handover.ask).send);
   const from = handoff(location.state, null).from;
   // once per arrival: a second effect run, or New chat on this same page, never sends it again
   const sent = useRef(false);
@@ -84,6 +84,8 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
       sent.current = true;
       const id = send(userId, null, handover.ask);
       if (id) return navigate(links.agent({ thread: id }), { replace: true, state: from ? { from } : null });
+      // the chat couldn't be saved: the words go in the composer instead, never dropped
+      setSends(false);
     }
     if (!params.has("ask") && !params.has("remix")) return;
     setParams(
