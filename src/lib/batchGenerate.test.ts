@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt", user: { id: UID, email: "someone@example.com" } } } }) } },
 }));
 
-import { ANSWER_COUNT, erroredVariant, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, WRITER_FAILED, WRITER_OFFLINE, type GeneratePostPayload } from "./batchGenerate";
+import { ANSWER_COUNT, erroredVariant, streamAnswers, streamOnePost, streamVsl, VSL_COUNT, WRITER_FAILED, WRITER_OFFLINE, writerRefusal, type GeneratePostPayload } from "./batchGenerate";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -229,5 +229,13 @@ describe("erroredVariant", () => {
     expect(erroredVariant({ variantIndex: 0 })).toBe(0);
     expect(erroredVariant({})).toBeNull();
     expect(erroredVariant({ variantIndex: "1" })).toBeNull();
+  });
+});
+
+describe("writerRefusal", () => {
+  it("shows the writer's own refusal without stray spaces, and a plain line when it is blank", async () => {
+    const refused = (error: unknown) => new Response(JSON.stringify({ error }), { status: 400 });
+    expect(await writerRefusal(refused("  That topic is too long.\n"))).toBe("That topic is too long.");
+    expect(await writerRefusal(refused("   "))).toBe(WRITER_FAILED);
   });
 });
