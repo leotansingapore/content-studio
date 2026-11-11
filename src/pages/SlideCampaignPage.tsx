@@ -196,7 +196,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
       setBusy(kind);
       try {
         await saver.now(); // the server works from the saved campaign: send an edit still waiting first
-        const r = await callFn<{ run?: Run; status?: CampaignRowView["status"]; next_run_at?: string }>("slide-campaigns", body);
+        const r = await callFn<{ run?: Run; status?: CampaignRowView["status"]; next_run_at?: string; review?: string }>("slide-campaigns", body);
         if (r.run) {
           setPreview(r.run);
           setCaption(null);
@@ -206,7 +206,10 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
           const sentId = body.run_id;
           setRuns((x) => x.map((y) => (y.id === sentId ? { ...y, status: "scheduled", scheduled_for: new Date().toISOString() } : y)));
           setPreview((p) => (p && p.id === sentId ? { ...p, status: "scheduled" } : p));
-          toast({ title: publishMode(row.publish) === "direct" ? "Sent to your TikTok profile" : "Sent to your TikTok drafts", description: "It shows in TikTok within a few minutes." });
+          if (r.review) {
+            setRow((x) => ({ ...x, last_error: r.review! }));
+            toast({ title: "Sent to your TikTok drafts for review", description: r.review });
+          } else toast({ title: publishMode(row.publish) === "direct" ? "Sent to your TikTok profile" : "Sent to your TikTok drafts", description: "It shows in TikTok within a few minutes." });
         }
         if (r.status) setRow((x) => ({ ...x, status: r.status!, next_run_at: r.next_run_at ?? null }));
       } catch (e) {
