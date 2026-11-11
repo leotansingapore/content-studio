@@ -1000,8 +1000,11 @@ function Writer() {
     const key = disclosure.join(",");
     if (key === savedDisclosure.current) return;
     savedDisclosure.current = key;
-    const e = getDraftById(userId, currentDraftId);
-    if (e && (e.disclosure ?? []).join(",") !== key) upsertDraft(userId, { ...e, disclosure: disclosure.length ? disclosure : undefined });
+    for (const id of [currentDraftId, ...versions.map((v) => v.draftId)]) {
+      const e = getDraftById(userId, id);
+      if (e && (e.disclosure ?? []).join(",") !== key) upsertDraft(userId, { ...e, disclosure: disclosure.length ? disclosure : undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disclosure, userId, currentDraftId]);
 
   // Compliance flags + dismiss tracking.
@@ -2479,6 +2482,7 @@ function Writer() {
       scheduledFor: existing?.scheduledFor,
       postedAt: existing?.postedAt,
       repeat: existing?.repeat,
+      disclosure: disclosure.length ? disclosure : undefined,
       ...(labels ? { labels } : {}),
     });
   };
