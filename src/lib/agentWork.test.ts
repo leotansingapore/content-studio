@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AgentCard } from "@/lib/agentCards";
 import type { AgentMsg, AgentThread } from "@/lib/agentThreads";
-import { cardType, workCounters, workOf } from "./agentWork";
+import { cardType, ruleRows, workCounters, workOf } from "./agentWork";
 
 const card = (over: Partial<AgentCard>): AgentCard => ({ id: "k1", kind: "make", title: 'Carousel: "habits"', line: "", needs: [], plan: { plan: "remix", format: "carousel" }, status: "proposed", proposedAt: "2026-11-11T02:00:00.000Z", ...over });
 const msg = (id: string, over: Partial<AgentMsg>): AgentMsg => ({ id, at: "2026-11-11T01:00:00.000Z", role: "agent", ...over });
@@ -38,5 +38,14 @@ describe("Your work", () => {
   it("says so when there is nothing", () => {
     expect(workCounters(workOf([]))).toEqual(["Nothing needs you", "Nothing in flight", "Nothing made yet"]);
     expect(workCounters(workOf([thread("t", [msg("m", { card: card({}) })])]))[0]).toBe("1 needs you");
+  });
+
+  it("gives every priced card its format, cost, failure and posting rules, and an unpriced one none", () => {
+    const priced = card({ price: { kind: "about", usd: 0.02 } as AgentCard["price"] });
+    expect(ruleRows(priced).map((r) => r.label)).toEqual(["Format", "Cost", "If it fails", "Posting"]);
+    expect(ruleRows(priced)[0].value).toBe("Carousel");
+    // a campaign's writing is priced but posts nothing by itself to say so about
+    expect(ruleRows(card({ kind: "campaign", plan: { plan: "campaign" }, price: priced.price })).map((r) => r.label)).toEqual(["Format", "Cost", "If it fails"]);
+    expect(ruleRows(card({ kind: "learning", plan: { plan: "learning" } }))).toEqual([]);
   });
 });

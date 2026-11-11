@@ -15,6 +15,7 @@ import { leftOf, limitOf } from "@/lib/agentBudget";
 import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
 import { fieldsOf, MAX_SCRIPT_WORDS, offerChips, subjectOf, withInput } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
+import { cardType, ruleRows } from "@/lib/agentWork";
 import type { Usage } from "@/lib/aiUsage";
 import { links } from "@/lib/links";
 import { speakers } from "@/lib/talkingHead";
@@ -141,7 +142,8 @@ export default function ActionCard({
   const voice = str(card.plan.voice);
   const who = str(card.plan.who);
   const s = card.kind === "video" && who !== undefined ? speakers(userId) : null;
-  const rows = (card.details ?? []).filter((d) => !(voice !== undefined && d.label === "Voice") && !(s && d.label === "Who appears"));
+  // the card's own rows, then the rules every priced card states (format, cost, a failure, posting)
+  const rows = [...(card.details ?? []).filter((d) => !(voice !== undefined && d.label === "Voice") && !(s && d.label === "Who appears")), ...ruleRows(card)];
   // the line under Approve: today's reason, else the one a refused press left (the engine read the uses again)
   const shown = reason ?? (status === "proposed" ? (card.error ?? null) : null);
   // the engine's cheaper chips, unless a refused press already put them under the message
@@ -151,7 +153,10 @@ export default function ActionCard({
   return (
     <section aria-label={card.title} className="w-full max-w-xl rounded-xl border border-border bg-card shadow-card">
       <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2">
-        <span className={cn("text-[11px] font-semibold tracking-[0.14em]", tag.cls)}>{tag.text}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={cn("text-[11px] font-semibold tracking-[0.14em]", tag.cls)}>{tag.text}</span>
+          <span className="truncate rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground">{cardType(card)}</span>
+        </span>
         <span className="text-[11px] tabular-nums text-muted-foreground">{hhmm(card.proposedAt)}</span>
       </header>
       <div className="space-y-3 px-4 py-3">

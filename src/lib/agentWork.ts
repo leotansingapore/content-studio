@@ -54,3 +54,19 @@ export const workCounters = (w: ReturnType<typeof workOf>): [string, string, str
   w.making.length ? `${w.making.length} in flight` : "Nothing in flight",
   w.made.length ? `${w.made.length} made` : "Nothing made yet",
 ];
+
+const MAKES: ReadonlySet<AgentCard["kind"]> = new Set(["make", "video", "explainer", "image"]);
+/**
+ * The rules every priced card states under Details (Fastlane's Format, Cost and Changes rows): what it is, that the
+ * press is what spends, what a failure costs, and that nothing is posted. A card with no price changes a saved thing
+ * and has none.
+ */
+export function ruleRows(card: AgentCard): { label: string; value: string }[] {
+  if (!card.price) return [];
+  return [
+    { label: "Format", value: cardType(card) },
+    { label: "Cost", value: "Nothing is spent until you approve." },
+    { label: "If it fails", value: "When the maker never answers, the use comes back and the card says so. Making it again spends again." },
+    ...(MAKES.has(card.kind) ? [{ label: "Posting", value: "Nothing is posted. It lands in this chat for you to open, change or schedule." }] : []),
+  ];
+}

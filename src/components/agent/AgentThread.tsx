@@ -11,6 +11,7 @@ import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent
 import { chipAction, DONE, isAppPath, type DockIdentity } from "@/components/agent/dockActions";
 import FbChip from "@/components/agent/FbChip";
 import MadeBlock, { madeNoun } from "@/components/agent/MadeBlock";
+import MakingBlock from "@/components/agent/MakingBlock";
 import Receipt from "@/components/agent/Receipt";
 import { Button } from "@/components/ui/button";
 import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
@@ -283,16 +284,7 @@ export default function AgentThread({
                 <p className={cn("max-w-[92%] whitespace-pre-wrap break-words text-sm leading-relaxed", m.error && "text-destructive")}>{m.text}</p>
               )}
               {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(t)} />}
-              {m.job?.state === "running" && !m.card && (
-                <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                  <Loader2 className="h-3 w-3 animate-spin" /> {turn?.msg === m.id && turn.line ? turn.line : "Making"}
-                </p>
-              )}
-              {m.job?.state === "running" && m.card?.status === "approved" && turn?.msg === m.id && turn.line && (
-                <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                  <Loader2 className="h-3 w-3 animate-spin" /> {turn.line}
-                </p>
-              )}
+              {m.job?.state === "running" && <MakingBlock title={m.job.title ?? m.card?.title ?? ""} startedAt={m.job.startedAt} step={turn?.msg === m.id ? turn.line : undefined} />}
               {m.job?.state === "done" && <MadeBlock userId={userId} job={{ ...m.job, open: madeOpen(userId, m.job) }} />}
               {m.receipt && threadId && (
                 <Receipt
