@@ -14,10 +14,13 @@ vi.mock("@/lib/slideshowJob", async (orig) => ({
   slideshowJob: () => fake.show,
   slideshowBusy: () => false,
 }));
+// a business brand: no bundled personal finance trends or news stand in as ideas
+vi.mock("@/lib/ideasInbox", async (orig) => ({ ...(await orig<typeof import("./ideasInbox")>()), poolIdeas: () => [] }));
 vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix")>()), requestMake }));
 
 import { DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, type BlitzCard } from "./blitz";
-import { blitzBusy, keepCard, retryCard, skipCard, undoKeep } from "./blitzJob";
+import { blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, undoKeep, whyEmpty } from "./blitzJob";
+import { FORMAT_TRENDS } from "./formatTrends";
 import { DEFAULT_CHOICES, savePostChoices } from "./postChoices";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
@@ -149,5 +152,27 @@ describe("keep and skip", () => {
     undo();
     expect(loadSlideshows(UID).some((s) => s.id === "s1")).toBe(true);
     expect(loadBlitz(UID).cards[0].state).toBe("new");
+  });
+});
+
+describe("a brand with competitors tracked, no ads, no winners and no ideas", () => {
+  beforeEach(() => {
+    localStorage.setItem(`content-studio-competitors-${UID}`, JSON.stringify({ list: [{ id: "rival-ab12", name: "Rival", fbPageId: "123456", handles: {} }], dismissed: [] }));
+  });
+
+  it("still has a deck from the format drop, however old the drop is", () => {
+    const later = new Date(Date.parse(`${FORMAT_TRENDS.fetched}T00:00:00Z`) + 60 * 86_400_000);
+    expect(FORMAT_TRENDS.items.length).toBeGreaterThan(0);
+    expect(loadPools(UID, later).trends).toHaveLength(FORMAT_TRENDS.items.length);
+    expect(nothingToDraw(UID, later)).toBe(false);
+  });
+
+  it("says what is missing once Trends is switched off, and never to add a competitor", () => {
+    saveBlitz(UID, { day: deckDay(), mix: { ...DEFAULT_MIX, sources: { ads: true, trends: false, winners: true } }, cards: [] });
+    expect(nothingToDraw(UID)).toBe(true);
+    const why = whyEmpty(UID);
+    expect(why.action).toBe("configure");
+    expect(why.line).toContain("no running ads found for your competitors");
+    expect(why.line).toContain("Trends switched off in Configure");
   });
 });

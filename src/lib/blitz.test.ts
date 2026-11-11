@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_MIX, candidatesOf, cleanMix, deckDay, keyAction, loadBlitz, pickDeck, rememberUsed, saveBlitz, sourceChip, spread, usedKeys, whyLine,
+  DEFAULT_MIX, candidatesOf, emptyReason, cleanMix, deckDay, keyAction, loadBlitz, pickDeck, rememberUsed, saveBlitz, sourceChip, spread, usedKeys, whyLine,
   type BlitzMix, type Pools,
 } from "./blitz";
 import { links } from "./links";
@@ -82,6 +82,18 @@ describe("the deck", () => {
     expect(next.some((c) => used.has(c.source!.key))).toBe(false);
   });
 
+  it("deals from trends alone, and brings a used source back only when the deck would be short", () => {
+    const only = pools({ ads: [], winners: [], trends: Array.from({ length: 9 }, (_, i) => trend(i, "slideshow", 100 + i)) });
+    const first = pickDeck(only, mix({ remix: 50 }), new Set(), { now: NOW.getTime() });
+    expect(first).toHaveLength(9);
+    const used = new Set(first.slice(0, 6).map((c) => c.source!.key));
+    const next = pickDeck(only, mix(), used, { now: NOW.getTime() });
+    // the 3 fresh ones first, then the used ones
+    expect(next).toHaveLength(9);
+    expect(next.slice(0, 3).some((c) => used.has(c.source!.key))).toBe(false);
+    expect(next.slice(3).every((c) => used.has(c.source!.key))).toBe(true);
+  });
+
   it("draws slideshows from your Media at the own-media share, and only when Media has pictures", () => {
     const deck = pickDeck(pools(), mix({ slideshow: 100, own: 30 }), new Set(), { media: true, now: NOW.getTime() });
     expect(deck.filter((c) => c.pictures === "mine")).toHaveLength(3);
@@ -114,6 +126,23 @@ describe("why this", () => {
     const [a] = candidatesOf({ ads: [ad(1, 32)], trends: [], winners: [] }, NOW.getTime());
     expect(sourceChip({ source: a.source })).toBe("From Rival B's ad");
     expect(sourceChip({ source: null })).toBe("From your ideas");
+  });
+});
+
+describe("nothing to deal", () => {
+  const none = { competitors: 0, ads: 0, trends: 0, winners: 0, ideas: 0 };
+
+  it("names what is actually missing, never a competitor that is already tracked", () => {
+    expect(emptyReason(none, DEFAULT_MIX)).toEqual({ line: "Add a competitor so Blitz has ads to remix.", action: "competitor" });
+    const tracked = emptyReason({ ...none, competitors: 3 }, DEFAULT_MIX);
+    expect(tracked.line).toBe("Nothing to deal today: no running ads found for your competitors, no trending formats in the latest drop, no winning posts yet and no ideas yet.");
+    expect(tracked.action).toBe("ideas");
+    expect(tracked.line).not.toContain("Add a competitor");
+  });
+
+  it("points at Configure when a switched-off source has something in it", () => {
+    const off = emptyReason({ ...none, competitors: 2, trends: 9 }, { ...DEFAULT_MIX, sources: { ads: true, trends: false, winners: true } });
+    expect(off).toEqual({ line: "Nothing to deal today: no running ads found for your competitors, no winning posts yet, no ideas yet and Trends switched off in Configure.", action: "configure" });
   });
 });
 
