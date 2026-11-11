@@ -14,7 +14,7 @@ export interface JumpItem {
 
 export const CREATE_ITEMS: JumpItem[] = [
   { to: "/generate", label: "Write a post", group: "Create", keywords: "new post compose" },
-  { to: "/generate/batch", label: "Write a batch of posts", group: "Create", keywords: "new several week" },
+  { to: "/generate/batch", label: "Write a week of posts", group: "Create", keywords: "new several batch" },
   { to: "/carousel", label: "Make a carousel", group: "Create", keywords: "new slides pdf" },
   { to: "/edit", label: "Edit a video", group: "Create", keywords: "new reel clip captions" },
 ];
@@ -84,13 +84,14 @@ export function pageItems(email: string): JumpItem[] {
       to: p.to,
       label: p.title ?? p.label,
       group: s.label,
-      keywords: `${p.label} ${KEYWORDS[p.to] ?? ""}`.trim(),
+      // its old names and its old section's too, so "radar", "studio" or "F.A.D.S." still find the page
+      keywords: `${p.label} ${p.was ?? ""} ${s.was ?? ""} ${KEYWORDS[p.to] ?? ""}`.replace(/\s+/g, " ").trim(),
     })),
   );
 }
 
-// an apostrophe joins its word ("What's working" is whats working), other marks split words
-const norm = (s: string) => s.toLowerCase().replace(/['\u2019]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+// an apostrophe or a full stop joins its word ("What's working" is whats working, "F.A.D.S." is fads), other marks split words
+const norm = (s: string) => s.toLowerCase().replace(/['\u2019.]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
 /**
  * Items matching every word typed, best first: label or the page's own address word starts with the
@@ -105,15 +106,17 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
   items.forEach((item, i) => {
     const label = norm(item.label);
     const address = norm(item.to.split("/").pop() ?? "");
-    const hay = `${label} ${address} ${norm(item.group)} ${norm(item.keywords)}`;
-    if (!words.every((w) => hay.includes(w))) return;
-    const score = label.startsWith(q) || address.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : 2;
+    const own = `${label} ${address} ${norm(item.keywords)}`;
+    if (!words.every((w) => `${own} ${norm(item.group)}`.includes(w))) return;
+    // a page that says the words itself comes before one that is only in a section named so ("insights" is Results)
+    const score = label.startsWith(q) || address.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : words.every((w) => own.includes(w)) ? 2 : 3;
     scored.push({ item, score, exact: label === q || address === q ? 0 : 1, len: label.length, i });
   });
   // the page whose name or address is exactly what was typed ("make" is /make), then a create action before a page
   // ("write" starts a post, not a VSL), then the shorter label is the closer match
   // ("Brand kit" before "Brand Brain" for "brand"); each address once, at its best place (a recent page is a page too)
-  const create = (s: { item: JumpItem }) => (s.item.group === "Create" ? 0 : 1);
+  // by identity, not by group name: the Create section's own pages carry that name too
+  const create = (s: { item: JumpItem }) => (CREATE_ITEMS.includes(s.item) ? 0 : 1);
   const seen = new Set<string>();
   return scored
     .sort((a, b) => a.score - b.score || a.exact - b.exact || create(a) - create(b) || a.len - b.len || a.i - b.i)

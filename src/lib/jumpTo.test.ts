@@ -265,3 +265,17 @@ describe("Jump to over the whole list", () => {
   });
 });
 
+describe("old names", () => {
+  const leo = pageItems("tanjunsing@gmail.com");
+  const anyone = pageItems("user@demo.com");
+  it("finds every page by what it or its section was called before the overhaul", () => {
+    for (const [q, to] of [["brand brain", "/recruit"], ["my playbook", "/playbook"], ["f.a.d.s.", "/fads"], ["fads", "/fads"], ["vsl", "/generate/vsl"], ["batch", "/generate/batch"], ["ai agent", "/recruit/agent"], ["influencers", "/people"], ["libraries", "/design/libraries"], ["roadmap", "/feedback"], ["analytics", "/analytics"]] as const)
+      expect(searchJump(leo, q)[0]?.to, q).toBe(to);
+    // a section's old name lists its pages: Radar's are under Insights now, Studio's under Create and Library
+    expect(searchJump(anyone, "radar").map((i) => i.to)).toEqual(expect.arrayContaining(["/swipe", "/carousels", "/working", "/following"]));
+    expect(searchJump(anyone, "studio").map((i) => i.to)).toEqual(expect.arrayContaining(["/studio", "/generate", "/library", "/drafts"]));
+    expect(searchJump(anyone, "strategy").map((i) => i.to)).toEqual(expect.arrayContaining(["/calendar", "/plan"]));
+    expect(searchJump(anyone, "learn").map((i) => i.to)).toEqual(expect.arrayContaining(["/welcome", "/academy", "/create-guide", "/tutorial"]));
+    expect(searchJump(anyone, "grow")[0].to).toBe("/recruit");
+  });
+});
