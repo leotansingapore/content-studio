@@ -62,5 +62,10 @@ describe("a page handing the agent a request", () => {
     expect(handoff({ from: { label: "Elsewhere", path: "https://example.com" } }, null).from).toBeNull();
     expect(handoff({ from: { label: "Elsewhere", path: "//example.com" } }, null).from).toBeNull();
     expect(handoff({ from: { label: " ", path: "/make" } }, null).from).toBeNull();
+    // a backslash after the first slash is another site to a browser, and a path with a space or line break is no page
+    expect(handoff({ from: { label: "Elsewhere", path: "/\\example.com" } }, null).from).toBeNull();
+    for (const path of ["/make here", "/make\n", "/make\u0000"]) expect(handoff({ from: { label: "Formats", path } }, null).from, JSON.stringify(path)).toBeNull();
+    // a long label is cut to fit the chip
+    expect(handoff({ from: { label: "x".repeat(120), path: "/make" } }, null).from?.label).toHaveLength(80);
   });
 });
