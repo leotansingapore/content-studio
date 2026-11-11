@@ -50,6 +50,12 @@ describe("planSlotWriteUrl", () => {
   it("just opens the calendar post once it is written", () => {
     expect(planSlotWriteUrl(item("a", "Mon"), [post({ id: "plan_a", draft: "Written" })])).toBe("/generate?draft=plan_a");
   });
+
+  it("treats a calendar post holding only blank lines as unwritten, so Write still fills it with the plan's prefill", () => {
+    const url = new URL(planSlotWriteUrl(item("a", "Mon"), [post({ id: "plan_a", draft: " \n\n " })]), "https://x");
+    expect(url.searchParams.get("draft")).toBe("plan_a");
+    expect(url.searchParams.get("ctx")).toBe("Angle a");
+  });
 });
 
 import { angleText, generatePlan, pillarGrid, planItemToGenerateUrl, rebuildPlan, recentThemes, relabelSlot, slotLabel, stageSplit, weightedOrder } from "./contentPlan";
