@@ -217,7 +217,7 @@ describe("Top posts, the Singapore ads and Trends", () => {
   it("leave another brand's pages, and its Top posts page opens on News: feeds and mentions", () => {
     device(COACH);
     const studio = draw(createElement(StudioPage), "/studio");
-    expect(studio).toContain('id="formats"');
+    expect(studio).toContain("Ways to make");
     expect(studio).toContain('id="latest"');
     for (const gone of ["/swipe", 'id="ads"', 'id="trending"', "Ads running now", "Trending"]) expect(studio, gone).not.toContain(gone);
     const guide = draw(createElement(CreateGuidePage), "/create-guide");

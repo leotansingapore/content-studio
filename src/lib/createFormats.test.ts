@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { CREATE_FORMATS } from "./createFormats";
+import { CREATE_FORMATS, MORE_FORMATS } from "./createFormats";
 import { pageFor } from "./nav";
 
 describe("CREATE_FORMATS", () => {
-  it("only lists pages every sign-in can open, so the create menu never leads to Page not found", () => {
-    for (const f of CREATE_FORMATS) {
+  it("only lists pages every sign-in can open, so Create's first screen never leads to Page not found", () => {
+    for (const f of [...CREATE_FORMATS, ...MORE_FORMATS]) {
       const hit = pageFor(f.to);
       expect(hit, f.to).not.toBeNull();
       expect(hit!.page.to, f.to).toBe(f.to);
       expect(hit!.page.owners, f.to).toBeUndefined();
       expect(hit!.page.show, f.to).toBeUndefined();
     }
+  });
+
+  it("offers at most six big choices, and no maker twice", () => {
+    expect(CREATE_FORMATS.length).toBeLessThanOrEqual(6);
+    const all = [...CREATE_FORMATS, ...MORE_FORMATS].map((f) => f.to);
+    expect(new Set(all).size).toBe(all.length);
   });
 
   it("starts with a plain post, the New post button's own target", () => {
