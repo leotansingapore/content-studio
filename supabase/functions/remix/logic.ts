@@ -184,6 +184,7 @@ export const MEME_UNSAFE_AT = 0.4;
 export const STATIC_LAYOUTS = [
   "text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline",
   "lofi-note", "concern-answer", "story-reply", "page-post", "email-screenshot",
+  "playful-apology", "phone-share", "share-popup", "whiteboard", "anti-design",
 ] as const;
 export type StaticLayout = (typeof STATIC_LAYOUTS)[number];
 export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
@@ -198,6 +199,11 @@ export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
   "story-reply": { question: 14, answer: 10, detail: 16 },
   "page-post": { post: 40, headline: 8, line: 12 },
   "email-screenshot": { subject: 10, body: 45, button: 4 },
+  "playful-apology": { sorry: 4, one: 14, two: 14, three: 14, fact: 16, signoff: 10 },
+  "phone-share": { sender: 2, message: 25, caption: 8 },
+  "share-popup": { headline: 10, what: 6, tagline: 8 },
+  whiteboard: { title: 10, one: 4, two: 4, three: 4, four: 4, answer: 20 },
+  "anti-design": { headline: 12, aside: 6, one: 6, two: 6, three: 6, close: 14 },
 };
 export const isStaticLayout = (l: unknown): l is StaticLayout => (STATIC_LAYOUTS as readonly unknown[]).includes(l);
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
@@ -941,6 +947,38 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
     "- words.subject: the subject, at most 10 words, the way a person writes one.",
     "- words.body: the email, at most 45 words, plain and personal.",
     "- words.button: the link's words, at most 4 words, like Start a lesson.",
+  ],
+  "playful-apology": [
+    "a playful apology in bold type for the funny side effects of what the brand does: a big sorry, three small apologies, one plain line on what the brand does and a cheeky sign-off.",
+    "- words.sorry: the big apology, at most 4 words, like We're sorry.",
+    "- words.one, words.two and words.three: three things the brand is playfully sorry for, each a side effect of it doing its job, at most 14 words each.",
+    "- words.fact: what the brand does, only from the facts given, at most 16 words.",
+    "- words.signoff: the one thing it isn't sorry about, at most 10 words.",
+  ],
+  "phone-share": [
+    "the brand's product shared to the buyer's phone by a friend, as a photo with the friend's note: the share is the ad.",
+    "- words.sender: the friend's first name, at most 2 words.",
+    "- words.message: the friend's note with the photo, casual, at most 25 words, naming the brand and what it does, only from the facts given.",
+    "- words.caption: what the photo shows, at most 8 words.",
+  ],
+  "share-popup": [
+    "the brand sharing what it sells to your phone in a pop-up you can accept or decline, under a playful headline.",
+    "- words.headline: the headline over the pop-up, at most 10 words, playing on saying yes or no to it.",
+    "- words.what: what is shared, at most 6 words, finishing the line 'the brand would like to share', like a cold brew.",
+    "- words.tagline: a short line under the brand's name, at most 8 words.",
+  ],
+  whiteboard: [
+    "a whiteboard explaining one idea in marker: a question at the top, four bubbles of what people try or juggle, and arrows into one answer that names the brand.",
+    "- words.title: the question at the top, at most 10 words.",
+    "- words.one, words.two, words.three and words.four: four short bubbles, at most 4 words each.",
+    "- words.answer: the answer in the box, at most 20 words, naming the brand and what it does, only from the facts given.",
+  ],
+  "anti-design": [
+    "a deliberately rough ad: a blunt handwritten headline, a small aside, three scrawled notes with arrows pointing at the product, and one plain line at the bottom.",
+    "- words.headline: the blunt headline, at most 12 words.",
+    "- words.aside: a small aside under it, at most 6 words, with no brackets.",
+    "- words.one, words.two and words.three: three scrawled notes about the product, at most 6 words each, only from the facts given.",
+    "- words.close: the plain line at the bottom, at most 14 words: the brand and one fact.",
   ],
 };
 
