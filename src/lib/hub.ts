@@ -64,10 +64,14 @@ export function hubAccess(m: HubMembership | null): "admin" | "member" | "locked
 }
 
 export async function fetchMembership(): Promise<HubMembership | null> {
-  const { data } = await supabase
+  const uid = (await supabase.auth.getSession()).data.session?.user.id;
+  if (!uid) return null;
+  const { data, error } = await supabase
     .from("hub_memberships")
     .select("user_id,email,status,is_admin,industry,current_period_end")
+    .eq("user_id", uid)
     .maybeSingle();
+  if (error) throw error;
   return (data as HubMembership | null) ?? null;
 }
 
