@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import LibraryViews from "@/components/library/LibraryViews";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { links } from "@/lib/links";
@@ -779,6 +780,7 @@ export default function DraftsPage() {
 
   return (
     <div className="space-y-6">
+      <LibraryViews />
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           All posts

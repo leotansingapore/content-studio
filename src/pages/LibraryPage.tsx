@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { Link } from "react-router-dom";
 import { LibraryBig, Search, X } from "lucide-react";
 import LibraryCard from "@/components/library/LibraryCard";
+import LibraryViews from "@/components/library/LibraryViews";
 import { thumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
@@ -104,6 +105,7 @@ function Library({ userId }: { userId: string }) {
     <div className="space-y-5">
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-8">
         <div className="min-w-0 space-y-4">
+          <LibraryViews />
           <header className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Library</h1>
             <Button size="sm" variant="outline" onClick={() => openPanel("making")} className={`lg:hidden ${TOUCH}`}>

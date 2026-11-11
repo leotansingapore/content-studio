@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { Check, ChevronDown, ChevronLeft } from "lucide-react";
+import { isLibraryView } from "@/components/library/LibraryViews";
 import { sectionTabs, type Tab } from "@/lib/nav";
 
 export const tabClass = (active: boolean) =>
@@ -127,7 +128,10 @@ function Row({ tabs, picker }: { tabs: Tab[]; picker: Tab[] }) {
 
 export default function SectionTabs({ email }: { email: string }) {
   const { pathname } = useLocation();
-  const { tabs, picker, back } = sectionTabs(pathname, email);
+  const read = sectionTabs(pathname, email);
+  // the Library's four views switch on the page itself (LibraryViews), so their tab carries no second list of them
+  const { tabs, back } = read;
+  const picker = isLibraryView(pathname) ? [] : read.picker;
   if (back)
     return (
       <nav aria-label="Section" data-nav className="mb-4">

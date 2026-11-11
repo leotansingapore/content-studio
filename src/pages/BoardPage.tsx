@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil, Send } from "lucide-react";
 
+import LibraryViews from "@/components/library/LibraryViews";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Card, CardContent } from "@/components/ui/card";
@@ -418,6 +419,7 @@ export default function BoardPage() {
 
   return (
     <div className="space-y-4">
+      <LibraryViews />
       <div className="flex items-center gap-1">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
           <Columns3 className="h-5 w-5" /> Board
